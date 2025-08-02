@@ -15,7 +15,18 @@ import uuid
 router = APIRouter()
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register", 
+    response_model=UserResponse, 
+    status_code=status.HTTP_201_CREATED,
+    summary="Register a new user",
+    description="Create a new user account with email, username, and password",
+    responses={
+        201: {"description": "User successfully created"},
+        409: {"description": "Email or username already exists"},
+        422: {"description": "Validation error"}
+    }
+)
 async def register_user(
     user_data: UserRegister,
     session: AsyncSession = Depends(get_async_session)
@@ -51,7 +62,17 @@ async def register_user(
     return user
 
 
-@router.post("/login", response_model=Token)
+@router.post(
+    "/login", 
+    response_model=Token,
+    summary="User login",
+    description="Authenticate user and return access and refresh tokens",
+    responses={
+        200: {"description": "Login successful, tokens returned"},
+        401: {"description": "Invalid credentials"},
+        400: {"description": "Inactive user account"}
+    }
+)
 async def login_user(
     user_data: UserLogin,
     session: AsyncSession = Depends(get_async_session)

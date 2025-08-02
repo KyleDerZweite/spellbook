@@ -29,6 +29,17 @@ app = FastAPI(
     version=settings.VERSION,
     debug=settings.DEBUG,
     lifespan=lifespan,
+    docs_url="/docs",  # Swagger UI (default)
+    redoc_url="/redoc",  # ReDoc alternative
+    openapi_url="/openapi.json",  # OpenAPI schema
+    contact={
+        "name": "Spellbook Team",
+        "url": "https://github.com/spellbook/spellbook",
+    },
+    license_info={
+        "name": "GPLv3",
+        "url": "https://www.gnu.org/licenses/gpl-3.0.html",
+    },
 )
 
 # Add CORS middleware

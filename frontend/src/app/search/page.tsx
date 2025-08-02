@@ -2,7 +2,7 @@ export default function SearchPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-center mb-8">
-        🔮 Spellbook Card Search
+        Spellbook Card Search
       </h1>
       <div className="max-w-2xl mx-auto">
         <div className="bg-background-secondary border border-border-DEFAULT rounded-lg p-6">
@@ -11,11 +11,11 @@ export default function SearchPage() {
             Your card collection management platform is ready for development.
           </p>
           <div className="grid gap-2 text-sm">
-            <div>✅ Backend API with FastAPI</div>
-            <div>✅ Frontend with Next.js 14</div>
-            <div>✅ Database models and migrations</div>
-            <div>✅ Authentication system</div>
-            <div>✅ Development environment</div>
+            <div>• Backend API with FastAPI</div>
+            <div>• Frontend with Next.js 14</div>
+            <div>• Database models and migrations</div>
+            <div>• Authentication system</div>
+            <div>• Development environment</div>
           </div>
           <div className="mt-6 p-4 bg-background-tertiary rounded-lg">
             <h3 className="font-medium mb-2">Next Steps:</h3>

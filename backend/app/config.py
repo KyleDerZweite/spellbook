@@ -27,7 +27,28 @@ class Settings(BaseSettings):
     # App settings
     PROJECT_NAME: str = "Spellbook API"
     VERSION: str = "1.0.0"
-    DESCRIPTION: str = "Card collection management API"
+    DESCRIPTION: str = """
+    **Spellbook Card Collection Management API**
+    
+    A comprehensive API for managing trading card collections with features including:
+    
+    * **User Authentication** - JWT-based auth with refresh tokens
+    * **Card Database** - Search and manage card information
+    * **Collection Management** - Track your card collection
+    * **Deck Building** - Create and manage decks
+    * **Statistics** - Collection insights and analytics
+    
+    ## Getting Started
+    
+    1. Register a new user account
+    2. Login to receive access tokens
+    3. Use the Bearer token for authenticated endpoints
+    
+    ## Authentication
+    
+    Most endpoints require authentication. Use the `/api/v1/auth/login` endpoint to get an access token,
+    then include it in the Authorization header: `Bearer <your_token>`
+    """
     DEBUG: bool = False
     
     # File storage

@@ -35,7 +35,9 @@ alembic upgrade head
 4. **Access the application:**
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8000
-- API Documentation: http://localhost:8000/docs
+- **Swagger UI: http://localhost:8000/docs**
+- **ReDoc: http://localhost:8000/redoc**
+- OpenAPI Schema: http://localhost:8000/openapi.json
 
 ### Local Development (without Docker)
 
@@ -77,8 +79,24 @@ alembic upgrade head
 
 ### API Testing
 
-Use the interactive API documentation at http://localhost:8000/docs or test with curl:
+#### Interactive Documentation (Recommended)
+- **Swagger UI**: http://localhost:8000/docs
+  - Interactive interface to test all endpoints
+  - Built-in authentication support
+  - Request/response examples
+  - Schema documentation
 
+- **ReDoc**: http://localhost:8000/redoc  
+  - Alternative documentation view
+  - Better for browsing API structure
+
+#### Automated Testing Script
+```bash
+cd backend
+python test_api.py
+```
+
+#### Manual Testing with curl
 ```bash
 # Health check
 curl http://localhost:8000/health
@@ -88,11 +106,27 @@ curl -X POST http://localhost:8000/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","username":"testuser","password":"testpass123"}'
 
-# Login
-curl -X POST http://localhost:8000/api/v1/auth/login \
+# Login and get token
+TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"testuser","password":"testpass123"}'
+  -d '{"username":"testuser","password":"testpass123"}' | \
+  jq -r '.data.access_token')
+
+# Use token for protected endpoints
+curl -H "Authorization: Bearer $TOKEN" \
+  http://localhost:8000/api/v1/users/me
+
+# Search cards (empty until database populated)
+curl "http://localhost:8000/api/v1/cards/search?q=lightning"
 ```
+
+#### Authentication in Swagger UI
+1. Go to http://localhost:8000/docs
+2. Click "Authorize" button
+3. Register a user via `/api/v1/auth/register`
+4. Login via `/api/v1/auth/login` to get token
+5. Enter token in format: `Bearer <your_token>`
+6. Now you can test protected endpoints!
 
 ### Development Commands
 
@@ -142,26 +176,29 @@ npm run lint:fix
 
 ```
 spellbook/
-├── backend/                 # FastAPI backend
+├── backend/                       # FastAPI backend
 │   ├── app/
-│   │   ├── models/         # SQLAlchemy models
-│   │   ├── schemas/        # Pydantic schemas
-│   │   ├── api/            # API routes
-│   │   ├── core/           # Core utilities
-│   │   └── migrations/     # Alembic migrations
+│   │   ├── models/               # SQLAlchemy models
+│   │   ├── schemas/              # Pydantic schemas
+│   │   ├── api/                  # API routes
+│   │   ├── core/                 # Core utilities
+│   │   └── migrations/           # Alembic migrations
 │   ├── requirements.txt
-│   └── Dockerfile.dev
-├── frontend/               # Next.js frontend
+│   ├── Dockerfile.dev
+│   └── test_api.py               # API testing script
+├── frontend/                     # Next.js frontend
 │   ├── src/
-│   │   ├── app/           # App router pages
-│   │   ├── components/    # React components
-│   │   ├── lib/           # Utilities
-│   │   └── types/         # TypeScript types
+│   │   ├── app/                 # App router pages
+│   │   ├── components/          # React components
+│   │   ├── lib/                 # Utilities
+│   │   └── types/               # TypeScript types
 │   ├── package.json
 │   └── Dockerfile.dev
-├── research/              # Documentation
-├── docker-compose.yml     # Production
-├── docker-compose.dev.yml # Development
+├── research/                     # Documentation & planning
+├── docker-compose.yml            # Production (no reverse proxy)
+├── docker-compose.dev.yml        # Development
+├── docker-compose.traefik.yml    # Optional Traefik config
+├── DEPLOYMENT.md                 # Deployment guide
 └── README.md
 ```
 
@@ -198,6 +235,35 @@ pip list
 # Reinstall dependencies
 cd backend && pip install -r requirements-dev.txt
 ```
+
+## Production Deployment
+
+### Simple Production Setup (No Reverse Proxy)
+```bash
+# Set environment variables
+export SECRET_KEY="your-super-secure-secret-key"
+
+# Start production services
+docker-compose up -d
+
+# Access:
+# Frontend: http://localhost:3000
+# Backend: http://localhost:8000
+```
+
+### With Traefik (Optional)
+```bash
+# For automatic SSL and subdomain routing
+docker-compose -f docker-compose.yml -f docker-compose.traefik.yml up -d
+
+# Access:
+# Frontend: https://spellbook.localhost
+# Backend: https://api.spellbook.localhost
+```
+
+### With Your Own Reverse Proxy
+The default setup works with any reverse proxy (Nginx, Apache, Caddy, etc.).
+See `DEPLOYMENT.md` for detailed configuration examples.
 
 ### Next Development Steps
 
