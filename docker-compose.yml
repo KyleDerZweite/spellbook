@@ -1,0 +1,110 @@
+
+version: '3.8'
+
+services:
+  traefik:
+    image: "traefik:v2.9"
+    container_name: "traefik"
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=user@example.com" # Change this to your email
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./letsencrypt:/letsencrypt"
+    networks:
+      - spellbook_net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    container_name: frontend
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`spellbook.local`)" # Change to your domain
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=myresolver"
+      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+    networks:
+      - spellbook_net
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: backend
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`api.spellbook.local`)" # Change to your domain
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls.certresolver=myresolver"
+      - "traefik.http.services.backend.loadbalancer.server.port=8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=postgresql://user:password@postgres:5432/spellbookdb
+      - REDIS_URL=redis://redis:6379
+    networks:
+      - spellbook_net
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: "postgres:16-alpine"
+    container_name: postgres
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=spellbookdb
+    networks:
+      - spellbook_net
+
+  redis:
+    image: "redis:7-alpine"
+    container_name: redis
+    restart: unless-stopped
+    networks:
+      - spellbook_net
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: worker
+    command: celery -A app.worker.celery worker --loglevel=info
+    restart: unless-stopped
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=postgresql://user:password@postgres:5432/spellbookdb
+      - REDIS_URL=redis://redis:6379
+    networks:
+      - spellbook_net
+    depends_on:
+      - backend
+      - redis
+
+volumes:
+  postgres_data:
+
+networks:
+  spellbook_net:
+    driver: bridge

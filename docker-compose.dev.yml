@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: "postgres:16-alpine"
+    container_name: spellbook-postgres-dev
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=spellbookdb
+    networks:
+      - spellbook_dev_net
+
+  redis:
+    image: "redis:7-alpine"
+    container_name: spellbook-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - spellbook_dev_net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: spellbook-backend-dev
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://user:password@postgres:5432/spellbookdb
+      - REDIS_URL=redis://redis:6379
+      - DEBUG=true
+      - SECRET_KEY=dev-secret-key-change-in-production
+    networks:
+      - spellbook_dev_net
+    depends_on:
+      - postgres
+      - redis
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: spellbook-frontend-dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NODE_ENV=development
+    networks:
+      - spellbook_dev_net
+    depends_on:
+      - backend
+    command: npm run dev
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
+
+networks:
+  spellbook_dev_net:
+    driver: bridge

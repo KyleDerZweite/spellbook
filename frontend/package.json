@@ -1,0 +1,43 @@
+{
+  "name": "spellbook-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "14.0.4",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-hook-form": "^7.48.2",
+    "axios": "^1.6.2",
+    "zustand": "^4.4.7",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
+    "lucide-react": "^0.293.0",
+    "tailwind-merge": "^2.0.0",
+    "tailwindcss-animate": "^1.0.7",
+    "@hookform/resolvers": "^3.3.2",
+    "zod": "^3.22.4",
+    "react-query": "^3.39.3",
+    "next-themes": "^0.2.1"
+  },
+  "devDependencies": {
+    "typescript": "5.3.3",
+    "@types/node": "20.10.4",
+    "@types/react": "18.2.42",
+    "@types/react-dom": "18.2.17",
+    "autoprefixer": "10.4.16",
+    "postcss": "8.4.32",
+    "tailwindcss": "3.3.6",
+    "eslint": "8.56.0",
+    "eslint-config-next": "14.0.4",
+    "@typescript-eslint/parser": "^6.13.1",
+    "@typescript-eslint/eslint-plugin": "^6.13.1"
+  }
+}
