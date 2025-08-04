@@ -3,9 +3,11 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { QueryProvider } from '@/components/providers/query-provider'
+import { AuthProvider } from '@/components/providers/auth-provider'
 import { Toaster } from '@/components/ui/toaster'
+import { MainLayout } from '@/components/layout/MainLayout'
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
 })
@@ -13,9 +15,6 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'Spellbook - Card Collection Manager',
   description: 'Open-source, self-hosted card collection management platform',
-  keywords: ['mtg', 'magic', 'cards', 'collection', 'deck building'],
-  authors: [{ name: 'Spellbook Team' }],
-  viewport: 'width=device-width, initial-scale=1',
 }
 
 export default function RootLayout({
@@ -32,10 +31,14 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <QueryProvider>
-            {children}
-            <Toaster />
-          </QueryProvider>
+          <AuthProvider>
+            <QueryProvider>
+              <MainLayout>
+                {children}
+              </MainLayout>
+              <Toaster />
+            </QueryProvider>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

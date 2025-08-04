@@ -2,15 +2,25 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.database import get_async_session
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from app.database import get_async_session, handle_database_operation
 from app.models.user import User
 from app.schemas.auth import UserRegister, UserLogin, Token, TokenRefresh, TokenResponse, PasswordChange
 from app.schemas.user import UserResponse
 from app.core.security import verify_password, get_password_hash, create_access_token, create_refresh_token, verify_token
 from app.core.deps import get_current_user, security
+from app.core.exceptions import (
+    AuthenticationError,
+    ValidationError,
+    ConflictError,
+    ResourceNotFoundError
+)
 from app.config import settings
 from datetime import timedelta, datetime
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -31,33 +41,72 @@ async def register_user(
     user_data: UserRegister,
     session: AsyncSession = Depends(get_async_session)
 ):
-    # Check if email already exists
-    result = await session.execute(select(User).where(User.email == user_data.email))
-    if result.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Email already registered"
+    from app.models.invite import Invite, InviteStatus
+    from app.models.user import UserStatus
+    
+    try:
+        # Check registration mode
+        if settings.REGISTRATION_MODE == "INVITE_ONLY":
+            if not user_data.invite_code:
+                raise ValidationError("Invite code is required for registration")
+            
+            # Validate invite code
+            invite_result = await session.execute(
+                select(Invite).where(Invite.code == user_data.invite_code)
+            )
+            invite = invite_result.scalar_one_or_none()
+            
+            if not invite or not invite.is_valid():
+                raise ValidationError("Invalid or expired invite code")
+            
+            if not invite.can_be_used_by_email(user_data.email):
+                raise ValidationError("This invite is restricted to a different email address")
+        
+        # Check if email already exists
+        result = await session.execute(select(User).where(User.email == user_data.email))
+        if result.scalar_one_or_none():
+            raise ConflictError("Email already registered")
+        
+        # Check if username already exists
+        result = await session.execute(select(User).where(User.username == user_data.username))
+        if result.scalar_one_or_none():
+            raise ConflictError("Username already taken")
+        
+        # Determine user status based on registration mode
+        user_status = UserStatus.APPROVED.value
+        if settings.REGISTRATION_MODE == "ADMIN_APPROVAL":
+            user_status = UserStatus.PENDING.value
+        
+        # Create new user
+        password_hash = get_password_hash(user_data.password)
+        user = User(
+            email=user_data.email,
+            username=user_data.username,
+            password_hash=password_hash,
+            status=user_status,
+            is_active=(user_status == UserStatus.APPROVED.value)
         )
-    
-    # Check if username already exists
-    result = await session.execute(select(User).where(User.username == user_data.username))
-    if result.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Username already taken"
-        )
-    
-    # Create new user
-    password_hash = get_password_hash(user_data.password)
-    user = User(
-        email=user_data.email,
-        username=user_data.username,
-        password_hash=password_hash
-    )
-    
-    session.add(user)
-    await session.commit()
-    await session.refresh(user)
+        
+        session.add(user)
+        
+        # Mark invite as used if applicable
+        if user_data.invite_code and settings.REGISTRATION_MODE == "INVITE_ONLY":
+            invite.mark_as_used(user.id)
+            session.add(invite)
+        
+        await session.commit()
+        await session.refresh(user)
+        
+        logger.info(f"User registered successfully: {user.username} ({user.email})")
+        
+    except IntegrityError as e:
+        await session.rollback()
+        logger.error(f"Database integrity error during registration: {e}")
+        raise ConflictError("User with this email or username already exists")
+    except SQLAlchemyError as e:
+        await session.rollback()
+        logger.error(f"Database error during registration: {e}")
+        raise
     
     return user
 
@@ -77,41 +126,48 @@ async def login_user(
     user_data: UserLogin,
     session: AsyncSession = Depends(get_async_session)
 ):
-    # Try to find user by email or username
-    result = await session.execute(
-        select(User).where(
-            (User.email == user_data.username) | (User.username == user_data.username)
+    try:
+        # Try to find user by email or username
+        result = await session.execute(
+            select(User).where(
+                (User.email == user_data.username) | (User.username == user_data.username)
+            )
         )
-    )
-    user = result.scalar_one_or_none()
-    
-    if not user or not verify_password(user_data.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email/username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Inactive user"
-        )
-    
-    # Update last login
-    user.last_login_at = datetime.utcnow()
-    await session.commit()
-    
-    # Create tokens
-    access_token = create_access_token(data={"sub": str(user.id)})
-    refresh_token = create_refresh_token(data={"sub": str(user.id)})
-    
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer",
-        "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
-    }
+        user = result.scalar_one_or_none()
+        
+        if not user or not verify_password(user_data.password, user.password_hash):
+            logger.warning(f"Failed login attempt for: {user_data.username}")
+            raise AuthenticationError("Incorrect email/username or password")
+        
+        if not user.is_active:
+            logger.warning(f"Inactive user login attempt: {user.username}")
+            raise AuthenticationError("Inactive user account")
+        
+        # Check user status
+        from app.models.user import UserStatus
+        if user.status == UserStatus.PENDING.value:
+            raise AuthenticationError("Account is pending admin approval")
+        elif user.status == UserStatus.REJECTED.value:
+            raise AuthenticationError("Account has been rejected")
+        elif user.status == UserStatus.SUSPENDED.value:
+            raise AuthenticationError("Account has been suspended")
+        
+        # Create tokens
+        access_token = create_access_token(data={"sub": str(user.id)})
+        refresh_token = create_refresh_token(data={"sub": str(user.id)})
+        
+        logger.info(f"User logged in successfully: {user.username}")
+        
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+            "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        }
+        
+    except SQLAlchemyError as e:
+        logger.error(f"Database error during login: {e}")
+        raise
 
 
 @router.post("/refresh", response_model=TokenResponse)

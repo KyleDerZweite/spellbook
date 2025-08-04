@@ -4,7 +4,7 @@ from sqlalchemy import select, func, and_, or_
 from sqlalchemy.orm import selectinload
 from app.database import get_async_session
 from app.models.user import User
-from app.models.card import Card
+from app.models.card import Card, CardStorageReason
 from app.models.collection import UserCard, Deck, DeckCard
 from app.schemas.collection import (
     UserCardCreate, UserCardUpdate, UserCardResponse,
@@ -12,9 +12,16 @@ from app.schemas.collection import (
     DeckListResponse, DeckCardCreate, DeckCardResponse
 )
 from app.core.deps import get_current_user, get_pagination_params
+from app.services.card_service import card_service
+from app.core.exceptions import ResourceNotFoundError, ExternalServiceError
+from app.config import settings
 from typing import Optional, List
+from uuid import UUID
 import uuid
 import math
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -85,9 +92,40 @@ async def add_card_to_collection(
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_async_session)
 ):
-    # Verify card exists
-    card_result = await session.execute(select(Card).where(Card.id == card_data.card_id))
-    card = card_result.scalar_one_or_none()
+    """
+    Add a card to the user's collection.
+    
+    This endpoint handles both internal card IDs and Scryfall IDs, automatically
+    fetching card details if needed and marking them as permanent storage.
+    """
+    # Handle both internal card IDs and Scryfall IDs
+    card = None
+    scryfall_id = None
+    
+    try:
+        # Try to parse as UUID (could be Scryfall ID)
+        scryfall_id = UUID(str(card_data.card_id))
+        
+        # Check if it's a Scryfall ID by trying to get card details
+        try:
+            card = await card_service.get_card_details(scryfall_id, session)
+            if card and settings.PERMANENT_ON_COLLECTION_ADD:
+                # Make card permanent since it's being added to collection
+                await card_service.make_card_permanent(
+                    scryfall_id, 
+                    CardStorageReason.USER_COLLECTION,
+                    session
+                )
+        except ResourceNotFoundError:
+            # Not a valid Scryfall ID, try as internal ID
+            card_result = await session.execute(select(Card).where(Card.id == card_data.card_id))
+            card = card_result.scalar_one_or_none()
+            
+    except ValueError:
+        # Not a UUID at all, treat as internal ID
+        card_result = await session.execute(select(Card).where(Card.id == card_data.card_id))
+        card = card_result.scalar_one_or_none()
+    
     if not card:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -99,7 +137,7 @@ async def add_card_to_collection(
         select(UserCard).where(
             and_(
                 UserCard.user_id == current_user.id,
-                UserCard.card_id == card_data.card_id,
+                UserCard.card_id == card.id,  # Use the found card's ID
                 UserCard.condition == card_data.condition,
                 UserCard.language == card_data.language
             )
@@ -125,12 +163,16 @@ async def add_card_to_collection(
         
         # Load relationships
         await session.refresh(existing_card, ["card"])
+        logger.info(f"Updated collection entry for {card.name} (user: {current_user.username})")
         return existing_card
     else:
-        # Create new entry
+        # Create new entry with the actual card ID
+        card_data_dict = card_data.dict()
+        card_data_dict['card_id'] = card.id  # Ensure we use the actual card ID
+        
         user_card = UserCard(
             user_id=current_user.id,
-            **card_data.dict()
+            **card_data_dict
         )
         
         session.add(user_card)
@@ -139,6 +181,7 @@ async def add_card_to_collection(
         
         # Load relationships
         await session.refresh(user_card, ["card"])
+        logger.info(f"Added {card.name} to collection (user: {current_user.username})")
         return user_card
 
 

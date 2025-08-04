@@ -6,6 +6,7 @@ class UserRegister(BaseModel):
     email: EmailStr
     username: str
     password: str
+    invite_code: Optional[str] = None
     
     @validator('username')
     def username_must_be_valid(cls, v):

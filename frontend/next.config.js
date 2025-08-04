@@ -1,13 +1,25 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    appDir: true,
-  },
   images: {
-    domains: [
-      'cards.scryfall.io',
-      'c1.scryfall.com', 
-      'gatherer.wizards.com'
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'cards.scryfall.io',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'c1.scryfall.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'gatherer.wizards.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
   env: {
@@ -15,9 +27,6 @@ const nextConfig = {
   },
   // Enable strict mode for better development experience
   reactStrictMode: true,
-  
-  // Optimize for production
-  swcMinify: true,
   
   // Configure redirects for better UX
   async redirects() {

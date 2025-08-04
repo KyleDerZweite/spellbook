@@ -4,10 +4,17 @@ from sqlalchemy import select, func, or_, and_
 from sqlalchemy.orm import selectinload
 from app.database import get_async_session
 from app.models.card import Card, CardSet
+from app.models.card_index import CardIndex
 from app.schemas.card import CardResponse, CardSearchResponse, CardSetResponse
 from app.core.deps import get_pagination_params
+from app.services.card_service import card_service
+from app.core.exceptions import ResourceNotFoundError, ExternalServiceError
 from typing import Optional, List
+from uuid import UUID
 import math
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -23,70 +30,107 @@ async def search_cards(
     per_page: int = Query(20, ge=1, le=100, description="Results per page"),
     session: AsyncSession = Depends(get_async_session)
 ):
+    """
+    Search cards using the card index and fetch details on-demand.
+    
+    This endpoint first searches the lightweight card index for matching names,
+    then fetches full details from the cache or Scryfall API as needed.
+    """
     offset, limit = get_pagination_params(page, per_page)
     
-    # Build query
-    query = select(Card).options(selectinload(Card.set))
+    # Build query parameters for the service
+    query_params = {}
+    if q:
+        query_params['q'] = q
+    if colors:
+        query_params['colors'] = colors
+    if set_code:
+        query_params['set_code'] = set_code
+    if rarity:
+        query_params['rarity'] = rarity
+    if type_line:
+        query_params['type_line'] = type_line
+    
+    try:
+        # First, get count from card index for pagination
+        total = await _get_search_count(query_params, session)
+        
+        # Get cards with full details via the service
+        cards = await card_service.search_cards_with_details(
+            query_params=query_params,
+            session=session,
+            limit=per_page,
+            offset=offset
+        )
+        
+        # Calculate metadata
+        total_pages = math.ceil(total / per_page) if per_page > 0 else 1
+        
+        logger.info(f"Card search: query={q}, results={len(cards)}, total={total}")
+        
+        return CardSearchResponse(
+            data=cards,
+            meta={
+                "total": total,
+                "page": page,
+                "per_page": per_page,
+                "total_pages": total_pages,
+                "has_next": page < total_pages,
+                "has_prev": page > 1
+            }
+        )
+        
+    except ExternalServiceError as e:
+        logger.error(f"External service error during search: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Card data service temporarily unavailable"
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error during search: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Search failed"
+        )
+
+
+async def _get_search_count(query_params: dict, session: AsyncSession) -> int:
+    """Get total count of search results from card index"""
+    query = select(func.count(CardIndex.scryfall_id))
     conditions = []
     
     # Text search
-    if q:
-        search_conditions = [
-            Card.name.ilike(f"%{q}%"),
-            Card.type_line.ilike(f"%{q}%"),
-            Card.oracle_text.ilike(f"%{q}%")
+    if query_params.get('q'):
+        search_term = query_params['q']
+        text_conditions = [
+            CardIndex.name.ilike(f"%{search_term}%"),
+            CardIndex.type_line.ilike(f"%{search_term}%")
         ]
-        conditions.append(or_(*search_conditions))
+        conditions.append(or_(*text_conditions))
     
     # Color filter
-    if colors:
-        # Simple color matching - can be enhanced later
-        conditions.append(Card.colors.like(f"%{colors}%"))
+    if query_params.get('colors'):
+        colors = query_params['colors']
+        conditions.append(CardIndex.colors.like(f"%{colors}%"))
     
     # Set filter
-    if set_code:
-        set_subquery = select(CardSet.id).where(CardSet.code == set_code.upper())
-        conditions.append(Card.set_id.in_(set_subquery))
+    if query_params.get('set_code'):
+        conditions.append(CardIndex.set_code == query_params['set_code'].upper())
     
     # Rarity filter
-    if rarity:
-        conditions.append(Card.rarity == rarity.lower())
+    if query_params.get('rarity'):
+        conditions.append(CardIndex.rarity == query_params['rarity'].lower())
     
     # Type filter
-    if type_line:
-        conditions.append(Card.type_line.ilike(f"%{type_line}%"))
+    if query_params.get('type_line'):
+        conditions.append(CardIndex.type_line.ilike(f"%{query_params['type_line']}%"))
     
     # Apply conditions
     if conditions:
         query = query.where(and_(*conditions))
     
-    # Get total count
-    count_query = select(func.count(Card.id))
-    if conditions:
-        count_query = count_query.where(and_(*conditions))
-    
-    total_result = await session.execute(count_query)
-    total = total_result.scalar()
-    
-    # Apply pagination and execute
-    query = query.offset(offset).limit(limit).order_by(Card.name)
     result = await session.execute(query)
-    cards = result.scalars().all()
-    
-    # Calculate metadata
-    total_pages = math.ceil(total / per_page) if per_page > 0 else 1
-    
-    return CardSearchResponse(
-        data=cards,
-        meta={
-            "total": total,
-            "page": page,
-            "per_page": per_page,
-            "total_pages": total_pages,
-            "has_next": page < total_pages,
-            "has_prev": page > 1
-        }
-    )
+    return result.scalar() or 0
 
 
 @router.get("/{card_id}", response_model=CardResponse)
@@ -94,17 +138,48 @@ async def get_card(
     card_id: str,
     session: AsyncSession = Depends(get_async_session)
 ):
-    query = select(Card).options(selectinload(Card.set)).where(Card.id == card_id)
-    result = await session.execute(query)
-    card = result.scalar_one_or_none()
+    """
+    Get a specific card by ID (either Spellbook ID or Scryfall ID).
     
-    if not card:
+    This endpoint fetches full card details, using cache if available,
+    or retrieving from Scryfall API if needed.
+    """
+    try:
+        # Try to parse as UUID (Scryfall ID)
+        try:
+            scryfall_id = UUID(card_id)
+            # Get card details via service (with on-demand fetching)
+            card = await card_service.get_card_details(scryfall_id, session)
+            if not card:
+                raise ResourceNotFoundError(f"Card not found: {card_id}")
+            return card
+            
+        except ValueError:
+            # Not a valid UUID, try as our internal ID
+            query = select(Card).options(selectinload(Card.set)).where(Card.id == card_id)
+            result = await session.execute(query)
+            card = result.scalar_one_or_none()
+            
+            if not card:
+                raise ResourceNotFoundError(f"Card not found: {card_id}")
+            
+            # Update access time for cached cards
+            card.update_access_time()
+            await session.commit()
+            
+            return card
+            
+    except ResourceNotFoundError:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Card not found"
         )
-    
-    return card
+    except ExternalServiceError as e:
+        logger.error(f"External service error fetching card {card_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Card data service temporarily unavailable"
+        )
 
 
 @router.get("/sets", response_model=List[CardSetResponse])

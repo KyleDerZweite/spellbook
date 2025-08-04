@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, Integer, Boolean, DateTime, ForeignKey, Text, Numeric, Date, CheckConstraint
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
+from sqlalchemy.dialects.postgresql import UUID, ARRAY, JSONB
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -72,7 +72,7 @@ class Deck(Base):
     colors = Column(String(10), nullable=True)
     is_public = Column(Boolean, default=False, nullable=False, index=True)
     tags = Column(ARRAY(Text), nullable=True)
-    metadata = Column(JSONB, default={}, nullable=False)
+    extra_data = Column(JSONB, default={}, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     

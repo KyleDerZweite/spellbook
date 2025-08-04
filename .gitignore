@@ -101,3 +101,9 @@ letsencrypt/
 /research/
 *LAUDE.md
 *-prd.md
+
+venv/
+backend/venv/
+
+# Database migrations (generated files)
+backend/app/migrations/versions/*.py
