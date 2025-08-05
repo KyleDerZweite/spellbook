@@ -16,6 +16,8 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
+    username: Optional[str] = None
+    email: Optional[EmailStr] = None
     preferences: Optional[Dict[str, Any]] = None
 
 

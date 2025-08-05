@@ -32,12 +32,14 @@ function CollectionsPage() {
   const uniqueCards = collectionCards?.length || 0;
 
   return (
-    <div>
+    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold">My Collection</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-4xl font-bold tracking-tight text-foreground">
+            My Collection
+          </h1>
+          <p className="text-muted-foreground mt-2 text-lg">
             {totalCards} cards • {uniqueCards} unique
           </p>
         </div>

@@ -9,6 +9,7 @@ import { useAuthStore } from "@/lib/store/auth";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { login, getCurrentUser } from "@/lib/api/auth";
+import Link from "next/link";
 
 const formSchema = z.object({
   username: z.string().min(1, 'Username is required'),
@@ -61,6 +62,15 @@ export default function LoginPage() {
         <Input {...form.register("password")} type="password" placeholder="Password" />
         <Button type="submit" className="w-full">Login</Button>
       </form>
+      
+      <div className="mt-6 text-center">
+        <p className="text-sm text-muted-foreground">
+          Don't have an account?{" "}
+          <Link href="/register" className="text-primary hover:underline font-medium">
+            Sign up here
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

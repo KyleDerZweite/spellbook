@@ -17,22 +17,26 @@ module.exports = {
     },
     extend: {
       colors: {
-        border: "hsl(var(--border))",
+        border: {
+          DEFAULT: "hsl(var(--border))",
+          elevated: "hsl(var(--border-elevated))",
+        },
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
-        foreground: "hsl(var(--foreground))",
+        foreground: {
+          DEFAULT: "hsl(var(--foreground))",
+          muted: "hsl(var(--foreground-muted))",
+        },
         background: {
           DEFAULT: "hsl(var(--background))",
-          primary: "#0A0A0A",
-          secondary: "#111111",
-          tertiary: "#1A1A1A",
-          hover: "#252525",
+          elevated: "hsl(var(--background-elevated))",
+          glass: "hsla(var(--background-glass), 0.8)",
         },
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",
-          dark: "#7C3AED",
-          light: "#A78BFA",
+          muted: "hsla(var(--primary-muted), 0.1)",
+          border: "hsla(var(--primary-border), 0.3)",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
@@ -41,6 +45,14 @@ module.exports = {
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
+        },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
         },
         muted: {
           DEFAULT: "hsl(var(--muted))",
@@ -56,19 +68,29 @@ module.exports = {
         },
         card: {
           DEFAULT: "hsl(var(--card))",
+          elevated: "hsl(var(--card-elevated))",
           foreground: "hsl(var(--card-foreground))",
-        },
-        semantic: {
-          success: "#10B981",
-          warning: "#F59E0B",
-          error: "#EF4444",
-          info: "#3B82F6",
         },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      boxShadow: {
+        sm: "var(--shadow-sm)",
+        DEFAULT: "var(--shadow)",
+        md: "var(--shadow-md)",
+        lg: "var(--shadow-lg)",
+        xl: "var(--shadow-xl)",
+        "2xl": "var(--shadow-2xl)",
+        inner: "var(--shadow-inner)",
+        glow: "var(--shadow-glow)",
+        "glow-lg": "var(--shadow-glow-lg)",
+        none: "none",
+      },
+      backdropBlur: {
+        xs: "2px",
       },
       keyframes: {
         "accordion-down": {

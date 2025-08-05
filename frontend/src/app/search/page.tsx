@@ -28,17 +28,19 @@ export default function SearchPage() {
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold tracking-tight">Card Search</h1>
-        <p className="text-muted-foreground mt-2">Find any card in the multiverse.</p>
+        <h1 className="text-4xl font-bold tracking-tight text-foreground">
+          Card Search
+        </h1>
+        <p className="text-muted-foreground mt-2 text-lg">Find any card in the multiverse.</p>
       </div>
       
       <div className="relative mb-8">
-        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+        <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
         <Input 
           placeholder="Search by name, type, or text..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full max-w-2xl pl-10 py-6 text-lg"
+          className="w-full max-w-2xl pl-12 py-6 text-lg bg-card border-border focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-xl shadow-md"
         />
       </div>
 
@@ -66,11 +68,11 @@ export default function SearchPage() {
               {results?.map((card) => (
           <Dialog key={card.id}>
             <DialogTrigger asChild>
-              <div className="cursor-pointer group relative">
+              <div className="cursor-pointer group relative glow-hover">
                 <img 
                   src={card.image_uris?.normal || card.image_uris?.small || '/placeholder-card.png'} 
                   alt={card.name} 
-                  className="rounded-xl w-full h-auto object-cover transition-all duration-300 group-hover:scale-105 group-hover:shadow-2xl group-hover:shadow-primary/20"
+                  className="rounded-xl w-full h-auto object-cover transition-all duration-300 shadow-lg border border-border/30"
                 />
                 {isAuthenticated && (
                   <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-xl flex items-center justify-center">

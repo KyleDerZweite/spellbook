@@ -101,12 +101,14 @@ function DecksPage() {
   };
 
   return (
-    <div>
+    <div className="container mx-auto p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold">My Decks</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-4xl font-bold tracking-tight text-foreground">
+            My Decks
+          </h1>
+          <p className="text-muted-foreground mt-2 text-lg">
             Build and manage your deck collection
           </p>
         </div>
@@ -200,9 +202,9 @@ function DecksPage() {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {decks?.map((deck) => (
-                <Card key={deck.id} className="group hover:border-primary transition-colors">
+                <Card key={deck.id} className="group glow-hover border-border/50">
                   <CardHeader className="pb-3">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">

@@ -4,26 +4,46 @@
 
 @layer base {
   :root {
-    --background: 0 0% 4%;
-    --foreground: 0 0% 100%;
-    --card: 0 0% 7%;
-    --card-foreground: 0 0% 100%;
-    --popover: 0 0% 4%;
-    --popover-foreground: 0 0% 100%;
+    --background: 222 84% 3%;
+    --background-elevated: 222 84% 6%;
+    --background-glass: 222 84% 8%;
+    --foreground: 210 40% 98%;
+    --foreground-muted: 215 20% 80%;
+    --card: 222 84% 6%;
+    --card-elevated: 222 84% 9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 84% 5%;
+    --popover-foreground: 210 40% 98%;
     --primary: 262 83% 58%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 10%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 0 0% 10%;
-    --muted-foreground: 0 0% 63%;
-    --accent: 0 0% 15%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 16%;
-    --input: 0 0% 16%;
+    --primary-muted: 262 83% 58%;
+    --primary-border: 262 83% 58%;
+    --primary-foreground: 210 40% 100%;
+    --secondary: 217 32.6% 12%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 32.6% 12%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217 32.6% 18%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 40% 100%;
+    --success: 142 76% 36%;
+    --success-foreground: 210 40% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 210 40% 100%;
+    --border: 217 32.6% 20%;
+    --border-elevated: 217 32.6% 25%;
+    --input: 217 32.6% 18%;
     --ring: 262 83% 58%;
-    --radius: 0.5rem;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+    --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+    --shadow-glow: 0 0 20px rgb(124 58 237 / 0.3);
+    --shadow-glow-lg: 0 0 40px rgb(124 58 237 / 0.4);
+    --radius: 0.75rem;
   }
 }
 
@@ -34,8 +54,13 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-    background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0);
-    background-size: 2rem 2rem;
+    background: 
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,0.02) 1px, transparent 0),
+      radial-gradient(circle at 25% 25%, rgba(124, 58, 237, 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 75% 75%, rgba(124, 58, 237, 0.05) 0%, transparent 50%),
+      linear-gradient(135deg, hsl(222, 84%, 3%) 0%, hsl(222, 84%, 5%) 100%);
+    background-size: 2rem 2rem, 40rem 40rem, 60rem 60rem, 100% 100%;
+    min-height: 100vh;
   }
   html {
     font-family: 'Inter', system-ui, sans-serif;
@@ -44,8 +69,27 @@
 
 @layer components {
   .skeleton {
-    @apply bg-gradient-to-r from-background-secondary via-background-tertiary to-background-secondary;
+    @apply bg-gradient-to-r from-muted via-accent to-muted;
     background-size: 200% 100%;
     animation: loading 1.5s infinite;
+  }
+  
+  .glow-hover {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .glow-hover:hover {
+    box-shadow: 
+      0 10px 25px -5px rgba(0, 0, 0, 0.2),
+      0 8px 10px -6px rgba(0, 0, 0, 0.1),
+      0 0 20px rgba(124, 58, 237, 0.4);
+    transform: translateY(-4px) scale(1.02);
+  }
+  
+  /* Debug helper to test color variables */
+  .debug-colors {
+    background: hsl(var(--background));
+    border: 1px solid hsl(var(--border));
+    color: hsl(var(--foreground));
   }
 }

@@ -1,12 +1,21 @@
-from pydantic import BaseModel, EmailStr, validator
+from pydantic import BaseModel, EmailStr, validator, Field
 from typing import Optional
+import re
 
 
 class UserRegister(BaseModel):
-    email: EmailStr
+    email: str = Field(..., description="User email address")
     username: str
     password: str
     invite_code: Optional[str] = None
+    
+    @validator('email')
+    def email_must_be_valid(cls, v):
+        # Basic email regex that allows test domains
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, v):
+            raise ValueError('Invalid email format')
+        return v.lower()
     
     @validator('username')
     def username_must_be_valid(cls, v):

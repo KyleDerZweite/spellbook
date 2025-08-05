@@ -22,8 +22,8 @@ class Invite(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     code = Column(String(32), unique=True, nullable=False, index=True)
     email = Column(String(255), nullable=True, index=True)  # Optional: restrict to specific email
-    created_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
-    used_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True)
+    created_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    used_by_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     
     status = Column(String(20), default=InviteStatus.PENDING.value, nullable=False, index=True)
     max_uses = Column(Integer, default=1, nullable=False)  # How many times this invite can be used
