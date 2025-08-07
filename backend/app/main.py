@@ -190,10 +190,7 @@ async def database_exception_handler(request: Request, exc: DatabaseError):
     return JSONResponse(
         status_code=503,
         content={
-            "error": {
-                "message": "Database operation failed",
-                "type": "database_error"
-            }
+            "detail": "Database operation failed"
         }
     )
 

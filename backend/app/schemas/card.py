@@ -1,7 +1,10 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, TYPE_CHECKING
 from datetime import datetime, date
 import uuid
+
+if TYPE_CHECKING:
+    from app.models.card import Card
 
 
 class CardSetBase(BaseModel):
@@ -73,6 +76,44 @@ class CardSearchParams(BaseModel):
     per_page: int = 20
 
 
+class CardResponseWithVersions(CardResponse):
+    version_count: int
+    
+    @classmethod
+    def from_card_with_versions(cls, card: "Card", version_count: int):
+        """Create CardResponseWithVersions from a Card object with version count"""
+        return cls(
+            id=card.id,
+            scryfall_id=card.scryfall_id,
+            oracle_id=card.oracle_id,
+            name=card.name,
+            mana_cost=card.mana_cost,
+            type_line=card.type_line,
+            oracle_text=card.oracle_text,
+            power=card.power,
+            toughness=card.toughness,
+            colors=card.colors,
+            color_identity=card.color_identity,
+            rarity=card.rarity,
+            flavor_text=card.flavor_text,
+            artist=card.artist,
+            collector_number=card.collector_number,
+            image_uris=card.image_uris,
+            prices=card.prices,
+            legalities=card.legalities,
+            metadata=card.extra_data,
+            created_at=card.created_at,
+            updated_at=card.updated_at,
+            set=card.set,
+            version_count=version_count
+        )
+
+
 class CardSearchResponse(BaseModel):
     data: List[CardResponse]
+    meta: Dict[str, Any]
+
+
+class UniqueCardSearchResponse(BaseModel):
+    data: List[CardResponseWithVersions]
     meta: Dict[str, Any]

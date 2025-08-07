@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 from app.database import get_async_session
 from app.models.card import Card, CardSet
 from app.models.card_index import CardIndex
-from app.schemas.card import CardResponse, CardSearchResponse, CardSetResponse
+from app.schemas.card import CardResponse, CardSearchResponse, CardSetResponse, UniqueCardSearchResponse, CardResponseWithVersions
 from app.core.deps import get_pagination_params
 from app.services.card_service import card_service
 from app.core.exceptions import ResourceNotFoundError, ExternalServiceError
@@ -133,53 +133,6 @@ async def _get_search_count(query_params: dict, session: AsyncSession) -> int:
     return result.scalar() or 0
 
 
-@router.get("/{card_id}", response_model=CardResponse)
-async def get_card(
-    card_id: str,
-    session: AsyncSession = Depends(get_async_session)
-):
-    """
-    Get a specific card by ID (either Spellbook ID or Scryfall ID).
-    
-    This endpoint fetches full card details, using cache if available,
-    or retrieving from Scryfall API if needed.
-    """
-    try:
-        # Try to parse as UUID (Scryfall ID)
-        try:
-            scryfall_id = UUID(card_id)
-            # Get card details via service (with on-demand fetching)
-            card = await card_service.get_card_details(scryfall_id, session)
-            if not card:
-                raise ResourceNotFoundError(f"Card not found: {card_id}")
-            return card
-            
-        except ValueError:
-            # Not a valid UUID, try as our internal ID
-            query = select(Card).options(selectinload(Card.set)).where(Card.id == card_id)
-            result = await session.execute(query)
-            card = result.scalar_one_or_none()
-            
-            if not card:
-                raise ResourceNotFoundError(f"Card not found: {card_id}")
-            
-            # Update access time for cached cards
-            card.update_access_time()
-            await session.commit()
-            
-            return card
-            
-    except ResourceNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Card not found"
-        )
-    except ExternalServiceError as e:
-        logger.error(f"External service error fetching card {card_id}: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Card data service temporarily unavailable"
-        )
 
 
 @router.get("/search-unique")
@@ -215,23 +168,80 @@ async def search_unique_cards(
         query_params['type_line'] = type_line
     
     try:
-        # Get unique cards with version counts
-        unique_cards = await card_service.search_unique_cards_with_details(
+        # Get regular search results first  
+        cards = await card_service.search_cards_with_details(
             query_params=query_params,
             session=session,
-            limit=per_page,
-            offset=offset
+            limit=per_page * 3,  # Get more to ensure deduplication works
+            offset=0  # Always start from 0 for deduplication
         )
         
-        # For metadata, we need to get the total count of unique cards
-        # This is a simplified version - for production you might want to optimize this
-        total_unique = len(unique_cards)  # This is just the current page size
+        # Group by oracle_id to deduplicate
+        oracle_groups = {}
+        for card in cards:
+            oracle_id = str(card.oracle_id) if card.oracle_id else f"no-oracle-{card.id}"
+            if oracle_id not in oracle_groups:
+                oracle_groups[oracle_id] = []
+            oracle_groups[oracle_id].append(card)
+        
+        # Convert to list and paginate
+        unique_results = []
+        for oracle_id, card_versions in oracle_groups.items():
+            representative_card = card_versions[0]  # Take first as representative
+            
+            # Calculate actual version count from database for this oracle_id
+            if representative_card.oracle_id:
+                # Query the card index to get actual count
+                from sqlalchemy import select, func
+                from app.models.card_index import CardIndex
+                
+                count_result = await session.execute(
+                    select(func.count(CardIndex.scryfall_id))
+                    .where(CardIndex.oracle_id == representative_card.oracle_id)
+                )
+                actual_version_count = count_result.scalar() or 1
+            else:
+                actual_version_count = 1
+            
+            card_dict = {
+                "id": str(representative_card.id),
+                "scryfall_id": str(representative_card.scryfall_id) if representative_card.scryfall_id else None,
+                "oracle_id": str(representative_card.oracle_id) if representative_card.oracle_id else None,
+                "name": representative_card.name,
+                "mana_cost": representative_card.mana_cost,
+                "type_line": representative_card.type_line,
+                "oracle_text": representative_card.oracle_text,
+                "power": representative_card.power,
+                "toughness": representative_card.toughness,
+                "colors": representative_card.colors,
+                "color_identity": representative_card.color_identity,
+                "rarity": representative_card.rarity,
+                "flavor_text": representative_card.flavor_text,
+                "artist": representative_card.artist,
+                "collector_number": representative_card.collector_number,
+                "image_uris": representative_card.image_uris or {},
+                "prices": representative_card.prices or {},
+                "legalities": representative_card.legalities or {},
+                "metadata": representative_card.extra_data or {},
+                "created_at": representative_card.created_at.isoformat() if representative_card.created_at else None,
+                "updated_at": representative_card.updated_at.isoformat() if representative_card.updated_at else None,
+                "set": None,
+                "version_count": actual_version_count
+            }
+            unique_results.append(card_dict)
+        
+        # Apply pagination to unique results
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        paginated_results = unique_results[start_idx:end_idx]
+        
+        total_unique = len(unique_results)
         total_pages = math.ceil(total_unique / per_page) if per_page > 0 else 1
         
-        logger.info(f"Unique card search: query={q}, results={len(unique_cards)}")
+        logger.info(f"Unique card search: query={q}, total_unique={total_unique}, results={len(paginated_results)}")
         
         return {
-            "data": unique_cards,
+            "data": paginated_results,
             "meta": {
                 "total": total_unique,
                 "page": page,
@@ -249,10 +259,10 @@ async def search_unique_cards(
             detail="Card data service temporarily unavailable"
         )
     except Exception as e:
-        logger.error(f"Unexpected error during unique search: {e}")
+        logger.error(f"Unexpected error during unique search: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Search failed"
+            detail=f"Search failed: {str(e)}"
         )
 
 
@@ -332,3 +342,52 @@ async def get_set(
         )
     
     return card_set
+
+
+@router.get("/{card_id}", response_model=CardResponse)
+async def get_card(
+    card_id: str,
+    session: AsyncSession = Depends(get_async_session)
+):
+    """
+    Get a specific card by ID (either Spellbook ID or Scryfall ID).
+    
+    This endpoint fetches full card details, using cache if available,
+    or retrieving from Scryfall API if needed.
+    """
+    try:
+        # Try to parse as UUID (Scryfall ID)
+        try:
+            scryfall_id = UUID(card_id)
+            # Get card details via service (with on-demand fetching)
+            card = await card_service.get_card_details(scryfall_id, session)
+            if not card:
+                raise ResourceNotFoundError(f"Card not found: {card_id}")
+            return card
+            
+        except ValueError:
+            # Not a valid UUID, try as our internal ID
+            query = select(Card).options(selectinload(Card.set)).where(Card.id == card_id)
+            result = await session.execute(query)
+            card = result.scalar_one_or_none()
+            
+            if not card:
+                raise ResourceNotFoundError(f"Card not found: {card_id}")
+            
+            # Update access time for cached cards
+            card.update_access_time()
+            await session.commit()
+            
+            return card
+            
+    except ResourceNotFoundError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Card not found"
+        )
+    except ExternalServiceError as e:
+        logger.error(f"External service error fetching card {card_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Card data service temporarily unavailable"
+        )

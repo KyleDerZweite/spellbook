@@ -194,7 +194,7 @@ class CardDetailsService:
         session: AsyncSession,
         limit: int = 20,
         offset: int = 0
-    ) -> List[Dict[str, Any]]:
+    ) -> List[Card]:
         """
         Search for unique cards (grouped by oracle_id) and return with representative details.
         
@@ -205,7 +205,7 @@ class CardDetailsService:
             offset: Offset for pagination
             
         Returns:
-            List of dictionaries with card details and version count
+            List of Card objects with version_count attribute added
         """
         logger.info(f"Searching unique cards with params: {query_params}")
         
@@ -223,33 +223,9 @@ class CardDetailsService:
             representative_card = await self._get_representative_card(oracle_id, session)
             
             if representative_card:
-                # Convert to dict and add version count
-                card_dict = {
-                    'id': str(representative_card.id),
-                    'scryfall_id': str(representative_card.scryfall_id),
-                    'oracle_id': str(representative_card.oracle_id) if representative_card.oracle_id else None,
-                    'name': representative_card.name,
-                    'mana_cost': representative_card.mana_cost,
-                    'type_line': representative_card.type_line,
-                    'oracle_text': representative_card.oracle_text,
-                    'power': representative_card.power,
-                    'toughness': representative_card.toughness,
-                    'colors': representative_card.colors,
-                    'color_identity': representative_card.color_identity,
-                    'rarity': representative_card.rarity,
-                    'flavor_text': representative_card.flavor_text,
-                    'artist': representative_card.artist,
-                    'image_uris': representative_card.image_uris,
-                    'prices': representative_card.prices,
-                    'legalities': representative_card.legalities,
-                    'collector_number': representative_card.collector_number,
-                    'metadata': representative_card.extra_data,
-                    'created_at': representative_card.created_at,
-                    'updated_at': representative_card.updated_at,
-                    'set': None,  # TODO: Add set relationship if needed
-                    'version_count': version_count
-                }
-                unique_cards.append(card_dict)
+                # Add version_count as a dynamic attribute
+                setattr(representative_card, 'version_count', version_count)
+                unique_cards.append(representative_card)
         
         return unique_cards
     
