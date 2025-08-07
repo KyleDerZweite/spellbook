@@ -1,95 +1,188 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer base {
-  :root {
-    --background: 222 84% 3%;
-    --background-elevated: 222 84% 6%;
-    --background-glass: 222 84% 8%;
-    --foreground: 210 40% 98%;
-    --foreground-muted: 215 20% 80%;
-    --card: 222 84% 6%;
-    --card-elevated: 222 84% 9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 84% 5%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 262 83% 58%;
-    --primary-muted: 262 83% 58%;
-    --primary-border: 262 83% 58%;
-    --primary-foreground: 210 40% 100%;
-    --secondary: 217 32.6% 12%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 32.6% 12%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217 32.6% 18%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 210 40% 100%;
-    --success: 142 76% 36%;
-    --success-foreground: 210 40% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 210 40% 100%;
-    --border: 217 32.6% 20%;
-    --border-elevated: 217 32.6% 25%;
-    --input: 217 32.6% 18%;
-    --ring: 262 83% 58%;
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-    --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
-    --shadow-glow: 0 0 20px rgb(124 58 237 / 0.3);
-    --shadow-glow-lg: 0 0 40px rgb(124 58 237 / 0.4);
-    --radius: 0.75rem;
+:root {
+  --background: #0a0a0a;
+  --surface: #1a1a1a;
+  --surface-variant: #2a2a2a;
+  --primary: #6366f1;
+  --primary-variant: #8b5cf6;
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  --border: #27272a;
+  --border-accent: #3f3f46;
+  --card-rare: #ffd700;
+  --card-mythic: #ff6b35;
+  --card-uncommon: #c0c0c0;
+  --card-common: #8b7355;
+}
+
+html, body, :root { 
+  height: 100%; 
+}
+
+body {
+  color: var(--text-primary);
+  background: radial-gradient(1200px 800px at 80% -10%, rgba(139,92,246,0.12), transparent 50%),
+              radial-gradient(1000px 700px at 10% 110%, rgba(99,102,241,0.12), transparent 50%),
+              var(--background);
+}
+
+.glass {
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+  backdrop-filter: blur(6px);
+}
+
+.card-surface {
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border: 1px solid var(--border);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-accent);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* Line clamp utility for older browsers */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* Accent utilities */
+.accent-ring {
+  box-shadow: 0 0 0 1px var(--border), 0 0 0 2px rgba(139,92,246,0.25), 0 10px 30px rgba(99,102,241,0.15);
+}
+
+.accent-border {
+  border-image: linear-gradient(90deg, rgba(99,102,241,0.35), rgba(139,92,246,0.35)) 1;
+}
+
+.surface-gradient {
+  background:
+    radial-gradient(1200px 800px at 80% -10%, rgba(139,92,246,0.10), transparent 50%),
+    radial-gradient(900px 700px at 10% 110%, rgba(99,102,241,0.10), transparent 55%),
+    var(--background);
+}
+
+.hover-highlight {
+  position: relative;
+  overflow: hidden;
+}
+
+.hover-highlight::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background: conic-gradient(from 180deg at 50% 50%, rgba(99,102,241,0.35), rgba(139,92,246,0.35), transparent 30%);
+  filter: blur(18px);
+  opacity: 0;
+  transition: opacity .3s ease;
+  pointer-events: none;
+}
+
+.hover-highlight:hover::after { 
+  opacity: .6; 
+}
+
+/* Spotlight hover for cards */
+.spotlight {
+  background: radial-gradient(800px 300px at var(--mx) var(--my), rgba(139,92,246,0.18), transparent 40%);
+}
+
+/* Buttons: purple gradient */
+.btn-primary {
+  background: linear-gradient(180deg, rgba(99,102,241,0.85), rgba(99,102,241,0.75));
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(180deg, rgba(139,92,246,0.9), rgba(99,102,241,0.85));
+  transform: translateY(-1px);
+}
+
+/* Elevated cards */
+.elevated {
+  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  backdrop-filter: blur(8px);
+}
+
+/* Glow effect */
+.shadow-glow {
+  box-shadow: 0 0 0 1px rgba(139,92,246,0.2), 0 20px 40px rgba(99,102,241,0.15);
+}
+
+/* Gradient text with fallback */
+.gradient-text {
+  color: var(--primary);
+  background: linear-gradient(to right, var(--primary), var(--primary-variant));
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* Apply transparent fill only when background-clip is supported */
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  .gradient-text {
+    -webkit-text-fill-color: transparent;
+    color: transparent;
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-    background: 
-      radial-gradient(circle at 1px 1px, rgba(255,255,255,0.02) 1px, transparent 0),
-      radial-gradient(circle at 25% 25%, rgba(124, 58, 237, 0.08) 0%, transparent 50%),
-      radial-gradient(circle at 75% 75%, rgba(124, 58, 237, 0.05) 0%, transparent 50%),
-      linear-gradient(135deg, hsl(222, 84%, 3%) 0%, hsl(222, 84%, 5%) 100%);
-    background-size: 2rem 2rem, 40rem 40rem, 60rem 60rem, 100% 100%;
-    min-height: 100vh;
-  }
-  html {
-    font-family: 'Inter', system-ui, sans-serif;
-  }
+/* Focus styles */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
-@layer components {
-  .skeleton {
-    @apply bg-gradient-to-r from-muted via-accent to-muted;
-    background-size: 200% 100%;
-    animation: loading 1.5s infinite;
-  }
-  
-  .glow-hover {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  
-  .glow-hover:hover {
-    box-shadow: 
-      0 10px 25px -5px rgba(0, 0, 0, 0.2),
-      0 8px 10px -6px rgba(0, 0, 0, 0.1),
-      0 0 20px rgba(124, 58, 237, 0.4);
-    transform: translateY(-4px) scale(1.02);
-  }
-  
-  /* Debug helper to test color variables */
-  .debug-colors {
-    background: hsl(var(--background));
-    border: 1px solid hsl(var(--border));
-    color: hsl(var(--foreground));
-  }
+/* Form styling */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+textarea,
+select {
+  background-color: var(--surface-variant);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  transition: border-color 0.2s ease;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px rgba(99,102,241,0.3);
 }

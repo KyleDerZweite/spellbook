@@ -67,8 +67,7 @@ class Card(Base):
     
     # Relationships
     set = relationship("CardSet", back_populates="cards", lazy="select")
-    user_cards = relationship("UserCard", back_populates="card", lazy="select")
-    deck_cards = relationship("DeckCard", back_populates="card", lazy="select")
+    collection_cards = relationship("CollectionCard", back_populates="card", lazy="select")
     
     def make_permanent(self, reason: CardStorageReason) -> None:
         """Mark this card as permanent storage for the given reason"""

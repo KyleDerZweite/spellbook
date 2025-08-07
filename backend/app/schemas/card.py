@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List
 from datetime import datetime, date
 import uuid
@@ -53,13 +53,14 @@ class CardResponse(CardBase):
     image_uris: Optional[Dict[str, Any]] = None
     prices: Optional[Dict[str, Any]] = None
     legalities: Optional[Dict[str, Any]] = None
-    metadata: Dict[str, Any] = {}
+    metadata: Dict[str, Any] = Field(default_factory=dict, alias='extra_data')
     created_at: datetime
     updated_at: datetime
     set: Optional[CardSetResponse] = None
     
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 
 class CardSearchParams(BaseModel):

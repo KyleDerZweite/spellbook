@@ -1,46 +1,35 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
-import { ThemeProvider } from '@/components/providers/theme-provider'
-import { QueryProvider } from '@/components/providers/query-provider'
-import { AuthProvider } from '@/components/providers/auth-provider'
-import { Toaster } from '@/components/ui/toaster'
-import { MainLayout } from '@/components/layout/MainLayout'
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import { Providers } from "./providers";
 
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-})
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
-  title: 'Spellbook - Card Collection Manager',
-  description: 'Open-source, self-hosted card collection management platform',
-}
+  title: process.env.NEXT_PUBLIC_APP_NAME || "Spellbook",
+  description: "A modern card collection management platform",
+};
 
 export default function RootLayout({
   children,
-}: {
-  children: React.ReactNode
-}) {
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem={false}
-          disableTransitionOnChange
-        >
-          <AuthProvider>
-            <QueryProvider>
-              <MainLayout>
-                {children}
-              </MainLayout>
-              <Toaster />
-            </QueryProvider>
-          </AuthProvider>
-        </ThemeProvider>
+    <html lang="en" suppressHydrationWarning className="dark">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        <Providers>{children}</Providers>
       </body>
     </html>
-  )
+  );
 }

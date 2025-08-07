@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update, func
+from sqlalchemy import select, update, func, cast, String
 from typing import List, Optional
 from pydantic import BaseModel, Field
 from app.database import get_async_session
@@ -205,12 +205,12 @@ async def get_admin_stats(
         total_users = total_users_result.scalar()
         
         pending_users_result = await session.execute(
-            select(func.count(User.id)).where(User.status == UserStatus.PENDING.value)
+            select(func.count(User.id)).where(cast(User.status, String) == 'PENDING')
         )
         pending_users = pending_users_result.scalar()
         
         approved_users_result = await session.execute(
-            select(func.count(User.id)).where(User.status == UserStatus.APPROVED.value)
+            select(func.count(User.id)).where(cast(User.status, String) == 'APPROVED')
         )
         approved_users = approved_users_result.scalar()
         

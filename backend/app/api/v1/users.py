@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_async_session
-from app.models.user import User
+from app.models import User
 from app.schemas.user import UserProfile, UserUpdate, UserResponse
 from app.schemas.auth import PasswordChange
 from app.core.deps import get_current_user

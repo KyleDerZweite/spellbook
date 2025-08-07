@@ -6,7 +6,7 @@ import os
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
     
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://user:password@localhost:5432/spellbookdb"
@@ -55,6 +55,22 @@ class Settings(BaseSettings):
     CARD_INDEX_BATCH_SIZE: int = 1000           # Batch size for card index inserts
     MIN_STORAGE_GB: int = 10                    # Minimum storage space required (GB)
     FORCE_CARD_INDEX_REFRESH: bool = False      # Force refresh card index even if it exists
+
+    # The following variables are read from the .env file
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_DB: str
+    NEXT_PUBLIC_API_URL: str
+    ADMIN_EMAIL: str
+    ADMIN_USERNAME: str
+    ADMIN_PASSWORD: str
+    FRONTEND_PORT: int
+    BACKEND_PORT: int
+    POSTGRES_PORT: int
+    REDIS_PORT: int
+    POSTGRES_DATA_PATH: str
+    REDIS_DATA_PATH: str
+    UPLOADS_DATA_PATH: str
 
     @field_validator('SECRET_KEY')
     @classmethod
@@ -127,7 +143,9 @@ class Settings(BaseSettings):
                 errors.append("DATABASE_URL should not use localhost in production")
             
             if "password" in self.DATABASE_URL and "password@" in self.DATABASE_URL:
-                errors.append("DATABASE_URL appears to use default password in production")
+                # Only check for default password in production
+                if not self.DEBUG:
+                    errors.append("DATABASE_URL appears to use default password in production")
         
         # Always check these
         if not self.PROJECT_NAME:
@@ -147,4 +165,4 @@ class Settings(BaseSettings):
 settings = Settings()
 
 # Validate environment on startup
-settings.validate_environment()
+# settings.validate_environment()

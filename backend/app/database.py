@@ -73,7 +73,9 @@ async def get_async_session() -> AsyncSession:
     except Exception as e:
         # Don't catch application-level exceptions that should be handled by global handlers
         from app.core.exceptions import SpellbookException
-        if isinstance(e, SpellbookException):
+        from fastapi.exceptions import HTTPException as FastAPIHTTPException
+        
+        if isinstance(e, (SpellbookException, FastAPIHTTPException)):
             if session:
                 await session.rollback()
             raise  # Re-raise to let global exception handlers handle it

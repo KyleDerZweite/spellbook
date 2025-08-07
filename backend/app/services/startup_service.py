@@ -178,35 +178,20 @@ class StartupService:
     
     async def _initialize_card_index(self) -> Dict[str, Any]:
         """Initialize the card index if needed."""
+        logger.info("Card index initialization started.")
         try:
-            # Check if card index already exists
-            existing_count = await scryfall_bulk_service.get_card_index_count()
+            # Only force refresh if explicitly configured
+            force_refresh = getattr(settings, 'FORCE_CARD_INDEX_REFRESH', False)
             
-            # If index exists and auto-update is disabled, skip
-            auto_update = getattr(settings, 'AUTO_UPDATE_CARD_INDEX', True)
-            if existing_count > 0 and not auto_update:
-                return {
-                    'success': True,
-                    'message': f"Card index already exists with {existing_count:,} cards (auto-update disabled)",
-                    'action': 'skipped',
-                    'card_count': existing_count
-                }
-            
-            # If index is empty or auto-update is enabled, populate it
-            if existing_count == 0:
-                logger.info("Card index is empty, downloading from Scryfall...")
-                result = await scryfall_bulk_service.download_and_populate_index(
-                    force_refresh=False,
-                    batch_size=getattr(settings, 'CARD_INDEX_BATCH_SIZE', 1000)
-                )
-            else:
-                logger.info(f"Updating existing card index ({existing_count:,} cards)...")
-                result = await scryfall_bulk_service.download_and_populate_index(
-                    force_refresh=True,
-                    batch_size=getattr(settings, 'CARD_INDEX_BATCH_SIZE', 1000)
-                )
+            logger.info(f"Force refresh is set to {force_refresh}.")
+
+            result = await scryfall_bulk_service.download_and_populate_index(
+                force_refresh=force_refresh,
+                batch_size=getattr(settings, 'CARD_INDEX_BATCH_SIZE', 1000)
+            )
             
             if result['status'] == 'success':
+                logger.info(f"Card index successfully populated with {result['inserted_cards']} cards.")
                 return {
                     'success': True,
                     'message': f"Card index initialized: {result['inserted_cards']:,} cards in {result['duration_seconds']:.1f}s",
@@ -215,6 +200,7 @@ class StartupService:
                     'duration_seconds': result['duration_seconds']
                 }
             elif result['status'] == 'skipped':
+                logger.info("Card index population was skipped.")
                 return {
                     'success': True,
                     'message': result['reason'],
@@ -222,6 +208,7 @@ class StartupService:
                     'card_count': result.get('existing_cards', 0)
                 }
             else:
+                logger.error(f"Card index initialization failed: {result.get('error')}")
                 return {
                     'success': False,
                     'message': f"Card index initialization failed: {result.get('error', 'Unknown error')}",
@@ -230,7 +217,7 @@ class StartupService:
                 }
                 
         except Exception as e:
-            logger.error(f"Card index initialization failed: {e}")
+            logger.error(f"An exception occurred during card index initialization: {e}", exc_info=True)
             return {
                 'success': False,
                 'message': f"Card index initialization error: {str(e)}",

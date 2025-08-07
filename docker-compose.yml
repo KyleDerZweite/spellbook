@@ -1,7 +1,15 @@
 
+# =============================================================================
+# Spellbook Production Docker Compose
+# =============================================================================
+# This starts the full application stack for production deployment
+# Make sure to configure your .env file before running
+# =============================================================================
+
 version: '3.8'
 
 services:
+  # Frontend (Next.js)
   frontend:
     build:
       context: ./frontend
@@ -9,15 +17,23 @@ services:
     container_name: spellbook-frontend
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "${FRONTEND_PORT:-3000}:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
       - NODE_ENV=production
+    volumes:
+      - "${UPLOADS_DATA_PATH:-./data/uploads}:/data/uploads:ro"
     networks:
-      - spellbook_net
+      - spellbook-net
     depends_on:
       - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
+  # Backend (FastAPI)
   backend:
     build:
       context: ./backend
@@ -25,46 +41,79 @@ services:
     container_name: spellbook-backend
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8000}:8000"
     environment:
-      - DATABASE_URL=postgresql+asyncpg://user:password@postgres:5432/spellbookdb
-      - REDIS_URL=redis://redis:6379
-      - SECRET_KEY=${SECRET_KEY:-change-this-in-production}
-      - DEBUG=false
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=${DEBUG:-false}
+      - REGISTRATION_MODE=${REGISTRATION_MODE:-OPEN}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-15}
+      - REFRESH_TOKEN_EXPIRE_DAYS=${REFRESH_TOKEN_EXPIRE_DAYS:-7}
+      - SCRYFALL_API_BASE=${SCRYFALL_API_BASE:-https://api.scryfall.com}
+      - SCRYFALL_RATE_LIMIT=${SCRYFALL_RATE_LIMIT:-10}
+      - UPLOAD_PATH=${UPLOAD_PATH:-/data/uploads}
+      - MAX_FILE_SIZE=${MAX_FILE_SIZE:-10485760}
+      - DEFAULT_PAGE_SIZE=${DEFAULT_PAGE_SIZE:-20}
+      - MAX_PAGE_SIZE=${MAX_PAGE_SIZE:-100}
+    volumes:
+      - "${UPLOADS_DATA_PATH:-./data/uploads}:/data/uploads"
     networks:
-      - spellbook_net
+      - spellbook-net
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
+  # PostgreSQL Database
   postgres:
-    image: "postgres:16-alpine"
+    image: postgres:16-alpine
     container_name: spellbook-postgres
     restart: unless-stopped
     ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - "${POSTGRES_PORT:-5432}:5432"
     environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=spellbookdb
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      # Enable extensions
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    volumes:
+      - "${POSTGRES_DATA_PATH:-./data/postgres}:/var/lib/postgresql/data"
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
-      - spellbook_net
+      - spellbook-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # Redis Cache
   redis:
-    image: "redis:7-alpine"
+    image: redis:7-alpine
     container_name: spellbook-redis
     restart: unless-stopped
     ports:
-      - "6379:6379"
-    command: redis-server --appendonly yes
+      - "${REDIS_PORT:-6379}:6379"
+    command: redis-server --appendonly yes --requirepass ""
     volumes:
-      - redis_data:/data
+      - "${REDIS_DATA_PATH:-./data/redis}:/data"
     networks:
-      - spellbook_net
+      - spellbook-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # Background Worker (Celery)
   worker:
     build:
       context: ./backend
@@ -73,19 +122,34 @@ services:
     command: celery -A app.worker.celery worker --loglevel=info
     restart: unless-stopped
     environment:
-      - DATABASE_URL=postgresql+asyncpg://user:password@postgres:5432/spellbookdb
-      - REDIS_URL=redis://redis:6379
-      - SECRET_KEY=${SECRET_KEY:-change-this-in-production}
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=${DEBUG:-false}
+      - SCRYFALL_API_BASE=${SCRYFALL_API_BASE:-https://api.scryfall.com}
+      - SCRYFALL_RATE_LIMIT=${SCRYFALL_RATE_LIMIT:-10}
+    volumes:
+      - "${UPLOADS_DATA_PATH:-./data/uploads}:/data/uploads"
     networks:
-      - spellbook_net
+      - spellbook-net
     depends_on:
       - backend
       - redis
+    healthcheck:
+      test: ["CMD", "celery", "-A", "app.worker.celery", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   postgres_data:
+    name: spellbook-postgres-data
   redis_data:
+    name: spellbook-redis-data
+  uploads_data:
+    name: spellbook-uploads-data
 
 networks:
-  spellbook_net:
+  spellbook-net:
+    name: spellbook-network
     driver: bridge

@@ -99,7 +99,8 @@ letsencrypt/
 
 # Development and Planning (Hidden from users)
 /research/
-*LAUDE.md
+CLAUDE.md
+GEMINI.md
 *-prd.md
 
 venv/

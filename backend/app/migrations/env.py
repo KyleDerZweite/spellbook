@@ -1,4 +1,6 @@
 import asyncio
+import os
+import sys
 from logging.config import fileConfig
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
@@ -16,8 +18,17 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
+
+# Add the project root to the Python path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
+
 from app.database import Base
-from app.models import user, card, collection
+from app.models.user import User
+from app.models.card import Card, CardSet
+from app.models.card_index import CardIndex
+from app.models.collection import Collection, CollectionCard
+from app.models.invite import Invite
+
 target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,

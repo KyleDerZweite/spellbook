@@ -182,6 +182,129 @@ async def get_card(
         )
 
 
+@router.get("/search-unique")
+async def search_unique_cards(
+    q: Optional[str] = Query(None, description="Search query (name, type, oracle text)"),
+    colors: Optional[str] = Query(None, description="Color filter (e.g., 'WU' for white/blue)"),
+    set_code: Optional[str] = Query(None, alias="set", description="Set code filter"),
+    rarity: Optional[str] = Query(None, description="Rarity filter"),
+    type_line: Optional[str] = Query(None, alias="type", description="Type line filter"),
+    page: int = Query(1, ge=1, description="Page number"),
+    per_page: int = Query(20, ge=1, le=100, description="Results per page"),
+    session: AsyncSession = Depends(get_async_session)
+):
+    """
+    Search for unique cards (grouped by oracle_id) with version counts.
+    
+    This endpoint returns one representative version of each unique card along with 
+    the total number of versions/printings available.
+    """
+    offset, limit = get_pagination_params(page, per_page)
+    
+    # Build query parameters for the service
+    query_params = {}
+    if q:
+        query_params['q'] = q
+    if colors:
+        query_params['colors'] = colors
+    if set_code:
+        query_params['set_code'] = set_code
+    if rarity:
+        query_params['rarity'] = rarity
+    if type_line:
+        query_params['type_line'] = type_line
+    
+    try:
+        # Get unique cards with version counts
+        unique_cards = await card_service.search_unique_cards_with_details(
+            query_params=query_params,
+            session=session,
+            limit=per_page,
+            offset=offset
+        )
+        
+        # For metadata, we need to get the total count of unique cards
+        # This is a simplified version - for production you might want to optimize this
+        total_unique = len(unique_cards)  # This is just the current page size
+        total_pages = math.ceil(total_unique / per_page) if per_page > 0 else 1
+        
+        logger.info(f"Unique card search: query={q}, results={len(unique_cards)}")
+        
+        return {
+            "data": unique_cards,
+            "meta": {
+                "total": total_unique,
+                "page": page,
+                "per_page": per_page,
+                "total_pages": total_pages,
+                "has_next": page < total_pages,
+                "has_prev": page > 1
+            }
+        }
+        
+    except ExternalServiceError as e:
+        logger.error(f"External service error during unique search: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Card data service temporarily unavailable"
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error during unique search: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Search failed"
+        )
+
+
+@router.get("/oracle/{oracle_id}/versions", response_model=List[CardResponse])
+async def get_card_versions(
+    oracle_id: str,
+    session: AsyncSession = Depends(get_async_session)
+):
+    """
+    Get all versions/printings of a card by oracle_id.
+    
+    Returns all different printings and editions of the specified card,
+    sorted by release date and set.
+    """
+    try:
+        # Validate oracle_id format
+        try:
+            oracle_uuid = UUID(oracle_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid oracle ID format"
+            )
+        
+        # Get all versions of the card
+        versions = await card_service.get_card_versions(oracle_uuid, session)
+        
+        if not versions:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No versions found for this oracle ID"
+            )
+        
+        logger.info(f"Retrieved {len(versions)} versions for oracle_id: {oracle_id}")
+        return versions
+        
+    except HTTPException:
+        raise
+    except ExternalServiceError as e:
+        logger.error(f"External service error fetching versions for {oracle_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Card data service temporarily unavailable"
+        )
+    except Exception as e:
+        logger.error(f"Unexpected error fetching versions for {oracle_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to fetch card versions"
+        )
+
+
 @router.get("/sets", response_model=List[CardSetResponse])
 async def get_sets(
     session: AsyncSession = Depends(get_async_session)

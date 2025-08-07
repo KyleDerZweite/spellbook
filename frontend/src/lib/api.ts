@@ -1,114 +1,256 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios'
-import { ApiResponse, ApiError } from '@/types/api'
+import axios from 'axios';
+import type { 
+  ApiResponse, 
+  Card, 
+  CardSearchParams, 
+  Tokens, 
+  User, 
+  UserCard, 
+  CollectionStats,
+  Invite
+} from './types';
+// Import auth store dynamically to avoid SSR issues
 
-class ApiClient {
-  private client: AxiosInstance
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
-  constructor() {
-    this.client = axios.create({
-      baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
+const apiClient = axios.create({
+  baseURL: BASE_URL,
+  withCredentials: false,
+  timeout: 30000,
+});
 
-    // Request interceptor to add auth token
-    this.client.interceptors.request.use(
-      (config) => {
-        const token = localStorage.getItem('access_token')
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`
-        }
-        return config
-      },
-      (error) => {
-        return Promise.reject(error)
-      }
-    )
+let isRefreshing = false;
+let refreshQueue: Array<(token: string | null) => void> = [];
 
-    // Response interceptor to handle token refresh
-    this.client.interceptors.response.use(
-      (response) => response,
-      async (error) => {
-        const originalRequest = error.config
+// Request interceptor to add auth token
+apiClient.interceptors.request.use((config) => {
+  // Dynamically import to avoid SSR issues
+  if (typeof window !== 'undefined') {
+    const { useAuthStore } = require('../stores/auth');
+    const tokens = useAuthStore.getState().tokens;
+    if (tokens?.access_token) {
+      config.headers.Authorization = `Bearer ${tokens.access_token}`;
+      console.log('Adding auth header to request:', config.url, 'Token:', tokens.access_token.substring(0, 20) + '...');
+    } else {
+      console.log('No access token available for request:', config.url);
+    }
+  }
+  return config;
+});
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
-          originalRequest._retry = true
-
-          try {
-            const refreshToken = localStorage.getItem('refresh_token')
-            if (!refreshToken) {
-              throw new Error('No refresh token')
+// Response interceptor for token refresh
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const original = error.config;
+    
+    if (error.response?.status === 401 && !original._retry) {
+      if (isRefreshing) {
+        // Queue the request
+        return new Promise((resolve, reject) => {
+          refreshQueue.push((newToken) => {
+            if (newToken) {
+              original.headers.Authorization = `Bearer ${newToken}`;
+              resolve(apiClient(original));
+            } else {
+              reject(error);
             }
+          });
+        });
+      }
 
-            const response = await this.client.post('/api/v1/auth/refresh', {
-              refresh_token: refreshToken,
-            })
+      original._retry = true;
+      isRefreshing = true;
 
-            const { access_token } = response.data.data
-            localStorage.setItem('access_token', access_token)
-
-            // Retry original request with new token
-            originalRequest.headers.Authorization = `Bearer ${access_token}`
-            return this.client(originalRequest)
-          } catch (refreshError) {
-            // Refresh failed, redirect to login
-            localStorage.removeItem('access_token')
-            localStorage.removeItem('refresh_token')
-            window.location.href = '/login'
-            return Promise.reject(refreshError)
-          }
+      try {
+        // Dynamically import to avoid SSR issues
+        const { useAuthStore } = require('../stores/auth');
+        const tokens = useAuthStore.getState().tokens;
+        if (!tokens?.refresh_token) {
+          throw error;
         }
 
-        return Promise.reject(error)
+        const response = await axios.post<{ access_token: string; refresh_token?: string }>(
+          `${BASE_URL}/auth/refresh`,
+          { refresh_token: tokens.refresh_token }
+        );
+
+        const newTokens = {
+          access_token: response.data.access_token,
+          refresh_token: response.data.refresh_token ?? tokens.refresh_token,
+          token_type: 'bearer',
+          expires_in: 900, // 15 minutes
+        };
+
+        useAuthStore.getState().setTokens(newTokens);
+        
+        // Process queued requests
+        refreshQueue.forEach((callback) => callback(newTokens.access_token));
+        refreshQueue = [];
+        
+        // Retry original request
+        original.headers.Authorization = `Bearer ${newTokens.access_token}`;
+        return apiClient(original);
+      } catch (refreshError) {
+        // Refresh failed, logout user
+        const { useAuthStore } = require('../stores/auth');
+        const authStore = useAuthStore.getState();
+        authStore.logout();
+        refreshQueue.forEach((callback) => callback(null));
+        refreshQueue = [];
+        throw refreshError;
+      } finally {
+        isRefreshing = false;
       }
-    )
-  }
+    }
 
-  // Generic request methods
-  async get<T>(url: string, params?: Record<string, any>): Promise<ApiResponse<T>> {
-    const response: AxiosResponse<ApiResponse<T>> = await this.client.get(url, { params })
-    return response.data
+    throw error;
   }
+);
 
-  async post<T>(url: string, data?: any): Promise<ApiResponse<T>> {
-    const response: AxiosResponse<ApiResponse<T>> = await this.client.post(url, data)
-    return response.data
-  }
+// API surface
+export const api = {
+  auth: {
+    async login(payload: { username: string; password: string }): Promise<Tokens> {
+      const { data } = await apiClient.post<Tokens>('/auth/login', payload);
+      return data;
+    },
 
-  async patch<T>(url: string, data?: any): Promise<ApiResponse<T>> {
-    const response: AxiosResponse<ApiResponse<T>> = await this.client.patch(url, data)
-    return response.data
-  }
+    async register(payload: { 
+      email: string; 
+      username: string; 
+      password: string; 
+      invite_code?: string;
+    }): Promise<User> {
+      const { data } = await apiClient.post<ApiResponse<User>>('/auth/register', payload);
+      return data.data;
+    },
 
-  async delete<T>(url: string): Promise<ApiResponse<T>> {
-    const response: AxiosResponse<ApiResponse<T>> = await this.client.delete(url)
-    return response.data
-  }
+    async me(): Promise<User> {
+      const { data } = await apiClient.get<User>('/users/me');
+      return data;
+    },
 
-  // Upload with form data
-  async upload<T>(url: string, formData: FormData): Promise<ApiResponse<T>> {
-    const response: AxiosResponse<ApiResponse<T>> = await this.client.post(url, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
-    return response.data
-  }
-}
+    async logout(): Promise<void> {
+      try {
+        await apiClient.post('/auth/logout');
+      } catch {
+        // Ignore errors on logout
+      }
+    },
+  },
 
-export const api = new ApiClient()
+  cards: {
+    async search(params: CardSearchParams): Promise<Card[]> {
+      const { data } = await apiClient.get<ApiResponse<Card[]>>('/cards/search', { params });
+      return data.data;
+    },
 
-// Utility function to handle API errors
-export const handleApiError = (error: any): string => {
-  if (error.response?.data?.error) {
-    const apiError: ApiError = error.response.data
-    return apiError.error.message
-  }
-  
-  if (error.message) {
-    return error.message
-  }
-  
-  return 'An unexpected error occurred'
-}
+    async searchUnique(params: CardSearchParams): Promise<{ data: (Card & { version_count: number })[], meta: any }> {
+      const { data } = await apiClient.get<{ data: (Card & { version_count: number })[], meta: any }>('/cards/search-unique', { params });
+      return data;
+    },
+
+    async getVersions(oracleId: string): Promise<Card[]> {
+      const { data } = await apiClient.get<Card[]>(`/cards/oracle/${oracleId}/versions`);
+      return data;
+    },
+
+    async byId(id: string): Promise<Card> {
+      const { data } = await apiClient.get<ApiResponse<Card>>(`/cards/${id}`);
+      return data.data;
+    },
+  },
+
+  collections: {
+    async mine(): Promise<{ items: UserCard[]; stats?: CollectionStats }> {
+      const { data } = await apiClient.get<ApiResponse<{ items: UserCard[]; stats?: CollectionStats }>>('/collections/mine');
+      return data.data;
+    },
+
+    async addCard(payload: { 
+      card_id: string; 
+      quantity: number; 
+      foil_quantity?: number; 
+      condition?: string;
+      purchase_price?: string;
+      tags?: string[];
+      notes?: string;
+    }): Promise<UserCard> {
+      const { data } = await apiClient.post<ApiResponse<UserCard>>('/collections/mine/cards', payload);
+      return data.data;
+    },
+
+    async updateCard(id: string, payload: Partial<UserCard>): Promise<UserCard> {
+      const { data } = await apiClient.patch<ApiResponse<UserCard>>(`/collections/mine/cards/${id}`, payload);
+      return data.data;
+    },
+
+    async removeCard(id: string): Promise<void> {
+      await apiClient.delete(`/collections/mine/cards/${id}`);
+    },
+
+    async stats(): Promise<CollectionStats> {
+      const { data } = await apiClient.get<ApiResponse<CollectionStats>>('/collections/mine/stats');
+      return data.data;
+    },
+  },
+
+  admin: {
+    async users(): Promise<User[]> {
+      const { data } = await apiClient.get<User[]>('/admin/users');
+      return data;
+    },
+
+    async createUser(payload: { 
+      email: string; 
+      username: string; 
+      password: string; 
+      is_admin?: boolean;
+    }): Promise<User> {
+      const { data } = await apiClient.post<ApiResponse<User>>('/admin/users', payload);
+      return data.data;
+    },
+
+    async createInvite(payload: { 
+      email_restriction?: string; 
+      max_uses?: number; 
+      expires_at?: string;
+    }): Promise<Invite> {
+      const { data } = await apiClient.post<ApiResponse<Invite>>('/admin/invites', payload);
+      return data.data;
+    },
+
+    async invites(): Promise<Invite[]> {
+      const { data } = await apiClient.get<ApiResponse<Invite[]>>('/admin/invites');
+      return data.data;
+    },
+
+    async updateUserStatus(userId: string, status: string): Promise<User> {
+      const { data } = await apiClient.patch<ApiResponse<User>>(`/admin/users/${userId}/status`, { status });
+      return data.data;
+    },
+
+    async stats(): Promise<{ 
+      total_users: number; 
+      pending_users: number; 
+      approved_users: number; 
+      admin_users: number; 
+      registration_mode: string;
+    }> {
+      const { data } = await apiClient.get<{
+        total_users: number; 
+        pending_users: number; 
+        approved_users: number; 
+        admin_users: number; 
+        registration_mode: string;
+      }>('/admin/stats');
+      return data;
+    },
+
+    async deleteUser(userId: string): Promise<{ message: string; deleted_user_id: string }> {
+      const { data } = await apiClient.delete<ApiResponse<{ message: string; deleted_user_id: string }>>(`/admin/users/${userId}`);
+      return data.data;
+    },
+  },
+};

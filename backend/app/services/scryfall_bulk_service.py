@@ -140,10 +140,9 @@ class ScryfallBulkService:
         Returns:
             Processed card data for index, or None if card should be skipped
         """
-        # Skip digital-only cards, tokens, and test cards
-        if (card_data.get('digital', False) or 
-            card_data.get('layout') in ['token', 'emblem', 'scheme', 'planar'] or
-            card_data.get('set_type') in ['memorabilia', 'token']):
+        # Skip tokens, test cards, and funny sets, but keep digital cards
+        if (card_data.get('layout') in ['token', 'emblem', 'scheme', 'planar'] or
+            card_data.get('set_type') in ['memorabilia', 'token', 'funny']):
             return None
         
         # Skip cards without proper IDs
@@ -212,34 +211,36 @@ class ScryfallBulkService:
         batch = []
         
         try:
-            # Open and process the JSON file
+            # Open and process the JSON file (Scryfall bulk data is a JSON array)
+            logger.info("Loading JSON array from Scryfall bulk data file...")
             with file_path.open('r', encoding='utf-8') as f:
-                for line in f:
-                    try:
-                        card_data = json.loads(line.strip())
-                        processed_count += 1
-                        
-                        # Process card for index
-                        index_entry = self.process_card_for_index(card_data)
-                        if index_entry:
-                            batch.append(index_entry)
-                        
-                        # Insert batch when full
-                        if len(batch) >= batch_size:
-                            inserted = await self._insert_card_batch(batch)
-                            inserted_count += inserted
-                            batch = []
-                            
-                            # Log progress
-                            if processed_count % 10000 == 0:
-                                logger.info(f"Processed {processed_count:,} cards, inserted {inserted_count:,}")
+                cards_data = json.load(f)
+            
+            logger.info(f"Loaded {len(cards_data):,} cards from JSON file")
+            
+            # Process each card in the array
+            for card_data in cards_data:
+                try:
+                    processed_count += 1
                     
-                    except json.JSONDecodeError as e:
-                        logger.warning(f"Failed to parse JSON line {processed_count}: {e}")
-                        continue
-                    except Exception as e:
-                        logger.warning(f"Error processing card {processed_count}: {e}")
-                        continue
+                    # Process card for index
+                    index_entry = self.process_card_for_index(card_data)
+                    if index_entry:
+                        batch.append(index_entry)
+                    
+                    # Insert batch when full
+                    if len(batch) >= batch_size:
+                        inserted = await self._insert_card_batch(batch)
+                        inserted_count += inserted
+                        batch = []
+                        
+                        # Log progress
+                        if processed_count % 10000 == 0:
+                            logger.info(f"Processed {processed_count:,} cards, inserted {inserted_count:,}")
+                
+                except Exception as e:
+                    logger.warning(f"Error processing card {processed_count}: {e}")
+                    continue
                 
                 # Insert remaining batch
                 if batch:
@@ -254,39 +255,49 @@ class ScryfallBulkService:
             raise ExternalServiceError(f"File processing failed: {str(e)}")
     
     async def _insert_card_batch(self, batch: List[Dict[str, Any]]) -> int:
-        """Insert a batch of card index entries into the database."""
+        """Insert a batch of card index entries into the database using UPSERT for better performance."""
         if not batch:
             return 0
         
         async with async_session_maker() as session:
             try:
-                # Convert to CardIndex objects
-                card_objects = []
+                # Use PostgreSQL's ON CONFLICT for efficient upsert
+                from sqlalchemy.dialects.postgresql import insert
+                
+                # Prepare data for upsert
+                card_data = []
                 for entry in batch:
                     try:
-                        card_index = CardIndex(
-                            scryfall_id=UUID(entry['scryfall_id']),
-                            oracle_id=UUID(entry['oracle_id']) if entry.get('oracle_id') else None,
-                            name=entry['name'],
-                            set_code=entry.get('set_code'),
-                            collector_number=entry.get('collector_number'),
-                            mana_cost=entry.get('mana_cost'),
-                            cmc=entry.get('cmc'),
-                            type_line=entry.get('type_line'),
-                            colors=entry.get('colors'),
-                            rarity=entry.get('rarity'),
-                            image_url_small=entry.get('image_url_small')
-                        )
-                        card_objects.append(card_index)
+                        card_record = {
+                            'scryfall_id': UUID(entry['scryfall_id']),
+                            'oracle_id': UUID(entry['oracle_id']) if entry.get('oracle_id') else None,
+                            'name': entry['name'],
+                            'set_code': entry.get('set_code'),
+                            'collector_number': entry.get('collector_number'),
+                            'mana_cost': entry.get('mana_cost'),
+                            'cmc': entry.get('cmc'),
+                            'type_line': entry.get('type_line'),
+                            'colors': entry.get('colors'),
+                            'rarity': entry.get('rarity'),
+                            'image_url_small': entry.get('image_url_small')
+                        }
+                        card_data.append(card_record)
                     except ValueError as e:
                         logger.warning(f"Invalid UUID in card data: {e}")
                         continue
                 
-                # Insert batch
-                session.add_all(card_objects)
+                if not card_data:
+                    return 0
+                
+                # Perform bulk upsert
+                stmt = insert(CardIndex.__table__).values(card_data)
+                stmt = stmt.on_conflict_do_nothing(index_elements=['scryfall_id'])
+                
+                result = await session.execute(stmt)
                 await session.commit()
                 
-                return len(card_objects)
+                # Return number of successful inserts (approximation since PostgreSQL doesn't return exact count for ON CONFLICT DO NOTHING)
+                return len(card_data)
                 
             except Exception as e:
                 await session.rollback()
@@ -315,7 +326,7 @@ class ScryfallBulkService:
         batch_size: int = 1000
     ) -> Dict[str, Any]:
         """
-        Download Scryfall bulk data and populate the card index.
+        Load Scryfall bulk data and populate the card index.
         
         Args:
             force_refresh: Force refresh even if index already exists
@@ -342,35 +353,42 @@ class ScryfallBulkService:
             if force_refresh and existing_count > 0:
                 await self.clear_card_index()
             
-            # Download oracle cards
-            logger.info("Starting oracle cards download and processing")
-            temp_file = await self.download_oracle_cards()
+            # Use local all-cards file if available, otherwise download
+            all_cards_file = Path("/home/kyle/CodingProjects/spellbook/scryfall/all-cards-20250802092258.json")
             
-            try:
-                # Process the file
+            if all_cards_file.exists():
+                logger.info(f"Using local all-cards file: {all_cards_file}")
                 processed_count, inserted_count = await self.process_oracle_cards_file(
-                    temp_file, batch_size
+                    all_cards_file, batch_size
                 )
+            else:
+                # Fallback to downloading oracle cards
+                logger.info("Local file not found, downloading oracle cards from API")
+                temp_file = await self.download_oracle_cards()
                 
-                # Calculate duration
-                duration = (datetime.utcnow() - start_time).total_seconds()
+                try:
+                    processed_count, inserted_count = await self.process_oracle_cards_file(
+                        temp_file, batch_size
+                    )
+                finally:
+                    # Clean up temp file
+                    if temp_file.exists():
+                        temp_file.unlink()
+                        logger.debug(f"Cleaned up temporary file: {temp_file}")
                 
-                logger.info(f"Card index population complete in {duration:.1f} seconds")
-                logger.info(f"Final index size: {inserted_count:,} cards")
-                
-                return {
-                    'status': 'success',
-                    'processed_cards': processed_count,
-                    'inserted_cards': inserted_count,
-                    'duration_seconds': duration,
-                    'cards_per_second': inserted_count / duration if duration > 0 else 0
-                }
-                
-            finally:
-                # Clean up temp file
-                if temp_file.exists():
-                    temp_file.unlink()
-                    logger.debug(f"Cleaned up temporary file: {temp_file}")
+            # Calculate duration
+            duration = (datetime.utcnow() - start_time).total_seconds()
+            
+            logger.info(f"Card index population complete in {duration:.1f} seconds")
+            logger.info(f"Final index size: {inserted_count:,} cards")
+            
+            return {
+                'status': 'success',
+                'processed_cards': processed_count,
+                'inserted_cards': inserted_count,
+                'duration_seconds': duration,
+                'cards_per_second': inserted_count / duration if duration > 0 else 0
+            }
                 
         except Exception as e:
             duration = (datetime.utcnow() - start_time).total_seconds()
