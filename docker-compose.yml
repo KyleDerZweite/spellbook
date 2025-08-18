@@ -1,155 +1,69 @@
-
 # =============================================================================
-# Spellbook Production Docker Compose
+# Spellbook Development Services
 # =============================================================================
-# This starts the full application stack for production deployment
-# Make sure to configure your .env file before running
+# This docker-compose file starts only PostgreSQL and Redis for local development
+# Use this when you want to run the backend/frontend locally but need the databases
+#
+# Usage:
+#   docker-compose -f docker-compose.dev-services.yml up -d
+#   docker-compose -f docker-compose.dev-services.yml down
+#
+# The services will be available at:
+#   PostgreSQL: localhost:5432
+#   Redis: localhost:6379
 # =============================================================================
 
 version: '3.8'
 
 services:
-  # Frontend (Next.js)
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.prod
-    container_name: spellbook-frontend
-    restart: unless-stopped
-    ports:
-      - "${FRONTEND_PORT:-3000}:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-      - NODE_ENV=production
-    volumes:
-      - "${UPLOADS_DATA_PATH:-./data/uploads}:/data/uploads:ro"
-    networks:
-      - spellbook-net
-    depends_on:
-      - backend
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Backend (FastAPI)
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.prod
-    container_name: spellbook-backend
-    restart: unless-stopped
-    ports:
-      - "${BACKEND_PORT:-8000}:8000"
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
-      - SECRET_KEY=${SECRET_KEY}
-      - DEBUG=${DEBUG:-false}
-      - REGISTRATION_MODE=${REGISTRATION_MODE:-OPEN}
-      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-15}
-      - REFRESH_TOKEN_EXPIRE_DAYS=${REFRESH_TOKEN_EXPIRE_DAYS:-7}
-      - SCRYFALL_API_BASE=${SCRYFALL_API_BASE:-https://api.scryfall.com}
-      - SCRYFALL_RATE_LIMIT=${SCRYFALL_RATE_LIMIT:-10}
-      - UPLOAD_PATH=${UPLOAD_PATH:-/data/uploads}
-      - MAX_FILE_SIZE=${MAX_FILE_SIZE:-10485760}
-      - DEFAULT_PAGE_SIZE=${DEFAULT_PAGE_SIZE:-20}
-      - MAX_PAGE_SIZE=${MAX_PAGE_SIZE:-100}
-    volumes:
-      - "${UPLOADS_DATA_PATH:-./data/uploads}:/data/uploads"
-    networks:
-      - spellbook-net
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
   # PostgreSQL Database
-  postgres:
+  postgres-dev:
     image: postgres:16-alpine
-    container_name: spellbook-postgres
+    container_name: spellbook-postgres-dev
     restart: unless-stopped
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-spellbookdb}
       # Enable extensions
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - "${POSTGRES_DATA_PATH:-./data/postgres}:/var/lib/postgresql/data"
-      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    networks:
-      - spellbook-net
+      - postgres_dev_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-spellbookdb}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - spellbook-dev
 
   # Redis Cache
-  redis:
+  redis-dev:
     image: redis:7-alpine
-    container_name: spellbook-redis
+    container_name: spellbook-redis-dev
     restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ""
     ports:
       - "${REDIS_PORT:-6379}:6379"
-    command: redis-server --appendonly yes --requirepass ""
     volumes:
-      - "${REDIS_DATA_PATH:-./data/redis}:/data"
-    networks:
-      - spellbook-net
+      - redis_dev_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-
-  # Background Worker (Celery)
-  worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile.prod
-    container_name: spellbook-worker
-    command: celery -A app.worker.celery worker --loglevel=info
-    restart: unless-stopped
-    environment:
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=${REDIS_URL}
-      - SECRET_KEY=${SECRET_KEY}
-      - DEBUG=${DEBUG:-false}
-      - SCRYFALL_API_BASE=${SCRYFALL_API_BASE:-https://api.scryfall.com}
-      - SCRYFALL_RATE_LIMIT=${SCRYFALL_RATE_LIMIT:-10}
-    volumes:
-      - "${UPLOADS_DATA_PATH:-./data/uploads}:/data/uploads"
     networks:
-      - spellbook-net
-    depends_on:
-      - backend
-      - redis
-    healthcheck:
-      test: ["CMD", "celery", "-A", "app.worker.celery", "inspect", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - spellbook-dev
 
 volumes:
-  postgres_data:
-    name: spellbook-postgres-data
-  redis_data:
-    name: spellbook-redis-data
-  uploads_data:
-    name: spellbook-uploads-data
+  postgres_dev_data:
+    name: spellbook-postgres-dev-data
+  redis_dev_data:
+    name: spellbook-redis-dev-data
 
 networks:
-  spellbook-net:
-    name: spellbook-network
+  spellbook-dev:
+    name: spellbook-dev-network
     driver: bridge
