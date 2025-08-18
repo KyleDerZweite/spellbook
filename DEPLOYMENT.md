@@ -1,254 +1,92 @@
 # Spellbook Deployment Guide
 
-## Quick Start (No Reverse Proxy)
+## Overview
 
-The simplest way to run Spellbook in production:
+This guide provides instructions for deploying the Spellbook application. The current deployment strategy involves running the database and Redis services with Docker and running the backend and frontend applications manually.
+
+## Prerequisites
+
+- Docker and Docker Compose
+- Python 3.11+
+- Node.js 18+
+
+## Deployment Steps
+
+### 1. Start Core Services
+
+The `docker-compose.yml` file will start the PostgreSQL and Redis services.
 
 ```bash
-# Set environment variables
-export SECRET_KEY="your-super-secure-secret-key-here"
-
-# Start all services
 docker-compose up -d
-
-# Access the application
-# Frontend: http://localhost:3000
-# Backend API: http://localhost:8000
 ```
 
-This exposes services directly on their ports - perfect for simple setups or when you want to use your own reverse proxy.
-
-## Deployment Options
-
-### Option 1: Direct Access (Default)
-- **Simple setup** - Just run `docker-compose up`
-- **Works with any reverse proxy** - Nginx, Apache, Caddy, etc.
-- **No additional dependencies**
-- **Easy to customize**
-
-Services accessible at:
-- Frontend: `http://localhost:3000`
-- Backend: `http://localhost:8000`
-- Database: `localhost:5432` (if needed)
-- Redis: `localhost:6379` (if needed)
-
-### Option 2: With Traefik (Optional)
-If you want automatic SSL certificates and subdomain routing:
+### 2. Run the Backend
 
 ```bash
-# Start with Traefik
-docker-compose -f docker-compose.yml -f docker-compose.traefik.yml up -d
+cd backend
+source venv/bin/activate
 
-# Access via subdomains (after DNS setup)
-# Frontend: https://spellbook.localhost
-# Backend: https://api.spellbook.localhost
-# Traefik Dashboard: http://localhost:8080
+# Ensure all production dependencies are installed
+pip install -r requirements.txt
+
+# Run the application
+# It is recommended to use a production-ready ASGI server like Gunicorn
+gunicorn -w 4 -k uvicorn.workers.UvicornWorker app.main:app
 ```
 
-**Traefik Benefits:**
-- Automatic SSL certificates (Let's Encrypt)
-- Subdomain routing
-- Load balancing ready
-- Dashboard for monitoring
+### 3. Run the Frontend
 
-### Option 3: With Your Own Reverse Proxy
+```bash
+cd frontend
 
-#### Nginx Example
-```nginx
-# /etc/nginx/sites-available/spellbook
-server {
-    listen 80;
-    server_name spellbook.yourdomain.com;
+# Ensure all production dependencies are installed
+npm install
 
-    location / {
-        proxy_pass http://localhost:3000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
+# Build the application
+npm run build
 
-server {
-    listen 80;
-    server_name api.spellbook.yourdomain.com;
-
-    location / {
-        proxy_pass http://localhost:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
+# Start the application
+npm start
 ```
 
-#### Caddy Example
-```caddyfile
-# Caddyfile
-spellbook.yourdomain.com {
-    reverse_proxy localhost:3000
-}
+### 4. Environment Configuration
 
-api.spellbook.yourdomain.com {
-    reverse_proxy localhost:8000
-}
-```
+Create a `.env` file in the root of the project and add the following variables:
 
-#### Apache Example
-```apache
-<VirtualHost *:80>
-    ServerName spellbook.yourdomain.com
-    ProxyPreserveHost On
-    ProxyPass / http://localhost:3000/
-    ProxyPassReverse / http://localhost:3000/
-</VirtualHost>
-
-<VirtualHost *:80>
-    ServerName api.spellbook.yourdomain.com
-    ProxyPreserveHost On
-    ProxyPass / http://localhost:8000/
-    ProxyPassReverse / http://localhost:8000/
-</VirtualHost>
-```
-
-## Environment Configuration
-
-### Required Environment Variables
 ```bash
 # Security (IMPORTANT!)
 SECRET_KEY=your-256-bit-secret-key-here
 
-# Database (optional - defaults provided)
-DATABASE_URL=postgresql+asyncpg://user:password@postgres:5432/spellbookdb
+# Database
+DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/spellbookdb
 
-# Redis (optional - defaults provided)  
-REDIS_URL=redis://redis:6379
+# Redis
+REDIS_URL=redis://localhost:6379
 
-# Frontend API URL (adjust for your setup)
-NEXT_PUBLIC_API_URL=http://localhost:8000  # or https://api.yourdomain.com
-```
+# Frontend API URL
+NEXT_PUBLIC_API_URL=http://localhost:8000
 
-### Production Environment File
-Create `.env` file:
-
-```bash
-# .env
-SECRET_KEY=your-very-long-random-secret-key-minimum-32-characters
-DATABASE_URL=postgresql+asyncpg://user:strongpassword@postgres:5432/spellbookdb
-REDIS_URL=redis://redis:6379
-NEXT_PUBLIC_API_URL=https://api.yourdomain.com
-POSTGRES_PASSWORD=strongpassword
+# Other settings
+POSTGRES_PASSWORD=password
 DEBUG=false
 ```
 
 ## Production Checklist
 
-### Security
-- Change default SECRET_KEY
-- Change default database passwords
-- Use strong passwords (16+ characters)
-- Enable HTTPS (SSL/TLS)
-- Configure firewall rules
-- Disable debug mode (`DEBUG=false`)
+- **Security:**
+    - Use a strong, randomly generated `SECRET_KEY`.
+    - Use strong passwords for the database.
+    - Configure firewall rules to restrict access to the application.
+    - Disable debug mode (`DEBUG=false`).
+- **Performance:**
+    - Use a production-grade ASGI server like Gunicorn or Uvicorn with multiple workers.
+    - Monitor resource usage and scale as needed.
+- **Backups:**
+    - Regularly back up the PostgreSQL database.
 
-### Performance
-- Configure resource limits in Docker
-- Set up database connection pooling
-- Configure Redis persistence
-- Enable gzip compression in reverse proxy
-- Set up CDN for static assets (optional)
+## Backups
 
-### Monitoring
-- Set up log aggregation
-- Configure health checks
-- Monitor resource usage
-- Set up backup strategy
-- Configure alerting
-
-### Backup Strategy
 ```bash
 # Database backup
-docker exec spellbook-postgres pg_dump -U user spellbookdb > backup.sql
-
-# Volume backup
-docker run --rm -v spellbook_postgres_data:/data -v $(pwd):/backup alpine tar czf /backup/postgres-backup.tar.gz /data
-docker run --rm -v spellbook_redis_data:/data -v $(pwd):/backup alpine tar czf /backup/redis-backup.tar.gz /data
+docker exec spellbook-postgres-dev pg_dump -U user spellbookdb > backup.sql
 ```
-
-## Scaling Considerations
-
-### Horizontal Scaling
-- Multiple backend instances behind load balancer
-- Shared PostgreSQL and Redis instances
-- Container orchestration (Docker Swarm, Kubernetes)
-
-### Vertical Scaling
-- Increase CPU/RAM for containers
-- Optimize database settings
-- Redis memory optimization
-
-## Troubleshooting
-
-### Common Issues
-
-**Port conflicts:**
-```bash
-# Check what's using ports
-sudo netstat -tulpn | grep :3000
-sudo netstat -tulpn | grep :8000
-
-# Change ports in docker-compose.yml if needed
-```
-
-**Database connection issues:**
-```bash
-# Check if PostgreSQL is running
-docker logs spellbook-postgres
-
-# Test connection
-docker exec -it spellbook-postgres psql -U user -d spellbookdb
-```
-
-**Permission errors:**
-```bash
-# Fix file permissions
-sudo chown -R $USER:$USER letsencrypt/
-chmod -R 755 letsencrypt/
-```
-
-### Health Checks
-```bash
-# Check all services
-docker-compose ps
-
-# Check API health
-curl http://localhost:8000/health
-
-# Check frontend
-curl http://localhost:3000
-```
-
-## Migration from Other Setups
-
-### From Development to Production
-1. Stop development containers: `docker-compose -f docker-compose.dev.yml down`
-2. Set production environment variables
-3. Start production: `docker-compose up -d`
-4. Run database migrations: `docker exec spellbook-backend alembic upgrade head`
-
-### Updating Application
-```bash
-# Pull latest changes
-git pull
-
-# Rebuild and restart
-docker-compose build
-docker-compose down
-docker-compose up -d
-
-# Run any new migrations
-docker exec spellbook-backend alembic upgrade head
-```
-
-Choose the deployment option that best fits your infrastructure and requirements!

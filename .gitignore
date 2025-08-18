@@ -96,6 +96,7 @@ letsencrypt/
 /data/
 /uploads/
 /backups/
+scryfall/
 
 # Development and Planning (Hidden from users)
 /research/
