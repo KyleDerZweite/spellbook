@@ -36,9 +36,9 @@ export function CardGrid({
 
   if (isLoading) {
     return (
-      <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-md ${className}`}>
+      <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 ${className}`}>
         {Array.from({ length: 12 }).map((_, index) => (
-          <div key={index} className="aspect-[5/7] rounded-lg bg-ui-bg animate-pulse" />
+          <div key={index} className="aspect-[5/7] rounded-xl skeleton" />
         ))}
       </div>
     );
@@ -46,10 +46,10 @@ export function CardGrid({
 
   if (cards.length === 0) {
     return (
-      <div className="text-center py-xl">
-        <div className="glass-panel p-lg max-w-md mx-auto">
-          <p className="text-h3 text-text-primary mb-sm">No cards found</p>
-          <p className="text-body text-text-secondary">
+      <div className="text-center py-12">
+        <div className="bg-card border border-border rounded-xl p-8 max-w-md mx-auto">
+          <p className="text-lg font-medium text-foreground mb-2">No cards found</p>
+          <p className="text-foreground-muted">
             Try adjusting your search terms or filters
           </p>
         </div>
@@ -58,7 +58,7 @@ export function CardGrid({
   }
 
   return (
-    <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-md ${className}`}>
+    <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 ${className}`}>
       {cards.map((card, index) => (
         <motion.div
           key={card.id}
@@ -66,7 +66,7 @@ export function CardGrid({
           animate={{ opacity: 1, y: 0 }}
           transition={{ 
             duration: 0.4, 
-            delay: index * 0.05,
+            delay: index * 0.03,
             type: "spring",
             stiffness: 200
           }}

@@ -2,216 +2,287 @@
 
 import Link from 'next/link';
 import { Shell } from '../components/layout/shell';
-import { motion } from 'framer-motion';
-import { Search, Library, Shield, Users, TrendingUp, Star } from 'lucide-react';
+import { Search, Library, Camera, Layers, TrendingUp, Package, Star, ArrowRight, Loader2 } from 'lucide-react';
 import { useAuthStore } from '../stores/auth';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../lib/api';
 
 export default function HomePage() {
   const { user, tokens, hydrated } = useAuthStore();
-  
   const isAuthenticated = hydrated && Boolean(tokens?.access_token && user);
+
+  // Fetch collection stats if authenticated
+  const statsQuery = useQuery({
+    queryKey: ['collection-stats'],
+    queryFn: async () => {
+      const collections = await api.collections.list();
+      if (collections.length > 0) {
+        return api.collections.getStats(collections[0].id);
+      }
+      return null;
+    },
+    enabled: isAuthenticated,
+  });
 
   if (!hydrated) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="glass-panel p-lg text-center">
-          <div className="inline-flex items-center gap-3 text-text-secondary">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-accent-primary"></div>
-            Loading...
-          </div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex items-center gap-3 text-foreground-muted">
+          <Loader2 className="w-5 h-5 spinner" />
+          <span>Loading...</span>
         </div>
       </div>
     );
   }
 
-  if (isAuthenticated && user) {
-    return (
-      <Shell>
-        <div className="space-y-xl">
-          <div className="text-center space-y-sm">
-            <h1 className="text-h1 font-bold text-text-primary">
-              Welcome back, {user.username}!
-            </h1>
-            <p className="text-body text-text-secondary">
-              Ready to manage your card collection?
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-md">
-            <motion.div 
-              className="glass-panel p-lg text-center"
-              whileHover={{ y: -4 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              <div className="flex items-center justify-center mb-sm">
-                <Library className="text-accent-primary" size={32} />
-              </div>
-              <h3 className="text-small text-text-secondary mb-xs">Total Cards</h3>
-              <p className="text-h3 font-bold text-text-primary">—</p>
-              <p className="text-small text-text-secondary mt-xs">Loading...</p>
-            </motion.div>
-
-            <motion.div 
-              className="glass-panel p-lg text-center"
-              whileHover={{ y: -4 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              <div className="flex items-center justify-center mb-sm">
-                <TrendingUp className="text-green-500" size={32} />
-              </div>
-              <h3 className="text-small text-text-secondary mb-xs">Collection Value</h3>
-              <p className="text-h3 font-bold text-text-primary">—</p>
-              <p className="text-small text-text-secondary mt-xs">Loading...</p>
-            </motion.div>
-
-            <motion.div 
-              className="glass-panel p-lg text-center"
-              whileHover={{ y: -4 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              <div className="flex items-center justify-center mb-sm">
-                <Star className="text-yellow-500" size={32} />
-              </div>
-              <h3 className="text-small text-text-secondary mb-xs">Unique Cards</h3>
-              <p className="text-h3 font-bold text-text-primary">—</p>
-              <p className="text-small text-text-secondary mt-xs">Loading...</p>
-            </motion.div>
-          </div>
-
-          <div className="glass-panel p-lg">
-            <h2 className="text-h2 font-semibold text-text-primary mb-md">Quick Actions</h2>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-md">
-              <Link
-                href="/search"
-                className="p-md rounded-md bg-accent-primary hover:bg-accent-hover transition-colors text-center group"
-              >
-                <Search className="mx-auto mb-sm group-hover:scale-110 transition-transform" size={24} />
-                <p className="font-medium">Search Cards</p>
-                <p className="text-small opacity-80 mt-xs">Discover new cards</p>
-              </Link>
-
-              <Link
-                href="/collection"
-                className="p-md rounded-md bg-ui-bg hover:bg-ui-bg/80 border border-border hover:border-focus-border transition-all text-center group"
-              >
-                <Library className="mx-auto mb-sm group-hover:scale-110 transition-transform" size={24} />
-                <p className="font-medium">My Collection</p>
-                <p className="text-small text-text-secondary mt-xs">View your cards</p>
-              </Link>
-
-              <Link
-                href="/decks"
-                className="p-md rounded-md bg-ui-bg hover:bg-ui-bg/80 border border-border hover:border-focus-border transition-all text-center group"
-              >
-                <Users className="mx-auto mb-sm group-hover:scale-110 transition-transform" size={24} />
-                <p className="font-medium">Deck Builder</p>
-                <p className="text-small text-text-secondary mt-xs">Build decks</p>
-              </Link>
-
-              {user.is_admin && (
-                <Link
-                  href="/admin"
-                  className="p-md rounded-md bg-accent-primary hover:bg-accent-hover transition-colors text-center group"
-                >
-                  <Shield className="mx-auto mb-sm group-hover:scale-110 transition-transform" size={24} />
-                  <p className="font-medium">Admin Panel</p>
-                  <p className="text-small opacity-80 mt-xs">Manage users</p>
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-      </Shell>
-    );
+  // Show landing page for unauthenticated users
+  if (!isAuthenticated) {
+    return <LandingPage />;
   }
+
+  const stats = statsQuery.data;
 
   return (
-    <div className="min-h-screen">
-      <div className="container mx-auto px-md py-xl">
-        <div className="text-center space-y-xl max-w-4xl mx-auto">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="space-y-md"
-          >
-            <h1 className="text-h1 font-bold text-text-primary">
-              Welcome to{' '}
-              <span className="text-accent-primary font-bold">
-                Spellbook
-              </span>
-            </h1>
-            <p className="text-h3 text-text-secondary max-w-2xl mx-auto leading-body">
-              The modern way to manage, search, and cherish your trading card collection
+    <Shell>
+      <div className="space-y-8">
+        {/* Welcome Header */}
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            Welcome back, {user?.username}!
+          </h1>
+          <p className="text-foreground-muted mt-1">
+            Here's an overview of your collection
+          </p>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard
+            icon={Package}
+            label="Total Cards"
+            value={stats?.total_cards?.toLocaleString() ?? '—'}
+            loading={statsQuery.isLoading}
+          />
+          <StatCard
+            icon={Star}
+            label="Unique Cards"
+            value={stats?.unique_cards?.toLocaleString() ?? '—'}
+            loading={statsQuery.isLoading}
+          />
+          <StatCard
+            icon={TrendingUp}
+            label="Est. Value"
+            value={stats?.total_value ? `$${stats.total_value.toFixed(2)}` : '—'}
+            loading={statsQuery.isLoading}
+            accent
+          />
+          <StatCard
+            icon={Layers}
+            label="Decks"
+            value="0"
+            loading={false}
+          />
+        </div>
+
+        {/* Quick Actions */}
+        <div>
+          <h2 className="text-lg font-semibold text-foreground mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <QuickAction
+              href="/search"
+              icon={Search}
+              title="Search Cards"
+              description="Find cards in the database"
+            />
+            <QuickAction
+              href="/collection"
+              icon={Library}
+              title="My Collection"
+              description="View and manage your cards"
+            />
+            <QuickAction
+              href="/scans"
+              icon={Camera}
+              title="Scan Cards"
+              description="Add cards by scanning"
+            />
+            <QuickAction
+              href="/decks"
+              icon={Layers}
+              title="Build Decks"
+              description="Create and edit decks"
+            />
+          </div>
+        </div>
+
+        {/* Recent Activity Placeholder */}
+        <div>
+          <h2 className="text-lg font-semibold text-foreground mb-4">Recent Activity</h2>
+          <div className="bg-card border border-border rounded-xl p-8 text-center">
+            <p className="text-foreground-muted">
+              Your recent activity will appear here
             </p>
-          </motion.div>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="flex flex-col sm:flex-row gap-md justify-center items-center"
-          >
-            <Link
-              href="/register"
-              className="px-lg py-md bg-accent-primary hover:bg-accent-hover rounded-md font-semibold text-lg transition-all hover:scale-105"
-            >
-              Get Started Free
-            </Link>
-            <Link
-              href="/login"
-              className="px-lg py-md bg-ui-bg border border-border hover:border-focus-border rounded-md font-semibold text-lg transition-all hover:scale-105"
-            >
-              Sign In
-            </Link>
-          </motion.div>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="grid md:grid-cols-3 gap-lg mt-xl"
-          >
-            <div className="glass-panel p-lg text-center">
-              <Search className="mx-auto mb-md text-accent-primary" size={48} />
-              <h3 className="text-h3 font-semibold mb-sm">Advanced Search</h3>
-              <p className="text-text-secondary">
-                Find cards by name, type, color, rarity, or any attribute with our powerful search engine
-              </p>
-            </div>
-
-            <div className="glass-panel p-lg text-center">
-              <Library className="mx-auto mb-md text-accent-primary" size={48} />
-              <h3 className="text-h3 font-semibold mb-sm">Collection Management</h3>
-              <p className="text-text-secondary">
-                Track quantities, conditions, prices, and organize with custom tags and notes
-              </p>
-            </div>
-
-            <div className="glass-panel p-lg text-center">
-              <TrendingUp className="mx-auto mb-md text-accent-primary" size={48} />
-              <h3 className="text-h3 font-semibold mb-sm">Value Tracking</h3>
-              <p className="text-text-secondary">
-                Monitor your collection's value with real-time pricing data and analytics
-              </p>
-            </div>
-          </motion.div>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-            className="glass-panel p-lg mt-xl"
-          >
-            <h2 className="text-h2 font-semibold mb-md">Built for Collectors</h2>
-            <p className="text-text-secondary leading-body">
-              Spellbook is designed with collectors in mind. Whether you're managing a small personal collection 
-              or thousands of cards, our platform scales with you. Dark theme, beautiful UI, and lightning-fast 
-              performance make managing your collection a joy.
-            </p>
-          </motion.div>
+          </div>
         </div>
       </div>
+    </Shell>
+  );
+}
+
+// Stat Card Component
+function StatCard({ 
+  icon: Icon, 
+  label, 
+  value, 
+  loading,
+  accent 
+}: { 
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  loading: boolean;
+  accent?: boolean;
+}) {
+  return (
+    <div className="bg-card border border-border rounded-xl p-5">
+      <div className="flex items-center gap-3 mb-3">
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${accent ? 'bg-accent/10' : 'bg-background-tertiary'}`}>
+          <Icon className={`w-5 h-5 ${accent ? 'text-accent' : 'text-foreground-muted'}`} />
+        </div>
+      </div>
+      {loading ? (
+        <div className="h-8 w-20 skeleton rounded" />
+      ) : (
+        <p className={`text-2xl font-bold ${accent ? 'text-accent' : 'text-foreground'}`}>
+          {value}
+        </p>
+      )}
+      <p className="text-sm text-foreground-muted mt-1">{label}</p>
+    </div>
+  );
+}
+
+// Quick Action Component
+function QuickAction({ 
+  href, 
+  icon: Icon, 
+  title, 
+  description 
+}: { 
+  href: string;
+  icon: React.ElementType;
+  title: string;
+  description: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group bg-card border border-border rounded-xl p-5 hover:border-accent/50 hover:bg-card-hover transition-all"
+    >
+      <div className="flex items-start justify-between">
+        <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center mb-3">
+          <Icon className="w-5 h-5 text-accent" />
+        </div>
+        <ArrowRight className="w-4 h-4 text-foreground-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+      </div>
+      <h3 className="font-medium text-foreground">{title}</h3>
+      <p className="text-sm text-foreground-muted mt-1">{description}</p>
+    </Link>
+  );
+}
+
+// Landing Page for unauthenticated users
+function LandingPage() {
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Hero Section */}
+      <div className="relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
+          <div className="text-center">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground tracking-tight">
+              Your Magic Collection,
+              <span className="text-accent"> Organized</span>
+            </h1>
+            <p className="mt-6 text-lg sm:text-xl text-foreground-muted max-w-2xl mx-auto">
+              Track your cards, build decks, and manage your collection with ease. 
+              The ultimate tool for Magic: The Gathering collectors.
+            </p>
+            <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/register"
+                className="px-8 py-3 bg-accent hover:bg-accent-hover text-white font-medium rounded-lg transition-colors inline-flex items-center justify-center gap-2"
+              >
+                Get Started Free
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                href="/login"
+                className="px-8 py-3 bg-background-tertiary hover:bg-card-hover border border-border text-foreground font-medium rounded-lg transition-colors"
+              >
+                Sign In
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Features Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl font-bold text-foreground">Everything you need</h2>
+          <p className="mt-4 text-foreground-muted">
+            Powerful features to help you manage your collection
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-8">
+          <FeatureCard
+            icon={Search}
+            title="Card Search"
+            description="Search through the entire Magic: The Gathering database with powerful filters and instant results."
+          />
+          <FeatureCard
+            icon={Library}
+            title="Collection Tracking"
+            description="Keep track of every card you own, with quantity tracking and condition notes."
+          />
+          <FeatureCard
+            icon={Camera}
+            title="Card Scanning"
+            description="Quickly add cards to your collection by scanning them with your phone's camera."
+          />
+        </div>
+      </div>
+
+      {/* Footer */}
+      <footer className="border-t border-border py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-center text-foreground-muted text-sm">
+            © 2025 Spellbook. Built with ❤️ for card collectors.
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+// Feature Card Component
+function FeatureCard({ 
+  icon: Icon, 
+  title, 
+  description 
+}: { 
+  icon: React.ElementType;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="bg-card border border-border rounded-xl p-6">
+      <div className="w-12 h-12 rounded-lg bg-accent/10 flex items-center justify-center mb-4">
+        <Icon className="w-6 h-6 text-accent" />
+      </div>
+      <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
+      <p className="text-foreground-muted">{description}</p>
     </div>
   );
 }

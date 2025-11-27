@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../../../lib/auth';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Loader2, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { Loader2, Eye, EyeOff, Sparkles, Check, X } from 'lucide-react';
 import Link from 'next/link';
 
 interface RegisterForm {
@@ -16,23 +16,22 @@ interface RegisterForm {
 }
 
 export default function RegisterPage() {
-  const { register: registerMutation, isAuthenticated } = useAuth();
+  const { register: registerUser, isAuthenticated } = useAuth();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
   
-  const { register, handleSubmit, formState: { errors }, watch, reset } = useForm<RegisterForm>({
-    defaultValues: { 
-      email: '', 
-      username: '', 
-      password: '', 
-      confirmPassword: '',
-      invite_code: ''
-    }
+  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<RegisterForm>({
+    defaultValues: { email: '', username: '', password: '', confirmPassword: '', invite_code: '' }
   });
 
   const password = watch('password');
+  
+  const passwordChecks = {
+    length: password?.length >= 8,
+    lowercase: /[a-z]/.test(password || ''),
+    uppercase: /[A-Z]/.test(password || ''),
+    number: /[0-9]/.test(password || ''),
+  };
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -41,216 +40,200 @@ export default function RegisterPage() {
   }, [isAuthenticated, router]);
 
   const onSubmit = (values: RegisterForm) => {
-    const { confirmPassword, ...payload } = values;
-    
-    registerMutation.mutate(payload, {
-      onSuccess: () => {
-        setIsSuccess(true);
-        reset();
-        // Redirect to login after a delay
-        setTimeout(() => {
-          router.push('/login');
-        }, 2000);
-      },
+    const { confirmPassword, ...data } = values;
+    registerUser.mutate(data, {
+      onSuccess: () => router.push('/login?registered=true'),
     });
   };
 
   if (isAuthenticated) {
     return (
-      <div className="min-h-screen grid place-items-center">
-        <div className="glass rounded-xl p-6">
-          <div className="flex items-center gap-2 text-text-secondary">
-            <Loader2 className="animate-spin" size={16} />
-            Redirecting...
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (isSuccess) {
-    return (
-      <div className="min-h-screen grid place-items-center px-4">
-        <div className="w-full max-w-sm glass rounded-xl p-6 text-center">
-          <CheckCircle className="mx-auto mb-4 text-green-500" size={48} />
-          <h2 className="text-xl font-semibold text-text-primary mb-2">Account Created!</h2>
-          <p className="text-text-secondary mb-4">
-            Your account has been created successfully. You will be redirected to the login page.
-          </p>
-          <div className="flex items-center justify-center gap-2 text-text-muted">
-            <Loader2 className="animate-spin" size={16} />
-            Redirecting...
-          </div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex items-center gap-3 text-foreground-muted">
+          <Loader2 className="w-5 h-5 spinner" />
+          <span>Redirecting...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen grid place-items-center px-4 py-8">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 py-12">
       <div className="w-full max-w-md">
-        <form onSubmit={handleSubmit(onSubmit)} className="glass rounded-xl p-6 space-y-4">
-          <div className="text-center mb-6">
-            <h1 className="text-2xl font-semibold text-text-primary">Create account</h1>
-            <p className="text-text-secondary mt-2">Join Spellbook to manage your collection</p>
+        {/* Logo/Brand */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-accent/10 mb-4">
+            <Sparkles className="w-6 h-6 text-accent" />
           </div>
-          
-          <div className="space-y-2">
-            <label htmlFor="email" className="block text-sm font-medium text-text-secondary">
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              {...register('email', { 
-                required: 'Email is required',
-                pattern: {
-                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                  message: 'Invalid email address'
-                }
-              })}
-              className="w-full bg-surface-variant border border-border rounded-md px-3 py-2 outline-none focus:border-border-accent transition-colors"
-              placeholder="Enter your email"
-            />
-            {errors.email && (
-              <p className="text-red-400 text-xs">{errors.email.message}</p>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <label htmlFor="username" className="block text-sm font-medium text-text-secondary">
-              Username
-            </label>
-            <input
-              id="username"
-              type="text"
-              {...register('username', { 
-                required: 'Username is required',
-                minLength: {
-                  value: 3,
-                  message: 'Username must be at least 3 characters'
-                },
-                maxLength: {
-                  value: 50,
-                  message: 'Username must be less than 50 characters'
-                },
-                pattern: {
-                  value: /^[a-zA-Z0-9_-]+$/,
-                  message: 'Username can only contain letters, numbers, hyphens, and underscores'
-                }
-              })}
-              className="w-full bg-surface-variant border border-border rounded-md px-3 py-2 outline-none focus:border-border-accent transition-colors"
-              placeholder="Choose a username"
-            />
-            {errors.username && (
-              <p className="text-red-400 text-xs">{errors.username.message}</p>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <label htmlFor="password" className="block text-sm font-medium text-text-secondary">
-              Password
-            </label>
-            <div className="relative">
+          <h1 className="text-2xl font-bold text-foreground">Create your account</h1>
+          <p className="text-foreground-muted mt-2">Start managing your card collection today</p>
+        </div>
+
+        {/* Form Card */}
+        <div className="bg-card border border-border rounded-xl p-6">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            {/* Email Field */}
+            <div className="space-y-2">
+              <label htmlFor="email" className="block text-sm font-medium text-foreground">
+                Email
+              </label>
               <input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                {...register('password', { 
-                  required: 'Password is required',
-                  minLength: {
-                    value: 8,
-                    message: 'Password must be at least 8 characters'
-                  }
+                id="email"
+                type="email"
+                autoComplete="email"
+                {...register('email', { 
+                  required: 'Email is required',
+                  pattern: { value: /^\S+@\S+$/i, message: 'Invalid email address' }
                 })}
-                className="w-full bg-surface-variant border border-border rounded-md px-3 py-2 pr-10 outline-none focus:border-border-accent transition-colors"
-                placeholder="Create a password"
+                className="w-full px-4 py-2.5 bg-background border border-border rounded-lg text-foreground placeholder:text-foreground-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                placeholder="you@example.com"
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-2.5 text-text-muted hover:text-text-secondary"
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+              {errors.email && (
+                <p className="text-sm text-error">{errors.email.message}</p>
+              )}
             </div>
-            {errors.password && (
-              <p className="text-red-400 text-xs">{errors.password.message}</p>
-            )}
-          </div>
-          
-          <div className="space-y-2">
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-text-secondary">
-              Confirm Password
-            </label>
-            <div className="relative">
+
+            {/* Username Field */}
+            <div className="space-y-2">
+              <label htmlFor="username" className="block text-sm font-medium text-foreground">
+                Username
+              </label>
+              <input
+                id="username"
+                type="text"
+                autoComplete="username"
+                {...register('username', { 
+                  required: 'Username is required',
+                  minLength: { value: 3, message: 'Must be at least 3 characters' },
+                  maxLength: { value: 20, message: 'Must be less than 20 characters' },
+                  pattern: { value: /^[a-zA-Z0-9_]+$/, message: 'Only letters, numbers, and underscores' }
+                })}
+                className="w-full px-4 py-2.5 bg-background border border-border rounded-lg text-foreground placeholder:text-foreground-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                placeholder="Choose a username"
+              />
+              {errors.username && (
+                <p className="text-sm text-error">{errors.username.message}</p>
+              )}
+            </div>
+
+            {/* Password Field */}
+            <div className="space-y-2">
+              <label htmlFor="password" className="block text-sm font-medium text-foreground">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  {...register('password', { 
+                    required: 'Password is required',
+                    minLength: { value: 8, message: 'Password must be at least 8 characters' }
+                  })}
+                  className="w-full px-4 py-2.5 pr-11 bg-background border border-border rounded-lg text-foreground placeholder:text-foreground-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-muted hover:text-foreground transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+              
+              {/* Password Requirements */}
+              {password && (
+                <div className="grid grid-cols-2 gap-2 mt-3 text-xs">
+                  <div className={`flex items-center gap-1.5 ${passwordChecks.length ? 'text-success' : 'text-foreground-muted'}`}>
+                    {passwordChecks.length ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
+                    8+ characters
+                  </div>
+                  <div className={`flex items-center gap-1.5 ${passwordChecks.lowercase ? 'text-success' : 'text-foreground-muted'}`}>
+                    {passwordChecks.lowercase ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
+                    Lowercase letter
+                  </div>
+                  <div className={`flex items-center gap-1.5 ${passwordChecks.uppercase ? 'text-success' : 'text-foreground-muted'}`}>
+                    {passwordChecks.uppercase ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
+                    Uppercase letter
+                  </div>
+                  <div className={`flex items-center gap-1.5 ${passwordChecks.number ? 'text-success' : 'text-foreground-muted'}`}>
+                    {passwordChecks.number ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
+                    Number
+                  </div>
+                </div>
+              )}
+              
+              {errors.password && (
+                <p className="text-sm text-error">{errors.password.message}</p>
+              )}
+            </div>
+
+            {/* Confirm Password */}
+            <div className="space-y-2">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground">
+                Confirm Password
+              </label>
               <input
                 id="confirmPassword"
-                type={showConfirmPassword ? 'text' : 'password'}
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="new-password"
                 {...register('confirmPassword', { 
                   required: 'Please confirm your password',
-                  validate: (value) => value === password || 'Passwords do not match'
+                  validate: value => value === password || 'Passwords do not match'
                 })}
-                className="w-full bg-surface-variant border border-border rounded-md px-3 py-2 pr-10 outline-none focus:border-border-accent transition-colors"
-                placeholder="Confirm your password"
+                className="w-full px-4 py-2.5 bg-background border border-border rounded-lg text-foreground placeholder:text-foreground-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                placeholder="••••••••"
               />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-2.5 text-text-muted hover:text-text-secondary"
-              >
-                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+              {errors.confirmPassword && (
+                <p className="text-sm text-error">{errors.confirmPassword.message}</p>
+              )}
             </div>
-            {errors.confirmPassword && (
-              <p className="text-red-400 text-xs">{errors.confirmPassword.message}</p>
+
+            {/* Error Message */}
+            {registerUser.isError && (
+              <div className="p-3 rounded-lg bg-error/10 border border-error/20 text-error text-sm">
+                {(registerUser.error as Error)?.message || 'Registration failed. Please try again.'}
+              </div>
             )}
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isSubmitting || registerUser.isPending}
+              className="w-full py-2.5 px-4 bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+            >
+              {registerUser.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 spinner" />
+                  Creating account...
+                </>
+              ) : (
+                'Create account'
+              )}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="my-6 flex items-center gap-4">
+            <div className="flex-1 h-px bg-border"></div>
+            <span className="text-sm text-foreground-muted">or</span>
+            <div className="flex-1 h-px bg-border"></div>
           </div>
-          
-          <div className="space-y-2">
-            <label htmlFor="invite_code" className="block text-sm font-medium text-text-secondary">
-              Invite Code <span className="text-text-muted">(if required)</span>
-            </label>
-            <input
-              id="invite_code"
-              type="text"
-              {...register('invite_code')}
-              className="w-full bg-surface-variant border border-border rounded-md px-3 py-2 outline-none focus:border-border-accent transition-colors"
-              placeholder="Enter invite code (optional)"
-            />
-          </div>
-          
-          <button 
-            type="submit"
-            disabled={registerMutation.isPending} 
-            className="w-full bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors rounded-md py-2.5 flex items-center justify-center font-medium"
-          >
-            {registerMutation.isPending ? (
-              <>
-                <Loader2 className="animate-spin mr-2" size={16} />
-                Creating account...
-              </>
-            ) : (
-              'Create Account'
-            )}
-          </button>
-          
-          {registerMutation.isError && (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-md p-3">
-              <p className="text-red-400 text-sm text-center">
-                Registration failed. Please check your information and try again.
-              </p>
-            </div>
-          )}
-          
-          <div className="text-center pt-4 border-t border-border">
-            <p className="text-text-secondary text-sm">
-              Already have an account?{' '}
-              <Link href="/login" className="text-primary hover:underline">
-                Sign in
-              </Link>
-            </p>
-          </div>
-        </form>
+
+          {/* Login Link */}
+          <p className="text-center text-foreground-muted">
+            Already have an account?{' '}
+            <Link href="/login" className="text-accent hover:text-accent-hover font-medium transition-colors">
+              Sign in
+            </Link>
+          </p>
+        </div>
+
+        {/* Footer */}
+        <p className="text-center text-sm text-foreground-muted mt-6">
+          By creating an account, you agree to our Terms of Service
+        </p>
       </div>
     </div>
   );

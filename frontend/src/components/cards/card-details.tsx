@@ -2,7 +2,7 @@
 
 import * as Dialog from '@radix-ui/react-dialog';
 import Image from 'next/image';
-import { X, Plus, Star, ExternalLink } from 'lucide-react';
+import { X, Plus, ExternalLink } from 'lucide-react';
 import { getCardImageUrl, formatPrice } from '../../lib/utils';
 import type { Card, UserCard } from '../../lib/types';
 import { motion } from 'framer-motion';
@@ -35,99 +35,106 @@ export function CardDetails({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50" />
+        <Dialog.Overlay className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50" />
         <Dialog.Content 
-          className="fixed inset-0 md:inset-auto md:top-[8%] md:left-1/2 md:-translate-x-1/2 md:w-[980px] max-w-[98vw] bg-ui-bg rounded-lg p-0 overflow-hidden z-50"
+          className="fixed inset-4 md:inset-auto md:top-[8%] md:left-1/2 md:-translate-x-1/2 md:w-[900px] max-w-[98vw] max-h-[85vh] overflow-y-auto bg-card border border-border rounded-2xl z-50"
         >
           <motion.div 
             layoutId={`${layoutIdPrefix}-${card.id}`}
             className="grid md:grid-cols-2 gap-0"
           >
-            <div className="relative aspect-[5/7]">
+            {/* Card Image */}
+            <div className="relative aspect-[5/7] bg-background">
               <Image 
                 src={getCardImageUrl(card, 'large')} 
                 alt={card.name} 
                 fill 
-                className="object-cover"
+                className="object-contain"
               />
             </div>
             
-            <div className="p-lg">
-              <div className="flex items-start justify-between mb-md">
+            {/* Card Details */}
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-start justify-between mb-6">
                 <div className="flex-1 min-w-0">
-                  <Dialog.Title className="text-h2 font-bold text-text-primary">
+                  <Dialog.Title className="text-xl font-bold text-foreground">
                     {card.name}
                   </Dialog.Title>
                   {card.type_line && (
-                    <p className="text-body text-text-secondary">
+                    <p className="text-foreground-muted mt-1">
                       {card.type_line}
                     </p>
                   )}
                 </div>
-                <Dialog.Close className="p-sm rounded-md hover:bg-ui-bg/50 transition-colors ml-md">
-                  <X size={20} className="text-text-secondary" />
+                <Dialog.Close className="p-2 rounded-lg hover:bg-card-hover transition-colors ml-4">
+                  <X size={20} className="text-foreground-muted" />
                 </Dialog.Close>
               </div>
               
-              <div className="space-y-md text-text-secondary">
+              {/* Details */}
+              <div className="space-y-4">
                 {card.mana_cost && (
-                  <div className="text-sm">
-                    <span className="font-medium">Mana Cost:</span> {card.mana_cost}
-                  </div>
+                  <DetailRow label="Mana Cost" value={card.mana_cost} />
                 )}
                 
                 {card.oracle_text && (
-                  <div className="text-sm">
-                    <div className="font-medium mb-sm">Oracle Text:</div>
-                    <div className="whitespace-pre-line bg-primary-bg rounded-md p-md border border-border">
+                  <div>
+                    <p className="text-sm font-medium text-foreground-muted mb-2">Oracle Text</p>
+                    <div className="whitespace-pre-line bg-background rounded-lg p-4 border border-border text-sm text-foreground">
                       {card.oracle_text}
                     </div>
                   </div>
                 )}
                 
                 {(card.power || card.toughness) && (
-                  <div className="text-sm">
-                    <span className="font-medium">Power/Toughness:</span> {card.power || '*'}/{card.toughness || '*'}
-                  </div>
+                  <DetailRow 
+                    label="Power/Toughness" 
+                    value={`${card.power || '*'}/${card.toughness || '*'}`} 
+                  />
                 )}
                 
                 {card.prices && Object.keys(card.prices).length > 0 && (
-                  <div className="text-sm">
-                    <div className="font-medium mb-xs">Prices:</div>
-                    {Object.entries(card.prices)
-                      .filter(([, v]) => v)
-                      .map(([k, v]) => `${k.toUpperCase()}: ${formatPrice(v)}`)
-                      .join(' · ')}
+                  <div>
+                    <p className="text-sm font-medium text-foreground-muted mb-1">Prices</p>
+                    <p className="text-foreground">
+                      {Object.entries(card.prices)
+                        .filter(([, v]) => v)
+                        .map(([k, v]) => `${k.toUpperCase()}: ${formatPrice(v)}`)
+                        .join(' · ')}
+                    </p>
                   </div>
                 )}
                 
                 {card.artist && (
-                  <div className="text-sm">
-                    <span className="font-medium">Artist:</span> {card.artist}
-                  </div>
+                  <DetailRow label="Artist" value={card.artist} />
                 )}
                 
                 {card.set && (
-                  <div className="text-sm">
-                    <span className="font-medium">Set:</span> {card.set.name} ({card.set.code?.toUpperCase()})
-                  </div>
+                  <DetailRow 
+                    label="Set" 
+                    value={`${card.set.name} (${card.set.code?.toUpperCase()})`} 
+                  />
                 )}
                 
                 {totalQuantity > 0 && (
-                  <div className="text-sm bg-accent-primary/10 border border-accent-primary/20 rounded-md p-md">
-                    <span className="font-medium">In Collection:</span> {totalQuantity} 
-                    {foilQuantity > 0 && (
-                      <span className="ml-xs text-yellow-400">
-                        ({foilQuantity} foil)
-                      </span>
-                    )}
+                  <div className="bg-accent/10 border border-accent/20 rounded-lg p-4">
+                    <p className="text-sm font-medium text-accent">
+                      In Collection: {totalQuantity}
+                      {foilQuantity > 0 && (
+                        <span className="ml-2 text-yellow-400">
+                          ({foilQuantity} foil)
+                        </span>
+                      )}
+                    </p>
                   </div>
                 )}
               </div>
               
-              <div className="mt-lg flex gap-md">
+              {/* Actions */}
+              <div className="mt-6 flex gap-3 flex-wrap">
                 <Dialog.Close asChild>
-                  <button className="px-md py-sm rounded-md bg-ui-bg border border-border hover:border-focus-border transition-colors">
+                  <button className="px-4 py-2 rounded-lg bg-background-tertiary border border-border hover:bg-card-hover text-foreground transition-colors">
                     Close
                   </button>
                 </Dialog.Close>
@@ -135,7 +142,7 @@ export function CardDetails({
                 {showAddButton && onAddToCollection && (
                   <button
                     onClick={() => onAddToCollection(card)}
-                    className="px-md py-sm rounded-md bg-accent-primary hover:bg-accent-hover text-text-primary flex items-center gap-sm"
+                    className="px-4 py-2 rounded-lg bg-accent hover:bg-accent-hover text-white flex items-center gap-2 transition-colors"
                   >
                     <Plus size={16} />
                     Add to Collection
@@ -147,7 +154,7 @@ export function CardDetails({
                     href={`https://scryfall.com/card/${card.scryfall_id}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-md py-sm rounded-md bg-ui-bg border border-border hover:border-focus-border transition-colors flex items-center gap-sm"
+                    className="px-4 py-2 rounded-lg bg-background-tertiary border border-border hover:bg-card-hover text-foreground flex items-center gap-2 transition-colors"
                   >
                     <ExternalLink size={16} />
                     Scryfall
@@ -159,5 +166,14 @@ export function CardDetails({
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-sm font-medium text-foreground-muted">{label}</p>
+      <p className="text-foreground">{value}</p>
+    </div>
   );
 }

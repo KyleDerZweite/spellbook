@@ -1,28 +1,183 @@
-import { Topbar } from './topbar';
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { useAuthStore } from '../../stores/auth';
+import { 
+  Search, 
+  Library, 
+  Layers, 
+  Settings, 
+  Shield, 
+  LogOut, 
+  Sparkles,
+  Home,
+  Camera,
+  Menu,
+  X
+} from 'lucide-react';
+import { useState } from 'react';
 
 interface ShellProps {
   children: React.ReactNode;
 }
 
+const navItems = [
+  { href: '/', icon: Home, label: 'Dashboard' },
+  { href: '/search', icon: Search, label: 'Search Cards' },
+  { href: '/collection', icon: Library, label: 'My Collection' },
+  { href: '/decks', icon: Layers, label: 'Decks' },
+  { href: '/scans', icon: Camera, label: 'Scan Cards' },
+];
+
 export function Shell({ children }: ShellProps) {
+  const pathname = usePathname();
+  const { user, logout } = useAuthStore();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
-    <div className="min-h-screen flex flex-col bg-primary-bg">
-      <Topbar />
-      <main className="flex-1 container mx-auto px-md py-lg max-w-7xl">
-        {children}
-      </main>
-      
-      <footer className="mt-auto border-t border-border bg-ui-bg/50 px-md py-sm">
-        <div className="container mx-auto max-w-7xl flex justify-between items-center text-sm text-text-secondary">
-          <div>
-            <span>{process.env.NEXT_PUBLIC_APP_NAME || 'Spellbook'}</span>
-            <span className="ml-sm">© 2025</span>
-          </div>
-          <div>
-            Built with ❤️ for card collectors
+    <div className="min-h-screen bg-background">
+      {/* Mobile Header */}
+      <header className="lg:hidden sticky top-0 z-50 flex items-center justify-between px-4 h-14 bg-background-secondary border-b border-border">
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="p-2 -ml-2 text-foreground-muted hover:text-foreground transition-colors"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <Link href="/" className="flex items-center gap-2">
+          <Sparkles className="w-5 h-5 text-accent" />
+          <span className="font-semibold text-foreground">Spellbook</span>
+        </Link>
+        <div className="w-9" /> {/* Spacer for centering */}
+      </header>
+
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 z-50 bg-black/60" 
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`
+        fixed top-0 left-0 z-50 h-full w-64 bg-background-secondary border-r border-border
+        transform transition-transform duration-200 ease-out
+        lg:translate-x-0
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        {/* Logo */}
+        <div className="flex items-center justify-between h-14 px-4 border-b border-border">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
+              <Sparkles className="w-4 h-4 text-accent" />
+            </div>
+            <span className="font-semibold text-foreground">Spellbook</span>
+          </Link>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden p-1.5 text-foreground-muted hover:text-foreground transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Navigation */}
+        <nav className="p-3 space-y-1">
+          {navItems.map((item) => {
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setSidebarOpen(false)}
+                className={`
+                  flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                  ${isActive 
+                    ? 'bg-accent/10 text-accent' 
+                    : 'text-foreground-muted hover:text-foreground hover:bg-background-tertiary'
+                  }
+                `}
+              >
+                <item.icon className="w-5 h-5" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Divider */}
+        <div className="mx-3 my-3 h-px bg-border" />
+
+        {/* Settings & Admin */}
+        <nav className="px-3 space-y-1">
+          <Link
+            href="/settings"
+            onClick={() => setSidebarOpen(false)}
+            className={`
+              flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+              ${pathname === '/settings' 
+                ? 'bg-accent/10 text-accent' 
+                : 'text-foreground-muted hover:text-foreground hover:bg-background-tertiary'
+              }
+            `}
+          >
+            <Settings className="w-5 h-5" />
+            Settings
+          </Link>
+
+          {user?.is_admin && (
+            <Link
+              href="/admin"
+              onClick={() => setSidebarOpen(false)}
+              className={`
+                flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                ${pathname === '/admin' 
+                  ? 'bg-accent/10 text-accent' 
+                  : 'text-foreground-muted hover:text-foreground hover:bg-background-tertiary'
+                }
+              `}
+            >
+              <Shield className="w-5 h-5" />
+              Admin Panel
+            </Link>
+          )}
+        </nav>
+
+        {/* User Section */}
+        <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-border bg-background-secondary">
+          <div className="flex items-center gap-3 px-3 py-2">
+            <div className="w-9 h-9 rounded-full bg-accent/10 flex items-center justify-center">
+              <span className="text-sm font-medium text-accent">
+                {user?.username?.charAt(0).toUpperCase() || 'U'}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-foreground truncate">
+                {user?.username}
+              </p>
+              <p className="text-xs text-foreground-muted truncate">
+                {user?.email}
+              </p>
+            </div>
+            <button
+              onClick={() => logout()}
+              className="p-2 text-foreground-muted hover:text-error transition-colors"
+              title="Sign out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
-      </footer>
+      </aside>
+
+      {/* Main Content */}
+      <main className="lg:pl-64">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }

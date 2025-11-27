@@ -1,52 +1,35 @@
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  darkMode: 'class',
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  darkMode: "class",
   content: [
-    './src/**/*.{js,ts,jsx,tsx,mdx}',
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
       colors: {
-        'primary-bg': 'var(--color-primary-bg)',
-        'ui-bg': 'var(--color-ui-bg)',
-        'accent-primary': 'var(--color-accent-primary)',
-        'accent-hover': 'var(--color-accent-hover)',
-        'text-primary': 'var(--color-text-primary)',
-        'text-secondary': 'var(--color-text-secondary)',
-        'border': 'var(--color-border)',
-        'focus-border': 'var(--color-focus-border)',
-        'texture-accent': 'var(--color-texture-accent)',
-      },
-      fontSize: {
-        'h1': 'var(--font-size-h1)',
-        'h2': 'var(--font-size-h2)',
-        'h3': 'var(--font-size-h3)',
-        'body': 'var(--font-size-body)',
-        'small': 'var(--font-size-small)',
-      },
-      fontWeight: {
-        'bold': 'var(--font-weight-bold)',
-        'medium': 'var(--font-weight-medium)',
-        'regular': 'var(--font-weight-regular)',
-      },
-      lineHeight: {
-        'body': 'var(--line-height-body)',
+        background: "rgb(var(--background) / <alpha-value>)",
+        "background-secondary": "rgb(var(--background-secondary) / <alpha-value>)",
+        "background-tertiary": "rgb(var(--background-tertiary) / <alpha-value>)",
+        card: "rgb(var(--card) / <alpha-value>)",
+        "card-hover": "rgb(var(--card-hover) / <alpha-value>)",
+        border: "rgb(var(--border) / <alpha-value>)",
+        "border-hover": "rgb(var(--border-hover) / <alpha-value>)",
+        foreground: "rgb(var(--foreground) / <alpha-value>)",
+        "foreground-muted": "rgb(var(--foreground-muted) / <alpha-value>)",
+        accent: "rgb(var(--accent) / <alpha-value>)",
+        "accent-hover": "rgb(var(--accent-hover) / <alpha-value>)",
+        success: "rgb(var(--success) / <alpha-value>)",
+        warning: "rgb(var(--warning) / <alpha-value>)",
+        error: "rgb(var(--error) / <alpha-value>)",
+        info: "rgb(var(--info) / <alpha-value>)",
       },
       borderRadius: {
-        'sm': 'var(--border-radius-sm)',
-        'md': 'var(--border-radius-md)',
-        'lg': 'var(--border-radius-lg)',
-      },
-      transitionDuration: {
-        'DEFAULT': 'var(--animation-duration)',
-      },
-      transitionTimingFunction: {
-        'DEFAULT': 'var(--animation-timing-function)',
+        DEFAULT: "var(--radius)",
       },
     },
   },
-  plugins: [
-    require('@tailwindcss/typography'), 
-    require('@tailwindcss/forms')
-  ],
-}
+  plugins: [],
+};
+
+export default config;

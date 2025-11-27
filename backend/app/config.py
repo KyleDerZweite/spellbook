@@ -29,13 +29,31 @@ class Settings(BaseSettings):
     
     # App settings
     PROJECT_NAME: str = "Spellbook API"
-    VERSION: str = "1.0.0"
-    DESCRIPTION: str = "A comprehensive API for managing trading card collections with user authentication, card database, collection management, deck building, and statistics."
+    VERSION: str = "2.0.0"
+    DESCRIPTION: str = "A comprehensive API for managing trading card collections with user authentication, card database, collection management, mobile scanning, and deck building."
     DEBUG: bool = False
     
-    # File storage
+    # File storage (legacy)
     UPLOAD_PATH: str = "/data/uploads"
     MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10MB
+    
+    # MinIO/S3 Object Storage
+    MINIO_ENDPOINT: str = "http://localhost:9000"
+    MINIO_ACCESS_KEY: str = "minioadmin"
+    MINIO_SECRET_KEY: str = "minioadmin"
+    MINIO_SCANS_BUCKET: str = "spellbook-scans"
+    MINIO_CARDS_BUCKET: str = "spellbook-cards"
+    MINIO_USE_SSL: bool = False
+    
+    # Scan Processing
+    SCAN_CONFIDENCE_THRESHOLD: float = 0.85  # Minimum confidence for auto-confirm
+    OCR_WORKER_THREADS: int = 4              # Thread pool size for OCR
+    MAX_SCAN_RETRIES: int = 3                # Retry failed scans
+    SCAN_BATCH_SIZE: int = 50                # Max scans per batch
+    
+    # Celery
+    CELERY_BROKER_URL: str = "redis://localhost:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/1"
     
     # Pagination
     DEFAULT_PAGE_SIZE: int = 20
@@ -46,7 +64,6 @@ class Settings(BaseSettings):
     
     # Card caching settings
     CARD_CACHE_DAYS: int = 30                    # How long to keep search results
-    SCRYFALL_RATE_LIMIT: int = 10               # API requests per second
     AUTO_CLEANUP_ENABLED: bool = True            # Automatic cache cleanup
     PERMANENT_ON_COLLECTION_ADD: bool = True     # Make permanent when added to collection
     
@@ -57,20 +74,20 @@ class Settings(BaseSettings):
     FORCE_CARD_INDEX_REFRESH: bool = False      # Force refresh card index even if it exists
 
     # The following variables are read from the .env file
-    POSTGRES_USER: str
-    POSTGRES_PASSWORD: str
-    POSTGRES_DB: str
-    NEXT_PUBLIC_API_URL: str
-    ADMIN_EMAIL: str
-    ADMIN_USERNAME: str
-    ADMIN_PASSWORD: str
-    FRONTEND_PORT: int
-    BACKEND_PORT: int
-    POSTGRES_PORT: int
-    REDIS_PORT: int
-    POSTGRES_DATA_PATH: str
-    REDIS_DATA_PATH: str
-    UPLOADS_DATA_PATH: str
+    POSTGRES_USER: str = "user"
+    POSTGRES_PASSWORD: str = "password"
+    POSTGRES_DB: str = "spellbookdb"
+    NEXT_PUBLIC_API_URL: str = "http://localhost:8000/api/v1"
+    ADMIN_EMAIL: str = "admin@spellbook.local"
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_PASSWORD: str = "admin123!"
+    FRONTEND_PORT: int = 3000
+    BACKEND_PORT: int = 8000
+    POSTGRES_PORT: int = 5432
+    REDIS_PORT: int = 6379
+    POSTGRES_DATA_PATH: str = "./data/postgres"
+    REDIS_DATA_PATH: str = "./data/redis"
+    UPLOADS_DATA_PATH: str = "./data/uploads"
 
     @field_validator('SECRET_KEY')
     @classmethod

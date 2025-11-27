@@ -7,7 +7,8 @@ import { CardDetails } from '../../../components/cards/card-details';
 import { useState } from 'react';
 import type { Card, UserCard } from '../../../lib/types';
 import { formatPrice } from '../../../lib/utils';
-import { Library, TrendingUp, Star } from 'lucide-react';
+import { Library, TrendingUp, Star, Loader2, Search, Package } from 'lucide-react';
+import Link from 'next/link';
 
 export default function CollectionPage() {
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
@@ -34,12 +35,10 @@ export default function CollectionPage() {
 
   if (collectionQuery.isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="glass rounded-xl p-6">
-          <div className="flex items-center gap-3 text-text-secondary">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
-            Loading your collection...
-          </div>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="flex items-center gap-3 text-foreground-muted">
+          <Loader2 className="w-5 h-5 spinner" />
+          Loading your collection...
         </div>
       </div>
     );
@@ -48,8 +47,8 @@ export default function CollectionPage() {
   if (collectionQuery.error) {
     return (
       <div className="space-y-6">
-        <div className="glass rounded-xl p-6 border-red-500/20 bg-red-500/5">
-          <p className="text-red-400 text-center">
+        <div className="bg-error/10 border border-error/20 rounded-xl p-6">
+          <p className="text-error text-center">
             Failed to load your collection. Please try again.
           </p>
         </div>
@@ -65,60 +64,44 @@ export default function CollectionPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="glass rounded-xl p-6">
-        <h1 className="text-2xl font-bold text-text-primary mb-4">
-          My Collection
-        </h1>
-        <p className="text-text-secondary">
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">My Collection</h1>
+        <p className="text-foreground-muted mt-1">
           Track and manage your card collection
         </p>
       </div>
 
       {/* Stats */}
-      {stats && (
-        <div className="grid md:grid-cols-3 gap-6">
-          <div className="glass rounded-xl p-6 text-center">
-            <div className="flex items-center justify-center mb-3">
-              <Library className="text-primary" size={32} />
-            </div>
-            <h3 className="text-sm text-text-secondary mb-2">Total Cards</h3>
-            <p className="text-3xl font-bold text-text-primary">
-              {stats.total_cards?.toLocaleString() || 0}
-            </p>
-            <p className="text-xs text-text-muted mt-1">
-              {stats.unique_cards} unique
-            </p>
-          </div>
-
-          <div className="glass rounded-xl p-6 text-center">
-            <div className="flex items-center justify-center mb-3">
-              <TrendingUp className="text-green-500" size={32} />
-            </div>
-            <h3 className="text-sm text-text-secondary mb-2">Collection Value</h3>
-            <p className="text-3xl font-bold text-text-primary">
-              {stats.total_value ? formatPrice(stats.total_value.toString()) : '—'}
-            </p>
-            <p className="text-xs text-text-muted mt-1">Current market</p>
-          </div>
-
-          <div className="glass rounded-xl p-6 text-center">
-            <div className="flex items-center justify-center mb-3">
-              <Star className="text-card-rare" size={32} />
-            </div>
-            <h3 className="text-sm text-text-secondary mb-2">Sets Collected</h3>
-            <p className="text-3xl font-bold text-text-primary">
-              {stats.sets_collected || 0}
-            </p>
-            <p className="text-xs text-text-muted mt-1">Different sets</p>
-          </div>
-        </div>
-      )}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard
+          icon={Package}
+          label="Total Cards"
+          value={stats?.total_cards?.toLocaleString() ?? '—'}
+          subtext={stats?.unique_cards ? `${stats.unique_cards} unique` : undefined}
+          loading={statsQuery.isLoading}
+        />
+        <StatCard
+          icon={TrendingUp}
+          label="Collection Value"
+          value={stats?.total_value ? formatPrice(stats.total_value.toString()) : '—'}
+          subtext="Current market"
+          loading={statsQuery.isLoading}
+          accent
+        />
+        <StatCard
+          icon={Star}
+          label="Sets Collected"
+          value={stats?.sets_collected?.toString() ?? '—'}
+          subtext="Different sets"
+          loading={statsQuery.isLoading}
+        />
+      </div>
 
       {/* Collection Grid */}
       {cards.length > 0 ? (
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-text-primary">
+            <h2 className="text-lg font-semibold text-foreground">
               Your Cards ({cards.length})
             </h2>
             {/* TODO: Add sorting and filtering options */}
@@ -132,23 +115,7 @@ export default function CollectionPage() {
           />
         </div>
       ) : (
-        <div className="text-center py-12">
-          <div className="glass rounded-xl p-8 max-w-md mx-auto">
-            <Library className="mx-auto mb-4 text-text-muted" size={48} />
-            <h3 className="text-xl font-semibold text-text-primary mb-2">
-              No cards yet
-            </h3>
-            <p className="text-text-secondary mb-4">
-              Start building your collection by searching for cards and adding them to your collection.
-            </p>
-            <a
-              href="/search"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 rounded-lg transition-colors"
-            >
-              Search Cards
-            </a>
-          </div>
-        </div>
+        <EmptyState />
       )}
 
       {/* Card Details Modal */}
@@ -158,6 +125,70 @@ export default function CollectionPage() {
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
       />
+    </div>
+  );
+}
+
+// Stat Card Component
+function StatCard({ 
+  icon: Icon, 
+  label, 
+  value, 
+  subtext,
+  loading,
+  accent 
+}: { 
+  icon: React.ElementType;
+  label: string;
+  value: string;
+  subtext?: string;
+  loading: boolean;
+  accent?: boolean;
+}) {
+  return (
+    <div className="bg-card border border-border rounded-xl p-5">
+      <div className="flex items-center gap-3 mb-3">
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${accent ? 'bg-accent/10' : 'bg-background-tertiary'}`}>
+          <Icon className={`w-5 h-5 ${accent ? 'text-accent' : 'text-foreground-muted'}`} />
+        </div>
+        <p className="text-sm text-foreground-muted">{label}</p>
+      </div>
+      {loading ? (
+        <div className="h-8 w-24 skeleton rounded" />
+      ) : (
+        <p className={`text-2xl font-bold ${accent ? 'text-accent' : 'text-foreground'}`}>
+          {value}
+        </p>
+      )}
+      {subtext && (
+        <p className="text-xs text-foreground-muted mt-1">{subtext}</p>
+      )}
+    </div>
+  );
+}
+
+// Empty State Component
+function EmptyState() {
+  return (
+    <div className="text-center py-16">
+      <div className="bg-card border border-border rounded-xl p-8 max-w-md mx-auto">
+        <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-4">
+          <Library className="w-8 h-8 text-accent" />
+        </div>
+        <h3 className="text-xl font-semibold text-foreground mb-2">
+          No cards yet
+        </h3>
+        <p className="text-foreground-muted mb-6">
+          Start building your collection by searching for cards and adding them.
+        </p>
+        <Link
+          href="/search"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-hover text-white font-medium rounded-lg transition-colors"
+        >
+          <Search className="w-4 h-4" />
+          Search Cards
+        </Link>
+      </div>
     </div>
   );
 }

@@ -1,10 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, X } from 'lucide-react';
+import { ChevronDown, X, Filter } from 'lucide-react';
 import type { CardSearchParams } from '../../lib/types';
 
 const COLORS = ['W', 'U', 'B', 'R', 'G', 'C'];
+const COLOR_LABELS: Record<string, string> = {
+  W: 'White',
+  U: 'Blue',
+  B: 'Black',
+  R: 'Red',
+  G: 'Green',
+  C: 'Colorless'
+};
 const RARITIES = ['common', 'uncommon', 'rare', 'mythic'];
 const TYPES = ['Creature', 'Instant', 'Sorcery', 'Artifact', 'Enchantment', 'Planeswalker', 'Land'];
 
@@ -47,30 +55,47 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
            (value.types && value.types.length > 0);
   };
 
+  const activeCount = 
+    (value.colors?.length || 0) + 
+    (value.rarity?.length || 0) + 
+    (value.types?.length || 0);
+
   return (
-    <div className="bg-ui-bg rounded-lg p-md">
+    <div className="bg-card border border-border rounded-xl">
       <button 
         onClick={() => setOpen(!open)} 
-        className="w-full flex items-center justify-between text-left hover:text-text-primary transition-colors"
+        className="w-full flex items-center justify-between p-4 text-left hover:bg-card-hover transition-colors rounded-xl"
       >
-        <span className="font-medium text-sm text-text-secondary">
-          Advanced Filters {hasActiveFilters() && '(Active)'}
-        </span>
-        <ChevronDown className={`h-4 w-4 transition-transform text-text-secondary ${open && 'rotate-180'}`} />
+        <div className="flex items-center gap-3">
+          <Filter className="h-4 w-4 text-foreground-muted" />
+          <span className="font-medium text-foreground">
+            Advanced Filters
+          </span>
+          {activeCount > 0 && (
+            <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full">
+              {activeCount} active
+            </span>
+          )}
+        </div>
+        <ChevronDown className={`h-4 w-4 text-foreground-muted transition-transform ${open && 'rotate-180'}`} />
       </button>
       
       {open && (
-        <div className="mt-md space-y-md">
-          <div>
-            <div className="text-xs text-text-secondary mb-sm font-medium">Colors</div>
-            <div className="flex gap-sm flex-wrap">
+        <div className="px-4 pb-4 space-y-5 border-t border-border/50">
+          {/* Colors */}
+          <div className="pt-4">
+            <div className="text-xs text-foreground-muted mb-3 font-medium uppercase tracking-wide">Colors</div>
+            <div className="flex gap-2 flex-wrap">
               {COLORS.map((color) => (
                 <button
                   key={color}
                   onClick={() => toggleArray('colors', color)}
-                  className={`px-sm py-xs rounded-full border text-sm transition-all hover:scale-105 ${(value.colors || []).includes(color)
-                      ? 'border-focus-border text-text-primary bg-accent-primary/20'
-                      : 'border-border text-text-secondary hover:border-focus-border hover:text-text-primary'}`}
+                  title={COLOR_LABELS[color]}
+                  className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
+                    (value.colors || []).includes(color)
+                      ? 'border-accent bg-accent/10 text-accent'
+                      : 'border-border text-foreground-muted hover:border-accent/50 hover:text-foreground'
+                  }`}
                 >
                   {color}
                 </button>
@@ -78,16 +103,19 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
             </div>
           </div>
 
+          {/* Rarity */}
           <div>
-            <div className="text-xs text-text-secondary mb-sm font-medium">Rarity</div>
-            <div className="flex gap-sm flex-wrap">
+            <div className="text-xs text-foreground-muted mb-3 font-medium uppercase tracking-wide">Rarity</div>
+            <div className="flex gap-2 flex-wrap">
               {RARITIES.map((rarity) => (
                 <button
                   key={rarity}
                   onClick={() => toggleArray('rarity', rarity)}
-                  className={`px-sm py-xs rounded-full border text-sm capitalize transition-all hover:scale-105 ${(value.rarity || []).includes(rarity)
-                      ? 'border-focus-border text-text-primary bg-accent-primary/20'
-                      : 'border-border text-text-secondary hover:border-focus-border hover:text-text-primary'}`}
+                  className={`px-3 py-1.5 rounded-lg border text-sm font-medium capitalize transition-all ${
+                    (value.rarity || []).includes(rarity)
+                      ? 'border-accent bg-accent/10 text-accent'
+                      : 'border-border text-foreground-muted hover:border-accent/50 hover:text-foreground'
+                  }`}
                 >
                   {rarity}
                 </button>
@@ -95,16 +123,19 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
             </div>
           </div>
 
+          {/* Types */}
           <div>
-            <div className="text-xs text-text-secondary mb-sm font-medium">Type</div>
-            <div className="flex gap-sm flex-wrap">
+            <div className="text-xs text-foreground-muted mb-3 font-medium uppercase tracking-wide">Card Type</div>
+            <div className="flex gap-2 flex-wrap">
               {TYPES.map((type) => (
                 <button
                   key={type}
                   onClick={() => toggleArray('types', type)}
-                  className={`px-sm py-xs rounded-full border text-sm transition-all hover:scale-105 ${(value.types || []).includes(type)
-                      ? 'border-focus-border text-text-primary bg-accent-primary/20'
-                      : 'border-border text-text-secondary hover:border-focus-border hover:text-text-primary'}`}
+                  className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
+                    (value.types || []).includes(type)
+                      ? 'border-accent bg-accent/10 text-accent'
+                      : 'border-border text-foreground-muted hover:border-accent/50 hover:text-foreground'
+                  }`}
                 >
                   {type}
                 </button>
@@ -112,16 +143,18 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-sm border-t border-border/50">
-            <button 
-              onClick={clearAll} 
-              className="text-sm text-text-secondary hover:text-text-primary flex items-center gap-xs transition-colors rounded-md px-sm py-xs"
-              disabled={!hasActiveFilters()}
-            >
-              <X className="h-4 w-4" /> 
-              Clear filters
-            </button>
-          </div>
+          {/* Clear button */}
+          {hasActiveFilters() && (
+            <div className="pt-3 border-t border-border/50">
+              <button 
+                onClick={clearAll} 
+                className="text-sm text-foreground-muted hover:text-foreground flex items-center gap-2 transition-colors"
+              >
+                <X className="h-4 w-4" /> 
+                Clear all filters
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

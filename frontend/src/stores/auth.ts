@@ -5,9 +5,9 @@ import type { Tokens, User } from '../lib/types';
 
 interface AuthState {
   user: User | null;
-  accessToken: string | null;
+  tokens: Tokens | null;
   hydrated: boolean;
-  setTokens: (tokens: Tokens) => void;
+  setTokens: (tokens: Tokens | null) => void;
   setUser: (user: User | null) => void;
   logout: () => void;
 }
@@ -16,24 +16,26 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
-      accessToken: null,
+      tokens: null,
       hydrated: false,
       setTokens: (tokens) => {
-        set({ accessToken: tokens.access_token });
-        if (tokens.refresh_token) {
+        set({ tokens });
+        if (tokens?.refresh_token) {
           Cookies.set('refresh_token', tokens.refresh_token, { expires: 7, secure: true, sameSite: 'strict' });
+        } else {
+          Cookies.remove('refresh_token');
         }
       },
       setUser: (user) => set({ user }),
       logout: () => {
-        set({ accessToken: null, user: null });
+        set({ tokens: null, user: null });
         Cookies.remove('refresh_token');
       },
     }),
     {
       name: 'spellbook-auth',
       partialize: (state) => ({ 
-        accessToken: state.accessToken,
+        tokens: state.tokens,
         user: state.user 
       }),
       onRehydrateStorage: () => (state) => {

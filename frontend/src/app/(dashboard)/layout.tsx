@@ -4,6 +4,7 @@ import { useAuth } from '../../lib/auth';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Shell } from '../../components/layout/shell';
+import { Loader2 } from 'lucide-react';
 
 export default function DashboardLayout({ 
   children 
@@ -21,12 +22,10 @@ export default function DashboardLayout({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="glass rounded-xl p-6">
-          <div className="flex items-center gap-3 text-text-secondary">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
-            Loading...
-          </div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex items-center gap-3 text-foreground-muted">
+          <Loader2 className="w-5 h-5 spinner" />
+          <span>Loading...</span>
         </div>
       </div>
     );
@@ -34,9 +33,10 @@ export default function DashboardLayout({
 
   if (!user || !isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="glass rounded-xl p-6">
-          <p className="text-text-secondary">Redirecting to login...</p>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex items-center gap-3 text-foreground-muted">
+          <Loader2 className="w-5 h-5 spinner" />
+          <span>Redirecting to login...</span>
         </div>
       </div>
     );

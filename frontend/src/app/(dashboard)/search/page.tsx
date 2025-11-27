@@ -9,6 +9,7 @@ import { CardDetails } from '../../../components/cards/card-details';
 import { SearchFilters } from '../../../components/forms/search-filters';
 import { VersionSelector } from '../../../components/cards/version-selector';
 import { debounce } from '../../../lib/utils';
+import { Search, Loader2, Filter, Layers } from 'lucide-react';
 
 export default function SearchPage() {
   const [params, setParams] = useState<CardSearchParams>({ 
@@ -27,9 +28,12 @@ export default function SearchPage() {
   const queryClient = useQueryClient();
 
   // Debounced search to avoid too many API calls
-  const debouncedSetParams = debounce((newParams: CardSearchParams) => {
-    setParams(newParams);
-  }, 300);
+  const debouncedSetParams = useMemo(
+    () => debounce((newParams: CardSearchParams) => {
+      setParams(newParams);
+    }, 300),
+    []
+  );
 
   // Check if search should be enabled
   const searchEnabled = useMemo(() => {
@@ -100,24 +104,37 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Card Search</h1>
+        <p className="text-foreground-muted mt-1">
+          Search the entire Magic: The Gathering database
+        </p>
+      </div>
+
       {/* Search Input */}
-      <div className="elevated p-4 hover:accent-border transition-all duration-300">
+      <div className="bg-card border border-border rounded-xl p-4">
         <div className="flex gap-3">
-          <input
-            type="text"
-            placeholder="Search by name, type, rules text..."
-            className="flex-1 bg-surface-variant border border-border rounded-md px-3 py-2 focus:border-primary focus:outline-none transition-colors"
-            onChange={(e) => handleSearch(e.target.value)}
-          />
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground-muted" />
+            <input
+              type="text"
+              placeholder="Search by name, type, rules text..."
+              className="w-full bg-background border border-border rounded-lg pl-10 pr-4 py-3 text-foreground placeholder:text-foreground-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-colors"
+              onChange={(e) => handleSearch(e.target.value)}
+            />
+          </div>
           <button
             onClick={() => setUseUniqueSearch(!useUniqueSearch)}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${useUniqueSearch
-              ? 'bg-primary text-white'
-              : 'bg-surface-variant text-text-secondary hover:bg-surface-variant-hover'
+            className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+              useUniqueSearch
+                ? 'bg-accent text-white'
+                : 'bg-background-tertiary text-foreground-muted hover:bg-card-hover border border-border'
             }`}
             title={useUniqueSearch ? 'Show all versions' : 'Show unique cards only'}
           >
+            <Layers className="w-4 h-4" />
             {useUniqueSearch ? 'Unique' : 'All'}
           </button>
         </div>
@@ -128,9 +145,9 @@ export default function SearchPage() {
 
       {/* Loading State */}
       {cardsQuery.isLoading && (
-        <div className="text-center py-8">
-          <div className="inline-flex items-center gap-2 text-text-secondary">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+        <div className="text-center py-12">
+          <div className="inline-flex items-center gap-3 text-foreground-muted">
+            <Loader2 className="w-5 h-5 spinner" />
             Searching cards...
           </div>
         </div>
@@ -138,8 +155,8 @@ export default function SearchPage() {
 
       {/* Error State */}
       {cardsQuery.error && (
-        <div className="elevated p-6 border-red-500/20 bg-red-500/5">
-          <p className="text-red-400 text-center">
+        <div className="bg-error/10 border border-error/20 rounded-xl p-6">
+          <p className="text-error text-center">
             Failed to search cards. Please try again.
           </p>
         </div>
@@ -149,13 +166,13 @@ export default function SearchPage() {
       {cardsQuery.data && (
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <p className="text-text-secondary">
-              Found {cardsQuery.data.length} results
-              {params.q?.trim() && ` for "${params.q}"`}
+            <p className="text-foreground-muted">
+              Found <span className="text-foreground font-medium">{cardsQuery.data.length}</span> results
+              {params.q?.trim() && <span> for "<span className="text-accent">{params.q}</span>"</span>}
             </p>
             {addToCollectionMutation.isPending && (
-              <div className="text-sm text-text-muted flex items-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+              <div className="text-sm text-foreground-muted flex items-center gap-2">
+                <Loader2 className="w-4 h-4 spinner" />
                 Adding to collection...
               </div>
             )}
@@ -174,12 +191,15 @@ export default function SearchPage() {
 
       {/* Empty state */}
       {!searchEnabled && (
-        <div className="text-center py-12">
-          <div className="elevated p-8 max-w-md mx-auto">
-            <h3 className="text-xl font-semibold text-text-primary mb-2">
+        <div className="text-center py-16">
+          <div className="bg-card border border-border rounded-xl p-8 max-w-md mx-auto">
+            <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-4">
+              <Search className="w-8 h-8 text-accent" />
+            </div>
+            <h3 className="text-xl font-semibold text-foreground mb-2">
               Discover Cards
             </h3>
-            <p className="text-text-secondary">
+            <p className="text-foreground-muted">
               Search by name or use the filters above to find cards for your collection.
             </p>
           </div>

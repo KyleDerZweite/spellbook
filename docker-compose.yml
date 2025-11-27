@@ -1,16 +1,25 @@
 # =============================================================================
-# Spellbook Development Services
+# Spellbook Development Services v2.0
 # =============================================================================
-# This docker-compose file starts only PostgreSQL and Redis for local development
-# Use this when you want to run the backend/frontend locally but need the databases
+# This docker-compose file starts all services needed for local development:
+#   - PostgreSQL: Main database
+#   - Redis: Cache and Celery broker
+#   - MinIO: S3-compatible object storage for card images/scans
+#   - Backend: FastAPI application
+#   - Frontend: Next.js web application
+#   - Celery Worker: Background job processing
 #
 # Usage:
-#   docker-compose -f docker-compose.dev-services.yml up -d
-#   docker-compose -f docker-compose.dev-services.yml down
+#   docker-compose up -d
+#   docker-compose down
 #
-# The services will be available at:
+# Services available at:
 #   PostgreSQL: localhost:5432
 #   Redis: localhost:6379
+#   MinIO API: localhost:9000
+#   MinIO Console: localhost:9001
+#   Backend API: localhost:8000
+#   Frontend: localhost:3000
 # =============================================================================
 
 version: '3.8'
@@ -21,11 +30,12 @@ services:
     image: postgres:16-alpine
     container_name: spellbook-postgres-dev
     restart: unless-stopped
+    security_opt:
+      - label=disable
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
       POSTGRES_DB: ${POSTGRES_DB:-spellbookdb}
-      # Enable extensions
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
@@ -39,11 +49,13 @@ services:
     networks:
       - spellbook-dev
 
-  # Redis Cache
+  # Redis Cache & Celery Broker
   redis-dev:
     image: redis:7-alpine
     container_name: spellbook-redis-dev
     restart: unless-stopped
+    security_opt:
+      - label=disable
     command: redis-server --appendonly yes --requirepass ""
     ports:
       - "${REDIS_PORT:-6379}:6379"
@@ -57,11 +69,116 @@ services:
     networks:
       - spellbook-dev
 
+  # MinIO Object Storage (S3-compatible)
+  minio-dev:
+    image: minio/minio:latest
+    container_name: spellbook-minio-dev
+    restart: unless-stopped
+    security_opt:
+      - label=disable
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_dev_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - spellbook-dev
+
+  # MinIO Setup - Creates buckets on startup
+  minio-setup:
+    image: minio/mc:latest
+    container_name: spellbook-minio-setup
+    security_opt:
+      - label=disable
+    depends_on:
+      minio-dev:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set myminio http://minio-dev:9000 minioadmin minioadmin;
+      mc mb myminio/spellbook-scans --ignore-existing;
+      mc mb myminio/spellbook-cards --ignore-existing;
+      mc anonymous set download myminio/spellbook-cards;
+      exit 0;
+      "
+    networks:
+      - spellbook-dev
+
+  # Backend API (FastAPI)
+  backend-dev:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: spellbook-backend-dev
+    restart: unless-stopped
+    security_opt:
+      - label=disable
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@postgres-dev:5432/${POSTGRES_DB:-spellbookdb}
+      - REDIS_URL=redis://redis-dev:6379
+      - MINIO_ENDPOINT=minio-dev:9000
+      - MINIO_ACCESS_KEY=${MINIO_ROOT_USER:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_ROOT_PASSWORD:-minioadmin}
+      - SECRET_KEY=${SECRET_KEY:-your-development-secret-key-min-32-chars}
+      - DEBUG=true
+      - CELERY_BROKER_URL=redis://redis-dev:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis-dev:6379/1
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./backend:/app:z
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+      redis-dev:
+        condition: service_healthy
+      minio-dev:
+        condition: service_healthy
+    networks:
+      - spellbook-dev
+
+  # Frontend Web App (Next.js)
+  frontend-dev:
+    image: node:20-alpine
+    container_name: spellbook-frontend-dev
+    restart: unless-stopped
+    security_opt:
+      - label=disable
+    working_dir: /app
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+      - NEXT_PUBLIC_APP_NAME=Spellbook
+      - HOME=/tmp
+      - npm_config_cache=/tmp/.npm
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ./frontend:/app:z
+      - frontend_node_modules:/app/node_modules
+    command: sh -c "npm install && npm run dev -- --hostname 0.0.0.0"
+    depends_on:
+      - backend-dev
+    networks:
+      - spellbook-dev
+
 volumes:
   postgres_dev_data:
     name: spellbook-postgres-dev-data
   redis_dev_data:
     name: spellbook-redis-dev-data
+  minio_dev_data:
+    name: spellbook-minio-dev-data
+  frontend_node_modules:
+    name: spellbook-frontend-node-modules
 
 networks:
   spellbook-dev:

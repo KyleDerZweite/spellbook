@@ -15,6 +15,7 @@ from app.core.exceptions import (
     ConflictError,
     ResourceNotFoundError
 )
+from app.services.redis_service import RedisService, get_redis_service
 from app.config import settings
 from datetime import timedelta, datetime
 import uuid
@@ -236,8 +237,6 @@ async def refresh_token(
         "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
     }
 
-
-from app.services.redis_service import RedisService, get_redis_service
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout_user(

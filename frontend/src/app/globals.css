@@ -1,110 +1,126 @@
 @import "tailwindcss";
 
+/* ========================================
+   SPELLBOOK - Modern Dark Theme
+   Clean, professional design system
+   ======================================== */
+
 :root {
-  /* Color Tokens */
-  --color-primary-bg: #121212;
-  --color-ui-bg: #1E1E1E;
-  --color-accent-primary: #4CAF50;
-  --color-accent-hover: #66BB6A;
-  --color-text-primary: #EAEAEA;
-  --color-text-secondary: #B0B0B0;
-  --color-border: #444444;
-  --color-focus-border: #66BB6A;
-  --color-texture-accent: #8B5E3C;
-
-  /* Typography Tokens */
-  --font-family-primary: 'Inter', sans-serif;
-  --font-family-monospace: 'JetBrains Mono', monospace;
-  --font-size-h1: 2.5rem;
-  --font-size-h2: 2.0rem;
-  --font-size-h3: 1.5rem;
-  --font-size-body: 1rem;
-  --font-size-small: 0.875rem;
-  --font-weight-bold: 700;
-  --font-weight-medium: 500;
-  --font-weight-regular: 400;
-  --line-height-body: 1.6;
-
-  /* Spacing Tokens */
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 32px;
-  --spacing-xl: 64px;
-
-  /* Border Radius Tokens */
-  --border-radius-sm: 8px;
-  --border-radius-md: 16px;
-  --border-radius-lg: 20px;
-
-  /* Animation Tokens */
-  --animation-duration: 250ms;
-  --animation-timing-function: ease-in-out;
+  /* Background Colors */
+  --background: 10 10 11;
+  --background-secondary: 18 18 20;
+  --background-tertiary: 24 24 27;
+  
+  /* Card/Surface Colors */
+  --card: 18 18 20;
+  --card-hover: 24 24 27;
+  
+  /* Border Colors */
+  --border: 39 39 42;
+  --border-hover: 63 63 70;
+  
+  /* Text Colors */
+  --foreground: 250 250 250;
+  --foreground-muted: 161 161 170;
+  
+  /* Accent Colors - Emerald Green */
+  --accent: 16 185 129;
+  --accent-hover: 5 150 105;
+  --accent-muted: 16 185 129;
+  
+  /* Status Colors */
+  --success: 34 197 94;
+  --warning: 234 179 8;
+  --error: 239 68 68;
+  --info: 59 130 246;
+  
+  /* Radius */
+  --radius: 0.5rem;
 }
 
-html, body, :root { 
-  height: 100%; 
+/* Base Styles */
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  color: var(--color-text-primary);
-  background-color: var(--color-primary-bg);
-  font-family: var(--font-family-primary);
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  background-color: rgb(var(--background));
+  color: rgb(var(--foreground));
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.glass-panel {
-  background: rgba(30, 30, 30, 0.75);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border-radius: var(--border-radius-md);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Custom scrollbar */
+/* Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-ui-bg);
+  background: rgb(var(--background-secondary));
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 4px;
+  background: rgb(var(--border));
+  border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-accent-primary);
+  background: rgb(var(--border-hover));
 }
 
-/* Focus styles */
-button:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
-  outline: 2px solid var(--color-focus-border);
+/* Selection */
+::selection {
+  background-color: rgb(var(--accent) / 0.3);
+  color: rgb(var(--foreground));
+}
+
+/* Focus Ring */
+*:focus-visible {
+  outline: 2px solid rgb(var(--accent));
   outline-offset: 2px;
 }
 
-/* Form styling */
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="number"],
-textarea,
-select {
-  background-color: var(--color-primary-bg);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-primary);
-  transition: border-color var(--animation-duration) var(--animation-timing-function);
+/* Spinner */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-input[type="text"]:focus,
-input[type="email"]:focus,
-input[type="password"]:focus,
-input[type="number"]:focus,
-textarea:focus,
-select:focus {
-  border-color: var(--color-focus-border);
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* MTG Card Image */
+.mtg-card {
+  aspect-ratio: 63 / 88;
+  border-radius: 4.75% / 3.5%;
+  overflow: hidden;
+  background-color: rgb(var(--background-tertiary));
+}
+
+.mtg-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Skeleton loading */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgb(var(--background-tertiary)) 0%,
+    rgb(var(--card-hover)) 50%,
+    rgb(var(--background-tertiary)) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: var(--radius);
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }

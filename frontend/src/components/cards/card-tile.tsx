@@ -5,7 +5,6 @@ import { motion } from 'framer-motion';
 import { Plus, Eye, Star, Layers3 } from 'lucide-react';
 import { getCardImageUrl, formatPrice } from '../../lib/utils';
 import type { Card, UserCard } from '../../lib/types';
-import { useCallback } from 'react';
 
 interface CardTileProps {
   card: Card & { version_count?: number };
@@ -32,29 +31,23 @@ export function CardTile({
   onAdd, 
   onView, 
   onVersionsClick,
-  className,
+  className = '',
   size = 'md',
   layoutIdPrefix = 'card'
 }: CardTileProps) {
-  const sizeClasses = {
-    sm: 'aspect-[5/7]',
-    md: 'aspect-[5/7]',
-    lg: 'aspect-[5/7]'
-  };
-
   const quantity = userCard?.quantity || 0;
   const foilQuantity = userCard?.foil_quantity || 0;
   const totalQuantity = quantity + foilQuantity;
 
   return (
     <motion.div
-      className={`group relative overflow-hidden rounded-lg bg-ui-bg cursor-pointer will-change-transform ${className}`}
+      className={`group relative overflow-hidden rounded-xl bg-card border border-border cursor-pointer will-change-transform ${className}`}
       whileHover={{ y: -4, scale: 1.02 }}
       transition={{ type: 'spring', stiffness: 250, damping: 18 }}
       onClick={() => onView?.(card)}
       layoutId={`${layoutIdPrefix}-${card.id}`}
     >
-      <div className={sizeClasses[size]}>
+      <div className="aspect-[5/7]">
         <Image
           src={getCardImageUrl(card, 'normal')}
           alt={card.name}
@@ -64,47 +57,45 @@ export function CardTile({
           priority={false}
         />
         
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
         
-        <div className="absolute bottom-0 left-0 right-0 p-sm space-y-xs">
-          <h3 className="text-text-primary font-medium text-sm line-clamp-2 leading-tight">
+        {/* Card info */}
+        <div className="absolute bottom-0 left-0 right-0 p-3 space-y-1">
+          <h3 className="text-white font-medium text-sm line-clamp-2 leading-tight">
             {card.name}
           </h3>
           
           {card.type_line && (
-            <p className="text-xs text-text-secondary">
+            <p className="text-xs text-white/70 line-clamp-1">
               {card.type_line}
             </p>
           )}
           
           {showSetInfo && card.set?.code && (
-            <p className="text-text-secondary/70 text-xs uppercase font-semibold">
+            <p className="text-white/60 text-xs uppercase font-semibold">
               {card.set.code}
             </p>
           )}
           
-          {card.mana_cost && (
-            <p className="text-text-secondary/80 text-xs font-mono">
-              {card.mana_cost}
-            </p>
-          )}
-          
           {card.prices?.usd && (
-            <p className="text-text-primary/90 text-xs font-semibold">
+            <p className="text-accent text-xs font-semibold">
               {formatPrice(card.prices.usd)}
             </p>
           )}
         </div>
 
+        {/* Rarity indicator */}
         {card.rarity && (
-          <div className="absolute top-sm left-sm">
-            <div className={`w-2 h-2 rounded-full bg-card-${card.rarity}`} />
+          <div className="absolute top-2 left-2">
+            <div className={`w-2.5 h-2.5 rounded-full ${getRarityColor(card.rarity)}`} />
           </div>
         )}
 
+        {/* Version count badge */}
         {showVersionCount && card.version_count && card.version_count > 1 && (
-          <div 
-            className="absolute top-sm right-sm bg-accent-primary/90 hover:bg-accent-primary rounded-full px-sm py-xs text-xs font-semibold text-text-primary flex items-center gap-xs cursor-pointer transition-colors"
+          <button
+            className="absolute top-2 right-2 bg-accent hover:bg-accent-hover rounded-full px-2 py-1 text-xs font-semibold text-white flex items-center gap-1 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
               if (card.oracle_id && onVersionsClick) {
@@ -113,30 +104,32 @@ export function CardTile({
             }}
             title={`View all ${card.version_count} versions`}
           >
-            <Layers3 size={10} className="text-text-primary" />
+            <Layers3 size={10} />
             {card.version_count}
-          </div>
+          </button>
         )}
         
+        {/* Quantity badge */}
         {showQuantity && totalQuantity > 0 && (
-          <div className={`absolute top-sm bg-black/80 rounded-full px-sm py-xs text-xs font-semibold text-text-primary flex items-center gap-xs ${showVersionCount && card.version_count && card.version_count > 1 ? "right-16" : "right-sm"}`}>
+          <div className={`absolute top-2 bg-black/80 rounded-full px-2 py-1 text-xs font-semibold text-white flex items-center gap-1 ${showVersionCount && card.version_count && card.version_count > 1 ? "right-14" : "right-2"}`}>
             {foilQuantity > 0 && <Star size={10} className="text-yellow-400" />}
             {totalQuantity}
           </div>
         )}
 
-        <div className={`absolute top-sm flex flex-col gap-xs opacity-0 group-hover:opacity-100 transition-opacity ${showVersionCount && card.version_count && card.version_count > 1 ? "right-20" : "right-sm"}`}>
+        {/* Action buttons (on hover) */}
+        <div className={`absolute top-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity ${showVersionCount && card.version_count && card.version_count > 1 ? "right-16" : "right-2"}`}>
           {showAddButton && onAdd && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onAdd(card);
               }}
-              className="p-sm rounded-full bg-accent-primary hover:bg-accent-hover"
+              className="p-2 rounded-full bg-accent hover:bg-accent-hover transition-colors"
               title="Add to collection"
               aria-label="Add to collection"
             >
-              <Plus className="h-4 w-4 text-text-primary" />
+              <Plus className="h-4 w-4 text-white" />
             </button>
           )}
           
@@ -146,7 +139,7 @@ export function CardTile({
                 e.stopPropagation();
                 onView(card);
               }}
-              className="p-sm rounded-full bg-ui-bg/80 hover:bg-ui-bg text-text-primary transition-colors shadow-lg"
+              className="p-2 rounded-full bg-black/60 hover:bg-black/80 text-white transition-colors"
               title="View details"
               aria-label="View details"
             >
@@ -154,9 +147,21 @@ export function CardTile({
             </button>
           )}
         </div>
-
-        <div className="absolute inset-0 bg-ui-bg animate-pulse opacity-0" />
       </div>
     </motion.div>
   );
+}
+
+function getRarityColor(rarity: string): string {
+  switch (rarity.toLowerCase()) {
+    case 'mythic':
+      return 'bg-orange-500';
+    case 'rare':
+      return 'bg-yellow-500';
+    case 'uncommon':
+      return 'bg-gray-400';
+    case 'common':
+    default:
+      return 'bg-gray-600';
+  }
 }

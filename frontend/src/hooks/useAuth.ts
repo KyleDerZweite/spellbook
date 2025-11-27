@@ -4,12 +4,12 @@ import { refreshAccessToken } from '../lib/api';
 import { jwtDecode } from 'jwt-decode';
 
 export const useAuth = () => {
-  const { accessToken, setTokens, logout } = useAuthStore();
+  const { tokens, setTokens, logout } = useAuthStore();
 
   useEffect(() => {
-    if (!accessToken) return;
+    if (!tokens?.access_token) return;
 
-    const decodedToken = jwtDecode(accessToken);
+    const decodedToken = jwtDecode(tokens.access_token);
     const buffer = 5 * 60 * 1000; // 5 minutes
 
     const timeout = setTimeout(async () => {
@@ -19,8 +19,8 @@ export const useAuth = () => {
       } catch (error) {
         logout();
       }
-    }, decodedToken.exp * 1000 - Date.now() - buffer);
+    }, (decodedToken.exp ?? 0) * 1000 - Date.now() - buffer);
 
     return () => clearTimeout(timeout);
-  }, [accessToken, setTokens, logout]);
+  }, [tokens, setTokens, logout]);
 };
