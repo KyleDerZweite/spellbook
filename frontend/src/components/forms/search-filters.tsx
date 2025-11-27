@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { ChevronDown, X } from 'lucide-react';
-import { cn } from '../../lib/utils';
 import type { CardSearchParams } from '../../lib/types';
 
 const COLORS = ['W', 'U', 'B', 'R', 'G', 'C'];
@@ -30,7 +29,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
     onChange({ 
       ...value, 
       [key]: Array.from(arr),
-      page: 1 // Reset to first page when filters change
+      page: 1
     });
   };
 
@@ -49,33 +48,29 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
   };
 
   return (
-    <div className="elevated p-4">
+    <div className="bg-ui-bg rounded-lg p-md">
       <button 
         onClick={() => setOpen(!open)} 
-        className="w-full flex items-center justify-between text-left hover:text-white transition-colors"
+        className="w-full flex items-center justify-between text-left hover:text-text-primary transition-colors"
       >
         <span className="font-medium text-sm text-text-secondary">
           Advanced Filters {hasActiveFilters() && '(Active)'}
         </span>
-        <ChevronDown className={cn('h-4 w-4 transition-transform text-text-secondary', open && 'rotate-180')} />
+        <ChevronDown className={`h-4 w-4 transition-transform text-text-secondary ${open && 'rotate-180'}`} />
       </button>
       
       {open && (
-        <div className="mt-4 space-y-4">
-          {/* Colors */}
+        <div className="mt-md space-y-md">
           <div>
-            <div className="text-xs text-text-secondary mb-2 font-medium">Colors</div>
-            <div className="flex gap-2 flex-wrap">
+            <div className="text-xs text-text-secondary mb-sm font-medium">Colors</div>
+            <div className="flex gap-sm flex-wrap">
               {COLORS.map((color) => (
                 <button
                   key={color}
                   onClick={() => toggleArray('colors', color)}
-                  className={cn(
-                    'px-3 py-1 rounded-full border text-sm transition-all hover:scale-105',
-                    (value.colors || []).includes(color)
-                      ? 'border-primary text-white bg-primary/20 shadow-glow'
-                      : 'border-border text-text-secondary hover:border-border-accent hover:text-white'
-                  )}
+                  className={`px-sm py-xs rounded-full border text-sm transition-all hover:scale-105 ${(value.colors || []).includes(color)
+                      ? 'border-focus-border text-text-primary bg-accent-primary/20'
+                      : 'border-border text-text-secondary hover:border-focus-border hover:text-text-primary'}`}
                 >
                   {color}
                 </button>
@@ -83,20 +78,16 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
             </div>
           </div>
 
-          {/* Rarity */}
           <div>
-            <div className="text-xs text-text-secondary mb-2 font-medium">Rarity</div>
-            <div className="flex gap-2 flex-wrap">
+            <div className="text-xs text-text-secondary mb-sm font-medium">Rarity</div>
+            <div className="flex gap-sm flex-wrap">
               {RARITIES.map((rarity) => (
                 <button
                   key={rarity}
                   onClick={() => toggleArray('rarity', rarity)}
-                  className={cn(
-                    'px-3 py-1 rounded-full border text-sm capitalize transition-all hover:scale-105',
-                    (value.rarity || []).includes(rarity)
-                      ? 'border-primary-variant text-white bg-primary-variant/20 shadow-glow'
-                      : 'border-border text-text-secondary hover:border-border-accent hover:text-white'
-                  )}
+                  className={`px-sm py-xs rounded-full border text-sm capitalize transition-all hover:scale-105 ${(value.rarity || []).includes(rarity)
+                      ? 'border-focus-border text-text-primary bg-accent-primary/20'
+                      : 'border-border text-text-secondary hover:border-focus-border hover:text-text-primary'}`}
                 >
                   {rarity}
                 </button>
@@ -104,20 +95,16 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
             </div>
           </div>
 
-          {/* Types */}
           <div>
-            <div className="text-xs text-text-secondary mb-2 font-medium">Type</div>
-            <div className="flex gap-2 flex-wrap">
+            <div className="text-xs text-text-secondary mb-sm font-medium">Type</div>
+            <div className="flex gap-sm flex-wrap">
               {TYPES.map((type) => (
                 <button
                   key={type}
                   onClick={() => toggleArray('types', type)}
-                  className={cn(
-                    'px-3 py-1 rounded-full border text-sm transition-all hover:scale-105',
-                    (value.types || []).includes(type)
-                      ? 'border-primary text-white bg-primary/15 shadow-glow'
-                      : 'border-border text-text-secondary hover:border-border-accent hover:text-white'
-                  )}
+                  className={`px-sm py-xs rounded-full border text-sm transition-all hover:scale-105 ${(value.types || []).includes(type)
+                      ? 'border-focus-border text-text-primary bg-accent-primary/20'
+                      : 'border-border text-text-secondary hover:border-focus-border hover:text-text-primary'}`}
                 >
                   {type}
                 </button>
@@ -125,11 +112,10 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
             </div>
           </div>
 
-          {/* Clear filters */}
-          <div className="flex items-center justify-between pt-2 border-t border-border/50">
+          <div className="flex items-center justify-between pt-sm border-t border-border/50">
             <button 
               onClick={clearAll} 
-              className="text-sm text-text-secondary hover:text-white flex items-center gap-1 transition-colors hover:accent-ring rounded-md px-2 py-1"
+              className="text-sm text-text-secondary hover:text-text-primary flex items-center gap-xs transition-colors rounded-md px-sm py-xs"
               disabled={!hasActiveFilters()}
             >
               <X className="h-4 w-4" /> 

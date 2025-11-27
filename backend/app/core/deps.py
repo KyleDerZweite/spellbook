@@ -5,6 +5,7 @@ from sqlalchemy import select
 from app.database import get_async_session
 from app.models.user import User
 from app.core.security import verify_token
+from app.services.redis_service import RedisService, get_redis_service
 from typing import Optional
 import uuid
 
@@ -13,7 +14,8 @@ security = HTTPBearer()
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_async_session),
+    redis_service: RedisService = Depends(get_redis_service)
 ) -> User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -23,6 +25,10 @@ async def get_current_user(
     
     payload = verify_token(credentials.credentials, "access")
     if payload is None:
+        raise credentials_exception
+
+    jti = payload.get("jti")
+    if jti and await redis_service.is_blacklisted(jti):
         raise credentials_exception
     
     user_id: str = payload.get("sub")

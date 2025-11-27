@@ -9,22 +9,20 @@ export function Topbar() {
 
   const handleLogout = async () => {
     logout();
-    // Note: We're doing a simple logout here without API call to avoid React Query dependency
-    // The full logout with API call can be handled elsewhere if needed
   };
 
   return (
-    <div className="sticky top-0 z-40 glass px-4 py-3 flex items-center justify-between">
+    <div className="sticky top-0 z-40 glass-panel px-md py-sm flex items-center justify-between">
       <Link href="/" className="font-semibold tracking-wide text-lg">
-        <span className="text-primary">{process.env.NEXT_PUBLIC_APP_NAME || 'Spellbook'}</span>
+        <span className="text-accent-primary">{process.env.NEXT_PUBLIC_APP_NAME || 'Spellbook'}</span>
       </Link>
       
-      <div className="flex items-center gap-4 text-sm text-text-secondary">
+      <div className="flex items-center gap-md text-sm text-text-secondary">
         {user && (
           <>
             <Link 
               href="/search" 
-              className="hover:text-white hover:accent-ring rounded-md px-2 py-1 flex items-center gap-1 transition-all"
+              className="hover:text-text-primary transition-colors flex items-center gap-xs"
             >
               <Search size={16} />
               <span className="hidden sm:inline">Search</span>
@@ -32,7 +30,7 @@ export function Topbar() {
             
             <Link 
               href="/collection" 
-              className="hover:text-white hover:accent-ring rounded-md px-2 py-1 flex items-center gap-1 transition-all"
+              className="hover:text-text-primary transition-colors flex items-center gap-xs"
             >
               <Library size={16} />
               <span className="hidden sm:inline">Collection</span>
@@ -40,7 +38,7 @@ export function Topbar() {
             
             <Link 
               href="/decks" 
-              className="hover:text-white hover:accent-ring rounded-md px-2 py-1 flex items-center gap-1 transition-all"
+              className="hover:text-text-primary transition-colors flex items-center gap-xs"
             >
               <Layers size={16} />
               <span className="hidden sm:inline">Decks</span>
@@ -48,7 +46,7 @@ export function Topbar() {
             
             <Link 
               href="/settings" 
-              className="hover:text-white hover:accent-ring rounded-md px-2 py-1 flex items-center gap-1 transition-all"
+              className="hover:text-text-primary transition-colors flex items-center gap-xs"
             >
               <Settings size={16} />
               <span className="hidden sm:inline">Settings</span>
@@ -57,21 +55,21 @@ export function Topbar() {
             {user?.is_admin && (
               <Link 
                 href="/admin" 
-                className="hover:text-white hover:accent-ring rounded-md px-2 py-1 flex items-center gap-1 transition-all"
+                className="hover:text-text-primary transition-colors flex items-center gap-xs"
               >
                 <Shield size={16} />
                 <span className="hidden sm:inline">Admin</span>
               </Link>
             )}
             
-            <div className="flex items-center gap-2 text-text-muted">
+            <div className="flex items-center gap-xs text-text-secondary">
               <User size={14} />
               <span className="hidden md:inline">{user.username}</span>
             </div>
             
             <button 
               onClick={handleLogout} 
-              className="ml-2 hover:text-white flex items-center gap-2 transition-colors"
+              className="ml-sm hover:text-text-primary flex items-center gap-xs transition-colors"
               title="Logout"
             >
               <LogOut size={16} />
@@ -84,13 +82,13 @@ export function Topbar() {
           <>
             <Link 
               href="/login" 
-              className="hover:text-white transition-colors"
+              className="hover:text-text-primary transition-colors"
             >
               Login
             </Link>
             <Link 
               href="/register" 
-              className="px-3 py-1 rounded-md bg-primary hover:bg-primary/90 text-white transition-colors"
+              className="px-sm py-xs rounded-md bg-accent-primary hover:bg-accent-hover text-text-primary transition-colors"
             >
               Register
             </Link>

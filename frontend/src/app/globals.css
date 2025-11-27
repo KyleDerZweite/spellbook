@@ -1,20 +1,45 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0a0a;
-  --surface: #1a1a1a;
-  --surface-variant: #2a2a2a;
-  --primary: #6366f1;
-  --primary-variant: #8b5cf6;
-  --text-primary: #ffffff;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
-  --border: #27272a;
-  --border-accent: #3f3f46;
-  --card-rare: #ffd700;
-  --card-mythic: #ff6b35;
-  --card-uncommon: #c0c0c0;
-  --card-common: #8b7355;
+  /* Color Tokens */
+  --color-primary-bg: #121212;
+  --color-ui-bg: #1E1E1E;
+  --color-accent-primary: #4CAF50;
+  --color-accent-hover: #66BB6A;
+  --color-text-primary: #EAEAEA;
+  --color-text-secondary: #B0B0B0;
+  --color-border: #444444;
+  --color-focus-border: #66BB6A;
+  --color-texture-accent: #8B5E3C;
+
+  /* Typography Tokens */
+  --font-family-primary: 'Inter', sans-serif;
+  --font-family-monospace: 'JetBrains Mono', monospace;
+  --font-size-h1: 2.5rem;
+  --font-size-h2: 2.0rem;
+  --font-size-h3: 1.5rem;
+  --font-size-body: 1rem;
+  --font-size-small: 0.875rem;
+  --font-weight-bold: 700;
+  --font-weight-medium: 500;
+  --font-weight-regular: 400;
+  --line-height-body: 1.6;
+
+  /* Spacing Tokens */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 32px;
+  --spacing-xl: 64px;
+
+  /* Border Radius Tokens */
+  --border-radius-sm: 8px;
+  --border-radius-md: 16px;
+  --border-radius-lg: 20px;
+
+  /* Animation Tokens */
+  --animation-duration: 250ms;
+  --animation-timing-function: ease-in-out;
 }
 
 html, body, :root { 
@@ -22,22 +47,17 @@ html, body, :root {
 }
 
 body {
-  color: var(--text-primary);
-  background: radial-gradient(1200px 800px at 80% -10%, rgba(139,92,246,0.12), transparent 50%),
-              radial-gradient(1000px 700px at 10% 110%, rgba(99,102,241,0.12), transparent 50%),
-              var(--background);
+  color: var(--color-text-primary);
+  background-color: var(--color-primary-bg);
+  font-family: var(--font-family-primary);
 }
 
-.glass {
-  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-  border: 1px solid var(--border);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
-  backdrop-filter: blur(6px);
-}
-
-.card-surface {
-  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-  border: 1px solid var(--border);
+.glass-panel {
+  background: rgba(30, 30, 30, 0.75);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-radius: var(--border-radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Custom scrollbar */
@@ -46,113 +66,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--surface);
+  background: var(--color-ui-bg);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-accent);
+  background: var(--color-border);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--primary);
-}
-
-/* Line clamp utility for older browsers */
-.line-clamp-1 {
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
-}
-
-.line-clamp-2 {
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-/* Accent utilities */
-.accent-ring {
-  box-shadow: 0 0 0 1px var(--border), 0 0 0 2px rgba(139,92,246,0.25), 0 10px 30px rgba(99,102,241,0.15);
-}
-
-.accent-border {
-  border-image: linear-gradient(90deg, rgba(99,102,241,0.35), rgba(139,92,246,0.35)) 1;
-}
-
-.surface-gradient {
-  background:
-    radial-gradient(1200px 800px at 80% -10%, rgba(139,92,246,0.10), transparent 50%),
-    radial-gradient(900px 700px at 10% 110%, rgba(99,102,241,0.10), transparent 55%),
-    var(--background);
-}
-
-.hover-highlight {
-  position: relative;
-  overflow: hidden;
-}
-
-.hover-highlight::after {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  background: conic-gradient(from 180deg at 50% 50%, rgba(99,102,241,0.35), rgba(139,92,246,0.35), transparent 30%);
-  filter: blur(18px);
-  opacity: 0;
-  transition: opacity .3s ease;
-  pointer-events: none;
-}
-
-.hover-highlight:hover::after { 
-  opacity: .6; 
-}
-
-/* Spotlight hover for cards */
-.spotlight {
-  background: radial-gradient(800px 300px at var(--mx) var(--my), rgba(139,92,246,0.18), transparent 40%);
-}
-
-/* Buttons: purple gradient */
-.btn-primary {
-  background: linear-gradient(180deg, rgba(99,102,241,0.85), rgba(99,102,241,0.75));
-  color: white;
-  transition: all 0.2s ease;
-}
-
-.btn-primary:hover {
-  background: linear-gradient(180deg, rgba(139,92,246,0.9), rgba(99,102,241,0.85));
-  transform: translateY(-1px);
-}
-
-/* Elevated cards */
-.elevated {
-  background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  backdrop-filter: blur(8px);
-}
-
-/* Glow effect */
-.shadow-glow {
-  box-shadow: 0 0 0 1px rgba(139,92,246,0.2), 0 20px 40px rgba(99,102,241,0.15);
-}
-
-/* Gradient text with fallback */
-.gradient-text {
-  color: var(--primary);
-  background: linear-gradient(to right, var(--primary), var(--primary-variant));
-  -webkit-background-clip: text;
-  background-clip: text;
-}
-
-/* Apply transparent fill only when background-clip is supported */
-@supports (background-clip: text) or (-webkit-background-clip: text) {
-  .gradient-text {
-    -webkit-text-fill-color: transparent;
-    color: transparent;
-  }
+  background: var(--color-accent-primary);
 }
 
 /* Focus styles */
@@ -160,7 +83,7 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--color-focus-border);
   outline-offset: 2px;
 }
 
@@ -171,10 +94,10 @@ input[type="password"],
 input[type="number"],
 textarea,
 select {
-  background-color: var(--surface-variant);
-  border: 1px solid var(--border);
-  color: var(--text-primary);
-  transition: border-color 0.2s ease;
+  background-color: var(--color-primary-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-primary);
+  transition: border-color var(--animation-duration) var(--animation-timing-function);
 }
 
 input[type="text"]:focus,
@@ -183,6 +106,5 @@ input[type="password"]:focus,
 input[type="number"]:focus,
 textarea:focus,
 select:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 1px rgba(99,102,241,0.3);
+  border-color: var(--color-focus-border);
 }

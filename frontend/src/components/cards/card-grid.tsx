@@ -29,7 +29,6 @@ export function CardGrid({
   isLoading = false,
   className = ''
 }: CardGridProps) {
-  // Create a map of user cards for quick lookup
   const userCardMap = userCards.reduce((acc, userCard) => {
     acc[userCard.card_id] = userCard;
     return acc;
@@ -37,9 +36,9 @@ export function CardGrid({
 
   if (isLoading) {
     return (
-      <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 ${className}`}>
+      <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-md ${className}`}>
         {Array.from({ length: 12 }).map((_, index) => (
-          <div key={index} className="aspect-[5/7] rounded-lg bg-surface-variant animate-pulse" />
+          <div key={index} className="aspect-[5/7] rounded-lg bg-ui-bg animate-pulse" />
         ))}
       </div>
     );
@@ -47,10 +46,10 @@ export function CardGrid({
 
   if (cards.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="glass rounded-xl p-8 max-w-md mx-auto">
-          <p className="text-text-secondary text-lg mb-2">No cards found</p>
-          <p className="text-text-muted">
+      <div className="text-center py-xl">
+        <div className="glass-panel p-lg max-w-md mx-auto">
+          <p className="text-h3 text-text-primary mb-sm">No cards found</p>
+          <p className="text-body text-text-secondary">
             Try adjusting your search terms or filters
           </p>
         </div>
@@ -59,7 +58,7 @@ export function CardGrid({
   }
 
   return (
-    <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 ${className}`}>
+    <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-md ${className}`}>
       {cards.map((card, index) => (
         <motion.div
           key={card.id}

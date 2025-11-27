@@ -9,104 +9,34 @@ import type {
   CollectionStats,
   Invite
 } from './types';
-// Import auth store dynamically to avoid SSR issues
+import { useAuthStore } from '../stores/auth';
+import Cookies from 'js-cookie';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
-  withCredentials: false,
+  withCredentials: true, // to send cookies
   timeout: 30000,
 });
 
-let isRefreshing = false;
-let refreshQueue: Array<(token: string | null) => void> = [];
-
 // Request interceptor to add auth token
 apiClient.interceptors.request.use((config) => {
-  // Dynamically import to avoid SSR issues
-  if (typeof window !== 'undefined') {
-    const { useAuthStore } = require('../stores/auth');
-    const tokens = useAuthStore.getState().tokens;
-    if (tokens?.access_token) {
-      config.headers.Authorization = `Bearer ${tokens.access_token}`;
-      console.log('Adding auth header to request:', config.url, 'Token:', tokens.access_token.substring(0, 20) + '...');
-    } else {
-      console.log('No access token available for request:', config.url);
-    }
+  const { accessToken } = useAuthStore.getState();
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`;
   }
   return config;
 });
 
-// Response interceptor for token refresh
-apiClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    const original = error.config;
-    
-    if (error.response?.status === 401 && !original._retry) {
-      if (isRefreshing) {
-        // Queue the request
-        return new Promise((resolve, reject) => {
-          refreshQueue.push((newToken) => {
-            if (newToken) {
-              original.headers.Authorization = `Bearer ${newToken}`;
-              resolve(apiClient(original));
-            } else {
-              reject(error);
-            }
-          });
-        });
-      }
-
-      original._retry = true;
-      isRefreshing = true;
-
-      try {
-        // Dynamically import to avoid SSR issues
-        const { useAuthStore } = require('../stores/auth');
-        const tokens = useAuthStore.getState().tokens;
-        if (!tokens?.refresh_token) {
-          throw error;
-        }
-
-        const response = await axios.post<{ access_token: string; refresh_token?: string }>(
-          `${BASE_URL}/auth/refresh`,
-          { refresh_token: tokens.refresh_token }
-        );
-
-        const newTokens = {
-          access_token: response.data.access_token,
-          refresh_token: response.data.refresh_token ?? tokens.refresh_token,
-          token_type: 'bearer',
-          expires_in: 900, // 15 minutes
-        };
-
-        useAuthStore.getState().setTokens(newTokens);
-        
-        // Process queued requests
-        refreshQueue.forEach((callback) => callback(newTokens.access_token));
-        refreshQueue = [];
-        
-        // Retry original request
-        original.headers.Authorization = `Bearer ${newTokens.access_token}`;
-        return apiClient(original);
-      } catch (refreshError) {
-        // Refresh failed, logout user
-        const { useAuthStore } = require('../stores/auth');
-        const authStore = useAuthStore.getState();
-        authStore.logout();
-        refreshQueue.forEach((callback) => callback(null));
-        refreshQueue = [];
-        throw refreshError;
-      } finally {
-        isRefreshing = false;
-      }
-    }
-
-    throw error;
+export const refreshAccessToken = async (): Promise<Tokens> => {
+  const refreshToken = Cookies.get('refresh_token');
+  if (!refreshToken) {
+    throw new Error('No refresh token found');
   }
-);
+  const { data } = await apiClient.post<Tokens>('/auth/refresh', { refresh_token: refreshToken });
+  return data;
+};
 
 // API surface
 export const api = {

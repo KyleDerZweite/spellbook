@@ -170,10 +170,11 @@ async def login_user(
         raise
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.post("/refresh", response_model=Token)
 async def refresh_token(
     token_data: TokenRefresh,
-    session: AsyncSession = Depends(get_async_session)
+    session: AsyncSession = Depends(get_async_session),
+    redis_service: RedisService = Depends(get_redis_service)
 ):
     payload = verify_token(token_data.refresh_token, "refresh")
     if payload is None:
@@ -183,6 +184,14 @@ async def refresh_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
+    jti = payload.get("jti")
+    if jti and await redis_service.is_blacklisted(jti):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     user_id = payload.get("sub")
     if user_id is None:
         raise HTTPException(
@@ -211,19 +220,35 @@ async def refresh_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Create new access token
+    # Blacklist the old refresh token
+    exp = payload.get("exp")
+    if jti and exp:
+        await redis_service.add_to_blacklist(jti, exp - int(datetime.utcnow().timestamp()))
+
+    # Create new tokens
     access_token = create_access_token(data={"sub": str(user.id)})
+    new_refresh_token = create_refresh_token(data={"sub": str(user.id)})
     
     return {
         "access_token": access_token,
+        "refresh_token": new_refresh_token,
+        "token_type": "bearer",
         "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
     }
 
 
+from app.services.redis_service import RedisService, get_redis_service
+
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout_user(
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
+    token: HTTPAuthorizationCredentials = Depends(security),
+    redis_service: RedisService = Depends(get_redis_service)
 ):
-    # In a more sophisticated implementation, you might maintain a blacklist
-    # of tokens or store them in Redis with expiration
+    payload = verify_token(token.credentials)
+    if payload:
+        jti = payload.get("jti")
+        exp = payload.get("exp")
+        if jti and exp:
+            await redis_service.add_to_blacklist(jti, exp - int(datetime.utcnow().timestamp()))
     return
