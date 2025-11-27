@@ -13,7 +13,21 @@ const COLOR_LABELS: Record<string, string> = {
   G: 'Green',
   C: 'Colorless'
 };
+const COLOR_STYLES: Record<string, { bg: string; border: string; text: string; activeBg: string }> = {
+  W: { bg: 'bg-mana-white/10', border: 'border-mana-white/30', text: 'text-mana-white', activeBg: 'bg-mana-white/20' },
+  U: { bg: 'bg-mana-blue/10', border: 'border-mana-blue/30', text: 'text-mana-blue', activeBg: 'bg-mana-blue/20' },
+  B: { bg: 'bg-mana-black/15', border: 'border-mana-black/40', text: 'text-foreground-muted', activeBg: 'bg-mana-black/25' },
+  R: { bg: 'bg-mana-red/10', border: 'border-mana-red/30', text: 'text-mana-red', activeBg: 'bg-mana-red/20' },
+  G: { bg: 'bg-mana-green/10', border: 'border-mana-green/30', text: 'text-mana-green', activeBg: 'bg-mana-green/20' },
+  C: { bg: 'bg-mana-colorless/10', border: 'border-mana-colorless/30', text: 'text-mana-colorless', activeBg: 'bg-mana-colorless/20' },
+};
 const RARITIES = ['common', 'uncommon', 'rare', 'mythic'];
+const RARITY_STYLES: Record<string, { color: string; glow?: string }> = {
+  common: { color: 'text-rarity-common' },
+  uncommon: { color: 'text-rarity-uncommon' },
+  rare: { color: 'text-rarity-rare', glow: 'shadow-[0_0_10px_rgb(251_191_36/0.3)]' },
+  mythic: { color: 'text-rarity-mythic', glow: 'shadow-[0_0_10px_rgb(249_115_22/0.3)]' },
+};
 const TYPES = ['Creature', 'Instant', 'Sorcery', 'Artifact', 'Enchantment', 'Planeswalker', 'Land'];
 
 interface SearchFiltersProps {
@@ -61,18 +75,20 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
     (value.types?.length || 0);
 
   return (
-    <div className="bg-card border border-border rounded-xl">
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
       <button 
         onClick={() => setOpen(!open)} 
-        className="w-full flex items-center justify-between p-4 text-left hover:bg-card-hover transition-colors rounded-xl"
+        className="w-full flex items-center justify-between p-4 text-left hover:bg-card-hover transition-colors"
       >
         <div className="flex items-center gap-3">
-          <Filter className="h-4 w-4 text-foreground-muted" />
+          <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center">
+            <Filter className="h-4 w-4 text-accent" />
+          </div>
           <span className="font-medium text-foreground">
             Advanced Filters
           </span>
           {activeCount > 0 && (
-            <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full">
+            <span className="text-xs bg-accent/15 text-accent px-2.5 py-1 rounded-full border border-accent/20">
               {activeCount} active
             </span>
           )}
@@ -81,25 +97,29 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
       </button>
       
       {open && (
-        <div className="px-4 pb-4 space-y-5 border-t border-border/50">
-          {/* Colors */}
+        <div className="px-4 pb-4 space-y-6 border-t border-border/50">
+          {/* Colors - MTG Mana Symbols */}
           <div className="pt-4">
-            <div className="text-xs text-foreground-muted mb-3 font-medium uppercase tracking-wide">Colors</div>
+            <div className="text-xs text-foreground-muted mb-3 font-medium uppercase tracking-wide">Mana Colors</div>
             <div className="flex gap-2 flex-wrap">
-              {COLORS.map((color) => (
-                <button
-                  key={color}
-                  onClick={() => toggleArray('colors', color)}
-                  title={COLOR_LABELS[color]}
-                  className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
-                    (value.colors || []).includes(color)
-                      ? 'border-accent bg-accent/10 text-accent'
-                      : 'border-border text-foreground-muted hover:border-accent/50 hover:text-foreground'
-                  }`}
-                >
-                  {color}
-                </button>
-              ))}
+              {COLORS.map((color) => {
+                const isActive = (value.colors || []).includes(color);
+                const styles = COLOR_STYLES[color];
+                return (
+                  <button
+                    key={color}
+                    onClick={() => toggleArray('colors', color)}
+                    title={COLOR_LABELS[color]}
+                    className={`w-10 h-10 rounded-full border-2 text-sm font-bold transition-all flex items-center justify-center ${
+                      isActive
+                        ? `${styles.activeBg} ${styles.border} ${styles.text} shadow-glow`
+                        : `${styles.bg} border-border ${styles.text} opacity-60 hover:opacity-100 hover:${styles.border}`
+                    }`}
+                  >
+                    {color}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -107,19 +127,23 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
           <div>
             <div className="text-xs text-foreground-muted mb-3 font-medium uppercase tracking-wide">Rarity</div>
             <div className="flex gap-2 flex-wrap">
-              {RARITIES.map((rarity) => (
-                <button
-                  key={rarity}
-                  onClick={() => toggleArray('rarity', rarity)}
-                  className={`px-3 py-1.5 rounded-lg border text-sm font-medium capitalize transition-all ${
-                    (value.rarity || []).includes(rarity)
-                      ? 'border-accent bg-accent/10 text-accent'
-                      : 'border-border text-foreground-muted hover:border-accent/50 hover:text-foreground'
-                  }`}
-                >
-                  {rarity}
-                </button>
-              ))}
+              {RARITIES.map((rarity) => {
+                const isActive = (value.rarity || []).includes(rarity);
+                const styles = RARITY_STYLES[rarity];
+                return (
+                  <button
+                    key={rarity}
+                    onClick={() => toggleArray('rarity', rarity)}
+                    className={`px-4 py-2 rounded-xl border text-sm font-medium capitalize transition-all ${
+                      isActive
+                        ? `border-current ${styles.color} bg-current/10 ${styles.glow || ''}`
+                        : 'border-border text-foreground-muted hover:text-foreground hover:border-border-hover'
+                    }`}
+                  >
+                    {rarity}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -131,10 +155,10 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
                 <button
                   key={type}
                   onClick={() => toggleArray('types', type)}
-                  className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
+                  className={`px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
                     (value.types || []).includes(type)
-                      ? 'border-accent bg-accent/10 text-accent'
-                      : 'border-border text-foreground-muted hover:border-accent/50 hover:text-foreground'
+                      ? 'border-accent/50 bg-accent/10 text-accent'
+                      : 'border-border text-foreground-muted hover:border-accent/30 hover:text-foreground'
                   }`}
                 >
                   {type}
@@ -145,10 +169,10 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
 
           {/* Clear button */}
           {hasActiveFilters() && (
-            <div className="pt-3 border-t border-border/50">
+            <div className="pt-4 border-t border-border/50">
               <button 
                 onClick={clearAll} 
-                className="text-sm text-foreground-muted hover:text-foreground flex items-center gap-2 transition-colors"
+                className="text-sm text-foreground-muted hover:text-error flex items-center gap-2 transition-colors px-3 py-2 rounded-lg hover:bg-error/10"
               >
                 <X className="h-4 w-4" /> 
                 Clear all filters

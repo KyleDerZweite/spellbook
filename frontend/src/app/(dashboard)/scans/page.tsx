@@ -68,8 +68,8 @@ export default function ScansPage() {
   const { data: batches, isLoading: batchesLoading, refetch: refetchBatches } = useQuery({
     queryKey: ['scan-batches'],
     queryFn: async () => {
-      const response = await api.get('/scan/batches');
-      return response.data.batches as ScanBatch[];
+      const response = await api.scan.getBatches();
+      return response.batches as ScanBatch[];
     },
     refetchInterval: 10000, // Refresh every 10 seconds
   });
@@ -78,8 +78,8 @@ export default function ScansPage() {
   const { data: pendingScans, isLoading: scansLoading } = useQuery({
     queryKey: ['pending-scans'],
     queryFn: async () => {
-      const response = await api.get('/scan/scans/pending');
-      return response.data.scans as ScanResult[];
+      const response = await api.scan.getPendingScans();
+      return response.scans as ScanResult[];
     },
     refetchInterval: 5000,
   });
@@ -87,7 +87,7 @@ export default function ScansPage() {
   // Confirm scan mutation
   const confirmMutation = useMutation({
     mutationFn: async ({ scanId, cardId, quantity = 1 }: { scanId: string; cardId: string; quantity?: number }) => {
-      await api.post(`/scan/scans/${scanId}/confirm`, {
+      await api.scan.confirmScan(scanId, {
         confirmed_card_id: cardId,
         quantity,
       });
@@ -101,7 +101,7 @@ export default function ScansPage() {
   // Reject scan mutation
   const rejectMutation = useMutation({
     mutationFn: async (scanId: string) => {
-      await api.post(`/scan/scans/${scanId}/reject`);
+      await api.scan.rejectScan(scanId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-scans'] });
@@ -112,7 +112,7 @@ export default function ScansPage() {
   // Confirm all scans in batch
   const confirmBatchMutation = useMutation({
     mutationFn: async (batchId: string) => {
-      await api.post(`/scan/batches/${batchId}/confirm`);
+      await api.scan.confirmBatch(batchId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-scans'] });
@@ -445,8 +445,8 @@ function BatchScansDetail({ batchId }: { batchId: string }) {
   const { data, isLoading } = useQuery({
     queryKey: ['batch-scans', batchId],
     queryFn: async () => {
-      const response = await api.get(`/scan/batches/${batchId}`);
-      return response.data;
+      const response = await api.scan.getBatchScans(batchId);
+      return response;
     },
   });
 

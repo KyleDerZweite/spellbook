@@ -146,9 +146,9 @@ function StatCard({
   accent?: boolean;
 }) {
   return (
-    <div className="bg-card border border-border rounded-xl p-5">
+    <div className={`relative bg-card border border-border rounded-xl p-5 overflow-hidden transition-all hover:border-accent/30 card-hover-glow ${accent ? 'bg-gradient-to-br from-accent/5 to-transparent' : ''}`}>
       <div className="flex items-center gap-3 mb-3">
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${accent ? 'bg-accent/10' : 'bg-background-tertiary'}`}>
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${accent ? 'bg-accent/15 border border-accent/20' : 'bg-background-tertiary border border-border'}`}>
           <Icon className={`w-5 h-5 ${accent ? 'text-accent' : 'text-foreground-muted'}`} />
         </div>
         <p className="text-sm text-foreground-muted">{label}</p>
@@ -156,7 +156,7 @@ function StatCard({
       {loading ? (
         <div className="h-8 w-24 skeleton rounded" />
       ) : (
-        <p className={`text-2xl font-bold ${accent ? 'text-accent' : 'text-foreground'}`}>
+        <p className={`text-2xl font-bold ${accent ? 'text-gradient' : 'text-foreground'}`}>
           {value}
         </p>
       )}
@@ -171,8 +171,8 @@ function StatCard({
 function EmptyState() {
   return (
     <div className="text-center py-16">
-      <div className="bg-card border border-border rounded-xl p-8 max-w-md mx-auto">
-        <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-4">
+      <div className="bg-card border border-border rounded-2xl p-8 max-w-md mx-auto card-hover-glow">
+        <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto mb-4 shadow-glow">
           <Library className="w-8 h-8 text-accent" />
         </div>
         <h3 className="text-xl font-semibold text-foreground mb-2">
@@ -183,7 +183,7 @@ function EmptyState() {
         </p>
         <Link
           href="/search"
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent hover:bg-accent-hover text-white font-medium rounded-lg transition-colors"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-hover text-white font-medium rounded-xl transition-all shadow-glow hover:shadow-glow-lg"
         >
           <Search className="w-4 h-4" />
           Search Cards

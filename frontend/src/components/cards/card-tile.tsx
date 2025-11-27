@@ -38,10 +38,11 @@ export function CardTile({
   const quantity = userCard?.quantity || 0;
   const foilQuantity = userCard?.foil_quantity || 0;
   const totalQuantity = quantity + foilQuantity;
+  const rarityBorderClass = getRarityBorderClass(card.rarity);
 
   return (
     <motion.div
-      className={`group relative overflow-hidden rounded-xl bg-card border border-border cursor-pointer will-change-transform ${className}`}
+      className={`group relative overflow-hidden rounded-xl bg-card border border-border cursor-pointer will-change-transform transition-all ${rarityBorderClass} ${className}`}
       whileHover={{ y: -4, scale: 1.02 }}
       transition={{ type: 'spring', stiffness: 250, damping: 18 }}
       onClick={() => onView?.(card)}
@@ -155,13 +156,24 @@ export function CardTile({
 function getRarityColor(rarity: string): string {
   switch (rarity.toLowerCase()) {
     case 'mythic':
-      return 'bg-orange-500';
+      return 'bg-rarity-mythic shadow-[0_0_8px_rgb(249_115_22/0.5)]';
     case 'rare':
-      return 'bg-yellow-500';
+      return 'bg-rarity-rare shadow-[0_0_8px_rgb(251_191_36/0.5)]';
     case 'uncommon':
-      return 'bg-gray-400';
+      return 'bg-rarity-uncommon';
     case 'common':
     default:
-      return 'bg-gray-600';
+      return 'bg-rarity-common';
+  }
+}
+
+function getRarityBorderClass(rarity: string): string {
+  switch (rarity.toLowerCase()) {
+    case 'mythic':
+      return 'hover:border-rarity-mythic/50 hover:shadow-[0_0_20px_rgb(249_115_22/0.2)]';
+    case 'rare':
+      return 'hover:border-rarity-rare/50 hover:shadow-[0_0_20px_rgb(251_191_36/0.2)]';
+    default:
+      return 'hover:border-accent/40';
   }
 }

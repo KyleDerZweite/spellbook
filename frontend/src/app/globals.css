@@ -1,41 +1,60 @@
 @import "tailwindcss";
 
 /* ========================================
-   SPELLBOOK - Modern Dark Theme
-   Clean, professional design system
+   SPELLBOOK - MTG-Inspired Dark Theme
+   Rich, mystical design system
    ======================================== */
 
 :root {
-  /* Background Colors */
-  --background: 10 10 11;
-  --background-secondary: 18 18 20;
-  --background-tertiary: 24 24 27;
+  /* Background Colors - Deep purple-tinted blacks */
+  --background: 12 10 18;
+  --background-secondary: 20 16 28;
+  --background-tertiary: 28 24 38;
   
-  /* Card/Surface Colors */
-  --card: 18 18 20;
-  --card-hover: 24 24 27;
+  /* Card/Surface Colors - Slight purple warmth */
+  --card: 22 18 32;
+  --card-hover: 32 26 44;
   
-  /* Border Colors */
-  --border: 39 39 42;
-  --border-hover: 63 63 70;
+  /* Border Colors - Subtle gold/bronze tint */
+  --border: 50 42 60;
+  --border-hover: 80 68 95;
   
   /* Text Colors */
-  --foreground: 250 250 250;
-  --foreground-muted: 161 161 170;
+  --foreground: 248 246 252;
+  --foreground-muted: 158 152 175;
   
-  /* Accent Colors - Emerald Green */
-  --accent: 16 185 129;
-  --accent-hover: 5 150 105;
-  --accent-muted: 16 185 129;
+  /* Accent Colors - Mystical Purple/Gold */
+  --accent: 168 85 247;
+  --accent-hover: 147 51 234;
+  --accent-muted: 168 85 247;
+  
+  /* MTG Mana Colors */
+  --mana-white: 248 241 225;
+  --mana-blue: 14 165 233;
+  --mana-black: 120 113 108;
+  --mana-red: 239 68 68;
+  --mana-green: 34 197 94;
+  --mana-gold: 251 191 36;
+  --mana-colorless: 148 163 184;
+  
+  /* Rarity Colors */
+  --rarity-common: 148 163 184;
+  --rarity-uncommon: 192 192 192;
+  --rarity-rare: 251 191 36;
+  --rarity-mythic: 249 115 22;
   
   /* Status Colors */
   --success: 34 197 94;
-  --warning: 234 179 8;
+  --warning: 251 191 36;
   --error: 239 68 68;
-  --info: 59 130 246;
+  --info: 14 165 233;
+  
+  /* Glow Colors */
+  --glow-purple: 168 85 247;
+  --glow-gold: 251 191 36;
   
   /* Radius */
-  --radius: 0.5rem;
+  --radius: 0.75rem;
 }
 
 /* Base Styles */
@@ -123,4 +142,166 @@ body {
 @keyframes skeleton-loading {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+/* ========================================
+   MTG-Themed Visual Effects
+   ======================================== */
+
+/* Mystical gradient backgrounds */
+.bg-mystic {
+  background: linear-gradient(
+    135deg,
+    rgb(var(--background)) 0%,
+    rgb(var(--background-secondary)) 50%,
+    rgb(20 12 30) 100%
+  );
+}
+
+.bg-mystic-radial {
+  background: radial-gradient(
+    ellipse at top,
+    rgb(var(--accent) / 0.08) 0%,
+    transparent 50%
+  ),
+  linear-gradient(
+    to bottom,
+    rgb(var(--background)) 0%,
+    rgb(var(--background-secondary)) 100%
+  );
+}
+
+/* Card glow effects */
+.glow-accent {
+  box-shadow: 
+    0 0 20px rgb(var(--accent) / 0.15),
+    0 0 40px rgb(var(--accent) / 0.1),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
+}
+
+.glow-gold {
+  box-shadow: 
+    0 0 20px rgb(var(--mana-gold) / 0.2),
+    0 0 40px rgb(var(--mana-gold) / 0.1);
+}
+
+.glow-mythic {
+  box-shadow: 
+    0 0 20px rgb(var(--rarity-mythic) / 0.25),
+    0 0 40px rgb(var(--rarity-mythic) / 0.15);
+}
+
+/* Hover card effect */
+.card-hover-glow {
+  transition: all 0.3s ease;
+}
+
+.card-hover-glow:hover {
+  box-shadow: 
+    0 8px 30px rgb(var(--accent) / 0.2),
+    0 0 60px rgb(var(--accent) / 0.1),
+    inset 0 1px 0 rgb(255 255 255 / 0.08);
+  border-color: rgb(var(--accent) / 0.4);
+}
+
+/* Gradient text */
+.text-gradient {
+  background: linear-gradient(
+    135deg,
+    rgb(var(--foreground)) 0%,
+    rgb(var(--accent)) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-gold {
+  background: linear-gradient(
+    135deg,
+    rgb(var(--mana-gold)) 0%,
+    rgb(251 230 175) 50%,
+    rgb(var(--mana-gold)) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Animated border gradient */
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.border-gradient {
+  position: relative;
+}
+
+.border-gradient::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--angle),
+    rgb(var(--accent)) 0%,
+    rgb(var(--mana-gold)) 25%,
+    rgb(var(--accent)) 50%,
+    rgb(var(--mana-gold)) 75%,
+    rgb(var(--accent)) 100%
+  );
+  z-index: -1;
+  animation: rotate-border 4s linear infinite;
+}
+
+@keyframes rotate-border {
+  to { --angle: 360deg; }
+}
+
+/* MTG Mana symbol colors */
+.mana-w { color: rgb(var(--mana-white)); background: rgb(var(--mana-white) / 0.15); }
+.mana-u { color: rgb(var(--mana-blue)); background: rgb(var(--mana-blue) / 0.15); }
+.mana-b { color: rgb(var(--mana-black)); background: rgb(var(--mana-black) / 0.15); }
+.mana-r { color: rgb(var(--mana-red)); background: rgb(var(--mana-red) / 0.15); }
+.mana-g { color: rgb(var(--mana-green)); background: rgb(var(--mana-green) / 0.15); }
+.mana-c { color: rgb(var(--mana-colorless)); background: rgb(var(--mana-colorless) / 0.15); }
+
+/* Rarity styling */
+.rarity-common { color: rgb(var(--rarity-common)); }
+.rarity-uncommon { color: rgb(var(--rarity-uncommon)); }
+.rarity-rare { color: rgb(var(--rarity-rare)); text-shadow: 0 0 10px rgb(var(--rarity-rare) / 0.5); }
+.rarity-mythic { color: rgb(var(--rarity-mythic)); text-shadow: 0 0 10px rgb(var(--rarity-mythic) / 0.5); }
+
+/* Subtle noise texture overlay */
+.noise-overlay {
+  position: relative;
+}
+
+.noise-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.02;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+/* Shimmer animation for loading states */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgb(var(--accent) / 0.1) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
 }

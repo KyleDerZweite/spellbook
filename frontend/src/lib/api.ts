@@ -183,4 +183,33 @@ export const api = {
       return data.data;
     },
   },
+
+  scan: {
+    async getBatches(): Promise<{ batches: any[] }> {
+      const { data } = await apiClient.get<{ batches: any[] }>('/scan/batches');
+      return data;
+    },
+
+    async getPendingScans(): Promise<{ scans: any[] }> {
+      const { data } = await apiClient.get<{ scans: any[] }>('/scan/scans/pending');
+      return data;
+    },
+
+    async getBatchScans(batchId: string): Promise<{ scans: any[] }> {
+      const { data } = await apiClient.get<{ scans: any[] }>(`/scan/batches/${batchId}/scans`);
+      return data;
+    },
+
+    async confirmScan(scanId: string, payload: { confirmed_card_id: string; quantity?: number }): Promise<void> {
+      await apiClient.post(`/scan/scans/${scanId}/confirm`, payload);
+    },
+
+    async rejectScan(scanId: string): Promise<void> {
+      await apiClient.post(`/scan/scans/${scanId}/reject`);
+    },
+
+    async confirmBatch(batchId: string): Promise<void> {
+      await apiClient.post(`/scan/batches/${batchId}/confirm`);
+    },
+  },
 };

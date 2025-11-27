@@ -45,19 +45,25 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-mystic noise-overlay p-4">
+      {/* Background effects */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-mana-gold/5 rounded-full blur-3xl" />
+      </div>
+      
+      <div className="w-full max-w-md relative">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-accent/10 mb-4">
-            <Sparkles className="w-6 h-6 text-accent" />
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-accent/15 border border-accent/30 mb-4 shadow-glow">
+            <Sparkles className="w-7 h-7 text-accent" />
           </div>
           <h1 className="text-2xl font-bold text-foreground">Welcome back</h1>
           <p className="text-foreground-muted mt-2">Sign in to your Spellbook account</p>
         </div>
 
         {/* Form Card */}
-        <div className="bg-card border border-border rounded-xl p-6">
+        <div className="bg-card border border-border rounded-2xl p-6 card-hover-glow">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {/* Username/Email Field */}
             <div className="space-y-2">
@@ -72,7 +78,7 @@ export default function LoginPage() {
                   required: 'Email or username is required',
                   minLength: { value: 3, message: 'Must be at least 3 characters' }
                 })}
-                className="w-full px-4 py-2.5 bg-background border border-border rounded-lg text-foreground placeholder:text-foreground-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-foreground placeholder:text-foreground-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
                 placeholder="you@example.com"
               />
               {errors.username && (
@@ -94,7 +100,7 @@ export default function LoginPage() {
                     required: 'Password is required',
                     minLength: { value: 6, message: 'Password must be at least 6 characters' }
                   })}
-                  className="w-full px-4 py-2.5 pr-11 bg-background border border-border rounded-lg text-foreground placeholder:text-foreground-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+                  className="w-full px-4 py-2.5 pr-11 bg-background border border-border rounded-xl text-foreground placeholder:text-foreground-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
                   placeholder="••••••••"
                 />
                 <button
@@ -121,7 +127,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting || login.isPending}
-              className="w-full py-2.5 px-4 bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-all shadow-glow hover:shadow-glow-lg flex items-center justify-center gap-2"
             >
               {login.isPending ? (
                 <>

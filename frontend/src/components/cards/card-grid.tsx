@@ -44,10 +44,13 @@ export function CardGrid({
     );
   }
 
-  if (cards.length === 0) {
+  // Ensure cards is always an array
+  const cardArray = Array.isArray(cards) ? cards : [];
+
+  if (cardArray.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="bg-card border border-border rounded-xl p-8 max-w-md mx-auto">
+        <div className="bg-card border border-border rounded-2xl p-8 max-w-md mx-auto card-hover-glow">
           <p className="text-lg font-medium text-foreground mb-2">No cards found</p>
           <p className="text-foreground-muted">
             Try adjusting your search terms or filters
@@ -59,7 +62,7 @@ export function CardGrid({
 
   return (
     <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 ${className}`}>
-      {cards.map((card, index) => (
+      {cardArray.map((card, index) => (
         <motion.div
           key={card.id}
           initial={{ opacity: 0, y: 20 }}

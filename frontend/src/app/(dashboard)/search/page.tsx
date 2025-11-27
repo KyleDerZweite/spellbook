@@ -45,12 +45,17 @@ export default function SearchPage() {
     );
   }, [params]);
 
-  const cardsQuery = useQuery({
+  const cardsQuery = useQuery<Card[]>({
     queryKey: ['cards', useUniqueSearch ? 'search-unique' : 'search', params],
-    queryFn: () => useUniqueSearch ? api.cards.searchUnique(params) : api.cards.search(params),
+    queryFn: async () => {
+      if (useUniqueSearch) {
+        const response = await api.cards.searchUnique(params);
+        return response.data || [];
+      }
+      return api.cards.search(params);
+    },
     enabled: searchEnabled,
     placeholderData: (previousData) => previousData,
-    select: (data) => useUniqueSearch ? data.data : data,
   });
 
   const addToCollectionMutation = useMutation({
@@ -114,23 +119,23 @@ export default function SearchPage() {
       </div>
 
       {/* Search Input */}
-      <div className="bg-card border border-border rounded-xl p-4">
+      <div className="bg-card border border-border rounded-xl p-4 card-hover-glow">
         <div className="flex gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground-muted" />
             <input
               type="text"
               placeholder="Search by name, type, rules text..."
-              className="w-full bg-background border border-border rounded-lg pl-10 pr-4 py-3 text-foreground placeholder:text-foreground-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent transition-colors"
+              className="w-full bg-background border border-border rounded-xl pl-10 pr-4 py-3 text-foreground placeholder:text-foreground-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all"
               onChange={(e) => handleSearch(e.target.value)}
             />
           </div>
           <button
             onClick={() => setUseUniqueSearch(!useUniqueSearch)}
-            className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+            className={`px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
               useUniqueSearch
-                ? 'bg-accent text-white'
-                : 'bg-background-tertiary text-foreground-muted hover:bg-card-hover border border-border'
+                ? 'bg-accent text-white shadow-glow'
+                : 'bg-card-hover text-foreground-muted hover:text-foreground border border-border hover:border-accent/30'
             }`}
             title={useUniqueSearch ? 'Show all versions' : 'Show unique cards only'}
           >
@@ -192,16 +197,24 @@ export default function SearchPage() {
       {/* Empty state */}
       {!searchEnabled && (
         <div className="text-center py-16">
-          <div className="bg-card border border-border rounded-xl p-8 max-w-md mx-auto">
-            <div className="w-16 h-16 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-4">
+          <div className="bg-card border border-border rounded-2xl p-8 max-w-md mx-auto card-hover-glow">
+            <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto mb-4 shadow-glow">
               <Search className="w-8 h-8 text-accent" />
             </div>
             <h3 className="text-xl font-semibold text-foreground mb-2">
               Discover Cards
             </h3>
-            <p className="text-foreground-muted">
+            <p className="text-foreground-muted mb-4">
               Search by name or use the filters above to find cards for your collection.
             </p>
+            {/* Mana symbol hint */}
+            <div className="flex justify-center gap-2 opacity-50">
+              <div className="w-6 h-6 rounded-full bg-mana-white/20 border border-mana-white/30" />
+              <div className="w-6 h-6 rounded-full bg-mana-blue/20 border border-mana-blue/30" />
+              <div className="w-6 h-6 rounded-full bg-mana-black/20 border border-mana-black/30" />
+              <div className="w-6 h-6 rounded-full bg-mana-red/20 border border-mana-red/30" />
+              <div className="w-6 h-6 rounded-full bg-mana-green/20 border border-mana-green/30" />
+            </div>
           </div>
         </div>
       )}

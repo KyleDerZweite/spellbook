@@ -36,9 +36,9 @@ export function Shell({ children }: ShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-mystic">
       {/* Mobile Header */}
-      <header className="lg:hidden sticky top-0 z-50 flex items-center justify-between px-4 h-14 bg-background-secondary border-b border-border">
+      <header className="lg:hidden sticky top-0 z-50 flex items-center justify-between px-4 h-14 bg-background-secondary/95 backdrop-blur-sm border-b border-border">
         <button
           onClick={() => setSidebarOpen(true)}
           className="p-2 -ml-2 text-foreground-muted hover:text-foreground transition-colors"
@@ -46,7 +46,9 @@ export function Shell({ children }: ShellProps) {
           <Menu className="w-5 h-5" />
         </button>
         <Link href="/" className="flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-accent" />
+          <div className="w-7 h-7 rounded-lg bg-accent/15 border border-accent/30 flex items-center justify-center">
+            <Sparkles className="w-4 h-4 text-accent" />
+          </div>
           <span className="font-semibold text-foreground">Spellbook</span>
         </Link>
         <div className="w-9" /> {/* Spacer for centering */}
@@ -55,7 +57,7 @@ export function Shell({ children }: ShellProps) {
       {/* Mobile Sidebar Overlay */}
       {sidebarOpen && (
         <div 
-          className="lg:hidden fixed inset-0 z-50 bg-black/60" 
+          className="lg:hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" 
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -70,7 +72,7 @@ export function Shell({ children }: ShellProps) {
         {/* Logo */}
         <div className="flex items-center justify-between h-14 px-4 border-b border-border">
           <Link href="/" className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-accent/15 border border-accent/30 flex items-center justify-center shadow-glow">
               <Sparkles className="w-4 h-4 text-accent" />
             </div>
             <span className="font-semibold text-foreground">Spellbook</span>
@@ -93,10 +95,10 @@ export function Shell({ children }: ShellProps) {
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
                 className={`
-                  flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                  flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all
                   ${isActive 
-                    ? 'bg-accent/10 text-accent' 
-                    : 'text-foreground-muted hover:text-foreground hover:bg-background-tertiary'
+                    ? 'bg-accent/15 text-accent border border-accent/20 shadow-glow' 
+                    : 'text-foreground-muted hover:text-foreground hover:bg-card-hover border border-transparent'
                   }
                 `}
               >
@@ -108,7 +110,7 @@ export function Shell({ children }: ShellProps) {
         </nav>
 
         {/* Divider */}
-        <div className="mx-3 my-3 h-px bg-border" />
+        <div className="mx-3 my-3 h-px bg-border/50" />
 
         {/* Settings & Admin */}
         <nav className="px-3 space-y-1">
@@ -116,10 +118,10 @@ export function Shell({ children }: ShellProps) {
             href="/settings"
             onClick={() => setSidebarOpen(false)}
             className={`
-              flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+              flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all
               ${pathname === '/settings' 
-                ? 'bg-accent/10 text-accent' 
-                : 'text-foreground-muted hover:text-foreground hover:bg-background-tertiary'
+                ? 'bg-accent/15 text-accent border border-accent/20 shadow-glow' 
+                : 'text-foreground-muted hover:text-foreground hover:bg-card-hover border border-transparent'
               }
             `}
           >
@@ -132,10 +134,10 @@ export function Shell({ children }: ShellProps) {
               href="/admin"
               onClick={() => setSidebarOpen(false)}
               className={`
-                flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all
                 ${pathname === '/admin' 
-                  ? 'bg-accent/10 text-accent' 
-                  : 'text-foreground-muted hover:text-foreground hover:bg-background-tertiary'
+                  ? 'bg-mana-gold/15 text-mana-gold border border-mana-gold/20' 
+                  : 'text-foreground-muted hover:text-foreground hover:bg-card-hover border border-transparent'
                 }
               `}
             >
@@ -148,7 +150,7 @@ export function Shell({ children }: ShellProps) {
         {/* User Section */}
         <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-border bg-background-secondary">
           <div className="flex items-center gap-3 px-3 py-2">
-            <div className="w-9 h-9 rounded-full bg-accent/10 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-full bg-accent/15 border border-accent/30 flex items-center justify-center">
               <span className="text-sm font-medium text-accent">
                 {user?.username?.charAt(0).toUpperCase() || 'U'}
               </span>
@@ -163,7 +165,7 @@ export function Shell({ children }: ShellProps) {
             </div>
             <button
               onClick={() => logout()}
-              className="p-2 text-foreground-muted hover:text-error transition-colors"
+              className="p-2 text-foreground-muted hover:text-error hover:bg-error/10 rounded-lg transition-all"
               title="Sign out"
             >
               <LogOut className="w-4 h-4" />
