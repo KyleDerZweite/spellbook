@@ -4,6 +4,8 @@
 
 Spellbook is a self-hosted card collection management platform with mobile scanning, OCR recognition, and real-time sync between your phone and web dashboard.
 
+> IMPORTANT: This project is under development and is not a stable, released product. It is provided "as-is", without warranty or guarantee. It works to some extent, but may be incomplete, unstable, or contain bugs. Mentions of a version such as "v2" do not imply an official release.
+
 ## Features
 
 ### Card Scanning (v2.0)
@@ -153,7 +155,7 @@ flutter run
 - Username: `spellbook`
 - Password: `spellbook-dev-password`
 
-## 📱 Mobile App Configuration
+## Mobile App Configuration
 
 Update the API URL in `/mobile/lib/app/network/api_constants.dart`:
 
@@ -166,7 +168,7 @@ class ApiConstants {
 
 For local development, use your machine's local IP (not localhost) so the mobile device can connect.
 
-## 🗄️ Database Migrations
+## Database Migrations
 
 ```bash
 cd backend
