@@ -19,6 +19,210 @@ from app.models.card import CardStorageReason
 
 router = APIRouter()
 
+
+# ==================== Helper Functions ====================
+
+async def get_or_create_default_collection(db: AsyncSession, user: User) -> Collection:
+    """Get user's default collection or create one if it doesn't exist"""
+    result = await db.execute(
+        select(Collection).where(
+            Collection.user_id == user.id,
+            Collection.name == "My Collection"
+        )
+    )
+    collection = result.scalar_one_or_none()
+    
+    if not collection:
+        collection = Collection(
+            name="My Collection",
+            description="Default card collection",
+            user_id=user.id
+        )
+        db.add(collection)
+        await db.commit()
+        await db.refresh(collection)
+    
+    return collection
+
+
+# ==================== "Mine" Convenience Endpoints ====================
+# These endpoints use the user's default collection automatically
+
+@router.get("/mine")
+async def get_my_collection(
+    db: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_user)
+):
+    """Get the current user's default collection with all cards"""
+    collection = await get_or_create_default_collection(db, current_user)
+    
+    # Get collection cards with card details
+    from sqlalchemy.orm import selectinload
+    result = await db.execute(
+        select(CollectionCard)
+        .options(selectinload(CollectionCard.card))
+        .where(CollectionCard.collection_id == collection.id)
+    )
+    cards = result.scalars().all()
+    
+    return {
+        "items": [
+            {
+                "id": str(cc.id),
+                "card_id": str(cc.card.id) if cc.card else None,
+                "card_scryfall_id": str(cc.card_scryfall_id),
+                "quantity": cc.quantity,
+                "condition": cc.condition,
+                "card": {
+                    "id": str(cc.card.id) if cc.card else None,
+                    "scryfall_id": str(cc.card.scryfall_id) if cc.card else None,
+                    "name": cc.card.name if cc.card else None,
+                    "mana_cost": cc.card.mana_cost if cc.card else None,
+                    "type_line": cc.card.type_line if cc.card else None,
+                    "oracle_text": cc.card.oracle_text if cc.card else None,
+                    "rarity": cc.card.rarity if cc.card else None,
+                    "image_uris": cc.card.image_uris if cc.card else {},
+                    "prices": cc.card.prices if cc.card else {},
+                } if cc.card else None
+            }
+            for cc in cards
+        ]
+    }
+
+
+@router.get("/mine/stats")
+async def get_my_collection_stats(
+    db: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_user)
+):
+    """Get statistics for the current user's default collection"""
+    collection = await get_or_create_default_collection(db, current_user)
+    
+    # Get card counts
+    from sqlalchemy.orm import selectinload
+    cards_result = await db.execute(
+        select(CollectionCard)
+        .options(selectinload(CollectionCard.card))
+        .where(CollectionCard.collection_id == collection.id)
+    )
+    collection_cards = cards_result.scalars().all()
+    
+    # Calculate stats
+    total_cards = sum(cc.quantity for cc in collection_cards)
+    unique_cards = len(collection_cards)
+    
+    # Calculate value
+    total_value = 0.0
+    for cc in collection_cards:
+        if cc.card and cc.card.prices:
+            price = cc.card.prices.get('usd')
+            if price:
+                try:
+                    total_value += float(price) * cc.quantity
+                except (ValueError, TypeError):
+                    pass
+    
+    # Count sets
+    sets = set()
+    for cc in collection_cards:
+        if cc.card and cc.card.extra_data:
+            set_code = cc.card.extra_data.get('set_info', {}).get('code')
+            if set_code:
+                sets.add(set_code)
+    
+    return {
+        "total_cards": total_cards,
+        "unique_cards": unique_cards,
+        "total_value": round(total_value, 2),
+        "sets_collected": len(sets)
+    }
+
+
+@router.post("/mine/cards", status_code=status.HTTP_201_CREATED)
+async def add_card_to_my_collection(
+    card_scryfall_id: UUID = Form(..., description="Scryfall ID of the card to add"),
+    quantity: int = Form(1, description="Number of copies"),
+    condition: Optional[str] = Form(None, description="Card condition"),
+    db: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_user)
+):
+    """Add a card to the current user's default collection"""
+    collection = await get_or_create_default_collection(db, current_user)
+    
+    # Ensure the card exists in the database, fetching it from Scryfall if necessary
+    db_card = await card_service.get_card_details(card_scryfall_id, db)
+    if not db_card:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found")
+    
+    # Make the card permanent in our cache
+    await card_service.make_card_permanent(db_card.scryfall_id, CardStorageReason.USER_COLLECTION, db, current_user.id)
+    
+    # Check if card already exists in collection
+    existing = await db.execute(
+        select(CollectionCard).where(
+            CollectionCard.collection_id == collection.id,
+            CollectionCard.card_scryfall_id == card_scryfall_id
+        )
+    )
+    existing_card = existing.scalar_one_or_none()
+    
+    if existing_card:
+        # Update quantity
+        existing_card.quantity += quantity
+        await db.commit()
+        await db.refresh(existing_card)
+        return {
+            "id": str(existing_card.id),
+            "card_scryfall_id": str(existing_card.card_scryfall_id),
+            "quantity": existing_card.quantity,
+            "condition": existing_card.condition,
+            "message": "Card quantity updated"
+        }
+    
+    # Create new collection card
+    db_collection_card = CollectionCard(
+        collection_id=collection.id,
+        card_scryfall_id=card_scryfall_id,
+        quantity=quantity,
+        condition=condition
+    )
+    db.add(db_collection_card)
+    await db.commit()
+    await db.refresh(db_collection_card)
+    
+    return {
+        "id": str(db_collection_card.id),
+        "card_scryfall_id": str(db_collection_card.card_scryfall_id),
+        "quantity": db_collection_card.quantity,
+        "condition": db_collection_card.condition,
+        "message": "Card added to collection"
+    }
+
+
+@router.delete("/mine/cards/{card_scryfall_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_card_from_my_collection(
+    card_scryfall_id: UUID,
+    db: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_user)
+):
+    """Remove a card from the current user's default collection"""
+    collection = await get_or_create_default_collection(db, current_user)
+    
+    result = await db.execute(
+        select(CollectionCard).where(
+            CollectionCard.collection_id == collection.id,
+            CollectionCard.card_scryfall_id == card_scryfall_id
+        )
+    )
+    db_card = result.scalar_one_or_none()
+    
+    if not db_card:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found in collection")
+    
+    await db.delete(db_card)
+    await db.commit()
+
+
 # ==================== Collection CRUD ====================
 
 @router.post("/", response_model=CollectionResponse, status_code=status.HTTP_201_CREATED)

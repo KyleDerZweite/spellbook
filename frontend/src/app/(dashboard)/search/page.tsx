@@ -14,7 +14,7 @@ import { Search, Loader2, Filter, Layers } from 'lucide-react';
 export default function SearchPage() {
   const [params, setParams] = useState<CardSearchParams>({ 
     q: '', 
-    per_page: 24, 
+    per_page: 60, 
     page: 1,
     rarity: [],
     colors: [],
@@ -45,14 +45,15 @@ export default function SearchPage() {
     );
   }, [params]);
 
-  const cardsQuery = useQuery<Card[]>({
+  const cardsQuery = useQuery<{ data: Card[]; meta?: { total: number; page: number; per_page: number; total_pages: number; has_next: boolean; has_prev: boolean } }>({
     queryKey: ['cards', useUniqueSearch ? 'search-unique' : 'search', params],
     queryFn: async () => {
       if (useUniqueSearch) {
         const response = await api.cards.searchUnique(params);
-        return response.data || [];
+        return { data: response.data || [], meta: response.meta };
       }
-      return api.cards.search(params);
+      const data = await api.cards.search(params);
+      return { data, meta: undefined };
     },
     enabled: searchEnabled,
     placeholderData: (previousData) => previousData,
@@ -60,7 +61,7 @@ export default function SearchPage() {
 
   const addToCollectionMutation = useMutation({
     mutationFn: (card: Card) => api.collections.addCard({ 
-      card_id: card.id, 
+      card_scryfall_id: card.scryfall_id, 
       quantity: 1 
     }),
     onSuccess: () => {
@@ -168,11 +169,18 @@ export default function SearchPage() {
       )}
 
       {/* Search Results */}
-      {cardsQuery.data && (
+      {cardsQuery.data && cardsQuery.data.data.length > 0 && (
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <p className="text-foreground-muted">
-              Found <span className="text-foreground font-medium">{cardsQuery.data.length}</span> results
+              {cardsQuery.data.meta ? (
+                <>
+                  Showing <span className="text-foreground font-medium">{cardsQuery.data.data.length}</span> of{' '}
+                  <span className="text-foreground font-medium">{cardsQuery.data.meta.total}</span> results
+                </>
+              ) : (
+                <>Found <span className="text-foreground font-medium">{cardsQuery.data.data.length}</span> results</>
+              )}
               {params.q?.trim() && <span> for "<span className="text-accent">{params.q}</span>"</span>}
             </p>
             {addToCollectionMutation.isPending && (
@@ -184,13 +192,65 @@ export default function SearchPage() {
           </div>
 
           <CardGrid
-            cards={cardsQuery.data}
+            cards={cardsQuery.data.data}
             showAddButton
             showVersionCount={useUniqueSearch}
             onAdd={handleAddToCollection}
             onView={handleCardView}
             onVersionsClick={handleVersionsClick}
           />
+
+          {/* Pagination Controls */}
+          {cardsQuery.data.meta && cardsQuery.data.meta.total_pages > 1 && (
+            <div className="flex justify-center items-center gap-2 pt-6">
+              <button
+                onClick={() => setParams(p => ({ ...p, page: (p.page || 1) - 1 }))}
+                disabled={!cardsQuery.data.meta.has_prev || cardsQuery.isFetching}
+                className="px-4 py-2 rounded-lg bg-card border border-border text-foreground-muted hover:text-foreground hover:border-accent/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                Previous
+              </button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(cardsQuery.data.meta.total_pages, 7) }, (_, i) => {
+                  const totalPages = cardsQuery.data?.meta?.total_pages || 1;
+                  const currentPage = params.page || 1;
+                  let pageNum: number;
+                  
+                  if (totalPages <= 7) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 4) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 3) {
+                    pageNum = totalPages - 6 + i;
+                  } else {
+                    pageNum = currentPage - 3 + i;
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setParams(p => ({ ...p, page: pageNum }))}
+                      disabled={cardsQuery.isFetching}
+                      className={`w-10 h-10 rounded-lg text-sm font-medium transition-all ${
+                        pageNum === currentPage
+                          ? 'bg-accent text-white shadow-glow'
+                          : 'bg-card border border-border text-foreground-muted hover:text-foreground hover:border-accent/30'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                onClick={() => setParams(p => ({ ...p, page: (p.page || 1) + 1 }))}
+                disabled={!cardsQuery.data.meta.has_next || cardsQuery.isFetching}
+                className="px-4 py-2 rounded-lg bg-card border border-border text-foreground-muted hover:text-foreground hover:border-accent/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       )}
 

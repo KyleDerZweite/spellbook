@@ -68,6 +68,16 @@ class StartupService:
                 startup_results['errors'] = self.startup_errors
                 return startup_results
             
+            # 2.5. Ensure all database tables exist
+            logger.info("Step 2.5: Ensuring database tables exist")
+            tables_check = await self._ensure_database_tables()
+            startup_results['tasks']['tables_check'] = tables_check
+            
+            if not tables_check['success']:
+                logger.error(f"Table creation failed: {tables_check['message']}")
+                self.startup_errors.append(tables_check['message'])
+                # Don't fail startup - some tables may be optional
+            
             # 3. Initialize card index
             logger.info("Step 3: Initializing card index")
             index_init = await self._initialize_card_index()
@@ -174,6 +184,33 @@ class StartupService:
             return {
                 'success': False,
                 'message': f"Database check error: {str(e)}"
+            }
+    
+    async def _ensure_database_tables(self) -> Dict[str, Any]:
+        """Ensure all database tables exist, creating them if necessary."""
+        try:
+            from app.database import engine, Base
+            # Import all models to ensure they're registered with Base
+            from app.models import (
+                User, Card, CardSet, CardIndex, Collection, CollectionCard,
+                Invite, Scan, ScanBatch, ScanHistory
+            )
+            
+            async with engine.begin() as conn:
+                # Create all tables that don't exist
+                await conn.run_sync(Base.metadata.create_all)
+            
+            logger.info("Database tables verified/created successfully")
+            return {
+                'success': True,
+                'message': "All database tables verified/created"
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to ensure database tables: {e}")
+            return {
+                'success': False,
+                'message': f"Table creation error: {str(e)}"
             }
     
     async def _initialize_card_index(self) -> Dict[str, Any]:

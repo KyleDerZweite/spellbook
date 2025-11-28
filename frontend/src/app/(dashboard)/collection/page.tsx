@@ -44,7 +44,12 @@ export default function CollectionPage() {
     );
   }
 
-  if (collectionQuery.error) {
+  // Handle error - but also check if it's a "no collection" scenario (404)
+  // In that case, show empty state instead of error
+  const isNoCollectionError = collectionQuery.error && 
+    (collectionQuery.error as any)?.response?.status === 404;
+
+  if (collectionQuery.error && !isNoCollectionError) {
     return (
       <div className="space-y-6">
         <div className="bg-error/10 border border-error/20 rounded-xl p-6">

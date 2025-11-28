@@ -152,96 +152,118 @@ async def search_unique_cards(
     This endpoint returns one representative version of each unique card along with 
     the total number of versions/printings available.
     """
-    offset, limit = get_pagination_params(page, per_page)
+    offset = (page - 1) * per_page
     
-    # Build query parameters for the service
-    query_params = {}
+    # Build conditions for the search
+    conditions = [CardIndex.oracle_id.is_not(None)]
+    
     if q:
-        query_params['q'] = q
+        search_term = q
+        text_conditions = [
+            CardIndex.name.ilike(f"%{search_term}%"),
+            CardIndex.type_line.ilike(f"%{search_term}%")
+        ]
+        conditions.append(or_(*text_conditions))
+    
     if colors:
-        query_params['colors'] = colors
+        conditions.append(CardIndex.colors.like(f"%{colors}%"))
+    
     if set_code:
-        query_params['set_code'] = set_code
+        conditions.append(CardIndex.set_code == set_code.upper())
+    
     if rarity:
-        query_params['rarity'] = rarity
+        conditions.append(CardIndex.rarity == rarity.lower())
+    
     if type_line:
-        query_params['type_line'] = type_line
+        conditions.append(CardIndex.type_line.ilike(f"%{type_line}%"))
     
     try:
-        # Get regular search results first  
-        cards = await card_service.search_cards_with_details(
-            query_params=query_params,
-            session=session,
-            limit=per_page * 3,  # Get more to ensure deduplication works
-            offset=0  # Always start from 0 for deduplication
+        # First, get unique oracle_ids with version counts directly from the index
+        # This is the key fix - query the database for grouping, not in-memory
+        unique_query = (
+            select(
+                CardIndex.oracle_id,
+                func.count(CardIndex.scryfall_id).label('version_count'),
+                func.min(CardIndex.name).label('card_name'),
+            )
+            .where(and_(*conditions))
+            .group_by(CardIndex.oracle_id)
+            .order_by(func.min(CardIndex.name))
         )
         
-        # Group by oracle_id to deduplicate
-        oracle_groups = {}
-        for card in cards:
-            oracle_id = str(card.oracle_id) if card.oracle_id else f"no-oracle-{card.id}"
-            if oracle_id not in oracle_groups:
-                oracle_groups[oracle_id] = []
-            oracle_groups[oracle_id].append(card)
+        # Get total count for pagination
+        count_subquery = unique_query.subquery()
+        total_count_result = await session.execute(
+            select(func.count()).select_from(count_subquery)
+        )
+        total_unique = total_count_result.scalar() or 0
         
-        # Convert to list and paginate
-        unique_results = []
-        for oracle_id, card_versions in oracle_groups.items():
-            representative_card = card_versions[0]  # Take first as representative
+        # Get paginated results
+        paginated_query = unique_query.offset(offset).limit(per_page)
+        result = await session.execute(paginated_query)
+        oracle_results = result.all()
+        
+        logger.info(f"Unique search found {total_unique} unique oracle_ids, fetching details for {len(oracle_results)}")
+        
+        # Now fetch full details for each representative card
+        unique_cards = []
+        for oracle_row in oracle_results:
+            oracle_id = oracle_row.oracle_id
+            version_count = oracle_row.version_count
             
-            # Calculate actual version count from database for this oracle_id
-            if representative_card.oracle_id:
-                # Query the card index to get actual count
-                from sqlalchemy import select, func
-                from app.models.card_index import CardIndex
-                
-                count_result = await session.execute(
-                    select(func.count(CardIndex.scryfall_id))
-                    .where(CardIndex.oracle_id == representative_card.oracle_id)
+            try:
+                # Get a representative scryfall_id for this oracle_id
+                rep_result = await session.execute(
+                    select(CardIndex.scryfall_id)
+                    .where(CardIndex.oracle_id == oracle_id)
+                    .limit(1)
                 )
-                actual_version_count = count_result.scalar() or 1
-            else:
-                actual_version_count = 1
-            
-            card_dict = {
-                "id": str(representative_card.id),
-                "scryfall_id": str(representative_card.scryfall_id) if representative_card.scryfall_id else None,
-                "oracle_id": str(representative_card.oracle_id) if representative_card.oracle_id else None,
-                "name": representative_card.name,
-                "mana_cost": representative_card.mana_cost,
-                "type_line": representative_card.type_line,
-                "oracle_text": representative_card.oracle_text,
-                "power": representative_card.power,
-                "toughness": representative_card.toughness,
-                "colors": representative_card.colors,
-                "color_identity": representative_card.color_identity,
-                "rarity": representative_card.rarity,
-                "flavor_text": representative_card.flavor_text,
-                "artist": representative_card.artist,
-                "collector_number": representative_card.collector_number,
-                "image_uris": representative_card.image_uris or {},
-                "prices": representative_card.prices or {},
-                "legalities": representative_card.legalities or {},
-                "metadata": representative_card.extra_data or {},
-                "created_at": representative_card.created_at.isoformat() if representative_card.created_at else None,
-                "updated_at": representative_card.updated_at.isoformat() if representative_card.updated_at else None,
-                "set": None,
-                "version_count": actual_version_count
-            }
-            unique_results.append(card_dict)
+                representative_scryfall_id = rep_result.scalar_one_or_none()
+                
+                if not representative_scryfall_id:
+                    continue
+                
+                # Fetch full card details
+                full_card = await card_service.get_card_details(representative_scryfall_id, session)
+                
+                if full_card:
+                    card_dict = {
+                        "id": str(full_card.id),
+                        "scryfall_id": str(full_card.scryfall_id) if full_card.scryfall_id else None,
+                        "oracle_id": str(full_card.oracle_id) if full_card.oracle_id else None,
+                        "name": full_card.name,
+                        "mana_cost": full_card.mana_cost,
+                        "type_line": full_card.type_line,
+                        "oracle_text": full_card.oracle_text,
+                        "power": full_card.power,
+                        "toughness": full_card.toughness,
+                        "colors": full_card.colors,
+                        "color_identity": full_card.color_identity,
+                        "rarity": full_card.rarity,
+                        "flavor_text": full_card.flavor_text,
+                        "artist": full_card.artist,
+                        "collector_number": full_card.collector_number,
+                        "image_uris": full_card.image_uris or {},
+                        "prices": full_card.prices or {},
+                        "legalities": full_card.legalities or {},
+                        "metadata": full_card.extra_data or {},
+                        "created_at": full_card.created_at.isoformat() if full_card.created_at else None,
+                        "updated_at": full_card.updated_at.isoformat() if full_card.updated_at else None,
+                        "set": None,
+                        "version_count": version_count
+                    }
+                    unique_cards.append(card_dict)
+            except Exception as e:
+                logger.warning(f"Failed to get details for oracle_id {oracle_id}: {e}")
+                # Continue with other cards
+                continue
         
-        # Apply pagination to unique results
-        start_idx = (page - 1) * per_page
-        end_idx = start_idx + per_page
-        paginated_results = unique_results[start_idx:end_idx]
-        
-        total_unique = len(unique_results)
         total_pages = math.ceil(total_unique / per_page) if per_page > 0 else 1
         
-        logger.info(f"Unique card search: query={q}, total_unique={total_unique}, results={len(paginated_results)}")
+        logger.info(f"Unique card search: query={q}, total_unique={total_unique}, results={len(unique_cards)}")
         
         return {
-            "data": paginated_results,
+            "data": unique_cards,
             "meta": {
                 "total": total_unique,
                 "page": page,

@@ -94,21 +94,24 @@ export const api = {
 
   collections: {
     async mine(): Promise<{ items: UserCard[]; stats?: CollectionStats }> {
-      const { data } = await apiClient.get<ApiResponse<{ items: UserCard[]; stats?: CollectionStats }>>('/collections/mine');
-      return data.data;
+      const { data } = await apiClient.get<{ items: UserCard[]; stats?: CollectionStats }>('/collections/mine');
+      return data;
     },
 
     async addCard(payload: { 
-      card_id: string; 
+      card_scryfall_id: string; 
       quantity: number; 
-      foil_quantity?: number; 
       condition?: string;
-      purchase_price?: string;
-      tags?: string[];
-      notes?: string;
     }): Promise<UserCard> {
-      const { data } = await apiClient.post<ApiResponse<UserCard>>('/collections/mine/cards', payload);
-      return data.data;
+      // Use FormData since the backend expects form data
+      const formData = new FormData();
+      formData.append('card_scryfall_id', payload.card_scryfall_id);
+      formData.append('quantity', payload.quantity.toString());
+      if (payload.condition) {
+        formData.append('condition', payload.condition);
+      }
+      const { data } = await apiClient.post<UserCard>('/collections/mine/cards', formData);
+      return data;
     },
 
     async updateCard(id: string, payload: Partial<UserCard>): Promise<UserCard> {
@@ -121,8 +124,8 @@ export const api = {
     },
 
     async stats(): Promise<CollectionStats> {
-      const { data } = await apiClient.get<ApiResponse<CollectionStats>>('/collections/mine/stats');
-      return data.data;
+      const { data } = await apiClient.get<CollectionStats>('/collections/mine/stats');
+      return data;
     },
   },
 
