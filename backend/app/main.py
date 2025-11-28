@@ -86,6 +86,19 @@ app.add_middleware(
 )
 
 
+# Add cache headers middleware for card endpoints
+@app.middleware("http")
+async def add_cache_headers(request: Request, call_next):
+    response = await call_next(request)
+    
+    # Add cache headers for card search endpoints (they're relatively static)
+    if request.url.path.startswith("/api/v1/cards/"):
+        # Cache card data for 1 hour on client, allow stale for 1 day
+        response.headers["Cache-Control"] = "public, max-age=3600, stale-while-revalidate=86400"
+    
+    return response
+
+
 # Health check endpoint
 @app.get("/health", tags=["Health"])
 async def health_check():

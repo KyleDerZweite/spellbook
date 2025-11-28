@@ -205,58 +205,68 @@ async def search_unique_cards(
         
         logger.info(f"Unique search found {total_unique} unique oracle_ids, fetching details for {len(oracle_results)}")
         
-        # Now fetch full details for each representative card
+        # Collect all scryfall_ids we need to fetch
+        oracle_to_scryfall = {}
+        scryfall_ids_to_fetch = []
+        version_counts = {}
+        
+        for oracle_row in oracle_results:
+            oracle_id = oracle_row.oracle_id
+            version_counts[oracle_id] = oracle_row.version_count
+            
+            # Get a representative scryfall_id for this oracle_id
+            rep_result = await session.execute(
+                select(CardIndex.scryfall_id)
+                .where(CardIndex.oracle_id == oracle_id)
+                .limit(1)
+            )
+            representative_scryfall_id = rep_result.scalar_one_or_none()
+            
+            if representative_scryfall_id:
+                oracle_to_scryfall[oracle_id] = representative_scryfall_id
+                scryfall_ids_to_fetch.append(representative_scryfall_id)
+        
+        # Batch fetch all cards at once for better performance
+        cards_map = await card_service.get_cards_batch(scryfall_ids_to_fetch, session)
+        
+        # Build results
         unique_cards = []
         for oracle_row in oracle_results:
             oracle_id = oracle_row.oracle_id
-            version_count = oracle_row.version_count
+            scryfall_id = oracle_to_scryfall.get(oracle_id)
             
-            try:
-                # Get a representative scryfall_id for this oracle_id
-                rep_result = await session.execute(
-                    select(CardIndex.scryfall_id)
-                    .where(CardIndex.oracle_id == oracle_id)
-                    .limit(1)
-                )
-                representative_scryfall_id = rep_result.scalar_one_or_none()
-                
-                if not representative_scryfall_id:
-                    continue
-                
-                # Fetch full card details
-                full_card = await card_service.get_card_details(representative_scryfall_id, session)
-                
-                if full_card:
-                    card_dict = {
-                        "id": str(full_card.id),
-                        "scryfall_id": str(full_card.scryfall_id) if full_card.scryfall_id else None,
-                        "oracle_id": str(full_card.oracle_id) if full_card.oracle_id else None,
-                        "name": full_card.name,
-                        "mana_cost": full_card.mana_cost,
-                        "type_line": full_card.type_line,
-                        "oracle_text": full_card.oracle_text,
-                        "power": full_card.power,
-                        "toughness": full_card.toughness,
-                        "colors": full_card.colors,
-                        "color_identity": full_card.color_identity,
-                        "rarity": full_card.rarity,
-                        "flavor_text": full_card.flavor_text,
-                        "artist": full_card.artist,
-                        "collector_number": full_card.collector_number,
-                        "image_uris": full_card.image_uris or {},
-                        "prices": full_card.prices or {},
-                        "legalities": full_card.legalities or {},
-                        "metadata": full_card.extra_data or {},
-                        "created_at": full_card.created_at.isoformat() if full_card.created_at else None,
-                        "updated_at": full_card.updated_at.isoformat() if full_card.updated_at else None,
-                        "set": None,
-                        "version_count": version_count
-                    }
-                    unique_cards.append(card_dict)
-            except Exception as e:
-                logger.warning(f"Failed to get details for oracle_id {oracle_id}: {e}")
-                # Continue with other cards
+            if not scryfall_id or scryfall_id not in cards_map:
                 continue
+                
+            full_card = cards_map[scryfall_id]
+            version_count = version_counts[oracle_id]
+            
+            card_dict = {
+                "id": str(full_card.id),
+                "scryfall_id": str(full_card.scryfall_id) if full_card.scryfall_id else None,
+                "oracle_id": str(full_card.oracle_id) if full_card.oracle_id else None,
+                "name": full_card.name,
+                "mana_cost": full_card.mana_cost,
+                "type_line": full_card.type_line,
+                "oracle_text": full_card.oracle_text,
+                "power": full_card.power,
+                "toughness": full_card.toughness,
+                "colors": full_card.colors,
+                "color_identity": full_card.color_identity,
+                "rarity": full_card.rarity,
+                "flavor_text": full_card.flavor_text,
+                "artist": full_card.artist,
+                "collector_number": full_card.collector_number,
+                "image_uris": full_card.image_uris or {},
+                "prices": full_card.prices or {},
+                "legalities": full_card.legalities or {},
+                "metadata": full_card.extra_data or {},
+                "created_at": full_card.created_at.isoformat() if full_card.created_at else None,
+                "updated_at": full_card.updated_at.isoformat() if full_card.updated_at else None,
+                "set": None,
+                "version_count": version_count
+            }
+            unique_cards.append(card_dict)
         
         total_pages = math.ceil(total_unique / per_page) if per_page > 0 else 1
         

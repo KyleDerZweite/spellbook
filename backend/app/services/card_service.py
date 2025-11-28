@@ -587,6 +587,70 @@ class CardDetailsService:
         
         # Note: This is a transient object from cache, not saved to DB
         return card
+    
+    async def get_cards_batch(
+        self,
+        scryfall_ids: List[UUID],
+        session: AsyncSession
+    ) -> Dict[UUID, Card]:
+        """
+        Batch fetch multiple cards efficiently.
+        
+        Args:
+            scryfall_ids: List of Scryfall UUIDs
+            session: Database session
+            
+        Returns:
+            Dictionary mapping scryfall_id to Card object
+        """
+        results = {}
+        missing_ids = []
+        
+        # 1. Check Redis cache for all cards first
+        for scryfall_id in scryfall_ids:
+            redis_data = await redis_service.get_cached_card_details(scryfall_id)
+            if redis_data:
+                card = await self._create_card_from_cache_data(redis_data, session)
+                if card:
+                    results[scryfall_id] = card
+            else:
+                missing_ids.append(scryfall_id)
+        
+        if not missing_ids:
+            return results
+        
+        # 2. Batch fetch from database for remaining cards
+        db_result = await session.execute(
+            select(Card)
+            .where(Card.scryfall_id.in_(missing_ids))
+        )
+        db_cards = {card.scryfall_id: card for card in db_result.scalars().all()}
+        
+        for scryfall_id in list(missing_ids):
+            if scryfall_id in db_cards:
+                card = db_cards[scryfall_id]
+                results[scryfall_id] = card
+                # Cache in Redis for future
+                if card.extra_data:
+                    await redis_service.cache_card_details(scryfall_id, card.extra_data)
+                missing_ids.remove(scryfall_id)
+        
+        # 3. Fetch remaining cards from Scryfall API (limited concurrency)
+        if missing_ids:
+            # Limit concurrent API calls
+            batch_size = 5
+            for i in range(0, len(missing_ids), batch_size):
+                batch = missing_ids[i:i + batch_size]
+                tasks = [self.get_card_details(sid, session) for sid in batch]
+                batch_results = await asyncio.gather(*tasks, return_exceptions=True)
+                
+                for sid, result in zip(batch, batch_results):
+                    if isinstance(result, Card):
+                        results[sid] = result
+                    elif isinstance(result, Exception):
+                        logger.warning(f"Failed to fetch card {sid}: {result}")
+        
+        return results
 
 
 # Global service instance

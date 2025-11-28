@@ -89,8 +89,17 @@ class StartupService:
                 self.startup_errors.append(index_init['message'])
                 # Card index failure is not fatal - API can still work
             
-            # 4. Final health check
-            logger.info("Step 4: Final system health check")
+            # 4. Preload common cards into cache
+            logger.info("Step 4: Preloading common cards")
+            preload_result = await self._preload_common_cards()
+            startup_results['tasks']['card_preload'] = preload_result
+            
+            if not preload_result['success']:
+                logger.warning(f"Card preloading had issues: {preload_result['message']}")
+                # Not fatal - continue anyway
+            
+            # 5. Final health check
+            logger.info("Step 5: Final system health check")
             health_check = await self._final_health_check()
             startup_results['tasks']['final_health_check'] = health_check
             
@@ -291,6 +300,80 @@ class StartupService:
                 'success': False,
                 'message': f"Health check error: {str(e)}",
                 'health': None
+            }
+    
+    async def _preload_common_cards(self) -> Dict[str, Any]:
+        """
+        Preload common/popular cards into the database cache.
+        This includes basic lands, popular commanders, and format staples.
+        """
+        try:
+            from app.services.card_service import card_service
+            from sqlalchemy import select
+            from app.models.card_index import CardIndex
+            
+            # List of common card names to preload (basic lands + popular cards)
+            common_card_names = [
+                # Basic Lands (all 5)
+                'Plains', 'Island', 'Swamp', 'Mountain', 'Forest',
+                # Snow basics
+                'Snow-Covered Plains', 'Snow-Covered Island', 'Snow-Covered Swamp',
+                'Snow-Covered Mountain', 'Snow-Covered Forest',
+                # Wastes
+                'Wastes',
+                # Popular commander staples
+                'Sol Ring', 'Command Tower', 'Arcane Signet', 'Lightning Greaves',
+                'Swiftfoot Boots', 'Thought Vessel', 'Fellwar Stone',
+                # Popular removal
+                'Swords to Plowshares', 'Path to Exile', 'Counterspell',
+                'Beast Within', 'Chaos Warp', 'Generous Gift',
+                # Draw spells
+                'Brainstorm', 'Ponder', 'Preordain',
+            ]
+            
+            preloaded_count = 0
+            failed_count = 0
+            
+            async with async_session_maker() as session:
+                for card_name in common_card_names:
+                    try:
+                        # Find the card in the index by exact name match
+                        result = await session.execute(
+                            select(CardIndex)
+                            .where(CardIndex.name == card_name)
+                            .limit(1)
+                        )
+                        index_card = result.scalar_one_or_none()
+                        
+                        if index_card:
+                            # Preload the card details into cache
+                            await card_service.get_card_details(index_card.scryfall_id, session)
+                            preloaded_count += 1
+                            logger.debug(f"Preloaded card: {card_name}")
+                        else:
+                            logger.debug(f"Card not found in index: {card_name}")
+                            
+                    except Exception as e:
+                        failed_count += 1
+                        logger.debug(f"Failed to preload {card_name}: {e}")
+                        continue
+            
+            logger.info(f"Preloaded {preloaded_count} common cards ({failed_count} failed)")
+            
+            return {
+                'success': True,
+                'message': f"Preloaded {preloaded_count} common cards",
+                'preloaded_count': preloaded_count,
+                'failed_count': failed_count
+            }
+            
+        except Exception as e:
+            logger.error(f"Card preloading failed: {e}")
+            return {
+                'success': False,
+                'message': f"Card preloading error: {str(e)}",
+                'preloaded_count': 0,
+                'failed_count': 0
             }
     
     def get_startup_status(self) -> Dict[str, Any]:
