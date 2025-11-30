@@ -98,7 +98,7 @@ export function VersionSelector({
                 className="p-2 rounded-md hover:bg-card-hover transition-colors" // hover:bg-ui-bg/50 changed to hover:bg-card-hover
                 aria-label="Close version selector"
               >
-                <X size={20} className="text-foreground-muted" /> {/* text-text-secondary changed to text-foreground-muted */}
+                <X size={20} className="text-foreground-muted" />
               </Button>
             </div>
 

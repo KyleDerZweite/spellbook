@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../../lib/api';
-import type { Card, CardSearchParams } from '../../../lib/types';
+import type { Card as CardType, CardSearchParams } from '../../../lib/types';
 import { CardGrid } from '../../../components/cards/card-grid';
 import { CardDetails } from '../../../components/cards/card-details';
 import { SearchFilters } from '../../../components/forms/search-filters';
@@ -14,7 +14,7 @@ import { Search, Loader2, Filter, Layers } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils'; // Assuming cn utility is available
+import { cn } from '@/lib/utils';
 
 export default function SearchPage() {
   const [params, setParams] = useState<CardSearchParams>({
@@ -25,7 +25,7 @@ export default function SearchPage() {
     colors: [],
     types: []
   });
-  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
+  const [selectedCard, setSelectedCard] = useState<CardType | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [versionSelectorOpen, setVersionSelectorOpen] = useState(false);
   const [selectedOracleId, setSelectedOracleId] = useState<string | null>(null);
@@ -50,7 +50,7 @@ export default function SearchPage() {
     );
   }, [params]);
 
-  const cardsQuery = useQuery<{ data: Card[]; meta?: { total: number; page: number; per_page: number; total_pages: number; has_next: boolean; has_prev: boolean } }>(
+  const cardsQuery = useQuery<{ data: CardType[]; meta?: { total: number; page: number; per_page: number; total_pages: number; has_next: boolean; has_prev: boolean } }>(
     {
       queryKey: ['cards', useUniqueSearch ? 'search-unique' : 'search', params],
       queryFn: async () => {
@@ -67,7 +67,7 @@ export default function SearchPage() {
   );
 
   const addToCollectionMutation = useMutation({
-    mutationFn: (card: Card) => api.collections.addCard({
+    mutationFn: (card: CardType) => api.collections.addCard({
       card_scryfall_id: card.scryfall_id,
       quantity: 1
     }),
@@ -97,7 +97,7 @@ export default function SearchPage() {
     setParams(newParams);
   };
 
-  const handleCardView = (card: Card) => {
+  const handleCardView = (card: CardType) => {
     setSelectedCard(card);
     setIsModalOpen(true);
   };
@@ -107,12 +107,12 @@ export default function SearchPage() {
     setVersionSelectorOpen(true);
   };
 
-  const handleVersionSelect = (card: Card) => {
+  const handleVersionSelect = (card: CardType) => {
     setSelectedCard(card);
     setIsModalOpen(true);
   };
 
-  const handleAddToCollection = (card: Card) => {
+  const handleAddToCollection = (card: CardType) => {
     addToCollectionMutation.mutate(card);
   };
 
@@ -127,14 +127,14 @@ export default function SearchPage() {
       </div>
 
       {/* Search Input */}
-      <Card className="p-4 card-hover-glow"> {/* Replaced div with Card */}
+      <Card className="p-4 card-hover-glow">
         <div className="flex gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground-muted" />
             <Input
               type="text"
               placeholder="Search by name, type, rules text..."
-              className={cn("w-full bg-background border border-border rounded-xl pl-10 pr-4 py-3 text-foreground placeholder:text-foreground-muted focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all")} // Replaced input with Input, changed accent to primary
+              className={cn("w-full bg-background border border-border rounded-xl pl-10 pr-4 py-3 text-foreground placeholder:text-foreground-muted focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all")}
               onChange={(e) => handleSearch(e.target.value)}
             />
           </div>
@@ -142,8 +142,8 @@ export default function SearchPage() {
             onClick={() => setUseUniqueSearch(!useUniqueSearch)}
             className={cn(`px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center gap-2`,
               useUniqueSearch
-                ? 'bg-primary text-white shadow-glow' // Changed accent to primary
-                : 'bg-card-hover text-foreground-muted hover:text-foreground border border-border hover:border-primary/30' // Changed accent to primary
+                ? 'bg-primary text-white shadow-glow'
+                : 'bg-card-hover text-foreground-muted hover:text-foreground border border-border hover:border-primary/30'
             )}
             title={useUniqueSearch ? 'Show all versions' : 'Show unique cards only'}
           >
@@ -188,7 +188,7 @@ export default function SearchPage() {
               ) : (
                 <>Found <span className="text-foreground font-medium">{cardsQuery.data.data.length}</span> results</>
               )}
-              {params.q?.trim() && <span> for "<span className="text-primary">{params.q}</span>"</span>} {/* Changed accent to primary */}
+              {params.q?.trim() && <span> for "<span className="text-primary">{params.q}</span>"</span>}
             </p>
             {addToCollectionMutation.isPending && (
               <div className="text-sm text-foreground-muted flex items-center gap-2">
@@ -211,10 +211,10 @@ export default function SearchPage() {
           {cardsQuery.data.meta && cardsQuery.data.meta.total_pages > 1 && (
             <div className="flex justify-center items-center gap-2 pt-6">
               <Button
-                variant="secondary" // Use secondary variant for pagination
+                variant="secondary"
                 onClick={() => setParams(p => ({ ...p, page: (p.page || 1) - 1 }))}
                 disabled={!cardsQuery.data.meta.has_prev || cardsQuery.isFetching}
-                className="px-4 py-2 rounded-lg bg-card border border-border text-foreground-muted hover:text-foreground hover:border-primary/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all" // Changed accent to primary
+                className="px-4 py-2 rounded-lg bg-card border border-border text-foreground-muted hover:text-foreground hover:border-primary/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 Previous
               </Button>
@@ -241,8 +241,8 @@ export default function SearchPage() {
                       disabled={cardsQuery.isFetching}
                       className={cn(`w-10 h-10 rounded-lg text-sm font-medium transition-all`,
                         pageNum === currentPage
-                          ? 'bg-primary text-white shadow-glow' // Changed accent to primary
-                          : 'bg-card border border-border text-foreground-muted hover:text-foreground hover:border-primary/30' // Changed accent to primary
+                          ? 'bg-primary text-white shadow-glow'
+                          : 'bg-card border border-border text-foreground-muted hover:text-foreground hover:border-primary/30'
                       )}
                     >
                       {pageNum}
@@ -251,10 +251,10 @@ export default function SearchPage() {
                 })}
               </div>
               <Button
-                variant="secondary" // Use secondary variant for pagination
+                variant="secondary"
                 onClick={() => setParams(p => ({ ...p, page: (p.page || 1) + 1 }))}
                 disabled={!cardsQuery.data.meta.has_next || cardsQuery.isFetching}
-                className="px-4 py-2 rounded-lg bg-card border border-border text-foreground-muted hover:text-foreground hover:border-primary/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all" // Changed accent to primary
+                className="px-4 py-2 rounded-lg bg-card border border-border text-foreground-muted hover:text-foreground hover:border-primary/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 Next
               </Button>
@@ -265,8 +265,8 @@ export default function SearchPage() {
 
       {/* Empty state */}
       {!searchEnabled && (
-        <Card className="text-center py-16"> {/* Replaced div with Card */}
-          <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4 shadow-glow"> {/* Changed accent to primary */}
+        <Card className="text-center py-16">
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4 shadow-glow">
             <Search className="w-8 h-8 text-primary" />
           </div>
           <h3 className="text-xl font-semibold text-foreground mb-2">

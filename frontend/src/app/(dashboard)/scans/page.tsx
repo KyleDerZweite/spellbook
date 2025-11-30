@@ -183,7 +183,7 @@ export default function ScansPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <Camera className="w-8 h-8 text-info" /> {/* Changed text-blue-500 to text-info */}
+              <Camera className="w-8 h-8 text-info" />
               <div>
                 <p className="text-2xl font-bold">{pendingScans?.length || 0}</p>
                 <p className="text-sm text-muted-foreground">Pending Scans</p>
@@ -194,7 +194,7 @@ export default function ScansPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <AlertCircle className="w-8 h-8 text-warning" /> {/* Changed text-yellow-500 to text-warning */}
+              <AlertCircle className="w-8 h-8 text-warning" />
               <div>
                 <p className="text-2xl font-bold">{pendingReviewScans.length}</p>
                 <p className="text-sm text-muted-foreground">Needs Review</p>
@@ -205,7 +205,7 @@ export default function ScansPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <Clock className="w-8 h-8 text-info" /> {/* Changed text-blue-500 to text-info */}
+              <Clock className="w-8 h-8 text-info" />
               <div>
                 <p className="text-2xl font-bold">{processingScans.length}</p>
                 <p className="text-sm text-muted-foreground">Processing</p>
@@ -216,7 +216,7 @@ export default function ScansPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <CheckCircle2 className="w-8 h-8 text-success" /> {/* Changed text-green-500 to text-success */}
+              <CheckCircle2 className="w-8 h-8 text-success" />
               <div>
                 <p className="text-2xl font-bold">{batches?.filter(b => b.status === 'completed').length || 0}</p>
                 <p className="text-sm text-muted-foreground">Completed Batches</p>
@@ -231,7 +231,7 @@ export default function ScansPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-warning" /> {/* Changed text-yellow-500 to text-warning */}
+              <AlertCircle className="w-5 h-5 text-warning" />
               Cards Needing Review ({pendingReviewScans.length})
             </CardTitle>
           </CardHeader>

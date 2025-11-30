@@ -6,6 +6,7 @@ import { Search, Library, Camera, Layers, TrendingUp, Package, Star, ArrowRight,
 import { useAuthStore } from '../stores/auth';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
+import { cn } from '@/lib/utils';
 
 import { Card } from '@/components/ui/card'; // Import Card component
 import { Button } from '@/components/ui/button'; // Import Button component

@@ -5,14 +5,14 @@ import { api } from '../../../lib/api';
 import { CardGrid } from '../../../components/cards/card-grid';
 import { CardDetails } from '../../../components/cards/card-details';
 import { useState } from 'react';
-import type { Card, UserCard } from '../../../lib/types';
+import type { Card as CardType, UserCard } from '../../../lib/types';
 import { formatPrice } from '../../../lib/utils';
 import { Library, TrendingUp, Star, Loader2, Search, Package } from 'lucide-react';
 import Link from 'next/link';
-import { Card } from '@/components/ui/card'; // Import Card component for EmptyState
+import { Card } from '@/components/ui/card';
 
 export default function CollectionPage() {
-  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
+  const [selectedCard, setSelectedCard] = useState<CardType | null>(null);
   const [selectedUserCard, setSelectedUserCard] = useState<UserCard | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -26,7 +26,7 @@ export default function CollectionPage() {
     queryFn: api.collections.stats,
   });
 
-  const handleCardView = (card: Card) => {
+  const handleCardView = (card: CardType) => {
     setSelectedCard(card);
     // Find the corresponding user card
     const userCard = collectionQuery.data?.items.find(uc => uc.card_id === card.id);
@@ -64,7 +64,7 @@ export default function CollectionPage() {
 
   const collection = collectionQuery.data;
   const stats = statsQuery.data;
-  const cards = collection?.items.map(userCard => userCard.card).filter(Boolean) as Card[] || [];
+  const cards = collection?.items.map(userCard => userCard.card).filter(Boolean) as CardType[] || [];
   const userCards = collection?.items || [];
 
   return (
@@ -152,9 +152,9 @@ function StatCard({
   accent?: boolean;
 }) {
   return (
-    <div className={`relative bg-card border border-border rounded-xl p-5 overflow-hidden transition-all hover:border-primary/30 card-hover-glow ${accent ? 'bg-gradient-to-br from-primary/5 to-transparent' : ''}`}> {/* Changed accent to primary */}
+    <div className={`relative bg-card border border-border rounded-xl p-5 overflow-hidden transition-all hover:border-primary/30 card-hover-glow ${accent ? 'bg-gradient-to-br from-primary/5 to-transparent' : ''}`}>
       <div className="flex items-center gap-3 mb-3">
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${accent ? 'bg-primary/15 border border-primary/20' : 'bg-background-tertiary border border-border'}`}> {/* Changed accent to primary */}
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${accent ? 'bg-primary/15 border border-primary/20' : 'bg-background-tertiary border border-border'}`}>
           <Icon className={`w-5 h-5 ${accent ? 'text-primary' : 'text-foreground-muted'}`} />
         </div>
         <p className="text-sm text-foreground-muted">{label}</p>
@@ -177,8 +177,8 @@ function StatCard({
 function EmptyState() {
   return (
     <div className="text-center py-16">
-      <Card className="rounded-2xl p-8 max-w-md mx-auto card-hover-glow"> {/* Replaced div with Card */}
-        <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4 shadow-glow"> {/* Changed accent to primary */}
+      <Card className="rounded-2xl p-8 max-w-md mx-auto card-hover-glow">
+        <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4 shadow-glow">
           <Library className="w-8 h-8 text-primary" />
         </div>
         <h3 className="text-xl font-semibold text-foreground mb-2">
@@ -189,7 +189,7 @@ function EmptyState() {
         </p>
         <Link
           href="/search"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary-hover text-white font-medium rounded-xl transition-all shadow-glow hover:shadow-glow-lg" {/* Changed accent to primary */}
+          className="inline-flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary-hover text-white font-medium rounded-xl transition-all shadow-glow hover:shadow-glow-lg"
         >
           <Search className="w-4 h-4" />
           Search Cards

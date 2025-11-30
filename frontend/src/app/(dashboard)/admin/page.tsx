@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils'; // Assuming cn utility is available
+import { cn } from '@/lib/utils';
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -62,7 +62,7 @@ export default function AdminPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <Card className="p-5"> {/* Replaced elevated with Card */}
+      <Card className="p-5">
         <CardTitle className="font-semibold flex items-center gap-2"> 
           <Shield className="h-5 w-5 text-primary" />
           Admin Panel
@@ -83,7 +83,7 @@ export default function AdminPage() {
           </div>
         </Card>
         
-        <Card className="p-4"> {/* Replaced elevated with Card */}
+        <Card className="p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-full bg-success/20"> 
               <UserPlus className="h-5 w-5 text-success" /> 
@@ -95,7 +95,7 @@ export default function AdminPage() {
           </div>
         </Card>
 
-        <Card className="p-4"> {/* Replaced elevated with Card */}
+        <Card className="p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-full bg-warning/20"> 
               <Key className="h-5 w-5 text-warning" /> 
@@ -107,7 +107,7 @@ export default function AdminPage() {
           </div>
         </Card>
 
-        <Card className="p-4"> {/* Replaced elevated with Card */}
+        <Card className="p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-full bg-mana-gold/20"> 
               <Shield className="h-5 w-5 text-mana-gold" /> 
@@ -118,36 +118,35 @@ export default function AdminPage() {
             </div>
           </div>
         </Card>
-      </div>
 
       {/* Create Forms */}
       <div className="grid md:grid-cols-2 gap-6">
-        <Card className="p-5"> {/* Replaced elevated with Card */}
-          <CardTitle className="font-medium mb-3">Create User</CardTitle> {/* Replaced h3 with CardTitle */}
+        <Card className="p-5">
+          <CardTitle className="font-medium mb-3">Create User</CardTitle>
           <CreateUserForm onSubmit={(v) => createUserMutation.mutate(v)} loading={createUserMutation.isPending} />
-          {createUserMutation.isError && <p className="text-error text-sm mt-2">Failed to create user</p>} {/* Replaced red-400 with error */}
-          {createUserMutation.isSuccess && <p className="text-success text-sm mt-2">User created successfully</p>} {/* Replaced green-400 with success */}
+          {createUserMutation.isError && <p className="text-error text-sm mt-2">Failed to create user</p>}
+          {createUserMutation.isSuccess && <p className="text-success text-sm mt-2">User created successfully</p>}
         </Card>
 
-        <Card className="p-5"> {/* Replaced elevated with Card */}
-          <CardTitle className="font-medium mb-3">Create Invite</CardTitle> {/* Replaced h3 with CardTitle */}
+        <Card className="p-5">
+          <CardTitle className="font-medium mb-3">Create Invite</CardTitle>
           <CreateInviteForm onSubmit={(v) => createInviteMutation.mutate(v)} loading={createInviteMutation.isPending} />
-          {createInviteMutation.isSuccess && <p className="text-success text-sm mt-2">Invite created successfully</p>} {/* Replaced green-400 with success */}
-          {createInviteMutation.isError && <p className="text-error text-sm mt-2">Failed to create invite</p>} {/* Replaced red-400 with error */}
+          {createInviteMutation.isSuccess && <p className="text-success text-sm mt-2">Invite created successfully</p>}
+          {createInviteMutation.isError && <p className="text-error text-sm mt-2">Failed to create invite</p>}
         </Card>
       </div>
 
       {/* Users List */}
-      <Card className="p-5 overflow-auto"> {/* Replaced elevated with Card */}
-        <CardTitle className="font-medium mb-3">Users</CardTitle> {/* Replaced h3 with CardTitle */}
+      <Card className="p-5 overflow-auto">
+        <CardTitle className="font-medium mb-3">Users</CardTitle>
         {usersQuery.isLoading ? (
-          <p className="text-foreground-muted">Loading users...</p> {/* Replaced text-text-secondary */}
+          <p className="text-foreground-muted">Loading users...</p>
         ) : (
           <div className="space-y-2">
             {usersQuery.data?.map((u) => (
               <div key={u.id} className="flex justify-between border-b border-border/60 pb-2">
                 <span>{u.username} — {u.email}</span>
-                <span className="text-xs text-foreground-muted"> {/* Replaced text-text-secondary */}
+                <span className="text-xs text-foreground-muted">
                   {u.status}{u.is_admin ? ' · admin' : ''}
                 </span>
               </div>
@@ -182,27 +181,27 @@ function CreateUserForm({
       <Input
         placeholder="Email" 
         {...register('email', { required: true })} 
-        className="w-full bg-background border border-border rounded-md px-3 py-2" // Used Input component
+        className="w-full bg-background border border-border rounded-md px-3 py-2" 
       />
       <Input
         placeholder="Username" 
         {...register('username', { required: true })} 
-        className="w-full bg-background border border-border rounded-md px-3 py-2" // Used Input component
+        className="w-full bg-background border border-border rounded-md px-3 py-2" 
       />
       <Input
         placeholder="Password" 
         type="password" 
         {...register('password', { required: true })} 
-        className="w-full bg-background border border-border rounded-md px-3 py-2" // Used Input component
+        className="w-full bg-background border border-border rounded-md px-3 py-2" 
       />
-      <Label className="flex items-center gap-2 text-sm text-foreground-muted"> {/* Used Label, replaced text-text-secondary */}
+      <Label className="flex items-center gap-2 text-sm text-foreground-muted">
         <Input type="checkbox" {...register('is_admin')} className="w-4 h-4" />
         Admin
       </Label>
       <Button 
         type="submit"
         disabled={loading} 
-        className="w-full" // Used Button component, removed btn-primary
+        className="w-full"
       >
         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create'}
       </Button>
@@ -231,24 +230,24 @@ function CreateInviteForm({
       <Input
         placeholder="Email restriction (optional)" 
         {...register('email_restriction')} 
-        className="w-full bg-background border border-border rounded-md px-3 py-2" // Used Input component
+        className="w-full bg-background border border-border rounded-md px-3 py-2" 
       />
       <Input
         placeholder="Max uses" 
         type="number" 
         {...register('max_uses', { valueAsNumber: true })} 
-        className="w-full bg-background border border-border rounded-md px-3 py-2" // Used Input component
+        className="w-full bg-background border border-border rounded-md px-3 py-2" 
       />
       <Input
         placeholder="Expires at (YYYY-MM-DD)" 
         type="date"
         {...register('expires_at')} 
-        className="w-full bg-background border border-border rounded-md px-3 py-2" // Used Input component
+        className="w-full bg-background border border-border rounded-md px-3 py-2" 
       />
       <Button 
         type="submit"
         disabled={loading} 
-        className="w-full" // Used Button component, removed btn-primary
+        className="w-full"
       >
         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create Invite'}
       </Button>
