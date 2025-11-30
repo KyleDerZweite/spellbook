@@ -123,7 +123,7 @@ export default function ScansPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
-        return <Badge variant="default" className="bg-green-500">Completed</Badge>;
+        return <Badge variant="default" className="bg-success">Completed</Badge>; // Changed bg-green-500 to bg-success
       case 'processing':
         return <Badge variant="secondary">Processing</Badge>;
       case 'pending':
@@ -142,9 +142,9 @@ export default function ScansPage() {
   };
 
   const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 0.9) return 'text-green-600';
-    if (confidence >= 0.7) return 'text-yellow-600';
-    return 'text-red-600';
+    if (confidence >= 0.9) return 'text-success'; // Changed text-green-600 to text-success
+    if (confidence >= 0.7) return 'text-warning'; // Changed text-yellow-600 to text-warning
+    return 'text-error'; // Changed text-red-600 to text-error
   };
 
   if (batchesLoading || scansLoading) {
@@ -183,7 +183,7 @@ export default function ScansPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <Camera className="w-8 h-8 text-blue-500" />
+              <Camera className="w-8 h-8 text-info" /> {/* Changed text-blue-500 to text-info */}
               <div>
                 <p className="text-2xl font-bold">{pendingScans?.length || 0}</p>
                 <p className="text-sm text-muted-foreground">Pending Scans</p>
@@ -194,7 +194,7 @@ export default function ScansPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <AlertCircle className="w-8 h-8 text-yellow-500" />
+              <AlertCircle className="w-8 h-8 text-warning" /> {/* Changed text-yellow-500 to text-warning */}
               <div>
                 <p className="text-2xl font-bold">{pendingReviewScans.length}</p>
                 <p className="text-sm text-muted-foreground">Needs Review</p>
@@ -205,7 +205,7 @@ export default function ScansPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <Clock className="w-8 h-8 text-blue-500" />
+              <Clock className="w-8 h-8 text-info" /> {/* Changed text-blue-500 to text-info */}
               <div>
                 <p className="text-2xl font-bold">{processingScans.length}</p>
                 <p className="text-sm text-muted-foreground">Processing</p>
@@ -216,7 +216,7 @@ export default function ScansPage() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
-              <CheckCircle2 className="w-8 h-8 text-green-500" />
+              <CheckCircle2 className="w-8 h-8 text-success" /> {/* Changed text-green-500 to text-success */}
               <div>
                 <p className="text-2xl font-bold">{batches?.filter(b => b.status === 'completed').length || 0}</p>
                 <p className="text-sm text-muted-foreground">Completed Batches</p>
@@ -231,7 +231,7 @@ export default function ScansPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-yellow-500" />
+              <AlertCircle className="w-5 h-5 text-warning" /> {/* Changed text-yellow-500 to text-warning */}
               Cards Needing Review ({pendingReviewScans.length})
             </CardTitle>
           </CardHeader>
@@ -263,7 +263,7 @@ export default function ScansPage() {
               {batches.map((batch) => (
                 <div key={batch.id} className="border rounded-lg">
                   <div
-                    className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50"
+                    className="flex items-center justify-between p-4 cursor-pointer hover:bg-card-hover" // Changed hover:bg-muted/50 to hover:bg-card-hover
                     onClick={() => setExpandedBatch(expandedBatch === batch.id ? null : batch.id)}
                   >
                     <div className="flex items-center gap-4">
@@ -302,7 +302,7 @@ export default function ScansPage() {
 
                   {/* Progress bar */}
                   <div className="px-4 pb-2">
-                    <div className="w-full bg-muted rounded-full h-2">
+                    <div className="w-full bg-muted-foreground/20 rounded-full h-2"> {/* Changed bg-muted to bg-muted-foreground/20 */}
                       <div
                         className="bg-primary h-2 rounded-full transition-all"
                         style={{
@@ -379,8 +379,8 @@ function ScanReviewCard({
                 </p>
                 <p className={`text-sm font-medium ${
                   scan.match_confidence 
-                    ? (scan.match_confidence >= 0.9 ? 'text-green-600' : 
-                       scan.match_confidence >= 0.7 ? 'text-yellow-600' : 'text-red-600')
+                    ? (scan.match_confidence >= 0.9 ? 'text-success' : // Changed text-green-600 to text-success
+                       scan.match_confidence >= 0.7 ? 'text-warning' : 'text-error') // Changed text-yellow-600 to text-warning, text-red-600 to text-error
                     : 'text-muted-foreground'
                 }`}>
                   {scan.match_confidence 
@@ -389,7 +389,7 @@ function ScanReviewCard({
                   }
                 </p>
                 {topCandidate.prices?.usd && (
-                  <p className="text-sm text-green-600">${topCandidate.prices.usd}</p>
+                  <p className="text-sm text-success">${topCandidate.prices.usd}</p> // Changed text-green-600 to text-success
                 )}
               </>
             ) : (
@@ -406,7 +406,7 @@ function ScanReviewCard({
                     className={`text-xs px-2 py-1 rounded ${
                       i === selectedCandidate
                         ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted hover:bg-muted/80'
+                        : 'bg-muted-foreground/20 hover:bg-muted-foreground/40' // Changed bg-muted to bg-muted-foreground/20
                     }`}
                   >
                     {Math.round(c.confidence * 100)}%
@@ -461,12 +461,12 @@ function BatchScansDetail({ batchId }: { batchId: string }) {
   const scans = data?.scans || [];
 
   return (
-    <div className="p-4 border-t bg-muted/30">
+    <div className="p-4 border-t bg-muted-foreground/10"> {/* Changed bg-muted/30 to bg-muted-foreground/10 */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
         {scans.map((scan: ScanResult) => (
           <div
             key={scan.id}
-            className="aspect-[3/4] bg-muted rounded overflow-hidden relative group"
+            className="aspect-[3/4] bg-muted-foreground/20 rounded overflow-hidden relative group" // Changed bg-muted to bg-muted-foreground/20
           >
             {scan.thumbnail_url ? (
               <img
@@ -486,13 +486,13 @@ function BatchScansDetail({ batchId }: { batchId: string }) {
             </div>
             <div className="absolute top-1 right-1">
               {scan.status === 'completed' && (
-                <CheckCircle2 className="w-4 h-4 text-green-500" />
+                <CheckCircle2 className="w-4 h-4 text-success" /> // Changed text-green-500 to text-success
               )}
               {scan.status === 'processing' && (
-                <Clock className="w-4 h-4 text-blue-500" />
+                <Clock className="w-4 h-4 text-info" /> // Changed text-blue-500 to text-info
               )}
               {scan.status === 'failed' && (
-                <AlertCircle className="w-4 h-4 text-red-500" />
+                <AlertCircle className="w-4 h-4 text-error" /> // Changed text-red-500 to text-error
               )}
             </div>
           </div>

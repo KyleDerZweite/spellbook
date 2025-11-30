@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { ChevronDown, X, Filter } from 'lucide-react';
 import type { CardSearchParams } from '../../lib/types';
 
+import { Button } from '@/components/ui/button'; // Import Button component
+import { cn } from '@/lib/utils'; // Import cn utility
+
 const COLORS = ['W', 'U', 'B', 'R', 'G', 'C'];
 const COLOR_LABELS: Record<string, string> = {
   W: 'White',
@@ -25,8 +28,8 @@ const RARITIES = ['common', 'uncommon', 'rare', 'mythic'];
 const RARITY_STYLES: Record<string, { color: string; glow?: string }> = {
   common: { color: 'text-rarity-common' },
   uncommon: { color: 'text-rarity-uncommon' },
-  rare: { color: 'text-rarity-rare', glow: 'shadow-[0_0_10px_rgb(251_191_36/0.3)]' },
-  mythic: { color: 'text-rarity-mythic', glow: 'shadow-[0_0_10px_rgb(249_115_22/0.3)]' },
+  rare: { color: 'text-rarity-rare', glow: 'shadow-[0_0_10px_rgb(var(--rarity-rare)/0.3)]' },
+  mythic: { color: 'text-rarity-mythic', glow: 'shadow-[0_0_10px_rgb(var(--rarity-mythic)/0.3)]' },
 };
 const TYPES = ['Creature', 'Instant', 'Sorcery', 'Artifact', 'Enchantment', 'Planeswalker', 'Land'];
 
@@ -76,25 +79,26 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
 
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden">
-      <button 
+      <Button
+        variant="ghost" // Use ghost variant for the main toggle button
         onClick={() => setOpen(!open)} 
         className="w-full flex items-center justify-between p-4 text-left hover:bg-card-hover transition-colors"
       >
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center">
-            <Filter className="h-4 w-4 text-accent" />
+          <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center"> {/* Changed accent to primary */}
+            <Filter className="h-4 w-4 text-primary" /> {/* Changed accent to primary */}
           </div>
           <span className="font-medium text-foreground">
             Advanced Filters
           </span>
           {activeCount > 0 && (
-            <span className="text-xs bg-accent/15 text-accent px-2.5 py-1 rounded-full border border-accent/20">
+            <span className="text-xs bg-primary/15 text-primary px-2.5 py-1 rounded-full border border-primary/20"> {/* Changed accent to primary */}
               {activeCount} active
             </span>
           )}
         </div>
-        <ChevronDown className={`h-4 w-4 text-foreground-muted transition-transform ${open && 'rotate-180'}`} />
-      </button>
+        <ChevronDown className={cn("h-4 w-4 text-foreground-muted transition-transform", open && 'rotate-180')} />
+      </Button>
       
       {open && (
         <div className="px-4 pb-4 space-y-6 border-t border-border/50">
@@ -106,18 +110,19 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
                 const isActive = (value.colors || []).includes(color);
                 const styles = COLOR_STYLES[color];
                 return (
-                  <button
+                  <Button
                     key={color}
+                    variant="secondary" // Use secondary variant for color buttons
                     onClick={() => toggleArray('colors', color)}
                     title={COLOR_LABELS[color]}
-                    className={`w-10 h-10 rounded-full border-2 text-sm font-bold transition-all flex items-center justify-center ${
+                    className={cn(`w-10 h-10 rounded-full border-2 text-sm font-bold transition-all flex items-center justify-center`,
                       isActive
                         ? `${styles.activeBg} ${styles.border} ${styles.text} shadow-glow`
                         : `${styles.bg} border-border ${styles.text} opacity-60 hover:opacity-100 hover:${styles.border}`
-                    }`}
+                    )}
                   >
                     {color}
-                  </button>
+                  </Button>
                 );
               })}
             </div>
@@ -131,17 +136,18 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
                 const isActive = (value.rarity || []).includes(rarity);
                 const styles = RARITY_STYLES[rarity];
                 return (
-                  <button
+                  <Button
                     key={rarity}
+                    variant="secondary" // Use secondary variant for rarity buttons
                     onClick={() => toggleArray('rarity', rarity)}
-                    className={`px-4 py-2 rounded-xl border text-sm font-medium capitalize transition-all ${
+                    className={cn(`px-4 py-2 rounded-xl border text-sm font-medium capitalize transition-all`,
                       isActive
                         ? `border-current ${styles.color} bg-current/10 ${styles.glow || ''}`
                         : 'border-border text-foreground-muted hover:text-foreground hover:border-border-hover'
-                    }`}
+                    )}
                   >
                     {rarity}
-                  </button>
+                  </Button>
                 );
               })}
             </div>
@@ -152,17 +158,18 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
             <div className="text-xs text-foreground-muted mb-3 font-medium uppercase tracking-wide">Card Type</div>
             <div className="flex gap-2 flex-wrap">
               {TYPES.map((type) => (
-                <button
+                <Button
                   key={type}
+                  variant="secondary" // Use secondary variant for type buttons
                   onClick={() => toggleArray('types', type)}
-                  className={`px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
+                  className={cn(`px-4 py-2 rounded-xl border text-sm font-medium transition-all`,
                     (value.types || []).includes(type)
-                      ? 'border-accent/50 bg-accent/10 text-accent'
-                      : 'border-border text-foreground-muted hover:border-accent/30 hover:text-foreground'
-                  }`}
+                      ? 'border-primary/50 bg-primary/10 text-primary' // Changed accent to primary
+                      : 'border-border text-foreground-muted hover:border-primary/30 hover:text-foreground' // Changed accent to primary
+                  )}
                 >
                   {type}
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -170,13 +177,14 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
           {/* Clear button */}
           {hasActiveFilters() && (
             <div className="pt-4 border-t border-border/50">
-              <button 
+              <Button 
+                variant="ghost" // Use ghost variant for clear button
                 onClick={clearAll} 
                 className="text-sm text-foreground-muted hover:text-error flex items-center gap-2 transition-colors px-3 py-2 rounded-lg hover:bg-error/10"
               >
                 <X className="h-4 w-4" /> 
                 Clear all filters
-              </button>
+              </Button>
             </div>
           )}
         </div>

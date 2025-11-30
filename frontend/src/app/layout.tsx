@@ -4,6 +4,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { useAuth } from "../hooks/useAuth";
+import { Toaster } from "../components/ui/toaster"; // Import Toaster component
 
 const inter = Inter({
   variable: "--font-family-primary",
@@ -24,9 +25,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className="dark">
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}
+        className={`${inter.variable} ${jetbrainsMono.variable} antialiased font-sans`} // Added font-sans as default
       >
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <Toaster /> {/* Add Toaster component here */}
+        </Providers>
       </body>
     </html>
   );

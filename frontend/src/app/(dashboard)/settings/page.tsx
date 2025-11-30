@@ -3,6 +3,10 @@
 import { useAuth } from '../../../lib/auth';
 import { Settings, User, Shield, AlertTriangle } from 'lucide-react';
 
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
 export default function SettingsPage() {
   const { user } = useAuth();
 
@@ -17,42 +21,38 @@ export default function SettingsPage() {
       </div>
 
       {/* User Information */}
-      <div className="bg-card border border-border rounded-xl p-6">
+      <Card className="p-6"> {/* Replaced div with Card */}
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-            <User className="w-5 h-5 text-accent" />
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"> {/* Changed accent to primary */}
+            <User className="w-5 h-5 text-primary" /> {/* Changed accent to primary */}
           </div>
-          <h2 className="text-lg font-semibold text-foreground">
+          <CardTitle className="text-lg font-semibold text-foreground"> {/* Replaced h2 with CardTitle */}
             Account Information
-          </h2>
+          </CardTitle>
         </div>
         
         <div className="space-y-6">
           <div className="grid md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-foreground-muted mb-2">
+              <Label className="block text-sm font-medium text-foreground-muted mb-2"> {/* Replaced label with Label */}
                 Username
-              </label>
-              <div className="bg-background border border-border rounded-lg px-4 py-2.5 text-foreground">
-                {user?.username}
-              </div>
+              </Label>
+              <Input value={user?.username || ''} disabled className="bg-background border-border" /> {/* Replaced div with Input */}
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-foreground-muted mb-2">
+              <Label className="block text-sm font-medium text-foreground-muted mb-2"> {/* Replaced label with Label */}
                 Email
-              </label>
-              <div className="bg-background border border-border rounded-lg px-4 py-2.5 text-foreground">
-                {user?.email}
-              </div>
+              </Label>
+              <Input value={user?.email || ''} disabled className="bg-background border-border" /> {/* Replaced div with Input */}
             </div>
           </div>
           
           <div className="grid md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-foreground-muted mb-2">
+              <Label className="block text-sm font-medium text-foreground-muted mb-2"> {/* Replaced label with Label */}
                 Account Status
-              </label>
+              </Label>
               <div className="flex items-center gap-2 bg-background border border-border rounded-lg px-4 py-2.5">
                 <div className={`w-2 h-2 rounded-full ${
                   user?.status === 'APPROVED' ? 'bg-success' : 'bg-warning'
@@ -64,11 +64,11 @@ export default function SettingsPage() {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-foreground-muted mb-2">
+              <Label className="block text-sm font-medium text-foreground-muted mb-2"> {/* Replaced label with Label */}
                 Role
-              </label>
+              </Label>
               <div className="flex items-center gap-2 bg-background border border-border rounded-lg px-4 py-2.5">
-                {user?.is_admin && <Shield size={16} className="text-accent" />}
+                {user?.is_admin && <Shield size={16} className="text-primary" />} {/* Changed accent to primary */}
                 <span className="text-foreground">
                   {user?.is_admin ? 'Administrator' : 'User'}
                 </span>
@@ -76,17 +76,17 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Preferences */}
-      <div className="bg-card border border-border rounded-xl p-6">
+      <Card className="p-6"> {/* Replaced div with Card */}
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-lg bg-background-tertiary flex items-center justify-center">
             <Settings className="w-5 h-5 text-foreground-muted" />
           </div>
-          <h2 className="text-lg font-semibold text-foreground">
+          <CardTitle className="text-lg font-semibold text-foreground"> {/* Replaced h2 with CardTitle */}
             Preferences
-          </h2>
+          </CardTitle>
         </div>
         
         <div className="text-center py-8">
@@ -94,23 +94,23 @@ export default function SettingsPage() {
             More preference options coming soon...
           </p>
         </div>
-      </div>
+      </Card>
 
       {/* Danger Zone */}
-      <div className="bg-error/5 border border-error/20 rounded-xl p-6">
+      <Card className="bg-error/5 border border-error/20 p-6"> {/* Replaced div with Card */}
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-lg bg-error/10 flex items-center justify-center">
             <AlertTriangle className="w-5 h-5 text-error" />
           </div>
-          <h2 className="text-lg font-semibold text-error">
+          <CardTitle className="text-lg font-semibold text-error"> {/* Replaced h2 with CardTitle */}
             Danger Zone
-          </h2>
+          </CardTitle>
         </div>
         
         <p className="text-foreground-muted">
           Account management options will be available here.
         </p>
-      </div>
+      </Card>
     </div>
   );
 }

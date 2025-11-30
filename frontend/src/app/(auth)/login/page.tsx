@@ -7,6 +7,12 @@ import { useEffect, useState } from 'react';
 import { Loader2, Eye, EyeOff, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'; // Ensure Card components are imported
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils'; // Ensure cn is imported
+
 interface LoginForm {
   username: string;
   password: string;
@@ -55,30 +61,34 @@ export default function LoginPage() {
       <div className="w-full max-w-md relative">
         {/* Logo/Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-accent/15 border border-accent/30 mb-4 shadow-glow">
-            <Sparkles className="w-7 h-7 text-accent" />
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/15 border border-primary/30 mb-4 shadow-glow"> {/* Changed accent to primary */}
+            <Sparkles className="w-7 h-7 text-primary" /> {/* Changed accent to primary */}
           </div>
-          <h1 className="text-2xl font-bold text-foreground">Welcome back</h1>
-          <p className="text-foreground-muted mt-2">Sign in to your Spellbook account</p>
+          <CardTitle className="text-3xl font-bold tracking-tight text-foreground"> {/* Replaced h1 with CardTitle */}
+            Welcome Back
+          </CardTitle>
+          <CardDescription className="text-base"> {/* Replaced p with CardDescription */}
+            Sign in to your Spellbook account
+          </CardDescription>
         </div>
 
         {/* Form Card */}
-        <div className="bg-card border border-border rounded-2xl p-6 card-hover-glow">
+        <Card className="rounded-2xl p-6 card-hover-glow"> {/* Replaced div with Card */}
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {/* Username/Email Field */}
             <div className="space-y-2">
-              <label htmlFor="username" className="block text-sm font-medium text-foreground">
+              <Label htmlFor="username"> {/* Replaced label with Label component */}
                 Email or Username
-              </label>
-              <input
+              </Label>
+              <Input
                 id="username"
                 type="text"
                 autoComplete="username"
-                {...register('username', { 
+                {...register('username', {
                   required: 'Email or username is required',
                   minLength: { value: 3, message: 'Must be at least 3 characters' }
                 })}
-                className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-foreground placeholder:text-foreground-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+                className={cn("w-full px-4 py-2.5 bg-background border border-border rounded-xl text-foreground placeholder:text-foreground-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all")} // Using cn
                 placeholder="you@example.com"
               />
               {errors.username && (
@@ -88,28 +98,35 @@ export default function LoginPage() {
 
             {/* Password Field */}
             <div className="space-y-2">
-              <label htmlFor="password" className="block text-sm font-medium text-foreground">
-                Password
-              </label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password"> {/* Replaced label with Label component */}
+                  Password
+                </Label>
+                <Link href="#" className="text-xs text-primary hover:text-primary/80 transition-colors"> {/* Changed accent to primary */}
+                  Forgot password?
+                </Link>
+              </div>
               <div className="relative">
-                <input
+                <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
-                  {...register('password', { 
+                  {...register('password', {
                     required: 'Password is required',
                     minLength: { value: 6, message: 'Password must be at least 6 characters' }
                   })}
-                  className="w-full px-4 py-2.5 pr-11 bg-background border border-border rounded-xl text-foreground placeholder:text-foreground-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+                  className={cn("w-full px-4 py-2.5 pr-11 bg-background border border-border rounded-xl text-foreground placeholder:text-foreground-muted focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all")} // Using cn
                   placeholder="••••••••"
                 />
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-foreground-muted hover:text-foreground transition-colors" // Changed text-muted-foreground to text-foreground-muted
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground-muted hover:text-foreground transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
+                </Button>
               </div>
               {errors.password && (
                 <p className="text-sm text-error">{errors.password.message}</p>
@@ -124,10 +141,10 @@ export default function LoginPage() {
             )}
 
             {/* Submit Button */}
-            <button
+            <Button
               type="submit"
               disabled={isSubmitting || login.isPending}
-              className="w-full py-3 px-4 bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-xl transition-all shadow-glow hover:shadow-glow-lg flex items-center justify-center gap-2"
+              className="w-full h-11 bg-primary hover:bg-primary/90 text-white font-medium shadow-[0_0_20px_rgb(var(--primary)/0.3)] hover:shadow-[0_0_25px_rgb(var(--primary)/0.5)] transition-all duration-300" // Changed bg-accent to bg-primary and related shadows
             >
               {login.isPending ? (
                 <>
@@ -137,7 +154,7 @@ export default function LoginPage() {
               ) : (
                 'Sign in'
               )}
-            </button>
+            </Button>
           </form>
 
           {/* Divider */}
@@ -150,11 +167,11 @@ export default function LoginPage() {
           {/* Register Link */}
           <p className="text-center text-foreground-muted">
             Don't have an account?{' '}
-            <Link href="/register" className="text-accent hover:text-accent-hover font-medium transition-colors">
-              Create one
+            <Link href="/register" className="text-primary hover:text-primary/80 font-medium transition-colors"> {/* Changed accent to primary */}
+              Create account
             </Link>
           </p>
-        </div>
+        </Card>
 
         {/* Footer */}
         <p className="text-center text-sm text-foreground-muted mt-6">
@@ -164,3 +181,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

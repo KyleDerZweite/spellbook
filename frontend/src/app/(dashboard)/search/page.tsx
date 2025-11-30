@@ -11,10 +11,15 @@ import { VersionSelector } from '../../../components/cards/version-selector';
 import { debounce } from '../../../lib/utils';
 import { Search, Loader2, Filter, Layers } from 'lucide-react';
 
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils'; // Assuming cn utility is available
+
 export default function SearchPage() {
-  const [params, setParams] = useState<CardSearchParams>({ 
-    q: '', 
-    per_page: 60, 
+  const [params, setParams] = useState<CardSearchParams>({
+    q: '',
+    per_page: 60,
     page: 1,
     rarity: [],
     colors: [],
@@ -45,24 +50,26 @@ export default function SearchPage() {
     );
   }, [params]);
 
-  const cardsQuery = useQuery<{ data: Card[]; meta?: { total: number; page: number; per_page: number; total_pages: number; has_next: boolean; has_prev: boolean } }>({
-    queryKey: ['cards', useUniqueSearch ? 'search-unique' : 'search', params],
-    queryFn: async () => {
-      if (useUniqueSearch) {
-        const response = await api.cards.searchUnique(params);
-        return { data: response.data || [], meta: response.meta };
-      }
-      const data = await api.cards.search(params);
-      return { data, meta: undefined };
-    },
-    enabled: searchEnabled,
-    placeholderData: (previousData) => previousData,
-  });
+  const cardsQuery = useQuery<{ data: Card[]; meta?: { total: number; page: number; per_page: number; total_pages: number; has_next: boolean; has_prev: boolean } }>(
+    {
+      queryKey: ['cards', useUniqueSearch ? 'search-unique' : 'search', params],
+      queryFn: async () => {
+        if (useUniqueSearch) {
+          const response = await api.cards.searchUnique(params);
+          return { data: response.data || [], meta: response.meta };
+        }
+        const data = await api.cards.search(params);
+        return { data, meta: undefined };
+      },
+      enabled: searchEnabled,
+      placeholderData: (previousData) => previousData,
+    }
+  );
 
   const addToCollectionMutation = useMutation({
-    mutationFn: (card: Card) => api.collections.addCard({ 
-      card_scryfall_id: card.scryfall_id, 
-      quantity: 1 
+    mutationFn: (card: Card) => api.collections.addCard({
+      card_scryfall_id: card.scryfall_id,
+      quantity: 1
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['collections', 'mine'] });
@@ -73,10 +80,10 @@ export default function SearchPage() {
   });
 
   const handleSearch = (query: string) => {
-    const newParams = { 
-      ...params, 
-      q: query, 
-      page: 1 
+    const newParams = {
+      ...params,
+      q: query,
+      page: 1
     };
     // Only debounce text search, not filter changes
     if (query !== params.q) {
@@ -94,12 +101,12 @@ export default function SearchPage() {
     setSelectedCard(card);
     setIsModalOpen(true);
   };
-  
+
   const handleVersionsClick = (oracleId: string) => {
     setSelectedOracleId(oracleId);
     setVersionSelectorOpen(true);
   };
-  
+
   const handleVersionSelect = (card: Card) => {
     setSelectedCard(card);
     setIsModalOpen(true);
@@ -120,31 +127,31 @@ export default function SearchPage() {
       </div>
 
       {/* Search Input */}
-      <div className="bg-card border border-border rounded-xl p-4 card-hover-glow">
+      <Card className="p-4 card-hover-glow"> {/* Replaced div with Card */}
         <div className="flex gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground-muted" />
-            <input
+            <Input
               type="text"
               placeholder="Search by name, type, rules text..."
-              className="w-full bg-background border border-border rounded-xl pl-10 pr-4 py-3 text-foreground placeholder:text-foreground-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 transition-all"
+              className={cn("w-full bg-background border border-border rounded-xl pl-10 pr-4 py-3 text-foreground placeholder:text-foreground-muted focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all")} // Replaced input with Input, changed accent to primary
               onChange={(e) => handleSearch(e.target.value)}
             />
           </div>
-          <button
+          <Button
             onClick={() => setUseUniqueSearch(!useUniqueSearch)}
-            className={`px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
+            className={cn(`px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center gap-2`,
               useUniqueSearch
-                ? 'bg-accent text-white shadow-glow'
-                : 'bg-card-hover text-foreground-muted hover:text-foreground border border-border hover:border-accent/30'
-            }`}
+                ? 'bg-primary text-white shadow-glow' // Changed accent to primary
+                : 'bg-card-hover text-foreground-muted hover:text-foreground border border-border hover:border-primary/30' // Changed accent to primary
+            )}
             title={useUniqueSearch ? 'Show all versions' : 'Show unique cards only'}
           >
             <Layers className="w-4 h-4" />
             {useUniqueSearch ? 'Unique' : 'All'}
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
 
       {/* Advanced Filters */}
       <SearchFilters value={params} onChange={handleFiltersChange} />
@@ -181,7 +188,7 @@ export default function SearchPage() {
               ) : (
                 <>Found <span className="text-foreground font-medium">{cardsQuery.data.data.length}</span> results</>
               )}
-              {params.q?.trim() && <span> for "<span className="text-accent">{params.q}</span>"</span>}
+              {params.q?.trim() && <span> for "<span className="text-primary">{params.q}</span>"</span>} {/* Changed accent to primary */}
             </p>
             {addToCollectionMutation.isPending && (
               <div className="text-sm text-foreground-muted flex items-center gap-2">
@@ -203,13 +210,14 @@ export default function SearchPage() {
           {/* Pagination Controls */}
           {cardsQuery.data.meta && cardsQuery.data.meta.total_pages > 1 && (
             <div className="flex justify-center items-center gap-2 pt-6">
-              <button
+              <Button
+                variant="secondary" // Use secondary variant for pagination
                 onClick={() => setParams(p => ({ ...p, page: (p.page || 1) - 1 }))}
                 disabled={!cardsQuery.data.meta.has_prev || cardsQuery.isFetching}
-                className="px-4 py-2 rounded-lg bg-card border border-border text-foreground-muted hover:text-foreground hover:border-accent/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="px-4 py-2 rounded-lg bg-card border border-border text-foreground-muted hover:text-foreground hover:border-primary/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all" // Changed accent to primary
               >
                 Previous
-              </button>
+              </Button>
               <div className="flex items-center gap-1">
                 {Array.from({ length: Math.min(cardsQuery.data.meta.total_pages, 7) }, (_, i) => {
                   const totalPages = cardsQuery.data?.meta?.total_pages || 1;
@@ -227,28 +235,29 @@ export default function SearchPage() {
                   }
                   
                   return (
-                    <button
+                    <Button
                       key={pageNum}
                       onClick={() => setParams(p => ({ ...p, page: pageNum }))}
                       disabled={cardsQuery.isFetching}
-                      className={`w-10 h-10 rounded-lg text-sm font-medium transition-all ${
+                      className={cn(`w-10 h-10 rounded-lg text-sm font-medium transition-all`,
                         pageNum === currentPage
-                          ? 'bg-accent text-white shadow-glow'
-                          : 'bg-card border border-border text-foreground-muted hover:text-foreground hover:border-accent/30'
-                      }`}
+                          ? 'bg-primary text-white shadow-glow' // Changed accent to primary
+                          : 'bg-card border border-border text-foreground-muted hover:text-foreground hover:border-primary/30' // Changed accent to primary
+                      )}
                     >
                       {pageNum}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
-              <button
+              <Button
+                variant="secondary" // Use secondary variant for pagination
                 onClick={() => setParams(p => ({ ...p, page: (p.page || 1) + 1 }))}
                 disabled={!cardsQuery.data.meta.has_next || cardsQuery.isFetching}
-                className="px-4 py-2 rounded-lg bg-card border border-border text-foreground-muted hover:text-foreground hover:border-accent/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="px-4 py-2 rounded-lg bg-card border border-border text-foreground-muted hover:text-foreground hover:border-primary/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all" // Changed accent to primary
               >
                 Next
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -256,27 +265,25 @@ export default function SearchPage() {
 
       {/* Empty state */}
       {!searchEnabled && (
-        <div className="text-center py-16">
-          <div className="bg-card border border-border rounded-2xl p-8 max-w-md mx-auto card-hover-glow">
-            <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto mb-4 shadow-glow">
-              <Search className="w-8 h-8 text-accent" />
-            </div>
-            <h3 className="text-xl font-semibold text-foreground mb-2">
-              Discover Cards
-            </h3>
-            <p className="text-foreground-muted mb-4">
-              Search by name or use the filters above to find cards for your collection.
-            </p>
-            {/* Mana symbol hint */}
-            <div className="flex justify-center gap-2 opacity-50">
-              <div className="w-6 h-6 rounded-full bg-mana-white/20 border border-mana-white/30" />
-              <div className="w-6 h-6 rounded-full bg-mana-blue/20 border border-mana-blue/30" />
-              <div className="w-6 h-6 rounded-full bg-mana-black/20 border border-mana-black/30" />
-              <div className="w-6 h-6 rounded-full bg-mana-red/20 border border-mana-red/30" />
-              <div className="w-6 h-6 rounded-full bg-mana-green/20 border border-mana-green/30" />
-            </div>
+        <Card className="text-center py-16"> {/* Replaced div with Card */}
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4 shadow-glow"> {/* Changed accent to primary */}
+            <Search className="w-8 h-8 text-primary" /> {/* Changed accent to primary */}
           </div>
-        </div>
+          <h3 className="text-xl font-semibold text-foreground mb-2">
+            Discover Cards
+          </h3>
+          <p className="text-foreground-muted mb-4">
+            Search by name or use the filters above to find cards for your collection.
+          </p>
+          {/* Mana symbol hint */}
+          <div className="flex justify-center gap-2 opacity-50">
+            <div className="w-6 h-6 rounded-full bg-mana-white/20 border border-mana-white/30" />
+            <div className="w-6 h-6 rounded-full bg-mana-blue/20 border border-mana-blue/30" />
+            <div className="w-6 h-6 rounded-full bg-mana-black/20 border border-mana-black/30" />
+            <div className="w-6 h-6 rounded-full bg-mana-red/20 border border-mana-red/30" />
+            <div className="w-6 h-6 rounded-full bg-mana-green/20 border border-mana-green/30" />
+          </div>
+        </Card>
       )}
 
       {/* Card Details Modal */}

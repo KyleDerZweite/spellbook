@@ -9,6 +9,7 @@ import type { Card, UserCard } from '../../../lib/types';
 import { formatPrice } from '../../../lib/utils';
 import { Library, TrendingUp, Star, Loader2, Search, Package } from 'lucide-react';
 import Link from 'next/link';
+import { Card } from '@/components/ui/card'; // Import Card component for EmptyState
 
 export default function CollectionPage() {
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
@@ -151,10 +152,10 @@ function StatCard({
   accent?: boolean;
 }) {
   return (
-    <div className={`relative bg-card border border-border rounded-xl p-5 overflow-hidden transition-all hover:border-accent/30 card-hover-glow ${accent ? 'bg-gradient-to-br from-accent/5 to-transparent' : ''}`}>
+    <div className={`relative bg-card border border-border rounded-xl p-5 overflow-hidden transition-all hover:border-primary/30 card-hover-glow ${accent ? 'bg-gradient-to-br from-primary/5 to-transparent' : ''}`}> {/* Changed accent to primary */}
       <div className="flex items-center gap-3 mb-3">
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${accent ? 'bg-accent/15 border border-accent/20' : 'bg-background-tertiary border border-border'}`}>
-          <Icon className={`w-5 h-5 ${accent ? 'text-accent' : 'text-foreground-muted'}`} />
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${accent ? 'bg-primary/15 border border-primary/20' : 'bg-background-tertiary border border-border'}`}> {/* Changed accent to primary */}
+          <Icon className={`w-5 h-5 ${accent ? 'text-primary' : 'text-foreground-muted'}`} /> {/* Changed accent to primary */}
         </div>
         <p className="text-sm text-foreground-muted">{label}</p>
       </div>
@@ -176,9 +177,9 @@ function StatCard({
 function EmptyState() {
   return (
     <div className="text-center py-16">
-      <div className="bg-card border border-border rounded-2xl p-8 max-w-md mx-auto card-hover-glow">
-        <div className="w-16 h-16 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto mb-4 shadow-glow">
-          <Library className="w-8 h-8 text-accent" />
+      <Card className="rounded-2xl p-8 max-w-md mx-auto card-hover-glow"> {/* Replaced div with Card */}
+        <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4 shadow-glow"> {/* Changed accent to primary */}
+          <Library className="w-8 h-8 text-primary" /> {/* Changed accent to primary */}
         </div>
         <h3 className="text-xl font-semibold text-foreground mb-2">
           No cards yet
@@ -188,12 +189,12 @@ function EmptyState() {
         </p>
         <Link
           href="/search"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-accent hover:bg-accent-hover text-white font-medium rounded-xl transition-all shadow-glow hover:shadow-glow-lg"
+          className="inline-flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary-hover text-white font-medium rounded-xl transition-all shadow-glow hover:shadow-glow-lg" {/* Changed accent to primary */}
         >
           <Search className="w-4 h-4" />
           Search Cards
         </Link>
-      </div>
+      </Card>
     </div>
   );
 }

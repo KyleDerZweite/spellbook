@@ -6,6 +6,12 @@ import { api } from '../../../lib/api';
 import { useForm } from 'react-hook-form';
 import { Shield, Users, UserPlus, Key, Loader2 } from 'lucide-react';
 
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils'; // Assuming cn utility is available
+
 export default function AdminPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -40,15 +46,15 @@ export default function AdminPage() {
   if (!user?.is_admin) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="elevated p-8 text-center max-w-md">
-          <Shield className="mx-auto mb-4 text-text-muted" size={48} />
-          <h2 className="text-xl font-semibold text-text-primary mb-2">
+        <Card className="p-8 text-center max-w-md"> 
+          <Shield className="mx-auto mb-4 text-foreground-muted" size={48} /> 
+          <CardTitle className="text-xl font-semibold mb-2"> 
             Access Denied
-          </h2>
-          <p className="text-text-secondary">
+          </CardTitle>
+          <p className="text-foreground-muted"> 
             You need administrator privileges to access this page.
           </p>
-        </div>
+        </Card>
       </div>
     );
   }
@@ -56,100 +62,99 @@ export default function AdminPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="elevated p-5">
-        <h2 className="font-semibold flex items-center gap-2">
+      <Card className="p-5"> {/* Replaced elevated with Card */}
+        <CardTitle className="font-semibold flex items-center gap-2"> 
           <Shield className="h-5 w-5 text-primary" />
           Admin Panel
-        </h2>
-        <p className="text-text-secondary text-sm">Manage users and invites</p>
-      </div>
+        </CardTitle>
+        <p className="text-foreground-muted text-sm">Manage users and invites</p> 
+      </Card>
 
       {/* Stats */}
-      <div className="grid md:grid-cols-4 gap-4">
-        <div className="elevated p-4">
+        <Card className="p-4"> 
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-full bg-primary/20">
               <Users className="h-5 w-5 text-primary" />
             </div>
             <div>
               <p className="text-2xl font-bold">{statsQuery.data?.total_users || 0}</p>
-              <p className="text-text-secondary text-sm">Total Users</p>
+              <p className="text-foreground-muted text-sm">Total Users</p> 
             </div>
           </div>
-        </div>
+        </Card>
         
-        <div className="elevated p-4">
+        <Card className="p-4"> {/* Replaced elevated with Card */}
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-full bg-green-500/20">
-              <UserPlus className="h-5 w-5 text-green-500" />
+            <div className="p-2 rounded-full bg-success/20"> 
+              <UserPlus className="h-5 w-5 text-success" /> 
             </div>
             <div>
               <p className="text-2xl font-bold">{statsQuery.data?.approved_users || 0}</p>
-              <p className="text-text-secondary text-sm">Approved</p>
+              <p className="text-foreground-muted text-sm">Approved</p> 
             </div>
           </div>
-        </div>
+        </Card>
 
-        <div className="elevated p-4">
+        <Card className="p-4"> {/* Replaced elevated with Card */}
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-full bg-yellow-500/20">
-              <Key className="h-5 w-5 text-yellow-500" />
+            <div className="p-2 rounded-full bg-warning/20"> 
+              <Key className="h-5 w-5 text-warning" /> 
             </div>
             <div>
               <p className="text-2xl font-bold">{statsQuery.data?.pending_users || 0}</p>
-              <p className="text-text-secondary text-sm">Pending</p>
+              <p className="text-foreground-muted text-sm">Pending</p> 
             </div>
           </div>
-        </div>
+        </Card>
 
-        <div className="elevated p-4">
+        <Card className="p-4"> {/* Replaced elevated with Card */}
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-full bg-primary-variant/20">
-              <Shield className="h-5 w-5 text-primary-variant" />
+            <div className="p-2 rounded-full bg-mana-gold/20"> 
+              <Shield className="h-5 w-5 text-mana-gold" /> 
             </div>
             <div>
               <p className="text-2xl font-bold">{statsQuery.data?.admin_users || 0}</p>
-              <p className="text-text-secondary text-sm">Admins</p>
+              <p className="text-foreground-muted text-sm">Admins</p> 
             </div>
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* Create Forms */}
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="elevated p-5">
-          <h3 className="font-medium mb-3">Create User</h3>
+        <Card className="p-5"> {/* Replaced elevated with Card */}
+          <CardTitle className="font-medium mb-3">Create User</CardTitle> {/* Replaced h3 with CardTitle */}
           <CreateUserForm onSubmit={(v) => createUserMutation.mutate(v)} loading={createUserMutation.isPending} />
-          {createUserMutation.isError && <p className="text-red-400 text-sm mt-2">Failed to create user</p>}
-          {createUserMutation.isSuccess && <p className="text-green-400 text-sm mt-2">User created successfully</p>}
-        </div>
+          {createUserMutation.isError && <p className="text-error text-sm mt-2">Failed to create user</p>} {/* Replaced red-400 with error */}
+          {createUserMutation.isSuccess && <p className="text-success text-sm mt-2">User created successfully</p>} {/* Replaced green-400 with success */}
+        </Card>
 
-        <div className="elevated p-5">
-          <h3 className="font-medium mb-3">Create Invite</h3>
+        <Card className="p-5"> {/* Replaced elevated with Card */}
+          <CardTitle className="font-medium mb-3">Create Invite</CardTitle> {/* Replaced h3 with CardTitle */}
           <CreateInviteForm onSubmit={(v) => createInviteMutation.mutate(v)} loading={createInviteMutation.isPending} />
-          {createInviteMutation.isSuccess && <p className="text-green-400 text-sm mt-2">Invite created successfully</p>}
-          {createInviteMutation.isError && <p className="text-red-400 text-sm mt-2">Failed to create invite</p>}
-        </div>
+          {createInviteMutation.isSuccess && <p className="text-success text-sm mt-2">Invite created successfully</p>} {/* Replaced green-400 with success */}
+          {createInviteMutation.isError && <p className="text-error text-sm mt-2">Failed to create invite</p>} {/* Replaced red-400 with error */}
+        </Card>
       </div>
 
       {/* Users List */}
-      <div className="elevated p-5 overflow-auto">
-        <h3 className="font-medium mb-3">Users</h3>
+      <Card className="p-5 overflow-auto"> {/* Replaced elevated with Card */}
+        <CardTitle className="font-medium mb-3">Users</CardTitle> {/* Replaced h3 with CardTitle */}
         {usersQuery.isLoading ? (
-          <p className="text-text-secondary">Loading users...</p>
+          <p className="text-foreground-muted">Loading users...</p> {/* Replaced text-text-secondary */}
         ) : (
           <div className="space-y-2">
             {usersQuery.data?.map((u) => (
               <div key={u.id} className="flex justify-between border-b border-border/60 pb-2">
                 <span>{u.username} — {u.email}</span>
-                <span className="text-xs text-text-secondary">
+                <span className="text-xs text-foreground-muted"> {/* Replaced text-text-secondary */}
                   {u.status}{u.is_admin ? ' · admin' : ''}
                 </span>
               </div>
             ))}
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 }
@@ -174,32 +179,33 @@ function CreateUserForm({
       onSubmit(data);
       reset();
     })} className="space-y-3">
-      <input 
+      <Input
         placeholder="Email" 
         {...register('email', { required: true })} 
-        className="w-full bg-surface-variant border border-border rounded-md px-3 py-2" 
+        className="w-full bg-background border border-border rounded-md px-3 py-2" // Used Input component
       />
-      <input 
+      <Input
         placeholder="Username" 
         {...register('username', { required: true })} 
-        className="w-full bg-surface-variant border border-border rounded-md px-3 py-2" 
+        className="w-full bg-background border border-border rounded-md px-3 py-2" // Used Input component
       />
-      <input 
+      <Input
         placeholder="Password" 
         type="password" 
         {...register('password', { required: true })} 
-        className="w-full bg-surface-variant border border-border rounded-md px-3 py-2" 
+        className="w-full bg-background border border-border rounded-md px-3 py-2" // Used Input component
       />
-      <label className="flex items-center gap-2 text-sm text-text-secondary">
-        <input type="checkbox" {...register('is_admin')} /> 
+      <Label className="flex items-center gap-2 text-sm text-foreground-muted"> {/* Used Label, replaced text-text-secondary */}
+        <Input type="checkbox" {...register('is_admin')} className="w-4 h-4" /> {/* Used Input for checkbox */}
         Admin
-      </label>
-      <button 
+      </Label>
+      <Button 
+        type="submit"
         disabled={loading} 
-        className="px-4 py-2 rounded-md btn-primary flex items-center justify-center w-full"
+        className="w-full" // Used Button component, removed btn-primary
       >
         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create'}
-      </button>
+      </Button>
     </form>
   );
 }
@@ -222,29 +228,30 @@ function CreateInviteForm({
       onSubmit(data);
       reset();
     })} className="space-y-3">
-      <input 
+      <Input
         placeholder="Email restriction (optional)" 
         {...register('email_restriction')} 
-        className="w-full bg-surface-variant border border-border rounded-md px-3 py-2" 
+        className="w-full bg-background border border-border rounded-md px-3 py-2" // Used Input component
       />
-      <input 
+      <Input
         placeholder="Max uses" 
         type="number" 
         {...register('max_uses', { valueAsNumber: true })} 
-        className="w-full bg-surface-variant border border-border rounded-md px-3 py-2" 
+        className="w-full bg-background border border-border rounded-md px-3 py-2" // Used Input component
       />
-      <input 
+      <Input
         placeholder="Expires at (YYYY-MM-DD)" 
         type="date"
         {...register('expires_at')} 
-        className="w-full bg-surface-variant border border-border rounded-md px-3 py-2" 
+        className="w-full bg-background border border-border rounded-md px-3 py-2" // Used Input component
       />
-      <button 
+      <Button 
+        type="submit"
         disabled={loading} 
-        className="px-4 py-2 rounded-md btn-primary flex items-center justify-center w-full"
+        className="w-full" // Used Button component, removed btn-primary
       >
         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create Invite'}
-      </button>
+      </Button>
     </form>
   );
 }

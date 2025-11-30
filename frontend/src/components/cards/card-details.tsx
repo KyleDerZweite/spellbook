@@ -7,6 +7,8 @@ import { getCardImageUrl, formatPrice } from '../../lib/utils';
 import type { Card, UserCard } from '../../lib/types';
 import { motion } from 'framer-motion';
 
+import { Button } from '@/components/ui/button'; // Import Button component
+
 interface CardDetailsProps {
   card: Card | null;
   userCard?: UserCard;
@@ -67,8 +69,10 @@ export function CardDetails({
                     </p>
                   )}
                 </div>
-                <Dialog.Close className="p-2 rounded-lg hover:bg-card-hover transition-colors ml-4">
-                  <X size={20} className="text-foreground-muted" />
+                <Dialog.Close asChild>
+                  <Button variant="ghost" className="p-2 ml-4"> {/* Replaced button with Button component */}
+                    <X size={20} className="text-foreground-muted" />
+                  </Button>
                 </Dialog.Close>
               </div>
               
@@ -118,11 +122,11 @@ export function CardDetails({
                 )}
                 
                 {totalQuantity > 0 && (
-                  <div className="bg-accent/10 border border-accent/20 rounded-lg p-4">
-                    <p className="text-sm font-medium text-accent">
+                  <div className="bg-primary/10 border border-primary/20 rounded-lg p-4"> {/* Changed accent to primary */}
+                    <p className="text-sm font-medium text-primary"> {/* Changed accent to primary */}
                       In Collection: {totalQuantity}
                       {foilQuantity > 0 && (
-                        <span className="ml-2 text-yellow-400">
+                        <span className="ml-2 text-mana-gold"> {/* Changed text-yellow-400 to text-mana-gold */}
                           ({foilQuantity} foil)
                         </span>
                       )}
@@ -134,31 +138,33 @@ export function CardDetails({
               {/* Actions */}
               <div className="mt-6 flex gap-3 flex-wrap">
                 <Dialog.Close asChild>
-                  <button className="px-4 py-2 rounded-lg bg-background-tertiary border border-border hover:bg-card-hover text-foreground transition-colors">
+                  <Button variant="outline"> {/* Replaced button with Button component */}
                     Close
-                  </button>
+                  </Button>
                 </Dialog.Close>
                 
                 {showAddButton && onAddToCollection && (
-                  <button
+                  <Button
                     onClick={() => onAddToCollection(card)}
-                    className="px-4 py-2 rounded-lg bg-accent hover:bg-accent-hover text-white flex items-center gap-2 transition-colors"
+                    className="flex items-center gap-2"
                   >
                     <Plus size={16} />
                     Add to Collection
-                  </button>
+                  </Button>
                 )}
                 
                 {card.scryfall_id && (
-                  <a
-                    href={`https://scryfall.com/card/${card.scryfall_id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2 rounded-lg bg-background-tertiary border border-border hover:bg-card-hover text-foreground flex items-center gap-2 transition-colors"
-                  >
-                    <ExternalLink size={16} />
-                    Scryfall
-                  </a>
+                  <Button asChild variant="outline"> {/* Replaced a with Button component and asChild */}
+                    <a
+                      href={`https://scryfall.com/card/${card.scryfall_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2"
+                    >
+                      <ExternalLink size={16} />
+                      Scryfall
+                    </a>
+                  </Button>
                 )}
               </div>
             </div>

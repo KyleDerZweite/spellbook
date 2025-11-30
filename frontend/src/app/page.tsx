@@ -7,6 +7,9 @@ import { useAuthStore } from '../stores/auth';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 
+import { Card } from '@/components/ui/card'; // Import Card component
+import { Button } from '@/components/ui/button'; // Import Button component
+
 export default function HomePage() {
   const { user, tokens, hydrated } = useAuthStore();
   const isAuthenticated = hydrated && Boolean(tokens?.access_token && user);
@@ -112,11 +115,11 @@ export default function HomePage() {
         {/* Recent Activity Placeholder */}
         <div>
           <h2 className="text-lg font-semibold text-foreground mb-4">Recent Activity</h2>
-          <div className="bg-card border border-border rounded-xl p-8 text-center">
+          <Card className="p-8 text-center"> {/* Replaced div with Card */}
             <p className="text-foreground-muted">
               Your recent activity will appear here
             </p>
-          </div>
+          </Card>
         </div>
       </div>
     </Shell>
@@ -138,21 +141,21 @@ function StatCard({
   accent?: boolean;
 }) {
   return (
-    <div className={`relative bg-card border border-border rounded-xl p-5 overflow-hidden transition-all hover:border-accent/30 card-hover-glow ${accent ? 'bg-gradient-to-br from-accent/5 to-transparent' : ''}`}>
+    <Card className={cn(`relative p-5 overflow-hidden transition-all hover:border-primary/30 card-hover-glow`, accent ? 'bg-gradient-to-br from-primary/5 to-transparent' : '')}> {/* Replaced div with Card, changed accent to primary */}
       <div className="flex items-center gap-3 mb-3">
-        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${accent ? 'bg-accent/15 border border-accent/20' : 'bg-background-tertiary border border-border'}`}>
-          <Icon className={`w-5 h-5 ${accent ? 'text-accent' : 'text-foreground-muted'}`} />
+        <div className={cn(`w-10 h-10 rounded-lg flex items-center justify-center`, accent ? 'bg-primary/15 border border-primary/20' : 'bg-background-tertiary border border-border')}> {/* Changed accent to primary */}
+          <Icon className={cn(`w-5 h-5`, accent ? 'text-primary' : 'text-foreground-muted')} /> {/* Changed accent to primary */}
         </div>
       </div>
       {loading ? (
         <div className="h-8 w-20 skeleton rounded" />
       ) : (
-        <p className={`text-2xl font-bold ${accent ? 'text-gradient' : 'text-foreground'}`}>
+        <p className={cn(`text-2xl font-bold`, accent ? 'text-gradient' : 'text-foreground')}>
           {value}
         </p>
       )}
       <p className="text-sm text-foreground-muted mt-1">{label}</p>
-    </div>
+    </Card>
   );
 }
 
@@ -171,17 +174,14 @@ function QuickAction({
   return (
     <Link
       href={href}
-      className="group relative bg-card border border-border rounded-xl p-5 hover:border-accent/40 transition-all card-hover-glow overflow-hidden"
+      className="group relative bg-card border border-border rounded-xl p-5 hover:border-primary/40 transition-all card-hover-glow overflow-hidden" // Changed accent to primary
     >
       {/* Hover gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" /> {/* Changed accent to primary */}
       
       <div className="relative">
-        <div className="flex items-start justify-between">
-          <div className="w-10 h-10 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center mb-3 group-hover:shadow-glow transition-shadow">
-            <Icon className="w-5 h-5 text-accent" />
-          </div>
-          <ArrowRight className="w-4 h-4 text-foreground-muted opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+        <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center mb-3 group-hover:shadow-glow transition-shadow"> {/* Changed accent to primary */}
+          <Icon className="w-5 h-5 text-primary" /> {/* Changed accent to primary */}
         </div>
         <h3 className="font-medium text-foreground">{title}</h3>
         <p className="text-sm text-foreground-muted mt-1">{description}</p>
@@ -198,16 +198,16 @@ function LandingPage() {
       <div className="relative overflow-hidden">
         {/* Animated background effects */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-96 h-96 bg-accent/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" /> {/* Changed accent to primary */}
           <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-mana-gold/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
         </div>
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32 relative">
           <div className="text-center">
             {/* Logo badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/20 mb-8">
-              <Sparkles className="w-4 h-4 text-accent" />
-              <span className="text-sm font-medium text-accent">Magic: The Gathering Collection Manager</span>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8"> {/* Changed accent to primary */}
+              <Sparkles className="w-4 h-4 text-primary" /> {/* Changed accent to primary */}
+              <span className="text-sm font-medium text-primary">Magic: The Gathering Collection Manager</span> {/* Changed accent to primary */}
             </div>
             
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground tracking-tight">
@@ -219,19 +219,23 @@ function LandingPage() {
               The ultimate tool for Magic: The Gathering collectors.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/register"
-                className="px-8 py-3.5 bg-accent hover:bg-accent-hover text-white font-medium rounded-xl transition-all shadow-glow hover:shadow-glow-lg inline-flex items-center justify-center gap-2"
-              >
-                Get Started Free
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-              <Link
-                href="/login"
-                className="px-8 py-3.5 bg-card hover:bg-card-hover border border-border hover:border-accent/30 text-foreground font-medium rounded-xl transition-all card-hover-glow"
-              >
-                Sign In
-              </Link>
+              <Button asChild> {/* Use Button component */}
+                <Link
+                  href="/register"
+                  className="px-8 py-3.5 bg-primary hover:bg-primary-hover text-white font-medium rounded-xl transition-all shadow-glow hover:shadow-glow-lg inline-flex items-center justify-center gap-2" // Changed accent to primary
+                >
+                  Get Started Free
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </Button>
+              <Button asChild variant="secondary"> {/* Use Button component */}
+                <Link
+                  href="/login"
+                  className="px-8 py-3.5 bg-card hover:bg-card-hover border border-border hover:border-primary/30 text-foreground font-medium rounded-xl transition-all card-hover-glow" // Changed accent to primary
+                >
+                  Sign In
+                </Link>
+              </Button>
             </div>
           </div>
         </div>
@@ -257,7 +261,7 @@ function LandingPage() {
             icon={Library}
             title="Collection Tracking"
             description="Keep track of every card you own, with quantity tracking and condition notes."
-            gradient="from-accent/20 to-transparent"
+            gradient="from-primary/20 to-transparent" // Changed accent to primary
           />
           <FeatureCard
             icon={Camera}
@@ -294,7 +298,7 @@ function FeatureCard({
   icon: Icon, 
   title, 
   description,
-  gradient = "from-accent/20 to-transparent"
+  gradient = "from-primary/20 to-transparent" // Changed accent to primary
 }: { 
   icon: React.ElementType;
   title: string;
@@ -302,17 +306,17 @@ function FeatureCard({
   gradient?: string;
 }) {
   return (
-    <div className="group relative bg-card border border-border rounded-2xl p-6 hover:border-accent/30 transition-all card-hover-glow overflow-hidden">
+    <Link href="#" className="group relative bg-card border border-border rounded-2xl p-6 hover:border-primary/30 transition-all card-hover-glow overflow-hidden"> {/* Changed accent to primary, wrapped in Link for consistency with QuickAction */}
       {/* Gradient background */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-100 transition-opacity`} />
+      <div className={cn(`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-100 transition-opacity`)} />
       
       <div className="relative">
-        <div className="w-14 h-14 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center mb-4 group-hover:shadow-glow transition-shadow">
-          <Icon className="w-7 h-7 text-accent" />
+        <div className="w-14 h-14 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-4 group-hover:shadow-glow transition-shadow"> {/* Changed accent to primary */}
+          <Icon className="w-7 h-7 text-primary" /> {/* Changed accent to primary */}
         </div>
         <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
         <p className="text-foreground-muted">{description}</p>
       </div>
-    </div>
+    </Link>
   );
 }

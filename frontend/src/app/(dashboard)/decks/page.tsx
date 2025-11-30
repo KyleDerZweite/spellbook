@@ -3,32 +3,35 @@
 import { motion } from 'framer-motion';
 import { Plus, Layers, Users, Trophy } from 'lucide-react';
 
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+
 export default function DecksPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="elevated p-6">
+      <Card className="p-6"> {/* Replaced elevated with Card */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold flex items-center gap-2">
+            <CardTitle className="text-2xl font-semibold flex items-center gap-2"> {/* Replaced h1 with CardTitle */}
               <Layers className="h-6 w-6 text-primary" />
               Decks
-            </h1>
-            <p className="text-text-secondary text-sm mt-1">
+            </CardTitle>
+            <p className="text-foreground-muted text-sm mt-1"> {/* Replaced text-text-secondary */}
               Build and manage your decks
             </p>
           </div>
-          <button className="px-4 py-2 rounded-md btn-primary flex items-center gap-2 accent-ring">
+          <Button className="flex items-center gap-2"> {/* Replaced button with Button component */}
             <Plus className="h-4 w-4" />
             New Deck
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
 
       {/* Stats Cards */}
       <div className="grid md:grid-cols-3 gap-4">
         <motion.div 
-          className="elevated p-4"
+          className="p-4 bg-card border border-border rounded-xl" {/* Replaced elevated with bg-card border border-border rounded-xl */}
           whileHover={{ y: -2 }}
           transition={{ type: 'spring', stiffness: 300 }}
         >
@@ -38,39 +41,39 @@ export default function DecksPage() {
             </div>
             <div>
               <p className="text-2xl font-bold">0</p>
-              <p className="text-text-secondary text-sm">Total Decks</p>
+              <p className="text-foreground-muted text-sm">Total Decks</p> {/* Replaced text-text-secondary */}
             </div>
           </div>
         </motion.div>
 
         <motion.div 
-          className="elevated p-4"
+          className="p-4 bg-card border border-border rounded-xl" {/* Replaced elevated with bg-card border border-border rounded-xl */}
           whileHover={{ y: -2 }}
           transition={{ type: 'spring', stiffness: 300 }}
         >
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-full bg-primary-variant/20">
-              <Users className="h-5 w-5 text-primary-variant" />
+            <div className="p-2 rounded-full bg-mana-gold/20"> {/* Replaced primary-variant/20 with mana-gold/20 */}
+              <Users className="h-5 w-5 text-mana-gold" /> {/* Replaced text-primary-variant with text-mana-gold */}
             </div>
             <div>
               <p className="text-2xl font-bold">0</p>
-              <p className="text-text-secondary text-sm">Shared Decks</p>
+              <p className="text-foreground-muted text-sm">Shared Decks</p> {/* Replaced text-text-secondary */}
             </div>
           </div>
         </motion.div>
 
         <motion.div 
-          className="elevated p-4"
+          className="p-4 bg-card border border-border rounded-xl" {/* Replaced elevated with bg-card border border-border rounded-xl */}
           whileHover={{ y: -2 }}
           transition={{ type: 'spring', stiffness: 300 }}
         >
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-full bg-yellow-500/20">
-              <Trophy className="h-5 w-5 text-yellow-500" />
+            <div className="p-2 rounded-full bg-warning/20"> {/* Replaced yellow-500/20 with warning/20 */}
+              <Trophy className="h-5 w-5 text-warning" /> {/* Replaced text-yellow-500 with text-warning */}
             </div>
             <div>
               <p className="text-2xl font-bold">0</p>
-              <p className="text-text-secondary text-sm">Tournament Wins</p>
+              <p className="text-foreground-muted text-sm">Tournament Wins</p> {/* Replaced text-text-secondary */}
             </div>
           </div>
         </motion.div>
@@ -78,7 +81,7 @@ export default function DecksPage() {
 
       {/* Coming Soon */}
       <motion.div 
-        className="elevated p-8 text-center"
+        className="p-8 text-center bg-card border border-border rounded-xl" {/* Replaced elevated with bg-card border border-border rounded-xl */}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
@@ -88,21 +91,21 @@ export default function DecksPage() {
             <Layers className="h-8 w-8 text-primary" />
           </div>
           <div>
-            <h3 className="text-xl font-semibold text-text-primary mb-2">
+            <CardTitle className="text-xl font-semibold mb-2"> {/* Replaced h3 with CardTitle, text-text-primary with text-foreground */}
               Deck Management Coming Soon
-            </h3>
-            <p className="text-text-secondary">
+            </CardTitle>
+            <p className="text-foreground-muted"> {/* Replaced text-text-secondary */}
               Build competitive decks, test strategies, and track your performance. 
               Full deck management features will be available in a future update.
             </p>
           </div>
           <div className="flex gap-3 justify-center">
-            <button className="px-4 py-2 rounded-md btn-primary">
+            <Button> {/* Replaced button with Button component */}
               Get Notified
-            </button>
-            <button className="px-4 py-2 rounded-md bg-surface-variant border border-border hover:border-border-accent transition-colors">
+            </Button>
+            <Button variant="secondary" className="border border-border hover:border-accent/30"> {/* Replaced button with Button component, custom classes */}
               Learn More
-            </button>
+            </Button>
           </div>
         </div>
       </motion.div>
@@ -110,30 +113,30 @@ export default function DecksPage() {
       {/* Feature Preview */}
       <div className="grid md:grid-cols-2 gap-6">
         <motion.div 
-          className="elevated p-6"
+          className="p-6 bg-card border border-border rounded-xl" {/* Replaced elevated with bg-card border border-border rounded-xl */}
           whileHover={{ y: -2 }}
           transition={{ type: 'spring', stiffness: 300 }}
         >
-          <h4 className="font-semibold mb-2 text-text-primary">Deck Builder</h4>
-          <p className="text-text-secondary text-sm mb-4">
+          <CardTitle className="font-semibold mb-2 text-foreground">Deck Builder</CardTitle> {/* Replaced h4 with CardTitle, text-text-primary with text-foreground */}
+          <p className="text-foreground-muted text-sm mb-4"> {/* Replaced text-text-secondary */}
             Visual deck construction with mana curve analysis, format legality checking, and collection integration.
           </p>
-          <div className="h-24 bg-surface-variant rounded-md flex items-center justify-center">
-            <span className="text-text-muted text-sm">Preview Coming Soon</span>
+          <div className="h-24 bg-background-tertiary rounded-md flex items-center justify-center"> {/* Replaced bg-surface-variant */}
+            <span className="text-foreground-muted text-sm">Preview Coming Soon</span> {/* Replaced text-text-muted */}
           </div>
         </motion.div>
 
         <motion.div 
-          className="elevated p-6"
+          className="p-6 bg-card border border-border rounded-xl" {/* Replaced elevated with bg-card border border-border rounded-xl */}
           whileHover={{ y: -2 }}
           transition={{ type: 'spring', stiffness: 300 }}
         >
-          <h4 className="font-semibold mb-2 text-text-primary">Match Tracking</h4>
-          <p className="text-text-secondary text-sm mb-4">
+          <CardTitle className="font-semibold mb-2 text-foreground">Match Tracking</CardTitle> {/* Replaced h4 with CardTitle, text-text-primary with text-foreground */}
+          <p className="text-foreground-muted text-sm mb-4"> {/* Replaced text-text-secondary */}
             Record wins, losses, and detailed match statistics to improve your gameplay.
           </p>
-          <div className="h-24 bg-surface-variant rounded-md flex items-center justify-center">
-            <span className="text-text-muted text-sm">Preview Coming Soon</span>
+          <div className="h-24 bg-background-tertiary rounded-md flex items-center justify-center"> {/* Replaced bg-surface-variant */}
+            <span className="text-foreground-muted text-sm">Preview Coming Soon</span> {/* Replaced text-text-muted */}
           </div>
         </motion.div>
       </div>
