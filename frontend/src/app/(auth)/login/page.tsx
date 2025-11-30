@@ -62,7 +62,7 @@ export default function LoginPage() {
         {/* Logo/Brand */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/15 border border-primary/30 mb-4 shadow-glow"> {/* Changed accent to primary */}
-            <Sparkles className="w-7 h-7 text-primary" /> {/* Changed accent to primary */}
+            <Sparkles className="w-7 h-7 text-primary" />
           </div>
           <CardTitle className="text-3xl font-bold tracking-tight text-foreground"> {/* Replaced h1 with CardTitle */}
             Welcome Back

@@ -196,7 +196,7 @@ function CreateUserForm({
         className="w-full bg-background border border-border rounded-md px-3 py-2" // Used Input component
       />
       <Label className="flex items-center gap-2 text-sm text-foreground-muted"> {/* Used Label, replaced text-text-secondary */}
-        <Input type="checkbox" {...register('is_admin')} className="w-4 h-4" /> {/* Used Input for checkbox */}
+        <Input type="checkbox" {...register('is_admin')} className="w-4 h-4" />
         Admin
       </Label>
       <Button 

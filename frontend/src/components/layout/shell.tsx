@@ -57,8 +57,8 @@ export function Shell({ children }: ShellProps) {
         {/* Brand Header */}
         <div className="flex h-24 items-center px-8 border-b border-white/5 bg-gradient-to-b from-white/5 to-transparent">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="p-2 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors"> {/* Changed to primary for Sparkles */}
-              <Sparkles className="h-6 w-6 text-primary" /> {/* Using Sparkles */}
+            <div className="p-2 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+              <Sparkles className="h-6 w-6 text-primary" />
             </div>
             <span className="text-xl font-bold text-white tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
               Spellbook
@@ -93,7 +93,7 @@ export function Shell({ children }: ShellProps) {
                 onClick={() => setSidebarOpen(false)}
               >
                 {isActive && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-1 bg-primary rounded-r-full shadow-[0_0_10px_rgb(var(--primary)/0.5)]" /> {/* Using rgb(var(--primary)) */}
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 h-8 w-1 bg-primary rounded-r-full shadow-[0_0_10px_rgb(var(--primary)/0.5)]" />
                 )}
                 <item.icon
                   className={cn(
@@ -106,7 +106,7 @@ export function Shell({ children }: ShellProps) {
             );
           })}
           {/* Settings & Admin - Re-added below nav items with similar styling */}
-          <div className="mx-3 my-3 h-px bg-border/50" /> {/* Divider */}
+          <div className="mx-3 my-3 h-px bg-border/50" />
           <Link
             href="/settings"
             className={cn(

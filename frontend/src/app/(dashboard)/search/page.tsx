@@ -267,7 +267,7 @@ export default function SearchPage() {
       {!searchEnabled && (
         <Card className="text-center py-16"> {/* Replaced div with Card */}
           <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4 shadow-glow"> {/* Changed accent to primary */}
-            <Search className="w-8 h-8 text-primary" /> {/* Changed accent to primary */}
+            <Search className="w-8 h-8 text-primary" />
           </div>
           <h3 className="text-xl font-semibold text-foreground mb-2">
             Discover Cards

@@ -144,7 +144,7 @@ function StatCard({
     <Card className={cn(`relative p-5 overflow-hidden transition-all hover:border-primary/30 card-hover-glow`, accent ? 'bg-gradient-to-br from-primary/5 to-transparent' : '')}> {/* Replaced div with Card, changed accent to primary */}
       <div className="flex items-center gap-3 mb-3">
         <div className={cn(`w-10 h-10 rounded-lg flex items-center justify-center`, accent ? 'bg-primary/15 border border-primary/20' : 'bg-background-tertiary border border-border')}> {/* Changed accent to primary */}
-          <Icon className={cn(`w-5 h-5`, accent ? 'text-primary' : 'text-foreground-muted')} /> {/* Changed accent to primary */}
+          <Icon className={cn(`w-5 h-5`, accent ? 'text-primary' : 'text-foreground-muted')} />
         </div>
       </div>
       {loading ? (
@@ -177,11 +177,11 @@ function QuickAction({
       className="group relative bg-card border border-border rounded-xl p-5 hover:border-primary/40 transition-all card-hover-glow overflow-hidden" // Changed accent to primary
     >
       {/* Hover gradient */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" /> {/* Changed accent to primary */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
       
       <div className="relative">
         <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center mb-3 group-hover:shadow-glow transition-shadow"> {/* Changed accent to primary */}
-          <Icon className="w-5 h-5 text-primary" /> {/* Changed accent to primary */}
+          <Icon className="w-5 h-5 text-primary" />
         </div>
         <h3 className="font-medium text-foreground">{title}</h3>
         <p className="text-sm text-foreground-muted mt-1">{description}</p>
@@ -198,7 +198,7 @@ function LandingPage() {
       <div className="relative overflow-hidden">
         {/* Animated background effects */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" /> {/* Changed accent to primary */}
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" />
           <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-mana-gold/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
         </div>
         
@@ -206,7 +206,7 @@ function LandingPage() {
           <div className="text-center">
             {/* Logo badge */}
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8"> {/* Changed accent to primary */}
-              <Sparkles className="w-4 h-4 text-primary" /> {/* Changed accent to primary */}
+              <Sparkles className="w-4 h-4 text-primary" />
               <span className="text-sm font-medium text-primary">Magic: The Gathering Collection Manager</span> {/* Changed accent to primary */}
             </div>
             
@@ -312,7 +312,7 @@ function FeatureCard({
       
       <div className="relative">
         <div className="w-14 h-14 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-4 group-hover:shadow-glow transition-shadow"> {/* Changed accent to primary */}
-          <Icon className="w-7 h-7 text-primary" /> {/* Changed accent to primary */}
+          <Icon className="w-7 h-7 text-primary" />
         </div>
         <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
         <p className="text-foreground-muted">{description}</p>

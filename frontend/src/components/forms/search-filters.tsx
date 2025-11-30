@@ -86,7 +86,7 @@ export function SearchFilters({ value, onChange }: SearchFiltersProps) {
       >
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center"> {/* Changed accent to primary */}
-            <Filter className="h-4 w-4 text-primary" /> {/* Changed accent to primary */}
+            <Filter className="h-4 w-4 text-primary" />
           </div>
           <span className="font-medium text-foreground">
             Advanced Filters

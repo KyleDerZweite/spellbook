@@ -24,7 +24,7 @@ export default function SettingsPage() {
       <Card className="p-6"> {/* Replaced div with Card */}
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"> {/* Changed accent to primary */}
-            <User className="w-5 h-5 text-primary" /> {/* Changed accent to primary */}
+            <User className="w-5 h-5 text-primary" />
           </div>
           <CardTitle className="text-lg font-semibold text-foreground"> {/* Replaced h2 with CardTitle */}
             Account Information
@@ -37,14 +37,14 @@ export default function SettingsPage() {
               <Label className="block text-sm font-medium text-foreground-muted mb-2"> {/* Replaced label with Label */}
                 Username
               </Label>
-              <Input value={user?.username || ''} disabled className="bg-background border-border" /> {/* Replaced div with Input */}
+              <Input value={user?.username || ''} disabled className="bg-background border-border" />
             </div>
             
             <div>
               <Label className="block text-sm font-medium text-foreground-muted mb-2"> {/* Replaced label with Label */}
                 Email
               </Label>
-              <Input value={user?.email || ''} disabled className="bg-background border-border" /> {/* Replaced div with Input */}
+              <Input value={user?.email || ''} disabled className="bg-background border-border" />
             </div>
           </div>
           

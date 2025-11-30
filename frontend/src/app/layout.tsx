@@ -29,7 +29,7 @@ export default function RootLayout({
       >
         <Providers>
           {children}
-          <Toaster /> {/* Add Toaster component here */}
+          <Toaster />
         </Providers>
       </body>
     </html>

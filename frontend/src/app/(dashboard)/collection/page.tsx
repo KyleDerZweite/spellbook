@@ -155,7 +155,7 @@ function StatCard({
     <div className={`relative bg-card border border-border rounded-xl p-5 overflow-hidden transition-all hover:border-primary/30 card-hover-glow ${accent ? 'bg-gradient-to-br from-primary/5 to-transparent' : ''}`}> {/* Changed accent to primary */}
       <div className="flex items-center gap-3 mb-3">
         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${accent ? 'bg-primary/15 border border-primary/20' : 'bg-background-tertiary border border-border'}`}> {/* Changed accent to primary */}
-          <Icon className={`w-5 h-5 ${accent ? 'text-primary' : 'text-foreground-muted'}`} /> {/* Changed accent to primary */}
+          <Icon className={`w-5 h-5 ${accent ? 'text-primary' : 'text-foreground-muted'}`} />
         </div>
         <p className="text-sm text-foreground-muted">{label}</p>
       </div>
@@ -179,7 +179,7 @@ function EmptyState() {
     <div className="text-center py-16">
       <Card className="rounded-2xl p-8 max-w-md mx-auto card-hover-glow"> {/* Replaced div with Card */}
         <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4 shadow-glow"> {/* Changed accent to primary */}
-          <Library className="w-8 h-8 text-primary" /> {/* Changed accent to primary */}
+          <Library className="w-8 h-8 text-primary" />
         </div>
         <h3 className="text-xl font-semibold text-foreground mb-2">
           No cards yet
