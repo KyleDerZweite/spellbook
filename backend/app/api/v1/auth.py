@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials
+from fastapi import APIRouter, Depends, HTTPException, status, Form
+from fastapi.security import HTTPAuthorizationCredentials, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
@@ -124,20 +124,20 @@ async def register_user(
     }
 )
 async def login_user(
-    user_data: UserLogin,
+    form_data: OAuth2PasswordRequestForm = Depends(),
     session: AsyncSession = Depends(get_async_session)
 ):
     try:
         # Try to find user by email or username
         result = await session.execute(
             select(User).where(
-                (User.email == user_data.username) | (User.username == user_data.username)
+                (User.email == form_data.username) | (User.username == form_data.username)
             )
         )
         user = result.scalar_one_or_none()
         
-        if not user or not verify_password(user_data.password, user.password_hash):
-            logger.warning(f"Failed login attempt for: {user_data.username}")
+        if not user or not verify_password(form_data.password, user.password_hash):
+            logger.warning(f"Failed login attempt for: {form_data.username}")
             raise AuthenticationError("Incorrect email/username or password")
         
         if not user.is_active:
