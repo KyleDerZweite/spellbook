@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="#8b5cf6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Open spellbook -->
+  <path d="M4 8c0 0 4-2 12-2s12 2 12 2v18c0 0-4-1.5-12-1.5S4 26 4 26V8z"/>
+  <!-- Center spine/binding -->
+  <path d="M16 6v18.5"/>
+  <!-- Left page lines -->
+  <path d="M7 11h6" stroke-opacity="0.6"/>
+  <path d="M7 14h5" stroke-opacity="0.6"/>
+  <!-- Right page lines -->
+  <path d="M19 11h6" stroke-opacity="0.6"/>
+  <path d="M19 14h5" stroke-opacity="0.6"/>
+  <!-- Magic sparkles/stars -->
+  <circle cx="10" cy="19" r="0.8" fill="#8b5cf6" stroke="none"/>
+  <circle cx="22" cy="18" r="1" fill="#8b5cf6" stroke="none"/>
+  <circle cx="14" cy="21" r="0.6" fill="#8b5cf6" stroke="none"/>
+  <!-- Magical wisps rising from book -->
+  <path d="M12 4c1.5 1 0.5 2.5 2 3" stroke="#a78bfa" stroke-width="1"/>
+  <path d="M20 3.5c-1.5 1 -0.5 2 -2 2.8" stroke="#a78bfa" stroke-width="1"/>
+</svg>

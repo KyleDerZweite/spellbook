@@ -6,7 +6,7 @@
 #   - Redis: Cache and Celery broker
 #   - MinIO: S3-compatible object storage for card images/scans
 #   - Backend: FastAPI application
-#   - Frontend: Next.js web application
+#   - Frontend: Vite + React web application
 #   - Celery Worker: Background job processing
 #
 # Usage:
@@ -19,7 +19,7 @@
 #   MinIO API: localhost:9000
 #   MinIO Console: localhost:9001
 #   Backend API: localhost:8000
-#   Frontend: localhost:3000
+#   Frontend: localhost:5173
 # =============================================================================
 
 version: '3.8'
@@ -146,7 +146,7 @@ services:
     networks:
       - spellbook-dev
 
-  # Frontend Web App (Next.js)
+  # Frontend Web App (Vite + React)
   frontend-dev:
     image: node:20-alpine
     container_name: spellbook-frontend-dev
@@ -155,16 +155,16 @@ services:
       - label=disable
     working_dir: /app
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
-      - NEXT_PUBLIC_APP_NAME=Spellbook
+      - VITE_API_URL=http://localhost:8000/api/v1
+      - VITE_APP_NAME=Spellbook
       - HOME=/tmp
       - npm_config_cache=/tmp/.npm
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+      - "${FRONTEND_PORT:-5173}:5173"
     volumes:
       - ./frontend:/app:z
       - frontend_node_modules:/app/node_modules
-    command: sh -c "npm install && npm run dev -- --hostname 0.0.0.0"
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
     depends_on:
       - backend-dev
     networks:

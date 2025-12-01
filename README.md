@@ -28,7 +28,7 @@ Spellbook is a self-hosted card collection management platform with mobile scann
 - **JSON Export**: Full collection backup in Spellbook format
 
 ### Platform Support
-- **Web Dashboard**: Next.js 14 with React 18
+- **Web Dashboard**: Vite + React 18
 - **Mobile App**: Flutter (iOS & Android)
 - **API**: FastAPI with OpenAPI documentation
 
@@ -141,7 +141,7 @@ flutter run
 |---------|-----|-------------|
 | API | http://localhost:8000 | FastAPI backend |
 | API Docs | http://localhost:8000/docs | Swagger UI |
-| Web App | http://localhost:3000 | Next.js frontend |
+| Web App | http://localhost:5173 | Vite + React frontend |
 | MinIO Console | http://localhost:9001 | Object storage UI |
 
 ## Default Credentials
@@ -197,9 +197,9 @@ spellbook/
 │   │   └── tasks/          # Celery tasks
 │   ├── migrations/         # Alembic migrations
 │   └── requirements.txt
-├── frontend/               # Next.js web app
+├── frontend/               # Vite + React web app
 │   ├── src/
-│   │   ├── app/           # App router pages
+│   │   ├── pages/         # Page components
 │   │   ├── components/    # React components
 │   │   └── lib/           # Utilities
 │   └── package.json

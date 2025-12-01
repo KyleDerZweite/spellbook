@@ -102,7 +102,9 @@ scryfall/
 CLAUDE.md
 GEMINI.md
 *-prd.md
+/archive/
 
+# Virtual Environments
 venv/
 backend/venv/
 

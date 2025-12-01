@@ -64,7 +64,7 @@ DATABASE_URL=postgresql+asyncpg://user:password@localhost:5432/spellbookdb
 REDIS_URL=redis://localhost:6379
 
 # Frontend API URL
-NEXT_PUBLIC_API_URL=http://localhost:8000
+VITE_API_URL=http://localhost:8000
 
 # Other settings
 POSTGRES_PASSWORD=password

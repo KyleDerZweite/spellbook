@@ -1,0 +1,128 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 10% 4%;  /* #09090b - Zinc 950 */
+    --foreground: 0 0% 98%;    /* #fafafa */
+    
+    --card: 240 6% 10%;        /* #18181b - Zinc 900 */
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 6% 10%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 262 83% 58%;    /* #8b5cf6 - Violet 500 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 240 4% 16%;   /* #27272a - Zinc 800 */
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 65%;
+
+    --accent: 262 83% 58%;
+    --accent-foreground: 0 0% 100%;
+    
+    --success: 167 68% 45%;    /* #25c2a0 - Teal */
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;     /* #f59e0b - Amber */
+    --warning-foreground: 0 0% 0%;
+
+    --error: 0 62.8% 50%;      /* Red */
+    --error-foreground: 0 0% 100%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
+    --ring: 262 83% 58%;
+    
+    --radius: 0.5rem;
+
+    /* Custom Variables */
+    --sidebar: 0 0% 0%;        /* #000000 - Black */
+    --sidebar-foreground: 240 5% 65%;
+
+    /* MTG Mana Colors */
+    --mana-white: 45 100% 96%;   /* Off-white */
+    --mana-blue: 210 100% 50%;   /* Blue */
+    --mana-black: 0 0% 20%;      /* Dark gray */
+    --mana-red: 0 72% 51%;       /* Red */
+    --mana-green: 142 71% 45%;   /* Green */
+    --mana-colorless: 0 0% 60%;  /* Gray */
+    --mana-gold: 43 96% 56%;     /* Gold/Multicolor */
+
+    /* Rarity Colors */
+    --rarity-common: 0 0% 60%;
+    --rarity-uncommon: 192 91% 36%;
+    --rarity-rare: 43 96% 56%;
+    --rarity-mythic: 17 100% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  .text-success {
+    color: hsl(var(--success));
+  }
+  
+  .bg-success {
+    background-color: hsl(var(--success));
+  }
+
+  .text-warning {
+    color: hsl(var(--warning));
+  }
+
+  .bg-warning {
+    background-color: hsl(var(--warning));
+  }
+
+  .text-error {
+    color: hsl(var(--error));
+  }
+
+  .bg-error {
+    background-color: hsl(var(--error));
+  }
+
+  .card-hover-glow {
+    @apply transition-all duration-200;
+  }
+
+  .card-hover-glow:hover {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.1);
+  }
+
+  .shadow-glow {
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+  }
+
+  .shadow-glow-lg {
+    box-shadow: 0 0 25px rgba(139, 92, 246, 0.4);
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-violet-400;
+  }
+
+  .skeleton {
+    @apply animate-pulse bg-muted rounded;
+  }
+
+  .spinner {
+    @apply animate-spin;
+  }
+}
