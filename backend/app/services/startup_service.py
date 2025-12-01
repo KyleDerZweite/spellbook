@@ -2,7 +2,7 @@
 Startup Service Manager for Spellbook
 
 This service orchestrates the application startup process, including
-card index initialization and system health checks.
+automatic card index initialization from Scryfall API.
 """
 
 import asyncio
@@ -14,7 +14,7 @@ from typing import Dict, Any, Optional
 
 from app.config import settings
 from app.database import check_database_health, async_session_maker
-from app.services.scryfall_bulk_service import scryfall_bulk_service
+from app.services.card_data_service import card_data_service
 from app.core.exceptions import SpellbookException
 
 logger = logging.getLogger(__name__)
@@ -223,38 +223,58 @@ class StartupService:
             }
     
     async def _initialize_card_index(self) -> Dict[str, Any]:
-        """Initialize the card index if needed."""
+        """
+        Initialize the card index automatically.
+        
+        This will:
+        1. Check if the index already has cards
+        2. If empty, download bulk data from Scryfall API automatically
+        3. Populate the index with English cards
+        
+        No manual file downloads needed!
+        """
         logger.info("Card index initialization started.")
         try:
-            # Only force refresh if explicitly configured
-            force_refresh = getattr(settings, 'FORCE_CARD_INDEX_REFRESH', False)
+            # Check if auto-init is disabled
+            auto_init_enabled = getattr(settings, 'AUTO_INIT_CARD_INDEX', True)
             
-            logger.info(f"Force refresh is set to {force_refresh}.")
-
-            result = await scryfall_bulk_service.download_and_populate_index(
-                force_refresh=force_refresh,
-                batch_size=getattr(settings, 'CARD_INDEX_BATCH_SIZE', 1000)
-            )
+            if not auto_init_enabled:
+                card_count = await card_data_service.get_index_count()
+                if card_count > 0:
+                    return {
+                        'success': True,
+                        'message': f"Card index has {card_count:,} cards (auto-init disabled)",
+                        'action': 'skipped',
+                        'card_count': card_count
+                    }
+                else:
+                    return {
+                        'success': False,
+                        'message': "Card index is empty and AUTO_INIT_CARD_INDEX is disabled",
+                        'action': 'skipped',
+                        'card_count': 0
+                    }
+            
+            # Use the new card_data_service for automatic initialization
+            result = await card_data_service.ensure_initialized()
             
             if result['status'] == 'success':
-                logger.info(f"Card index successfully populated with {result['inserted_cards']} cards.")
                 return {
                     'success': True,
                     'message': f"Card index initialized: {result['inserted_cards']:,} cards in {result['duration_seconds']:.1f}s",
                     'action': 'populated',
                     'card_count': result['inserted_cards'],
-                    'duration_seconds': result['duration_seconds']
+                    'duration_seconds': result['duration_seconds'],
+                    'data_type': result.get('data_type', 'unknown')
                 }
-            elif result['status'] == 'skipped':
-                logger.info("Card index population was skipped.")
+            elif result['status'] == 'already_initialized':
                 return {
                     'success': True,
-                    'message': result['reason'],
+                    'message': f"Card index already has {result['card_count']:,} cards",
                     'action': 'skipped',
-                    'card_count': result.get('existing_cards', 0)
+                    'card_count': result['card_count']
                 }
             else:
-                logger.error(f"Card index initialization failed: {result.get('error')}")
                 return {
                     'success': False,
                     'message': f"Card index initialization failed: {result.get('error', 'Unknown error')}",
@@ -277,20 +297,22 @@ class StartupService:
             # Check database
             db_healthy = await check_database_health()
             
-            # Check card index
-            card_count = await scryfall_bulk_service.get_card_index_count()
+            # Check card index using new service
+            index_status = await card_data_service.get_status()
+            card_count = index_status['total_cards']
             
             health_status = {
                 'database_healthy': db_healthy,
                 'card_index_count': card_count,
-                'card_index_ready': card_count > 0
+                'card_index_ready': index_status['is_initialized'],
+                'english_cards': index_status['english_cards']
             }
             
-            all_healthy = db_healthy and card_count > 0
+            all_healthy = db_healthy and index_status['is_initialized']
             
             return {
                 'success': all_healthy,
-                'message': f"Health check: DB {'OK' if db_healthy else 'FAIL'}, Index {card_count:,} cards",
+                'message': f"Health check: DB {'OK' if db_healthy else 'FAIL'}, Index {card_count:,} cards ({index_status['english_cards']:,} English)",
                 'health': health_status
             }
             

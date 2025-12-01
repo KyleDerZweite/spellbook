@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from app.database import get_async_session
 from app.models.user import User, UserStatus
 from app.core.deps import get_current_admin_user
+from app.core.security import get_password_hash
 from app.config import settings
 import uuid
 from datetime import datetime
@@ -23,6 +24,8 @@ class AdminUserResponse(BaseModel):
     is_active: bool
     created_at: datetime
     last_login_at: Optional[datetime] = None
+    suspension_reason: Optional[str] = None
+    suspended_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -37,12 +40,22 @@ class AdminUserResponse(BaseModel):
             is_admin=user.is_admin,
             is_active=user.is_active,
             created_at=user.created_at,
-            last_login_at=user.last_login_at
+            last_login_at=user.last_login_at,
+            suspension_reason=user.suspension_reason,
+            suspended_at=user.suspended_at
         )
 
 
 class UpdateUserStatusRequest(BaseModel):
     status: str = Field(..., description="New user status: pending, approved, rejected, suspended")
+
+
+class SuspendUserRequest(BaseModel):
+    reason: Optional[str] = Field(None, description="Reason for suspension", max_length=500)
+
+
+class ChangePasswordRequest(BaseModel):
+    new_password: str = Field(..., description="New password for the user", min_length=8)
 
 
 class SystemSettingsResponse(BaseModel):
@@ -214,6 +227,11 @@ async def get_admin_stats(
         )
         approved_users = approved_users_result.scalar()
         
+        suspended_users_result = await session.execute(
+            select(func.count(User.id)).where(cast(User.status, String) == 'SUSPENDED')
+        )
+        suspended_users = suspended_users_result.scalar()
+        
         admin_users_result = await session.execute(
             select(func.count(User.id)).where(User.is_admin == True)
         )
@@ -223,6 +241,7 @@ async def get_admin_stats(
             "total_users": total_users,
             "pending_users": pending_users,
             "approved_users": approved_users,
+            "suspended_users": suspended_users,
             "admin_users": admin_users,
             "registration_mode": settings.REGISTRATION_MODE
         }
@@ -310,3 +329,156 @@ async def delete_user(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete user: {str(e)}"
         )
+
+
+@router.post("/users/{user_id}/suspend")
+async def suspend_user(
+    user_id: str,
+    suspend_request: SuspendUserRequest,
+    current_admin: User = Depends(get_current_admin_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    """
+    Suspend a user account with an optional reason.
+    Only accessible by admin users.
+    """
+    # Validate user_id format
+    try:
+        user_uuid = uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid user ID format"
+        )
+    
+    # Get the user
+    result = await session.execute(select(User).where(User.id == user_uuid))
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Prevent admin from suspending themselves
+    if user.id == current_admin.id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot suspend your own account"
+        )
+    
+    # Prevent suspending other admins
+    if user.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot suspend admin accounts"
+        )
+    
+    # Suspend the user
+    user.status = UserStatus.SUSPENDED.value
+    user.is_active = False
+    user.suspension_reason = suspend_request.reason
+    user.suspended_at = datetime.utcnow()
+    user.suspended_by_id = current_admin.id
+    
+    await session.commit()
+    await session.refresh(user)
+    
+    return {
+        "message": f"User {user.username} has been suspended",
+        "user": AdminUserResponse.from_user(user)
+    }
+
+
+@router.post("/users/{user_id}/unsuspend")
+async def unsuspend_user(
+    user_id: str,
+    current_admin: User = Depends(get_current_admin_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    """
+    Remove suspension from a user account.
+    Only accessible by admin users.
+    """
+    # Validate user_id format
+    try:
+        user_uuid = uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid user ID format"
+        )
+    
+    # Get the user
+    result = await session.execute(select(User).where(User.id == user_uuid))
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    if user.status != UserStatus.SUSPENDED.value:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User is not suspended"
+        )
+    
+    # Unsuspend the user
+    user.status = UserStatus.APPROVED.value
+    user.is_active = True
+    user.suspension_reason = None
+    user.suspended_at = None
+    user.suspended_by_id = None
+    
+    await session.commit()
+    await session.refresh(user)
+    
+    return {
+        "message": f"User {user.username} has been unsuspended",
+        "user": AdminUserResponse.from_user(user)
+    }
+
+
+@router.patch("/users/{user_id}/password")
+async def change_user_password(
+    user_id: str,
+    password_request: ChangePasswordRequest,
+    current_admin: User = Depends(get_current_admin_user),
+    session: AsyncSession = Depends(get_async_session)
+):
+    """
+    Change a user's password.
+    Only accessible by admin users.
+    """
+    # Validate user_id format
+    try:
+        user_uuid = uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid user ID format"
+        )
+    
+    # Get the user
+    result = await session.execute(select(User).where(User.id == user_uuid))
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Update the password
+    user.password_hash = get_password_hash(password_request.new_password)
+    
+    await session.commit()
+    await session.refresh(user)
+    
+    return {
+        "message": f"Password changed for user {user.username}",
+        "user": AdminUserResponse.from_user(user)
+    }

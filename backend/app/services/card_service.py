@@ -14,7 +14,7 @@ from uuid import UUID
 
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, case
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
@@ -326,6 +326,8 @@ class CardDetailsService:
         """Update last accessed timestamp"""
         card.update_access_time()
         await session.commit()
+        # Refresh to ensure all attributes are loaded after commit
+        await session.refresh(card)
     
     async def _fetch_from_scryfall(self, scryfall_id: UUID) -> Optional[Dict[str, Any]]:
         """Fetch card data from Scryfall API"""
@@ -352,6 +354,8 @@ class CardDetailsService:
         session: AsyncSession
     ) -> Card:
         """Store fetched card data in the database"""
+        current_time = datetime.utcnow()
+        
         # Create Card object from API data
         card = Card(
             scryfall_id=UUID(card_data['id']),
@@ -374,8 +378,10 @@ class CardDetailsService:
             extra_data=card_data,  # Store complete API response
             storage_reason=CardStorageReason.SEARCH_CACHE.value,
             permanent=False,
-            cached_at=datetime.utcnow(),
-            last_accessed=datetime.utcnow()
+            cached_at=current_time,
+            last_accessed=current_time,
+            created_at=current_time,
+            updated_at=current_time
         )
         
         # Handle set relationship
@@ -401,9 +407,13 @@ class CardDetailsService:
         limit: int,
         offset: int
     ) -> List[CardIndex]:
-        """Search the card index with the given parameters"""
+        """Search the card index with the given parameters (English cards only by default)"""
         query = select(CardIndex)
         conditions = []
+        
+        # Filter to English cards only (unless explicitly searching all languages)
+        if not query_params.get('include_all_languages'):
+            conditions.append(CardIndex.lang == 'en')
         
         # Text search
         if query_params.get('q'):
@@ -454,11 +464,15 @@ class CardDetailsService:
         from sqlalchemy import func, distinct
         
         # Build query for unique oracle_ids with counts
+        # Only count English cards to get accurate "printings" count like Scryfall
         query = select(
             CardIndex.oracle_id,
             func.count(CardIndex.scryfall_id).label('version_count'),
             func.min(CardIndex.name).label('card_name')  # For ordering
-        ).where(CardIndex.oracle_id.is_not(None))
+        ).where(
+            CardIndex.oracle_id.is_not(None),
+            CardIndex.lang == 'en'  # Only English cards
+        )
         
         conditions = []
         
@@ -514,12 +528,21 @@ class CardDetailsService:
         ]
     
     async def _get_representative_card(self, oracle_id: UUID, session: AsyncSession) -> Optional[Card]:
-        """Get a representative card for the given oracle_id (prefer most recent set)"""
-        # First try to find a card already cached in our database
+        """Get a representative card for the given oracle_id (prefer English, most recent set)"""
+        from sqlalchemy import case, text
+        
+        # First try to find an English card already cached in our database
         cached_result = await session.execute(
             select(Card)
             .where(Card.oracle_id == oracle_id)
-            .order_by(Card.created_at.desc())
+            .order_by(
+                # Prefer English cards (lang='en' first)
+                case(
+                    (Card.extra_data['lang'].astext == 'en', 0),
+                    else_=1
+                ),
+                Card.created_at.desc()
+            )
             .limit(1)
         )
         cached_card = cached_result.scalar_one_or_none()
@@ -528,10 +551,17 @@ class CardDetailsService:
             return cached_card
         
         # If no cached card, get one from the index and fetch its details
+        # Prefer English cards
         index_result = await session.execute(
             select(CardIndex)
             .where(CardIndex.oracle_id == oracle_id)
-            .order_by(CardIndex.name, CardIndex.set_code.desc())  # Prefer newer sets
+            .order_by(
+                case(
+                    (CardIndex.lang == 'en', 0),
+                    else_=1
+                ),
+                CardIndex.set_code.desc()  # Prefer newer sets
+            )
             .limit(1)
         )
         index_card = index_result.scalar_one_or_none()

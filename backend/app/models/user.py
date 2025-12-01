@@ -25,6 +25,11 @@ class User(Base):
     is_admin = Column(Boolean, default=False)
     status = Column(Enum(UserStatus), default=UserStatus.APPROVED, nullable=False)
     
+    # Suspension details
+    suspension_reason = Column(String(500), nullable=True)
+    suspended_at = Column(DateTime(timezone=True), nullable=True)
+    suspended_by_id = Column(UUID(as_uuid=True), nullable=True)
+    
     collections = relationship("Collection", back_populates="user", cascade="all, delete-orphan")
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)

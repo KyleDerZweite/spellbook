@@ -104,7 +104,7 @@ async def add_cache_headers(request: Request, call_next):
 async def health_check():
     from app.database import check_database_health
     from app.services.startup_service import startup_service
-    from app.services.scryfall_bulk_service import scryfall_bulk_service
+    from app.services.card_data_service import card_data_service
     import shutil
     from pathlib import Path
     
@@ -113,8 +113,9 @@ async def health_check():
     
     # Card index status
     try:
-        card_count = await scryfall_bulk_service.get_card_index_count()
-        card_index_ready = card_count > 0
+        index_status = await card_data_service.get_status()
+        card_count = index_status['total_cards']
+        card_index_ready = index_status['is_initialized']
     except Exception:
         card_count = 0
         card_index_ready = False

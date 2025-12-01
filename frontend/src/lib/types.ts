@@ -34,6 +34,19 @@ export interface User {
   last_login_at?: string
 }
 
+export interface AdminUser extends User {
+  suspension_reason?: string | null
+  suspended_at?: string | null
+}
+
+export interface SuspensionInfo {
+  error: 'account_suspended'
+  message: string
+  suspension_reason?: string | null
+  suspended_at?: string | null
+  contact_email?: string | null
+}
+
 export interface CardIndexItem {
   id: ID
   scryfall_id: ID

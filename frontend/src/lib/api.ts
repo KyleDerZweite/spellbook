@@ -5,6 +5,7 @@ import type {
   CardSearchParams, 
   Tokens, 
   User, 
+  AdminUser,
   UserCard, 
   CollectionStats,
   Invite
@@ -182,6 +183,7 @@ export const api = {
       total_users: number 
       pending_users: number 
       approved_users: number 
+      suspended_users: number
       admin_users: number 
       registration_mode: string
     }> {
@@ -189,6 +191,7 @@ export const api = {
         total_users: number 
         pending_users: number 
         approved_users: number 
+        suspended_users: number
         admin_users: number 
         registration_mode: string
       }>('/admin/stats')
@@ -196,8 +199,23 @@ export const api = {
     },
 
     async deleteUser(userId: string): Promise<{ message: string; deleted_user_id: string }> {
-      const { data } = await apiClient.delete<ApiResponse<{ message: string; deleted_user_id: string }>>(`/admin/users/${userId}`)
-      return data.data
+      const { data } = await apiClient.delete<{ message: string; deleted_user_id: string }>(`/admin/users/${userId}`)
+      return data
+    },
+
+    async suspendUser(userId: string, reason?: string): Promise<{ message: string; user: AdminUser }> {
+      const { data } = await apiClient.post<{ message: string; user: AdminUser }>(`/admin/users/${userId}/suspend`, { reason })
+      return data
+    },
+
+    async unsuspendUser(userId: string): Promise<{ message: string; user: AdminUser }> {
+      const { data } = await apiClient.post<{ message: string; user: AdminUser }>(`/admin/users/${userId}/unsuspend`)
+      return data
+    },
+
+    async changeUserPassword(userId: string, newPassword: string): Promise<{ message: string; user: AdminUser }> {
+      const { data } = await apiClient.patch<{ message: string; user: AdminUser }>(`/admin/users/${userId}/password`, { new_password: newPassword })
+      return data
     },
   },
 

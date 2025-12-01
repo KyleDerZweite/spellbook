@@ -114,13 +114,13 @@ async def register_user(
 
 @router.post(
     "/login", 
-    response_model=Token,
     summary="User login",
     description="Authenticate user and return access and refresh tokens",
     responses={
         200: {"description": "Login successful, tokens returned"},
         401: {"description": "Invalid credentials"},
-        400: {"description": "Inactive user account"}
+        400: {"description": "Inactive user account"},
+        403: {"description": "Account suspended"}
     }
 )
 async def login_user(
@@ -151,7 +151,17 @@ async def login_user(
         elif user.status == UserStatus.REJECTED.value:
             raise AuthenticationError("Account has been rejected")
         elif user.status == UserStatus.SUSPENDED.value:
-            raise AuthenticationError("Account has been suspended")
+            # Return detailed suspension info
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "error": "account_suspended",
+                    "message": "Your account has been suspended",
+                    "suspension_reason": user.suspension_reason,
+                    "suspended_at": user.suspended_at.isoformat() if user.suspended_at else None,
+                    "contact_email": settings.ADMIN_EMAIL if hasattr(settings, 'ADMIN_EMAIL') else None
+                }
+            )
         
         # Create tokens
         access_token = create_access_token(data={"sub": str(user.id)})

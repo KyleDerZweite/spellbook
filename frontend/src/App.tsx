@@ -3,6 +3,7 @@ import { useAuth } from './lib/auth'
 import { Layout } from './components/layout/Layout'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { SuspendedPage } from './pages/SuspendedPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { SearchPage } from './pages/SearchPage'
 import { CollectionPage } from './pages/CollectionPage'
@@ -66,6 +67,10 @@ function App() {
             <RegisterPage />
           </PublicRoute>
         }
+      />
+      <Route
+        path="/suspended"
+        element={<SuspendedPage />}
       />
 
       {/* Protected routes */}

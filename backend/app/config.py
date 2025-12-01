@@ -62,16 +62,22 @@ class Settings(BaseSettings):
     # Registration mode
     REGISTRATION_MODE: str = "OPEN"  # OPEN, INVITE_ONLY, ADMIN_APPROVAL
     
+    # Admin contact
+    ADMIN_EMAIL: str = "admin@spellbook.local"  # Contact email for suspended users
+    
     # Card caching settings
     CARD_CACHE_DAYS: int = 30                    # How long to keep search results
     AUTO_CLEANUP_ENABLED: bool = True            # Automatic cache cleanup
     PERMANENT_ON_COLLECTION_ADD: bool = True     # Make permanent when added to collection
     
     # Card index initialization settings
+    AUTO_INIT_CARD_INDEX: bool = True            # Auto-download bulk data on first startup if index is empty
     AUTO_UPDATE_CARD_INDEX: bool = True          # Automatically update card index on startup
-    CARD_INDEX_BATCH_SIZE: int = 1000           # Batch size for card index inserts
-    MIN_STORAGE_GB: int = 10                    # Minimum storage space required (GB)
-    FORCE_CARD_INDEX_REFRESH: bool = False      # Force refresh card index even if it exists
+    CARD_INDEX_BATCH_SIZE: int = 2000            # Batch size for card index inserts (higher = faster)
+    MIN_CARDS_FOR_VALID_INDEX: int = 10000       # Minimum cards to consider index valid
+    MIN_STORAGE_GB: int = 10                     # Minimum storage space required (GB)
+    FORCE_CARD_INDEX_REFRESH: bool = False       # Force refresh card index even if it exists
+
 
     # The following variables are read from the .env file
     POSTGRES_USER: str = "user"

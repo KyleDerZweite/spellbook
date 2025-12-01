@@ -18,6 +18,9 @@ class CardIndex(Base):
     scryfall_id = Column(UUID(as_uuid=True), primary_key=True)
     oracle_id = Column(UUID(as_uuid=True), nullable=True, index=True)
     
+    # Language - important for filtering to English-only results
+    lang = Column(String(5), nullable=True, index=True, default='en')
+    
     # Essential search fields
     name = Column(String(255), nullable=False, index=True)
     set_code = Column(String(10), nullable=True, index=True)
