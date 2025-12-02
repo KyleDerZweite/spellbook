@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -5,17 +6,19 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { getCardImageUrl, formatPrice } from '@/lib/utils'
 import type { Card, UserCard } from '@/lib/types'
-import { Plus, ExternalLink } from 'lucide-react'
+import { Plus, ExternalLink, Minus } from 'lucide-react'
 
 interface CardDetailsProps {
   card: Card | null
   userCard?: UserCard
   open: boolean
   onOpenChange: (open: boolean) => void
-  onAddToCollection?: (card: Card) => void
-  showAddButton?: boolean
+  onQuantityChange?: (card: Card, quantity: number) => void
+  showCollectionControls?: boolean
+  currentQuantity?: number
 }
 
 export function CardDetails({
@@ -23,14 +26,99 @@ export function CardDetails({
   userCard,
   open,
   onOpenChange,
-  onAddToCollection,
-  showAddButton = false,
+  onQuantityChange,
+  showCollectionControls = false,
+  currentQuantity = 0,
 }: CardDetailsProps) {
+  // Local state for the quantity input
+  const [localQuantity, setLocalQuantity] = useState(currentQuantity)
+  const [inputValue, setInputValue] = useState(currentQuantity.toString())
+  const pendingQuantityRef = useRef<number | null>(null)
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  
+  // Function to commit the pending quantity change
+  const commitQuantityChange = useCallback(() => {
+    if (pendingQuantityRef.current !== null && card && onQuantityChange) {
+      onQuantityChange(card, pendingQuantityRef.current)
+      pendingQuantityRef.current = null
+    }
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+      debounceTimerRef.current = null
+    }
+  }, [card, onQuantityChange])
+  
+  // Sync local state with prop changes
+  useEffect(() => {
+    setLocalQuantity(currentQuantity)
+    setInputValue(currentQuantity.toString())
+    pendingQuantityRef.current = null
+  }, [currentQuantity, card?.scryfall_id])
+  
+  // Commit pending changes when modal closes
+  useEffect(() => {
+    if (!open) {
+      commitQuantityChange()
+    }
+  }, [open, commitQuantityChange])
+  
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+  }, [])
+
   if (!card) return null
 
-  const quantity = userCard?.quantity || 0
   const foilQuantity = userCard?.foil_quantity || 0
-  const totalQuantity = quantity + foilQuantity
+  const cardInCollection = localQuantity > 0
+
+  const scheduleQuantityUpdate = (newQuantity: number) => {
+    pendingQuantityRef.current = newQuantity
+    
+    // Clear existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+    
+    // Set new timer for 1 second
+    debounceTimerRef.current = setTimeout(() => {
+      commitQuantityChange()
+    }, 1000)
+  }
+
+  const handleQuantityChange = (newQuantity: number) => {
+    // Clamp between 0 and 9999
+    const clampedQuantity = Math.max(0, Math.min(9999, newQuantity))
+    setLocalQuantity(clampedQuantity)
+    setInputValue(clampedQuantity.toString())
+    scheduleQuantityUpdate(clampedQuantity)
+  }
+
+  const handleInputChange = (value: string) => {
+    setInputValue(value)
+    // Allow empty input while typing
+    if (value === '') {
+      setLocalQuantity(0)
+      return
+    }
+    const parsed = parseInt(value, 10)
+    if (!isNaN(parsed)) {
+      const clampedQuantity = Math.max(0, Math.min(9999, parsed))
+      setLocalQuantity(clampedQuantity)
+      scheduleQuantityUpdate(clampedQuantity)
+    }
+  }
+
+  const handleInputBlur = () => {
+    // On blur, ensure the input shows the actual quantity
+    setInputValue(localQuantity.toString())
+    // Also commit any pending changes immediately on blur
+    commitQuantityChange()
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -104,32 +192,54 @@ export function CardDetails({
                 />
               )}
 
-              {totalQuantity > 0 && (
-                <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
-                  <p className="text-sm font-medium text-primary">
-                    In Collection: {totalQuantity}
-                    {foilQuantity > 0 && (
-                      <span className="ml-2 text-mana-gold">
-                        ({foilQuantity} foil)
-                      </span>
-                    )}
-                  </p>
+              {foilQuantity > 0 && (
+                <div className="text-sm text-mana-gold">
+                  {foilQuantity} foil {foilQuantity === 1 ? 'copy' : 'copies'}
                 </div>
               )}
             </div>
 
+            {/* Collection Controls */}
+            {showCollectionControls && onQuantityChange && (
+              <div className="mt-6">
+                <p className="text-sm font-medium text-muted-foreground mb-2">In Your Collection</p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleQuantityChange(localQuantity - 1)}
+                    disabled={localQuantity <= 0}
+                    className="h-10 w-10"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </Button>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="9999"
+                    value={inputValue}
+                    onChange={(e) => handleInputChange(e.target.value)}
+                    onBlur={handleInputBlur}
+                    className="w-20 text-center text-lg font-semibold [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleQuantityChange(localQuantity + 1)}
+                    disabled={localQuantity >= 9999}
+                    className="h-10 w-10"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm text-muted-foreground ml-2">
+                    {cardInCollection ? 'copies' : 'not in collection'}
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Actions */}
             <div className="mt-6 flex gap-3 flex-wrap">
-              {showAddButton && onAddToCollection && (
-                <Button
-                  onClick={() => onAddToCollection(card)}
-                  className="flex items-center gap-2"
-                >
-                  <Plus size={16} />
-                  Add to Collection
-                </Button>
-              )}
-
               {card.scryfall_id && (
                 <Button variant="outline" asChild>
                   <a
@@ -139,7 +249,7 @@ export function CardDetails({
                     className="flex items-center gap-2"
                   >
                     <ExternalLink size={16} />
-                    Scryfall
+                    View on Scryfall
                   </a>
                 </Button>
               )}

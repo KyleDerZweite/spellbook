@@ -62,6 +62,42 @@ class RedisService:
             print(f"Redis cache_card_details error: {e}")
         return False
 
+    async def mark_card_in_collection(self, scryfall_id: UUID, user_id: UUID) -> bool:
+        """Mark a card as being in a user's collection for tracking purposes"""
+        if not self.client:
+            return False
+        try:
+            # Add card to user's collection set
+            await self.client.sadd(f"user:{user_id}:collection", str(scryfall_id))
+            # Also track which users have this card (for potential future features)
+            await self.client.sadd(f"card:{scryfall_id}:users", str(user_id))
+            return True
+        except Exception as e:
+            print(f"Redis mark_card_in_collection error: {e}")
+        return False
+
+    async def unmark_card_from_collection(self, scryfall_id: UUID, user_id: UUID) -> bool:
+        """Remove a card from a user's collection tracking"""
+        if not self.client:
+            return False
+        try:
+            await self.client.srem(f"user:{user_id}:collection", str(scryfall_id))
+            await self.client.srem(f"card:{scryfall_id}:users", str(user_id))
+            return True
+        except Exception as e:
+            print(f"Redis unmark_card_from_collection error: {e}")
+        return False
+
+    async def is_card_in_collection(self, scryfall_id: UUID, user_id: UUID) -> bool:
+        """Check if a card is in a user's collection"""
+        if not self.client:
+            return False
+        try:
+            return await self.client.sismember(f"user:{user_id}:collection", str(scryfall_id))
+        except Exception as e:
+            print(f"Redis is_card_in_collection error: {e}")
+        return False
+
 redis_service = RedisService(settings.REDIS_URL)
 
 async def get_redis_service() -> RedisService:

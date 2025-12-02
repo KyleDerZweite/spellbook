@@ -125,17 +125,57 @@ export const api = {
       if (payload.condition) {
         formData.append('condition', payload.condition)
       }
-      const { data } = await apiClient.post<UserCard>('/collections/mine/cards', formData)
+      const { data } = await apiClient.post<UserCard>('/collections/mine/cards', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      })
       return data
     },
 
-    async updateCard(id: string, payload: Partial<UserCard>): Promise<UserCard> {
-      const { data } = await apiClient.patch<ApiResponse<UserCard>>(`/collections/mine/cards/${id}`, payload)
-      return data.data
+    async updateCardQuantity(cardScryfallId: string, quantity: number): Promise<UserCard | void> {
+      if (quantity <= 0) {
+        // Remove the card if quantity is 0 or less
+        try {
+          await apiClient.delete(`/collections/mine/cards/${cardScryfallId}`)
+        } catch (error) {
+          // Ignore 404 errors - card might not be in collection
+          if ((error as { response?: { status: number } })?.response?.status !== 404) {
+            throw error
+          }
+        }
+        return
+      }
+      
+      // Try to update the quantity first
+      try {
+        const formData = new FormData()
+        formData.append('quantity', quantity.toString())
+        const { data } = await apiClient.put<UserCard>(`/collections/mine/cards/${cardScryfallId}`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        })
+        return data
+      } catch (error) {
+        // If card not found (404), add it instead
+        if ((error as { response?: { status: number } })?.response?.status === 404) {
+          const formData = new FormData()
+          formData.append('card_scryfall_id', cardScryfallId)
+          formData.append('quantity', quantity.toString())
+          const { data } = await apiClient.post<UserCard>('/collections/mine/cards', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          })
+          return data
+        }
+        throw error
+      }
     },
 
-    async removeCard(id: string): Promise<void> {
-      await apiClient.delete(`/collections/mine/cards/${id}`)
+    async removeCard(cardScryfallId: string): Promise<void> {
+      await apiClient.delete(`/collections/mine/cards/${cardScryfallId}`)
     },
 
     async stats(): Promise<CollectionStats> {

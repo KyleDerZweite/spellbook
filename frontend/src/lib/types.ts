@@ -91,6 +91,7 @@ export interface UserCard {
   id: ID
   user_id: ID
   card_id: ID
+  card_scryfall_id: ID
   card?: Card
   quantity: number
   foil_quantity?: number

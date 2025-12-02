@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { CardGrid } from '@/components/cards/CardGrid'
 import { CardDetails } from '@/components/cards/CardDetails'
@@ -9,11 +9,14 @@ import { Library, TrendingUp, Star, Loader2, Search, Package } from 'lucide-reac
 import { Link } from 'react-router-dom'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { useToast } from '@/components/ui/use-toast'
 
 export function CollectionPage() {
   const [selectedCard, setSelectedCard] = useState<CardType | null>(null)
   const [selectedUserCard, setSelectedUserCard] = useState<UserCard | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
 
   const collectionQuery = useQuery({
     queryKey: ['collections', 'mine'],
@@ -25,11 +28,38 @@ export function CollectionPage() {
     queryFn: api.collections.stats,
   })
 
+  const updateQuantityMutation = useMutation({
+    mutationFn: ({ card, quantity }: { card: CardType; quantity: number }) => {
+      if (quantity === 0) {
+        return api.collections.removeCard(card.scryfall_id)
+      }
+      return api.collections.updateCardQuantity(card.scryfall_id, quantity)
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['collections', 'mine'] })
+      queryClient.invalidateQueries({ queryKey: ['collections', 'mine', 'stats'] })
+      if (variables.quantity === 0) {
+        setIsModalOpen(false)
+      }
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to update card quantity.',
+        variant: 'destructive',
+      })
+    },
+  })
+
   const handleCardView = (card: CardType) => {
     setSelectedCard(card)
     const userCard = collectionQuery.data?.items.find(uc => uc.card_id === card.id)
     setSelectedUserCard(userCard || null)
     setIsModalOpen(true)
+  }
+
+  const handleQuantityChange = (card: CardType, quantity: number) => {
+    updateQuantityMutation.mutate({ card, quantity })
   }
 
   if (collectionQuery.isLoading) {
@@ -125,6 +155,9 @@ export function CollectionPage() {
         userCard={selectedUserCard || undefined}
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
+        onQuantityChange={handleQuantityChange}
+        showCollectionControls
+        currentQuantity={selectedUserCard?.quantity || 0}
       />
     </div>
   )

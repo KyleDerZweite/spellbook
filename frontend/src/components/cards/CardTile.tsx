@@ -2,11 +2,12 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { cn, getCardImageUrl, rarityColor } from '@/lib/utils'
 import type { Card as CardType, UserCard } from '@/lib/types'
-import { Plus, Layers } from 'lucide-react'
+import { Plus, Layers, Check } from 'lucide-react'
 
 interface CardTileProps {
   card: CardType
   userCard?: UserCard
+  isInCollection?: boolean
   showAddButton?: boolean
   showQuantity?: boolean
   showVersionCount?: boolean
@@ -18,6 +19,7 @@ interface CardTileProps {
 export function CardTile({
   card,
   userCard,
+  isInCollection = false,
   showAddButton = false,
   showQuantity = false,
   showVersionCount = false,
@@ -26,6 +28,7 @@ export function CardTile({
   onVersionsClick,
 }: CardTileProps) {
   const quantity = userCard?.quantity || 0
+  const cardOwned = isInCollection || quantity > 0
 
   return (
     <Card
@@ -63,6 +66,13 @@ export function CardTile({
           >
             <Plus className="h-4 w-4" />
           </Button>
+        )}
+
+        {/* In Collection Badge */}
+        {cardOwned && !showQuantity && (
+          <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-xs font-bold p-1.5 rounded-full">
+            <Check className="h-3 w-3" />
+          </div>
         )}
 
         {/* Quantity Badge */}

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import type { Card as CardType, CardSearchParams } from '@/lib/types'
+import type { Card as CardType, CardSearchParams, UserCard } from '@/lib/types'
 import { CardGrid } from '@/components/cards/CardGrid'
 import { CardDetails } from '@/components/cards/CardDetails'
 import { SearchFilters } from '@/components/forms/SearchFilters'
@@ -30,6 +30,32 @@ export function SearchPage() {
   const [useUniqueSearch, setUseUniqueSearch] = useState(true)
   const queryClient = useQueryClient()
   const { toast } = useToast()
+
+  // Fetch user's collection to check if cards are already owned
+  const collectionQuery = useQuery({
+    queryKey: ['collections', 'mine'],
+    queryFn: api.collections.mine,
+    staleTime: 30000, // Cache for 30 seconds
+  })
+
+  // Create a set of scryfall_ids that are in the collection for quick lookup
+  const collectionCardIds = useMemo(() => {
+    const ids = new Set<string>()
+    collectionQuery.data?.items.forEach((item: UserCard) => {
+      if (item.card_scryfall_id) {
+        ids.add(item.card_scryfall_id)
+      }
+    })
+    return ids
+  }, [collectionQuery.data])
+
+  // Find the userCard for the selected card
+  const selectedUserCard = useMemo(() => {
+    if (!selectedCard || !collectionQuery.data) return undefined
+    return collectionQuery.data.items.find(
+      (item: UserCard) => item.card_scryfall_id === selectedCard.scryfall_id
+    )
+  }, [selectedCard, collectionQuery.data])
 
   // Debounced search to avoid too many API calls
   const debouncedSetParams = useMemo(
@@ -84,6 +110,25 @@ export function SearchPage() {
     },
   })
 
+  const updateQuantityMutation = useMutation({
+    mutationFn: ({ card, quantity }: { card: CardType; quantity: number }) => {
+      if (quantity === 0) {
+        return api.collections.removeCard(card.scryfall_id)
+      }
+      return api.collections.updateCardQuantity(card.scryfall_id, quantity)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['collections', 'mine'] })
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to update card quantity.',
+        variant: 'destructive',
+      })
+    },
+  })
+
   const handleSearch = (query: string) => {
     const newParams = {
       ...params,
@@ -118,6 +163,10 @@ export function SearchPage() {
 
   const handleAddToCollection = (card: CardType) => {
     addToCollectionMutation.mutate(card)
+  }
+
+  const handleQuantityChange = (card: CardType, quantity: number) => {
+    updateQuantityMutation.mutate({ card, quantity })
   }
 
   return (
@@ -200,6 +249,7 @@ export function SearchPage() {
 
           <CardGrid
             cards={cardsQuery.data.data}
+            collectionCardIds={collectionCardIds}
             showAddButton
             showVersionCount={useUniqueSearch}
             onAdd={handleAddToCollection}
@@ -277,10 +327,12 @@ export function SearchPage() {
       {/* Card Details Modal */}
       <CardDetails
         card={selectedCard}
+        userCard={selectedUserCard}
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
-        onAddToCollection={handleAddToCollection}
-        showAddButton
+        onQuantityChange={handleQuantityChange}
+        showCollectionControls
+        currentQuantity={selectedUserCard?.quantity || 0}
       />
 
       {/* Version Selector Modal */}

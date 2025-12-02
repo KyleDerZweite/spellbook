@@ -4,6 +4,7 @@ import type { Card, UserCard } from '@/lib/types'
 interface CardGridProps {
   cards: Card[]
   userCards?: UserCard[]
+  collectionCardIds?: Set<string>
   showAddButton?: boolean
   showQuantity?: boolean
   showVersionCount?: boolean
@@ -17,6 +18,7 @@ interface CardGridProps {
 export function CardGrid({
   cards,
   userCards = [],
+  collectionCardIds,
   showAddButton = false,
   showQuantity = false,
   showVersionCount = false,
@@ -63,6 +65,7 @@ export function CardGrid({
           key={card.id}
           card={card}
           userCard={userCardMap[card.id]}
+          isInCollection={collectionCardIds?.has(card.scryfall_id) || false}
           showAddButton={showAddButton}
           showQuantity={showQuantity}
           showVersionCount={showVersionCount}

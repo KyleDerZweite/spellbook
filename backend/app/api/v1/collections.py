@@ -199,6 +199,40 @@ async def add_card_to_my_collection(
     }
 
 
+@router.put("/mine/cards/{card_scryfall_id}")
+async def update_card_quantity_in_my_collection(
+    card_scryfall_id: UUID,
+    quantity: int = Form(..., ge=1, le=9999, description="New quantity (1-9999)"),
+    db: AsyncSession = Depends(get_async_session),
+    current_user: User = Depends(get_current_user)
+):
+    """Update the quantity of a card in the current user's default collection"""
+    collection = await get_or_create_default_collection(db, current_user)
+    
+    result = await db.execute(
+        select(CollectionCard).where(
+            CollectionCard.collection_id == collection.id,
+            CollectionCard.card_scryfall_id == card_scryfall_id
+        )
+    )
+    db_card = result.scalar_one_or_none()
+    
+    if not db_card:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Card not found in collection")
+    
+    db_card.quantity = quantity
+    await db.commit()
+    await db.refresh(db_card)
+    
+    return {
+        "id": str(db_card.id),
+        "card_scryfall_id": str(db_card.card_scryfall_id),
+        "quantity": db_card.quantity,
+        "condition": db_card.condition,
+        "message": "Card quantity updated"
+    }
+
+
 @router.delete("/mine/cards/{card_scryfall_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_card_from_my_collection(
     card_scryfall_id: UUID,
