@@ -136,6 +136,8 @@ async def validate_schema():
     """Validate that all expected tables exist"""
     print("Validating database schema...")
     
+    # Hardcoded table names - safe to use in query
+    # Using information_schema instead of direct table access to avoid SQL injection warnings
     expected_tables = [
         'users', 'card_sets', 'cards', 'user_cards', 'decks', 'deck_cards'
     ]
@@ -143,10 +145,16 @@ async def validate_schema():
     async with engine.begin() as conn:
         for table in expected_tables:
             try:
+                # Use information_schema to check table existence (SQL injection safe)
                 result = await conn.execute(
-                    text(f"SELECT 1 FROM {table} LIMIT 1")
+                    text("SELECT 1 FROM information_schema.tables WHERE table_name = :table_name"),
+                    {"table_name": table}
                 )
-                print(f"✓ Table '{table}' exists and is accessible")
+                if result.fetchone():
+                    print(f"✓ Table '{table}' exists and is accessible")
+                else:
+                    print(f"✗ Table '{table}' does not exist")
+                    return False
             except Exception as e:
                 print(f"✗ Table '{table}' validation failed: {e}")
                 return False

@@ -143,6 +143,12 @@ services:
         condition: service_healthy
       minio-dev:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys, json, urllib.request; r=urllib.request.urlopen('http://127.0.0.1:8000/health').read(); d=json.loads(r); sys.exit(0 if d.get('status')=='healthy' else 1)"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
     networks:
       - spellbook-dev
 

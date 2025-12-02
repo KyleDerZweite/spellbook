@@ -18,11 +18,22 @@ RUN apt-get update \
 COPY requirements*.txt .
 RUN pip install --no-cache-dir -r requirements-dev.txt
 
-# Copy project
-COPY . .
+# Create non-root user for security
+RUN useradd --create-home --shell /bin/bash appuser \
+    && chown -R appuser:appuser /app
+USER appuser
 
-# Expose port
+# Copy project
+COPY --chown=appuser:appuser . .
+
+# Expose portFROM python:3.11-slim
+
 EXPOSE 8000
+
+# Healthcheck: query FastAPI /health endpoint using Python builtin, keep it lightweight
+# - start-period should be at least as long as the service might need to start
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
+    CMD python -c "import sys, json, urllib.request; r=urllib.request.urlopen('http://127.0.0.1:8000/health').read(); d=json.loads(r); sys.exit(0 if d.get('status')=='healthy' else 1)"
 
 # Default command (overridden in docker-compose)
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

@@ -1,56 +1,53 @@
 # =============================================================================
-# Spellbook Backend Dependencies v2.0
+# Spellbook Backend Dependencies v2.1
 # =============================================================================
 
 # Web Framework
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-python-multipart==0.0.6
+fastapi==0.115.6
+uvicorn[standard]==0.32.1
+python-multipart==0.0.18  # Fixed DoS vulnerability
 
 # Database
-sqlalchemy==2.0.23
-alembic==1.13.0
-asyncpg==0.29.0
+sqlalchemy==2.0.36
+alembic==1.14.0
+asyncpg==0.30.0
 
 # Validation & Config
-pydantic==2.5.0
-pydantic-settings==2.1.0
-python-dotenv==1.0.0
-email-validator==2.1.0
+pydantic==2.10.3
+pydantic-settings==2.6.1
+python-dotenv==1.0.1
+email-validator==2.2.0
 
 # Authentication
-python-jose[cryptography]==3.3.0
+pyjwt[crypto]==2.10.1  # Replaced python-jose (CVE vulnerabilities)
 passlib[bcrypt]==1.7.4
-bcrypt==4.0.1  # Pin to 4.0.1 for passlib compatibility
+bcrypt==4.2.1
 
 # HTTP Client
-httpx==0.25.2
+httpx==0.28.1
 
 # Caching & Message Queue
-redis==5.0.1
-celery==5.3.4
+redis==5.2.1
+celery==5.4.0
 
 # Object Storage (S3/MinIO) - versions must be compatible
-# aioboto3 12.3.0 requires aiobotocore==2.11.2
-# aiobotocore 2.11.2 requires botocore>=1.33.2,<1.34.35
-boto3==1.34.34
-botocore==1.34.34
-aiobotocore==2.11.2
-aioboto3==12.3.0
+boto3==1.35.81
+botocore==1.35.81
+aiobotocore==2.16.0
+aioboto3==13.2.0
 
 # Image Processing & OCR
-pillow==10.1.0
-opencv-python-headless==4.8.1.78
-pytesseract==0.3.10
-numpy==1.26.2
+pillow==11.0.0  # Fixed buffer overflow & arbitrary code execution
+opencv-python-headless==4.10.0.84
+pytesseract==0.3.13
+numpy==2.1.3
 
 # Data Import/Export
-pandas==2.1.4
-python-csv==0.0.13
+pandas==2.2.3
 
 # WebSockets for real-time updates
-websockets==12.0
+websockets==14.1
 
 # Utilities
-aiofiles==23.2.1
+aiofiles==24.1.0
 python-magic==0.4.27
