@@ -87,12 +87,42 @@ export const api = {
 
   cards: {
     async search(params: CardSearchParams): Promise<Card[]> {
-      const { data } = await apiClient.get<ApiResponse<Card[]>>('/cards/search', { params })
+      // Transform array params to backend format
+      const transformedParams: Record<string, unknown> = { ...params }
+      if (params.colors?.length) {
+        transformedParams.colors = params.colors.join('')
+      }
+      const { data } = await apiClient.get<ApiResponse<Card[]>>('/cards/search', { params: transformedParams })
       return data.data
     },
 
     async searchUnique(params: CardSearchParams): Promise<{ data: (Card & { version_count: number })[], meta: { total: number; page: number; per_page: number; total_pages: number; has_next: boolean; has_prev: boolean } }> {
-      const { data } = await apiClient.get<{ data: (Card & { version_count: number })[], meta: { total: number; page: number; per_page: number; total_pages: number; has_next: boolean; has_prev: boolean } }>('/cards/search-unique', { params })
+      // Transform array params to backend format
+      const transformedParams: Record<string, unknown> = {
+        q: params.q,
+        page: params.page,
+        per_page: params.per_page,
+      }
+      // Colors as joined string (for AND logic - must have all colors)
+      if (params.colors?.length) {
+        transformedParams.colors = params.colors.join('')
+      }
+      // Types and rarity as arrays (for OR logic)
+      if (params.types?.length) {
+        transformedParams.types = params.types
+      }
+      if (params.rarity?.length) {
+        transformedParams.rarity = params.rarity
+      }
+      if (params.set_code?.length) {
+        transformedParams.set = params.set_code[0] // Use first set for now
+      }
+      const { data } = await apiClient.get<{ data: (Card & { version_count: number })[], meta: { total: number; page: number; per_page: number; total_pages: number; has_next: boolean; has_prev: boolean } }>('/cards/search-unique', { 
+        params: transformedParams,
+        paramsSerializer: {
+          indexes: null // This sends arrays as types=Artifact&types=Enchantment instead of types[]=...
+        }
+      })
       return data
     },
 

@@ -10,7 +10,7 @@ export function SpellbookIcon({ className }: SpellbookIconProps) {
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 32 32"
       fill="none"
-      stroke="currentColor"
+      stroke="#34d399"
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
@@ -27,12 +27,12 @@ export function SpellbookIcon({ className }: SpellbookIconProps) {
       <path d="M19 11h6" strokeOpacity="0.6" />
       <path d="M19 14h5" strokeOpacity="0.6" />
       {/* Magic sparkles/stars */}
-      <circle cx="10" cy="19" r="0.8" fill="currentColor" stroke="none" />
-      <circle cx="22" cy="18" r="1" fill="currentColor" stroke="none" />
-      <circle cx="14" cy="21" r="0.6" fill="currentColor" stroke="none" />
+      <circle cx="10" cy="19" r="0.8" fill="#34d399ff" stroke="none" />
+      <circle cx="22" cy="18" r="1" fill="#34d399ff" stroke="none" />
+      <circle cx="14" cy="21" r="0.6" fill="#34d399ff" stroke="none" />
       {/* Magical wisps rising from book */}
-      <path d="M12 4c1.5 1 0.5 2.5 2 3" opacity="0.7" strokeWidth="1" />
-      <path d="M20 3.5c-1.5 1 -0.5 2 -2 2.8" opacity="0.7" strokeWidth="1" />
+      <path d="M12 4c1.5 1 0.5 2.5 2 3" stroke="#5ae3b1ff" opacity="0.7" strokeWidth="1" />
+      <path d="M20 3.5c-1.5 1 -0.5 2 -2 2.8" stroke="#5ae3b1ff" opacity="0.7" strokeWidth="1" />
     </svg>
   )
 }

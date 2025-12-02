@@ -138,10 +138,11 @@ async def _get_search_count(query_params: dict, session: AsyncSession) -> int:
 @router.get("/search-unique")
 async def search_unique_cards(
     q: Optional[str] = Query(None, description="Search query (name, type, oracle text)"),
-    colors: Optional[str] = Query(None, description="Color filter (e.g., 'WU' for white/blue)"),
+    colors: Optional[str] = Query(None, description="Color filter (e.g., 'UG' for blue/green)"),
     set_code: Optional[str] = Query(None, alias="set", description="Set code filter"),
-    rarity: Optional[str] = Query(None, description="Rarity filter"),
-    type_line: Optional[str] = Query(None, alias="type", description="Type line filter"),
+    rarity: Optional[List[str]] = Query(None, description="Rarity filter(s)"),
+    types: Optional[List[str]] = Query(None, description="Type filter(s) - e.g., Creature, Instant"),
+    type_line: Optional[str] = Query(None, alias="type", description="Type line filter (legacy)"),
     page: int = Query(1, ge=1, description="Page number"),
     per_page: int = Query(20, ge=1, le=100, description="Results per page"),
     session: AsyncSession = Depends(get_async_session)
@@ -165,16 +166,25 @@ async def search_unique_cards(
         ]
         conditions.append(or_(*text_conditions))
     
+    # Color filter - check if card contains ALL selected colors
     if colors:
-        conditions.append(CardIndex.colors.like(f"%{colors}%"))
+        for color in colors:
+            conditions.append(CardIndex.colors.like(f"%{color}%"))
     
     if set_code:
         conditions.append(CardIndex.set_code == set_code.upper())
     
+    # Rarity filter - support multiple rarities with OR logic
     if rarity:
-        conditions.append(CardIndex.rarity == rarity.lower())
+        rarity_conditions = [CardIndex.rarity == r.lower() for r in rarity]
+        conditions.append(or_(*rarity_conditions))
     
-    if type_line:
+    # Types filter - support multiple types with OR logic (card matches if it has ANY of the types)
+    if types:
+        type_conditions = [CardIndex.type_line.ilike(f"%{t}%") for t in types]
+        conditions.append(or_(*type_conditions))
+    elif type_line:
+        # Legacy single type_line support
         conditions.append(CardIndex.type_line.ilike(f"%{type_line}%"))
     
     try:
