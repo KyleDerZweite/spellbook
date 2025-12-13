@@ -259,7 +259,7 @@ async def remove_card_from_my_collection(
 
 # ==================== Collection CRUD ====================
 
-@router.post("/", response_model=CollectionResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_collection(
     collection: CollectionCreate,
     db: AsyncSession = Depends(get_async_session),
@@ -269,14 +269,25 @@ async def create_collection(
     db.add(db_collection)
     await db.commit()
     await db.refresh(db_collection)
-    return db_collection
+    return {
+        "id": db_collection.id,
+        "name": db_collection.name,
+        "description": db_collection.description,
+        "user_id": db_collection.user_id,
+        "cards": []
+    }
 
 @router.get("/", response_model=List[CollectionResponse])
 async def get_collections(
     db: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(get_current_user)
 ):
-    result = await db.execute(select(Collection).where(Collection.user_id == current_user.id))
+    from sqlalchemy.orm import selectinload
+    result = await db.execute(
+        select(Collection)
+        .options(selectinload(Collection.cards).selectinload(CollectionCard.card))
+        .where(Collection.user_id == current_user.id)
+    )
     return result.scalars().all()
 
 @router.get("/{collection_id}", response_model=CollectionResponse)
@@ -285,7 +296,12 @@ async def get_collection(
     db: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(get_current_user)
 ):
-    result = await db.execute(select(Collection).where(Collection.id == collection_id, Collection.user_id == current_user.id))
+    from sqlalchemy.orm import selectinload
+    result = await db.execute(
+        select(Collection)
+        .options(selectinload(Collection.cards).selectinload(CollectionCard.card))
+        .where(Collection.id == collection_id, Collection.user_id == current_user.id)
+    )
     collection = result.scalar_one_or_none()
     if not collection:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Collection not found")
@@ -298,7 +314,12 @@ async def update_collection(
     db: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(get_current_user)
 ):
-    result = await db.execute(select(Collection).where(Collection.id == collection_id, Collection.user_id == current_user.id))
+    from sqlalchemy.orm import selectinload
+    result = await db.execute(
+        select(Collection)
+        .options(selectinload(Collection.cards).selectinload(CollectionCard.card))
+        .where(Collection.id == collection_id, Collection.user_id == current_user.id)
+    )
     db_collection = result.scalar_one_or_none()
     if not db_collection:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Collection not found")
@@ -308,7 +329,13 @@ async def update_collection(
         
     await db.commit()
     await db.refresh(db_collection)
-    return db_collection
+    # Re-fetch with eager loading after refresh
+    result = await db.execute(
+        select(Collection)
+        .options(selectinload(Collection.cards).selectinload(CollectionCard.card))
+        .where(Collection.id == collection_id)
+    )
+    return result.scalar_one()
 
 @router.delete("/{collection_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_collection(
@@ -351,7 +378,15 @@ async def add_card_to_collection(
     db.add(db_collection_card)
     await db.commit()
     await db.refresh(db_collection_card)
-    return db_collection_card
+    
+    # Re-fetch with eager loading
+    from sqlalchemy.orm import selectinload
+    result = await db.execute(
+        select(CollectionCard)
+        .options(selectinload(CollectionCard.card))
+        .where(CollectionCard.id == db_collection_card.id)
+    )
+    return result.scalar_one()
 
 @router.put("/{collection_id}/cards/{card_id}", response_model=CollectionCardResponse)
 async def update_card_in_collection(
@@ -361,8 +396,10 @@ async def update_card_in_collection(
     db: AsyncSession = Depends(get_async_session),
     current_user: User = Depends(get_current_user)
 ):
+    from sqlalchemy.orm import selectinload
     result = await db.execute(
         select(CollectionCard)
+        .options(selectinload(CollectionCard.card))
         .join(Collection)
         .where(CollectionCard.id == card_id, Collection.id == collection_id, Collection.user_id == current_user.id)
     )
@@ -374,8 +411,14 @@ async def update_card_in_collection(
         setattr(db_card, key, value)
 
     await db.commit()
-    await db.refresh(db_card)
-    return db_card
+    
+    # Re-fetch with eager loading after commit
+    result = await db.execute(
+        select(CollectionCard)
+        .options(selectinload(CollectionCard.card))
+        .where(CollectionCard.id == card_id)
+    )
+    return result.scalar_one()
 
 @router.get("/{collection_id}/cards", response_model=List[CollectionCardResponse])
 async def get_collection_cards(

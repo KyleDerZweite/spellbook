@@ -132,8 +132,11 @@ services:
       - DEBUG=true
       - CELERY_BROKER_URL=redis://redis-dev:6379/0
       - CELERY_RESULT_BACKEND=redis://redis-dev:6379/1
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@spellbook.local}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123!}
     ports:
-      - "${BACKEND_PORT:-8000}:8000"
+      - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
     volumes:
       - ./backend:/app:z
     depends_on:
@@ -166,7 +169,7 @@ services:
       - HOME=/tmp
       - npm_config_cache=/tmp/.npm
     ports:
-      - "${FRONTEND_PORT:-5173}:5173"
+      - "127.0.0.1:${FRONTEND_PORT:-5173}:5173"
     volumes:
       - ./frontend:/app:z
       - frontend_node_modules:/app/node_modules

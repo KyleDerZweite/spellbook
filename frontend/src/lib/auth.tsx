@@ -1,75 +1,129 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { authApi, api } from './api'
-import type { User } from './types'
+/**
+ * Zitadel OIDC Authentication for Spellbook
+ * 
+ * Uses react-oidc-context for OIDC state management with Zitadel IdP.
+ */
 
-interface AuthContextType {
-  user: User | null
-  isAuthenticated: boolean
-  isLoading: boolean
-  login: (username: string, password: string) => Promise<void>
-  register: (username: string, email: string, password: string) => Promise<void>
-  logout: () => void
+import { AuthProvider as OidcAuthProvider, useAuth as useOidcAuth } from "react-oidc-context";
+import { ReactNode } from "react";
+
+// OIDC Configuration
+const authConfig = {
+  authority: import.meta.env.VITE_ZITADEL_AUTHORITY,
+  client_id: import.meta.env.VITE_ZITADEL_CLIENT_ID,
+  redirect_uri: import.meta.env.VITE_ZITADEL_REDIRECT_URI,
+  post_logout_redirect_uri: import.meta.env.VITE_ZITADEL_POST_LOGOUT_URI,
+  scope: "openid profile email",
+  response_type: "code",
+};
+
+// Validate config on load
+const requiredVars = [
+  "VITE_ZITADEL_AUTHORITY",
+  "VITE_ZITADEL_CLIENT_ID",
+  "VITE_ZITADEL_REDIRECT_URI",
+  "VITE_ZITADEL_POST_LOGOUT_URI",
+];
+
+for (const varName of requiredVars) {
+  if (!import.meta.env[varName]) {
+    console.error(`Missing required environment variable: ${varName}`);
+  }
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+interface AuthProviderProps {
+  children: ReactNode;
+}
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-
-  useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      authApi.getCurrentUser()
-        .then(setUser)
-        .catch(() => {
-          localStorage.removeItem('token')
-        })
-        .finally(() => setIsLoading(false))
-    } else {
-      setIsLoading(false)
-    }
-  }, [])
-
-  const login = async (username: string, password: string) => {
-    const { access_token } = await authApi.login({ username, password })
-    localStorage.setItem('token', access_token)
-    // Reload user data
-    const userData = await authApi.getCurrentUser()
-    setUser(userData)
-  }
-
-  const register = async (username: string, email: string, password: string) => {
-    await authApi.register({ username, email, password })
-    await login(username, password)
-  }
-
-  const logout = () => {
-    api.auth.logout()
-    localStorage.removeItem('token')
-    setUser(null)
-  }
+/**
+ * AuthProvider wraps the application with OIDC authentication context.
+ */
+export function AuthProvider({ children }: AuthProviderProps) {
+  const onSigninCallback = () => {
+    // Remove the code and state from URL after successful login
+    window.history.replaceState({}, document.title, window.location.pathname);
+  };
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        isLoading,
-        login,
-        register,
-        logout,
-      }}
-    >
+    <OidcAuthProvider {...authConfig} onSigninCallback={onSigninCallback}>
       {children}
-    </AuthContext.Provider>
-  )
+    </OidcAuthProvider>
+  );
 }
 
+/**
+ * Custom auth hook with Kylehub-specific helpers.
+ */
 export function useAuth() {
-  const context = useContext(AuthContext)
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
-  return context
+  const auth = useOidcAuth();
+  const authority = import.meta.env.VITE_ZITADEL_AUTHORITY;
+
+  // Extract roles from ID token claims
+  const getRoles = (): string[] => {
+    const claims = auth.user?.profile;
+    if (!claims) return [];
+
+    // Zitadel stores roles in this claim
+    const rolesObj = claims["urn:zitadel:iam:org:project:roles"] as
+      | Record<string, unknown>
+      | undefined;
+
+    if (!rolesObj) return [];
+    return Object.keys(rolesObj);
+  };
+
+  // Get avatar URL from Zitadel
+  const getAvatar = (): string | undefined => {
+    const claims = auth.user?.profile;
+    if (!claims) return undefined;
+    return claims.picture as string | undefined;
+  };
+
+  // Check if user has a specific role
+  const hasRole = (role: string): boolean => {
+    return getRoles().includes(role);
+  };
+
+  // Check if user is admin
+  const isAdmin = (): boolean => {
+    return hasRole("ADMIN");
+  };
+
+  // Open Zitadel account settings in new tab
+  const openSettings = (): void => {
+    window.open(`${authority}/ui/console/users/me`, "_blank");
+  };
+
+  // User object compatible with existing code
+  const user = auth.user?.profile ? {
+    id: auth.user.profile.sub || "",
+    email: auth.user.profile.email || "",
+    username: auth.user.profile.preferred_username || auth.user.profile.email || "",
+    is_active: true,
+    is_admin: isAdmin(),
+    created_at: new Date().toISOString(),
+  } : null;
+
+  return {
+    // User info (compatible with existing User type)
+    user,
+    avatar: getAvatar(),
+    accessToken: auth.user?.access_token,
+    isAuthenticated: auth.isAuthenticated,
+    isLoading: auth.isLoading,
+    error: auth.error,
+
+    // Auth actions
+    login: () => auth.signinRedirect(),
+    logout: () =>
+      auth.signoutRedirect({
+        post_logout_redirect_uri: import.meta.env.VITE_ZITADEL_POST_LOGOUT_URI,
+      }),
+    openSettings,
+
+    // Role helpers
+    roles: getRoles(),
+    hasRole,
+    isAdmin,
+  };
 }

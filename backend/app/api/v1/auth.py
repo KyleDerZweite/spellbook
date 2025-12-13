@@ -74,9 +74,9 @@ async def register_user(
             raise ConflictError("Username already taken")
         
         # Determine user status based on registration mode
-        user_status = UserStatus.APPROVED.value
+        user_status = UserStatus.APPROVED
         if settings.REGISTRATION_MODE == "ADMIN_APPROVAL":
-            user_status = UserStatus.PENDING.value
+            user_status = UserStatus.PENDING
         
         # Create new user
         password_hash = get_password_hash(user_data.password)
@@ -85,7 +85,7 @@ async def register_user(
             username=user_data.username,
             password_hash=password_hash,
             status=user_status,
-            is_active=(user_status == UserStatus.APPROVED.value)
+            is_active=(user_status == UserStatus.APPROVED)
         )
         
         session.add(user)
@@ -146,11 +146,11 @@ async def login_user(
         
         # Check user status
         from app.models.user import UserStatus
-        if user.status == UserStatus.PENDING.value:
+        if user.status == UserStatus.PENDING:
             raise AuthenticationError("Account is pending admin approval")
-        elif user.status == UserStatus.REJECTED.value:
+        elif user.status == UserStatus.REJECTED:
             raise AuthenticationError("Account has been rejected")
-        elif user.status == UserStatus.SUSPENDED.value:
+        elif user.status == UserStatus.SUSPENDED:
             # Return detailed suspension info
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

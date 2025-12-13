@@ -1,8 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './lib/auth'
 import { Layout } from './components/layout/Layout'
-import { LoginPage } from './pages/LoginPage'
-import { RegisterPage } from './pages/RegisterPage'
 import { SuspendedPage } from './pages/SuspendedPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { SearchPage } from './pages/SearchPage'
@@ -12,8 +10,48 @@ import { ScansPage } from './pages/ScansPage'
 import { AdminPage } from './pages/AdminPage'
 import { SettingsPage } from './pages/SettingsPage'
 
+/**
+ * Callback page for OIDC redirect.
+ * The AuthProvider's onSigninCallback handles the token exchange,
+ * this just shows a loading state while that happens.
+ */
+function AuthCallback() {
+  return (
+    <div className="flex h-screen items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" />
+        <p className="text-muted-foreground">Completing login...</p>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Unauthorized page for access denied.
+ */
+function UnauthorizedPage() {
+  const { logout } = useAuth()
+
+  return (
+    <div className="flex h-screen items-center justify-center">
+      <div className="text-center max-w-md p-8">
+        <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+        <p className="text-muted-foreground mb-6">
+          You don't have permission to access this page. Please contact an administrator if you believe this is an error.
+        </p>
+        <button
+          onClick={() => logout()}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+        >
+          Sign Out
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading, login } = useAuth()
 
   if (isLoading) {
     return (
@@ -24,25 +62,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />
-  }
-
-  return <>{children}</>
-}
-
-function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth()
-
-  if (isLoading) {
+    // Trigger OIDC login redirect
+    login()
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="text-lg">Loading...</div>
+        <div className="text-lg">Redirecting to login...</div>
       </div>
     )
-  }
-
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />
   }
 
   return <>{children}</>
@@ -51,27 +77,14 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <Routes>
-      {/* Public routes */}
-      <Route
-        path="/login"
-        element={
-          <PublicRoute>
-            <LoginPage />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/register"
-        element={
-          <PublicRoute>
-            <RegisterPage />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/suspended"
-        element={<SuspendedPage />}
-      />
+      {/* OIDC Callback route */}
+      <Route path="/callback" element={<AuthCallback />} />
+
+      {/* Access denied route */}
+      <Route path="/unauthorized" element={<UnauthorizedPage />} />
+
+      {/* Suspended account route */}
+      <Route path="/suspended" element={<SuspendedPage />} />
 
       {/* Protected routes */}
       <Route

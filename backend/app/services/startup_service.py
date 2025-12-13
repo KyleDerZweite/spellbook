@@ -78,6 +78,15 @@ class StartupService:
                 self.startup_errors.append(tables_check['message'])
                 # Don't fail startup - some tables may be optional
             
+            # 2.6. Ensure admin user exists
+            logger.info("Step 2.6: Ensuring admin user exists")
+            admin_check = await self._ensure_admin_user()
+            startup_results['tasks']['admin_user_check'] = admin_check
+            
+            if not admin_check['success']:
+                logger.warning(f"Admin user check: {admin_check['message']}")
+                # Not fatal - continue anyway
+            
             # 3. Initialize card index
             logger.info("Step 3: Initializing card index")
             index_init = await self._initialize_card_index()
@@ -220,6 +229,72 @@ class StartupService:
             return {
                 'success': False,
                 'message': f"Table creation error: {str(e)}"
+            }
+    
+    async def _ensure_admin_user(self) -> Dict[str, Any]:
+        """
+        Ensure an admin user exists in the database.
+        
+        Creates an admin user if none exists, using environment variables:
+        - ADMIN_EMAIL (default: admin@spellbook.local)
+        - ADMIN_USERNAME (default: admin)
+        - ADMIN_PASSWORD (default: admin123!)
+        """
+        try:
+            from sqlalchemy import select
+            from app.models.user import User, UserStatus
+            from app.core.security import get_password_hash
+            import uuid
+            import os
+            
+            async with async_session_maker() as session:
+                # Check if any admin users exist
+                result = await session.execute(
+                    select(User).where(User.is_admin == True)
+                )
+                existing_admin = result.scalar_one_or_none()
+                
+                if existing_admin:
+                    logger.info(f"Admin user already exists: {existing_admin.username}")
+                    return {
+                        'success': True,
+                        'message': f"Admin user exists: {existing_admin.username}",
+                        'action': 'existing',
+                        'username': existing_admin.username
+                    }
+                
+                # Get admin credentials from environment
+                admin_email = os.getenv('ADMIN_EMAIL', 'admin@spellbook.local')
+                admin_username = os.getenv('ADMIN_USERNAME', 'admin')
+                admin_password = os.getenv('ADMIN_PASSWORD', 'admin123!')
+                
+                # Create admin user
+                admin = User(
+                    id=uuid.uuid4(),
+                    email=admin_email,
+                    username=admin_username,
+                    password_hash=get_password_hash(admin_password),
+                    is_active=True,
+                    is_admin=True,
+                    status=UserStatus.APPROVED
+                )
+                session.add(admin)
+                await session.commit()
+                
+                logger.info(f"Created admin user: {admin_username} ({admin_email})")
+                return {
+                    'success': True,
+                    'message': f"Created admin user: {admin_username}",
+                    'action': 'created',
+                    'username': admin_username,
+                    'email': admin_email
+                }
+                
+        except Exception as e:
+            logger.error(f"Failed to ensure admin user: {e}")
+            return {
+                'success': False,
+                'message': f"Admin user creation error: {str(e)}"
             }
     
     async def _initialize_card_index(self) -> Dict[str, Any]:

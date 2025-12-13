@@ -1,12 +1,12 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios'
-import type { 
-  ApiResponse, 
-  Card, 
-  CardSearchParams, 
-  Tokens, 
-  User, 
+import type {
+  ApiResponse,
+  Card,
+  CardSearchParams,
+  Tokens,
+  User,
   AdminUser,
-  UserCard, 
+  UserCard,
   CollectionStats,
   Invite
 } from './types'
@@ -20,13 +20,28 @@ export const apiClient = axios.create({
   },
 })
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token from OIDC session storage
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+    // Get token from OIDC storage
+    // react-oidc-context stores user in sessionStorage with key pattern:
+    // oidc.user:<authority>:<client_id>
+    const authority = import.meta.env.VITE_ZITADEL_AUTHORITY
+    const clientId = import.meta.env.VITE_ZITADEL_CLIENT_ID
+    const storageKey = `oidc.user:${authority}:${clientId}`
+
+    const userJson = sessionStorage.getItem(storageKey)
+    if (userJson) {
+      try {
+        const user = JSON.parse(userJson)
+        if (user.access_token) {
+          config.headers.Authorization = `Bearer ${user.access_token}`
+        }
+      } catch {
+        // Invalid JSON, ignore
+      }
     }
+
     return config
   },
   (error) => Promise.reject(error)
@@ -36,12 +51,15 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
-    // Don't redirect for login failures, let the component handle it
-    const isLoginRequest = error.config?.url?.endsWith('auth/login')
-    
-    if (error.response?.status === 401 && !isLoginRequest) {
-      localStorage.removeItem('token')
-      window.location.href = '/login'
+    if (error.response?.status === 401) {
+      // Token expired or invalid - clear OIDC storage and redirect
+      const authority = import.meta.env.VITE_ZITADEL_AUTHORITY
+      const clientId = import.meta.env.VITE_ZITADEL_CLIENT_ID
+      const storageKey = `oidc.user:${authority}:${clientId}`
+      sessionStorage.removeItem(storageKey)
+
+      // Redirect to home (login button will be shown)
+      window.location.href = '/'
     }
     return Promise.reject(error)
   }
@@ -54,17 +72,17 @@ export const api = {
       const formData = new URLSearchParams()
       formData.append('username', payload.username)
       formData.append('password', payload.password)
-      
+
       const { data } = await apiClient.post<Tokens>('/auth/login', formData, {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       })
       return data
     },
 
-    async register(payload: { 
-      email: string 
-      username: string 
-      password: string 
+    async register(payload: {
+      email: string
+      username: string
+      password: string
       invite_code?: string
     }): Promise<User> {
       const { data } = await apiClient.post<ApiResponse<User>>('/auth/register', payload)
@@ -117,7 +135,7 @@ export const api = {
       if (params.set_code?.length) {
         transformedParams.set = params.set_code[0] // Use first set for now
       }
-      const { data } = await apiClient.get<{ data: (Card & { version_count: number })[], meta: { total: number; page: number; per_page: number; total_pages: number; has_next: boolean; has_prev: boolean } }>('/cards/search-unique', { 
+      const { data } = await apiClient.get<{ data: (Card & { version_count: number })[], meta: { total: number; page: number; per_page: number; total_pages: number; has_next: boolean; has_prev: boolean } }>('/cards/search-unique', {
         params: transformedParams,
         paramsSerializer: {
           indexes: null // This sends arrays as types=Artifact&types=Enchantment instead of types[]=...
@@ -143,9 +161,9 @@ export const api = {
       return data
     },
 
-    async addCard(payload: { 
-      card_scryfall_id: string 
-      quantity: number 
+    async addCard(payload: {
+      card_scryfall_id: string
+      quantity: number
       condition?: string
     }): Promise<UserCard> {
       // Use FormData since the backend expects form data
@@ -176,7 +194,7 @@ export const api = {
         }
         return
       }
-      
+
       // Try to update the quantity first
       try {
         const formData = new FormData()
@@ -220,18 +238,18 @@ export const api = {
       return data
     },
 
-    async createUser(payload: { 
-      email: string 
-      username: string 
-      password: string 
+    async createUser(payload: {
+      email: string
+      username: string
+      password: string
       is_admin?: boolean
     }): Promise<User> {
       const { data } = await apiClient.post<ApiResponse<User>>('/admin/users', payload)
       return data.data
     },
 
-    async createInvite(payload: { 
-      email_restriction?: string 
+    async createInvite(payload: {
+      email_restriction?: string
       max_uses?: number
       expires_at?: string
     }): Promise<Invite> {
@@ -249,20 +267,20 @@ export const api = {
       return data.data
     },
 
-    async stats(): Promise<{ 
-      total_users: number 
-      pending_users: number 
-      approved_users: number 
+    async stats(): Promise<{
+      total_users: number
+      pending_users: number
+      approved_users: number
       suspended_users: number
-      admin_users: number 
+      admin_users: number
       registration_mode: string
     }> {
       const { data } = await apiClient.get<{
-        total_users: number 
-        pending_users: number 
-        approved_users: number 
+        total_users: number
+        pending_users: number
+        approved_users: number
         suspended_users: number
-        admin_users: number 
+        admin_users: number
         registration_mode: string
       }>('/admin/stats')
       return data
@@ -324,11 +342,11 @@ export const authApi = {
   login: async (credentials: { username: string; password: string }): Promise<Tokens> => {
     return api.auth.login(credentials)
   },
-  
+
   register: async (data: { username: string; email: string; password: string }): Promise<User> => {
     return api.auth.register(data)
   },
-  
+
   getCurrentUser: async (): Promise<User> => {
     return api.auth.me()
   },

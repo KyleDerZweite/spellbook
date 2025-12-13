@@ -307,7 +307,7 @@ celery -A app.celery_app inspect reserved
 
 ## License
 
-MIT License - see [LICENSE.md](LICENSE.md)
+MIT License - see [LICENSE](LICENSE)
 
 ## Acknowledgments
 

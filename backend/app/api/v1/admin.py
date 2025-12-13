@@ -121,6 +121,9 @@ async def update_user_status(
             detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
         )
     
+    # Convert string status to enum
+    new_status = UserStatus(status_update.status)
+    
     # Get the user
     result = await session.execute(select(User).where(User.id == user_uuid))
     user = result.scalar_one_or_none()
@@ -140,20 +143,20 @@ async def update_user_status(
     
     # Update user status
     old_status = user.status
-    user.status = status_update.status
+    user.status = new_status
     
     # If approving user, make sure they're active
-    if status_update.status == UserStatus.APPROVED.value:
+    if new_status == UserStatus.APPROVED:
         user.is_active = True
     # If rejecting or suspending, make them inactive
-    elif status_update.status in [UserStatus.REJECTED.value, UserStatus.SUSPENDED.value]:
+    elif new_status in [UserStatus.REJECTED, UserStatus.SUSPENDED]:
         user.is_active = False
     
     await session.commit()
     await session.refresh(user)
     
     return {
-        "message": f"User status updated from {old_status} to {status_update.status}",
+        "message": f"User status updated from {old_status.value} to {new_status.value}",
         "user": AdminUserResponse.from_user(user)
     }
 
@@ -376,7 +379,7 @@ async def suspend_user(
         )
     
     # Suspend the user
-    user.status = UserStatus.SUSPENDED.value
+    user.status = UserStatus.SUSPENDED
     user.is_active = False
     user.suspension_reason = suspend_request.reason
     user.suspended_at = datetime.utcnow()
@@ -420,14 +423,14 @@ async def unsuspend_user(
             detail="User not found"
         )
     
-    if user.status != UserStatus.SUSPENDED.value:
+    if user.status != UserStatus.SUSPENDED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="User is not suspended"
         )
     
     # Unsuspend the user
-    user.status = UserStatus.APPROVED.value
+    user.status = UserStatus.APPROVED
     user.is_active = True
     user.suspension_reason = None
     user.suspended_at = None
