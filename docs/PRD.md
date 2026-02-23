@@ -1,5 +1,7 @@
 # Spellbook - Product Requirements Document
 
+> **Note:** The codebase is the ultimate source of truth. This PRD provides a high-level product vision and requirements, but the implementation details, structure, and features may evolve. Always refer to the actual code for the most accurate and up-to-date information.
+
 ## 1. Executive Summary
 
 Spellbook is an open-source, self-hosted card collection management platform designed for trading card game enthusiasts who value data ownership, privacy, and community-driven development. Built under GPLv3 licensing, it addresses the market gap for a comprehensive solution combining modern web interfaces, mobile scanning capabilities, and multi-game support without subscription fees or platform lock-in.
@@ -118,7 +120,7 @@ Spellbook is an open-source, self-hosted card collection management platform des
 ## 5. Technical Architecture
 
 ### Core Stack
-- **Backend**: FastAPI (Python 3.11+)
+- **Backend**: FastAPI (Python 3.12+)
   - Async-first architecture
   - Pydantic for data validation
   - SQLAlchemy ORM
@@ -152,15 +154,7 @@ Spellbook is an open-source, self-hosted card collection management platform des
   - Load balancing
   - Service discovery
 
-- **Storage**: Hierarchical file system
-  ```
-  /data/
-  ├── cards/
-  │   ├── original/    # High-res scans
-  │   ├── thumbnail/   # WebP optimized
-  │   └── metadata/    # OCR results
-  └── backups/         # Automated backups
-  ```
+- **Storage**: Hierarchical file system managed via object storage or local volumes, categorizing files into high-res scans, optimized thumbnails, OCR metadata, and automated backups.
 
 ### API Design
 - RESTful principles with consistent patterns
@@ -187,6 +181,8 @@ Spellbook is an open-source, self-hosted card collection management platform des
 
 ## 7. Coding Style Guidelines
 
+The codebase is the source of truth for all specific coding styles. We rely on standard tooling (like linters and formatters) configured in each project directory rather than documenting specific code examples here.
+
 ### General Principles
 1. **Readability over cleverness** - Code should be immediately understandable
 2. **Consistent naming** - Use descriptive names that reveal intent
@@ -194,176 +190,46 @@ Spellbook is an open-source, self-hosted card collection management platform des
 4. **Early returns** - Reduce nesting by returning early
 5. **Meaningful comments** - Explain why, not what
 
-### Python (Backend)
-```python
-# Use type hints for all functions
-def calculate_collection_value(
-    cards: List[Card], 
-    prices: Dict[str, Decimal]
-) -> Decimal:
-    """Calculate total collection value using current market prices."""
-    
-# Prefer list comprehensions for simple transformations
-valid_cards = [card for card in cards if card.is_valid()]
-
-# Use descriptive variable names
-collection_stats = CollectionStats()  # Good
-cs = CollectionStats()  # Bad
-
-# Constants in UPPER_CASE
-MAX_CARDS_PER_REQUEST = 100
-
-# Early returns for guard clauses
-def process_card(card: Card) -> Optional[ProcessedCard]:
-    if not card:
-        return None
-    if card.is_processed():
-        return card.processed_data
-    # Main logic here
-```
-
-### TypeScript (Frontend)
-```typescript
-// Use interfaces for type safety
-interface Card {
-  id: string;
-  name: string;
-  set: string;
-  price?: number;
-}
-
-// Prefer const and destructuring
-const { id, name } = card;
-
-// Use async/await over promises
-const fetchCards = async (): Promise<Card[]> => {
-  try {
-    const response = await api.get('/cards');
-    return response.data;
-  } catch (error) {
-    handleError(error);
-    return [];
-  }
-};
-
-// Component naming: PascalCase
-const CardGallery: React.FC<Props> = ({ cards }) => {
-  // Implementation
-};
-```
-
-### Flutter (Mobile)
-```dart
-// Use strong typing
-class Card {
-  final String id;
-  final String name;
-  final String imageUrl;
-  
-  const Card({
-    required this.id,
-    required this.name,
-    required this.imageUrl,
-  });
-}
-
-// Prefer const constructors
-const padding = EdgeInsets.all(16.0);
-
-// Meaningful widget names
-class CardScanButton extends StatelessWidget {
-  // Implementation
-}
-
-// Extract complex widgets
-Widget _buildCardGrid(List<Card> cards) {
-  // Implementation
-}
-```
-
-### SQL Guidelines
-```sql
--- Use clear table aliases
-SELECT 
-    c.id,
-    c.name,
-    cs.name AS set_name,
-    p.market_price
-FROM cards c
-JOIN card_sets cs ON c.set_id = cs.id
-LEFT JOIN prices p ON c.id = p.card_id
-WHERE c.user_id = $1;
-
--- Index naming convention
-CREATE INDEX idx_cards_user_id ON cards(user_id);
-CREATE INDEX idx_cards_name_search ON cards USING gin(name gin_trgm_ops);
-```
-
 ## 8. Development Principles
 
-### Core Principles
+The following core principles are applied across the codebase where usable. They act as strong guidelines rather than strictly enforced rules. However, if they are violated, the reasoning **must be explicitly documented** in comments or commit messages.
 
 1. **KISS (Keep It Simple, Stupid)**
-   - Choose boring technology that works
-   - Avoid premature optimization
-   - Start with monolith, evolve as needed
-   - Prefer standard solutions over custom
+   - Choose straightforward solutions that work.
+   - Start with simplicity, evolve as needed.
 
-2. **Focus on Outcomes, Not Plan Perfection**
-   - Ship working features quickly
-   - Get user feedback early
-   - Iterate based on real usage
-   - Perfect is the enemy of done
+2. **DRY (Don't Repeat Yourself)**
+   - Extract common functionality.
+   - Use shared components and centralize business logic.
+   - Avoid over-abstraction.
 
-3. **YAGNI (You Ain't Gonna Need It)**
-   - Build only what's needed now
-   - Avoid speculative features
-   - Add complexity only when proven necessary
-   - Delete unused code aggressively
+3. **YAGNI (You Aren't Gonna Need It)**
+   - Build only what's needed now.
+   - Avoid speculative features.
+   - Add complexity only when proven necessary.
 
-4. **DRY (Don't Repeat Yourself)**
-   - Extract common functionality
-   - Use shared components
-   - Centralize business logic
-   - But don't over-abstract
+4. **SOLID**
+   - Follow Single Responsibility, Open-Closed, Liskov Substitution, Interface Segregation, and Dependency Inversion principles to build robust and maintainable software.
 
-5. **Boy Scout Rule**
-   - Leave code better than you found it
-   - Fix small issues immediately
-   - Refactor opportunistically
-   - Maintain consistent quality
+5. **Separation of Concerns (SoC)**
+   - Keep distinct features and layers (e.g., UI, business logic, data access) separated to increase modularity and ease of maintenance.
 
-6. **Fail Fast**
-   - Validate inputs early
-   - Surface errors immediately
-   - Provide clear error messages
-   - Make debugging easy
+6. **Avoid Premature Optimization**
+   - Focus on correct and clear code first. Only optimize bottlenecks after measuring and profiling real-world performance.
+
+7. **Law of Demeter**
+   - Modules should only interact with their immediate friends. Minimize tight coupling between disparate components.
 
 ### Technical Practices
 
 1. **Test What Matters**
-   - Focus on critical paths
-   - Test behavior, not implementation
-   - Prefer integration tests over unit tests
-   - Use snapshot tests for UI
-
+   - Focus on critical paths. Test behavior, not implementation.
 2. **Continuous Deployment**
-   - Merge to main frequently
-   - Automated tests on every commit
-   - Deploy on green builds
-   - Feature flags for gradual rollout
-
+   - Merge frequently. Automated tests on every commit.
 3. **Observability First**
-   - Structured logging
-   - Performance metrics
-   - Error tracking (Sentry)
-   - User behavior analytics
-
+   - Structured logging, performance metrics, and error tracking.
 4. **Progressive Enhancement**
-   - Core features work without JavaScript
-   - Enhanced experience with modern browsers
-   - Graceful degradation
-   - Offline-first where possible
+   - Graceful degradation and offline-first where possible.
 
 ## 9. Project Management Principles
 

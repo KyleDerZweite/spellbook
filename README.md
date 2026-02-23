@@ -50,7 +50,7 @@ Spellbook is a self-hosted card collection management platform with mobile scann
 
 ## Prerequisites
 
-- **Python 3.11+** - Backend runtime
+- **Python 3.12+** - Backend runtime
 - **Node.js 18+** - Frontend build
 - **Docker/Podman** - Container runtime
 - **Flutter 3.16+** - Mobile app development (optional)
@@ -73,11 +73,11 @@ docker-compose ps
 cd backend
 
 # Create virtual environment
-python3.11 -m venv venv
-source venv/bin/activate
+uv venv --python 3.12
+source .venv/bin/activate
 
 # Install dependencies
-pip install -r requirements.txt
+uv sync --all-extras
 
 # Copy environment configuration
 cp .env.dev .env
@@ -99,7 +99,7 @@ DEBUG=true uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ```bash
 # In a new terminal, from backend directory
-source venv/bin/activate
+source .venv/bin/activate
 
 # Start Celery worker
 celery -A app.celery_app worker --loglevel=info --queues=default,scans,priority
@@ -114,10 +114,10 @@ celery -A app.celery_app beat --loglevel=info
 cd frontend
 
 # Install dependencies
-npm install
+pnpm install
 
 # Start development server
-npm run dev
+pnpm run dev
 ```
 
 ### 5. Mobile App Setup (Optional)
@@ -172,7 +172,7 @@ For local development, use your machine's local IP (not localhost) so the mobile
 
 ```bash
 cd backend
-source venv/bin/activate
+source .venv/bin/activate
 
 # Create a new migration
 alembic revision --autogenerate -m "Description of changes"
@@ -254,7 +254,7 @@ pytest
 
 # Frontend tests
 cd frontend
-npm test
+pnpm test
 
 # Mobile tests
 cd mobile

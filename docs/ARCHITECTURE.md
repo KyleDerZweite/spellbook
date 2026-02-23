@@ -1,5 +1,7 @@
 # Spellbook Architecture
 
+> **Note:** The codebase is the ultimate source of truth. This documentation provides a high-level overview, but architectural details, directory structures, and configurations may evolve. Always refer to the actual code, Docker configurations, and running services for the most accurate and up-to-date information.
+
 ## System Overview
 
 Spellbook is a self-hosted card collection management platform built with a modern, scalable architecture designed for single-instance deployment.
@@ -33,7 +35,6 @@ Spellbook is a self-hosted card collection management platform built with a mode
 ## Core Components
 
 ### 1. Web Frontend (Vite + React)
-- **Location**: `/frontend`
 - **Technology**: React 18, TypeScript, Tailwind CSS, Vite
 - **Features**:
   - Hot Module Replacement for development
@@ -41,8 +42,7 @@ Spellbook is a self-hosted card collection management platform built with a mode
   - Card search and collection management
 
 ### 2. Backend API (FastAPI)
-- **Location**: `/backend`
-- **Technology**: Python 3.11+, FastAPI, SQLAlchemy 2.0, Pydantic
+- **Technology**: Python 3.12+, FastAPI, SQLAlchemy 2.0, Pydantic
 - **Features**:
   - Async request handling with asyncpg
   - JWT authentication with refresh tokens
@@ -50,7 +50,6 @@ Spellbook is a self-hosted card collection management platform built with a mode
   - RESTful API with OpenAPI documentation
 
 ### 3. Mobile Application (Flutter)
-- **Location**: `/mobile`
 - **Technology**: Flutter 3.x, Dart
 - **Features**: Camera scanning, offline mode (Phase 3)
 
@@ -69,24 +68,6 @@ Spellbook is a self-hosted card collection management platform built with a mode
 ---
 
 ## Backend Architecture
-
-### Directory Structure
-```
-backend/
-├── app/
-│   ├── api/v1/           # API routes (auth, cards, collections, decks)
-│   ├── core/             # Security, dependencies, exceptions
-│   ├── models/           # SQLAlchemy models
-│   ├── schemas/          # Pydantic request/response schemas
-│   ├── services/         # Business logic
-│   │   ├── card_service.py       # Card search & details
-│   │   ├── card_data_service.py  # Auto-init from Scryfall
-│   │   └── startup_service.py    # App initialization
-│   ├── migrations/       # Alembic migrations
-│   ├── config.py         # Settings from environment
-│   ├── database.py       # Async session management
-│   └── main.py           # FastAPI app setup
-```
 
 ### Data Models
 
@@ -224,4 +205,4 @@ podman-compose up -d
 # - MinIO Console: http://localhost:9001
 ```
 
-See `docker-compose.yml` for full configuration.
+Refer to the container orchestration configurations in the project root for full deployment details.

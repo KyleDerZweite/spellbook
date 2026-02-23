@@ -1,5 +1,7 @@
 # Spellbook API Specification
 
+> **Note:** The codebase is the ultimate source of truth. This specification provides a generalized reference, but API routes, payload structures, and response schemas may evolve. Always refer to the actual backend code (e.g., FastAPI routers and Pydantic schemas) for the most accurate and up-to-date information.
+
 ## Base URL
 ```
 https://api.spellbook.local/v1

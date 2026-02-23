@@ -1,5 +1,7 @@
 # Kylehub Design System
 
+> **Note:** The codebase is the ultimate source of truth. This design system document provides foundational guidelines for styling and components, but exact implementations (e.g. Tailwind classes, React structures) will evolve in the source code.
+
 This document outlines the universal design principles, color palette, typography, and component styles for the **Kylehub** brand. Use this guide to ensure consistency across all web applications and projects within the Kylehub ecosystem.
 
 ## 1. Brand Identity

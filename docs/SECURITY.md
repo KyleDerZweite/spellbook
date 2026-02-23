@@ -1,5 +1,7 @@
 # Spellbook OWASP Top 10 Security Review
 
+> **Note:** The codebase is the ultimate source of truth. This security document provides a conceptual review and recommendations. Actual security controls, implementations, and dependencies evolve and are reflected in the project's source code.
+
 ## Executive Summary
 
 Your Spellbook architecture demonstrates good security fundamentals but requires specific enhancements to fully mitigate OWASP Top 10 risks. The most critical areas needing attention are access control validation, secure file handling for card scanning, and comprehensive security logging.
@@ -299,7 +301,7 @@ class SessionManager:
 
 ```dockerfile
 # Secure Dockerfile
-FROM python:3.11-slim as base
+FROM python:3.12-slim as base
 
 # Create non-root user
 RUN groupadd -r appuser && useradd -r -g appuser appuser
