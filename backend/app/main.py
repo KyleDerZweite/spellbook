@@ -5,7 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from contextlib import asynccontextmanager
 from datetime import datetime
 from app.config import settings
-from app.api.v1 import auth, users, cards, collections, admin, scan
+from app.api.v1 import users, cards, collections, admin, scan
 from app.core.exceptions import (
     SpellbookException, 
     AuthenticationError,
@@ -173,7 +173,6 @@ async def health_check():
 
 
 # Include API routers
-app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
 app.include_router(cards.router, prefix="/api/v1/cards", tags=["Cards"])
 app.include_router(collections.router, prefix="/api/v1/collections", tags=["Collections"])

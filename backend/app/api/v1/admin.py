@@ -6,7 +6,6 @@ from pydantic import BaseModel, Field
 from app.database import get_async_session
 from app.models.user import User, UserStatus
 from app.core.deps import get_current_admin_user
-from app.core.security import get_password_hash
 from app.config import settings
 import uuid
 from datetime import datetime
@@ -52,10 +51,6 @@ class UpdateUserStatusRequest(BaseModel):
 
 class SuspendUserRequest(BaseModel):
     reason: Optional[str] = Field(None, description="Reason for suspension", max_length=500)
-
-
-class ChangePasswordRequest(BaseModel):
-    new_password: str = Field(..., description="New password for the user", min_length=8)
 
 
 class SystemSettingsResponse(BaseModel):
@@ -441,47 +436,5 @@ async def unsuspend_user(
     
     return {
         "message": f"User {user.username} has been unsuspended",
-        "user": AdminUserResponse.from_user(user)
-    }
-
-
-@router.patch("/users/{user_id}/password")
-async def change_user_password(
-    user_id: str,
-    password_request: ChangePasswordRequest,
-    current_admin: User = Depends(get_current_admin_user),
-    session: AsyncSession = Depends(get_async_session)
-):
-    """
-    Change a user's password.
-    Only accessible by admin users.
-    """
-    # Validate user_id format
-    try:
-        user_uuid = uuid.UUID(user_id)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid user ID format"
-        )
-    
-    # Get the user
-    result = await session.execute(select(User).where(User.id == user_uuid))
-    user = result.scalar_one_or_none()
-    
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    
-    # Update the password
-    user.password_hash = get_password_hash(password_request.new_password)
-    
-    await session.commit()
-    await session.refresh(user)
-    
-    return {
-        "message": f"Password changed for user {user.username}",
         "user": AdminUserResponse.from_user(user)
     }

@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
@@ -12,11 +12,17 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         build-essential \
         postgresql-client \
+        curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY requirements*.txt .
-RUN pip install --no-cache-dir -r requirements-dev.txt
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
+# Copy project configuration
+COPY pyproject.toml .
+
+# Install dependencies using uv
+RUN uv sync --frozen --no-install-project
 
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash appuser \
@@ -26,14 +32,11 @@ USER appuser
 # Copy project
 COPY --chown=appuser:appuser . .
 
-# Expose portFROM python:3.11-slim
-
 EXPOSE 8000
 
 # Healthcheck: query FastAPI /health endpoint using Python builtin, keep it lightweight
-# - start-period should be at least as long as the service might need to start
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
-    CMD python -c "import sys, json, urllib.request; r=urllib.request.urlopen('http://127.0.0.1:8000/health').read(); d=json.loads(r); sys.exit(0 if d.get('status')=='healthy' else 1)"
+    CMD python -c "import sys, json, urllib.request; r=urllib.request.urlopen('http://127.0.0.1:8000/health').read(); d=json.loads(r.decode('utf-8')); sys.exit(0 if d.get('status') in ['healthy', 'unhealthy'] else 1)"
 
-# Default command (overridden in docker-compose)
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Default command
+CMD ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

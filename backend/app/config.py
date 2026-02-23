@@ -14,11 +14,12 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379"
     
-    # JWT
-    SECRET_KEY: str = "development-secret-key-change-in-production-at-least-32-chars"
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    # Auth (Identity-Aware Proxy)
+    AUTH_HEADER: str = "Remote-User"
+    AUTH_EMAIL_HEADER: str = "Remote-Email"
+    AUTH_NAME_HEADER: str = "Remote-Name"
+    ENFORCE_TRUSTED_PROXY: bool = False
+    TRUSTED_PROXY_CIDRS: str = "10.89.0.0/16,127.0.0.1/32,::1/128"
     
     # Scryfall API
     SCRYFALL_API_BASE: str = "https://api.scryfall.com"
@@ -95,32 +96,6 @@ class Settings(BaseSettings):
     REDIS_DATA_PATH: str = "./data/redis"
     UPLOADS_DATA_PATH: str = "./data/uploads"
 
-    @field_validator('SECRET_KEY')
-    @classmethod
-    def validate_secret_key(cls, v: str, info: ValidationInfo) -> str:
-        """Validate that SECRET_KEY is secure for production"""
-        if not v or v.strip() == "":
-            raise ValueError("SECRET_KEY cannot be empty")
-        
-        # Check minimum length
-        if len(v) < 32:
-            raise ValueError(
-                "SECRET_KEY must be at least 32 characters long for security"
-            )
-        
-        # Production-specific checks (only in production mode)
-        debug_mode = os.getenv('DEBUG', 'false').lower() in ('true', '1', 'yes', 'on')
-        if not debug_mode:
-            if ("development-secret-key" in v or 
-                "your-secret-key-change-in-production" in v or
-                "dev-secret-key" in v):
-                raise ValueError(
-                    "SECRET_KEY must be changed from default value in production. "
-                    "Use a secure random string of at least 32 characters."
-                )
-        
-        return v
-
     @field_validator('DATABASE_URL')
     @classmethod
     def validate_database_url(cls, v: str) -> str:
@@ -157,11 +132,6 @@ class Settings(BaseSettings):
         # Check if we're in production (not debug mode)
         if not self.DEBUG and not self._is_debug_mode():
             # Production-specific validations
-            if ("development-secret-key" in self.SECRET_KEY or 
-                "your-secret-key-change-in-production" in self.SECRET_KEY or
-                "dev-secret-key" in self.SECRET_KEY):
-                errors.append("SECRET_KEY must be changed from default in production")
-            
             if "localhost" in self.DATABASE_URL:
                 errors.append("DATABASE_URL should not use localhost in production")
             
@@ -173,12 +143,6 @@ class Settings(BaseSettings):
         # Always check these
         if not self.PROJECT_NAME:
             errors.append("PROJECT_NAME cannot be empty")
-        
-        if self.ACCESS_TOKEN_EXPIRE_MINUTES < 1:
-            errors.append("ACCESS_TOKEN_EXPIRE_MINUTES must be at least 1")
-        
-        if self.REFRESH_TOKEN_EXPIRE_DAYS < 1:
-            errors.append("REFRESH_TOKEN_EXPIRE_DAYS must be at least 1")
         
         if errors:
             error_msg = "Environment validation failed:\n" + "\n".join(f"- {error}" for error in errors)
