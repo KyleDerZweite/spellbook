@@ -12,10 +12,10 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    host: 'localhost',
+    host: '0.0.0.0', // Listen on all interfaces so the tunnel can reach it
     proxy: {
       '/api': {
-        target: 'http://backend-dev:8000',
+        target: 'http://backend-dev:8000', // Point to the docker container
         changeOrigin: true,
       },
     },
