@@ -9,7 +9,7 @@ services:
     restart: unless-stopped
 
   meilisearch:
-    image: docker.io/getmeili/meilisearch:v1.13.3
+    image: docker.io/getmeili/meilisearch:v1.39.0
     ports:
       - "7700:7700"
     environment:
