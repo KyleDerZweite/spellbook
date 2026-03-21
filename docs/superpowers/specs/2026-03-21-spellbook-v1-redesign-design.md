@@ -78,7 +78,7 @@ The previous implementation suffered from scope creep, architectural pain, and w
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
 | Frontend | SvelteKit + Svelte 5 + TypeScript + Tailwind CSS | UI, routing, SpacetimeDB subscriptions, MeiliSearch queries |
-| App Logic & Data | SpacetimeDB v2.0 (TypeScript modules) | User data, collections, decks, real-time sync |
+| App Logic & Data | SpacetimeDB v2.0 (TypeScript modules) | User data, collections, real-time sync |
 | Search | MeiliSearch | Instant card search, faceted filtering, typo tolerance |
 | Data Pipeline | Python worker | Scryfall ingestion, MeiliSearch sync, future OCR/VLLM |
 | Auth | Pangolin IAP + Zitadel OIDC | Authentication, identity injection |
@@ -165,7 +165,7 @@ Collection Cards:
                   image_uri, is_foil, condition, quantity)
                                              → insert or increment CollectionCard
   updateCollectionCard(id, quantity?, condition?, notes?)
-                                             → update CollectionCard fields
+                                             → update CollectionCard fields + set updated_at
   removeFromCollection(id)                   → delete CollectionCard
 ```
 
@@ -493,6 +493,7 @@ services:
       SPACETIMEDB_URL: ws://spacetimedb:3000
       MEILISEARCH_URL: http://meilisearch:7700
       MEILISEARCH_SEARCH_KEY: ${MEILISEARCH_SEARCH_KEY}
+      AUTH_SIGNING_SECRET: ${AUTH_SIGNING_SECRET}
     depends_on: [spacetimedb, meilisearch]
 
   worker:
@@ -528,6 +529,7 @@ MEILISEARCH_SEARCH_KEY=<read-only>     # Search-only key for frontend
 AGGRESSIVE_PRELOAD=true                # false = Default Cards only
 SYNC_INTERVAL=daily                    # daily | weekly | manual
 LANGUAGES=en                           # en | en,de,ja,...
+AUTH_SIGNING_SECRET=<secret>           # Shared between SvelteKit and SpacetimeDB for WebSocket auth tokens
 ```
 
 ---
