@@ -48,9 +48,7 @@ The previous implementation suffered from scope creep, architectural pain, and w
 │                 │              │  - collections   │
 │                 │              │  - collection_   │
 │                 │              │    cards          │
-│                 │              │  - decks (v1.1)  │
-│                 │              │  - deck_cards    │
-│                 │              │    (v1.1)        │
+│                 │              │                  │
 └────────┬────────┘              └──────────────────┘
          │                               ▲
          │                               │ SDK
@@ -132,38 +130,46 @@ CollectionCard: {
   condition: string            // "NM" | "LP" | "MP" | "HP" | "DMG"
   notes: string
   added_at: timestamp
-}
+  updated_at: timestamp
 
-// === V1.1 ===
-
-Deck: {
-  id: string (PK)
-  owner_id: string
-  name: string
-  format: string               // "standard" | "commander" | etc.
-  commander_scryfall_id: string?
-  created_at: timestamp
-}
-
-DeckCard: {
-  id: string (PK)
-  deck_id: string              // FK to Deck.id
-  scryfall_id: string
-  quantity: number
-  is_sideboard: boolean
-  zone: string                 // "main" | "sideboard" | "maybe"
+  // UNIQUE constraint: (collection_id, scryfall_id, is_foil, condition)
+  // Duplicate adds increment quantity instead of creating new rows
 }
 ```
 
 ### Key Design Decisions
 
-1. **`scryfall_id` is the universal card reference.** It uniquely identifies a specific printing (set + collector number + foil). "Llanowar Elves from Dominaria, foil" = one scryfall_id.
+1. **`scryfall_id` uniquely identifies a specific printing** (set + collector number). Foil/non-foil status is NOT baked into scryfall_id — it is tracked on `CollectionCard.is_foil` because the same printing can exist in both finishes. Scryfall's `finishes` array on each printing indicates availability (nonfoil, foil, etched).
 
-2. **`is_foil` lives on CollectionCard.** The same scryfall_id can exist in a collection as both foil and non-foil. The MeiliSearch card data indicates whether foil/nonfoil versions are available.
+2. **Denormalized card data on CollectionCard.** Name, set_code, and image_uri are copied at add-time so collection views render from SpacetimeDB alone, without hitting MeiliSearch.
 
-3. **Denormalized card data on CollectionCard.** Name, set_code, and image_uri are copied at add-time so collection views render from SpacetimeDB alone, without hitting MeiliSearch.
+3. **Uniqueness constraint on CollectionCard.** The tuple `(collection_id, scryfall_id, is_foil, condition)` is unique. Adding a duplicate increments `quantity` rather than creating a new row.
 
-4. **Deck tables defined now, exposed in V1.1.** Schema stability — no migrations needed when V1.1 ships.
+4. **Deck tables deferred to V1.1.** SpacetimeDB allows adding new tables when publishing a new module version — no migration needed. Deck schema will be designed when deck-building requirements are fully worked out in V1.1.
+
+### V1 Reducers (API Surface)
+
+SpacetimeDB reducers are the application's API. V1 exposes:
+
+```
+Identity:
+  onConnect(account_id, username, email)     → upsert UserProfile
+
+Collections:
+  createCollection(name, description)        → insert Collection
+  updateCollection(id, name, description)    → update Collection
+  deleteCollection(id)                       → delete Collection + all CollectionCards
+
+Collection Cards:
+  addToCollection(collection_id, scryfall_id, oracle_id, name, set_code,
+                  image_uri, is_foil, condition, quantity)
+                                             → insert or increment CollectionCard
+  updateCollectionCard(id, quantity?, condition?, notes?)
+                                             → update CollectionCard fields
+  removeFromCollection(id)                   → delete CollectionCard
+```
+
+All reducers validate that the connected user owns the target resource via `owner_id` check.
 
 ---
 
@@ -215,9 +221,17 @@ cards_all
    → No MeiliSearch needed for collection display
 ```
 
+### Distinct Representative Printing Selection
+
+The `cards_distinct` index deduplicates by `oracle_id`. MeiliSearch's `distinctAttribute` keeps the first document per distinct value in ranking order. The Python worker inserts cards ordered by release date (newest first) so MeiliSearch's distinct deduplication keeps the most recent printing as the representative.
+
 ### Frontend Queries MeiliSearch Directly
 
-MeiliSearch has a built-in API key system. The frontend gets a search-only key (read-only, no write access). This skips a round-trip through any backend and keeps search sub-5ms.
+MeiliSearch has a built-in API key system. The frontend gets a search-only key (read-only, no write access). This skips a round-trip through any backend and keeps search sub-5ms. The search key is intentionally exposed to the browser — it grants read-only access to public card data.
+
+### Search Debounce
+
+Frontend search input should debounce queries by 150-300ms to avoid excessive network requests during rapid typing. Even though MeiliSearch is fast, debouncing reduces unnecessary work.
 
 ---
 
@@ -381,6 +395,10 @@ export const allIndex = searchClient.index('cards_all');
 </script>
 ```
 
+### SpacetimeDB Client SDK
+
+The frontend uses SpacetimeDB's TypeScript client SDK. Running `spacetime generate` auto-generates typed client bindings from the server module definitions. These generated types ensure type safety between the SpacetimeDB module and the frontend — reducer call signatures and table row types are always in sync.
+
 ### Styling
 
 - Tailwind CSS, dark mode default
@@ -412,13 +430,30 @@ Pangolin must be configured to inject the Zitadel `sub` claim:
 ```
 1. Pangolin authenticates user (Zitadel OIDC)
 2. Pangolin injects Remote-Subject, Remote-User, Remote-Email headers
+   into the initial HTTP request to SvelteKit
 3. SvelteKit server hook (hooks.server.ts) reads headers
-4. Frontend passes identity to SpacetimeDB connection as credentials
-5. SpacetimeDB onConnect reducer:
-   - If account_id exists → update username, email, last_seen
-   - If new → insert UserProfile
-6. All subsequent reducers scope data by account_id
+4. SvelteKit server-side endpoint mints a short-lived signed token
+   (JWT or HMAC) containing account_id, username, email
+5. Frontend receives this token and passes it to SpacetimeDB
+   connection as credentials
+6. SpacetimeDB onConnect reducer receives and stores identity
+7. All subsequent reducers scope data by account_id
 ```
+
+### WebSocket Authentication Model
+
+Pangolin (as an IAP) injects identity headers into HTTP requests but does NOT intercept WebSocket connections from the browser to SpacetimeDB. The WebSocket connection is direct (browser → SpacetimeDB).
+
+**Trust boundary:** The SvelteKit server is the only component behind Pangolin that can read identity headers. It acts as the trust bridge:
+
+1. SvelteKit reads Pangolin headers (trusted — Pangolin verified the user)
+2. SvelteKit creates a signed token containing the identity claims
+3. The frontend sends this token when connecting to SpacetimeDB
+4. The `onConnect` reducer receives the token — it trusts the SvelteKit server's signature
+
+**Security note:** The signed token prevents spoofing. A malicious client cannot forge identity because they cannot produce a valid signature. The signing secret is shared only between SvelteKit and the SpacetimeDB module (via environment variable). This is a standard pattern for bridging HTTP-based auth to WebSocket connections.
+
+**Alternative (simpler, V1-acceptable):** If the deployment is single-user behind Pangolin with no public access, the frontend can pass identity claims directly without signing. The `onConnect` reducer trusts the claims because the entire stack is behind Pangolin. This should be documented as a security trade-off that must be hardened before multi-user deployment.
 
 ### Multi-User Readiness
 
@@ -497,7 +532,27 @@ LANGUAGES=en                           # en | en,de,ja,...
 
 ---
 
-## 9. V1.1 Notes (Deck Building + Language Support)
+## 9. Failure Modes & Resilience
+
+The system has three independent services that can fail independently:
+
+- **MeiliSearch down:** Search is unavailable. Frontend shows a clear error state on the search page. Collection views still work (rendered from SpacetimeDB). The worker retries index writes with exponential backoff.
+- **SpacetimeDB down:** The app is fully unavailable — collections, user data, and all write operations depend on it. Frontend shows a connection error overlay.
+- **Python Worker crashes mid-ingestion:** MeiliSearch may have partial index state. The worker must track ingestion progress and resume from where it left off on restart, not re-ingest from scratch.
+- **Reducer call fails (e.g., collection not found, permission denied):** Frontend handles error responses gracefully with user-facing messages. No silent failures.
+- **Scryfall API unreachable during sync:** Worker logs the failure and retries on the next sync interval. The existing index remains valid — stale data is better than no data.
+
+### Health Checks & Startup Ordering
+
+The worker must implement retry-on-startup logic — SpacetimeDB and MeiliSearch may not be ready when the worker container starts. The compose file uses `depends_on` for ordering, but this only waits for container start, not service readiness. The worker should:
+
+1. Retry SpacetimeDB connection with exponential backoff (max 30s between retries)
+2. Retry MeiliSearch health check endpoint (`GET /health`) with exponential backoff
+3. Only begin ingestion once both services are confirmed ready
+
+---
+
+## 10. V1.1 Notes (Deck Building + Language Support)
 
 ### Deck Building
 
@@ -505,7 +560,7 @@ LANGUAGES=en                           # en | en,de,ja,...
 - Decks built from owned collection (CollectionCard references)
 - Commander deck requires a commander_scryfall_id
 - Zones: main, sideboard, maybe
-- Tables already defined in V1 schema
+- New tables added to SpacetimeDB module (Deck, DeckCard) — no migration needed, just publish updated module
 
 ### Per-User Language
 
@@ -516,7 +571,7 @@ LANGUAGES=en                           # en | en,de,ja,...
 
 ---
 
-## 10. V2 Notes (Mobile Scanning)
+## 11. V2 Notes (Mobile Scanning)
 
 - Python Worker gains OCR/VLLM capabilities
 - Mobile companion app (Flutter or mobile web view)
@@ -525,7 +580,7 @@ LANGUAGES=en                           # en | en,de,ja,...
 
 ---
 
-## 11. V3 Notes (Multiplayer)
+## 12. V3 Notes (Multiplayer)
 
 - SpacetimeDB's real-time sync enables shared card pools and live play
 - Drag-and-drop card interaction (svelte-dnd-action or native HTML5 DnD)
