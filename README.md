@@ -10,7 +10,7 @@ Spellbook is a self-hosted card collection management platform built for speed a
 
 ```
 ┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
-│   SvelteKit     │────▶│   SpacetimeDB        │────▶│   MeiliSearch   │
+│   SvelteKit     │───▶│   SpacetimeDB        │───▶│   MeiliSearch   │
 │   (Web App)     │     │   (TS Modules + DB)  │     │   (Search)      │
 └─────────────────┘     └──────────────────────┘     └─────────────────┘
                                    │
@@ -23,10 +23,10 @@ Spellbook is a self-hosted card collection management platform built for speed a
 ```
 
 **Stack:**
-- **SpacetimeDB** — real-time database with TypeScript modules (replaces FastAPI + PostgreSQL + WebSockets)
-- **SvelteKit** — web frontend with SSR
-- **MeiliSearch** — full-text card search
-- **Python worker** — Scryfall sync, background jobs
+- **SpacetimeDB** - real-time database with TypeScript modules (replaces FastAPI + PostgreSQL + WebSockets)
+- **SvelteKit** - web frontend with SSR
+- **MeiliSearch** - full-text card search
+- **Python worker** - Scryfall sync, background jobs
 
 ## Status
 
