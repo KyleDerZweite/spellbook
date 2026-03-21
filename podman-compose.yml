@@ -1,0 +1,24 @@
+services:
+  spacetimedb:
+    image: docker.io/clockworklabs/spacetime:latest
+    command: start --listen-addr 0.0.0.0:3000 --data-dir /stdb/data
+    ports:
+      - "3000:3000"
+    volumes:
+      - spacetimedb_data:/stdb
+    restart: unless-stopped
+
+  meilisearch:
+    image: docker.io/getmeili/meilisearch:latest
+    ports:
+      - "7700:7700"
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      MEILI_ENV: development
+    volumes:
+      - meilisearch_data:/meili_data
+    restart: unless-stopped
+
+volumes:
+  spacetimedb_data:
+  meilisearch_data:
