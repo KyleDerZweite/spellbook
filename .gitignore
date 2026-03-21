@@ -1,5 +1,6 @@
 # Environment and Secrets
 *.env
+.env
 .env.local
 .env.production
 .env.staging
@@ -26,21 +27,9 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
 *.egg
-MANIFEST
 
 # Testing
 .pytest_cache/
@@ -51,24 +40,16 @@ coverage.xml
 .hypothesis/
 htmlcov/
 
-# Node.js
+# Node.js / SvelteKit
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# Next.js
-.next/
-out/
-build
+.svelte-kit/
+.output/
+build/
 
 # Logs
 *.log
-logs
-pids
+logs/
 *.pid
-*.seed
 *.pid.lock
 
 # Temporary files
@@ -82,9 +63,6 @@ pids
 *.sqlite
 *.sqlite3
 
-# Docker
-.dockerignore
-
 # SSL certificates
 *.pem
 *.key
@@ -97,17 +75,20 @@ letsencrypt/
 /backups/
 scryfall/
 
-# Development and Planning (Hidden from users)
-/research/
-CLAUDE.md
-GEMINI.md
-*-prd.md
-/archive/
+# SpacetimeDB
+.spacetime/
+
+# MeiliSearch
+data.ms/
 
 # Virtual Environments
 venv/
-backend/venv/
+.venv/
 
-# Database migrations (generated files)
-backend/app/migrations/versions/*.py
-*.*/
+# Development and Planning (Hidden from users)
+/research/
+/archive/
+CLAUDE.md
+GEMINI.md
+*-prd.md
+.superpowers/
