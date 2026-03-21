@@ -110,3 +110,4 @@ backend/venv/
 
 # Database migrations (generated files)
 backend/app/migrations/versions/*.py
+*.*/
