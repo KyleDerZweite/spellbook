@@ -78,6 +78,7 @@ scryfall/
 
 # SpacetimeDB
 .spacetime/
+spacetime.json
 spacetime.local.json
 
 # MeiliSearch
