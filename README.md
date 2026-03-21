@@ -10,7 +10,7 @@ Spellbook is a self-hosted card collection management platform built for speed a
 
 ```
 ┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
-│   SvelteKit     │───▶│   SpacetimeDB        │───▶│   MeiliSearch   │
+│   SvelteKit     │────▶│   SpacetimeDB        │────▶│   MeiliSearch   │
 │   (Web App)     │     │   (TS Modules + DB)  │     │   (Search)      │
 └─────────────────┘     └──────────────────────┘     └─────────────────┘
                                    │
