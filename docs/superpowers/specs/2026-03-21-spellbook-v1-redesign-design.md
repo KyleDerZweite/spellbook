@@ -1,8 +1,8 @@
-# Spellbook V1 Redesign — Design Specification
+# Spellbook V1 Redesign - Design Specification
 
 ## 1. Overview
 
-Spellbook is a self-hosted Magic: The Gathering collection management platform. This document specifies the complete redesign (V1) — scrapping the existing implementation in favor of a cleaner, more focused architecture.
+Spellbook is a self-hosted Magic: The Gathering collection management platform. This document specifies the complete redesign (V1) - scrapping the existing implementation in favor of a cleaner, more focused architecture.
 
 ### Why Redesign?
 
@@ -19,8 +19,8 @@ The previous implementation suffered from scope creep, architectural pain, and w
 
 ### Out of Scope (V1)
 
-- Price/value tracking
-- Multi-game support (Pokemon, Yu-Gi-Oh)
+- Price/value tracking (V1.X candidate)
+- Multi-game support (Pokemon, Yu-Gi-Oh) (V4 candidate)
 - Social features
 - Admin panel / user management UI
 - Bulk CSV/text import (V1.1 candidate)
@@ -29,12 +29,12 @@ The previous implementation suffered from scope creep, architectural pain, and w
 
 ## 2. Architecture
 
-### Approach: Hybrid — SpacetimeDB + Python Sidecar
+### Approach: Hybrid - SpacetimeDB + Python Sidecar
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                   Pangolin IAP                       │
-│              (Auth + Reverse Proxy)                  │
+│                   Pangolin IAP                      │
+│              (Auth + Reverse Proxy)                 │
 └──────────────────────┬──────────────────────────────┘
                        │
          ┌─────────────┼─────────────────┐
@@ -47,7 +47,7 @@ The previous implementation suffered from scope creep, architectural pain, and w
 │                 │              │  - user_profiles │
 │                 │              │  - collections   │
 │                 │              │  - collection_   │
-│                 │              │    cards          │
+│                 │              │    cards         │
 │                 │              │                  │
 └────────┬────────┘              └──────────────────┘
          │                               ▲
@@ -67,10 +67,10 @@ The previous implementation suffered from scope creep, architectural pain, and w
 
 ### Why This Approach
 
-- **SpacetimeDB** handles app logic, real-time sync, and user data with TypeScript modules. No REST API to build — reducers ARE the API. V3 multiplayer ready from day 1.
+- **SpacetimeDB** handles app logic, real-time sync, and user data with TypeScript modules. No REST API to build - reducers ARE the API. V3 multiplayer ready from day 1.
 - **MeiliSearch** handles instant card search with typo tolerance, faceted filtering, and sub-50ms response times. SpacetimeDB is not designed for full-text search.
 - **Python Worker** handles heavy data pipeline work (Scryfall bulk ingestion, MeiliSearch index sync) and later OCR/VLLM for V2 scanning. SpacetimeDB's in-memory runtime should not process 2GB+ bulk imports.
-- **SvelteKit + Svelte 5** provides a fast, reactive frontend with granular DOM updates — ideal for real-time SpacetimeDB subscriptions.
+- **SvelteKit + Svelte 5** provides a fast, reactive frontend with granular DOM updates - ideal for real-time SpacetimeDB subscriptions.
 - **Pangolin IAP** handles all authentication externally. No auth logic inside Spellbook.
 
 ### Tech Stack Summary
@@ -102,9 +102,9 @@ SpacetimeDB is an in-memory runtime. Storing 100k+ cards with full text, images,
 
 ```typescript
 UserProfile: {
-  account_id: string (PK)     // Pangolin Remote-Subject UUID — immutable
-  username: string             // Remote-User — synced on each connection
-  email: string                // Remote-Email — synced on each connection
+  account_id: string (PK)     // Pangolin Remote-Subject UUID - immutable
+  username: string             // Remote-User - synced on each connection
+  email: string                // Remote-Email - synced on each connection
   last_seen: timestamp
   // V1.1: preferred_language: string (default "en")
 }
@@ -117,35 +117,44 @@ Collection: {
   created_at: timestamp
 }
 
+// ServerConfig: injected via `spacetime call` during deployment
+// SpacetimeDB modules run as WASM — no access to host env vars
+ServerConfig: {
+  key: string (PK)             // e.g. "auth_signing_secret"
+  value: string
+}
+
 CollectionCard: {
-  id: string (PK)
+  // Synthetic compound key: "${collection_id}_${scryfall_id}_${is_foil}_${condition}"
+  // SpacetimeDB does not support multi-column unique constraints,
+  // so this enforces uniqueness at the database index level
+  composite_id: string (PK)
   collection_id: string        // FK to Collection.id
   scryfall_id: string          // exact printing reference
   oracle_id: string            // groups "same card" across collection
   name: string                 // denormalized for display
   set_code: string             // denormalized for display
-  image_uri: string            // denormalized — snapshot at add-time
+  image_uri: string            // denormalized - snapshot at add-time
   quantity: number
   is_foil: boolean
   condition: string            // "NM" | "LP" | "MP" | "HP" | "DMG"
   notes: string
   added_at: timestamp
   updated_at: timestamp
-
-  // UNIQUE constraint: (collection_id, scryfall_id, is_foil, condition)
-  // Duplicate adds increment quantity instead of creating new rows
 }
 ```
 
 ### Key Design Decisions
 
-1. **`scryfall_id` uniquely identifies a specific printing** (set + collector number). Foil/non-foil status is NOT baked into scryfall_id — it is tracked on `CollectionCard.is_foil` because the same printing can exist in both finishes. Scryfall's `finishes` array on each printing indicates availability (nonfoil, foil, etched).
+1. **`scryfall_id` uniquely identifies a specific printing** (set + collector number). Foil/non-foil status is NOT baked into scryfall_id - it is tracked on `CollectionCard.is_foil` because the same printing can exist in both finishes. Scryfall's `finishes` array on each printing indicates availability (nonfoil, foil, etched).
 
 2. **Denormalized card data on CollectionCard.** Name, set_code, and image_uri are copied at add-time so collection views render from SpacetimeDB alone, without hitting MeiliSearch.
 
-3. **Uniqueness constraint on CollectionCard.** The tuple `(collection_id, scryfall_id, is_foil, condition)` is unique. Adding a duplicate increments `quantity` rather than creating a new row.
+3. **Uniqueness via synthetic compound key.** SpacetimeDB does not support multi-column unique constraints. CollectionCard uses a `composite_id` string (`"${collection_id}_${scryfall_id}_${is_foil}_${condition}"`) as the primary key. The reducer generates this key and uses it for upsert logic — if the key exists, increment quantity; otherwise insert. This prevents race conditions from double-clicks.
 
-4. **Deck tables deferred to V1.1.** SpacetimeDB allows adding new tables when publishing a new module version — no migration needed. Deck schema will be designed when deck-building requirements are fully worked out in V1.1.
+4. **ServerConfig table for secrets.** SpacetimeDB modules run as WASM in an isolated sandbox with no access to host environment variables. The `AUTH_SIGNING_SECRET` (and any other runtime config) must be injected into a `ServerConfig` table via `spacetime call` during deployment. The `onConnect` reducer queries this table to verify signed tokens.
+
+5. **Deck tables deferred to V1.1.** SpacetimeDB allows adding new tables when publishing a new module version - no migration needed. Deck schema will be designed when deck-building requirements are fully worked out in V1.1.
 
 ### V1 Reducers (API Surface)
 
@@ -163,10 +172,10 @@ Collections:
 Collection Cards:
   addToCollection(collection_id, scryfall_id, oracle_id, name, set_code,
                   image_uri, is_foil, condition, quantity)
-                                             → insert or increment CollectionCard
-  updateCollectionCard(id, quantity?, condition?, notes?)
+                                             → generate composite_id, upsert CollectionCard
+  updateCollectionCard(composite_id, quantity?, condition?, notes?)
                                              → update CollectionCard fields + set updated_at
-  removeFromCollection(id)                   → delete CollectionCard
+  removeFromCollection(composite_id)         → delete CollectionCard
 ```
 
 All reducers validate that the connected user owns the target resource via `owner_id` check.
@@ -197,7 +206,7 @@ cards_all
 - **Filterable attributes**: `colors`, `color_identity`, `rarity`, `set_code`, `type_line`, `mana_cost`, `is_foil_available`, `lang`
 - **Sortable attributes**: `name`, `rarity`, `set_code`, `collector_number`
 - **Typo tolerance**: enabled
-- **Stored attributes**: full card payload including image URIs, oracle text — everything the frontend needs to render card details
+- **Stored attributes**: full card payload including image URIs, oracle text - everything the frontend needs to render card details
 
 ### User Interaction Flow
 
@@ -227,7 +236,7 @@ The `cards_distinct` index deduplicates by `oracle_id`. MeiliSearch's `distinctA
 
 ### Frontend Queries MeiliSearch Directly
 
-MeiliSearch has a built-in API key system. The frontend gets a search-only key (read-only, no write access). This skips a round-trip through any backend and keeps search sub-5ms. The search key is intentionally exposed to the browser — it grants read-only access to public card data.
+MeiliSearch has a built-in API key system. The frontend gets a search-only key (read-only, no write access). This skips a round-trip through any backend and keeps search sub-5ms. The search key is intentionally exposed to the browser - it grants read-only access to public card data.
 
 ### Search Debounce
 
@@ -235,7 +244,7 @@ Frontend search input should debounce queries by 150-300ms to avoid excessive ne
 
 ---
 
-## 5. Data Pipeline — Python Worker
+## 5. Data Pipeline - Python Worker
 
 ### Startup Sequence (Progressive Loading)
 
@@ -277,8 +286,8 @@ Reference: https://scryfall.com/docs/api/bulk-data
 
 ### Atomic Sync Guarantee
 
-- Python worker writes to `cards_distinct` and `cards_all` atomically (MeiliSearch supports task-based async updates — wait for both to complete)
-- If MeiliSearch update fails → retry, log, alert — but collections still work (self-contained in SpacetimeDB with denormalized data)
+- Python worker writes to `cards_distinct` and `cards_all` atomically (MeiliSearch supports task-based async updates - wait for both to complete)
+- If MeiliSearch update fails → retry, log, alert - but collections still work (self-contained in SpacetimeDB with denormalized data)
 
 ### Configuration Toggles
 
@@ -290,7 +299,7 @@ LANGUAGES=en                   # en | en,de,ja,... (V1.1: per-user override)
 
 ---
 
-## 6. Frontend Architecture — SvelteKit + Svelte 5
+## 6. Frontend Architecture - SvelteKit + Svelte 5
 
 ### Svelte 5 Only (No Svelte 4 Patterns)
 
@@ -367,7 +376,7 @@ export function bindSubscriptions(client: SpacetimeDBClient) {
 }
 ```
 
-**MeiliSearch — direct from frontend:**
+**MeiliSearch - direct from frontend:**
 ```typescript
 // meilisearch.ts
 export const searchClient = new MeiliSearch({
@@ -397,7 +406,7 @@ export const allIndex = searchClient.index('cards_all');
 
 ### SpacetimeDB Client SDK
 
-The frontend uses SpacetimeDB's TypeScript client SDK. Running `spacetime generate` auto-generates typed client bindings from the server module definitions. These generated types ensure type safety between the SpacetimeDB module and the frontend — reducer call signatures and table row types are always in sync.
+The frontend uses SpacetimeDB's TypeScript client SDK. Running `spacetime generate` auto-generates typed client bindings from the server module definitions. These generated types ensure type safety between the SpacetimeDB module and the frontend - reducer call signatures and table row types are always in sync.
 
 ### Styling
 
@@ -419,7 +428,7 @@ Pangolin must be configured to inject the Zitadel `sub` claim:
 
 | Header | Source | Purpose | Mutable? |
 |--------|--------|---------|----------|
-| `Remote-Subject` | Zitadel `sub` claim (UUID) | `owner_id` for all user data | No — immutable |
+| `Remote-Subject` | Zitadel `sub` claim (UUID) | `owner_id` for all user data | No - immutable |
 | `Remote-User` | Zitadel `preferred_username` | Display name | Yes |
 | `Remote-Email` | Zitadel `email` claim | Display email | Yes |
 
@@ -446,12 +455,12 @@ Pangolin (as an IAP) injects identity headers into HTTP requests but does NOT in
 
 **Trust boundary:** The SvelteKit server is the only component behind Pangolin that can read identity headers. It acts as the trust bridge:
 
-1. SvelteKit reads Pangolin headers (trusted — Pangolin verified the user)
+1. SvelteKit reads Pangolin headers (trusted - Pangolin verified the user)
 2. SvelteKit creates a signed token containing the identity claims
 3. The frontend sends this token when connecting to SpacetimeDB
-4. The `onConnect` reducer receives the token — it trusts the SvelteKit server's signature
+4. The `onConnect` reducer receives the token - it trusts the SvelteKit server's signature
 
-**Security note:** The signed token prevents spoofing. A malicious client cannot forge identity because they cannot produce a valid signature. The signing secret is shared only between SvelteKit and the SpacetimeDB module (via environment variable). This is a standard pattern for bridging HTTP-based auth to WebSocket connections.
+**Security note:** The signed token prevents spoofing. A malicious client cannot forge identity because they cannot produce a valid signature. The signing secret is shared between SvelteKit (via environment variable) and the SpacetimeDB module (via `ServerConfig` table — WASM modules cannot read host env vars). The secret is injected into SpacetimeDB via `spacetime call` during deployment. This is a standard pattern for bridging HTTP-based auth to WebSocket connections.
 
 **Alternative (simpler, V1-acceptable):** If the deployment is single-user behind Pangolin with no public access, the frontend can pass identity claims directly without signing. The `onConnect` reducer trusts the claims because the entire stack is behind Pangolin. This should be documented as a security trade-off that must be hardened before multi-user deployment.
 
@@ -461,7 +470,7 @@ Every table with user data has an `owner_id` field referencing `UserProfile.acco
 
 ### MeiliSearch Auth
 
-MeiliSearch does not need user identity — card search is the same for everyone. A read-only API key is sufficient.
+MeiliSearch does not need user identity - card search is the same for everyone. A read-only API key is sufficient.
 
 ---
 
@@ -515,7 +524,7 @@ volumes:
 ### Infrastructure Notes
 
 - **Pangolin** sits in front of this stack (part of existing infrastructure, not in compose file)
-- **No Redis, no PostgreSQL, no Celery** — dramatically simpler than the previous implementation
+- **No Redis, no PostgreSQL, no Celery** - dramatically simpler than the previous implementation
 - **Storage:** 10-40GB depending on AGGRESSIVE_PRELOAD setting (card data + search index)
 
 ### Environment Configuration
@@ -539,14 +548,14 @@ AUTH_SIGNING_SECRET=<secret>           # Shared between SvelteKit and SpacetimeD
 The system has three independent services that can fail independently:
 
 - **MeiliSearch down:** Search is unavailable. Frontend shows a clear error state on the search page. Collection views still work (rendered from SpacetimeDB). The worker retries index writes with exponential backoff.
-- **SpacetimeDB down:** The app is fully unavailable — collections, user data, and all write operations depend on it. Frontend shows a connection error overlay.
+- **SpacetimeDB down:** The app is fully unavailable - collections, user data, and all write operations depend on it. Frontend shows a connection error overlay.
 - **Python Worker crashes mid-ingestion:** MeiliSearch may have partial index state. The worker must track ingestion progress and resume from where it left off on restart, not re-ingest from scratch.
 - **Reducer call fails (e.g., collection not found, permission denied):** Frontend handles error responses gracefully with user-facing messages. No silent failures.
-- **Scryfall API unreachable during sync:** Worker logs the failure and retries on the next sync interval. The existing index remains valid — stale data is better than no data.
+- **Scryfall API unreachable during sync:** Worker logs the failure and retries on the next sync interval. The existing index remains valid - stale data is better than no data.
 
 ### Health Checks & Startup Ordering
 
-The worker must implement retry-on-startup logic — SpacetimeDB and MeiliSearch may not be ready when the worker container starts. The compose file uses `depends_on` for ordering, but this only waits for container start, not service readiness. The worker should:
+The worker must implement retry-on-startup logic - SpacetimeDB and MeiliSearch may not be ready when the worker container starts. The compose file uses `depends_on` for ordering, but this only waits for container start, not service readiness. The worker should:
 
 1. Retry SpacetimeDB connection with exponential backoff (max 30s between retries)
 2. Retry MeiliSearch health check endpoint (`GET /health`) with exponential backoff
@@ -562,7 +571,7 @@ The worker must implement retry-on-startup logic — SpacetimeDB and MeiliSearch
 - Decks built from owned collection (CollectionCard references)
 - Commander deck requires a commander_scryfall_id
 - Zones: main, sideboard, maybe
-- New tables added to SpacetimeDB module (Deck, DeckCard) — no migration needed, just publish updated module
+- New tables added to SpacetimeDB module (Deck, DeckCard) - no migration needed, just publish updated module
 
 ### Per-User Language
 
@@ -578,7 +587,7 @@ The worker must implement retry-on-startup logic — SpacetimeDB and MeiliSearch
 - Python Worker gains OCR/VLLM capabilities
 - Mobile companion app (Flutter or mobile web view)
 - Scan → OCR → match against MeiliSearch → confirm → SpacetimeDB reducer
-- No architectural changes needed — Python Worker is already in the stack
+- No architectural changes needed - Python Worker is already in the stack
 
 ---
 
@@ -587,4 +596,4 @@ The worker must implement retry-on-startup logic — SpacetimeDB and MeiliSearch
 - SpacetimeDB's real-time sync enables shared card pools and live play
 - Drag-and-drop card interaction (svelte-dnd-action or native HTML5 DnD)
 - SpacetimeDB subscriptions allow multiple users to see the same game state
-- No database migration — SpacetimeDB is already the foundation
+- No database migration - SpacetimeDB is already the foundation
