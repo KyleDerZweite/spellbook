@@ -89,7 +89,5 @@ venv/
 # Development and Planning (Hidden from users)
 /research/
 /archive/
-CLAUDE.md
-GEMINI.md
 *-prd.md
 .superpowers/
