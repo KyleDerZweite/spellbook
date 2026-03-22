@@ -32,6 +32,23 @@ services:
       - meilisearch
     restart: unless-stopped
 
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "5173:3000"
+    environment:
+      PUBLIC_MEILISEARCH_URL: http://meilisearch:7700
+      PUBLIC_MEILISEARCH_SEARCH_KEY: ${MEILISEARCH_SEARCH_KEY}
+      PUBLIC_SPACETIMEDB_URL: ws://spacetimedb:3000
+      PUBLIC_SPACETIMEDB_MODULE: spellbook
+      AUTH_SIGNING_SECRET: ${AUTH_SIGNING_SECRET}
+    depends_on:
+      - spacetimedb
+      - meilisearch
+    restart: unless-stopped
+
 volumes:
   spacetimedb_data:
   meilisearch_data:
