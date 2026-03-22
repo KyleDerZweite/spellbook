@@ -1,0 +1,47 @@
+{
+  "object": "card",
+  "id": "ab-split-id-123",
+  "oracle_id": "split-oracle-id",
+  "name": "Fire // Ice",
+  "lang": "en",
+  "released_at": "2001-06-01",
+  "layout": "split",
+  "mana_cost": "{1}{R} // {1}{U}",
+  "cmc": 4.0,
+  "type_line": "Instant // Instant",
+  "oracle_text": null,
+  "colors": ["R", "U"],
+  "color_identity": ["R", "U"],
+  "keywords": [],
+  "rarity": "uncommon",
+  "set": "apc",
+  "set_name": "Apocalypse",
+  "set_id": "apc-set-id",
+  "collector_number": "128",
+  "image_uris": {
+    "small": "https://cards.scryfall.io/small/front/a/b/ab-split.jpg",
+    "normal": "https://cards.scryfall.io/normal/front/a/b/ab-split.jpg"
+  },
+  "card_faces": [
+    {
+      "object": "card_face",
+      "name": "Fire",
+      "mana_cost": "{1}{R}",
+      "type_line": "Instant",
+      "oracle_text": "Fire deals 2 damage divided as you choose among one or two targets."
+    },
+    {
+      "object": "card_face",
+      "name": "Ice",
+      "mana_cost": "{1}{U}",
+      "type_line": "Instant",
+      "oracle_text": "Tap target permanent.\nDraw a card."
+    }
+  ],
+  "finishes": ["nonfoil", "foil"],
+  "legalities": {
+    "standard": "not_legal",
+    "modern": "legal",
+    "commander": "legal"
+  }
+}

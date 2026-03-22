@@ -1,0 +1,51 @@
+{
+  "object": "card",
+  "id": "cd-adventure-id-456",
+  "oracle_id": "adventure-oracle-id",
+  "name": "Bonecrusher Giant // Stomp",
+  "lang": "en",
+  "released_at": "2019-10-04",
+  "layout": "adventure",
+  "mana_cost": "{2}{R}",
+  "cmc": 3.0,
+  "type_line": "Creature \u2014 Giant // Instant \u2014 Adventure",
+  "oracle_text": null,
+  "colors": ["R"],
+  "color_identity": ["R"],
+  "keywords": ["adventure"],
+  "power": "4",
+  "toughness": "3",
+  "rarity": "rare",
+  "set": "eld",
+  "set_name": "Throne of Eldraine",
+  "set_id": "eld-set-id",
+  "collector_number": "115",
+  "image_uris": {
+    "small": "https://cards.scryfall.io/small/front/c/d/cd-adventure.jpg",
+    "normal": "https://cards.scryfall.io/normal/front/c/d/cd-adventure.jpg"
+  },
+  "card_faces": [
+    {
+      "object": "card_face",
+      "name": "Bonecrusher Giant",
+      "mana_cost": "{2}{R}",
+      "type_line": "Creature \u2014 Giant",
+      "oracle_text": "Whenever Bonecrusher Giant becomes the target of a spell, Bonecrusher Giant deals 2 damage to that spell's controller.",
+      "power": "4",
+      "toughness": "3"
+    },
+    {
+      "object": "card_face",
+      "name": "Stomp",
+      "mana_cost": "{1}{R}",
+      "type_line": "Instant \u2014 Adventure",
+      "oracle_text": "Damage can't be prevented this turn. Stomp deals 2 damage to any target."
+    }
+  ],
+  "finishes": ["nonfoil", "foil"],
+  "legalities": {
+    "standard": "not_legal",
+    "modern": "legal",
+    "commander": "legal"
+  }
+}
