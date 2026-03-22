@@ -19,6 +19,19 @@ services:
       - meilisearch_data:/meili_data
     restart: unless-stopped
 
+  worker:
+    build:
+      context: ./worker
+    environment:
+      MEILISEARCH_URL: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      AGGRESSIVE_PRELOAD: ${AGGRESSIVE_PRELOAD:-true}
+      SYNC_INTERVAL: ${SYNC_INTERVAL:-daily}
+      LANGUAGES: ${LANGUAGES:-en}
+    depends_on:
+      - meilisearch
+    restart: unless-stopped
+
 volumes:
   spacetimedb_data:
   meilisearch_data:
