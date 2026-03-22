@@ -1,0 +1,46 @@
+# Git
+.git/
+.gitignore
+
+# Development
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+docs/
+research/
+archive/
+
+# Environment and secrets
+*.env
+.env*
+
+# Node.js
+frontend/node_modules/
+frontend/.svelte-kit/
+frontend/build/
+frontend/tests/
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+.pytest_cache/
+
+# SpacetimeDB local
+.spacetime/
+spacetime.json
+spacetime.local.json
+target/
+
+# Data
+data.ms/
+scryfall/
+*.db
+*.sqlite*
+
+# OS
+.DS_Store
+Thumbs.db
