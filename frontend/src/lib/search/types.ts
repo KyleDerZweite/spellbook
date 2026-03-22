@@ -12,8 +12,8 @@ export interface CardDocument {
   colors: string[];
   color_identity: string[];
   keywords: string[];
-  power: string;
-  toughness: string;
+  power?: string;
+  toughness?: string;
   rarity: string;
   set_code: string;
   set_name: string;
