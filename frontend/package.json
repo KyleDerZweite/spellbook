@@ -1,0 +1,33 @@
+{
+  "name": "spellbook-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "test:unit": "vitest run",
+    "lint": "prettier --check . && svelte-check --tsconfig ./tsconfig.json",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "meilisearch": "^0.44",
+    "spacetimedb": "^2.0"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-node": "^5",
+    "@sveltejs/kit": "^2",
+    "@sveltejs/vite-plugin-svelte": "^4",
+    "@tailwindcss/vite": "^4",
+    "prettier": "^3",
+    "prettier-plugin-svelte": "^3",
+    "svelte": "^5",
+    "svelte-check": "^4",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vite": "^6",
+    "vitest": "^3"
+  }
+}

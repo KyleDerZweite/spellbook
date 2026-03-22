@@ -1,0 +1,16 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-surface-900: oklch(0.15 0.01 260);
+  --color-surface-800: oklch(0.2 0.01 260);
+  --color-surface-700: oklch(0.28 0.01 260);
+  --color-surface-600: oklch(0.35 0.015 260);
+  --color-accent-500: oklch(0.75 0.15 85);
+  --color-accent-400: oklch(0.82 0.12 85);
+}
+
+body {
+  @apply bg-surface-900 text-gray-100 antialiased;
+}
