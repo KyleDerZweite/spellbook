@@ -35,8 +35,8 @@ export function connect(identity: UserIdentity): void {
         .onApplied(() => {
           syncStateFromCache(conn);
         })
-        .onError((_ctx, err) => {
-          state.error = `Subscription error: ${err instanceof Error ? err.message : String(err)}`;
+        .onError((ctx) => {
+          state.error = `Subscription error: ${ctx.event?.message ?? 'Unknown error'}`;
         })
         .subscribe([
           'SELECT * FROM user_profile',
