@@ -4,7 +4,7 @@
 
 Spellbook is a self-hosted card collection management platform built for speed and real-time collaboration.
 
-> This project is under active redesign (V1). The codebase is pre-release and not yet functional. See [`docs/superpowers/specs/`](docs/superpowers/specs/) for the current architecture spec.
+> Active V1 redesign in progress. Backend infrastructure is functional; frontend is next. See [`docs/superpowers/specs/`](docs/superpowers/specs/) for architecture details.
 
 ## V1 Architecture
 
@@ -32,10 +32,10 @@ Spellbook is a self-hosted card collection management platform built for speed a
 
 | Component | Status |
 |-----------|--------|
-| SpacetimeDB module | Planned |
-| SvelteKit frontend | Planned |
-| MeiliSearch integration | Planned |
-| Python sync worker | Planned |
+| SpacetimeDB module | Implemented (Phase 1) |
+| Python sync worker | Implemented (Phase 2) |
+| MeiliSearch integration | Partial (indexing done, frontend search pending) |
+| SvelteKit frontend | Planned (Phase 3) |
 
 ## License
 
