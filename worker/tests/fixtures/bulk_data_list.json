@@ -1,0 +1,42 @@
+{
+  "object": "list",
+  "has_more": false,
+  "data": [
+    {
+      "object": "bulk_data",
+      "id": "aaa-111",
+      "type": "default_cards",
+      "name": "Default Cards",
+      "description": "Every card in English",
+      "download_uri": "https://data.scryfall.io/default-cards/default-cards-20260321.json",
+      "updated_at": "2026-03-21T09:00:00+00:00",
+      "size": 529000000,
+      "content_type": "application/json",
+      "content_encoding": "gzip"
+    },
+    {
+      "object": "bulk_data",
+      "id": "bbb-222",
+      "type": "all_cards",
+      "name": "All Cards",
+      "description": "Every card in every language",
+      "download_uri": "https://data.scryfall.io/all-cards/all-cards-20260321.json",
+      "updated_at": "2026-03-21T09:00:00+00:00",
+      "size": 2480000000,
+      "content_type": "application/json",
+      "content_encoding": "gzip"
+    },
+    {
+      "object": "bulk_data",
+      "id": "ccc-333",
+      "type": "oracle_cards",
+      "name": "Oracle Cards",
+      "description": "One per oracle ID",
+      "download_uri": "https://data.scryfall.io/oracle-cards/oracle-cards-20260321.json",
+      "updated_at": "2026-03-21T09:00:00+00:00",
+      "size": 170000000,
+      "content_type": "application/json",
+      "content_encoding": "gzip"
+    }
+  ]
+}
