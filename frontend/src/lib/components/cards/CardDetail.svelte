@@ -10,32 +10,49 @@
   let printings = $state<CardDocument[]>([]);
   let loadingPrintings = $state(true);
   let selectedPrinting = $state<CardDocument | null>(null);
+  let printingGen = 0;
+  let panelEl = $state<HTMLDivElement>();
 
   $effect(() => {
+    const gen = ++printingGen;
+    selectedPrinting = null;
     loadingPrintings = true;
     searchPrintings(card.oracle_id).then((result) => {
+      if (gen !== printingGen) return;
       printings = result.hits;
       loadingPrintings = false;
     });
   });
+
+  $effect(() => {
+    panelEl?.focus();
+  });
 </script>
+
+<svelte:window onkeydown={(e) => e.key === 'Escape' && onclose()} />
 
 <!-- Backdrop -->
 <div
   class="fixed inset-0 z-40 bg-black/70"
   role="presentation"
   onclick={onclose}
-  onkeydown={(e) => e.key === 'Escape' && onclose()}
 ></div>
 
 <!-- Panel -->
-<div class="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-surface-800 p-6 shadow-xl sm:max-w-2xl">
+<div
+  bind:this={panelEl}
+  tabindex="-1"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="card-detail-title"
+  class="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-surface-800 p-6 shadow-xl outline-none sm:max-w-2xl"
+>
   <div class="mb-4 flex items-start justify-between">
     <div>
-      <h2 class="text-xl font-bold">{card.name}</h2>
+      <h2 id="card-detail-title" class="text-xl font-bold">{card.name}</h2>
       <p class="text-sm text-gray-400">{card.type_line}</p>
     </div>
-    <button onclick={onclose} class="text-gray-400 hover:text-gray-200">&times;</button>
+    <button onclick={onclose} aria-label="Close" class="text-gray-400 hover:text-gray-200">&times;</button>
   </div>
 
   <div class="flex flex-col gap-6 sm:flex-row">
@@ -46,10 +63,10 @@
         alt={(selectedPrinting ?? card).name}
         class="w-64 rounded-lg"
       />
-      {#if card.back_face_image_uri}
+      {#if (selectedPrinting ?? card).back_face_image_uri}
         <img
-          src={card.back_face_image_uri}
-          alt={card.back_face_name ?? 'Back face'}
+          src={(selectedPrinting ?? card).back_face_image_uri}
+          alt={(selectedPrinting ?? card).back_face_name ?? 'Back face'}
           class="mt-2 w-64 rounded-lg"
         />
       {/if}
