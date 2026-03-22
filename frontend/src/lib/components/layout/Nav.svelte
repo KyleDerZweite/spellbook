@@ -13,9 +13,12 @@
     <a href="/" class="text-lg font-bold text-accent-400">Spellbook</a>
     <div class="flex gap-4">
       {#each links as link}
+        {@const active = page.url.pathname === link.href ||
+          (link.href !== '/' && page.url.pathname.startsWith(link.href))}
         <a
           href={link.href}
-          class="text-sm transition-colors {page.url.pathname === link.href
+          aria-current={active ? 'page' : undefined}
+          class="text-sm transition-colors {active
             ? 'text-accent-400'
             : 'text-gray-400 hover:text-gray-200'}"
         >
