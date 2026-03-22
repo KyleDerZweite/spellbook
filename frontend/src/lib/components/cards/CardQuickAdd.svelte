@@ -27,6 +27,8 @@
     const conn = getConnection();
     if (!conn || !stdb.userProfile || !selectedCollectionId) return;
 
+    const qty = Math.max(1, Math.floor(quantity));
+
     try {
       conn.reducers.addToCollection({
         accountId: stdb.userProfile.accountId,
@@ -38,7 +40,7 @@
         imageUri: card.image_uri,
         isFoil,
         condition,
-        quantity,
+        quantity: qty,
       });
       feedback = { type: 'success', message: `Added ${quantity}x ${card.name} to collection` };
       setTimeout(() => (feedback = null), 3000);
@@ -60,7 +62,8 @@
     <div class="space-y-3">
       <select
         bind:value={selectedCollectionId}
-        class="w-full rounded-lg border border-surface-600 bg-surface-800 px-3 py-2 text-sm text-gray-100"
+        aria-label="Collection"
+        class="w-full rounded-lg border border-surface-600 bg-surface-800 px-3 py-2 text-sm text-gray-100 outline-none focus:border-accent-500"
       >
         {#each ownedCollections as coll (coll.id)}
           <option value={coll.id}>{coll.name}</option>
@@ -70,7 +73,8 @@
       <div class="flex gap-3">
         <select
           bind:value={condition}
-          class="rounded-lg border border-surface-600 bg-surface-800 px-3 py-2 text-sm text-gray-100"
+          aria-label="Condition"
+          class="rounded-lg border border-surface-600 bg-surface-800 px-3 py-2 text-sm text-gray-100 outline-none focus:border-accent-500"
         >
           {#each conditions as cond}
             <option value={cond}>{cond}</option>
@@ -87,13 +91,15 @@
           bind:value={quantity}
           min="1"
           max="99"
-          class="w-16 rounded-lg border border-surface-600 bg-surface-800 px-2 py-2 text-center text-sm text-gray-100"
+          step="1"
+          aria-label="Quantity"
+          class="w-16 rounded-lg border border-surface-600 bg-surface-800 px-2 py-2 text-center text-sm text-gray-100 outline-none focus:border-accent-500"
         />
       </div>
 
       <button
         onclick={addToCollection}
-        disabled={!selectedCollectionId || !stdb.connected}
+        disabled={!selectedCollectionId || !stdb.connected || !stdb.userProfile}
         class="w-full rounded-lg bg-accent-500 py-2 text-sm font-medium text-surface-900 hover:bg-accent-400 disabled:opacity-50"
       >
         Add to Collection
