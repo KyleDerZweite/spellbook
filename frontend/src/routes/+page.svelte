@@ -1,13 +1,9 @@
 <script lang="ts">
-  import { state as stdb } from '$lib/spacetimedb/state.svelte';
-  import CollectionStats from '$lib/components/collections/CollectionStats.svelte';
+  import { state as stdb } from "$lib/spacetimedb/state.svelte";
+  import CollectionStats from "$lib/components/collections/CollectionStats.svelte";
 
   let ownedCollections = $derived(
     stdb.collections.filter((c) => c.ownerId === stdb.userProfile?.accountId),
-  );
-
-  let totalCards = $derived(
-    stdb.collectionCards.reduce((sum, c) => sum + c.quantity, 0),
   );
 </script>
 
@@ -20,7 +16,9 @@
         Spellbook
       {/if}
     </h1>
-    <p class="mt-1 text-gray-400">Your Magic: The Gathering collection manager.</p>
+    <p class="mt-1 text-gray-400">
+      Your Magic: The Gathering collection manager.
+    </p>
   </div>
 
   <!-- Quick actions -->
@@ -45,7 +43,9 @@
       <h2 class="text-lg font-semibold">Your Collections</h2>
       <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {#each ownedCollections as coll (coll.id)}
-          {@const cards = stdb.collectionCards.filter((cc) => cc.collectionId === coll.id)}
+          {@const cards = stdb.collectionCards.filter(
+            (cc) => cc.collectionId === coll.id,
+          )}
           <a
             href="/collections/{coll.id}"
             class="rounded-lg border border-surface-700 bg-surface-800 p-4 transition-colors hover:border-surface-600"
@@ -59,9 +59,14 @@
       </div>
     </div>
   {:else if stdb.connected}
-    <div class="rounded-lg border border-surface-700 bg-surface-800 p-8 text-center">
+    <div
+      class="rounded-lg border border-surface-700 bg-surface-800 p-8 text-center"
+    >
       <p class="text-gray-400">No collections yet.</p>
-      <a href="/collections" class="mt-2 inline-block text-sm text-accent-400 hover:underline">
+      <a
+        href="/collections"
+        class="mt-2 inline-block text-sm text-accent-400 hover:underline"
+      >
         Create your first collection
       </a>
     </div>
