@@ -8,6 +8,7 @@ export default {
     adapter: adapter(),
     alias: {
       $bindings: '../src/module_bindings',
+      spacetimedb: './node_modules/spacetimedb',
     },
   },
 };

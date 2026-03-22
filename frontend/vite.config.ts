@@ -10,6 +10,8 @@ export default defineConfig({
     alias: {
       '$env/static/public': path.resolve('./tests/__mocks__/env.ts'),
       '$lib': path.resolve('./src/lib'),
+      '$bindings/types': path.resolve('../src/module_bindings/types'),
+      '$bindings': path.resolve('../src/module_bindings'),
     },
   },
 });
