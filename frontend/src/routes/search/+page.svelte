@@ -6,6 +6,7 @@
   import SearchBar from '$lib/components/search/SearchBar.svelte';
   import SearchFilters from '$lib/components/search/SearchFilters.svelte';
   import SearchResults from '$lib/components/search/SearchResults.svelte';
+  import CardDetail from '$lib/components/cards/CardDetail.svelte';
 
   let query = $state('');
   let hits = $state<CardDocument[]>([]);
@@ -54,3 +55,7 @@
     </div>
   </div>
 </div>
+
+{#if selectedCard}
+  <CardDetail card={selectedCard} onclose={() => (selectedCard = null)} />
+{/if}
