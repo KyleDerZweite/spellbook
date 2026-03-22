@@ -11,8 +11,10 @@
   let hits = $state<CardDocument[]>([]);
   let loading = $state(false);
   let selectedCard = $state<CardDocument | null>(null);
+  let searchGen = 0;
 
   const doSearch = debounce(async (q: string, filterStrings: string[]) => {
+    const gen = ++searchGen;
     if (q.length < 2) {
       hits = [];
       loading = false;
@@ -20,6 +22,7 @@
     }
     loading = true;
     const result = await searchCards(q, { filter: filterStrings });
+    if (gen !== searchGen) return;
     hits = result.hits;
     loading = false;
   }, 250);
