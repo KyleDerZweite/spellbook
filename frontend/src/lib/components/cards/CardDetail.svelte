@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { CardDocument } from '$lib/search/types';
   import { searchPrintings } from '$lib/search/meilisearch';
+  import CardQuickAdd from './CardQuickAdd.svelte';
 
   let { card, onclose }: {
     card: CardDocument;
@@ -129,5 +130,10 @@
         {/each}
       </div>
     {/if}
+  </div>
+
+  <!-- Add to collection -->
+  <div class="mt-6">
+    <CardQuickAdd card={selectedPrinting ?? card} />
   </div>
 </div>
