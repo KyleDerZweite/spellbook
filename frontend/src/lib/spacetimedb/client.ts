@@ -1,8 +1,7 @@
 import { DbConnection, type SubscriptionHandle } from '$bindings';
 import {
-  PUBLIC_SPACETIMEDB_URL,
-  PUBLIC_SPACETIMEDB_MODULE,
-} from '$env/static/public';
+  env
+} from '$env/dynamic/public';
 import { state } from './state.svelte';
 
 let connection: DbConnection | null = null;
@@ -18,8 +17,8 @@ export function connect(identity: UserIdentity): void {
   if (connection) return;
 
   connection = DbConnection.builder()
-    .withUri(PUBLIC_SPACETIMEDB_URL)
-    .withDatabaseName(PUBLIC_SPACETIMEDB_MODULE)
+    .withUri(env.PUBLIC_SPACETIMEDB_URL)
+    .withDatabaseName(env.PUBLIC_SPACETIMEDB_MODULE)
     .onConnect((conn, _identity, _token) => {
       state.connected = true;
       state.error = null;

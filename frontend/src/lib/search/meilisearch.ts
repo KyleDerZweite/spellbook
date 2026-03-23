@@ -1,17 +1,18 @@
 import { MeiliSearch } from 'meilisearch';
-import {
-  PUBLIC_MEILISEARCH_URL,
-  PUBLIC_MEILISEARCH_SEARCH_KEY,
-} from '$env/static/public';
+import { env } from '$env/dynamic/public';
 import type { CardDocument, SearchResult } from './types';
 
-const client = new MeiliSearch({
-  host: PUBLIC_MEILISEARCH_URL,
-  apiKey: PUBLIC_MEILISEARCH_SEARCH_KEY,
-});
+let client: MeiliSearch | null = null;
 
-const distinctIndex = client.index('cards_distinct');
-const allIndex = client.index('cards_all');
+function getClient(): MeiliSearch {
+  if (!client) {
+    client = new MeiliSearch({
+      host: env.PUBLIC_MEILISEARCH_URL!,
+      apiKey: env.PUBLIC_MEILISEARCH_SEARCH_KEY,
+    });
+  }
+  return client;
+}
 
 export async function searchCards(
   query: string,
@@ -20,7 +21,7 @@ export async function searchCards(
   if (!query || query.length < 2) {
     return { hits: [], query, processingTimeMs: 0 };
   }
-  const result = await distinctIndex.search<CardDocument>(query, {
+  const result = await getClient().index('cards_distinct').search<CardDocument>(query, {
     limit: options?.limit ?? 20,
     offset: options?.offset ?? 0,
     filter: options?.filter,
@@ -37,7 +38,7 @@ export async function searchPrintings(oracleId: string): Promise<SearchResult> {
   if (!oracleId) {
     return { hits: [], query: '', processingTimeMs: 0 };
   }
-  const result = await allIndex.search<CardDocument>('', {
+  const result = await getClient().index('cards_all').search<CardDocument>('', {
     filter: [`oracle_id = "${oracleId}"`],
     limit: 100,
     sort: ['set_code:desc'],

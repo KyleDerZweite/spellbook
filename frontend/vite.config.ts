@@ -9,6 +9,7 @@ export default defineConfig({
     include: ['tests/unit/**/*.test.ts'],
     alias: {
       '$env/static/public': path.resolve('./tests/__mocks__/env.ts'),
+      '$env/dynamic/public': path.resolve('./tests/__mocks__/env.ts'),
       '$lib': path.resolve('./src/lib'),
       '$bindings/types': path.resolve('../src/module_bindings/types'),
       '$bindings': path.resolve('../src/module_bindings'),
