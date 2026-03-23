@@ -49,6 +49,19 @@ services:
       - meilisearch
     restart: unless-stopped
 
+  newt:
+    image: docker.io/fosrl/newt:latest
+    container_name: spellbook-newt
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PANGOLIN_ENDPOINT: ${PANGOLIN_ENDPOINT}
+      NEWT_ID: ${NEWT_ID}
+      NEWT_SECRET: ${NEWT_SECRET}
+    depends_on:
+      - frontend
+
 volumes:
   spacetimedb_data:
   meilisearch_data:
