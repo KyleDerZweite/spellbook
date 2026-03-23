@@ -2,11 +2,12 @@
 
 ## Architecture
 
-Spellbook runs as 5 containers orchestrated via `podman-compose`. No ports are exposed to the host - all external access is routed through Pangolin via the Newt tunnel agent.
+Spellbook runs as 6 containers orchestrated via `podman-compose`. No ports are exposed to the host — all external access is routed through Pangolin via the Newt tunnel agent.
 
 | Service | Image | Internal Port | Role |
 |---------|-------|---------------|------|
 | **spacetimedb** | clockworklabs/spacetime:v2.0.5 | 3000 | Real-time database (collections, user data) |
+| **stdb-publish** | Built from `./spacetimedb/Dockerfile` | - | One-shot: publishes the SpacetimeDB module on startup |
 | **meilisearch** | getmeili/meilisearch:v1.39.0 | 7700 | Full-text card search engine |
 | **worker** | Built from `./worker` | - | Python data pipeline (Scryfall -> MeiliSearch) |
 | **frontend** | Built from `./frontend/Dockerfile` | 3000 | SvelteKit app (Node.js, adapter-node) |
@@ -31,7 +32,22 @@ User -> Pangolin (your VPS) -> [tunnel] -> Newt -> frontend:3000
                                              |---> spacetimedb:3000
 ```
 
-The browser needs to reach three services: the frontend (HTML/SSR), MeiliSearch (search API), and SpacetimeDB (WebSocket). All three are routed through Pangolin as separate resources.
+The browser needs to reach three services, each on its own subdomain:
+
+| Subdomain | Service | Auth |
+|-----------|---------|------|
+| `spellbook.yourdomain.com` | Frontend (SSR + static) | IAP (login required) |
+| `spellbook-search.yourdomain.com` | MeiliSearch API | None (read-only API key) |
+| `spellbook-db.yourdomain.com` | SpacetimeDB WebSocket | None (SDK identity tokens) |
+
+### Module auto-publish
+
+The `stdb-publish` container handles SpacetimeDB module publishing automatically:
+
+1. Waits for SpacetimeDB to be healthy (via `spacetime server ping`)
+2. Builds the TypeScript module and publishes it
+3. On subsequent restarts, detects the module already exists and exits cleanly
+4. The frontend `depends_on` stdb-publish, so it won't start until the module is ready
 
 ## Pangolin Setup
 
@@ -40,10 +56,7 @@ The browser needs to reach three services: the frontend (HTML/SSR), MeiliSearch 
 ### Prerequisites
 
 - A running Pangolin instance on your server/VPS
-- Three subdomains pointed at your Pangolin instance:
-  - `spellbook.yourdomain.com` (frontend)
-  - `search.yourdomain.com` (MeiliSearch)
-  - `stdb.yourdomain.com` (SpacetimeDB)
+- A wildcard DNS record for `*.yourdomain.com` pointed at Pangolin (or three individual A/CNAME records)
 
 ### Step 1: Create a Site in Pangolin
 
@@ -53,34 +66,36 @@ The browser needs to reach three services: the frontend (HTML/SSR), MeiliSearch 
 
 ### Step 2: Create Resources (3 required)
 
-All resources use Docker-internal hostnames since Newt runs in the same compose network.
+Each resource gets its own subdomain. This avoids path-prefix routing and allows different auth settings per resource. Use the `spellbook-` prefix so resources are easy to identify when your Pangolin instance hosts many services.
 
-**Resource 1: Frontend (with IAP)**
+**Resource 1: `spellbook-app` — Frontend**
 - Target: `http://frontend:3000`
 - Domain: `spellbook.yourdomain.com`
-- Enable **Identity-Aware Proxy (IAP)**
+- Enable **Identity-Aware Proxy (IAP)** — requires login
   - Pangolin injects `Remote-Subject`, `Remote-User`, `Remote-Email` headers
   - The SvelteKit `hooks.server.ts` reads these to identify the user
 
-**Resource 2: MeiliSearch (read-only search)**
+**Resource 2: `spellbook-search` — MeiliSearch API**
 - Target: `http://meilisearch:7700`
-- Domain: `search.yourdomain.com`
-- IAP optional (search uses a read-only key, no write access)
+- Domain: `spellbook-search.yourdomain.com`
+- **Disable IAP / authentication** — the browser JS client calls this directly with a read-only API key
 
-**Resource 3: SpacetimeDB (WebSocket)**
+**Resource 3: `spellbook-db` — SpacetimeDB**
 - Target: `http://spacetimedb:3000`
-- Domain: `stdb.yourdomain.com`
-- Enable WebSocket support
-- IAP optional (SpacetimeDB handles its own auth via identity tokens)
+- Domain: `spellbook-db.yourdomain.com`
+- **Disable IAP / authentication** — SpacetimeDB handles its own auth via identity tokens
+
+> **Why separate subdomains?** Pangolin resources are independent — you can't prioritize path prefixes across resources. Separate subdomains also eliminate the trailing-slash pitfall with JS URL resolution (`new URL(relative, base)` drops the last path segment without a trailing slash).
+
+> **Why no IAP on search and db?** The browser's JavaScript makes direct HTTP/WebSocket requests to these endpoints. If Pangolin's IAP is enabled, it returns a 302 redirect to a login page, which breaks API calls and WebSocket upgrades. MeiliSearch is protected by its read-only API key, and SpacetimeDB uses its own identity/token system.
 
 ### Step 3: Configure Environment
 
-Copy `.env.example` to `.env` and fill in all values. The `PUBLIC_*` URLs must match the Pangolin resource domains:
+Copy `.env.example` to `.env` and fill in all values. The `PUBLIC_*` URLs must match the Pangolin resource subdomains:
 
 ```env
-# Public URLs (what the browser sees, routed through Pangolin)
-PUBLIC_MEILISEARCH_URL=https://search.yourdomain.com
-PUBLIC_SPACETIMEDB_URL=wss://stdb.yourdomain.com
+PUBLIC_MEILISEARCH_URL=https://spellbook-search.yourdomain.com
+PUBLIC_SPACETIMEDB_URL=wss://spellbook-db.yourdomain.com
 ```
 
 ### Step 4: How Newt Connects
@@ -101,17 +116,17 @@ The host machine needs zero inbound ports open. Only Newt's outbound connection 
 cp .env.example .env
 # Edit .env with your values
 
-# 2. Start all services
+# 2. Start all services (module publishes automatically)
 podman-compose up -d
 
-# 3. Publish the SpacetimeDB module (first time only)
-# Use podman exec since port 3000 is not exposed to the host
-podman exec -it <spacetimedb-container> spacetime publish spellbook
-
-# 4. Verify services are running
+# 3. Verify services are running
 podman-compose ps
-podman-compose logs frontend --tail 20
-podman-compose logs newt --tail 20
+
+# Check that the module published successfully
+podman-compose logs stdb-publish
+
+# Check frontend is serving
+podman-compose logs frontend --tail 10
 ```
 
 ## Local Development
@@ -148,9 +163,9 @@ PUBLIC_SPACETIMEDB_URL=ws://localhost:3000
 |----------|-------|-------------|
 | `MEILI_MASTER_KEY` | worker, meilisearch | MeiliSearch admin key |
 | `AUTH_SIGNING_SECRET` | frontend | Shared secret for auth tokens |
-| `PUBLIC_MEILISEARCH_URL` | frontend | Browser-facing MeiliSearch URL (Pangolin domain) |
+| `PUBLIC_MEILISEARCH_URL` | frontend | Browser-facing MeiliSearch URL (subdomain) |
 | `PUBLIC_MEILISEARCH_SEARCH_KEY` | frontend | Read-only MeiliSearch key for browser search |
-| `PUBLIC_SPACETIMEDB_URL` | frontend | Browser-facing SpacetimeDB URL (Pangolin domain) |
+| `PUBLIC_SPACETIMEDB_URL` | frontend | Browser-facing SpacetimeDB URL (subdomain, `wss://`) |
 | `PUBLIC_SPACETIMEDB_MODULE` | frontend | SpacetimeDB module name (default: `spellbook`) |
 | `AGGRESSIVE_PRELOAD` | worker | `true` = all printings, `false` = default cards only |
 | `SYNC_INTERVAL` | worker | `daily`, `weekly`, or `manual` |

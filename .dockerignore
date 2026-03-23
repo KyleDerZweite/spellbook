@@ -21,6 +21,10 @@ frontend/node_modules/
 frontend/.svelte-kit/
 frontend/build/
 frontend/tests/
+spacetimedb/node_modules/
+spacetimedb/dist/
+spacetimedb/.cursor/
+spacetimedb/.github/
 
 # Python
 __pycache__/
@@ -33,6 +37,7 @@ venv/
 .spacetime/
 spacetime.json
 spacetime.local.json
+spacetimedb/spacetime.local.json
 target/
 
 # Data

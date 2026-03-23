@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import type { LayoutData } from './$types';
-  import Shell from '$lib/components/layout/Shell.svelte';
-  import { connect, disconnect } from '$lib/spacetimedb/client';
+  import Nav from '$lib/components/layout/Nav.svelte';
+  import { connect } from '$lib/spacetimedb/client';
   import { browser } from '$app/environment';
   import '../app.css';
 
@@ -11,11 +11,13 @@
   $effect(() => {
     if (browser && data.user) {
       connect(data.user);
-      return () => disconnect();
     }
   });
 </script>
 
-<Shell>
-  {@render children()}
-</Shell>
+<div class="flex min-h-screen flex-col">
+  <Nav />
+  <main class="mx-auto w-full max-w-7xl flex-1 px-4 py-6">
+    {@render children()}
+  </main>
+</div>
