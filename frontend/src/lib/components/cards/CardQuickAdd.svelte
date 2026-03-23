@@ -2,6 +2,7 @@
   import type { CardDocument } from '$lib/search/types';
   import { state as stdb } from '$lib/spacetimedb/state.svelte';
   import { getConnection } from '$lib/spacetimedb/client';
+  import { Select } from 'bits-ui';
 
   let { card }: { card: CardDocument } = $props();
 
@@ -11,10 +12,28 @@
   let quantity = $state(1);
   let feedback = $state<{ type: 'success' | 'error'; message: string } | null>(null);
 
-  const conditions = ['NM', 'LP', 'MP', 'HP', 'DMG'] as const;
+  const conditions = [
+    { value: 'NM', label: 'Near Mint' },
+    { value: 'LP', label: 'Lightly Played' },
+    { value: 'MP', label: 'Moderately Played' },
+    { value: 'HP', label: 'Heavily Played' },
+    { value: 'DMG', label: 'Damaged' },
+  ] as const;
 
   let ownedCollections = $derived(
     stdb.collections.filter((c) => c.ownerId === stdb.userProfile?.accountId),
+  );
+
+  let collectionItems = $derived(
+    ownedCollections.map((c) => ({ value: c.id, label: c.name })),
+  );
+
+  let selectedConditionLabel = $derived(
+    conditions.find((c) => c.value === condition)?.label ?? 'Near Mint',
+  );
+
+  let selectedCollectionLabel = $derived(
+    ownedCollections.find((c) => c.id === selectedCollectionId)?.name ?? 'Select collection',
   );
 
   $effect(() => {
@@ -42,7 +61,7 @@
         condition,
         quantity: qty,
       });
-      feedback = { type: 'success', message: `Added ${quantity}x ${card.name} to collection` };
+      feedback = { type: 'success', message: `Added ${qty}x ${card.name} to collection` };
       setTimeout(() => (feedback = null), 3000);
     } catch (err) {
       feedback = { type: 'error', message: `Failed to add card: ${err}` };
@@ -60,26 +79,64 @@
     </p>
   {:else}
     <div class="space-y-3">
-      <select
-        bind:value={selectedCollectionId}
-        aria-label="Collection"
-        class="w-full rounded-lg border border-surface-600 bg-surface-800 px-3 py-2 text-sm text-gray-100 outline-none focus:border-accent-500"
-      >
-        {#each ownedCollections as coll (coll.id)}
-          <option value={coll.id}>{coll.name}</option>
-        {/each}
-      </select>
+      <!-- Collection select -->
+      <Select.Root type="single" bind:value={selectedCollectionId}>
+        <Select.Trigger
+          class="flex w-full items-center justify-between rounded-lg border border-surface-600 bg-surface-800 px-3 py-2 text-sm text-gray-100 outline-none focus:border-accent-500"
+          aria-label="Collection"
+        >
+          {selectedCollectionLabel}
+          <span class="text-gray-500">&#9662;</span>
+        </Select.Trigger>
+        <Select.Portal>
+          <Select.Content
+            class="z-[60] rounded-lg border border-surface-600 bg-surface-800 p-1 shadow-xl"
+            sideOffset={4}
+          >
+            <Select.Viewport>
+              {#each collectionItems as item (item.value)}
+                <Select.Item
+                  value={item.value}
+                  label={item.label}
+                  class="cursor-pointer rounded px-3 py-1.5 text-sm text-gray-100 outline-none data-[highlighted]:bg-surface-700"
+                >
+                  {item.label}
+                </Select.Item>
+              {/each}
+            </Select.Viewport>
+          </Select.Content>
+        </Select.Portal>
+      </Select.Root>
 
       <div class="flex gap-3">
-        <select
-          bind:value={condition}
-          aria-label="Condition"
-          class="rounded-lg border border-surface-600 bg-surface-800 px-3 py-2 text-sm text-gray-100 outline-none focus:border-accent-500"
-        >
-          {#each conditions as cond}
-            <option value={cond}>{cond}</option>
-          {/each}
-        </select>
+        <!-- Condition select -->
+        <Select.Root type="single" bind:value={condition}>
+          <Select.Trigger
+            class="flex items-center gap-2 rounded-lg border border-surface-600 bg-surface-800 px-3 py-2 text-sm text-gray-100 outline-none focus:border-accent-500"
+            aria-label="Condition"
+          >
+            {selectedConditionLabel}
+            <span class="text-gray-500">&#9662;</span>
+          </Select.Trigger>
+          <Select.Portal>
+            <Select.Content
+              class="z-[60] rounded-lg border border-surface-600 bg-surface-800 p-1 shadow-xl"
+              sideOffset={4}
+            >
+              <Select.Viewport>
+                {#each conditions as cond (cond.value)}
+                  <Select.Item
+                    value={cond.value}
+                    label={cond.label}
+                    class="cursor-pointer rounded px-3 py-1.5 text-sm text-gray-100 outline-none data-[highlighted]:bg-surface-700"
+                  >
+                    {cond.label}
+                  </Select.Item>
+                {/each}
+              </Select.Viewport>
+            </Select.Content>
+          </Select.Portal>
+        </Select.Root>
 
         <label class="flex items-center gap-2 text-sm text-gray-300">
           <input type="checkbox" bind:checked={isFoil} disabled={!card.is_foil_available} />

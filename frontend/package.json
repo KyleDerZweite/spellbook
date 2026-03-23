@@ -13,6 +13,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
+    "bits-ui": "^2.16.3",
     "meilisearch": "^0.44",
     "spacetimedb": "^2.0"
   },

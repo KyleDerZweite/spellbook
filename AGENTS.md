@@ -39,3 +39,7 @@ This is the primary instruction file for coding agents. Follow it strictly.
 
 * **Default branch:** `v1` (not `main`). Use `v1` as the base for PRs and merges.
 
+## Dependencies
+
+* For any usage or integration of the BitsUI dependency, always check the documentation at: https://bits-ui.com/docs/llms.txt
+

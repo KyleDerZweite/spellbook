@@ -4,9 +4,9 @@
 
 **Goal:** Build a SvelteKit frontend for searching MTG cards via MeiliSearch and managing collections via SpacetimeDB real-time subscriptions.
 
-**Architecture:** SvelteKit + Svelte 5 (runes only) with Tailwind CSS v4 and dark mode default. MeiliSearch is queried directly from the browser using a read-only API key (no backend round-trip). SpacetimeDB WebSocket connection provides real-time collection data. Auth identity flows from Pangolin IAP headers through SvelteKit server hooks.
+**Architecture:** SvelteKit + Svelte 5 (runes only) with Tailwind CSS v4, Bits UI (headless primitives), and dark mode default. SSR is globally disabled (`export const ssr = false` in root `+layout.ts`) to eliminate hydration mismatch bugs from singleton state in `adapter-node`. The SvelteKit server layer is retained for `hooks.server.ts` (Pangolin IAP auth headers). MeiliSearch is queried directly from the browser using a read-only API key. SpacetimeDB WebSocket connection provides real-time collection data.
 
-**Tech Stack:** SvelteKit 2, Svelte 5, TypeScript, Tailwind CSS v4, pnpm, MeiliSearch JS client, SpacetimeDB TypeScript SDK v2.0
+**Tech Stack:** SvelteKit 2, Svelte 5, TypeScript, Tailwind CSS v4, Bits UI (headless), pnpm, MeiliSearch JS client, SpacetimeDB TypeScript SDK v2.0
 
 **Spec:** `docs/superpowers/specs/2026-03-21-spellbook-v1-redesign-design.md` (Section 6: Frontend Architecture)
 
@@ -51,7 +51,7 @@ frontend/
 │   │       └── debounce.ts                   # Debounce utility
 │   ├── routes/
 │   │   ├── +layout.svelte                    # App shell, SpacetimeDB init
-│   │   ├── +layout.server.ts                 # Pass auth identity to client
+│   │   ├── +layout.ts                        # SSR disabled globally (SPA mode)
 │   │   ├── +page.svelte                      # Dashboard / home
 │   │   ├── search/
 │   │   │   └── +page.svelte                  # Card search page
@@ -135,6 +135,7 @@ PUBLIC_SPACETIMEDB_MODULE=spellbook
     "format": "prettier --write ."
   },
   "dependencies": {
+    "bits-ui": "^1",
     "meilisearch": "^0.44",
     "spacetimedb": "^2.0"
   },

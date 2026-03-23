@@ -78,6 +78,7 @@ The previous implementation suffered from scope creep, architectural pain, and w
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
 | Frontend | SvelteKit + Svelte 5 + TypeScript + Tailwind CSS | UI, routing, SpacetimeDB subscriptions, MeiliSearch queries |
+| UI Primitives | Bits UI (headless) | Accessible component logic (focus, keyboard nav, ARIA) with zero styling |
 | App Logic & Data | SpacetimeDB v2.0 (TypeScript modules) | User data, collections, real-time sync |
 | Search | MeiliSearch | Instant card search, faceted filtering, typo tolerance |
 | Data Pipeline | Python worker | Scryfall ingestion, MeiliSearch sync, future OCR/VLLM |
@@ -301,6 +302,14 @@ LANGUAGES=en                   # en | en,de,ja,... (V1.1: per-user override)
 
 ## 6. Frontend Architecture - SvelteKit + Svelte 5
 
+### SSR Disabled (SPA Mode)
+
+SSR is globally disabled via `export const ssr = false` in the root `+layout.ts`. This eliminates hydration mismatch bugs caused by global singleton state (`$state` runes in `.svelte.ts` files) persisting across requests in the long-lived `adapter-node` process. The SvelteKit server layer is retained solely for `hooks.server.ts` (reading Pangolin IAP identity headers). All rendering happens client-side.
+
+### Bits UI (Headless Component Primitives)
+
+Bits UI provides accessible, unstyled component building blocks (Dialog, Select, Tooltip, Popover, etc.). It handles focus management, keyboard navigation, and ARIA attributes while outputting zero CSS. All visual styling is custom, applied on top of Bits UI primitives using Tailwind CSS.
+
 ### Svelte 5 Only (No Svelte 4 Patterns)
 
 - `$state()` for reactive variables (no `writable()` stores)
@@ -410,9 +419,10 @@ The frontend uses SpacetimeDB's TypeScript client SDK. Running `spacetime genera
 
 ### Styling
 
-- Tailwind CSS, dark mode default
+- Tailwind CSS v4, dark mode default
+- Bits UI for headless interaction primitives (Dialog, Select, Popover, etc.)
+- Custom design system built on top of Bits UI (no pre-styled component library)
 - Responsive card image grid (auto-sizing based on viewport)
-- No component library dependency
 
 ---
 

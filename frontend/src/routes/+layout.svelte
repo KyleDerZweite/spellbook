@@ -1,16 +1,27 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import type { LayoutData } from './$types';
   import Nav from '$lib/components/layout/Nav.svelte';
   import { connect } from '$lib/spacetimedb/client';
   import { browser } from '$app/environment';
   import '../app.css';
 
-  let { data, children }: { data: LayoutData; children: Snippet } = $props();
+  let { children }: { children: Snippet } = $props();
+
+  function getUserFromCookie(): { accountId: string; username: string; email: string } | null {
+    if (!browser) return null;
+    const match = document.cookie.match(/spellbook_user=([^;]+)/);
+    if (!match) return null;
+    try {
+      return JSON.parse(decodeURIComponent(match[1]));
+    } catch {
+      return null;
+    }
+  }
 
   $effect(() => {
-    if (browser && data.user) {
-      connect(data.user);
+    const user = getUserFromCookie();
+    if (user) {
+      connect(user);
     }
   });
 </script>

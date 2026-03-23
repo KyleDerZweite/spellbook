@@ -22,10 +22,15 @@
       return;
     }
     loading = true;
-    const result = await searchCards(q, { filter: filterStrings });
-    if (gen !== searchGen) return;
-    hits = result.hits;
-    loading = false;
+    try {
+      const result = await searchCards(q, { filter: filterStrings });
+      if (gen !== searchGen) return;
+      hits = result.hits;
+      loading = false;
+    } catch {
+      if (gen !== searchGen) return;
+      loading = false;
+    }
   }, 250);
 
   $effect(() => {

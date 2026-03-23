@@ -1,12 +1,7 @@
 declare global {
   namespace App {
-    interface Locals {
-      user: {
-        accountId: string;
-        username: string;
-        email: string;
-      };
-    }
+    // eslint-disable-next-line @typescript-eslint/no-empty-interface
+    interface Locals {}
   }
 }
 
