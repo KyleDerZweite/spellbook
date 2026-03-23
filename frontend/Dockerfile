@@ -16,7 +16,7 @@ COPY frontend/ .
 # Override the bindings alias to point to local copy
 RUN sed -i "s|'../src/module_bindings'|'./module_bindings'|" svelte.config.js
 
-RUN pnpm build
+RUN pnpm exec svelte-kit sync && pnpm build
 
 FROM node:22-slim
 
