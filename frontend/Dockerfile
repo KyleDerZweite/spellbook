@@ -20,10 +20,13 @@ RUN pnpm exec svelte-kit sync && pnpm build
 
 FROM node:22-slim
 
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
 WORKDIR /app
 
 COPY --from=builder /repo/frontend/build ./build
-COPY --from=builder /repo/frontend/package.json .
+COPY --from=builder /repo/frontend/package.json /repo/frontend/pnpm-lock.yaml ./
+RUN pnpm install --prod --frozen-lockfile
 
 ENV NODE_ENV=production
 EXPOSE 3000
