@@ -147,10 +147,11 @@ PUBLIC_SPACETIMEDB_URL=ws://localhost:3000
 | Variable | Where | Description |
 |----------|-------|-------------|
 | `MEILI_MASTER_KEY` | worker, meilisearch | MeiliSearch admin key |
-| `MEILISEARCH_SEARCH_KEY` | frontend | Read-only search key for browser |
 | `AUTH_SIGNING_SECRET` | frontend | Shared secret for auth tokens |
 | `PUBLIC_MEILISEARCH_URL` | frontend | Browser-facing MeiliSearch URL (Pangolin domain) |
+| `PUBLIC_MEILISEARCH_SEARCH_KEY` | frontend | Read-only MeiliSearch key for browser search |
 | `PUBLIC_SPACETIMEDB_URL` | frontend | Browser-facing SpacetimeDB URL (Pangolin domain) |
+| `PUBLIC_SPACETIMEDB_MODULE` | frontend | SpacetimeDB module name (default: `spellbook`) |
 | `AGGRESSIVE_PRELOAD` | worker | `true` = all printings, `false` = default cards only |
 | `SYNC_INTERVAL` | worker | `daily`, `weekly`, or `manual` |
 | `LANGUAGES` | worker | Comma-separated language codes (e.g., `en`, `en,de,ja`) |
