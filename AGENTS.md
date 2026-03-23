@@ -30,3 +30,12 @@ This is the primary instruction file for coding agents. Follow it strictly.
 * Follow: KISS, YAGNI, DRY, SOLID, and Separation of Concerns.
 * Keep comments and documentation concise.
 * Do not add features beyond the requested scope.
+
+---
+
+# Project Specific Instructions
+
+## Git
+
+* **Default branch:** `v1` (not `main`). Use `v1` as the base for PRs and merges.
+
