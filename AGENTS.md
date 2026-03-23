@@ -41,5 +41,5 @@ This is the primary instruction file for coding agents. Follow it strictly.
 
 ## Dependencies
 
-* For any usage or integration of the BitsUI dependency, always check the documentation at: https://bits-ui.com/docs/llms.txt
+* For any usage or integration of the BitsUI dependency, always check docs/bits-ui.md first, then follow the links there to the needed Bits UI documentation.
 
