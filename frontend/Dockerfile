@@ -2,19 +2,19 @@ FROM node:22-slim AS builder
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
-WORKDIR /app
+# Mirror the repo layout so aliases resolve unchanged
+# Repo root = /repo, frontend = /repo/frontend
+WORKDIR /repo/frontend
 
-# Copy bindings first (from repo root)
-COPY src/module_bindings/ ./module_bindings/
+# Copy bindings to where the alias expects them (../src/module_bindings)
+COPY src/module_bindings/ /repo/src/module_bindings/
 
-# Copy frontend source
+# Install dependencies
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
+# Copy frontend source (no sed needed - paths match original layout)
 COPY frontend/ .
-
-# Override the bindings alias to point to local copy
-RUN sed -i "s|'../src/module_bindings'|'./module_bindings'|" svelte.config.js
 
 RUN pnpm exec svelte-kit sync && pnpm build
 
@@ -22,8 +22,8 @@ FROM node:22-slim
 
 WORKDIR /app
 
-COPY --from=builder /app/build ./build
-COPY --from=builder /app/package.json .
+COPY --from=builder /repo/frontend/build ./build
+COPY --from=builder /repo/frontend/package.json .
 
 ENV NODE_ENV=production
 EXPOSE 3000
