@@ -10,31 +10,39 @@
 	let newDescription = $state('');
 	let confirmDeleteId: string | null = $state(null);
 
-	function handleCreate() {
+	async function handleCreate() {
 		const conn = getConnection();
 		if (!conn || !newName.trim() || !spacetimeState.userProfile) return;
 
-		conn.reducers.createCollection({
-			accountId: spacetimeState.userProfile.accountId,
-			name: newName.trim(),
-			description: newDescription.trim()
-		});
+		try {
+			await conn.reducers.createCollection({
+				accountId: spacetimeState.userProfile.accountId,
+				name: newName.trim(),
+				description: newDescription.trim()
+			});
 
-		newName = '';
-		newDescription = '';
-		showCreateForm = false;
+			newName = '';
+			newDescription = '';
+			showCreateForm = false;
+		} catch (err) {
+			spacetimeState.error = `Failed to create collection: ${String(err)}`;
+		}
 	}
 
-	function handleDelete(collectionId: string) {
+	async function handleDelete(collectionId: string) {
 		const conn = getConnection();
 		if (!conn || !spacetimeState.userProfile) return;
 
-		conn.reducers.deleteCollection({
-			accountId: spacetimeState.userProfile.accountId,
-			collectionId
-		});
+		try {
+			await conn.reducers.deleteCollection({
+				accountId: spacetimeState.userProfile.accountId,
+				collectionId
+			});
 
-		confirmDeleteId = null;
+			confirmDeleteId = null;
+		} catch (err) {
+			spacetimeState.error = `Failed to delete collection: ${String(err)}`;
+		}
 	}
 
 	// Accent colors for collection tiles
@@ -58,6 +66,7 @@
 >
 	{#each spacetimeState.collections as collection, i (collection.id)}
 		{@const stats = spacetimeState.getCollectionStats(collection.id)}
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div
 			class="group relative flex flex-col overflow-hidden rounded transition-all duration-200"
 			style="

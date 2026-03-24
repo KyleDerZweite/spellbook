@@ -19,6 +19,23 @@
 - Every `$effect()` that does async work MUST return a cleanup function (AbortController + clearTimeout)
 - Use `adapter-node` for containerization
 
+**Env Configuration (SINGLE .env at repo root):**
+- There is ONE `.env` file at the repo root (`/home/kyle/CodingProjects/spellbook/.env`). The frontend does NOT have its own `.env`.
+- `svelte.config.js` sets `kit.env.dir: '..'` so SvelteKit reads from the parent dir.
+- `vite.config.ts` sets `envDir: '..'` so Vite dev server also reads from the parent dir.
+- All frontend env vars use the `PUBLIC_` prefix: `PUBLIC_MEILISEARCH_URL`, `PUBLIC_MEILISEARCH_SEARCH_KEY`, `PUBLIC_SPACETIMEDB_URL`, `PUBLIC_SPACETIMEDB_MODULE`.
+
+**Docker build:**
+- SvelteKit inlines `PUBLIC_` vars at build time. In Docker, there is no `../.env` file.
+- The Dockerfile declares `ARG` for each `PUBLIC_` var and writes them to `../.env` before `pnpm build`.
+- `podman-compose.yml` passes these as `build.args` sourced from the root `.env`.
+
+**SpacetimeDB bindings resolution:**
+- The bindings at `../src/module_bindings/` import bare `spacetimedb`. The frontend resolves this via:
+  - `vite.config.ts` resolve alias: `spacetimedb -> ./node_modules/spacetimedb` (for build/dev)
+  - A symlink at repo root: `node_modules/spacetimedb -> frontend/node_modules/spacetimedb` (for svelte-check/tsc)
+- The SpacetimeDB SDK uses `withUri()` and `withDatabaseName()` (NOT `withModuleName`).
+
 **Prerequisites:**
 - Phase 1 complete (SpacetimeDB module published, bindings at `src/module_bindings/`)
 - Phase 2 complete (MeiliSearch seeded with cards)

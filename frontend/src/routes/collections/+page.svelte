@@ -4,6 +4,10 @@
 	import { spacetimeState } from '$lib/spacetimedb/state.svelte';
 </script>
 
+<svelte:head>
+	<title>Collections | Spellbook</title>
+</svelte:head>
+
 <div class="flex flex-col gap-4 p-6">
 	<div class="flex items-center justify-between">
 		<h1 class="font-display text-2xl font-bold text-gold-bright">MY COLLECTIONS</h1>

@@ -1,7 +1,4 @@
-import {
-	PUBLIC_SPACETIMEDB_URL,
-	PUBLIC_SPACETIMEDB_MODULE
-} from '$env/static/public';
+import { env } from '$env/dynamic/public';
 import { DbConnection } from '$bindings';
 import type { Collection, CollectionCard, UserProfile } from '$bindings/types';
 import { spacetimeState } from './state.svelte';
@@ -27,8 +24,8 @@ export function connect(user: UserInfo): void {
 
 	try {
 		connection = DbConnection.builder()
-			.withUri(PUBLIC_SPACETIMEDB_URL)
-			.withModuleName(PUBLIC_SPACETIMEDB_MODULE)
+			.withUri(env.PUBLIC_SPACETIMEDB_URL)
+			.withDatabaseName(env.PUBLIC_SPACETIMEDB_MODULE)
 			.onConnect((conn: any, _identity: unknown, _token: unknown) => {
 				spacetimeState.connected = true;
 				spacetimeState.error = null;
@@ -41,19 +38,20 @@ export function connect(user: UserInfo): void {
 				});
 
 				// Subscribe to all user-relevant tables
+				// Callbacks MUST be registered on the builder BEFORE .subscribe()
 				conn
 					.subscriptionBuilder()
-					.subscribe([
-						'SELECT * FROM collection',
-						'SELECT * FROM collection_card',
-						'SELECT * FROM user_profile'
-					])
 					.onApplied((ctx: any) => {
 						syncFromCache(ctx);
 					})
 					.onError(() => {
 						spacetimeState.error = 'Subscription error';
-					});
+					})
+					.subscribe([
+						'SELECT * FROM collection',
+						'SELECT * FROM collection_card',
+						'SELECT * FROM user_profile'
+					]);
 
 				// Table callbacks for real-time updates
 				setupTableCallbacks(conn);

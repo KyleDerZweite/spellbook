@@ -41,3 +41,10 @@ export type ManaColor = 'W' | 'U' | 'B' | 'R' | 'G' | 'C';
 
 /** MTG rarity values. */
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'mythic';
+
+/** Facet distribution counts returned by MeiliSearch. */
+export interface FacetResponse {
+	colors: Record<string, number>;
+	rarity: Record<string, number>;
+	set_code: Record<string, number>;
+}

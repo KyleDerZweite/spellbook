@@ -32,6 +32,10 @@
 	];
 </script>
 
+<svelte:head>
+	<title>Spellbook</title>
+</svelte:head>
+
 <div class="flex flex-col items-center px-6 py-12">
 	<!-- Welcome -->
 	<div class="mb-8 text-center">

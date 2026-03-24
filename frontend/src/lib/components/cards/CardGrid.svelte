@@ -46,13 +46,12 @@
 			}}
 		>
 			<!-- Card image -->
-			<div class="relative" style="aspect-ratio: 5 / 7;">
+			<div class="relative overflow-hidden" style="aspect-ratio: 5 / 7; border-radius: 8px 8px 0 0;">
 				<img
 					src={card.image_uri || card.image_uri_small}
 					alt={card.name}
 					loading="lazy"
 					class="block h-full w-full object-cover"
-					style="border-radius: 3px 3px 0 0;"
 				/>
 				<!-- Foil shimmer overlay -->
 				{#if card.is_foil_available}
@@ -62,7 +61,6 @@
 							background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%);
 							background-size: 200% 200%;
 							animation: foil-shimmer 1.5s ease-in-out infinite;
-							border-radius: 3px 3px 0 0;
 						"
 					></div>
 				{/if}

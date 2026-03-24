@@ -35,7 +35,7 @@
 
 		adding = true;
 		try {
-			conn.reducers.addToCollection({
+			await conn.reducers.addToCollection({
 				accountId: spacetimeState.userProfile.accountId,
 				collectionId: selectedCollectionId,
 				scryfallId: card.id,
@@ -52,6 +52,8 @@
 				spacetimeState.collections.find((c) => c.id === selectedCollectionId)?.name ?? 'collection';
 			addedMessage = `Added ${quantity}x ${card.name} to ${collName}`;
 			setTimeout(() => (addedMessage = ''), 3000);
+		} catch (err) {
+			spacetimeState.error = `Failed to add card: ${String(err)}`;
 		} finally {
 			adding = false;
 		}
@@ -61,6 +63,7 @@
 <div class="flex flex-col gap-3">
 	<!-- Collection selector -->
 	<div>
+		<!-- svelte-ignore a11y_label_has_associated_control -->
 		<label class="mb-1 block font-display text-xs uppercase tracking-wider text-text-secondary">
 			Collection
 		</label>
@@ -121,6 +124,7 @@
 	<!-- Condition + Foil row -->
 	<div class="flex items-end gap-3">
 		<div class="flex-1">
+			<!-- svelte-ignore a11y_label_has_associated_control -->
 			<label class="mb-1 block font-display text-xs uppercase tracking-wider text-text-secondary">
 				Condition
 			</label>
@@ -180,6 +184,7 @@
 
 	<!-- Quantity -->
 	<div>
+		<!-- svelte-ignore a11y_label_has_associated_control -->
 		<label class="mb-1 block font-display text-xs uppercase tracking-wider text-text-secondary">
 			Quantity
 		</label>
@@ -214,14 +219,14 @@
 			border-radius: 3px;
 		"
 		onmouseenter={(e) => {
-			const el = e.currentTarget as HTMLElement;
+			const el = e.currentTarget as HTMLButtonElement;
 			if (!el.disabled) {
 				el.style.background = 'linear-gradient(135deg, var(--color-gold), var(--color-amber))';
 				el.style.boxShadow = '0 0 12px rgba(196, 146, 42, 0.4), 0 2px 4px rgba(13,11,15,0.5)';
 			}
 		}}
 		onmouseleave={(e) => {
-			const el = e.currentTarget as HTMLElement;
+			const el = e.currentTarget as HTMLButtonElement;
 			el.style.background = 'linear-gradient(135deg, var(--color-gold-dim), var(--color-gold))';
 			el.style.boxShadow = 'none';
 		}}

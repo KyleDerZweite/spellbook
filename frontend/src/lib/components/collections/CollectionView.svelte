@@ -13,54 +13,72 @@
 	let { collection }: Props = $props();
 
 	let editMode = $state(false);
-	let editName = $state(collection.name);
-	let editDescription = $state(collection.description);
+	let editName = $state('');
+	let editDescription = $state('');
+
+	function startEdit() {
+		editName = collection.name;
+		editDescription = collection.description;
+		editMode = true;
+	}
 
 	let cards = $derived(spacetimeState.getCardsForCollection(collection.id));
 	let stats = $derived(spacetimeState.getCollectionStats(collection.id));
 
-	function handleSave() {
+	async function handleSave() {
 		const conn = getConnection();
 		if (!conn || !spacetimeState.userProfile) return;
 
-		conn.reducers.updateCollection({
-			accountId: spacetimeState.userProfile.accountId,
-			collectionId: collection.id,
-			name: editName.trim(),
-			description: editDescription.trim()
-		});
+		try {
+			await conn.reducers.updateCollection({
+				accountId: spacetimeState.userProfile.accountId,
+				collectionId: collection.id,
+				name: editName.trim(),
+				description: editDescription.trim()
+			});
 
-		editMode = false;
+			editMode = false;
+		} catch (err) {
+			spacetimeState.error = `Failed to update collection: ${String(err)}`;
+		}
 	}
 
-	function handleUpdateQuantity(card: CollectionCard, delta: number) {
+	async function handleUpdateQuantity(card: CollectionCard, delta: number) {
 		const conn = getConnection();
 		if (!conn || !spacetimeState.userProfile) return;
 
 		const newQty = card.quantity + delta;
-		if (newQty <= 0) {
-			conn.reducers.removeFromCollection({
-				accountId: spacetimeState.userProfile.accountId,
-				compositeId: card.compositeId
-			});
-		} else {
-			conn.reducers.updateCollectionCard({
-				accountId: spacetimeState.userProfile.accountId,
-				compositeId: card.compositeId,
-				quantity: newQty,
-				notes: card.notes
-			});
+		try {
+			if (newQty <= 0) {
+				await conn.reducers.removeFromCollection({
+					accountId: spacetimeState.userProfile.accountId,
+					compositeId: card.compositeId
+				});
+			} else {
+				await conn.reducers.updateCollectionCard({
+					accountId: spacetimeState.userProfile.accountId,
+					compositeId: card.compositeId,
+					quantity: newQty,
+					notes: card.notes
+				});
+			}
+		} catch (err) {
+			spacetimeState.error = `Failed to update card: ${String(err)}`;
 		}
 	}
 
-	function handleRemove(card: CollectionCard) {
+	async function handleRemove(card: CollectionCard) {
 		const conn = getConnection();
 		if (!conn || !spacetimeState.userProfile) return;
 
-		conn.reducers.removeFromCollection({
-			accountId: spacetimeState.userProfile.accountId,
-			compositeId: card.compositeId
-		});
+		try {
+			await conn.reducers.removeFromCollection({
+				accountId: spacetimeState.userProfile.accountId,
+				compositeId: card.compositeId
+			});
+		} catch (err) {
+			spacetimeState.error = `Failed to remove card: ${String(err)}`;
+		}
 	}
 </script>
 
@@ -94,7 +112,7 @@
 						Save
 					</button>
 					<button
-						onclick={() => { editMode = false; editName = collection.name; editDescription = collection.description; }}
+						onclick={() => { editMode = false; }}
 						class="cursor-pointer rounded border px-4 py-1.5 font-display text-xs uppercase tracking-wider text-text-secondary"
 						style="border-color: rgba(196, 146, 42, 0.3); background: transparent;"
 					>
@@ -113,7 +131,7 @@
 					{/if}
 				</div>
 				<button
-					onclick={() => (editMode = true)}
+					onclick={startEdit}
 					class="cursor-pointer rounded border px-3 py-1.5 font-display text-xs uppercase tracking-wider text-gold-bright transition-colors hover:bg-mist"
 					style="border-color: rgba(196, 146, 42, 0.5); background: transparent;"
 				>
@@ -144,6 +162,7 @@
 				style="grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));"
 			>
 				{#each cards as card (card.compositeId)}
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div
 						class="group relative overflow-hidden rounded transition-all duration-200"
 						style="
@@ -164,13 +183,12 @@
 						}}
 					>
 						<!-- Card image -->
-						<div class="relative" style="aspect-ratio: 5 / 7;">
+						<div class="relative overflow-hidden" style="aspect-ratio: 5 / 7; border-radius: 8px 8px 0 0;">
 							<img
 								src={card.imageUri}
 								alt={card.name}
 								loading="lazy"
 								class="block h-full w-full object-cover"
-								style="border-radius: 3px 3px 0 0;"
 							/>
 
 							<!-- Foil shimmer -->

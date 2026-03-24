@@ -1,17 +1,27 @@
-import { MeiliSearch } from 'meilisearch';
-import {
-	PUBLIC_MEILISEARCH_URL,
-	PUBLIC_MEILISEARCH_SEARCH_KEY
-} from '$env/static/public';
-import type { CardDocument, SearchResult } from './types';
+import { MeiliSearch, type Index } from 'meilisearch';
+import { env } from '$env/dynamic/public';
+import type { CardDocument, FacetResponse, SearchResult } from './types';
 
-const client = new MeiliSearch({
-	host: PUBLIC_MEILISEARCH_URL,
-	apiKey: PUBLIC_MEILISEARCH_SEARCH_KEY
-});
+let client: MeiliSearch | null = null;
+let distinctIndex: Index<CardDocument>;
+let allIndex: Index<CardDocument>;
 
-const distinctIndex = client.index<CardDocument>('cards_distinct');
-const allIndex = client.index<CardDocument>('cards_all');
+/**
+ * Initialize the MeiliSearch client with the search API key.
+ * Must be called once before any search functions are used.
+ */
+export function initMeiliSearch(searchKey: string): void {
+	client = new MeiliSearch({
+		host: env.PUBLIC_MEILISEARCH_URL,
+		apiKey: searchKey
+	});
+	distinctIndex = client.index<CardDocument>('cards_distinct');
+	allIndex = client.index<CardDocument>('cards_all');
+}
+
+function ensureClient(): void {
+	if (!client) throw new Error('MeiliSearch not initialized — call initMeiliSearch() first');
+}
 
 export interface SearchOptions {
 	filter?: string[];
@@ -28,6 +38,7 @@ export async function searchCards(
 	query: string,
 	options: SearchOptions = {}
 ): Promise<SearchResult> {
+	ensureClient();
 	if (!query || query.length < 2) {
 		return { hits: [], query, processingTimeMs: 0, estimatedTotalHits: 0 };
 	}
@@ -48,6 +59,49 @@ export async function searchCards(
 }
 
 /**
+ * Browse all cards with no query (empty string), sorted alphabetically.
+ * Used for initial page load and browse mode.
+ */
+export async function browseCards(
+	options: SearchOptions = {}
+): Promise<SearchResult> {
+	ensureClient();
+	const result = await distinctIndex.search('', {
+		limit: options.limit ?? 50,
+		offset: options.offset ?? 0,
+		filter: options.filter,
+		sort: options.sort ?? ['name:asc']
+	});
+
+	return {
+		hits: result.hits as CardDocument[],
+		query: '',
+		processingTimeMs: result.processingTimeMs ?? 0,
+		estimatedTotalHits: result.estimatedTotalHits ?? 0
+	};
+}
+
+/**
+ * Fetch facet distribution counts for colors, rarity, and set_code.
+ * Uses limit: 0 so no documents are returned -- only facet data.
+ */
+export async function getFacets(filter?: string[]): Promise<FacetResponse> {
+	ensureClient();
+	const result = await distinctIndex.search('', {
+		limit: 0,
+		filter,
+		facets: ['colors', 'rarity', 'set_code']
+	});
+
+	const dist = (result.facetDistribution ?? {}) as Record<string, Record<string, number>>;
+	return {
+		colors: dist['colors'] ?? {},
+		rarity: dist['rarity'] ?? {},
+		set_code: dist['set_code'] ?? {}
+	};
+}
+
+/**
  * Search all printings of a card by oracle_id.
  * Returns empty for blank oracle_id.
  */
@@ -55,6 +109,7 @@ export async function searchPrintings(
 	oracleId: string,
 	options: { limit?: number; sort?: string[] } = {}
 ): Promise<SearchResult> {
+	ensureClient();
 	if (!oracleId) {
 		return { hits: [], query: '', processingTimeMs: 0, estimatedTotalHits: 0 };
 	}

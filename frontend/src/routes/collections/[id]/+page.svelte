@@ -3,9 +3,14 @@
 	import CollectionView from '$lib/components/collections/CollectionView.svelte';
 	import { spacetimeState } from '$lib/spacetimedb/state.svelte';
 
-	let collectionId = $derived(page.params.id);
+	let collectionId = $derived(page.params.id ?? '');
 	let collection = $derived(spacetimeState.getCollection(collectionId));
+	let pageTitle = $derived(collection ? `${collection.name} | Spellbook` : 'Collection | Spellbook');
 </script>
+
+<svelte:head>
+	<title>{pageTitle}</title>
+</svelte:head>
 
 {#if collection}
 	<CollectionView {collection} />

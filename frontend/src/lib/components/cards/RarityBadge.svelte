@@ -13,14 +13,15 @@
 		mythic: 'var(--color-rarity-mythic)'
 	};
 
-	let color = $derived(RARITY_COLORS[rarity.toLowerCase()] ?? 'var(--color-rarity-common)');
-	let label = $derived(rarity.charAt(0).toUpperCase() + rarity.slice(1));
+	let safeRarity = $derived(rarity ?? 'common');
+	let color = $derived(RARITY_COLORS[safeRarity.toLowerCase()] ?? 'var(--color-rarity-common)');
+	let label = $derived(safeRarity.charAt(0).toUpperCase() + safeRarity.slice(1));
 </script>
 
-<span
-	class="inline-block h-2.5 w-2.5 rounded-full {className}"
-	style="background-color: {color};"
+<i
+	class="ms ms-rarity {className}"
+	style="color: {color};"
 	title={label}
 	role="img"
 	aria-label="{label} rarity"
-></span>
+></i>

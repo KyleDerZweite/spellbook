@@ -8,6 +8,9 @@ const config = {
 		adapter: adapter(),
 		alias: {
 			$bindings: '../src/module_bindings'
+		},
+		env: {
+			dir: '..'
 		}
 	}
 };
