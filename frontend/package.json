@@ -13,16 +13,17 @@
     "format": "prettier --write ."
   },
   "dependencies": {
-    "bits-ui": "^2.16.3",
+    "bits-ui": "^2.16",
     "meilisearch": "^0.44",
     "spacetimedb": "^2.0"
   },
   "devDependencies": {
     "@sveltejs/adapter-node": "^5",
-    "@sveltejs/kit": "2.51.0",
-    "@sveltejs/vite-plugin-svelte": "^4",
+    "@sveltejs/kit": "^2",
+    "@sveltejs/vite-plugin-svelte": "^5",
     "@tailwindcss/vite": "^4",
     "@types/node": "^25.5.0",
+    "csstype": "^3.2.3",
     "prettier": "^3",
     "prettier-plugin-svelte": "^3",
     "svelte": "^5",

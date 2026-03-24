@@ -1,16 +1,99 @@
 @import 'tailwindcss';
 
-@custom-variant dark (&:where(.dark, .dark *));
-
 @theme {
-  --color-surface-900: oklch(0.15 0.01 260);
-  --color-surface-800: oklch(0.2 0.01 260);
-  --color-surface-700: oklch(0.28 0.01 260);
-  --color-surface-600: oklch(0.35 0.015 260);
-  --color-accent-500: oklch(0.75 0.15 85);
-  --color-accent-400: oklch(0.82 0.12 85);
+	/* Backgrounds - warm near-black with purple cast */
+	--color-void: #0d0b0f;
+	--color-crypt: #141018;
+	--color-stone: #1c1720;
+	--color-slate: #251f2a;
+	--color-mist: #332a3a;
+	--color-smoke: #4a3f54;
+
+	/* Gold/Amber accents */
+	--color-gold-dim: #8a6a2a;
+	--color-gold: #c4922a;
+	--color-gold-bright: #e8b84b;
+	--color-amber: #f5c842;
+	--color-ochre: #d4830a;
+
+	/* Mana colors */
+	--color-mana-white: #f9faf0;
+	--color-mana-blue: #3a6eb5;
+	--color-mana-black: #4a3550;
+	--color-mana-red: #c03030;
+	--color-mana-green: #2a7a3a;
+	--color-mana-colorless: #7a8a9a;
+
+	/* Rarity */
+	--color-rarity-common: #9aa0a6;
+	--color-rarity-uncommon: #a8c4cc;
+	--color-rarity-rare: #d4af37;
+	--color-rarity-mythic: #d4521a;
+
+	/* Text */
+	--color-text-primary: #e8dfc8;
+	--color-text-secondary: #a89878;
+	--color-text-muted: #6a5a4a;
+	--color-text-on-gold: #1a1208;
+
+	/* Semantic */
+	--color-success: #3a8a4a;
+	--color-error: #8a2020;
+	--color-warning: #8a6020;
+	--color-info: #204878;
+
+	/* Fonts */
+	--font-display: 'Cinzel', serif;
+	--font-body: 'Crimson Pro', serif;
+	--font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+	height: 100%;
 }
 
 body {
-  @apply bg-surface-900 text-gray-100 antialiased;
+	background-color: var(--color-crypt);
+	color: var(--color-text-primary);
+	font-family: var(--font-body);
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+/* Foil shimmer animation */
+@keyframes foil-shimmer {
+	0% {
+		background-position: -200% 0;
+	}
+	100% {
+		background-position: 200% 0;
+	}
+}
+
+/* Slide-up animation for dialogs */
+@keyframes slide-up {
+	from {
+		opacity: 0;
+		transform: translateY(16px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes fade-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
 }

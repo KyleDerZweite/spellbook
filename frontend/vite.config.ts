@@ -1,18 +1,16 @@
 import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
-import path from 'path';
 
 export default defineConfig({
-  plugins: [tailwindcss(), sveltekit()],
-  test: {
-    include: ['tests/unit/**/*.test.ts'],
-    alias: {
-      '$env/static/public': path.resolve('./tests/__mocks__/env.ts'),
-      '$env/dynamic/public': path.resolve('./tests/__mocks__/env.ts'),
-      '$lib': path.resolve('./src/lib'),
-      '$bindings/types': path.resolve('../src/module_bindings/types'),
-      '$bindings': path.resolve('../src/module_bindings'),
-    },
-  },
+	envDir: '..',
+	plugins: [tailwindcss(), sveltekit()],
+	test: {
+		include: ['tests/**/*.test.ts'],
+		environment: 'node',
+		alias: {
+			$env: new URL('./tests/__mocks__/env.ts', import.meta.url).pathname,
+			'$env/static/public': new URL('./tests/__mocks__/env.ts', import.meta.url).pathname
+		}
+	}
 });

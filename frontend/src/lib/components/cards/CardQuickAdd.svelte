@@ -1,172 +1,236 @@
 <script lang="ts">
-  import type { CardDocument } from '$lib/search/types';
-  import { state as stdb } from '$lib/spacetimedb/state.svelte';
-  import { getConnection } from '$lib/spacetimedb/client';
-  import { Select } from 'bits-ui';
+	import { Select } from 'bits-ui';
+	import type { CardDocument } from '$lib/search/types';
+	import { spacetimeState } from '$lib/spacetimedb/state.svelte';
+	import { getConnection } from '$lib/spacetimedb/client';
 
-  let { card }: { card: CardDocument } = $props();
+	interface Props {
+		card: CardDocument;
+	}
 
-  let selectedCollectionId = $state('');
-  let isFoil = $state(false);
-  let condition = $state('NM');
-  let quantity = $state(1);
-  let feedback = $state<{ type: 'success' | 'error'; message: string } | null>(null);
+	let { card }: Props = $props();
 
-  const conditions = [
-    { value: 'NM', label: 'Near Mint' },
-    { value: 'LP', label: 'Lightly Played' },
-    { value: 'MP', label: 'Moderately Played' },
-    { value: 'HP', label: 'Heavily Played' },
-    { value: 'DMG', label: 'Damaged' },
-  ] as const;
+	let selectedCollectionId = $state('');
+	let condition = $state('NM');
+	let isFoil = $state(false);
+	let quantity = $state(1);
+	let adding = $state(false);
+	let addedMessage = $state('');
 
-  let ownedCollections = $derived(
-    stdb.collections.filter((c) => c.ownerId === stdb.userProfile?.accountId),
-  );
+	const CONDITIONS = [
+		{ value: 'NM', label: 'Near Mint' },
+		{ value: 'LP', label: 'Lightly Played' },
+		{ value: 'MP', label: 'Moderately Played' },
+		{ value: 'HP', label: 'Heavily Played' },
+		{ value: 'DMG', label: 'Damaged' }
+	];
 
-  let collectionItems = $derived(
-    ownedCollections.map((c) => ({ value: c.id, label: c.name })),
-  );
+	let collectionItems = $derived(
+		spacetimeState.collections.map((c) => ({ value: c.id, label: c.name }))
+	);
 
-  let selectedConditionLabel = $derived(
-    conditions.find((c) => c.value === condition)?.label ?? 'Near Mint',
-  );
+	async function handleAdd() {
+		const conn = getConnection();
+		if (!conn || !selectedCollectionId || !spacetimeState.userProfile) return;
 
-  let selectedCollectionLabel = $derived(
-    ownedCollections.find((c) => c.id === selectedCollectionId)?.name ?? 'Select collection',
-  );
+		adding = true;
+		try {
+			conn.reducers.addToCollection({
+				accountId: spacetimeState.userProfile.accountId,
+				collectionId: selectedCollectionId,
+				scryfallId: card.id,
+				oracleId: card.oracle_id,
+				name: card.name,
+				setCode: card.set_code,
+				imageUri: card.image_uri || card.image_uri_small,
+				isFoil: isFoil,
+				condition: condition,
+				quantity: quantity
+			});
 
-  $effect(() => {
-    if (ownedCollections.length > 0 && !selectedCollectionId) {
-      selectedCollectionId = ownedCollections[0].id;
-    }
-  });
-
-  function addToCollection() {
-    const conn = getConnection();
-    if (!conn || !stdb.userProfile || !selectedCollectionId) return;
-
-    const qty = Math.max(1, Math.floor(quantity));
-
-    try {
-      conn.reducers.addToCollection({
-        accountId: stdb.userProfile.accountId,
-        collectionId: selectedCollectionId,
-        scryfallId: card.id,
-        oracleId: card.oracle_id,
-        name: card.name,
-        setCode: card.set_code,
-        imageUri: card.image_uri,
-        isFoil,
-        condition,
-        quantity: qty,
-      });
-      feedback = { type: 'success', message: `Added ${qty}x ${card.name} to collection` };
-      setTimeout(() => (feedback = null), 3000);
-    } catch (err) {
-      feedback = { type: 'error', message: `Failed to add card: ${err}` };
-    }
-  }
+			const collName =
+				spacetimeState.collections.find((c) => c.id === selectedCollectionId)?.name ?? 'collection';
+			addedMessage = `Added ${quantity}x ${card.name} to ${collName}`;
+			setTimeout(() => (addedMessage = ''), 3000);
+		} finally {
+			adding = false;
+		}
+	}
 </script>
 
-<div class="rounded-lg border border-surface-600 bg-surface-900 p-4">
-  <h4 class="mb-3 text-sm font-semibold">Add to Collection</h4>
+<div class="flex flex-col gap-3">
+	<!-- Collection selector -->
+	<div>
+		<label class="mb-1 block font-display text-xs uppercase tracking-wider text-text-secondary">
+			Collection
+		</label>
+		{#if collectionItems.length > 0}
+			<Select.Root type="single" bind:value={selectedCollectionId} items={collectionItems}>
+				<Select.Trigger
+					class="flex w-full cursor-pointer items-center justify-between rounded px-3 py-2 font-body text-sm text-text-primary"
+					style="
+						background-color: var(--color-crypt);
+						border: 1px solid rgba(196, 146, 42, 0.3);
+					"
+				>
+					{#if selectedCollectionId}
+						{collectionItems.find((c) => c.value === selectedCollectionId)?.label ?? 'Select...'}
+					{:else}
+						<span class="text-text-muted">Select collection...</span>
+					{/if}
+					<span class="text-text-muted">&#9660;</span>
+				</Select.Trigger>
 
-  {#if ownedCollections.length === 0}
-    <p class="text-sm text-gray-500">
-      No collections.
-      <a href="/collections" class="text-accent-400 hover:underline">Create one first.</a>
-    </p>
-  {:else}
-    <div class="space-y-3">
-      <!-- Collection select -->
-      <Select.Root type="single" bind:value={selectedCollectionId}>
-        <Select.Trigger
-          class="flex w-full items-center justify-between rounded-lg border border-surface-600 bg-surface-800 px-3 py-2 text-sm text-gray-100 outline-none focus:border-accent-500"
-          aria-label="Collection"
-        >
-          {selectedCollectionLabel}
-          <span class="text-gray-500">&#9662;</span>
-        </Select.Trigger>
-        <Select.Portal>
-          <Select.Content
-            class="z-[60] rounded-lg border border-surface-600 bg-surface-800 p-1 shadow-xl"
-            sideOffset={4}
-          >
-            <Select.Viewport>
-              {#each collectionItems as item (item.value)}
-                <Select.Item
-                  value={item.value}
-                  label={item.label}
-                  class="cursor-pointer rounded px-3 py-1.5 text-sm text-gray-100 outline-none data-[highlighted]:bg-surface-700"
-                >
-                  {item.label}
-                </Select.Item>
-              {/each}
-            </Select.Viewport>
-          </Select.Content>
-        </Select.Portal>
-      </Select.Root>
+				<Select.Portal>
+					<Select.Content
+						class="z-[100] overflow-hidden rounded"
+						style="
+							background-color: var(--color-slate);
+							border: 1px solid rgba(196, 146, 42, 0.4);
+							box-shadow: 0 4px 24px rgba(13, 11, 15, 0.8);
+						"
+					>
+						<Select.Viewport class="p-1">
+							{#each collectionItems as item}
+								<Select.Item
+									value={item.value}
+									label={item.label}
+									class="cursor-pointer rounded px-3 py-2 font-body text-sm text-text-primary transition-colors data-[highlighted]:bg-mist data-[highlighted]:text-amber"
+								>
+									{#snippet children({ selected })}
+										<span class="flex items-center gap-2">
+											{#if selected}
+												<span class="text-gold-bright">&#10003;</span>
+											{/if}
+											{item.label}
+										</span>
+									{/snippet}
+								</Select.Item>
+							{/each}
+						</Select.Viewport>
+					</Select.Content>
+				</Select.Portal>
+			</Select.Root>
+		{:else}
+			<p class="font-body text-sm italic text-text-muted">
+				No collections yet. Create one first.
+			</p>
+		{/if}
+	</div>
 
-      <div class="flex gap-3">
-        <!-- Condition select -->
-        <Select.Root type="single" bind:value={condition}>
-          <Select.Trigger
-            class="flex items-center gap-2 rounded-lg border border-surface-600 bg-surface-800 px-3 py-2 text-sm text-gray-100 outline-none focus:border-accent-500"
-            aria-label="Condition"
-          >
-            {selectedConditionLabel}
-            <span class="text-gray-500">&#9662;</span>
-          </Select.Trigger>
-          <Select.Portal>
-            <Select.Content
-              class="z-[60] rounded-lg border border-surface-600 bg-surface-800 p-1 shadow-xl"
-              sideOffset={4}
-            >
-              <Select.Viewport>
-                {#each conditions as cond (cond.value)}
-                  <Select.Item
-                    value={cond.value}
-                    label={cond.label}
-                    class="cursor-pointer rounded px-3 py-1.5 text-sm text-gray-100 outline-none data-[highlighted]:bg-surface-700"
-                  >
-                    {cond.label}
-                  </Select.Item>
-                {/each}
-              </Select.Viewport>
-            </Select.Content>
-          </Select.Portal>
-        </Select.Root>
+	<!-- Condition + Foil row -->
+	<div class="flex items-end gap-3">
+		<div class="flex-1">
+			<label class="mb-1 block font-display text-xs uppercase tracking-wider text-text-secondary">
+				Condition
+			</label>
+			<Select.Root type="single" bind:value={condition} items={CONDITIONS}>
+				<Select.Trigger
+					class="flex w-full cursor-pointer items-center justify-between rounded px-3 py-2 font-body text-sm text-text-primary"
+					style="
+						background-color: var(--color-crypt);
+						border: 1px solid rgba(196, 146, 42, 0.3);
+					"
+				>
+					{CONDITIONS.find((c) => c.value === condition)?.label ?? 'NM'}
+					<span class="text-text-muted">&#9660;</span>
+				</Select.Trigger>
 
-        <label class="flex items-center gap-2 text-sm text-gray-300">
-          <input type="checkbox" bind:checked={isFoil} disabled={!card.is_foil_available} />
-          Foil
-        </label>
+				<Select.Portal>
+					<Select.Content
+						class="z-[100] overflow-hidden rounded"
+						style="
+							background-color: var(--color-slate);
+							border: 1px solid rgba(196, 146, 42, 0.4);
+							box-shadow: 0 4px 24px rgba(13, 11, 15, 0.8);
+						"
+					>
+						<Select.Viewport class="p-1">
+							{#each CONDITIONS as item}
+								<Select.Item
+									value={item.value}
+									label={item.label}
+									class="cursor-pointer rounded px-3 py-2 font-body text-sm text-text-primary transition-colors data-[highlighted]:bg-mist data-[highlighted]:text-amber"
+								>
+									{#snippet children({ selected })}
+										<span class="flex items-center gap-2">
+											{#if selected}
+												<span class="text-gold-bright">&#10003;</span>
+											{/if}
+											{item.label}
+										</span>
+									{/snippet}
+								</Select.Item>
+							{/each}
+						</Select.Viewport>
+					</Select.Content>
+				</Select.Portal>
+			</Select.Root>
+		</div>
 
-        <input
-          type="number"
-          bind:value={quantity}
-          min="1"
-          max="99"
-          step="1"
-          aria-label="Quantity"
-          class="w-16 rounded-lg border border-surface-600 bg-surface-800 px-2 py-2 text-center text-sm text-gray-100 outline-none focus:border-accent-500"
-        />
-      </div>
+		<label class="flex cursor-pointer items-center gap-2 pb-2">
+			<input
+				type="checkbox"
+				bind:checked={isFoil}
+				class="h-4 w-4 accent-gold-bright"
+			/>
+			<span class="font-body text-sm text-text-secondary">Foil</span>
+		</label>
+	</div>
 
-      <button
-        onclick={addToCollection}
-        disabled={!selectedCollectionId || !stdb.connected || !stdb.userProfile}
-        class="w-full rounded-lg bg-accent-500 py-2 text-sm font-medium text-surface-900 hover:bg-accent-400 disabled:opacity-50"
-      >
-        Add to Collection
-      </button>
+	<!-- Quantity -->
+	<div>
+		<label class="mb-1 block font-display text-xs uppercase tracking-wider text-text-secondary">
+			Quantity
+		</label>
+		<div class="flex items-center gap-2">
+			<button
+				onclick={() => (quantity = Math.max(1, quantity - 1))}
+				class="flex h-8 w-8 cursor-pointer items-center justify-center rounded font-mono text-sm text-text-primary transition-colors hover:bg-mist"
+				style="border: 1px solid rgba(196, 146, 42, 0.3); background-color: var(--color-crypt);"
+			>
+				-
+			</button>
+			<span class="w-8 text-center font-mono text-sm text-text-primary">{quantity}</span>
+			<button
+				onclick={() => (quantity = Math.min(99, quantity + 1))}
+				class="flex h-8 w-8 cursor-pointer items-center justify-center rounded font-mono text-sm text-text-primary transition-colors hover:bg-mist"
+				style="border: 1px solid rgba(196, 146, 42, 0.3); background-color: var(--color-crypt);"
+			>
+				+
+			</button>
+		</div>
+	</div>
 
-      {#if feedback}
-        <p class="text-sm {feedback.type === 'success' ? 'text-green-400' : 'text-red-400'}">
-          {feedback.message}
-        </p>
-      {/if}
-    </div>
-  {/if}
+	<!-- Add button -->
+	<button
+		onclick={handleAdd}
+		disabled={!selectedCollectionId || adding || !spacetimeState.connected}
+		class="mt-1 w-full cursor-pointer rounded py-2.5 font-display text-sm font-bold uppercase tracking-wider transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50"
+		style="
+			background: linear-gradient(135deg, var(--color-gold-dim), var(--color-gold));
+			color: var(--color-text-on-gold);
+			border: 1px solid var(--color-gold-bright);
+			border-radius: 3px;
+		"
+		onmouseenter={(e) => {
+			const el = e.currentTarget as HTMLElement;
+			if (!el.disabled) {
+				el.style.background = 'linear-gradient(135deg, var(--color-gold), var(--color-amber))';
+				el.style.boxShadow = '0 0 12px rgba(196, 146, 42, 0.4), 0 2px 4px rgba(13,11,15,0.5)';
+			}
+		}}
+		onmouseleave={(e) => {
+			const el = e.currentTarget as HTMLElement;
+			el.style.background = 'linear-gradient(135deg, var(--color-gold-dim), var(--color-gold))';
+			el.style.boxShadow = 'none';
+		}}
+	>
+		{adding ? 'Adding...' : 'Add to Collection'}
+	</button>
+
+	<!-- Success message -->
+	{#if addedMessage}
+		<p class="text-center font-body text-sm text-success">{addedMessage}</p>
+	{/if}
 </div>

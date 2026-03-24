@@ -1,34 +1,25 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte';
-  import Nav from '$lib/components/layout/Nav.svelte';
-  import { connect } from '$lib/spacetimedb/client';
-  import { browser } from '$app/environment';
-  import '../app.css';
+	import '../app.css';
+	import Shell from '$lib/components/layout/Shell.svelte';
+	import { browser } from '$app/environment';
+	import { connect, disconnect } from '$lib/spacetimedb/client';
+	import type { Snippet } from 'svelte';
 
-  let { children }: { children: Snippet } = $props();
+	interface Props {
+		data: { user: App.Locals['user'] };
+		children: Snippet;
+	}
 
-  function getUserFromCookie(): { accountId: string; username: string; email: string } | null {
-    if (!browser) return null;
-    const match = document.cookie.match(/spellbook_user=([^;]+)/);
-    if (!match) return null;
-    try {
-      return JSON.parse(decodeURIComponent(match[1]));
-    } catch {
-      return null;
-    }
-  }
+	let { data, children }: Props = $props();
 
-  $effect(() => {
-    const user = getUserFromCookie();
-    if (user) {
-      connect(user);
-    }
-  });
+	$effect(() => {
+		if (browser && data.user) {
+			connect(data.user);
+			return () => disconnect();
+		}
+	});
 </script>
 
-<div class="flex min-h-screen flex-col">
-  <Nav />
-  <main class="mx-auto w-full max-w-7xl flex-1 px-4 py-6">
-    {@render children()}
-  </main>
-</div>
+<Shell>
+	{@render children()}
+</Shell>

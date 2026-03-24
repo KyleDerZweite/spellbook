@@ -1,116 +1,214 @@
 <script lang="ts">
-  import { state as stdb } from '$lib/spacetimedb/state.svelte';
-  import { getConnection } from '$lib/spacetimedb/client';
+	import type { Collection } from '$bindings/types';
+	import OrnamentalDivider from '$lib/components/layout/OrnamentalDivider.svelte';
+	import CollectionStats from './CollectionStats.svelte';
+	import { spacetimeState } from '$lib/spacetimedb/state.svelte';
+	import { getConnection } from '$lib/spacetimedb/client';
 
-  let showCreate = $state(false);
-  let newName = $state('');
-  let newDescription = $state('');
+	let showCreateForm = $state(false);
+	let newName = $state('');
+	let newDescription = $state('');
+	let confirmDeleteId: string | null = $state(null);
 
-  function createCollection() {
-    const conn = getConnection();
-    if (!conn || !stdb.userProfile || !newName.trim()) return;
+	function handleCreate() {
+		const conn = getConnection();
+		if (!conn || !newName.trim() || !spacetimeState.userProfile) return;
 
-    conn.reducers.createCollection({
-      accountId: stdb.userProfile.accountId,
-      name: newName.trim(),
-      description: newDescription.trim(),
-    });
+		conn.reducers.createCollection({
+			accountId: spacetimeState.userProfile.accountId,
+			name: newName.trim(),
+			description: newDescription.trim()
+		});
 
-    newName = '';
-    newDescription = '';
-    showCreate = false;
-  }
+		newName = '';
+		newDescription = '';
+		showCreateForm = false;
+	}
 
-  function deleteCollection(collectionId: string) {
-    const conn = getConnection();
-    if (!conn || !stdb.userProfile) return;
+	function handleDelete(collectionId: string) {
+		const conn = getConnection();
+		if (!conn || !spacetimeState.userProfile) return;
 
-    conn.reducers.deleteCollection({
-      accountId: stdb.userProfile.accountId,
-      collectionId,
-    });
-  }
+		conn.reducers.deleteCollection({
+			accountId: spacetimeState.userProfile.accountId,
+			collectionId
+		});
 
-  let ownedCollections = $derived(
-    stdb.collections.filter((c) => c.ownerId === stdb.userProfile?.accountId),
-  );
+		confirmDeleteId = null;
+	}
 
-  function cardCount(collectionId: string): number {
-    return stdb.collectionCards
-      .filter((cc) => cc.collectionId === collectionId)
-      .reduce((sum, cc) => sum + cc.quantity, 0);
-  }
+	// Accent colors for collection tiles
+	const ACCENT_COLORS = [
+		'var(--color-gold)',
+		'var(--color-mana-blue)',
+		'var(--color-mana-green)',
+		'var(--color-mana-red)',
+		'var(--color-ochre)',
+		'var(--color-rarity-uncommon)'
+	];
+
+	function getAccentColor(index: number): string {
+		return ACCENT_COLORS[index % ACCENT_COLORS.length];
+	}
 </script>
 
-<div class="space-y-4">
-  <div class="flex items-center justify-between">
-    <h2 class="text-xl font-bold">My Collections</h2>
-    <button
-      onclick={() => (showCreate = !showCreate)}
-      class="rounded-lg bg-accent-500 px-3 py-1.5 text-sm font-medium text-surface-900 hover:bg-accent-400"
-    >
-      {showCreate ? 'Cancel' : 'New Collection'}
-    </button>
-  </div>
+<div
+	class="grid gap-6"
+	style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));"
+>
+	{#each spacetimeState.collections as collection, i (collection.id)}
+		{@const stats = spacetimeState.getCollectionStats(collection.id)}
+		<div
+			class="group relative flex flex-col overflow-hidden rounded transition-all duration-200"
+			style="
+				background-color: var(--color-stone);
+				border: 1px solid rgba(196, 146, 42, 0.22);
+				border-radius: 4px;
+				box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+			"
+			onmouseenter={(e) => {
+				const el = e.currentTarget as HTMLElement;
+				el.style.transform = 'translateY(-2px)';
+				el.style.boxShadow = 'inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 4px 16px rgba(138, 106, 42, 0.2)';
+				el.style.borderColor = 'rgba(196, 146, 42, 0.4)';
+			}}
+			onmouseleave={(e) => {
+				const el = e.currentTarget as HTMLElement;
+				el.style.transform = 'translateY(0)';
+				el.style.boxShadow = 'inset 0 1px 0 rgba(255, 255, 255, 0.04)';
+				el.style.borderColor = 'rgba(196, 146, 42, 0.22)';
+			}}
+		>
+			<!-- Top accent strip -->
+			<div class="h-1 w-full" style="background-color: {getAccentColor(i)};"></div>
 
-  {#if showCreate}
-    <form onsubmit={(e) => { e.preventDefault(); createCollection(); }} class="space-y-3 rounded-lg border border-surface-600 bg-surface-800 p-4">
-      <input
-        type="text"
-        bind:value={newName}
-        placeholder="Collection name"
-        class="w-full rounded-lg border border-surface-600 bg-surface-900 px-3 py-2 text-sm text-gray-100 outline-none focus:border-accent-500"
-      />
-      <input
-        type="text"
-        bind:value={newDescription}
-        placeholder="Description (optional)"
-        class="w-full rounded-lg border border-surface-600 bg-surface-900 px-3 py-2 text-sm text-gray-100 outline-none focus:border-accent-500"
-      />
-      <button
-        type="submit"
-        disabled={!newName.trim()}
-        class="rounded-lg bg-accent-500 px-3 py-1.5 text-sm font-medium text-surface-900 hover:bg-accent-400 disabled:opacity-50"
-      >
-        Create
-      </button>
-    </form>
-  {/if}
+			<a
+				href="/collections/{collection.id}"
+				class="flex flex-1 flex-col gap-2 p-4 no-underline"
+			>
+				<h2 class="font-display text-base font-bold text-text-primary">
+					{collection.name}
+				</h2>
+				{#if collection.description}
+					<p class="font-body text-sm text-text-secondary line-clamp-2">
+						{collection.description}
+					</p>
+				{/if}
+				<CollectionStats total={stats.total} unique={stats.unique} foils={stats.foils} class="mt-auto pt-2" />
+			</a>
 
-  {#if ownedCollections.length === 0 && !showCreate}
-    <p class="py-8 text-center text-gray-500">
-      No collections yet. Create one to start tracking your cards.
-    </p>
-  {:else}
-    <div class="space-y-2">
-      {#each ownedCollections as coll (coll.id)}
-        <a
-          href="/collections/{coll.id}"
-          class="flex items-center justify-between rounded-lg border border-surface-700 bg-surface-800 px-4 py-3 transition-colors hover:border-surface-600"
-        >
-          <div>
-            <p class="font-medium">{coll.name}</p>
-            {#if coll.description}
-              <p class="text-sm text-gray-500">{coll.description}</p>
-            {/if}
-          </div>
-          <div class="flex items-center gap-4">
-            <span class="text-sm text-gray-400">{cardCount(coll.id)} cards</span>
-            <button
-              onclick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                if (confirm(`Delete "${coll.name}" and all its cards?`)) {
-                  deleteCollection(coll.id);
-                }
-              }}
-              class="text-sm text-red-400 hover:text-red-300"
-            >
-              Delete
-            </button>
-          </div>
-        </a>
-      {/each}
-    </div>
-  {/if}
+			<!-- Delete button -->
+			<div class="flex items-center justify-end border-t px-3 py-2" style="border-color: rgba(196, 146, 42, 0.1);">
+				{#if confirmDeleteId === collection.id}
+					<div class="flex items-center gap-2">
+						<span class="font-body text-xs text-error">Delete?</span>
+						<button
+							onclick={() => handleDelete(collection.id)}
+							class="cursor-pointer rounded border px-2 py-1 font-body text-xs text-error transition-colors hover:bg-error/10"
+							style="border-color: rgba(138, 32, 32, 0.4); background: transparent;"
+						>
+							Yes
+						</button>
+						<button
+							onclick={() => (confirmDeleteId = null)}
+							class="cursor-pointer rounded border px-2 py-1 font-body text-xs text-text-secondary transition-colors hover:text-text-primary"
+							style="border-color: rgba(196, 146, 42, 0.2); background: transparent;"
+						>
+							No
+						</button>
+					</div>
+				{:else}
+					<button
+						onclick={() => (confirmDeleteId = collection.id)}
+						class="cursor-pointer border-none bg-transparent font-body text-xs text-text-muted transition-colors hover:text-error"
+					>
+						Delete
+					</button>
+				{/if}
+			</div>
+		</div>
+	{/each}
+
+	<!-- New Collection ghost tile -->
+	{#if showCreateForm}
+		<div
+			class="flex flex-col overflow-hidden rounded"
+			style="
+				background-color: var(--color-stone);
+				border: 1px solid rgba(196, 146, 42, 0.3);
+				border-radius: 4px;
+			"
+		>
+			<div class="h-1 w-full" style="background-color: var(--color-gold-dim);"></div>
+			<div class="flex flex-col gap-3 p-4">
+				<h2 class="font-display text-sm uppercase tracking-wider text-gold-bright">
+					New Collection
+				</h2>
+				<input
+					type="text"
+					bind:value={newName}
+					placeholder="Collection name..."
+					class="w-full rounded px-3 py-2 font-body text-sm text-text-primary placeholder:italic placeholder:text-text-muted focus:outline-none"
+					style="background-color: var(--color-crypt); border: 1px solid rgba(196, 146, 42, 0.3);"
+					onfocus={(e: FocusEvent) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-gold)'; }}
+					onblur={(e: FocusEvent) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(196, 146, 42, 0.3)'; }}
+				/>
+				<textarea
+					bind:value={newDescription}
+					placeholder="Description (optional)..."
+					rows="2"
+					class="w-full resize-none rounded px-3 py-2 font-body text-sm text-text-primary placeholder:italic placeholder:text-text-muted focus:outline-none"
+					style="background-color: var(--color-crypt); border: 1px solid rgba(196, 146, 42, 0.3);"
+					onfocus={(e: FocusEvent) => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--color-gold)'; }}
+					onblur={(e: FocusEvent) => { (e.currentTarget as HTMLElement).style.borderColor = 'rgba(196, 146, 42, 0.3)'; }}
+				></textarea>
+				<div class="flex gap-2">
+					<button
+						onclick={handleCreate}
+						disabled={!newName.trim()}
+						class="flex-1 cursor-pointer rounded py-2 font-display text-xs font-bold uppercase tracking-wider transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50"
+						style="
+							background: linear-gradient(135deg, var(--color-gold-dim), var(--color-gold));
+							color: var(--color-text-on-gold);
+							border: 1px solid var(--color-gold-bright);
+						"
+					>
+						Create
+					</button>
+					<button
+						onclick={() => { showCreateForm = false; newName = ''; newDescription = ''; }}
+						class="cursor-pointer rounded border px-4 py-2 font-display text-xs uppercase tracking-wider text-text-secondary transition-colors hover:text-text-primary"
+						style="border-color: rgba(196, 146, 42, 0.3); background: transparent;"
+					>
+						Cancel
+					</button>
+				</div>
+			</div>
+		</div>
+	{:else}
+		<button
+			onclick={() => (showCreateForm = true)}
+			class="flex min-h-[160px] cursor-pointer flex-col items-center justify-center gap-2 rounded transition-all duration-200 hover:border-gold-dim"
+			style="
+				background-color: transparent;
+				border: 2px dashed rgba(196, 146, 42, 0.25);
+				border-radius: 4px;
+			"
+			onmouseenter={(e) => {
+				const el = e.currentTarget as HTMLElement;
+				el.style.borderColor = 'rgba(196, 146, 42, 0.5)';
+				el.style.backgroundColor = 'rgba(28, 23, 32, 0.5)';
+			}}
+			onmouseleave={(e) => {
+				const el = e.currentTarget as HTMLElement;
+				el.style.borderColor = 'rgba(196, 146, 42, 0.25)';
+				el.style.backgroundColor = 'transparent';
+			}}
+		>
+			<span class="text-2xl text-gold-dim">+</span>
+			<span class="font-display text-xs uppercase tracking-wider text-text-secondary">
+				New Collection
+			</span>
+		</button>
+	{/if}
 </div>

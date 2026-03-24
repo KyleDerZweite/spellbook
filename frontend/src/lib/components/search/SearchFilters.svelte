@@ -1,100 +1,127 @@
 <script lang="ts">
-  import { filters, COLORS, RARITIES, type Color, type Rarity } from '$lib/search/filters.svelte';
-  import { ToggleGroup } from 'bits-ui';
+	import { Collapsible } from 'bits-ui';
+	import type { SearchFilterState } from '$lib/search/filters.svelte';
+	import type { ManaColor, Rarity } from '$lib/search/types';
+	import OrnamentalDivider from '$lib/components/layout/OrnamentalDivider.svelte';
 
-  const colorLabels: Record<Color, string> = {
-    W: 'White',
-    U: 'Blue',
-    B: 'Black',
-    R: 'Red',
-    G: 'Green',
-  };
+	interface Props {
+		filters: SearchFilterState;
+		class?: string;
+	}
 
-  const colorClasses: Record<Color, { active: string; inactive: string }> = {
-    W: { active: 'bg-amber-100 text-amber-900', inactive: 'bg-amber-100/30 text-amber-900/50' },
-    U: { active: 'bg-blue-500 text-white', inactive: 'bg-blue-500/30 text-white/50' },
-    B: { active: 'bg-gray-700 text-gray-200 ring-1 ring-gray-500', inactive: 'bg-gray-700/30 text-gray-200/40' },
-    R: { active: 'bg-red-600 text-white', inactive: 'bg-red-600/30 text-white/50' },
-    G: { active: 'bg-green-600 text-white', inactive: 'bg-green-600/30 text-white/50' },
-  };
+	let { filters, class: className = '' }: Props = $props();
 
-  let selectedColors = $state<string[]>([...filters.selectedColors]);
-  let selectedRarities = $state<string[]>([...filters.selectedRarities]);
+	let colorsOpen = $state(true);
+	let rarityOpen = $state(true);
 
-  $effect(() => {
-    const next = new Set(selectedColors as Color[]);
-    if (setsEqual(next, filters.selectedColors)) return;
-    filters.selectedColors = next;
-  });
+	const MANA_COLORS: { id: ManaColor; label: string; bg: string; text: string }[] = [
+		{ id: 'W', label: 'White', bg: 'var(--color-mana-white)', text: '#1a1208' },
+		{ id: 'U', label: 'Blue', bg: 'var(--color-mana-blue)', text: '#e8dfc8' },
+		{ id: 'B', label: 'Black', bg: 'var(--color-mana-black)', text: '#e8dfc8' },
+		{ id: 'R', label: 'Red', bg: 'var(--color-mana-red)', text: '#e8dfc8' },
+		{ id: 'G', label: 'Green', bg: 'var(--color-mana-green)', text: '#e8dfc8' },
+		{ id: 'C', label: 'Colorless', bg: 'var(--color-mana-colorless)', text: '#1a1208' }
+	];
 
-  $effect(() => {
-    const next = new Set(selectedRarities as Rarity[]);
-    if (setsEqual(next, filters.selectedRarities)) return;
-    filters.selectedRarities = next;
-  });
-
-  function setsEqual<T>(a: Set<T>, b: Set<T>): boolean {
-    if (a.size !== b.size) return false;
-    for (const v of a) if (!b.has(v)) return false;
-    return true;
-  }
+	const RARITIES: { id: Rarity; label: string; color: string }[] = [
+		{ id: 'common', label: 'Common', color: 'var(--color-rarity-common)' },
+		{ id: 'uncommon', label: 'Uncommon', color: 'var(--color-rarity-uncommon)' },
+		{ id: 'rare', label: 'Rare', color: 'var(--color-rarity-rare)' },
+		{ id: 'mythic', label: 'Mythic', color: 'var(--color-rarity-mythic)' }
+	];
 </script>
 
-<div class="space-y-4">
-  <div>
-    <p class="mb-2 text-xs font-medium uppercase tracking-wider text-gray-400">Colors</p>
-    <ToggleGroup.Root
-      type="multiple"
-      bind:value={selectedColors}
-      class="flex flex-wrap gap-2"
-    >
-      {#each COLORS as color}
-        {@const active = selectedColors.includes(color)}
-        <ToggleGroup.Item
-          value={color}
-          aria-label={colorLabels[color]}
-          class="rounded-full px-3 py-1 text-xs font-medium transition-all
-                 {active ? colorClasses[color].active : colorClasses[color].inactive}"
-        >
-          {colorLabels[color]}
-        </ToggleGroup.Item>
-      {/each}
-    </ToggleGroup.Root>
-  </div>
+<aside
+	class="flex flex-col gap-4 {className}"
+	style="min-width: 220px; max-width: 280px;"
+>
+	<!-- Colors section -->
+	<Collapsible.Root bind:open={colorsOpen}>
+		<Collapsible.Trigger
+			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm uppercase tracking-widest text-text-secondary transition-colors hover:text-text-primary"
+		>
+			<span>Colors</span>
+			<span
+				class="inline-block transition-transform duration-200"
+				style:transform={colorsOpen ? 'rotate(180deg)' : 'rotate(0deg)'}
+			>
+				&#9660;
+			</span>
+		</Collapsible.Trigger>
+		<Collapsible.Content>
+			<div class="flex flex-wrap gap-2 pt-2">
+				{#each MANA_COLORS as color}
+					<button
+						onclick={() => filters.toggleColor(color.id)}
+						class="flex h-9 w-9 items-center justify-center rounded-full font-mono text-xs font-medium transition-all duration-150"
+						style="
+							background-color: {color.bg};
+							color: {color.text};
+							border: 2px solid {filters.selectedColors.has(color.id) ? 'var(--color-gold-bright)' : 'transparent'};
+							box-shadow: {filters.selectedColors.has(color.id) ? '0 0 8px rgba(232, 184, 75, 0.4)' : 'none'};
+							opacity: {filters.selectedColors.has(color.id) ? '1' : '0.7'};
+						"
+						title={color.label}
+						aria-pressed={filters.selectedColors.has(color.id)}
+					>
+						{color.id}
+					</button>
+				{/each}
+			</div>
+		</Collapsible.Content>
+	</Collapsible.Root>
 
-  <div>
-    <p class="mb-2 text-xs font-medium uppercase tracking-wider text-gray-400">Rarity</p>
-    <ToggleGroup.Root
-      type="multiple"
-      bind:value={selectedRarities}
-      class="flex flex-wrap gap-2"
-    >
-      {#each RARITIES as rarity}
-        {@const active = selectedRarities.includes(rarity)}
-        <ToggleGroup.Item
-          value={rarity}
-          aria-label={rarity}
-          class="rounded-lg border px-3 py-1 text-xs font-medium capitalize transition-colors
-                 {active
-                   ? 'border-accent-500 text-accent-400'
-                   : 'border-surface-600 text-gray-500 hover:text-gray-300'}"
-        >
-          {rarity}
-        </ToggleGroup.Item>
-      {/each}
-    </ToggleGroup.Root>
-  </div>
+	<OrnamentalDivider />
 
-  {#if filters.activeFilterCount > 0}
-    <button
-      onclick={() => {
-        filters.clear();
-        selectedColors = [];
-        selectedRarities = [];
-      }}
-      class="text-xs text-gray-500 hover:text-gray-300"
-    >
-      Clear filters
-    </button>
-  {/if}
-</div>
+	<!-- Rarity section -->
+	<Collapsible.Root bind:open={rarityOpen}>
+		<Collapsible.Trigger
+			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm uppercase tracking-widest text-text-secondary transition-colors hover:text-text-primary"
+		>
+			<span>Rarity</span>
+			<span
+				class="inline-block transition-transform duration-200"
+				style:transform={rarityOpen ? 'rotate(180deg)' : 'rotate(0deg)'}
+			>
+				&#9660;
+			</span>
+		</Collapsible.Trigger>
+		<Collapsible.Content>
+			<div class="flex flex-col gap-1.5 pt-2">
+				{#each RARITIES as rarity}
+					<button
+						onclick={() => filters.toggleRarity(rarity.id)}
+						class="flex items-center gap-2.5 rounded px-2 py-1.5 font-body text-sm transition-all duration-150
+							{filters.selectedRarities.has(rarity.id)
+							? 'text-text-primary'
+							: 'text-text-secondary hover:text-text-primary'}"
+						style="
+							background-color: {filters.selectedRarities.has(rarity.id) ? 'var(--color-mist)' : 'transparent'};
+							border: none;
+							cursor: pointer;
+						"
+						aria-pressed={filters.selectedRarities.has(rarity.id)}
+					>
+						<span
+							class="inline-block h-2.5 w-2.5 rounded-full"
+							style="background-color: {rarity.color};"
+						></span>
+						{rarity.label}
+					</button>
+				{/each}
+			</div>
+		</Collapsible.Content>
+	</Collapsible.Root>
+
+	<!-- Clear filters -->
+	{#if filters.hasFilters}
+		<OrnamentalDivider />
+		<button
+			onclick={() => filters.clear()}
+			class="cursor-pointer rounded border bg-transparent px-3 py-1.5 font-display text-xs uppercase tracking-wider text-gold-bright transition-all duration-150 hover:bg-mist"
+			style="border-color: rgba(196, 146, 42, 0.5);"
+		>
+			Clear Filters
+		</button>
+	{/if}
+</aside>

@@ -1,13 +1,33 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function debounce<T extends (...args: any[]) => unknown>(
-  fn: T,
-  delay: number,
-): ((...args: Parameters<T>) => void) & { cancel: () => void } {
-  let timer: ReturnType<typeof setTimeout>;
-  const debounced = (...args: Parameters<T>) => {
-    clearTimeout(timer);
-    timer = setTimeout(() => fn(...args), delay);
-  };
-  debounced.cancel = () => clearTimeout(timer);
-  return debounced;
+export interface Debounced<T extends (...args: unknown[]) => unknown> {
+	(...args: Parameters<T>): void;
+	cancel: () => void;
+}
+
+/**
+ * Creates a debounced version of the given function.
+ * Returns an object with the debounced function and a .cancel() method
+ * for cleanup in $effect return functions.
+ */
+export function debounce<T extends (...args: unknown[]) => unknown>(
+	fn: T,
+	delay: number
+): Debounced<T> {
+	let timer: ReturnType<typeof setTimeout> | null = null;
+
+	const debounced = ((...args: Parameters<T>) => {
+		if (timer !== null) clearTimeout(timer);
+		timer = setTimeout(() => {
+			timer = null;
+			fn(...args);
+		}, delay);
+	}) as Debounced<T>;
+
+	debounced.cancel = () => {
+		if (timer !== null) {
+			clearTimeout(timer);
+			timer = null;
+		}
+	};
+
+	return debounced;
 }

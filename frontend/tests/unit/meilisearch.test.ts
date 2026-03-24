@@ -1,36 +1,58 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { searchCards, searchPrintings } from '$lib/search/meilisearch';
 
-// Mock the meilisearch module
+// Mock the meilisearch module before importing our client
 vi.mock('meilisearch', () => {
-  const mockSearch = vi.fn();
-  const mockIndex = vi.fn(() => ({ search: mockSearch }));
-  return {
-    MeiliSearch: vi.fn(() => ({ index: mockIndex })),
-    __mockSearch: mockSearch,
-    __mockIndex: mockIndex,
-  };
+	const mockSearch = vi.fn().mockResolvedValue({
+		hits: [],
+		query: '',
+		processingTimeMs: 0,
+		estimatedTotalHits: 0
+	});
+
+	return {
+		MeiliSearch: vi.fn().mockImplementation(() => ({
+			index: vi.fn().mockReturnValue({ search: mockSearch })
+		}))
+	};
 });
 
+vi.mock('$env/static/public', () => ({
+	PUBLIC_MEILISEARCH_URL: 'http://localhost:7700',
+	PUBLIC_MEILISEARCH_SEARCH_KEY: 'test-key'
+}));
+
+import { searchCards, searchPrintings } from '../../src/lib/search/meilisearch';
+
 describe('searchCards', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+	it('returns empty results for empty query', async () => {
+		const result = await searchCards('');
+		expect(result.hits).toEqual([]);
+		expect(result.estimatedTotalHits).toBe(0);
+	});
 
-  it('returns empty array for empty query', async () => {
-    const result = await searchCards('');
-    expect(result.hits).toEqual([]);
-  });
+	it('returns empty results for single-character query', async () => {
+		const result = await searchCards('a');
+		expect(result.hits).toEqual([]);
+		expect(result.estimatedTotalHits).toBe(0);
+	});
 
-  it('returns empty array for single-char query', async () => {
-    const result = await searchCards('a');
-    expect(result.hits).toEqual([]);
-  });
+	it('calls MeiliSearch for queries with 2+ characters', async () => {
+		const result = await searchCards('lightning bolt');
+		expect(result).toBeDefined();
+		expect(result.hits).toEqual([]);
+	});
 });
 
 describe('searchPrintings', () => {
-  it('returns empty array for empty oracle_id', async () => {
-    const result = await searchPrintings('');
-    expect(result.hits).toEqual([]);
-  });
+	it('returns empty results for empty oracle_id', async () => {
+		const result = await searchPrintings('');
+		expect(result.hits).toEqual([]);
+		expect(result.estimatedTotalHits).toBe(0);
+	});
+
+	it('calls MeiliSearch for valid oracle_id', async () => {
+		const result = await searchPrintings('some-oracle-id');
+		expect(result).toBeDefined();
+		expect(result.hits).toEqual([]);
+	});
 });

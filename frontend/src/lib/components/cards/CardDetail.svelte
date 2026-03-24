@@ -1,136 +1,185 @@
 <script lang="ts">
-  import type { CardDocument } from '$lib/search/types';
-  import { searchPrintings } from '$lib/search/meilisearch';
-  import { Dialog } from 'bits-ui';
-  import CardQuickAdd from './CardQuickAdd.svelte';
+	import { Dialog } from 'bits-ui';
+	import ManaCost from './ManaCost.svelte';
+	import RarityBadge from './RarityBadge.svelte';
+	import CardQuickAdd from './CardQuickAdd.svelte';
+	import OrnamentalDivider from '$lib/components/layout/OrnamentalDivider.svelte';
+	import { searchPrintings } from '$lib/search/meilisearch';
+	import type { CardDocument } from '$lib/search/types';
 
-  let { card, onclose }: {
-    card: CardDocument;
-    onclose: () => void;
-  } = $props();
+	interface Props {
+		card: CardDocument;
+		onClose: () => void;
+	}
 
-  let printings = $state<CardDocument[]>([]);
-  let loadingPrintings = $state(true);
-  let selectedPrinting = $state<CardDocument | null>(null);
-  let printingGen = 0;
+	let { card, onClose }: Props = $props();
 
-  $effect(() => {
-    const gen = ++printingGen;
-    selectedPrinting = null;
-    loadingPrintings = true;
-    searchPrintings(card.oracle_id).then((result) => {
-      if (gen !== printingGen) return;
-      printings = result.hits;
-      loadingPrintings = false;
-    });
-  });
+	let printings: CardDocument[] = $state([]);
+	let selectedPrinting: CardDocument | null = $state(null);
+	let loadingPrintings = $state(true);
+	let detailOpen = $state(true);
 
-  let displayCard = $derived(selectedPrinting ?? card);
+	// Active card is either the selected printing or the original card
+	let activeCard = $derived(selectedPrinting ?? card);
+
+	// CRITICAL: fetch printings with AbortController cleanup to prevent navigation bugs
+	$effect(() => {
+		const oracleId = card.oracle_id;
+		const controller = new AbortController();
+		selectedPrinting = null;
+		loadingPrintings = true;
+
+		searchPrintings(oracleId)
+			.then((result) => {
+				if (!controller.signal.aborted) {
+					printings = result.hits;
+					loadingPrintings = false;
+				}
+			})
+			.catch(() => {
+				if (!controller.signal.aborted) {
+					loadingPrintings = false;
+				}
+			});
+
+		return () => controller.abort();
+	});
+
+	function handleOpenChange(open: boolean) {
+		if (!open) {
+			onClose();
+		}
+		detailOpen = open;
+	}
+
+	/** Parse oracle text for display, handling mana symbols and line breaks. */
+	function formatOracleText(text: string): string[] {
+		if (!text) return [];
+		return text.split('\n');
+	}
+
+	let oracleLines = $derived(formatOracleText(activeCard.oracle_text ?? ''));
+
+	/** Extract flavor text from oracle text if present, or empty. */
+	let hasPowerToughness = $derived(
+		activeCard.power !== undefined && activeCard.toughness !== undefined
+	);
 </script>
 
-<Dialog.Root
-  open={true}
-  onOpenChange={(open) => { if (!open) onclose(); }}
->
-  <Dialog.Portal>
-    <Dialog.Overlay
-      class="fixed inset-0 z-40 bg-black/70 transition-opacity"
-    />
-    <Dialog.Content
-      class="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-surface-800 p-6 shadow-xl outline-none sm:max-w-2xl"
-      oninteractoutside={(e) => { e.preventDefault(); onclose(); }}
-    >
-      <div class="mb-4 flex items-start justify-between">
-        <div>
-          <Dialog.Title class="text-xl font-bold">{card.name}</Dialog.Title>
-          <Dialog.Description class="text-sm text-gray-400">{card.type_line}</Dialog.Description>
-        </div>
-        <Dialog.Close
-          class="text-2xl leading-none text-gray-400 hover:text-gray-200"
-          aria-label="Close"
-        >&times;</Dialog.Close>
-      </div>
+<Dialog.Root open={detailOpen} onOpenChange={handleOpenChange}>
+	<Dialog.Portal>
+		<Dialog.Overlay
+			class="fixed inset-0 z-40"
+			style="background: rgba(13, 11, 15, 0.85); backdrop-filter: blur(4px); animation: fade-in 200ms ease-out;"
+		/>
 
-      <div class="flex flex-col gap-6 sm:flex-row">
-        <!-- Main card image -->
-        <div class="shrink-0">
-          <img
-            src={displayCard.image_uri}
-            alt={displayCard.name}
-            class="w-64 rounded-lg"
-          />
-          {#if displayCard.back_face_image_uri}
-            <img
-              src={displayCard.back_face_image_uri}
-              alt={displayCard.back_face_name ?? 'Back face'}
-              class="mt-2 w-64 rounded-lg"
-            />
-          {/if}
-        </div>
+		<Dialog.Content
+			class="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col overflow-y-auto"
+			style="
+				background-color: var(--color-stone);
+				border-left: 1px solid rgba(196, 146, 42, 0.3);
+				box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset, -8px 0 40px rgba(13, 11, 15, 0.8);
+				animation: slide-up 200ms ease-out;
+			"
+		>
+			<!-- Close button -->
+			<Dialog.Close
+				class="absolute right-3 top-3 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded border-none bg-void/60 text-text-secondary transition-colors hover:text-gold-bright"
+				aria-label="Close card detail"
+			>
+				&#10005;
+			</Dialog.Close>
 
-        <!-- Card info -->
-        <div class="flex-1 space-y-4">
-          <div>
-            <p class="text-sm text-gray-400">Mana Cost</p>
-            <p class="font-mono">{card.mana_cost || 'None'}</p>
-          </div>
-          <div>
-            <p class="text-sm text-gray-400">Oracle Text</p>
-            <p class="whitespace-pre-line text-sm">{card.oracle_text || 'No text.'}</p>
-          </div>
-          {#if card.power || card.toughness}
-            <div>
-              <p class="text-sm text-gray-400">P/T</p>
-              <p>{card.power}/{card.toughness}</p>
-            </div>
-          {/if}
-        </div>
-      </div>
+			<!-- Card image -->
+			<div class="relative w-full shrink-0" style="aspect-ratio: 488 / 680;">
+				<img
+					src={activeCard.image_uri}
+					alt={activeCard.name}
+					class="block h-full w-full object-cover"
+				/>
+			</div>
 
-      <!-- Printings picker -->
-      <div class="mt-8">
-        <h3 class="mb-3 text-lg font-semibold">
-          Printings
-          {#if !loadingPrintings}
-            <span class="text-sm font-normal text-gray-500">({printings.length})</span>
-          {/if}
-        </h3>
+			<!-- Card info panel -->
+			<div class="flex flex-col gap-3 p-4">
+				<!-- Header: Name + mana cost -->
+				<Dialog.Title
+					class="flex items-start justify-between gap-2 font-display text-lg font-bold text-text-primary"
+					level={2}
+				>
+					<span>{activeCard.name}</span>
+					{#if activeCard.mana_cost}
+						<ManaCost cost={activeCard.mana_cost} />
+					{/if}
+				</Dialog.Title>
 
-        {#if loadingPrintings}
-          <p class="text-sm text-gray-500">Loading printings...</p>
-        {:else}
-          <div class="grid grid-cols-3 gap-2 sm:grid-cols-4">
-            {#each printings as printing (printing.id)}
-              <button
-                type="button"
-                onclick={() => (selectedPrinting = printing)}
-                class="overflow-hidden rounded-lg border-2 transition-colors
-                       {selectedPrinting?.id === printing.id
-                         ? 'border-accent-500'
-                         : 'border-transparent hover:border-surface-600'}"
-              >
-                <img
-                  src={printing.image_uri_small || printing.image_uri}
-                  alt="{printing.name} ({printing.set_code})"
-                  loading="lazy"
-                  class="aspect-[5/7] w-full object-cover"
-                />
-                <div class="bg-surface-700 px-1.5 py-1 text-center text-xs">
-                  <span class="uppercase">{printing.set_code}</span>
-                  {#if printing.is_foil_available}
-                    <span class="text-accent-400"> F</span>
-                  {/if}
-                </div>
-              </button>
-            {/each}
-          </div>
-        {/if}
-      </div>
+				<!-- Type line -->
+				<p class="font-body text-sm italic text-text-secondary">{activeCard.type_line}</p>
 
-      <!-- Add to collection -->
-      <div class="mt-6">
-        <CardQuickAdd card={displayCard} />
-      </div>
-    </Dialog.Content>
-  </Dialog.Portal>
+				<OrnamentalDivider />
+
+				<!-- Oracle text -->
+				{#if oracleLines.length > 0}
+					<div class="flex flex-col gap-1.5">
+						{#each oracleLines as line}
+							<p class="font-body text-sm text-text-primary">{line}</p>
+						{/each}
+					</div>
+				{/if}
+
+				<!-- Power / Toughness -->
+				{#if hasPowerToughness}
+					<p class="font-body text-sm text-text-secondary">
+						<span class="font-medium text-text-primary">{activeCard.power}</span>
+						/
+						<span class="font-medium text-text-primary">{activeCard.toughness}</span>
+					</p>
+				{/if}
+
+				<OrnamentalDivider />
+
+				<!-- Printings section -->
+				<div>
+					<h3
+						class="mb-2 font-display text-xs uppercase tracking-widest text-text-secondary"
+					>
+						Printings
+					</h3>
+					{#if loadingPrintings}
+						<p class="font-body text-xs italic text-text-muted">Loading printings...</p>
+					{:else if printings.length > 0}
+						<div class="flex flex-wrap gap-1.5">
+							{#each printings as printing}
+								{@const isActive =
+									selectedPrinting?.id === printing.id ||
+									(!selectedPrinting && printing.id === card.id)}
+								<button
+									onclick={() => (selectedPrinting = printing)}
+									class="inline-flex cursor-pointer items-center gap-1 rounded px-2 py-1 font-mono text-[11px] transition-all duration-150"
+									style="
+										background-color: {isActive ? 'var(--color-mist)' : 'var(--color-slate)'};
+										border: 1px solid {isActive ? 'var(--color-gold)' : 'rgba(196, 146, 42, 0.2)'};
+										color: {isActive ? 'var(--color-gold-bright)' : 'var(--color-text-secondary)'};
+									"
+								>
+									<span class="uppercase">{printing.set_code}</span>
+									<RarityBadge rarity={printing.rarity} />
+								</button>
+							{/each}
+						</div>
+					{:else}
+						<p class="font-body text-xs italic text-text-muted">No other printings found.</p>
+					{/if}
+				</div>
+
+				<OrnamentalDivider />
+
+				<!-- Quick add to collection -->
+				<CardQuickAdd card={activeCard} />
+			</div>
+
+			<Dialog.Description class="sr-only">
+				Details for {activeCard.name}, a {activeCard.type_line} card.
+			</Dialog.Description>
+		</Dialog.Content>
+	</Dialog.Portal>
 </Dialog.Root>

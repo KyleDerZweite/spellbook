@@ -1,60 +1,62 @@
-const COLORS = ['W', 'U', 'B', 'R', 'G'] as const;
-const RARITIES = ['common', 'uncommon', 'rare', 'mythic'] as const;
+import type { ManaColor, Rarity } from './types';
 
-export type Color = (typeof COLORS)[number];
-export type Rarity = (typeof RARITIES)[number];
+/**
+ * Reactive filter state for card search.
+ * Uses Svelte 5 runes ($state) for reactivity.
+ */
+export class SearchFilterState {
+	selectedColors: Set<ManaColor> = $state(new Set());
+	selectedRarities: Set<Rarity> = $state(new Set());
+	typeQuery: string = $state('');
 
-class SearchFilterState {
-  selectedColors = $state<Set<Color>>(new Set());
-  selectedRarities = $state<Set<Rarity>>(new Set());
-  typeQuery = $state('');
+	/** Build MeiliSearch filter array from current state. */
+	get meiliFilters(): string[] {
+		const filters: string[] = [];
 
-  get activeFilterCount(): number {
-    return this.selectedColors.size + this.selectedRarities.size + (this.typeQuery ? 1 : 0);
-  }
+		if (this.selectedColors.size > 0) {
+			const colorFilters = [...this.selectedColors].map((c) => `colors = "${c}"`);
+			filters.push(`(${colorFilters.join(' OR ')})`);
+		}
 
-  get meiliFilters(): string[] {
-    const filters: string[] = [];
-    if (this.selectedColors.size > 0) {
-      const colorFilters = [...this.selectedColors].map((c) => `colors = "${c}"`);
-      filters.push(`(${colorFilters.join(' OR ')})`);
-    }
-    if (this.selectedRarities.size > 0) {
-      const rarityFilters = [...this.selectedRarities].map((r) => `rarity = "${r}"`);
-      filters.push(`(${rarityFilters.join(' OR ')})`);
-    }
-    if (this.typeQuery) {
-      filters.push(`type_line = "${this.typeQuery}"`);
-    }
-    return filters;
-  }
+		if (this.selectedRarities.size > 0) {
+			const rarityFilters = [...this.selectedRarities].map((r) => `rarity = "${r}"`);
+			filters.push(`(${rarityFilters.join(' OR ')})`);
+		}
 
-  toggleColor(color: Color) {
-    const next = new Set(this.selectedColors);
-    if (next.has(color)) {
-      next.delete(color);
-    } else {
-      next.add(color);
-    }
-    this.selectedColors = next;
-  }
+		if (this.typeQuery.trim()) {
+			filters.push(`type_line = "${this.typeQuery.trim()}"`);
+		}
 
-  toggleRarity(rarity: Rarity) {
-    const next = new Set(this.selectedRarities);
-    if (next.has(rarity)) {
-      next.delete(rarity);
-    } else {
-      next.add(rarity);
-    }
-    this.selectedRarities = next;
-  }
+		return filters;
+	}
 
-  clear() {
-    this.selectedColors = new Set();
-    this.selectedRarities = new Set();
-    this.typeQuery = '';
-  }
+	toggleColor(color: ManaColor): void {
+		const next = new Set(this.selectedColors);
+		if (next.has(color)) {
+			next.delete(color);
+		} else {
+			next.add(color);
+		}
+		this.selectedColors = next;
+	}
+
+	toggleRarity(rarity: Rarity): void {
+		const next = new Set(this.selectedRarities);
+		if (next.has(rarity)) {
+			next.delete(rarity);
+		} else {
+			next.add(rarity);
+		}
+		this.selectedRarities = next;
+	}
+
+	clear(): void {
+		this.selectedColors = new Set();
+		this.selectedRarities = new Set();
+		this.typeQuery = '';
+	}
+
+	get hasFilters(): boolean {
+		return this.selectedColors.size > 0 || this.selectedRarities.size > 0 || this.typeQuery.trim().length > 0;
+	}
 }
-
-export const filters = new SearchFilterState();
-export { COLORS, RARITIES };

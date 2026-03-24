@@ -1,23 +1,25 @@
 <script lang="ts">
-  import type { CollectionCard } from '$bindings/types';
+	interface Props {
+		total: number;
+		unique: number;
+		foils: number;
+		class?: string;
+	}
 
-  let { cards }: { cards: CollectionCard[] } = $props();
-
-  let totalCards = $derived(cards.reduce((sum, c) => sum + c.quantity, 0));
-  let uniqueCards = $derived(cards.length);
-  let foilCount = $derived(cards.filter((c) => c.isFoil).reduce((sum, c) => sum + c.quantity, 0));
+	let { total, unique, foils, class: className = '' }: Props = $props();
 </script>
 
-<div class="flex gap-6 text-sm text-gray-400">
-  <div>
-    <span class="font-medium text-gray-200">{totalCards}</span> total
-  </div>
-  <div>
-    <span class="font-medium text-gray-200">{uniqueCards}</span> unique
-  </div>
-  {#if foilCount > 0}
-    <div>
-      <span class="font-medium text-accent-400">{foilCount}</span> foil
-    </div>
-  {/if}
+<div class="flex items-center gap-6 {className}">
+	<div class="text-center">
+		<p class="font-mono text-lg font-medium text-text-primary">{total}</p>
+		<p class="font-body text-xs text-text-secondary">Total Cards</p>
+	</div>
+	<div class="text-center">
+		<p class="font-mono text-lg font-medium text-text-primary">{unique}</p>
+		<p class="font-body text-xs text-text-secondary">Unique</p>
+	</div>
+	<div class="text-center">
+		<p class="font-mono text-lg font-medium text-text-primary">{foils}</p>
+		<p class="font-body text-xs text-text-secondary">Foils</p>
+	</div>
 </div>
