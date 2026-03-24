@@ -42,4 +42,5 @@ This is the primary instruction file for coding agents. Follow it strictly.
 ## Dependencies
 
 * For any usage or integration of the BitsUI dependency, always check docs/bits-ui.md first, then follow the links there to the needed Bits UI documentation.
+* For any MeiliSearch work, always check docs/meilisearch/README.md first for a Spellbook-specific overview and two-index architecture, then consult the specific file for the feature needed: search-api.md (frontend queries), indexes-and-settings.md (index configuration), documents.md (adding/updating cards), authentication.md (API keys), or tasks.md (async task polling for the Python worker).
 
