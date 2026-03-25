@@ -84,7 +84,7 @@
 
 <div class="flex h-full flex-col">
 	<!-- Header -->
-	<div class="shrink-0 px-6 pt-6 pb-4">
+	<div class="shrink-0 px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
 		{#if editMode}
 			<div class="flex flex-col gap-2">
 				<input
@@ -123,7 +123,7 @@
 		{:else}
 			<div class="flex items-start justify-between">
 				<div>
-					<h1 class="font-display text-2xl font-bold text-gold-bright">
+					<h1 class="font-display text-xl font-bold text-gold-bright sm:text-2xl">
 						{collection.name}
 					</h1>
 					{#if collection.description}
@@ -143,10 +143,10 @@
 		<CollectionStats total={stats.total} unique={stats.unique} foils={stats.foils} class="mt-3" />
 	</div>
 
-	<OrnamentalDivider class="mx-6" />
+	<OrnamentalDivider class="mx-4 sm:mx-6" />
 
 	<!-- Card grid -->
-	<div class="flex-1 overflow-y-auto p-6">
+	<div class="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6">
 		{#if cards.length === 0}
 			<div class="flex items-center justify-center py-20">
 				<div class="text-center">
@@ -213,9 +213,9 @@
 								</span>
 							{/if}
 
-							<!-- Hover controls overlay -->
+							<!-- Controls overlay: always visible on touch, shown on hover for pointer devices -->
 							<div
-								class="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 bg-void/80 py-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+								class="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 bg-void/80 py-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
 							>
 								<button
 									onclick={() => handleUpdateQuantity(card, -1)}

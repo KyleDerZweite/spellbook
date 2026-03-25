@@ -38,6 +38,7 @@ INDEX_SETTINGS_ALL: dict = {
     "filterableAttributes": _FILTERABLE,
     "sortableAttributes": _SORTABLE,
     "typoTolerance": {"enabled": True},
+    "pagination": {"maxTotalHits": 5000},
 }
 
 

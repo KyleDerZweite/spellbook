@@ -121,65 +121,54 @@
 		{/if}
 	</div>
 
-	<!-- Condition + Foil row -->
-	<div class="flex items-end gap-3">
-		<div class="flex-1">
-			<!-- svelte-ignore a11y_label_has_associated_control -->
-			<label class="mb-1 block font-display text-xs uppercase tracking-wider text-text-secondary">
-				Condition
-			</label>
-			<Select.Root type="single" bind:value={condition} items={CONDITIONS}>
-				<Select.Trigger
-					class="flex w-full cursor-pointer items-center justify-between rounded px-3 py-2 font-body text-sm text-text-primary"
+	<!-- Condition -->
+	<div>
+		<!-- svelte-ignore a11y_label_has_associated_control -->
+		<label class="mb-1 block font-display text-xs uppercase tracking-wider text-text-secondary">
+			Condition
+		</label>
+		<Select.Root type="single" bind:value={condition} items={CONDITIONS}>
+			<Select.Trigger
+				class="flex w-full cursor-pointer items-center justify-between rounded px-3 py-2 font-body text-sm text-text-primary"
+				style="
+					background-color: var(--color-crypt);
+					border: 1px solid rgba(196, 146, 42, 0.3);
+				"
+			>
+				{CONDITIONS.find((c) => c.value === condition)?.label ?? 'NM'}
+				<span class="text-text-muted">&#9660;</span>
+			</Select.Trigger>
+
+			<Select.Portal>
+				<Select.Content
+					class="z-[100] overflow-hidden rounded"
 					style="
-						background-color: var(--color-crypt);
-						border: 1px solid rgba(196, 146, 42, 0.3);
+						background-color: var(--color-slate);
+						border: 1px solid rgba(196, 146, 42, 0.4);
+						box-shadow: 0 4px 24px rgba(13, 11, 15, 0.8);
 					"
 				>
-					{CONDITIONS.find((c) => c.value === condition)?.label ?? 'NM'}
-					<span class="text-text-muted">&#9660;</span>
-				</Select.Trigger>
-
-				<Select.Portal>
-					<Select.Content
-						class="z-[100] overflow-hidden rounded"
-						style="
-							background-color: var(--color-slate);
-							border: 1px solid rgba(196, 146, 42, 0.4);
-							box-shadow: 0 4px 24px rgba(13, 11, 15, 0.8);
-						"
-					>
-						<Select.Viewport class="p-1">
-							{#each CONDITIONS as item}
-								<Select.Item
-									value={item.value}
-									label={item.label}
-									class="cursor-pointer rounded px-3 py-2 font-body text-sm text-text-primary transition-colors data-[highlighted]:bg-mist data-[highlighted]:text-amber"
-								>
-									{#snippet children({ selected })}
-										<span class="flex items-center gap-2">
-											{#if selected}
-												<span class="text-gold-bright">&#10003;</span>
-											{/if}
-											{item.label}
-										</span>
-									{/snippet}
-								</Select.Item>
-							{/each}
-						</Select.Viewport>
-					</Select.Content>
-				</Select.Portal>
-			</Select.Root>
-		</div>
-
-		<label class="flex cursor-pointer items-center gap-2 pb-2">
-			<input
-				type="checkbox"
-				bind:checked={isFoil}
-				class="h-4 w-4 accent-gold-bright"
-			/>
-			<span class="font-body text-sm text-text-secondary">Foil</span>
-		</label>
+					<Select.Viewport class="p-1">
+						{#each CONDITIONS as item}
+							<Select.Item
+								value={item.value}
+								label={item.label}
+								class="cursor-pointer rounded px-3 py-2 font-body text-sm text-text-primary transition-colors data-[highlighted]:bg-mist data-[highlighted]:text-amber"
+							>
+								{#snippet children({ selected })}
+									<span class="flex items-center gap-2">
+										{#if selected}
+											<span class="text-gold-bright">&#10003;</span>
+										{/if}
+										{item.label}
+									</span>
+								{/snippet}
+							</Select.Item>
+						{/each}
+					</Select.Viewport>
+				</Select.Content>
+			</Select.Portal>
+		</Select.Root>
 	</div>
 
 	<!-- Quantity -->

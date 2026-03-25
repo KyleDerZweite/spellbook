@@ -16,11 +16,13 @@
 	let hits: CardDocument[] = $state([]);
 	let loading = $state(false);
 	let loadingMore = $state(false);
+	let error: string | null = $state(null);
 	let offset = $state(0);
 	let hasMore = $state(false);
 	let facets: FacetResponse | null = $state(null);
 	let selectedCard: CardDocument | null = $state(null);
 	let sentinel: HTMLDivElement | null = $state(null);
+	let filtersOpen = $state(false);
 
 	const filters = new SearchFilterState();
 
@@ -33,15 +35,15 @@
 		const f = filters.meiliFilters;
 		const controller = new AbortController();
 
-		// Reset pagination on query/filter change (keep old hits visible until new ones arrive)
+		// Reset pagination on query/filter change
 		offset = 0;
 		hasMore = false;
+		error = null;
 
 		const timer = setTimeout(async () => {
 			loading = true;
 			try {
 				if (q.length < 2) {
-					// Browse mode
 					const [browseResult, facetResult] = await Promise.all([
 						browseCards({ filter: f, limit: BROWSE_LIMIT, offset: 0 }),
 						getFacets(f)
@@ -53,7 +55,6 @@
 						offset = BROWSE_LIMIT;
 					}
 				} else {
-					// Search mode
 					const [searchResult, facetResult] = await Promise.all([
 						searchCards(q, { filter: f, limit: SEARCH_LIMIT, offset: 0 }),
 						getFacets(f)
@@ -65,14 +66,16 @@
 						offset = SEARCH_LIMIT;
 					}
 				}
-			} catch {
-				// Swallow aborted requests
+			} catch (err) {
+				if (!controller.signal.aborted) {
+					error = err instanceof Error ? err.message : 'An unexpected error occurred';
+				}
 			} finally {
 				if (!controller.signal.aborted) {
 					loading = false;
 				}
 			}
-		}, 250);
+		}, 150);
 
 		return () => {
 			clearTimeout(timer);
@@ -80,7 +83,7 @@
 		};
 	});
 
-	// Infinite scroll via IntersectionObserver on the sentinel element
+	// Infinite scroll via IntersectionObserver
 	$effect(() => {
 		if (!sentinel) return;
 		const el = sentinel;
@@ -117,7 +120,7 @@
 			offset = currentOffset + result.hits.length;
 			hasMore = result.hits.length > 0 && result.estimatedTotalHits > offset;
 		} catch {
-			// Swallow errors
+			// Swallow load-more errors silently
 		} finally {
 			loadingMore = false;
 		}
@@ -138,28 +141,81 @@
 
 <div class="flex h-full flex-col">
 	<!-- Search header -->
-	<div class="shrink-0 px-6 pt-6 pb-4">
-		<h1 class="font-display text-2xl font-bold text-gold-bright">SEARCH</h1>
-		<SearchBar value={query} onInput={(v) => (query = v)} class="mt-3 max-w-2xl" />
+	<div class="shrink-0 px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
+		<div class="flex items-center justify-between gap-3">
+			<h1 class="font-display text-xl font-bold text-gold-bright sm:text-2xl">SEARCH</h1>
+			<!-- Mobile filter toggle -->
+			<button
+				onclick={() => (filtersOpen = !filtersOpen)}
+				class="flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 font-display text-xs uppercase tracking-wider transition-colors md:hidden"
+				style="
+					background-color: var(--color-slate);
+					border: 1px solid rgba(196, 146, 42, 0.3);
+					color: var(--color-text-secondary);
+				"
+			>
+				&#9776; Filters
+				{#if filters.hasFilters}
+					<span
+						class="flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold"
+						style="background-color: var(--color-gold); color: var(--color-text-on-gold);"
+					>!</span>
+				{/if}
+			</button>
+		</div>
+		<SearchBar value={query} onInput={(v) => (query = v)} class="mt-3" />
 	</div>
 
-	<OrnamentalDivider class="mx-6" />
+	<OrnamentalDivider class="mx-4 sm:mx-6" />
 
 	<!-- Main content area -->
 	<div class="flex min-h-0 flex-1 gap-0">
-		<!-- Filter panel -->
+		<!-- Filter panel: hidden on mobile, shown on md+ -->
 		<div
-			class="shrink-0 overflow-y-auto px-6 py-4"
+			class="hidden shrink-0 overflow-y-auto px-6 py-4 md:block"
 			style="border-right: 1px solid rgba(196, 146, 42, 0.15);"
 		>
 			<SearchFilters {filters} {facets} />
 		</div>
 
+		<!-- Mobile filter drawer -->
+		{#if filtersOpen}
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div
+				class="filter-overlay fixed inset-0 z-30 md:hidden"
+				onclick={() => (filtersOpen = false)}
+				onkeydown={(e) => { if (e.key === 'Escape') filtersOpen = false; }}
+			>
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div
+					class="absolute bottom-0 left-0 right-0 max-h-[70vh] overflow-y-auto rounded-t-xl p-5"
+					style="
+						background-color: var(--color-stone);
+						border-top: 1px solid rgba(196, 146, 42, 0.3);
+						box-shadow: 0 -8px 32px rgba(13, 11, 15, 0.8);
+						animation: slide-up 200ms ease-out;
+					"
+					onclick={(e) => e.stopPropagation()}
+					onkeydown={() => {}}
+				>
+					<div class="mb-3 flex items-center justify-between">
+						<span class="font-display text-sm uppercase tracking-widest text-text-secondary">Filters</span>
+						<button
+							onclick={() => (filtersOpen = false)}
+							class="cursor-pointer border-none bg-transparent text-text-muted transition-colors hover:text-gold-bright"
+						>&#10005;</button>
+					</div>
+					<SearchFilters {filters} {facets} />
+				</div>
+			</div>
+		{/if}
+
 		<!-- Results -->
-		<div class="min-w-0 flex-1 overflow-y-auto p-4">
+		<div class="min-w-0 flex-1 overflow-y-auto p-3 sm:p-4">
 			<SearchResults
 				{hits}
 				{loading}
+				{error}
 				{query}
 				{browseMode}
 				selectedId={selectedCard?.id}
@@ -169,7 +225,7 @@
 			<!-- Infinite scroll sentinel -->
 			<div bind:this={sentinel} class="h-1 w-full"></div>
 
-			<!-- Load-more spinner -->
+			<!-- Load-more spinner or button -->
 			{#if loadingMore}
 				<div class="flex items-center justify-center py-6">
 					<div
@@ -177,10 +233,19 @@
 						style="border: 2px solid var(--color-gold-dim); border-top-color: var(--color-gold-bright);"
 					></div>
 				</div>
+			{:else if hasMore && !loading}
+				<div class="flex items-center justify-center py-4">
+					<button
+						onclick={loadMore}
+						class="btn-load-more cursor-pointer rounded-lg px-6 py-2 font-display text-xs uppercase tracking-wider"
+					>
+						Load More
+					</button>
+				</div>
 			{/if}
 		</div>
 
-		<!-- Card detail panel -->
+		<!-- Card detail modal -->
 		{#if selectedCard}
 			<CardDetail card={selectedCard} onClose={handleCloseDetail} />
 		{/if}

@@ -33,8 +33,7 @@
 </script>
 
 <aside
-	class="flex flex-col gap-4 {className}"
-	style="min-width: 220px; max-width: 280px;"
+	class="flex w-full flex-col gap-4 md:w-[240px] md:shrink-0 {className}"
 >
 	<!-- Colors section -->
 	<Collapsible.Root bind:open={colorsOpen}>

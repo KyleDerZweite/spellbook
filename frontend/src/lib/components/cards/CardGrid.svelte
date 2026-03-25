@@ -19,31 +19,9 @@
 	{#each cards as card (card.id)}
 		{@const isSelected = selectedId === card.id}
 		<button
-			class="group cursor-pointer overflow-hidden rounded text-left transition-all duration-200"
-			style="
-				background-color: var(--color-stone);
-				border: {isSelected ? '2px solid var(--color-gold-bright)' : '1px solid rgba(196, 146, 42, 0.22)'};
-				border-radius: 4px;
-				box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04){isSelected ? ', 0 0 16px rgba(232, 184, 75, 0.3)' : ''};
-				padding: 0;
-			"
+			class="card-grid-item group cursor-pointer overflow-hidden rounded bg-stone p-0 text-left"
+			class:card-grid-item--selected={isSelected}
 			onclick={() => onSelect?.(card)}
-			onmouseenter={(e) => {
-				if (!isSelected) {
-					const el = e.currentTarget as HTMLElement;
-					el.style.transform = 'translateY(-4px)';
-					el.style.boxShadow = 'inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 24px rgba(138, 106, 42, 0.25)';
-					el.style.borderColor = 'rgba(196, 146, 42, 0.5)';
-				}
-			}}
-			onmouseleave={(e) => {
-				if (!isSelected) {
-					const el = e.currentTarget as HTMLElement;
-					el.style.transform = 'translateY(0)';
-					el.style.boxShadow = 'inset 0 1px 0 rgba(255, 255, 255, 0.04)';
-					el.style.borderColor = 'rgba(196, 146, 42, 0.22)';
-				}
-			}}
 		>
 			<!-- Card image -->
 			<div class="relative overflow-hidden" style="aspect-ratio: 5 / 7; border-radius: 8px 8px 0 0;">

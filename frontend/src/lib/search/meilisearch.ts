@@ -17,6 +17,11 @@ export function initMeiliSearch(searchKey: string): void {
 	});
 	distinctIndex = client.index<CardDocument>('cards_distinct');
 	allIndex = client.index<CardDocument>('cards_all');
+
+	// Pre-warm: fire a no-op query on each index so the HTTP connection
+	// and MeiliSearch caches are hot before the user's first real search.
+	distinctIndex.search('', { limit: 1 }).catch(() => {});
+	allIndex.search('', { limit: 1 }).catch(() => {});
 }
 
 function ensureClient(): void {
@@ -117,7 +122,7 @@ export async function searchPrintings(
 	const result = await allIndex.search('', {
 		filter: [`oracle_id = "${oracleId}"`],
 		sort: options.sort ?? ['set_code:asc'],
-		limit: options.limit ?? 100
+		limit: options.limit ?? 1000
 	});
 
 	return {

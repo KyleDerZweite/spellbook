@@ -11,10 +11,10 @@
 	let symbols = $derived(parseManaSymbols(cost));
 </script>
 
-<div class="ms-cost inline-flex items-center gap-0.5 {className}">
-	{#each symbols as symbol (symbol.raw + symbol.cssClass)}
+<div class="inline-flex items-center gap-0.5 {className}">
+	{#each symbols as symbol, i (i)}
 		<i
-			class="ms ms-shadow {symbol.cssClass}"
+			class="ms ms-cost ms-shadow {symbol.cssClass}"
 			title={symbol.raw}
 			role="img"
 			aria-label="{symbol.raw} mana"

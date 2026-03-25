@@ -93,7 +93,7 @@
 
 	<!-- Stats -->
 	{#if stats.totalCards > 0}
-		<div class="mb-8 flex items-center gap-10">
+		<div class="mb-8 flex flex-wrap items-center justify-center gap-8 sm:gap-10">
 			<div class="text-center">
 				<p class="font-mono text-2xl font-medium text-gold-bright">{stats.totalCards}</p>
 				<p class="font-body text-xs text-text-secondary">Total Cards</p>
