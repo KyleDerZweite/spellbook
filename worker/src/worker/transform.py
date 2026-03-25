@@ -1,5 +1,20 @@
 from __future__ import annotations
 
+# Main card types (not supertypes like Legendary/Basic, not subtypes)
+CARD_TYPES = frozenset(
+    {
+        "Creature",
+        "Instant",
+        "Sorcery",
+        "Enchantment",
+        "Artifact",
+        "Planeswalker",
+        "Land",
+        "Battle",
+        "Kindred",
+    }
+)
+
 # Layouts to skip (not real game cards)
 SKIP_LAYOUTS = frozenset(
     {
@@ -76,6 +91,7 @@ def transform_card(raw: dict) -> dict | None:
         "is_foil_available": is_foil_available,
         "is_nonfoil_available": is_nonfoil_available,
         "legalities": raw.get("legalities") or {},
+        "card_types": _extract_card_types(raw.get("type_line", "")),
     }
 
     # Add back face info for DFCs
@@ -88,6 +104,24 @@ def transform_card(raw: dict) -> dict | None:
             doc["back_face_image_uri"] = back_imgs.get("normal", "")
 
     return doc
+
+
+def _extract_card_types(type_line: str) -> list[str]:
+    """Extract main card types from a type line string.
+
+    Ignores supertypes (Legendary, Basic, Snow) and subtypes (after the dash).
+    Handles double-faced cards where type_line contains " // ".
+    """
+    seen: set[str] = set()
+    result: list[str] = []
+    for part in type_line.split(" // "):
+        # Take only the part before the em-dash (subtypes separator)
+        main = part.split("\u2014")[0].split(" - ")[0]
+        for word in main.split():
+            if word in CARD_TYPES and word not in seen:
+                seen.add(word)
+                result.append(word)
+    return result
 
 
 def _resolve_images(raw: dict) -> tuple[str, str]:

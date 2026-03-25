@@ -152,7 +152,7 @@ curl -X PATCH 'http://localhost:7700/indexes/cards_distinct/settings' \
   -H 'Authorization: Bearer MASTER_KEY' \
   --data-binary '{
     "searchableAttributes": ["name", "type_line", "oracle_text", "set_name"],
-    "filterableAttributes": ["colors", "color_identity", "rarity", "set_code", "type_line", "mana_cost", "is_foil_available", "lang"],
+    "filterableAttributes": ["colors", "color_identity", "rarity", "set_code", "type_line", "card_types", "mana_cost", "is_foil_available", "lang", "legalities"],
     "sortableAttributes": ["name", "rarity", "set_code", "collector_number"],
     "distinctAttribute": "oracle_id",
     "typoTolerance": {
@@ -165,7 +165,7 @@ curl -X PATCH 'http://localhost:7700/indexes/cards_distinct/settings' \
 # Python SDK
 client.index('cards_distinct').update_settings({
     'searchableAttributes': ['name', 'type_line', 'oracle_text', 'set_name'],
-    'filterableAttributes': ['colors', 'color_identity', 'rarity', 'set_code', 'type_line', 'mana_cost', 'is_foil_available', 'lang'],
+    'filterableAttributes': ['colors', 'color_identity', 'rarity', 'set_code', 'type_line', 'card_types', 'mana_cost', 'is_foil_available', 'lang', 'legalities'],
     'sortableAttributes': ['name', 'rarity', 'set_code', 'collector_number'],
     'distinctAttribute': 'oracle_id',
     'typoTolerance': {'enabled': True}
@@ -226,7 +226,7 @@ PUT /indexes/{index_uid}/settings/filterable-attributes
 curl -X PUT 'http://localhost:7700/indexes/cards_distinct/settings/filterable-attributes' \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer MASTER_KEY' \
-  --data-binary '["colors", "color_identity", "rarity", "set_code", "type_line", "mana_cost", "is_foil_available", "lang", "oracle_id"]'
+  --data-binary '["colors", "color_identity", "rarity", "set_code", "type_line", "card_types", "mana_cost", "is_foil_available", "lang", "oracle_id", "legalities"]'
 ```
 
 Note: `oracle_id` must be filterable in `cards_all` to support the printing picker query: `filter: 'oracle_id = "..."'`.
@@ -417,7 +417,8 @@ task = client.index('cards_distinct').update_settings({
     'searchableAttributes': ['name', 'type_line', 'oracle_text', 'set_name'],
     'filterableAttributes': [
         'colors', 'color_identity', 'rarity', 'set_code',
-        'type_line', 'mana_cost', 'is_foil_available', 'lang', 'oracle_id'
+        'type_line', 'card_types', 'mana_cost', 'is_foil_available', 'lang', 'oracle_id',
+        'legalities'
     ],
     'sortableAttributes': ['name', 'rarity', 'set_code', 'collector_number'],
     'distinctAttribute': 'oracle_id',
@@ -442,7 +443,8 @@ task = client.index('cards_all').update_settings({
     'searchableAttributes': ['name', 'type_line', 'oracle_text', 'set_name'],
     'filterableAttributes': [
         'colors', 'color_identity', 'rarity', 'set_code',
-        'type_line', 'mana_cost', 'is_foil_available', 'lang', 'oracle_id'
+        'type_line', 'card_types', 'mana_cost', 'is_foil_available', 'lang', 'oracle_id',
+        'legalities'
     ],
     'sortableAttributes': ['name', 'rarity', 'set_code', 'collector_number'],
     'typoTolerance': {'enabled': True}

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Collapsible } from 'bits-ui';
 	import type { SearchFilterState } from '$lib/search/filters.svelte';
-	import type { FacetResponse, ManaColor, Rarity } from '$lib/search/types';
+	import type { CardType, FacetResponse, LegalityFormat, ManaColor, Rarity } from '$lib/search/types';
 	import OrnamentalDivider from '$lib/components/layout/OrnamentalDivider.svelte';
 
 	interface Props {
@@ -14,6 +14,8 @@
 
 	let colorsOpen = $state(true);
 	let rarityOpen = $state(true);
+	let typesOpen = $state(false);
+	let legalityOpen = $state(false);
 
 	const MANA_COLORS: { id: ManaColor; label: string; msClass: string }[] = [
 		{ id: 'W', label: 'White', msClass: 'ms-w' },
@@ -29,6 +31,29 @@
 		{ id: 'uncommon', label: 'Uncommon', color: 'var(--color-rarity-uncommon)' },
 		{ id: 'rare', label: 'Rare', color: 'var(--color-rarity-rare)' },
 		{ id: 'mythic', label: 'Mythic', color: 'var(--color-rarity-mythic)' }
+	];
+
+	const CARD_TYPES: { id: CardType; label: string }[] = [
+		{ id: 'Creature', label: 'Creature' },
+		{ id: 'Instant', label: 'Instant' },
+		{ id: 'Sorcery', label: 'Sorcery' },
+		{ id: 'Enchantment', label: 'Enchantment' },
+		{ id: 'Artifact', label: 'Artifact' },
+		{ id: 'Planeswalker', label: 'Planeswalker' },
+		{ id: 'Land', label: 'Land' },
+		{ id: 'Battle', label: 'Battle' },
+		{ id: 'Kindred', label: 'Kindred' }
+	];
+
+	const LEGALITY_FORMATS: { id: LegalityFormat; label: string }[] = [
+		{ id: 'standard', label: 'Standard' },
+		{ id: 'pioneer', label: 'Pioneer' },
+		{ id: 'modern', label: 'Modern' },
+		{ id: 'legacy', label: 'Legacy' },
+		{ id: 'vintage', label: 'Vintage' },
+		{ id: 'commander', label: 'Commander' },
+		{ id: 'pauper', label: 'Pauper' },
+		{ id: 'brawl', label: 'Brawl' }
 	];
 </script>
 
@@ -108,6 +133,78 @@
 								{facets.rarity[rarity.id].toLocaleString()}
 							</span>
 						{/if}
+					</button>
+				{/each}
+			</div>
+		</Collapsible.Content>
+	</Collapsible.Root>
+
+	<OrnamentalDivider />
+
+	<!-- Card Type section -->
+	<Collapsible.Root bind:open={typesOpen}>
+		<Collapsible.Trigger
+			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm uppercase tracking-widest text-text-secondary transition-colors hover:text-text-primary"
+		>
+			<span>Card Type</span>
+			<span
+				class="inline-block transition-transform duration-200"
+				style:transform={typesOpen ? 'rotate(180deg)' : 'rotate(0deg)'}
+			>
+				&#9660;
+			</span>
+		</Collapsible.Trigger>
+		<Collapsible.Content>
+			<div class="flex flex-wrap gap-1.5 pt-2">
+				{#each CARD_TYPES as type}
+					<button
+						onclick={() => filters.toggleType(type.id)}
+						class="rounded px-2.5 py-1 font-body text-xs transition-all duration-150"
+						style="
+							background-color: {filters.selectedTypes.has(type.id) ? 'var(--color-mist)' : 'transparent'};
+							border: 1px solid {filters.selectedTypes.has(type.id) ? 'var(--color-gold)' : 'rgba(196, 146, 42, 0.2)'};
+							color: {filters.selectedTypes.has(type.id) ? 'var(--color-gold-bright)' : 'var(--color-text-secondary)'};
+							cursor: pointer;
+						"
+						aria-pressed={filters.selectedTypes.has(type.id)}
+					>
+						{type.label}
+					</button>
+				{/each}
+			</div>
+		</Collapsible.Content>
+	</Collapsible.Root>
+
+	<OrnamentalDivider />
+
+	<!-- Legality section -->
+	<Collapsible.Root bind:open={legalityOpen}>
+		<Collapsible.Trigger
+			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm uppercase tracking-widest text-text-secondary transition-colors hover:text-text-primary"
+		>
+			<span>Legality</span>
+			<span
+				class="inline-block transition-transform duration-200"
+				style:transform={legalityOpen ? 'rotate(180deg)' : 'rotate(0deg)'}
+			>
+				&#9660;
+			</span>
+		</Collapsible.Trigger>
+		<Collapsible.Content>
+			<div class="flex flex-wrap gap-1.5 pt-2">
+				{#each LEGALITY_FORMATS as format}
+					<button
+						onclick={() => filters.toggleLegality(format.id)}
+						class="rounded px-2.5 py-1 font-body text-xs transition-all duration-150"
+						style="
+							background-color: {filters.selectedLegalities.has(format.id) ? 'var(--color-mist)' : 'transparent'};
+							border: 1px solid {filters.selectedLegalities.has(format.id) ? 'var(--color-gold)' : 'rgba(196, 146, 42, 0.2)'};
+							color: {filters.selectedLegalities.has(format.id) ? 'var(--color-gold-bright)' : 'var(--color-text-secondary)'};
+							cursor: pointer;
+						"
+						aria-pressed={filters.selectedLegalities.has(format.id)}
+					>
+						{format.label}
 					</button>
 				{/each}
 			</div>

@@ -18,10 +18,12 @@ _FILTERABLE = [
     "rarity",
     "set_code",
     "type_line",
+    "card_types",
     "mana_cost",
     "is_foil_available",
     "lang",
     "oracle_id",  # needed for printing-picker filter on cards_all
+    "legalities",
 ]
 _SORTABLE = ["name", "rarity", "set_code", "collector_number"]
 

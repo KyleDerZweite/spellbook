@@ -13,6 +13,7 @@ export interface CardDocument {
 	colors: string[];
 	color_identity: string[];
 	keywords: string[];
+	card_types: string[];
 	power?: string;
 	toughness?: string;
 	rarity: string;
@@ -41,6 +42,29 @@ export type ManaColor = 'W' | 'U' | 'B' | 'R' | 'G' | 'C';
 
 /** MTG rarity values. */
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'mythic';
+
+/** MTG card types. */
+export type CardType =
+	| 'Creature'
+	| 'Instant'
+	| 'Sorcery'
+	| 'Enchantment'
+	| 'Artifact'
+	| 'Planeswalker'
+	| 'Land'
+	| 'Battle'
+	| 'Kindred';
+
+/** MTG format identifiers for legality filtering. */
+export type LegalityFormat =
+	| 'standard'
+	| 'pioneer'
+	| 'modern'
+	| 'legacy'
+	| 'vintage'
+	| 'commander'
+	| 'pauper'
+	| 'brawl';
 
 /** Facet distribution counts returned by MeiliSearch. */
 export interface FacetResponse {
