@@ -70,7 +70,9 @@
 			&#10005;
 		</button>
 	{:else}
-		<span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 hidden items-center gap-0.5 font-mono text-[10px] text-text-muted sm:flex">
+		<span
+			class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 hidden items-center gap-0.5 font-mono text-[10px] text-text-muted sm:flex"
+		>
 			<kbd class="rounded bg-slate px-1 py-0.5">&#8984;K</kbd>
 		</span>
 	{/if}

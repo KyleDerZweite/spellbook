@@ -34,53 +34,95 @@ import {
 } from "spacetimedb";
 
 // Import all reducer arg schemas
-import AddToCollectionReducer from "./add_to_collection_reducer";
+import AddToDeckReducer from "./add_to_deck_reducer";
+import AddToInventoryReducer from "./add_to_inventory_reducer";
 import ConnectUserReducer from "./connect_user_reducer";
-import CreateCollectionReducer from "./create_collection_reducer";
-import DeleteCollectionReducer from "./delete_collection_reducer";
-import RemoveFromCollectionReducer from "./remove_from_collection_reducer";
-import UpdateCollectionReducer from "./update_collection_reducer";
-import UpdateCollectionCardReducer from "./update_collection_card_reducer";
+import CreateDeckReducer from "./create_deck_reducer";
+import DeleteDeckReducer from "./delete_deck_reducer";
+import EnsureInventoryReducer from "./ensure_inventory_reducer";
+import RemoveFromDeckReducer from "./remove_from_deck_reducer";
+import RemoveFromInventoryReducer from "./remove_from_inventory_reducer";
+import ReorderInventoryCardReducer from "./reorder_inventory_card_reducer";
+import SetServerConfigReducer from "./set_server_config_reducer";
+import UpdateDeckReducer from "./update_deck_reducer";
+import UpdateDeckCardReducer from "./update_deck_card_reducer";
+import UpdateInventoryCardReducer from "./update_inventory_card_reducer";
 
 // Import all procedure arg schemas
 
 // Import all table schema definitions
-import CollectionRow from "./collection_table";
-import CollectionCardRow from "./collection_card_table";
+import DeckRow from "./deck_table";
+import DeckCardRow from "./deck_card_table";
+import InventoryRow from "./inventory_table";
+import InventoryCardRow from "./inventory_card_table";
 import UserProfileRow from "./user_profile_table";
 
 /** Type-only namespace exports for generated type groups. */
 
 /** The schema information for all tables in this module. This is defined the same was as the tables would have been defined in the server. */
 const tablesSchema = __schema({
-  collection: __table({
-    name: 'collection',
+  deck: __table({
+    name: 'deck',
     indexes: [
-      { accessor: 'id', name: 'collection_id_idx_btree', algorithm: 'btree', columns: [
+      { accessor: 'id', name: 'deck_id_idx_btree', algorithm: 'btree', columns: [
         'id',
       ] },
-      { accessor: 'collection_owner_id', name: 'collection_owner_id_idx_btree', algorithm: 'btree', columns: [
+      { accessor: 'deck_owner_id', name: 'deck_owner_id_idx_btree', algorithm: 'btree', columns: [
         'ownerId',
       ] },
     ],
     constraints: [
-      { name: 'collection_id_key', constraint: 'unique', columns: ['id'] },
+      { name: 'deck_id_key', constraint: 'unique', columns: ['id'] },
     ],
-  }, CollectionRow),
-  collectionCard: __table({
-    name: 'collection_card',
+  }, DeckRow),
+  deckCard: __table({
+    name: 'deck_card',
     indexes: [
-      { accessor: 'collection_card_collection_id', name: 'collection_card_collection_id_idx_btree', algorithm: 'btree', columns: [
-        'collectionId',
+      { accessor: 'deck_card_deck_id', name: 'deck_card_deck_id_idx_btree', algorithm: 'btree', columns: [
+        'deckId',
       ] },
-      { accessor: 'compositeId', name: 'collection_card_composite_id_idx_btree', algorithm: 'btree', columns: [
-        'compositeId',
+      { accessor: 'entryId', name: 'deck_card_entry_id_idx_btree', algorithm: 'btree', columns: [
+        'entryId',
+      ] },
+      { accessor: 'deck_card_owner_id', name: 'deck_card_owner_id_idx_btree', algorithm: 'btree', columns: [
+        'ownerId',
       ] },
     ],
     constraints: [
-      { name: 'collection_card_composite_id_key', constraint: 'unique', columns: ['compositeId'] },
+      { name: 'deck_card_entry_id_key', constraint: 'unique', columns: ['entryId'] },
     ],
-  }, CollectionCardRow),
+  }, DeckCardRow),
+  inventory: __table({
+    name: 'inventory',
+    indexes: [
+      { accessor: 'id', name: 'inventory_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'inventory_owner_id', name: 'inventory_owner_id_idx_btree', algorithm: 'btree', columns: [
+        'ownerId',
+      ] },
+    ],
+    constraints: [
+      { name: 'inventory_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, InventoryRow),
+  inventoryCard: __table({
+    name: 'inventory_card',
+    indexes: [
+      { accessor: 'entryId', name: 'inventory_card_entry_id_idx_btree', algorithm: 'btree', columns: [
+        'entryId',
+      ] },
+      { accessor: 'inventory_card_inventory_id', name: 'inventory_card_inventory_id_idx_btree', algorithm: 'btree', columns: [
+        'inventoryId',
+      ] },
+      { accessor: 'inventory_card_owner_id', name: 'inventory_card_owner_id_idx_btree', algorithm: 'btree', columns: [
+        'ownerId',
+      ] },
+    ],
+    constraints: [
+      { name: 'inventory_card_entry_id_key', constraint: 'unique', columns: ['entryId'] },
+    ],
+  }, InventoryCardRow),
   userProfile: __table({
     name: 'user_profile',
     indexes: [
@@ -96,13 +138,19 @@ const tablesSchema = __schema({
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
-  __reducerSchema("add_to_collection", AddToCollectionReducer),
+  __reducerSchema("add_to_deck", AddToDeckReducer),
+  __reducerSchema("add_to_inventory", AddToInventoryReducer),
   __reducerSchema("connect_user", ConnectUserReducer),
-  __reducerSchema("create_collection", CreateCollectionReducer),
-  __reducerSchema("delete_collection", DeleteCollectionReducer),
-  __reducerSchema("remove_from_collection", RemoveFromCollectionReducer),
-  __reducerSchema("update_collection", UpdateCollectionReducer),
-  __reducerSchema("update_collection_card", UpdateCollectionCardReducer),
+  __reducerSchema("create_deck", CreateDeckReducer),
+  __reducerSchema("delete_deck", DeleteDeckReducer),
+  __reducerSchema("ensure_inventory", EnsureInventoryReducer),
+  __reducerSchema("remove_from_deck", RemoveFromDeckReducer),
+  __reducerSchema("remove_from_inventory", RemoveFromInventoryReducer),
+  __reducerSchema("reorder_inventory_card", ReorderInventoryCardReducer),
+  __reducerSchema("set_server_config", SetServerConfigReducer),
+  __reducerSchema("update_deck", UpdateDeckReducer),
+  __reducerSchema("update_deck_card", UpdateDeckCardReducer),
+  __reducerSchema("update_inventory_card", UpdateInventoryCardReducer),
 );
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */

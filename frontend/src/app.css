@@ -146,20 +146,27 @@ body {
 
 /* Card grid hover - pure CSS, no JS handlers */
 .card-grid-item {
-	transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+	transition:
+		transform 200ms ease,
+		box-shadow 200ms ease,
+		border-color 200ms ease;
 	border: 1px solid rgba(196, 146, 42, 0.22);
 	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .card-grid-item:not(.card-grid-item--selected):hover {
 	transform: translateY(-4px);
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 8px 24px rgba(138, 106, 42, 0.25);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.04),
+		0 8px 24px rgba(138, 106, 42, 0.25);
 	border-color: rgba(196, 146, 42, 0.5);
 }
 
 .card-grid-item--selected {
 	border: 2px solid var(--color-gold-bright);
-	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 0 16px rgba(232, 184, 75, 0.3);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.04),
+		0 0 16px rgba(232, 184, 75, 0.3);
 }
 
 /* Load more button hover */
@@ -167,7 +174,9 @@ body {
 	background-color: var(--color-slate);
 	border: 1px solid rgba(196, 146, 42, 0.3);
 	color: var(--color-text-secondary);
-	transition: border-color 150ms ease, color 150ms ease;
+	transition:
+		border-color 150ms ease,
+		color 150ms ease;
 }
 
 .btn-load-more:hover {

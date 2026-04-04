@@ -1,7 +1,9 @@
 import { env } from '$env/dynamic/public';
 import { DbConnection } from '$bindings';
-import type { Collection, CollectionCard, UserProfile } from '$bindings/types';
+import type { Deck, DeckCard, Inventory, InventoryCard, UserProfile } from '$bindings/types';
 import { spacetimeState } from './state.svelte';
+
+const DEFAULT_GAME = 'mtg';
 
 // The SpacetimeDB generated types are complex and don't expose members cleanly
 // for external TypeScript. We use `any` for the connection instance and cast
@@ -13,6 +15,10 @@ interface UserInfo {
 	accountId: string;
 	username: string;
 	email: string;
+}
+
+function sqlEscape(value: string): string {
+	return value.replaceAll("'", "''");
 }
 
 /**
@@ -31,14 +37,27 @@ export function connect(user: UserInfo): void {
 				spacetimeState.error = null;
 
 				// Register the current user
-				conn.reducers.connectUser({
-					accountId: user.accountId,
-					username: user.username,
-					email: user.email
-				});
+				conn.reducers
+					.connectUser({
+						accountId: user.accountId,
+						username: user.username,
+						email: user.email
+					})
+					.catch((err: unknown) => {
+						spacetimeState.error = `Failed to register user: ${String(err)}`;
+					});
 
-				// Subscribe to all user-relevant tables
-				// Callbacks MUST be registered on the builder BEFORE .subscribe()
+				conn.reducers
+					.ensureInventory({
+						accountId: user.accountId,
+						game: DEFAULT_GAME
+					})
+					.catch((err: unknown) => {
+						spacetimeState.error = `Failed to initialize inventory: ${String(err)}`;
+					});
+
+				const accountId = sqlEscape(user.accountId);
+
 				conn
 					.subscriptionBuilder()
 					.onApplied((ctx: any) => {
@@ -48,12 +67,13 @@ export function connect(user: UserInfo): void {
 						spacetimeState.error = 'Subscription error';
 					})
 					.subscribe([
-						'SELECT * FROM collection',
-						'SELECT * FROM collection_card',
-						'SELECT * FROM user_profile'
+						`SELECT * FROM inventory WHERE owner_id = '${accountId}'`,
+						`SELECT * FROM inventory_card WHERE owner_id = '${accountId}'`,
+						`SELECT * FROM deck WHERE owner_id = '${accountId}'`,
+						`SELECT * FROM deck_card WHERE owner_id = '${accountId}'`,
+						`SELECT * FROM user_profile WHERE account_id = '${accountId}'`
 					]);
 
-				// Table callbacks for real-time updates
 				setupTableCallbacks(conn);
 			})
 			.onDisconnect(() => {
@@ -92,8 +112,10 @@ export function getConnection(): any {
 /** Sync local state from the SpacetimeDB cache after subscription is applied. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function syncFromCache(ctx: any): void {
-	spacetimeState.collections = [...ctx.db.collection.iter()] as Collection[];
-	spacetimeState.collectionCards = [...ctx.db.collectionCard.iter()] as CollectionCard[];
+	spacetimeState.inventories = [...ctx.db.inventory.iter()] as Inventory[];
+	spacetimeState.inventoryCards = [...ctx.db.inventoryCard.iter()] as InventoryCard[];
+	spacetimeState.decks = [...ctx.db.deck.iter()] as Deck[];
+	spacetimeState.deckCards = [...ctx.db.deckCard.iter()] as DeckCard[];
 
 	const profiles = [...ctx.db.userProfile.iter()] as UserProfile[];
 	spacetimeState.userProfile = profiles[0] ?? null;
@@ -102,41 +124,68 @@ function syncFromCache(ctx: any): void {
 /** Set up table onInsert/onDelete/onUpdate callbacks for real-time sync. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function setupTableCallbacks(conn: any): void {
-	// Collection table
-	conn.db.collection.onInsert((_ctx: any, row: Collection) => {
-		spacetimeState.collections = [...spacetimeState.collections, row];
+	conn.db.inventory.onInsert((_ctx: any, row: Inventory) => {
+		spacetimeState.inventories = [...spacetimeState.inventories, row];
 	});
 
-	conn.db.collection.onDelete((_ctx: any, row: Collection) => {
-		spacetimeState.collections = spacetimeState.collections.filter((c) => c.id !== row.id);
-	});
-
-	conn.db.collection.onUpdate((_ctx: any, _oldRow: Collection, newRow: Collection) => {
-		spacetimeState.collections = spacetimeState.collections.map((c) =>
-			c.id === newRow.id ? newRow : c
+	conn.db.inventory.onDelete((_ctx: any, row: Inventory) => {
+		spacetimeState.inventories = spacetimeState.inventories.filter(
+			(inventory) => inventory.id !== row.id
 		);
 	});
 
-	// CollectionCard table
-	conn.db.collectionCard.onInsert((_ctx: any, row: CollectionCard) => {
-		spacetimeState.collectionCards = [...spacetimeState.collectionCards, row];
-	});
-
-	conn.db.collectionCard.onDelete((_ctx: any, row: CollectionCard) => {
-		spacetimeState.collectionCards = spacetimeState.collectionCards.filter(
-			(c) => c.compositeId !== row.compositeId
+	conn.db.inventory.onUpdate((_ctx: any, _oldRow: Inventory, newRow: Inventory) => {
+		spacetimeState.inventories = spacetimeState.inventories.map((inventory) =>
+			inventory.id === newRow.id ? newRow : inventory
 		);
 	});
 
-	conn.db.collectionCard.onUpdate(
-		(_ctx: any, _oldRow: CollectionCard, newRow: CollectionCard) => {
-			spacetimeState.collectionCards = spacetimeState.collectionCards.map((c) =>
-				c.compositeId === newRow.compositeId ? newRow : c
-			);
-		}
-	);
+	conn.db.inventoryCard.onInsert((_ctx: any, row: InventoryCard) => {
+		spacetimeState.inventoryCards = [...spacetimeState.inventoryCards, row];
+	});
 
-	// UserProfile table
+	conn.db.inventoryCard.onDelete((_ctx: any, row: InventoryCard) => {
+		spacetimeState.inventoryCards = spacetimeState.inventoryCards.filter(
+			(card) => card.entryId !== row.entryId
+		);
+	});
+
+	conn.db.inventoryCard.onUpdate((_ctx: any, _oldRow: InventoryCard, newRow: InventoryCard) => {
+		spacetimeState.inventoryCards = spacetimeState.inventoryCards.map((card) =>
+			card.entryId === newRow.entryId ? newRow : card
+		);
+	});
+
+	conn.db.deck.onInsert((_ctx: any, row: Deck) => {
+		spacetimeState.decks = [...spacetimeState.decks, row];
+	});
+
+	conn.db.deck.onDelete((_ctx: any, row: Deck) => {
+		spacetimeState.decks = spacetimeState.decks.filter((deck) => deck.id !== row.id);
+	});
+
+	conn.db.deck.onUpdate((_ctx: any, _oldRow: Deck, newRow: Deck) => {
+		spacetimeState.decks = spacetimeState.decks.map((deck) =>
+			deck.id === newRow.id ? newRow : deck
+		);
+	});
+
+	conn.db.deckCard.onInsert((_ctx: any, row: DeckCard) => {
+		spacetimeState.deckCards = [...spacetimeState.deckCards, row];
+	});
+
+	conn.db.deckCard.onDelete((_ctx: any, row: DeckCard) => {
+		spacetimeState.deckCards = spacetimeState.deckCards.filter(
+			(card) => card.entryId !== row.entryId
+		);
+	});
+
+	conn.db.deckCard.onUpdate((_ctx: any, _oldRow: DeckCard, newRow: DeckCard) => {
+		spacetimeState.deckCards = spacetimeState.deckCards.map((card) =>
+			card.entryId === newRow.entryId ? newRow : card
+		);
+	});
+
 	conn.db.userProfile.onInsert((_ctx: any, row: UserProfile) => {
 		spacetimeState.userProfile = row;
 	});

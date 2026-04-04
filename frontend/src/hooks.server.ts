@@ -32,7 +32,8 @@ async function getMeiliSearchKey(): Promise<string> {
 		const data = await res.json();
 		const searchKey = data.results?.find(
 			(k: { name: string; actions: string[] }) =>
-				k.name === 'Default Search API Key' || (k.actions?.length === 1 && k.actions[0] === 'search')
+				k.name === 'Default Search API Key' ||
+				(k.actions?.length === 1 && k.actions[0] === 'search')
 		);
 
 		if (!searchKey?.key) {
@@ -53,12 +54,9 @@ async function getMeiliSearchKey(): Promise<string> {
  * Falls back to dev defaults when headers are absent.
  */
 export const handle: Handle = async ({ event, resolve }) => {
-	const accountId =
-		event.request.headers.get('Remote-Subject') ?? 'dev-user-001';
-	const username =
-		event.request.headers.get('Remote-User') ?? 'dev';
-	const email =
-		event.request.headers.get('Remote-Email') ?? 'dev@localhost';
+	const accountId = event.request.headers.get('Remote-Subject') ?? 'dev-user-001';
+	const username = event.request.headers.get('Remote-User') ?? 'dev';
+	const email = event.request.headers.get('Remote-Email') ?? 'dev@localhost';
 
 	event.locals.user = { accountId, username, email };
 	event.locals.meiliSearchKey = await getMeiliSearchKey();

@@ -1,6 +1,7 @@
 /** A card document as stored in MeiliSearch. */
 export interface CardDocument {
 	id: string;
+	game?: Game;
 	oracle_id: string;
 	name: string;
 	lang: string;
@@ -36,6 +37,8 @@ export interface SearchResult {
 	processingTimeMs: number;
 	estimatedTotalHits: number;
 }
+
+export type Game = 'mtg' | 'pokemon' | 'yugioh';
 
 /** MTG color identifiers. */
 export type ManaColor = 'W' | 'U' | 'B' | 'R' | 'G' | 'C';

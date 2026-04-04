@@ -12,7 +12,8 @@ import {
 
 export default {
   accountId: __t.string(),
-  compositeId: __t.string(),
-  quantity: __t.u32(),
-  notes: __t.string(),
+  game: __t.string(),
+  name: __t.string(),
+  description: __t.string(),
+  format: __t.string(),
 };

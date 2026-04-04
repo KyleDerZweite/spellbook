@@ -12,5 +12,6 @@ import {
 
 export default {
   accountId: __t.string(),
-  compositeId: __t.string(),
+  entryId: __t.string(),
+  targetPosition: __t.u32(),
 };

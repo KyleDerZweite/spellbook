@@ -1,17 +1,17 @@
 # Spellbook
 
-**Your Magic: The Gathering Collection Companion**
+**MTG-first, multi-TCG-ready inventory and deck companion**
 
-Spellbook is a self-hosted card collection management platform built for speed and real-time collaboration.
+Spellbook is a self-hosted trading card game inventory platform built for speed and real-time collaboration. The app now uses a game selector at `/`, with MTG living under `/mtg/` and room for future Pokemon, Yu-Gi-Oh!, and other TCG-specific experiences.
 
-> Active V1 redesign in progress. Backend infrastructure is functional; frontend is next. See [`docs/superpowers/specs/`](docs/superpowers/specs/) for architecture details.
+> MTG is the first implemented game. The current MVP includes MTG search, a canonical owned inventory, set progress, deck management, and a spellbook-style inventory mode.
 
 ## V1 Architecture
 
 ```
 ┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
 │   SvelteKit     │────▶│   SpacetimeDB        │────▶│   MeiliSearch   │
-│   (Web App)     │     │   (TS Modules + DB)  │     │   (Search)      │
+│   (Game-scoped) │     │   (TS Modules + DB)  │     │   (Search)      │
 └─────────────────┘     └──────────────────────┘     └─────────────────┘
                                    │
                         ┌──────────┴──────────┐
@@ -24,9 +24,17 @@ Spellbook is a self-hosted card collection management platform built for speed a
 
 **Stack:**
 - **SpacetimeDB** - real-time database with TypeScript modules (replaces FastAPI + PostgreSQL + WebSockets)
-- **SvelteKit** - web frontend with SSR
+- **SvelteKit** - game-scoped web frontend with SSR
 - **MeiliSearch** - full-text card search
 - **Python worker** - Scryfall sync, background jobs
+
+## Product Model
+
+- `/` is the game selector
+- `/mtg/` is the MTG landing page
+- `/mtg/search` searches the MTG catalog
+- `/mtg/inventory` tracks one canonical owned MTG inventory with list and spellbook modes
+- `/mtg/decks` manages MTG decks separately from inventory, with owned-versus-required counts
 
 ## Status
 
@@ -34,8 +42,8 @@ Spellbook is a self-hosted card collection management platform built for speed a
 |-----------|--------|
 | SpacetimeDB module | Implemented (Phase 1) |
 | Python sync worker | Implemented (Phase 2) |
-| MeiliSearch integration | Partial (indexing done, frontend search pending) |
-| SvelteKit frontend | Planned (Phase 3) |
+| MeiliSearch integration | Implemented for MTG |
+| SvelteKit frontend | Implemented for MTG selector, search, inventory, and decks |
 
 ## License
 

@@ -8,3 +8,7 @@
 ## Layout
 
 - [x] Add page footer with links to Privacy Policy, Terms of Service, and Impressum
+
+## 
+
+- [ ] Fix collection creation/deletion/tracking errors

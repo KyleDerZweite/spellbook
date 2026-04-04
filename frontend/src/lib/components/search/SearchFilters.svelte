@@ -1,7 +1,13 @@
 <script lang="ts">
 	import { Collapsible } from 'bits-ui';
 	import type { SearchFilterState } from '$lib/search/filters.svelte';
-	import type { CardType, FacetResponse, LegalityFormat, ManaColor, Rarity } from '$lib/search/types';
+	import type {
+		CardType,
+		FacetResponse,
+		LegalityFormat,
+		ManaColor,
+		Rarity
+	} from '$lib/search/types';
 	import OrnamentalDivider from '$lib/components/layout/OrnamentalDivider.svelte';
 
 	interface Props {
@@ -57,9 +63,7 @@
 	];
 </script>
 
-<aside
-	class="flex w-full flex-col gap-4 md:w-[240px] md:shrink-0 {className}"
->
+<aside class="flex w-full flex-col gap-4 md:w-[240px] md:shrink-0 {className}">
 	<!-- Colors section -->
 	<Collapsible.Root bind:open={colorsOpen}>
 		<Collapsible.Trigger
@@ -80,7 +84,9 @@
 						onclick={() => filters.toggleColor(color.id)}
 						class="flex h-9 w-9 items-center justify-center rounded-full transition-all duration-150"
 						style="
-							border: 2px solid {filters.selectedColors.has(color.id) ? 'var(--color-gold-bright)' : 'transparent'};
+							border: 2px solid {filters.selectedColors.has(color.id)
+							? 'var(--color-gold-bright)'
+							: 'transparent'};
 							box-shadow: {filters.selectedColors.has(color.id) ? '0 0 8px rgba(232, 184, 75, 0.4)' : 'none'};
 							opacity: {filters.selectedColors.has(color.id) ? '1' : '0.55'};
 							background: none;
@@ -88,7 +94,11 @@
 						title={color.label}
 						aria-pressed={filters.selectedColors.has(color.id)}
 					>
-						<i class="ms ms-cost ms-shadow {color.msClass}" style="font-size: 1.6rem;" aria-hidden="true"></i>
+						<i
+							class="ms ms-cost ms-shadow {color.msClass}"
+							style="font-size: 1.6rem;"
+							aria-hidden="true"
+						></i>
 					</button>
 				{/each}
 			</div>
@@ -126,7 +136,11 @@
 						"
 						aria-pressed={filters.selectedRarities.has(rarity.id)}
 					>
-						<i class="ms ms-rarity shrink-0" style="font-size: 1rem; color: {rarity.color};" aria-hidden="true"></i>
+						<i
+							class="ms ms-rarity shrink-0"
+							style="font-size: 1rem; color: {rarity.color};"
+							aria-hidden="true"
+						></i>
 						<span class="flex-1 text-left">{rarity.label}</span>
 						{#if facets?.rarity[rarity.id] != null}
 							<span class="font-mono text-[10px] text-text-muted">
@@ -162,8 +176,12 @@
 						class="rounded px-2.5 py-1 font-body text-xs transition-all duration-150"
 						style="
 							background-color: {filters.selectedTypes.has(type.id) ? 'var(--color-mist)' : 'transparent'};
-							border: 1px solid {filters.selectedTypes.has(type.id) ? 'var(--color-gold)' : 'rgba(196, 146, 42, 0.2)'};
-							color: {filters.selectedTypes.has(type.id) ? 'var(--color-gold-bright)' : 'var(--color-text-secondary)'};
+							border: 1px solid {filters.selectedTypes.has(type.id)
+							? 'var(--color-gold)'
+							: 'rgba(196, 146, 42, 0.2)'};
+							color: {filters.selectedTypes.has(type.id)
+							? 'var(--color-gold-bright)'
+							: 'var(--color-text-secondary)'};
 							cursor: pointer;
 						"
 						aria-pressed={filters.selectedTypes.has(type.id)}
@@ -198,8 +216,12 @@
 						class="rounded px-2.5 py-1 font-body text-xs transition-all duration-150"
 						style="
 							background-color: {filters.selectedLegalities.has(format.id) ? 'var(--color-mist)' : 'transparent'};
-							border: 1px solid {filters.selectedLegalities.has(format.id) ? 'var(--color-gold)' : 'rgba(196, 146, 42, 0.2)'};
-							color: {filters.selectedLegalities.has(format.id) ? 'var(--color-gold-bright)' : 'var(--color-text-secondary)'};
+							border: 1px solid {filters.selectedLegalities.has(format.id)
+							? 'var(--color-gold)'
+							: 'rgba(196, 146, 42, 0.2)'};
+							color: {filters.selectedLegalities.has(format.id)
+							? 'var(--color-gold-bright)'
+							: 'var(--color-text-secondary)'};
 							cursor: pointer;
 						"
 						aria-pressed={filters.selectedLegalities.has(format.id)}

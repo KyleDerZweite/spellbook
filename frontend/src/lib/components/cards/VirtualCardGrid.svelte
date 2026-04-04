@@ -22,13 +22,9 @@
 	let visibleTop = $state(0);
 
 	const cols = $derived(
-		containerWidth > 0
-			? Math.max(1, Math.floor((containerWidth + GAP) / (MIN_COL_WIDTH + GAP)))
-			: 1
+		containerWidth > 0 ? Math.max(1, Math.floor((containerWidth + GAP) / (MIN_COL_WIDTH + GAP))) : 1
 	);
-	const colWidth = $derived(
-		cols > 0 ? (containerWidth - GAP * (cols - 1)) / cols : MIN_COL_WIDTH
-	);
+	const colWidth = $derived(cols > 0 ? (containerWidth - GAP * (cols - 1)) / cols : MIN_COL_WIDTH);
 	const imageHeight = $derived(colWidth * (7 / 5));
 	const rowHeight = $derived(imageHeight + INFO_HEIGHT + GAP);
 	const totalRows = $derived(Math.ceil(cards.length / cols));
@@ -102,11 +98,7 @@
 	});
 </script>
 
-<div
-	bind:this={wrapperEl}
-	class={className}
-	style="height: {totalHeight}px; position: relative;"
->
+<div bind:this={wrapperEl} class={className} style="height: {totalHeight}px; position: relative;">
 	{#if containerWidth > 0}
 		<div
 			class="grid"

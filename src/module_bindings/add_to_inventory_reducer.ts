@@ -12,13 +12,13 @@ import {
 
 export default {
   accountId: __t.string(),
-  collectionId: __t.string(),
-  scryfallId: __t.string(),
-  oracleId: __t.string(),
+  game: __t.string(),
+  catalogCardId: __t.string(),
+  canonicalCardId: __t.string(),
   name: __t.string(),
   setCode: __t.string(),
   imageUri: __t.string(),
-  isFoil: __t.bool(),
+  finish: __t.string(),
   condition: __t.string(),
   quantity: __t.u32(),
 };

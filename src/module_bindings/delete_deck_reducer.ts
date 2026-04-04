@@ -12,7 +12,5 @@ import {
 
 export default {
   accountId: __t.string(),
-  collectionId: __t.string(),
-  name: __t.string(),
-  description: __t.string(),
+  deckId: __t.string(),
 };

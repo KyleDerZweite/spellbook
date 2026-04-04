@@ -140,13 +140,9 @@
 		return segments;
 	}
 
-	let oracleLines = $derived(
-		activeCard.oracle_text ? activeCard.oracle_text.split('\n') : []
-	);
+	let oracleLines = $derived(activeCard.oracle_text ? activeCard.oracle_text.split('\n') : []);
 
-	let hasPowerToughness = $derived(
-		activeCard.power != null && activeCard.toughness != null
-	);
+	let hasPowerToughness = $derived(activeCard.power != null && activeCard.toughness != null);
 </script>
 
 <Dialog.Root open={detailOpen} onOpenChange={handleOpenChange}>
@@ -167,7 +163,10 @@
 				onInteractOutside={(e) => e.preventDefault()}
 			>
 				<!-- Header: name + mana cost + close -->
-				<div class="shrink-0 px-4 pt-4 sm:px-5" style="border-bottom: 1px solid rgba(196, 146, 42, 0.2);">
+				<div
+					class="shrink-0 px-4 pt-4 sm:px-5"
+					style="border-bottom: 1px solid rgba(196, 146, 42, 0.2);"
+				>
 					<div class="flex items-start justify-between gap-2 pr-10">
 						<Dialog.Title
 							class="min-w-0 break-words font-display text-base font-bold text-text-primary sm:text-xl"
@@ -182,14 +181,16 @@
 
 					<!-- Tab bar -->
 					<div class="mt-3 flex gap-6">
-						{#each [
-							{ id: 'printings' as TabId, label: 'Printings' },
-							{ id: 'info' as TabId, label: 'Card Info' }
-						] as tab (tab.id)}
+						{#each [{ id: 'printings' as TabId, label: 'Printings' }, { id: 'info' as TabId, label: 'Card Info' }] as tab (tab.id)}
 							<button
-								onclick={() => { activeTab = tab.id; allPrintingsView = false; }}
+								onclick={() => {
+									activeTab = tab.id;
+									allPrintingsView = false;
+								}}
 								class="relative cursor-pointer border-none bg-transparent pb-2 font-display text-xs uppercase tracking-widest transition-colors"
-								style="color: {activeTab === tab.id ? 'var(--color-gold-bright)' : 'var(--color-text-muted)'};"
+								style="color: {activeTab === tab.id
+									? 'var(--color-gold-bright)'
+									: 'var(--color-text-muted)'};"
 							>
 								{tab.label}
 								{#if activeTab === tab.id}
@@ -227,7 +228,6 @@
 
 					<!-- Tab content (scrollable on desktop) -->
 					<div class="flex min-w-0 flex-1 flex-col gap-4 p-4 sm:p-5 lg:overflow-y-auto">
-
 						{#if allPrintingsView}
 							<!-- ==================== ALL PRINTINGS GRID ==================== -->
 							<div>
@@ -307,16 +307,19 @@
 								</div>
 
 								{#if filteredPrintings.length === 0}
-									<p class="font-body text-xs italic text-text-muted">No printings match the current filters.</p>
+									<p class="font-body text-xs italic text-text-muted">
+										No printings match the current filters.
+									</p>
 								{/if}
 							</div>
-
 						{:else if activeTab === 'printings'}
 							<!-- ==================== PRINTINGS TAB ==================== -->
 
 							<!-- Printing dropdown -->
 							<div>
-								<span class="mb-1.5 block font-display text-xs uppercase tracking-widest text-text-secondary">
+								<span
+									class="mb-1.5 block font-display text-xs uppercase tracking-widest text-text-secondary"
+								>
 									Printing
 								</span>
 								<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -341,15 +344,17 @@
 										</span>
 										<span
 											class="shrink-0 text-xs text-text-muted transition-transform duration-150"
-											style="transform: rotate({dropdownOpen ? '180deg' : '0deg'});"
-										>&#9660;</span>
+											style="transform: rotate({dropdownOpen ? '180deg' : '0deg'});">&#9660;</span
+										>
 									</button>
 
 									{#if dropdownOpen}
 										<div
 											class="fixed inset-0"
 											onclick={() => (dropdownOpen = false)}
-											onkeydown={(e) => { if (e.key === 'Escape') dropdownOpen = false; }}
+											onkeydown={(e) => {
+												if (e.key === 'Escape') dropdownOpen = false;
+											}}
 											role="button"
 											tabindex="-1"
 											aria-label="Close dropdown"
@@ -377,10 +382,14 @@
 														color: var(--color-text-primary);
 													"
 													onmouseenter={(e) => {
-														if (!isCurrent) (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-slate)';
+														if (!isCurrent)
+															(e.currentTarget as HTMLElement).style.backgroundColor =
+																'var(--color-slate)';
 													}}
 													onmouseleave={(e) => {
-														if (!isCurrent) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+														if (!isCurrent)
+															(e.currentTarget as HTMLElement).style.backgroundColor =
+																'transparent';
 													}}
 												>
 													<RarityBadge rarity={printing.rarity} />
@@ -466,9 +475,8 @@
 
 							<OrnamentalDivider />
 
-							<!-- Collection add -->
+							<!-- Inventory add -->
 							<CardQuickAdd card={activeCard} />
-
 						{:else}
 							<!-- ==================== CARD INFO TAB ==================== -->
 
@@ -508,7 +516,9 @@
 								{#if hasPowerToughness}
 									<p>
 										<span class="font-semibold text-text-secondary">Power/Toughness:</span>
-										<span class="ml-1 text-text-primary">{activeCard.power}/{activeCard.toughness}</span>
+										<span class="ml-1 text-text-primary"
+											>{activeCard.power}/{activeCard.toughness}</span
+										>
 									</p>
 								{/if}
 								<p>
@@ -531,7 +541,9 @@
 							{#if activeCard.legalities && Object.keys(activeCard.legalities).length > 0}
 								<OrnamentalDivider />
 								<div>
-									<h3 class="mb-2 font-display text-xs uppercase tracking-widest text-text-secondary">
+									<h3
+										class="mb-2 font-display text-xs uppercase tracking-widest text-text-secondary"
+									>
 										Legalities
 									</h3>
 									<div class="flex flex-wrap gap-1.5">
@@ -539,7 +551,11 @@
 											<span
 												class="rounded px-2 py-0.5 font-mono text-[10px] uppercase"
 												style="
-													background-color: {status === 'legal' ? 'var(--color-success)' : status === 'banned' ? 'var(--color-error)' : 'var(--color-slate)'};
+													background-color: {status === 'legal'
+													? 'var(--color-success)'
+													: status === 'banned'
+														? 'var(--color-error)'
+														: 'var(--color-slate)'};
 													color: {status === 'legal' || status === 'banned' ? '#fff' : 'var(--color-text-muted)'};
 												"
 											>
@@ -554,7 +570,9 @@
 				</div>
 
 				<Dialog.Description class="sr-only">
-					Details for {activeCard.name}{activeCard.type_line ? `, a ${activeCard.type_line} card` : ''}.
+					Details for {activeCard.name}{activeCard.type_line
+						? `, a ${activeCard.type_line} card`
+						: ''}.
 				</Dialog.Description>
 			</Dialog.Content>
 		</Dialog.Overlay>

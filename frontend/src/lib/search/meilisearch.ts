@@ -1,10 +1,11 @@
 import { MeiliSearch, type Index } from 'meilisearch';
 import { env } from '$env/dynamic/public';
-import type { CardDocument, FacetResponse, SearchResult } from './types';
+import type { CardDocument, FacetResponse, Game, SearchResult } from './types';
 
 let client: MeiliSearch | null = null;
 let distinctIndex: Index<CardDocument>;
 let allIndex: Index<CardDocument>;
+const DEFAULT_GAME: Game = 'mtg';
 
 /**
  * Initialize the MeiliSearch client with the search API key.
@@ -28,7 +29,14 @@ function ensureClient(): void {
 	if (!client) throw new Error('MeiliSearch not initialized — call initMeiliSearch() first');
 }
 
+function ensureSupportedGame(game: Game): void {
+	if (game !== 'mtg') {
+		throw new Error(`${game.toUpperCase()} search is not available yet`);
+	}
+}
+
 export interface SearchOptions {
+	game?: Game;
 	filter?: string[];
 	limit?: number;
 	offset?: number;
@@ -44,6 +52,7 @@ export async function searchCards(
 	options: SearchOptions = {}
 ): Promise<SearchResult> {
 	ensureClient();
+	ensureSupportedGame(options.game ?? DEFAULT_GAME);
 	if (!query || query.length < 2) {
 		return { hits: [], query, processingTimeMs: 0, estimatedTotalHits: 0 };
 	}
@@ -67,10 +76,9 @@ export async function searchCards(
  * Browse all cards with no query (empty string), sorted alphabetically.
  * Used for initial page load and browse mode.
  */
-export async function browseCards(
-	options: SearchOptions = {}
-): Promise<SearchResult> {
+export async function browseCards(options: SearchOptions = {}): Promise<SearchResult> {
 	ensureClient();
+	ensureSupportedGame(options.game ?? DEFAULT_GAME);
 	const result = await distinctIndex.search('', {
 		limit: options.limit ?? 50,
 		offset: options.offset ?? 0,
@@ -112,9 +120,10 @@ export async function getFacets(filter?: string[]): Promise<FacetResponse> {
  */
 export async function searchPrintings(
 	oracleId: string,
-	options: { limit?: number; sort?: string[] } = {}
+	options: { game?: Game; limit?: number; sort?: string[] } = {}
 ): Promise<SearchResult> {
 	ensureClient();
+	ensureSupportedGame(options.game ?? DEFAULT_GAME);
 	if (!oracleId) {
 		return { hits: [], query: '', processingTimeMs: 0, estimatedTotalHits: 0 };
 	}
@@ -131,4 +140,24 @@ export async function searchPrintings(
 		processingTimeMs: result.processingTimeMs ?? 0,
 		estimatedTotalHits: result.estimatedTotalHits ?? 0
 	};
+}
+
+export async function getSetCatalogSize(
+	setCode: string,
+	game: Game = DEFAULT_GAME
+): Promise<number> {
+	ensureClient();
+	ensureSupportedGame(game);
+
+	if (!setCode) {
+		return 0;
+	}
+
+	const result = await allIndex.search('', {
+		limit: 0,
+		filter: [`set_code = "${setCode}"`],
+		distinct: 'oracle_id'
+	} as never);
+
+	return (result as { estimatedTotalHits?: number }).estimatedTotalHits ?? 0;
 }

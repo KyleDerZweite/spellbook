@@ -1,5 +1,6 @@
 import spacetimedb from '../schema.js';
 import { t } from 'spacetimedb/server';
+import { ensureDefaultMtgInventory } from './inventory.js';
 
 /**
  * Called when a user connects. Upserts UserProfile with identity
@@ -25,5 +26,7 @@ export const connectUser = spacetimedb.reducer(
         lastSeen: now,
       });
     }
+
+    ensureDefaultMtgInventory(ctx, accountId);
   }
 );

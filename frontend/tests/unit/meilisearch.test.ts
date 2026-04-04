@@ -16,12 +16,18 @@ vi.mock('meilisearch', () => {
 	};
 });
 
-vi.mock('$env/static/public', () => ({
-	PUBLIC_MEILISEARCH_URL: 'http://localhost:7700',
-	PUBLIC_MEILISEARCH_SEARCH_KEY: 'test-key'
+vi.mock('$env/dynamic/public', () => ({
+	env: {
+		PUBLIC_MEILISEARCH_URL: 'http://localhost:7700',
+		PUBLIC_MEILISEARCH_SEARCH_KEY: 'test-key'
+	}
 }));
 
-import { searchCards, searchPrintings } from '../../src/lib/search/meilisearch';
+import { initMeiliSearch, searchCards, searchPrintings } from '../../src/lib/search/meilisearch';
+
+beforeEach(() => {
+	initMeiliSearch('test-key');
+});
 
 describe('searchCards', () => {
 	it('returns empty results for empty query', async () => {

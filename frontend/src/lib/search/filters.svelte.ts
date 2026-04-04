@@ -32,9 +32,7 @@ export class SearchFilterState {
 		}
 
 		if (this.selectedLegalities.size > 0) {
-			const legalityFilters = [...this.selectedLegalities].map(
-				(f) => `legalities.${f} = "legal"`
-			);
+			const legalityFilters = [...this.selectedLegalities].map((f) => `legalities.${f} = "legal"`);
 			filters.push(`(${legalityFilters.join(' OR ')})`);
 		}
 

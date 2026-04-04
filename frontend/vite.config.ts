@@ -19,7 +19,8 @@ export default defineConfig({
 		environment: 'node',
 		alias: {
 			$env: new URL('./tests/__mocks__/env.ts', import.meta.url).pathname,
-			'$env/static/public': new URL('./tests/__mocks__/env.ts', import.meta.url).pathname
+			'$env/static/public': new URL('./tests/__mocks__/env.ts', import.meta.url).pathname,
+			'$env/dynamic/public': new URL('./tests/__mocks__/env-dynamic.ts', import.meta.url).pathname
 		}
 	}
 });

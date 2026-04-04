@@ -10,9 +10,8 @@
 
 	let { card }: Props = $props();
 
-	let selectedCollectionId = $state('');
+	let finish = $state<'nonfoil' | 'foil'>('nonfoil');
 	let condition = $state('NM');
-	let isFoil = $state(false);
 	let quantity = $state(1);
 	let adding = $state(false);
 	let addedMessage = $state('');
@@ -25,32 +24,37 @@
 		{ value: 'DMG', label: 'Damaged' }
 	];
 
-	let collectionItems = $derived(
-		spacetimeState.collections.map((c) => ({ value: c.id, label: c.name }))
-	);
+	const FINISHES = $derived([
+		{ value: 'nonfoil', label: 'Nonfoil', available: card.is_nonfoil_available },
+		{ value: 'foil', label: 'Foil', available: card.is_foil_available }
+	]);
+
+	$effect(() => {
+		if (!card.is_nonfoil_available && card.is_foil_available) {
+			finish = 'foil';
+		}
+	});
 
 	async function handleAdd() {
 		const conn = getConnection();
-		if (!conn || !selectedCollectionId || !spacetimeState.userProfile) return;
+		if (!conn || !spacetimeState.userProfile) return;
 
 		adding = true;
 		try {
-			await conn.reducers.addToCollection({
+			await conn.reducers.addToInventory({
 				accountId: spacetimeState.userProfile.accountId,
-				collectionId: selectedCollectionId,
-				scryfallId: card.id,
-				oracleId: card.oracle_id,
+				game: 'mtg',
+				catalogCardId: card.id,
+				canonicalCardId: card.oracle_id,
 				name: card.name,
 				setCode: card.set_code,
 				imageUri: card.image_uri || card.image_uri_small,
-				isFoil: isFoil,
+				finish,
 				condition: condition,
 				quantity: quantity
 			});
 
-			const collName =
-				spacetimeState.collections.find((c) => c.id === selectedCollectionId)?.name ?? 'collection';
-			addedMessage = `Added ${quantity}x ${card.name} to ${collName}`;
+			addedMessage = `Added ${quantity}x ${card.name} to inventory`;
 			setTimeout(() => (addedMessage = ''), 3000);
 		} catch (err) {
 			spacetimeState.error = `Failed to add card: ${String(err)}`;
@@ -61,64 +65,64 @@
 </script>
 
 <div class="flex flex-col gap-3">
-	<!-- Collection selector -->
 	<div>
 		<!-- svelte-ignore a11y_label_has_associated_control -->
 		<label class="mb-1 block font-display text-xs uppercase tracking-wider text-text-secondary">
-			Collection
+			Finish
 		</label>
-		{#if collectionItems.length > 0}
-			<Select.Root type="single" bind:value={selectedCollectionId} items={collectionItems}>
-				<Select.Trigger
-					class="flex w-full cursor-pointer items-center justify-between rounded px-3 py-2 font-body text-sm text-text-primary"
+		<Select.Root type="single" bind:value={finish} items={FINISHES}>
+			<Select.Trigger
+				class="flex w-full cursor-pointer items-center justify-between rounded px-3 py-2 font-body text-sm text-text-primary"
+				style="
+					background-color: var(--color-crypt);
+					border: 1px solid rgba(196, 146, 42, 0.3);
+				"
+			>
+				{FINISHES.find((item) => item.value === finish)?.label ?? 'Finish'}
+				<span class="text-text-muted">&#9660;</span>
+			</Select.Trigger>
+
+			<Select.Portal>
+				<Select.Content
+					class="z-[100] overflow-hidden rounded"
 					style="
-						background-color: var(--color-crypt);
-						border: 1px solid rgba(196, 146, 42, 0.3);
+						background-color: var(--color-slate);
+						border: 1px solid rgba(196, 146, 42, 0.4);
+						box-shadow: 0 4px 24px rgba(13, 11, 15, 0.8);
 					"
 				>
-					{#if selectedCollectionId}
-						{collectionItems.find((c) => c.value === selectedCollectionId)?.label ?? 'Select...'}
-					{:else}
-						<span class="text-text-muted">Select collection...</span>
-					{/if}
-					<span class="text-text-muted">&#9660;</span>
-				</Select.Trigger>
+					<Select.Viewport class="p-1">
+						{#each FINISHES as item}
+							<Select.Item
+								value={item.value}
+								label={item.label}
+								disabled={!item.available}
+								class="cursor-pointer rounded px-3 py-2 font-body text-sm text-text-primary transition-colors data-[highlighted]:bg-mist data-[highlighted]:text-amber data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40"
+							>
+								{#snippet children({ selected })}
+									<span class="flex items-center gap-2">
+										{#if selected}
+											<span class="text-gold-bright">&#10003;</span>
+										{/if}
+										{item.label}
+										{#if !item.available}
+											<span class="ml-auto font-mono text-[10px] text-text-muted">n/a</span>
+										{/if}
+									</span>
+								{/snippet}
+							</Select.Item>
+						{/each}
+					</Select.Viewport>
+				</Select.Content>
+			</Select.Portal>
+		</Select.Root>
+	</div>
 
-				<Select.Portal>
-					<Select.Content
-						class="z-[100] overflow-hidden rounded"
-						style="
-							background-color: var(--color-slate);
-							border: 1px solid rgba(196, 146, 42, 0.4);
-							box-shadow: 0 4px 24px rgba(13, 11, 15, 0.8);
-						"
-					>
-						<Select.Viewport class="p-1">
-							{#each collectionItems as item}
-								<Select.Item
-									value={item.value}
-									label={item.label}
-									class="cursor-pointer rounded px-3 py-2 font-body text-sm text-text-primary transition-colors data-[highlighted]:bg-mist data-[highlighted]:text-amber"
-								>
-									{#snippet children({ selected })}
-										<span class="flex items-center gap-2">
-											{#if selected}
-												<span class="text-gold-bright">&#10003;</span>
-											{/if}
-											{item.label}
-										</span>
-									{/snippet}
-								</Select.Item>
-							{/each}
-						</Select.Viewport>
-					</Select.Content>
-				</Select.Portal>
-			</Select.Root>
-		{:else}
-			<p class="font-body text-sm italic text-text-muted">
-				No collections yet. Create one first.
-			</p>
-		{/if}
+	<div
+		class="rounded px-3 py-2 font-body text-xs text-text-secondary"
+		style="background-color: rgba(28, 23, 32, 0.55); border: 1px solid rgba(196, 146, 42, 0.14);"
+	>
+		Adds to your MTG inventory. Deck building happens separately in the deck studio.
 	</div>
 
 	<!-- Condition -->
@@ -199,7 +203,7 @@
 	<!-- Add button -->
 	<button
 		onclick={handleAdd}
-		disabled={!selectedCollectionId || adding || !spacetimeState.connected}
+		disabled={!spacetimeState.connected || adding}
 		class="mt-1 w-full cursor-pointer rounded py-2.5 font-display text-sm font-bold uppercase tracking-wider transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50"
 		style="
 			background: linear-gradient(135deg, var(--color-gold-dim), var(--color-gold));
@@ -220,7 +224,7 @@
 			el.style.boxShadow = 'none';
 		}}
 	>
-		{adding ? 'Adding...' : 'Add to Collection'}
+		{adding ? 'Adding...' : 'Add to Inventory'}
 	</button>
 
 	<!-- Success message -->

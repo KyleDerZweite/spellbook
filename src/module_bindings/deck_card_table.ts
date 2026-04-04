@@ -11,17 +11,17 @@ import {
 } from "spacetimedb";
 
 export default __t.row({
-  compositeId: __t.string().primaryKey().name("composite_id"),
-  collectionId: __t.string().name("collection_id"),
-  scryfallId: __t.string().name("scryfall_id"),
-  oracleId: __t.string().name("oracle_id"),
+  entryId: __t.string().primaryKey().name("entry_id"),
+  deckId: __t.string().name("deck_id"),
+  ownerId: __t.string().name("owner_id"),
+  game: __t.string(),
+  catalogCardId: __t.string().name("catalog_card_id"),
+  canonicalCardId: __t.string().name("canonical_card_id"),
   name: __t.string(),
   setCode: __t.string().name("set_code"),
   imageUri: __t.string().name("image_uri"),
   quantity: __t.u32(),
-  isFoil: __t.bool().name("is_foil"),
-  condition: __t.string(),
-  notes: __t.string(),
+  role: __t.string(),
   addedAt: __t.u64().name("added_at"),
   updatedAt: __t.u64().name("updated_at"),
 });

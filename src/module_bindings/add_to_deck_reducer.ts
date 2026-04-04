@@ -12,6 +12,12 @@ import {
 
 export default {
   accountId: __t.string(),
+  deckId: __t.string(),
+  catalogCardId: __t.string(),
+  canonicalCardId: __t.string(),
   name: __t.string(),
-  description: __t.string(),
+  setCode: __t.string(),
+  imageUri: __t.string(),
+  quantity: __t.u32(),
+  role: __t.string(),
 };

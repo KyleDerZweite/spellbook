@@ -1,12 +1,21 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import { DropdownMenu } from 'bits-ui';
 	import { spacetimeState } from '$lib/spacetimedb/state.svelte';
 
-	const NAV_LINKS = [
-		{ href: '/search', label: 'Search' },
-		{ href: '/collections', label: 'Collections' }
-	] as const;
+	const GAME_NAV_LINKS = {
+		mtg: [
+			{ href: '/mtg/search', label: 'Search' },
+			{ href: '/mtg/inventory', label: 'Inventory' },
+			{ href: '/mtg/decks', label: 'Decks' }
+		]
+	} as const;
+
+	function getCurrentGame(pathname: string): keyof typeof GAME_NAV_LINKS | null {
+		const [maybeGame] = pathname.split('/').filter(Boolean);
+		return maybeGame === 'mtg' ? maybeGame : null;
+	}
 
 	function isActive(href: string): boolean {
 		return page.url.pathname === href || page.url.pathname.startsWith(href + '/');
@@ -19,10 +28,11 @@
 
 	let selectedLang = $state('EN');
 	let mobileMenuOpen = $state(false);
+	let currentGame = $derived(getCurrentGame(page.url.pathname));
+	let navLinks = $derived(currentGame ? GAME_NAV_LINKS[currentGame] : []);
+	let gameLabel = $derived(currentGame ? currentGame.toUpperCase() : 'Games');
 
-	let userInitial = $derived(
-		spacetimeState.userProfile?.username?.charAt(0).toUpperCase() ?? 'U'
-	);
+	let userInitial = $derived(spacetimeState.userProfile?.username?.charAt(0).toUpperCase() ?? 'U');
 
 	let userName = $derived(spacetimeState.userProfile?.username || 'User');
 	let userEmail = $derived(spacetimeState.userProfile?.email ?? '');
@@ -39,30 +49,45 @@
 	<!-- Main bar -->
 	<div class="flex h-14 items-center justify-between px-4 sm:px-6">
 		<!-- Logo -->
-		<a
-			href="/"
-			class="font-display text-lg font-bold tracking-wider text-gold-bright no-underline transition-colors hover:text-amber"
-			style="text-shadow: 0 0 12px rgba(232, 184, 75, 0.3);"
-		>
-			<i class="ms ms-library" aria-hidden="true"></i> SPELLBOOK
-		</a>
+		<div class="flex items-center gap-3">
+			<a
+				href="/"
+				class="font-display text-lg font-bold tracking-wider text-gold-bright no-underline transition-colors hover:text-amber"
+				style="text-shadow: 0 0 12px rgba(232, 184, 75, 0.3);"
+			>
+				<i class="ms ms-library" aria-hidden="true"></i> SPELLBOOK
+			</a>
+			{#if currentGame}
+				<a
+					href="/"
+					class="hidden rounded-full px-2.5 py-1 font-display text-[10px] uppercase tracking-[0.28em] text-text-secondary no-underline transition-colors hover:text-gold-bright sm:inline-flex"
+					style="border: 1px solid rgba(196, 146, 42, 0.2); background: rgba(28, 23, 32, 0.65);"
+				>
+					{gameLabel}
+				</a>
+			{/if}
+		</div>
 
 		<!-- Center nav links: hidden on mobile -->
 		<div class="hidden items-center gap-8 sm:flex">
-			{#each NAV_LINKS as link}
-				<a
-					href={link.href}
-					class="font-display text-sm font-medium uppercase tracking-widest no-underline transition-all duration-150
-						{isActive(link.href)
-						? 'text-gold-bright'
-						: 'text-text-secondary hover:text-text-primary'}"
-					style={isActive(link.href)
-						? 'text-shadow: 0 0 8px rgba(232, 184, 75, 0.4); border-bottom: 2px solid var(--color-gold-bright); padding-bottom: 2px;'
-						: 'border-bottom: 2px solid transparent; padding-bottom: 2px;'}
-				>
-					{link.label}
-				</a>
-			{/each}
+			{#if navLinks.length > 0}
+				{#each navLinks as link}
+					<a
+						href={link.href}
+						class="font-display text-sm font-medium uppercase tracking-widest no-underline transition-all duration-150
+							{isActive(link.href) ? 'text-gold-bright' : 'text-text-secondary hover:text-text-primary'}"
+						style={isActive(link.href)
+							? 'text-shadow: 0 0 8px rgba(232, 184, 75, 0.4); border-bottom: 2px solid var(--color-gold-bright); padding-bottom: 2px;'
+							: 'border-bottom: 2px solid transparent; padding-bottom: 2px;'}
+					>
+						{link.label}
+					</a>
+				{/each}
+			{:else}
+				<span class="font-display text-xs uppercase tracking-[0.26em] text-text-muted">
+					Choose Your Game
+				</span>
+			{/if}
 		</div>
 
 		<!-- Right zone -->
@@ -95,7 +120,9 @@
 									class="flex cursor-pointer items-center gap-2 px-3 py-2 font-body text-sm transition-colors data-[highlighted]:bg-mist data-[highlighted]:text-amber
 										{selectedLang === lang.id ? 'text-gold-bright' : 'text-text-primary'}"
 									disabled={lang.disabled}
-									onclick={() => { if (!lang.disabled) selectedLang = lang.id; }}
+									onclick={() => {
+										if (!lang.disabled) selectedLang = lang.id;
+									}}
 								>
 									<span class="w-5 text-center">{lang.flag}</span>
 									{lang.label}
@@ -150,7 +177,7 @@
 						<!-- Active items -->
 						<DropdownMenu.Item
 							class="flex cursor-pointer items-center gap-2.5 px-3 py-2 font-body text-sm text-text-primary transition-colors data-[highlighted]:bg-mist data-[highlighted]:text-amber"
-							href="/settings"
+							onSelect={() => goto('/settings')}
 						>
 							<span class="w-4 text-center text-text-muted">&#9881;</span>
 							Settings
@@ -230,7 +257,9 @@
 			class="fixed inset-0 z-40 sm:hidden"
 			style="top: 56px;"
 			onclick={closeMobileMenu}
-			onkeydown={(e) => { if (e.key === 'Escape') closeMobileMenu(); }}
+			onkeydown={(e) => {
+				if (e.key === 'Escape') closeMobileMenu();
+			}}
 		>
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
@@ -245,13 +274,25 @@
 				onkeydown={() => {}}
 			>
 				<div class="flex flex-col py-2">
-					{#each NAV_LINKS as link}
+					{#if currentGame}
+						<a
+							href="/"
+							onclick={closeMobileMenu}
+							class="flex items-center gap-3 px-5 py-3.5 font-display text-sm uppercase tracking-widest text-text-muted no-underline transition-colors hover:text-gold-bright"
+						>
+							Games
+						</a>
+					{/if}
+
+					{#each navLinks as link}
 						<a
 							href={link.href}
 							onclick={closeMobileMenu}
 							class="flex items-center gap-3 px-5 py-3.5 font-display text-sm uppercase tracking-widest no-underline transition-colors
 								{isActive(link.href) ? 'text-gold-bright' : 'text-text-secondary'}"
-							style={isActive(link.href) ? 'border-left: 3px solid var(--color-gold-bright);' : 'border-left: 3px solid transparent;'}
+							style={isActive(link.href)
+								? 'border-left: 3px solid var(--color-gold-bright);'
+								: 'border-left: 3px solid transparent;'}
 						>
 							{link.label}
 						</a>
@@ -262,11 +303,15 @@
 						class="mx-5 mt-1 flex items-center justify-between py-3"
 						style="border-top: 1px solid rgba(196, 146, 42, 0.1);"
 					>
-						<span class="font-display text-xs uppercase tracking-widest text-text-muted">Language</span>
+						<span class="font-display text-xs uppercase tracking-widest text-text-muted"
+							>Language</span
+						>
 						<div class="flex gap-1.5">
 							{#each LANGUAGES as lang}
 								<button
-									onclick={() => { if (!lang.disabled) selectedLang = lang.id; }}
+									onclick={() => {
+										if (!lang.disabled) selectedLang = lang.id;
+									}}
 									disabled={lang.disabled}
 									class="cursor-pointer rounded px-2 py-1 font-display text-xs font-bold uppercase tracking-wider transition-colors disabled:opacity-40"
 									style="

@@ -6,7 +6,7 @@ Spellbook runs as 6 containers orchestrated via `podman-compose`. No ports are e
 
 | Service | Image | Internal Port | Role |
 |---------|-------|---------------|------|
-| **spacetimedb** | clockworklabs/spacetime:v2.0.5 | 3000 | Real-time database (collections, user data) |
+| **spacetimedb** | clockworklabs/spacetime:v2.0.5 | 3000 | Real-time database (inventories, decks, user data) |
 | **stdb-publish** | Built from `./spacetimedb/Dockerfile` | - | One-shot: publishes the SpacetimeDB module on startup |
 | **meilisearch** | getmeili/meilisearch:v1.39.0 | 7700 | Full-text card search engine |
 | **worker** | Built from `./worker` | - | Python data pipeline (Scryfall -> MeiliSearch) |
@@ -20,7 +20,7 @@ The frontend is a **Node.js server**, not nginx. SvelteKit compiles with `adapte
 - Serves the SvelteKit app (SSR + client hydration)
 - Reads Pangolin IAP headers (`Remote-Subject`, `Remote-User`, `Remote-Email`) in `hooks.server.ts` for auth
 - The browser connects to MeiliSearch (read-only key) for card search
-- The browser connects via WebSocket to SpacetimeDB for real-time collection data
+- The browser connects via WebSocket to SpacetimeDB for real-time inventory and deck data
 
 ### Network model
 

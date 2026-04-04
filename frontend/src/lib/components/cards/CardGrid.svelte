@@ -24,7 +24,10 @@
 			onclick={() => onSelect?.(card)}
 		>
 			<!-- Card image -->
-			<div class="relative overflow-hidden" style="aspect-ratio: 5 / 7; border-radius: 8px 8px 0 0;">
+			<div
+				class="relative overflow-hidden"
+				style="aspect-ratio: 5 / 7; border-radius: 8px 8px 0 0;"
+			>
 				<img
 					src={card.image_uri || card.image_uri_small}
 					alt={card.name}
@@ -46,10 +49,7 @@
 
 			<!-- Card info -->
 			<div class="px-2 py-1.5">
-				<p
-					class="truncate font-display text-xs leading-tight text-text-primary"
-					title={card.name}
-				>
+				<p class="truncate font-display text-xs leading-tight text-text-primary" title={card.name}>
 					{card.name}
 				</p>
 				<div class="mt-0.5 flex items-center gap-1.5">

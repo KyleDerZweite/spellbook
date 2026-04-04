@@ -10,31 +10,63 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
-export const Collection = __t.object("Collection", {
+export const Deck = __t.object("Deck", {
   id: __t.string(),
   ownerId: __t.string(),
+  game: __t.string(),
   name: __t.string(),
   description: __t.string(),
+  format: __t.string(),
   createdAt: __t.u64(),
+  updatedAt: __t.u64(),
 });
-export type Collection = __Infer<typeof Collection>;
+export type Deck = __Infer<typeof Deck>;
 
-export const CollectionCard = __t.object("CollectionCard", {
-  compositeId: __t.string(),
-  collectionId: __t.string(),
-  scryfallId: __t.string(),
-  oracleId: __t.string(),
+export const DeckCard = __t.object("DeckCard", {
+  entryId: __t.string(),
+  deckId: __t.string(),
+  ownerId: __t.string(),
+  game: __t.string(),
+  catalogCardId: __t.string(),
+  canonicalCardId: __t.string(),
   name: __t.string(),
   setCode: __t.string(),
   imageUri: __t.string(),
   quantity: __t.u32(),
-  isFoil: __t.bool(),
-  condition: __t.string(),
-  notes: __t.string(),
+  role: __t.string(),
   addedAt: __t.u64(),
   updatedAt: __t.u64(),
 });
-export type CollectionCard = __Infer<typeof CollectionCard>;
+export type DeckCard = __Infer<typeof DeckCard>;
+
+export const Inventory = __t.object("Inventory", {
+  id: __t.string(),
+  ownerId: __t.string(),
+  game: __t.string(),
+  createdAt: __t.u64(),
+  updatedAt: __t.u64(),
+});
+export type Inventory = __Infer<typeof Inventory>;
+
+export const InventoryCard = __t.object("InventoryCard", {
+  entryId: __t.string(),
+  inventoryId: __t.string(),
+  ownerId: __t.string(),
+  game: __t.string(),
+  catalogCardId: __t.string(),
+  canonicalCardId: __t.string(),
+  name: __t.string(),
+  setCode: __t.string(),
+  imageUri: __t.string(),
+  quantity: __t.u32(),
+  finish: __t.string(),
+  condition: __t.string(),
+  notes: __t.string(),
+  spellbookPosition: __t.u32(),
+  addedAt: __t.u64(),
+  updatedAt: __t.u64(),
+});
+export type InventoryCard = __Infer<typeof InventoryCard>;
 
 export const ServerConfig = __t.object("ServerConfig", {
   key: __t.string(),
