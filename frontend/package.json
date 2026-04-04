@@ -15,7 +15,7 @@
 	"dependencies": {
 		"bits-ui": "^2.16",
 		"mana-font": "^1.18.0",
-		"meilisearch": "^0.44",
+		"meilisearch": "^0.57",
 		"spacetimedb": "^2.0"
 	},
 	"devDependencies": {
