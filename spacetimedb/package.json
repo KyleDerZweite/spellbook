@@ -13,6 +13,6 @@
     "spacetimedb": "^2.0.4"
   },
   "devDependencies": {
-    "typescript": "~5.6.2"
+    "typescript": "~6.0.2"
   }
 }
