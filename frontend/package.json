@@ -23,7 +23,7 @@
 		"@sveltejs/kit": "^2",
 		"@sveltejs/vite-plugin-svelte": "^5",
 		"@tailwindcss/vite": "^4",
-		"@types/node": "^25.5.0",
+		"@types/node": "^25.5.2",
 		"csstype": "^3.2.3",
 		"prettier": "^3",
 		"prettier-plugin-svelte": "^3",
