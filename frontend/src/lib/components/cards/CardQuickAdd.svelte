@@ -209,7 +209,6 @@
 			background: linear-gradient(135deg, var(--color-gold-dim), var(--color-gold));
 			color: var(--color-text-on-gold);
 			border: 1px solid var(--color-gold-bright);
-			border-radius: 3px;
 		"
 		onmouseenter={(e) => {
 			const el = e.currentTarget as HTMLButtonElement;

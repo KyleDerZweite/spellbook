@@ -32,19 +32,10 @@
 	<title>MTG | Spellbook</title>
 </svelte:head>
 
-<div class="relative isolate overflow-hidden">
-	<div
-		class="absolute inset-0"
-		style="
-			background:
-				radial-gradient(circle at top, rgba(196, 146, 42, 0.18), transparent 30%),
-				linear-gradient(180deg, rgba(13, 11, 15, 0.96), rgba(20, 15, 23, 0.98));
-		"
-	></div>
-
+<div class="relative overflow-hidden">
 	<div class="relative mx-auto flex max-w-6xl flex-col gap-10 px-6 py-10 sm:px-8 lg:px-12">
 		<section
-			class="overflow-hidden rounded-[2rem] p-8 sm:p-10"
+			class="overflow-hidden rounded-lg p-8 sm:p-10"
 			style="
 				background:
 					linear-gradient(145deg, rgba(26, 20, 28, 0.94), rgba(13, 11, 15, 0.96)),
@@ -66,7 +57,7 @@
 
 			<div class="mt-8 grid gap-4 sm:grid-cols-3">
 				<div
-					class="rounded-2xl px-4 py-4"
+					class="rounded px-4 py-4"
 					style="background-color: rgba(28, 23, 32, 0.72); border: 1px solid rgba(196, 146, 42, 0.14);"
 				>
 					<p class="font-mono text-2xl text-gold-bright">{stats.total}</p>
@@ -75,7 +66,7 @@
 					</p>
 				</div>
 				<div
-					class="rounded-2xl px-4 py-4"
+					class="rounded px-4 py-4"
 					style="background-color: rgba(28, 23, 32, 0.72); border: 1px solid rgba(196, 146, 42, 0.14);"
 				>
 					<p class="font-mono text-2xl text-gold-bright">{stats.unique}</p>
@@ -84,7 +75,7 @@
 					</p>
 				</div>
 				<div
-					class="rounded-2xl px-4 py-4"
+					class="rounded px-4 py-4"
 					style="background-color: rgba(28, 23, 32, 0.72); border: 1px solid rgba(196, 146, 42, 0.14);"
 				>
 					<p class="font-mono text-2xl text-gold-bright">{spacetimeState.getDecks('mtg').length}</p>
@@ -98,7 +89,7 @@
 				{#each MTG_ROUTE_CARDS as card}
 					<a
 						href={card.href}
-						class="group rounded-[1.5rem] p-6 no-underline transition-transform duration-200 hover:-translate-y-1"
+						class="group rounded-lg p-6 no-underline transition-transform duration-200 hover:-translate-y-1"
 						style="
 							background: linear-gradient(145deg, rgba(24, 20, 28, 0.95), rgba(15, 12, 18, 0.95));
 							border: 1px solid rgba(196, 146, 42, 0.18);
@@ -122,7 +113,7 @@
 			</div>
 
 			<div
-				class="rounded-[1.5rem] p-6"
+				class="rounded-lg p-6"
 				style="
 					background: linear-gradient(180deg, rgba(22, 18, 25, 0.96), rgba(13, 11, 15, 0.96));
 					border: 1px solid rgba(196, 146, 42, 0.18);
@@ -134,7 +125,7 @@
 						{#each decks as deck}
 							<a
 								href="/mtg/decks"
-								class="rounded-2xl px-4 py-4 no-underline transition-colors hover:bg-mist"
+								class="rounded px-4 py-4 no-underline transition-colors hover:bg-mist"
 								style="background-color: rgba(28, 23, 32, 0.58); border: 1px solid rgba(196, 146, 42, 0.12);"
 							>
 								<p class="font-display text-lg font-bold text-text-primary">{deck.name}</p>

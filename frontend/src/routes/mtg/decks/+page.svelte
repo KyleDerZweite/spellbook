@@ -186,7 +186,7 @@
 
 <div class="grid gap-6 px-4 py-4 sm:px-6 sm:py-6 xl:grid-cols-[0.72fr_1.28fr]">
 	<section
-		class="rounded-[1.5rem] p-5"
+		class="rounded-lg p-5"
 		style="background-color: rgba(20, 16, 24, 0.92); border: 1px solid rgba(196, 146, 42, 0.14);"
 	>
 		<p class="font-mono text-[11px] uppercase tracking-[0.3em] text-gold-dim">MTG Deck Studio</p>
@@ -201,19 +201,19 @@
 				type="text"
 				bind:value={newDeckName}
 				placeholder="Deck name"
-				class="rounded-2xl px-4 py-3 font-body text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
+				class="rounded px-4 py-3 font-body text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
 				style="background-color: var(--color-crypt); border: 1px solid rgba(196, 146, 42, 0.16);"
 			/>
 			<textarea
 				bind:value={newDeckDescription}
 				rows="3"
 				placeholder="Description"
-				class="rounded-2xl px-4 py-3 font-body text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
+				class="rounded px-4 py-3 font-body text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
 				style="background-color: var(--color-crypt); border: 1px solid rgba(196, 146, 42, 0.16);"
 			></textarea>
 			<select
 				bind:value={newDeckFormat}
-				class="rounded-2xl px-4 py-3 font-body text-sm text-text-primary focus:outline-none"
+				class="rounded px-4 py-3 font-body text-sm text-text-primary focus:outline-none"
 				style="background-color: var(--color-crypt); border: 1px solid rgba(196, 146, 42, 0.16);"
 			>
 				<option>Commander</option>
@@ -225,7 +225,7 @@
 			<button
 				onclick={handleCreateDeck}
 				disabled={!newDeckName.trim()}
-				class="rounded-full px-5 py-3 font-display text-xs uppercase tracking-[0.24em] text-text-on-gold disabled:cursor-not-allowed disabled:opacity-50"
+				class="rounded-lg px-5 py-3 font-display text-xs uppercase tracking-[0.24em] text-text-on-gold disabled:cursor-not-allowed disabled:opacity-50"
 				style="background: linear-gradient(135deg, var(--color-gold-dim), var(--color-gold)); border: 1px solid var(--color-gold-bright);"
 			>
 				Create Deck
@@ -247,7 +247,7 @@
 						}}
 						role="button"
 						tabindex="0"
-						class="cursor-pointer rounded-[1.25rem] px-4 py-4 text-left"
+						class="cursor-pointer rounded px-4 py-4 text-left"
 						style="
 							background-color: {selectedDeckId === deck.id ? 'rgba(44, 40, 50, 0.92)' : 'rgba(28, 23, 32, 0.6)'};
 							border: 1px solid {selectedDeckId === deck.id
@@ -265,7 +265,7 @@
 									event.stopPropagation();
 									handleDeleteDeck(deck.id);
 								}}
-								class="rounded-full px-3 py-2 font-display text-[10px] uppercase tracking-[0.22em] text-error"
+								class="rounded px-3 py-2 font-display text-[10px] uppercase tracking-[0.22em] text-error"
 								style="background-color: rgba(138, 32, 32, 0.1); border: 1px solid rgba(138, 32, 32, 0.22);"
 							>
 								Delete
@@ -286,7 +286,7 @@
 	</section>
 
 	<section
-		class="rounded-[1.5rem] p-5"
+		class="rounded-lg p-5"
 		style="background-color: rgba(20, 16, 24, 0.92); border: 1px solid rgba(196, 146, 42, 0.14);"
 	>
 		{#if spacetimeState.error}
@@ -310,19 +310,19 @@
 						<input
 							type="text"
 							bind:value={editDeckName}
-							class="rounded-2xl px-4 py-3 font-display text-2xl text-gold-bright focus:outline-none"
+							class="rounded px-4 py-3 font-display text-2xl text-gold-bright focus:outline-none"
 							style="background-color: rgba(28, 23, 32, 0.62); border: 1px solid rgba(196, 146, 42, 0.12);"
 						/>
 						<textarea
 							bind:value={editDeckDescription}
 							rows="3"
-							class="rounded-2xl px-4 py-3 font-body text-sm text-text-secondary focus:outline-none"
+							class="rounded px-4 py-3 font-body text-sm text-text-secondary focus:outline-none"
 							style="background-color: rgba(28, 23, 32, 0.62); border: 1px solid rgba(196, 146, 42, 0.12);"
 						></textarea>
 						<div class="flex flex-wrap items-center gap-3">
 							<select
 								bind:value={editDeckFormat}
-								class="rounded-full px-4 py-2 font-body text-sm text-text-primary focus:outline-none"
+								class="rounded px-4 py-2 font-body text-sm text-text-primary focus:outline-none"
 								style="background-color: var(--color-crypt); border: 1px solid rgba(196, 146, 42, 0.18);"
 							>
 								<option>Commander</option>
@@ -334,7 +334,7 @@
 							<button
 								onclick={handleUpdateDeck}
 								disabled={!editDeckName.trim()}
-								class="rounded-full px-4 py-2 font-display text-[10px] uppercase tracking-[0.22em] text-text-on-gold disabled:cursor-not-allowed disabled:opacity-50"
+								class="rounded-lg px-4 py-2 font-display text-[10px] uppercase tracking-[0.22em] text-text-on-gold disabled:cursor-not-allowed disabled:opacity-50"
 								style="background: linear-gradient(135deg, var(--color-gold-dim), var(--color-gold)); border: 1px solid var(--color-gold-bright);"
 							>
 								Save Deck
@@ -342,7 +342,7 @@
 						</div>
 					</div>
 					<div
-						class="rounded-2xl px-4 py-3"
+						class="rounded px-4 py-3"
 						style="background-color: rgba(28, 23, 32, 0.58); border: 1px solid rgba(196, 146, 42, 0.1);"
 					>
 						<p class="font-mono text-xl text-gold-bright">
@@ -362,7 +362,7 @@
 								type="search"
 								bind:value={addQuery}
 								placeholder="Search owned cards..."
-								class="rounded-full px-4 py-2 font-body text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
+								class="rounded px-4 py-2 font-body text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
 								style="background-color: var(--color-crypt); border: 1px solid rgba(196, 146, 42, 0.18);"
 							/>
 						</div>
@@ -371,13 +371,13 @@
 							{#if ownedCandidates.length > 0}
 								{#each ownedCandidates as candidate}
 									<div
-										class="grid gap-3 rounded-[1.25rem] px-4 py-4 sm:grid-cols-[60px_1fr_auto]"
+										class="grid gap-3 rounded px-4 py-4 sm:grid-cols-[60px_1fr_auto]"
 										style="background-color: rgba(28, 23, 32, 0.58); border: 1px solid rgba(196, 146, 42, 0.1);"
 									>
 										<img
 											src={candidate.imageUri}
 											alt={candidate.name}
-											class="h-[84px] w-[60px] rounded-xl object-cover"
+											class="h-[84px] w-[60px] rounded object-cover"
 										/>
 										<div>
 											<p class="font-display text-lg text-text-primary">{candidate.name}</p>
@@ -387,7 +387,7 @@
 										</div>
 										<button
 											onclick={() => handleAddCard(candidate)}
-											class="rounded-full px-4 py-2 font-display text-[10px] uppercase tracking-[0.22em] text-text-on-gold"
+											class="rounded-lg px-4 py-2 font-display text-[10px] uppercase tracking-[0.22em] text-text-on-gold"
 											style="background: linear-gradient(135deg, var(--color-gold-dim), var(--color-gold)); border: 1px solid var(--color-gold-bright);"
 										>
 											Add
@@ -409,13 +409,13 @@
 								{#each deckCards as card (card.entryId)}
 									{@const status = getOwnedStatus(card)}
 									<div
-										class="grid gap-3 rounded-[1.25rem] px-4 py-4 sm:grid-cols-[60px_1fr_auto]"
+										class="grid gap-3 rounded px-4 py-4 sm:grid-cols-[60px_1fr_auto]"
 										style="background-color: rgba(28, 23, 32, 0.58); border: 1px solid rgba(196, 146, 42, 0.1);"
 									>
 										<img
 											src={card.imageUri}
 											alt={card.name}
-											class="h-[84px] w-[60px] rounded-xl object-cover"
+											class="h-[84px] w-[60px] rounded object-cover"
 										/>
 										<div>
 											<p class="font-display text-lg text-text-primary">{card.name}</p>

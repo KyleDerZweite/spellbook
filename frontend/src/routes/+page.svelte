@@ -36,17 +36,7 @@
 	<title>Spellbook | Choose Your Game</title>
 </svelte:head>
 
-<div class="relative isolate overflow-hidden">
-	<div
-		class="absolute inset-0 opacity-80"
-		style="
-			background:
-				radial-gradient(circle at top, rgba(196, 146, 42, 0.22), transparent 35%),
-				radial-gradient(circle at 20% 80%, rgba(44, 110, 163, 0.18), transparent 28%),
-				linear-gradient(180deg, #0d0b0f 0%, #151018 38%, #0c0910 100%);
-		"
-	></div>
-
+<div class="relative overflow-hidden">
 	<div
 		class="relative mx-auto flex min-h-[calc(100vh-8rem)] max-w-6xl flex-col justify-center px-6 py-12 sm:px-8 lg:px-12"
 	>
@@ -66,7 +56,7 @@
 			{#each gameCards as game}
 				<a
 					href={game.available ? game.href : undefined}
-					class="group relative overflow-hidden rounded-[1.5rem] p-6 no-underline transition-transform duration-200 {game.available
+					class="group relative overflow-hidden rounded-lg p-6 no-underline transition-transform duration-200 {game.available
 						? 'hover:-translate-y-1'
 						: 'cursor-default'}"
 					style="

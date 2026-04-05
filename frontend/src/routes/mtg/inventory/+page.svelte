@@ -201,7 +201,7 @@
 
 <div class="flex flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6">
 	<section
-		class="rounded-[1.75rem] p-6 sm:p-7"
+		class="rounded-lg p-6 sm:p-7"
 		style="
 			background:
 				linear-gradient(150deg, rgba(24, 20, 28, 0.96), rgba(12, 10, 14, 0.96)),
@@ -223,28 +223,28 @@
 
 			<div class="grid gap-3 sm:grid-cols-4">
 				<div
-					class="rounded-2xl px-4 py-3"
+					class="rounded px-4 py-3"
 					style="background-color: rgba(28, 23, 32, 0.62); border: 1px solid rgba(196, 146, 42, 0.12);"
 				>
 					<p class="font-mono text-xl text-gold-bright">{inventoryStats.total}</p>
 					<p class="font-body text-[11px] uppercase tracking-[0.2em] text-text-secondary">Cards</p>
 				</div>
 				<div
-					class="rounded-2xl px-4 py-3"
+					class="rounded px-4 py-3"
 					style="background-color: rgba(28, 23, 32, 0.62); border: 1px solid rgba(196, 146, 42, 0.12);"
 				>
 					<p class="font-mono text-xl text-gold-bright">{inventoryStats.unique}</p>
 					<p class="font-body text-[11px] uppercase tracking-[0.2em] text-text-secondary">Unique</p>
 				</div>
 				<div
-					class="rounded-2xl px-4 py-3"
+					class="rounded px-4 py-3"
 					style="background-color: rgba(28, 23, 32, 0.62); border: 1px solid rgba(196, 146, 42, 0.12);"
 				>
 					<p class="font-mono text-xl text-gold-bright">{inventoryStats.sets}</p>
 					<p class="font-body text-[11px] uppercase tracking-[0.2em] text-text-secondary">Sets</p>
 				</div>
 				<div
-					class="rounded-2xl px-4 py-3"
+					class="rounded px-4 py-3"
 					style="background-color: rgba(28, 23, 32, 0.62); border: 1px solid rgba(196, 146, 42, 0.12);"
 				>
 					<p class="font-mono text-xl text-gold-bright">{completedSetCount}</p>
@@ -272,7 +272,7 @@
 
 	<section class="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
 		<div
-			class="rounded-[1.5rem] p-5"
+			class="rounded-lg p-5"
 			style="background-color: rgba(20, 16, 24, 0.92); border: 1px solid rgba(196, 146, 42, 0.14);"
 		>
 			<div class="flex items-center justify-between gap-3">
@@ -291,7 +291,7 @@
 				{#if setProgress.length > 0}
 					{#each setProgress.slice(0, 10) as progress}
 						<div
-							class="rounded-2xl px-4 py-3"
+							class="rounded px-4 py-3"
 							style="background-color: rgba(28, 23, 32, 0.6); border: 1px solid rgba(196, 146, 42, 0.1);"
 						>
 							<div class="flex items-center justify-between gap-3">
@@ -304,7 +304,7 @@
 									</p>
 								</div>
 								<span
-									class="rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em]"
+									class="rounded px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em]"
 									style="
 										background-color: {progress.completed ? 'rgba(58, 138, 74, 0.18)' : 'rgba(28, 23, 32, 0.9)'};
 										border: 1px solid {progress.completed ? 'rgba(58, 138, 74, 0.35)' : 'rgba(196, 146, 42, 0.14)'};
@@ -331,14 +331,14 @@
 		</div>
 
 		<div
-			class="rounded-[1.5rem] p-5"
+			class="rounded-lg p-5"
 			style="background-color: rgba(20, 16, 24, 0.92); border: 1px solid rgba(196, 146, 42, 0.14);"
 		>
 			<div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
 				<div class="flex items-center gap-2">
 					<button
 						onclick={() => (mode = 'list')}
-						class="rounded-full px-4 py-2 font-display text-xs uppercase tracking-[0.24em]"
+						class="rounded px-4 py-2 font-display text-xs uppercase tracking-[0.24em]"
 						style="
 							background-color: {mode === 'list' ? 'var(--color-mist)' : 'transparent'};
 							border: 1px solid {mode === 'list' ? 'var(--color-gold)' : 'rgba(196, 146, 42, 0.18)'};
@@ -349,7 +349,7 @@
 					</button>
 					<button
 						onclick={() => (mode = 'spellbook')}
-						class="rounded-full px-4 py-2 font-display text-xs uppercase tracking-[0.24em]"
+						class="rounded px-4 py-2 font-display text-xs uppercase tracking-[0.24em]"
 						style="
 							background-color: {mode === 'spellbook' ? 'var(--color-mist)' : 'transparent'};
 							border: 1px solid {mode === 'spellbook' ? 'var(--color-gold)' : 'rgba(196, 146, 42, 0.18)'};
@@ -365,12 +365,12 @@
 						type="search"
 						bind:value={query}
 						placeholder={mode === 'list' ? 'Search inventory...' : 'Search affects list mode only'}
-						class="min-w-[220px] rounded-full px-4 py-2 font-body text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
+						class="min-w-[220px] rounded px-4 py-2 font-body text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
 						style="background-color: var(--color-crypt); border: 1px solid rgba(196, 146, 42, 0.2);"
 					/>
 					<select
 						bind:value={sortBy}
-						class="rounded-full px-4 py-2 font-body text-sm text-text-primary focus:outline-none"
+						class="rounded px-4 py-2 font-body text-sm text-text-primary focus:outline-none"
 						style="background-color: var(--color-crypt); border: 1px solid rgba(196, 146, 42, 0.2);"
 					>
 						<option value="name">Sort by Name</option>
@@ -392,7 +392,7 @@
 						</p>
 						<a
 							href="/mtg/search"
-							class="mt-6 inline-flex rounded-full px-5 py-3 font-display text-xs uppercase tracking-[0.24em] text-text-on-gold no-underline"
+							class="mt-6 inline-flex rounded-lg px-5 py-3 font-display text-xs uppercase tracking-[0.24em] text-text-on-gold no-underline"
 							style="background: linear-gradient(135deg, var(--color-gold-dim), var(--color-gold)); border: 1px solid var(--color-gold-bright);"
 						>
 							Go to Search
@@ -403,31 +403,31 @@
 				<div class="flex flex-col gap-3">
 					{#each listCards as card (card.entryId)}
 						<div
-							class="grid gap-4 rounded-[1.25rem] px-4 py-4 sm:grid-cols-[72px_1fr_auto]"
+							class="grid gap-4 rounded px-4 py-4 sm:grid-cols-[72px_1fr_auto]"
 							style="background-color: rgba(28, 23, 32, 0.58); border: 1px solid rgba(196, 146, 42, 0.1);"
 						>
 							<img
 								src={card.imageUri}
 								alt={card.name}
-								class="h-[100px] w-[72px] rounded-xl object-cover"
+								class="h-[100px] w-[72px] rounded object-cover"
 							/>
 							<div class="min-w-0">
 								<div class="flex flex-wrap items-center gap-2">
 									<p class="font-display text-xl text-text-primary">{card.name}</p>
 									<span
-										class="rounded-full px-2 py-1 font-mono text-[10px] uppercase tracking-[0.2em]"
+										class="rounded px-2 py-1 font-mono text-[10px] uppercase tracking-[0.2em]"
 										style="background-color: rgba(13, 11, 15, 0.8); color: var(--color-gold-bright);"
 									>
 										{card.setCode}
 									</span>
 									<span
-										class="rounded-full px-2 py-1 font-mono text-[10px] uppercase tracking-[0.2em]"
+										class="rounded px-2 py-1 font-mono text-[10px] uppercase tracking-[0.2em]"
 										style="background-color: rgba(13, 11, 15, 0.8); color: var(--color-text-secondary);"
 									>
 										{card.finish}
 									</span>
 									<span
-										class="rounded-full px-2 py-1 font-mono text-[10px] uppercase tracking-[0.2em]"
+										class="rounded px-2 py-1 font-mono text-[10px] uppercase tracking-[0.2em]"
 										style="background-color: rgba(13, 11, 15, 0.8); color: var(--color-text-secondary);"
 									>
 										{card.condition}
@@ -457,7 +457,7 @@
 								</button>
 								<button
 									onclick={() => handleRemove(card)}
-									class="rounded-full px-3 py-2 font-display text-[10px] uppercase tracking-[0.22em] text-error"
+									class="rounded px-3 py-2 font-display text-[10px] uppercase tracking-[0.22em] text-error"
 									style="background-color: rgba(138, 32, 32, 0.1); border: 1px solid rgba(138, 32, 32, 0.22);"
 								>
 									Remove
@@ -474,7 +474,7 @@
 					</p>
 					{#each spellbookPages as pageCards, pageIndex}
 						<div
-							class="rounded-[1.5rem] p-4"
+							class="rounded-lg p-4"
 							style="background-color: rgba(28, 23, 32, 0.55); border: 1px solid rgba(196, 146, 42, 0.1);"
 						>
 							<div class="mb-4 flex items-center justify-between">
@@ -487,7 +487,7 @@
 								{#each pageCards as card, slotIndex}
 									<!-- svelte-ignore a11y_no_static_element_interactions -->
 									<div
-										class="relative aspect-[5/7] overflow-hidden rounded-[1.25rem]"
+										class="relative aspect-[5/7] overflow-hidden rounded"
 										style="
 											background:
 												linear-gradient(180deg, rgba(16, 13, 18, 0.96), rgba(9, 8, 11, 0.96));
