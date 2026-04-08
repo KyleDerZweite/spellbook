@@ -1,103 +1,123 @@
 # Zitadel Setup
 
-Spellbook uses Zitadel directly for login. The frontend expects a hosted Zitadel login page, Authorization Code + PKCE, and a browser-safe client without a client secret.
+Spellbook uses Zitadel directly for login.
 
-## Create the Spellbook application
+The current frontend expects:
 
-Create a new **User Agent** application in Zitadel for Spellbook.
+- Authorization Code + PKCE
+- a public browser-safe client
+- no client secret
+- hosted Zitadel login pages
 
-Why this type:
-- Spellbook currently exchanges the authorization code with `client_id` + PKCE only.
-- The app does **not** send a client secret.
-- A confidential Web application would require different backend code and extra secret handling.
+## Create the Application
 
-## Required app settings
+Create a public browser-oriented application in Zitadel for Spellbook.
 
-For the current hosted deployment, configure these values:
+Required characteristics:
 
-- Issuer: `https://auth.kylehub.dev`
-- Frontend origin: `https://spellbook.kylehub.dev`
-- Redirect URI: `https://spellbook.kylehub.dev/auth/callback`
-- Post logout redirect URI: `https://spellbook.kylehub.dev/`
+- usable without a client secret
+- allowed redirect to the frontend callback route
+- allowed post-logout redirect back to the frontend origin
 
-Scopes requested by Spellbook:
+## Required App Values
+
+Use your own public origins.
+
+Example placeholders:
+
+- app origin: `https://spellbook.example.com`
+- callback URI: `https://spellbook.example.com/auth/callback`
+- post logout redirect URI: `https://spellbook.example.com/`
+
+## Required Environment Variables
+
+Set these in the frontend environment:
+
+```env
+ZITADEL_ISSUER=https://auth.example.com
+ZITADEL_CLIENT_ID=your-public-client-id
+APP_ORIGIN=https://spellbook.example.com
+AUTH_SESSION_SECRET=your-32-byte-base64url-secret
+```
+
+## Scopes
+
+Spellbook currently requests:
 
 - `openid`
 - `profile`
 - `email`
 - `offline_access`
 
-## Client ID
+## What Working Login Looks Like
 
-Set `.env` `ZITADEL_CLIENT_ID` to the **Client ID** shown in the Zitadel application configuration.
+1. Visiting `/auth/login` redirects to Zitadel.
+2. Zitadel shows its hosted login page.
+3. Zitadel redirects back to `/auth/callback`.
+4. Spellbook stores an encrypted session cookie.
+5. Protected MTG routes such as `/mtg/search` open normally.
 
-Do not use:
-- the application resource ID
-- a guessed project suffix
-- an internal display name
+## Current Protected Route Examples
 
-For the current deployment, the correct value is:
+Examples of currently protected app routes:
 
-```env
-ZITADEL_CLIENT_ID=350854248520548356
-```
+- `/mtg/`
+- `/mtg/search`
+- `/mtg/inventory`
+- `/mtg/decks`
 
-## Spellbook `.env` values
+These are examples of current code behavior, not the full future platform route contract.
 
-These values must align between Zitadel and Spellbook:
+## Common Failure Modes
 
-```env
-ZITADEL_ISSUER=https://auth.kylehub.dev
-ZITADEL_CLIENT_ID=350854248520548356
-APP_ORIGIN=https://spellbook.kylehub.dev
-AUTH_SESSION_SECRET=<32-byte-base64url-secret>
-```
-
-## What should happen when it works
-
-1. Visiting `/auth/login` redirects to `https://auth.kylehub.dev/oauth/v2/authorize`
-2. Zitadel redirects to its hosted login page
-3. After login, Zitadel redirects back to `/auth/callback`
-4. Spellbook stores its encrypted session cookie
-5. Protected routes like `/mtg/search` open normally
-
-## Common failure modes
-
-### `Errors.App.NotFound`
+### Application not found
 
 Cause:
-- `ZITADEL_CLIENT_ID` is wrong
+
+- wrong `ZITADEL_CLIENT_ID`
 
 Fix:
-- copy the exact Client ID from Zitadel into `.env`
-- recreate the frontend container so the new env is loaded
 
-### Redirect back to `/` instead of the intended page
+- copy the exact public client ID from Zitadel
+
+### Callback rejected
 
 Cause:
-- `returnTo` was invalid or missing
+
+- callback URI mismatch
 
 Fix:
-- start from `/auth/login?returnTo=/mtg/search`
 
-### Callback or logout rejected by Zitadel
+- ensure Zitadel allows `https://your-app-origin/auth/callback`
+
+### Logout rejected
 
 Cause:
-- redirect URIs in the app config do not match the public Spellbook URLs exactly
+
+- post logout redirect mismatch
 
 Fix:
-- ensure the callback is `https://spellbook.kylehub.dev/auth/callback`
-- ensure post logout is `https://spellbook.kylehub.dev/`
 
-## Branding the hosted login
+- ensure Zitadel allows your public app origin as post logout redirect
 
-If you want the Zitadel-hosted login to feel like Spellbook:
+### Redirect goes to the wrong page after login
 
-- configure a custom domain for Zitadel
-- upload the Spellbook logo
-- set brand colors and typography in Zitadel branding
-- customize login texts so they reference Spellbook instead of a generic tenant
+Cause:
 
-This keeps the hosted login flow intact while matching the product better.
+- invalid or missing `returnTo`
 
-If you want a fully custom login UI owned by Spellbook, that is a separate implementation project. It would replace the hosted login page with a dedicated OIDC login frontend and needs extra work around password, MFA, recovery, and compliance flows.
+Fix:
+
+- start from a valid internal route such as `/auth/login?returnTo=/mtg/search`
+
+## Branding Notes
+
+If you want the hosted login flow to feel like Spellbook:
+
+- configure a custom Zitadel domain
+- upload Spellbook branding assets
+- set colors and typography in Zitadel branding
+
+## Non-Goal
+
+This document is generic on purpose. Do not store live instance domains or real client IDs here. Keep those in a private operator note based on [private-instance-template.md](/home/kyle/CodingProjects/spellbook/docs/private-instance-template.md).

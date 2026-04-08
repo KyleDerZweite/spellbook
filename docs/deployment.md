@@ -1,201 +1,148 @@
 # Deployment Guide
 
-## Architecture
+This guide documents the current generic self-hosted deployment shape for Spellbook.
 
-Spellbook runs as 6 containers orchestrated via `podman-compose`. No ports are exposed to the host — all external access is routed through Pangolin via the Newt tunnel agent.
+For live domains, client IDs, operator contacts, and other instance-specific notes, keep a separate private note based on [private-instance-template.md](/home/kyle/CodingProjects/spellbook/docs/private-instance-template.md).
 
-| Service | Image | Internal Port | Role |
-|---------|-------|---------------|------|
-| **spacetimedb** | clockworklabs/spacetime:v2.0.5 | 3000 | Real-time database (inventories, decks, user data) |
-| **stdb-publish** | Built from `./spacetimedb/Dockerfile` | - | One-shot: publishes the SpacetimeDB module on startup |
-| **meilisearch** | getmeili/meilisearch:v1.39.0 | 7700 | Full-text card search engine |
-| **worker** | Built from `./worker` | - | Python data pipeline (Scryfall -> MeiliSearch) |
-| **frontend** | Built from `./frontend/Dockerfile` | 3000 | SvelteKit app (Node.js, adapter-node) |
-| **newt** | fosrl/newt:latest | - | Pangolin tunnel agent |
+## Current Architecture
 
-### How the frontend works
+Spellbook currently runs as six services under `podman-compose`:
 
-The frontend is a **Node.js server**, not nginx. SvelteKit compiles with `adapter-node` to a standalone app that runs via `node build` on port 3000. It:
+| Service | Role |
+|---------|------|
+| `spacetimedb` | Real-time database for user-scoped inventory and deck data |
+| `stdb-publish` | One-shot publisher for the SpacetimeDB module |
+| `meilisearch` | Card catalog search engine |
+| `worker` | Python sync pipeline for MTG catalog ingestion |
+| `frontend` | SvelteKit app server |
+| `newt` | Pangolin tunnel agent |
 
-- Serves the SvelteKit app (SSR + client hydration)
-- Runs the direct Zitadel OIDC Authorization Code + PKCE flow
-- The browser connects to MeiliSearch (read-only key) for card search
-- The browser connects via WebSocket to SpacetimeDB using the Zitadel ID token
+## Auth Model
 
-### Public Metadata Surface
+Spellbook now handles authentication directly with Zitadel using OIDC Authorization Code + PKCE.
 
-The frontend origin also serves the crawler and metadata endpoints that describe the site:
+Pangolin is used only as transport and reverse-proxy infrastructure in this deployment model. Pangolin should not own the Spellbook login flow.
 
-- `robots.txt`
-- `sitemap.xml`
-- `/.well-known/security.txt`
-- `/openapi.json`
+Current auth flow:
 
-These routes should stay on the same origin as the app so `APP_ORIGIN` remains the single source of truth for canonical URLs and crawler policy. The sitemap should stay small and explicit, and only list pages that are intentionally public.
+1. Browser reaches the frontend through Pangolin/Newt.
+2. Frontend redirects to Zitadel for login.
+3. Frontend exchanges the authorization code and stores the encrypted session cookie.
+4. Frontend passes the ID token to SpacetimeDB for authenticated access.
 
-### Network model
+## Network Model
 
-No host ports are exposed. All services communicate over the internal Docker network. External access is exclusively through Pangolin:
+The browser needs to reach three public surfaces:
 
-```
-User -> Pangolin (your VPS) -> [tunnel] -> Newt -> frontend:3000
-                                             |---> meilisearch:7700
-                                             |---> spacetimedb:3000
-```
+| Surface | Purpose |
+|---------|---------|
+| App origin | SvelteKit frontend and auth callbacks |
+| Search origin | Browser-side MeiliSearch access |
+| Database origin | Browser-side SpacetimeDB WebSocket access |
 
-The browser needs to reach three services, each on its own subdomain:
+Example placeholder layout:
 
-| Subdomain | Service | Auth |
-|-----------|---------|------|
-| `spellbook.yourdomain.com` | Frontend (SSR + static) | Spellbook app auth via Zitadel |
-| `spellbook-search.yourdomain.com` | MeiliSearch API | None (read-only API key) |
-| `spellbook-db.yourdomain.com` | SpacetimeDB WebSocket | None (OIDC JWT auth in SDK) |
+| Example URL | Service |
+|-------------|---------|
+| `https://spellbook.example.com` | Frontend |
+| `https://spellbook-search.example.com` | MeiliSearch |
+| `wss://spellbook-db.example.com` | SpacetimeDB |
 
-### Module auto-publish
+## Compose Expectations
 
-The `stdb-publish` container handles SpacetimeDB module publishing automatically:
+The checked-in [podman-compose.yml](/home/kyle/CodingProjects/spellbook/podman-compose.yml) expects:
 
-1. Waits for SpacetimeDB to be healthy (via `spacetime server ping`)
-2. Builds the TypeScript module and publishes it
-3. On subsequent restarts, detects the module already exists and exits cleanly
-4. The frontend `depends_on` stdb-publish, so it won't start until the module is ready
+- `spacetimedb` on the internal network
+- `meilisearch` on the internal network
+- `worker` talking to MeiliSearch over the internal network
+- `frontend` talking to MeiliSearch internally for key lookup and externally for browser-facing URLs
+- `newt` forwarding external traffic through Pangolin
 
-## Pangolin Setup
+## Required Environment Variables
 
-[Pangolin](https://github.com/fosrl/pangolin) is a self-hosted reverse proxy with identity-aware proxy (IAP) capabilities. For Spellbook, it sits in front of the stack as a tunnel-backed reverse proxy while Spellbook itself handles authentication through Zitadel.
+### Frontend
 
-### Prerequisites
+| Variable | Description |
+|----------|-------------|
+| `ZITADEL_ISSUER` | Zitadel issuer URL |
+| `ZITADEL_CLIENT_ID` | Public OIDC client ID |
+| `APP_ORIGIN` | Public frontend origin |
+| `AUTH_SESSION_SECRET` | 32-byte base64url secret for encrypted cookies |
+| `PUBLIC_MEILISEARCH_URL` | Browser-facing MeiliSearch URL |
+| `PUBLIC_SPACETIMEDB_URL` | Browser-facing SpacetimeDB URL |
+| `PUBLIC_SPACETIMEDB_MODULE` | SpacetimeDB database name, default `spellbook` |
+| `MEILISEARCH_INTERNAL_URL` | Internal MeiliSearch URL used by the server |
+| `MEILI_MASTER_KEY` | Used by the frontend server to fetch the search-only key from MeiliSearch |
 
-- A running Pangolin instance on your server/VPS
-- A wildcard DNS record for `*.yourdomain.com` pointed at Pangolin (or three individual A/CNAME records)
+### Worker and MeiliSearch
 
-### Step 1: Create a Site in Pangolin
+| Variable | Description |
+|----------|-------------|
+| `MEILI_MASTER_KEY` | MeiliSearch admin key |
+| `AGGRESSIVE_PRELOAD` | `true` loads `all_cards` in the background |
+| `SYNC_INTERVAL` | `daily`, `weekly`, or `manual` |
+| `LANGUAGES` | Comma-separated language codes |
 
-1. Log into the Pangolin admin dashboard
-2. Create a new **Site** for Spellbook
-3. Note the **Newt ID** and **Newt Secret** generated for the site
+### Pangolin / Newt
 
-### Step 2: Create Resources (3 required)
+| Variable | Description |
+|----------|-------------|
+| `PANGOLIN_ENDPOINT` | Pangolin endpoint |
+| `NEWT_ID` | Site ID from Pangolin |
+| `NEWT_SECRET` | Site secret from Pangolin |
 
-Each resource gets its own subdomain. This avoids path-prefix routing and allows different auth settings per resource. Use the `spellbook-` prefix so resources are easy to identify when your Pangolin instance hosts many services.
+## MeiliSearch Search Key Behavior
 
-**Resource 1: `spellbook-app` — Frontend**
-- Target: `http://frontend:3000`
-- Domain: `spellbook.yourdomain.com`
-- **Disable IAP / authentication** — Spellbook handles login directly with Zitadel
+Do not treat `PUBLIC_MEILISEARCH_SEARCH_KEY` as a required operator-side variable for the current app.
 
-**Resource 2: `spellbook-search` — MeiliSearch API**
-- Target: `http://meilisearch:7700`
-- Domain: `spellbook-search.yourdomain.com`
-- **Disable IAP / authentication** — the browser JS client calls this directly with a read-only API key
+Current behavior:
 
-**Resource 3: `spellbook-db` — SpacetimeDB**
-- Target: `http://spacetimedb:3000`
-- Domain: `spellbook-db.yourdomain.com`
-- **Disable IAP / authentication** — SpacetimeDB validates Zitadel JWTs from the browser SDK
+- the frontend server uses `MEILISEARCH_INTERNAL_URL` and `MEILI_MASTER_KEY`
+- it fetches the default search-only key from MeiliSearch at runtime
+- it exposes that key to authenticated sessions through SvelteKit server data
 
-> **Why separate subdomains?** Pangolin resources are independent — you can't prioritize path prefixes across resources. Separate subdomains also eliminate the trailing-slash pitfall with JS URL resolution (`new URL(relative, base)` drops the last path segment without a trailing slash).
+This matches the current implementation in `frontend/src/hooks.server.ts`.
 
-> **Why no Pangolin IAP?** The browser makes direct requests to the frontend, MeiliSearch, and SpacetimeDB. Spellbook now owns the login flow and uses Zitadel directly, so Pangolin should stay in pure reverse-proxy mode for all three resources.
+## Zitadel Notes
 
-### Step 3: Configure Environment
+Spellbook expects:
 
-Copy `.env.example` to `.env` and fill in all values. The `PUBLIC_*` URLs must match the Pangolin resource subdomains, and the Zitadel redirect URI must include `https://spellbook.yourdomain.com/auth/callback`.
+- a browser-safe public client
+- no client secret
+- Authorization Code + PKCE
+- callback route at `/auth/callback`
 
-```env
-PUBLIC_MEILISEARCH_URL=https://spellbook-search.yourdomain.com
-PUBLIC_SPACETIMEDB_URL=wss://spellbook-db.yourdomain.com
-```
+See [zitadel.md](/home/kyle/CodingProjects/spellbook/docs/zitadel.md) for the exact generic setup.
 
-### Step 4: How Newt Connects
+## Pangolin Setup Notes
 
-Newt is a tunnel agent that runs inside the compose stack. It:
+If you use Pangolin:
 
-1. Connects **outbound** to your Pangolin server (no inbound ports needed on the host)
-2. Registers as the tunnel endpoint for the configured site
-3. Pangolin routes incoming requests through the tunnel to the appropriate container
-4. Spellbook handles its own Zitadel login flow and session cookies
+- route the frontend, search, and database surfaces independently
+- disable Pangolin IAP for Spellbook itself
+- let Spellbook own the OIDC login flow
 
-For the exact Zitadel application settings Spellbook expects, see [Zitadel setup](/home/kyle/CodingProjects/spellbook/docs/zitadel.md).
-
-The host machine needs zero inbound ports open. Only Newt's outbound connection to Pangolin is required.
-
-## Quick Start
-
-```bash
-# 1. Copy and fill in environment variables
-cp .env.example .env
-# Edit .env with your values
-
-# 2. Start all services (module publishes automatically)
-podman-compose up -d
-
-# 3. Verify services are running
-podman-compose ps
-
-# Check that the module published successfully
-podman-compose logs stdb-publish
-
-# Check frontend is serving
-podman-compose logs frontend --tail 10
-```
+Separate public origins are still useful because the browser talks directly to the frontend, MeiliSearch, and SpacetimeDB.
 
 ## Local Development
 
-For local development without Pangolin, you can temporarily expose ports by overriding with a compose file:
+For local development, expose ports with an override compose file or run the services directly.
 
-```yaml
-# podman-compose.dev.yml
-services:
-  spacetimedb:
-    ports:
-      - "3000:3000"
-  meilisearch:
-    ports:
-      - "7700:7700"
-  frontend:
-    ports:
-      - "5173:3000"
-```
+Typical local values:
 
-```bash
-podman-compose -f podman-compose.yml -f podman-compose.dev.yml up -d
-```
-
-Set local dev URLs in `.env`:
 ```env
+APP_ORIGIN=http://localhost:5173
 PUBLIC_MEILISEARCH_URL=http://localhost:7700
 PUBLIC_SPACETIMEDB_URL=ws://localhost:3000
+MEILISEARCH_INTERNAL_URL=http://localhost:7700
 ```
-
-## Environment Variables
-
-| Variable | Where | Description |
-|----------|-------|-------------|
-| `MEILI_MASTER_KEY` | worker, meilisearch | MeiliSearch admin key |
-| `ZITADEL_ISSUER` | frontend | Zitadel issuer URL |
-| `ZITADEL_CLIENT_ID` | frontend | Spellbook OIDC client ID |
-| `APP_ORIGIN` | frontend | Public frontend origin used for callback/logout URLs |
-| `AUTH_SESSION_SECRET` | frontend | 32-byte base64url secret for encrypted auth cookies |
-| `PUBLIC_MEILISEARCH_URL` | frontend | Browser-facing MeiliSearch URL (subdomain) |
-| `PUBLIC_MEILISEARCH_SEARCH_KEY` | frontend | Read-only MeiliSearch key for browser search |
-| `PUBLIC_SPACETIMEDB_URL` | frontend | Browser-facing SpacetimeDB URL (subdomain, `wss://`) |
-| `PUBLIC_SPACETIMEDB_MODULE` | frontend | SpacetimeDB module name (default: `spellbook`) |
-| `AGGRESSIVE_PRELOAD` | worker | `true` = all printings, `false` = default cards only |
-| `SYNC_INTERVAL` | worker | `daily`, `weekly`, or `manual` |
-| `LANGUAGES` | worker | Comma-separated language codes (e.g., `en`, `en,de,ja`) |
-| `PANGOLIN_ENDPOINT` | newt | URL of your Pangolin instance |
-| `NEWT_ID` | newt | Site ID from Pangolin dashboard |
-| `NEWT_SECRET` | newt | Site secret from Pangolin dashboard |
 
 ## Resetting SpacetimeDB Ownership
 
-The publisher identity is now stored in the `stdb_publish_config` volume. For a clean reset:
+If you need to reset local SpacetimeDB ownership for a clean publish cycle:
 
 ```bash
 podman-compose down
 podman volume rm spellbook_spacetimedb_data spellbook_spacetimedb_config spellbook_stdb_publish_config
 podman-compose up -d
 ```
-
-The first boot republishes the module under the persistent publisher identity. Later restarts reuse that identity and should not hit prior-owner authorization errors.
