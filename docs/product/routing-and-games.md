@@ -1,5 +1,11 @@
 # Routing and Games
 
+- Status: Canonical
+- Last Reviewed: 2026-04-08
+- Source of Truth: code
+- Update Triggers: route additions, route removals, supported game changes, auth protection changes
+- Related Docs: [Product Docs](./README.md), [Platform Overview](./platform-overview.md), [Frontend Architecture](../architecture/frontend.md)
+
 This document defines the current route surface and the planned canonical game-scoped route contract.
 
 ## Current Routes in Code
@@ -47,15 +53,15 @@ Meaning:
 
 ### Current
 
-- Only the `mtg` game slug is implemented end to end.
-- The root route `/` still exists and acts as the platform-level selector.
-- The future `play` surface does not exist yet.
+- only the `mtg` game slug is implemented end to end
+- the root route `/` still exists and acts as the platform-level selector
+- the future `play` surface does not exist yet
 
 ### Planned
 
-- Top-level feature routes such as `/search` and `/collections` will be removed.
-- The top-level game selector at `/` is also expected to be removed over time.
-- Supported games should eventually live only under their own game slug.
+- top-level feature routes such as `/search` and `/collections` will be removed
+- the top-level game selector at `/` is also expected to be removed over time
+- supported games should eventually live only under their own game slug
 
 ## Game Support Status
 
@@ -69,9 +75,3 @@ Meaning:
 - `yugioh`
 
 There are no `/pokemon/*` or `/yugioh/*` route files in the codebase today.
-
-## Rules for Future Game Adapters
-
-- Game routes must be explicitly implemented. Naming a future game in product copy does not mean route support exists.
-- Search behavior may diverge by game because metadata, vocabularies, and filters are not universal across TCGs.
-- Inventory, deck, and play workflows should reuse platform concepts where possible, but game-specific adapters may still differ in detail.

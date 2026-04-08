@@ -1,5 +1,11 @@
 # Platform Overview
 
+- Status: Canonical
+- Last Reviewed: 2026-04-08
+- Source of Truth: mixed
+- Update Triggers: product scope changes, supported game changes, route model changes, pillar status changes
+- Related Docs: [Product Docs](./README.md), [Routing and Games](./routing-and-games.md), [Feature Status](./feature-status.md), [System Overview](../architecture/system-overview.md)
+
 Spellbook is an MTG-first, multi-TCG platform for card search, owned inventory, decks, and future play workflows.
 
 ## Current Product State
@@ -8,13 +14,13 @@ Spellbook currently ships one working adapter: Magic: The Gathering.
 
 Implemented MTG product areas:
 
-- Search
-- Inventory
-- Decks
+- search
+- inventory
+- decks
 
 Planned but not implemented as a product area:
 
-- Play
+- play
 
 Current live MTG routes:
 
@@ -62,17 +68,3 @@ The current product model is inventory-and-decks based, not collection based.
 - `spellbook` is a presentation mode within MTG inventory, not the canonical domain model
 
 This is already reflected in the backend schema and reducers.
-
-## Architecture Summary
-
-Spellbook currently uses:
-
-- SvelteKit frontend
-- SpacetimeDB for user-scoped state and real-time sync
-- MeiliSearch for catalog search
-- Python worker for MTG catalog ingestion from Scryfall
-- Zitadel for direct OIDC authentication
-
-## Non-Goals of This Doc
-
-This document does not promise timelines for future TCG adapters. It exists to separate current implementation truth from the intended platform shape.

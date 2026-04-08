@@ -64,10 +64,10 @@ Core stack:
 ## Documentation
 
 - [Docs index](/home/kyle/CodingProjects/spellbook/docs/README.md)
-- [Platform overview](/home/kyle/CodingProjects/spellbook/docs/platform-overview.md)
-- [Routing and games](/home/kyle/CodingProjects/spellbook/docs/routing-and-games.md)
-- [Deployment guide](/home/kyle/CodingProjects/spellbook/docs/deployment.md)
-- [Zitadel setup](/home/kyle/CodingProjects/spellbook/docs/zitadel.md)
+- [Platform overview](/home/kyle/CodingProjects/spellbook/docs/product/platform-overview.md)
+- [Routing and games](/home/kyle/CodingProjects/spellbook/docs/product/routing-and-games.md)
+- [Deployment guide](/home/kyle/CodingProjects/spellbook/docs/operations/deployment.md)
+- [Zitadel setup](/home/kyle/CodingProjects/spellbook/docs/operations/zitadel.md)
 
 ## License
 

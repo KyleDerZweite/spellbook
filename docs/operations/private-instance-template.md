@@ -1,5 +1,11 @@
 # Private Instance Template
 
+- Status: Canonical
+- Last Reviewed: 2026-04-08
+- Source of Truth: operator notes
+- Update Triggers: deployment note template changes, operator note conventions
+- Related Docs: [Operations Docs](./README.md), [Deployment](./deployment.md), [Zitadel](./zitadel.md)
+
 Use this template for deployment-specific notes that should not live in the canonical repo docs.
 
 ## Instance Identity
@@ -38,12 +44,3 @@ Use this template for deployment-specific notes that should not live in the cano
 - Support contact:
 - Impressum or company details:
 - Data retention notes:
-
-## Instance-Specific Overrides
-
-Document anything that differs from the generic repo docs here, such as:
-
-- custom domains
-- provider-specific tunnel setup
-- local compliance notes
-- operational shortcuts

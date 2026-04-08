@@ -1,57 +1,96 @@
-# Spellbook Documentation
+# Spellbook Docs
 
-This directory documents the current Spellbook product and the planned platform direction.
+- Status: Canonical
+- Last Reviewed: 2026-04-08
+- Source of Truth: mixed
+- Update Triggers: docs structure, canonical doc locations, historical-doc policy, maintenance workflow
+- Related Docs: [Product](./product/README.md), [Architecture](./architecture/README.md), [Operations](./operations/README.md), [Integrations](./integrations/README.md), [Decisions](./decisions/README.md), [Reference](./reference/README.md)
 
-## Canonical Docs
+This is the mandatory entrypoint for repository documentation.
+
+## What Is Canonical
+
+Canonical docs live under the typed sections in `docs/`:
+
+- [Product](./product/README.md)
+- [Architecture](./architecture/README.md)
+- [Operations](./operations/README.md)
+- [Integrations](./integrations/README.md)
+- [Decisions](./decisions/README.md)
+- [Reference](./reference/README.md)
+
+Use these for active project truth.
+
+## Historical Material
+
+Superseded documentation should not stay on the active docs surface.
+
+When an old doc is no longer useful as active documentation, delete it and rely on git history for the historical record.
+
+## Taxonomy
 
 ### Product
 
-- [Platform overview](./platform-overview.md) - what Spellbook is today and what it is becoming
-- [Routing and games](./routing-and-games.md) - current routes, canonical future route contract, and game-scoping rules
-- [Feature status](./feature-status.md) - implementation status by pillar and by game
-- [UI design direction](./ui-design-direction.md) - active visual and interaction direction for the product
+Use [product](./product/README.md) for:
+
+- product behavior
+- route surfaces
+- terminology
+- feature status
+- implemented versus planned distinctions
+
+### Architecture
+
+Use [architecture](./architecture/README.md) for:
+
+- internal system shape
+- data flow
+- subsystem boundaries
+- backend and frontend contracts
 
 ### Operations
 
-- [Deployment guide](./deployment.md) - generic self-hosted deployment guidance
-- [Zitadel setup](./zitadel.md) - direct OIDC setup for Spellbook
-- [Private instance template](./private-instance-template.md) - non-repo template for live domains, client IDs, and operator-specific notes
+Use [operations](./operations/README.md) for:
 
-### Search
+- deployment
+- auth provider setup
+- required env vars
+- operator-facing guidance
 
-- [MeiliSearch overview](./meilisearch/README.md)
-- [Authentication](./meilisearch/authentication.md)
-- [Documents](./meilisearch/documents.md)
-- [Indexes and settings](./meilisearch/indexes-and-settings.md)
-- [Search API](./meilisearch/search-api.md)
-- [Tasks](./meilisearch/tasks.md)
+### Integrations
+
+Use [integrations](./integrations/README.md) for:
+
+- vendor-specific or service-specific technical details
+
+### Decisions
+
+Use [decisions](./decisions/README.md) for:
+
+- architectural or product decisions
+- tradeoffs
+- consequences
+- follow-up implications
 
 ### Reference
 
-- [Bits UI reference index](./bits-ui.md)
-- [Mana font reference](./fonts/mana.md)
+Use [reference](./reference/README.md) for:
 
-## Current Truth
+- low-volatility helper docs
+- external doc indexes
+- dependency reference notes
 
-- MTG is the only implemented game today.
-- The live product routes are `/`, `/mtg/`, `/mtg/search`, `/mtg/inventory`, and `/mtg/decks`.
-- `/search` and `/collections*` still exist only as temporary MTG redirects.
-- Spellbook already uses game-aware backend models, but non-MTG adapters are not implemented yet.
+## Contributor Maintenance Rules
 
-## Planned Direction
+- If behavior, routes, schema, auth flow, env vars, or operator steps change, update the relevant canonical doc in the same change.
+- If a significant architectural or product decision is made, create or update an ADR in `docs/decisions/`.
+- If a doc becomes historical or superseded, remove it from the active surface and rely on git history instead of keeping an in-repo archive tree.
+- Do not create long-lived project knowledge markdown in random repo locations.
+- Use plain markdown only. No Obsidian-only syntax.
 
-The long-term route contract is:
+## Current Project State
 
-```text
-/:game/{index,search,inventory,decks,play}
-```
-
-This contract is documented as platform direction, not as fully implemented behavior.
-
-## Historical Docs
-
-The [superpowers](./superpowers/README.md) directory is historical. Those files describe earlier collection-era plans and should not be used as the current source of truth.
-
-## Follow-Up Outside This Pass
-
-The in-app legal pages under `frontend/src/routes/privacy` and `frontend/src/routes/terms` are still instance-specific and MTG-specific. They are intentionally not updated in this documentation pass.
+- MTG is the only implemented game.
+- The active route surface is documented in [product/routing-and-games.md](./product/routing-and-games.md).
+- The current system architecture is documented in [architecture/system-overview.md](./architecture/system-overview.md).
+- The MeiliSearch integration is documented in [integrations/meilisearch/README.md](./integrations/meilisearch/README.md).
