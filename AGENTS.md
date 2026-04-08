@@ -53,23 +53,6 @@ This is the primary instruction file for coding agents. Follow it strictly.
 * Do not keep a docs archive directory. Remove superseded docs and use git history when historical recovery is needed.
 * Do not plan a separate `wiki/` unless the docs and ADR corpus outgrow this structure or raw research material becomes a first-class repo concern.
 
-## 6. Skill Usage
-
-* **Brainstorming skill:** Only invoke the full brainstorming skill when the user explicitly asks for it or when the task is genuinely complex with unclear instructions. For straightforward tasks where the intent is clear, skip brainstorming and proceed directly with implementation.
-
-## 7. Subagent Orchestration
-
-Use subagents when multiple independent tasks can be parallelized or when the user explicitly requests it.
-
-For complex tasks:
-
-1.  **Research:** Use a lightweight subagent to gather documentation and codebase context.
-2.  **Review research:** Use a second lightweight subagent to synthesize findings and flag gaps or conflicts.
-3.  **Implement:** Use an implementation-focused subagent when delegation is materially useful.
-4.  **Review implementation:** Use a lightweight subagent to review correctness, style, and convention adherence.
-
-Skip stages that do not apply.
-
 ---
 
 # Project Specific Instructions
