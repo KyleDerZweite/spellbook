@@ -5,6 +5,7 @@
 	import { connect, disconnect } from '$lib/spacetimedb/client';
 	import { initMeiliSearch } from '$lib/search/meilisearch';
 	import { authState } from '$lib/auth/state.svelte';
+	import { SITE_NAME, SITE_THEME_COLOR } from '$lib/seo/site';
 	import type { Snippet } from 'svelte';
 	import type { AuthUser } from '$lib/auth/types';
 
@@ -39,6 +40,14 @@
 		disconnect();
 	});
 </script>
+
+<svelte:head>
+	<meta name="application-name" content={SITE_NAME} />
+	<meta property="og:site_name" content={SITE_NAME} />
+	<meta property="og:type" content="website" />
+	<meta name="twitter:card" content="summary" />
+	<meta name="theme-color" content={SITE_THEME_COLOR} />
+</svelte:head>
 
 <Shell>
 	{@render children()}

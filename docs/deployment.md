@@ -22,6 +22,17 @@ The frontend is a **Node.js server**, not nginx. SvelteKit compiles with `adapte
 - The browser connects to MeiliSearch (read-only key) for card search
 - The browser connects via WebSocket to SpacetimeDB using the Zitadel ID token
 
+### Public Metadata Surface
+
+The frontend origin also serves the crawler and metadata endpoints that describe the site:
+
+- `robots.txt`
+- `sitemap.xml`
+- `/.well-known/security.txt`
+- `/openapi.json`
+
+These routes should stay on the same origin as the app so `APP_ORIGIN` remains the single source of truth for canonical URLs and crawler policy. The sitemap should stay small and explicit, and only list pages that are intentionally public.
+
 ### Network model
 
 No host ports are exposed. All services communicate over the internal Docker network. External access is exclusively through Pangolin:

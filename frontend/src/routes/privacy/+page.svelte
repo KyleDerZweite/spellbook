@@ -1,5 +1,29 @@
+<script lang="ts">
+	import { page } from '$app/state';
+	import { SITE_NAME, pageMetadata } from '$lib/seo/site';
+
+	const meta = $derived(
+		pageMetadata({
+			origin: page.url.origin,
+			path: '/privacy',
+			title: 'Privacy Policy - Spellbook',
+			description: 'How Spellbook handles account data, cookies, and related inventory information.'
+		})
+	);
+</script>
+
 <svelte:head>
-	<title>Privacy Policy - Spellbook</title>
+	<title>{meta.title}</title>
+	<meta name="description" content={meta.description} />
+	<link rel="canonical" href={meta.canonical} />
+	<meta property="og:title" content={meta.title} />
+	<meta property="og:description" content={meta.description} />
+	<meta property="og:url" content={meta.url} />
+	<meta property="og:type" content="website" />
+	<meta property="og:site_name" content={SITE_NAME} />
+	<meta name="twitter:card" content="summary" />
+	<meta name="twitter:title" content={meta.title} />
+	<meta name="twitter:description" content={meta.description} />
 </svelte:head>
 
 <div class="mx-auto max-w-3xl px-6 py-12">

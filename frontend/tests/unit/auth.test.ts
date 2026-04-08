@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { NO_INDEX_ROBOTS_TAG } from '../../src/lib/seo/site';
 import {
 	readOAuthStateCookie,
 	readSessionCookie,
@@ -39,6 +40,7 @@ vi.mock('$lib/server/auth/zitadel', async () => {
 });
 
 import { GET as callbackGet } from '../../src/routes/auth/callback/+server';
+import { GET as loginGet } from '../../src/routes/auth/login/+server';
 import { GET as logoutGet } from '../../src/routes/auth/logout/+server';
 import { handle } from '../../src/hooks.server';
 
@@ -72,20 +74,37 @@ describe('auth flow', () => {
 	it('redirects protected routes to login when no session exists', async () => {
 		const cookies = createCookies();
 
-		await expect(
-			handle({
-				event: {
-					url: new URL('https://spellbook.example.test/mtg/search?q=bolt'),
-					cookies,
-					locals: {},
-					request: new Request('https://spellbook.example.test/mtg/search?q=bolt')
-				},
-				resolve: vi.fn()
-			} as never)
-		).rejects.toMatchObject({
-			status: 302,
-			location: '/auth/login?returnTo=%2Fmtg%2Fsearch%3Fq%3Dbolt'
-		});
+		const response = await handle({
+			event: {
+				url: new URL('https://spellbook.example.test/mtg/search?q=bolt'),
+				cookies,
+				locals: {},
+				request: new Request('https://spellbook.example.test/mtg/search?q=bolt')
+			},
+			resolve: vi.fn()
+		} as never);
+
+		expect(response.status).toBe(302);
+		expect(response.headers.get('location')).toBe(
+			'/auth/login?returnTo=%2Fmtg%2Fsearch%3Fq%3Dbolt'
+		);
+		expect(response.headers.get('x-robots-tag')).toBe(NO_INDEX_ROBOTS_TAG);
+	});
+
+	it('login redirect for an authenticated user includes noindex headers', async () => {
+		const cookies = createCookies();
+
+		const response = await loginGet({
+			url: new URL('https://spellbook.example.test/auth/login?returnTo=/mtg/search'),
+			cookies,
+			locals: {
+				user: { accountId: 'user-123', username: 'mage', email: 'mage@example.test' }
+			}
+		} as never);
+
+		expect(response.status).toBe(302);
+		expect(response.headers.get('location')).toBe('/mtg/search');
+		expect(response.headers.get('x-robots-tag')).toBe(NO_INDEX_ROBOTS_TAG);
 	});
 
 	it('callback stores the encrypted session and redirects to returnTo', async () => {
@@ -104,15 +123,14 @@ describe('auth flow', () => {
 			expiresAt: Date.now() + 3600_000
 		});
 
-		await expect(
-			callbackGet({
-				url: new URL('https://spellbook.example.test/auth/callback?code=test-code&state=state-123'),
-				cookies
-			} as never)
-		).rejects.toMatchObject({
-			status: 302,
-			location: '/mtg/search'
-		});
+		const response = await callbackGet({
+			url: new URL('https://spellbook.example.test/auth/callback?code=test-code&state=state-123'),
+			cookies
+		} as never);
+
+		expect(response.status).toBe(302);
+		expect(response.headers.get('location')).toBe('/mtg/search');
+		expect(response.headers.get('x-robots-tag')).toBe(NO_INDEX_ROBOTS_TAG);
 
 		const session = await readSessionCookie(cookies as never, AUTH_SECRET);
 		const oauthState = await readOAuthStateCookie(cookies as never, AUTH_SECRET);
@@ -133,10 +151,11 @@ describe('auth flow', () => {
 
 		zitadelMocks.buildLogoutUrl.mockResolvedValue('https://auth.example.test/logout');
 
-		await expect(logoutGet({ cookies } as never)).rejects.toMatchObject({
-			status: 302,
-			location: 'https://auth.example.test/logout'
-		});
+		const response = await logoutGet({ cookies } as never);
+
+		expect(response.status).toBe(302);
+		expect(response.headers.get('location')).toBe('https://auth.example.test/logout');
+		expect(response.headers.get('x-robots-tag')).toBe(NO_INDEX_ROBOTS_TAG);
 
 		expect(await readSessionCookie(cookies as never, AUTH_SECRET)).toBeNull();
 	});
@@ -184,6 +203,7 @@ describe('auth flow', () => {
 		} as never);
 
 		expect(response.status).toBe(200);
+		expect(response.headers.get('x-robots-tag')).toBe(NO_INDEX_ROBOTS_TAG);
 		expect(zitadelMocks.refreshAuthSession).toHaveBeenCalledOnce();
 		expect(locals.user?.accountId).toBe('user-123');
 		expect(locals.spacetimeToken).toBe('fresh-token');

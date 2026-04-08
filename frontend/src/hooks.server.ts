@@ -1,5 +1,6 @@
-import { redirect, type Handle } from '@sveltejs/kit';
+import type { Handle } from '@sveltejs/kit';
 import { privateEnv } from '$lib/env/private';
+import { NO_INDEX_ROBOTS_TAG, createNoIndexRedirect } from '$lib/seo/site';
 import {
 	getAuthSessionSecret,
 	clearSessionCookie,
@@ -100,8 +101,19 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const pathname = event.url.pathname;
 	if (!isPublicPath(pathname) && isProtectedPath(pathname) && !session) {
 		const returnTo = `${pathname}${event.url.search}`;
-		throw redirect(302, `/auth/login?returnTo=${encodeURIComponent(returnTo)}`);
+		return createNoIndexRedirect(`/auth/login?returnTo=${encodeURIComponent(returnTo)}`);
 	}
 
-	return resolve(event);
+	const response = await resolve(event);
+	if (
+		pathname.startsWith('/auth/') ||
+		pathname.startsWith('/api/') ||
+		pathname.startsWith('/mtg') ||
+		pathname.startsWith('/collections') ||
+		pathname.startsWith('/search')
+	) {
+		response.headers.set('X-Robots-Tag', NO_INDEX_ROBOTS_TAG);
+	}
+
+	return response;
 };

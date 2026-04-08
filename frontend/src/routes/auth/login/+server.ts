@@ -1,5 +1,5 @@
-import { redirect } from '@sveltejs/kit';
 import { privateEnv } from '$lib/env/private';
+import { createNoIndexRedirect } from '$lib/seo/site';
 import type { RequestHandler } from './$types';
 import { getAuthSessionSecret, writeOAuthStateCookie } from '$lib/server/auth/session';
 import {
@@ -12,7 +12,7 @@ import {
 export const GET: RequestHandler = async ({ url, cookies, locals }) => {
 	const returnTo = sanitizeReturnTo(url.searchParams.get('returnTo'));
 	if (locals.user) {
-		throw redirect(302, returnTo);
+		return createNoIndexRedirect(returnTo);
 	}
 
 	const config = getZitadelAuthConfig(privateEnv);
@@ -28,8 +28,7 @@ export const GET: RequestHandler = async ({ url, cookies, locals }) => {
 		returnTo
 	});
 
-	throw redirect(
-		302,
+	return createNoIndexRedirect(
 		await buildAuthorizationUrl(config, {
 			state,
 			nonce,

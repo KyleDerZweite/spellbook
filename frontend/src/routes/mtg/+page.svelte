@@ -12,7 +12,7 @@
 			href: '/mtg/inventory',
 			title: 'Inventory',
 			description:
-				'Track what you own, inspect set progress, and switch between list and spellbook views.',
+				'Track what you own and inspect set completion progress.',
 			eyebrow: 'Owned ledger'
 		},
 		{
@@ -57,8 +57,7 @@
 
 			<div class="mt-8 grid gap-4 sm:grid-cols-3">
 				<div
-					class="rounded px-4 py-4"
-					style="background-color: rgba(28, 23, 32, 0.72); border: 1px solid rgba(196, 146, 42, 0.14);"
+					class="rounded px-4 py-4 bg-stone/72 border border-gold/14"
 				>
 					<p class="font-mono text-2xl text-gold-bright">{stats.total}</p>
 					<p class="mt-1 font-body text-xs uppercase tracking-[0.2em] text-text-secondary">
@@ -66,8 +65,7 @@
 					</p>
 				</div>
 				<div
-					class="rounded px-4 py-4"
-					style="background-color: rgba(28, 23, 32, 0.72); border: 1px solid rgba(196, 146, 42, 0.14);"
+					class="rounded px-4 py-4 bg-stone/72 border border-gold/14"
 				>
 					<p class="font-mono text-2xl text-gold-bright">{stats.unique}</p>
 					<p class="mt-1 font-body text-xs uppercase tracking-[0.2em] text-text-secondary">
@@ -75,8 +73,7 @@
 					</p>
 				</div>
 				<div
-					class="rounded px-4 py-4"
-					style="background-color: rgba(28, 23, 32, 0.72); border: 1px solid rgba(196, 146, 42, 0.14);"
+					class="rounded px-4 py-4 bg-stone/72 border border-gold/14"
 				>
 					<p class="font-mono text-2xl text-gold-bright">{spacetimeState.getDecks('mtg').length}</p>
 					<p class="mt-1 font-body text-xs uppercase tracking-[0.2em] text-text-secondary">Decks</p>
@@ -125,8 +122,7 @@
 						{#each decks as deck}
 							<a
 								href="/mtg/decks"
-								class="rounded px-4 py-4 no-underline transition-colors hover:bg-mist"
-								style="background-color: rgba(28, 23, 32, 0.58); border: 1px solid rgba(196, 146, 42, 0.12);"
+								class="rounded px-4 py-4 no-underline transition-colors hover:bg-mist bg-stone/58 border border-gold/12"
 							>
 								<p class="font-display text-lg font-bold text-text-primary">{deck.name}</p>
 								<p class="mt-1 font-body text-sm text-text-secondary">

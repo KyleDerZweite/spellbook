@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { SITE_NAME, pageMetadata } from '$lib/seo/site';
 
 	const gameCards = [
 		{
@@ -34,6 +35,15 @@
 	] as const;
 
 	const isAuthenticated = $derived(Boolean(page.data.user));
+	const meta = $derived(
+		pageMetadata({
+			origin: page.url.origin,
+			path: '/',
+			title: 'Spellbook | Choose Your Game',
+			description:
+				'Spellbook is a self-hosted trading card game inventory platform built for MTG today and other TCGs next.'
+		})
+	);
 
 	function getEntryHref(game: (typeof gameCards)[number]): string | undefined {
 		if (!game.available) {
@@ -45,7 +55,16 @@
 </script>
 
 <svelte:head>
-	<title>Spellbook | Choose Your Game</title>
+	<title>{meta.title}</title>
+	<meta name="description" content={meta.description} />
+	<link rel="canonical" href={meta.canonical} />
+	<meta property="og:title" content={meta.title} />
+	<meta property="og:description" content={meta.description} />
+	<meta property="og:url" content={meta.url} />
+	<meta property="og:type" content="website" />
+	<meta property="og:site_name" content={SITE_NAME} />
+	<meta name="twitter:title" content={meta.title} />
+	<meta name="twitter:description" content={meta.description} />
 </svelte:head>
 
 <div class="relative overflow-hidden">

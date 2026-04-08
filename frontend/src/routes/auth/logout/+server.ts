@@ -1,5 +1,5 @@
-import { redirect } from '@sveltejs/kit';
 import { privateEnv } from '$lib/env/private';
+import { createNoIndexRedirect } from '$lib/seo/site';
 import type { RequestHandler } from './$types';
 import { buildLogoutUrl, getZitadelAuthConfig } from '$lib/server/auth/zitadel';
 import {
@@ -15,5 +15,5 @@ export const GET: RequestHandler = async ({ cookies }) => {
 	clearSessionCookie(cookies);
 
 	const config = getZitadelAuthConfig(privateEnv);
-	throw redirect(302, await buildLogoutUrl(config, session?.idToken));
+	return createNoIndexRedirect(await buildLogoutUrl(config, session?.idToken));
 };

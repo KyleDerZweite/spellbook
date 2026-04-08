@@ -1,52 +1,71 @@
 # Spellbook
 
-**MTG-first, multi-TCG-ready inventory and deck companion**
+**MTG-first, multi-TCG platform for search, inventory, decks, and future play**
 
-Spellbook is a self-hosted trading card game inventory platform built for speed and real-time collaboration. The app now uses a game selector at `/`, with MTG living under `/mtg/` and room for future Pokemon, Yu-Gi-Oh!, and other TCG-specific experiences.
+Spellbook is a self-hosted trading card game platform. Today, MTG is the only implemented game. The live product currently exposes a game selector at `/`, with MTG under `/mtg/`.
 
-> MTG is the first implemented game. The current MVP includes MTG search, a canonical owned inventory, set progress, deck management, and a spellbook-style inventory mode.
+Current MTG product areas:
 
-## V1 Architecture
+- search
+- inventory
+- decks
 
+Planned platform direction:
+
+- per-game routing under `/:game/...`
+- future `play` surface per supported game
+
+## Current Routes
+
+- `/`
+- `/mtg/`
+- `/mtg/search`
+- `/mtg/inventory`
+- `/mtg/decks`
+
+Top-level `/search` and `/collections*` still exist only as temporary MTG redirects and are planned for removal.
+
+## Planned Route Model
+
+The long-term route contract is:
+
+```text
+/:game/{index,search,inventory,decks,play}
 ```
-┌─────────────────┐     ┌──────────────────────┐     ┌─────────────────┐
-│   SvelteKit     │────▶│   SpacetimeDB        │────▶│   MeiliSearch   │
-│   (Game-scoped) │     │   (TS Modules + DB)  │     │   (Search)      │
-└─────────────────┘     └──────────────────────┘     └─────────────────┘
-                                   │
-                        ┌──────────┴──────────┐
-                        ▼                     ▼
-              ┌─────────────────┐   ┌─────────────────┐
-              │  Python Worker  │   │  Scryfall Data  │
-              │  (Sync + Jobs)  │   │  (Card Catalog) │
-              └─────────────────┘   └─────────────────┘
+
+This is the planned platform shape, not the current implementation status for all games.
+
+## Architecture
+
+```text
+SvelteKit -> SpacetimeDB -> MeiliSearch
+                    \
+                     -> Python worker -> Scryfall data
 ```
 
-**Stack:**
-- **SpacetimeDB** - real-time database with TypeScript modules (replaces FastAPI + PostgreSQL + WebSockets)
-- **SvelteKit** - game-scoped web frontend with SSR
-- **MeiliSearch** - full-text card search
-- **Python worker** - Scryfall sync, background jobs
+Core stack:
 
-## Product Model
-
-- `/` is the game selector
-- `/mtg/` is the MTG landing page
-- `/mtg/search` searches the MTG catalog
-- `/mtg/inventory` tracks one canonical owned MTG inventory with list and spellbook modes
-- `/mtg/decks` manages MTG decks separately from inventory, with owned-versus-required counts
+- SpacetimeDB for user-scoped real-time data
+- SvelteKit for the frontend
+- MeiliSearch for catalog search
+- Python worker for MTG catalog ingestion and sync
+- Zitadel for direct OIDC authentication
 
 ## Status
 
-| Component | Status |
-|-----------|--------|
-| SpacetimeDB module | Implemented (Phase 1) |
-| Python sync worker | Implemented (Phase 2) |
-| MeiliSearch integration | Implemented for MTG |
-| SvelteKit frontend | Implemented for MTG selector, search, inventory, and decks |
+| Area | Status |
+|------|--------|
+| MTG search | Implemented |
+| MTG inventory | Implemented |
+| MTG decks | Implemented |
+| MTG play | Not implemented |
+| Non-MTG adapters | Not implemented |
 
-## Docs
+## Documentation
 
+- [Docs index](/home/kyle/CodingProjects/spellbook/docs/README.md)
+- [Platform overview](/home/kyle/CodingProjects/spellbook/docs/platform-overview.md)
+- [Routing and games](/home/kyle/CodingProjects/spellbook/docs/routing-and-games.md)
 - [Deployment guide](/home/kyle/CodingProjects/spellbook/docs/deployment.md)
 - [Zitadel setup](/home/kyle/CodingProjects/spellbook/docs/zitadel.md)
 
@@ -57,4 +76,3 @@ Spellbook is a self-hosted trading card game inventory platform built for speed 
 ## Acknowledgements
 
 - Card data provided by [Scryfall](https://scryfall.com/)
-- Architecture and design assisted by [Claude](https://claude.ai) (Anthropic)

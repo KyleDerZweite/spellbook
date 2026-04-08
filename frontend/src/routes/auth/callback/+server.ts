@@ -1,5 +1,5 @@
-import { redirect } from '@sveltejs/kit';
 import { privateEnv } from '$lib/env/private';
+import { createNoIndexRedirect } from '$lib/seo/site';
 import type { RequestHandler } from './$types';
 import {
 	clearOAuthStateCookie,
@@ -13,7 +13,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 	const errorCode = url.searchParams.get('error');
 	if (errorCode) {
 		clearOAuthStateCookie(cookies);
-		throw redirect(302, '/');
+		return createNoIndexRedirect('/');
 	}
 
 	const code = url.searchParams.get('code');
@@ -23,7 +23,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 
 	if (!code || !returnedState || !storedState || storedState.state !== returnedState) {
 		clearOAuthStateCookie(cookies);
-		throw redirect(302, '/');
+		return createNoIndexRedirect('/');
 	}
 
 	const config = getZitadelAuthConfig(privateEnv);
@@ -36,5 +36,5 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 	await writeSessionCookie(cookies, sessionSecret, session);
 	clearOAuthStateCookie(cookies);
 
-	throw redirect(302, storedState.returnTo);
+	return createNoIndexRedirect(storedState.returnTo);
 };

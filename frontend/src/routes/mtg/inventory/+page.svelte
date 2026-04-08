@@ -5,7 +5,6 @@
 	import { getSetCatalogSize } from '$lib/search/meilisearch';
 	import type { InventoryCard } from '$bindings/types';
 
-	type InventoryMode = 'list' | 'spellbook';
 	type InventorySort = 'name' | 'set' | 'recent';
 
 	interface SetProgress {
@@ -16,14 +15,10 @@
 		completed: boolean;
 	}
 
-	const SPELLBOOK_PAGE_SIZE = 9;
-
-	let mode: InventoryMode = $state('list');
 	let sortBy: InventorySort = $state('name');
 	let query = $state('');
 	let setTotals: Record<string, number> = $state({});
 	let setProgressLoading = $state(false);
-	let draggedEntryId: string | null = $state(null);
 
 	let inventoryCards = $derived(spacetimeState.getInventoryCards('mtg'));
 	let inventoryStats = $derived(spacetimeState.getInventoryStats('mtg'));
@@ -52,27 +47,6 @@
 		});
 
 		return next;
-	});
-
-	let spellbookCards = $derived(
-		[...inventoryCards].sort((a, b) => a.spellbookPosition - b.spellbookPosition)
-	);
-
-	let spellbookPages = $derived.by(() => {
-		const pages: Array<Array<InventoryCard | null>> = [];
-		for (
-			let index = 0;
-			index < Math.max(spellbookCards.length, SPELLBOOK_PAGE_SIZE);
-			index += SPELLBOOK_PAGE_SIZE
-		) {
-			const pageCards = spellbookCards.slice(index, index + SPELLBOOK_PAGE_SIZE);
-			const page = Array.from(
-				{ length: SPELLBOOK_PAGE_SIZE },
-				(_, slotIndex) => pageCards[slotIndex] ?? null
-			);
-			pages.push(page);
-		}
-		return pages;
 	});
 
 	let setProgress = $derived.by(() => {
@@ -172,23 +146,6 @@
 		}
 	}
 
-	async function handleDrop(targetPosition: number) {
-		if (!draggedEntryId) return;
-
-		const conn = getConnection();
-		if (!conn) return;
-
-		try {
-			await conn.reducers.reorderInventoryCard({
-				entryId: draggedEntryId,
-				targetPosition
-			});
-		} catch (err) {
-			spacetimeState.error = `Failed to reorder spellbook: ${String(err)}`;
-		} finally {
-			draggedEntryId = null;
-		}
-	}
 </script>
 
 <svelte:head>
@@ -210,38 +167,34 @@
 			<div class="max-w-2xl">
 				<p class="font-mono text-[11px] uppercase tracking-[0.3em] text-gold-dim">MTG Inventory</p>
 				<h1 class="mt-3 font-display text-3xl font-bold text-gold-bright sm:text-4xl">
-					One owned ledger, two ways to inhabit it.
+					Your owned card ledger.
 				</h1>
 				<p class="mt-3 font-body leading-7 text-text-secondary">
-					List mode is for speed. Spellbook mode is for arranging the cards like a living binder.
+					Track what you own and inspect set completion progress.
 				</p>
 			</div>
 
 			<div class="grid gap-3 sm:grid-cols-4">
 				<div
-					class="rounded px-4 py-3"
-					style="background-color: rgba(28, 23, 32, 0.62); border: 1px solid rgba(196, 146, 42, 0.12);"
+					class="rounded px-4 py-3 bg-stone/62 border border-gold/12"
 				>
 					<p class="font-mono text-xl text-gold-bright">{inventoryStats.total}</p>
 					<p class="font-body text-[11px] uppercase tracking-[0.2em] text-text-secondary">Cards</p>
 				</div>
 				<div
-					class="rounded px-4 py-3"
-					style="background-color: rgba(28, 23, 32, 0.62); border: 1px solid rgba(196, 146, 42, 0.12);"
+					class="rounded px-4 py-3 bg-stone/62 border border-gold/12"
 				>
 					<p class="font-mono text-xl text-gold-bright">{inventoryStats.unique}</p>
 					<p class="font-body text-[11px] uppercase tracking-[0.2em] text-text-secondary">Unique</p>
 				</div>
 				<div
-					class="rounded px-4 py-3"
-					style="background-color: rgba(28, 23, 32, 0.62); border: 1px solid rgba(196, 146, 42, 0.12);"
+					class="rounded px-4 py-3 bg-stone/62 border border-gold/12"
 				>
 					<p class="font-mono text-xl text-gold-bright">{inventoryStats.sets}</p>
 					<p class="font-body text-[11px] uppercase tracking-[0.2em] text-text-secondary">Sets</p>
 				</div>
 				<div
-					class="rounded px-4 py-3"
-					style="background-color: rgba(28, 23, 32, 0.62); border: 1px solid rgba(196, 146, 42, 0.12);"
+					class="rounded px-4 py-3 bg-stone/62 border border-gold/12"
 				>
 					<p class="font-mono text-xl text-gold-bright">{completedSetCount}</p>
 					<p class="font-body text-[11px] uppercase tracking-[0.2em] text-text-secondary">
@@ -254,8 +207,7 @@
 
 	{#if spacetimeState.error}
 		<p
-			class="rounded px-3 py-2 font-body text-sm text-error"
-			style="background-color: rgba(138, 32, 32, 0.1); border: 1px solid rgba(138, 32, 32, 0.3);"
+			class="rounded px-3 py-2 font-body text-sm text-error bg-error/10 border border-error/30"
 		>
 			{spacetimeState.error}
 			<button
@@ -268,8 +220,7 @@
 
 	<section class="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
 		<div
-			class="rounded-lg p-5"
-			style="background-color: rgba(20, 16, 24, 0.92); border: 1px solid rgba(196, 146, 42, 0.14);"
+			class="rounded-lg p-5 bg-crypt/92 border border-gold/14"
 		>
 			<div class="flex items-center justify-between gap-3">
 				<div>
@@ -287,8 +238,7 @@
 				{#if setProgress.length > 0}
 					{#each setProgress.slice(0, 10) as progress}
 						<div
-							class="rounded px-4 py-3"
-							style="background-color: rgba(28, 23, 32, 0.6); border: 1px solid rgba(196, 146, 42, 0.1);"
+							class="rounded px-4 py-3 bg-stone/60 border border-gold/10"
 						>
 							<div class="flex items-center justify-between gap-3">
 								<div>
@@ -300,12 +250,7 @@
 									</p>
 								</div>
 								<span
-									class="rounded px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em]"
-									style="
-										background-color: {progress.completed ? 'rgba(58, 138, 74, 0.18)' : 'rgba(28, 23, 32, 0.9)'};
-										border: 1px solid {progress.completed ? 'rgba(58, 138, 74, 0.35)' : 'rgba(196, 146, 42, 0.14)'};
-										color: {progress.completed ? 'var(--color-success)' : 'var(--color-gold-bright)'};
-									"
+									class="rounded px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em] border {progress.completed ? 'bg-success/18 border-success/35 text-success' : 'bg-stone/90 border-gold/14 text-gold-bright'}"
 								>
 									{progress.percent}%
 								</span>
@@ -327,53 +272,23 @@
 		</div>
 
 		<div
-			class="rounded-lg p-5"
-			style="background-color: rgba(20, 16, 24, 0.92); border: 1px solid rgba(196, 146, 42, 0.14);"
+			class="rounded-lg p-5 bg-crypt/92 border border-gold/14"
 		>
-			<div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-				<div class="flex items-center gap-2">
-					<button
-						onclick={() => (mode = 'list')}
-						class="rounded px-4 py-2 font-display text-xs uppercase tracking-[0.24em]"
-						style="
-							background-color: {mode === 'list' ? 'var(--color-mist)' : 'transparent'};
-							border: 1px solid {mode === 'list' ? 'var(--color-gold)' : 'rgba(196, 146, 42, 0.18)'};
-							color: {mode === 'list' ? 'var(--color-gold-bright)' : 'var(--color-text-secondary)'};
-						"
-					>
-						List
-					</button>
-					<button
-						onclick={() => (mode = 'spellbook')}
-						class="rounded px-4 py-2 font-display text-xs uppercase tracking-[0.24em]"
-						style="
-							background-color: {mode === 'spellbook' ? 'var(--color-mist)' : 'transparent'};
-							border: 1px solid {mode === 'spellbook' ? 'var(--color-gold)' : 'rgba(196, 146, 42, 0.18)'};
-							color: {mode === 'spellbook' ? 'var(--color-gold-bright)' : 'var(--color-text-secondary)'};
-						"
-					>
-						Spellbook
-					</button>
-				</div>
-
-				<div class="flex flex-col gap-3 sm:flex-row">
-					<input
-						type="search"
-						bind:value={query}
-						placeholder={mode === 'list' ? 'Search inventory...' : 'Search affects list mode only'}
-						class="min-w-[220px] rounded px-4 py-2 font-body text-sm text-text-primary placeholder:text-text-muted focus:outline-none"
-						style="background-color: var(--color-crypt); border: 1px solid rgba(196, 146, 42, 0.2);"
-					/>
-					<select
-						bind:value={sortBy}
-						class="rounded px-4 py-2 font-body text-sm text-text-primary focus:outline-none"
-						style="background-color: var(--color-crypt); border: 1px solid rgba(196, 146, 42, 0.2);"
-					>
-						<option value="name">Sort by Name</option>
-						<option value="set">Sort by Set</option>
-						<option value="recent">Sort by Recent</option>
-					</select>
-				</div>
+			<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+				<input
+					type="search"
+					bind:value={query}
+					placeholder="Search inventory..."
+					class="min-w-[220px] rounded px-4 py-2 font-body text-sm text-text-primary placeholder:text-text-muted focus:outline-none bg-crypt border border-gold/20"
+				/>
+				<select
+					bind:value={sortBy}
+					class="rounded px-4 py-2 font-body text-sm text-text-primary focus:outline-none bg-crypt border border-gold/20"
+				>
+					<option value="name">Sort by Name</option>
+					<option value="set">Sort by Set</option>
+					<option value="recent">Sort by Recent</option>
+				</select>
 			</div>
 
 			<OrnamentalDivider class="my-5" />
@@ -384,23 +299,21 @@
 						<p class="font-display text-2xl text-text-primary">Your MTG inventory is empty.</p>
 						<p class="mt-3 font-body text-sm leading-7 text-text-secondary">
 							Start in catalog search, add owned printings, then come back here to review set
-							progress or arrange the spellbook binder.
+							progress.
 						</p>
 						<a
 							href="/mtg/search"
-							class="mt-6 inline-flex rounded-lg px-5 py-3 font-display text-xs uppercase tracking-[0.24em] text-text-on-gold no-underline"
-							style="background: linear-gradient(135deg, var(--color-gold-dim), var(--color-gold)); border: 1px solid var(--color-gold-bright);"
+							class="mt-6 inline-flex rounded-lg px-5 py-3 font-display text-xs uppercase tracking-[0.24em] text-text-on-gold no-underline bg-linear-to-br from-gold-dim to-gold border border-gold-bright"
 						>
 							Go to Search
 						</a>
 					</div>
 				</div>
-			{:else if mode === 'list'}
+			{:else}
 				<div class="flex flex-col gap-3">
 					{#each listCards as card (card.entryId)}
 						<div
-							class="grid gap-4 rounded px-4 py-4 sm:grid-cols-[72px_1fr_auto]"
-							style="background-color: rgba(28, 23, 32, 0.58); border: 1px solid rgba(196, 146, 42, 0.1);"
+							class="grid gap-4 rounded px-4 py-4 sm:grid-cols-[72px_1fr_auto] bg-stone/58 border border-gold/10"
 						>
 							<img
 								src={card.imageUri}
@@ -411,33 +324,26 @@
 								<div class="flex flex-wrap items-center gap-2">
 									<p class="font-display text-xl text-text-primary">{card.name}</p>
 									<span
-										class="rounded px-2 py-1 font-mono text-[10px] uppercase tracking-[0.2em]"
-										style="background-color: rgba(13, 11, 15, 0.8); color: var(--color-gold-bright);"
+										class="rounded px-2 py-1 font-mono text-[10px] uppercase tracking-[0.2em] bg-void/80 text-gold-bright"
 									>
 										{card.setCode}
 									</span>
 									<span
-										class="rounded px-2 py-1 font-mono text-[10px] uppercase tracking-[0.2em]"
-										style="background-color: rgba(13, 11, 15, 0.8); color: var(--color-text-secondary);"
+										class="rounded px-2 py-1 font-mono text-[10px] uppercase tracking-[0.2em] bg-void/80 text-text-secondary"
 									>
 										{card.finish}
 									</span>
 									<span
-										class="rounded px-2 py-1 font-mono text-[10px] uppercase tracking-[0.2em]"
-										style="background-color: rgba(13, 11, 15, 0.8); color: var(--color-text-secondary);"
+										class="rounded px-2 py-1 font-mono text-[10px] uppercase tracking-[0.2em] bg-void/80 text-text-secondary"
 									>
 										{card.condition}
 									</span>
 								</div>
-								<p class="mt-2 font-body text-sm text-text-secondary">
-									Spellbook slot {card.spellbookPosition + 1}
-								</p>
 							</div>
 							<div class="flex items-center gap-2 sm:justify-end">
 								<button
 									onclick={() => handleUpdateQuantity(card, -1)}
-									class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full font-mono text-sm text-text-primary"
-									style="background-color: var(--color-crypt); border: 1px solid rgba(196, 146, 42, 0.18);"
+									class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full font-mono text-sm text-text-primary bg-crypt border border-gold/18"
 								>
 									-
 								</button>
@@ -446,101 +352,16 @@
 								>
 								<button
 									onclick={() => handleUpdateQuantity(card, 1)}
-									class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full font-mono text-sm text-text-primary"
-									style="background-color: var(--color-crypt); border: 1px solid rgba(196, 146, 42, 0.18);"
+									class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full font-mono text-sm text-text-primary bg-crypt border border-gold/18"
 								>
 									+
 								</button>
 								<button
 									onclick={() => handleRemove(card)}
-									class="rounded px-3 py-2 font-display text-[10px] uppercase tracking-[0.22em] text-error"
-									style="background-color: rgba(138, 32, 32, 0.1); border: 1px solid rgba(138, 32, 32, 0.22);"
+									class="rounded px-3 py-2 font-display text-[10px] uppercase tracking-[0.22em] text-error bg-error/10 border border-error/22"
 								>
 									Remove
 								</button>
-							</div>
-						</div>
-					{/each}
-				</div>
-			{:else}
-				<div class="flex flex-col gap-6">
-					<p class="font-body text-sm leading-7 text-text-secondary">
-						Drag cards between slots to rearrange the spellbook. This view always uses the full
-						binder order so positions stay stable.
-					</p>
-					{#each spellbookPages as pageCards, pageIndex}
-						<div
-							class="rounded-lg p-4"
-							style="background-color: rgba(28, 23, 32, 0.55); border: 1px solid rgba(196, 146, 42, 0.1);"
-						>
-							<div class="mb-4 flex items-center justify-between">
-								<p class="font-display text-lg text-text-primary">Page {pageIndex + 1}</p>
-								<p class="font-mono text-[11px] uppercase tracking-[0.22em] text-text-muted">
-									9-pocket layout
-								</p>
-							</div>
-							<div class="grid gap-3 sm:grid-cols-3">
-								{#each pageCards as card, slotIndex}
-									<!-- svelte-ignore a11y_no_static_element_interactions -->
-									<div
-										class="relative aspect-[5/7] overflow-hidden rounded"
-										style="
-											background:
-												linear-gradient(180deg, rgba(16, 13, 18, 0.96), rgba(9, 8, 11, 0.96));
-											border: 1px solid rgba(196, 146, 42, 0.14);
-										"
-										ondragover={(event: DragEvent) => event.preventDefault()}
-										ondrop={() => handleDrop(pageIndex * SPELLBOOK_PAGE_SIZE + slotIndex)}
-									>
-										{#if card}
-											<img
-												src={card.imageUri}
-												alt={card.name}
-												class="h-full w-full object-cover"
-												draggable="true"
-												ondragstart={() => {
-													draggedEntryId = card.entryId;
-												}}
-												ondragend={() => {
-													draggedEntryId = null;
-												}}
-											/>
-											<div
-												class="absolute inset-x-0 bottom-0 flex items-center justify-between bg-void/80 px-3 py-2"
-											>
-												<div class="min-w-0">
-													<p class="truncate font-display text-xs text-text-primary">{card.name}</p>
-													<p
-														class="font-mono text-[10px] uppercase tracking-[0.18em] text-text-secondary"
-													>
-														{card.quantity} owned
-													</p>
-												</div>
-												<span
-													class="rounded-full px-2 py-1 font-mono text-[10px] text-gold-bright"
-													style="background-color: rgba(13, 11, 15, 0.8);"
-												>
-													#{card.spellbookPosition + 1}
-												</span>
-											</div>
-										{:else}
-											<div class="flex h-full items-center justify-center">
-												<div class="text-center">
-													<p
-														class="font-display text-sm uppercase tracking-[0.2em] text-text-muted"
-													>
-														Empty Slot
-													</p>
-													<p
-														class="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-text-muted"
-													>
-														Drop here
-													</p>
-												</div>
-											</div>
-										{/if}
-									</div>
-								{/each}
 							</div>
 						</div>
 					{/each}
