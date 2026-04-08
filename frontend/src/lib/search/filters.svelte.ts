@@ -1,5 +1,34 @@
 import type { CardType, LegalityFormat, ManaColor, Rarity } from './types';
 
+const COLORED_MANA: ManaColor[] = ['W', 'U', 'B', 'R', 'G'];
+
+function buildColorFilter(selectedColors: Set<ManaColor>): string | null {
+	if (selectedColors.size === 0) {
+		return null;
+	}
+
+	const includesColorless = selectedColors.has('C');
+	const coloredSelection = COLORED_MANA.filter((color) => selectedColors.has(color));
+
+	if (coloredSelection.length === 0) {
+		return 'colors IS EMPTY';
+	}
+
+	const allowedColors = coloredSelection.map((color) => `colors = "${color}"`).join(' OR ');
+	const forbiddenColors = COLORED_MANA.filter((color) => !coloredSelection.includes(color)).map(
+		(color) => `NOT colors = "${color}"`
+	);
+	const exactSubsetFilter = [`(${allowedColors})`, ...forbiddenColors, 'colors IS NOT EMPTY'].join(
+		' AND '
+	);
+
+	if (!includesColorless) {
+		return `(${exactSubsetFilter})`;
+	}
+
+	return `((colors IS EMPTY) OR (${exactSubsetFilter}))`;
+}
+
 /**
  * Reactive filter state for card search.
  * Uses Svelte 5 runes ($state) for reactivity.
@@ -14,11 +43,9 @@ export class SearchFilterState {
 	get meiliFilters(): string[] {
 		const filters: string[] = [];
 
-		if (this.selectedColors.size > 0) {
-			const colorFilters = [...this.selectedColors].map((c) =>
-				c === 'C' ? 'colors IS EMPTY' : `colors = "${c}"`
-			);
-			filters.push(`(${colorFilters.join(' OR ')})`);
+		const colorFilter = buildColorFilter(this.selectedColors);
+		if (colorFilter) {
+			filters.push(colorFilter);
 		}
 
 		if (this.selectedRarities.size > 0) {

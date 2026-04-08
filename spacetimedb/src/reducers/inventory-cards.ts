@@ -5,6 +5,7 @@ import {
   VALID_CONDITIONS,
   VALID_FINISHES,
 } from '../lib/composite-key.js';
+import { assertOwner, requireAuthenticatedAccountId } from '../lib/auth.js';
 import { getOrCreateInventory } from './inventory.js';
 
 function isValidCondition(condition: string): boolean {
@@ -29,7 +30,6 @@ function touchInventory(ctx: any, inventoryId: string): void {
 
 export const addToInventory = spacetimedb.reducer(
   {
-    accountId: t.string(),
     game: t.string(),
     catalogCardId: t.string(),
     canonicalCardId: t.string(),
@@ -42,8 +42,9 @@ export const addToInventory = spacetimedb.reducer(
   },
   (
     ctx,
-    { accountId, game, catalogCardId, canonicalCardId, name, setCode, imageUri, finish, condition, quantity }
+    { game, catalogCardId, canonicalCardId, name, setCode, imageUri, finish, condition, quantity }
   ) => {
+    const accountId = requireAuthenticatedAccountId(ctx);
     if (!isValidFinish(finish)) {
       throw new Error(`Invalid finish: ${finish}. Must be one of: ${VALID_FINISHES.join(', ')}`);
     }
@@ -101,20 +102,17 @@ export const addToInventory = spacetimedb.reducer(
 
 export const updateInventoryCard = spacetimedb.reducer(
   {
-    accountId: t.string(),
     entryId: t.string(),
     quantity: t.u32(),
     notes: t.string(),
   },
-  (ctx, { accountId, entryId, quantity, notes }) => {
+  (ctx, { entryId, quantity, notes }) => {
     const card = ctx.db.inventoryCard.entryId.find(entryId);
     if (!card) {
       throw new Error(`Inventory card not found: ${entryId}`);
     }
 
-    if (card.ownerId !== accountId) {
-      throw new Error('Permission denied: not the inventory owner');
-    }
+    assertOwner(ctx, card.ownerId);
 
     if (quantity === 0) {
       throw new Error('Quantity must be greater than 0. Use removeFromInventory to delete.');
@@ -133,18 +131,15 @@ export const updateInventoryCard = spacetimedb.reducer(
 
 export const removeFromInventory = spacetimedb.reducer(
   {
-    accountId: t.string(),
     entryId: t.string(),
   },
-  (ctx, { accountId, entryId }) => {
+  (ctx, { entryId }) => {
     const card = ctx.db.inventoryCard.entryId.find(entryId);
     if (!card) {
       throw new Error(`Inventory card not found: ${entryId}`);
     }
 
-    if (card.ownerId !== accountId) {
-      throw new Error('Permission denied: not the inventory owner');
-    }
+    assertOwner(ctx, card.ownerId);
 
     ctx.db.inventoryCard.entryId.delete(entryId);
 
@@ -168,19 +163,16 @@ export const removeFromInventory = spacetimedb.reducer(
 
 export const reorderInventoryCard = spacetimedb.reducer(
   {
-    accountId: t.string(),
     entryId: t.string(),
     targetPosition: t.u32(),
   },
-  (ctx, { accountId, entryId, targetPosition }) => {
+  (ctx, { entryId, targetPosition }) => {
     const moved = ctx.db.inventoryCard.entryId.find(entryId);
     if (!moved) {
       throw new Error(`Inventory card not found: ${entryId}`);
     }
 
-    if (moved.ownerId !== accountId) {
-      throw new Error('Permission denied: not the inventory owner');
-    }
+    assertOwner(ctx, moved.ownerId);
 
     const ordered = [...ctx.db.inventoryCard.inventory_card_inventory_id.filter(moved.inventoryId)]
       .sort((a, b) => a.spellbookPosition - b.spellbookPosition);

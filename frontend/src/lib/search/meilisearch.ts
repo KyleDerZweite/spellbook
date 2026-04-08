@@ -1,5 +1,5 @@
 import { Meilisearch, type Index } from 'meilisearch';
-import { env } from '$env/dynamic/public';
+import { publicEnv } from '$lib/env/public';
 import type { CardDocument, FacetResponse, Game, SearchResult } from './types';
 
 let client: Meilisearch | null = null;
@@ -13,7 +13,7 @@ const DEFAULT_GAME: Game = 'mtg';
  */
 export function initMeiliSearch(searchKey: string): void {
 	client = new Meilisearch({
-		host: env.PUBLIC_MEILISEARCH_URL,
+		host: publicEnv.PUBLIC_MEILISEARCH_URL,
 		apiKey: searchKey
 	});
 	distinctIndex = client.index<CardDocument>('cards_distinct');

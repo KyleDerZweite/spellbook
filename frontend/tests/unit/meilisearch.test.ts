@@ -9,15 +9,17 @@ vi.mock('meilisearch', () => {
 		estimatedTotalHits: 0
 	});
 
+	class MockMeilisearch {
+		index = vi.fn().mockReturnValue({ search: mockSearch });
+	}
+
 	return {
-		MeiliSearch: vi.fn().mockImplementation(() => ({
-			index: vi.fn().mockReturnValue({ search: mockSearch })
-		}))
+		Meilisearch: MockMeilisearch
 	};
 });
 
-vi.mock('$env/dynamic/public', () => ({
-	env: {
+vi.mock('$lib/env/public', () => ({
+	publicEnv: {
 		PUBLIC_MEILISEARCH_URL: 'http://localhost:7700',
 		PUBLIC_MEILISEARCH_SEARCH_KEY: 'test-key'
 	}

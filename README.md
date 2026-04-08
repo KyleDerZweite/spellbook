@@ -45,6 +45,11 @@ Spellbook is a self-hosted trading card game inventory platform built for speed 
 | MeiliSearch integration | Implemented for MTG |
 | SvelteKit frontend | Implemented for MTG selector, search, inventory, and decks |
 
+## Docs
+
+- [Deployment guide](/home/kyle/CodingProjects/spellbook/docs/deployment.md)
+- [Zitadel setup](/home/kyle/CodingProjects/spellbook/docs/zitadel.md)
+
 ## License
 
 [GNU Affero General Public License v3.0](LICENSE)

@@ -1,9 +1,13 @@
+import type { AuthUser } from '$lib/auth/types';
+
 declare global {
 	namespace App {
 		interface Locals {
-			user: { accountId: string; username: string; email: string };
+			user: AuthUser | null;
+			spacetimeToken: string | null;
 			meiliSearchKey: string;
 		}
 	}
 }
+
 export {};

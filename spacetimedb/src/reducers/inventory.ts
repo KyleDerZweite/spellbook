@@ -1,5 +1,6 @@
 import spacetimedb from '../schema.js';
 import { t } from 'spacetimedb/server';
+import { requireAuthenticatedAccountId } from '../lib/auth.js';
 
 const DEFAULT_GAME = 'mtg';
 
@@ -20,10 +21,10 @@ function makeEntityId(ctx: any, accountId: string): string {
 
 export const ensureInventory = spacetimedb.reducer(
   {
-    accountId: t.string(),
     game: t.string(),
   },
-  (ctx, { accountId, game }) => {
+  (ctx, { game }) => {
+    const accountId = requireAuthenticatedAccountId(ctx);
     const user = ctx.db.userProfile.accountId.find(accountId);
     if (!user) {
       throw new Error(`User not found: ${accountId}`);

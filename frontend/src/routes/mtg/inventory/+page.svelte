@@ -139,18 +139,16 @@
 
 	async function handleUpdateQuantity(card: InventoryCard, delta: number) {
 		const conn = getConnection();
-		if (!conn || !spacetimeState.userProfile) return;
+		if (!conn) return;
 
 		const nextQuantity = card.quantity + delta;
 		try {
 			if (nextQuantity <= 0) {
 				await conn.reducers.removeFromInventory({
-					accountId: spacetimeState.userProfile.accountId,
 					entryId: card.entryId
 				});
 			} else {
 				await conn.reducers.updateInventoryCard({
-					accountId: spacetimeState.userProfile.accountId,
 					entryId: card.entryId,
 					quantity: nextQuantity,
 					notes: card.notes
@@ -163,11 +161,10 @@
 
 	async function handleRemove(card: InventoryCard) {
 		const conn = getConnection();
-		if (!conn || !spacetimeState.userProfile) return;
+		if (!conn) return;
 
 		try {
 			await conn.reducers.removeFromInventory({
-				accountId: spacetimeState.userProfile.accountId,
 				entryId: card.entryId
 			});
 		} catch (err) {
@@ -176,14 +173,13 @@
 	}
 
 	async function handleDrop(targetPosition: number) {
-		if (!draggedEntryId || !spacetimeState.userProfile) return;
+		if (!draggedEntryId) return;
 
 		const conn = getConnection();
 		if (!conn) return;
 
 		try {
 			await conn.reducers.reorderInventoryCard({
-				accountId: spacetimeState.userProfile.accountId,
 				entryId: draggedEntryId,
 				targetPosition
 			});

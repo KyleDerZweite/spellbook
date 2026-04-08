@@ -11,6 +11,5 @@ import {
 } from "spacetimedb";
 
 export default {
-  accountId: __t.string(),
   deckId: __t.string(),
 };

@@ -68,12 +68,6 @@ export const InventoryCard = __t.object("InventoryCard", {
 });
 export type InventoryCard = __Infer<typeof InventoryCard>;
 
-export const ServerConfig = __t.object("ServerConfig", {
-  key: __t.string(),
-  value: __t.string(),
-});
-export type ServerConfig = __Infer<typeof ServerConfig>;
-
 export const UserProfile = __t.object("UserProfile", {
   accountId: __t.string(),
   username: __t.string(),

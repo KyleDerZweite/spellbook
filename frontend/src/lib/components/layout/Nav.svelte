@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { DropdownMenu } from 'bits-ui';
-	import { spacetimeState } from '$lib/spacetimedb/state.svelte';
+	import { authState } from '$lib/auth/state.svelte';
 
 	const GAME_NAV_LINKS = {
 		mtg: [
@@ -32,10 +32,10 @@
 	let navLinks = $derived(currentGame ? GAME_NAV_LINKS[currentGame] : []);
 	let gameLabel = $derived(currentGame ? currentGame.toUpperCase() : 'Games');
 
-	let userInitial = $derived(spacetimeState.userProfile?.username?.charAt(0).toUpperCase() ?? 'U');
-
-	let userName = $derived(spacetimeState.userProfile?.username || 'User');
-	let userEmail = $derived(spacetimeState.userProfile?.email ?? '');
+	let userInitial = $derived(authState.user?.username?.charAt(0).toUpperCase() ?? 'U');
+	let userName = $derived(authState.user?.username || 'User');
+	let userEmail = $derived(authState.user?.email ?? '');
+	let isAuthenticated = $derived(authState.isAuthenticated);
 
 	function closeMobileMenu() {
 		mobileMenuOpen = false;
@@ -136,98 +136,104 @@
 				</DropdownMenu.Root>
 			</div>
 
-			<!-- User menu -->
-			<DropdownMenu.Root>
-				<DropdownMenu.Trigger
-					class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full font-display text-xs font-bold transition-all duration-150 hover:ring-2 hover:ring-gold-dim"
-					style="
-						background-color: var(--color-slate);
-						border: 1px solid rgba(196, 146, 42, 0.35);
-						color: var(--color-gold-bright);
-					"
-					aria-label="User menu"
-				>
-					{userInitial}
-				</DropdownMenu.Trigger>
-
-				<DropdownMenu.Portal>
-					<DropdownMenu.Content
-						class="z-[100] min-w-[200px] overflow-hidden rounded py-1"
+			{#if isAuthenticated}
+				<DropdownMenu.Root>
+					<DropdownMenu.Trigger
+						class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full font-display text-xs font-bold transition-all duration-150 hover:ring-2 hover:ring-gold-dim"
 						style="
-							background-color: var(--color-slate);
-							border: 1px solid rgba(196, 146, 42, 0.4);
-							box-shadow: 0 4px 24px rgba(13, 11, 15, 0.8);
-						"
-						sideOffset={8}
-						align="end"
+								background-color: var(--color-slate);
+								border: 1px solid rgba(196, 146, 42, 0.35);
+								color: var(--color-gold-bright);
+							"
+						aria-label="User menu"
 					>
-						<!-- User info header -->
-						<div class="px-3 py-2.5">
-							<p class="font-display text-sm font-bold text-text-primary">{userName}</p>
-							{#if userEmail}
-								<p class="font-body text-xs text-text-muted">{userEmail}</p>
-							{/if}
-						</div>
+						{userInitial}
+					</DropdownMenu.Trigger>
 
-						<DropdownMenu.Separator
-							class="my-1 h-px"
-							style="background-color: rgba(196, 146, 42, 0.15);"
-						/>
-
-						<!-- Active items -->
-						<DropdownMenu.Item
-							class="flex cursor-pointer items-center gap-2.5 px-3 py-2 font-body text-sm text-text-primary transition-colors data-[highlighted]:bg-mist data-[highlighted]:text-amber"
-							onSelect={() => goto('/settings')}
+					<DropdownMenu.Portal>
+						<DropdownMenu.Content
+							class="z-[100] min-w-[200px] overflow-hidden rounded py-1"
+							style="
+									background-color: var(--color-slate);
+									border: 1px solid rgba(196, 146, 42, 0.4);
+									box-shadow: 0 4px 24px rgba(13, 11, 15, 0.8);
+								"
+							sideOffset={8}
+							align="end"
 						>
-							<span class="w-4 text-center text-text-muted">&#9881;</span>
-							Settings
-						</DropdownMenu.Item>
+							<div class="px-3 py-2.5">
+								<p class="font-display text-sm font-bold text-text-primary">{userName}</p>
+								{#if userEmail}
+									<p class="font-body text-xs text-text-muted">{userEmail}</p>
+								{/if}
+							</div>
 
-						<DropdownMenu.Separator
-							class="my-1 h-px"
-							style="background-color: rgba(196, 146, 42, 0.15);"
-						/>
+							<DropdownMenu.Separator
+								class="my-1 h-px"
+								style="background-color: rgba(196, 146, 42, 0.15);"
+							/>
 
-						<!-- Disabled / coming soon items -->
-						<DropdownMenu.Item
-							class="flex items-center gap-2.5 px-3 py-2 font-body text-sm text-text-muted"
-							disabled
-						>
-							<span class="w-4 text-center">&#9783;</span>
-							Display Preferences
-						</DropdownMenu.Item>
+							<DropdownMenu.Item
+								class="flex cursor-pointer items-center gap-2.5 px-3 py-2 font-body text-sm text-text-primary transition-colors data-[highlighted]:bg-mist data-[highlighted]:text-amber"
+								onSelect={() => goto('/settings')}
+							>
+								<span class="w-4 text-center text-text-muted">&#9881;</span>
+								Settings
+							</DropdownMenu.Item>
 
-						<DropdownMenu.Item
-							class="flex items-center gap-2.5 px-3 py-2 font-body text-sm text-text-muted"
-							disabled
-						>
-							<span class="w-4 text-center">&#9743;</span>
-							Mobile Companion
-						</DropdownMenu.Item>
+							<DropdownMenu.Separator
+								class="my-1 h-px"
+								style="background-color: rgba(196, 146, 42, 0.15);"
+							/>
 
-						<DropdownMenu.Item
-							class="flex items-center gap-2.5 px-3 py-2 font-body text-sm text-text-muted"
-							disabled
-						>
-							<span class="w-4 text-center">&#8693;</span>
-							Import / Export
-						</DropdownMenu.Item>
+							<DropdownMenu.Item
+								class="flex items-center gap-2.5 px-3 py-2 font-body text-sm text-text-muted"
+								disabled
+							>
+								<span class="w-4 text-center">&#9783;</span>
+								Display Preferences
+							</DropdownMenu.Item>
 
-						<DropdownMenu.Separator
-							class="my-1 h-px"
-							style="background-color: rgba(196, 146, 42, 0.15);"
-						/>
+							<DropdownMenu.Item
+								class="flex items-center gap-2.5 px-3 py-2 font-body text-sm text-text-muted"
+								disabled
+							>
+								<span class="w-4 text-center">&#9743;</span>
+								Mobile Companion
+							</DropdownMenu.Item>
 
-						<DropdownMenu.Item
-							class="flex items-center gap-2.5 px-3 py-2 font-body text-sm text-text-muted"
-							disabled
-						>
-							<span class="w-4 text-center">&#8614;</span>
-							Sign Out
-						</DropdownMenu.Item>
-					</DropdownMenu.Content>
-				</DropdownMenu.Portal>
-			</DropdownMenu.Root>
+							<DropdownMenu.Item
+								class="flex items-center gap-2.5 px-3 py-2 font-body text-sm text-text-muted"
+								disabled
+							>
+								<span class="w-4 text-center">&#8693;</span>
+								Import / Export
+							</DropdownMenu.Item>
+
+							<DropdownMenu.Separator
+								class="my-1 h-px"
+								style="background-color: rgba(196, 146, 42, 0.15);"
+							/>
+
+							<DropdownMenu.Item
+								class="flex cursor-pointer items-center gap-2.5 px-3 py-2 font-body text-sm text-text-primary transition-colors data-[highlighted]:bg-mist data-[highlighted]:text-amber"
+								onSelect={() => goto('/auth/logout')}
+							>
+								<span class="w-4 text-center">&#8614;</span>
+								Sign Out
+							</DropdownMenu.Item>
+						</DropdownMenu.Content>
+					</DropdownMenu.Portal>
+				</DropdownMenu.Root>
+			{:else}
+				<a
+					href={`/auth/login?returnTo=${encodeURIComponent(`${page.url.pathname}${page.url.search}`)}`}
+					class="rounded px-3 py-2 font-display text-[10px] uppercase tracking-[0.22em] text-gold-bright no-underline transition-colors hover:text-amber"
+					style="border: 1px solid rgba(196, 146, 42, 0.35); background-color: var(--color-slate);"
+				>
+					Sign In
+				</a>
+			{/if}
 
 			<!-- Hamburger: visible only on mobile -->
 			<button

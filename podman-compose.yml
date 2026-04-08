@@ -4,6 +4,7 @@ services:
     command: start --listen-addr 0.0.0.0:3000 --data-dir /stdb/data
     volumes:
       - spacetimedb_data:/stdb
+      - spacetimedb_config:/home/spacetime/.config/spacetime
     healthcheck:
       test: ["CMD", "spacetime", "server", "ping", "http://127.0.0.1:3000"]
       interval: 5s
@@ -18,6 +19,8 @@ services:
     environment:
       STDB_HOST: http://spacetimedb:3000
       STDB_DATABASE: ${PUBLIC_SPACETIMEDB_MODULE:-spellbook}
+    volumes:
+      - stdb_publish_config:/root/.config/spacetime
     depends_on:
       spacetimedb:
         condition: service_healthy
@@ -55,7 +58,10 @@ services:
       PUBLIC_SPACETIMEDB_MODULE: ${PUBLIC_SPACETIMEDB_MODULE:-spellbook}
       MEILISEARCH_INTERNAL_URL: http://meilisearch:7700
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
-      AUTH_SIGNING_SECRET: ${AUTH_SIGNING_SECRET}
+      ZITADEL_ISSUER: ${ZITADEL_ISSUER}
+      ZITADEL_CLIENT_ID: ${ZITADEL_CLIENT_ID}
+      APP_ORIGIN: ${APP_ORIGIN}
+      AUTH_SESSION_SECRET: ${AUTH_SESSION_SECRET}
     depends_on:
       - stdb-publish
       - meilisearch
@@ -76,4 +82,6 @@ services:
 
 volumes:
   spacetimedb_data:
+  spacetimedb_config:
+  stdb_publish_config:
   meilisearch_data:

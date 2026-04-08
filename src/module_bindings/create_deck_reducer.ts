@@ -11,7 +11,6 @@ import {
 } from "spacetimedb";
 
 export default {
-  accountId: __t.string(),
   game: __t.string(),
   name: __t.string(),
   description: __t.string(),

@@ -11,7 +11,6 @@ import {
 } from "spacetimedb";
 
 export default {
-  accountId: __t.string(),
   entryId: __t.string(),
   quantity: __t.u32(),
   notes: __t.string(),

@@ -37,12 +37,11 @@
 
 	async function handleAdd() {
 		const conn = getConnection();
-		if (!conn || !spacetimeState.userProfile) return;
+		if (!conn) return;
 
 		adding = true;
 		try {
 			await conn.reducers.addToInventory({
-				accountId: spacetimeState.userProfile.accountId,
 				game: 'mtg',
 				catalogCardId: card.id,
 				canonicalCardId: card.oracle_id,

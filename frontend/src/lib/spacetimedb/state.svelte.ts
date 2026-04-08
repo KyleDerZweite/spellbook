@@ -16,6 +16,18 @@ class SpacetimeState {
 	connected: boolean = $state(false);
 	error: string | null = $state(null);
 
+	reset(clearError = true): void {
+		this.inventories = [];
+		this.inventoryCards = [];
+		this.decks = [];
+		this.deckCards = [];
+		this.userProfile = null;
+		this.connected = false;
+		if (clearError) {
+			this.error = null;
+		}
+	}
+
 	getInventory(game: Game = DEFAULT_GAME): Inventory | undefined {
 		return this.inventories.find((inventory) => inventory.game === game);
 	}

@@ -18,9 +18,9 @@ Spellbook runs as 6 containers orchestrated via `podman-compose`. No ports are e
 The frontend is a **Node.js server**, not nginx. SvelteKit compiles with `adapter-node` to a standalone app that runs via `node build` on port 3000. It:
 
 - Serves the SvelteKit app (SSR + client hydration)
-- Reads Pangolin IAP headers (`Remote-Subject`, `Remote-User`, `Remote-Email`) in `hooks.server.ts` for auth
+- Runs the direct Zitadel OIDC Authorization Code + PKCE flow
 - The browser connects to MeiliSearch (read-only key) for card search
-- The browser connects via WebSocket to SpacetimeDB for real-time inventory and deck data
+- The browser connects via WebSocket to SpacetimeDB using the Zitadel ID token
 
 ### Network model
 
@@ -36,9 +36,9 @@ The browser needs to reach three services, each on its own subdomain:
 
 | Subdomain | Service | Auth |
 |-----------|---------|------|
-| `spellbook.yourdomain.com` | Frontend (SSR + static) | IAP (login required) |
+| `spellbook.yourdomain.com` | Frontend (SSR + static) | Spellbook app auth via Zitadel |
 | `spellbook-search.yourdomain.com` | MeiliSearch API | None (read-only API key) |
-| `spellbook-db.yourdomain.com` | SpacetimeDB WebSocket | None (SDK identity tokens) |
+| `spellbook-db.yourdomain.com` | SpacetimeDB WebSocket | None (OIDC JWT auth in SDK) |
 
 ### Module auto-publish
 
@@ -51,7 +51,7 @@ The `stdb-publish` container handles SpacetimeDB module publishing automatically
 
 ## Pangolin Setup
 
-[Pangolin](https://github.com/fosrl/pangolin) is a self-hosted reverse proxy with identity-aware proxy (IAP) capabilities. It sits in front of Spellbook and handles authentication.
+[Pangolin](https://github.com/fosrl/pangolin) is a self-hosted reverse proxy with identity-aware proxy (IAP) capabilities. For Spellbook, it sits in front of the stack as a tunnel-backed reverse proxy while Spellbook itself handles authentication through Zitadel.
 
 ### Prerequisites
 
@@ -71,9 +71,7 @@ Each resource gets its own subdomain. This avoids path-prefix routing and allows
 **Resource 1: `spellbook-app` — Frontend**
 - Target: `http://frontend:3000`
 - Domain: `spellbook.yourdomain.com`
-- Enable **Identity-Aware Proxy (IAP)** — requires login
-  - Pangolin injects `Remote-Subject`, `Remote-User`, `Remote-Email` headers
-  - The SvelteKit `hooks.server.ts` reads these to identify the user
+- **Disable IAP / authentication** — Spellbook handles login directly with Zitadel
 
 **Resource 2: `spellbook-search` — MeiliSearch API**
 - Target: `http://meilisearch:7700`
@@ -83,15 +81,15 @@ Each resource gets its own subdomain. This avoids path-prefix routing and allows
 **Resource 3: `spellbook-db` — SpacetimeDB**
 - Target: `http://spacetimedb:3000`
 - Domain: `spellbook-db.yourdomain.com`
-- **Disable IAP / authentication** — SpacetimeDB handles its own auth via identity tokens
+- **Disable IAP / authentication** — SpacetimeDB validates Zitadel JWTs from the browser SDK
 
 > **Why separate subdomains?** Pangolin resources are independent — you can't prioritize path prefixes across resources. Separate subdomains also eliminate the trailing-slash pitfall with JS URL resolution (`new URL(relative, base)` drops the last path segment without a trailing slash).
 
-> **Why no IAP on search and db?** The browser's JavaScript makes direct HTTP/WebSocket requests to these endpoints. If Pangolin's IAP is enabled, it returns a 302 redirect to a login page, which breaks API calls and WebSocket upgrades. MeiliSearch is protected by its read-only API key, and SpacetimeDB uses its own identity/token system.
+> **Why no Pangolin IAP?** The browser makes direct requests to the frontend, MeiliSearch, and SpacetimeDB. Spellbook now owns the login flow and uses Zitadel directly, so Pangolin should stay in pure reverse-proxy mode for all three resources.
 
 ### Step 3: Configure Environment
 
-Copy `.env.example` to `.env` and fill in all values. The `PUBLIC_*` URLs must match the Pangolin resource subdomains:
+Copy `.env.example` to `.env` and fill in all values. The `PUBLIC_*` URLs must match the Pangolin resource subdomains, and the Zitadel redirect URI must include `https://spellbook.yourdomain.com/auth/callback`.
 
 ```env
 PUBLIC_MEILISEARCH_URL=https://spellbook-search.yourdomain.com
@@ -105,7 +103,9 @@ Newt is a tunnel agent that runs inside the compose stack. It:
 1. Connects **outbound** to your Pangolin server (no inbound ports needed on the host)
 2. Registers as the tunnel endpoint for the configured site
 3. Pangolin routes incoming requests through the tunnel to the appropriate container
-4. Auth headers are injected by Pangolin before they reach the frontend
+4. Spellbook handles its own Zitadel login flow and session cookies
+
+For the exact Zitadel application settings Spellbook expects, see [Zitadel setup](/home/kyle/CodingProjects/spellbook/docs/zitadel.md).
 
 The host machine needs zero inbound ports open. Only Newt's outbound connection to Pangolin is required.
 
@@ -162,7 +162,10 @@ PUBLIC_SPACETIMEDB_URL=ws://localhost:3000
 | Variable | Where | Description |
 |----------|-------|-------------|
 | `MEILI_MASTER_KEY` | worker, meilisearch | MeiliSearch admin key |
-| `AUTH_SIGNING_SECRET` | frontend | Shared secret for auth tokens |
+| `ZITADEL_ISSUER` | frontend | Zitadel issuer URL |
+| `ZITADEL_CLIENT_ID` | frontend | Spellbook OIDC client ID |
+| `APP_ORIGIN` | frontend | Public frontend origin used for callback/logout URLs |
+| `AUTH_SESSION_SECRET` | frontend | 32-byte base64url secret for encrypted auth cookies |
 | `PUBLIC_MEILISEARCH_URL` | frontend | Browser-facing MeiliSearch URL (subdomain) |
 | `PUBLIC_MEILISEARCH_SEARCH_KEY` | frontend | Read-only MeiliSearch key for browser search |
 | `PUBLIC_SPACETIMEDB_URL` | frontend | Browser-facing SpacetimeDB URL (subdomain, `wss://`) |
@@ -173,3 +176,15 @@ PUBLIC_SPACETIMEDB_URL=ws://localhost:3000
 | `PANGOLIN_ENDPOINT` | newt | URL of your Pangolin instance |
 | `NEWT_ID` | newt | Site ID from Pangolin dashboard |
 | `NEWT_SECRET` | newt | Site secret from Pangolin dashboard |
+
+## Resetting SpacetimeDB Ownership
+
+The publisher identity is now stored in the `stdb_publish_config` volume. For a clean reset:
+
+```bash
+podman-compose down
+podman volume rm spellbook_spacetimedb_data spellbook_spacetimedb_config spellbook_stdb_publish_config
+podman-compose up -d
+```
+
+The first boot republishes the module under the persistent publisher identity. Later restarts reuse that identity and should not hit prior-owner authorization errors.

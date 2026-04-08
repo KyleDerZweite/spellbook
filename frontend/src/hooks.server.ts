@@ -1,7 +1,17 @@
-import type { Handle } from '@sveltejs/kit';
-import { env } from '$env/dynamic/private';
+import { redirect, type Handle } from '@sveltejs/kit';
+import { privateEnv } from '$lib/env/private';
+import {
+	getAuthSessionSecret,
+	clearSessionCookie,
+	readSessionCookie,
+	writeSessionCookie
+} from '$lib/server/auth/session';
+import { getZitadelAuthConfig, refreshAuthSession } from '$lib/server/auth/zitadel';
 
 let cachedSearchKey: string | null = null;
+const SESSION_REFRESH_WINDOW_MS = 5 * 60 * 1000;
+const PUBLIC_PATH_PREFIXES = ['/auth/', '/privacy', '/terms'];
+const PROTECTED_PATH_PREFIXES = ['/mtg', '/collections', '/search'];
 
 /**
  * Fetch the default search API key from MeiliSearch by listing keys
@@ -11,8 +21,8 @@ let cachedSearchKey: string | null = null;
 async function getMeiliSearchKey(): Promise<string> {
 	if (cachedSearchKey) return cachedSearchKey;
 
-	const internalUrl = env.MEILISEARCH_INTERNAL_URL ?? 'http://localhost:7700';
-	const masterKey = env.MEILI_MASTER_KEY;
+	const internalUrl = privateEnv.MEILISEARCH_INTERNAL_URL ?? 'http://localhost:7700';
+	const masterKey = privateEnv.MEILI_MASTER_KEY;
 
 	if (!masterKey) {
 		console.warn('MEILI_MASTER_KEY not set — MeiliSearch search key cannot be fetched');
@@ -50,16 +60,48 @@ async function getMeiliSearchKey(): Promise<string> {
 }
 
 /**
- * Read Pangolin IAP headers for user identity.
- * Falls back to dev defaults when headers are absent.
+ * Refresh the encrypted auth session when the ID token is close to expiry.
  */
-export const handle: Handle = async ({ event, resolve }) => {
-	const accountId = event.request.headers.get('Remote-Subject') ?? 'dev-user-001';
-	const username = event.request.headers.get('Remote-User') ?? 'dev';
-	const email = event.request.headers.get('Remote-Email') ?? 'dev@localhost';
+async function getActiveSession(event: Parameters<Handle>[0]['event']) {
+	const sessionSecret = getAuthSessionSecret(privateEnv);
+	const session = await readSessionCookie(event.cookies, sessionSecret);
+	if (!session) {
+		return null;
+	}
 
-	event.locals.user = { accountId, username, email };
-	event.locals.meiliSearchKey = await getMeiliSearchKey();
+	if (session.expiresAt > Date.now() + SESSION_REFRESH_WINDOW_MS) {
+		return session;
+	}
+
+	try {
+		const refreshed = await refreshAuthSession(getZitadelAuthConfig(privateEnv), session);
+		await writeSessionCookie(event.cookies, sessionSecret, refreshed);
+		return refreshed;
+	} catch {
+		clearSessionCookie(event.cookies);
+		return null;
+	}
+}
+
+function isPublicPath(pathname: string): boolean {
+	return pathname === '/' || PUBLIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
+function isProtectedPath(pathname: string): boolean {
+	return PROTECTED_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+}
+
+export const handle: Handle = async ({ event, resolve }) => {
+	const session = await getActiveSession(event);
+	event.locals.user = session?.user ?? null;
+	event.locals.spacetimeToken = session?.idToken ?? null;
+	event.locals.meiliSearchKey = session ? await getMeiliSearchKey() : '';
+
+	const pathname = event.url.pathname;
+	if (!isPublicPath(pathname) && isProtectedPath(pathname) && !session) {
+		const returnTo = `${pathname}${event.url.search}`;
+		throw redirect(302, `/auth/login?returnTo=${encodeURIComponent(returnTo)}`);
+	}
 
 	return resolve(event);
 };

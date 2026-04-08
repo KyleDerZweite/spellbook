@@ -1,62 +1,82 @@
-import { env } from '$env/dynamic/public';
 import { DbConnection } from '$bindings';
 import type { Deck, DeckCard, Inventory, InventoryCard, UserProfile } from '$bindings/types';
+import type { AuthUser } from '$lib/auth/types';
+import { publicEnv } from '$lib/env/public';
 import { spacetimeState } from './state.svelte';
-
-const DEFAULT_GAME = 'mtg';
 
 // The SpacetimeDB generated types are complex and don't expose members cleanly
 // for external TypeScript. We use `any` for the connection instance and cast
 // through the runtime-validated SDK API.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let connection: any = null;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let reconnectAttempts = 0;
+let manualDisconnect = false;
+let currentAuth: { user: AuthUser; token: string } | null = null;
 
-interface UserInfo {
-	accountId: string;
-	username: string;
-	email: string;
-}
+const MAX_RECONNECT_DELAY_MS = 30_000;
 
 function sqlEscape(value: string): string {
 	return value.replaceAll("'", "''");
+}
+
+function clearReconnectTimer(): void {
+	if (reconnectTimer) {
+		clearTimeout(reconnectTimer);
+		reconnectTimer = null;
+	}
+}
+
+function scheduleReconnect(): void {
+	if (manualDisconnect || !currentAuth || reconnectTimer || connection) {
+		return;
+	}
+
+	const delay = Math.min(1000 * 2 ** reconnectAttempts, MAX_RECONNECT_DELAY_MS);
+	reconnectAttempts += 1;
+	reconnectTimer = setTimeout(() => {
+		reconnectTimer = null;
+		if (!manualDisconnect && currentAuth && !connection) {
+			openConnection(currentAuth);
+		}
+	}, delay);
 }
 
 /**
  * Connect to SpacetimeDB and set up subscriptions.
  * Safe to call multiple times; re-entrant guard prevents duplicate connections.
  */
-export function connect(user: UserInfo): void {
-	if (connection) return;
+export function connect(auth: { user: AuthUser; token: string }): void {
+	const sameAuth =
+		currentAuth?.user.accountId === auth.user.accountId && currentAuth?.token === auth.token;
+	currentAuth = auth;
+	manualDisconnect = false;
+	clearReconnectTimer();
 
+	if (sameAuth && connection) {
+		return;
+	}
+
+	reconnectAttempts = 0;
+	if (connection) {
+		connection.disconnect();
+		connection = null;
+	}
+
+	openConnection(auth);
+}
+
+function openConnection(auth: { user: AuthUser; token: string }): void {
 	try {
 		connection = DbConnection.builder()
-			.withUri(env.PUBLIC_SPACETIMEDB_URL)
-			.withDatabaseName(env.PUBLIC_SPACETIMEDB_MODULE)
+			.withUri(publicEnv.PUBLIC_SPACETIMEDB_URL)
+			.withDatabaseName(publicEnv.PUBLIC_SPACETIMEDB_MODULE)
+			.withToken(auth.token)
 			.onConnect((conn: any, _identity: unknown, _token: unknown) => {
+				reconnectAttempts = 0;
 				spacetimeState.connected = true;
 				spacetimeState.error = null;
-
-				// Register the current user
-				conn.reducers
-					.connectUser({
-						accountId: user.accountId,
-						username: user.username,
-						email: user.email
-					})
-					.catch((err: unknown) => {
-						spacetimeState.error = `Failed to register user: ${String(err)}`;
-					});
-
-				conn.reducers
-					.ensureInventory({
-						accountId: user.accountId,
-						game: DEFAULT_GAME
-					})
-					.catch((err: unknown) => {
-						spacetimeState.error = `Failed to initialize inventory: ${String(err)}`;
-					});
-
-				const accountId = sqlEscape(user.accountId);
+				const accountId = sqlEscape(auth.user.accountId);
 
 				conn
 					.subscriptionBuilder()
@@ -76,16 +96,27 @@ export function connect(user: UserInfo): void {
 
 				setupTableCallbacks(conn);
 			})
-			.onDisconnect(() => {
+			.onDisconnect((_ctx: any, err?: Error) => {
+				connection = null;
 				spacetimeState.connected = false;
+				if (err) {
+					spacetimeState.error = String(err);
+				}
+				if (!manualDisconnect) {
+					scheduleReconnect();
+				}
 			})
 			.onConnectError((_conn: unknown, err: unknown) => {
 				spacetimeState.error = String(err);
 				spacetimeState.connected = false;
+				connection = null;
+				scheduleReconnect();
 			})
 			.build();
 	} catch (err) {
 		spacetimeState.error = String(err);
+		connection = null;
+		scheduleReconnect();
 	}
 }
 
@@ -93,11 +124,15 @@ export function connect(user: UserInfo): void {
  * Disconnect from SpacetimeDB and clean up.
  */
 export function disconnect(): void {
+	manualDisconnect = true;
+	currentAuth = null;
+	reconnectAttempts = 0;
+	clearReconnectTimer();
 	if (connection) {
 		connection.disconnect();
 		connection = null;
-		spacetimeState.connected = false;
 	}
+	spacetimeState.reset();
 }
 
 /**

@@ -86,11 +86,10 @@
 
 	async function handleCreateDeck() {
 		const conn = getConnection();
-		if (!conn || !spacetimeState.userProfile || !newDeckName.trim()) return;
+		if (!conn || !newDeckName.trim()) return;
 
 		try {
 			await conn.reducers.createDeck({
-				accountId: spacetimeState.userProfile.accountId,
 				game: 'mtg',
 				name: newDeckName.trim(),
 				description: newDeckDescription.trim(),
@@ -106,11 +105,10 @@
 
 	async function handleUpdateDeck() {
 		const conn = getConnection();
-		if (!conn || !spacetimeState.userProfile || !selectedDeck) return;
+		if (!conn || !selectedDeck) return;
 
 		try {
 			await conn.reducers.updateDeck({
-				accountId: spacetimeState.userProfile.accountId,
 				deckId: selectedDeck.id,
 				name: editDeckName.trim(),
 				description: editDeckDescription.trim(),
@@ -123,11 +121,10 @@
 
 	async function handleDeleteDeck(deckId: string) {
 		const conn = getConnection();
-		if (!conn || !spacetimeState.userProfile) return;
+		if (!conn) return;
 
 		try {
 			await conn.reducers.deleteDeck({
-				accountId: spacetimeState.userProfile.accountId,
 				deckId
 			});
 		} catch (err) {
@@ -137,11 +134,10 @@
 
 	async function handleAddCard(candidate: OwnedCandidate) {
 		const conn = getConnection();
-		if (!conn || !spacetimeState.userProfile || !selectedDeckId) return;
+		if (!conn || !selectedDeckId) return;
 
 		try {
 			await conn.reducers.addToDeck({
-				accountId: spacetimeState.userProfile.accountId,
 				deckId: selectedDeckId,
 				catalogCardId: candidate.catalogCardId,
 				canonicalCardId: candidate.canonicalCardId,
@@ -158,18 +154,16 @@
 
 	async function handleUpdateDeckCard(card: DeckCard, delta: number) {
 		const conn = getConnection();
-		if (!conn || !spacetimeState.userProfile) return;
+		if (!conn) return;
 
 		const nextQuantity = card.quantity + delta;
 		try {
 			if (nextQuantity <= 0) {
 				await conn.reducers.removeFromDeck({
-					accountId: spacetimeState.userProfile.accountId,
 					entryId: card.entryId
 				});
 			} else {
 				await conn.reducers.updateDeckCard({
-					accountId: spacetimeState.userProfile.accountId,
 					entryId: card.entryId,
 					quantity: nextQuantity
 				});

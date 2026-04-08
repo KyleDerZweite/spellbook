@@ -46,7 +46,10 @@ describe('SearchFilterState', () => {
 		expect(filters.length).toBe(1);
 		expect(filters[0]).toContain('colors = "W"');
 		expect(filters[0]).toContain('colors = "U"');
-		expect(filters[0]).toContain(' OR ');
+		expect(filters[0]).toContain('NOT colors = "B"');
+		expect(filters[0]).toContain('NOT colors = "R"');
+		expect(filters[0]).toContain('NOT colors = "G"');
+		expect(filters[0]).toContain('colors IS NOT EMPTY');
 	});
 
 	it('builds colorless filter using IS EMPTY', () => {
@@ -69,7 +72,38 @@ describe('SearchFilterState', () => {
 		expect(filters.length).toBe(1);
 		expect(filters[0]).toContain('colors IS EMPTY');
 		expect(filters[0]).toContain('colors = "R"');
-		expect(filters[0]).toContain(' OR ');
+		expect(filters[0]).toContain('NOT colors = "W"');
+		expect(filters[0]).toContain('NOT colors = "U"');
+		expect(filters[0]).toContain('NOT colors = "B"');
+		expect(filters[0]).toContain('NOT colors = "G"');
+	});
+
+	it('single-color filter excludes cards with extra colors', () => {
+		const state = new SearchFilterState();
+		state.clear();
+		state.toggleColor('R');
+
+		expect(state.meiliFilters[0]).toContain('colors = "R"');
+		expect(state.meiliFilters[0]).toContain('NOT colors = "W"');
+		expect(state.meiliFilters[0]).toContain('NOT colors = "U"');
+		expect(state.meiliFilters[0]).toContain('NOT colors = "B"');
+		expect(state.meiliFilters[0]).toContain('NOT colors = "G"');
+		expect(state.meiliFilters[0]).toContain('colors IS NOT EMPTY');
+		expect(state.meiliFilters[0]).not.toContain('colors IS EMPTY) OR');
+	});
+
+	it('multi-color filter allows only selected colors and their subsets', () => {
+		const state = new SearchFilterState();
+		state.clear();
+		state.toggleColor('R');
+		state.toggleColor('B');
+
+		expect(state.meiliFilters[0]).toContain('colors = "R"');
+		expect(state.meiliFilters[0]).toContain('colors = "B"');
+		expect(state.meiliFilters[0]).toContain('NOT colors = "W"');
+		expect(state.meiliFilters[0]).toContain('NOT colors = "U"');
+		expect(state.meiliFilters[0]).toContain('NOT colors = "G"');
+		expect(state.meiliFilters[0]).toContain('colors IS NOT EMPTY');
 	});
 
 	it('builds rarity filters correctly', () => {

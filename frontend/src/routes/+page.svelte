@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { page } from '$app/state';
+
 	const gameCards = [
 		{
 			id: 'mtg',
@@ -30,6 +32,16 @@
 			available: false
 		}
 	] as const;
+
+	const isAuthenticated = $derived(Boolean(page.data.user));
+
+	function getEntryHref(game: (typeof gameCards)[number]): string | undefined {
+		if (!game.available) {
+			return undefined;
+		}
+
+		return isAuthenticated ? game.href : `/auth/login?returnTo=${encodeURIComponent(game.href)}`;
+	}
 </script>
 
 <svelte:head>
@@ -55,7 +67,7 @@
 		<div class="mt-10 grid gap-5 lg:grid-cols-[1.35fr_0.85fr_0.85fr]">
 			{#each gameCards as game}
 				<a
-					href={game.available ? game.href : undefined}
+					href={getEntryHref(game)}
 					class="group relative overflow-hidden rounded-lg p-6 no-underline transition-transform duration-200 {game.available
 						? 'hover:-translate-y-1'
 						: 'cursor-default'}"
@@ -93,7 +105,7 @@
 								color: {game.available ? game.accent : 'var(--color-text-muted)'};
 							"
 						>
-							{game.available ? 'Enter' : 'Reserved'}
+							{game.available ? (isAuthenticated ? 'Enter' : 'Sign In') : 'Reserved'}
 						</span>
 					</div>
 					<p class="mt-6 font-body leading-7 text-text-secondary">{game.description}</p>
@@ -102,7 +114,7 @@
 						<div
 							class="mt-8 flex items-center gap-3 font-display text-sm uppercase tracking-[0.24em] text-gold-bright"
 						>
-							Enter MTG
+							{isAuthenticated ? 'Enter MTG' : 'Sign In to Enter'}
 							<span class="transition-transform duration-150 group-hover:translate-x-1"
 								>&#8594;</span
 							>

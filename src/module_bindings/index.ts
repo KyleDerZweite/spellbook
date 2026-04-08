@@ -36,14 +36,12 @@ import {
 // Import all reducer arg schemas
 import AddToDeckReducer from "./add_to_deck_reducer";
 import AddToInventoryReducer from "./add_to_inventory_reducer";
-import ConnectUserReducer from "./connect_user_reducer";
 import CreateDeckReducer from "./create_deck_reducer";
 import DeleteDeckReducer from "./delete_deck_reducer";
 import EnsureInventoryReducer from "./ensure_inventory_reducer";
 import RemoveFromDeckReducer from "./remove_from_deck_reducer";
 import RemoveFromInventoryReducer from "./remove_from_inventory_reducer";
 import ReorderInventoryCardReducer from "./reorder_inventory_card_reducer";
-import SetServerConfigReducer from "./set_server_config_reducer";
 import UpdateDeckReducer from "./update_deck_reducer";
 import UpdateDeckCardReducer from "./update_deck_card_reducer";
 import UpdateInventoryCardReducer from "./update_inventory_card_reducer";
@@ -140,14 +138,12 @@ const tablesSchema = __schema({
 const reducersSchema = __reducers(
   __reducerSchema("add_to_deck", AddToDeckReducer),
   __reducerSchema("add_to_inventory", AddToInventoryReducer),
-  __reducerSchema("connect_user", ConnectUserReducer),
   __reducerSchema("create_deck", CreateDeckReducer),
   __reducerSchema("delete_deck", DeleteDeckReducer),
   __reducerSchema("ensure_inventory", EnsureInventoryReducer),
   __reducerSchema("remove_from_deck", RemoveFromDeckReducer),
   __reducerSchema("remove_from_inventory", RemoveFromInventoryReducer),
   __reducerSchema("reorder_inventory_card", ReorderInventoryCardReducer),
-  __reducerSchema("set_server_config", SetServerConfigReducer),
   __reducerSchema("update_deck", UpdateDeckReducer),
   __reducerSchema("update_deck_card", UpdateDeckCardReducer),
   __reducerSchema("update_inventory_card", UpdateInventoryCardReducer),

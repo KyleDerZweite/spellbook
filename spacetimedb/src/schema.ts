@@ -5,18 +5,10 @@ import { schema, table, t } from 'spacetimedb/server';
 const userProfile = table(
   { name: 'user_profile', public: true },
   {
-    accountId: t.string().primaryKey(),    // Pangolin Remote-Subject UUID
-    username: t.string(),                   // Remote-User, synced on connect
-    email: t.string(),                      // Remote-Email, synced on connect
+    accountId: t.string().primaryKey(),    // Zitadel user subject
+    username: t.string(),                   // preferred_username or fallback
+    email: t.string(),                      // email claim when available
     lastSeen: t.u64(),                      // Unix timestamp microseconds
-  }
-);
-
-const serverConfig = table(
-  { name: 'server_config', public: false },
-  {
-    key: t.string().primaryKey(),           // e.g. "auth_signing_secret"
-    value: t.string(),
   }
 );
 
@@ -111,7 +103,6 @@ const deckCard = table(
 
 const spacetimedb = schema({
   userProfile,
-  serverConfig,
   inventory,
   inventoryCard,
   deck,

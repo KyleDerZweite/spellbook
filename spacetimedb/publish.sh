@@ -14,9 +14,6 @@ until spacetime server ping "$STDB_HOST" 2>/dev/null; do
   sleep 2
 done
 
-# Clear stale credentials — server signing key changes on restart
-rm -f /root/.config/spacetime/cli.toml
-
 echo "Publishing module '$STDB_DATABASE'..."
 output=$(spacetime publish "$STDB_DATABASE" \
   --server "$STDB_HOST" \
@@ -27,14 +24,6 @@ output=$(spacetime publish "$STDB_DATABASE" \
   exit 0
 }
 
-# Publish failed — check if it's because the database already exists
-# (owned by a previous identity). This is expected on restarts.
-if echo "$output" | grep -qE "401|403|not authorized"; then
-  echo "Module '$STDB_DATABASE' already exists (owned by prior identity). Skipping."
-  exit 0
-fi
-
-# Unexpected error
 echo "$output"
 echo "ERROR: Failed to publish module '$STDB_DATABASE'"
 exit 1

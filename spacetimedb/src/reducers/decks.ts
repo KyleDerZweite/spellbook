@@ -1,6 +1,7 @@
 import spacetimedb from '../schema.js';
 import { t } from 'spacetimedb/server';
 import { makeDeckCardId } from '../lib/composite-key.js';
+import { assertOwner, requireAuthenticatedAccountId } from '../lib/auth.js';
 
 function makeEntityId(ctx: any, accountId: string): string {
   const now = ctx.timestamp.microsSinceUnixEpoch;
@@ -9,13 +10,13 @@ function makeEntityId(ctx: any, accountId: string): string {
 
 export const createDeck = spacetimedb.reducer(
   {
-    accountId: t.string(),
     game: t.string(),
     name: t.string(),
     description: t.string(),
     format: t.string(),
   },
-  (ctx, { accountId, game, name, description, format }) => {
+  (ctx, { game, name, description, format }) => {
+    const accountId = requireAuthenticatedAccountId(ctx);
     const user = ctx.db.userProfile.accountId.find(accountId);
     if (!user) {
       throw new Error(`User not found: ${accountId}`);
@@ -37,21 +38,18 @@ export const createDeck = spacetimedb.reducer(
 
 export const updateDeck = spacetimedb.reducer(
   {
-    accountId: t.string(),
     deckId: t.string(),
     name: t.string(),
     description: t.string(),
     format: t.string(),
   },
-  (ctx, { accountId, deckId, name, description, format }) => {
+  (ctx, { deckId, name, description, format }) => {
     const deck = ctx.db.deck.id.find(deckId);
     if (!deck) {
       throw new Error(`Deck not found: ${deckId}`);
     }
 
-    if (deck.ownerId !== accountId) {
-      throw new Error('Permission denied: not the deck owner');
-    }
+    assertOwner(ctx, deck.ownerId);
 
     ctx.db.deck.id.update({
       ...deck,
@@ -65,18 +63,15 @@ export const updateDeck = spacetimedb.reducer(
 
 export const deleteDeck = spacetimedb.reducer(
   {
-    accountId: t.string(),
     deckId: t.string(),
   },
-  (ctx, { accountId, deckId }) => {
+  (ctx, { deckId }) => {
     const deck = ctx.db.deck.id.find(deckId);
     if (!deck) {
       throw new Error(`Deck not found: ${deckId}`);
     }
 
-    if (deck.ownerId !== accountId) {
-      throw new Error('Permission denied: not the deck owner');
-    }
+    assertOwner(ctx, deck.ownerId);
 
     ctx.db.deckCard.deck_card_deck_id.delete(deckId);
     ctx.db.deck.id.delete(deckId);
@@ -85,7 +80,6 @@ export const deleteDeck = spacetimedb.reducer(
 
 export const addToDeck = spacetimedb.reducer(
   {
-    accountId: t.string(),
     deckId: t.string(),
     catalogCardId: t.string(),
     canonicalCardId: t.string(),
@@ -95,15 +89,14 @@ export const addToDeck = spacetimedb.reducer(
     quantity: t.u32(),
     role: t.string(),
   },
-  (ctx, { accountId, deckId, catalogCardId, canonicalCardId, name, setCode, imageUri, quantity, role }) => {
+  (ctx, { deckId, catalogCardId, canonicalCardId, name, setCode, imageUri, quantity, role }) => {
+    const accountId = requireAuthenticatedAccountId(ctx);
     const deck = ctx.db.deck.id.find(deckId);
     if (!deck) {
       throw new Error(`Deck not found: ${deckId}`);
     }
 
-    if (deck.ownerId !== accountId) {
-      throw new Error('Permission denied: not the deck owner');
-    }
+    assertOwner(ctx, deck.ownerId);
 
     if (quantity === 0) {
       throw new Error('Quantity must be greater than 0');
@@ -150,19 +143,16 @@ export const addToDeck = spacetimedb.reducer(
 
 export const updateDeckCard = spacetimedb.reducer(
   {
-    accountId: t.string(),
     entryId: t.string(),
     quantity: t.u32(),
   },
-  (ctx, { accountId, entryId, quantity }) => {
+  (ctx, { entryId, quantity }) => {
     const card = ctx.db.deckCard.entryId.find(entryId);
     if (!card) {
       throw new Error(`Deck card not found: ${entryId}`);
     }
 
-    if (card.ownerId !== accountId) {
-      throw new Error('Permission denied: not the deck owner');
-    }
+    assertOwner(ctx, card.ownerId);
 
     if (quantity === 0) {
       throw new Error('Quantity must be greater than 0. Use removeFromDeck to delete.');
@@ -178,18 +168,15 @@ export const updateDeckCard = spacetimedb.reducer(
 
 export const removeFromDeck = spacetimedb.reducer(
   {
-    accountId: t.string(),
     entryId: t.string(),
   },
-  (ctx, { accountId, entryId }) => {
+  (ctx, { entryId }) => {
     const card = ctx.db.deckCard.entryId.find(entryId);
     if (!card) {
       throw new Error(`Deck card not found: ${entryId}`);
     }
 
-    if (card.ownerId !== accountId) {
-      throw new Error('Permission denied: not the deck owner');
-    }
+    assertOwner(ctx, card.ownerId);
 
     ctx.db.deckCard.entryId.delete(entryId);
   }
