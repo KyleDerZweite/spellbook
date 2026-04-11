@@ -36,15 +36,20 @@ import {
 // Import all reducer arg schemas
 import AddToDeckReducer from "./add_to_deck_reducer";
 import AddToInventoryReducer from "./add_to_inventory_reducer";
+import BatchAddToInventoryReducer from "./batch_add_to_inventory_reducer";
 import CreateDeckReducer from "./create_deck_reducer";
+import CreateScanSessionReducer from "./create_scan_session_reducer";
 import DeleteDeckReducer from "./delete_deck_reducer";
 import EnsureInventoryReducer from "./ensure_inventory_reducer";
+import RecordScanArtifactReducer from "./record_scan_artifact_reducer";
 import RemoveFromDeckReducer from "./remove_from_deck_reducer";
 import RemoveFromInventoryReducer from "./remove_from_inventory_reducer";
 import ReorderInventoryCardReducer from "./reorder_inventory_card_reducer";
 import UpdateDeckReducer from "./update_deck_reducer";
 import UpdateDeckCardReducer from "./update_deck_card_reducer";
 import UpdateInventoryCardReducer from "./update_inventory_card_reducer";
+import UpdateScanSessionStatusReducer from "./update_scan_session_status_reducer";
+import UpsertScanReviewItemReducer from "./upsert_scan_review_item_reducer";
 
 // Import all procedure arg schemas
 
@@ -53,6 +58,10 @@ import DeckRow from "./deck_table";
 import DeckCardRow from "./deck_card_table";
 import InventoryRow from "./inventory_table";
 import InventoryCardRow from "./inventory_card_table";
+import InventoryMutationRequestRow from "./inventory_mutation_request_table";
+import ScanArtifactRow from "./scan_artifact_table";
+import ScanReviewItemRow from "./scan_review_item_table";
+import ScanSessionRow from "./scan_session_table";
 import UserProfileRow from "./user_profile_table";
 
 /** Type-only namespace exports for generated type groups. */
@@ -121,6 +130,71 @@ const tablesSchema = __schema({
       { name: 'inventory_card_entry_id_key', constraint: 'unique', columns: ['entryId'] },
     ],
   }, InventoryCardRow),
+  inventoryMutationRequest: __table({
+    name: 'inventory_mutation_request',
+    indexes: [
+      { accessor: 'inventory_mutation_request_owner_id', name: 'inventory_mutation_request_owner_id_idx_btree', algorithm: 'btree', columns: [
+        'ownerId',
+      ] },
+      { accessor: 'requestId', name: 'inventory_mutation_request_request_id_idx_btree', algorithm: 'btree', columns: [
+        'requestId',
+      ] },
+    ],
+    constraints: [
+      { name: 'inventory_mutation_request_request_id_key', constraint: 'unique', columns: ['requestId'] },
+    ],
+  }, InventoryMutationRequestRow),
+  scanArtifact: __table({
+    name: 'scan_artifact',
+    indexes: [
+      { accessor: 'id', name: 'scan_artifact_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'scan_artifact_owner_id', name: 'scan_artifact_owner_id_idx_btree', algorithm: 'btree', columns: [
+        'ownerId',
+      ] },
+      { accessor: 'scan_artifact_session_id', name: 'scan_artifact_session_id_idx_btree', algorithm: 'btree', columns: [
+        'sessionId',
+      ] },
+    ],
+    constraints: [
+      { name: 'scan_artifact_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, ScanArtifactRow),
+  scanReviewItem: __table({
+    name: 'scan_review_item',
+    indexes: [
+      { accessor: 'id', name: 'scan_review_item_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'scan_review_item_owner_id', name: 'scan_review_item_owner_id_idx_btree', algorithm: 'btree', columns: [
+        'ownerId',
+      ] },
+      { accessor: 'scan_review_item_artifact_id', name: 'scan_review_item_scan_artifact_id_idx_btree', algorithm: 'btree', columns: [
+        'scanArtifactId',
+      ] },
+      { accessor: 'scan_review_item_session_id', name: 'scan_review_item_session_id_idx_btree', algorithm: 'btree', columns: [
+        'sessionId',
+      ] },
+    ],
+    constraints: [
+      { name: 'scan_review_item_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, ScanReviewItemRow),
+  scanSession: __table({
+    name: 'scan_session',
+    indexes: [
+      { accessor: 'id', name: 'scan_session_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+      { accessor: 'scan_session_owner_id', name: 'scan_session_owner_id_idx_btree', algorithm: 'btree', columns: [
+        'ownerId',
+      ] },
+    ],
+    constraints: [
+      { name: 'scan_session_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, ScanSessionRow),
   userProfile: __table({
     name: 'user_profile',
     indexes: [
@@ -138,15 +212,20 @@ const tablesSchema = __schema({
 const reducersSchema = __reducers(
   __reducerSchema("add_to_deck", AddToDeckReducer),
   __reducerSchema("add_to_inventory", AddToInventoryReducer),
+  __reducerSchema("batch_add_to_inventory", BatchAddToInventoryReducer),
   __reducerSchema("create_deck", CreateDeckReducer),
+  __reducerSchema("create_scan_session", CreateScanSessionReducer),
   __reducerSchema("delete_deck", DeleteDeckReducer),
   __reducerSchema("ensure_inventory", EnsureInventoryReducer),
+  __reducerSchema("record_scan_artifact", RecordScanArtifactReducer),
   __reducerSchema("remove_from_deck", RemoveFromDeckReducer),
   __reducerSchema("remove_from_inventory", RemoveFromInventoryReducer),
   __reducerSchema("reorder_inventory_card", ReorderInventoryCardReducer),
   __reducerSchema("update_deck", UpdateDeckReducer),
   __reducerSchema("update_deck_card", UpdateDeckCardReducer),
   __reducerSchema("update_inventory_card", UpdateInventoryCardReducer),
+  __reducerSchema("update_scan_session_status", UpdateScanSessionStatusReducer),
+  __reducerSchema("upsert_scan_review_item", UpsertScanReviewItemReducer),
 );
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */

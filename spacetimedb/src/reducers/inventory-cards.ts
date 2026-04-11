@@ -28,6 +28,17 @@ function touchInventory(ctx: any, inventoryId: string): void {
   });
 }
 
+const BatchInventoryItem = t.object('BatchInventoryItem', {
+  catalogCardId: t.string(),
+  canonicalCardId: t.string(),
+  name: t.string(),
+  setCode: t.string(),
+  imageUri: t.string(),
+  finish: t.string(),
+  condition: t.string(),
+  quantity: t.u32(),
+});
+
 export const addToInventory = spacetimedb.reducer(
   {
     game: t.string(),
@@ -193,5 +204,89 @@ export const reorderInventoryCard = spacetimedb.reducer(
     }
 
     touchInventory(ctx, moved.inventoryId);
+  }
+);
+
+export const batchAddToInventory = spacetimedb.reducer(
+  {
+    requestId: t.string(),
+    source: t.string(),
+    game: t.string(),
+    items: t.array(BatchInventoryItem),
+  },
+  (ctx, { requestId, source, game, items }) => {
+    const accountId = requireAuthenticatedAccountId(ctx);
+    const existingRequest = ctx.db.inventoryMutationRequest.requestId.find(requestId);
+    if (existingRequest) {
+      assertOwner(ctx, existingRequest.ownerId);
+      return;
+    }
+
+    if (items.length === 0) {
+      throw new Error('Batch add requires at least one item');
+    }
+
+    const now = ctx.timestamp.microsSinceUnixEpoch;
+    ctx.db.inventoryMutationRequest.insert({
+      requestId,
+      ownerId: accountId,
+      source,
+      status: 'applied',
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const inventory = getOrCreateInventory(ctx, accountId, game);
+    for (const item of items) {
+      if (!isValidFinish(item.finish)) {
+        throw new Error(`Invalid finish: ${item.finish}. Must be one of: ${VALID_FINISHES.join(', ')}`);
+      }
+
+      if (!isValidCondition(item.condition)) {
+        throw new Error(`Invalid condition: ${item.condition}. Must be one of: ${VALID_CONDITIONS.join(', ')}`);
+      }
+
+      if (item.quantity === 0) {
+        throw new Error('Quantity must be greater than 0');
+      }
+
+      const entryId = makeInventoryCardId(inventory.id, item.catalogCardId, item.finish, item.condition);
+      const existing = ctx.db.inventoryCard.entryId.find(entryId);
+
+      if (existing) {
+        ctx.db.inventoryCard.entryId.update({
+          ...existing,
+          canonicalCardId: item.canonicalCardId,
+          name: item.name,
+          setCode: item.setCode,
+          imageUri: item.imageUri,
+          quantity: existing.quantity + item.quantity,
+          updatedAt: now,
+        });
+        continue;
+      }
+
+      const spellbookPosition = [...ctx.db.inventoryCard.inventory_card_inventory_id.filter(inventory.id)].length;
+      ctx.db.inventoryCard.insert({
+        entryId,
+        inventoryId: inventory.id,
+        ownerId: accountId,
+        game,
+        catalogCardId: item.catalogCardId,
+        canonicalCardId: item.canonicalCardId,
+        name: item.name,
+        setCode: item.setCode,
+        imageUri: item.imageUri,
+        quantity: item.quantity,
+        finish: item.finish,
+        condition: item.condition,
+        notes: '',
+        spellbookPosition,
+        addedAt: now,
+        updatedAt: now,
+      });
+    }
+
+    touchInventory(ctx, inventory.id);
   }
 );

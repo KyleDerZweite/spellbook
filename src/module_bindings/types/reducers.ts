@@ -8,25 +8,35 @@ import { type Infer as __Infer } from "spacetimedb";
 // Import all reducer arg schemas
 import AddToDeckReducer from "../add_to_deck_reducer";
 import AddToInventoryReducer from "../add_to_inventory_reducer";
+import BatchAddToInventoryReducer from "../batch_add_to_inventory_reducer";
 import CreateDeckReducer from "../create_deck_reducer";
+import CreateScanSessionReducer from "../create_scan_session_reducer";
 import DeleteDeckReducer from "../delete_deck_reducer";
 import EnsureInventoryReducer from "../ensure_inventory_reducer";
+import RecordScanArtifactReducer from "../record_scan_artifact_reducer";
 import RemoveFromDeckReducer from "../remove_from_deck_reducer";
 import RemoveFromInventoryReducer from "../remove_from_inventory_reducer";
 import ReorderInventoryCardReducer from "../reorder_inventory_card_reducer";
 import UpdateDeckReducer from "../update_deck_reducer";
 import UpdateDeckCardReducer from "../update_deck_card_reducer";
 import UpdateInventoryCardReducer from "../update_inventory_card_reducer";
+import UpdateScanSessionStatusReducer from "../update_scan_session_status_reducer";
+import UpsertScanReviewItemReducer from "../upsert_scan_review_item_reducer";
 
 export type AddToDeckParams = __Infer<typeof AddToDeckReducer>;
 export type AddToInventoryParams = __Infer<typeof AddToInventoryReducer>;
+export type BatchAddToInventoryParams = __Infer<typeof BatchAddToInventoryReducer>;
 export type CreateDeckParams = __Infer<typeof CreateDeckReducer>;
+export type CreateScanSessionParams = __Infer<typeof CreateScanSessionReducer>;
 export type DeleteDeckParams = __Infer<typeof DeleteDeckReducer>;
 export type EnsureInventoryParams = __Infer<typeof EnsureInventoryReducer>;
+export type RecordScanArtifactParams = __Infer<typeof RecordScanArtifactReducer>;
 export type RemoveFromDeckParams = __Infer<typeof RemoveFromDeckReducer>;
 export type RemoveFromInventoryParams = __Infer<typeof RemoveFromInventoryReducer>;
 export type ReorderInventoryCardParams = __Infer<typeof ReorderInventoryCardReducer>;
 export type UpdateDeckParams = __Infer<typeof UpdateDeckReducer>;
 export type UpdateDeckCardParams = __Infer<typeof UpdateDeckCardReducer>;
 export type UpdateInventoryCardParams = __Infer<typeof UpdateInventoryCardReducer>;
+export type UpdateScanSessionStatusParams = __Infer<typeof UpdateScanSessionStatusReducer>;
+export type UpsertScanReviewItemParams = __Infer<typeof UpsertScanReviewItemReducer>;
 

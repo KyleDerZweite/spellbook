@@ -1,0 +1,1 @@
+"""Spellbook scan worker package."""

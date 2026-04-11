@@ -35,6 +35,22 @@ services:
       - meilisearch_data:/meili_data
     restart: unless-stopped
 
+  minio:
+    image: docker.io/minio/minio:RELEASE.2026-01-03T00-00-00Z
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+
+  qdrant:
+    image: docker.io/qdrant/qdrant:v1.15.4
+    volumes:
+      - qdrant_data:/qdrant/storage
+    restart: unless-stopped
+
   worker:
     build:
       context: ./worker
@@ -46,6 +62,21 @@ services:
       LANGUAGES: ${LANGUAGES:-en}
     depends_on:
       - meilisearch
+    restart: unless-stopped
+
+  scan-worker:
+    build:
+      context: ./scan-worker
+    environment:
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_REGION: ${MINIO_REGION:-us-east-1}
+      MINIO_BUCKET: ${MINIO_BUCKET:-spellbook-scans}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      QDRANT_URL: http://qdrant:6333
+    depends_on:
+      - minio
+      - qdrant
     restart: unless-stopped
 
   frontend:
@@ -60,11 +91,20 @@ services:
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
       ZITADEL_ISSUER: ${ZITADEL_ISSUER}
       ZITADEL_CLIENT_ID: ${ZITADEL_CLIENT_ID}
+      ZITADEL_MOBILE_CLIENT_ID: ${ZITADEL_MOBILE_CLIENT_ID}
       APP_ORIGIN: ${APP_ORIGIN}
       AUTH_SESSION_SECRET: ${AUTH_SESSION_SECRET}
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_REGION: ${MINIO_REGION:-us-east-1}
+      MINIO_BUCKET: ${MINIO_BUCKET:-spellbook-scans}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      SCAN_WORKER_URL: http://scan-worker:8080
     depends_on:
       - stdb-publish
       - meilisearch
+      - minio
+      - scan-worker
     restart: unless-stopped
 
   newt:
@@ -85,3 +125,5 @@ volumes:
   spacetimedb_config:
   stdb_publish_config:
   meilisearch_data:
+  minio_data:
+  qdrant_data:

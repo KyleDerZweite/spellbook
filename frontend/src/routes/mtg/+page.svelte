@@ -11,8 +11,7 @@
 		{
 			href: '/mtg/inventory',
 			title: 'Inventory',
-			description:
-				'Track what you own and inspect set completion progress.',
+			description: 'Track what you own and inspect set completion progress.',
 			eyebrow: 'Owned ledger'
 		},
 		{
@@ -56,25 +55,19 @@
 			</p>
 
 			<div class="mt-8 grid gap-4 sm:grid-cols-3">
-				<div
-					class="rounded px-4 py-4 bg-stone/72 border border-gold/14"
-				>
+				<div class="rounded px-4 py-4 bg-stone/72 border border-gold/14">
 					<p class="font-mono text-2xl text-gold-bright">{stats.total}</p>
 					<p class="mt-1 font-body text-xs uppercase tracking-[0.2em] text-text-secondary">
 						Owned Cards
 					</p>
 				</div>
-				<div
-					class="rounded px-4 py-4 bg-stone/72 border border-gold/14"
-				>
+				<div class="rounded px-4 py-4 bg-stone/72 border border-gold/14">
 					<p class="font-mono text-2xl text-gold-bright">{stats.unique}</p>
 					<p class="mt-1 font-body text-xs uppercase tracking-[0.2em] text-text-secondary">
 						Unique Cards
 					</p>
 				</div>
-				<div
-					class="rounded px-4 py-4 bg-stone/72 border border-gold/14"
-				>
+				<div class="rounded px-4 py-4 bg-stone/72 border border-gold/14">
 					<p class="font-mono text-2xl text-gold-bright">{spacetimeState.getDecks('mtg').length}</p>
 					<p class="mt-1 font-body text-xs uppercase tracking-[0.2em] text-text-secondary">Decks</p>
 				</div>

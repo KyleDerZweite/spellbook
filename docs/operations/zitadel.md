@@ -1,7 +1,7 @@
 # Zitadel Setup
 
 - Status: Canonical
-- Last Reviewed: 2026-04-08
+- Last Reviewed: 2026-04-11
 - Source of Truth: code
 - Update Triggers: auth flow changes, env var changes, callback path changes, scope changes
 - Related Docs: [Operations Docs](./README.md), [Auth Architecture](../architecture/auth.md), [Deployment](./deployment.md)
@@ -15,11 +15,18 @@ The current frontend expects:
 - no client secret
 - hosted Zitadel login pages
 
+The mobile foundation also expects:
+
+- a separate native Android client id
+- Authorization Code + PKCE
+- system-browser login flow
+
 ## Required Environment Variables
 
 ```env
 ZITADEL_ISSUER=https://auth.example.com
 ZITADEL_CLIENT_ID=your-public-client-id
+ZITADEL_MOBILE_CLIENT_ID=your-native-android-client-id
 APP_ORIGIN=https://spellbook.example.com
 AUTH_SESSION_SECRET=your-32-byte-base64url-secret
 ```

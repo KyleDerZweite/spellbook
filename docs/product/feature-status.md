@@ -1,7 +1,7 @@
 # Feature Status
 
 - Status: Canonical
-- Last Reviewed: 2026-04-08
+- Last Reviewed: 2026-04-11
 - Source of Truth: mixed
 - Update Triggers: feature rollout changes, supported game changes, route changes, planned versus implemented status changes
 - Related Docs: [Product Docs](./README.md), [Platform Overview](./platform-overview.md), [Routing and Games](./routing-and-games.md)
@@ -32,6 +32,8 @@ This matrix tracks implemented behavior versus planned platform direction.
 - MTG play surface
 - non-MTG search adapters
 - non-MTG inventory and deck UIs
+- released Android mobile client
+- production-ready server-side scan recognizer
 
 ## Platform Notes
 
@@ -39,3 +41,5 @@ This matrix tracks implemented behavior versus planned platform direction.
 - the current search client explicitly rejects non-MTG games
 - the backend still auto-creates only the MTG inventory on first connect
 - future TCGs are examples of direction, not committed releases
+- mobile API foundations now exist under `/api/mobile/v1/...`
+- scan session and idempotent batch inventory infrastructure now exist in the backend

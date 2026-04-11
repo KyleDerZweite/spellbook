@@ -182,9 +182,7 @@
 </svelte:head>
 
 <div class="grid gap-6 px-4 py-4 sm:px-6 sm:py-6 xl:grid-cols-[0.72fr_1.28fr]">
-	<section
-		class="rounded-lg p-5 bg-crypt/92 border border-gold/14"
-	>
+	<section class="rounded-lg p-5 bg-crypt/92 border border-gold/14">
 		<p class="font-mono text-[11px] uppercase tracking-[0.3em] text-gold-dim">MTG Deck Studio</p>
 		<h1 class="mt-3 font-display text-3xl font-bold text-gold-bright">Decks</h1>
 		<p class="mt-3 font-body leading-7 text-text-secondary">
@@ -235,7 +233,9 @@
 						}}
 						role="button"
 						tabindex="0"
-						class="cursor-pointer rounded px-4 py-4 text-left border {selectedDeckId === deck.id ? 'bg-slate/92 border-gold/30' : 'bg-stone/60 border-gold/10'}"
+						class="cursor-pointer rounded px-4 py-4 text-left border {selectedDeckId === deck.id
+							? 'bg-slate/92 border-gold/30'
+							: 'bg-stone/60 border-gold/10'}"
 					>
 						<div class="flex items-start justify-between gap-3">
 							<div>
@@ -266,9 +266,7 @@
 		</div>
 	</section>
 
-	<section
-		class="rounded-lg p-5 bg-crypt/92 border border-gold/14"
-	>
+	<section class="rounded-lg p-5 bg-crypt/92 border border-gold/14">
 		{#if spacetimeState.error}
 			<p
 				class="mb-4 rounded px-3 py-2 font-body text-sm text-error bg-error/10 border border-error/30"
@@ -312,9 +310,7 @@
 							</button>
 						</div>
 					</div>
-					<div
-						class="rounded px-4 py-3 bg-stone/58 border border-gold/10"
-					>
+					<div class="rounded px-4 py-3 bg-stone/58 border border-gold/10">
 						<p class="font-mono text-xl text-gold-bright">
 							{deckCards.reduce((sum, card) => sum + card.quantity, 0)}
 						</p>

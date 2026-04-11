@@ -189,7 +189,9 @@ describe('auth flow', () => {
 		const locals: App.Locals = {
 			user: null,
 			spacetimeToken: null,
-			meiliSearchKey: ''
+			meiliSearchKey: '',
+			mobileBearerUser: null,
+			mobileBearerToken: null
 		};
 
 		const response = await handle({

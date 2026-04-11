@@ -1,7 +1,7 @@
 # Deployment Guide
 
 - Status: Canonical
-- Last Reviewed: 2026-04-08
+- Last Reviewed: 2026-04-11
 - Source of Truth: mixed
 - Update Triggers: service topology changes, env var changes, auth boundary changes, compose changes
 - Related Docs: [Operations Docs](./README.md), [Zitadel](./zitadel.md), [Auth Architecture](../architecture/auth.md), [System Overview](../architecture/system-overview.md)
@@ -12,7 +12,7 @@ For live domains, client IDs, operator contacts, and other instance-specific not
 
 ## Current Architecture
 
-Spellbook currently runs as six services under `podman-compose`:
+Spellbook currently runs with the core services below under `podman-compose`:
 
 | Service | Role |
 |---------|------|
@@ -22,6 +22,14 @@ Spellbook currently runs as six services under `podman-compose`:
 | `worker` | Python sync pipeline for MTG catalog ingestion |
 | `frontend` | SvelteKit app server |
 | `newt` | Pangolin tunnel agent |
+
+The mobile and scan foundation adds these services:
+
+| Service | Role |
+|---------|------|
+| `minio` | S3-compatible object storage for retained scan artifacts |
+| `scan-worker` | Scan-processing boundary for normalization, OCR, embeddings, and reranking |
+| `qdrant` | Vector index for image embedding retrieval |
 
 ## Auth Model
 
@@ -37,6 +45,7 @@ Pangolin is used only as transport and reverse-proxy infrastructure in this depl
 |----------|-------------|
 | `ZITADEL_ISSUER` | Zitadel issuer URL |
 | `ZITADEL_CLIENT_ID` | Public OIDC client ID |
+| `ZITADEL_MOBILE_CLIENT_ID` | Native Android OIDC client ID |
 | `APP_ORIGIN` | Public frontend origin |
 | `AUTH_SESSION_SECRET` | 32-byte base64url secret for encrypted cookies |
 | `PUBLIC_MEILISEARCH_URL` | Browser-facing MeiliSearch URL |
@@ -44,6 +53,12 @@ Pangolin is used only as transport and reverse-proxy infrastructure in this depl
 | `PUBLIC_SPACETIMEDB_MODULE` | SpacetimeDB database name, default `spellbook` |
 | `MEILISEARCH_INTERNAL_URL` | Internal MeiliSearch URL used by the server |
 | `MEILI_MASTER_KEY` | Used by the frontend server to fetch the search-only key from MeiliSearch |
+| `MINIO_ENDPOINT` | S3-compatible endpoint for scan artifact storage |
+| `MINIO_REGION` | Object storage region, typically `us-east-1` for local MinIO |
+| `MINIO_BUCKET` | Bucket name for retained scan artifacts |
+| `MINIO_ACCESS_KEY` | MinIO access key |
+| `MINIO_SECRET_KEY` | MinIO secret key |
+| `SCAN_WORKER_URL` | Internal URL for the scan-worker service |
 
 ### Worker and MeiliSearch
 
@@ -65,3 +80,13 @@ Current behavior:
 - it exposes that key to authenticated sessions through SvelteKit server data
 
 This matches the current implementation in `frontend/src/hooks.server.ts`.
+
+## Scan Artifact Storage
+
+Current scan uploads are stored outside SpacetimeDB.
+
+Operational guidance:
+
+- store original uploads and normalized crops in MinIO-compatible object storage
+- keep object lifecycle policy aligned with the current product retention decision
+- do not store binary artifacts directly in SpacetimeDB tables

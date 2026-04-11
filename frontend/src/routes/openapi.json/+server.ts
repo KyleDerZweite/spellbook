@@ -50,6 +50,49 @@ const SCHEMA = {
 					}
 				}
 			}
+		},
+		'/api/mobile/v1/mtg/search': {
+			get: {
+				summary: 'Search the MTG catalog for the mobile client',
+				responses: {
+					200: { description: 'Search response with MTG card hits' },
+					401: { description: 'Bearer token or web session required' }
+				}
+			}
+		},
+		'/api/mobile/v1/mtg/inventory': {
+			get: {
+				summary: 'Read the authenticated user inventory for mobile',
+				responses: {
+					200: { description: 'Current MTG inventory snapshot' },
+					401: { description: 'Bearer token or web session required' }
+				}
+			},
+			post: {
+				summary: 'Commit an idempotent batch inventory add',
+				responses: {
+					200: { description: 'Inventory commit applied or deduplicated' },
+					401: { description: 'Bearer token or web session required' }
+				}
+			}
+		},
+		'/api/mobile/v1/mtg/decks': {
+			get: {
+				summary: 'Read the authenticated user decks for mobile',
+				responses: {
+					200: { description: 'Current deck snapshot' },
+					401: { description: 'Bearer token or web session required' }
+				}
+			}
+		},
+		'/api/mobile/v1/mtg/scan/sessions': {
+			post: {
+				summary: 'Create a scan session for the mobile scan workflow',
+				responses: {
+					200: { description: 'Created scan session id' },
+					401: { description: 'Bearer token or web session required' }
+				}
+			}
 		}
 	},
 	components: {},
@@ -57,6 +100,10 @@ const SCHEMA = {
 		{
 			name: 'auth',
 			description: SITE_DESCRIPTION
+		},
+		{
+			name: 'mobile',
+			description: 'Android-first mobile API foundation for MTG search, inventory, decks, and scan.'
 		}
 	]
 };

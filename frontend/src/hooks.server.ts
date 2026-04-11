@@ -97,6 +97,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.user = session?.user ?? null;
 	event.locals.spacetimeToken = session?.idToken ?? null;
 	event.locals.meiliSearchKey = session ? await getMeiliSearchKey() : '';
+	event.locals.mobileBearerUser = null;
+	event.locals.mobileBearerToken = null;
 
 	const pathname = event.url.pathname;
 	if (!isPublicPath(pathname) && isProtectedPath(pathname) && !session) {

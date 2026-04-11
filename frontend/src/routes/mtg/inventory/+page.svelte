@@ -145,7 +145,6 @@
 			spacetimeState.error = `Failed to remove inventory card: ${String(err)}`;
 		}
 	}
-
 </script>
 
 <svelte:head>
@@ -175,27 +174,19 @@
 			</div>
 
 			<div class="grid gap-3 sm:grid-cols-4">
-				<div
-					class="rounded px-4 py-3 bg-stone/62 border border-gold/12"
-				>
+				<div class="rounded px-4 py-3 bg-stone/62 border border-gold/12">
 					<p class="font-mono text-xl text-gold-bright">{inventoryStats.total}</p>
 					<p class="font-body text-[11px] uppercase tracking-[0.2em] text-text-secondary">Cards</p>
 				</div>
-				<div
-					class="rounded px-4 py-3 bg-stone/62 border border-gold/12"
-				>
+				<div class="rounded px-4 py-3 bg-stone/62 border border-gold/12">
 					<p class="font-mono text-xl text-gold-bright">{inventoryStats.unique}</p>
 					<p class="font-body text-[11px] uppercase tracking-[0.2em] text-text-secondary">Unique</p>
 				</div>
-				<div
-					class="rounded px-4 py-3 bg-stone/62 border border-gold/12"
-				>
+				<div class="rounded px-4 py-3 bg-stone/62 border border-gold/12">
 					<p class="font-mono text-xl text-gold-bright">{inventoryStats.sets}</p>
 					<p class="font-body text-[11px] uppercase tracking-[0.2em] text-text-secondary">Sets</p>
 				</div>
-				<div
-					class="rounded px-4 py-3 bg-stone/62 border border-gold/12"
-				>
+				<div class="rounded px-4 py-3 bg-stone/62 border border-gold/12">
 					<p class="font-mono text-xl text-gold-bright">{completedSetCount}</p>
 					<p class="font-body text-[11px] uppercase tracking-[0.2em] text-text-secondary">
 						Completed
@@ -206,9 +197,7 @@
 	</section>
 
 	{#if spacetimeState.error}
-		<p
-			class="rounded px-3 py-2 font-body text-sm text-error bg-error/10 border border-error/30"
-		>
+		<p class="rounded px-3 py-2 font-body text-sm text-error bg-error/10 border border-error/30">
 			{spacetimeState.error}
 			<button
 				onclick={() => (spacetimeState.error = null)}
@@ -219,9 +208,7 @@
 	{/if}
 
 	<section class="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-		<div
-			class="rounded-lg p-5 bg-crypt/92 border border-gold/14"
-		>
+		<div class="rounded-lg p-5 bg-crypt/92 border border-gold/14">
 			<div class="flex items-center justify-between gap-3">
 				<div>
 					<p class="font-display text-lg font-bold text-text-primary">Set Progress</p>
@@ -237,9 +224,7 @@
 			<div class="mt-5 flex flex-col gap-3">
 				{#if setProgress.length > 0}
 					{#each setProgress.slice(0, 10) as progress}
-						<div
-							class="rounded px-4 py-3 bg-stone/60 border border-gold/10"
-						>
+						<div class="rounded px-4 py-3 bg-stone/60 border border-gold/10">
 							<div class="flex items-center justify-between gap-3">
 								<div>
 									<p class="font-display text-base text-text-primary">
@@ -250,7 +235,9 @@
 									</p>
 								</div>
 								<span
-									class="rounded px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em] border {progress.completed ? 'bg-success/18 border-success/35 text-success' : 'bg-stone/90 border-gold/14 text-gold-bright'}"
+									class="rounded px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em] border {progress.completed
+										? 'bg-success/18 border-success/35 text-success'
+										: 'bg-stone/90 border-gold/14 text-gold-bright'}"
 								>
 									{progress.percent}%
 								</span>
@@ -271,9 +258,7 @@
 			</div>
 		</div>
 
-		<div
-			class="rounded-lg p-5 bg-crypt/92 border border-gold/14"
-		>
+		<div class="rounded-lg p-5 bg-crypt/92 border border-gold/14">
 			<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<input
 					type="search"

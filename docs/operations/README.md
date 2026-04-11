@@ -1,7 +1,7 @@
 # Operations Docs
 
 - Status: Canonical
-- Last Reviewed: 2026-04-08
+- Last Reviewed: 2026-04-11
 - Source of Truth: mixed
 - Update Triggers: env var changes, deployment changes, auth provider setup changes, operator workflow changes
 - Related Docs: [Deployment](./deployment.md), [Zitadel](./zitadel.md), [Private Instance Template](./private-instance-template.md), [Docs Index](../README.md)

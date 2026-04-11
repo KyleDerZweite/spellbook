@@ -206,6 +206,38 @@ async function createSessionFromTokens(
 	};
 }
 
+export async function verifyBearerToken(
+	config: ZitadelAuthConfig,
+	token: string
+): Promise<{ user: AuthUser; expiresAt: number }> {
+	const metadata = await getMetadata(config);
+	const { payload } = await jwtVerify(token, getJwks(metadata), {
+		issuer: metadata.issuer,
+		audience: config.clientId
+	});
+
+	const subject = String(payload.sub ?? '');
+	if (!subject) {
+		throw new Error('Zitadel bearer token did not contain a subject');
+	}
+
+	const user =
+		payload.preferred_username || payload.email
+			? {
+					accountId: subject,
+					username: String(
+						payload.preferred_username ?? payload.name ?? payload.email ?? subject.slice(0, 12)
+					),
+					email: String(payload.email ?? '')
+				}
+			: await fetchUserInfo(config, undefined, subject);
+
+	return {
+		user,
+		expiresAt: typeof payload.exp === 'number' ? payload.exp * 1000 : Date.now()
+	};
+}
+
 export async function buildAuthorizationUrl(
 	config: ZitadelAuthConfig,
 	options: {

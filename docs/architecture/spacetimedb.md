@@ -1,10 +1,10 @@
 # SpacetimeDB
 
 - Status: Canonical
-- Last Reviewed: 2026-04-08
+- Last Reviewed: 2026-04-11
 - Source of Truth: code
 - Update Triggers: schema changes, reducer changes, auth claim handling changes, table bootstrap changes
-- Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Platform Overview](../product/platform-overview.md)
+- Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Platform Overview](../product/platform-overview.md)
 
 SpacetimeDB stores user-scoped real-time state for Spellbook.
 
@@ -15,6 +15,10 @@ SpacetimeDB stores user-scoped real-time state for Spellbook.
 - `inventory_card`
 - `deck`
 - `deck_card`
+- `scan_session`
+- `scan_artifact`
+- `scan_review_item`
+- `inventory_mutation_request`
 
 ## Current Model Notes
 
@@ -36,5 +40,7 @@ This behavior currently lives in `spacetimedb/src/reducers/identity.ts` and `spa
 
 - inventory creation and lookup
 - add/update/remove/reorder inventory cards
+- idempotent batch inventory add
 - create/update/delete decks
 - add/update/remove deck cards
+- create/update scan sessions and review items
