@@ -7,7 +7,7 @@ name = "spellbook-worker"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
-    "httpx>=0.28",
+    "httpx>=0.28.1",
     "meilisearch>=0.33",
     "orjson>=3.10",
 ]
