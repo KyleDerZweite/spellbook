@@ -9,7 +9,7 @@ requires-python = ">=3.12"
 dependencies = [
     "httpx>=0.28",
     "meilisearch>=0.33",
-    "orjson>=3.10",
+    "orjson>=3.11.8",
 ]
 
 [project.optional-dependencies]
