@@ -1,10 +1,10 @@
 # Operations Docs
 
 - Status: Canonical
-- Last Reviewed: 2026-04-11
+- Last Reviewed: 2026-04-16
 - Source of Truth: mixed
-- Update Triggers: env var changes, deployment changes, auth provider setup changes, operator workflow changes
-- Related Docs: [Deployment](./deployment.md), [Zitadel](./zitadel.md), [Private Instance Template](./private-instance-template.md), [Docs Index](../README.md)
+- Update Triggers: env var changes, deployment changes, auth provider setup changes, operator workflow changes, repo automation changes
+- Related Docs: [Deployment](./deployment.md), [Zitadel](./zitadel.md), [Private Instance Template](./private-instance-template.md), [GitHub Automation](./github-automation.md), [Docs Index](../README.md)
 
 Operations docs describe how to run and configure Spellbook.
 
@@ -22,3 +22,4 @@ Do not place live private instance values here.
 - [Deployment](./deployment.md)
 - [Zitadel](./zitadel.md)
 - [Private instance template](./private-instance-template.md)
+- [GitHub automation](./github-automation.md)

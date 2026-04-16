@@ -1,0 +1,196 @@
+name: Dependabot Auto Merge
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+  check_suite:
+    types:
+      - completed
+  check_run:
+    types:
+      - completed
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  merge:
+    name: Merge eligible Dependabot PRs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge clean Dependabot PRs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const defaultBranch = context.payload.repository.default_branch;
+
+            function isDependabotPullRequest(pr) {
+              return pr?.user?.login === "dependabot[bot]" || pr?.head?.ref?.startsWith("dependabot/");
+            }
+
+            function targetsDefaultBranch(pr) {
+              return pr?.base?.ref === defaultBranch;
+            }
+
+            async function listCandidatePullRequests() {
+              switch (context.eventName) {
+                case "pull_request_target":
+                  return [context.payload.pull_request];
+                case "check_suite":
+                  return context.payload.check_suite.pull_requests || [];
+                case "check_run":
+                  return context.payload.check_run.pull_requests || [];
+                case "workflow_dispatch": {
+                  const { data } = await github.rest.pulls.list({
+                    owner,
+                    repo,
+                    state: "open",
+                    per_page: 100,
+                  });
+                  return data;
+                }
+                default:
+                  return [];
+              }
+            }
+
+            function hasBlockingStatuses(statuses) {
+              return statuses.some((status) => status.state !== "success");
+            }
+
+            function hasBlockingCheckRuns(checkRuns) {
+              return checkRuns.some((run) => {
+                if (
+                  run.name === "Merge eligible Dependabot PRs" ||
+                  run.name.startsWith("Dependabot Auto Merge /")
+                ) {
+                  return false;
+                }
+
+                if (run.status !== "completed") {
+                  return true;
+                }
+
+                return !["success", "neutral", "skipped"].includes(run.conclusion);
+              });
+            }
+
+            async function mergePullRequest(pr) {
+              const { data: repoInfo } = await github.rest.repos.get({ owner, repo });
+              const mergeMethods = [
+                repoInfo.allow_squash_merge ? "squash" : null,
+                repoInfo.allow_rebase_merge ? "rebase" : null,
+                repoInfo.allow_merge_commit ? "merge" : null,
+              ].filter(Boolean);
+
+              for (const merge_method of mergeMethods) {
+                try {
+                  await github.rest.pulls.merge({
+                    owner,
+                    repo,
+                    pull_number: pr.number,
+                    sha: pr.head.sha,
+                    merge_method,
+                  });
+                  core.info(`Merged PR #${pr.number} with ${merge_method}.`);
+                  return true;
+                } catch (error) {
+                  core.info(
+                    `Merge attempt for PR #${pr.number} with ${merge_method} failed: ${error.message}`,
+                  );
+                }
+              }
+
+              return false;
+            }
+
+            async function waitForMergeability(pullNumber) {
+              for (let attempt = 0; attempt < 6; attempt += 1) {
+                const { data: pr } = await github.rest.pulls.get({
+                  owner,
+                  repo,
+                  pull_number: pullNumber,
+                });
+
+                if (pr.mergeable !== null && pr.mergeable_state !== "unknown") {
+                  return pr;
+                }
+
+                await new Promise((resolve) => setTimeout(resolve, 5000));
+              }
+
+              const { data: pr } = await github.rest.pulls.get({
+                owner,
+                repo,
+                pull_number: pullNumber,
+              });
+
+              return pr;
+            }
+
+            const candidates = (await listCandidatePullRequests()).filter(
+              (pr) => isDependabotPullRequest(pr) && targetsDefaultBranch(pr),
+            );
+
+            if (candidates.length === 0) {
+              core.info("No matching Dependabot PRs found.");
+              return;
+            }
+
+            for (const candidate of candidates) {
+              const pr = await waitForMergeability(candidate.number);
+
+              if (pr.state !== "open" || pr.draft) {
+                core.info(`Skipping PR #${pr.number}: not open and ready.`);
+                continue;
+              }
+
+              if (!isDependabotPullRequest(pr) || !targetsDefaultBranch(pr)) {
+                core.info(`Skipping PR #${pr.number}: no longer matches filters.`);
+                continue;
+              }
+
+              if (pr.mergeable === false || pr.mergeable_state === "dirty") {
+                core.info(`Skipping PR #${pr.number}: merge conflicts detected.`);
+                continue;
+              }
+
+              if (pr.mergeable === null || pr.mergeable_state === "unknown") {
+                core.info(`Skipping PR #${pr.number}: mergeability did not resolve in time.`);
+                continue;
+              }
+
+              const { data: combinedStatus } = await github.rest.repos.getCombinedStatusForRef({
+                owner,
+                repo,
+                ref: pr.head.sha,
+              });
+
+              if (hasBlockingStatuses(combinedStatus.statuses)) {
+                core.info(`Skipping PR #${pr.number}: commit statuses are not all successful.`);
+                continue;
+              }
+
+              const { data: checkRuns } = await github.rest.checks.listForRef({
+                owner,
+                repo,
+                ref: pr.head.sha,
+                filter: "latest",
+                per_page: 100,
+              });
+
+              if (hasBlockingCheckRuns(checkRuns.check_runs)) {
+                core.info(`Skipping PR #${pr.number}: check runs are pending or failing.`);
+                continue;
+              }
+
+              await mergePullRequest(pr);
+            }
