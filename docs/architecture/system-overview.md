@@ -1,7 +1,7 @@
 # System Overview
 
 - Status: Canonical
-- Last Reviewed: 2026-04-11
+- Last Reviewed: 2026-04-17
 - Source of Truth: code
 - Update Triggers: service boundary changes, topology changes, auth boundary changes, data flow changes
 - Related Docs: [Architecture Docs](./README.md), [Frontend](./frontend.md), [SpacetimeDB](./spacetimedb.md), [Worker](./worker.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md)
@@ -23,19 +23,17 @@ The mobile and scan foundation adds these supporting parts:
 ## Current High-Level Flow
 
 ```text
-Browser
+Browser or installed PWA
   -> Frontend (SvelteKit)
   -> Zitadel for login
   -> Frontend session cookie
   -> SpacetimeDB with ID token
   -> MeiliSearch with search-only key
-
-Android app
-  -> Frontend mobile API with bearer token
-  -> SpacetimeDB through the frontend server
-  -> MeiliSearch through the frontend server
   -> MinIO for retained scan objects through the frontend server
   -> scan-worker for scan processing
+
+Optional non-browser client (future)
+  -> Frontend mobile API with bearer token at /api/mobile/v1/...
 
 Scryfall
   -> Worker
@@ -44,8 +42,8 @@ Scryfall
 
 ## Current Responsibilities
 
-- frontend: routes, auth session handling, search UI, inventory UI, decks UI
-- frontend mobile API: bearer-token validation, MTG mobile endpoints, scan upload orchestration
+- frontend: routes, auth session handling, search UI, inventory UI, decks UI, PWA install surface for mobile
+- frontend mobile API: optional bearer-token validation, MTG mobile endpoints, scan upload orchestration
 - SpacetimeDB: user profile, inventories, inventory cards, decks, deck cards
 - worker: catalog download, transform, indexing, sync markers
 - scan-worker: scan-processing boundary for normalization, OCR, embeddings, and candidate ranking

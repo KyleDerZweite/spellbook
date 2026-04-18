@@ -1,7 +1,7 @@
 # Routing and Games
 
 - Status: Canonical
-- Last Reviewed: 2026-04-08
+- Last Reviewed: 2026-04-17
 - Source of Truth: code
 - Update Triggers: route additions, route removals, supported game changes, auth protection changes
 - Related Docs: [Product Docs](./README.md), [Platform Overview](./platform-overview.md), [Frontend Architecture](../architecture/frontend.md)
@@ -16,12 +16,16 @@ This document defines the current route surface and the planned canonical game-s
 - `/mtg/`
 - `/mtg/search`
 - `/mtg/inventory`
-- `/mtg/decks`
+- `/mtg/decks` (implemented, hidden from nav and hub)
 - `/auth/login`
 - `/auth/callback`
 - `/auth/logout`
 - `/privacy`
 - `/terms`
+
+### Currently hidden from the product surface
+
+`/mtg/decks` is implemented and reachable by direct URL but is intentionally not linked from the navigation, the MTG hub, or the PWA manifest while search, inventory, and scan are the active product focus. This is a product-surface decision, not a code removal.
 
 ### Transitional aliases
 

@@ -1,7 +1,7 @@
 # Deployment Guide
 
 - Status: Canonical
-- Last Reviewed: 2026-04-11
+- Last Reviewed: 2026-04-17
 - Source of Truth: mixed
 - Update Triggers: service topology changes, env var changes, auth boundary changes, compose changes
 - Related Docs: [Operations Docs](./README.md), [Zitadel](./zitadel.md), [Auth Architecture](../architecture/auth.md), [System Overview](../architecture/system-overview.md)
@@ -45,7 +45,7 @@ Pangolin is used only as transport and reverse-proxy infrastructure in this depl
 |----------|-------------|
 | `ZITADEL_ISSUER` | Zitadel issuer URL |
 | `ZITADEL_CLIENT_ID` | Public OIDC client ID |
-| `ZITADEL_MOBILE_CLIENT_ID` | Native Android OIDC client ID |
+| `ZITADEL_MOBILE_CLIENT_ID` | Optional. Bearer-token client id for `/api/mobile/v1/...`. Not required for the PWA |
 | `APP_ORIGIN` | Public frontend origin |
 | `AUTH_SESSION_SECRET` | 32-byte base64url secret for encrypted cookies |
 | `PUBLIC_MEILISEARCH_URL` | Browser-facing MeiliSearch URL |
@@ -90,3 +90,34 @@ Operational guidance:
 - store original uploads and normalized crops in MinIO-compatible object storage
 - keep object lifecycle policy aligned with the current product retention decision
 - do not store binary artifacts directly in SpacetimeDB tables
+
+## Fedora And SELinux
+
+The current compose file is intentionally biased toward named volumes instead of host bind mounts for persistent state.
+
+That choice keeps the default deployment more portable across Podman on Fedora and Docker or Podman on Ubuntu:
+
+- Podman-managed named volumes avoid most manual SELinux relabel work on Fedora
+- the same compose file stays valid on non-SELinux hosts
+
+If an operator replaces a named volume with a host bind mount on a Fedora or other SELinux-enforcing host:
+
+- use `:Z` for a private bind mount used by one container
+- use `:z` only when multiple containers must share the same host path
+- these SELinux bind-mount options are ignored on platforms without SELinux
+
+Current Fedora-specific note:
+
+- the verified SELinux alerts seen during `podman-compose up` in this repo come from Podman's rootless `pasta` network helper, not from the Spellbook data volumes
+- this is a host Podman configuration issue rather than a compose-file volume-label issue
+- if those `pasta` alerts are noisy on Fedora, prefer changing Podman's rootless network helper to `slirp4netns` in the local `containers.conf` instead of weakening container labeling in the shared compose file
+- that host-side workaround requires `slirp4netns` to be installed on the Fedora machine
+
+Example user-level Podman config on Fedora:
+
+```toml
+[network]
+default_rootless_network_cmd = "slirp4netns"
+```
+
+Place that in `~/.config/containers/containers.conf`, then recreate the stack.

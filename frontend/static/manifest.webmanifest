@@ -1,17 +1,35 @@
 {
+	"id": "/",
 	"name": "Spellbook",
 	"short_name": "Spellbook",
 	"description": "MTG-first, multi-TCG-ready inventory and deck companion",
-	"start_url": "/",
+	"lang": "en",
+	"dir": "ltr",
+	"start_url": "/mtg/search",
 	"scope": "/",
 	"display": "standalone",
+	"display_override": ["standalone", "minimal-ui", "browser"],
+	"orientation": "portrait-primary",
 	"background_color": "#0d0b0f",
 	"theme_color": "#0d0b0f",
+	"categories": ["games", "utilities", "productivity"],
 	"icons": [
 		{
 			"src": "/favicon.ico",
 			"sizes": "any",
 			"type": "image/x-icon"
+		}
+	],
+	"shortcuts": [
+		{
+			"name": "MTG Search",
+			"short_name": "Search",
+			"url": "/mtg/search"
+		},
+		{
+			"name": "Inventory",
+			"short_name": "Inventory",
+			"url": "/mtg/inventory"
 		}
 	]
 }

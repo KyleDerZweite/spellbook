@@ -103,7 +103,8 @@ const SCHEMA = {
 		},
 		{
 			name: 'mobile',
-			description: 'Android-first mobile API foundation for MTG search, inventory, decks, and scan.'
+			description:
+				'Optional bearer-token mobile API for MTG search, inventory, decks, and scan. Retained for non-browser clients; the PWA uses the standard web session instead.'
 		}
 	]
 };

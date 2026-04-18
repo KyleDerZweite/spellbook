@@ -1,24 +1,28 @@
 # Platform Overview
 
 - Status: Canonical
-- Last Reviewed: 2026-04-08
+- Last Reviewed: 2026-04-17
 - Source of Truth: mixed
 - Update Triggers: product scope changes, supported game changes, route model changes, pillar status changes
 - Related Docs: [Product Docs](./README.md), [Routing and Games](./routing-and-games.md), [Feature Status](./feature-status.md), [System Overview](../architecture/system-overview.md)
 
-Spellbook is an MTG-first, multi-TCG platform for card search, owned inventory, decks, and future play workflows.
+Spellbook is an MTG-first, multi-TCG platform for card search, owned inventory, scan-based capture, and future deck and play workflows.
 
 ## Current Product State
 
 Spellbook currently ships one working adapter: Magic: The Gathering.
 
-Implemented MTG product areas:
+Active MTG product areas:
 
 - search
 - inventory
-- decks
+- scan (backend scaffold, frontend surface pending)
 
-Planned but not implemented as a product area:
+Implemented but hidden from the active product surface:
+
+- decks (route still reachable via direct URL at `/mtg/decks`)
+
+Planned but not implemented:
 
 - play
 
@@ -27,7 +31,7 @@ Current live MTG routes:
 - `/mtg/`
 - `/mtg/search`
 - `/mtg/inventory`
-- `/mtg/decks`
+- `/mtg/decks` (implemented, not linked from nav or hub)
 
 The root route `/` currently acts as a game selector and platform entry point. Top-level `/search` and `/collections*` remain transitional MTG redirects and are planned for removal.
 
@@ -53,9 +57,10 @@ These future games are examples only. They do not have implemented route trees, 
 
 | Pillar | MTG Today | Cross-TCG Direction |
 |--------|-----------|---------------------|
-| Search | Implemented | Planned per-game catalog adapters |
-| Inventory | Implemented | Planned per-game owned-ledger workflows |
-| Decks | Implemented | Planned per-game deck systems |
+| Search | Implemented (active) | Planned per-game catalog adapters |
+| Inventory | Implemented (active, being improved) | Planned per-game owned-ledger workflows |
+| Scan | Backend scaffold, frontend pending (active focus) | Planned per-game recognizers |
+| Decks | Implemented but hidden | Planned per-game deck systems |
 | Play | Not implemented | Planned platform pillar |
 
 ## Data Model Direction

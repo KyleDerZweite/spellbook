@@ -1,7 +1,7 @@
 # Zitadel Setup
 
 - Status: Canonical
-- Last Reviewed: 2026-04-11
+- Last Reviewed: 2026-04-17
 - Source of Truth: code
 - Update Triggers: auth flow changes, env var changes, callback path changes, scope changes
 - Related Docs: [Operations Docs](./README.md), [Auth Architecture](../architecture/auth.md), [Deployment](./deployment.md)
@@ -15,20 +15,23 @@ The current frontend expects:
 - no client secret
 - hosted Zitadel login pages
 
-The mobile foundation also expects:
+The mobile surface is served as a PWA on the same SvelteKit origin and uses the same public browser-safe client. No separate native client id is required for the PWA itself.
 
-- a separate native Android client id
-- Authorization Code + PKCE
-- system-browser login flow
+`ZITADEL_MOBILE_CLIENT_ID` is retained as an optional variable consumed by the `/api/mobile/v1/...` bearer-token validator for future non-browser clients (for example, a Capacitor wrap). It is not required for the PWA.
 
 ## Required Environment Variables
 
 ```env
 ZITADEL_ISSUER=https://auth.example.com
 ZITADEL_CLIENT_ID=your-public-client-id
-ZITADEL_MOBILE_CLIENT_ID=your-native-android-client-id
 APP_ORIGIN=https://spellbook.example.com
 AUTH_SESSION_SECRET=your-32-byte-base64url-secret
+```
+
+Optional:
+
+```env
+ZITADEL_MOBILE_CLIENT_ID=your-bearer-token-client-id
 ```
 
 ## Scopes

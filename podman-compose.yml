@@ -1,3 +1,5 @@
+# Keep persistent state on named volumes for cross-runtime compatibility.
+# This avoids most SELinux relabel issues on Fedora while remaining portable to Ubuntu.
 services:
   spacetimedb:
     image: docker.io/clockworklabs/spacetime:v2.0.5
@@ -36,7 +38,7 @@ services:
     restart: unless-stopped
 
   minio:
-    image: docker.io/minio/minio:RELEASE.2026-01-03T00-00-00Z
+    image: docker.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}

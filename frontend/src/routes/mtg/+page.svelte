@@ -1,30 +1,36 @@
 <script lang="ts">
 	import { spacetimeState } from '$lib/spacetimedb/state.svelte';
 
+	// Decks is implemented but intentionally hidden from the hub while
+	// search, inventory, and scan are the product focus. Direct URL still works.
+	// Scan has no frontend surface yet; it is shown here as "Coming soon" so
+	// users see the intended pillar set.
 	const MTG_ROUTE_CARDS = [
 		{
 			href: '/mtg/search',
 			title: 'Catalog Search',
 			description: 'Find exact printings fast, then send them straight into your owned inventory.',
-			eyebrow: 'Scryfall-backed'
+			eyebrow: 'Scryfall-backed',
+			available: true
 		},
 		{
 			href: '/mtg/inventory',
 			title: 'Inventory',
 			description: 'Track what you own and inspect set completion progress.',
-			eyebrow: 'Owned ledger'
+			eyebrow: 'Owned ledger',
+			available: true
 		},
 		{
-			href: '/mtg/decks',
-			title: 'Deck Studio',
+			href: undefined,
+			title: 'Scan',
 			description:
-				'Build decks from owned cards and compare required counts against your MTG inventory.',
-			eyebrow: 'First-class decks'
+				'Capture cards with your camera and review candidates before anything lands in inventory.',
+			eyebrow: 'Coming soon',
+			available: false
 		}
 	] as const;
 
 	let stats = $derived(spacetimeState.getInventoryStats('mtg'));
-	let decks = $derived(spacetimeState.getDecks('mtg').slice(0, 3));
 </script>
 
 <svelte:head>
@@ -50,11 +56,11 @@
 				The MTG wing is now inventory-first.
 			</h1>
 			<p class="mt-4 max-w-3xl font-body text-base leading-7 text-text-secondary sm:text-lg">
-				Search the full catalog, capture owned printings into one canonical MTG inventory, then
-				build decks without losing sight of what you actually own.
+				Search the full catalog and capture owned printings into one canonical MTG inventory. Scan
+				support is coming next.
 			</p>
 
-			<div class="mt-8 grid gap-4 sm:grid-cols-3">
+			<div class="mt-8 grid gap-4 sm:grid-cols-2">
 				<div class="rounded px-4 py-4 bg-stone/72 border border-gold/14">
 					<p class="font-mono text-2xl text-gold-bright">{stats.total}</p>
 					<p class="mt-1 font-body text-xs uppercase tracking-[0.2em] text-text-secondary">
@@ -67,19 +73,19 @@
 						Unique Cards
 					</p>
 				</div>
-				<div class="rounded px-4 py-4 bg-stone/72 border border-gold/14">
-					<p class="font-mono text-2xl text-gold-bright">{spacetimeState.getDecks('mtg').length}</p>
-					<p class="mt-1 font-body text-xs uppercase tracking-[0.2em] text-text-secondary">Decks</p>
-				</div>
 			</div>
 		</section>
 
-		<section class="grid gap-5 lg:grid-cols-[1.3fr_0.7fr]">
-			<div class="grid gap-5">
-				{#each MTG_ROUTE_CARDS as card}
+		<section class="grid gap-5">
+			{#each MTG_ROUTE_CARDS as card}
+				{@const baseClass = 'group rounded-lg p-6 no-underline transition-transform duration-200'}
+				{@const interactiveClass = card.available
+					? 'hover:-translate-y-1'
+					: 'cursor-default opacity-70'}
+				{#if card.available && card.href}
 					<a
 						href={card.href}
-						class="group rounded-lg p-6 no-underline transition-transform duration-200 hover:-translate-y-1"
+						class="{baseClass} {interactiveClass}"
 						style="
 							background: linear-gradient(145deg, rgba(24, 20, 28, 0.95), rgba(15, 12, 18, 0.95));
 							border: 1px solid rgba(196, 146, 42, 0.18);
@@ -99,38 +105,26 @@
 							>
 						</div>
 					</a>
-				{/each}
-			</div>
-
-			<div
-				class="rounded-lg p-6"
-				style="
-					background: linear-gradient(180deg, rgba(22, 18, 25, 0.96), rgba(13, 11, 15, 0.96));
-					border: 1px solid rgba(196, 146, 42, 0.18);
-				"
-			>
-				<p class="font-display text-xs uppercase tracking-[0.24em] text-gold-dim">Recent Decks</p>
-				{#if decks.length > 0}
-					<div class="mt-5 flex flex-col gap-3">
-						{#each decks as deck}
-							<a
-								href="/mtg/decks"
-								class="rounded px-4 py-4 no-underline transition-colors hover:bg-mist bg-stone/58 border border-gold/12"
-							>
-								<p class="font-display text-lg font-bold text-text-primary">{deck.name}</p>
-								<p class="mt-1 font-body text-sm text-text-secondary">
-									{deck.format || 'Casual'} deck
-								</p>
-							</a>
-						{/each}
-					</div>
 				{:else}
-					<p class="mt-5 font-body text-sm leading-7 text-text-secondary">
-						No decks yet. Start with catalog search or head straight to the deck studio to create
-						your first list.
-					</p>
+					<div
+						class="{baseClass} {interactiveClass}"
+						style="
+							background: linear-gradient(145deg, rgba(24, 20, 28, 0.95), rgba(15, 12, 18, 0.95));
+							border: 1px solid rgba(196, 146, 42, 0.18);
+							box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+						"
+					>
+						<p class="font-display text-xs uppercase tracking-[0.24em] text-gold-dim">
+							{card.eyebrow}
+						</p>
+						<h2 class="mt-3 font-display text-2xl font-bold text-text-primary">{card.title}</h2>
+						<p class="mt-3 font-body leading-7 text-text-secondary">{card.description}</p>
+						<div class="mt-6 font-display text-sm uppercase tracking-[0.24em] text-text-muted">
+							In progress
+						</div>
+					</div>
 				{/if}
-			</div>
+			{/each}
 		</section>
 	</div>
 </div>

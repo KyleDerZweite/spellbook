@@ -4,11 +4,15 @@
 
 Spellbook is a self-hosted trading card game platform. Today, MTG is the only implemented game. The live product currently exposes a game selector at `/`, with MTG under `/mtg/`.
 
-Current MTG product areas:
+Active MTG product areas:
 
 - search
 - inventory
-- decks
+- scan (backend scaffold, frontend surface in progress)
+
+Implemented but hidden from the active surface:
+
+- decks (reachable at `/mtg/decks` via direct URL)
 
 Planned platform direction:
 
@@ -55,9 +59,10 @@ Core stack:
 
 | Area | Status |
 |------|--------|
-| MTG search | Implemented |
-| MTG inventory | Implemented |
-| MTG decks | Implemented |
+| MTG search | Implemented (active) |
+| MTG inventory | Implemented (active, being improved) |
+| MTG scan | Backend scaffold, frontend surface in progress |
+| MTG decks | Implemented, hidden from product surface |
 | MTG play | Not implemented |
 | Non-MTG adapters | Not implemented |
 

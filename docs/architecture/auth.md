@@ -1,7 +1,7 @@
 # Auth
 
 - Status: Canonical
-- Last Reviewed: 2026-04-11
+- Last Reviewed: 2026-04-17
 - Source of Truth: code
 - Update Triggers: login flow changes, session model changes, protected route changes, token handoff changes
 - Related Docs: [System Overview](./system-overview.md), [Frontend](./frontend.md), [Mobile And Scan](./mobile-and-scan.md), [Zitadel](../operations/zitadel.md), [Deployment](../operations/deployment.md)
@@ -16,10 +16,12 @@ Spellbook currently uses direct Zitadel authentication.
 - SpacetimeDB receives the ID token for authenticated access
 - Pangolin is transport and reverse proxy infrastructure only
 
-The mobile foundation adds a second auth entrypoint:
+The mobile client is the same SvelteKit app installed as a PWA and reuses the browser session cookie. No separate mobile auth flow is required for the PWA.
 
-- native Android clients use bearer tokens from a separate Zitadel native client
-- the mobile API validates bearer tokens directly against the same issuer
+A second entrypoint is retained for non-browser clients:
+
+- the `/api/mobile/v1/...` surface accepts bearer tokens from a Zitadel client id configured via `ZITADEL_MOBILE_CLIENT_ID`
+- this is optional and unused by the PWA
 
 ## Current Session Model
 
@@ -29,9 +31,8 @@ The mobile foundation adds a second auth entrypoint:
 
 ## Mobile Session Model
 
-- Authorization Code + PKCE through the system browser
-- no embedded WebView auth
-- bearer tokens sent to `/api/mobile/v1/...`
+- PWA clients reuse the standard web session cookie
+- optional bearer tokens may be sent to `/api/mobile/v1/...` by non-browser clients
 - bearer token validation uses the configured mobile client id when present
 
 ## Current Protected Route Model

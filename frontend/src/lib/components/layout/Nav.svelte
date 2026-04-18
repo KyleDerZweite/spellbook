@@ -4,11 +4,13 @@
 	import { DropdownMenu } from 'bits-ui';
 	import { authState } from '$lib/auth/state.svelte';
 
+	// Decks is implemented at /mtg/decks but intentionally hidden from the
+	// navigation while search, inventory, and scan are the product focus.
+	// The route still works via direct URL.
 	const GAME_NAV_LINKS = {
 		mtg: [
 			{ href: '/mtg/search', label: 'Search' },
-			{ href: '/mtg/inventory', label: 'Inventory' },
-			{ href: '/mtg/decks', label: 'Decks' }
+			{ href: '/mtg/inventory', label: 'Inventory' }
 		]
 	} as const;
 

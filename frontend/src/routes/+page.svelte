@@ -9,7 +9,7 @@
 			name: 'Magic: The Gathering',
 			tagline: 'Live now',
 			description:
-				'Search the full MTG catalog, track owned cards, build decks, and arrange a living spellbook.',
+				'Search the full MTG catalog and track owned cards. Scan-based capture is the next focus.',
 			accent: 'var(--color-gold)',
 			available: true
 		},
@@ -27,8 +27,7 @@
 			href: '/yugioh/',
 			name: 'Yu-Gi-Oh!',
 			tagline: 'Planned',
-			description:
-				'Will get its own search vocabulary, card metadata, and deck flow when the adapter lands.',
+			description: 'Will get its own search vocabulary and card metadata when the adapter lands.',
 			accent: 'var(--color-mana-blue)',
 			available: false
 		}
