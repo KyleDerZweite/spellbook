@@ -1,55 +1,89 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import CardGrid from '$lib/components/cards/CardGrid.svelte';
+	import OrnamentalDivider from '$lib/components/layout/OrnamentalDivider.svelte';
+	import { spacetimeState } from '$lib/spacetimedb/state.svelte';
+	import { activeGameState } from '$lib/state/activeGame.svelte';
+	import type { CardDocument } from '$lib/search/types';
 	import { SITE_NAME, pageMetadata } from '$lib/seo/site';
 
-	const gameCards = [
-		{
-			id: 'mtg',
-			href: '/mtg/',
-			name: 'Magic: The Gathering',
-			tagline: 'Live now',
-			description:
-				'Search the full MTG catalog and track owned cards. Scan-based capture is the next focus.',
-			accent: 'var(--color-gold)',
-			available: true
-		},
-		{
-			id: 'pokemon',
-			href: '/pokemon/',
-			name: 'Pokemon',
-			tagline: 'Coming next',
-			description: 'Prepared in the route and product model, but not catalog-backed yet.',
-			accent: 'var(--color-mana-red)',
-			available: false
-		},
-		{
-			id: 'yugioh',
-			href: '/yugioh/',
-			name: 'Yu-Gi-Oh!',
-			tagline: 'Planned',
-			description: 'Will get its own search vocabulary and card metadata when the adapter lands.',
-			accent: 'var(--color-mana-blue)',
-			available: false
-		}
-	] as const;
+	const RECENT_LIMIT = 6;
+
+	let query = $state('');
+	let inputEl: HTMLInputElement | null = $state(null);
 
 	const isAuthenticated = $derived(Boolean(page.data.user));
+	const gameLabel = $derived(activeGameState.current.toUpperCase());
+
 	const meta = $derived(
 		pageMetadata({
 			origin: page.url.origin,
 			path: '/',
-			title: 'Spellbook | Choose Your Game',
-			description:
-				'Spellbook is a self-hosted trading card game inventory platform built for MTG today and other TCGs next.'
+			title: `${SITE_NAME} | Your ${gameLabel} library`,
+			description: 'Search the catalog and track the cards you own, all in one place.'
 		})
 	);
 
-	function getEntryHref(game: (typeof gameCards)[number]): string | undefined {
-		if (!game.available) {
-			return undefined;
-		}
+	let stats = $derived(spacetimeState.getInventoryStats(activeGameState.current));
+	let setsCompleteLabel = $derived(`${stats.completedSets} / ${stats.sets || 0} sets complete`);
 
-		return isAuthenticated ? game.href : `/auth/login?returnTo=${encodeURIComponent(game.href)}`;
+	let recentAdditions = $derived.by<CardDocument[]>(() => {
+		return [...spacetimeState.getInventoryCards(activeGameState.current)]
+			.sort((a, b) => Number(b.updatedAt) - Number(a.updatedAt))
+			.slice(0, RECENT_LIMIT)
+			.map(
+				(entry) =>
+					({
+						id: entry.catalogCardId,
+						oracle_id: entry.canonicalCardId,
+						name: entry.name,
+						set_code: entry.setCode,
+						image_uri: entry.imageUri,
+						image_uri_small: entry.imageUri,
+						// Fill the remaining CardDocument fields with empty placeholders;
+						// CardGrid only renders name, set_code, image, rarity, and foil.
+						lang: 'en',
+						released_at: '',
+						layout: '',
+						mana_cost: '',
+						cmc: 0,
+						type_line: '',
+						oracle_text: '',
+						colors: [],
+						color_identity: [],
+						keywords: [],
+						card_types: [],
+						rarity: '',
+						set_name: '',
+						collector_number: '',
+						is_foil_available: entry.finish === 'foil',
+						is_nonfoil_available: entry.finish !== 'foil',
+						legalities: {}
+					}) satisfies CardDocument
+			);
+	});
+
+	$effect(() => {
+		// Focus the search input on first paint so the primary action is ready.
+		inputEl?.focus();
+	});
+
+	$effect(() => {
+		function handleKeydown(event: KeyboardEvent) {
+			if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+				event.preventDefault();
+				inputEl?.focus();
+			}
+		}
+		window.addEventListener('keydown', handleKeydown);
+		return () => window.removeEventListener('keydown', handleKeydown);
+	});
+
+	function handleSubmit(event: SubmitEvent) {
+		event.preventDefault();
+		const q = query.trim();
+		goto(q ? `/search?q=${encodeURIComponent(q)}` : '/search');
 	}
 </script>
 
@@ -66,84 +100,106 @@
 	<meta name="twitter:description" content={meta.description} />
 </svelte:head>
 
-<div class="relative overflow-hidden">
-	<div
-		class="relative mx-auto flex min-h-[calc(100vh-8rem)] max-w-6xl flex-col justify-center px-6 py-12 sm:px-8 lg:px-12"
-	>
-		<div class="max-w-3xl">
-			<p class="font-mono text-xs uppercase tracking-[0.35em] text-gold-dim">Spellbook Platform</p>
-			<h1 class="mt-4 font-display text-4xl font-bold text-gold-bright sm:text-5xl lg:text-6xl">
-				Choose the card game you want to inhabit.
-			</h1>
-			<p class="mt-4 max-w-2xl font-body text-base leading-7 text-text-secondary sm:text-lg">
-				Spellbook is now structured as a game-scoped product. MTG is the first live experience.
-				Pokemon and Yu-Gi-Oh! already have reserved entry points so their search and inventory
-				models can diverge cleanly when they arrive.
+<div class="mx-auto flex max-w-4xl flex-col gap-8 px-6 py-10 sm:px-8 lg:px-12">
+	{#if !isAuthenticated}
+		<section class="surface-card flex flex-col gap-4 p-8 text-center sm:p-10">
+			<p class="font-mono text-[11px] uppercase tracking-[0.3em] text-text-secondary">
+				{gameLabel} Library
 			</p>
-		</div>
-
-		<div class="mt-10 grid gap-5 lg:grid-cols-[1.35fr_0.85fr_0.85fr]">
-			{#each gameCards as game}
+			<h1 class="font-display text-3xl font-bold text-gold-bright sm:text-4xl">
+				Sign in to enter your library.
+			</h1>
+			<p class="font-body text-base leading-7 text-text-secondary">
+				Spellbook keeps your catalog search and owned card ledger behind a personal sign-in.
+			</p>
+			<div class="mt-2 flex justify-center">
 				<a
-					href={getEntryHref(game)}
-					class="group relative overflow-hidden rounded-lg p-6 no-underline transition-transform duration-200 {game.available
-						? 'hover:-translate-y-1'
-						: 'cursor-default'}"
-					style="
-						background:
-							linear-gradient(160deg, rgba(24, 20, 28, 0.92), rgba(13, 11, 15, 0.96)),
-							radial-gradient(circle at top right, color-mix(in srgb, {game.accent} 22%, transparent), transparent 45%);
-						border: 1px solid color-mix(in srgb, {game.accent} 32%, rgba(255,255,255,0.08));
-						box-shadow:
-							inset 0 1px 0 rgba(255,255,255,0.04),
-							0 30px 60px rgba(6, 5, 8, 0.35);
-					"
+					href={`/auth/login?returnTo=${encodeURIComponent('/')}`}
+					class="inline-flex rounded-lg px-6 py-3 font-display text-xs uppercase tracking-[0.24em] text-text-on-gold no-underline bg-linear-to-br from-gold-dim to-gold border border-gold-bright"
 				>
-					<div
-						class="absolute inset-x-0 top-0 h-1"
-						style="background: linear-gradient(90deg, transparent, {game.accent}, transparent);"
-					></div>
-					<div class="flex items-start justify-between gap-4">
-						<div>
-							<p
-								class="font-display text-xs uppercase tracking-[0.26em]"
-								style="color: {game.accent};"
-							>
-								{game.tagline}
-							</p>
-							<h2 class="mt-3 font-display text-2xl font-bold text-text-primary">
-								{game.name}
-							</h2>
-						</div>
-						<span
-							class="rounded-full px-3 py-1 font-mono text-[10px] uppercase tracking-[0.25em]"
-							style="
-								background-color: rgba(28, 23, 32, 0.72);
-								border: 1px solid color-mix(in srgb, {game.accent} 45%, transparent);
-								color: {game.available ? game.accent : 'var(--color-text-muted)'};
-							"
-						>
-							{game.available ? (isAuthenticated ? 'Enter' : 'Sign In') : 'Reserved'}
-						</span>
-					</div>
-					<p class="mt-6 font-body leading-7 text-text-secondary">{game.description}</p>
-
-					{#if game.available}
-						<div
-							class="mt-8 flex items-center gap-3 font-display text-sm uppercase tracking-[0.24em] text-gold-bright"
-						>
-							{isAuthenticated ? 'Enter MTG' : 'Sign In to Enter'}
-							<span class="transition-transform duration-150 group-hover:translate-x-1"
-								>&#8594;</span
-							>
-						</div>
-					{:else}
-						<div class="mt-8 font-display text-sm uppercase tracking-[0.24em] text-text-muted">
-							Catalog adapter not connected yet
-						</div>
-					{/if}
+					Sign In
 				</a>
-			{/each}
-		</div>
-	</div>
+			</div>
+		</section>
+	{:else}
+		<header class="flex flex-col gap-2">
+			<p class="font-mono text-[11px] uppercase tracking-[0.3em] text-text-secondary">
+				{gameLabel} Library
+			</p>
+			<h1 class="font-display text-2xl font-bold text-gold-bright sm:text-3xl">
+				Your {gameLabel} library
+			</h1>
+			<p class="font-body text-base leading-7 text-text-secondary">
+				Search the catalog, track what you own.
+			</p>
+		</header>
+
+		<form onsubmit={handleSubmit} class="relative" role="search" aria-label="Search catalog">
+			<span
+				class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted"
+				aria-hidden="true"
+			>
+				&#128269;
+			</span>
+			<input
+				bind:this={inputEl}
+				bind:value={query}
+				type="search"
+				name="q"
+				autocomplete="off"
+				placeholder="Search cards, sets, or oracle text..."
+				aria-label="Search cards, sets, or oracle text"
+				class="search-input w-full rounded-lg py-3 pl-11 pr-20 font-body text-base text-text-primary placeholder:italic placeholder:text-text-muted focus:outline-none bg-crypt border border-gold/30"
+			/>
+			<span
+				class="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 items-center gap-1 font-mono text-[10px] text-text-muted sm:flex"
+			>
+				<kbd class="rounded bg-slate px-1.5 py-0.5">&#8984;K</kbd>
+			</span>
+		</form>
+
+		{#if stats.total === 0}
+			<p class="font-body text-sm leading-7 text-text-secondary">
+				You haven't added any cards yet. Try searching for one to start your library.
+			</p>
+		{:else}
+			<p class="font-mono text-[12px] text-text-secondary">
+				{stats.total}
+				{stats.total === 1 ? 'card' : 'cards'} &middot; {stats.unique} unique &middot; {setsCompleteLabel}
+				&middot;
+				<a
+					href="/inventory"
+					class="text-gold-bright no-underline transition-colors hover:text-amber"
+				>
+					Inventory &#8594;
+				</a>
+			</p>
+		{/if}
+
+		{#if recentAdditions.length > 0}
+			<section class="flex flex-col gap-4">
+				<OrnamentalDivider />
+				<div class="flex items-baseline justify-between gap-4">
+					<h2 class="font-display text-lg text-text-primary">Recent additions</h2>
+					<a
+						href="/inventory"
+						class="font-display text-[11px] uppercase tracking-[0.24em] text-text-secondary no-underline transition-colors hover:text-gold-bright"
+					>
+						View all &#8594;
+					</a>
+				</div>
+				<CardGrid cards={recentAdditions} />
+			</section>
+		{/if}
+
+		<nav
+			class="mt-2 flex flex-wrap gap-x-6 gap-y-2 font-display text-[11px] uppercase tracking-[0.24em] text-text-secondary"
+			aria-label="Quick links"
+		>
+			<a href="/inventory" class="no-underline transition-colors hover:text-gold-bright">
+				Inventory
+			</a>
+			<span class="text-text-muted">Scan (soon)</span>
+		</nav>
+	{/if}
 </div>

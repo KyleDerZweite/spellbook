@@ -68,6 +68,160 @@ body {
 	-moz-osx-font-smoothing: grayscale;
 }
 
+/* Surface primitives — one-accent, token-backed replacements
+   for the repeated inline linear/radial/inset/outer-shadow stacks. */
+.surface-card {
+	background-color: color-mix(in srgb, var(--color-stone) 72%, transparent);
+	border: 1px solid color-mix(in srgb, var(--color-gold) 14%, transparent);
+	border-radius: 0.5rem;
+}
+
+.surface-card--interactive {
+	transition:
+		border-color 150ms ease,
+		transform 150ms ease;
+}
+
+.surface-card--interactive:hover {
+	border-color: color-mix(in srgb, var(--color-gold) 36%, transparent);
+	transform: translateY(-2px);
+}
+
+.hairline-gold {
+	height: 1px;
+	background: linear-gradient(90deg, transparent, var(--color-gold), transparent);
+}
+
+/* Menu surface and items shared by Nav, GameSwitcher, etc. */
+.surface-menu {
+	background-color: var(--color-slate);
+	border: 1px solid color-mix(in srgb, var(--color-gold) 40%, transparent);
+	box-shadow: 0 4px 24px rgba(13, 11, 15, 0.8);
+}
+
+.menu-item {
+	display: flex;
+	align-items: center;
+	gap: 0.625rem;
+	padding: 0.5rem 0.75rem;
+	font-family: var(--font-body);
+	font-size: 0.875rem;
+	color: var(--color-text-primary);
+	cursor: pointer;
+	transition:
+		background-color 120ms ease,
+		color 120ms ease;
+}
+
+.menu-item[data-highlighted] {
+	background-color: var(--color-mist);
+	color: var(--color-amber);
+}
+
+.menu-item[data-disabled] {
+	cursor: not-allowed;
+	opacity: 0.5;
+}
+
+/* Nav primary links and mobile counterparts. */
+.nav-link {
+	display: inline-flex;
+	align-items: center;
+	font-family: var(--font-display);
+	font-size: 0.875rem;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	text-decoration: none;
+	color: var(--color-text-secondary);
+	border-bottom: 2px solid transparent;
+	padding-bottom: 2px;
+	transition:
+		color 150ms ease,
+		border-color 150ms ease;
+}
+
+.nav-link:hover {
+	color: var(--color-text-primary);
+}
+
+.nav-link--active {
+	color: var(--color-gold-bright);
+	border-bottom-color: var(--color-gold-bright);
+}
+
+.mobile-nav-link {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.875rem 1.25rem;
+	font-family: var(--font-display);
+	font-size: 0.875rem;
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	text-decoration: none;
+	color: var(--color-text-secondary);
+	border-left: 3px solid transparent;
+	transition:
+		color 150ms ease,
+		border-color 150ms ease;
+}
+
+.mobile-nav-link--active {
+	color: var(--color-gold-bright);
+	border-left-color: var(--color-gold-bright);
+}
+
+/* Footer link primitive. */
+.footer-link {
+	color: var(--color-text-muted);
+	text-decoration: none;
+	transition: color 150ms ease;
+}
+
+.footer-link:hover {
+	color: var(--color-text-secondary);
+}
+
+.footer-link--inline {
+	border-bottom: 1px solid color-mix(in srgb, var(--color-gold) 20%, transparent);
+}
+
+/* Foil shimmer overlay used by card grid items. */
+.foil-shimmer {
+	pointer-events: none;
+	background: linear-gradient(
+		135deg,
+		transparent 40%,
+		rgba(255, 255, 255, 0.15) 50%,
+		transparent 60%
+	);
+	background-size: 200% 200%;
+	animation: foil-shimmer 1.5s ease-in-out infinite;
+}
+
+/* Gold gradient action button (e.g. Add to Inventory). */
+.btn-gold {
+	background: linear-gradient(135deg, var(--color-gold-dim), var(--color-gold));
+	color: var(--color-text-on-gold);
+	border: 1px solid var(--color-gold-bright);
+	transition:
+		background 150ms ease,
+		box-shadow 150ms ease;
+}
+
+.btn-gold:hover:not(:disabled) {
+	background: linear-gradient(135deg, var(--color-gold), var(--color-amber));
+	box-shadow:
+		0 0 12px rgba(196, 146, 42, 0.4),
+		0 2px 4px rgba(13, 11, 15, 0.5);
+}
+
+.btn-gold:disabled {
+	cursor: not-allowed;
+	opacity: 0.5;
+}
+
 /* Custom scrollbar */
 * {
 	scrollbar-width: thin;

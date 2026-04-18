@@ -3,6 +3,7 @@
 	import { spacetimeState } from '$lib/spacetimedb/state.svelte';
 	import { getConnection } from '$lib/spacetimedb/client';
 	import { getSetCatalogSize } from '$lib/search/meilisearch';
+	import { activeGameState } from '$lib/state/activeGame.svelte';
 	import type { InventoryCard } from '$bindings/types';
 
 	type InventorySort = 'name' | 'set' | 'recent';
@@ -20,8 +21,8 @@
 	let setTotals: Record<string, number> = $state({});
 	let setProgressLoading = $state(false);
 
-	let inventoryCards = $derived(spacetimeState.getInventoryCards('mtg'));
-	let inventoryStats = $derived(spacetimeState.getInventoryStats('mtg'));
+	let inventoryCards = $derived(spacetimeState.getInventoryCards(activeGameState.current));
+	let inventoryStats = $derived(spacetimeState.getInventoryStats(activeGameState.current));
 
 	let listCards = $derived.by(() => {
 		const normalizedQuery = query.trim().toLowerCase();
@@ -88,7 +89,10 @@
 		setProgressLoading = true;
 
 		Promise.all(
-			setCodes.map(async (setCode) => [setCode, await getSetCatalogSize(setCode, 'mtg')] as const)
+			setCodes.map(
+				async (setCode) =>
+					[setCode, await getSetCatalogSize(setCode, activeGameState.current)] as const
+			)
 		)
 			.then((entries) => {
 				if (!cancelled) {
@@ -148,23 +152,16 @@
 </script>
 
 <svelte:head>
-	<title>MTG Inventory | Spellbook</title>
+	<title>Inventory | Spellbook</title>
 </svelte:head>
 
 <div class="flex flex-col gap-6 px-4 py-4 sm:px-6 sm:py-6">
-	<section
-		class="rounded-lg p-6 sm:p-7"
-		style="
-			background:
-				linear-gradient(150deg, rgba(24, 20, 28, 0.96), rgba(12, 10, 14, 0.96)),
-				radial-gradient(circle at 80% 20%, rgba(196, 146, 42, 0.22), transparent 28%);
-			border: 1px solid rgba(196, 146, 42, 0.18);
-			box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
-		"
-	>
+	<section class="surface-card p-6 sm:p-7">
 		<div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
 			<div class="max-w-2xl">
-				<p class="font-mono text-[11px] uppercase tracking-[0.3em] text-gold-dim">MTG Inventory</p>
+				<p class="font-mono text-[11px] uppercase tracking-[0.3em] text-text-secondary">
+					{activeGameState.current.toUpperCase()} Inventory
+				</p>
 				<h1 class="mt-3 font-display text-3xl font-bold text-gold-bright sm:text-4xl">
 					Your owned card ledger.
 				</h1>
@@ -287,7 +284,7 @@
 							progress.
 						</p>
 						<a
-							href="/mtg/search"
+							href="/search"
 							class="mt-6 inline-flex rounded-lg px-5 py-3 font-display text-xs uppercase tracking-[0.24em] text-text-on-gold no-underline bg-linear-to-br from-gold-dim to-gold border border-gold-bright"
 						>
 							Go to Search

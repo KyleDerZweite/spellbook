@@ -37,12 +37,7 @@
 				<!-- Foil shimmer overlay -->
 				{#if card.is_foil_available}
 					<div
-						class="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-						style="
-							background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%);
-							background-size: 200% 200%;
-							animation: foil-shimmer 1.5s ease-in-out infinite;
-						"
+						class="foil-shimmer absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
 					></div>
 				{/if}
 			</div>

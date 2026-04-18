@@ -76,18 +76,16 @@ describe('auth flow', () => {
 
 		const response = await handle({
 			event: {
-				url: new URL('https://spellbook.example.test/mtg/search?q=bolt'),
+				url: new URL('https://spellbook.example.test/search?q=bolt'),
 				cookies,
 				locals: {},
-				request: new Request('https://spellbook.example.test/mtg/search?q=bolt')
+				request: new Request('https://spellbook.example.test/search?q=bolt')
 			},
 			resolve: vi.fn()
 		} as never);
 
 		expect(response.status).toBe(302);
-		expect(response.headers.get('location')).toBe(
-			'/auth/login?returnTo=%2Fmtg%2Fsearch%3Fq%3Dbolt'
-		);
+		expect(response.headers.get('location')).toBe('/auth/login?returnTo=%2Fsearch%3Fq%3Dbolt');
 		expect(response.headers.get('x-robots-tag')).toBe(NO_INDEX_ROBOTS_TAG);
 	});
 
@@ -95,7 +93,7 @@ describe('auth flow', () => {
 		const cookies = createCookies();
 
 		const response = await loginGet({
-			url: new URL('https://spellbook.example.test/auth/login?returnTo=/mtg/search'),
+			url: new URL('https://spellbook.example.test/auth/login?returnTo=/search'),
 			cookies,
 			locals: {
 				user: { accountId: 'user-123', username: 'mage', email: 'mage@example.test' }
@@ -103,7 +101,7 @@ describe('auth flow', () => {
 		} as never);
 
 		expect(response.status).toBe(302);
-		expect(response.headers.get('location')).toBe('/mtg/search');
+		expect(response.headers.get('location')).toBe('/search');
 		expect(response.headers.get('x-robots-tag')).toBe(NO_INDEX_ROBOTS_TAG);
 	});
 
@@ -113,7 +111,7 @@ describe('auth flow', () => {
 			state: 'state-123',
 			nonce: 'nonce-123',
 			codeVerifier: 'verifier-123',
-			returnTo: '/mtg/search'
+			returnTo: '/search'
 		});
 
 		zitadelMocks.exchangeAuthorizationCode.mockResolvedValue({
@@ -129,7 +127,7 @@ describe('auth flow', () => {
 		} as never);
 
 		expect(response.status).toBe(302);
-		expect(response.headers.get('location')).toBe('/mtg/search');
+		expect(response.headers.get('location')).toBe('/search');
 		expect(response.headers.get('x-robots-tag')).toBe(NO_INDEX_ROBOTS_TAG);
 
 		const session = await readSessionCookie(cookies as never, AUTH_SECRET);
@@ -196,10 +194,10 @@ describe('auth flow', () => {
 
 		const response = await handle({
 			event: {
-				url: new URL('https://spellbook.example.test/mtg/search'),
+				url: new URL('https://spellbook.example.test/search'),
 				cookies,
 				locals,
-				request: new Request('https://spellbook.example.test/mtg/search')
+				request: new Request('https://spellbook.example.test/search')
 			},
 			resolve: vi.fn(async () => new Response('ok'))
 		} as never);

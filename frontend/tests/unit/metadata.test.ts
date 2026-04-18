@@ -20,9 +20,9 @@ describe('crawl and metadata surface', () => {
 		expect(response.headers.get('content-type')).toContain('text/plain');
 		expect(text).toContain('User-agent: *');
 		expect(text).toContain('Disallow: /auth/');
-		expect(text).toContain('Disallow: /mtg/');
-		expect(text).toContain('Disallow: /collections/');
 		expect(text).toContain('Disallow: /search');
+		expect(text).toContain('Disallow: /inventory');
+		expect(text).toContain('Disallow: /decks');
 		expect(text).toContain('Disallow: /api/');
 		expect(text).toContain('Allow: /openapi.json');
 		expect(text).toContain('Sitemap: https://spellbook.example.test/sitemap.xml');

@@ -34,3 +34,4 @@ Rules:
 - [ADR-0001: Docs-first knowledge system](./0001-docs-first-knowledge-system.md)
 - [ADR-0002: Android-first mobile client and server-side scan pipeline](./0002-android-first-mobile-and-server-side-scan.md) (superseded by ADR-0003)
 - [ADR-0003: PWA-first mobile client and server-side scan pipeline](./0003-pwa-first-mobile-and-server-side-scan.md)
+- [ADR-0004: Flat user-facing routes with active game in client state](./0004-flat-routes-with-active-game-state.md)

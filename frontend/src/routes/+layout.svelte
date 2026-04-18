@@ -5,12 +5,19 @@
 	import { connect, disconnect } from '$lib/spacetimedb/client';
 	import { initMeiliSearch } from '$lib/search/meilisearch';
 	import { authState } from '$lib/auth/state.svelte';
+	import { activeGameState } from '$lib/state/activeGame.svelte';
 	import { SITE_NAME, SITE_THEME_COLOR } from '$lib/seo/site';
 	import type { Snippet } from 'svelte';
 	import type { AuthUser } from '$lib/auth/types';
+	import type { Game } from '$lib/search/types';
 
 	interface Props {
-		data: { user: AuthUser | null; spacetimeToken: string | null; meiliSearchKey: string };
+		data: {
+			user: AuthUser | null;
+			spacetimeToken: string | null;
+			meiliSearchKey: string;
+			activeGame: Game;
+		};
 		children: Snippet;
 	}
 
@@ -19,6 +26,10 @@
 	// Initialize MeiliSearch client with the server-fetched search key
 	$effect(() => {
 		authState.user = data.user;
+	});
+
+	$effect(() => {
+		activeGameState.hydrate(data.activeGame);
 	});
 
 	$effect(() => {

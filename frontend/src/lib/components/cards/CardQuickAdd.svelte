@@ -3,6 +3,7 @@
 	import type { CardDocument } from '$lib/search/types';
 	import { spacetimeState } from '$lib/spacetimedb/state.svelte';
 	import { getConnection } from '$lib/spacetimedb/client';
+	import { activeGameState } from '$lib/state/activeGame.svelte';
 
 	interface Props {
 		card: CardDocument;
@@ -42,7 +43,7 @@
 		adding = true;
 		try {
 			await conn.reducers.addToInventory({
-				game: 'mtg',
+				game: activeGameState.current,
 				catalogCardId: card.id,
 				canonicalCardId: card.oracle_id,
 				name: card.name,
@@ -117,11 +118,9 @@
 		</Select.Root>
 	</div>
 
-	<div
-		class="rounded px-3 py-2 font-body text-xs text-text-secondary"
-		style="background-color: rgba(28, 23, 32, 0.55); border: 1px solid rgba(196, 146, 42, 0.14);"
-	>
-		Adds to your MTG inventory. Deck building happens separately in the deck studio.
+	<div class="surface-card rounded px-3 py-2 font-body text-xs text-text-secondary">
+		Adds to your {activeGameState.current.toUpperCase()} inventory. Deck building happens separately in
+		the deck studio.
 	</div>
 
 	<!-- Condition -->
@@ -203,24 +202,7 @@
 	<button
 		onclick={handleAdd}
 		disabled={!spacetimeState.connected || adding}
-		class="mt-1 w-full cursor-pointer rounded py-2.5 font-display text-sm font-bold uppercase tracking-wider transition-all duration-150 disabled:cursor-not-allowed disabled:opacity-50"
-		style="
-			background: linear-gradient(135deg, var(--color-gold-dim), var(--color-gold));
-			color: var(--color-text-on-gold);
-			border: 1px solid var(--color-gold-bright);
-		"
-		onmouseenter={(e) => {
-			const el = e.currentTarget as HTMLButtonElement;
-			if (!el.disabled) {
-				el.style.background = 'linear-gradient(135deg, var(--color-gold), var(--color-amber))';
-				el.style.boxShadow = '0 0 12px rgba(196, 146, 42, 0.4), 0 2px 4px rgba(13,11,15,0.5)';
-			}
-		}}
-		onmouseleave={(e) => {
-			const el = e.currentTarget as HTMLButtonElement;
-			el.style.background = 'linear-gradient(135deg, var(--color-gold-dim), var(--color-gold))';
-			el.style.boxShadow = 'none';
-		}}
+		class="btn-gold mt-1 w-full cursor-pointer rounded py-2.5 font-display text-sm font-bold uppercase tracking-wider"
 	>
 		{adding ? 'Adding...' : 'Add to Inventory'}
 	</button>

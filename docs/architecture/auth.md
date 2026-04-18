@@ -1,10 +1,10 @@
 # Auth
 
 - Status: Canonical
-- Last Reviewed: 2026-04-17
+- Last Reviewed: 2026-04-18
 - Source of Truth: code
 - Update Triggers: login flow changes, session model changes, protected route changes, token handoff changes
-- Related Docs: [System Overview](./system-overview.md), [Frontend](./frontend.md), [Mobile And Scan](./mobile-and-scan.md), [Zitadel](../operations/zitadel.md), [Deployment](../operations/deployment.md)
+- Related Docs: [System Overview](./system-overview.md), [Frontend](./frontend.md), [Mobile And Scan](./mobile-and-scan.md), [Routing and Games](../product/routing-and-games.md), [Zitadel](../operations/zitadel.md), [Deployment](../operations/deployment.md)
 
 Spellbook currently uses direct Zitadel authentication.
 
@@ -27,20 +27,20 @@ A second entrypoint is retained for non-browser clients:
 
 - encrypted cookie-backed session
 - refresh flow when the session is near expiry
-- `returnTo` sanitization defaults to `/mtg/search`
+- `returnTo` sanitization rejects values that are not same-origin paths and falls back to `/`
 
 ## Mobile Session Model
 
 - PWA clients reuse the standard web session cookie
-- optional bearer tokens may be sent to `/api/mobile/v1/...` by non-browser clients
+- optional bearer tokens may be sent to `/api/mobile/v1/:game/...` by non-browser clients
 - bearer token validation uses the configured mobile client id when present
 
 ## Current Protected Route Model
 
 Protected path prefixes in the frontend currently include:
 
-- `/mtg`
-- `/collections`
 - `/search`
+- `/inventory`
+- `/decks`
 
-The latter two are transitional and still protected because they redirect into MTG flows.
+Legacy `/mtg/*` and `/collections*` URLs are 308-redirected to the matching flat path before the auth guard runs, so older bookmarks still land on a protected page that prompts a login when needed.

@@ -40,7 +40,7 @@ The native CameraX capture path from the previous Android shell is removed.
 
 ## Current Mobile API Surface
 
-The SvelteKit server still exposes a mobile contract under `/api/mobile/v1/mtg/...` with bearer-token validation.
+The SvelteKit server still exposes a mobile contract under `/api/mobile/v1/:game/...` (currently `mtg`) with bearer-token validation. The game segment is retained on this surface so future games can be added without breaking pinned mobile clients.
 
 Current route groups:
 

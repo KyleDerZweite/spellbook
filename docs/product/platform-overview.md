@@ -1,10 +1,10 @@
 # Platform Overview
 
 - Status: Canonical
-- Last Reviewed: 2026-04-17
+- Last Reviewed: 2026-04-18
 - Source of Truth: mixed
 - Update Triggers: product scope changes, supported game changes, route model changes, pillar status changes
-- Related Docs: [Product Docs](./README.md), [Routing and Games](./routing-and-games.md), [Feature Status](./feature-status.md), [System Overview](../architecture/system-overview.md)
+- Related Docs: [Product Docs](./README.md), [Routing and Games](./routing-and-games.md), [Feature Status](./feature-status.md), [System Overview](../architecture/system-overview.md), [ADR-0004](../decisions/0004-flat-routes-with-active-game-state.md)
 
 Spellbook is an MTG-first, multi-TCG platform for card search, owned inventory, scan-based capture, and future deck and play workflows.
 
@@ -12,7 +12,7 @@ Spellbook is an MTG-first, multi-TCG platform for card search, owned inventory, 
 
 Spellbook currently ships one working adapter: Magic: The Gathering.
 
-Active MTG product areas:
+Active product areas:
 
 - search
 - inventory
@@ -20,30 +20,26 @@ Active MTG product areas:
 
 Implemented but hidden from the active product surface:
 
-- decks (route still reachable via direct URL at `/mtg/decks`)
+- decks (route still reachable via direct URL at `/decks`)
 
 Planned but not implemented:
 
 - play
 
-Current live MTG routes:
+Current live user-facing routes:
 
-- `/mtg/`
-- `/mtg/search`
-- `/mtg/inventory`
-- `/mtg/decks` (implemented, not linked from nav or hub)
+- `/`
+- `/search`
+- `/inventory`
+- `/decks` (implemented, not linked from nav or hub)
 
-The root route `/` currently acts as a game selector and platform entry point. Top-level `/search` and `/collections*` remain transitional MTG redirects and are planned for removal.
+User-facing routes are flat. The active game is held in client state (cookie-backed) rather than the URL; see [Routing and Games](./routing-and-games.md) and [ADR-0004](../decisions/0004-flat-routes-with-active-game-state.md). Legacy `/mtg/*` and `/collections*` URLs 308-redirect to the matching flat route.
 
 ## Planned Platform Direction
 
-Spellbook is being shaped toward per-game product slices with a shared route contract:
+Spellbook is being shaped toward multi-game support behind the same flat user-facing surface. Adding a new game means adding a new search adapter, inventory wiring, and any new game-specific surfaces, without changing the top-level URL shape that users see.
 
-```text
-/:game/{index,search,inventory,decks,play}
-```
-
-This route model allows each game to diverge where necessary while preserving a consistent top-level product shape.
+The mobile bearer-token API keeps a `/api/mobile/v1/:game/...` shape so vendor clients can pin a game segment.
 
 Examples of future games discussed in the project:
 
@@ -51,7 +47,7 @@ Examples of future games discussed in the project:
 - Pokemon
 - Yu-Gi-Oh!
 
-These future games are examples only. They do not have implemented route trees, adapters, or search backends yet.
+These future games are examples only. They do not have implemented adapters or search backends yet.
 
 ## Product Pillars
 

@@ -1,10 +1,10 @@
 # Zitadel Setup
 
 - Status: Canonical
-- Last Reviewed: 2026-04-17
+- Last Reviewed: 2026-04-18
 - Source of Truth: code
 - Update Triggers: auth flow changes, env var changes, callback path changes, scope changes
-- Related Docs: [Operations Docs](./README.md), [Auth Architecture](../architecture/auth.md), [Deployment](./deployment.md)
+- Related Docs: [Operations Docs](./README.md), [Auth Architecture](../architecture/auth.md), [Routing and Games](../product/routing-and-games.md), [Deployment](./deployment.md)
 
 Spellbook uses Zitadel directly for login.
 
@@ -17,7 +17,7 @@ The current frontend expects:
 
 The mobile surface is served as a PWA on the same SvelteKit origin and uses the same public browser-safe client. No separate native client id is required for the PWA itself.
 
-`ZITADEL_MOBILE_CLIENT_ID` is retained as an optional variable consumed by the `/api/mobile/v1/...` bearer-token validator for future non-browser clients (for example, a Capacitor wrap). It is not required for the PWA.
+`ZITADEL_MOBILE_CLIENT_ID` is retained as an optional variable consumed by the `/api/mobile/v1/:game/...` bearer-token validator for future non-browser clients (for example, a Capacitor wrap). It is not required for the PWA.
 
 ## Required Environment Variables
 
@@ -49,13 +49,12 @@ Spellbook currently requests:
 2. Zitadel shows its hosted login page.
 3. Zitadel redirects back to `/auth/callback`.
 4. Spellbook stores an encrypted session cookie.
-5. Protected MTG routes such as `/mtg/search` open normally.
+5. Protected routes such as `/search` open normally.
 
 ## Current Protected Route Examples
 
-- `/mtg/`
-- `/mtg/search`
-- `/mtg/inventory`
-- `/mtg/decks`
+- `/search`
+- `/inventory`
+- `/decks`
 
-These are examples of current code behavior, not the full future platform route contract.
+These are examples of current code behavior. User-facing routes are flat; the active game lives in client state, not the URL (see [Routing and Games](../product/routing-and-games.md)).

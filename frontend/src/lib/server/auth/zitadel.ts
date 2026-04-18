@@ -49,7 +49,7 @@ export function getZitadelAuthConfig(env: Record<string, string | undefined>): Z
 
 export function sanitizeReturnTo(value: string | null | undefined): string {
 	if (!value || !value.startsWith('/') || value.startsWith('//')) {
-		return '/mtg/search';
+		return '/';
 	}
 
 	return value;

@@ -1,10 +1,10 @@
 # UI Design Direction
 
 - Status: Canonical
-- Last Reviewed: 2026-04-08
+- Last Reviewed: 2026-04-18
 - Source of Truth: mixed
 - Update Triggers: major visual direction changes, IA changes, route model changes, game-scoping changes
-- Related Docs: [Product Docs](./README.md), [Platform Overview](./platform-overview.md), [Frontend Architecture](../architecture/frontend.md)
+- Related Docs: [Product Docs](./README.md), [Platform Overview](./platform-overview.md), [Routing and Games](./routing-and-games.md), [Frontend Architecture](../architecture/frontend.md), [ADR-0004](../decisions/0004-flat-routes-with-active-game-state.md)
 
 Spellbook should feel like a card-world platform, not a generic dashboard.
 
@@ -34,26 +34,18 @@ This direction is currently strongest for MTG, but the platform should leave roo
 
 ### Current implementation
 
-The active implemented MTG routes are:
+The active user-facing routes are flat:
 
-- `/mtg/`
-- `/mtg/search`
-- `/mtg/inventory`
-- `/mtg/decks`
+- `/`
+- `/search`
+- `/inventory`
+- `/decks` (implemented, hidden from nav and hub)
 
-The root route `/` is currently a platform selector.
+The active game is held in client state (cookie-backed) and switched through the in-nav `GameSwitcher` rather than the URL. Legacy `/mtg/*` and `/collections*` URLs 308-redirect into the flat surface for backwards compatibility.
 
-The old top-level `/search` and `/collections*` flows are transitional only and should not drive new IA decisions.
+### Planned IA direction
 
-### Planned route contract
-
-The future game-scoped route model is:
-
-```text
-/:game/{index,search,inventory,decks,play}
-```
-
-Design work should assume game-scoped navigation, even where only MTG exists today.
+Design work should assume the flat surface keeps the same shape as more games ship. Surfaces should branch on the active game in client state, not on the URL. See [ADR-0004](../decisions/0004-flat-routes-with-active-game-state.md).
 
 ## Product Surface Notes
 

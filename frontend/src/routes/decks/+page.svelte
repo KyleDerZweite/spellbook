@@ -2,6 +2,7 @@
 	import OrnamentalDivider from '$lib/components/layout/OrnamentalDivider.svelte';
 	import { spacetimeState } from '$lib/spacetimedb/state.svelte';
 	import { getConnection } from '$lib/spacetimedb/client';
+	import { activeGameState } from '$lib/state/activeGame.svelte';
 	import type { DeckCard } from '$bindings/types';
 
 	interface OwnedCandidate {
@@ -25,7 +26,7 @@
 	let editDeckFormat = $state('Commander');
 	let addQuery = $state('');
 
-	let decks = $derived(spacetimeState.getDecks('mtg'));
+	let decks = $derived(spacetimeState.getDecks(activeGameState.current));
 
 	$effect(() => {
 		if (selectedDeckId && decks.some((deck) => deck.id === selectedDeckId)) {
@@ -53,7 +54,7 @@
 
 	let ownedByCanonical = $derived.by(() => {
 		const map = new Map<string, OwnedCandidate>();
-		for (const card of spacetimeState.getInventoryCards('mtg')) {
+		for (const card of spacetimeState.getInventoryCards(activeGameState.current)) {
 			const existing = map.get(card.canonicalCardId);
 			if (existing) {
 				existing.owned += card.quantity;
@@ -93,7 +94,7 @@
 
 		try {
 			await conn.reducers.createDeck({
-				game: 'mtg',
+				game: activeGameState.current,
 				name: newDeckName.trim(),
 				description: newDeckDescription.trim(),
 				format: newDeckFormat
@@ -178,12 +179,14 @@
 </script>
 
 <svelte:head>
-	<title>MTG Decks | Spellbook</title>
+	<title>Decks | Spellbook</title>
 </svelte:head>
 
 <div class="grid gap-6 px-4 py-4 sm:px-6 sm:py-6 xl:grid-cols-[0.72fr_1.28fr]">
 	<section class="rounded-lg p-5 bg-crypt/92 border border-gold/14">
-		<p class="font-mono text-[11px] uppercase tracking-[0.3em] text-gold-dim">MTG Deck Studio</p>
+		<p class="font-mono text-[11px] uppercase tracking-[0.3em] text-text-secondary">
+			{activeGameState.current.toUpperCase()} Deck Studio
+		</p>
 		<h1 class="mt-3 font-display text-3xl font-bold text-gold-bright">Decks</h1>
 		<p class="mt-3 font-body leading-7 text-text-secondary">
 			Decks are separate from inventory, but every list compares itself against what you already
