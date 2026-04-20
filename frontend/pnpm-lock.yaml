@@ -50,10 +50,10 @@ importers:
         version: 3.2.3
       prettier:
         specifier: ^3
-        version: 3.8.2
+        version: 3.8.3
       prettier-plugin-svelte:
         specifier: ^3
-        version: 3.5.1(prettier@3.8.2)(svelte@5.55.3(@typescript-eslint/types@8.58.0))
+        version: 3.5.1(prettier@3.8.3)(svelte@5.55.3(@typescript-eslint/types@8.58.0))
       svelte:
         specifier: ^5
         version: 5.55.3(@typescript-eslint/types@8.58.0)
@@ -1283,8 +1283,8 @@ packages:
       prettier: ^3.0.0
       svelte: ^3.2.0 || ^4.0.0-next.0 || ^5.0.0-next.0
 
-  prettier@3.8.2:
-    resolution: {integrity: sha512-8c3mgTe0ASwWAJK+78dpviD+A8EqhndQPUBpNUIPt6+xWlIigCwfN01lWr9MAede4uqXGTEKeQWTvzb3vjia0Q==}
+  prettier@3.8.3:
+    resolution: {integrity: sha512-7igPTM53cGHMW8xWuVTydi2KO233VFiTNyF5hLJqpilHfmn8C8gPf+PS7dUT64YcXFbiMGZxS9pCSxL/Dxm/Jw==}
     engines: {node: '>=14'}
     hasBin: true
 
@@ -2968,12 +2968,12 @@ snapshots:
       picocolors: 1.1.1
       source-map-js: 1.2.1
 
-  prettier-plugin-svelte@3.5.1(prettier@3.8.2)(svelte@5.55.3(@typescript-eslint/types@8.58.0)):
+  prettier-plugin-svelte@3.5.1(prettier@3.8.3)(svelte@5.55.3(@typescript-eslint/types@8.58.0)):
     dependencies:
-      prettier: 3.8.2
+      prettier: 3.8.3
       svelte: 5.55.3(@typescript-eslint/types@8.58.0)
 
-  prettier@3.8.2: {}
+  prettier@3.8.3: {}
 
   pure-rand@7.0.1: {}
 
@@ -3048,7 +3048,7 @@ snapshots:
       base64-js: 1.5.1
       headers-polyfill: 4.0.3
       object-inspect: 1.13.4
-      prettier: 3.8.2
+      prettier: 3.8.3
       pure-rand: 7.0.1
       safe-stable-stringify: 2.5.0
       statuses: 2.0.2
