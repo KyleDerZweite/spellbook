@@ -1,7 +1,7 @@
 # Product Docs
 
 - Status: Canonical
-- Last Reviewed: 2026-04-08
+- Last Reviewed: 2026-04-25
 - Source of Truth: mixed
 - Update Triggers: route changes, feature rollout changes, terminology changes, implemented versus planned status changes
 - Related Docs: [Platform Overview](./platform-overview.md), [Routing and Games](./routing-and-games.md), [Feature Status](./feature-status.md), [UI Design Direction](./ui-design-direction.md), [Docs Index](../README.md)

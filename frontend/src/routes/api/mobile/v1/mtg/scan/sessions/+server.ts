@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { requireMobileAuth } from '$lib/server/mobile/auth';
-import { createScanSessionEntry } from '$lib/server/mobile/spacetimedb';
+import { createScanSessionEntry } from '$lib/server/mobile/postgres';
 
 export const POST = async (event) => {
 	const auth = await requireMobileAuth(event);

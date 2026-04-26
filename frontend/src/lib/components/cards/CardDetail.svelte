@@ -58,14 +58,16 @@
 	$effect(() => {
 		const oracleId = card.oracle_id;
 		const controller = new AbortController();
+		printings = [];
 		selectedPrinting = null;
 		loadingPrintings = true;
 		selectedLang = 'en';
 		foilFilter = 'all';
 		allPrintingsView = false;
 		activeTab = 'printings';
+		dropdownOpen = false;
 
-		searchPrintings(oracleId)
+		searchPrintings(oracleId, { signal: controller.signal })
 			.then((result) => {
 				if (!controller.signal.aborted) {
 					printings = result.hits;
@@ -243,8 +245,252 @@
 									</button>
 								</div>
 
+								{#if loadingPrintings}
+									<div
+										class="flex items-center gap-3 rounded-lg px-3 py-4"
+										style="background-color: var(--color-slate);"
+									>
+										<div
+											class="h-5 w-5 animate-spin rounded-full"
+											style="border: 2px solid var(--color-gold-dim); border-top-color: var(--color-gold-bright);"
+										></div>
+										<p class="font-body text-sm text-text-secondary">Loading printings...</p>
+									</div>
+								{:else if printings.length === 0}
+									<p class="font-body text-sm italic text-text-muted">
+										Printings unavailable right now.
+									</p>
+								{:else}
+									{#if availableLanguages.length > 1}
+										<div class="mb-3 flex flex-wrap gap-1">
+											{#each availableLanguages as lang (lang)}
+												<button
+													onclick={() => (selectedLang = lang)}
+													class="cursor-pointer rounded px-1.5 py-0.5 text-sm leading-none transition-all duration-150"
+													style="
+													background-color: {selectedLang === lang ? 'var(--color-mist)' : 'transparent'};
+													border: 1px solid {selectedLang === lang ? 'var(--color-gold)' : 'transparent'};
+													opacity: {selectedLang === lang ? '1' : '0.5'};
+												"
+													title={lang}
+												>
+													{LANG_FLAGS[lang] ?? lang}
+												</button>
+											{/each}
+										</div>
+									{/if}
+
+									<div
+										class="grid gap-3"
+										style="grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));"
+									>
+										{#each filteredPrintings as printing (printing.id)}
+											{@const isActive =
+												selectedPrinting?.id === printing.id ||
+												(!selectedPrinting && printing.id === card.id)}
+											<button
+												onclick={() => selectPrinting(printing)}
+												class="cursor-pointer overflow-hidden rounded-lg p-0 text-left transition-all duration-150"
+												style="
+													background: transparent;
+													border: 2px solid {isActive ? 'var(--color-gold-bright)' : 'transparent'};
+												"
+											>
+												{#if isActive}
+													<div
+														class="py-0.5 text-center font-display text-[10px] uppercase tracking-wider"
+														style="background-color: var(--color-gold); color: var(--color-text-on-gold);"
+													>
+														Selected
+													</div>
+												{/if}
+												<img
+													src={printing.image_uri_small || printing.image_uri}
+													alt="{printing.set_name} #{printing.collector_number}"
+													class="block w-full"
+													style="aspect-ratio: 488 / 680;"
+													loading="lazy"
+												/>
+												<div class="flex items-center gap-1 px-1.5 py-1">
+													<span class="font-mono text-[10px] uppercase text-text-muted">
+														{printing.set_code}
+													</span>
+													<RarityBadge rarity={printing.rarity} />
+													<span class="font-mono text-[10px] text-text-muted">
+														#{printing.collector_number}
+													</span>
+												</div>
+											</button>
+										{/each}
+									</div>
+
+									{#if filteredPrintings.length === 0}
+										<p class="font-body text-xs italic text-text-muted">
+											No printings match the current filters.
+										</p>
+									{/if}
+								{/if}
+							</div>
+						{:else if activeTab === 'printings'}
+							<!-- ==================== PRINTINGS TAB ==================== -->
+
+							{#if loadingPrintings}
+								<div
+									class="flex items-center gap-3 rounded-lg px-3 py-4"
+									style="background-color: var(--color-slate);"
+								>
+									<div
+										class="h-5 w-5 animate-spin rounded-full"
+										style="border: 2px solid var(--color-gold-dim); border-top-color: var(--color-gold-bright);"
+									></div>
+									<p class="font-body text-sm text-text-secondary">Loading printings...</p>
+								</div>
+							{:else if printings.length === 0}
+								<p class="font-body text-sm italic text-text-muted">
+									Printings unavailable right now.
+								</p>
+							{:else}
+								<!-- Printing dropdown -->
+								<div>
+									<span
+										class="mb-1.5 block font-display text-xs uppercase tracking-widest text-text-secondary"
+									>
+										Printing
+									</span>
+									<!-- svelte-ignore a11y_no_static_element_interactions -->
+									<div class="relative">
+										<button
+											onclick={() => (dropdownOpen = !dropdownOpen)}
+											class="flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left font-body text-sm transition-colors"
+											style="
+												background-color: var(--color-slate);
+												border: 1px solid {dropdownOpen ? 'var(--color-gold)' : 'rgba(196, 146, 42, 0.25)'};
+												color: var(--color-text-primary);
+											"
+										>
+											<span class="flex min-w-0 items-center gap-2">
+												<RarityBadge rarity={activeCard.rarity} />
+												<span class="truncate">
+													{activeCard.set_name}
+													<span class="text-text-muted">
+														({activeCard.set_code}) #{activeCard.collector_number}
+													</span>
+												</span>
+											</span>
+											<span
+												class="shrink-0 text-xs text-text-muted transition-transform duration-150"
+												style="transform: rotate({dropdownOpen ? '180deg' : '0deg'});">&#9660;</span
+											>
+										</button>
+
+										{#if dropdownOpen}
+											<div
+												class="fixed inset-0"
+												onclick={() => (dropdownOpen = false)}
+												onkeydown={(e) => {
+													if (e.key === 'Escape') dropdownOpen = false;
+												}}
+												role="button"
+												tabindex="-1"
+												aria-label="Close dropdown"
+											></div>
+											<div
+												class="absolute left-0 z-20 mt-1 w-full overflow-y-auto rounded-lg"
+												style="
+													max-height: 280px;
+													background-color: var(--color-crypt);
+													border: 1px solid rgba(196, 146, 42, 0.3);
+													box-shadow: 0 8px 32px rgba(13, 11, 15, 0.8);
+												"
+											>
+												{#each filteredPrintings as printing (printing.id)}
+													{@const isCurrent =
+														selectedPrinting?.id === printing.id ||
+														(!selectedPrinting && printing.id === card.id)}
+													<button
+														onclick={() => selectPrinting(printing)}
+														class="flex w-full cursor-pointer items-start gap-3 px-3 py-2.5 text-left font-body text-sm transition-colors"
+														style="
+															background-color: {isCurrent ? 'var(--color-mist)' : 'transparent'};
+															border: none;
+															border-bottom: 1px solid rgba(196, 146, 42, 0.08);
+															color: var(--color-text-primary);
+														"
+														onmouseenter={(e) => {
+															if (!isCurrent)
+																(e.currentTarget as HTMLElement).style.backgroundColor =
+																	'var(--color-slate)';
+														}}
+														onmouseleave={(e) => {
+															if (!isCurrent)
+																(e.currentTarget as HTMLElement).style.backgroundColor =
+																	'transparent';
+														}}
+													>
+														<RarityBadge rarity={printing.rarity} />
+														<div class="min-w-0 flex-1">
+															<span class="block truncate font-medium">
+																{printing.set_name}
+																{#if isCurrent}
+																	<span class="ml-1 text-xs text-gold">(Current)</span>
+																{/if}
+															</span>
+															<span class="text-xs text-text-muted">
+																({printing.set_code}) #{printing.collector_number}
+															</span>
+														</div>
+													</button>
+												{/each}
+												{#if filteredPrintings.length === 0}
+													<p class="px-3 py-3 font-body text-xs italic text-text-muted">
+														No printings match the current filters.
+													</p>
+												{/if}
+											</div>
+										{/if}
+									</div>
+								</div>
+
+								<!-- Action row: All printings + Foil/Nonfoil -->
+								<div class="flex flex-wrap items-center gap-2">
+									<button
+										onclick={() => (allPrintingsView = true)}
+										class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 font-display text-xs uppercase tracking-wider transition-colors"
+										style="
+											background-color: var(--color-slate);
+											border: 1px solid rgba(196, 146, 42, 0.25);
+											color: var(--color-text-secondary);
+										"
+									>
+										&#9638; All printings
+									</button>
+									<button
+										onclick={() => (foilFilter = foilFilter === 'nonfoil' ? 'all' : 'nonfoil')}
+										class="inline-flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1.5 font-display text-xs uppercase tracking-wider transition-colors"
+										style="
+											background-color: {foilFilter === 'nonfoil' ? 'var(--color-mist)' : 'var(--color-slate)'};
+											border: 1px solid {foilFilter === 'nonfoil' ? 'var(--color-gold)' : 'rgba(196, 146, 42, 0.25)'};
+											color: {foilFilter === 'nonfoil' ? 'var(--color-gold-bright)' : 'var(--color-text-secondary)'};
+										"
+									>
+										Nonfoil
+									</button>
+									<button
+										onclick={() => (foilFilter = foilFilter === 'foil' ? 'all' : 'foil')}
+										class="inline-flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1.5 font-display text-xs uppercase tracking-wider transition-colors"
+										style="
+											background-color: {foilFilter === 'foil' ? 'var(--color-mist)' : 'var(--color-slate)'};
+											border: 1px solid {foilFilter === 'foil' ? 'var(--color-gold)' : 'rgba(196, 146, 42, 0.25)'};
+											color: {foilFilter === 'foil' ? 'var(--color-gold-bright)' : 'var(--color-text-secondary)'};
+										"
+									>
+										Foil
+									</button>
+								</div>
+
+								<!-- Language flags (own row) -->
 								{#if availableLanguages.length > 1}
-									<div class="mb-3 flex flex-wrap gap-1">
+									<div class="flex flex-wrap gap-1">
 										{#each availableLanguages as lang (lang)}
 											<button
 												onclick={() => (selectedLang = lang)}
@@ -261,216 +507,6 @@
 										{/each}
 									</div>
 								{/if}
-
-								<div
-									class="grid gap-3"
-									style="grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));"
-								>
-									{#each filteredPrintings as printing (printing.id)}
-										{@const isActive =
-											selectedPrinting?.id === printing.id ||
-											(!selectedPrinting && printing.id === card.id)}
-										<button
-											onclick={() => selectPrinting(printing)}
-											class="cursor-pointer overflow-hidden rounded-lg p-0 text-left transition-all duration-150"
-											style="
-												background: transparent;
-												border: 2px solid {isActive ? 'var(--color-gold-bright)' : 'transparent'};
-											"
-										>
-											{#if isActive}
-												<div
-													class="py-0.5 text-center font-display text-[10px] uppercase tracking-wider"
-													style="background-color: var(--color-gold); color: var(--color-text-on-gold);"
-												>
-													Selected
-												</div>
-											{/if}
-											<img
-												src={printing.image_uri_small || printing.image_uri}
-												alt="{printing.set_name} #{printing.collector_number}"
-												class="block w-full"
-												style="aspect-ratio: 488 / 680;"
-												loading="lazy"
-											/>
-											<div class="flex items-center gap-1 px-1.5 py-1">
-												<span class="font-mono text-[10px] uppercase text-text-muted">
-													{printing.set_code}
-												</span>
-												<RarityBadge rarity={printing.rarity} />
-												<span class="font-mono text-[10px] text-text-muted">
-													#{printing.collector_number}
-												</span>
-											</div>
-										</button>
-									{/each}
-								</div>
-
-								{#if filteredPrintings.length === 0}
-									<p class="font-body text-xs italic text-text-muted">
-										No printings match the current filters.
-									</p>
-								{/if}
-							</div>
-						{:else if activeTab === 'printings'}
-							<!-- ==================== PRINTINGS TAB ==================== -->
-
-							<!-- Printing dropdown -->
-							<div>
-								<span
-									class="mb-1.5 block font-display text-xs uppercase tracking-widest text-text-secondary"
-								>
-									Printing
-								</span>
-								<!-- svelte-ignore a11y_no_static_element_interactions -->
-								<div class="relative">
-									<button
-										onclick={() => (dropdownOpen = !dropdownOpen)}
-										class="flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left font-body text-sm transition-colors"
-										style="
-											background-color: var(--color-slate);
-											border: 1px solid {dropdownOpen ? 'var(--color-gold)' : 'rgba(196, 146, 42, 0.25)'};
-											color: var(--color-text-primary);
-										"
-									>
-										<span class="flex min-w-0 items-center gap-2">
-											<RarityBadge rarity={activeCard.rarity} />
-											<span class="truncate">
-												{activeCard.set_name}
-												<span class="text-text-muted">
-													({activeCard.set_code}) #{activeCard.collector_number}
-												</span>
-											</span>
-										</span>
-										<span
-											class="shrink-0 text-xs text-text-muted transition-transform duration-150"
-											style="transform: rotate({dropdownOpen ? '180deg' : '0deg'});">&#9660;</span
-										>
-									</button>
-
-									{#if dropdownOpen}
-										<div
-											class="fixed inset-0"
-											onclick={() => (dropdownOpen = false)}
-											onkeydown={(e) => {
-												if (e.key === 'Escape') dropdownOpen = false;
-											}}
-											role="button"
-											tabindex="-1"
-											aria-label="Close dropdown"
-										></div>
-										<div
-											class="absolute left-0 z-20 mt-1 w-full overflow-y-auto rounded-lg"
-											style="
-												max-height: 280px;
-												background-color: var(--color-crypt);
-												border: 1px solid rgba(196, 146, 42, 0.3);
-												box-shadow: 0 8px 32px rgba(13, 11, 15, 0.8);
-											"
-										>
-											{#each filteredPrintings as printing (printing.id)}
-												{@const isCurrent =
-													selectedPrinting?.id === printing.id ||
-													(!selectedPrinting && printing.id === card.id)}
-												<button
-													onclick={() => selectPrinting(printing)}
-													class="flex w-full cursor-pointer items-start gap-3 px-3 py-2.5 text-left font-body text-sm transition-colors"
-													style="
-														background-color: {isCurrent ? 'var(--color-mist)' : 'transparent'};
-														border: none;
-														border-bottom: 1px solid rgba(196, 146, 42, 0.08);
-														color: var(--color-text-primary);
-													"
-													onmouseenter={(e) => {
-														if (!isCurrent)
-															(e.currentTarget as HTMLElement).style.backgroundColor =
-																'var(--color-slate)';
-													}}
-													onmouseleave={(e) => {
-														if (!isCurrent)
-															(e.currentTarget as HTMLElement).style.backgroundColor =
-																'transparent';
-													}}
-												>
-													<RarityBadge rarity={printing.rarity} />
-													<div class="min-w-0 flex-1">
-														<span class="block truncate font-medium">
-															{printing.set_name}
-															{#if isCurrent}
-																<span class="ml-1 text-xs text-gold">(Current)</span>
-															{/if}
-														</span>
-														<span class="text-xs text-text-muted">
-															({printing.set_code}) #{printing.collector_number}
-														</span>
-													</div>
-												</button>
-											{/each}
-											{#if filteredPrintings.length === 0}
-												<p class="px-3 py-3 font-body text-xs italic text-text-muted">
-													No printings match the current filters.
-												</p>
-											{/if}
-										</div>
-									{/if}
-								</div>
-							</div>
-
-							<!-- Action row: All printings + Foil/Nonfoil -->
-							<div class="flex flex-wrap items-center gap-2">
-								<button
-									onclick={() => (allPrintingsView = true)}
-									class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 font-display text-xs uppercase tracking-wider transition-colors"
-									style="
-										background-color: var(--color-slate);
-										border: 1px solid rgba(196, 146, 42, 0.25);
-										color: var(--color-text-secondary);
-									"
-								>
-									&#9638; All printings
-								</button>
-								<button
-									onclick={() => (foilFilter = foilFilter === 'nonfoil' ? 'all' : 'nonfoil')}
-									class="inline-flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1.5 font-display text-xs uppercase tracking-wider transition-colors"
-									style="
-										background-color: {foilFilter === 'nonfoil' ? 'var(--color-mist)' : 'var(--color-slate)'};
-										border: 1px solid {foilFilter === 'nonfoil' ? 'var(--color-gold)' : 'rgba(196, 146, 42, 0.25)'};
-										color: {foilFilter === 'nonfoil' ? 'var(--color-gold-bright)' : 'var(--color-text-secondary)'};
-									"
-								>
-									Nonfoil
-								</button>
-								<button
-									onclick={() => (foilFilter = foilFilter === 'foil' ? 'all' : 'foil')}
-									class="inline-flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1.5 font-display text-xs uppercase tracking-wider transition-colors"
-									style="
-										background-color: {foilFilter === 'foil' ? 'var(--color-mist)' : 'var(--color-slate)'};
-										border: 1px solid {foilFilter === 'foil' ? 'var(--color-gold)' : 'rgba(196, 146, 42, 0.25)'};
-										color: {foilFilter === 'foil' ? 'var(--color-gold-bright)' : 'var(--color-text-secondary)'};
-									"
-								>
-									Foil
-								</button>
-							</div>
-
-							<!-- Language flags (own row) -->
-							{#if availableLanguages.length > 1}
-								<div class="flex flex-wrap gap-1">
-									{#each availableLanguages as lang (lang)}
-										<button
-											onclick={() => (selectedLang = lang)}
-											class="cursor-pointer rounded px-1.5 py-0.5 text-sm leading-none transition-all duration-150"
-											style="
-												background-color: {selectedLang === lang ? 'var(--color-mist)' : 'transparent'};
-												border: 1px solid {selectedLang === lang ? 'var(--color-gold)' : 'transparent'};
-												opacity: {selectedLang === lang ? '1' : '0.5'};
-											"
-											title={lang}
-										>
-											{LANG_FLAGS[lang] ?? lang}
-										</button>
-									{/each}
-								</div>
 							{/if}
 
 							<OrnamentalDivider />

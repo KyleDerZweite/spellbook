@@ -5,6 +5,5 @@
 		"moduleResolution": "bundler",
 		"allowImportingTsExtensions": true,
 		"skipLibCheck": true
-	},
-	"exclude": ["../src/module_bindings"]
+	}
 }

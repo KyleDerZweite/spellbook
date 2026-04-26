@@ -1,7 +1,7 @@
 # Spellbook Docs
 
 - Status: Canonical
-- Last Reviewed: 2026-04-08
+- Last Reviewed: 2026-04-25
 - Source of Truth: mixed
 - Update Triggers: docs structure, canonical doc locations, historical-doc policy, maintenance workflow
 - Related Docs: [Product](./product/README.md), [Architecture](./architecture/README.md), [Operations](./operations/README.md), [Integrations](./integrations/README.md), [Decisions](./decisions/README.md), [Reference](./reference/README.md)

@@ -1,7 +1,7 @@
 # Private Instance Template
 
 - Status: Canonical
-- Last Reviewed: 2026-04-08
+- Last Reviewed: 2026-04-25
 - Source of Truth: operator notes
 - Update Triggers: deployment note template changes, operator note conventions
 - Related Docs: [Operations Docs](./README.md), [Deployment](./deployment.md), [Zitadel](./zitadel.md)
@@ -12,7 +12,6 @@ Use this template for deployment-specific notes that should not live in the cano
 
 - Public app origin:
 - Search origin:
-- SpacetimeDB origin:
 - Environment:
 - Operator:
 
@@ -35,8 +34,8 @@ Use this template for deployment-specific notes that should not live in the cano
 ## Runtime Secrets
 
 - Auth session secret storage location:
+- Postgres connection string storage location:
 - MeiliSearch master key storage location:
-- SpacetimeDB module name:
 
 ## Legal and Contact
 

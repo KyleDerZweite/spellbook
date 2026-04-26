@@ -1,7 +1,7 @@
 # MeiliSearch in Spellbook
 
 - Status: Canonical
-- Last Reviewed: 2026-04-08
+- Last Reviewed: 2026-04-25
 - Source of Truth: code
 - Update Triggers: index changes, query changes, search-key handling changes, MTG search behavior changes
 - Related Docs: [Integrations Docs](../README.md), [Indexes and Settings](./indexes-and-settings.md), [Search API](./search-api.md), [Tasks](./tasks.md), [Worker Architecture](../../architecture/worker.md)
@@ -14,7 +14,7 @@ MTG is the only implemented game today. The search layer is game-aware in types,
 
 MeiliSearch is the source of truth for the searchable MTG catalog.
 
-SpacetimeDB stores user-scoped data only:
+Postgres stores user-scoped data only:
 
 - inventories
 - inventory cards

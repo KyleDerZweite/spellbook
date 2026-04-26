@@ -41,6 +41,7 @@ export interface SearchOptions {
 	limit?: number;
 	offset?: number;
 	sort?: string[];
+	signal?: AbortSignal;
 }
 
 /**
@@ -57,12 +58,16 @@ export async function searchCards(
 		return { hits: [], query, processingTimeMs: 0, estimatedTotalHits: 0 };
 	}
 
-	const result = await distinctIndex.search(query, {
-		limit: options.limit ?? 20,
-		offset: options.offset ?? 0,
-		filter: options.filter,
-		sort: options.sort
-	});
+	const result = await distinctIndex.search(
+		query,
+		{
+			limit: options.limit ?? 20,
+			offset: options.offset ?? 0,
+			filter: options.filter,
+			sort: options.sort
+		},
+		options.signal ? { signal: options.signal } : undefined
+	);
 
 	return {
 		hits: result.hits as CardDocument[],
@@ -79,12 +84,16 @@ export async function searchCards(
 export async function browseCards(options: SearchOptions = {}): Promise<SearchResult> {
 	ensureClient();
 	ensureSupportedGame(options.game ?? DEFAULT_GAME);
-	const result = await distinctIndex.search('', {
-		limit: options.limit ?? 50,
-		offset: options.offset ?? 0,
-		filter: options.filter,
-		sort: options.sort ?? ['name:asc']
-	});
+	const result = await distinctIndex.search(
+		'',
+		{
+			limit: options.limit ?? 50,
+			offset: options.offset ?? 0,
+			filter: options.filter,
+			sort: options.sort ?? ['name:asc']
+		},
+		options.signal ? { signal: options.signal } : undefined
+	);
 
 	return {
 		hits: result.hits as CardDocument[],
@@ -98,13 +107,17 @@ export async function browseCards(options: SearchOptions = {}): Promise<SearchRe
  * Fetch facet distribution counts for colors, rarity, and set_code.
  * Uses limit: 0 so no documents are returned -- only facet data.
  */
-export async function getFacets(filter?: string[]): Promise<FacetResponse> {
+export async function getFacets(filter?: string[], signal?: AbortSignal): Promise<FacetResponse> {
 	ensureClient();
-	const result = await distinctIndex.search('', {
-		limit: 0,
-		filter,
-		facets: ['colors', 'rarity', 'set_code']
-	});
+	const result = await distinctIndex.search(
+		'',
+		{
+			limit: 0,
+			filter,
+			facets: ['colors', 'rarity', 'set_code']
+		},
+		signal ? { signal } : undefined
+	);
 
 	const dist = (result.facetDistribution ?? {}) as Record<string, Record<string, number>>;
 	return {
@@ -120,7 +133,7 @@ export async function getFacets(filter?: string[]): Promise<FacetResponse> {
  */
 export async function searchPrintings(
 	oracleId: string,
-	options: { game?: Game; limit?: number; sort?: string[] } = {}
+	options: { game?: Game; limit?: number; sort?: string[]; signal?: AbortSignal } = {}
 ): Promise<SearchResult> {
 	ensureClient();
 	ensureSupportedGame(options.game ?? DEFAULT_GAME);
@@ -128,11 +141,15 @@ export async function searchPrintings(
 		return { hits: [], query: '', processingTimeMs: 0, estimatedTotalHits: 0 };
 	}
 
-	const result = await allIndex.search('', {
-		filter: [`oracle_id = "${oracleId}"`],
-		sort: options.sort ?? ['set_code:asc'],
-		limit: options.limit ?? 1000
-	});
+	const result = await allIndex.search(
+		'',
+		{
+			filter: [`oracle_id = "${oracleId}"`],
+			sort: options.sort ?? ['set_code:asc'],
+			limit: options.limit ?? 1000
+		},
+		options.signal ? { signal: options.signal } : undefined
+	);
 
 	return {
 		hits: result.hits as CardDocument[],

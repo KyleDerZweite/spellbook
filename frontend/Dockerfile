@@ -9,14 +9,14 @@ WORKDIR /app
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
-# Copy SpacetimeDB bindings (needed for build via $bindings alias)
-COPY src/module_bindings/ /app/../src/module_bindings/
-
 # Copy frontend source
 COPY frontend/ ./
 
 # Build with adapter-node
 RUN pnpm build
+
+FROM builder AS migrator
+CMD ["pnpm", "db:migrate"]
 
 # Stage 2: Runtime
 FROM node:22-slim AS runtime

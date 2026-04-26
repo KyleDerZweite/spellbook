@@ -1,7 +1,7 @@
 # Auth
 
 - Status: Canonical
-- Last Reviewed: 2026-04-18
+- Last Reviewed: 2026-04-25
 - Source of Truth: code
 - Update Triggers: login flow changes, session model changes, protected route changes, token handoff changes
 - Related Docs: [System Overview](./system-overview.md), [Frontend](./frontend.md), [Mobile And Scan](./mobile-and-scan.md), [Routing and Games](../product/routing-and-games.md), [Zitadel](../operations/zitadel.md), [Deployment](../operations/deployment.md)
@@ -13,7 +13,7 @@ Spellbook currently uses direct Zitadel authentication.
 - Zitadel owns identity
 - SvelteKit owns the browser-facing login and callback flow
 - SvelteKit stores the encrypted session cookie
-- SpacetimeDB receives the ID token for authenticated access
+- Postgres ownership is enforced by SvelteKit server code using the Zitadel account id from the session or validated bearer token
 - Pangolin is transport and reverse proxy infrastructure only
 
 The mobile client is the same SvelteKit app installed as a PWA and reuses the browser session cookie. No separate mobile auth flow is required for the PWA.

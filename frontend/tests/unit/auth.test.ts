@@ -186,10 +186,8 @@ describe('auth flow', () => {
 
 		const locals: App.Locals = {
 			user: null,
-			spacetimeToken: null,
 			meiliSearchKey: '',
-			mobileBearerUser: null,
-			mobileBearerToken: null
+			mobileBearerUser: null
 		};
 
 		const response = await handle({
@@ -206,7 +204,6 @@ describe('auth flow', () => {
 		expect(response.headers.get('x-robots-tag')).toBe(NO_INDEX_ROBOTS_TAG);
 		expect(zitadelMocks.refreshAuthSession).toHaveBeenCalledOnce();
 		expect(locals.user?.accountId).toBe('user-123');
-		expect(locals.spacetimeToken).toBe('fresh-token');
 		expect(locals.meiliSearchKey).toBe('search-key');
 
 		vi.unstubAllGlobals();

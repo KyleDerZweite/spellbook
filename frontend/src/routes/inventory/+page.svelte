@@ -1,10 +1,8 @@
 <script lang="ts">
 	import OrnamentalDivider from '$lib/components/layout/OrnamentalDivider.svelte';
-	import { spacetimeState } from '$lib/spacetimedb/state.svelte';
-	import { getConnection } from '$lib/spacetimedb/client';
 	import { getSetCatalogSize } from '$lib/search/meilisearch';
 	import { activeGameState } from '$lib/state/activeGame.svelte';
-	import type { InventoryCard } from '$bindings/types';
+	import type { InventoryCard } from '$lib/server/data/types';
 
 	type InventorySort = 'name' | 'set' | 'recent';
 
@@ -16,13 +14,14 @@
 		completed: boolean;
 	}
 
+	let { data } = $props();
 	let sortBy: InventorySort = $state('name');
 	let query = $state('');
 	let setTotals: Record<string, number> = $state({});
 	let setProgressLoading = $state(false);
 
-	let inventoryCards = $derived(spacetimeState.getInventoryCards(activeGameState.current));
-	let inventoryStats = $derived(spacetimeState.getInventoryStats(activeGameState.current));
+	let inventoryCards = $derived(data.cards as InventoryCard[]);
+	let inventoryStats = $derived(data.stats);
 
 	let listCards = $derived.by(() => {
 		const normalizedQuery = query.trim().toLowerCase();
@@ -42,7 +41,7 @@
 				return a.setCode.localeCompare(b.setCode) || a.name.localeCompare(b.name);
 			}
 			if (sortBy === 'recent') {
-				return Number(b.updatedAt) - Number(a.updatedAt);
+				return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
 			}
 			return a.name.localeCompare(b.name);
 		});
@@ -114,40 +113,8 @@
 			cancelled = true;
 		};
 	});
-
-	async function handleUpdateQuantity(card: InventoryCard, delta: number) {
-		const conn = getConnection();
-		if (!conn) return;
-
-		const nextQuantity = card.quantity + delta;
-		try {
-			if (nextQuantity <= 0) {
-				await conn.reducers.removeFromInventory({
-					entryId: card.entryId
-				});
-			} else {
-				await conn.reducers.updateInventoryCard({
-					entryId: card.entryId,
-					quantity: nextQuantity,
-					notes: card.notes
-				});
-			}
-		} catch (err) {
-			spacetimeState.error = `Failed to update inventory card: ${String(err)}`;
-		}
-	}
-
-	async function handleRemove(card: InventoryCard) {
-		const conn = getConnection();
-		if (!conn) return;
-
-		try {
-			await conn.reducers.removeFromInventory({
-				entryId: card.entryId
-			});
-		} catch (err) {
-			spacetimeState.error = `Failed to remove inventory card: ${String(err)}`;
-		}
+	function nextQuantity(card: InventoryCard, delta: number): number {
+		return card.quantity + delta;
 	}
 </script>
 
@@ -192,17 +159,6 @@
 			</div>
 		</div>
 	</section>
-
-	{#if spacetimeState.error}
-		<p class="rounded px-3 py-2 font-body text-sm text-error bg-error/10 border border-error/30">
-			{spacetimeState.error}
-			<button
-				onclick={() => (spacetimeState.error = null)}
-				class="ml-2 cursor-pointer border-none bg-transparent text-text-muted hover:text-text-primary"
-				>&#10005;</button
-			>
-		</p>
-	{/if}
 
 	<section class="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
 		<div class="rounded-lg p-5 bg-crypt/92 border border-gold/14">
@@ -293,7 +249,7 @@
 				</div>
 			{:else}
 				<div class="flex flex-col gap-3">
-					{#each listCards as card (card.entryId)}
+					{#each listCards as card (card.id)}
 						<div
 							class="grid gap-4 rounded px-4 py-4 sm:grid-cols-[72px_1fr_auto] bg-stone/58 border border-gold/10"
 						>
@@ -323,27 +279,40 @@
 								</div>
 							</div>
 							<div class="flex items-center gap-2 sm:justify-end">
-								<button
-									onclick={() => handleUpdateQuantity(card, -1)}
-									class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full font-mono text-sm text-text-primary bg-crypt border border-gold/18"
-								>
-									-
-								</button>
+								<form method="POST" action="?/updateQuantity">
+									<input type="hidden" name="entryId" value={card.id} />
+									<input type="hidden" name="quantity" value={nextQuantity(card, -1)} />
+									<input type="hidden" name="notes" value={card.notes} />
+									<button
+										type="submit"
+										class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full font-mono text-sm text-text-primary bg-crypt border border-gold/18"
+									>
+										-
+									</button>
+								</form>
 								<span class="w-8 text-center font-mono text-sm text-text-primary"
 									>{card.quantity}</span
 								>
-								<button
-									onclick={() => handleUpdateQuantity(card, 1)}
-									class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full font-mono text-sm text-text-primary bg-crypt border border-gold/18"
-								>
-									+
-								</button>
-								<button
-									onclick={() => handleRemove(card)}
-									class="rounded px-3 py-2 font-display text-[10px] uppercase tracking-[0.22em] text-error bg-error/10 border border-error/22"
-								>
-									Remove
-								</button>
+								<form method="POST" action="?/updateQuantity">
+									<input type="hidden" name="entryId" value={card.id} />
+									<input type="hidden" name="quantity" value={nextQuantity(card, 1)} />
+									<input type="hidden" name="notes" value={card.notes} />
+									<button
+										type="submit"
+										class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full font-mono text-sm text-text-primary bg-crypt border border-gold/18"
+									>
+										+
+									</button>
+								</form>
+								<form method="POST" action="?/remove">
+									<input type="hidden" name="entryId" value={card.id} />
+									<button
+										type="submit"
+										class="rounded px-3 py-2 font-display text-[10px] uppercase tracking-[0.22em] text-error bg-error/10 border border-error/22"
+									>
+										Remove
+									</button>
+								</form>
 							</div>
 						</div>
 					{/each}

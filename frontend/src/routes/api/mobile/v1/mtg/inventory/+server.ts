@@ -1,10 +1,10 @@
 import { error, json } from '@sveltejs/kit';
 import { requireMobileAuth } from '$lib/server/mobile/auth';
-import { getInventorySnapshot, batchAddInventory } from '$lib/server/mobile/spacetimedb';
+import { getInventorySnapshotEntry, batchAddInventory } from '$lib/server/mobile/postgres';
 
 export const GET = async (event) => {
 	const auth = await requireMobileAuth(event);
-	return json(await getInventorySnapshot(auth));
+	return json(await getInventorySnapshotEntry(auth));
 };
 
 export const POST = async (event) => {

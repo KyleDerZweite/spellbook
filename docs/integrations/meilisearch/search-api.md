@@ -1,7 +1,7 @@
 # MeiliSearch Search API
 
 - Status: Canonical
-- Last Reviewed: 2026-04-08
+- Last Reviewed: 2026-04-25
 - Source of Truth: code
 - Update Triggers: query mode changes, filter changes, limit changes, browse-mode behavior changes
 - Related Docs: [MeiliSearch Overview](./README.md), [Indexes and Settings](./indexes-and-settings.md), [Frontend Architecture](../../architecture/frontend.md)
@@ -20,6 +20,7 @@ Current behavior:
 - empty query
 - sort by `name:asc`
 - apply active filters
+- render hits independently of facet loading
 
 ### Distinct card search
 
@@ -31,3 +32,15 @@ Current behavior:
 - free-text query
 - apply active filters
 - paginate with `limit` and `offset`
+- render hits independently of facet loading
+
+## Current Facet Behavior
+
+- facet counts are fetched independently from the main hit query
+- facet requests are driven by active filter changes and active game changes
+- facet failures do not fail the main search result view
+
+## Current Pagination Behavior
+
+- pagination requests use the same query and filter context as the current hit list
+- responses from an outdated search context are discarded instead of appended into the current result set

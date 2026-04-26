@@ -1,7 +1,7 @@
 # Deployment Guide
 
 - Status: Canonical
-- Last Reviewed: 2026-04-17
+- Last Reviewed: 2026-04-25
 - Source of Truth: mixed
 - Update Triggers: service topology changes, env var changes, auth boundary changes, compose changes
 - Related Docs: [Operations Docs](./README.md), [Zitadel](./zitadel.md), [Auth Architecture](../architecture/auth.md), [System Overview](../architecture/system-overview.md)
@@ -16,8 +16,8 @@ Spellbook currently runs with the core services below under `podman-compose`:
 
 | Service | Role |
 |---------|------|
-| `spacetimedb` | Real-time database for user-scoped inventory and deck data |
-| `stdb-publish` | One-shot publisher for the SpacetimeDB module |
+| `postgres` | Durable database for user-scoped application data |
+| `db-migrate` | One-shot Drizzle migration runner |
 | `meilisearch` | Card catalog search engine |
 | `worker` | Python sync pipeline for MTG catalog ingestion |
 | `frontend` | SvelteKit app server |
@@ -48,9 +48,8 @@ Pangolin is used only as transport and reverse-proxy infrastructure in this depl
 | `ZITADEL_MOBILE_CLIENT_ID` | Optional. Bearer-token client id for `/api/mobile/v1/...`. Not required for the PWA |
 | `APP_ORIGIN` | Public frontend origin |
 | `AUTH_SESSION_SECRET` | 32-byte base64url secret for encrypted cookies |
+| `DATABASE_URL` | Postgres connection string |
 | `PUBLIC_MEILISEARCH_URL` | Browser-facing MeiliSearch URL |
-| `PUBLIC_SPACETIMEDB_URL` | Browser-facing SpacetimeDB URL |
-| `PUBLIC_SPACETIMEDB_MODULE` | SpacetimeDB database name, default `spellbook` |
 | `MEILISEARCH_INTERNAL_URL` | Internal MeiliSearch URL used by the server |
 | `MEILI_MASTER_KEY` | Used by the frontend server to fetch the search-only key from MeiliSearch |
 | `MINIO_ENDPOINT` | S3-compatible endpoint for scan artifact storage |
@@ -59,6 +58,14 @@ Pangolin is used only as transport and reverse-proxy infrastructure in this depl
 | `MINIO_ACCESS_KEY` | MinIO access key |
 | `MINIO_SECRET_KEY` | MinIO secret key |
 | `SCAN_WORKER_URL` | Internal URL for the scan-worker service |
+
+### Postgres
+
+| Variable | Description |
+|----------|-------------|
+| `POSTGRES_DB` | Database name, default `spellbook` |
+| `POSTGRES_USER` | Database user, default `spellbook` |
+| `POSTGRES_PASSWORD` | Database password used by the Postgres container and internal `DATABASE_URL` |
 
 ### Worker and MeiliSearch
 
@@ -83,13 +90,13 @@ This matches the current implementation in `frontend/src/hooks.server.ts`.
 
 ## Scan Artifact Storage
 
-Current scan uploads are stored outside SpacetimeDB.
+Current scan uploads are stored outside Postgres.
 
 Operational guidance:
 
 - store original uploads and normalized crops in MinIO-compatible object storage
 - keep object lifecycle policy aligned with the current product retention decision
-- do not store binary artifacts directly in SpacetimeDB tables
+- do not store binary artifacts directly in Postgres tables
 
 ## Fedora And SELinux
 

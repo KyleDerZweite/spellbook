@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { Select } from 'bits-ui';
 	import type { CardDocument } from '$lib/search/types';
-	import { spacetimeState } from '$lib/spacetimedb/state.svelte';
-	import { getConnection } from '$lib/spacetimedb/client';
 	import { activeGameState } from '$lib/state/activeGame.svelte';
 
 	interface Props {
@@ -14,8 +12,6 @@
 	let finish = $state<'nonfoil' | 'foil'>('nonfoil');
 	let condition = $state('NM');
 	let quantity = $state(1);
-	let adding = $state(false);
-	let addedMessage = $state('');
 
 	const CONDITIONS = [
 		{ value: 'NM', label: 'Near Mint' },
@@ -35,36 +31,19 @@
 			finish = 'foil';
 		}
 	});
-
-	async function handleAdd() {
-		const conn = getConnection();
-		if (!conn) return;
-
-		adding = true;
-		try {
-			await conn.reducers.addToInventory({
-				game: activeGameState.current,
-				catalogCardId: card.id,
-				canonicalCardId: card.oracle_id,
-				name: card.name,
-				setCode: card.set_code,
-				imageUri: card.image_uri || card.image_uri_small,
-				finish,
-				condition: condition,
-				quantity: quantity
-			});
-
-			addedMessage = `Added ${quantity}x ${card.name} to inventory`;
-			setTimeout(() => (addedMessage = ''), 3000);
-		} catch (err) {
-			spacetimeState.error = `Failed to add card: ${String(err)}`;
-		} finally {
-			adding = false;
-		}
-	}
 </script>
 
-<div class="flex flex-col gap-3">
+<form method="POST" action="?/addToInventory" class="flex flex-col gap-3">
+	<input type="hidden" name="game" value={activeGameState.current} />
+	<input type="hidden" name="catalogCardId" value={card.id} />
+	<input type="hidden" name="canonicalCardId" value={card.oracle_id} />
+	<input type="hidden" name="name" value={card.name} />
+	<input type="hidden" name="setCode" value={card.set_code} />
+	<input type="hidden" name="imageUri" value={card.image_uri || card.image_uri_small} />
+	<input type="hidden" name="finish" value={finish} />
+	<input type="hidden" name="condition" value={condition} />
+	<input type="hidden" name="quantity" value={quantity} />
+
 	<div>
 		<!-- svelte-ignore a11y_label_has_associated_control -->
 		<label class="mb-1 block font-display text-xs uppercase tracking-wider text-text-secondary">
@@ -181,6 +160,7 @@
 		</label>
 		<div class="flex items-center gap-2">
 			<button
+				type="button"
 				onclick={() => (quantity = Math.max(1, quantity - 1))}
 				class="flex h-8 w-8 cursor-pointer items-center justify-center rounded font-mono text-sm text-text-primary transition-colors hover:bg-mist"
 				style="border: 1px solid rgba(196, 146, 42, 0.3); background-color: var(--color-crypt);"
@@ -189,6 +169,7 @@
 			</button>
 			<span class="w-8 text-center font-mono text-sm text-text-primary">{quantity}</span>
 			<button
+				type="button"
 				onclick={() => (quantity = Math.min(99, quantity + 1))}
 				class="flex h-8 w-8 cursor-pointer items-center justify-center rounded font-mono text-sm text-text-primary transition-colors hover:bg-mist"
 				style="border: 1px solid rgba(196, 146, 42, 0.3); background-color: var(--color-crypt);"
@@ -200,15 +181,9 @@
 
 	<!-- Add button -->
 	<button
-		onclick={handleAdd}
-		disabled={!spacetimeState.connected || adding}
+		type="submit"
 		class="btn-gold mt-1 w-full cursor-pointer rounded py-2.5 font-display text-sm font-bold uppercase tracking-wider"
 	>
-		{adding ? 'Adding...' : 'Add to Inventory'}
+		Add to Inventory
 	</button>
-
-	<!-- Success message -->
-	{#if addedMessage}
-		<p class="text-center font-body text-sm text-success">{addedMessage}</p>
-	{/if}
-</div>
+</form>

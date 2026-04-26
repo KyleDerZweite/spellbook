@@ -1,6 +1,6 @@
 # Spellbook
 
-**MTG-first, multi-TCG platform for search, inventory, decks, and future play**
+**MTG-first, multi-TCG platform for search, inventory, decks, and scan**
 
 Spellbook is a self-hosted trading card game platform. Today, MTG is the only implemented game. The live product currently exposes a game selector at `/`, with MTG under `/mtg/`.
 
@@ -16,8 +16,8 @@ Implemented but hidden from the active surface:
 
 Planned platform direction:
 
-- per-game routing under `/:game/...`
-- future `play` surface per supported game
+- flat user-facing routes with active game stored in client state
+- future supported games sharing the same search, inventory, scan, and deck surfaces
 
 ## Current Routes
 
@@ -29,27 +29,17 @@ Planned platform direction:
 
 Top-level `/search` and `/collections*` still exist only as temporary MTG redirects and are planned for removal.
 
-## Planned Route Model
-
-The long-term route contract is:
-
-```text
-/:game/{index,search,inventory,decks,play}
-```
-
-This is the planned platform shape, not the current implementation status for all games.
-
 ## Architecture
 
 ```text
-SvelteKit -> SpacetimeDB -> MeiliSearch
-                    \
-                     -> Python worker -> Scryfall data
+SvelteKit -> Postgres
+          -> MeiliSearch
+          -> Python worker -> Scryfall data
 ```
 
 Core stack:
 
-- SpacetimeDB for user-scoped real-time data
+- Postgres for user-scoped application data
 - SvelteKit for the frontend
 - MeiliSearch for catalog search
 - Python worker for MTG catalog ingestion and sync
@@ -63,7 +53,6 @@ Core stack:
 | MTG inventory | Implemented (active, being improved) |
 | MTG scan | Backend scaffold, frontend surface in progress |
 | MTG decks | Implemented, hidden from product surface |
-| MTG play | Not implemented |
 | Non-MTG adapters | Not implemented |
 
 ## Documentation

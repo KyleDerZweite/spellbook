@@ -1,12 +1,12 @@
 # Platform Overview
 
 - Status: Canonical
-- Last Reviewed: 2026-04-18
+- Last Reviewed: 2026-04-25
 - Source of Truth: mixed
 - Update Triggers: product scope changes, supported game changes, route model changes, pillar status changes
 - Related Docs: [Product Docs](./README.md), [Routing and Games](./routing-and-games.md), [Feature Status](./feature-status.md), [System Overview](../architecture/system-overview.md), [ADR-0004](../decisions/0004-flat-routes-with-active-game-state.md)
 
-Spellbook is an MTG-first, multi-TCG platform for card search, owned inventory, scan-based capture, and future deck and play workflows.
+Spellbook is an MTG-first, multi-TCG platform for card search, owned inventory, scan-based capture, and deck workflows.
 
 ## Current Product State
 
@@ -21,10 +21,6 @@ Active product areas:
 Implemented but hidden from the active product surface:
 
 - decks (route still reachable via direct URL at `/decks`)
-
-Planned but not implemented:
-
-- play
 
 Current live user-facing routes:
 
@@ -57,7 +53,6 @@ These future games are examples only. They do not have implemented adapters or s
 | Inventory | Implemented (active, being improved) | Planned per-game owned-ledger workflows |
 | Scan | Backend scaffold, frontend pending (active focus) | Planned per-game recognizers |
 | Decks | Implemented but hidden | Planned per-game deck systems |
-| Play | Not implemented | Planned platform pillar |
 
 ## Data Model Direction
 
@@ -68,4 +63,6 @@ The current product model is inventory-and-decks based, not collection based.
 - `deck` and `deck_card` store deck data per game
 - `spellbook` is a presentation mode within MTG inventory, not the canonical domain model
 
-This is already reflected in the backend schema and reducers.
+This is reflected in the Postgres schema and repository layer.
+
+Play is not part of the Spellbook base application. A future play experience belongs in a separate application that may consume Spellbook catalog and deck data.

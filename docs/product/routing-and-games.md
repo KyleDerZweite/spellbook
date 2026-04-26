@@ -1,12 +1,14 @@
 # Routing and Games
 
 - Status: Canonical
-- Last Reviewed: 2026-04-18
+- Last Reviewed: 2026-04-25
 - Source of Truth: code
 - Update Triggers: route additions, route removals, supported game changes, auth protection changes, active-game state changes
 - Related Docs: [Product Docs](./README.md), [Platform Overview](./platform-overview.md), [Feature Status](./feature-status.md), [Frontend Architecture](../architecture/frontend.md), [ADR-0004](../decisions/0004-flat-routes-with-active-game-state.md)
 
 This document defines the current route surface and how the active game is selected without putting the game in the URL.
+
+The Spellbook base app has no play route. Future play belongs in a separate application that can consume Spellbook catalog and deck data.
 
 ## Active Game Lives in Client State
 

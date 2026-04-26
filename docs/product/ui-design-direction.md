@@ -1,7 +1,7 @@
 # UI Design Direction
 
 - Status: Canonical
-- Last Reviewed: 2026-04-18
+- Last Reviewed: 2026-04-25
 - Source of Truth: mixed
 - Update Triggers: major visual direction changes, IA changes, route model changes, game-scoping changes
 - Related Docs: [Product Docs](./README.md), [Platform Overview](./platform-overview.md), [Routing and Games](./routing-and-games.md), [Frontend Architecture](../architecture/frontend.md), [ADR-0004](../decisions/0004-flat-routes-with-active-game-state.md)
@@ -16,7 +16,7 @@ The product should read as:
 - multi-TCG-capable in structure
 - card-centric in every surface
 
-Cards are the primary visual object. Search, inventory, decks, and future play should all feel like they belong to the same product family while still allowing per-game identity later.
+Cards are the primary visual object. Search, inventory, scan, and decks should all feel like they belong to the same product family while still allowing per-game identity later.
 
 ## Visual Language
 
@@ -66,7 +66,7 @@ Design work should assume the flat surface keeps the same shape as more games sh
 - decks are distinct from owned inventory
 - deck UI should continue to show owned-versus-required tension clearly
 
-### Play
+### Future Separate Play App
 
-- play is a planned pillar only
-- docs and design should mention it as future direction without inventing interaction details that the code does not support yet
+- play is not part of the Spellbook base app
+- any future play app should consume Spellbook catalog and deck data while defining its own interaction model

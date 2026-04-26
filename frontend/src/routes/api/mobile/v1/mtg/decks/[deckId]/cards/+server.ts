@@ -1,6 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 import { requireMobileAuth } from '$lib/server/mobile/auth';
-import { addDeckCardEntry } from '$lib/server/mobile/spacetimedb';
+import { addDeckCardEntry } from '$lib/server/mobile/postgres';
 
 export const POST = async (event) => {
 	const auth = await requireMobileAuth(event);

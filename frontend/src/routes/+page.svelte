@@ -3,7 +3,6 @@
 	import { page } from '$app/state';
 	import CardGrid from '$lib/components/cards/CardGrid.svelte';
 	import OrnamentalDivider from '$lib/components/layout/OrnamentalDivider.svelte';
-	import { spacetimeState } from '$lib/spacetimedb/state.svelte';
 	import { activeGameState } from '$lib/state/activeGame.svelte';
 	import type { CardDocument } from '$lib/search/types';
 	import { SITE_NAME, pageMetadata } from '$lib/seo/site';
@@ -25,44 +24,11 @@
 		})
 	);
 
-	let stats = $derived(spacetimeState.getInventoryStats(activeGameState.current));
+	let stats = $derived(page.data.stats);
 	let setsCompleteLabel = $derived(`${stats.completedSets} / ${stats.sets || 0} sets complete`);
-
-	let recentAdditions = $derived.by<CardDocument[]>(() => {
-		return [...spacetimeState.getInventoryCards(activeGameState.current)]
-			.sort((a, b) => Number(b.updatedAt) - Number(a.updatedAt))
-			.slice(0, RECENT_LIMIT)
-			.map(
-				(entry) =>
-					({
-						id: entry.catalogCardId,
-						oracle_id: entry.canonicalCardId,
-						name: entry.name,
-						set_code: entry.setCode,
-						image_uri: entry.imageUri,
-						image_uri_small: entry.imageUri,
-						// Fill the remaining CardDocument fields with empty placeholders;
-						// CardGrid only renders name, set_code, image, rarity, and foil.
-						lang: 'en',
-						released_at: '',
-						layout: '',
-						mana_cost: '',
-						cmc: 0,
-						type_line: '',
-						oracle_text: '',
-						colors: [],
-						color_identity: [],
-						keywords: [],
-						card_types: [],
-						rarity: '',
-						set_name: '',
-						collector_number: '',
-						is_foil_available: entry.finish === 'foil',
-						is_nonfoil_available: entry.finish !== 'foil',
-						legalities: {}
-					}) satisfies CardDocument
-			);
-	});
+	let recentAdditions = $derived(
+		(page.data.recentAdditions as CardDocument[]).slice(0, RECENT_LIMIT)
+	);
 
 	$effect(() => {
 		// Focus the search input on first paint so the primary action is ready.

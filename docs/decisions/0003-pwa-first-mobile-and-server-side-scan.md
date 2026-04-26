@@ -15,7 +15,7 @@ In practice, the Android shell that was built:
 - only implemented a CameraX preview for scan capture
 - was never released and was not on a path to parity with the SvelteKit web product
 
-The existing SvelteKit frontend already implements search, inventory, and decks against SpacetimeDB and MeiliSearch. The scan pipeline (MinIO artifact storage, scan-worker, vector index) is server-side and does not require a native client.
+The existing SvelteKit frontend already implements search, inventory, and decks against the base app persistence layer and MeiliSearch. The scan pipeline (MinIO artifact storage, scan-worker, vector index) is server-side and does not require a native client.
 
 Continuing the native-first direction would require rewriting the web product's feature surface a second time in Compose without a capability gap that justifies it.
 
@@ -40,8 +40,8 @@ The backend pieces introduced by ADR-0002 are preserved:
 - MinIO-compatible object storage for original uploads and normalized crops
 - the `scan-worker` service
 - the vector index service
-- SpacetimeDB tables for scan session and review workflow state
-- the idempotent `batch_add_to_inventory` reducer
+- database tables for scan session and review workflow state
+- idempotent batch inventory mutation
 
 The scan pipeline remains hybrid: image embeddings for retrieval, OCR for deterministic clues, metadata reranking against the MTG catalog, human review before inventory mutation.
 
@@ -66,6 +66,6 @@ The scan pipeline remains hybrid: image embeddings for retrieval, OCR for determ
 
 - do not reintroduce a parallel native codebase without a documented capability gap
 - do not auto-add scan results directly to inventory
-- do not store binary image blobs in SpacetimeDB
+- do not store binary image blobs in the application database
 - do not require PWA install for any core feature; install must stay an enhancement
 - if a native wrap becomes necessary, prefer wrapping the PWA (for example with Capacitor) over a second-codebase rewrite

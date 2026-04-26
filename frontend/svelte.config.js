@@ -6,9 +6,6 @@ const config = {
 	preprocess: vitePreprocess(),
 	kit: {
 		adapter: adapter(),
-		alias: {
-			$bindings: '../src/module_bindings'
-		},
 		env: {
 			dir: '..'
 		}

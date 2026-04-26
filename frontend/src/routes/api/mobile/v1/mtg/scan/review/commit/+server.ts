@@ -4,7 +4,7 @@ import {
 	batchAddInventory,
 	updateScanSessionStatusEntry,
 	upsertScanReviewItemEntry
-} from '$lib/server/mobile/spacetimedb';
+} from '$lib/server/mobile/postgres';
 
 export const POST = async (event) => {
 	const auth = await requireMobileAuth(event);

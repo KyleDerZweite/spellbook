@@ -6,6 +6,7 @@
 	import OrnamentalDivider from '$lib/components/layout/OrnamentalDivider.svelte';
 	import { searchCards, browseCards, getFacets } from '$lib/search/meilisearch';
 	import { SearchFilterState } from '$lib/search/filters.svelte';
+	import { buildSearchContextKey } from '$lib/search/requestContext';
 	import type { CardDocument, FacetResponse } from '$lib/search/types';
 	import { activeGameState } from '$lib/state/activeGame.svelte';
 	import { page } from '$app/state';
@@ -24,51 +25,68 @@
 	let selectedCard: CardDocument | null = $state(null);
 	let sentinel: HTMLDivElement | null = $state(null);
 	let filtersOpen = $state(false);
+	let searchVersion = 0;
+	let facetVersion = 0;
+	let loadMoreController: AbortController | null = null;
 
 	const filters = new SearchFilterState();
 	const browseMode = $derived(query.length < 2);
+	const requestContextKey = $derived(
+		buildSearchContextKey({
+			game: activeGameState.current,
+			query,
+			filters: filters.meiliFilters
+		})
+	);
 
 	$effect(() => {
 		const q = query;
 		const f = filters.meiliFilters;
-		const controller = new AbortController();
+		const game = activeGameState.current;
+		const currentVersion = ++searchVersion;
+		let controller: AbortController | null = null;
 
+		loadMoreController?.abort();
+		loadMoreController = null;
+
+		loading = true;
+		loadingMore = false;
 		offset = 0;
 		hasMore = false;
 		error = null;
 
 		const timer = setTimeout(async () => {
-			loading = true;
+			controller = new AbortController();
 			try {
-				if (q.length < 2) {
-					const [browseResult, facetResult] = await Promise.all([
-						browseCards({ game: activeGameState.current, filter: f, limit: BROWSE_LIMIT, offset: 0 }),
-						getFacets(f)
-					]);
-					if (!controller.signal.aborted) {
-						hits = browseResult.hits;
-						facets = facetResult;
-						hasMore = browseResult.estimatedTotalHits > BROWSE_LIMIT;
-						offset = BROWSE_LIMIT;
-					}
-				} else {
-					const [searchResult, facetResult] = await Promise.all([
-						searchCards(q, { game: activeGameState.current, filter: f, limit: SEARCH_LIMIT, offset: 0 }),
-						getFacets(f)
-					]);
-					if (!controller.signal.aborted) {
-						hits = searchResult.hits;
-						facets = facetResult;
-						hasMore = searchResult.estimatedTotalHits > SEARCH_LIMIT;
-						offset = SEARCH_LIMIT;
-					}
+				const result =
+					q.length < 2
+						? await browseCards({
+								game,
+								filter: f,
+								limit: BROWSE_LIMIT,
+								offset: 0,
+								signal: controller.signal
+							})
+						: await searchCards(q, {
+								game,
+								filter: f,
+								limit: SEARCH_LIMIT,
+								offset: 0,
+								signal: controller.signal
+							});
+
+				if (!controller.signal.aborted && currentVersion === searchVersion) {
+					const nextOffset = result.hits.length;
+					hits = result.hits;
+					offset = nextOffset;
+					hasMore = result.estimatedTotalHits > nextOffset;
 				}
 			} catch (err) {
-				if (!controller.signal.aborted) {
+				if (!controller.signal.aborted && currentVersion === searchVersion) {
 					error = err instanceof Error ? err.message : 'An unexpected error occurred';
 				}
 			} finally {
-				if (!controller.signal.aborted) {
+				if (!controller.signal.aborted && currentVersion === searchVersion) {
 					loading = false;
 				}
 			}
@@ -76,6 +94,31 @@
 
 		return () => {
 			clearTimeout(timer);
+			controller?.abort();
+		};
+	});
+
+	$effect(() => {
+		const f = filters.meiliFilters;
+		const game = activeGameState.current;
+		const currentVersion = ++facetVersion;
+		const controller = new AbortController();
+
+		facets = null;
+
+		getFacets(f, controller.signal)
+			.then((result) => {
+				if (
+					!controller.signal.aborted &&
+					currentVersion === facetVersion &&
+					game === activeGameState.current
+				) {
+					facets = result;
+				}
+			})
+			.catch(() => {});
+
+		return () => {
 			controller.abort();
 		};
 	});
@@ -103,31 +146,45 @@
 
 		const q = query;
 		const f = filters.meiliFilters;
+		const game = activeGameState.current;
 		const currentOffset = offset;
+		const currentRequestContextKey = requestContextKey;
+		const controller = new AbortController();
+		loadMoreController = controller;
 
 		try {
 			const result =
 				q.length < 2
 					? await browseCards({
-							game: activeGameState.current,
+							game,
 							filter: f,
 							limit: BROWSE_LIMIT,
-							offset: currentOffset
+							offset: currentOffset,
+							signal: controller.signal
 						})
 					: await searchCards(q, {
-							game: activeGameState.current,
+							game,
 							filter: f,
 							limit: SEARCH_LIMIT,
-							offset: currentOffset
+							offset: currentOffset,
+							signal: controller.signal
 						});
 
-			hits = [...hits, ...result.hits];
-			offset = currentOffset + result.hits.length;
-			hasMore = result.hits.length > 0 && result.estimatedTotalHits > offset;
+			if (!controller.signal.aborted && currentRequestContextKey === requestContextKey) {
+				const nextOffset = currentOffset + result.hits.length;
+				hits = [...hits, ...result.hits];
+				offset = nextOffset;
+				hasMore = result.hits.length > 0 && result.estimatedTotalHits > nextOffset;
+			}
 		} catch {
 			// Intentionally silent for load-more retries.
 		} finally {
-			loadingMore = false;
+			if (loadMoreController === controller) {
+				loadMoreController = null;
+			}
+			if (!controller.signal.aborted && currentRequestContextKey === requestContextKey) {
+				loadingMore = false;
+			}
 		}
 	}
 

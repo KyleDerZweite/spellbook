@@ -1,30 +1,30 @@
 # Keep persistent state on named volumes for cross-runtime compatibility.
 # This avoids most SELinux relabel issues on Fedora while remaining portable to Ubuntu.
 services:
-  spacetimedb:
-    image: docker.io/clockworklabs/spacetime:v2.0.5
-    command: start --listen-addr 0.0.0.0:3000 --data-dir /stdb/data
+  postgres:
+    image: docker.io/postgres:17
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-spellbook}
+      POSTGRES_USER: ${POSTGRES_USER:-spellbook}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
     volumes:
-      - spacetimedb_data:/stdb
-      - spacetimedb_config:/home/spacetime/.config/spacetime
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "spacetime", "server", "ping", "http://127.0.0.1:3000"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-spellbook} -d ${POSTGRES_DB:-spellbook}"]
       interval: 5s
       timeout: 5s
       retries: 12
     restart: unless-stopped
 
-  stdb-publish:
+  db-migrate:
     build:
       context: .
-      dockerfile: spacetimedb/Dockerfile
+      dockerfile: frontend/Dockerfile
+      target: migrator
     environment:
-      STDB_HOST: http://spacetimedb:3000
-      STDB_DATABASE: ${PUBLIC_SPACETIMEDB_MODULE:-spellbook}
-    volumes:
-      - stdb_publish_config:/root/.config/spacetime
+      DATABASE_URL: postgres://${POSTGRES_USER:-spellbook}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-spellbook}
     depends_on:
-      spacetimedb:
+      postgres:
         condition: service_healthy
     restart: "no"
 
@@ -86,9 +86,8 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
     environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-spellbook}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-spellbook}
       PUBLIC_MEILISEARCH_URL: ${PUBLIC_MEILISEARCH_URL}
-      PUBLIC_SPACETIMEDB_URL: ${PUBLIC_SPACETIMEDB_URL}
-      PUBLIC_SPACETIMEDB_MODULE: ${PUBLIC_SPACETIMEDB_MODULE:-spellbook}
       MEILISEARCH_INTERNAL_URL: http://meilisearch:7700
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
       ZITADEL_ISSUER: ${ZITADEL_ISSUER}
@@ -103,7 +102,7 @@ services:
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
       SCAN_WORKER_URL: http://scan-worker:8080
     depends_on:
-      - stdb-publish
+      - db-migrate
       - meilisearch
       - minio
       - scan-worker
@@ -123,9 +122,7 @@ services:
       - frontend
 
 volumes:
-  spacetimedb_data:
-  spacetimedb_config:
-  stdb_publish_config:
+  postgres_data:
   meilisearch_data:
   minio_data:
   qdrant_data:

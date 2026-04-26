@@ -1,16 +1,25 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+const mockDistinctSearch = vi.fn().mockResolvedValue({
+	hits: [],
+	query: '',
+	processingTimeMs: 0,
+	estimatedTotalHits: 0
+});
+
+const mockAllSearch = vi.fn().mockResolvedValue({
+	hits: [],
+	query: '',
+	processingTimeMs: 0,
+	estimatedTotalHits: 0
+});
+
 // Mock the meilisearch module before importing our client
 vi.mock('meilisearch', () => {
-	const mockSearch = vi.fn().mockResolvedValue({
-		hits: [],
-		query: '',
-		processingTimeMs: 0,
-		estimatedTotalHits: 0
-	});
-
 	class MockMeilisearch {
-		index = vi.fn().mockReturnValue({ search: mockSearch });
+		index = vi.fn((uid: string) => ({
+			search: uid === 'cards_all' ? mockAllSearch : mockDistinctSearch
+		}));
 	}
 
 	return {
@@ -26,9 +35,14 @@ vi.mock('$lib/env/public', () => ({
 }));
 
 import { initMeiliSearch, searchCards, searchPrintings } from '../../src/lib/search/meilisearch';
+import { browseCards, getFacets } from '../../src/lib/search/meilisearch';
 
 beforeEach(() => {
+	mockDistinctSearch.mockClear();
+	mockAllSearch.mockClear();
 	initMeiliSearch('test-key');
+	mockDistinctSearch.mockClear();
+	mockAllSearch.mockClear();
 });
 
 describe('searchCards', () => {
@@ -49,6 +63,50 @@ describe('searchCards', () => {
 		expect(result).toBeDefined();
 		expect(result.hits).toEqual([]);
 	});
+
+	it('forwards AbortSignal to card search requests', async () => {
+		const controller = new AbortController();
+
+		await searchCards('lightning bolt', { signal: controller.signal });
+
+		expect(mockDistinctSearch).toHaveBeenCalledWith(
+			'lightning bolt',
+			expect.objectContaining({ limit: 20, offset: 0 }),
+			{ signal: controller.signal }
+		);
+	});
+});
+
+describe('browseCards', () => {
+	it('forwards AbortSignal to browse requests', async () => {
+		const controller = new AbortController();
+
+		await browseCards({ signal: controller.signal });
+
+		expect(mockDistinctSearch).toHaveBeenCalledWith(
+			'',
+			expect.objectContaining({ limit: 50, offset: 0, sort: ['name:asc'] }),
+			{ signal: controller.signal }
+		);
+	});
+});
+
+describe('getFacets', () => {
+	it('forwards AbortSignal to facet requests', async () => {
+		const controller = new AbortController();
+
+		await getFacets(['rarity = "rare"'], controller.signal);
+
+		expect(mockDistinctSearch).toHaveBeenCalledWith(
+			'',
+			expect.objectContaining({
+				limit: 0,
+				filter: ['rarity = "rare"'],
+				facets: ['colors', 'rarity', 'set_code']
+			}),
+			{ signal: controller.signal }
+		);
+	});
 });
 
 describe('searchPrintings', () => {
@@ -62,5 +120,21 @@ describe('searchPrintings', () => {
 		const result = await searchPrintings('some-oracle-id');
 		expect(result).toBeDefined();
 		expect(result.hits).toEqual([]);
+	});
+
+	it('forwards AbortSignal to printing requests', async () => {
+		const controller = new AbortController();
+
+		await searchPrintings('some-oracle-id', { signal: controller.signal });
+
+		expect(mockAllSearch).toHaveBeenCalledWith(
+			'',
+			expect.objectContaining({
+				filter: ['oracle_id = "some-oracle-id"'],
+				sort: ['set_code:asc'],
+				limit: 1000
+			}),
+			{ signal: controller.signal }
+		);
 	});
 });

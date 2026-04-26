@@ -146,10 +146,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	const session = await getActiveSession(event);
 	event.locals.user = session?.user ?? null;
-	event.locals.spacetimeToken = session?.idToken ?? null;
 	event.locals.meiliSearchKey = session ? await getMeiliSearchKey() : '';
 	event.locals.mobileBearerUser = null;
-	event.locals.mobileBearerToken = null;
 
 	// Seed the active-game cookie on first visit so the client has a
 	// deterministic starting point without a flash of content.

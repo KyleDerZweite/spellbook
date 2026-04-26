@@ -2,6 +2,7 @@ import { error, type RequestEvent } from '@sveltejs/kit';
 import { privateEnv } from '$lib/env/private';
 import type { MobileAuthContext } from './types';
 import { getZitadelAuthConfig, verifyBearerToken } from '$lib/server/auth/zitadel';
+import { ensureUserProfile } from '$lib/server/data/users';
 
 function getBearerToken(header: string | null): string | null {
 	if (!header) {
@@ -25,21 +26,19 @@ export async function requireMobileAuth(event: RequestEvent): Promise<MobileAuth
 		});
 		try {
 			const verified = await verifyBearerToken(config, bearerToken);
+			await ensureUserProfile(verified.user);
 			event.locals.mobileBearerUser = verified.user;
-			event.locals.mobileBearerToken = bearerToken;
 			return {
-				user: verified.user,
-				token: bearerToken
+				user: verified.user
 			};
 		} catch (err) {
 			throw error(401, `Invalid bearer token: ${String(err)}`);
 		}
 	}
 
-	if (event.locals.user && event.locals.spacetimeToken) {
+	if (event.locals.user) {
 		return {
-			user: event.locals.user,
-			token: event.locals.spacetimeToken
+			user: event.locals.user
 		};
 	}
 

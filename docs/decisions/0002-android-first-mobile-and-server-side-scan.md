@@ -46,8 +46,8 @@ The backend additions are:
 - MinIO-compatible object storage for original uploads and normalized crops
 - a dedicated `scan-worker` service
 - a vector index service for image embeddings
-- SpacetimeDB tables for scan session and review workflow state
-- an idempotent `batch_add_to_inventory` reducer
+- database tables for scan session and review workflow state
+- an idempotent batch inventory mutation
 
 The scan pipeline is hybrid:
 
@@ -63,7 +63,7 @@ The scan pipeline is hybrid:
 - mobile clients stay simple and GrapheneOS-safe
 - server-side recognition can improve without forcing mobile rework
 - retained scan artifacts create an evaluation and tuning corpus
-- inventory mutation stays tied to the canonical SpacetimeDB data model
+- inventory mutation stays tied to the canonical application data model
 - existing web routes and web product behavior remain intact
 
 ### Negative
@@ -75,6 +75,6 @@ The scan pipeline is hybrid:
 ### Guardrails
 
 - do not introduce Play Services-backed ML or auth dependencies into the Android app
-- do not store binary image blobs in SpacetimeDB
+- do not store binary image blobs in the application database
 - do not auto-add scan results directly to inventory
 - do not treat the Android shell as released product surface until auth, inventory, decks, and scan review flows are verified end to end

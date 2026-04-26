@@ -1,3 +1,5 @@
+import type { AuthUser } from '$lib/auth/types';
+import type { CardDocument } from '$lib/search/types';
 import type {
 	Deck,
 	DeckCard,
@@ -6,14 +8,14 @@ import type {
 	InventoryMutationRequest,
 	ScanArtifact,
 	ScanReviewItem,
-	ScanSession
-} from '$bindings/types';
-import type { AuthUser } from '$lib/auth/types';
-import type { CardDocument } from '$lib/search/types';
+	ScanSession,
+	ScanWorkerResult
+} from '$lib/server/data/types';
+
+export type { ScanWorkerResult } from '$lib/server/data/types';
 
 export interface MobileAuthContext {
 	user: AuthUser;
-	token: string;
 }
 
 export interface MobileInventoryBatchItem {
@@ -39,20 +41,6 @@ export interface ScanCandidate {
 	ocrScore: number;
 	finalScore: number;
 	matchReason: string;
-}
-
-export interface ScanWorkerResult {
-	status: 'matched' | 'ambiguous' | 'no_match';
-	normalizedObjectKey: string;
-	qualityScore: number;
-	embeddingModelVersion: string;
-	ocrModelVersion: string;
-	ocrTokens: {
-		name?: string;
-		setCode?: string;
-		collectorNumber?: string;
-	};
-	candidates: ScanCandidate[];
 }
 
 export interface MobileInventoryResponse {

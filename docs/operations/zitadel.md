@@ -1,7 +1,7 @@
 # Zitadel Setup
 
 - Status: Canonical
-- Last Reviewed: 2026-04-18
+- Last Reviewed: 2026-04-25
 - Source of Truth: code
 - Update Triggers: auth flow changes, env var changes, callback path changes, scope changes
 - Related Docs: [Operations Docs](./README.md), [Auth Architecture](../architecture/auth.md), [Routing and Games](../product/routing-and-games.md), [Deployment](./deployment.md)

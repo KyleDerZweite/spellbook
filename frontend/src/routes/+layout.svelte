@@ -2,7 +2,6 @@
 	import '../app.css';
 	import Shell from '$lib/components/layout/Shell.svelte';
 	import { browser } from '$app/environment';
-	import { connect, disconnect } from '$lib/spacetimedb/client';
 	import { initMeiliSearch } from '$lib/search/meilisearch';
 	import { authState } from '$lib/auth/state.svelte';
 	import { activeGameState } from '$lib/state/activeGame.svelte';
@@ -14,7 +13,6 @@
 	interface Props {
 		data: {
 			user: AuthUser | null;
-			spacetimeToken: string | null;
 			meiliSearchKey: string;
 			activeGame: Game;
 		};
@@ -36,19 +34,6 @@
 		if (browser && data.meiliSearchKey) {
 			initMeiliSearch(data.meiliSearchKey);
 		}
-	});
-
-	$effect(() => {
-		if (!browser) {
-			return;
-		}
-
-		if (data.user && data.spacetimeToken) {
-			connect({ user: data.user, token: data.spacetimeToken });
-			return () => disconnect();
-		}
-
-		disconnect();
 	});
 </script>
 

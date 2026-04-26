@@ -1,6 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 import { requireMobileAuth } from '$lib/server/mobile/auth';
-import { getScanSessionResult } from '$lib/server/mobile/spacetimedb';
+import { getScanSessionResultEntry } from '$lib/server/mobile/postgres';
 
 export const GET = async (event) => {
 	const auth = await requireMobileAuth(event);
@@ -9,5 +9,5 @@ export const GET = async (event) => {
 		throw error(400, 'sessionId is required');
 	}
 
-	return json(await getScanSessionResult(auth, sessionId));
+	return json(await getScanSessionResultEntry(auth, sessionId));
 };
