@@ -16,8 +16,8 @@
 		"db:check": "drizzle-kit check"
 	},
 	"dependencies": {
-		"@aws-sdk/client-s3": "^3.922.0",
-		"bits-ui": "^2.17.2",
+		"@aws-sdk/client-s3": "^3.1032.0",
+		"bits-ui": "^2.18.0",
 		"drizzle-orm": "^0.45.0",
 		"jose": "^6.2.2",
 		"mana-font": "^1.18.0",
@@ -38,7 +38,7 @@
 		"svelte": "^5",
 		"svelte-check": "^4",
 		"tailwindcss": "^4",
-		"typescript": "^6.0.2",
+		"typescript": "^6.0.3",
 		"vite": "^6.4.2",
 		"vitest": "^4"
 	},
