@@ -16,31 +16,31 @@
 		"db:check": "drizzle-kit check"
 	},
 	"dependencies": {
-		"@aws-sdk/client-s3": "^3.1037.0",
+		"@aws-sdk/client-s3": "^3.1038.0",
 		"bits-ui": "^2.18.0",
-		"drizzle-orm": "^0.45.0",
-		"jose": "^6.2.2",
+		"drizzle-orm": "^0.45.2",
+		"jose": "^6.2.3",
 		"mana-font": "^1.18.0",
-		"meilisearch": "^0.57",
-		"pg": "^8.16.3"
+		"meilisearch": "^0.57.0",
+		"pg": "^8.20.0"
 	},
 	"devDependencies": {
-		"@sveltejs/adapter-node": "^5",
+		"@sveltejs/adapter-node": "^5.5.4",
 		"@sveltejs/kit": "^2.58.0",
-		"@sveltejs/vite-plugin-svelte": "^6",
-		"@tailwindcss/vite": "^4",
+		"@sveltejs/vite-plugin-svelte": "^7.0.0",
+		"@tailwindcss/vite": "^4.2.4",
 		"@types/node": "^25.6.0",
-		"@types/pg": "^8.15.6",
+		"@types/pg": "^8.20.0",
 		"csstype": "^3.2.3",
-		"drizzle-kit": "^0.31.8",
-		"prettier": "^3",
-		"prettier-plugin-svelte": "^3",
-		"svelte": "^5",
-		"svelte-check": "^4",
-		"tailwindcss": "^4",
+		"drizzle-kit": "^0.31.10",
+		"prettier": "^3.8.3",
+		"prettier-plugin-svelte": "^3.5.1",
+		"svelte": "^5.55.5",
+		"svelte-check": "^4.4.6",
+		"tailwindcss": "^4.2.4",
 		"typescript": "^6.0.3",
-		"vite": "^6.4.2",
-		"vitest": "^4"
+		"vite": "^8.0.10",
+		"vitest": "^4.1.5"
 	},
 	"pnpm": {
 		"overrides": {

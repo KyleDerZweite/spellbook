@@ -7,15 +7,15 @@ name = "spellbook-scan-worker"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
-    "fastapi>=0.116",
-    "orjson>=3.10",
-    "uvicorn>=0.35",
+    "fastapi>=0.136.1",
+    "orjson>=3.11.8",
+    "uvicorn>=0.46.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.0",
-    "ruff>=0.11",
+    "pytest>=9.0.3",
+    "ruff>=0.15.12",
 ]
 
 [tool.hatch.build.targets.wheel]
