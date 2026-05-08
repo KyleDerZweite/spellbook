@@ -10,10 +10,6 @@ Read and follow [AGENTS.md](AGENTS.md) as the primary source of instructions.
 
 Do not duplicate complex architecture or project details outside canonical docs (/docs/*).
 
-## Skill Usage
-
-* **Brainstorming skill:** Only invoke the full brainstorming skill when the user explicitly asks for it or when the task is genuinely complex with unclear instructions. For straightforward tasks where the intent is clear, skip brainstorming and proceed directly with implementation.
-
 ## Subagent Orchestration
 
 Use subagents (the Agent tool) whenever multiple independent tasks can be parallelized or when the user explicitly requests it. For simple, independent tasks, dispatch them concurrently as subagents.
