@@ -59,7 +59,7 @@ This is the primary instruction file for coding agents. Follow it strictly.
 
 ## Git
 
-* **Default branch:** `v1` (not `main`). Use `v1` as the base for PRs and merges.
+* **Default branch:** `main`. Use `main` as the base for PRs and merges.
 
 ## Dependencies
 

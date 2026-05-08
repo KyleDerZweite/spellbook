@@ -1,7 +1,7 @@
 # GitHub Automation
 
 - Status: Canonical
-- Last Reviewed: 2026-04-16
+- Last Reviewed: 2026-05-09
 - Source of Truth: repo config
 - Update Triggers: workflow logic changes, PR policy changes, branch protection changes, Dependabot policy changes
 - Related Docs: [Operations Docs](./README.md), [Deployment](./deployment.md), [Docs Index](../README.md)

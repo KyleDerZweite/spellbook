@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-This is an actively developed project on the `v1` branch.
+This is an actively developed project on the `main` branch.
 
 ## Reporting a Vulnerability
 
