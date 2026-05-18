@@ -34,7 +34,7 @@
 		"csstype": "^3.2.3",
 		"drizzle-kit": "^0.31.10",
 		"prettier": "^3.8.3",
-		"prettier-plugin-svelte": "^3.5.1",
+		"prettier-plugin-svelte": "^3.5.2",
 		"svelte": "^5.55.7",
 		"svelte-check": "^4.4.8",
 		"tailwindcss": "^4.3.0",
