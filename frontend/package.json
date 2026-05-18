@@ -16,7 +16,7 @@
 		"db:check": "drizzle-kit check"
 	},
 	"dependencies": {
-		"@aws-sdk/client-s3": "^3.1045.0",
+		"@aws-sdk/client-s3": "^3.1048.0",
 		"bits-ui": "^2.18.1",
 		"drizzle-orm": "^0.45.2",
 		"jose": "^6.2.3",
