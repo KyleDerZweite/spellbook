@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -12,6 +13,7 @@ class WorkerConfig:
     sync_interval: str  # "daily" | "weekly" | "manual"
     languages: list[str]
     scryfall_bulk_url: str
+    data_dir: Path
 
 
 def load_config() -> WorkerConfig:
@@ -27,6 +29,7 @@ def load_config() -> WorkerConfig:
     languages = [lang.strip() for lang in langs_raw.split(",") if lang.strip()]
 
     scryfall_url = os.environ.get("SCRYFALL_BULK_URL", "https://api.scryfall.com/bulk-data")
+    data_dir = Path(os.environ.get("WORKER_DATA_DIR", "/tmp/spellbook-worker"))
 
     return WorkerConfig(
         meilisearch_url=meili_url,
@@ -35,4 +38,5 @@ def load_config() -> WorkerConfig:
         sync_interval=interval,
         languages=languages,
         scryfall_bulk_url=scryfall_url,
+        data_dir=data_dir,
     )

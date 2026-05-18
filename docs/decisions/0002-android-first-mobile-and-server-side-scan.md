@@ -43,7 +43,7 @@ The implementation constraints are:
 The backend additions are:
 
 - SvelteKit mobile API under `/api/mobile/v1/...`
-- MinIO-compatible object storage for original uploads and normalized crops
+- S3-compatible object storage for original uploads and normalized crops
 - a dedicated `scan-worker` service
 - a vector index service for image embeddings
 - database tables for scan session and review workflow state
@@ -68,7 +68,7 @@ The scan pipeline is hybrid:
 
 ### Negative
 
-- deployment grows to include MinIO, scan-worker, and vector infrastructure
+- deployment grows to include object storage, scan-worker, and vector infrastructure
 - scan feature availability now depends on additional services
 - initial Android release requires a separate native codebase
 

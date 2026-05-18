@@ -2,7 +2,7 @@
 
 **MTG-first, multi-TCG platform for search, inventory, decks, and scan**
 
-Spellbook is a self-hosted trading card game platform. Today, MTG is the only implemented game. The live product currently exposes a game selector at `/`, with MTG under `/mtg/`.
+Spellbook is a self-hosted trading card game platform. Today, MTG is the only implemented game. The live product uses flat user-facing routes with the active game tracked in client state.
 
 Active MTG product areas:
 
@@ -12,22 +12,18 @@ Active MTG product areas:
 
 Implemented but hidden from the active surface:
 
-- decks (reachable at `/mtg/decks` via direct URL)
+- decks (reachable at `/decks` via direct URL)
 
 Planned platform direction:
 
-- flat user-facing routes with active game stored in client state
 - future supported games sharing the same search, inventory, scan, and deck surfaces
 
 ## Current Routes
 
 - `/`
-- `/mtg/`
-- `/mtg/search`
-- `/mtg/inventory`
-- `/mtg/decks`
-
-Top-level `/search` and `/collections*` still exist only as temporary MTG redirects and are planned for removal.
+- `/search`
+- `/inventory`
+- `/decks`
 
 ## Architecture
 
@@ -43,25 +39,26 @@ Core stack:
 - SvelteKit for the frontend
 - MeiliSearch for catalog search
 - Python worker for MTG catalog ingestion and sync
-- Zitadel for direct OIDC authentication
+- generic OIDC for authentication, with Zitadel as one supported provider
 
 ## Status
 
-| Area | Status |
-|------|--------|
-| MTG search | Implemented (active) |
-| MTG inventory | Implemented (active, being improved) |
-| MTG scan | Backend scaffold, frontend surface in progress |
-| MTG decks | Implemented, hidden from product surface |
-| Non-MTG adapters | Not implemented |
+| Area             | Status                                         |
+| ---------------- | ---------------------------------------------- |
+| MTG search       | Implemented (active)                           |
+| MTG inventory    | Implemented (active, being improved)           |
+| MTG scan         | Backend scaffold, frontend surface in progress |
+| MTG decks        | Implemented, hidden from product surface       |
+| Non-MTG adapters | Not implemented                                |
 
 ## Documentation
 
-- [Docs index](/home/kyle/CodingProjects/spellbook/docs/README.md)
-- [Platform overview](/home/kyle/CodingProjects/spellbook/docs/product/platform-overview.md)
-- [Routing and games](/home/kyle/CodingProjects/spellbook/docs/product/routing-and-games.md)
-- [Deployment guide](/home/kyle/CodingProjects/spellbook/docs/operations/deployment.md)
-- [Zitadel setup](/home/kyle/CodingProjects/spellbook/docs/operations/zitadel.md)
+- [Docs index](docs/README.md)
+- [Platform overview](docs/product/platform-overview.md)
+- [Routing and games](docs/product/routing-and-games.md)
+- [Deployment guide](docs/operations/deployment.md)
+- [OIDC setup](docs/operations/oidc.md)
+- [Zitadel setup](docs/operations/zitadel.md)
 
 ## License
 

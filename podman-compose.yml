@@ -10,7 +10,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-spellbook} -d ${POSTGRES_DB:-spellbook}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-spellbook} -d ${POSTGRES_DB:-spellbook}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 12
@@ -37,16 +41,6 @@ services:
       - meilisearch_data:/meili_data
     restart: unless-stopped
 
-  minio:
-    image: docker.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
-      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
-    volumes:
-      - minio_data:/data
-    restart: unless-stopped
-
   qdrant:
     image: docker.io/qdrant/qdrant:v1.15.4
     volumes:
@@ -62,6 +56,9 @@ services:
       AGGRESSIVE_PRELOAD: ${AGGRESSIVE_PRELOAD:-true}
       SYNC_INTERVAL: ${SYNC_INTERVAL:-daily}
       LANGUAGES: ${LANGUAGES:-en}
+      WORKER_DATA_DIR: /app/data
+    volumes:
+      - worker_data:/app/data
     depends_on:
       - meilisearch
     restart: unless-stopped
@@ -70,14 +67,15 @@ services:
     build:
       context: ./scan-worker
     environment:
-      MINIO_ENDPOINT: http://minio:9000
-      MINIO_REGION: ${MINIO_REGION:-us-east-1}
-      MINIO_BUCKET: ${MINIO_BUCKET:-spellbook-scans}
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      SCAN_STORAGE_DRIVER: ${SCAN_STORAGE_DRIVER:-s3}
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-spellbook-scans}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
       QDRANT_URL: http://qdrant:6333
     depends_on:
-      - minio
       - qdrant
     restart: unless-stopped
 
@@ -90,21 +88,22 @@ services:
       PUBLIC_MEILISEARCH_URL: ${PUBLIC_MEILISEARCH_URL}
       MEILISEARCH_INTERNAL_URL: http://meilisearch:7700
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
-      ZITADEL_ISSUER: ${ZITADEL_ISSUER}
-      ZITADEL_CLIENT_ID: ${ZITADEL_CLIENT_ID}
-      ZITADEL_MOBILE_CLIENT_ID: ${ZITADEL_MOBILE_CLIENT_ID}
+      OIDC_ISSUER: ${OIDC_ISSUER}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}
+      OIDC_MOBILE_CLIENT_ID: ${OIDC_MOBILE_CLIENT_ID}
       APP_ORIGIN: ${APP_ORIGIN}
       AUTH_SESSION_SECRET: ${AUTH_SESSION_SECRET}
-      MINIO_ENDPOINT: http://minio:9000
-      MINIO_REGION: ${MINIO_REGION:-us-east-1}
-      MINIO_BUCKET: ${MINIO_BUCKET:-spellbook-scans}
-      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
-      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      SCAN_STORAGE_DRIVER: ${SCAN_STORAGE_DRIVER:-s3}
+      S3_ENDPOINT: ${S3_ENDPOINT}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-spellbook-scans}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
+      S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
       SCAN_WORKER_URL: http://scan-worker:8080
     depends_on:
       - db-migrate
       - meilisearch
-      - minio
       - scan-worker
     restart: unless-stopped
 
@@ -124,5 +123,5 @@ services:
 volumes:
   postgres_data:
   meilisearch_data:
-  minio_data:
   qdrant_data:
+  worker_data:

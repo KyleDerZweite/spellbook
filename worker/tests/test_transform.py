@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from worker.transform import MULTI_FACE_LAYOUTS, SKIP_LAYOUTS, transform_card
+from worker.transform import MULTI_FACE_LAYOUTS, SKIP_LAYOUTS, normalize_card_name, transform_card
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -27,6 +27,9 @@ class TestTransformNormalCard:
 
     def test_name(self, doc):
         assert doc["name"] == "Llanowar Elves"
+
+    def test_normalized_name(self, doc):
+        assert doc["normalized_name"] == "llanowar elves"
 
     def test_type_line(self, doc):
         assert doc["type_line"] == "Creature \u2014 Elf Druid"
@@ -217,6 +220,10 @@ class TestTransformEdgeCases:
         }
         doc = transform_card(card)
         assert doc["colors"] == []
+
+    def test_normalize_card_name_handles_punctuation_and_split_names(self):
+        assert normalize_card_name("Fire / Ice") == "fire // ice"
+        assert normalize_card_name("Ajani's Pridemate") == "ajanis pridemate"
 
     def test_etched_foil_counts_as_foil(self):
         card = {

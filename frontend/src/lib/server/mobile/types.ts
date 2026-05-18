@@ -1,16 +1,5 @@
 import type { AuthUser } from '$lib/auth/types';
 import type { CardDocument } from '$lib/search/types';
-import type {
-	Deck,
-	DeckCard,
-	Inventory,
-	InventoryCard,
-	InventoryMutationRequest,
-	ScanArtifact,
-	ScanReviewItem,
-	ScanSession,
-	ScanWorkerResult
-} from '$lib/server/data/types';
 
 export type { ScanWorkerResult } from '$lib/server/data/types';
 
@@ -41,29 +30,6 @@ export interface ScanCandidate {
 	ocrScore: number;
 	finalScore: number;
 	matchReason: string;
-}
-
-export interface MobileInventoryResponse {
-	inventory: Inventory | null;
-	cards: InventoryCard[];
-	stats: {
-		total: number;
-		unique: number;
-		sets: number;
-	};
-	mutationRequests: InventoryMutationRequest[];
-}
-
-export interface MobileDecksResponse {
-	decks: Deck[];
-	deckCards: DeckCard[];
-}
-
-export interface MobileScanResultResponse {
-	session: ScanSession | null;
-	artifacts: ScanArtifact[];
-	reviewItems: ScanReviewItem[];
-	lastResult: ScanWorkerResult | null;
 }
 
 export interface MobileSearchResponse {

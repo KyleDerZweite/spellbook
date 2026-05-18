@@ -7,10 +7,10 @@ import {
 	writeSessionCookie
 } from '../../src/lib/server/auth/session';
 
-const zitadelMocks = vi.hoisted(() => ({
+const oidcMocks = vi.hoisted(() => ({
 	buildLogoutUrl: vi.fn(),
 	exchangeAuthorizationCode: vi.fn(),
-	getZitadelAuthConfig: vi.fn(),
+	getOidcAuthConfig: vi.fn(),
 	refreshAuthSession: vi.fn()
 }));
 
@@ -18,24 +18,25 @@ vi.mock('$lib/env/private', () => ({
 	privateEnv: {
 		MEILI_MASTER_KEY: 'test-master-key',
 		MEILISEARCH_INTERNAL_URL: 'http://localhost:7700',
-		ZITADEL_ISSUER: 'https://auth.example.test',
-		ZITADEL_CLIENT_ID: 'spellbook-client',
+		OIDC_ISSUER: 'https://auth.example.test',
+		OIDC_CLIENT_ID: 'spellbook-client',
 		APP_ORIGIN: 'https://spellbook.example.test',
-		AUTH_SESSION_SECRET: 'MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY'
+		AUTH_SESSION_SECRET: 'MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY',
+		DATABASE_URL: 'postgres://spellbook:spellbook@localhost:5432/spellbook_test'
 	}
 }));
 
-vi.mock('$lib/server/auth/zitadel', async () => {
-	const actual = await vi.importActual<typeof import('../../src/lib/server/auth/zitadel')>(
-		'../../src/lib/server/auth/zitadel'
+vi.mock('$lib/server/auth/oidc', async () => {
+	const actual = await vi.importActual<typeof import('../../src/lib/server/auth/oidc')>(
+		'../../src/lib/server/auth/oidc'
 	);
 
 	return {
 		...actual,
-		buildLogoutUrl: zitadelMocks.buildLogoutUrl,
-		exchangeAuthorizationCode: zitadelMocks.exchangeAuthorizationCode,
-		getZitadelAuthConfig: zitadelMocks.getZitadelAuthConfig,
-		refreshAuthSession: zitadelMocks.refreshAuthSession
+		buildLogoutUrl: oidcMocks.buildLogoutUrl,
+		exchangeAuthorizationCode: oidcMocks.exchangeAuthorizationCode,
+		getOidcAuthConfig: oidcMocks.getOidcAuthConfig,
+		refreshAuthSession: oidcMocks.refreshAuthSession
 	};
 });
 
@@ -64,7 +65,7 @@ function createCookies() {
 describe('auth flow', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		zitadelMocks.getZitadelAuthConfig.mockReturnValue({
+		oidcMocks.getOidcAuthConfig.mockReturnValue({
 			issuer: 'https://auth.example.test',
 			clientId: 'spellbook-client',
 			appOrigin: 'https://spellbook.example.test'
@@ -114,7 +115,7 @@ describe('auth flow', () => {
 			returnTo: '/search'
 		});
 
-		zitadelMocks.exchangeAuthorizationCode.mockResolvedValue({
+		oidcMocks.exchangeAuthorizationCode.mockResolvedValue({
 			user: { accountId: 'user-123', username: 'mage', email: 'mage@example.test' },
 			idToken: 'id-token',
 			refreshToken: 'refresh-token',
@@ -138,7 +139,7 @@ describe('auth flow', () => {
 		expect(oauthState).toBeNull();
 	});
 
-	it('logout clears the session cookie and redirects to Zitadel end-session', async () => {
+	it('logout clears the session cookie and redirects to provider end-session', async () => {
 		const cookies = createCookies();
 		await writeSessionCookie(cookies as never, AUTH_SECRET, {
 			user: { accountId: 'user-123', username: 'mage', email: 'mage@example.test' },
@@ -147,7 +148,7 @@ describe('auth flow', () => {
 			expiresAt: Date.now() + 3600_000
 		});
 
-		zitadelMocks.buildLogoutUrl.mockResolvedValue('https://auth.example.test/logout');
+		oidcMocks.buildLogoutUrl.mockResolvedValue('https://auth.example.test/logout');
 
 		const response = await logoutGet({ cookies } as never);
 
@@ -167,7 +168,7 @@ describe('auth flow', () => {
 			expiresAt: Date.now() + 1000
 		});
 
-		zitadelMocks.refreshAuthSession.mockResolvedValue({
+		oidcMocks.refreshAuthSession.mockResolvedValue({
 			user: { accountId: 'user-123', username: 'mage', email: 'mage@example.test' },
 			idToken: 'fresh-token',
 			refreshToken: 'refresh-token',
@@ -202,7 +203,7 @@ describe('auth flow', () => {
 
 		expect(response.status).toBe(200);
 		expect(response.headers.get('x-robots-tag')).toBe(NO_INDEX_ROBOTS_TAG);
-		expect(zitadelMocks.refreshAuthSession).toHaveBeenCalledOnce();
+		expect(oidcMocks.refreshAuthSession).toHaveBeenCalledOnce();
 		expect(locals.user?.accountId).toBe('user-123');
 		expect(locals.meiliSearchKey).toBe('search-key');
 

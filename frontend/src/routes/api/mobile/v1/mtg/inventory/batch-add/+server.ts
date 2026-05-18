@@ -1,6 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 import { requireMobileAuth } from '$lib/server/mobile/auth';
-import { batchAddInventory } from '$lib/server/mobile/postgres';
+import { batchAddInventory } from '$lib/server/mobile/mtg-service';
 
 export const POST = async (event) => {
 	const auth = await requireMobileAuth(event);

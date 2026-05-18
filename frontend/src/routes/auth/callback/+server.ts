@@ -7,7 +7,7 @@ import {
 	readOAuthStateCookie,
 	writeSessionCookie
 } from '$lib/server/auth/session';
-import { exchangeAuthorizationCode, getZitadelAuthConfig } from '$lib/server/auth/zitadel';
+import { exchangeAuthorizationCode, getOidcAuthConfig } from '$lib/server/auth/oidc';
 
 export const GET: RequestHandler = async ({ url, cookies }) => {
 	const errorCode = url.searchParams.get('error');
@@ -26,7 +26,7 @@ export const GET: RequestHandler = async ({ url, cookies }) => {
 		return createNoIndexRedirect('/');
 	}
 
-	const config = getZitadelAuthConfig(privateEnv);
+	const config = getOidcAuthConfig(privateEnv);
 	const session = await exchangeAuthorizationCode(config, {
 		code,
 		codeVerifier: storedState.codeVerifier,

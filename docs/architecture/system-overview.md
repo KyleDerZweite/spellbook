@@ -1,7 +1,7 @@
 # System Overview
 
 - Status: Canonical
-- Last Reviewed: 2026-04-25
+- Last Reviewed: 2026-05-18
 - Source of Truth: code
 - Update Triggers: service boundary changes, topology changes, auth boundary changes, data flow changes
 - Related Docs: [Architecture Docs](./README.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Worker](./worker.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md)
@@ -9,14 +9,14 @@
 Spellbook currently consists of five primary functional parts:
 
 - SvelteKit frontend
-- Zitadel authentication
+- OIDC authentication
 - Postgres for user-scoped application data
 - MeiliSearch for MTG catalog search
 - Python worker for MTG catalog ingestion
 
 The mobile and scan foundation adds these supporting parts:
 
-- MinIO-compatible object storage
+- scan artifact storage, local filesystem in development or S3-compatible object storage in production
 - a scan-worker service
 - a vector index service
 
@@ -25,11 +25,11 @@ The mobile and scan foundation adds these supporting parts:
 ```text
 Browser or installed PWA
   -> Frontend (SvelteKit)
-  -> Zitadel for login
+  -> OIDC provider for login
   -> Frontend session cookie
   -> Postgres through SvelteKit server loads, actions, and APIs
   -> MeiliSearch with search-only key
-  -> MinIO for retained scan objects through the frontend server
+  -> scan artifact storage through the frontend server
   -> scan-worker for scan processing
 
 Optional non-browser client (future)
@@ -44,9 +44,9 @@ Scryfall
 
 - frontend: routes, auth session handling, search UI, inventory UI, decks UI, PWA install surface for mobile
 - frontend mobile API: optional bearer-token validation, MTG mobile endpoints, scan upload orchestration
-- Postgres: user profile, inventories, inventory cards, decks, deck cards, scan state, and idempotency records
-- worker: catalog download, transform, indexing, sync markers
+- Postgres: user profile, inventories, inventory cards, decks, deck cards, scan state, and inventory/deck idempotency records
+- worker: catalog download, transform, zero-downtime MeiliSearch indexing, sync status
 - scan-worker: scan-processing boundary for normalization, OCR, embeddings, and candidate ranking
 - MeiliSearch: MTG card catalog search and printing lookup
-- Zitadel: OIDC identity provider
-- MinIO: object storage for retained scan artifacts
+- OIDC provider: hosted identity and login
+- scan artifact storage: retained scan artifacts outside Postgres

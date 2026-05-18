@@ -1,7 +1,9 @@
 import type { InferSelectModel } from 'drizzle-orm';
 import type {
 	deckCards,
+	deckMutationRequests,
 	decks,
+	authIdentities,
 	inventories,
 	inventoryCards,
 	inventoryMutationRequests,
@@ -13,10 +15,12 @@ import type {
 import type { CardDocument } from '$lib/search/types';
 
 export type UserProfile = InferSelectModel<typeof userProfiles>;
+export type AuthIdentity = InferSelectModel<typeof authIdentities>;
 export type Inventory = InferSelectModel<typeof inventories>;
 export type InventoryCard = InferSelectModel<typeof inventoryCards>;
 export type Deck = InferSelectModel<typeof decks>;
 export type DeckCard = InferSelectModel<typeof deckCards>;
+export type DeckMutationRequest = InferSelectModel<typeof deckMutationRequests>;
 export type ScanSession = InferSelectModel<typeof scanSessions>;
 export type ScanArtifact = InferSelectModel<typeof scanArtifacts>;
 export type ScanReviewItem = InferSelectModel<typeof scanReviewItems>;
@@ -46,6 +50,7 @@ export interface DeckSnapshot {
 	decks: Deck[];
 	deckCards: DeckCard[];
 	inventoryCards: InventoryCard[];
+	mutationRequests?: DeckMutationRequest[];
 }
 
 export interface InventoryBatchItem {

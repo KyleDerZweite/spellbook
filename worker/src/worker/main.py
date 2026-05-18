@@ -17,21 +17,26 @@ logging.basicConfig(
 )
 log = logging.getLogger("worker")
 
-DATA_DIR = Path("/tmp/spellbook-worker")
-STATE_FILE = DATA_DIR / "state.json"
+DEFAULT_DATA_DIR = Path("/tmp/spellbook-worker")
 
 
-def load_state() -> dict:
+def state_file(data_dir: Path) -> Path:
+    return data_dir / "state.json"
+
+
+def load_state(data_dir: Path = DEFAULT_DATA_DIR) -> dict:
     """Load persisted worker state (last sync timestamps)."""
-    if STATE_FILE.exists():
-        return json.loads(STATE_FILE.read_text())
+    path = state_file(data_dir)
+    if path.exists():
+        return json.loads(path.read_text())
     return {}
 
 
-def save_state(state: dict) -> None:
+def save_state(state: dict, data_dir: Path = DEFAULT_DATA_DIR) -> None:
     """Persist worker state to disk for crash-resume."""
-    STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-    STATE_FILE.write_text(json.dumps(state))
+    path = state_file(data_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(state))
 
 
 def wait_for_meilisearch(indexer: MeiliIndexer, max_retries: int = 20) -> None:
@@ -56,6 +61,7 @@ def wait_for_meilisearch(indexer: MeiliIndexer, max_retries: int = 20) -> None:
 def seed_initial(
     scryfall: ScryfallClient,
     indexer: MeiliIndexer,
+    data_dir: Path = DEFAULT_DATA_DIR,
 ) -> None:
     """Download Default Cards and seed both MeiliSearch indexes.
 
@@ -67,25 +73,34 @@ def seed_initial(
         log.error("Could not find default_cards in Scryfall bulk data")
         return
 
-    state = load_state()
-    last_updated = state.get("default_cards_updated_at")
+    state = load_state(data_dir)
+    last_updated = state.get("defaultCardsUpdatedAt") or state.get("default_cards_updated_at")
     if last_updated and last_updated == info.updated_at:
         log.info("Default Cards unchanged since %s, skipping download", last_updated)
         return
 
-    dest = DATA_DIR / "default_cards.json"
-    scryfall.download_bulk_file(info, dest)
-    count = indexer.index_from_file(dest)
-    log.info("Initial seed complete: %d cards indexed", count)
+    dest = data_dir / "default_cards.json"
+    try:
+        scryfall.download_bulk_file(info, dest)
+        count = indexer.index_from_file(dest)
+        log.info("Initial seed complete: %d cards indexed", count)
+    except Exception as exc:
+        state["lastError"] = str(exc)
+        save_state(state, data_dir)
+        raise
 
-    # Persist timestamp only after successful indexing (crash-resume safe)
-    state["default_cards_updated_at"] = info.updated_at
-    save_state(state)
+    state["defaultCardsUpdatedAt"] = info.updated_at
+    state["lastSuccessfulSyncAt"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    state["lastIndexedDocumentCount"] = count
+    state["lastError"] = None
+    state.pop("default_cards_updated_at", None)
+    save_state(state, data_dir)
 
 
 def background_full_update(
     scryfall: ScryfallClient,
     indexer: MeiliIndexer,
+    data_dir: Path = DEFAULT_DATA_DIR,
 ) -> None:
     """Download All Cards and update both indexes (background).
 
@@ -96,19 +111,28 @@ def background_full_update(
         log.warning("Could not find all_cards in Scryfall bulk data")
         return
 
-    state = load_state()
-    last_updated = state.get("all_cards_updated_at")
+    state = load_state(data_dir)
+    last_updated = state.get("allCardsUpdatedAt") or state.get("all_cards_updated_at")
     if last_updated and last_updated == info.updated_at:
         log.info("All Cards unchanged since %s, skipping download", last_updated)
         return
 
-    dest = DATA_DIR / "all_cards.json"
-    scryfall.download_bulk_file(info, dest)
-    count = indexer.index_from_file(dest)
-    log.info("Full update complete: %d cards indexed", count)
+    dest = data_dir / "all_cards.json"
+    try:
+        scryfall.download_bulk_file(info, dest)
+        count = indexer.index_from_file(dest)
+        log.info("Full update complete: %d cards indexed", count)
+    except Exception as exc:
+        state["lastError"] = str(exc)
+        save_state(state, data_dir)
+        raise
 
-    state["all_cards_updated_at"] = info.updated_at
-    save_state(state)
+    state["allCardsUpdatedAt"] = info.updated_at
+    state["lastSuccessfulSyncAt"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    state["lastIndexedDocumentCount"] = count
+    state["lastError"] = None
+    state.pop("all_cards_updated_at", None)
+    save_state(state, data_dir)
 
 
 def sync_interval_seconds(interval: str) -> int | None:
@@ -123,7 +147,7 @@ def sync_interval_seconds(interval: str) -> int | None:
 def main() -> None:
     log.info("Spellbook worker starting")
     config = load_config()
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    config.data_dir.mkdir(parents=True, exist_ok=True)
 
     indexer = MeiliIndexer(config.meilisearch_url, config.meili_master_key)
     scryfall = ScryfallClient(config.scryfall_bulk_url)
@@ -138,23 +162,30 @@ def main() -> None:
     current_count = indexer.get_distinct_count()
     if current_count < 1000:
         log.info("MeiliSearch has %d cards, seeding required", current_count)
-        seed_initial(scryfall, indexer)
+        seed_initial(scryfall, indexer, config.data_dir)
     else:
         log.info("MeiliSearch has %d cards, skipping seed", current_count)
 
     # Step 4: Background full update (if aggressive preload)
+    interval = sync_interval_seconds(config.sync_interval)
+    preload_thread: threading.Thread | None = None
     if config.aggressive_preload:
         log.info("Aggressive preload enabled, downloading All Cards in background")
-        t = threading.Thread(
+        # In manual mode we must finish the preload before exiting, otherwise
+        # the daemon thread is killed mid-download. In loop mode it stays
+        # daemon=True so SIGINT can interrupt the worker cleanly.
+        preload_thread = threading.Thread(
             target=background_full_update,
-            args=(scryfall, indexer),
-            daemon=True,
+            args=(scryfall, indexer, config.data_dir),
+            daemon=interval is not None,
         )
-        t.start()
+        preload_thread.start()
 
     # Step 5: Periodic sync loop
-    interval = sync_interval_seconds(config.sync_interval)
     if interval is None:
+        if preload_thread is not None:
+            log.info("Manual sync mode: waiting for background preload to finish")
+            preload_thread.join()
         log.info("Sync interval is 'manual', worker will exit after initial load")
         return
 
@@ -163,9 +194,9 @@ def main() -> None:
         time.sleep(interval)
         log.info("Running periodic sync")
         try:
-            seed_initial(scryfall, indexer)
+            seed_initial(scryfall, indexer, config.data_dir)
             if config.aggressive_preload:
-                background_full_update(scryfall, indexer)
+                background_full_update(scryfall, indexer, config.data_dir)
         except Exception:
             log.exception("Sync failed, will retry next interval")
 

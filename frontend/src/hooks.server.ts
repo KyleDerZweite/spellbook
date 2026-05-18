@@ -7,7 +7,7 @@ import {
 	readSessionCookie,
 	writeSessionCookie
 } from '$lib/server/auth/session';
-import { getZitadelAuthConfig, refreshAuthSession } from '$lib/server/auth/zitadel';
+import { getOidcAuthConfig, refreshAuthSession } from '$lib/server/auth/oidc';
 import { ACTIVE_GAME_COOKIE, DEFAULT_GAME, isGame } from '$lib/state/activeGame.svelte';
 
 let cachedSearchKey: string | null = null;
@@ -96,7 +96,7 @@ async function getActiveSession(event: Parameters<Handle>[0]['event']) {
 	}
 
 	try {
-		const refreshed = await refreshAuthSession(getZitadelAuthConfig(privateEnv), session);
+		const refreshed = await refreshAuthSession(getOidcAuthConfig(privateEnv), session);
 		await writeSessionCookie(event.cookies, sessionSecret, refreshed);
 		return refreshed;
 	} catch {

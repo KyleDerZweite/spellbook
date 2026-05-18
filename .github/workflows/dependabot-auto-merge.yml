@@ -1,7 +1,7 @@
 name: Dependabot Auto Merge
 
 on:
-  pull_request_target:
+  pull_request:
     types:
       - opened
       - reopened
@@ -19,21 +19,47 @@ permissions:
   contents: write
   pull-requests: write
 
+# CI checks that MUST be green before any Dependabot PR can auto-merge.
+# Keep this in sync with the job names declared in ci.yml.
+env:
+  REQUIRED_CHECK_NAMES: |
+    Frontend Lint & Unit Tests
+    Frontend Build
+    Frontend DB Schema Check
+    Worker Tests
+    Scan Worker Tests
+    Frontend Integration Tests
+
 jobs:
   merge:
     name: Merge eligible Dependabot PRs
     runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]' || github.event_name == 'workflow_dispatch' || github.event_name == 'check_suite' || github.event_name == 'check_run'
     steps:
       - name: Merge clean Dependabot PRs
         uses: actions/github-script@v9
+        env:
+          REQUIRED_CHECK_NAMES: ${{ env.REQUIRED_CHECK_NAMES }}
         with:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const defaultBranch = context.payload.repository.default_branch;
 
+            const requiredChecks = (process.env.REQUIRED_CHECK_NAMES || "")
+              .split("\n")
+              .map((name) => name.trim())
+              .filter(Boolean);
+
+            if (requiredChecks.length === 0) {
+              core.setFailed("REQUIRED_CHECK_NAMES is empty; refusing to merge with no gating checks.");
+              return;
+            }
+
+            // Trust ONLY pr.user.login. The pr.head.ref naming convention is
+            // not a trust boundary — anyone can name a branch dependabot/...
             function isDependabotPullRequest(pr) {
-              return pr?.user?.login === "dependabot[bot]" || pr?.head?.ref?.startsWith("dependabot/");
+              return pr?.user?.login === "dependabot[bot]";
             }
 
             function targetsDefaultBranch(pr) {
@@ -42,7 +68,7 @@ jobs:
 
             async function listCandidatePullRequests() {
               switch (context.eventName) {
-                case "pull_request_target":
+                case "pull_request":
                   return [context.payload.pull_request];
                 case "check_suite":
                   return context.payload.check_suite.pull_requests || [];
@@ -62,25 +88,17 @@ jobs:
               }
             }
 
-            function hasBlockingStatuses(statuses) {
-              return statuses.some((status) => status.state !== "success");
-            }
-
-            function hasBlockingCheckRuns(checkRuns) {
-              return checkRuns.some((run) => {
-                if (
-                  run.name === "Merge eligible Dependabot PRs" ||
-                  run.name.startsWith("Dependabot Auto Merge /")
-                ) {
-                  return false;
-                }
-
-                if (run.status !== "completed") {
-                  return true;
-                }
-
-                return !["success", "neutral", "skipped"].includes(run.conclusion);
-              });
+            function missingRequiredChecks(checkRuns) {
+              const successful = new Set(
+                checkRuns
+                  .filter(
+                    (run) =>
+                      run.status === "completed" &&
+                      ["success", "neutral", "skipped"].includes(run.conclusion)
+                  )
+                  .map((run) => run.name)
+              );
+              return requiredChecks.filter((name) => !successful.has(name));
             }
 
             async function mergePullRequest(pr) {
@@ -168,17 +186,6 @@ jobs:
                 continue;
               }
 
-              const { data: combinedStatus } = await github.rest.repos.getCombinedStatusForRef({
-                owner,
-                repo,
-                ref: pr.head.sha,
-              });
-
-              if (hasBlockingStatuses(combinedStatus.statuses)) {
-                core.info(`Skipping PR #${pr.number}: commit statuses are not all successful.`);
-                continue;
-              }
-
               const { data: checkRuns } = await github.rest.checks.listForRef({
                 owner,
                 repo,
@@ -187,8 +194,11 @@ jobs:
                 per_page: 100,
               });
 
-              if (hasBlockingCheckRuns(checkRuns.check_runs)) {
-                core.info(`Skipping PR #${pr.number}: check runs are pending or failing.`);
+              const missing = missingRequiredChecks(checkRuns.check_runs);
+              if (missing.length > 0) {
+                core.info(
+                  `Skipping PR #${pr.number}: missing successful checks: ${missing.join(", ")}`,
+                );
                 continue;
               }
 

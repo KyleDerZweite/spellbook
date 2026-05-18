@@ -1,10 +1,10 @@
 # Private Instance Template
 
 - Status: Canonical
-- Last Reviewed: 2026-04-25
+- Last Reviewed: 2026-05-17
 - Source of Truth: operator notes
 - Update Triggers: deployment note template changes, operator note conventions
-- Related Docs: [Operations Docs](./README.md), [Deployment](./deployment.md), [Zitadel](./zitadel.md)
+- Related Docs: [Operations Docs](./README.md), [Deployment](./deployment.md), [OIDC Auth Setup](./oidc.md), [Zitadel](./zitadel.md)
 
 Use this template for deployment-specific notes that should not live in the canonical repo docs.
 
@@ -15,10 +15,11 @@ Use this template for deployment-specific notes that should not live in the cano
 - Environment:
 - Operator:
 
-## Zitadel
+## OIDC Provider
 
 - Issuer:
 - Client ID:
+- Mobile client ID:
 - Redirect URI:
 - Post logout redirect URI:
 - Requested scopes:

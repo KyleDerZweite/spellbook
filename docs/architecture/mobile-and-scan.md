@@ -1,7 +1,7 @@
 # Mobile And Scan Architecture
 
 - Status: Canonical
-- Last Reviewed: 2026-04-25
+- Last Reviewed: 2026-05-17
 - Source of Truth: code
 - Update Triggers: PWA manifest or service worker changes, mobile API changes, scan worker changes, object storage changes, vector-search changes
 - Related Docs: [System Overview](./system-overview.md), [Frontend](./frontend.md), [Auth](./auth.md), [Postgres](./postgres.md), [Deployment](../operations/deployment.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md)
@@ -13,7 +13,7 @@ Spellbook delivers mobile through the existing SvelteKit frontend as an installa
 - SvelteKit frontend: web and mobile client, installable via web app manifest
 - frontend server: session auth, MeiliSearch access, scan artifact upload orchestration
 - Postgres: user-scoped inventory, deck, scan session, review queue, and idempotency records
-- MinIO: original uploads and normalized crop storage
+- scan artifact storage: original uploads and normalized crop storage, backed by local filesystem storage through `podman-compose.dev.yml` in development or S3-compatible storage in production
 - scan-worker: scan processing boundary
 - vector index: reference-image embedding lookup
 
@@ -54,7 +54,7 @@ These endpoints are retained as an optional integration boundary (for example, a
 ## Current Scan Flow
 
 1. The PWA captures a still image in the browser.
-2. The frontend server stores the original upload in MinIO-compatible object storage.
+2. The frontend server stores the original upload in scan artifact storage.
 3. The frontend server forwards the artifact metadata to `scan-worker`.
 4. `scan-worker` returns a scan result payload.
 5. The frontend server records scan artifact metadata and candidate payloads in Postgres.

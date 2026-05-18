@@ -174,7 +174,7 @@ export async function getSetCatalogSize(
 		limit: 0,
 		filter: [`set_code = "${setCode}"`],
 		distinct: 'oracle_id'
-	} as never);
+	});
 
-	return (result as { estimatedTotalHits?: number }).estimatedTotalHits ?? 0;
+	return result.estimatedTotalHits ?? 0;
 }

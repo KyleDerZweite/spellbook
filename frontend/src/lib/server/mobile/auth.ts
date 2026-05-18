@@ -1,8 +1,9 @@
 import { error, type RequestEvent } from '@sveltejs/kit';
 import { privateEnv } from '$lib/env/private';
 import type { MobileAuthContext } from './types';
-import { getZitadelAuthConfig, verifyBearerToken } from '$lib/server/auth/zitadel';
-import { ensureUserProfile } from '$lib/server/data/users';
+import { getMobileOidcAuthConfig, verifyBearerToken } from '$lib/server/auth/oidc';
+
+const log = console;
 
 function getBearerToken(header: string | null): string | null {
 	if (!header) {
@@ -20,19 +21,16 @@ function getBearerToken(header: string | null): string | null {
 export async function requireMobileAuth(event: RequestEvent): Promise<MobileAuthContext> {
 	const bearerToken = getBearerToken(event.request.headers.get('authorization'));
 	if (bearerToken) {
-		const config = getZitadelAuthConfig({
-			...privateEnv,
-			ZITADEL_CLIENT_ID: privateEnv.ZITADEL_MOBILE_CLIENT_ID ?? privateEnv.ZITADEL_CLIENT_ID
-		});
+		const config = getMobileOidcAuthConfig(privateEnv);
 		try {
 			const verified = await verifyBearerToken(config, bearerToken);
-			await ensureUserProfile(verified.user);
 			event.locals.mobileBearerUser = verified.user;
 			return {
 				user: verified.user
 			};
 		} catch (err) {
-			throw error(401, `Invalid bearer token: ${String(err)}`);
+			log.warn('Mobile bearer token verification failed', err);
+			throw error(401, 'Invalid bearer token');
 		}
 	}
 

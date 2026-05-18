@@ -1,5 +1,6 @@
 import type { MobileAuthContext, MobileInventoryBatchItem } from './types';
 import {
+	bulkMutateInventory as bulkMutateInventoryData,
 	batchAddInventory as batchAddInventoryData,
 	getInventorySnapshot,
 	removeInventoryCard,
@@ -7,13 +8,23 @@ import {
 } from '$lib/server/data/inventory';
 import {
 	addDeckCard,
+	bulkMutateDeckCards as bulkMutateDeckCardsData,
 	createDeck,
 	deleteDeck,
+	getDeckCardsForDeck,
 	getDeckSnapshot,
 	removeDeckCard,
 	updateDeck,
 	updateDeckCard
 } from '$lib/server/data/decks';
+import {
+	DECK_SOURCES,
+	INVENTORY_SOURCES,
+	assertDeckOperation,
+	assertInventoryOperation,
+	assertRequestId,
+	normalizeSource
+} from '$lib/server/mtg/validation';
 import {
 	createScanSession,
 	getScanSessionResult,
@@ -42,6 +53,23 @@ export async function batchAddInventory(
 		'mtg',
 		input.items
 	);
+}
+
+export async function bulkMutateInventory(
+	auth: MobileAuthContext,
+	input: {
+		requestId: string;
+		source: string;
+		operations: unknown;
+	}
+) {
+	const operations = Array.isArray(input.operations) ? input.operations : [];
+	return bulkMutateInventoryData(auth.user.accountId, {
+		requestId: assertRequestId(input.requestId),
+		source: normalizeSource(input.source, INVENTORY_SOURCES, 'mobile'),
+		game: 'mtg',
+		operations: operations.map(assertInventoryOperation)
+	});
 }
 
 export async function updateInventoryEntry(
@@ -100,6 +128,29 @@ export async function addDeckCardEntry(
 	}
 ) {
 	return addDeckCard(auth.user.accountId, input);
+}
+
+export async function bulkMutateDeckCards(
+	auth: MobileAuthContext,
+	input: {
+		deckId: string;
+		requestId: string;
+		source: string;
+		operations: unknown;
+	}
+) {
+	const operations = Array.isArray(input.operations) ? input.operations : [];
+	return bulkMutateDeckCardsData(auth.user.accountId, {
+		deckId: input.deckId,
+		requestId: assertRequestId(input.requestId),
+		source: normalizeSource(input.source, DECK_SOURCES, 'mobile'),
+		game: 'mtg',
+		operations: operations.map(assertDeckOperation)
+	});
+}
+
+export async function getDeckCardsEntry(auth: MobileAuthContext, deckId: string) {
+	return getDeckCardsForDeck(auth.user.accountId, deckId);
 }
 
 export async function updateDeckCardEntry(

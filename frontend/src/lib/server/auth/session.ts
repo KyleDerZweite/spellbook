@@ -27,7 +27,7 @@ type CookieOptions = NonNullable<Parameters<Cookies['set']>[2]>;
 export function getAuthSessionSecret(env: Record<string, string | undefined>): string {
 	const secret = env.AUTH_SESSION_SECRET?.trim();
 	if (!secret) {
-		throw new Error('AUTH_SESSION_SECRET must be configured for direct auth');
+		throw new Error('AUTH_SESSION_SECRET must be configured for OIDC auth');
 	}
 
 	return secret;

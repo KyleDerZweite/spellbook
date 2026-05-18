@@ -1,0 +1,17 @@
+services:
+  scan-worker:
+    environment:
+      SCAN_STORAGE_DRIVER: local
+      SCAN_LOCAL_STORAGE_DIR: /app/storage/scans
+    volumes:
+      - scan_artifacts:/app/storage/scans
+
+  frontend:
+    environment:
+      SCAN_STORAGE_DRIVER: local
+      SCAN_LOCAL_STORAGE_DIR: /app/storage/scans
+    volumes:
+      - scan_artifacts:/app/storage/scans
+
+volumes:
+  scan_artifacts:

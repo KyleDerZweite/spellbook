@@ -8,6 +8,27 @@
 			"when": 1777135660177,
 			"tag": "0000_sleepy_maximus",
 			"breakpoints": true
+		},
+		{
+			"idx": 1,
+			"version": "7",
+			"when": 1779032747787,
+			"tag": "0001_fine_raider",
+			"breakpoints": true
+		},
+		{
+			"idx": 2,
+			"version": "7",
+			"when": 1779089325647,
+			"tag": "0002_curious_king_cobra",
+			"breakpoints": true
+		},
+		{
+			"idx": 3,
+			"version": "7",
+			"when": 1779093493244,
+			"tag": "0003_breezy_justin_hammer",
+			"breakpoints": true
 		}
 	]
 }

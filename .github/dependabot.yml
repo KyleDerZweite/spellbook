@@ -24,20 +24,20 @@ updates:
           - minor
           - patch
 
-  - package-ecosystem: npm
-    directory: "/spacetimedb"
-    schedule:
-      interval: weekly
-      day: monday
-      time: "05:30"
-      timezone: "UTC"
-    open-pull-requests-limit: 5
-
   - package-ecosystem: pip
     directory: "/worker"
     schedule:
       interval: weekly
       day: monday
       time: "05:45"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: pip
+    directory: "/scan-worker"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
       timezone: "UTC"
     open-pull-requests-limit: 5

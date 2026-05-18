@@ -4,6 +4,7 @@ export interface CardDocument {
 	game?: Game;
 	oracle_id: string;
 	name: string;
+	normalized_name?: string;
 	lang: string;
 	released_at: string;
 	layout: string;

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 # Main card types (not supertypes like Legendary/Basic, not subtypes)
 CARD_TYPES = frozenset(
     {
@@ -70,6 +72,7 @@ def transform_card(raw: dict) -> dict | None:
         "id": card_id,
         "oracle_id": oracle_id,
         "name": raw.get("name", ""),
+        "normalized_name": normalize_card_name(raw.get("name", "")),
         "lang": raw.get("lang", "en"),
         "released_at": raw.get("released_at", ""),
         "layout": layout,
@@ -104,6 +107,15 @@ def transform_card(raw: dict) -> dict | None:
             doc["back_face_image_uri"] = back_imgs.get("normal", "")
 
     return doc
+
+
+def normalize_card_name(name: str) -> str:
+    """Normalize a card name for exact deck-list import matching."""
+    normalized = name.lower().replace("'", "").replace("\u2019", "")
+    normalized = re.sub(r"[^a-z0-9/]+", " ", normalized)
+    normalized = re.sub(r"\s*/\s*", " // ", normalized)
+    normalized = re.sub(r"\s+", " ", normalized)
+    return normalized.strip()
 
 
 def _extract_card_types(type_line: str) -> list[str]:

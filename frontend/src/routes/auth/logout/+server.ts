@@ -1,7 +1,7 @@
 import { privateEnv } from '$lib/env/private';
 import { createNoIndexRedirect } from '$lib/seo/site';
 import type { RequestHandler } from './$types';
-import { buildLogoutUrl, getZitadelAuthConfig } from '$lib/server/auth/zitadel';
+import { buildLogoutUrl, getOidcAuthConfig } from '$lib/server/auth/oidc';
 import {
 	clearOAuthStateCookie,
 	clearSessionCookie,
@@ -14,6 +14,6 @@ export const GET: RequestHandler = async ({ cookies }) => {
 	clearOAuthStateCookie(cookies);
 	clearSessionCookie(cookies);
 
-	const config = getZitadelAuthConfig(privateEnv);
+	const config = getOidcAuthConfig(privateEnv);
 	return createNoIndexRedirect(await buildLogoutUrl(config, session?.idToken));
 };

@@ -15,7 +15,7 @@ In practice, the Android shell that was built:
 - only implemented a CameraX preview for scan capture
 - was never released and was not on a path to parity with the SvelteKit web product
 
-The existing SvelteKit frontend already implements search, inventory, and decks against the base app persistence layer and MeiliSearch. The scan pipeline (MinIO artifact storage, scan-worker, vector index) is server-side and does not require a native client.
+The existing SvelteKit frontend already implements search, inventory, and decks against the base app persistence layer and MeiliSearch. The scan pipeline (configurable artifact storage, scan-worker, vector index) is server-side and does not require a native client.
 
 Continuing the native-first direction would require rewriting the web product's feature surface a second time in Compose without a capability gap that justifies it.
 
@@ -28,7 +28,7 @@ The implementation constraints are:
 - the SvelteKit frontend is the single client codebase for web and mobile
 - mobile installability is delivered through a web app manifest and service worker
 - camera capture for scan uses the browser `getUserMedia` API
-- mobile auth uses the existing SvelteKit session cookie flow against Zitadel
+- mobile auth uses the existing SvelteKit session cookie flow against the configured OIDC provider
 - scans remain stored server-side
 - scan recognition remains server-side
 - review-first inventory mutation remains mandatory
@@ -37,7 +37,7 @@ The implementation constraints are:
 
 The backend pieces introduced by ADR-0002 are preserved:
 
-- MinIO-compatible object storage for original uploads and normalized crops
+- configurable artifact storage for original uploads and normalized crops, with local filesystem storage for development and S3-compatible storage for production
 - the `scan-worker` service
 - the vector index service
 - database tables for scan session and review workflow state

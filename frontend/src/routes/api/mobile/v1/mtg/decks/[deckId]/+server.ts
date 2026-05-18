@@ -1,6 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 import { requireMobileAuth } from '$lib/server/mobile/auth';
-import { deleteDeckEntry, updateDeckEntry } from '$lib/server/mobile/postgres';
+import { deleteDeckEntry, updateDeckEntry } from '$lib/server/mobile/mtg-service';
 
 export const PATCH = async (event) => {
 	const auth = await requireMobileAuth(event);

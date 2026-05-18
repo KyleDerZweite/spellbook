@@ -1,7 +1,10 @@
 import { error, json } from '@sveltejs/kit';
 import { requireMobileAuth } from '$lib/server/mobile/auth';
 import { processScanArtifact } from '$lib/server/mobile/scan-worker';
-import { recordScanArtifactEntry, updateScanSessionStatusEntry } from '$lib/server/mobile/postgres';
+import {
+	recordScanArtifactEntry,
+	updateScanSessionStatusEntry
+} from '$lib/server/mobile/mtg-service';
 import { uploadScanObject } from '$lib/server/mobile/storage';
 
 export const POST = async (event) => {

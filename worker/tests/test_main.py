@@ -1,6 +1,17 @@
 from unittest.mock import MagicMock, patch
 
-from worker.main import load_state, save_state, sync_interval_seconds, wait_for_meilisearch
+import pytest
+
+from worker.main import (
+    background_full_update,
+    load_state,
+    main,
+    save_state,
+    seed_initial,
+    state_file,
+    sync_interval_seconds,
+    wait_for_meilisearch,
+)
 
 
 class TestSyncIntervalSeconds:
@@ -68,27 +79,149 @@ class TestWaitForMeilisearch:
 class TestStateManagement:
     """Test crash-resume state persistence."""
 
-    def test_load_state_returns_empty_when_no_file(self, tmp_path, monkeypatch):
-        monkeypatch.setattr("worker.main.STATE_FILE", tmp_path / "state.json")
-        assert load_state() == {}
+    def test_load_state_returns_empty_when_no_file(self, tmp_path):
+        assert load_state(tmp_path) == {}
 
-    def test_save_and_load_roundtrip(self, tmp_path, monkeypatch):
-        state_file = tmp_path / "state.json"
-        monkeypatch.setattr("worker.main.STATE_FILE", state_file)
-        save_state({"default_cards_updated_at": "2026-03-21T09:00:00+00:00"})
-        loaded = load_state()
-        assert loaded["default_cards_updated_at"] == "2026-03-21T09:00:00+00:00"
+    def test_save_and_load_roundtrip(self, tmp_path):
+        save_state({"defaultCardsUpdatedAt": "2026-03-21T09:00:00+00:00"}, tmp_path)
+        loaded = load_state(tmp_path)
+        assert loaded["defaultCardsUpdatedAt"] == "2026-03-21T09:00:00+00:00"
 
-    def test_save_creates_parent_dirs(self, tmp_path, monkeypatch):
-        state_file = tmp_path / "nested" / "dir" / "state.json"
-        monkeypatch.setattr("worker.main.STATE_FILE", state_file)
-        save_state({"key": "value"})
-        assert state_file.exists()
+    def test_save_creates_parent_dirs(self, tmp_path):
+        data_dir = tmp_path / "nested" / "dir"
+        save_state({"key": "value"}, data_dir)
+        assert state_file(data_dir).exists()
 
-    def test_save_overwrites_existing(self, tmp_path, monkeypatch):
-        state_file = tmp_path / "state.json"
-        monkeypatch.setattr("worker.main.STATE_FILE", state_file)
-        save_state({"version": 1})
-        save_state({"version": 2})
-        loaded = load_state()
+    def test_save_overwrites_existing(self, tmp_path):
+        save_state({"version": 1}, tmp_path)
+        save_state({"version": 2}, tmp_path)
+        loaded = load_state(tmp_path)
         assert loaded["version"] == 2
+
+    def test_state_file_honors_data_dir(self, tmp_path):
+        assert state_file(tmp_path) == tmp_path / "state.json"
+
+    def test_seed_initial_saves_state_after_successful_index(self, tmp_path):
+        info = MagicMock(updated_at="2026-03-21T09:00:00+00:00")
+        scryfall = MagicMock()
+        scryfall.get_download_info.return_value = info
+        indexer = MagicMock()
+        indexer.index_from_file.return_value = 123
+
+        seed_initial(scryfall, indexer, tmp_path)
+
+        state = load_state(tmp_path)
+        assert state["defaultCardsUpdatedAt"] == info.updated_at
+        assert state["lastIndexedDocumentCount"] == 123
+        assert state["lastError"] is None
+
+    def test_failed_seed_does_not_update_scryfall_timestamp(self, tmp_path):
+        info = MagicMock(updated_at="2026-03-21T09:00:00+00:00")
+        scryfall = MagicMock()
+        scryfall.get_download_info.return_value = info
+        indexer = MagicMock()
+        indexer.index_from_file.side_effect = RuntimeError("index failed")
+
+        with pytest.raises(RuntimeError):
+            seed_initial(scryfall, indexer, tmp_path)
+
+        state = load_state(tmp_path)
+        assert "defaultCardsUpdatedAt" not in state
+        assert state["lastError"] == "index failed"
+
+    def test_background_full_update_saves_all_cards_timestamp(self, tmp_path):
+        info = MagicMock(updated_at="2026-03-22T09:00:00+00:00")
+        scryfall = MagicMock()
+        scryfall.get_download_info.return_value = info
+        indexer = MagicMock()
+        indexer.index_from_file.return_value = 456
+
+        background_full_update(scryfall, indexer, tmp_path)
+
+        state = load_state(tmp_path)
+        assert state["allCardsUpdatedAt"] == info.updated_at
+
+
+class TestMainPeriodicSyncPassesDataDir:
+    """Regression: periodic seed_initial must use config.data_dir, not the default."""
+
+    @patch("worker.main.background_full_update")
+    @patch("worker.main.seed_initial")
+    @patch("worker.main.time.sleep")
+    @patch("worker.main.wait_for_meilisearch")
+    @patch("worker.main.MeiliIndexer")
+    @patch("worker.main.ScryfallClient")
+    @patch("worker.main.load_config")
+    def test_periodic_seed_initial_receives_configured_data_dir(
+        self,
+        mock_load_config,
+        mock_scryfall_cls,
+        mock_indexer_cls,
+        mock_wait,
+        mock_sleep,
+        mock_seed,
+        mock_bg,
+        tmp_path,
+    ):
+        config = MagicMock()
+        config.data_dir = tmp_path
+        config.sync_interval = "daily"
+        config.aggressive_preload = False
+        mock_load_config.return_value = config
+
+        indexer = mock_indexer_cls.return_value
+        indexer.get_distinct_count.return_value = 100_000
+
+        # Break the while True loop after the first periodic sync.
+        mock_sleep.side_effect = [None, KeyboardInterrupt()]
+
+        with pytest.raises(KeyboardInterrupt):
+            main()
+
+        # The periodic call must pass config.data_dir, not the default.
+        calls = mock_seed.call_args_list
+        assert any(
+            call.args[2] == tmp_path or call.kwargs.get("data_dir") == tmp_path
+            for call in calls
+        ), f"Expected seed_initial called with data_dir={tmp_path}, got {calls}"
+
+
+class TestMainManualPreloadLifecycle:
+    """Regression: manual sync must wait for the preload thread before returning."""
+
+    @patch("worker.main.background_full_update")
+    @patch("worker.main.wait_for_meilisearch")
+    @patch("worker.main.MeiliIndexer")
+    @patch("worker.main.ScryfallClient")
+    @patch("worker.main.load_config")
+    def test_manual_sync_joins_preload_thread(
+        self,
+        mock_load_config,
+        mock_scryfall_cls,
+        mock_indexer_cls,
+        mock_wait,
+        mock_bg,
+        tmp_path,
+    ):
+        import threading
+
+        config = MagicMock()
+        config.data_dir = tmp_path
+        config.sync_interval = "manual"
+        config.aggressive_preload = True
+        mock_load_config.return_value = config
+
+        indexer = mock_indexer_cls.return_value
+        indexer.get_distinct_count.return_value = 100_000
+
+        finished = threading.Event()
+
+        def slow_preload(*_args, **_kwargs):
+            # Simulate work that must finish before main() returns.
+            finished.set()
+
+        mock_bg.side_effect = slow_preload
+
+        main()
+
+        assert finished.is_set(), "main() returned before preload completed"

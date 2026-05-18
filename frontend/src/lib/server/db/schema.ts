@@ -24,6 +24,29 @@ export const userProfiles = pgTable('user_profiles', {
 	lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow()
 });
 
+export const authIdentities = pgTable(
+	'auth_identities',
+	{
+		id: uuid('id').primaryKey(),
+		accountId: text('account_id')
+			.notNull()
+			.references(() => userProfiles.accountId, { onDelete: 'cascade' }),
+		providerType: text('provider_type').notNull(),
+		issuer: text('issuer').notNull(),
+		subject: text('subject').notNull(),
+		emailAtLogin: text('email_at_login').notNull().default(''),
+		...timestamps
+	},
+	(table) => [
+		uniqueIndex('auth_identities_provider_subject_idx').on(
+			table.providerType,
+			table.issuer,
+			table.subject
+		),
+		index('auth_identities_account_idx').on(table.accountId)
+	]
+);
+
 export const inventories = pgTable(
 	'inventories',
 	{
@@ -34,7 +57,10 @@ export const inventories = pgTable(
 		game: text('game').notNull(),
 		...timestamps
 	},
-	(table) => [uniqueIndex('inventories_account_game_idx').on(table.accountId, table.game)]
+	(table) => [
+		check('inventories_game_check', sql`${table.game} in ('mtg')`),
+		uniqueIndex('inventories_account_game_idx').on(table.accountId, table.game)
+	]
 );
 
 export const inventoryCards = pgTable(
@@ -92,6 +118,7 @@ export const decks = pgTable(
 		...timestamps
 	},
 	(table) => [
+		check('decks_game_check', sql`${table.game} in ('mtg')`),
 		index('decks_account_game_updated_idx').on(table.accountId, table.game, table.updatedAt)
 	]
 );
@@ -116,6 +143,11 @@ export const deckCards = pgTable(
 	},
 	(table) => [
 		check('deck_cards_quantity_check', sql`${table.quantity} > 0`),
+		check(
+			'deck_cards_role_check',
+			sql`${table.role} in ('main', 'sideboard', 'commander', 'companion')`
+		),
+		check('deck_cards_game_check', sql`${table.game} in ('mtg')`),
 		uniqueIndex('deck_cards_unique_card_role_idx').on(
 			table.deckId,
 			table.catalogCardId,
@@ -123,6 +155,31 @@ export const deckCards = pgTable(
 		),
 		index('deck_cards_account_game_idx').on(table.accountId, table.game),
 		index('deck_cards_deck_idx').on(table.deckId)
+	]
+);
+
+export const deckMutationRequests = pgTable(
+	'deck_mutation_requests',
+	{
+		accountId: text('account_id').notNull(),
+		requestId: text('request_id').notNull(),
+		deckId: uuid('deck_id')
+			.notNull()
+			.references(() => decks.id, { onDelete: 'cascade' }),
+		source: text('source').notNull(),
+		status: text('status').notNull(),
+		...timestamps
+	},
+	(table) => [
+		primaryKey({ columns: [table.accountId, table.requestId] }),
+		check(
+			'deck_mutation_requests_source_check',
+			sql`${table.source} in ('mobile', 'web', 'import')`
+		),
+		check(
+			'deck_mutation_requests_status_check',
+			sql`${table.status} in ('applied', 'pending', 'rejected')`
+		)
 	]
 );
 
@@ -138,6 +195,11 @@ export const scanSessions = pgTable(
 		...timestamps
 	},
 	(table) => [
+		check('scan_sessions_game_check', sql`${table.game} in ('mtg')`),
+		check(
+			'scan_sessions_status_check',
+			sql`${table.status} in ('open', 'pending_review', 'committed', 'cancelled')`
+		),
 		index('scan_sessions_account_game_updated_idx').on(table.accountId, table.game, table.updatedAt)
 	]
 );
@@ -165,6 +227,10 @@ export const scanArtifacts = pgTable(
 		...timestamps
 	},
 	(table) => [
+		check(
+			'scan_artifacts_status_check',
+			sql`${table.status} in ('matched', 'ambiguous', 'no_match', 'failed')`
+		),
 		index('scan_artifacts_account_idx').on(table.accountId),
 		index('scan_artifacts_session_idx').on(table.sessionId)
 	]
@@ -219,5 +285,15 @@ export const inventoryMutationRequests = pgTable(
 		status: text('status').notNull(),
 		...timestamps
 	},
-	(table) => [primaryKey({ columns: [table.accountId, table.requestId] })]
+	(table) => [
+		primaryKey({ columns: [table.accountId, table.requestId] }),
+		check(
+			'inventory_mutation_requests_source_check',
+			sql`${table.source} in ('mobile', 'web', 'import', 'scan', 'scan_review')`
+		),
+		check(
+			'inventory_mutation_requests_status_check',
+			sql`${table.status} in ('applied', 'pending', 'rejected')`
+		)
+	]
 );

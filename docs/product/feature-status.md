@@ -1,7 +1,7 @@
 # Feature Status
 
 - Status: Canonical
-- Last Reviewed: 2026-04-25
+- Last Reviewed: 2026-05-18
 - Source of Truth: mixed
 - Update Triggers: feature rollout changes, supported game changes, route changes, planned versus implemented status changes
 - Related Docs: [Product Docs](./README.md), [Platform Overview](./platform-overview.md), [Routing and Games](./routing-and-games.md)
@@ -10,7 +10,7 @@ This matrix tracks implemented behavior versus planned platform direction.
 
 ## Current Product Focus
 
-The active product focus is search, inventory, and scan. Decks are deprioritized for now:
+The active product focus is backend MTG stabilization for search, inventory, decks, and catalog ingestion. Decks remain deprioritized in the user-facing navigation:
 
 - decks is implemented but hidden from the navigation, hub, and manifest shortcuts; the `/decks` route still works via direct URL
 - play is not part of the Spellbook base app
@@ -31,6 +31,12 @@ The active product focus is search, inventory, and scan. Decks are deprioritized
 - printing picker from MTG card search
 - owned inventory with list and spellbook modes
 - set progress based on owned canonical cards
+- mobile inventory bulk mutations with idempotent `requestId`
+- mobile inventory import preview and commit for MTG Arena-style lists
+- mobile deck bulk mutations with idempotent `requestId`
+- mobile deck import preview and commit for MTG Arena-style lists
+- mobile deck export as MTG Arena-style text
+- warning-only lightweight deck legality checks during import preview and commit
 
 ### Implemented but hidden from surface
 
@@ -56,5 +62,6 @@ The active product focus is search, inventory, and scan. Decks are deprioritized
 - future TCGs are examples of direction, not committed releases
 - mobile is delivered as a PWA on the same SvelteKit frontend
 - mobile API foundations exist under `/api/mobile/v1/:game/...` as an optional integration boundary; the game segment is retained on that surface so future games can be added without breaking pinned clients
-- scan session and idempotent batch inventory infrastructure now exist in the backend
+- scan session, idempotent inventory mutation, and idempotent deck mutation infrastructure now exist in the backend
+- scan recognition remains outside the current backend stabilization sprint; existing scan API compatibility is retained
 - play is separated from the base app; a future play app may consume Spellbook catalog and deck data

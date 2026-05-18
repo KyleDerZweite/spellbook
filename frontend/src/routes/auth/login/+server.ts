@@ -5,9 +5,9 @@ import { getAuthSessionSecret, writeOAuthStateCookie } from '$lib/server/auth/se
 import {
 	buildAuthorizationUrl,
 	createRandomString,
-	getZitadelAuthConfig,
+	getOidcAuthConfig,
 	sanitizeReturnTo
-} from '$lib/server/auth/zitadel';
+} from '$lib/server/auth/oidc';
 
 export const GET: RequestHandler = async ({ url, cookies, locals }) => {
 	const returnTo = sanitizeReturnTo(url.searchParams.get('returnTo'));
@@ -15,7 +15,7 @@ export const GET: RequestHandler = async ({ url, cookies, locals }) => {
 		return createNoIndexRedirect(returnTo);
 	}
 
-	const config = getZitadelAuthConfig(privateEnv);
+	const config = getOidcAuthConfig(privateEnv);
 	const state = createRandomString();
 	const nonce = createRandomString();
 	const codeVerifier = createRandomString(48);

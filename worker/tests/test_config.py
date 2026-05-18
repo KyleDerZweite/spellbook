@@ -37,6 +37,11 @@ class TestLoadConfigDefaults:
         monkeypatch.setenv("MEILI_MASTER_KEY", "test-key")
         assert load_config().scryfall_bulk_url == "https://api.scryfall.com/bulk-data"
 
+    def test_data_dir_default(self, monkeypatch):
+        monkeypatch.setenv("MEILISEARCH_URL", "http://localhost:7700")
+        monkeypatch.setenv("MEILI_MASTER_KEY", "test-key")
+        assert str(load_config().data_dir) == "/tmp/spellbook-worker"
+
 
 class TestLoadConfigCustom:
     """Test that load_config respects custom environment variables."""
@@ -72,6 +77,10 @@ class TestLoadConfigCustom:
     def test_languages_ignores_empty_segments(self, monkeypatch):
         monkeypatch.setenv("LANGUAGES", "en,,de,")
         assert load_config().languages == ["en", "de"]
+
+    def test_worker_data_dir(self, monkeypatch):
+        monkeypatch.setenv("WORKER_DATA_DIR", "/app/data")
+        assert str(load_config().data_dir) == "/app/data"
 
 
 class TestLoadConfigMissingRequired:

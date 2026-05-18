@@ -1,14 +1,15 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import type { AuthUser } from '$lib/auth/types';
+import { provisionExternalUser } from '$lib/server/data/users';
 import type { AuthSession } from './session';
 
-export interface ZitadelAuthConfig {
+export interface OidcAuthConfig {
 	issuer: string;
 	clientId: string;
 	appOrigin: string;
 }
 
-interface ZitadelMetadata {
+interface OidcMetadata {
 	issuer: string;
 	authorization_endpoint: string;
 	token_endpoint: string;
@@ -25,19 +26,26 @@ interface TokenResponse {
 	token_type?: string;
 }
 
-const metadataCache = new Map<string, Promise<ZitadelMetadata>>();
+interface ExternalUserProfile {
+	username: string;
+	email: string;
+}
+
+const metadataCache = new Map<string, Promise<OidcMetadata>>();
 const jwksCache = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
 const encoder = new TextEncoder();
 
-export function getZitadelAuthConfig(env: Record<string, string | undefined>): ZitadelAuthConfig {
-	const issuer = env.ZITADEL_ISSUER?.trim();
-	const clientId = env.ZITADEL_CLIENT_ID?.trim();
-	const appOrigin = env.APP_ORIGIN?.trim();
+function firstConfigured(...values: Array<string | undefined>): string | undefined {
+	return values.map((value) => value?.trim()).find(Boolean);
+}
+
+export function getOidcAuthConfig(env: Record<string, string | undefined>): OidcAuthConfig {
+	const issuer = firstConfigured(env.OIDC_ISSUER, env.ZITADEL_ISSUER);
+	const clientId = firstConfigured(env.OIDC_CLIENT_ID, env.ZITADEL_CLIENT_ID);
+	const appOrigin = firstConfigured(env.APP_ORIGIN);
 
 	if (!issuer || !clientId || !appOrigin) {
-		throw new Error(
-			'ZITADEL_ISSUER, ZITADEL_CLIENT_ID, and APP_ORIGIN must be configured for direct auth'
-		);
+		throw new Error('OIDC_ISSUER, OIDC_CLIENT_ID, and APP_ORIGIN must be configured for OIDC auth');
 	}
 
 	return {
@@ -45,6 +53,18 @@ export function getZitadelAuthConfig(env: Record<string, string | undefined>): Z
 		clientId,
 		appOrigin: appOrigin.replace(/\/+$/, '')
 	};
+}
+
+export function getMobileOidcAuthConfig(env: Record<string, string | undefined>): OidcAuthConfig {
+	return getOidcAuthConfig({
+		...env,
+		OIDC_CLIENT_ID: firstConfigured(
+			env.OIDC_MOBILE_CLIENT_ID,
+			env.ZITADEL_MOBILE_CLIENT_ID,
+			env.OIDC_CLIENT_ID,
+			env.ZITADEL_CLIENT_ID
+		)
+	});
 }
 
 export function sanitizeReturnTo(value: string | null | undefined): string {
@@ -61,19 +81,17 @@ export function createRandomString(byteLength = 32): string {
 	return Buffer.from(random).toString('base64url');
 }
 
-async function getMetadata(config: ZitadelAuthConfig): Promise<ZitadelMetadata> {
+async function getMetadata(config: OidcAuthConfig): Promise<OidcMetadata> {
 	let cached = metadataCache.get(config.issuer);
 	if (!cached) {
 		cached = fetch(`${config.issuer}/.well-known/openid-configuration`, {
 			headers: { Accept: 'application/json' }
 		}).then(async (response) => {
 			if (!response.ok) {
-				throw new Error(
-					`Failed to load Zitadel OIDC metadata: ${response.status} ${response.statusText}`
-				);
+				throw new Error(`Failed to load OIDC metadata: ${response.status} ${response.statusText}`);
 			}
 
-			return (await response.json()) as ZitadelMetadata;
+			return (await response.json()) as OidcMetadata;
 		});
 		metadataCache.set(config.issuer, cached);
 	}
@@ -81,7 +99,7 @@ async function getMetadata(config: ZitadelAuthConfig): Promise<ZitadelMetadata> 
 	return cached;
 }
 
-function getJwks(metadata: ZitadelMetadata) {
+function getJwks(metadata: OidcMetadata) {
 	let jwks = jwksCache.get(metadata.jwks_uri);
 	if (!jwks) {
 		jwks = createRemoteJWKSet(new URL(metadata.jwks_uri));
@@ -91,7 +109,7 @@ function getJwks(metadata: ZitadelMetadata) {
 	return jwks;
 }
 
-function getRedirectUri(config: ZitadelAuthConfig): string {
+function getRedirectUri(config: OidcAuthConfig): string {
 	return `${config.appOrigin}/auth/callback`;
 }
 
@@ -101,7 +119,7 @@ async function buildCodeChallenge(codeVerifier: string): Promise<string> {
 }
 
 async function callTokenEndpoint(
-	config: ZitadelAuthConfig,
+	config: OidcAuthConfig,
 	body: URLSearchParams
 ): Promise<TokenResponse> {
 	const metadata = await getMetadata(config);
@@ -114,7 +132,7 @@ async function callTokenEndpoint(
 	if (!response.ok) {
 		const detail = await response.text();
 		throw new Error(
-			`Zitadel token exchange failed: ${response.status} ${response.statusText} ${detail}`
+			`OIDC token exchange failed: ${response.status} ${response.statusText} ${detail}`
 		);
 	}
 
@@ -122,13 +140,12 @@ async function callTokenEndpoint(
 }
 
 async function fetchUserInfo(
-	config: ZitadelAuthConfig,
+	config: OidcAuthConfig,
 	accessToken: string | undefined,
 	fallbackSubject: string
-): Promise<AuthUser> {
+): Promise<ExternalUserProfile> {
 	if (!accessToken) {
 		return {
-			accountId: fallbackSubject,
 			username: fallbackSubject.slice(0, 12),
 			email: ''
 		};
@@ -141,7 +158,6 @@ async function fetchUserInfo(
 
 	if (!response.ok) {
 		return {
-			accountId: fallbackSubject,
 			username: fallbackSubject.slice(0, 12),
 			email: ''
 		};
@@ -149,7 +165,6 @@ async function fetchUserInfo(
 
 	const payload = (await response.json()) as Record<string, unknown>;
 	return {
-		accountId: String(payload['sub'] ?? fallbackSubject),
 		username: String(
 			payload['preferred_username'] ??
 				payload['name'] ??
@@ -160,13 +175,36 @@ async function fetchUserInfo(
 	};
 }
 
+function profileFromClaims(payload: Record<string, unknown>, subject: string): ExternalUserProfile {
+	return {
+		username: String(
+			payload['preferred_username'] ?? payload['name'] ?? payload['email'] ?? subject.slice(0, 12)
+		),
+		email: String(payload['email'] ?? '')
+	};
+}
+
+async function provisionOidcUser(
+	config: OidcAuthConfig,
+	subject: string,
+	profile: ExternalUserProfile
+) {
+	return provisionExternalUser({
+		providerType: 'oidc',
+		issuer: config.issuer,
+		subject,
+		username: profile.username,
+		email: profile.email
+	});
+}
+
 async function createSessionFromTokens(
-	config: ZitadelAuthConfig,
+	config: OidcAuthConfig,
 	tokens: TokenResponse,
 	expectedNonce?: string
 ): Promise<AuthSession> {
 	if (!tokens.id_token) {
-		throw new Error('Zitadel token response did not include an id_token');
+		throw new Error('OIDC token response did not include an id_token');
 	}
 
 	const metadata = await getMetadata(config);
@@ -176,24 +214,19 @@ async function createSessionFromTokens(
 	});
 
 	if (expectedNonce && payload.nonce !== expectedNonce) {
-		throw new Error('Zitadel nonce validation failed');
+		throw new Error('OIDC nonce validation failed');
 	}
 
 	const subject = String(payload.sub ?? '');
 	if (!subject) {
-		throw new Error('Zitadel id_token did not contain a subject');
+		throw new Error('OIDC id_token did not contain a subject');
 	}
 
-	const user =
+	const profile =
 		payload.preferred_username || payload.email
-			? {
-					accountId: subject,
-					username: String(
-						payload.preferred_username ?? payload.name ?? payload.email ?? subject.slice(0, 12)
-					),
-					email: String(payload.email ?? '')
-				}
+			? profileFromClaims(payload, subject)
 			: await fetchUserInfo(config, tokens.access_token, subject);
+	const user = await provisionOidcUser(config, subject, profile);
 
 	const exp = typeof payload.exp === 'number' ? payload.exp * 1000 : Date.now();
 	const fallbackExpires = Date.now() + Math.max(60, Number(tokens.expires_in ?? 3600)) * 1000;
@@ -207,7 +240,7 @@ async function createSessionFromTokens(
 }
 
 export async function verifyBearerToken(
-	config: ZitadelAuthConfig,
+	config: OidcAuthConfig,
 	token: string
 ): Promise<{ user: AuthUser; expiresAt: number }> {
 	const metadata = await getMetadata(config);
@@ -218,19 +251,14 @@ export async function verifyBearerToken(
 
 	const subject = String(payload.sub ?? '');
 	if (!subject) {
-		throw new Error('Zitadel bearer token did not contain a subject');
+		throw new Error('OIDC bearer token did not contain a subject');
 	}
 
-	const user =
+	const profile =
 		payload.preferred_username || payload.email
-			? {
-					accountId: subject,
-					username: String(
-						payload.preferred_username ?? payload.name ?? payload.email ?? subject.slice(0, 12)
-					),
-					email: String(payload.email ?? '')
-				}
+			? profileFromClaims(payload, subject)
 			: await fetchUserInfo(config, undefined, subject);
+	const user = await provisionOidcUser(config, subject, profile);
 
 	return {
 		user,
@@ -239,7 +267,7 @@ export async function verifyBearerToken(
 }
 
 export async function buildAuthorizationUrl(
-	config: ZitadelAuthConfig,
+	config: OidcAuthConfig,
 	options: {
 		state: string;
 		nonce: string;
@@ -262,7 +290,7 @@ export async function buildAuthorizationUrl(
 }
 
 export async function exchangeAuthorizationCode(
-	config: ZitadelAuthConfig,
+	config: OidcAuthConfig,
 	options: {
 		code: string;
 		codeVerifier: string;
@@ -282,7 +310,7 @@ export async function exchangeAuthorizationCode(
 }
 
 export async function refreshAuthSession(
-	config: ZitadelAuthConfig,
+	config: OidcAuthConfig,
 	session: AuthSession
 ): Promise<AuthSession> {
 	if (!session.refreshToken) {
@@ -303,7 +331,7 @@ export async function refreshAuthSession(
 }
 
 export async function buildLogoutUrl(
-	config: ZitadelAuthConfig,
+	config: OidcAuthConfig,
 	idTokenHint?: string
 ): Promise<string> {
 	const metadata = await getMetadata(config);

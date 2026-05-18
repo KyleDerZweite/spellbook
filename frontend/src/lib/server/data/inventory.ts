@@ -1,6 +1,17 @@
-import { and, asc, desc, eq, max } from 'drizzle-orm';
+import { and, asc, desc, eq, max, sql } from 'drizzle-orm';
 import { db } from '$lib/server/db/client';
 import { inventories, inventoryCards, inventoryMutationRequests } from '$lib/server/db/schema';
+import {
+	assertCondition,
+	assertFinish,
+	assertInventoryOperation,
+	assertRequestId,
+	normalizeQuantity,
+	ValidationError,
+	type InventoryBulkOperation,
+	type InventoryBulkOperationInput,
+	type InventorySource
+} from '$lib/server/mtg/validation';
 import type {
 	AddInventoryInput,
 	HomeSummary,
@@ -10,25 +21,6 @@ import type {
 	InventorySnapshot,
 	InventoryStats
 } from './types';
-
-export const VALID_CONDITIONS = ['NM', 'LP', 'MP', 'HP', 'DMG'] as const;
-export const VALID_FINISHES = ['nonfoil', 'foil'] as const;
-
-function assertValidCardInput(item: InventoryBatchItem): void {
-	if (!VALID_FINISHES.includes(item.finish as (typeof VALID_FINISHES)[number])) {
-		throw new Error(`Invalid finish: ${item.finish}`);
-	}
-	if (!VALID_CONDITIONS.includes(item.condition as (typeof VALID_CONDITIONS)[number])) {
-		throw new Error(`Invalid condition: ${item.condition}`);
-	}
-	if (Math.trunc(item.quantity) <= 0) {
-		throw new Error('Quantity must be greater than 0');
-	}
-}
-
-function normalizeQuantity(quantity: number): number {
-	return Math.max(1, Math.trunc(quantity));
-}
 
 function getStats(cards: InventoryCard[]): InventoryStats {
 	const total = cards.reduce((sum, card) => sum + card.quantity, 0);
@@ -140,72 +132,41 @@ export async function getHomeSummary(accountId: string, game = 'mtg'): Promise<H
 	};
 }
 
+function batchItemToAddOperation(item: InventoryBatchItem): InventoryBulkOperation {
+	return {
+		op: 'add',
+		card: {
+			catalogCardId: item.catalogCardId,
+			canonicalCardId: item.canonicalCardId,
+			name: item.name,
+			setCode: item.setCode,
+			imageUri: item.imageUri
+		},
+		finish: assertFinish(item.finish),
+		condition: assertCondition(item.condition),
+		quantity: Math.max(1, Math.trunc(item.quantity)),
+		notes: ''
+	};
+}
+
 export async function addToInventory(
 	accountId: string,
 	input: AddInventoryInput
-): Promise<InventoryCard> {
-	assertValidCardInput(input);
-	return db.transaction(async (tx) => {
-		const inventory = await ensureInventory(accountId, input.game);
-		const now = new Date();
-		const [existing] = await tx
-			.select()
-			.from(inventoryCards)
-			.where(
-				and(
-					eq(inventoryCards.inventoryId, inventory.id),
-					eq(inventoryCards.catalogCardId, input.catalogCardId),
-					eq(inventoryCards.finish, input.finish),
-					eq(inventoryCards.condition, input.condition)
-				)
-			)
-			.limit(1);
-
-		if (existing) {
-			const [updated] = await tx
-				.update(inventoryCards)
-				.set({
-					canonicalCardId: input.canonicalCardId,
-					name: input.name,
-					setCode: input.setCode,
-					imageUri: input.imageUri,
-					quantity: existing.quantity + normalizeQuantity(input.quantity),
-					updatedAt: now
-				})
-				.where(and(eq(inventoryCards.id, existing.id), eq(inventoryCards.accountId, accountId)))
-				.returning();
-
-			await tx.update(inventories).set({ updatedAt: now }).where(eq(inventories.id, inventory.id));
-			return updated;
-		}
-
-		const [{ maxPosition }] = await tx
-			.select({ maxPosition: max(inventoryCards.spellbookPosition) })
-			.from(inventoryCards)
-			.where(eq(inventoryCards.inventoryId, inventory.id));
-
-		const [created] = await tx
-			.insert(inventoryCards)
-			.values({
-				id: crypto.randomUUID(),
-				inventoryId: inventory.id,
-				accountId,
-				game: input.game,
-				catalogCardId: input.catalogCardId,
-				canonicalCardId: input.canonicalCardId,
-				name: input.name,
-				setCode: input.setCode,
-				imageUri: input.imageUri,
-				quantity: normalizeQuantity(input.quantity),
-				finish: input.finish,
-				condition: input.condition,
-				spellbookPosition: (maxPosition ?? -1) + 1
-			})
-			.returning();
-
-		await tx.update(inventories).set({ updatedAt: now }).where(eq(inventories.id, inventory.id));
-		return created;
+): Promise<InventoryCard | null> {
+	const snapshot = await bulkMutateInventory(accountId, {
+		requestId: crypto.randomUUID(),
+		source: 'web',
+		game: input.game,
+		operations: [batchItemToAddOperation(input)]
 	});
+	return (
+		snapshot.cards.find(
+			(card) =>
+				card.catalogCardId === input.catalogCardId &&
+				card.finish === input.finish &&
+				card.condition === input.condition
+		) ?? null
+	);
 }
 
 export async function batchAddInventory(
@@ -216,13 +177,33 @@ export async function batchAddInventory(
 	items: InventoryBatchItem[]
 ): Promise<InventorySnapshot> {
 	if (items.length === 0) {
-		throw new Error('Batch add requires at least one item');
+		throw new ValidationError('Batch add requires at least one item');
 	}
-	for (const item of items) {
-		assertValidCardInput(item);
-	}
+	return bulkMutateInventory(accountId, {
+		requestId,
+		source: source as InventorySource,
+		game,
+		operations: items.map(batchItemToAddOperation)
+	});
+}
 
-	const shouldApplyItems = await db.transaction(async (tx) => {
+export async function bulkMutateInventory(
+	accountId: string,
+	input: {
+		requestId: string;
+		source: string;
+		game: string;
+		operations: InventoryBulkOperationInput[];
+	}
+): Promise<InventorySnapshot> {
+	const requestId = assertRequestId(input.requestId);
+	if (!Array.isArray(input.operations) || input.operations.length === 0) {
+		throw new ValidationError('operations must contain at least one operation');
+	}
+	const operations = input.operations.map(assertInventoryOperation);
+	const inventory = await ensureInventory(accountId, input.game);
+
+	const shouldApply = await db.transaction(async (tx) => {
 		const existingRequest = await tx
 			.select()
 			.from(inventoryMutationRequests)
@@ -242,23 +223,116 @@ export async function batchAddInventory(
 		await tx.insert(inventoryMutationRequests).values({
 			accountId,
 			requestId,
-			source,
+			source: input.source,
 			status: 'applied',
 			createdAt: now,
 			updatedAt: now
 		});
+
+		for (const operation of operations) {
+			await applyInventoryOperation(tx, accountId, inventory.id, input.game, operation, now);
+		}
+
+		await tx.update(inventories).set({ updatedAt: now }).where(eq(inventories.id, inventory.id));
 		return true;
 	});
 
-	if (!shouldApplyItems) {
-		return getInventorySnapshot(accountId, game);
+	if (shouldApply) {
+		await compactInventoryPositions(inventory.id);
+	}
+	return getInventorySnapshot(accountId, input.game);
+}
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+async function applyInventoryOperation(
+	tx: Tx,
+	accountId: string,
+	inventoryId: string,
+	game: string,
+	operation: InventoryBulkOperation,
+	now: Date
+): Promise<void> {
+	if (operation.op === 'add') {
+		const [{ maxPosition }] = await tx
+			.select({ maxPosition: max(inventoryCards.spellbookPosition) })
+			.from(inventoryCards)
+			.where(eq(inventoryCards.inventoryId, inventoryId));
+		const quantity = normalizeQuantity(operation.quantity);
+
+		await tx
+			.insert(inventoryCards)
+			.values({
+				id: crypto.randomUUID(),
+				inventoryId,
+				accountId,
+				game,
+				catalogCardId: operation.card.catalogCardId,
+				canonicalCardId: operation.card.canonicalCardId,
+				name: operation.card.name,
+				setCode: operation.card.setCode,
+				imageUri: operation.card.imageUri,
+				quantity,
+				finish: operation.finish,
+				condition: operation.condition,
+				notes: operation.notes,
+				spellbookPosition: (maxPosition ?? -1) + 1,
+				createdAt: now,
+				updatedAt: now
+			})
+			.onConflictDoUpdate({
+				target: [
+					inventoryCards.inventoryId,
+					inventoryCards.catalogCardId,
+					inventoryCards.finish,
+					inventoryCards.condition
+				],
+				set: {
+					canonicalCardId: operation.card.canonicalCardId,
+					name: operation.card.name,
+					setCode: operation.card.setCode,
+					imageUri: operation.card.imageUri,
+					quantity: sql`${inventoryCards.quantity} + ${quantity}`,
+					notes: operation.notes,
+					updatedAt: now
+				}
+			});
+		return;
 	}
 
-	for (const item of items) {
-		await addToInventory(accountId, { ...item, game });
+	const entryId = operation.target.entryId;
+	if (operation.op === 'remove') {
+		await tx
+			.delete(inventoryCards)
+			.where(and(eq(inventoryCards.id, entryId), eq(inventoryCards.accountId, accountId)));
+		return;
 	}
 
-	return getInventorySnapshot(accountId, game);
+	const [existing] = await tx
+		.select()
+		.from(inventoryCards)
+		.where(and(eq(inventoryCards.id, entryId), eq(inventoryCards.accountId, accountId)))
+		.limit(1);
+	if (!existing) {
+		return;
+	}
+
+	const quantity = normalizeQuantity(operation.quantity);
+	const nextQuantity = operation.op === 'decrement' ? existing.quantity - quantity : quantity;
+	if (nextQuantity <= 0) {
+		await tx
+			.delete(inventoryCards)
+			.where(and(eq(inventoryCards.id, entryId), eq(inventoryCards.accountId, accountId)));
+	} else {
+		await tx
+			.update(inventoryCards)
+			.set({
+				quantity: nextQuantity,
+				notes: operation.notes ?? existing.notes,
+				updatedAt: now
+			})
+			.where(and(eq(inventoryCards.id, entryId), eq(inventoryCards.accountId, accountId)));
+	}
 }
 
 export async function updateInventoryCard(
@@ -267,52 +341,68 @@ export async function updateInventoryCard(
 	quantity: number,
 	notes = ''
 ): Promise<InventoryCard | null> {
-	const nextQuantity = normalizeQuantity(quantity);
-	const [updated] = await db
-		.update(inventoryCards)
-		.set({ quantity: nextQuantity, notes, updatedAt: new Date() })
+	const [existing] = await db
+		.select()
+		.from(inventoryCards)
 		.where(and(eq(inventoryCards.id, entryId), eq(inventoryCards.accountId, accountId)))
-		.returning();
-	return updated ?? null;
+		.limit(1);
+	if (!existing) {
+		return null;
+	}
+
+	const operation =
+		Math.trunc(quantity) <= 0
+			? { op: 'remove' as const, target: { entryId } }
+			: { op: 'set' as const, target: { entryId }, quantity, notes };
+	const snapshot = await bulkMutateInventory(accountId, {
+		requestId: crypto.randomUUID(),
+		source: 'web',
+		game: existing.game,
+		operations: [operation]
+	});
+	return snapshot.cards.find((card) => card.id === entryId) ?? null;
 }
 
 export async function removeInventoryCard(accountId: string, entryId: string): Promise<void> {
+	const [existing] = await db
+		.select()
+		.from(inventoryCards)
+		.where(and(eq(inventoryCards.id, entryId), eq(inventoryCards.accountId, accountId)))
+		.limit(1);
+	if (!existing) {
+		return;
+	}
+
+	await bulkMutateInventory(accountId, {
+		requestId: crypto.randomUUID(),
+		source: 'web',
+		game: existing.game,
+		operations: [{ op: 'remove', target: { entryId } }]
+	});
+}
+
+async function reflowPositions(tx: Tx, inventoryId: string): Promise<void> {
+	const remaining = await tx
+		.select()
+		.from(inventoryCards)
+		.where(eq(inventoryCards.inventoryId, inventoryId))
+		.orderBy(asc(inventoryCards.spellbookPosition), asc(inventoryCards.name));
+
+	const now = new Date();
+	for (let index = 0; index < remaining.length; index += 1) {
+		const row = remaining[index];
+		if (row.spellbookPosition !== index) {
+			await tx
+				.update(inventoryCards)
+				.set({ spellbookPosition: index, updatedAt: now })
+				.where(eq(inventoryCards.id, row.id));
+		}
+	}
+}
+
+async function compactInventoryPositions(inventoryId: string): Promise<void> {
 	await db.transaction(async (tx) => {
-		const [card] = await tx
-			.select()
-			.from(inventoryCards)
-			.where(and(eq(inventoryCards.id, entryId), eq(inventoryCards.accountId, accountId)))
-			.limit(1);
-
-		if (!card) {
-			return;
-		}
-
-		await tx
-			.delete(inventoryCards)
-			.where(and(eq(inventoryCards.id, entryId), eq(inventoryCards.accountId, accountId)));
-
-		const remaining = await tx
-			.select()
-			.from(inventoryCards)
-			.where(eq(inventoryCards.inventoryId, card.inventoryId))
-			.orderBy(asc(inventoryCards.spellbookPosition), asc(inventoryCards.name));
-
-		const now = new Date();
-		for (let index = 0; index < remaining.length; index += 1) {
-			const row = remaining[index];
-			if (row.spellbookPosition !== index) {
-				await tx
-					.update(inventoryCards)
-					.set({ spellbookPosition: index, updatedAt: now })
-					.where(eq(inventoryCards.id, row.id));
-			}
-		}
-
-		await tx
-			.update(inventories)
-			.set({ updatedAt: now })
-			.where(eq(inventories.id, card.inventoryId));
+		await reflowPositions(tx, inventoryId);
 	});
 }
 

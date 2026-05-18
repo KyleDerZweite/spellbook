@@ -1,7 +1,7 @@
 # Routing and Games
 
 - Status: Canonical
-- Last Reviewed: 2026-04-25
+- Last Reviewed: 2026-05-18
 - Source of Truth: code
 - Update Triggers: route additions, route removals, supported game changes, auth protection changes, active-game state changes
 - Related Docs: [Product Docs](./README.md), [Platform Overview](./platform-overview.md), [Feature Status](./feature-status.md), [Frontend Architecture](../architecture/frontend.md), [ADR-0004](../decisions/0004-flat-routes-with-active-game-state.md)
@@ -48,11 +48,18 @@ Mobile bearer-token endpoints retain a game segment because they are versioned v
 - `/api/mobile/v1/mtg/search`
 - `/api/mobile/v1/mtg/inventory`
 - `/api/mobile/v1/mtg/inventory/batch-add`
+- `/api/mobile/v1/mtg/inventory/bulk`
+- `/api/mobile/v1/mtg/inventory/import/preview`
+- `/api/mobile/v1/mtg/inventory/import/commit`
 - `/api/mobile/v1/mtg/inventory/[entryId]`
 - `/api/mobile/v1/mtg/cards/[oracleId]/printings`
 - `/api/mobile/v1/mtg/decks`
 - `/api/mobile/v1/mtg/decks/[deckId]`
 - `/api/mobile/v1/mtg/decks/[deckId]/cards`
+- `/api/mobile/v1/mtg/decks/[deckId]/cards/bulk`
+- `/api/mobile/v1/mtg/decks/[deckId]/export`
+- `/api/mobile/v1/mtg/decks/import/preview`
+- `/api/mobile/v1/mtg/decks/import/commit`
 - `/api/mobile/v1/mtg/deck-cards/[entryId]`
 - `/api/mobile/v1/mtg/scan/sessions`
 - `/api/mobile/v1/mtg/scan/sessions/[sessionId]/frames`
@@ -60,6 +67,8 @@ Mobile bearer-token endpoints retain a game segment because they are versioned v
 - `/api/mobile/v1/mtg/scan/review/commit`
 
 These follow the `/:game/:resource` shape on purpose so a future second game can ship without breaking existing mobile clients.
+
+Inventory and deck import endpoints use preview-first MTG Arena-style text parsing. Commit endpoints re-parse and re-resolve the submitted text, commit only resolved supported sections, and return unresolved or ambiguous lines for the client to display.
 
 ## Game Support Status
 

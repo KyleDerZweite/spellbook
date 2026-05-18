@@ -1,10 +1,10 @@
 # Deployment Guide
 
 - Status: Canonical
-- Last Reviewed: 2026-04-25
+- Last Reviewed: 2026-05-18
 - Source of Truth: mixed
 - Update Triggers: service topology changes, env var changes, auth boundary changes, compose changes
-- Related Docs: [Operations Docs](./README.md), [Zitadel](./zitadel.md), [Auth Architecture](../architecture/auth.md), [System Overview](../architecture/system-overview.md)
+- Related Docs: [Operations Docs](./README.md), [OIDC Auth Setup](./oidc.md), [Zitadel Provider Notes](./zitadel.md), [Auth Architecture](../architecture/auth.md), [System Overview](../architecture/system-overview.md)
 
 This guide documents the current generic self-hosted deployment shape for Spellbook.
 
@@ -14,26 +14,27 @@ For live domains, client IDs, operator contacts, and other instance-specific not
 
 Spellbook currently runs with the core services below under `podman-compose`:
 
-| Service | Role |
-|---------|------|
-| `postgres` | Durable database for user-scoped application data |
-| `db-migrate` | One-shot Drizzle migration runner |
-| `meilisearch` | Card catalog search engine |
-| `worker` | Python sync pipeline for MTG catalog ingestion |
-| `frontend` | SvelteKit app server |
-| `newt` | Pangolin tunnel agent |
+| Service       | Role                                              |
+| ------------- | ------------------------------------------------- |
+| `postgres`    | Durable database for user-scoped application data |
+| `db-migrate`  | One-shot Drizzle migration runner                 |
+| `meilisearch` | Card catalog search engine                        |
+| `worker`      | Python sync pipeline for MTG catalog ingestion    |
+| `frontend`    | SvelteKit app server                              |
+| `newt`        | Pangolin tunnel agent                             |
 
 The mobile and scan foundation adds these services:
 
-| Service | Role |
-|---------|------|
-| `minio` | S3-compatible object storage for retained scan artifacts |
+| Service       | Role                                                                       |
+| ------------- | -------------------------------------------------------------------------- |
 | `scan-worker` | Scan-processing boundary for normalization, OCR, embeddings, and reranking |
-| `qdrant` | Vector index for image embedding retrieval |
+| `qdrant`      | Vector index for image embedding retrieval                                 |
+
+Retained scan artifacts use a configurable storage driver. The base compose file is production-shaped and defaults to S3-compatible storage. Local development can layer `podman-compose.dev.yml` on top to use a local named volume instead.
 
 ## Auth Model
 
-Spellbook now handles authentication directly with Zitadel using OIDC Authorization Code + PKCE.
+Spellbook handles authentication with a generic OIDC provider using Authorization Code + PKCE.
 
 Pangolin is used only as transport and reverse-proxy infrastructure in this deployment model. Pangolin should not own the Spellbook login flow.
 
@@ -41,40 +42,44 @@ Pangolin is used only as transport and reverse-proxy infrastructure in this depl
 
 ### Frontend
 
-| Variable | Description |
-|----------|-------------|
-| `ZITADEL_ISSUER` | Zitadel issuer URL |
-| `ZITADEL_CLIENT_ID` | Public OIDC client ID |
-| `ZITADEL_MOBILE_CLIENT_ID` | Optional. Bearer-token client id for `/api/mobile/v1/...`. Not required for the PWA |
-| `APP_ORIGIN` | Public frontend origin |
-| `AUTH_SESSION_SECRET` | 32-byte base64url secret for encrypted cookies |
-| `DATABASE_URL` | Postgres connection string |
-| `PUBLIC_MEILISEARCH_URL` | Browser-facing MeiliSearch URL |
-| `MEILISEARCH_INTERNAL_URL` | Internal MeiliSearch URL used by the server |
-| `MEILI_MASTER_KEY` | Used by the frontend server to fetch the search-only key from MeiliSearch |
-| `MINIO_ENDPOINT` | S3-compatible endpoint for scan artifact storage |
-| `MINIO_REGION` | Object storage region, typically `us-east-1` for local MinIO |
-| `MINIO_BUCKET` | Bucket name for retained scan artifacts |
-| `MINIO_ACCESS_KEY` | MinIO access key |
-| `MINIO_SECRET_KEY` | MinIO secret key |
-| `SCAN_WORKER_URL` | Internal URL for the scan-worker service |
+| Variable                   | Description                                                                         |
+| -------------------------- | ----------------------------------------------------------------------------------- |
+| `OIDC_ISSUER`              | OIDC issuer URL                                                                     |
+| `OIDC_CLIENT_ID`           | Public OIDC client ID                                                               |
+| `OIDC_MOBILE_CLIENT_ID`    | Optional. Bearer-token client id for `/api/mobile/v1/...`. Not required for the PWA |
+| `APP_ORIGIN`               | Public frontend origin                                                              |
+| `AUTH_SESSION_SECRET`      | 32-byte base64url secret for encrypted cookies                                      |
+| `DATABASE_URL`             | Postgres connection string                                                          |
+| `PUBLIC_MEILISEARCH_URL`   | Browser-facing MeiliSearch URL                                                      |
+| `MEILISEARCH_INTERNAL_URL` | Internal MeiliSearch URL used by the server                                         |
+| `MEILI_MASTER_KEY`         | Used by the frontend server to fetch the search-only key from MeiliSearch           |
+| `SCAN_STORAGE_DRIVER`      | `local` or `s3`. Defaults to `s3` in base compose                                   |
+| `SCAN_LOCAL_STORAGE_DIR`   | Local scan artifact directory when `SCAN_STORAGE_DRIVER=local`                      |
+| `S3_ENDPOINT`              | Required when `SCAN_STORAGE_DRIVER=s3`. S3-compatible endpoint                      |
+| `S3_REGION`                | Required when `SCAN_STORAGE_DRIVER=s3`. Object storage region                       |
+| `S3_BUCKET`                | Required when `SCAN_STORAGE_DRIVER=s3`. Bucket name for retained scan artifacts     |
+| `S3_ACCESS_KEY_ID`         | Required when `SCAN_STORAGE_DRIVER=s3`. S3 access key id                            |
+| `S3_SECRET_ACCESS_KEY`     | Required when `SCAN_STORAGE_DRIVER=s3`. S3 secret access key                        |
+| `S3_FORCE_PATH_STYLE`      | Optional for S3 mode. Defaults to `true` for broad S3-compatible provider support   |
+| `SCAN_WORKER_URL`          | Internal URL for the scan-worker service                                            |
 
 ### Postgres
 
-| Variable | Description |
-|----------|-------------|
-| `POSTGRES_DB` | Database name, default `spellbook` |
-| `POSTGRES_USER` | Database user, default `spellbook` |
+| Variable            | Description                                                                  |
+| ------------------- | ---------------------------------------------------------------------------- |
+| `POSTGRES_DB`       | Database name, default `spellbook`                                           |
+| `POSTGRES_USER`     | Database user, default `spellbook`                                           |
 | `POSTGRES_PASSWORD` | Database password used by the Postgres container and internal `DATABASE_URL` |
 
 ### Worker and MeiliSearch
 
-| Variable | Description |
-|----------|-------------|
-| `MEILI_MASTER_KEY` | MeiliSearch admin key |
-| `AGGRESSIVE_PRELOAD` | `true` loads `all_cards` in the background |
-| `SYNC_INTERVAL` | `daily`, `weekly`, or `manual` |
-| `LANGUAGES` | Comma-separated language codes |
+| Variable             | Description                                                        |
+| -------------------- | ------------------------------------------------------------------ |
+| `MEILI_MASTER_KEY`   | MeiliSearch admin key                                              |
+| `AGGRESSIVE_PRELOAD` | `true` loads `all_cards` in the background                         |
+| `SYNC_INTERVAL`      | `daily`, `weekly`, or `manual`                                     |
+| `LANGUAGES`          | Comma-separated language codes                                     |
+| `WORKER_DATA_DIR`    | Worker state directory. Compose sets `/app/data` on a named volume |
 
 ## MeiliSearch Search Key Behavior
 
@@ -92,11 +97,24 @@ This matches the current implementation in `frontend/src/hooks.server.ts`.
 
 Current scan uploads are stored outside Postgres.
 
-Operational guidance:
+Development guidance:
 
-- store original uploads and normalized crops in MinIO-compatible object storage
+- run compose with both files: `podman-compose -f podman-compose.yml -f podman-compose.dev.yml up`
+- `podman-compose.dev.yml` sets `SCAN_STORAGE_DRIVER=local`
+- `podman-compose.dev.yml` mounts the compose-managed `scan_artifacts` volume at `/app/storage/scans` in `frontend` and `scan-worker`
+
+Production guidance:
+
+- use the base `podman-compose.yml`
+- set `SCAN_STORAGE_DRIVER=s3`
+- store original uploads and normalized crops in S3-compatible object storage
+- provision the target bucket outside the Spellbook compose stack
 - keep object lifecycle policy aligned with the current product retention decision
 - do not store binary artifacts directly in Postgres tables
+
+## Worker State
+
+The base compose file mounts the `worker_data` named volume at `/app/data` and sets `WORKER_DATA_DIR=/app/data`. This keeps Scryfall sync status across worker container recreation.
 
 ## Fedora And SELinux
 
