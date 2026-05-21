@@ -1,31 +1,33 @@
 # GitHub Automation
 
 - Status: Canonical
-- Last Reviewed: 2026-05-09
+- Last Reviewed: 2026-05-21
 - Source of Truth: repo config
 - Update Triggers: workflow logic changes, PR policy changes, branch protection changes, Dependabot policy changes
 - Related Docs: [Operations Docs](./README.md), [Deployment](./deployment.md), [Docs Index](../README.md)
 
 This document covers repository automation that affects pull request handling.
 
-## Dependabot Auto Merge
+## Dependabot
 
-Spellbook auto-merges Dependabot pull requests through [`.github/workflows/dependabot-auto-merge.yml`](../../.github/workflows/dependabot-auto-merge.yml).
+Spellbook uses Dependabot to open dependency update pull requests. Dependabot updates are configured in [`.github/dependabot.yml`](../../.github/dependabot.yml).
 
-Current behavior:
+Current policy:
 
-- only pull requests opened by `dependabot[bot]` are eligible
-- only pull requests targeting the repository default branch are eligible
-- the workflow does not check out pull request code
-- pull requests with merge conflicts are skipped
-- pull requests with pending or failing commit statuses are skipped
-- pull requests with pending or failing check runs are skipped
-- GitHub branch protection and merge policy still apply at merge time
+- Dependabot may open pull requests for GitHub Actions, frontend npm packages, worker Python packages, and scan-worker Python packages.
+- Dependency pull requests must pass CI.
+- Dependency pull requests must be reviewed and merged manually.
+- No workflow in this repository auto-merges Dependabot pull requests.
 
-The workflow attempts the enabled merge methods in this order:
+## CI
 
-- squash
-- rebase
-- merge commit
+CI runs through [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml).
 
-If repository rules block the merge, the workflow leaves the pull request open.
+The current workflow checks:
+
+- frontend lint and unit tests
+- frontend build
+- frontend DB schema check
+- frontend integration tests against Postgres
+- worker Ruff and pytest
+- scan-worker Ruff and pytest
