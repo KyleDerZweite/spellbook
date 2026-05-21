@@ -9,7 +9,7 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.136.1",
     "orjson>=3.11.8",
-    "uvicorn>=0.46.0",
+    "uvicorn>=0.47.0",
 ]
 
 [project.optional-dependencies]
