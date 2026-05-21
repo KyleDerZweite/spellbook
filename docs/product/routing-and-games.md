@@ -1,27 +1,27 @@
 # Routing and Games
 
 - Status: Canonical
-- Last Reviewed: 2026-05-18
+- Last Reviewed: 2026-05-21
 - Source of Truth: code
 - Update Triggers: route additions, route removals, supported game changes, auth protection changes, active-game state changes
-- Related Docs: [Product Docs](./README.md), [Platform Overview](./platform-overview.md), [Feature Status](./feature-status.md), [Frontend Architecture](../architecture/frontend.md), [ADR-0004](../decisions/0004-flat-routes-with-active-game-state.md)
+- Related Docs: [Product Docs](./README.md), [Platform Overview](./platform-overview.md), [Functional Requirements](./functional-requirements.md), [Feature Status](./feature-status.md), [Frontend Architecture](../architecture/frontend.md), [ADR-0008](../decisions/0008-mtg-only-self-hosted-inventory-and-deck-availability.md)
 
-This document defines the current route surface and how the active game is selected without putting the game in the URL.
+This document defines the current route surface and MTG support scope.
 
-The Spellbook base app has no play route. Future play belongs in a separate application that can consume Spellbook catalog and deck data.
+Spellbook supports MTG only. The Spellbook base app has no play route. Future play belongs in a separate application that can consume Spellbook catalog and deck data.
 
-## Active Game Lives in Client State
+## MTG Scope
 
-The active game is held in `activeGameState` (`frontend/src/lib/state/activeGame.svelte.ts`) and persisted in the `spellbook_game` cookie. The server hook seeds the state from that cookie on each load.
+The codebase still contains some game-aware names and a cookie-backed active-game state from earlier multi-game planning. Product work should treat this as compatibility residue, not current direction.
 
-Consequences:
+Current behavior:
 
-- The URL does not carry a game segment.
-- Switching games happens through the in-nav `GameSwitcher` and updates the cookie.
-- Every data call still scopes to a specific game; only the URL is flat.
-- Today only `mtg` is selectable, so the cookie value is always `mtg` in practice.
+- only `mtg` is implemented
+- user-facing routes do not carry a game segment
+- the mobile API uses `/api/mobile/v1/mtg/...`
+- selecting non-MTG games is not supported
 
-See [ADR-0004](../decisions/0004-flat-routes-with-active-game-state.md) for the rationale and tradeoffs.
+New product work should not add Pokemon, Yu-Gi-Oh!, or generic TCG abstractions.
 
 ## Current Routes in Code
 
@@ -30,20 +30,16 @@ See [ADR-0004](../decisions/0004-flat-routes-with-active-game-state.md) for the 
 - `/`
 - `/search`
 - `/inventory`
-- `/decks` (implemented, hidden from nav and hub)
+- `/decks`
 - `/auth/login`
 - `/auth/callback`
 - `/auth/logout`
 - `/privacy`
 - `/terms`
 
-### Currently hidden from the product surface
-
-`/decks` is implemented and reachable by direct URL but is intentionally not linked from the navigation, the home hub, or the PWA manifest while search, inventory, and scan are the active product focus. This is a product-surface decision, not a code removal.
-
 ### Mobile API surface
 
-Mobile bearer-token endpoints retain a game segment because they are versioned vendor surfaces, not user-facing routes:
+Mobile bearer-token endpoints retain the `mtg` game segment because they are versioned API surfaces:
 
 - `/api/mobile/v1/mtg/search`
 - `/api/mobile/v1/mtg/inventory`
@@ -66,28 +62,21 @@ Mobile bearer-token endpoints retain a game segment because they are versioned v
 - `/api/mobile/v1/mtg/scan/sessions/[sessionId]/result`
 - `/api/mobile/v1/mtg/scan/review/commit`
 
-These follow the `/:game/:resource` shape on purpose so a future second game can ship without breaking existing mobile clients.
-
 Inventory and deck import endpoints use preview-first MTG Arena-style text parsing. Commit endpoints re-parse and re-resolve the submitted text, commit only resolved supported sections, and return unresolved or ambiguous lines for the client to display.
 
-## Game Support Status
+## Compatibility Routes
 
-### Implemented
+Legacy `/mtg/*` and `/collections*` URLs 308-redirect to the matching flat route.
 
-- `mtg`
+These redirects are compatibility behavior. They are not an indication that new game-specific user-facing routes should be added.
 
-### Not implemented
+## Future Route Direction
 
-- `pokemon`
-- `yugioh`
+The frontend redesign should keep the route surface simple:
 
-`SUPPORTED_GAMES` enumerates every recognised slug. `AVAILABLE_GAMES` only contains `mtg`. Selecting a game outside `AVAILABLE_GAMES` from the GameSwitcher is a no-op.
+- search
+- inventory
+- decks
+- import/review flows where needed
 
-## Adding a Second Game
-
-When a second game ships:
-
-1. Add the slug to `AVAILABLE_GAMES`.
-2. Make sure the search adapter, inventory wiring, and any new pages branch on `activeGameState.current`.
-3. Add the matching `/api/mobile/v1/:game/...` endpoints if mobile clients need them.
-4. The user-facing routes do not need to change. The same `/search`, `/inventory`, and `/decks` paths render the active game's content based on the cookie.
+Route and navigation decisions should follow the functional requirements, not a generic multi-game platform model.

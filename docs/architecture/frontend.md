@@ -1,12 +1,12 @@
 # Frontend
 
 - Status: Canonical
-- Last Reviewed: 2026-05-17
+- Last Reviewed: 2026-05-21
 - Source of Truth: code
 - Update Triggers: route changes, auth guard changes, search flow changes, inventory/deck UI changes
-- Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Routing and Games](../product/routing-and-games.md), [MeiliSearch Search API](../integrations/meilisearch/search-api.md), [Mobile And Scan](./mobile-and-scan.md), [ADR-0004](../decisions/0004-flat-routes-with-active-game-state.md)
+- Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Routing and Games](../product/routing-and-games.md), [MeiliSearch Search API](../integrations/meilisearch/search-api.md), [Mobile And Scan](./mobile-and-scan.md), [ADR-0008](../decisions/0008-mtg-only-self-hosted-inventory-and-deck-availability.md)
 
-The frontend is a SvelteKit application with SSR enabled on the server. User-facing routes are flat; the active game lives in client state (cookie-backed) rather than the URL (see [ADR-0004](../decisions/0004-flat-routes-with-active-game-state.md)).
+The frontend is a SvelteKit application with SSR enabled on the server. User-facing routes are flat and the current product scope is MTG only.
 
 The same application is the mobile surface when installed as a PWA (see `frontend/static/manifest.webmanifest`) and also hosts the optional `/api/mobile/v1/:game/...` bearer-token API for non-browser clients.
 
@@ -15,7 +15,7 @@ The same application is the mobile surface when installed as a PWA (see `fronten
 - `/`
 - `/search`
 - `/inventory`
-- `/decks` (implemented, hidden from nav and hub)
+- `/decks`
 
 Legacy `/mtg/*` and `/collections*` URLs return a 308 redirect to the matching flat route so older bookmarks and external links keep working.
 
@@ -45,7 +45,7 @@ Legacy `/mtg/*` and `/collections*` URLs return a 308 redirect to the matching f
 
 ## Mobile API Responsibilities
 
-The `/api/mobile/v1/:game/...` surface is optional and exists for non-browser clients. The PWA itself does not use it. The game segment is retained on this surface so future games can be added without breaking pinned mobile clients.
+The `/api/mobile/v1/mtg/...` surface is optional and exists for non-browser clients. The PWA itself does not use it. The route keeps the existing `mtg` segment for compatibility, not as a near-term multi-game commitment.
 
 - accept bearer-token authenticated requests
 - proxy catalog search and printing lookups server-side

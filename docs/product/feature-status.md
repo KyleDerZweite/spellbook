@@ -1,31 +1,40 @@
 # Feature Status
 
 - Status: Canonical
-- Last Reviewed: 2026-05-18
+- Last Reviewed: 2026-05-21
 - Source of Truth: mixed
 - Update Triggers: feature rollout changes, supported game changes, route changes, planned versus implemented status changes
-- Related Docs: [Product Docs](./README.md), [Platform Overview](./platform-overview.md), [Routing and Games](./routing-and-games.md)
+- Related Docs: [Product Docs](./README.md), [Platform Overview](./platform-overview.md), [Functional Requirements](./functional-requirements.md), [Routing and Games](./routing-and-games.md)
 
-This matrix tracks implemented behavior versus planned platform direction.
+This matrix tracks implemented MTG behavior versus the current product requirements.
 
 ## Current Product Focus
 
-The active product focus is backend MTG stabilization for search, inventory, decks, and catalog ingestion. Decks remain deprioritized in the user-facing navigation:
+The active product focus is an open-source, self-hosted MTG inventory and deck availability system.
 
-- decks is implemented but hidden from the navigation, hub, and manifest shortcuts; the `/decks` route still works via direct URL
-- play is not part of the Spellbook base app
+The next product phase should stabilize the functional workflow before a full visual redesign:
 
-## By Pillar and Game
+- inventory as the owned physical-card ledger
+- deck import/export
+- deck availability against inventory
+- scan/import review queues
+- stable APIs for automation
 
-| Game      | Search      | Inventory                    | Scan                                       | Decks                |
-| --------- | ----------- | ---------------------------- | ------------------------------------------ | -------------------- |
-| MTG       | Implemented | Implemented (being improved) | Backend scaffold, frontend surface pending | Implemented (hidden) |
-| Pokemon   | Planned     | Planned                      | Planned                                    | Planned              |
-| Yu-Gi-Oh! | Planned     | Planned                      | Planned                                    | Planned              |
+## By Pillar
+
+| Pillar              | Status                 | Notes                                                    |
+| ------------------- | ---------------------- | -------------------------------------------------------- |
+| MTG search          | Implemented            | MeiliSearch-backed Scryfall catalog                      |
+| MTG inventory       | Implemented            | Needs physical location and availability workflows       |
+| MTG decks           | Implemented            | Needs product redesign around deck availability          |
+| MTG imports/exports | Implemented            | Arena-style text supported for current APIs              |
+| MTG scan            | Backend foundation     | Recognition and frontend capture remain incomplete       |
+| Automation API      | Implemented foundation | Bulk inventory/deck APIs and import preview/commit exist |
+| Non-MTG games       | Out of scope           | Do not plan or implement during current product phase    |
 
 ## MTG Details
 
-### Implemented and active
+### Implemented
 
 - catalog search via MeiliSearch
 - printing picker from MTG card search
@@ -37,31 +46,33 @@ The active product focus is backend MTG stabilization for search, inventory, dec
 - mobile deck import preview and commit for MTG Arena-style lists
 - mobile deck export as MTG Arena-style text
 - warning-only lightweight deck legality checks during import preview and commit
+- scan session and scan review commit foundation
 
-### Implemented but hidden from surface
+### In progress or next
 
-- deck creation, deck editing, and owned-versus-required comparison remain available at `/decks` but are not advertised in the nav, hub, or manifest
-
-### In progress
-
-- installable PWA (manifest present, service worker not yet implemented)
+- physical card locations
+- assigned versus available inventory accounting
+- deck availability and build plans
+- simplified frontend information architecture
 - production-ready server-side scan recognizer
 - scan frontend capture surface
+- installable PWA completion
 
 ### Not implemented
 
+- importer profiles for ManaBox, Moxfield, Archidekt, and CSV
+- public deck sharing
+- marketplace workflows
+- price portfolio dashboard
 - non-MTG search adapters
 - non-MTG inventory and deck UIs
 
-## Platform Notes
+## Scope Notes
 
-- the frontend and backend are already partly game-aware
-- the active game lives in client state (cookie-backed) rather than the URL; user-facing routes are flat (see [Routing and Games](./routing-and-games.md) and [ADR-0004](../decisions/0004-flat-routes-with-active-game-state.md))
-- the current search client explicitly rejects non-MTG games
-- the backend currently creates only the MTG inventory on first authenticated data access
-- future TCGs are examples of direction, not committed releases
-- mobile is delivered as a PWA on the same SvelteKit frontend
-- mobile API foundations exist under `/api/mobile/v1/:game/...` as an optional integration boundary; the game segment is retained on that surface so future games can be added without breaking pinned clients
-- scan session, idempotent inventory mutation, and idempotent deck mutation infrastructure now exist in the backend
-- scan recognition remains outside the current backend stabilization sprint; existing scan API compatibility is retained
-- play is separated from the base app; a future play app may consume Spellbook catalog and deck data
+- MTG is the only supported game.
+- Existing game-aware fields may remain when already present, but new product work should not generalize for future games.
+- Mobile is delivered as a PWA on the same SvelteKit frontend.
+- Mobile API foundations exist under `/api/mobile/v1/:game/...` as an optional integration boundary. The current supported game segment is `mtg`.
+- Scan session, idempotent inventory mutation, and idempotent deck mutation infrastructure exist in the backend.
+- Scan recognition is secondary to getting the review and commit workflow right.
+- Play is separated from the base app; a future play app may consume Spellbook catalog and deck data.

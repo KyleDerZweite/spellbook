@@ -1,7 +1,7 @@
 # Mobile And Scan Architecture
 
 - Status: Canonical
-- Last Reviewed: 2026-05-17
+- Last Reviewed: 2026-05-21
 - Source of Truth: code
 - Update Triggers: PWA manifest or service worker changes, mobile API changes, scan worker changes, object storage changes, vector-search changes
 - Related Docs: [System Overview](./system-overview.md), [Frontend](./frontend.md), [Auth](./auth.md), [Postgres](./postgres.md), [Deployment](../operations/deployment.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md)
@@ -40,7 +40,7 @@ The native CameraX capture path from the previous Android shell is removed.
 
 ## Current Mobile API Surface
 
-The SvelteKit server still exposes a mobile contract under `/api/mobile/v1/:game/...` (currently `mtg`) with bearer-token validation. The game segment is retained on this surface so future games can be added without breaking pinned mobile clients.
+The SvelteKit server still exposes a mobile contract under `/api/mobile/v1/mtg/...` with bearer-token validation. The `mtg` segment is retained for compatibility with the existing API surface; current product scope is MTG only.
 
 Current route groups:
 

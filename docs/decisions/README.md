@@ -1,10 +1,10 @@
 # Decision Records
 
 - Status: Canonical
-- Last Reviewed: 2026-05-18
+- Last Reviewed: 2026-05-21
 - Source of Truth: mixed
 - Update Triggers: major architectural decisions, major product decisions, documentation system changes, supersession of earlier decisions
-- Related Docs: [ADR Template](./ADR-template.md), [ADR-0001](./0001-docs-first-knowledge-system.md), [ADR-0006](./0006-generic-oidc-and-internal-account-identity.md), [ADR-0007](./0007-backend-first-mtg-bulk-import-api.md), [Docs Index](../README.md)
+- Related Docs: [ADR Template](./ADR-template.md), [ADR-0001](./0001-docs-first-knowledge-system.md), [ADR-0006](./0006-generic-oidc-and-internal-account-identity.md), [ADR-0007](./0007-backend-first-mtg-bulk-import-api.md), [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md), [Docs Index](../README.md)
 
 This section stores architecture and product decision records.
 
@@ -34,7 +34,8 @@ Rules:
 - [ADR-0001: Docs-first knowledge system](./0001-docs-first-knowledge-system.md)
 - [ADR-0002: Android-first mobile client and server-side scan pipeline](./0002-android-first-mobile-and-server-side-scan.md) (superseded by ADR-0003)
 - [ADR-0003: PWA-first mobile client and server-side scan pipeline](./0003-pwa-first-mobile-and-server-side-scan.md)
-- [ADR-0004: Flat user-facing routes with active game in client state](./0004-flat-routes-with-active-game-state.md)
+- [ADR-0004: Flat user-facing routes with active game in client state](./0004-flat-routes-with-active-game-state.md) (superseded by ADR-0008 for product scope)
 - [ADR-0005: Postgres core data and separated play app](./0005-postgres-core-data-and-separated-play-app.md)
 - [ADR-0006: Generic OIDC and internal account identity](./0006-generic-oidc-and-internal-account-identity.md)
 - [ADR-0007: Backend-first MTG bulk and import API](./0007-backend-first-mtg-bulk-import-api.md)
+- [ADR-0008: MTG-only self-hosted inventory and deck availability](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md)

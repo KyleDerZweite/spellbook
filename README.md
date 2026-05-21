@@ -1,22 +1,23 @@
 # Spellbook
 
-**MTG-first, multi-TCG platform for search, inventory, decks, and scan**
+**Open-source, self-hosted MTG inventory and deck availability**
 
-Spellbook is a self-hosted trading card game platform. Today, MTG is the only implemented game. The live product uses flat user-facing routes with the active game tracked in client state.
+Spellbook is a self-hosted Magic: The Gathering application for people who want to own their collection data, automate inventory workflows, and answer what decks they can build from the cards they physically have.
 
 Active MTG product areas:
 
 - search
 - inventory
-- scan (backend scaffold, frontend surface in progress)
+- deck import, export, and availability
+- scan review foundation
 
-Implemented but hidden from the active surface:
+Product direction:
 
-- decks (reachable at `/decks` via direct URL)
-
-Planned platform direction:
-
-- future supported games sharing the same search, inventory, scan, and deck surfaces
+- MTG only
+- open source and self-hosted
+- automation-friendly APIs
+- no cloud lock-in
+- no attempt to compete with full-service deckbuilding or marketplace apps
 
 ## Current Routes
 
@@ -43,13 +44,13 @@ Core stack:
 
 ## Status
 
-| Area             | Status                                         |
-| ---------------- | ---------------------------------------------- |
-| MTG search       | Implemented (active)                           |
-| MTG inventory    | Implemented (active, being improved)           |
-| MTG scan         | Backend scaffold, frontend surface in progress |
-| MTG decks        | Implemented, hidden from product surface       |
-| Non-MTG adapters | Not implemented                                |
+| Area             | Status                                      |
+| ---------------- | ------------------------------------------- |
+| MTG search       | Implemented (active)                        |
+| MTG inventory    | Implemented (active, being improved)        |
+| MTG decks        | Implemented, product surface needs redesign |
+| MTG scan         | Backend scaffold and review flow foundation |
+| Non-MTG adapters | Out of scope                                |
 
 ## Documentation
 

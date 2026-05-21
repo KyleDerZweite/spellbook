@@ -1,9 +1,13 @@
 # ADR-0004: Flat User-Facing Routes With Active Game In Client State
 
-- Status: Accepted
+- Status: Superseded by [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md)
 - Date: 2026-04-18
 - Owners: Spellbook maintainers
-- Related Docs: [Routing and Games](../product/routing-and-games.md), [Feature Status](../product/feature-status.md), [Frontend Architecture](../architecture/frontend.md), [Platform Overview](../product/platform-overview.md)
+- Related Docs: [Routing and Games](../product/routing-and-games.md), [Feature Status](../product/feature-status.md), [Frontend Architecture](../architecture/frontend.md), [Platform Overview](../product/platform-overview.md), [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md)
+
+## Supersession Note
+
+ADR-0008 supersedes the multi-game product direction behind this decision. The flat user-facing route surface remains current, but active-game switching and future second-game planning are no longer product requirements.
 
 ## Context
 

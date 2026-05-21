@@ -1,34 +1,45 @@
 # UI Design Direction
 
 - Status: Canonical
-- Last Reviewed: 2026-04-25
+- Last Reviewed: 2026-05-21
 - Source of Truth: mixed
-- Update Triggers: major visual direction changes, IA changes, route model changes, game-scoping changes
-- Related Docs: [Product Docs](./README.md), [Platform Overview](./platform-overview.md), [Routing and Games](./routing-and-games.md), [Frontend Architecture](../architecture/frontend.md), [ADR-0004](../decisions/0004-flat-routes-with-active-game-state.md)
+- Update Triggers: major visual direction changes, IA changes, route model changes, MTG workflow changes
+- Related Docs: [Product Docs](./README.md), [Platform Overview](./platform-overview.md), [Functional Requirements](./functional-requirements.md), [Routing and Games](./routing-and-games.md), [Frontend Architecture](../architecture/frontend.md), [ADR-0008](../decisions/0008-mtg-only-self-hosted-inventory-and-deck-availability.md)
 
-Spellbook should feel like a card-world platform, not a generic dashboard.
+Spellbook should feel like a focused MTG collection workspace, not a generic dashboard and not a broad TCG platform.
+
+The current frontend is not the final visual direction. Functional workflow should be settled before a full redesign.
 
 ## Design Position
 
 The product should read as:
 
-- MTG-first today
-- multi-TCG-capable in structure
-- card-centric in every surface
+- MTG-only
+- private and self-hosted
+- practical for repeat inventory and deck-availability workflows
+- card-centric, but operationally clear
+- aligned to the owner brand direction after functionality is decided
 
-Cards are the primary visual object. Search, inventory, scan, and decks should all feel like they belong to the same product family while still allowing per-game identity later.
+Cards are the primary visual object, but the frontend should optimize for clarity and repeated work. Search, inventory, decks, imports, and scan review should feel like one focused MTG tool.
 
 ## Visual Language
 
-The active visual direction remains the "Arcane Library" look:
+Future design should prioritize:
 
-- warm near-black backgrounds
-- gold and amber as primary accents
-- serif-heavy typography
-- ornament used sparingly but intentionally
-- card art treated as a first-class surface
+- simple navigation
+- dense but readable inventory and deck tables
+- clear card thumbnails and printing identity
+- explicit actions for import, commit, move, assign, and export
+- restrained visual styling
+- mobile-friendly review flows
 
-This direction is currently strongest for MTG, but the platform should leave room for future game-specific accents and framing.
+Avoid locking future implementation into:
+
+- decorative landing-page composition
+- game-switching UI
+- social or community surfaces
+- generic TCG framing
+- visual effects that compete with card data
 
 ## Information Architecture
 
@@ -39,32 +50,50 @@ The active user-facing routes are flat:
 - `/`
 - `/search`
 - `/inventory`
-- `/decks` (implemented, hidden from nav and hub)
+- `/decks`
 
-The active game is held in client state (cookie-backed) and switched through the in-nav `GameSwitcher` rather than the URL. Legacy `/mtg/*` and `/collections*` URLs 308-redirect into the flat surface for backwards compatibility.
+MTG is the only supported game. Legacy `/mtg/*` and `/collections*` URLs 308-redirect into the flat surface for backwards compatibility.
 
-### Planned IA direction
+### Future IA direction
 
-Design work should assume the flat surface keeps the same shape as more games ship. Surfaces should branch on the active game in client state, not on the URL. See [ADR-0004](../decisions/0004-flat-routes-with-active-game-state.md).
+The frontend should be reorganized around the core workflows:
+
+- search catalog
+- manage inventory
+- import inventory
+- import deck
+- inspect deck availability
+- review scan/import candidates
+- export or automate
+
+The exact visual treatment should come after these workflows are clear and tested.
 
 ## Product Surface Notes
 
 ### Search
 
 - search is the primary catalog discovery surface
-- filters should stay dense, readable, and card-domain specific
+- filters should stay dense, readable, and MTG-specific
 - card detail should support printing choice and inventory handoff
 
 ### Inventory
 
 - inventory is the canonical owned ledger
+- physical location and availability should become first-class concepts
+- list/table workflows should be favored before decorative collection views
 - "spellbook" is an MTG inventory presentation mode, not a separate domain object
-- the binder-like spellbook view should feel physical and tactile
 
 ### Decks
 
 - decks are distinct from owned inventory
-- deck UI should continue to show owned-versus-required tension clearly
+- deck UI should focus on availability: owned, missing, alternate printing available, and already assigned elsewhere
+- deck import/export should be easy to find and safe to use
+
+### Scan Review
+
+- scan recognition should feed a review queue, not silently mutate inventory
+- ambiguous or low-confidence results should be explicit and correctable
+- commit should reuse canonical inventory mutation behavior
 
 ### Future Separate Play App
 
