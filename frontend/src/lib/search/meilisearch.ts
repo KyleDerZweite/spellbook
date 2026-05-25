@@ -12,6 +12,10 @@ const DEFAULT_GAME: Game = 'mtg';
  * Must be called once before any search functions are used.
  */
 export function initMeiliSearch(searchKey: string): void {
+	if (!publicEnv.PUBLIC_MEILISEARCH_URL) {
+		throw new Error('PUBLIC_MEILISEARCH_URL must be configured before initializing search');
+	}
+
 	client = new Meilisearch({
 		host: publicEnv.PUBLIC_MEILISEARCH_URL,
 		apiKey: searchKey
