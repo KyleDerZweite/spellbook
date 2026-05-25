@@ -121,14 +121,13 @@ class _DocumentStore:
 
     def iter_by_release_desc(self) -> Iterator[dict]:
         self.flush()
-        cursor = self.conn.execute(
-            "SELECT body FROM docs ORDER BY released_at DESC, seq ASC"
-        )
+        cursor = self.conn.execute("SELECT body FROM docs ORDER BY released_at DESC, seq ASC")
         for (body,) in cursor:
             yield json.loads(body)
 
     def close(self) -> None:
         self.conn.close()
+
 
 INDEX_SETTINGS_DISTINCT: dict = {
     "searchableAttributes": _SEARCHABLE,
@@ -231,9 +230,7 @@ class MeiliIndexer:
                 distinct_next = self._configure_staging_index(
                     "cards_distinct_next", INDEX_SETTINGS_DISTINCT
                 )
-                all_next = self._configure_staging_index(
-                    "cards_all_next", INDEX_SETTINGS_ALL
-                )
+                all_next = self._configure_staging_index("cards_all_next", INDEX_SETTINGS_ALL)
 
                 log.info("Uploading to cards_distinct_next (%d docs)", store.count)
                 distinct_tasks = self._upload_to_index(

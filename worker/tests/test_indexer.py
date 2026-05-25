@@ -235,7 +235,7 @@ class TestIterJsonArray:
 
     def test_handles_whitespace_and_newlines(self, tmp_path):
         path = tmp_path / "cards.json"
-        path.write_text("\n  [\n  {\"id\": 1},\n  {\"id\": 2}\n  ]\n")
+        path.write_text('\n  [\n  {"id": 1},\n  {"id": 2}\n  ]\n')
         with path.open() as fh:
             result = list(_iter_json_array(fh))
         assert [obj["id"] for obj in result] == [1, 2]

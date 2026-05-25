@@ -181,8 +181,7 @@ class TestMainPeriodicSyncPassesDataDir:
         # The periodic call must pass config.data_dir, not the default.
         calls = mock_seed.call_args_list
         assert any(
-            call.args[2] == tmp_path or call.kwargs.get("data_dir") == tmp_path
-            for call in calls
+            call.args[2] == tmp_path or call.kwargs.get("data_dir") == tmp_path for call in calls
         ), f"Expected seed_initial called with data_dir={tmp_path}, got {calls}"
 
 
