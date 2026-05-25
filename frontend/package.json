@@ -10,7 +10,7 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"test:unit": "vitest run --project unit",
 		"test:integration": "vitest run --project integration",
-		"lint": "prettier --check . && svelte-check --tsconfig ./tsconfig.json",
+		"lint": "svelte-kit sync && prettier --check . && svelte-check --tsconfig ./tsconfig.json",
 		"format": "prettier --write .",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
