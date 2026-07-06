@@ -1,7 +1,7 @@
 # GitHub Automation
 
 - Status: Canonical
-- Last Reviewed: 2026-05-21
+- Last Reviewed: 2026-07-06
 - Source of Truth: repo config
 - Update Triggers: workflow logic changes, PR policy changes, branch protection changes, Dependabot policy changes
 - Related Docs: [Operations Docs](./README.md), [Deployment](./deployment.md), [Docs Index](../README.md)
@@ -31,3 +31,5 @@ The current workflow checks:
 - frontend integration tests against Postgres
 - worker Ruff and pytest
 - scan-worker Ruff and pytest
+
+CI is test-only. No workflow builds or publishes container images, and there is no deployment automation. Container builds and deploys are manual operator steps.

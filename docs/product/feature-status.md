@@ -1,7 +1,7 @@
 # Feature Status
 
 - Status: Canonical
-- Last Reviewed: 2026-05-21
+- Last Reviewed: 2026-07-06
 - Source of Truth: mixed
 - Update Triggers: feature rollout changes, supported game changes, route changes, planned versus implemented status changes
 - Related Docs: [Product Docs](./README.md), [Platform Overview](./platform-overview.md), [Functional Requirements](./functional-requirements.md), [Routing and Games](./routing-and-games.md)

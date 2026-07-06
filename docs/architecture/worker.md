@@ -1,7 +1,7 @@
 # Worker
 
 - Status: Canonical
-- Last Reviewed: 2026-05-18
+- Last Reviewed: 2026-07-06
 - Source of Truth: code
 - Update Triggers: sync flow changes, Scryfall ingest changes, index behavior changes, state marker changes
 - Related Docs: [System Overview](./system-overview.md), [MeiliSearch Overview](../integrations/meilisearch/README.md), [Tasks](../integrations/meilisearch/tasks.md)
@@ -42,3 +42,8 @@ WORKER_DATA_DIR=/app/data
 ```
 
 The status file includes Scryfall update timestamps, the last successful sync time, the last indexed document count, and the last error. Scryfall update timestamps are written only after indexing and index swapping complete successfully.
+
+## Current Limitations
+
+- The `LANGUAGES` env var is parsed into config but not applied. All languages present in the Scryfall bulk snapshot are indexed.
+- The worker exposes no HTTP health endpoint or metrics. Its status is observable only through logs and `state.json`.
