@@ -17,13 +17,13 @@
 		"db:check": "drizzle-kit check"
 	},
 	"dependencies": {
-		"@aws-sdk/client-s3": "^3.1053.0",
+		"@aws-sdk/client-s3": "^3.1085.0",
 		"bits-ui": "^2.18.1",
 		"drizzle-orm": "^0.45.2",
 		"jose": "^6.2.3",
 		"mana-font": "^1.18.0",
-		"meilisearch": "^0.58.0",
-		"pg": "^8.21.0"
+		"meilisearch": "^0.59.0",
+		"pg": "^8.22.0"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-node": "^5.5.4",
