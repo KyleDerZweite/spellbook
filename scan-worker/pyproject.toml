@@ -7,7 +7,7 @@ name = "spellbook-scan-worker"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
-    "fastapi>=0.136.3",
+    "fastapi>=0.141.1",
     "orjson>=3.11.9",
     "uvicorn>=0.48.0",
 ]
