@@ -1,7 +1,7 @@
 # Deployment Guide
 
 - Status: Canonical
-- Last Reviewed: 2026-05-18
+- Last Reviewed: 2026-07-06
 - Source of Truth: mixed
 - Update Triggers: service topology changes, env var changes, auth boundary changes, compose changes
 - Related Docs: [Operations Docs](./README.md), [OIDC Auth Setup](./oidc.md), [Zitadel Provider Notes](./zitadel.md), [Auth Architecture](../architecture/auth.md), [System Overview](../architecture/system-overview.md)
@@ -31,6 +31,8 @@ The mobile and scan foundation adds these services:
 | `qdrant`      | Vector index for image embedding retrieval                                 |
 
 Retained scan artifacts use a configurable storage driver. The base compose file is production-shaped and defaults to S3-compatible storage. Local development can layer `podman-compose.dev.yml` on top to use a local named volume instead.
+
+Only `postgres` defines a compose health check. `db-migrate` waits for a healthy Postgres, but other services rely on restart policies and application-level retries (the worker retries MeiliSearch with backoff). The frontend `depends_on` does not gate on migration completion.
 
 ## Auth Model
 
@@ -78,7 +80,7 @@ Pangolin is used only as transport and reverse-proxy infrastructure in this depl
 | `MEILI_MASTER_KEY`   | MeiliSearch admin key                                              |
 | `AGGRESSIVE_PRELOAD` | `true` loads `all_cards` in the background                         |
 | `SYNC_INTERVAL`      | `daily`, `weekly`, or `manual`                                     |
-| `LANGUAGES`          | Comma-separated language codes                                     |
+| `LANGUAGES`          | Comma-separated language codes. Reserved: currently has no effect; the worker indexes all languages present in the Scryfall bulk snapshot |
 | `WORKER_DATA_DIR`    | Worker state directory. Compose sets `/app/data` on a named volume |
 
 ## MeiliSearch Search Key Behavior
