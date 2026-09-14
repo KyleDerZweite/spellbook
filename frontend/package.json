@@ -17,12 +17,12 @@
 		"db:check": "drizzle-kit check"
 	},
 	"dependencies": {
-		"@aws-sdk/client-s3": "^3.1121.0",
-		"bits-ui": "^2.19.0",
+		"@aws-sdk/client-s3": "^3.1130.0",
+		"bits-ui": "^2.19.2",
 		"drizzle-orm": "^0.45.2",
-		"jose": "^6.2.10",
+		"jose": "^6.2.12",
 		"mana-font": "^1.18.0",
-		"meilisearch": "^0.60.0",
+		"meilisearch": "^0.62.0",
 		"pg": "^8.23.0"
 	},
 	"devDependencies": {
