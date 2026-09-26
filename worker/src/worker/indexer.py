@@ -88,6 +88,39 @@ def _iter_json_array(fh: IO[str]) -> Iterator[dict]:
             return
 
 
+def _iter_jsonl(fh: IO[str]) -> Iterator[dict]:
+    """Yield each object from a JSON Lines stream without holding the file.
+
+    Scryfall's current bulk files are newline-delimited JSON, one card object
+    per line, instead of a single top-level JSON array.
+    """
+    for line in fh:
+        line = line.strip()
+        if not line:
+            continue
+        yield json.loads(line)
+
+
+def _detect_bulk_format(fh: IO[str]) -> str:
+    """Return "jsonl" or "array" by peeking at the first significant byte.
+
+    Restores the stream position, so the caller can parse the same handle.
+    """
+    position = fh.tell()
+    buf = ""
+    while True:
+        chunk = fh.read(_STREAM_CHUNK_SIZE)
+        if not chunk:
+            break
+        buf += chunk
+        stripped = buf.lstrip(_SKIP_CHARS)
+        if stripped:
+            fh.seek(position)
+            return "jsonl" if stripped[0] == "{" else "array"
+    fh.seek(position)
+    return "array"
+
+
 class _DocumentStore:
     """Disk-backed transformed document store used during reindexing."""
 
@@ -198,13 +231,14 @@ class MeiliIndexer:
         return self._get_count(self.distinct_index)
 
     def index_from_file(self, file_path: Path) -> int:
-        """Read a bulk data JSON file, transform cards, upload to both indexes.
+        """Read a bulk data file, transform cards, upload to both indexes.
 
         Cards are sorted by released_at descending (newest first) so that
         MeiliSearch's distinctAttribute keeps the most recent printing.
 
-        The Scryfall ``all_cards`` bulk file is multi-GB, so the JSON array is
-        decoded incrementally instead of loaded all at once.
+        The Scryfall ``all_cards`` bulk file is multi-GB, so the payload is
+        decoded incrementally instead of loaded all at once. Both the legacy
+        JSON array and the current JSON Lines layout are supported.
 
         Returns the number of documents indexed.
         """
@@ -215,7 +249,10 @@ class MeiliIndexer:
                 seen = 0
                 skipped = 0
                 with file_path.open("r", encoding="utf-8") as fh:
-                    for card in _iter_json_array(fh):
+                    fmt = _detect_bulk_format(fh)
+                    log.info("Detected bulk format: %s", fmt)
+                    cards = _iter_jsonl(fh) if fmt == "jsonl" else _iter_json_array(fh)
+                    for card in cards:
                         seen += 1
                         doc = transform_card(card)
                         if doc is not None:

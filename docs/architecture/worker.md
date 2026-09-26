@@ -1,7 +1,7 @@
 # Worker
 
 - Status: Canonical
-- Last Reviewed: 2026-05-18
+- Last Reviewed: 2026-09-26
 - Source of Truth: code
 - Update Triggers: sync flow changes, Scryfall ingest changes, index behavior changes, state marker changes
 - Related Docs: [System Overview](./system-overview.md), [MeiliSearch Overview](../integrations/meilisearch/README.md), [Tasks](../integrations/meilisearch/tasks.md)
@@ -15,6 +15,12 @@ The Python worker is responsible for MTG catalog ingestion and indexing.
 - seed `default_cards` when needed
 - optionally preload `all_cards` in the background
 - persist sync status under `WORKER_DATA_DIR/state.json`
+
+## Current Scryfall Bulk Ingest
+
+Scryfall serves the bulk payload as gzip-compressed JSON Lines and exposes the download location as `jsonl_download_uri` with `compressed_size`. The worker accepts that shape and the older uncompressed `download_uri`/`size` JSON array, so older snapshots still ingest.
+
+The download is decompressed while streaming, so the file under `WORKER_DATA_DIR` is always plain text. The indexer picks the parser from the first significant byte of that file, `{` for JSON Lines and `[` for the legacy array.
 
 ## Current Sync Model
 

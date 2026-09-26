@@ -6,8 +6,10 @@ from worker.indexer import (
     INDEX_SETTINGS_ALL,
     INDEX_SETTINGS_DISTINCT,
     MeiliIndexer,
+    _detect_bulk_format,
     _DocumentStore,
     _iter_json_array,
+    _iter_jsonl,
 )
 
 
@@ -302,3 +304,69 @@ class TestGetCount:
         indexer = MeiliIndexer.__new__(MeiliIndexer)
         with pytest.raises(MeilisearchApiError):
             indexer._get_count(mock_index)
+
+
+class TestIterJsonl:
+    """Stream-parse JSON Lines bulk files without loading the whole document."""
+
+    def test_decodes_each_line_in_order(self, tmp_path):
+        path = tmp_path / "cards.jsonl"
+        path.write_text('{"id": 1, "name": "a"}\n{"id": 2, "name": "b"}\n')
+        with path.open() as fh:
+            result = list(_iter_jsonl(fh))
+        assert result == [{"id": 1, "name": "a"}, {"id": 2, "name": "b"}]
+
+    def test_handles_final_line_without_newline(self, tmp_path):
+        path = tmp_path / "cards.jsonl"
+        path.write_text('{"id": 1}\n{"id": 2}')
+        with path.open() as fh:
+            result = list(_iter_jsonl(fh))
+        assert [obj["id"] for obj in result] == [1, 2]
+
+    def test_skips_blank_lines(self, tmp_path):
+        path = tmp_path / "cards.jsonl"
+        path.write_text('\n{"id": 1}\n\n{"id": 2}\n\n')
+        with path.open() as fh:
+            result = list(_iter_jsonl(fh))
+        assert [obj["id"] for obj in result] == [1, 2]
+
+    def test_empty_file(self, tmp_path):
+        path = tmp_path / "cards.jsonl"
+        path.write_text("")
+        with path.open() as fh:
+            assert list(_iter_jsonl(fh)) == []
+
+
+class TestDetectBulkFormat:
+    """Pick the parser from the first significant byte of the bulk file."""
+
+    def test_detects_jsonl(self, tmp_path):
+        path = tmp_path / "cards.jsonl"
+        path.write_text('{"id": 1}\n{"id": 2}\n')
+        with path.open() as fh:
+            assert _detect_bulk_format(fh) == "jsonl"
+
+    def test_detects_json_array(self, tmp_path):
+        path = tmp_path / "cards.json"
+        path.write_text('[{"id": 1}]')
+        with path.open() as fh:
+            assert _detect_bulk_format(fh) == "array"
+
+    def test_detects_json_array_after_leading_whitespace(self, tmp_path):
+        path = tmp_path / "cards.json"
+        path.write_text('\n  [\n  {"id": 1}\n]\n')
+        with path.open() as fh:
+            assert _detect_bulk_format(fh) == "array"
+
+    def test_defaults_to_array_for_empty_file(self, tmp_path):
+        path = tmp_path / "empty.json"
+        path.write_text("")
+        with path.open() as fh:
+            assert _detect_bulk_format(fh) == "array"
+
+    def test_rewinds_so_the_parser_can_consume_the_handle(self, tmp_path):
+        path = tmp_path / "cards.jsonl"
+        path.write_text('{"id": 1}\n{"id": 2}\n')
+        with path.open() as fh:
+            assert _detect_bulk_format(fh) == "jsonl"
+            assert [obj["id"] for obj in _iter_jsonl(fh)] == [1, 2]

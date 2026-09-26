@@ -1,3 +1,4 @@
+import gzip
 import json
 from pathlib import Path
 
@@ -13,6 +14,11 @@ FIXTURES = Path(__file__).parent / "fixtures"
 @pytest.fixture
 def bulk_list_json():
     return json.loads((FIXTURES / "bulk_data_list.json").read_text())
+
+
+@pytest.fixture
+def bulk_list_json_jsonl():
+    return json.loads((FIXTURES / "bulk_data_list_jsonl.json").read_text())
 
 
 class TestFetchBulkDataList:
@@ -152,3 +158,86 @@ class TestDownloadBulkFile:
         dest = tmp_path / "nested" / "dir" / "cards.json"
         client.download_bulk_file(info, dest)
         assert dest.exists()
+
+
+class TestFetchBulkDataListCurrentFields:
+    """Tests for the current bulk data field names.
+
+    Scryfall replaced download_uri/size with jsonl_download_uri/compressed_size.
+    """
+
+    @respx.mock
+    def test_parses_jsonl_download_uri(self, bulk_list_json_jsonl):
+        respx.get("https://api.scryfall.com/bulk-data").mock(
+            return_value=httpx.Response(200, json=bulk_list_json_jsonl)
+        )
+        client = ScryfallClient("https://api.scryfall.com/bulk-data")
+        items = client.fetch_bulk_data_list()
+        assert items[0].download_uri.endswith(".jsonl.gz")
+
+    @respx.mock
+    def test_parses_compressed_size(self, bulk_list_json_jsonl):
+        respx.get("https://api.scryfall.com/bulk-data").mock(
+            return_value=httpx.Response(200, json=bulk_list_json_jsonl)
+        )
+        client = ScryfallClient("https://api.scryfall.com/bulk-data")
+        items = client.fetch_bulk_data_list()
+        assert items[0].size == 78601324
+
+    @respx.mock
+    def test_parses_all_types(self, bulk_list_json_jsonl):
+        respx.get("https://api.scryfall.com/bulk-data").mock(
+            return_value=httpx.Response(200, json=bulk_list_json_jsonl)
+        )
+        client = ScryfallClient("https://api.scryfall.com/bulk-data")
+        items = client.fetch_bulk_data_list()
+        assert [item.type for item in items] == ["default_cards", "all_cards", "oracle_cards"]
+
+    @respx.mock
+    def test_get_download_info_resolves_current_shape(self, bulk_list_json_jsonl):
+        respx.get("https://api.scryfall.com/bulk-data").mock(
+            return_value=httpx.Response(200, json=bulk_list_json_jsonl)
+        )
+        client = ScryfallClient("https://api.scryfall.com/bulk-data")
+        info = client.get_download_info("default_cards")
+        assert info is not None
+        assert info.download_uri.endswith(".jsonl.gz")
+
+
+class TestDownloadGzippedBulkFile:
+    """Current bulk payloads are gzip-compressed and must land as plain text."""
+
+    @respx.mock
+    def test_decompresses_gzip_payload(self, tmp_path):
+        cards = [{"id": "card-1", "name": "Test Card"}]
+        payload = gzip.compress(json.dumps(cards).encode())
+        respx.get("https://data.scryfall.io/default-cards/cards.jsonl.gz").mock(
+            return_value=httpx.Response(200, content=payload)
+        )
+        client = ScryfallClient("https://api.scryfall.com/bulk-data")
+        info = BulkDataInfo(
+            type="default_cards",
+            download_uri="https://data.scryfall.io/default-cards/cards.jsonl.gz",
+            updated_at="2026-09-26T09:05:51+00:00",
+            size=len(payload),
+        )
+        dest = tmp_path / "cards.jsonl"
+        client.download_bulk_file(info, dest)
+        assert json.loads(dest.read_text()) == cards
+
+    @respx.mock
+    def test_leaves_uncompressed_payload_untouched(self, tmp_path):
+        cards = [{"id": "card-1"}]
+        respx.get("https://data.scryfall.io/legacy.json").mock(
+            return_value=httpx.Response(200, content=json.dumps(cards).encode())
+        )
+        client = ScryfallClient("https://api.scryfall.com/bulk-data")
+        info = BulkDataInfo(
+            type="default_cards",
+            download_uri="https://data.scryfall.io/legacy.json",
+            updated_at="2026-09-26",
+            size=10,
+        )
+        dest = tmp_path / "legacy.json"
+        client.download_bulk_file(info, dest)
+        assert json.loads(dest.read_text()) == cards
