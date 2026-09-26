@@ -12,6 +12,79 @@ def load_fixture(name: str) -> dict:
     return json.loads((FIXTURES / name).read_text())
 
 
+class TestTransformLocalizedCard:
+    """Localized printings carry the translated name in printed_name."""
+
+    def test_keeps_the_english_name_in_name(self):
+        doc = transform_card(
+            {
+                "id": "test-id",
+                "oracle_id": "test-oracle-id",
+                "layout": "normal",
+                "name": "Light Up the Stage",
+                "printed_name": "In Szene setzen",
+                "lang": "de",
+            }
+        )
+        assert doc is not None
+        assert doc["name"] == "Light Up the Stage"
+
+    def test_surfaces_the_localized_name(self):
+        doc = transform_card(
+            {
+                "id": "test-id",
+                "oracle_id": "test-oracle-id",
+                "layout": "normal",
+                "name": "Light Up the Stage",
+                "printed_name": "In Szene setzen",
+                "lang": "de",
+            }
+        )
+        assert doc is not None
+        assert doc["printed_name"] == "In Szene setzen"
+
+    def test_surfaces_the_language_code(self):
+        doc = transform_card(
+            {
+                "id": "test-id",
+                "oracle_id": "test-oracle-id",
+                "layout": "normal",
+                "name": "Light Up the Stage",
+                "printed_name": "In Szene setzen",
+                "lang": "de",
+            }
+        )
+        assert doc is not None
+        assert doc["lang"] == "de"
+
+    def test_empty_printed_name_when_scryfall_has_none(self):
+        doc = transform_card(
+            {
+                "id": "test-id",
+                "oracle_id": "test-oracle-id",
+                "layout": "normal",
+                "name": "Light Up the Stage",
+                "lang": "en",
+            }
+        )
+        assert doc is not None
+        assert doc["printed_name"] == ""
+
+    def test_normalized_name_stays_english(self):
+        doc = transform_card(
+            {
+                "id": "test-id",
+                "oracle_id": "test-oracle-id",
+                "layout": "normal",
+                "name": "Light Up the Stage",
+                "printed_name": "In Szene setzen",
+                "lang": "de",
+            }
+        )
+        assert doc is not None
+        assert doc["normalized_name"] == "light up the stage"
+
+
 class TestTransformNormalCard:
     """Test transformation of a standard single-face card."""
 
@@ -30,6 +103,9 @@ class TestTransformNormalCard:
 
     def test_normalized_name(self, doc):
         assert doc["normalized_name"] == "llanowar elves"
+
+    def test_printed_name_empty_for_english_printing(self, doc):
+        assert doc["printed_name"] == ""
 
     def test_type_line(self, doc):
         assert doc["type_line"] == "Creature \u2014 Elf Druid"

@@ -53,6 +53,14 @@ class TestIndexSettings:
     def test_searchable_includes_name(self):
         assert "name" in INDEX_SETTINGS_DISTINCT["searchableAttributes"]
 
+    def test_searchable_includes_printed_name(self):
+        assert "printed_name" in INDEX_SETTINGS_DISTINCT["searchableAttributes"]
+        assert "printed_name" in INDEX_SETTINGS_ALL["searchableAttributes"]
+
+    def test_printed_name_ranks_after_name(self):
+        attributes = INDEX_SETTINGS_DISTINCT["searchableAttributes"]
+        assert attributes.index("printed_name") == attributes.index("name") + 1
+
     def test_searchable_includes_oracle_text(self):
         assert "oracle_text" in INDEX_SETTINGS_DISTINCT["searchableAttributes"]
 

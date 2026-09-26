@@ -1,7 +1,7 @@
 # MeiliSearch Documents
 
 - Status: Canonical
-- Last Reviewed: 2026-05-18
+- Last Reviewed: 2026-09-26
 - Source of Truth: code
 - Update Triggers: worker transform changes, primary key changes, stored field changes
 - Related Docs: [MeiliSearch Overview](./README.md), [Indexes and Settings](./indexes-and-settings.md), [Worker Architecture](../../architecture/worker.md)
@@ -21,6 +21,10 @@ In Spellbook, `id` is the Scryfall card printing ID.
 - documents are sorted by `released_at` descending before upload
 - the same transformed document set is uploaded to both `cards_distinct` and `cards_all`
 - each document includes `normalized_name` for exact import matching
+- each document includes `printed_name`, the localized name Scryfall reports for non-English printings, and an empty string for printings without one
+- each document includes `lang`, the Scryfall language code of the printing
+
+`name` always holds the English card name, including on localized printings. Scryfall keeps the printed name in a separate field, so `printed_name` is what makes a search in the printed language resolve to the same card.
 
 ## Import Fields
 

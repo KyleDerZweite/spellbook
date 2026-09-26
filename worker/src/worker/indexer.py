@@ -16,7 +16,7 @@ from worker.transform import transform_card
 log = logging.getLogger("worker.indexer")
 
 # Spec Section 4: MeiliSearch Index Configuration
-_SEARCHABLE = ["name", "type_line", "oracle_text", "set_name"]
+_SEARCHABLE = ["name", "printed_name", "type_line", "oracle_text", "set_name"]
 _FILTERABLE = [
     "colors",
     "color_identity",

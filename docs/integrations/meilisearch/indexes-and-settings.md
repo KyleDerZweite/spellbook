@@ -1,7 +1,7 @@
 # MeiliSearch Indexes and Settings
 
 - Status: Canonical
-- Last Reviewed: 2026-05-18
+- Last Reviewed: 2026-09-26
 - Source of Truth: code
 - Update Triggers: index setting changes, filterable attribute changes, sortability changes, distinct behavior changes
 - Related Docs: [MeiliSearch Overview](./README.md), [Search API](./search-api.md), [Worker Architecture](../../architecture/worker.md)
@@ -22,6 +22,18 @@ This document records the current Spellbook index setup.
 - no distinct attribute
 - purpose: printing lookup and set plus collector-number import resolution
 - pagination max total hits: `5000`
+
+## Searchable Attributes
+
+Both live indexes search the same attributes, in this ranking order:
+
+- `name`
+- `printed_name`
+- `type_line`
+- `oracle_text`
+- `set_name`
+
+`printed_name` holds the localized name for non-English printings. Placing it directly after `name` keeps an exact English match ranked above a localized one while still resolving a search in the printed language.
 
 ## Import Resolver Fields
 
