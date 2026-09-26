@@ -1,7 +1,11 @@
+# pnpm is pinned to the version CI uses (pnpm 9, matching lockfileVersion 9.0).
+# `pnpm@latest` drifted to pnpm 12, which no longer reads the `pnpm.overrides`
+# field in package.json, so `pnpm install --frozen-lockfile` failed with
+# ERR_PNPM_LOCKFILE_CONFIG_MISMATCH in both stages.
 # Stage 1: Build
 FROM node:22-slim AS builder
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@9 --activate
 
 WORKDIR /app
 
@@ -21,7 +25,7 @@ CMD ["pnpm", "db:migrate"]
 # Stage 2: Runtime
 FROM node:22-slim AS runtime
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@9 --activate
 
 WORKDIR /app
 
