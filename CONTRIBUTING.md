@@ -10,10 +10,10 @@ Thanks for your interest in improving Spellbook.
 
 ## Development Workflow
 
-1. Fork the repository and create a branch from `v1`.
+1. Fork the repository and create a branch from `main`.
 2. Make your changes with clear commit messages.
 3. Run relevant tests and linters locally before opening a PR.
-4. Open a pull request against `v1` with a concise description.
+4. Open a pull request against `main` with a concise description.
 
 ## Pull Request Expectations
 
