@@ -94,6 +94,13 @@ async function getMetadata(config: OidcAuthConfig): Promise<OidcMetadata> {
 			return (await response.json()) as OidcMetadata;
 		});
 		metadataCache.set(config.issuer, cached);
+		// A rejected promise must not stay cached, otherwise one transient
+		// discovery failure breaks every later login until the process restarts.
+		cached.catch(() => {
+			if (metadataCache.get(config.issuer) === cached) {
+				metadataCache.delete(config.issuer);
+			}
+		});
 	}
 
 	return cached;
