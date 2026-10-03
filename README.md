@@ -6,6 +6,8 @@ The application uses SvelteKit, PostgreSQL, and a Python ingestion worker. Accou
 
 - [Product specification](docs/product/specification.md)
 - [Documentation index](docs/README.md)
+- [Domain glossary](CONTEXT.md)
+- [Repository verification](docs/operations/github-automation.md)
 - [Deployment](docs/operations/deployment.md)
 - [Local authentication and account recovery](docs/operations/local-auth.md)
 - [Selected UI components](docs/reference/ui-libraries.md)

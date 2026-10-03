@@ -438,7 +438,7 @@
 					<div>
 						<h2 id="catalog-heading" class="sr-only">Find cards</h2>
 					</div>
-					<a href="/mtg/search" class="text-link">Full search</a>
+					<a href="/search" class="text-link">Full search</a>
 				</div>
 				<form method="GET" action="/decks" class="search-form">
 					<input type="hidden" name="deck" value={selectedDeck.id} /><input
@@ -595,7 +595,7 @@
 		white-space: pre-wrap;
 	}
 	.format-badge {
-		border: 1px solid var(--color-mist);
+		border: 1px solid var(--color-border);
 		border-radius: 1rem;
 		padding: 0.2rem 0.6rem;
 		color: var(--color-gold-bright);
@@ -614,7 +614,7 @@
 		grid-column: 1/-1;
 		margin: 0;
 		padding-top: 1rem;
-		border-top: 1px solid var(--color-mist);
+		border-top: 1px solid var(--color-border);
 	}
 	.deck-stats dt {
 		font-size: 0.73rem;
@@ -650,7 +650,7 @@
 		color: var(--color-warning);
 	}
 	.notice {
-		border: 1px solid var(--color-mist);
+		border: 1px solid var(--color-border);
 		background: var(--color-stone);
 		padding: 0.8rem 1rem;
 		border-radius: 0.5rem;
@@ -667,7 +667,7 @@
 		justify-content: space-between;
 		padding: 0.65rem 1rem;
 		background: var(--color-stone);
-		border-block: 1px solid var(--color-mist);
+		border-block: 1px solid var(--color-border);
 	}
 	.role-heading span {
 		font-size: 0.75rem;
@@ -678,7 +678,7 @@
 		gap: 0.65rem;
 		align-items: center;
 		padding: 0.7rem 1rem;
-		border-bottom: 1px solid color-mix(in srgb, var(--color-mist) 65%, transparent);
+		border-bottom: 1px solid color-mix(in srgb, var(--color-border) 65%, transparent);
 	}
 	.card-thumb {
 		width: 36px;
@@ -771,7 +771,7 @@
 		display: flex;
 		gap: 0.9rem;
 		padding: 1rem;
-		border-top: 1px solid var(--color-mist);
+		border-top: 1px solid var(--color-border);
 	}
 	.catalog-image {
 		width: 80px;
@@ -819,7 +819,7 @@
 	.legality {
 		padding: 1rem;
 		font-size: 0.8rem;
-		border-top: 1px solid var(--color-mist);
+		border-top: 1px solid var(--color-border);
 	}
 	summary {
 		cursor: pointer;

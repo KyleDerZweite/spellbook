@@ -1,7 +1,7 @@
 # Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-10-03
+- Last Reviewed: 2026-10-04
 - Source of Truth: repo config
 - Update Triggers: compose services, images, environment variables, migrations, storage
 - Related Docs: [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md)
@@ -82,7 +82,7 @@ The override shares the `scan_artifacts` volume at `/app/storage/scans` between 
 
 On SELinux hosts, named volumes avoid most bind-mount relabeling. If replacing them with host paths, use `:Z` for one container or `:z` for a path shared by multiple containers. Host networking configuration belongs in operator notes rather than the shared compose file.
 
-CI validates application changes but does not publish containers or deploy the stack. Operators build and deploy explicitly.
+The [verification workflow](./github-automation.md#ci-coverage) owns CI coverage and its limits. Operators build and deploy explicitly.
 
 ## Catalog migration and recovery
 

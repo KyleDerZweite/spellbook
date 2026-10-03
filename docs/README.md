@@ -1,23 +1,25 @@
 # Spellbook documentation
 
 - Status: Canonical
-- Last Reviewed: 2026-10-03
+- Last Reviewed: 2026-10-04
 - Source of Truth: mixed
 - Update Triggers: document ownership, product contracts, section changes, documentation health review
 - Related Docs: [Product](./product/README.md), [Architecture](./architecture/README.md), [Operations](./operations/README.md), [Integrations](./integrations/README.md), [Decisions](./decisions/README.md), [Reference](./reference/README.md), [Issue labels](./ISSUE_LABELS.md)
 
-Start with the [product specification](./product/specification.md) for current behavior, requirements, and known limits. Use the [domain glossary](./product/domain-model.md) for precise MTG and ownership terms. The code, tests, and configuration resolve implementation questions.
+Start with the [product specification](./product/specification.md) for current behavior, requirements, and known limits. Use the [domain glossary](../CONTEXT.md) for precise MTG and ownership terms. The code, tests, and configuration resolve implementation questions.
 
 Use the [issue label rules](./ISSUE_LABELS.md) for repository triage and the [contribution policy](../CONTRIBUTING.md) for proposals, pull requests, and AI assistance disclosure.
 
-| Section                                  | Owns                                                                           |
-| ---------------------------------------- | ------------------------------------------------------------------------------ |
-| [Product](./product/README.md)           | Specification, terminology, routes, and design direction                       |
-| [Architecture](./architecture/README.md) | Service boundaries, data contracts, authentication, and recognition proposals  |
-| [Operations](./operations/README.md)     | Deployment, environment variables, account recovery, and repository automation |
-| [Integrations](./integrations/README.md) | External scanner and sorter proposals                                          |
-| [Decisions](./decisions/README.md)       | Significant choices, tradeoffs, and explicit supersession                      |
-| [Reference](./reference/README.md)       | Selected components and external dependency documentation                      |
+The tracked [PR #169 handoff](../.scratch/handoffs/20261003T231314Z-spellbook-modernization.md) records continuation state and links to the canonical owners.
+
+| Section                                  | Owns                                                                             |
+| ---------------------------------------- | -------------------------------------------------------------------------------- |
+| [Product](./product/README.md)           | Specification, terminology, routes, and design direction                         |
+| [Architecture](./architecture/README.md) | Service boundaries, data contracts, authentication, and recognition proposals    |
+| [Operations](./operations/README.md)     | Deployment, environment variables, account recovery, and repository verification |
+| [Integrations](./integrations/README.md) | External scanner and sorter proposals                                            |
+| [Decisions](./decisions/README.md)       | Significant choices, tradeoffs, and explicit supersession                        |
+| [Reference](./reference/README.md)       | Selected components and external dependency documentation                        |
 
 ## Maintenance
 

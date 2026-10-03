@@ -1,14 +1,14 @@
 # ADR-0008: MTG-only self-hosted inventory and deck availability
 
 - Status: Accepted
-- Last Reviewed: 2026-10-03
+- Last Reviewed: 2026-10-04
 - Source of Truth: mixed
 - Update Triggers: product positioning changes, non-MTG scope changes, frontend redesign scope changes, inventory/deck workflow changes
 - Related Docs: [Product specification](../product/specification.md), [UI Design Direction](../product/ui-design-direction.md)
 
 ## Current applicability
 
-The 2026-10-03 product scope adds interactive deck construction alongside inventory availability. The builder uses existing deck ownership and card-role data rather than adding social sharing, marketplace, or simulation services. The earlier delay on frontend redesign has ended; the [specification](../product/specification.md) and [design direction](../product/ui-design-direction.md) own the implemented scope.
+The 2026-10-03 product scope adds interactive deck construction alongside inventory availability. The builder uses existing deck ownership and card-role data rather than adding social sharing, marketplace, or simulation services. The [specification](../product/specification.md) and [design direction](../product/ui-design-direction.md) own implemented behavior and further deferred UI scope.
 
 ## Context
 

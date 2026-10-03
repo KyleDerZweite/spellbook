@@ -3,7 +3,6 @@
 	import ManaCost from './ManaCost.svelte';
 	import RarityBadge from './RarityBadge.svelte';
 	import CardQuickAdd from './CardQuickAdd.svelte';
-	import OrnamentalDivider from '#lib/components/layout/OrnamentalDivider.svelte';
 	import { searchPrintings } from '#lib/search/catalog.ts';
 	import type { CardDocument } from '#lib/search/types.ts';
 	import { getManaFontClass } from '#lib/utils/manaCostParser.ts';
@@ -151,7 +150,7 @@
 	<Dialog.Portal>
 		<Dialog.Overlay
 			class="fixed inset-0 z-40 flex items-end justify-center sm:items-center sm:p-4 lg:p-8"
-			style="background: rgba(13, 11, 15, 0.85); backdrop-filter: blur(4px); animation: fade-in 200ms ease-out;"
+			style="background: rgba(8, 11, 13, 0.85); backdrop-filter: blur(4px); animation: fade-in 200ms ease-out;"
 		>
 			<Dialog.Content
 				class="modal-content relative z-50 flex w-full flex-col rounded-t-xl sm:max-w-5xl sm:rounded-lg"
@@ -159,7 +158,7 @@
 					max-height: 92dvh;
 					background-color: var(--color-stone);
 					border: 1px solid var(--color-border);
-					box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset, 0 24px 64px rgba(13, 11, 15, 0.9);
+					box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset, 0 24px 64px rgba(8, 11, 13, 0.9);
 					animation: modal-enter 220ms ease-out;
 				"
 			>
@@ -170,7 +169,7 @@
 				>
 					<div class="flex items-start justify-between gap-2 pr-10">
 						<Dialog.Title
-							class="min-w-0 break-words font-display text-base font-bold text-text-primary sm:text-xl"
+							class="min-w-0 break-words font-display text-base font-semibold text-text-primary"
 							level={2}
 						>
 							{activeCard.name}
@@ -461,7 +460,7 @@
 								{/if}
 							{/if}
 
-							<OrnamentalDivider />
+							<div class="border-t border-border" aria-hidden="true"></div>
 
 							<!-- Inventory add -->
 							<CardQuickAdd card={activeCard} />
@@ -497,7 +496,7 @@
 								</div>
 							{/if}
 
-							<OrnamentalDivider />
+							<div class="border-t border-border" aria-hidden="true"></div>
 
 							<!-- Card details -->
 							<div class="flex flex-col gap-1.5 font-body text-sm">
@@ -527,7 +526,7 @@
 
 							<!-- Legalities -->
 							{#if activeCard.legalities && Object.keys(activeCard.legalities).length > 0}
-								<OrnamentalDivider />
+								<div class="border-t border-border" aria-hidden="true"></div>
 								<div>
 									<h3 class="sr-only">Legalities</h3>
 									<div class="flex flex-wrap gap-1.5">

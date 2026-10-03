@@ -242,11 +242,13 @@
 
 <div class="mx-auto max-w-6xl space-y-5 px-4 py-6 text-sm sm:px-6">
 	<div class="flex flex-wrap items-center justify-between gap-3">
-		<h1 class="font-display text-2xl text-text-primary">Scan review</h1>
+		<h1 class="font-display text-xl font-semibold text-text-primary">Scan review</h1>
 		<button class="btn btn-primary" disabled={busy} onclick={createSession}>New scan</button>
 	</div>
-	<div class="surface-card flex flex-wrap items-end gap-3 p-4">
-		<div class="min-w-0 flex-1">
+	<div
+		class="surface-card grid grid-cols-1 items-end gap-3 p-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
+	>
+		<div class="min-w-0">
 			<label for="scan-session" class="mb-1 block">Session</label>
 			<select
 				id="scan-session"
@@ -267,7 +269,7 @@
 			</select>
 		</div>
 		<form
-			class="flex min-w-0 flex-1 items-end gap-2"
+			class="flex min-w-0 items-end gap-2"
 			onsubmit={(event) => {
 				event.preventDefault();
 				openSession(sessionInput.trim());

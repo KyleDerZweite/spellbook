@@ -4,7 +4,6 @@
 	import SearchFilters from '#lib/components/search/SearchFilters.svelte';
 	import SearchResults from '#lib/components/search/SearchResults.svelte';
 	import CardDetail from '#lib/components/cards/CardDetail.svelte';
-	import OrnamentalDivider from '#lib/components/layout/OrnamentalDivider.svelte';
 	import { searchCards, browseCards, getFacets } from '#lib/search/catalog.ts';
 	import { SearchFilterState } from '#lib/search/filters.svelte.ts';
 	import { buildSearchContextKey } from '#lib/search/requestContext.ts';
@@ -212,20 +211,20 @@
 	<div class="shrink-0 px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
 		<div class="flex items-center justify-between gap-3">
 			<div>
-				<h1 class="font-display text-xl font-semibold text-gold-bright">Card search</h1>
+				<h1 class="font-display text-xl font-semibold text-text-primary">Card search</h1>
 			</div>
 			<button
 				onclick={() => (filtersOpen = !filtersOpen)}
 				aria-haspopup="dialog"
 				aria-expanded={filtersOpen}
-				class="flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 font-display text-xs font-semibold transition-colors md:hidden"
+				class="btn btn-secondary md:hidden"
 				style="
 					background-color: var(--color-slate);
 					border: 1px solid var(--color-border);
 					color: var(--color-text-secondary);
 				"
 			>
-				&#9776; Filters
+				Filters
 				{#if filters.hasFilters}
 					<span
 						class="flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold"
@@ -237,7 +236,7 @@
 		<SearchBar value={query} onInput={(value) => (query = value)} class="mt-3" />
 	</div>
 
-	<OrnamentalDivider class="mx-4 sm:mx-6" />
+	<div class="border-t border-border mx-4 sm:mx-6" aria-hidden="true"></div>
 
 	<div class="flex min-h-0 flex-1 gap-0">
 		<div
@@ -289,10 +288,10 @@
 				<div class="flex items-center justify-center py-4">
 					<button
 						onclick={loadMore}
-						class="cursor-pointer rounded-lg px-6 py-2 font-display text-xs font-semibold"
+						class="btn btn-secondary"
 						style="background-color: var(--color-slate); border: 1px solid var(--color-border);"
 					>
-						Load More
+						Load more
 					</button>
 				</div>
 			{/if}

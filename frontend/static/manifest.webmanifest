@@ -10,8 +10,8 @@
 	"display": "standalone",
 	"display_override": ["standalone", "minimal-ui", "browser"],
 	"orientation": "portrait-primary",
-	"background_color": "#0d0b0f",
-	"theme_color": "#0d0b0f",
+	"background_color": "#080b0d",
+	"theme_color": "#080b0d",
 	"categories": ["games", "utilities", "productivity"],
 	"icons": [
 		{

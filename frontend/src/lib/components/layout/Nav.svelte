@@ -2,6 +2,7 @@
 	import { page } from '$app/state';
 	import { asset } from '$app/paths';
 	import { Dialog, DropdownMenu } from 'bits-ui';
+	import Button from '#lib/components/ui/button/Button.svelte';
 
 	const NAV_LINKS = [
 		{ href: '/search', label: 'Card search' },
@@ -29,17 +30,17 @@
 	>Skip to content</a
 >
 
-<nav class="shrink-0 border-b border-border bg-stone" aria-label="Primary">
-	<div class="mx-auto flex h-14 max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-6">
+<nav class="workspace-header shrink-0 border-b border-border" aria-label="Primary">
+	<div class="mx-auto flex h-16 max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-6">
 		<a
 			href="/"
-			class="flex items-center gap-2.5 font-display text-base font-bold tracking-wide text-gold-bright no-underline"
+			class="flex items-center gap-2.5 font-display text-lg font-bold tracking-tight text-foreground no-underline"
 			aria-label="Spellbook home"
 		>
 			<img src={asset('logo.webp')} alt="" width="32" height="32" class="h-8 w-8 shrink-0" />
 			Spellbook
 		</a>
-		<div class="hidden h-full items-center gap-6 md:flex">
+		<div class="hidden h-full items-center gap-1 md:flex">
 			{#each NAV_LINKS as link}
 				<a
 					href={link.href}
@@ -80,12 +81,22 @@
 					</DropdownMenu.Portal>
 				</DropdownMenu.Root>
 			{:else}
-				<a href={loginUrl} class="btn btn-ghost">Sign in</a>
-				<a href="/auth/register" class="btn btn-primary hidden sm:inline-flex">Create account</a>
+				<Button href={loginUrl} variant="ghost">Sign in</Button>
+				<Button href="/auth/register" class="hidden sm:inline-flex">Create account</Button>
 			{/if}
 			<Dialog.Root bind:open={mobileMenuOpen}>
-				<Dialog.Trigger class="btn btn-secondary md:hidden" aria-label="Open navigation menu"
-					><span aria-hidden="true">☰</span></Dialog.Trigger
+				<Dialog.Trigger
+					class="btn btn-secondary btn-icon md:hidden"
+					aria-label="Open navigation menu"
+					><svg
+						aria-hidden="true"
+						width="18"
+						height="18"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16" /></svg
+					></Dialog.Trigger
 				>
 				<Dialog.Portal>
 					<Dialog.Overlay class="filter-overlay fixed inset-0 z-40" />
@@ -93,7 +104,7 @@
 						class="fixed inset-x-3 top-3 z-50 rounded-xl border border-border bg-stone p-2 shadow-xl"
 					>
 						<div class="flex items-center justify-between p-3">
-							<Dialog.Title class="font-semibold">Spellbook</Dialog.Title>
+							<Dialog.Title class="font-semibold tracking-tight">Spellbook</Dialog.Title>
 							<Dialog.Close class="btn btn-ghost" aria-label="Close navigation menu">✕</Dialog.Close
 							>
 						</div>

@@ -2,11 +2,11 @@
 	const year = new Date().getFullYear();
 </script>
 
-<footer class="mt-auto shrink-0 border-t border-border px-4 py-4 sm:px-6">
-	<div class="mx-auto flex max-w-7xl flex-col items-center gap-3">
+<footer class="mt-auto shrink-0 border-t border-border/70 bg-surface px-4 py-4 sm:px-6">
+	<div class="mx-auto flex max-w-[1600px] flex-col items-center gap-2">
 		<nav class="flex flex-wrap items-center justify-center gap-x-6 gap-y-1">
-			<a href="/privacy" class="footer-link">Privacy Policy</a>
-			<a href="/terms" class="footer-link">Terms of Service</a>
+			<a href="/privacy" class="footer-link">Privacy</a>
+			<a href="/terms" class="footer-link">Terms</a>
 			<a
 				href="https://kylehub.dev/impressum"
 				target="_blank"
@@ -17,7 +17,7 @@
 			</a>
 		</nav>
 
-		<p class="max-w-xl text-center font-body text-xs leading-relaxed text-text-muted">
+		<p class="max-w-3xl text-center font-body text-xs leading-relaxed text-text-muted">
 			Magic: The Gathering is a trademark of Wizards of the Coast, Inc. and Hasbro, Inc. Spellbook
 			is unaffiliated. Card data provided by
 			<a

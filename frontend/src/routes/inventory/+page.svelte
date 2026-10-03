@@ -1,5 +1,4 @@
 <script lang="ts">
-	import OrnamentalDivider from '#lib/components/layout/OrnamentalDivider.svelte';
 	import { getSetCatalogSize } from '#lib/search/catalog.ts';
 	import { activeGameState } from '#lib/state/activeGame.svelte.ts';
 	import type { InventoryCard } from '#lib/server/data/types.ts';
@@ -131,26 +130,26 @@
 		</p>{/if}
 	<section class="py-1">
 		<div class="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-			<div><h1 class="font-display text-xl font-semibold text-gold-bright">Inventory</h1></div>
+			<div><h1 class="font-display text-xl font-semibold text-text-primary">Inventory</h1></div>
 
 			<div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-				<div class="rounded px-4 py-3 bg-stone/62 border border-gold/12">
-					<p class="font-mono text-base text-gold-bright">{inventoryStats.total}</p>
-					<p class="font-body text-[11px] uppercase tracking-[0.2em] text-text-secondary">Cards</p>
+				<div class="panel px-4 py-3">
+					<p class="text-lg font-semibold tabular-nums text-text-primary">{inventoryStats.total}</p>
+					<p class="text-xs text-text-secondary">Cards</p>
 				</div>
-				<div class="rounded px-4 py-3 bg-stone/62 border border-gold/12">
-					<p class="font-mono text-base text-gold-bright">{inventoryStats.unique}</p>
-					<p class="font-body text-[11px] uppercase tracking-[0.2em] text-text-secondary">Unique</p>
-				</div>
-				<div class="rounded px-4 py-3 bg-stone/62 border border-gold/12">
-					<p class="font-mono text-base text-gold-bright">{inventoryStats.sets}</p>
-					<p class="font-body text-[11px] uppercase tracking-[0.2em] text-text-secondary">Sets</p>
-				</div>
-				<div class="rounded px-4 py-3 bg-stone/62 border border-gold/12">
-					<p class="font-mono text-base text-gold-bright">{completedSetCount}</p>
-					<p class="font-body text-[11px] uppercase tracking-[0.2em] text-text-secondary">
-						Completed
+				<div class="panel px-4 py-3">
+					<p class="text-lg font-semibold tabular-nums text-text-primary">
+						{inventoryStats.unique}
 					</p>
+					<p class="text-xs text-text-secondary">Unique</p>
+				</div>
+				<div class="panel px-4 py-3">
+					<p class="text-lg font-semibold tabular-nums text-text-primary">{inventoryStats.sets}</p>
+					<p class="text-xs text-text-secondary">Sets</p>
+				</div>
+				<div class="panel px-4 py-3">
+					<p class="text-lg font-semibold tabular-nums text-text-primary">{completedSetCount}</p>
+					<p class="text-xs text-text-secondary">Completed</p>
 				</div>
 			</div>
 		</div>
@@ -163,17 +162,17 @@
 					<span class="sr-only">Set progress</span>
 				</div>
 				{#if setProgressLoading}
-					<span class="font-mono text-xs uppercase tracking-[0.2em] text-text-muted">Syncing</span>
+					<span class="text-xs text-text-muted">Syncing</span>
 				{/if}
 			</div>
 
-			<div class="mt-5 flex flex-col gap-3">
+			<div class="flex flex-col gap-3">
 				{#if setProgress.length > 0}
 					{#each setProgress.slice(0, 10) as progress}
-						<div class="rounded px-4 py-3 bg-stone/60 border border-gold/10">
+						<div class="rounded-lg border border-border bg-crypt/40 px-3 py-3">
 							<div class="flex items-center justify-between gap-3">
 								<div>
-									<p class="font-display text-base text-text-primary">
+									<p class="text-sm font-medium text-text-primary">
 										{progress.setCode.toUpperCase()}
 									</p>
 									<p class="font-body text-xs text-text-secondary">
@@ -181,7 +180,7 @@
 									</p>
 								</div>
 								<span
-									class="rounded px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.2em] border {progress.completed
+									class="rounded px-2.5 py-1 text-xs tabular-nums border {progress.completed
 										? 'bg-success/18 border-success/35 text-success'
 										: 'bg-stone/90 border-gold/14 text-gold-bright'}"
 								>
@@ -211,12 +210,12 @@
 					aria-label="Search inventory"
 					bind:value={query}
 					placeholder="Search inventory..."
-					class="min-w-0 flex-1 rounded px-4 py-2 font-body text-sm text-text-primary placeholder:text-text-muted focus:outline-none bg-crypt border border-gold/20"
+					class="input min-w-0 flex-1"
 				/>
 				<select
 					aria-label="Sort inventory"
 					bind:value={sortBy}
-					class="rounded px-4 py-2 font-body text-sm text-text-primary focus:outline-none bg-crypt border border-gold/20"
+					class="input w-full sm:w-auto sm:min-w-44"
 				>
 					<option value="name">Sort by name</option>
 					<option value="set">Sort by set</option>
@@ -224,7 +223,7 @@
 				</select>
 			</div>
 
-			<OrnamentalDivider class="my-5" />
+			<div class="border-t border-border my-5" aria-hidden="true"></div>
 
 			{#if inventoryCards.length === 0}
 				<div class="flex min-h-[280px] items-center justify-center text-center">
@@ -233,12 +232,7 @@
 						<p class="mt-3 font-body text-sm leading-7 text-text-secondary">
 							Add owned printings from card search.
 						</p>
-						<a
-							href="/search"
-							class="mt-6 inline-flex rounded-lg px-5 py-3 font-display text-xs uppercase tracking-[0.24em] text-text-on-gold no-underline bg-gold border border-gold"
-						>
-							Find cards
-						</a>
+						<a href="/search" class="btn btn-primary mt-4"> Find cards </a>
 					</div>
 				</div>
 			{:else if listCards.length === 0}
@@ -249,24 +243,24 @@
 				<div class="flex flex-col gap-2">
 					{#each listCards as card (card.id)}
 						<div
-							class="grid grid-cols-[48px_minmax(0,1fr)] items-center gap-3 rounded px-3 py-3 sm:grid-cols-[48px_minmax(0,1fr)_auto] bg-stone/58 border border-gold/10"
+							class="grid grid-cols-[48px_minmax(0,1fr)] items-center gap-3 rounded-lg border border-border bg-crypt/30 px-3 py-3 sm:grid-cols-[48px_minmax(0,1fr)_auto]"
 						>
 							<img src={card.imageUri} alt={card.name} class="h-[67px] w-12 rounded object-cover" />
 							<div class="min-w-0">
 								<div class="flex flex-wrap items-center gap-2">
 									<p class="font-display text-sm font-semibold text-text-primary">{card.name}</p>
 									<span
-										class="rounded px-2 py-1 font-mono text-[10px] uppercase tracking-[0.2em] bg-void/80 text-gold-bright"
+										class="rounded border border-border px-1.5 py-0.5 text-[10px] bg-void/40 text-gold-bright"
 									>
 										{card.setCode}
 									</span>
 									<span
-										class="rounded px-2 py-1 font-mono text-[10px] uppercase tracking-[0.2em] bg-void/80 text-text-secondary"
+										class="rounded border border-border px-1.5 py-0.5 text-[10px] bg-void/40 text-text-secondary"
 									>
 										{card.finish}
 									</span>
 									<span
-										class="rounded px-2 py-1 font-mono text-[10px] uppercase tracking-[0.2em] bg-void/80 text-text-secondary"
+										class="rounded border border-border px-1.5 py-0.5 text-[10px] bg-void/40 text-text-secondary"
 									>
 										{card.condition}
 									</span>
@@ -282,7 +276,7 @@
 									<button
 										type="submit"
 										aria-label={`Decrease ${card.name} quantity`}
-										class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full font-mono text-sm text-text-primary bg-crypt border border-gold/18"
+										class="btn btn-secondary h-8 w-8 p-0"
 									>
 										-
 									</button>
@@ -297,19 +291,14 @@
 									<button
 										type="submit"
 										aria-label={`Increase ${card.name} quantity`}
-										class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full font-mono text-sm text-text-primary bg-crypt border border-gold/18"
+										class="btn btn-secondary h-8 w-8 p-0"
 									>
 										+
 									</button>
 								</form>
 								<form method="POST" action="?/remove">
 									<input type="hidden" name="entryId" value={card.id} />
-									<button
-										type="submit"
-										class="rounded px-3 py-2 font-display text-[10px] uppercase tracking-[0.22em] text-error bg-error/10 border border-error/22"
-									>
-										Remove
-									</button>
+									<button type="submit" class="btn btn-ghost text-xs text-error"> Remove </button>
 								</form>
 							</div>
 						</div>

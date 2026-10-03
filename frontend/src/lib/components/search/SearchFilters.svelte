@@ -8,7 +8,6 @@
 		ManaColor,
 		Rarity
 	} from '#lib/search/types.ts';
-	import OrnamentalDivider from '#lib/components/layout/OrnamentalDivider.svelte';
 
 	interface Props {
 		filters: SearchFilterState;
@@ -63,7 +62,7 @@
 	];
 </script>
 
-<aside class="flex w-full flex-col gap-4 md:w-[240px] md:shrink-0 {className}">
+<aside class="flex w-full flex-col gap-4 md:w-[216px] md:shrink-0 {className}">
 	<!-- Colors section -->
 	<Collapsible.Root bind:open={colorsOpen}>
 		<Collapsible.Trigger
@@ -106,7 +105,7 @@
 		</Collapsible.Content>
 	</Collapsible.Root>
 
-	<OrnamentalDivider />
+	<div class="border-t border-border" aria-hidden="true"></div>
 
 	<!-- Rarity section -->
 	<Collapsible.Root bind:open={rarityOpen}>
@@ -154,14 +153,14 @@
 		</Collapsible.Content>
 	</Collapsible.Root>
 
-	<OrnamentalDivider />
+	<div class="border-t border-border" aria-hidden="true"></div>
 
 	<!-- Card Type section -->
 	<Collapsible.Root bind:open={typesOpen}>
 		<Collapsible.Trigger
 			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary"
 		>
-			<span>Card Type</span>
+			<span>Card type</span>
 			<span
 				class="inline-block transition-transform duration-200"
 				style:transform={typesOpen ? 'rotate(180deg)' : 'rotate(0deg)'}
@@ -194,7 +193,7 @@
 		</Collapsible.Content>
 	</Collapsible.Root>
 
-	<OrnamentalDivider />
+	<div class="border-t border-border" aria-hidden="true"></div>
 
 	<!-- Legality section -->
 	<Collapsible.Root bind:open={legalityOpen}>
@@ -236,13 +235,13 @@
 
 	<!-- Clear filters -->
 	{#if filters.hasFilters}
-		<OrnamentalDivider />
+		<div class="border-t border-border" aria-hidden="true"></div>
 		<button
 			onclick={() => filters.clear()}
 			class="cursor-pointer rounded border bg-transparent px-3 py-1.5 font-display text-xs font-semibold text-gold-bright transition-all duration-150 hover:bg-mist"
 			style="border-color: var(--color-border);"
 		>
-			Clear Filters
+			Clear filters
 		</button>
 	{/if}
 </aside>

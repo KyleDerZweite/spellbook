@@ -44,7 +44,14 @@
 		class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
 		aria-hidden="true"
 	>
-		&#128269;
+		<svg
+			width="17"
+			height="17"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="1.5"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg
+		>
 	</span>
 
 	<input
@@ -55,7 +62,7 @@
 		{value}
 		oninput={handleInput}
 		{placeholder}
-		class="search-input w-full rounded py-2.5 pl-10 pr-10 font-body text-base text-text-primary transition-all duration-150 placeholder:text-text-muted focus:outline-none"
+		class="input search-input w-full py-2.5 pl-10 pr-10 text-sm"
 		style="
 			background-color: var(--color-crypt);
 			border: 1px solid var(--color-border);

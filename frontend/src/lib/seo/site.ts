@@ -1,7 +1,7 @@
 export const SITE_NAME = 'Spellbook';
 export const SITE_DESCRIPTION =
 	'Build Magic: The Gathering decks, search cards, and organize your inventory.';
-export const SITE_THEME_COLOR = '#0d0b0f';
+export const SITE_THEME_COLOR = '#080b0d';
 export const NO_INDEX_ROBOTS_TAG = 'noindex, nofollow';
 
 export const PUBLIC_METADATA_PAGES = [

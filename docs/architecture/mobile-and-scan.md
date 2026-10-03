@@ -1,10 +1,10 @@
 # Mobile and scan
 
 - Status: Canonical
-- Last Reviewed: 2026-10-03
+- Last Reviewed: 2026-10-04
 - Source of Truth: code, proposed recognition design, primary documentation
 - Update Triggers: manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, scan processing, recognition evaluation, owned-card search, device runtime selection
-- Related Docs: [Frontend](./frontend.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../product/domain-model.md), [Deployment](../operations/deployment.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md)
+- Related Docs: [Frontend](./frontend.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../../CONTEXT.md), [Deployment](../operations/deployment.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md)
 
 Spellbook has one web client. Its manifest in `frontend/static/manifest.webmanifest` provides install metadata; `frontend/src/app.html` links it. A service worker and offline caching are not implemented. The `/scan` workspace supports image upload, candidate review, manual printing selection, and explicit inventory commit. Direct browser camera capture remains planned.
 
@@ -101,7 +101,7 @@ If an embedding baseline materially improves recognition and exact comparison be
 
 ## Proposed owned-card indexing
 
-The global catalog contains public printing reference data. An inventory entry records one account's quantity, finish, and condition for a printing. The [domain model](../product/domain-model.md) owns these definitions; an individual physical copy currently has no persistent identifier.
+The global catalog contains public printing reference data. An inventory entry records one account's quantity, finish, and condition for a printing. The [domain model](../../CONTEXT.md) owns these definitions; an individual physical copy currently has no persistent identifier.
 
 For server-side owned search, filter inventory by the authenticated account and join its printing IDs to the active PostgreSQL catalog generation. Apply catalog text and printing filters there, together with owned quantity, finish, and condition filters. Reuse existing indexes first and inspect representative query plans before adding indexes. Never copy private quantities, notes, images, or ownership markers into the global catalog or create a separate search document for each owned copy.
 

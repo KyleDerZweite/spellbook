@@ -1,7 +1,7 @@
 # Catalog
 
 - Status: Canonical
-- Last Reviewed: 2026-10-03
+- Last Reviewed: 2026-10-04
 - Source of Truth: code
 - Update Triggers: catalog schema, publication, search ranking, filters, facets, import resolution, printing selection
 - Related Docs: [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [ADR-0010](../decisions/0010-postgres-catalog.md)
@@ -36,4 +36,4 @@ Authenticated `GET /api/mobile/v1/mtg/search` supports the existing query and pa
 
 Import resolution accepts exact normalized canonical names and individual canonical face names. It also accepts exact case-insensitive printed names and localized face names, splitting face aliases on `//` surrounded by spaces. Whole names remain supported; prefix and fuzzy matches do not resolve imports. Set and collector-number hints narrow printing candidates. Name-only resolution groups candidates by oracle ID; hinted resolution keeps printing identities distinct. The import workflow retains ambiguous and unresolved lines for review. Scan candidate enrichment resolves authoritative metadata by printing ID through the same catalog.
 
-The [domain glossary](../product/domain-model.md) owns the distinction between canonical cards, printings, inventory entries, and deck entries. [Deployment](../operations/deployment.md#catalog-migration-and-recovery) owns catalog migration and recovery.
+The [domain glossary](../../CONTEXT.md) owns the distinction between canonical cards, printings, inventory entries, and deck entries. [Deployment](../operations/deployment.md#catalog-migration-and-recovery) owns catalog migration and recovery.

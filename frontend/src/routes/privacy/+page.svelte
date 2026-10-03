@@ -28,7 +28,7 @@
 
 <div class="mx-auto max-w-3xl px-6 py-12">
 	<h1
-		class="mb-2 font-display text-3xl font-bold text-gold-bright"
+		class="mb-2 font-display text-xl font-semibold text-text-primary"
 		style="text-shadow: 0 0 16px rgba(232, 184, 75, 0.2);"
 	>
 		Privacy Policy

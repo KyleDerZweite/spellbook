@@ -51,7 +51,7 @@
 		<Select.Root type="single" bind:value={finish} items={FINISHES}>
 			<Select.Trigger
 				id={`${id}-finish`}
-				class="flex w-full cursor-pointer items-center justify-between rounded px-3 py-2 font-body text-sm text-text-primary"
+				class="input flex w-full items-center justify-between"
 				style="
 					background-color: var(--color-crypt);
 					border: 1px solid var(--color-border);
@@ -103,7 +103,7 @@
 		<Select.Root type="single" bind:value={condition} items={CONDITIONS}>
 			<Select.Trigger
 				id={`${id}-condition`}
-				class="flex w-full cursor-pointer items-center justify-between rounded px-3 py-2 font-body text-sm text-text-primary"
+				class="input flex w-full items-center justify-between"
 				style="
 					background-color: var(--color-crypt);
 					border: 1px solid var(--color-border);
@@ -154,8 +154,7 @@
 				onclick={() => (quantity = Math.max(1, (quantity || 1) - 1))}
 				aria-label="Decrease quantity"
 				disabled={quantity <= 1}
-				class="flex h-8 w-8 cursor-pointer items-center justify-center rounded font-mono text-sm text-text-primary transition-colors hover:bg-mist"
-				style="border: 1px solid var(--color-border); background-color: var(--color-crypt);"
+				class="btn btn-secondary btn-icon"
 			>
 				-
 			</button>
@@ -175,8 +174,7 @@
 				onclick={() => (quantity = Math.min(99, (quantity || 1) + 1))}
 				aria-label="Increase quantity"
 				disabled={quantity >= 99}
-				class="flex h-8 w-8 cursor-pointer items-center justify-center rounded font-mono text-sm text-text-primary transition-colors hover:bg-mist"
-				style="border: 1px solid var(--color-border); background-color: var(--color-crypt);"
+				class="btn btn-secondary btn-icon"
 			>
 				+
 			</button>
@@ -184,10 +182,5 @@
 	</div>
 
 	<!-- Add button -->
-	<button
-		type="submit"
-		class="btn-gold mt-1 w-full cursor-pointer rounded py-2.5 font-display text-sm font-semibold"
-	>
-		Add to inventory
-	</button>
+	<button type="submit" class="btn btn-primary mt-1 w-full"> Add to inventory </button>
 </form>

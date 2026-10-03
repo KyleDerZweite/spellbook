@@ -1,10 +1,10 @@
 # Spellbook product specification
 
 - Status: Canonical
-- Last Reviewed: 2026-10-03
+- Last Reviewed: 2026-10-04
 - Source of Truth: application code, tests, accepted product requirements
 - Update Triggers: account access, catalog identity, inventory or deck behavior, import formats, API contracts, scan capability, physical-card integration requirements, supported platforms, release acceptance changes
-- Related Docs: [Domain model](./domain-model.md), [Routes](./routing-and-games.md), [UI direction](./ui-design-direction.md), [System architecture](../architecture/system-overview.md), [Authentication](../architecture/auth.md), [Deployment](../operations/deployment.md), [Card scanner and sorter](../integrations/card-robot.md), [Product index](./README.md)
+- Related Docs: [Domain model](../../CONTEXT.md), [Routes](./routing-and-games.md), [UI direction](./ui-design-direction.md), [System architecture](../architecture/system-overview.md), [Authentication](../architecture/auth.md), [Deployment](../operations/deployment.md), [Card scanner and sorter](../integrations/card-robot.md), [Product index](./README.md)
 
 Spellbook is an open-source MTG inventory and deck builder for private accounts on a self-hosted instance. Users search a local catalog, record owned printings, edit decklists, and compare deck requirements with inventory. Hosted operation uses the same account boundaries and runtime services.
 
@@ -24,7 +24,7 @@ Public deck sharing, social feeds, marketplaces, financial portfolio management,
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
 | Catalog search         | Search locally indexed Scryfall cards and select printings                                                               | Search quality and catalog freshness depend on successful worker ingestion         |
 | Owned inventory        | Add, change, decrement, remove, and bulk mutate printing entries                                                         | No physical locations or per-copy identifiers                                      |
-| Inventory presentation | List and spellbook views, filters, sorting, and owned set progress                                                       | Spellbook positions describe presentation rather than storage locations            |
+| Inventory presentation | List presentation, filters, sorting, and owned set progress                                                              | No binder-style view or physical-location tracking                                 |
 | Deck builder           | Private deck editing, catalog and printing selection, role moves, import/export, and exact/alternate/missing totals      | Availability allocates within one deck and does not reserve inventory across decks |
 | Text exchange          | MTG Arena-style import preview and commit, plus deck text export                                                         | No CSV importer profiles or hosted-service scraping                                |
 | Import warnings        | Lightweight size, copy-count, and catalog legality warnings                                                              | No full MTG rules engine                                                           |
@@ -48,7 +48,7 @@ The [authentication architecture](../architecture/auth.md) owns the exact regist
 
 ## Catalog and printing identity
 
-The [domain model](./domain-model.md) distinguishes the card's canonical identity from its printing identity. Catalog search groups matching printings by canonical card; printing selection retains individual printing identities. The [catalog architecture](../architecture/catalog.md) owns PostgreSQL storage, publication, query contracts, and selection policy.
+The [domain model](../../CONTEXT.md) distinguishes the card's canonical identity from its printing identity. Catalog search groups matching printings by canonical card; printing selection retains individual printing identities. The [catalog architecture](../architecture/catalog.md) owns PostgreSQL storage, publication, query contracts, and selection policy.
 
 Search must show a recognizable card name and image and provide useful MTG filters. The printing chooser must expose enough information to distinguish the available set, collector number, and printing. Adding an owned card or deck entry records the selected printing and its canonical identity together.
 
@@ -58,13 +58,13 @@ Catalog data is shared reference data. Owned quantities, notes, and deck members
 
 ## Owned inventory
 
-Each account has one MTG inventory. Entries group by inventory, printing, finish, and condition. Repeated adds to the same group increase its quantity. Notes describe the entry, and a nonnegative spellbook position controls display order.
+Each account has one MTG inventory. Entries group by inventory, printing, finish, and condition. Repeated adds to the same group increase its quantity. Entries retain notes and an ordering position. The current inventory list uses the selected name, set, or recent-update sort.
 
 Supported finishes are `nonfoil` and `foil`. Supported conditions are `NM`, `LP`, `MP`, `HP`, and `DMG`. These are the persisted choices even when the source catalog describes additional finish types.
 
 The canonical bulk mutation path accepts add, set, decrement, and remove operations. Positive owned quantities remain stored; setting or decrementing to zero or less removes the entry. Invalid operations, finishes, conditions, and nonfinite quantities must fail validation. An error must not leave a partially applied bulk request.
 
-Users can inspect inventory in list or spellbook form, search and filter owned entries, sort them, and see set progress. Progress describes owned canonical cards rather than the count of every printing variant.
+Users can inspect inventory as a list, search and filter owned entries, sort them, and see set progress. Progress describes owned canonical cards rather than the count of every printing variant.
 
 Physical locations, binder or box assignment, loans, individual copy identifiers, per-copy provenance, and physical movement history are planned. The inventory currently stores aggregate quantities. Catalog printing identity includes language, but there is no separate physical-copy language or location record. Inventory export and CSV exchange require separate implementation; deck text export does not establish inventory export support.
 
@@ -156,7 +156,7 @@ The current API does not provide a general ETag or version-based editor conflict
 
 ## Interface acceptance
 
-The [UI design direction](./ui-design-direction.md) owns visual requirements and the deferred redesign. The release must satisfy these workflow checks:
+The [UI design direction](./ui-design-direction.md) owns the base design and visual requirements. The release must satisfy these workflow checks:
 
 1. An authenticated user can find a card, choose a printing, and add an owned quantity with finish and condition.
 2. The user can create a deck, search the catalog, add an unowned card, change its quantity and role, and remove it.
@@ -170,14 +170,8 @@ Controls require visible labels or accessible names. Forms associate validation 
 
 A dense desktop layout may use columns and tables. Narrow screens must stack essential controls, keep primary actions reachable, and avoid hiding required actions behind hover. Card images supplement readable names and printing identifiers. Reduced motion preferences must be respected.
 
-## Runtime, performance, and verification
+## Runtime and verification
 
 The [system overview](../architecture/system-overview.md) owns the runtime boundaries. The [deployment guide](../operations/deployment.md) owns required services, environment variables, migration, and startup commands. Dependency versions belong to manifests and lockfiles rather than copied version tables in this specification.
 
-The web application uses SvelteKit for pages and account-scoped APIs. PostgreSQL owns transactional user data and catalog search. Python workers own catalog ingestion and the scan-service boundary. Optional future machine-learning work belongs behind the worker boundary until a measured need changes it.
-
-Release checks must cover lint and formatting, Svelte type checking, frontend unit tests, Python worker checks, and production build compatibility. Behavior tests should prove cross-account isolation, invalid-input rejection, duplicate-request safety, deck role and quantity behavior, import resolution, and availability allocation. Database-backed integration checks are needed for transactional and concurrent guarantees.
-
-Browser checks must cover local sign-in, public account registration, inventory, the deck builder, scan review, printing selection, responsive navigation, and errors. A passing build or a library's accessibility claim does not establish correct focus, keyboard, touch, or visual behavior in Spellbook.
-
-Record actual command results and remaining verification limits with the change. Do not convert an acceptance requirement into an implemented claim solely because it appears in this document.
+The [repository verification workflow](../operations/github-automation.md) owns local commands, CI coverage, browser checks, and evidence. Apply it against the domain contracts and interface acceptance criteria above. An acceptance requirement does not establish implemented or verified behavior by itself.

@@ -1,7 +1,7 @@
 # Issue labels
 
 - Status: Canonical
-- Last Reviewed: 2026-10-03
+- Last Reviewed: 2026-10-04
 - Source of Truth: maintainer policy and GitHub repository labels
 - Update Triggers: label definitions, issue triage policy, contribution policy, label automation
 - Related Docs: [Contributing](../CONTRIBUTING.md), [Agent instructions](../AGENTS.md), [GitHub automation](./operations/github-automation.md), [Docs index](./README.md)
@@ -65,13 +65,13 @@ Apply `help wanted` only when a maintainer welcomes outside implementation work 
 
 Use GitHub or `gh` for triage. No automated labeling workflow is required. Existing `dependencies`, `javascript`, `python`, `python:uv`, and `github_actions` labels remain available to dependency automation.
 
-For example, the explicitly deferred design work in [issue 168](https://github.com/KyleDerZweite/spellbook/issues/168) uses `type:feature`, `area:design`, and `status:deferred`:
+For example, further UI work in [issue 168](https://github.com/KyleDerZweite/spellbook/issues/168) is explicitly deferred after the base design implementation. It uses `type:feature`, `area:design`, and `status:deferred`:
 
 ```sh
 gh label list --limit 100
 gh issue view 168 --json title,body,labels,comments
-gh issue edit 168 --add-label 'type:feature,area:design,status:deferred'
+gh issue edit 168 --remove-label 'status:in-progress' --add-label 'type:feature,area:design,status:deferred'
 gh issue view 168 --json labels
 ```
 
-These commands add labels without replacing the issue's other labels or changing its content.
+These commands replace the previous status while preserving unrelated labels and issue content.

@@ -1,10 +1,10 @@
 # Card scanner and sorter
 
 - Status: Proposed integration
-- Last Reviewed: 2026-10-03
+- Last Reviewed: 2026-10-04
 - Source of Truth: product requirements, scan API code, hardware concept
 - Update Triggers: capture and recognition APIs, physical inventory schema, device protocol, construction choices, prototype results
-- Related Docs: [Product specification](../product/specification.md), [Domain model](../product/domain-model.md), [Mobile and scan](../architecture/mobile-and-scan.md), [API routes](../product/routing-and-games.md), [Local authentication](../operations/local-auth.md)
+- Related Docs: [Product specification](../product/specification.md), [Domain model](../../CONTEXT.md), [Mobile and scan](../architecture/mobile-and-scan.md), [API routes](../product/routing-and-games.md), [Local authentication](../operations/local-auth.md)
 
 The proposed device accepts a stack of MTG cards, separates one card at a time, captures an image, and sorts cards into output trays. Spellbook supplies the review interface, inventory, decklist, and selected sorting rule. A Jetson may run capture and recognition; a microcontroller may operate motors and read position sensors. Construction and board selection remain undecided.
 
