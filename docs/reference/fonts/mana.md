@@ -4,7 +4,7 @@
 - Last Reviewed: 2026-10-03
 - Source of Truth: installed package, application imports, upstream documentation
 - Update Triggers: mana-font upgrades, symbol rendering, stylesheet imports, license changes
-- Related Docs: [Reference](../README.md), [Frontend](../../architecture/frontend.md), [UI library assessment](../ui-libraries.md)
+- Related Docs: [Reference](../README.md), [Frontend](../../architecture/frontend.md), [Selected UI components](../ui-libraries.md)
 
 Spellbook uses the installed `mana-font` package for mana, card-type, and rarity symbols. [`frontend/src/app.css`](../../../frontend/src/app.css) imports the packaged stylesheet. [`ManaCost.svelte`](../../../frontend/src/lib/components/cards/ManaCost.svelte) renders parsed costs using [`manaCostParser.ts`](../../../frontend/src/lib/utils/manaCostParser.ts).
 

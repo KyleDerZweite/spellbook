@@ -2,9 +2,9 @@
 
 - Status: Canonical
 - Last Reviewed: 2026-10-03
-- Source of Truth: accepted product requirements, application components, UI library research
+- Source of Truth: accepted product requirements, application components, selected logo and component choices
 - Update Triggers: navigation, deck editor interactions, component choices, visual design, brand identity, icon direction, responsive behavior, accessibility requirements
-- Related Docs: [Product specification](./specification.md), [Routes](./routing-and-games.md), [Domain model](./domain-model.md), [UI library evaluation](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Website icons](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md)
+- Related Docs: [Product specification](./specification.md), [Routes](./routing-and-games.md), [Domain model](./domain-model.md), [Selected UI components](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Website icons](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md)
 
 Spellbook is a card workspace with direct access to search, inventory, and decks. The current application uses dark-purple surfaces, gold accents, and its established layout. Required workflow components and smaller interface text are implemented. A broader visual redesign remains deferred to [issue #168](https://github.com/KyleDerZweite/spellbook/issues/168). The current palette records shipped behavior; it does not constrain future brand choices.
 
@@ -14,13 +14,13 @@ Spellbook is a card workspace with direct access to search, inventory, and decks
 
 These references do not establish a shipped design overhaul or feature parity with either service. Public social pages, recommendations, collaboration, and gameplay tools remain outside this change.
 
-The current application uses Svelte, Tailwind, and Bits UI. Existing components and native HTML controls cover simple forms; Bits UI supplies dialogs, menus, and other interactions that need managed focus and keyboard behavior. The [library evaluation](../reference/ui-libraries.md) owns the future shortlist. Selecting and implementing a replacement remains deferred.
+The current application uses Svelte, Tailwind, and Bits UI. Existing components and native HTML controls cover simple forms; Bits UI supplies dialogs, menus, and other interactions that need managed focus and keyboard behavior. shadcn-svelte with Bits UI is the selected approach for future frontend work. The [component guidance](../reference/ui-libraries.md) owns adoption rules. Component adoption and the broader redesign remain deferred to issue #168.
 
-## Future brand direction
+## Selected brand artwork
 
-Explore a simple playing-card or book mark that reads clearly at favicon size. The identity can suggest card organization and the Spellbook name without an illustrated scene. Purple and flame concepts have been rejected for this exploration. The future palette is open; choose colors through contrast and small-size testing rather than inheriting the current theme by requirement.
+The user-supplied `logo.png` is the selected Spellbook artwork. Use it as the source for website and installation assets. The [website icon reference](../reference/website-icons.md) owns installed filenames, dimensions, and verification. Prior generated concepts are discarded; keep local exploration and provenance artifacts outside production assets.
 
-This is a direction for later selection, not approved replacement artwork or a shipped theme. The [website icon reference](../reference/website-icons.md) owns asset formats, sizes, and verification. Keep generated concepts and local provenance artifacts outside the repository's production assets.
+The selected logo does not implement a new application theme or layout. The current purple and gold runtime remains in place while the broader redesign stays deferred to issue #168. Do not infer a fixed future palette from the current theme.
 
 ## Workspace structure
 

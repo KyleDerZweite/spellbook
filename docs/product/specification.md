@@ -176,8 +176,6 @@ The [system overview](../architecture/system-overview.md) owns the runtime bound
 
 The web application uses SvelteKit for pages and account-scoped APIs. PostgreSQL owns transactional user data and catalog search. Python workers own catalog ingestion and the scan-service boundary. Optional future machine-learning work belongs behind the worker boundary until a measured need changes it.
 
-The [backend language evaluation](../architecture/backend-language.md) records the Go and Python tradeoffs. A Go backend is an evaluation option, not an implemented migration or a prerequisite for hosted operation. Compare realistic latency, database time, search time, memory, throughput, and operating cost before selecting a new runtime. No benchmark currently establishes a Go rewrite as faster for Spellbook's workload.
-
 Release checks must cover lint and formatting, Svelte type checking, frontend unit tests, Python worker checks, and production build compatibility. Behavior tests should prove cross-account isolation, invalid-input rejection, duplicate-request safety, deck role and quantity behavior, import resolution, and availability allocation. Database-backed integration checks are needed for transactional and concurrent guarantees.
 
 Browser checks must cover local sign-in, public account registration, inventory, the deck builder, scan review, printing selection, responsive navigation, and errors. A passing build or a library's accessibility claim does not establish correct focus, keyboard, touch, or visual behavior in Spellbook.

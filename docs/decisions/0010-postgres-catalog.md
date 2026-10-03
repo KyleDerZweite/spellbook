@@ -6,7 +6,7 @@
 - Source of Truth: code and product decision
 - Update Triggers: search relevance, catalog resource use, deployment requirements, database boundaries
 - Supersedes: the MeiliSearch index and publication choices in [ADR-0007](./0007-backend-first-mtg-bulk-import-api.md)
-- Related Docs: [Catalog](../architecture/catalog.md), [Worker](../architecture/worker.md), [Search assessment](../reference/search-engines.md), [Deployment](../operations/deployment.md)
+- Related Docs: [Catalog](../architecture/catalog.md), [Worker](../architecture/worker.md), [Deployment](../operations/deployment.md)
 
 Spellbook needs canonical-card search, exact printing resolution, facets, and catalog refreshes while readers remain active. Its self-hosted deployment already requires PostgreSQL for account data. Reducing independently operated services is an explicit requirement.
 
@@ -14,6 +14,4 @@ Use PostgreSQL 18 for both the catalog and account-owned data. Combine full-text
 
 This reduces service and credential setup and gives catalog publication the database's transaction guarantees. Catalog reads, indexes, and refreshes now share CPU, memory, disk, and connection capacity with account transactions. The decision does not claim a measured full-catalog performance improvement. Production-size latency, ingestion duration, and resource measurements remain necessary before setting hosted capacity targets.
 
-Embedded SQLite could isolate catalog files, but would add process-level publication and reader-lifetime coordination. A dedicated search service would preserve a separate operating dependency. The [search rationale](../reference/search-engines.md) records the embedded-search tradeoff and measurement limits. PostgreSQL is the selected implementation target.
-
-Revisit the boundary if measured catalog workload harms account transactions, search relevance fails product requirements, or a concrete availability target requires a different topology. The existing TypeScript application and Python ingestion boundary remains unchanged.
+Measure catalog latency, publication duration, memory, disk use, and account-transaction latency under a representative multilingual snapshot. Tune query and resource limits within the selected PostgreSQL architecture. The existing TypeScript application and Python ingestion boundary remains unchanged.

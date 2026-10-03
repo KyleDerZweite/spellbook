@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { asset } from '$app/paths';
 	import { Dialog, DropdownMenu } from 'bits-ui';
 
 	const NAV_LINKS = [
@@ -35,19 +36,7 @@
 			class="flex items-center gap-2.5 font-display text-base font-bold tracking-wide text-gold-bright no-underline"
 			aria-label="Spellbook home"
 		>
-			<span
-				class="flex h-8 w-8 items-center justify-center rounded-lg border border-gold/30 bg-gold/10 text-gold"
-				aria-hidden="true"
-				><svg
-					width="19"
-					height="19"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="1.8"
-					><path d="M12 5v15M12 5C8 3 5 3 3 4v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-2-1-5-1-9 1Z" /></svg
-				></span
-			>
+			<img src={asset('logo.webp')} alt="" width="32" height="32" class="h-8 w-8 shrink-0" />
 			Spellbook
 		</a>
 		<div class="hidden h-full items-center gap-6 md:flex">

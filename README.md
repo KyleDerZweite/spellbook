@@ -8,7 +8,6 @@ The application uses SvelteKit, PostgreSQL, and a Python ingestion worker. Accou
 - [Documentation index](docs/README.md)
 - [Deployment](docs/operations/deployment.md)
 - [Local authentication and account recovery](docs/operations/local-auth.md)
-- [Backend language assessment](docs/architecture/backend-language.md)
-- [UI library assessment](docs/reference/ui-libraries.md)
+- [Selected UI components](docs/reference/ui-libraries.md)
 
 Card data comes from [Scryfall](https://scryfall.com/). Spellbook is licensed under the [GNU Affero General Public License v3.0](LICENSE).

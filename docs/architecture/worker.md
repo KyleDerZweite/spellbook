@@ -14,7 +14,7 @@ The Python worker ingests Scryfall bulk data into PostgreSQL. Startup retries da
 
 The download client prefers `jsonl_download_uri` when Scryfall supplies it and falls back to `download_uri`. It accepts plain data and gzip payloads, including concatenated gzip members, and rejects truncated gzip data.
 
-The parser streams JSON Lines and legacy JSON arrays through card transformation into PostgreSQL COPY. It does not load the full catalog into memory or create a SQLite staging database. Malformed records, invalid identities, and snapshots without indexable documents fail publication. Downloaded bulk files are removed after each attempt.
+The parser streams JSON Lines and legacy JSON arrays through card transformation into PostgreSQL COPY. It does not load the full catalog into memory. Malformed records, invalid identities, and snapshots without indexable documents fail publication. Downloaded bulk files are removed after each attempt.
 
 [`transform.py`](../../worker/src/worker/transform.py) owns card document transformation. [`catalog.py`](../../worker/src/worker/catalog.py) adds indexed search fields, including printed face text. The [catalog architecture](./catalog.md) owns generation publication, reader consistency, grouping, and search behavior.
 

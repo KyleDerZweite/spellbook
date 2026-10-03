@@ -4,7 +4,7 @@
 - Last Reviewed: 2026-10-03
 - Source of Truth: code
 - Update Triggers: catalog schema, publication, search ranking, filters, facets, import resolution, printing selection
-- Related Docs: [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [Search assessment](../reference/search-engines.md), [ADR-0010](../decisions/0010-postgres-catalog.md)
+- Related Docs: [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [ADR-0010](../decisions/0010-postgres-catalog.md)
 
 PostgreSQL stores the public Scryfall catalog alongside account-owned application data. SvelteKit provides authenticated search and printing lookup. Browsers use the application API; they receive no database credential or search-service key. The catalog contains card metadata, not ownership quantities.
 

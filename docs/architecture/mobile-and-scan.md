@@ -4,7 +4,7 @@
 - Last Reviewed: 2026-10-03
 - Source of Truth: code, proposed recognition design, primary documentation
 - Update Triggers: manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, scan processing, recognition evaluation, owned-card search, device runtime selection
-- Related Docs: [Frontend](./frontend.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../product/domain-model.md), [Backend language](./backend-language.md), [Deployment](../operations/deployment.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md)
+- Related Docs: [Frontend](./frontend.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../product/domain-model.md), [Deployment](../operations/deployment.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md)
 
 Spellbook has one web client. Its manifest in `frontend/static/manifest.webmanifest` provides install metadata; `frontend/src/app.html` links it. A service worker and offline caching are not implemented. The `/scan` workspace supports image upload, candidate review, manual printing selection, and explicit inventory commit. Direct browser camera capture remains planned.
 
@@ -81,7 +81,7 @@ This proposal is not implemented. Retain the Python scan-worker boundary, Postgr
 4. Show the image, candidate printings, and the evidence behind each suggestion. Keep manual correction and recapture available. Conflicting identifiers or indistinguishable reprints require review; a high text score alone cannot resolve them.
 5. Ask the user to confirm the printing, quantity, finish, and condition. Use the existing account-scoped, idempotent review commit to update inventory. Recognition never authorizes that transaction by itself.
 
-Keep candidate lookup in the application's catalog layer so the worker does not need write access to accounts or inventory. Wiring OCR evidence into that lookup requires a new internal contract; today's worker and external-result endpoints do not implement this pipeline. If measured processing exceeds the current request timeout, add a durable job lifecycle before supporting longer work. The [backend assessment](./backend-language.md) owns runtime and capacity measurements.
+Keep candidate lookup in the application's catalog layer so the worker does not need write access to accounts or inventory. Wiring OCR evidence into that lookup requires a new internal contract; today's worker and external-result endpoints do not implement this pipeline. If measured processing exceeds the current request timeout, add a durable job lifecycle before supporting longer work. The [system overview](./system-overview.md) owns runtime boundaries and operating constraints.
 
 ## Proposed visual matching
 

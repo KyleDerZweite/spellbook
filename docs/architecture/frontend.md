@@ -4,9 +4,9 @@
 - Last Reviewed: 2026-10-03
 - Source of Truth: code and upstream runtime documentation
 - Update Triggers: routes, authentication, search, deck builder, component choices, runtime support and compatibility
-- Related Docs: [System overview](./system-overview.md), [Auth](./auth.md), [Routes](../product/routing-and-games.md), [Catalog](./catalog.md), [UI libraries](../reference/ui-libraries.md)
+- Related Docs: [System overview](./system-overview.md), [Auth](./auth.md), [Routes](../product/routing-and-games.md), [Catalog](./catalog.md), [Selected UI components](../reference/ui-libraries.md)
 
-The SvelteKit application renders pages on the server and owns the application API. Svelte components and Tailwind styles implement the interface; Bits UI supplies accessible interactive components. The [UI library assessment](../reference/ui-libraries.md) records the selection.
+The SvelteKit application renders pages on the server and owns the application API. Svelte components and Tailwind styles implement the interface; Bits UI supplies accessible interactive components. The [selected component guidance](../reference/ui-libraries.md) records future shadcn-svelte adoption with Bits UI; that adoption and the broader redesign remain deferred.
 
 [Routing and games](../product/routing-and-games.md) owns the route list and legacy redirects. [The product specification](../product/specification.md) owns workflow behavior and acceptance criteria.
 
