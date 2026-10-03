@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { CardDocument } from '$lib/search/types';
+	import type { CardDocument } from '#lib/search/types.ts';
 	import RarityBadge from './RarityBadge.svelte';
 
 	interface Props {

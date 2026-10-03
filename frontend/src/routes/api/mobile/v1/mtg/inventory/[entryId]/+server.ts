@@ -1,11 +1,12 @@
-import { normalizeQuantity } from '$lib/server/mtg/validation';
-import { badRequestIfValidation } from '$lib/server/mobile/route-errors';
-import { readString, readJsonObject, requireUuid, readNumber } from '$lib/server/http/request';
+import type { RequestHandler } from './$types';
+import { normalizeQuantity } from '#lib/server/mtg/validation.ts';
+import { badRequestIfValidation } from '#lib/server/mobile/route-errors.ts';
+import { readString, readJsonObject, requireUuid, readNumber } from '#lib/server/http/request.ts';
 import { json } from '@sveltejs/kit';
-import { requireMobileAuth } from '$lib/server/mobile/auth';
-import { removeInventoryEntry, updateInventoryEntry } from '$lib/server/mobile/mtg-service';
+import { requireMobileAuth } from '#lib/server/mobile/auth.ts';
+import { removeInventoryEntry, updateInventoryEntry } from '#lib/server/mobile/mtg-service.ts';
 
-export const PATCH = async (event) => {
+export const PATCH: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
 	const entryId = requireUuid(event.params.entryId, 'entryId');
 	const body = await readJsonObject(event.request);
@@ -24,7 +25,7 @@ export const PATCH = async (event) => {
 	}
 };
 
-export const DELETE = async (event) => {
+export const DELETE: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
 	const entryId = requireUuid(event.params.entryId, 'entryId');
 

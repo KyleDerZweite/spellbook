@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import CardGrid from '$lib/components/cards/CardGrid.svelte';
-	import type { CardDocument } from '$lib/search/types';
-	import { SITE_NAME, pageMetadata } from '$lib/seo/site';
+	import CardGrid from '#lib/components/cards/CardGrid.svelte';
+	import type { CardDocument } from '#lib/search/types.ts';
+	import { SITE_NAME, pageMetadata } from '#lib/seo/site.ts';
 
 	let inputEl: HTMLInputElement | null = $state(null);
 	const isAuthenticated = $derived(Boolean(page.data.user));

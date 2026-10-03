@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { SITE_NAME, pageMetadata } from '$lib/seo/site';
+	import { SITE_NAME, pageMetadata } from '#lib/seo/site.ts';
 
 	const meta = $derived(
 		pageMetadata({

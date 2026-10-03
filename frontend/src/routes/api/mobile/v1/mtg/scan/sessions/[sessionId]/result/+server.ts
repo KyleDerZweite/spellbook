@@ -1,9 +1,10 @@
-import { requireUuid } from '$lib/server/http/request';
+import type { RequestHandler } from './$types';
+import { requireUuid } from '#lib/server/http/request.ts';
 import { error, json } from '@sveltejs/kit';
-import { requireMobileAuth } from '$lib/server/mobile/auth';
-import { getScanSessionResultEntry } from '$lib/server/mobile/mtg-service';
+import { requireMobileAuth } from '#lib/server/mobile/auth.ts';
+import { getScanSessionResultEntry } from '#lib/server/mobile/mtg-service.ts';
 
-export const GET = async (event) => {
+export const GET: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
 	const sessionId = requireUuid(event.params.sessionId, 'sessionId');
 

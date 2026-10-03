@@ -1,4 +1,4 @@
-import { privateEnv } from '$lib/env/private';
+import { privateEnv } from '#lib/env/private.ts';
 import type { ScanWorkerResult } from './types';
 
 export async function processScanArtifact(input: {

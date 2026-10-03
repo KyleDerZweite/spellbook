@@ -43,6 +43,13 @@
 			"when": 1791054932365,
 			"tag": "0005_mutation_request_fingerprints",
 			"breakpoints": true
+		},
+		{
+			"idx": 6,
+			"version": "7",
+			"when": 1791058654525,
+			"tag": "0006_postgres_catalog",
+			"breakpoints": true
 		}
 	]
 }

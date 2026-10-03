@@ -1,9 +1,10 @@
-/** A card document as stored in MeiliSearch. */
+/** A printing returned by the catalog API. */
 export interface CardDocument {
 	id: string;
 	game?: Game;
 	oracle_id: string;
 	name: string;
+	printed_name?: string;
 	normalized_name?: string;
 	lang: string;
 	released_at: string;
@@ -31,12 +32,14 @@ export interface CardDocument {
 	back_face_image_uri?: string;
 }
 
-/** Search result wrapper matching MeiliSearch response shape. */
+/** Catalog search results, with an optional publication identity for pagination. */
 export interface SearchResult {
 	hits: CardDocument[];
 	query: string;
 	processingTimeMs: number;
 	estimatedTotalHits: number;
+	generationId?: string | null;
+	facets?: FacetResponse;
 }
 
 export type Game = 'mtg' | 'pokemon' | 'yugioh';
@@ -63,9 +66,26 @@ export type CardType =
 export type LegalityFormat =
 	'standard' | 'pioneer' | 'modern' | 'legacy' | 'vintage' | 'commander' | 'pauper' | 'brawl';
 
-/** Facet distribution counts returned by MeiliSearch. */
+/** Canonical card counts for each filter value. */
 export interface FacetResponse {
 	colors: Record<string, number>;
 	rarity: Record<string, number>;
 	set_code: Record<string, number>;
+}
+
+export interface CatalogFilters {
+	colors?: ManaColor[];
+	rarities?: Rarity[];
+	types?: CardType[];
+	legalities?: LegalityFormat[];
+	sets?: string[];
+}
+
+export interface CatalogSearchRequest {
+	query: string;
+	filters?: CatalogFilters;
+	limit?: number;
+	offset?: number;
+	sort?: 'name:asc' | 'name:desc';
+	facets?: boolean;
 }

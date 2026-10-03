@@ -48,7 +48,7 @@ The [authentication architecture](../architecture/auth.md) owns the exact regist
 
 ## Catalog and printing identity
 
-The [domain model](./domain-model.md) distinguishes the card's canonical identity from its printing identity. Catalog search uses the canonical-card index; printing selection uses the all-printings index. The [MeiliSearch integration](../integrations/meilisearch/README.md) owns index names, query contracts, and ingestion behavior.
+The [domain model](./domain-model.md) distinguishes the card's canonical identity from its printing identity. Catalog search groups matching printings by canonical card; printing selection retains individual printing identities. The [catalog architecture](../architecture/catalog.md) owns PostgreSQL storage, publication, query contracts, and selection policy.
 
 Search must show a recognizable card name and image and provide useful MTG filters. The printing chooser must expose enough information to distinguish the available set, collector number, and printing. Adding an owned card or deck entry records the selected printing and its canonical identity together.
 
@@ -174,7 +174,7 @@ A dense desktop layout may use columns and tables. Narrow screens must stack ess
 
 The [system overview](../architecture/system-overview.md) owns the runtime boundaries. The [deployment guide](../operations/deployment.md) owns required services, environment variables, migration, and startup commands. Dependency versions belong to manifests and lockfiles rather than copied version tables in this specification.
 
-The web application uses SvelteKit for pages and account-scoped APIs. PostgreSQL owns transactional user data. MeiliSearch owns catalog search. Python workers own catalog ingestion and the scan-service boundary. Optional future machine-learning work belongs behind the worker boundary until a measured need changes it.
+The web application uses SvelteKit for pages and account-scoped APIs. PostgreSQL owns transactional user data and catalog search. Python workers own catalog ingestion and the scan-service boundary. Optional future machine-learning work belongs behind the worker boundary until a measured need changes it.
 
 The [backend language evaluation](../architecture/backend-language.md) records the Go and Python tradeoffs. A Go backend is an evaluation option, not an implemented migration or a prerequisite for hosted operation. Compare realistic latency, database time, search time, memory, throughput, and operating cost before selecting a new runtime. No benchmark currently establishes a Go rewrite as faster for Spellbook's workload.
 

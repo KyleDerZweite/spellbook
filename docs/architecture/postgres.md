@@ -6,7 +6,7 @@
 - Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior
 - Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md)
 
-Postgres stores user-scoped application state for Spellbook.
+PostgreSQL stores account-owned application state and the public Scryfall catalog.
 
 ## Current Tables
 
@@ -23,6 +23,9 @@ Postgres stores user-scoped application state for Spellbook.
 - `scan_review_items`
 - `inventory_mutation_requests`
 - `deck_mutation_requests`
+- `catalog_generations`
+- `catalog_state`
+- `catalog_printings`
 
 ## Current Model Notes
 
@@ -34,7 +37,7 @@ Postgres stores user-scoped application state for Spellbook.
 - MTG is the only implemented adapter today
 - `inventories` and `decks` are the current canonical domain objects
 - `inventory_mutation_requests` and `deck_mutation_requests` store per-account `requestId` records for idempotent mobile bulk mutations
-- card catalog data remains in MeiliSearch and is populated by the Python worker
+- the Python worker publishes public printing metadata using the [catalog generation contract](./catalog.md)
 - scan binary artifacts remain in object storage, not Postgres
 
 ## Current Access Pattern

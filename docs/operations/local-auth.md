@@ -16,7 +16,7 @@ Enroll each existing account with the operator command below. Do not create a re
 
 ## Set or reset a password
 
-Use Node 24 and install the frontend dependencies first. Set `DATABASE_URL` to the target database in the protected root `.env`, or supply it through the existing secret store. The connection must be reachable from the operator's environment.
+Use the pinned Node 26 release and install the frontend dependencies first. Set `DATABASE_URL` to the target database in the protected root `.env`, or supply it through the existing secret store. The connection must be reachable from the operator's environment.
 
 Run from `frontend/`:
 
@@ -38,7 +38,7 @@ The frontend runtime image does not include the recovery script. Users then sign
 
 ## Deployment settings
 
-OIDC, Zitadel, and `AUTH_SESSION_SECRET` settings are obsolete. Set the public origin through the deployment configuration so SvelteKit can enforce same-origin form requests. Compose maps `APP_ORIGIN` to adapter-node's `ORIGIN` variable.
+OIDC, Zitadel, and `AUTH_SESSION_SECRET` settings are obsolete. Set the public origin through the deployment configuration so SvelteKit can enforce same-origin form requests. Compose passes `APP_ORIGIN` into the SvelteKit build. Rebuild the frontend after changing the public origin; adapter-node 6 does not read runtime `ORIGIN`.
 
 Behind a proxy, configure trusted client-address headers using the [deployment procedure](./deployment.md). Without this setting, multiple users can share the proxy address and its attempt limit.
 

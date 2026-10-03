@@ -1,7 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getDeckSnapshot } from '$lib/server/data/decks';
-import { exportDecklist } from '$lib/server/mtg/deck-builder';
+import { getDeckSnapshot } from '#lib/server/data/decks.ts';
+import { exportDecklist } from '#lib/server/mtg/deck-builder.ts';
 
 export const GET: RequestHandler = async ({ locals, params }) => {
 	if (!locals.user) throw redirect(303, '/auth/login?returnTo=/decks');

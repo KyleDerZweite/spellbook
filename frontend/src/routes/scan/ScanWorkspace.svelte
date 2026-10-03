@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { untrack } from 'svelte';
-	import type { CardDocument } from '$lib/search/types';
-	import type { ScanCandidate, ScanSession, ScanSessionResult } from '$lib/server/data/types';
+	import type { CardDocument } from '#lib/search/types.ts';
+	import type { ScanCandidate, ScanSession, ScanSessionResult } from '#lib/server/data/types.ts';
 
 	let {
 		sessions,

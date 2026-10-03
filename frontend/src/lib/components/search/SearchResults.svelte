@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { CardDocument } from '$lib/search/types';
-	import VirtualCardGrid from '$lib/components/cards/VirtualCardGrid.svelte';
+	import type { CardDocument } from '#lib/search/types.ts';
+	import VirtualCardGrid from '#lib/components/cards/VirtualCardGrid.svelte';
 
 	interface Props {
 		hits: CardDocument[];

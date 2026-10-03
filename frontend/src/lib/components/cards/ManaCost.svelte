@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { parseManaSymbols } from '$lib/utils/manaCostParser';
+	import { parseManaSymbols } from '#lib/utils/manaCostParser.ts';
 
 	interface Props {
 		cost: string;

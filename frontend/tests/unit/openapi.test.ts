@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import { error, isHttpError } from '@sveltejs/kit';
 import { describe, expect, it } from 'vitest';
 import { GET } from '../../src/routes/openapi.json/+server';
 import {
@@ -65,6 +66,25 @@ function visit(value: Json, visitor: (value: Record<string, Json>) => void): voi
 }
 
 describe('OpenAPI contract', () => {
+	it('includes the status and message returned by SvelteKit errors', async () => {
+		const schema = (await GET().json()) as Document;
+		let body: unknown;
+		try {
+			error(400, 'Invalid request');
+		} catch (cause) {
+			if (!isHttpError(cause)) throw cause;
+			body = cause.body;
+		}
+		expect(body).toEqual({ status: 400, message: 'Invalid request' });
+		expect(schema.components.schemas.ErrorResponse).toMatchObject({
+			properties: {
+				status: { type: 'integer', minimum: 400, maximum: 599 },
+				message: { type: 'string' }
+			},
+			required: Object.keys(body as object)
+		});
+	});
+
 	it('covers every implemented API and authentication route and method without stale routes', async () => {
 		const schema = (await GET().json()) as Document;
 		const documented = Object.entries(schema.paths)
@@ -165,6 +185,39 @@ describe('OpenAPI contract', () => {
 				'text/plain'
 			]
 		).toBeDefined();
+	});
+
+	it('documents bounded catalog filtering and generation-aware search responses', async () => {
+		const schema = (await GET().json()) as Document;
+		const search = schema.paths['/api/mobile/v1/mtg/search']!;
+		expect(search.post!.requestBody?.content['application/json']?.schema).toEqual({
+			$ref: '#/components/schemas/CatalogSearchRequest'
+		});
+		for (const status of ['400', '401', '403', '413', '415'])
+			expect(search.post!.responses[status]).toBeDefined();
+		expect(schema.components.schemas.CatalogSearchRequest).toMatchObject({
+			properties: {
+				query: { type: 'string', maxLength: 300 },
+				limit: { type: 'integer', minimum: 0, maximum: 100 },
+				offset: { type: 'integer', minimum: 0, maximum: 1_000_000 },
+				facets: { type: 'boolean', default: false },
+				sort: { enum: ['name:asc', 'name:desc'] }
+			}
+		});
+		expect(schema.components.schemas.CatalogFilters).toMatchObject({
+			additionalProperties: false,
+			properties: {
+				colors: { maxItems: 100, items: { enum: ['W', 'U', 'B', 'R', 'G', 'C'] } },
+				sets: { maxItems: 100, items: { pattern: '^[A-Za-z0-9]{1,12}$' } }
+			}
+		});
+		expect(schema.components.schemas.SearchResponse).toMatchObject({
+			properties: {
+				generationId: { type: ['string', 'null'] },
+				facets: { $ref: '#/components/schemas/CatalogFacets' }
+			},
+			required: ['query', 'hits', 'estimatedTotalHits', 'processingTimeMs', 'generationId']
+		});
 	});
 
 	it('covers the accepted bulk operation kinds and deck roles', async () => {

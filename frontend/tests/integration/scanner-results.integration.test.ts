@@ -255,7 +255,7 @@ async function loadModules() {
 		import('../../src/lib/server/db/schema'),
 		import('../../src/lib/server/data/scan'),
 		import('../../src/lib/server/data/inventory'),
-		import('../../src/lib/server/mobile/meilisearch'),
+		import('../../src/lib/server/catalog/search'),
 		import('../../src/lib/server/mobile/storage'),
 		import('../../src/routes/api/mobile/v1/mtg/scan/sessions/[sessionId]/artifacts/[artifactId]/result/+server'),
 		import('../../src/routes/api/mobile/v1/mtg/scan/artifacts/[artifactId]/image/+server'),

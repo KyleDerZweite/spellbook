@@ -1,11 +1,12 @@
-import { normalizeQuantity } from '$lib/server/mtg/validation';
-import { badRequestIfValidation } from '$lib/server/mobile/route-errors';
-import { readString, readJsonObject, requireUuid, readNumber } from '$lib/server/http/request';
+import type { RequestHandler } from './$types';
+import { normalizeQuantity } from '#lib/server/mtg/validation.ts';
+import { badRequestIfValidation } from '#lib/server/mobile/route-errors.ts';
+import { readString, readJsonObject, requireUuid, readNumber } from '#lib/server/http/request.ts';
 import { error, json } from '@sveltejs/kit';
-import { requireMobileAuth } from '$lib/server/mobile/auth';
-import { addDeckCardEntry } from '$lib/server/mobile/mtg-service';
+import { requireMobileAuth } from '#lib/server/mobile/auth.ts';
+import { addDeckCardEntry } from '#lib/server/mobile/mtg-service.ts';
 
-export const POST = async (event) => {
+export const POST: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
 	const deckId = requireUuid(event.params.deckId, 'deckId');
 	const body = await readJsonObject(event.request);

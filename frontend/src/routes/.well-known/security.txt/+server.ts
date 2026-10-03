@@ -1,4 +1,4 @@
-import { privateEnv } from '$lib/env/private';
+import { privateEnv } from '#lib/env/private.ts';
 
 function buildExpires(): string {
 	const expires = new Date();

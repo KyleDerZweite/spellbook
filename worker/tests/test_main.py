@@ -2,225 +2,94 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from worker.main import (
-    background_full_update,
-    load_state,
-    main,
-    save_state,
-    seed_initial,
-    state_file,
-    sync_interval_seconds,
-    wait_for_meilisearch,
-)
+from worker.config import WorkerConfig
+from worker.main import load_state, main, save_state, sync_catalog, wait_for_database
+from worker.scryfall import BulkDataInfo
 
 
-class TestSyncIntervalSeconds:
-    """Test conversion of interval strings to seconds."""
-
-    def test_daily(self):
-        assert sync_interval_seconds("daily") == 86400
-
-    def test_weekly(self):
-        assert sync_interval_seconds("weekly") == 604800
-
-    def test_manual_returns_none(self):
-        assert sync_interval_seconds("manual") is None
-
-    def test_unknown_returns_none(self):
-        assert sync_interval_seconds("hourly") is None
+@pytest.fixture
+def clients():
+    scryfall, publisher = MagicMock(), MagicMock()
+    scryfall.get_download_info.return_value = BulkDataInfo(
+        "all_cards", "fixture://catalog", "2026-10-03T00:00:00Z", 100
+    )
+    publisher.is_current.return_value = False
+    publisher.publish.return_value = 4
+    return scryfall, publisher
 
 
-class TestWaitForMeilisearch:
-    """Test MeiliSearch health check retry logic."""
-
-    def test_returns_immediately_when_healthy(self):
-        mock_indexer = MagicMock()
-        mock_indexer.health_check.return_value = True
-        wait_for_meilisearch(mock_indexer, max_retries=5)
-        assert mock_indexer.health_check.call_count == 1
-
-    @patch("worker.main.time.sleep")
-    def test_retries_on_failure(self, mock_sleep):
-        mock_indexer = MagicMock()
-        mock_indexer.health_check.side_effect = [False, False, True]
-        wait_for_meilisearch(mock_indexer, max_retries=5)
-        assert mock_indexer.health_check.call_count == 3
-        assert mock_sleep.call_count == 2
-
-    @patch("worker.main.time.sleep")
-    @patch("worker.main.sys.exit")
-    def test_exits_after_max_retries(self, mock_exit, mock_sleep):
-        mock_indexer = MagicMock()
-        mock_indexer.health_check.return_value = False
-        wait_for_meilisearch(mock_indexer, max_retries=3)
-        mock_exit.assert_called_once_with(1)
-        assert mock_indexer.health_check.call_count == 3
-
-    @patch("worker.main.time.sleep")
-    def test_exponential_backoff(self, mock_sleep):
-        mock_indexer = MagicMock()
-        mock_indexer.health_check.side_effect = [False, False, False, True]
-        wait_for_meilisearch(mock_indexer, max_retries=5)
-        delays = [c[0][0] for c in mock_sleep.call_args_list]
-        assert delays[0] == 1.0
-        assert delays[1] == 2.0
-        assert delays[2] == 4.0
-
-    @patch("worker.main.time.sleep")
-    def test_backoff_caps_at_30(self, mock_sleep):
-        mock_indexer = MagicMock()
-        # Fail 10 times then succeed, delay should cap at 30
-        mock_indexer.health_check.side_effect = [False] * 10 + [True]
-        wait_for_meilisearch(mock_indexer, max_retries=15)
-        delays = [c[0][0] for c in mock_sleep.call_args_list]
-        assert max(delays) <= 30.0
+def test_database_metadata_controls_skip_even_with_stale_local_state(tmp_path, clients):
+    scryfall, publisher = clients
+    save_state({"allCardsUpdatedAt": "2026-10-03T00:00:00Z"}, tmp_path)
+    sync_catalog(scryfall, publisher, "all_cards", tmp_path)
+    scryfall.download_bulk_file.assert_called_once()
+    publisher.publish.assert_called_once()
+    assert load_state(tmp_path)["lastIndexedDocumentCount"] == 4
 
 
-class TestStateManagement:
-    """Test crash-resume state persistence."""
-
-    def test_load_state_returns_empty_when_no_file(self, tmp_path):
-        assert load_state(tmp_path) == {}
-
-    def test_save_and_load_roundtrip(self, tmp_path):
-        save_state({"defaultCardsUpdatedAt": "2026-03-21T09:00:00+00:00"}, tmp_path)
-        loaded = load_state(tmp_path)
-        assert loaded["defaultCardsUpdatedAt"] == "2026-03-21T09:00:00+00:00"
-
-    def test_save_creates_parent_dirs(self, tmp_path):
-        data_dir = tmp_path / "nested" / "dir"
-        save_state({"key": "value"}, data_dir)
-        assert state_file(data_dir).exists()
-
-    def test_save_overwrites_existing(self, tmp_path):
-        save_state({"version": 1}, tmp_path)
-        save_state({"version": 2}, tmp_path)
-        loaded = load_state(tmp_path)
-        assert loaded["version"] == 2
-
-    def test_state_file_honors_data_dir(self, tmp_path):
-        assert state_file(tmp_path) == tmp_path / "state.json"
-
-    def test_seed_initial_saves_state_after_successful_index(self, tmp_path):
-        info = MagicMock(updated_at="2026-03-21T09:00:00+00:00")
-        scryfall = MagicMock()
-        scryfall.get_download_info.return_value = info
-        indexer = MagicMock()
-        indexer.index_from_file.return_value = 123
-
-        seed_initial(scryfall, indexer, tmp_path)
-
-        state = load_state(tmp_path)
-        assert state["defaultCardsUpdatedAt"] == info.updated_at
-        assert state["lastIndexedDocumentCount"] == 123
-        assert state["lastError"] is None
-
-    def test_failed_seed_does_not_update_scryfall_timestamp(self, tmp_path):
-        info = MagicMock(updated_at="2026-03-21T09:00:00+00:00")
-        scryfall = MagicMock()
-        scryfall.get_download_info.return_value = info
-        indexer = MagicMock()
-        indexer.index_from_file.side_effect = RuntimeError("index failed")
-
-        with pytest.raises(RuntimeError):
-            seed_initial(scryfall, indexer, tmp_path)
-
-        state = load_state(tmp_path)
-        assert "defaultCardsUpdatedAt" not in state
-        assert state["lastError"] == "index failed"
-
-    def test_background_full_update_saves_all_cards_timestamp(self, tmp_path):
-        info = MagicMock(updated_at="2026-03-22T09:00:00+00:00")
-        scryfall = MagicMock()
-        scryfall.get_download_info.return_value = info
-        indexer = MagicMock()
-        indexer.index_from_file.return_value = 456
-
-        background_full_update(scryfall, indexer, tmp_path)
-
-        state = load_state(tmp_path)
-        assert state["allCardsUpdatedAt"] == info.updated_at
+def test_current_catalog_skips_download(tmp_path, clients):
+    scryfall, publisher = clients
+    publisher.is_current.return_value = True
+    sync_catalog(scryfall, publisher, "all_cards", tmp_path)
+    scryfall.download_bulk_file.assert_not_called()
+    publisher.publish.assert_not_called()
 
 
-class TestMainPeriodicSyncPassesDataDir:
-    """Regression: periodic seed_initial must use config.data_dir, not the default."""
+def test_failed_download_cannot_publish_or_leak_error_contents(tmp_path, clients):
+    scryfall, publisher = clients
+    scryfall.download_bulk_file.side_effect = ValueError("credential/private document")
+    with pytest.raises(ValueError):
+        sync_catalog(scryfall, publisher, "all_cards", tmp_path)
+    publisher.publish.assert_not_called()
+    assert load_state(tmp_path) == {"source": "all_cards", "lastError": "ValueError"}
 
-    @patch("worker.main.background_full_update")
-    @patch("worker.main.seed_initial")
-    @patch("worker.main.time.sleep")
-    @patch("worker.main.wait_for_meilisearch")
-    @patch("worker.main.MeiliIndexer")
-    @patch("worker.main.ScryfallClient")
-    @patch("worker.main.load_config")
-    def test_periodic_seed_initial_receives_configured_data_dir(
-        self,
-        mock_load_config,
-        mock_scryfall_cls,
-        mock_indexer_cls,
-        mock_wait,
-        mock_sleep,
-        mock_seed,
-        mock_bg,
-        tmp_path,
+
+def test_missing_source_fails(tmp_path, clients):
+    scryfall, publisher = clients
+    scryfall.get_download_info.return_value = None
+    with pytest.raises(ValueError, match="source"):
+        sync_catalog(scryfall, publisher, "all_cards", tmp_path)
+    publisher.publish.assert_not_called()
+
+
+@patch("worker.main.time.sleep")
+def test_readiness_retries_and_fails_without_continuing(sleep):
+    publisher = MagicMock()
+    publisher.health_check.return_value = False
+    with pytest.raises(RuntimeError, match="migrations"):
+        wait_for_database(publisher, max_retries=3)
+    assert [call.args[0] for call in sleep.call_args_list] == [1, 2]
+
+
+def test_periodic_sync_never_substitutes_default_cards(tmp_path):
+    config = WorkerConfig(
+        "postgresql://localhost/test", "all_cards", "daily", "fixture://api", tmp_path
+    )
+    with (
+        patch("worker.main.load_config", return_value=config),
+        patch("worker.main.CatalogPublisher"),
+        patch("worker.main.ScryfallClient"),
+        patch("worker.main.wait_for_database"),
+        patch("worker.main.sync_catalog") as sync,
+        patch("worker.main.time.sleep", side_effect=[None, KeyboardInterrupt]),
+        pytest.raises(KeyboardInterrupt),
     ):
-        config = MagicMock()
-        config.data_dir = tmp_path
-        config.sync_interval = "daily"
-        config.aggressive_preload = False
-        mock_load_config.return_value = config
-
-        indexer = mock_indexer_cls.return_value
-        indexer.get_distinct_count.return_value = 100_000
-
-        # Break the while True loop after the first periodic sync.
-        mock_sleep.side_effect = [None, KeyboardInterrupt()]
-
-        with pytest.raises(KeyboardInterrupt):
-            main()
-
-        # The periodic call must pass config.data_dir, not the default.
-        calls = mock_seed.call_args_list
-        assert any(
-            call.args[2] == tmp_path or call.kwargs.get("data_dir") == tmp_path for call in calls
-        ), f"Expected seed_initial called with data_dir={tmp_path}, got {calls}"
-
-
-class TestMainManualPreloadLifecycle:
-    """Regression: manual sync must wait for the preload thread before returning."""
-
-    @patch("worker.main.background_full_update")
-    @patch("worker.main.wait_for_meilisearch")
-    @patch("worker.main.MeiliIndexer")
-    @patch("worker.main.ScryfallClient")
-    @patch("worker.main.load_config")
-    def test_manual_sync_joins_preload_thread(
-        self,
-        mock_load_config,
-        mock_scryfall_cls,
-        mock_indexer_cls,
-        mock_wait,
-        mock_bg,
-        tmp_path,
-    ):
-        import threading
-
-        config = MagicMock()
-        config.data_dir = tmp_path
-        config.sync_interval = "manual"
-        config.aggressive_preload = True
-        mock_load_config.return_value = config
-
-        indexer = mock_indexer_cls.return_value
-        indexer.get_distinct_count.return_value = 100_000
-
-        finished = threading.Event()
-
-        def slow_preload(*_args, **_kwargs):
-            # Simulate work that must finish before main() returns.
-            finished.set()
-
-        mock_bg.side_effect = slow_preload
-
         main()
+    assert len(sync.call_args_list) == 2
+    assert all(call.args[2:] == ("all_cards", tmp_path) for call in sync.call_args_list)
 
-        assert finished.is_set(), "main() returned before preload completed"
+
+def test_manual_failure_exits_unsuccessfully(tmp_path):
+    config = WorkerConfig(
+        "postgresql://localhost/test", "all_cards", "manual", "fixture://api", tmp_path
+    )
+    with (
+        patch("worker.main.load_config", return_value=config),
+        patch("worker.main.CatalogPublisher"),
+        patch("worker.main.ScryfallClient"),
+        patch("worker.main.wait_for_database"),
+        patch("worker.main.sync_catalog", side_effect=ValueError("private")),
+        pytest.raises(SystemExit) as exc,
+    ):
+        main()
+    assert exc.value.code == 1

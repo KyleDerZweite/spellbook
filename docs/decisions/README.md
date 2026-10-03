@@ -40,3 +40,4 @@ Rules:
 - [ADR-0007: Backend-first MTG bulk and import API](./0007-backend-first-mtg-bulk-import-api.md)
 - [ADR-0008: MTG-only self-hosted inventory and deck availability](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md)
 - [ADR-0009: Local authentication with stable account ownership](./0009-local-authentication.md)
+- [ADR-0010: Store and search the catalog in PostgreSQL](./0010-postgres-catalog.md)

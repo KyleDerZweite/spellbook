@@ -4,7 +4,7 @@
 - Last Reviewed: 2026-10-03
 - Source of Truth: vendor docs
 - Update Triggers: dependency guidance changes, curated reference path changes
-- Related Docs: [Search engines](./search-engines.md), [UI libraries](./ui-libraries.md), [Bits UI](./bits-ui.md), [Website icons](./website-icons.md), [Mana Font](./fonts/mana.md), [Docs Index](../README.md)
+- Related Docs: [Catalog and database assessment](./search-engines.md), [UI libraries](./ui-libraries.md), [Bits UI](./bits-ui.md), [Website icons](./website-icons.md), [Mana Font](./fonts/mana.md), [Docs Index](../README.md)
 
 Reference documents record dated technology comparisons and vendor guidance. The product specification and architecture documents own implemented behavior.
 
@@ -14,4 +14,4 @@ Reference documents record dated technology comparisons and vendor guidance. The
 - [Mana font](./fonts/mana.md)
 - [UI library assessment](./ui-libraries.md)
 - [Website icon requirements](./website-icons.md)
-- [Catalog search engine assessment](./search-engines.md)
+- [Catalog and database assessment](./search-engines.md)

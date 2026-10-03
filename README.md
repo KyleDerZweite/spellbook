@@ -2,7 +2,7 @@
 
 Spellbook is an open-source, self-hosted Magic: The Gathering inventory and deck builder. Search the Scryfall catalog, track owned printings, build decks, and compare required cards with inventory.
 
-The application uses SvelteKit, Postgres, MeiliSearch, and a Python ingestion worker. Accounts use local username and password authentication. Scan review supports image uploads and manual printing selection. Automatic card recognition and direct browser camera capture remain planned.
+The application uses SvelteKit, PostgreSQL, and a Python ingestion worker. Accounts use local username and password authentication. Scan review supports image uploads and manual printing selection. Automatic card recognition and direct browser camera capture remain planned.
 
 - [Product specification](docs/product/specification.md)
 - [Documentation index](docs/README.md)

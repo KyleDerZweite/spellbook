@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { error, type RequestEvent } from '@sveltejs/kit';
-import type { AuthUser } from '$lib/auth/types';
-import { db } from '$lib/server/db/client';
-import { localCredentials, userProfiles } from '$lib/server/db/schema';
+import type { AuthUser } from '#lib/auth/types.ts';
+import { db } from '#lib/server/db/client.ts';
+import { localCredentials, userProfiles } from '#lib/server/db/schema.ts';
 import { createSession } from './session';
 import { hashPassword, normalizeUsername, validPassword, verifyPassword } from './password';
 

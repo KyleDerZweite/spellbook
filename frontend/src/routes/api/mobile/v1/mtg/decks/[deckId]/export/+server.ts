@@ -1,10 +1,11 @@
-import { requireUuid } from '$lib/server/http/request';
+import type { RequestHandler } from './$types';
+import { requireUuid } from '#lib/server/http/request.ts';
 import { error } from '@sveltejs/kit';
-import { requireMobileAuth } from '$lib/server/mobile/auth';
-import { getDeckCardsEntry } from '$lib/server/mobile/mtg-service';
-import { exportDecklist } from '$lib/server/mtg/deck-builder';
+import { requireMobileAuth } from '#lib/server/mobile/auth.ts';
+import { getDeckCardsEntry } from '#lib/server/mobile/mtg-service.ts';
+import { exportDecklist } from '#lib/server/mtg/deck-builder.ts';
 
-export const GET = async (event) => {
+export const GET: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
 	const deckId = requireUuid(event.params.deckId, 'deckId');
 	const format = event.url.searchParams.get('format') ?? 'arena';

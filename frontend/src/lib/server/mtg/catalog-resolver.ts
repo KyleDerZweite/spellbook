@@ -1,8 +1,6 @@
-import { Meilisearch } from 'meilisearch';
-import { privateEnv } from '$lib/env/private';
-import type { CardDocument } from '$lib/search/types';
+import type { CardDocument } from '#lib/search/types.ts';
 import type { ParsedDecklistLine, ParsedDecklistRole } from './decklist';
-import { normalizeCardName } from './decklist';
+import { resolveCatalogCandidates } from '#lib/server/catalog/search.ts';
 
 export interface ResolvedImportLine {
 	line: ParsedDecklistLine;
@@ -26,31 +24,6 @@ export interface CatalogResolutionResult {
 }
 
 const DEFAULT_CONCURRENCY = 8;
-
-let client: Meilisearch | null = null;
-
-function getClient(): Meilisearch {
-	if (client) {
-		return client;
-	}
-	const host = privateEnv.MEILISEARCH_INTERNAL_URL ?? privateEnv.PUBLIC_MEILISEARCH_URL;
-	const apiKey = privateEnv.MEILI_MASTER_KEY;
-	if (!host || !apiKey) {
-		throw new Error(
-			'Catalog resolver requires MEILISEARCH_INTERNAL_URL/PUBLIC_MEILISEARCH_URL and MEILI_MASTER_KEY'
-		);
-	}
-	client = new Meilisearch({ host, apiKey });
-	return client;
-}
-
-/**
- * For testing only - inject a search client so unit tests can mock MeiliSearch
- * without touching network or env vars.
- */
-export function __setCatalogResolverClient(override: Meilisearch | null): void {
-	client = override;
-}
 
 function lineKey(line: ParsedDecklistLine): string {
 	const set = line.setCode ? line.setCode.toLowerCase() : '';
@@ -94,7 +67,7 @@ export async function resolveDecklistLines(
 				return;
 			}
 			const [key, line] = tasks[i];
-			candidateByKey.set(key, await resolveCandidates(line));
+			candidateByKey.set(key, await resolveCatalogCandidates(line));
 		}
 	}
 
@@ -112,35 +85,4 @@ export async function resolveDecklistLines(
 	}
 
 	return result;
-}
-
-function exactNameMatch(card: CardDocument, normalizedName: string): boolean {
-	return (card.normalized_name ?? normalizeCardName(card.name)) === normalizedName;
-}
-
-async function resolveCandidates(line: ParsedDecklistLine): Promise<CardDocument[]> {
-	if (line.setCode) {
-		const index = getClient().index<CardDocument>('cards_all');
-		const response = await index.search('', {
-			filter: [
-				`set_code = "${escapeFilterValue(line.setCode.toLowerCase())}"`,
-				line.collectorNumber
-					? `collector_number = "${escapeFilterValue(line.collectorNumber)}"`
-					: `normalized_name = "${escapeFilterValue(line.normalizedName)}"`
-			],
-			limit: 10
-		});
-		return response.hits.filter((card) => exactNameMatch(card, line.normalizedName));
-	}
-
-	const index = getClient().index<CardDocument>('cards_distinct');
-	const response = await index.search('', {
-		filter: [`normalized_name = "${escapeFilterValue(line.normalizedName)}"`],
-		limit: 10
-	});
-	return response.hits.filter((card) => exactNameMatch(card, line.normalizedName));
-}
-
-function escapeFilterValue(value: string): string {
-	return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }

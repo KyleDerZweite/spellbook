@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { DropdownMenu } from 'bits-ui';
-	import { activeGameState, AVAILABLE_GAMES } from '$lib/state/activeGame.svelte';
-	import type { Game } from '$lib/search/types';
+	import { activeGameState, AVAILABLE_GAMES } from '#lib/state/activeGame.svelte.ts';
+	import type { Game } from '#lib/search/types.ts';
 
 	interface GameOption {
 		id: Game;

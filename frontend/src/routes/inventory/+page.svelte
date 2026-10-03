@@ -1,8 +1,8 @@
 <script lang="ts">
-	import OrnamentalDivider from '$lib/components/layout/OrnamentalDivider.svelte';
-	import { getSetCatalogSize } from '$lib/search/meilisearch';
-	import { activeGameState } from '$lib/state/activeGame.svelte';
-	import type { InventoryCard } from '$lib/server/data/types';
+	import OrnamentalDivider from '#lib/components/layout/OrnamentalDivider.svelte';
+	import { getSetCatalogSize } from '#lib/search/catalog.ts';
+	import { activeGameState } from '#lib/state/activeGame.svelte.ts';
+	import type { InventoryCard } from '#lib/server/data/types.ts';
 
 	type InventorySort = 'name' | 'set' | 'recent';
 

@@ -1,11 +1,9 @@
-import type { Handle } from '@sveltejs/kit';
-import { requireFormOrigin } from '$lib/server/auth/csrf';
-import { privateEnv } from '$lib/env/private';
-import { NO_INDEX_ROBOTS_TAG, createNoIndexRedirect } from '$lib/seo/site';
-import { SESSION_COOKIE, clearSessionCookie, validateSession } from '$lib/server/auth/session';
-import { ACTIVE_GAME_COOKIE, DEFAULT_GAME, isGame } from '$lib/state/activeGame.svelte';
+import type { Handle } from '@sveltejs/kit/hooks';
+import { requireFormOrigin } from '#lib/server/auth/csrf.ts';
+import { NO_INDEX_ROBOTS_TAG, createNoIndexRedirect } from '#lib/seo/site.ts';
+import { SESSION_COOKIE, clearSessionCookie, validateSession } from '#lib/server/auth/session.ts';
+import { ACTIVE_GAME_COOKIE, DEFAULT_GAME, isGame } from '#lib/state/activeGame.svelte.ts';
 
-let cachedSearchKey: string | null = null;
 const PUBLIC_PATH_PREFIXES = ['/auth/', '/privacy', '/terms'];
 const PROTECTED_PATH_PREFIXES = ['/search', '/inventory', '/decks', '/scan'];
 const NO_INDEX_PATH_PREFIXES = ['/auth/', '/api/', '/search', '/inventory', '/decks', '/scan'];
@@ -28,52 +26,6 @@ const LEGACY_ALIAS_REDIRECTS: Record<string, string> = {
 	'/collections': '/inventory',
 	'/collections/': '/inventory'
 };
-
-/**
- * Fetch the default search API key from MeiliSearch by listing keys
- * and finding the one named "Default Search API Key".
- * Caches the result so it's only fetched once per server lifetime.
- */
-async function getMeiliSearchKey(): Promise<string> {
-	if (cachedSearchKey) return cachedSearchKey;
-
-	const internalUrl = privateEnv.MEILISEARCH_INTERNAL_URL ?? 'http://localhost:7700';
-	const masterKey = privateEnv.MEILI_MASTER_KEY;
-
-	if (!masterKey) {
-		console.warn('MEILI_MASTER_KEY not set — MeiliSearch search key cannot be fetched');
-		return '';
-	}
-
-	try {
-		const res = await fetch(`${internalUrl}/keys?limit=100`, {
-			headers: { Authorization: `Bearer ${masterKey}` }
-		});
-
-		if (!res.ok) {
-			console.error(`Failed to fetch MeiliSearch keys: ${res.status} ${res.statusText}`);
-			return '';
-		}
-
-		const data = await res.json();
-		const searchKey = data.results?.find(
-			(k: { name: string; actions: string[] }) =>
-				k.name === 'Default Search API Key' ||
-				(k.actions?.length === 1 && k.actions[0] === 'search')
-		);
-
-		if (!searchKey?.key) {
-			console.error('MeiliSearch default search key not found in /keys response');
-			return '';
-		}
-
-		cachedSearchKey = searchKey.key;
-		return cachedSearchKey!;
-	} catch (err) {
-		console.error('Failed to connect to MeiliSearch:', err);
-		return '';
-	}
-}
 
 function isPublicPath(pathname: string): boolean {
 	return pathname === '/' || PUBLIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
@@ -119,7 +71,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const session = await validateSession(token);
 	if (token && !session) clearSessionCookie(event.cookies);
 	event.locals.user = session;
-	event.locals.meiliSearchKey = session ? await getMeiliSearchKey() : '';
 	event.locals.mobileBearerUser = null;
 
 	// Seed the active-game cookie on first visit so the client has a

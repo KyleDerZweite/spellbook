@@ -2,12 +2,15 @@
 minimumReleaseAgeExclude:
   - '@aws-sdk/client-s3@3.1146.0'
   - bits-ui@2.19.5
-# SvelteKit 2 still requests cookie 0.6, which lacks the CVE-2024-47764 fix.
 overrides:
-  cookie: 0.7.2
   # Drizzle's legacy TypeScript loader otherwise retains vulnerable esbuild 0.18.
   '@esbuild-kit/core-utils>esbuild': 0.28.2
 
 # Vite and Drizzle Kit need esbuild to install its platform binary.
 allowBuilds:
   esbuild: true
+
+# Bits UI uses runed's framework-independent entry point, not the optional runed/kit integration.
+peerDependencyRules:
+  allowedVersions:
+    'runed>@sveltejs/kit': 3.0.0

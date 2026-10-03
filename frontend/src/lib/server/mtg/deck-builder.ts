@@ -1,7 +1,7 @@
-import type { CardDocument } from '$lib/search/types';
-import type { DeckCard } from '$lib/server/data/types';
-import { bulkMutateDeckCards, getDeckSnapshot } from '$lib/server/data/decks';
-import { getCatalogPrinting, searchCatalog } from '$lib/server/mobile/meilisearch';
+import type { CardDocument } from '#lib/search/types.ts';
+import type { DeckCard } from '#lib/server/data/types.ts';
+import { bulkMutateDeckCards, getDeckSnapshot } from '#lib/server/data/decks.ts';
+import { getCatalogPrinting, searchCatalog } from '#lib/server/catalog/search.ts';
 import { formatArenaDecklist } from './decklist';
 import { generateLegalityWarnings } from './legality';
 import { isCommittedDeckRole, previewMtgImport, toCardIdentity } from './import';

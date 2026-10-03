@@ -210,12 +210,12 @@ run('Scan repository and uploads', () => {
 				session.id,
 				new File(['ignored'], 'fake.png', { type: 'image/png' })
 			);
-			event.request = new Request('http://localhost/scan', {
+			const request = new Request('http://localhost/scan', {
 				method: 'POST',
 				headers: { origin: 'http://localhost', 'content-type': contentType },
 				body: 'broken'
 			});
-			await expect(modules.uploadFrame(event)).rejects.toMatchObject({ status });
+			await expect(modules.uploadFrame({ ...event, request })).rejects.toMatchObject({ status });
 		}
 		expect(upload).not.toHaveBeenCalled();
 		expect((await modules.getScanSessionResult(accountId, session.id)).artifacts).toHaveLength(0);

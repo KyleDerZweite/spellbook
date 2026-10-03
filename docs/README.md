@@ -15,9 +15,9 @@ Use the [issue label rules](./ISSUE_LABELS.md) for repository triage and the [co
 | [Product](./product/README.md)           | Specification, terminology, routes, and design direction                            |
 | [Architecture](./architecture/README.md) | Service boundaries, data contracts, authentication, and backend language assessment |
 | [Operations](./operations/README.md)     | Deployment, environment variables, account recovery, and repository automation      |
-| [Integrations](./integrations/README.md) | MeiliSearch index, document, query, task, and credential contracts                  |
+| [Integrations](./integrations/README.md) | External scanner and sorter proposals                                               |
 | [Decisions](./decisions/README.md)       | Significant choices, tradeoffs, and explicit supersession                           |
-| [Reference](./reference/README.md)       | UI library evaluation and external dependency documentation                         |
+| [Reference](./reference/README.md)       | UI and database evaluations and external dependency documentation                   |
 
 ## Maintenance
 

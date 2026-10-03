@@ -31,9 +31,14 @@ JSON credentials have `username` and `password` fields. Successful responses con
 
 Browser mutations require a matching request origin. JSON login and registration allow a missing origin for non-browser clients but reject a foreign origin. Cookie-authenticated API mutations also require the same origin.
 
-SvelteKit delegates form-origin checks through `csrf.trustedOrigins: ['*']` to the [central form guard](../../frontend/src/lib/server/auth/csrf.ts). The server hook invokes that guard before redirects or session handling. It requires a matching origin for `POST`, `PUT`, `PATCH`, and `DELETE` requests using URL-encoded, multipart, plain-text, or SvelteKit form data.
+SvelteKit delegates form-origin checks through `csrf.trustedOrigins: ['*']` to the [central form guard](../../frontend/src/lib/server/auth/csrf.ts). The server hook invokes that guard before redirects or session handling. It requires a matching origin for `POST`, `PUT`, `PATCH`, and `DELETE` requests using URL-encoded, multipart, plain-text, or SvelteKit form data, and requests without a content type.
 
-One exception supports native scanners. A multipart `POST` to the exact scan-frame route may omit `Origin` when it carries a well-formed bearer token. The route must then validate that token against the session database. An invalid token returns HTTP 401 even if a valid browser cookie is also present. A foreign or literal `null` origin returns HTTP 403 even with a valid bearer token. Other unsafe form requests with a missing origin also return HTTP 403. This guard applies in development and production; JSON handlers retain their own origin checks.
+Native clients may omit `Origin` when they carry a well-formed bearer token in these narrow cases:
+
+- Multipart `POST` to the exact scan-frame upload route.
+- Requests with no body and no content type for deck, deck-entry, or inventory-entry `DELETE`, scan-session creation, and `/api/auth/logout`.
+
+The route then validates the token against the session database. An invalid token returns HTTP 401 even if a valid browser cookie is present. For guarded requests, a foreign or literal `null` origin returns HTTP 403 even with a valid bearer token. Other guarded requests with a missing origin return HTTP 403. These checks apply in development and production; JSON handlers retain their own origin checks.
 
 Login and registration share a per-process limit of 20 attempts per client address within 15 minutes. At most four password derivations run concurrently. These limits do not coordinate across replicas; multi-replica deployments need a shared proxy rate limit.
 

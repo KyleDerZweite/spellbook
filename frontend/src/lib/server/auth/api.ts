@@ -1,4 +1,4 @@
-import { readJsonObject } from '$lib/server/http/request';
+import { readJsonObject } from '#lib/server/http/request.ts';
 import { error, json, type RequestEvent } from '@sveltejs/kit';
 import { authenticate, requireSameOrigin, takeAuthAttempt } from './local';
 

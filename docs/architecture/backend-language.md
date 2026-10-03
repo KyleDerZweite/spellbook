@@ -16,8 +16,8 @@ Go can be useful for a future service with measured CPU or concurrency limits. P
 | -------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | Application requests | SvelteKit server loads, actions, and API routes under `frontend/src/routes`                                             | Request CPU, rendering, serialization, database and search wait time      |
 | Owned data           | Drizzle repositories under `frontend/src/lib/server/data`, with a `pg` pool in `frontend/src/lib/server/db/client.ts`   | Query plans, rows returned, locks, connection waits, transaction duration |
-| Catalog lookup       | MeiliSearch accessed by the frontend and server                                                                         | Index size, filter cost, network latency, response size                   |
-| Catalog ingestion    | Python package under `worker/src/worker`                                                                                | Download time, transformation CPU and memory, indexing and task waits     |
+| Catalog lookup       | PostgreSQL catalog accessed through SvelteKit                                                                           | Index size, filter cost, network latency, response size                   |
+| Catalog ingestion    | Python package under `worker/src/worker`                                                                                | Download time, transformation CPU and memory, COPY and index maintenance  |
 | Scan processing      | HTTP boundary in `frontend/src/lib/server/mobile/scan-worker.ts` and Python service under `scan-worker/src/scan_worker` | Upload, queue, preprocessing, inference, retrieval and review latency     |
 
 The scan worker currently returns an empty `no_match` result with stub model versions. It does not provide OCR, embeddings, or production recognition. Model-library comparisons below describe candidates for that service, not installed capabilities.
@@ -32,7 +32,7 @@ SvelteKit's [Node adapter](https://svelte.dev/docs/kit/adapter-node) produces a 
 
 [Go goroutines](https://go.dev/doc/faq#goroutines) multiplex concurrent work onto operating-system threads. Go can execute CPU work across cores within one process. Its runtime still has allocation and garbage-collection costs. The [Go garbage-collector guide](https://go.dev/doc/gc-guide) documents the CPU and memory tradeoff and the soft memory limit. These mechanisms provide useful controls, not a measured throughput advantage for Spellbook.
 
-A Go handler does not make the same Postgres query, lock wait, MeiliSearch request, or object-storage transfer inherently faster. It could reduce application CPU or memory for a specific workload. A comparison must distinguish those savings from external-service waits and from changes to query shape, caching, or algorithms.
+A Go handler does not make the same Postgres query, lock wait, catalog query, or object-storage transfer inherently faster. It could reduce application CPU or memory for a specific workload. A comparison must distinguish those savings from external-service waits and from changes to query shape, caching, or algorithms.
 
 Python's [threading documentation](https://docs.python.org/3/library/threading.html) explains that conventional CPython builds serialize Python bytecode execution through the GIL. Processes can provide CPU parallelism; supported free-threaded builds have different constraints. These details do not imply that native tensor operations or GPU kernels execute as Python bytecode.
 
@@ -51,8 +51,8 @@ Run production builds on recorded CPU, memory, storage, and network configuratio
 | Inventory and deck reads   | Accounts with 1,000, 10,000, and 100,000 inventory entries; small and large decklists                             | p50/p95/p99 latency, rows and bytes returned, query time, pool wait, request CPU                 |
 | Inventory and deck writes  | Single updates and batches within supported request limits; concurrent updates to the same and different accounts | Transaction and lock time, conflicts, throughput, rollback correctness, idempotent retry results |
 | Deck availability          | Repeated canonical cards across roles and printings through the implemented availability endpoint                 | Computation time, query count, allocation correctness, event-loop delay                          |
-| Catalog search and imports | Name and printing queries, representative filters, large lists within request limits                              | MeiliSearch latency, resolution request count, parsing time, payload size, memory                |
-| Catalog ingestion          | Fixed bulk snapshot, full rebuild and unchanged-snapshot run                                                      | Download, transform, indexing and swap time separately; peak memory                              |
+| Catalog search and imports | Name and printing queries, representative filters, large lists within request limits                              | Catalog query latency, resolution request count, parsing time, payload size, memory              |
+| Catalog ingestion          | Fixed bulk snapshot, full rebuild and unchanged-snapshot run                                                      | Download, transform, COPY and publication time separately; peak memory                           |
 | Scan inference             | A labeled image set, fixed model and hardware, cold and warm model, selected batch sizes                          | Accuracy, upload and queue time, preprocessing, inference, retrieval, peak RAM/VRAM              |
 
 Increase concurrent clients in recorded steps until latency objectives or error limits fail. Report successful requests per second together with tail latency and errors. Include a sustained run to detect memory growth and queue buildup. Do not infer hosted capacity from a trivial health endpoint.

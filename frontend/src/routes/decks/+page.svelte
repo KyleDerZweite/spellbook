@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
-	import type { SubmitFunction } from '@sveltejs/kit';
+	import type { SubmitFunction } from '$app/forms';
 	import type { PageProps } from './$types';
-	import DeckDialog from '$lib/components/decks/DeckDialog.svelte';
-	import DeckSelect from '$lib/components/decks/DeckSelect.svelte';
-	import ManaCost from '$lib/components/cards/ManaCost.svelte';
-	import { allocateDeckAvailability } from '$lib/mtg/deck-availability';
-	import type { previewMtgImport } from '$lib/server/mtg/import';
+	import DeckDialog from '#lib/components/decks/DeckDialog.svelte';
+	import DeckSelect from '#lib/components/decks/DeckSelect.svelte';
+	import ManaCost from '#lib/components/cards/ManaCost.svelte';
+	import { allocateDeckAvailability } from '#lib/mtg/deck-availability.ts';
+	import type { previewMtgImport } from '#lib/server/mtg/import.ts';
 
 	const formats = [
 		'Commander',

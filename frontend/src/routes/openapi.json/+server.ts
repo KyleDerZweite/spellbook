@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
-import { privateEnv } from '$lib/env/private';
-import { SITE_DESCRIPTION, SITE_NAME } from '$lib/seo/site';
+import { privateEnv } from '#lib/env/private.ts';
+import { SITE_DESCRIPTION, SITE_NAME } from '#lib/seo/site.ts';
 
 type Schema = Record<string, unknown>;
 
@@ -210,7 +210,7 @@ const SCHEMA = {
 			get: {
 				...operation('Search distinct MTG cards', ref('SearchResponse')),
 				parameters: [
-					{ name: 'q', in: 'query', schema: { type: 'string', default: '' } },
+					{ name: 'q', in: 'query', schema: { type: 'string', maxLength: 300, default: '' } },
 					{
 						name: 'limit',
 						in: 'query',
@@ -219,9 +219,18 @@ const SCHEMA = {
 					{
 						name: 'offset',
 						in: 'query',
-						schema: { type: 'integer', default: 0, minimum: 0, maximum: Number.MAX_SAFE_INTEGER }
+						schema: { type: 'integer', default: 0, minimum: 0, maximum: 1_000_000 }
 					}
 				]
+			},
+			post: {
+				...operation(
+					'Search distinct MTG cards with filters and optional facets',
+					ref('SearchResponse'),
+					ref('CatalogSearchRequest')
+				),
+				description:
+					'Filters apply to printings before deduplication by oracle ID. Results, counts, and facets use one published catalog generation. An unpublished catalog returns an empty result with generationId null.'
 			}
 		},
 		'/api/mobile/v1/mtg/cards/{oracleId}/printings': {
@@ -237,7 +246,7 @@ const SCHEMA = {
 					{
 						name: 'offset',
 						in: 'query',
-						schema: { type: 'integer', default: 0, minimum: 0, maximum: Number.MAX_SAFE_INTEGER }
+						schema: { type: 'integer', default: 0, minimum: 0, maximum: 1_000_000 }
 					}
 				]
 			}
@@ -571,11 +580,97 @@ const SCHEMA = {
 				},
 				['id', 'oracle_id', 'name']
 			),
-			SearchResponse: object({
-				query: string,
-				hits: array('CardDocument'),
-				estimatedTotalHits: integer
+			CatalogFilters: {
+				...object(
+					{
+						colors: {
+							type: 'array',
+							maxItems: 100,
+							items: { enum: ['W', 'U', 'B', 'R', 'G', 'C'] },
+							description:
+								'Match a nonempty subset of selected colors. C also accepts colorless cards; C alone accepts only colorless cards.'
+						},
+						rarities: {
+							type: 'array',
+							maxItems: 100,
+							items: { enum: ['common', 'uncommon', 'rare', 'mythic'] }
+						},
+						types: {
+							type: 'array',
+							maxItems: 100,
+							items: {
+								enum: [
+									'Creature',
+									'Instant',
+									'Sorcery',
+									'Enchantment',
+									'Artifact',
+									'Planeswalker',
+									'Land',
+									'Battle',
+									'Kindred'
+								]
+							}
+						},
+						legalities: {
+							type: 'array',
+							maxItems: 100,
+							items: {
+								enum: [
+									'standard',
+									'pioneer',
+									'modern',
+									'legacy',
+									'vintage',
+									'commander',
+									'pauper',
+									'brawl'
+								]
+							}
+						},
+						sets: {
+							type: 'array',
+							maxItems: 100,
+							items: { type: 'string', pattern: '^[A-Za-z0-9]{1,12}$' },
+							description: 'Set codes are normalized to lowercase.'
+						}
+					},
+					[]
+				),
+				additionalProperties: false,
+				description:
+					'Categories combine with AND. Rarities, types, legalities, and sets combine with OR within each category. Empty arrays apply no restriction.'
+			},
+			CatalogSearchRequest: {
+				...object(
+					{
+						query: { type: 'string', maxLength: 300, default: '' },
+						filters: ref('CatalogFilters'),
+						limit: { type: 'integer', minimum: 0, maximum: 100, default: 20 },
+						offset: { type: 'integer', minimum: 0, maximum: 1_000_000, default: 0 },
+						sort: { enum: ['name:asc', 'name:desc'] },
+						facets: { type: 'boolean', default: false }
+					},
+					[]
+				),
+				additionalProperties: false
+			},
+			CatalogFacets: object({
+				colors: { type: 'object', additionalProperties: { type: 'integer', minimum: 0 } },
+				rarity: { type: 'object', additionalProperties: { type: 'integer', minimum: 0 } },
+				set_code: { type: 'object', additionalProperties: { type: 'integer', minimum: 0 } }
 			}),
+			SearchResponse: object(
+				{
+					query: string,
+					hits: array('CardDocument'),
+					estimatedTotalHits: { type: 'integer', minimum: 0 },
+					processingTimeMs: { type: 'number', minimum: 0 },
+					generationId: { type: ['string', 'null'] },
+					facets: ref('CatalogFacets')
+				},
+				['query', 'hits', 'estimatedTotalHits', 'processingTimeMs', 'generationId']
+			),
 			InventoryBatchItem: object(
 				{
 					catalogCardId: string,
@@ -754,8 +849,11 @@ const SCHEMA = {
 			}),
 			ErrorResponse: {
 				type: 'object',
-				properties: { message: { type: 'string' } },
-				required: ['message']
+				properties: {
+					status: { type: 'integer', minimum: 400, maximum: 599 },
+					message: { type: 'string' }
+				},
+				required: ['status', 'message']
 			},
 			CardIdentity: {
 				type: 'object',

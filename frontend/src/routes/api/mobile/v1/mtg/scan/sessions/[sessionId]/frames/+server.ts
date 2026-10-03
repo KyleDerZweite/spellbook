@@ -1,18 +1,22 @@
-import { readRequestBytes, requireUuid } from '$lib/server/http/request';
+import type { RequestHandler } from './$types';
+import { readRequestBytes, requireUuid } from '#lib/server/http/request.ts';
 import { error, json } from '@sveltejs/kit';
-import { requireMobileAuth } from '$lib/server/mobile/auth';
-import { processScanArtifact } from '$lib/server/mobile/scan-worker';
-import { recordScanArtifactEntry, getScanSessionResultEntry } from '$lib/server/mobile/mtg-service';
-import { ScanAccessError } from '$lib/server/data/scan';
-import { ValidationError } from '$lib/server/mtg/validation';
+import { requireMobileAuth } from '#lib/server/mobile/auth.ts';
+import { processScanArtifact } from '#lib/server/mobile/scan-worker.ts';
+import {
+	recordScanArtifactEntry,
+	getScanSessionResultEntry
+} from '#lib/server/mobile/mtg-service.ts';
+import { ScanAccessError } from '#lib/server/data/scan.ts';
+import { ValidationError } from '#lib/server/mtg/validation.ts';
 import {
 	deleteScanObject,
 	scanImageContentType,
 	ScanImageError,
 	uploadScanObject
-} from '$lib/server/mobile/storage';
+} from '#lib/server/mobile/storage.ts';
 
-export const POST = async (event) => {
+export const POST: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
 	const sessionId = requireUuid(event.params.sessionId, 'sessionId');
 

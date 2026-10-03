@@ -1,8 +1,9 @@
-import { readJsonObject, readNumber, readString, requireUuid } from '$lib/server/http/request';
+import type { RequestHandler } from './$types';
+import { readJsonObject, readNumber, readString, requireUuid } from '#lib/server/http/request.ts';
 import { error, json } from '@sveltejs/kit';
-import { requireMobileAuth } from '$lib/server/mobile/auth';
-import { commitScanReview } from '$lib/server/data/scan';
-import { badRequestIfValidation } from '$lib/server/mobile/route-errors';
+import { requireMobileAuth } from '#lib/server/mobile/auth.ts';
+import { commitScanReview } from '#lib/server/data/scan.ts';
+import { badRequestIfValidation } from '#lib/server/mobile/route-errors.ts';
 
 interface ScanReviewCandidateInput {
 	catalogCardId: string;
@@ -118,7 +119,7 @@ function parseItem(value: unknown, index: number): ScanReviewItemInput {
 	};
 }
 
-export const POST = async (event) => {
+export const POST: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
 	const body = parseBody(await readJsonObject(event.request));
 

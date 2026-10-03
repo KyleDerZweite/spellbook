@@ -1,21 +1,11 @@
-# Integrations Docs
+# Integrations
 
 - Status: Canonical
 - Last Reviewed: 2026-10-03
 - Source of Truth: mixed
-- Update Triggers: vendor integration changes, index/query changes, external service setup changes
-- Related Docs: [MeiliSearch](./meilisearch/README.md), [Proposed card robot](./card-robot.md), [Docs Index](../README.md)
+- Update Triggers: external system contracts and integration scope
+- Related Docs: [Proposed card robot](./card-robot.md), [Worker](../architecture/worker.md), [Catalog](../architecture/catalog.md), [Docs index](../README.md)
 
-Integration docs describe external systems and vendor-specific details used by Spellbook.
+The [card robot proposal](./card-robot.md) defines future scanner and sorter boundaries. It is not implemented hardware support.
 
-Use this section for:
-
-- service-specific configuration
-- data contracts with external systems
-- query and index behavior
-- integration-specific operational notes
-
-## Files
-
-- [MeiliSearch](./meilisearch/README.md)
-- [Proposed stack-fed card scanner and sorter](./card-robot.md)
+Scryfall ingestion belongs to the [worker architecture](../architecture/worker.md), and PostgreSQL catalog contracts belong to [catalog architecture](../architecture/catalog.md).

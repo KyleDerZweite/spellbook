@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { Collapsible } from 'bits-ui';
-	import type { SearchFilterState } from '$lib/search/filters.svelte';
+	import type { SearchFilterState } from '#lib/search/filters.svelte.ts';
 	import type {
 		CardType,
 		FacetResponse,
 		LegalityFormat,
 		ManaColor,
 		Rarity
-	} from '$lib/search/types';
-	import OrnamentalDivider from '$lib/components/layout/OrnamentalDivider.svelte';
+	} from '#lib/search/types.ts';
+	import OrnamentalDivider from '#lib/components/layout/OrnamentalDivider.svelte';
 
 	interface Props {
 		filters: SearchFilterState;

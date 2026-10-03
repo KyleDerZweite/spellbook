@@ -20,7 +20,7 @@ JSON handlers use the shared [request reader](../../frontend/src/lib/server/http
 
 Supplied scalar values keep their declared types. Strings are not coerced into numbers, and numeric values must be finite. Route and domain validation enforce UUID identifiers, supported roles and finishes, quantities, and ownership. Omitted or null optional values use only the handler's documented defaults.
 
-Search and printing pagination accept decimal integer query strings, not negative values, fractions, exponent notation, or nonfinite values. Search `limit` defaults to 20 and accepts 0 through 100. Printing `limit` defaults to 100 and accepts 1 through 100. Both offsets default to zero and must be nonnegative safe integers. Invalid pagination returns HTTP 400.
+Search and printing pagination accept decimal integer query strings, not negative values, fractions, exponent notation, or nonfinite values. Search `limit` defaults to 20 and accepts 0 through 100. Printing `limit` defaults to 100 and accepts 1 through 100. Both offsets default to zero and accept integers through 1,000,000. Invalid pagination returns HTTP 400.
 
 [Postgres](./postgres.md#mutation-replay) owns request fingerprint storage and HTTP 409 replay conflicts. The [OpenAPI route](../../frontend/src/routes/openapi.json/+server.ts) owns endpoint-specific fields and responses.
 
@@ -55,7 +55,7 @@ The [OpenAPI route](../../frontend/src/routes/openapi.json/+server.ts) owns wire
 | Read image         | `GET /scan/artifacts/{artifactId}/image`                        | The owned original image, checked as JPEG, PNG, or WebP, with `no-store` and `nosniff` |
 | Submit recognition | `POST /scan/sessions/{sessionId}/artifacts/{artifactId}/result` | Replace an owned artifact's candidate result without changing inventory                |
 
-A recognition submission includes `status`, `modelVersion`, and up to 20 distinct printing candidates. Each candidate includes `catalogCardId`, finite `confidence` from 0 to 1, and optional notes. The server resolves authoritative card metadata through `cards_all`; a client cannot choose ownership or substitute catalog names and identities.
+A recognition submission includes `status`, `modelVersion`, and up to 20 distinct printing candidates. Each candidate includes `catalogCardId`, finite `confidence` from 0 to 1, and optional notes. The server resolves authoritative card metadata through the active [catalog generation](./catalog.md); a client cannot choose ownership or substitute catalog names and identities.
 
 `matched` requires at least one candidate, `ambiguous` requires at least two, and `no_match` or `failed` requires none. Writes lock the session and reject committed or cancelled sessions. Repeated submissions replace the same artifact result and create no additional artifact or inventory entry. The endpoint has no event ID, payload digest, or stale-result version check. A delayed result can replace a newer candidate result while the session remains open for review.
 

@@ -1,4 +1,4 @@
-import type { CardDocument } from '$lib/search/types';
+import type { CardDocument } from '#lib/search/types.ts';
 import type { ParsedDecklistRole } from './decklist';
 
 export interface LegalityLine {

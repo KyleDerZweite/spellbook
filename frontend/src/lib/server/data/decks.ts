@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
-import { db } from '$lib/server/db/client';
-import { deckCards, deckMutationRequests, decks, inventoryCards } from '$lib/server/db/schema';
+import { db } from '#lib/server/db/client.ts';
+import { deckCards, deckMutationRequests, decks, inventoryCards } from '#lib/server/db/schema.ts';
 import {
 	assertDeckOperation,
 	assertDeckRole,
@@ -11,7 +11,7 @@ import {
 	ValidationError,
 	type DeckBulkOperation,
 	type DeckBulkOperationInput
-} from '$lib/server/mtg/validation';
+} from '#lib/server/mtg/validation.ts';
 import type { Deck, DeckCard, DeckSnapshot } from './types';
 import { mutationFingerprint, RequestConflictError } from './request-fingerprint';
 

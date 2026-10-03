@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
-import { RequestConflictError } from '$lib/server/data/request-fingerprint';
-import { ValidationError } from '$lib/server/mtg/validation';
+import { RequestConflictError } from '#lib/server/data/request-fingerprint.ts';
+import { ValidationError } from '#lib/server/mtg/validation.ts';
 
 /**
  * Convert a thrown ValidationError into a 400 response, but let every other

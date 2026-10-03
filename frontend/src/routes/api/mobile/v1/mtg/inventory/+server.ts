@@ -1,16 +1,17 @@
-import { readString, readNumber, readJsonObject } from '$lib/server/http/request';
+import type { RequestHandler } from './$types';
+import { readString, readNumber, readJsonObject } from '#lib/server/http/request.ts';
 import { error, json } from '@sveltejs/kit';
-import { requireMobileAuth } from '$lib/server/mobile/auth';
-import { getInventorySnapshotEntry, batchAddInventory } from '$lib/server/mobile/mtg-service';
-import { badRequestIfValidation } from '$lib/server/mobile/route-errors';
-import { assertInventoryOperation } from '$lib/server/mtg/validation';
+import { requireMobileAuth } from '#lib/server/mobile/auth.ts';
+import { getInventorySnapshotEntry, batchAddInventory } from '#lib/server/mobile/mtg-service.ts';
+import { badRequestIfValidation } from '#lib/server/mobile/route-errors.ts';
+import { assertInventoryOperation } from '#lib/server/mtg/validation.ts';
 
-export const GET = async (event) => {
+export const GET: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
 	return json(await getInventorySnapshotEntry(auth));
 };
 
-export const POST = async (event) => {
+export const POST: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
 	const body = await readJsonObject(event.request);
 	if (!body?.requestId || !Array.isArray(body?.items)) {

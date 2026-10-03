@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
-import { db } from '$lib/server/db/client';
-import { userProfiles } from '$lib/server/db/schema';
+import { db } from '#lib/server/db/client.ts';
+import { userProfiles } from '#lib/server/db/schema.ts';
 
 export async function userExists(accountId: string): Promise<boolean> {
 	const rows = await db

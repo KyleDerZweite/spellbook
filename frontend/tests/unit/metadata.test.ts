@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { pageMetadata } from '../../src/lib/seo/site';
 
-vi.mock('$lib/env/private', () => ({
+vi.mock('#lib/env/private.ts', () => ({
 	privateEnv: {
 		APP_ORIGIN: 'https://spellbook.example.test'
 	}

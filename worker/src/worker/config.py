@@ -7,36 +7,30 @@ from pathlib import Path
 
 @dataclass(frozen=True)
 class WorkerConfig:
-    meilisearch_url: str
-    meili_master_key: str
-    aggressive_preload: bool
-    sync_interval: str  # "daily" | "weekly" | "manual"
-    languages: list[str]
+    database_url: str
+    catalog_source: str
+    sync_interval: str
     scryfall_bulk_url: str
     data_dir: Path
 
 
 def load_config() -> WorkerConfig:
-    """Load worker configuration from environment variables."""
-    meili_url = os.environ.get("MEILISEARCH_URL", "http://localhost:7700")
-    master_key = os.environ.get("MEILI_MASTER_KEY")
-    if not master_key:
-        raise ValueError("MEILI_MASTER_KEY environment variable is required")
-
-    aggressive = os.environ.get("AGGRESSIVE_PRELOAD", "true").lower() == "true"
+    """Load and validate catalog synchronization settings."""
+    database_url = os.environ.get("DATABASE_URL")
+    if not database_url:
+        raise ValueError("DATABASE_URL environment variable is required")
+    source = os.environ.get("CATALOG_SOURCE", "all_cards")
+    if source not in ("all_cards", "default_cards"):
+        raise ValueError("CATALOG_SOURCE must be all_cards or default_cards")
     interval = os.environ.get("SYNC_INTERVAL", "daily")
-    langs_raw = os.environ.get("LANGUAGES", "en")
-    languages = [lang.strip() for lang in langs_raw.split(",") if lang.strip()]
-
-    scryfall_url = os.environ.get("SCRYFALL_BULK_URL", "https://api.scryfall.com/bulk-data")
-    data_dir = Path(os.environ.get("WORKER_DATA_DIR", "/tmp/spellbook-worker"))
-
+    if interval not in ("daily", "weekly", "manual"):
+        raise ValueError("SYNC_INTERVAL must be daily, weekly, or manual")
     return WorkerConfig(
-        meilisearch_url=meili_url,
-        meili_master_key=master_key,
-        aggressive_preload=aggressive,
+        database_url=database_url,
+        catalog_source=source,
         sync_interval=interval,
-        languages=languages,
-        scryfall_bulk_url=scryfall_url,
-        data_dir=data_dir,
+        scryfall_bulk_url=os.environ.get(
+            "SCRYFALL_BULK_URL", "https://api.scryfall.com/bulk-data"
+        ),
+        data_dir=Path(os.environ.get("WORKER_DATA_DIR", "/tmp/spellbook-worker")),
     )

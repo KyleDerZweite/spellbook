@@ -5,7 +5,7 @@ import {
 	getInventorySnapshot,
 	removeInventoryCard,
 	updateInventoryCard
-} from '$lib/server/data/inventory';
+} from '#lib/server/data/inventory.ts';
 import {
 	addDeckCard,
 	bulkMutateDeckCards as bulkMutateDeckCardsData,
@@ -16,7 +16,7 @@ import {
 	removeDeckCard,
 	updateDeck,
 	updateDeckCard
-} from '$lib/server/data/decks';
+} from '#lib/server/data/decks.ts';
 import {
 	DECK_SOURCES,
 	INVENTORY_SOURCES,
@@ -24,15 +24,15 @@ import {
 	assertInventoryOperation,
 	assertRequestId,
 	normalizeSource
-} from '$lib/server/mtg/validation';
+} from '#lib/server/mtg/validation.ts';
 import {
 	createScanSession,
 	getScanSessionResult,
 	recordScanArtifact,
 	updateScanSessionStatus,
 	upsertScanReviewItem
-} from '$lib/server/data/scan';
-import type { ScanCandidate } from '$lib/server/data/types';
+} from '#lib/server/data/scan.ts';
+import type { ScanCandidate } from '#lib/server/data/types.ts';
 
 export async function getInventorySnapshotEntry(auth: MobileAuthContext) {
 	return getInventorySnapshot(auth.user.accountId, 'mtg');

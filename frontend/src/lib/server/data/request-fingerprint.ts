@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { ValidationError } from '$lib/server/mtg/validation';
+import { ValidationError } from '#lib/server/mtg/validation.ts';
 
 export class RequestConflictError extends ValidationError {
 	constructor(message = 'Request ID was already used for a different mutation') {

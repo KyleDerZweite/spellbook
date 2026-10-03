@@ -4,7 +4,7 @@ import { handle } from '../../src/hooks.server';
 import { POST as uploadFrame } from '../../src/routes/api/mobile/v1/mtg/scan/sessions/[sessionId]/frames/+server';
 
 const mocks = vi.hoisted(() => ({ validateSession: vi.fn(async () => null) }));
-vi.mock('$lib/server/auth/session', async (importOriginal) => ({
+vi.mock('#lib/server/auth/session.ts', async (importOriginal) => ({
 	...(await importOriginal<object>()),
 	validateSession: mocks.validateSession
 }));
@@ -20,13 +20,14 @@ function event({
 	route = scanRoute
 }: {
 	method?: string;
-	contentType?: string;
+	contentType?: string | null;
 	origin?: string;
 	bearer?: string;
 	route?: Parameters<typeof requireFormOrigin>[0]['route']['id'];
 } = {}) {
 	const url = new URL('https://spellbook.test' + scanPath);
-	const headers = new Headers({ 'content-type': contentType });
+	const headers = new Headers();
+	if (contentType !== null) headers.set('content-type', contentType);
 	if (origin !== undefined) headers.set('origin', origin);
 	if (bearer !== undefined) headers.set('authorization', bearer);
 	return {
@@ -47,7 +48,8 @@ describe('central form origin protection', () => {
 				'application/x-www-form-urlencoded',
 				'Multipart/Form-Data; boundary=review',
 				'text/plain',
-				'application/x-sveltekit-formdata'
+				'application/x-sveltekit-formdata',
+				null
 			]) {
 				for (const origin of [undefined, 'https://foreign.test', 'null']) {
 					expect(() =>
@@ -77,6 +79,41 @@ describe('central form origin protection', () => {
 			expect(() => requireFormOrigin(event({ bearer: `Bearer ${token}`, ...options }))).toThrow(
 				expect.objectContaining({ status: 403 })
 			);
+	});
+
+	it('preserves only exact bodyless native bearer logout and deletion routes', () => {
+		for (const [method, route] of [
+			['DELETE', '/api/mobile/v1/mtg/decks/[deckId]'],
+			['DELETE', '/api/mobile/v1/mtg/deck-cards/[entryId]'],
+			['DELETE', '/api/mobile/v1/mtg/inventory/[entryId]'],
+			['POST', '/api/mobile/v1/mtg/scan/sessions'],
+			['POST', '/api/auth/logout']
+		] as const) {
+			const options = { method, route, contentType: null, bearer: `Bearer ${token}` };
+			expect(() => requireFormOrigin(event(options))).not.toThrow();
+			for (const origin of ['https://foreign.test', 'null']) {
+				expect(() => requireFormOrigin(event({ ...options, origin }))).toThrow(
+					expect.objectContaining({ status: 403 })
+				);
+			}
+			expect(() => requireFormOrigin(event({ ...options, bearer: undefined }))).toThrow(
+				expect.objectContaining({ status: 403 })
+			);
+			const withBody = event(options);
+			withBody.request = new Request(withBody.url, {
+				method,
+				headers: { authorization: `Bearer ${token}` },
+				body: new Uint8Array([1])
+			});
+			expect(() => requireFormOrigin(withBody)).toThrow(expect.objectContaining({ status: 403 }));
+		}
+		for (const route of ['/auth/logout', '/inventory', '/api/mobile/v1/mtg/decks', null] as const) {
+			expect(() =>
+				requireFormOrigin(
+					event({ method: 'DELETE', route, contentType: null, bearer: `Bearer ${token}` })
+				)
+			).toThrow(expect.objectContaining({ status: 403 }));
+		}
 	});
 
 	it('runs the guard before resolving routes or validating cookie sessions', async () => {

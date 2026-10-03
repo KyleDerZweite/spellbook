@@ -1,13 +1,13 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { mutationFingerprint, RequestConflictError } from './request-fingerprint';
-import { db } from '$lib/server/db/client';
+import { db } from '#lib/server/db/client.ts';
 import {
 	inventories,
 	inventoryMutationRequests,
 	scanArtifacts,
 	scanReviewItems,
 	scanSessions
-} from '$lib/server/db/schema';
+} from '#lib/server/db/schema.ts';
 import { applyInventoryMutation, ensureInventory, getInventorySnapshot } from './inventory';
 import {
 	assertCondition,
@@ -15,8 +15,8 @@ import {
 	assertInventoryOperation,
 	assertRequestId,
 	ValidationError
-} from '$lib/server/mtg/validation';
-import { getCatalogPrinting } from '$lib/server/mobile/meilisearch';
+} from '#lib/server/mtg/validation.ts';
+import { getCatalogPrinting } from '#lib/server/catalog/search.ts';
 import type { ScanCandidate, ScanSession, ScanSessionResult, ScanWorkerResult } from './types';
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];

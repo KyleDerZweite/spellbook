@@ -1,13 +1,13 @@
 import { error } from '@sveltejs/kit';
 
 export function readString(value: unknown, name: string, fallback = ''): string {
-	if (value === undefined || value === null) return fallback;
+	if (value === undefined) return fallback;
 	if (typeof value !== 'string') error(400, `${name} must be a string`);
 	return value;
 }
 
 export function readNumber(value: unknown, name: string, fallback = 0): number {
-	if (value === undefined || value === null) return fallback;
+	if (value === undefined) return fallback;
 	if (typeof value !== 'number' || !Number.isFinite(value))
 		error(400, `${name} must be a finite number`);
 	return value;

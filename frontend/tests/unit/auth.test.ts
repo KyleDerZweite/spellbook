@@ -19,7 +19,7 @@ import {
 import { NO_INDEX_ROBOTS_TAG } from '../../src/lib/seo/site';
 
 const mocks = vi.hoisted(() => ({ validateSession: vi.fn() }));
-vi.mock('$lib/server/auth/session', async (importOriginal) => ({
+vi.mock('#lib/server/auth/session.ts', async (importOriginal) => ({
 	...(await importOriginal<object>()),
 	validateSession: mocks.validateSession
 }));

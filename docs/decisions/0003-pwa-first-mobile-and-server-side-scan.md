@@ -10,7 +10,7 @@
 
 ## Current applicability
 
-The single SvelteKit client decision remains accepted. [ADR-0009](./0009-local-authentication.md) replaces the OIDC authentication choice. The manifest exists, but service-worker caching, browser capture, OCR, and embeddings remain planned. Unused vector infrastructure has been removed until a recognizer requires it. See [mobile and scan](../architecture/mobile-and-scan.md) for implementation status.
+The single SvelteKit client decision remains accepted. [ADR-0010](./0010-postgres-catalog.md) replaces the historical MeiliSearch catalog with PostgreSQL. [ADR-0009](./0009-local-authentication.md) replaces the OIDC authentication choice. The manifest exists, but service-worker caching, browser capture, OCR, and embeddings remain planned. Unused vector infrastructure has been removed until a recognizer requires it. See [mobile and scan](../architecture/mobile-and-scan.md) for implementation status.
 
 ## Context
 

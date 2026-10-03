@@ -2,15 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { DeckCard } from '../../src/lib/server/data/types';
 
 const mocks = vi.hoisted(() => ({ lookup: vi.fn(), mutate: vi.fn(), snapshot: vi.fn() }));
-vi.mock('meilisearch', () => ({
-	Meilisearch: class {
-		index() {
-			return { getDocument: mocks.lookup };
-		}
-	}
-}));
-vi.mock('../../src/lib/env/private', () => ({
-	privateEnv: { MEILISEARCH_INTERNAL_URL: 'http://catalog.test', MEILI_MASTER_KEY: 'test-key' }
+vi.mock('../../src/lib/server/catalog/search.ts', () => ({
+	getCatalogPrinting: mocks.lookup,
+	searchCatalog: vi.fn()
 }));
 vi.mock('../../src/lib/server/data/decks', () => ({
 	bulkMutateDeckCards: mocks.mutate,
@@ -74,18 +68,6 @@ describe('deck builder catalog boundaries', () => {
 				]
 			})
 		);
-	});
-	it('rejects malformed catalog identifiers before querying the catalog', async () => {
-		await expect(
-			addCatalogCardToDeck('account', {
-				deckId: 'deck',
-				catalogCardId: '../invalid',
-				quantity: 2,
-				role: 'main',
-				requestId: 'retry-key'
-			})
-		).rejects.toThrow('Invalid catalog card ID');
-		expect(mocks.lookup).not.toHaveBeenCalled();
 	});
 	it('exports exact collector numbers and retains a working export when catalog is unavailable', async () => {
 		expect(await exportDecklist([stored])).toBe('Deck\n2 Opt (STA) 19\n');

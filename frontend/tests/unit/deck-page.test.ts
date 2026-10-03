@@ -20,7 +20,7 @@ vi.mock('../../src/lib/server/mtg/deck-builder', () => ({
 	addCatalogCardToDeck: mocks.add,
 	importIntoDeck: vi.fn()
 }));
-vi.mock('../../src/lib/server/mobile/meilisearch', () => ({ getPrintings: vi.fn() }));
+vi.mock('../../src/lib/server/catalog/search', () => ({ getPrintings: vi.fn() }));
 vi.mock('../../src/lib/server/mtg/import', () => ({ previewMtgImport: vi.fn() }));
 import { actions, load } from '../../src/routes/decks/+page.server';
 

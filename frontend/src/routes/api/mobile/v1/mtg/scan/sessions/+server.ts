@@ -1,9 +1,10 @@
-import { listScanSessions } from '$lib/server/data/scan';
+import type { RequestHandler } from './$types';
+import { listScanSessions } from '#lib/server/data/scan.ts';
 import { json } from '@sveltejs/kit';
-import { requireMobileAuth } from '$lib/server/mobile/auth';
-import { createScanSessionEntry } from '$lib/server/mobile/mtg-service';
+import { requireMobileAuth } from '#lib/server/mobile/auth.ts';
+import { createScanSessionEntry } from '#lib/server/mobile/mtg-service.ts';
 
-export const POST = async (event) => {
+export const POST: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
 	const sessionId = crypto.randomUUID();
 	return json({
@@ -11,7 +12,7 @@ export const POST = async (event) => {
 	});
 };
 
-export const GET = async (event) => {
+export const GET: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
 	return json(
 		{ sessions: await listScanSessions(auth.user.accountId) },

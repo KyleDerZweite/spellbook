@@ -7,18 +7,18 @@ import {
 	removeDeckCard,
 	updateDeck,
 	updateDeckCard
-} from '$lib/server/data/decks';
+} from '#lib/server/data/decks.ts';
 import {
 	addCatalogCardToDeck,
 	searchDeckCatalog,
 	getDeckLegality,
 	importIntoDeck
-} from '$lib/server/mtg/deck-builder';
-import { getPrintings } from '$lib/server/mobile/meilisearch';
-import { previewMtgImport } from '$lib/server/mtg/import';
-import { ValidationError } from '$lib/server/mtg/validation';
-import type { CardDocument } from '$lib/search/types';
-import type { LegalityWarning } from '$lib/server/mtg/legality';
+} from '#lib/server/mtg/deck-builder.ts';
+import { getPrintings } from '#lib/server/catalog/search.ts';
+import { previewMtgImport } from '#lib/server/mtg/import.ts';
+import { ValidationError } from '#lib/server/mtg/validation.ts';
+import type { CardDocument } from '#lib/search/types.ts';
+import type { LegalityWarning } from '#lib/server/mtg/legality.ts';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) throw redirect(303, '/auth/login?returnTo=/decks');

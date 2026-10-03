@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { submitAuthForm } from '$lib/server/auth/forms';
-import { sanitizeReturnTo } from '$lib/server/auth/local';
+import { submitAuthForm } from '#lib/server/auth/forms.ts';
+import { sanitizeReturnTo } from '#lib/server/auth/local.ts';
 
 export const load: PageServerLoad = ({ locals, url }) => {
 	const returnTo = sanitizeReturnTo(url.searchParams.get('returnTo'));

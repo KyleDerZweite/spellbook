@@ -1,9 +1,9 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { and, eq, gt } from 'drizzle-orm';
 import type { Cookies } from '@sveltejs/kit';
-import type { AuthUser } from '$lib/auth/types';
-import { db } from '$lib/server/db/client';
-import { authSessions, localCredentials, userProfiles } from '$lib/server/db/schema';
+import type { AuthUser } from '#lib/auth/types.ts';
+import { db } from '#lib/server/db/client.ts';
+import { authSessions, localCredentials, userProfiles } from '#lib/server/db/schema.ts';
 
 export const SESSION_COOKIE = 'spellbook_session';
 export const SESSION_LIFETIME_SECONDS = 60 * 60 * 24 * 30;

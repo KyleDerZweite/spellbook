@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:24.21.0-bookworm-slim AS builder
+FROM node:26.10.0-bookworm-slim AS builder
 
 WORKDIR /app
 
@@ -11,14 +11,15 @@ RUN pnpm install --frozen-lockfile
 # Copy frontend source
 COPY frontend/ ./
 
-# Build with adapter-node
+# Build with adapter-node. The public origin is part of the SvelteKit 3 build.
+ARG APP_ORIGIN
 RUN pnpm build
 
 FROM builder AS migrator
 CMD ["pnpm", "db:migrate"]
 
 # Stage 2: Runtime
-FROM node:24.21.0-bookworm-slim AS runtime
+FROM node:26.10.0-bookworm-slim AS runtime
 
 WORKDIR /app
 

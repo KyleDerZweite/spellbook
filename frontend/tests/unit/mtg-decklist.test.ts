@@ -17,6 +17,20 @@ describe('parseArenaDecklist', () => {
 		expect(parsed.lines[0]).toMatchObject({ setCode: 'sta', collectorNumber: '19' });
 	});
 
+	it('normalizes whole and individual face names while preserving printing hints', () => {
+		const parsed = parseArenaDecklist(
+			'1 Fire/Ice\n1 Fire // Ice\n4 Bonecrusher Giant (ELD) 115\n1 Insectile Aberration\n1 骨砕きの巨人'
+		);
+		expect(parsed.lines.map((line) => line.normalizedName)).toEqual([
+			'fire // ice',
+			'bonecrusher giant',
+			'insectile aberration',
+			'骨砕きの巨人'
+		]);
+		expect(parsed.lines[0].quantity).toBe(2);
+		expect(parsed.lines[1]).toMatchObject({ setCode: 'eld', collectorNumber: '115' });
+	});
+
 	it('parses sideboard, commander, and companion sections', () => {
 		const parsed = parseArenaDecklist(
 			'Sideboard\n2 Negate\nCommander\n1 Atraxa\nCompanion\n1 Jegantha'

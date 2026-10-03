@@ -1,7 +1,7 @@
 import { error, type RequestEvent } from '@sveltejs/kit';
 import type { MobileAuthContext } from './types';
-import { getBearerToken, validateSession } from '$lib/server/auth/session';
-import { requireSameOrigin } from '$lib/server/auth/local';
+import { getBearerToken, validateSession } from '#lib/server/auth/session.ts';
+import { requireSameOrigin } from '#lib/server/auth/local.ts';
 
 export async function requireMobileAuth(event: RequestEvent): Promise<MobileAuthContext> {
 	if (event.request.headers.has('authorization')) {

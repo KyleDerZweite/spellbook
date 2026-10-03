@@ -4,7 +4,7 @@
 - Last Reviewed: 2026-10-03
 - Source of Truth: product specification, schema, catalog contracts
 - Update Triggers: changes to card identity, inventory grouping, deck roles, availability semantics, scan review terminology, physical-card workflow requirements
-- Related Docs: [Product specification](./specification.md), [Postgres architecture](../architecture/postgres.md), [MeiliSearch integration](../integrations/meilisearch/README.md), [Card scanner and sorter](../integrations/card-robot.md)
+- Related Docs: [Product specification](./specification.md), [Postgres architecture](../architecture/postgres.md), [Catalog architecture](../architecture/catalog.md), [Card scanner and sorter](../integrations/card-robot.md)
 
 Spellbook describes MTG catalog cards, owned cards, and deck requirements. This glossary owns their meanings; the specification owns behavior.
 

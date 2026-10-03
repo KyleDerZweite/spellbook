@@ -4,11 +4,11 @@
 - Last Reviewed: 2026-10-03
 - Source of Truth: mixed
 - Update Triggers: MTG import contract changes, bulk mutation contract changes, scan-recognition scope changes, frontend implementation scope changes
-- Related Docs: [Product specification](../product/specification.md), [Routing and Games](../product/routing-and-games.md), [Postgres](../architecture/postgres.md), [Worker](../architecture/worker.md), [MeiliSearch](../integrations/meilisearch/README.md)
+- Related Docs: [Product specification](../product/specification.md), [Routing and Games](../product/routing-and-games.md), [Postgres](../architecture/postgres.md), [Worker](../architecture/worker.md), [Catalog](../architecture/catalog.md)
 
 ## Current applicability
 
-The bulk and import contracts remain accepted. The temporary pause on frontend work ended with the deck builder implementation on 2026-10-03. Scan recognition remains deferred. [The specification](../product/specification.md) owns current workflow scope.
+The bulk and import contracts remain accepted. [ADR-0010](./0010-postgres-catalog.md) supersedes the MeiliSearch indexes and atomic-swap implementation with PostgreSQL catalog generations. The temporary pause on frontend work ended with the deck builder implementation on 2026-10-03. Scan recognition remains deferred. [The specification](../product/specification.md) owns current workflow scope.
 
 ## Context
 

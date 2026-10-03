@@ -1,6 +1,6 @@
 import type { PageServerLoad } from './$types';
-import { getHomeSummary } from '$lib/server/data/inventory';
-import { DEFAULT_GAME } from '$lib/state/activeGame.svelte';
+import { getHomeSummary } from '#lib/server/data/inventory.ts';
+import { DEFAULT_GAME } from '#lib/state/activeGame.svelte.ts';
 
 export const load: PageServerLoad = async ({ locals, parent }) => {
 	const { activeGame } = await parent();

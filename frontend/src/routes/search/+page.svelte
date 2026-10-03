@@ -1,15 +1,15 @@
 <script lang="ts">
 	import { Dialog } from 'bits-ui';
-	import SearchBar from '$lib/components/search/SearchBar.svelte';
-	import SearchFilters from '$lib/components/search/SearchFilters.svelte';
-	import SearchResults from '$lib/components/search/SearchResults.svelte';
-	import CardDetail from '$lib/components/cards/CardDetail.svelte';
-	import OrnamentalDivider from '$lib/components/layout/OrnamentalDivider.svelte';
-	import { searchCards, browseCards, getFacets } from '$lib/search/meilisearch';
-	import { SearchFilterState } from '$lib/search/filters.svelte';
-	import { buildSearchContextKey } from '$lib/search/requestContext';
-	import type { CardDocument, FacetResponse } from '$lib/search/types';
-	import { activeGameState } from '$lib/state/activeGame.svelte';
+	import SearchBar from '#lib/components/search/SearchBar.svelte';
+	import SearchFilters from '#lib/components/search/SearchFilters.svelte';
+	import SearchResults from '#lib/components/search/SearchResults.svelte';
+	import CardDetail from '#lib/components/cards/CardDetail.svelte';
+	import OrnamentalDivider from '#lib/components/layout/OrnamentalDivider.svelte';
+	import { searchCards, browseCards, getFacets } from '#lib/search/catalog.ts';
+	import { SearchFilterState } from '#lib/search/filters.svelte.ts';
+	import { buildSearchContextKey } from '#lib/search/requestContext.ts';
+	import type { CardDocument, FacetResponse } from '#lib/search/types.ts';
+	import { activeGameState } from '#lib/state/activeGame.svelte.ts';
 	import { page } from '$app/state';
 
 	const BROWSE_LIMIT = 50;
@@ -29,20 +29,21 @@
 	let searchVersion = 0;
 	let facetVersion = 0;
 	let loadMoreController: AbortController | null = null;
+	let catalogGeneration: string | null | undefined;
 
 	const filters = new SearchFilterState();
-	const browseMode = $derived(query.length < 2);
+	const browseMode = $derived(query.trim().length < 2);
 	const requestContextKey = $derived(
 		buildSearchContextKey({
 			game: activeGameState.current,
 			query,
-			filters: filters.meiliFilters
+			filters: filters.catalogFilters
 		})
 	);
 
 	$effect(() => {
-		const q = query;
-		const f = filters.meiliFilters;
+		const q = query.trim();
+		const f = filters.catalogFilters;
 		const game = activeGameState.current;
 		const currentVersion = ++searchVersion;
 		let controller: AbortController | null = null;
@@ -63,14 +64,14 @@
 					q.length < 2
 						? await browseCards({
 								game,
-								filter: f,
+								filters: f,
 								limit: BROWSE_LIMIT,
 								offset: 0,
 								signal: controller.signal
 							})
 						: await searchCards(q, {
 								game,
-								filter: f,
+								filters: f,
 								limit: SEARCH_LIMIT,
 								offset: 0,
 								signal: controller.signal
@@ -79,6 +80,7 @@
 				if (!controller.signal.aborted && currentVersion === searchVersion) {
 					const nextOffset = result.hits.length;
 					hits = result.hits;
+					catalogGeneration = result.generationId;
 					offset = nextOffset;
 					hasMore = result.estimatedTotalHits > nextOffset;
 				}
@@ -100,7 +102,7 @@
 	});
 
 	$effect(() => {
-		const f = filters.meiliFilters;
+		const f = filters.catalogFilters;
 		const game = activeGameState.current;
 		const currentVersion = ++facetVersion;
 		const controller = new AbortController();
@@ -145,8 +147,8 @@
 		if (!hasMore || loading || loadingMore) return;
 		loadingMore = true;
 
-		const q = query;
-		const f = filters.meiliFilters;
+		const q = query.trim();
+		const f = filters.catalogFilters;
 		const game = activeGameState.current;
 		const currentOffset = offset;
 		const currentRequestContextKey = requestContextKey;
@@ -154,26 +156,30 @@
 		loadMoreController = controller;
 
 		try {
-			const result =
+			const fetchPage = async (pageOffset: number) =>
 				q.length < 2
 					? await browseCards({
 							game,
-							filter: f,
+							filters: f,
 							limit: BROWSE_LIMIT,
-							offset: currentOffset,
+							offset: pageOffset,
 							signal: controller.signal
 						})
 					: await searchCards(q, {
 							game,
-							filter: f,
+							filters: f,
 							limit: SEARCH_LIMIT,
-							offset: currentOffset,
+							offset: pageOffset,
 							signal: controller.signal
 						});
 
+			let result = await fetchPage(currentOffset);
+			const catalogChanged = result.generationId !== catalogGeneration;
+			if (catalogChanged && !controller.signal.aborted) result = await fetchPage(0);
 			if (!controller.signal.aborted && currentRequestContextKey === requestContextKey) {
-				const nextOffset = currentOffset + result.hits.length;
-				hits = [...hits, ...result.hits];
+				const nextOffset = (catalogChanged ? 0 : currentOffset) + result.hits.length;
+				hits = catalogChanged ? result.hits : [...hits, ...result.hits];
+				catalogGeneration = result.generationId;
 				offset = nextOffset;
 				hasMore = result.hits.length > 0 && result.estimatedTotalHits > nextOffset;
 			}

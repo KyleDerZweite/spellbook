@@ -3,10 +3,10 @@
 	import ManaCost from './ManaCost.svelte';
 	import RarityBadge from './RarityBadge.svelte';
 	import CardQuickAdd from './CardQuickAdd.svelte';
-	import OrnamentalDivider from '$lib/components/layout/OrnamentalDivider.svelte';
-	import { searchPrintings } from '$lib/search/meilisearch';
-	import type { CardDocument } from '$lib/search/types';
-	import { getManaFontClass } from '$lib/utils/manaCostParser';
+	import OrnamentalDivider from '#lib/components/layout/OrnamentalDivider.svelte';
+	import { searchPrintings } from '#lib/search/catalog.ts';
+	import type { CardDocument } from '#lib/search/types.ts';
+	import { getManaFontClass } from '#lib/utils/manaCostParser.ts';
 
 	interface Props {
 		card: CardDocument;
@@ -18,6 +18,7 @@
 	let printings: CardDocument[] = $state([]);
 	let selectedPrinting: CardDocument | null = $state(null);
 	let loadingPrintings = $state(true);
+	let printingsError = $state('');
 	let detailOpen = $state(false);
 	let selectedLang = $state('en');
 	let allPrintingsView = $state(false);
@@ -60,6 +61,7 @@
 		printings = [];
 		selectedPrinting = null;
 		loadingPrintings = true;
+		printingsError = '';
 		selectedLang = 'en';
 		foilFilter = 'all';
 		allPrintingsView = false;
@@ -72,9 +74,10 @@
 					loadingPrintings = false;
 				}
 			})
-			.catch(() => {
+			.catch((cause: unknown) => {
 				if (!controller.signal.aborted) {
 					loadingPrintings = false;
+					printingsError = cause instanceof Error ? cause.message : 'Unable to load printings.';
 				}
 			});
 
@@ -227,6 +230,9 @@
 
 					<!-- Tab content (scrollable on desktop) -->
 					<div class="flex min-w-0 flex-1 flex-col gap-4 p-4 sm:p-5 lg:overflow-y-auto">
+						{#if printingsError}<p role="alert" class="text-sm text-text-secondary">
+								{printingsError}
+							</p>{/if}
 						{#if allPrintingsView}
 							<!-- ==================== ALL PRINTINGS GRID ==================== -->
 							<div>

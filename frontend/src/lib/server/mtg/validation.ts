@@ -141,7 +141,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function assertString(value: unknown, field: string, fallback = ''): string {
-	if (value === undefined || value === null) return fallback;
+	if (value === undefined) return fallback;
 	if (typeof value !== 'string') throw new ValidationError(`${field} must be a string`);
 	return value;
 }
@@ -266,7 +266,7 @@ export function assertDeckRole(value: unknown): DeckRole {
 }
 
 export function normalizeQuantity(value: unknown): number {
-	const quantity = value ?? 0;
+	const quantity = value;
 	if (
 		typeof quantity !== 'number' ||
 		!Number.isSafeInteger(quantity) ||

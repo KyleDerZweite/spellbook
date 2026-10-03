@@ -1,6 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import type { ScanSession, ScanSessionResult } from '$lib/server/data/types';
+import type { ScanSession, ScanSessionResult } from '#lib/server/data/types.ts';
 
 export const load: PageServerLoad = async ({ locals, url, fetch }) => {
 	if (!locals.user)

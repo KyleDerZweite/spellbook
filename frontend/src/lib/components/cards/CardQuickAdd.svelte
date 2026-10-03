@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Select } from 'bits-ui';
-	import type { CardDocument } from '$lib/search/types';
-	import { activeGameState } from '$lib/state/activeGame.svelte';
+	import type { CardDocument } from '#lib/search/types.ts';
+	import { activeGameState } from '#lib/state/activeGame.svelte.ts';
 
 	interface Props {
 		card: CardDocument;

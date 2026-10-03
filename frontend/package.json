@@ -7,29 +7,29 @@
 		"dev": "vite dev",
 		"build": "vite build",
 		"preview": "vite preview",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check": "svelte-kit sync && pnpm check:ts && svelte-check --tsconfig ./tsconfig.json",
 		"test:unit": "vitest run --project unit",
 		"test:integration": "vitest run --project integration",
-		"lint": "svelte-kit sync && prettier --check . && svelte-check --tsconfig ./tsconfig.json",
+		"lint": "prettier --check . && pnpm check",
 		"format": "prettier --write .",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
-		"db:check": "drizzle-kit check"
+		"db:check": "drizzle-kit check",
+		"check:ts": "node node_modules/typescript-native/bin/tsc --noEmit"
 	},
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3.1146.0",
 		"bits-ui": "^2.19.5",
 		"drizzle-orm": "^0.45.3",
 		"mana-font": "^1.18.0",
-		"meilisearch": "^0.62.0",
 		"pg": "^8.23.1"
 	},
 	"devDependencies": {
-		"@sveltejs/adapter-node": "^5.5.7",
-		"@sveltejs/kit": "^2.70.3",
+		"@sveltejs/adapter-node": "^6.0.0",
+		"@sveltejs/kit": "^3.0.0",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
 		"@tailwindcss/vite": "^4.3.3",
-		"@types/node": "^24.19.1",
+		"@types/node": "^26.6.4",
 		"@types/pg": "^8.23.1",
 		"csstype": "^3.2.3",
 		"drizzle-kit": "^0.31.11",
@@ -39,12 +39,16 @@
 		"svelte-check": "^4.7.6",
 		"tailwindcss": "^4.3.3",
 		"typescript": "^6.0.3",
+		"typescript-native": "npm:typescript@^7.0.2",
 		"vite": "^8.3.2",
 		"vitest": "^5.0.3"
 	},
 	"packageManager": "pnpm@12.8.1",
 	"engines": {
-		"node": ">=24 <25",
+		"node": ">=26 <27",
 		"pnpm": "12.8.1"
+	},
+	"imports": {
+		"#lib/*": "./src/lib/*"
 	}
 }

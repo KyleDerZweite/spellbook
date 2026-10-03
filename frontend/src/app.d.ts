@@ -1,10 +1,9 @@
-import type { AuthUser } from '$lib/auth/types';
+import type { AuthUser } from '#lib/auth/types.ts';
 
 declare global {
 	namespace App {
 		interface Locals {
 			user: AuthUser | null;
-			meiliSearchKey: string;
 			mobileBearerUser: AuthUser | null;
 		}
 	}

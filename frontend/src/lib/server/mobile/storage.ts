@@ -7,7 +7,7 @@ import {
 import { createReadStream } from 'node:fs';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
-import { privateEnv } from '$lib/env/private';
+import { privateEnv } from '#lib/env/private.ts';
 
 let client: S3Client | null = null;
 

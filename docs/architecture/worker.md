@@ -3,21 +3,25 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-03
 - Source of Truth: code
-- Update Triggers: Scryfall formats, synchronization, index swaps, status persistence
-- Related Docs: [System overview](./system-overview.md), [MeiliSearch](../integrations/meilisearch/README.md), [Tasks](../integrations/meilisearch/tasks.md)
+- Update Triggers: Scryfall formats, synchronization, publication, source selection, status persistence
+- Related Docs: [System overview](./system-overview.md), [Catalog](./catalog.md), [Deployment](../operations/deployment.md)
 
-The Python worker ingests Scryfall MTG bulk data into MeiliSearch. Startup retries MeiliSearch readiness, configures indexes, and seeds `default_cards` when the catalog is empty. `AGGRESSIVE_PRELOAD=true` enables a background `all_cards` preload. `SYNC_INTERVAL` selects daily, weekly, or manual synchronization.
+The Python worker ingests Scryfall bulk data into PostgreSQL. Startup retries database schema readiness. `CATALOG_SOURCE` selects `all_cards` by default or `default_cards`; each run synchronizes that source directly. It does not replace a full-language catalog with a recurring default-only refresh. All languages present in the selected snapshot are retained.
+
+`SYNC_INTERVAL` selects daily, weekly, or manual execution. Every startup attempts a sync. Manual execution exits after that attempt, with a nonzero exit status on failure. Scheduled execution logs failure and retries after its configured interval.
 
 ## Ingestion
 
 The download client prefers `jsonl_download_uri` when Scryfall supplies it and falls back to `download_uri`. It accepts plain data and gzip payloads, including concatenated gzip members, and rejects truncated gzip data.
 
-The parser detects JSON Lines and legacy JSON arrays. Both formats stream into a temporary SQLite document store instead of loading the full catalog into memory. Malformed records, empty downloads, and catalogs with no indexable documents fail indexing instead of publishing a partial or empty catalog. The store orders documents by descending release date before batched upload. Insertion order does not guarantee which printing MeiliSearch returns for an oracle ID.
+The parser streams JSON Lines and legacy JSON arrays through card transformation into PostgreSQL COPY. It does not load the full catalog into memory or create a SQLite staging database. Malformed records, invalid identities, and snapshots without indexable documents fail publication. Downloaded bulk files are removed after each attempt.
 
-[Document transformation](../integrations/meilisearch/documents.md) owns the stored fields. [Task handling](../integrations/meilisearch/tasks.md) owns staging, completion checks, and atomic swaps.
+[`transform.py`](../../worker/src/worker/transform.py) owns card document transformation. [`catalog.py`](../../worker/src/worker/catalog.py) adds indexed search fields, including printed face text. The [catalog architecture](./catalog.md) owns generation publication, reader consistency, grouping, and search behavior.
 
-## Persistence and limits
+## Persistence and readiness
 
-The worker writes `state.json` under `WORKER_DATA_DIR`, defaulting to `/tmp/spellbook-worker`. Compose mounts durable storage at `/app/data`. State includes Scryfall timestamps, the last successful sync time, document count, and the last error. Successful sync markers follow successful indexing and swaps.
+PostgreSQL owns source timestamps, transformation schema versions, and publication counts. A matching active source, sufficiently recent timestamp, matching schema version, and populated generation allow the worker to skip an unchanged snapshot. Losing `state.json` does not discard these markers. Switching the configured source triggers publication of that source.
 
-`LANGUAGES` is parsed but does not filter ingestion. All languages present in the selected bulk snapshot are indexed. The worker has no HTTP health or metrics endpoint; operators inspect logs and `state.json`.
+The worker writes operator status atomically to `state.json` under `WORKER_DATA_DIR`, defaulting to `/tmp/spellbook-worker`. Compose mounts durable storage at `/app/data`. A successful run records source, completion time, document count, and no error. A failure records the source and exception class without logging credential-bearing exception text. This file is a status report, not the authority for whether a catalog is published.
+
+The worker has no HTTP health or metrics endpoint. Its startup check confirms schema access, not a populated catalog. Inspect the active generation and logs to confirm first-publication readiness. [Deployment](../operations/deployment.md#catalog-migration-and-recovery) owns operator commands.

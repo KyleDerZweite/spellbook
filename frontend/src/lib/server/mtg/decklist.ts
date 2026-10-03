@@ -1,4 +1,4 @@
-import type { DeckCard } from '$lib/server/data/types';
+import type { DeckCard } from '#lib/server/data/types.ts';
 import { assertDeckRole, type DeckRole } from './validation';
 
 export type ParsedDecklistRole = DeckRole | 'maybeboard';
@@ -39,8 +39,8 @@ export function normalizeCardName(name: string): string {
 	return name
 		.toLowerCase()
 		.replace(/[’']/g, '')
-		.replace(/[^a-z0-9/]+/g, ' ')
-		.replace(/\s*\/\s*/g, ' // ')
+		.replace(/[^\p{L}\p{N}/]+/gu, ' ')
+		.replace(/\s*\/+\s*/g, ' // ')
 		.replace(/\s+/g, ' ')
 		.trim();
 }

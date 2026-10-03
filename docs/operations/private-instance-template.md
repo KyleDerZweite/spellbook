@@ -11,7 +11,6 @@ Copy this template into the operator's private notes. Record secret storage refe
 ## Instance
 
 - Public app origin:
-- Public search origin:
 - Environment and container host:
 - Operator and support contact:
 - Reverse proxy or tunnel:
@@ -20,7 +19,6 @@ Copy this template into the operator's private notes. Record secret storage refe
 ## Data and access
 
 - Postgres connection secret reference:
-- MeiliSearch master key reference:
 - Object storage credential references:
 - Account provisioning policy:
 - Password recovery procedure and authorized operator:

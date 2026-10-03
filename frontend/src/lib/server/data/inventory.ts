@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, max, sql } from 'drizzle-orm';
 import { mutationFingerprint, RequestConflictError } from './request-fingerprint';
-import { db } from '$lib/server/db/client';
-import { inventories, inventoryCards, inventoryMutationRequests } from '$lib/server/db/schema';
+import { db } from '#lib/server/db/client.ts';
+import { inventories, inventoryCards, inventoryMutationRequests } from '#lib/server/db/schema.ts';
 import {
 	assertCondition,
 	assertFinish,
@@ -12,7 +12,7 @@ import {
 	type InventoryBulkOperation,
 	type InventoryBulkOperationInput,
 	type InventorySource
-} from '$lib/server/mtg/validation';
+} from '#lib/server/mtg/validation.ts';
 import type {
 	AddInventoryInput,
 	HomeSummary,

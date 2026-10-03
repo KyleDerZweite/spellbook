@@ -224,6 +224,9 @@ class TestTransformEdgeCases:
     def test_normalize_card_name_handles_punctuation_and_split_names(self):
         assert normalize_card_name("Fire / Ice") == "fire // ice"
         assert normalize_card_name("Ajani's Pridemate") == "ajanis pridemate"
+        assert normalize_card_name("Fire // Ice") == "fire // ice"
+        assert normalize_card_name("ラノワールのエルフ") == "ラノワールのエルフ"
+        assert normalize_card_name("Éclair_Elf") == "éclair elf"
 
     def test_etched_foil_counts_as_foil(self):
         card = {
