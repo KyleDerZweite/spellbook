@@ -3,18 +3,24 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-03
 - Source of Truth: accepted product requirements, application components, UI library research
-- Update Triggers: navigation, deck editor interactions, component choices, visual design, responsive behavior, accessibility requirements
-- Related Docs: [Product specification](./specification.md), [Routes](./routing-and-games.md), [Domain model](./domain-model.md), [UI library evaluation](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md)
+- Update Triggers: navigation, deck editor interactions, component choices, visual design, brand identity, icon direction, responsive behavior, accessibility requirements
+- Related Docs: [Product specification](./specification.md), [Routes](./routing-and-games.md), [Domain model](./domain-model.md), [UI library evaluation](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Website icons](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md)
 
-Spellbook is a card workspace with direct access to search, inventory, and decks. The interface retains Spellbook's original dark-purple and gold identity and established layout. This change adds required workflow components and reduces oversized text. A broader visual redesign is deferred to [issue #168](https://github.com/KyleDerZweite/spellbook/issues/168).
+Spellbook is a card workspace with direct access to search, inventory, and decks. The current application uses dark-purple surfaces, gold accents, and its established layout. Required workflow components and smaller interface text are implemented. A broader visual redesign remains deferred to [issue #168](https://github.com/KyleDerZweite/spellbook/issues/168). The current palette records shipped behavior; it does not constrain future brand choices.
 
 ## References and component choice
 
-[Moxfield](https://www.moxfield.com/) and [Archidekt](https://archidekt.com/) are references for card-centered deck editing. Their catalog search, grouped deck sections, visible counts, compact card rows, and import/export patterns inform functional research. A later design task may evaluate their layout ideas. Spellbook keeps its original visual identity and layout during this change.
+[Moxfield](https://www.moxfield.com/) and [Archidekt](https://archidekt.com/) are references for card-centered deck editing. Their catalog search, grouped deck sections, visible counts, compact card rows, and import/export patterns inform functional research. A later design task may evaluate their layout ideas. The existing application layout remains in place until that design work is implemented.
 
 These references do not establish a shipped design overhaul or feature parity with either service. Public social pages, recommendations, collaboration, and gameplay tools remain outside this change.
 
-Retain Svelte, Tailwind, and Bits UI. Use existing components first and native HTML controls when they meet the requirement. Use Bits UI for dialogs, menus, and other interactions that need managed focus and keyboard behavior. The [library evaluation](../reference/ui-libraries.md) records the alternatives and reasons for retaining this combination.
+The current application uses Svelte, Tailwind, and Bits UI. Existing components and native HTML controls cover simple forms; Bits UI supplies dialogs, menus, and other interactions that need managed focus and keyboard behavior. The [library evaluation](../reference/ui-libraries.md) owns the future shortlist. Selecting and implementing a replacement remains deferred.
+
+## Future brand direction
+
+Explore a simple playing-card or book mark that reads clearly at favicon size. The identity can suggest card organization and the Spellbook name without an illustrated scene. Purple and flame concepts have been rejected for this exploration. The future palette is open; choose colors through contrast and small-size testing rather than inheriting the current theme by requirement.
+
+This is a direction for later selection, not approved replacement artwork or a shipped theme. The [website icon reference](../reference/website-icons.md) owns asset formats, sizes, and verification. Keep generated concepts and local provenance artifacts outside the repository's production assets.
 
 ## Workspace structure
 
@@ -38,7 +44,7 @@ The `/scan` workspace uploads images, displays candidates, supports manual print
 
 ## Visual and interaction rules
 
-Preserve the original dark-purple surfaces, gold accents, typography, and familiar layout. Use smaller, readable interface text and add only the components needed for implemented workflows. Do not introduce a slate or teal replacement theme, oversized headings, decorative subtitles, or new visual subheadings. Keep form labels, role names, and accessible structure clear. Avoid decorative panels that displace inventory or deck content. Color can reinforce role or availability state, but a text label must carry the meaning.
+Keep the current runtime theme and layout during this documentation and research update. Future palette and layout changes belong to the deferred design task. Use compact, readable interface text and components needed for implemented workflows. Avoid oversized headings and decorative subtitles. Do not introduce new visible subheadings. Keep form labels, role names, and accessible structure clear. Avoid decorative panels that displace inventory or deck content. Color can reinforce role or availability state, but a text label must carry the meaning.
 
 Reuse shared buttons, inputs, panels, dialogs, and loading indicators. Avoid introducing a second theme or component system for one workflow. A component library supplies interaction mechanisms; application code still owns labels, composition, error states, and contrast.
 

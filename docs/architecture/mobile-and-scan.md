@@ -2,9 +2,9 @@
 
 - Status: Canonical
 - Last Reviewed: 2026-10-03
-- Source of Truth: code
-- Update Triggers: manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, scan processing
-- Related Docs: [Frontend](./frontend.md), [Auth](./auth.md), [Postgres](./postgres.md), [Deployment](../operations/deployment.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md)
+- Source of Truth: code, proposed recognition design, primary documentation
+- Update Triggers: manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, scan processing, recognition evaluation, owned-card search, device runtime selection
+- Related Docs: [Frontend](./frontend.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../product/domain-model.md), [Backend language](./backend-language.md), [Deployment](../operations/deployment.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md)
 
 Spellbook has one web client. Its manifest in `frontend/static/manifest.webmanifest` provides install metadata; `frontend/src/app.html` links it. A service worker and offline caching are not implemented. The `/scan` workspace supports image upload, candidate review, manual printing selection, and explicit inventory commit. Direct browser camera capture remains planned.
 
@@ -70,3 +70,53 @@ Binary uploads live outside Postgres. Postgres stores account ownership, scan se
 Development uses a shared named volume for local artifacts. Production can use an existing S3-compatible bucket. See [deployment](../operations/deployment.md) for configuration.
 
 Recognition and capture work must preserve explicit review before inventory changes. [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md) records the single-client decision; its proposed recognition pipeline is not current functionality.
+
+## Proposed recognition pipeline
+
+This proposal is not implemented. Retain the Python scan-worker boundary, PostgreSQL catalog, and explicit review transaction. Start with one presented card and a CPU baseline. Do not add an OCR package, model, vector extension, or another search service before testing representative labeled captures.
+
+1. Read the authorized artifact and decode it with bounded dimensions and memory. Detect the card boundary, reject unusable captures, correct orientation and perspective, and save a real normalized crop. Measure blur and glare as capture-quality evidence, not identification confidence.
+2. Read the name and bottom-line set, collector-number, and language clues. Preserve uncertain text and missing fields. Collector numbers are strings and can include letters or symbols. Account for older frames without modern identifiers, localized names, split cards, and separate faces.
+3. Pass the extracted evidence to the application catalog layer for PostgreSQL lookup. Prefer consistent set, collector number, language, and name evidence. Otherwise retrieve a bounded name shortlist with the existing text and trigram search, then examine its printings. Keep distinct printing candidates instead of accepting the representative printing from canonical-card search. Catalog generation changes require revalidation of candidates before confirmation.
+4. Show the image, candidate printings, and the evidence behind each suggestion. Keep manual correction and recapture available. Conflicting identifiers or indistinguishable reprints require review; a high text score alone cannot resolve them.
+5. Ask the user to confirm the printing, quantity, finish, and condition. Use the existing account-scoped, idempotent review commit to update inventory. Recognition never authorizes that transaction by itself.
+
+Keep candidate lookup in the application's catalog layer so the worker does not need write access to accounts or inventory. Wiring OCR evidence into that lookup requires a new internal contract; today's worker and external-result endpoints do not implement this pipeline. If measured processing exceeds the current request timeout, add a durable job lifecycle before supporting longer work. The [backend assessment](./backend-language.md) owns runtime and capacity measurements.
+
+## Proposed visual matching
+
+Evaluate the following methods in order, retaining a more complex method only when it fixes measured failures:
+
+| Method                                      | Useful evidence                                                                         | Limit                                                                                                                            |
+| ------------------------------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| OCR plus catalog fields                     | Names and printing identifiers can distinguish reprints with the same artwork.          | Small text, glare, unusual frames, languages, and missing identifiers can prevent a match.                                       |
+| Perceptual hash or aligned image comparison | A normalized full-card or artwork crop can cheaply rank a shortlist.                    | Crop, rotation, sleeves, and lighting affect similarity. Shared artwork cannot establish the printing.                           |
+| Learned image embeddings                    | A tested model may retrieve useful candidates when text or simple image matching fails. | Requires model evaluation, reference-image processing, memory, and versioned retrieval data. Similarity does not prove identity. |
+
+[OpenCV's transform API](https://github.com/opencv/opencv/blob/4.x/modules/imgproc/include/opencv2/imgproc.hpp) provides perspective transforms. Its [perceptual hash implementation](https://github.com/opencv/opencv_contrib/blob/4.x/modules/img_hash/include/opencv2/img_hash/phash.hpp) is one candidate for the second baseline. [Tesseract's image-quality guidance](https://tesseract-ocr.github.io/tessdoc/ImproveQuality.html) explains preprocessing and region-specific segmentation; [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR) is another OCR candidate to evaluate. These references establish available tools, not recognition accuracy on MTG cards or a selected dependency.
+
+Reference hashes or embeddings would derive from catalog imagery and be keyed by printing, face, source-image digest, and model or preprocessing version. These are visual recognition features, separate from the catalog's text and trigram indexes. They must publish consistently with the catalog generation. Scryfall's [card fields](https://scryfall.com/docs/api/cards) distinguish printing IDs, language, collector numbers, and artwork IDs shared across reprints. Image availability and shared artwork remain retrieval limits.
+
+If an embedding baseline materially improves recognition and exact comparison becomes too slow, evaluate [pgvector](https://github.com/pgvector/pgvector) inside the existing PostgreSQL deployment. Start with exact nearest-neighbor retrieval; add an approximate index only after measuring recall, latency, and memory with the real filters. pgvector, embeddings, and visual reference indexes are not installed. No separate vector service is proposed.
+
+## Proposed owned-card indexing
+
+The global catalog contains public printing reference data. An inventory entry records one account's quantity, finish, and condition for a printing. The [domain model](../product/domain-model.md) owns these definitions; an individual physical copy currently has no persistent identifier.
+
+For server-side owned search, filter inventory by the authenticated account and join its printing IDs to the active PostgreSQL catalog generation. Apply catalog text and printing filters there, together with owned quantity, finish, and condition filters. Reuse existing indexes first and inspect representative query plans before adding indexes. Never copy private quantities, notes, images, or ownership markers into the global catalog or create a separate search document for each owned copy.
+
+Catalog publication must not remove an owned entry when a printing is absent from the new snapshot. Preserve the entry and its stored metadata, using an optional catalog join with an explicit missing-reference result. This joined search is proposed scalability work. The current inventory endpoint returns an account-owned snapshot, and the inventory page filters it in the browser. Its existing ledger indexes do not establish a paginated SQL search endpoint. Candidate retrieval searches global printings, since an import may identify a card the account does not yet own.
+
+Catalog identity and image similarity cannot distinguish two physical copies of the same printing. Deduplicating by printing ID would incorrectly discard a second legitimate copy; treating every photograph as a copy would double-count recaptures. Proposed capture or event identifiers prevent software replay, while a later physical-card cycle or copy record must establish whether the card itself is new. The current candidate endpoint's missing stale-result and event protocol remains a separate follow-up, as described above. A single ordinary capture does not reliably establish foil treatment or condition. Keep those fields under user confirmation; do not infer them from a printing's available finishes.
+
+## Recognition evaluation and device limits
+
+Before choosing a package or model, label captures from the intended cameras and cards. Include sleeves, glare, blur, rotation, alternate frames, shared-art reprints, multiple languages, double-faced cards, unreadable text, and cards absent from the catalog. Split evaluation by physical copy and capture session so near-duplicate photographs cannot inflate the result.
+
+Measure exact-printing top-one accuracy, shortlist recall, false matches on unknown cards, rejection and correction rates, and end-to-end latency. Record preprocessing, inference, retrieval, peak RAM, and GPU memory separately. Choose confidence thresholds from held-out data and the cost of a wrong printing; scores from different methods are not interchangeable probabilities.
+
+A Jetson remains an optional capture or recognition host. [NVIDIA's Jetson PyTorch installation guide](https://docs.nvidia.com/deeplearning/frameworks/install-pytorch-jetson-platform/index.html) ties its wheels to specified JetPack releases. Verify the exact board, ARM64 packages, Python version, CUDA and runtime versions, model operators, and memory on that board. The current server Python runtime does not establish compatibility with an OCR or GPU package. A device can submit captures to the server while local inference remains unproven.
+
+The [card robot proposal](../integrations/card-robot.md) owns physical jobs, movement events, and recovery. Recognition can select candidates only for the stack actually fed into the device. Sorting already owned cards must not import them again, and repeated images of one held card must not count as additional copies. Inventory elsewhere does not establish physical access. Tray placement, copy tracking, and deck assignment require their own confirmed device outcomes and future persistence.
+
+External recognition sources above were reviewed on 2026-10-03. No OCR accuracy, embedding advantage, Jetson compatibility, or robot throughput has been measured for Spellbook.

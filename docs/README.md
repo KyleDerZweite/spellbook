@@ -17,7 +17,7 @@ Use the [issue label rules](./ISSUE_LABELS.md) for repository triage and the [co
 | [Operations](./operations/README.md)     | Deployment, environment variables, account recovery, and repository automation      |
 | [Integrations](./integrations/README.md) | External scanner and sorter proposals                                               |
 | [Decisions](./decisions/README.md)       | Significant choices, tradeoffs, and explicit supersession                           |
-| [Reference](./reference/README.md)       | UI and database evaluations and external dependency documentation                   |
+| [Reference](./reference/README.md)       | UI evaluation, catalog search rationale, and external dependency documentation      |
 
 ## Maintenance
 
