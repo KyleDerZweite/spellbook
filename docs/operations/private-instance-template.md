@@ -1,46 +1,29 @@
-# Private Instance Template
+# Private instance template
 
 - Status: Canonical
-- Last Reviewed: 2026-05-17
+- Last Reviewed: 2026-10-03
 - Source of Truth: operator notes
-- Update Triggers: deployment note template changes, operator note conventions
-- Related Docs: [Operations Docs](./README.md), [Deployment](./deployment.md), [OIDC Auth Setup](./oidc.md), [Zitadel](./zitadel.md)
+- Update Triggers: deployment note conventions, recovery and backup procedures
+- Related Docs: [Operations](./README.md), [Deployment](./deployment.md), [Local authentication](./local-auth.md)
 
-Use this template for deployment-specific notes that should not live in the canonical repo docs.
+Copy this template into the operator's private notes. Record secret storage references, never secret values.
 
-## Instance Identity
+## Instance
 
 - Public app origin:
-- Search origin:
-- Environment:
-- Operator:
+- Public search origin:
+- Environment and container host:
+- Operator and support contact:
+- Reverse proxy or tunnel:
+- TLS configuration:
 
-## OIDC Provider
+## Data and access
 
-- Issuer:
-- Client ID:
-- Mobile client ID:
-- Redirect URI:
-- Post logout redirect URI:
-- Requested scopes:
-
-## Deployment Notes
-
-- Reverse proxy or tunnel provider:
-- Container host:
-- Internal network notes:
-- TLS notes:
-- Backup notes:
-
-## Runtime Secrets
-
-- Auth session secret storage location:
-- Postgres connection string storage location:
-- MeiliSearch master key storage location:
-
-## Legal and Contact
-
-- Privacy contact:
-- Support contact:
-- Impressum or company details:
-- Data retention notes:
+- Postgres connection secret reference:
+- MeiliSearch master key reference:
+- Object storage credential references:
+- Account provisioning policy:
+- Password recovery procedure and authorized operator:
+- Backup location, retention, and last restore test:
+- Scan artifact retention policy:
+- Privacy contact and deployment-specific legal information:

@@ -1,61 +1,46 @@
-# Auth
+# Authentication
 
 - Status: Canonical
-- Last Reviewed: 2026-05-17
+- Last Reviewed: 2026-10-03
 - Source of Truth: code
-- Update Triggers: login flow changes, session model changes, protected route changes, token handoff changes
-- Related Docs: [System Overview](./system-overview.md), [Frontend](./frontend.md), [Mobile And Scan](./mobile-and-scan.md), [Routing and Games](../product/routing-and-games.md), [OIDC Auth Setup](../operations/oidc.md), [Zitadel Provider Notes](../operations/zitadel.md), [Deployment](../operations/deployment.md), [ADR-0006](../decisions/0006-generic-oidc-and-internal-account-identity.md)
+- Update Triggers: credentials, sessions, protected routes, bearer tokens, origin checks
+- Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md)
 
-Spellbook currently uses generic OIDC authentication.
+Spellbook authenticates local accounts by username and password. `user_profiles.account_id` remains the stable ownership key for inventories, decks, and scans. Registration generates a new account ID; operator enrollment preserves an existing account ID.
 
-## Current Auth Boundary
+## Credentials and sessions
 
-- the configured OIDC provider owns identity
-- SvelteKit owns the browser-facing login and callback flow
-- SvelteKit stores the encrypted session cookie
-- Postgres ownership is enforced by SvelteKit server code using the internal Spellbook account id from the session or validated bearer token
-- Pangolin is transport and reverse proxy infrastructure only
+`local_credentials` stores a unique normalized username and salted scrypt password hash. Usernames contain 3 to 32 ASCII letters, digits, underscores, or hyphens, start with a letter or digit, and are trimmed and lowercased. Passwords contain 12 to 128 characters. Scrypt uses `N=32768`, `r=8`, `p=3`, a random 16-byte salt, and a 64-byte result.
 
-The mobile client is the same SvelteKit app installed as a PWA and reuses the browser session cookie. No separate mobile auth flow is required for the PWA.
+Sessions use random 32-byte opaque tokens. `auth_sessions` stores only the token's SHA-256 digest, account ID, creation time, and fixed 30-day expiry. Validation checks the database on each request. Logout revokes the current session; operator password recovery revokes every session for that account.
 
-A second entrypoint is retained for non-browser clients:
+The browser receives the `spellbook_session` cookie with `HttpOnly`, `SameSite=Lax`, and `Secure` on HTTPS. The cookie contains the opaque token. The installed web app uses this same session. There is no refresh token or identity-provider callback.
 
-- the `/api/mobile/v1/...` surface accepts bearer tokens from an optional OIDC client id configured via `OIDC_MOBILE_CLIENT_ID`
-- this is optional and unused by the PWA
+## Entry points
 
-## Current Identity Model
+| Endpoint                  | Behavior                                                         |
+| ------------------------- | ---------------------------------------------------------------- |
+| `/auth/register`          | Local account registration page and form action                  |
+| `/auth/login`             | Local login page and form action                                 |
+| `POST /auth/logout`       | Revoke the browser session and redirect to `/`                   |
+| `POST /api/auth/register` | Accept JSON credentials and return a session token with HTTP 201 |
+| `POST /api/auth/login`    | Accept JSON credentials and return a session token with HTTP 200 |
+| `POST /api/auth/logout`   | Revoke the supplied bearer token and return HTTP 204             |
 
-`user_profiles.account_id` is the stable Spellbook account key used by inventory, deck, and scan data.
+JSON credentials have `username` and `password` fields. Successful responses contain `user`, `token`, and `expiresAt`; JSON login does not set a cookie. `/api/mobile/v1/mtg/...` accepts `Authorization: Bearer <token>` or a browser session. An explicit invalid bearer header fails instead of falling back to a cookie.
 
-External provider identity is stored separately in `auth_identities`:
+Browser mutations require a matching request origin. JSON login and registration allow a missing origin for non-browser clients but reject a foreign origin. Cookie-authenticated API mutations also require the same origin.
 
-- `provider_type`
-- `issuer`
-- `subject`
-- `account_id`
+SvelteKit delegates form-origin checks through `csrf.trustedOrigins: ['*']` to the [central form guard](../../frontend/src/lib/server/auth/csrf.ts). The server hook invokes that guard before redirects or session handling. It requires a matching origin for `POST`, `PUT`, `PATCH`, and `DELETE` requests using URL-encoded, multipart, plain-text, or SvelteKit form data.
 
-On first successful OIDC login, Spellbook auto-provisions the local account and identity mapping. Existing deployments that previously used the provider subject as `account_id` are linked on first login when the subject already exists as a local account id.
+One exception supports native scanners. A multipart `POST` to the exact scan-frame route may omit `Origin` when it carries a well-formed bearer token. The route must then validate that token against the session database. An invalid token returns HTTP 401 even if a valid browser cookie is also present. A foreign or literal `null` origin returns HTTP 403 even with a valid bearer token. Other unsafe form requests with a missing origin also return HTTP 403. This guard applies in development and production; JSON handlers retain their own origin checks.
 
-Spellbook does not auto-link unrelated identity providers by email.
+Login and registration share a per-process limit of 20 attempts per client address within 15 minutes. At most four password derivations run concurrently. These limits do not coordinate across replicas; multi-replica deployments need a shared proxy rate limit.
 
-## Current Session Model
+## Access and migration
 
-- encrypted cookie-backed session
-- refresh flow when the session is near expiry
-- `returnTo` sanitization rejects values that are not same-origin paths and falls back to `/`
+`/search`, `/inventory`, `/decks`, and `/scan`, including their child routes, require authentication. Legacy MTG and collection URLs redirect before the guard. `returnTo` accepts only local paths.
 
-## Mobile Session Model
+Registration is public. Email verification, emailed reset links, and a self-service password-change page are not implemented. The [operator procedure](../operations/local-auth.md) covers recovery and enrollment of accounts created under OIDC.
 
-- PWA clients reuse the standard web session cookie
-- optional bearer tokens may be sent to `/api/mobile/v1/:game/...` by non-browser clients
-- bearer token validation uses the configured mobile client id when present
-
-## Current Protected Route Model
-
-Protected path prefixes in the frontend currently include:
-
-- `/search`
-- `/inventory`
-- `/decks`
-
-Legacy `/mtg/*` and `/collections*` URLs are 308-redirected to the matching flat path before the auth guard runs, so older bookmarks still land on a protected page that prompts a login when needed.
+Migration `0004` adds credentials and sessions without changing account IDs. Historical `auth_identities` records remain in the database but do not authenticate requests. OIDC tokens, provider configuration, and encrypted legacy sessions are no longer accepted.

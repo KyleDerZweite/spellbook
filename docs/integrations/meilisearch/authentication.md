@@ -1,7 +1,7 @@
 # MeiliSearch Authentication
 
 - Status: Canonical
-- Last Reviewed: 2026-04-08
+- Last Reviewed: 2026-10-03
 - Source of Truth: code
 - Update Triggers: search-key handling changes, env var changes, frontend server auth changes
 - Related Docs: [MeiliSearch Overview](./README.md), [Deployment](../../operations/deployment.md), [Auth Architecture](../../architecture/auth.md)

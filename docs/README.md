@@ -1,96 +1,28 @@
-# Spellbook Docs
+# Spellbook documentation
 
 - Status: Canonical
-- Last Reviewed: 2026-04-25
+- Last Reviewed: 2026-10-03
 - Source of Truth: mixed
-- Update Triggers: docs structure, canonical doc locations, historical-doc policy, maintenance workflow
-- Related Docs: [Product](./product/README.md), [Architecture](./architecture/README.md), [Operations](./operations/README.md), [Integrations](./integrations/README.md), [Decisions](./decisions/README.md), [Reference](./reference/README.md)
+- Update Triggers: document ownership, product contracts, section changes, documentation health review
+- Related Docs: [Product](./product/README.md), [Architecture](./architecture/README.md), [Operations](./operations/README.md), [Integrations](./integrations/README.md), [Decisions](./decisions/README.md), [Reference](./reference/README.md), [Issue labels](./ISSUE_LABELS.md)
 
-This is the mandatory entrypoint for repository documentation.
+Start with the [product specification](./product/specification.md) for current behavior, requirements, and known limits. Use the [domain glossary](./product/domain-model.md) for precise MTG and ownership terms. The code, tests, and configuration resolve implementation questions.
 
-## What Is Canonical
+Use the [issue label rules](./ISSUE_LABELS.md) for repository triage and the [contribution policy](../CONTRIBUTING.md) for proposals, pull requests, and AI assistance disclosure.
 
-Canonical docs live under the typed sections in `docs/`:
+| Section                                  | Owns                                                                                |
+| ---------------------------------------- | ----------------------------------------------------------------------------------- |
+| [Product](./product/README.md)           | Specification, terminology, routes, and design direction                            |
+| [Architecture](./architecture/README.md) | Service boundaries, data contracts, authentication, and backend language assessment |
+| [Operations](./operations/README.md)     | Deployment, environment variables, account recovery, and repository automation      |
+| [Integrations](./integrations/README.md) | MeiliSearch index, document, query, task, and credential contracts                  |
+| [Decisions](./decisions/README.md)       | Significant choices, tradeoffs, and explicit supersession                           |
+| [Reference](./reference/README.md)       | UI library evaluation and external dependency documentation                         |
 
-- [Product](./product/README.md)
-- [Architecture](./architecture/README.md)
-- [Operations](./operations/README.md)
-- [Integrations](./integrations/README.md)
-- [Decisions](./decisions/README.md)
-- [Reference](./reference/README.md)
+## Maintenance
 
-Use these for active project truth.
+Update the owning document when behavior, routes, schemas, authentication, environment variables, or operator steps change. Keep requirements and planned work distinct from implemented behavior. Link to the owning document instead of duplicating a contract.
 
-## Historical Material
+Every touched canonical document needs an updated `Last Reviewed` date, relevant `Update Triggers`, and checked `Related Docs`. Add new files to their section index. Remove replaced documentation and rely on git history; do not create an archive or parallel wiki. Retain decision records with explicit supersession status.
 
-Superseded documentation should not stay on the active docs surface.
-
-When an old doc is no longer useful as active documentation, delete it and rely on git history for the historical record.
-
-## Taxonomy
-
-### Product
-
-Use [product](./product/README.md) for:
-
-- product behavior
-- route surfaces
-- terminology
-- feature status
-- implemented versus planned distinctions
-
-### Architecture
-
-Use [architecture](./architecture/README.md) for:
-
-- internal system shape
-- data flow
-- subsystem boundaries
-- backend and frontend contracts
-
-### Operations
-
-Use [operations](./operations/README.md) for:
-
-- deployment
-- auth provider setup
-- required env vars
-- operator-facing guidance
-
-### Integrations
-
-Use [integrations](./integrations/README.md) for:
-
-- vendor-specific or service-specific technical details
-
-### Decisions
-
-Use [decisions](./decisions/README.md) for:
-
-- architectural or product decisions
-- tradeoffs
-- consequences
-- follow-up implications
-
-### Reference
-
-Use [reference](./reference/README.md) for:
-
-- low-volatility helper docs
-- external doc indexes
-- dependency reference notes
-
-## Contributor Maintenance Rules
-
-- If behavior, routes, schema, auth flow, env vars, or operator steps change, update the relevant canonical doc in the same change.
-- If a significant architectural or product decision is made, create or update an ADR in `docs/decisions/`.
-- If a doc becomes historical or superseded, remove it from the active surface and rely on git history instead of keeping an in-repo archive tree.
-- Do not create long-lived project knowledge markdown in random repo locations.
-- Use plain markdown only. No Obsidian-only syntax.
-
-## Current Project State
-
-- MTG is the only implemented game.
-- The active route surface is documented in [product/routing-and-games.md](./product/routing-and-games.md).
-- The current system architecture is documented in [architecture/system-overview.md](./architecture/system-overview.md).
-- The MeiliSearch integration is documented in [integrations/meilisearch/README.md](./integrations/meilisearch/README.md).
+Review documentation health at each milestone or release, or monthly during active development. Check claims against code, broken links, orphaned documents, duplicate contracts, and superseded decisions. Use plain repository Markdown.

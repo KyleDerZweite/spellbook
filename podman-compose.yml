@@ -2,7 +2,7 @@
 # This avoids most SELinux relabel issues on Fedora while remaining portable to Ubuntu.
 services:
   postgres:
-    image: docker.io/postgres:17
+    image: docker.io/postgres:17.11-bookworm
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-spellbook}
       POSTGRES_USER: ${POSTGRES_USER:-spellbook}
@@ -33,18 +33,12 @@ services:
     restart: "no"
 
   meilisearch:
-    image: docker.io/getmeili/meilisearch:v1.39.0
+    image: docker.io/getmeili/meilisearch:v1.54.3
     environment:
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
       MEILI_ENV: development
     volumes:
       - meilisearch_data:/meili_data
-    restart: unless-stopped
-
-  qdrant:
-    image: docker.io/qdrant/qdrant:v1.15.4
-    volumes:
-      - qdrant_data:/qdrant/storage
     restart: unless-stopped
 
   worker:
@@ -74,9 +68,6 @@ services:
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
       S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
-      QDRANT_URL: http://qdrant:6333
-    depends_on:
-      - qdrant
     restart: unless-stopped
 
   frontend:
@@ -88,11 +79,11 @@ services:
       PUBLIC_MEILISEARCH_URL: ${PUBLIC_MEILISEARCH_URL}
       MEILISEARCH_INTERNAL_URL: http://meilisearch:7700
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
-      OIDC_ISSUER: ${OIDC_ISSUER}
-      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}
-      OIDC_MOBILE_CLIENT_ID: ${OIDC_MOBILE_CLIENT_ID}
       APP_ORIGIN: ${APP_ORIGIN}
-      AUTH_SESSION_SECRET: ${AUTH_SESSION_SECRET}
+      ORIGIN: ${APP_ORIGIN}
+      ADDRESS_HEADER: ${ADDRESS_HEADER:-}
+      XFF_DEPTH: ${XFF_DEPTH:-1}
+      BODY_SIZE_LIMIT: ${BODY_SIZE_LIMIT:-12M}
       SCAN_STORAGE_DRIVER: ${SCAN_STORAGE_DRIVER:-s3}
       S3_ENDPOINT: ${S3_ENDPOINT}
       S3_REGION: ${S3_REGION:-us-east-1}
@@ -101,18 +92,22 @@ services:
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
       S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
       SCAN_WORKER_URL: http://scan-worker:8080
+    ports:
+      - "127.0.0.1:3000:3000"
     depends_on:
-      - db-migrate
-      - meilisearch
-      - scan-worker
+      db-migrate:
+        condition: service_completed_successfully
+      meilisearch:
+        condition: service_started
+      scan-worker:
+        condition: service_started
     restart: unless-stopped
 
   newt:
-    image: docker.io/fosrl/newt:latest
+    image: docker.io/fosrl/newt:1.18.1
+    profiles: [tunnel]
     container_name: spellbook-newt
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
       PANGOLIN_ENDPOINT: ${PANGOLIN_ENDPOINT}
       NEWT_ID: ${NEWT_ID}
@@ -123,5 +118,4 @@ services:
 volumes:
   postgres_data:
   meilisearch_data:
-  qdrant_data:
   worker_data:

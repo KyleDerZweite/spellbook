@@ -2,8 +2,11 @@
 
 - Status: Superseded by [ADR-0003](./0003-pwa-first-mobile-and-server-side-scan.md)
 - Date: 2026-04-11
+- Last Reviewed: 2026-10-03
+- Source of Truth: recorded decision
+- Update Triggers: decision applicability, supersession, related document changes
 - Superseded: 2026-04-17
-- Related Docs: [System Overview](../architecture/system-overview.md), [Mobile And Scan Architecture](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Auth](../architecture/auth.md), [Feature Status](../product/feature-status.md)
+- Related Docs: [System Overview](../architecture/system-overview.md), [Mobile And Scan Architecture](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Auth](../architecture/auth.md), [Product specification](../product/specification.md)
 
 > Superseded. The native Android shell was never released and duplicated the existing SvelteKit surfaces. See [ADR-0003](./0003-pwa-first-mobile-and-server-side-scan.md) for the PWA-first replacement. The server-side scan pipeline decision from this ADR is preserved by ADR-0003.
 

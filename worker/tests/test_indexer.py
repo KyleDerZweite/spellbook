@@ -1,19 +1,22 @@
+import io
+import json
 from unittest.mock import MagicMock
 
 import pytest
+from meilisearch.errors import MeilisearchApiError
 
 from worker.indexer import (
     INDEX_SETTINGS_ALL,
     INDEX_SETTINGS_DISTINCT,
     MeiliIndexer,
     _DocumentStore,
+    _iter_bulk_cards,
     _iter_json_array,
+    _iter_jsonl,
 )
 
 
 def _api_error(code: str, message: str = "test error"):
-    from meilisearch.errors import MeilisearchApiError
-
     err = MeilisearchApiError.__new__(MeilisearchApiError)
     err.status_code = 404
     err.code = code
@@ -53,6 +56,10 @@ class TestIndexSettings:
     def test_searchable_includes_name(self):
         assert "name" in INDEX_SETTINGS_DISTINCT["searchableAttributes"]
 
+    def test_printed_name_follows_english_name_in_both_indexes(self):
+        for settings in (INDEX_SETTINGS_DISTINCT, INDEX_SETTINGS_ALL):
+            assert settings["searchableAttributes"][:2] == ["name", "printed_name"]
+
     def test_searchable_includes_oracle_text(self):
         assert "oracle_text" in INDEX_SETTINGS_DISTINCT["searchableAttributes"]
 
@@ -81,6 +88,7 @@ class TestConfigureIndexes:
 
     def test_updates_both_indexes(self):
         mock_client = MagicMock()
+        mock_client.wait_for_task.return_value = MagicMock(status="succeeded")
         mock_distinct = MagicMock()
         mock_all = MagicMock()
         mock_client.index.side_effect = lambda name: {
@@ -99,6 +107,7 @@ class TestConfigureIndexes:
 
     def test_distinct_index_gets_oracle_id(self):
         mock_client = MagicMock()
+        mock_client.wait_for_task.return_value = MagicMock(status="succeeded")
         mock_distinct = MagicMock()
         mock_all = MagicMock()
 
@@ -113,6 +122,7 @@ class TestConfigureIndexes:
 
     def test_creates_indexes_with_primary_key(self):
         mock_client = MagicMock()
+        mock_client.wait_for_task.return_value = MagicMock(status="succeeded")
         mock_distinct = MagicMock()
         mock_all = MagicMock()
 
@@ -178,6 +188,7 @@ class TestStagingIndexes:
 
     def test_configure_staging_index_uses_next_name(self):
         mock_client = MagicMock()
+        mock_client.wait_for_task.return_value = MagicMock(status="succeeded")
         mock_index = MagicMock()
         mock_client.create_index.return_value = MagicMock(task_uid=10)
         mock_index.update_settings.return_value = MagicMock(task_uid=11)
@@ -195,11 +206,116 @@ class TestStagingIndexes:
         assert result == mock_index
 
 
+class TestTaskFailures:
+    @pytest.fixture
+    def indexer(self):
+        indexer = MeiliIndexer.__new__(MeiliIndexer)
+        indexer.client = MagicMock()
+        indexer.client.wait_for_task.return_value = MagicMock(status="succeeded")
+        indexer.client.delete_index.return_value.task_uid = 1
+        indexer.client.create_index.return_value.task_uid = 2
+        indexer.client.index.return_value.update_settings.return_value.task_uid = 3
+        indexer.client.index.return_value.add_documents.return_value.task_uid = 4
+        indexer.client.swap_indexes.return_value.task_uid = 5
+        indexer.batch_size = 100
+        return indexer
+
+    @pytest.fixture
+    def catalog(self, tmp_path):
+        path = tmp_path / "cards.jsonl"
+        path.write_text('{"id":"first","oracle_id":"first"}\n')
+        return path
+
+    @pytest.mark.parametrize("failed_task", [1, 2, 3, 4])
+    @pytest.mark.parametrize("status", ["failed", "canceled"])
+    def test_task_failure_prevents_swap(self, indexer, catalog, failed_task, status):
+        indexer.client.wait_for_task.side_effect = lambda uid, **kwargs: MagicMock(
+            status=status if uid == failed_task else "succeeded",
+            error={"code": "invalid_document", "message": "private document content"},
+        )
+        with pytest.raises(RuntimeError, match=f"task {failed_task}.*invalid_document") as exc:
+            indexer.index_from_file(catalog)
+        assert "private" not in str(exc.value)
+        indexer.client.swap_indexes.assert_not_called()
+
+    def test_failed_swap_does_not_delete_staged_data(self, indexer, catalog):
+        indexer.client.wait_for_task.side_effect = lambda uid, **kwargs: MagicMock(
+            status="failed" if uid == 5 else "succeeded", error={"code": "index_not_found"}
+        )
+        with pytest.raises(RuntimeError, match=r"task 5.*index_not_found"):
+            indexer.index_from_file(catalog)
+        assert indexer.client.delete_index.call_count == 2
+
+    def test_missing_staging_index_is_expected_async(self, indexer):
+        indexer.client.wait_for_task.return_value = MagicMock(
+            status="failed", error={"code": "index_not_found"}
+        )
+        indexer._delete_index_if_exists("cards_all_next")
+
+    def test_missing_staging_index_is_expected_http_404(self, indexer):
+        indexer.client.delete_index.side_effect = _api_error("index_not_found")
+        indexer._delete_index_if_exists("cards_all_next")
+        indexer.client.wait_for_task.assert_not_called()
+
+    def test_unrelated_delete_error_is_not_ignored(self, indexer):
+        error = _api_error("internal_error")
+        indexer.client.delete_index.side_effect = error
+        with pytest.raises(MeilisearchApiError) as exc:
+            indexer._delete_index_if_exists("cards_all_next")
+        assert exc.value is error
+
+    def test_missing_index_code_with_wrong_http_status_is_not_ignored(self, indexer):
+        error = _api_error("index_not_found")
+        error.status_code = 500
+        indexer.client.delete_index.side_effect = error
+        with pytest.raises(MeilisearchApiError):
+            indexer._delete_index_if_exists("cards_all_next")
+
+    def test_canceled_delete_is_not_treated_as_missing(self, indexer):
+        indexer.client.wait_for_task.return_value = MagicMock(
+            status="canceled", error={"code": "index_not_found"}
+        )
+        with pytest.raises(RuntimeError):
+            indexer._delete_index_if_exists("cards_all_next")
+
+    def test_failure_without_error_has_safe_message(self, indexer):
+        indexer.client.wait_for_task.return_value = MagicMock(status="canceled", error=None)
+        with pytest.raises(RuntimeError, match=r"task 10.*unknown_error"):
+            indexer._wait_for_task(10)
+
+    def test_error_code_cannot_inject_server_content(self, indexer):
+        indexer.client.wait_for_task.return_value = MagicMock(
+            status="failed", error={"code": "private\nserver content"}
+        )
+        with pytest.raises(RuntimeError, match="unknown_error") as exc:
+            indexer._wait_for_task(10)
+        assert "private" not in str(exc.value)
+
+    def test_live_configuration_checks_settings_result(self, indexer):
+        indexer.distinct_index = indexer.client.index.return_value
+        indexer.all_index = indexer.client.index.return_value
+        indexer.client.wait_for_task.side_effect = [
+            MagicMock(status="failed", error={"code": "index_already_exists"}),
+            MagicMock(status="failed", error={"code": "invalid_settings"}),
+        ]
+        with pytest.raises(RuntimeError, match="invalid_settings"):
+            indexer.configure_indexes()
+        assert indexer.client.create_index.call_count == 1
+
+    @pytest.mark.parametrize("payload", ["[]", '{"id":"token","layout":"token"}'])
+    def test_empty_catalog_cannot_replace_live_indexes(self, indexer, catalog, payload):
+        catalog.write_text(payload)
+        with pytest.raises(ValueError, match="no indexable cards"):
+            indexer.index_from_file(catalog)
+        assert indexer.client.mock_calls == []
+
+
 class TestHealthCheck:
     """Test MeiliIndexer.health_check()."""
 
     def test_returns_true_when_healthy(self):
         mock_client = MagicMock()
+        mock_client.wait_for_task.return_value = MagicMock(status="succeeded")
         mock_client.health.return_value = {"status": "available"}
 
         indexer = MeiliIndexer.__new__(MeiliIndexer)
@@ -208,6 +324,7 @@ class TestHealthCheck:
 
     def test_returns_false_when_unhealthy(self):
         mock_client = MagicMock()
+        mock_client.wait_for_task.return_value = MagicMock(status="succeeded")
         mock_client.health.return_value = {"status": "unavailable"}
 
         indexer = MeiliIndexer.__new__(MeiliIndexer)
@@ -216,6 +333,7 @@ class TestHealthCheck:
 
     def test_returns_false_on_exception(self):
         mock_client = MagicMock()
+        mock_client.wait_for_task.return_value = MagicMock(status="succeeded")
         mock_client.health.side_effect = ConnectionError("refused")
 
         indexer = MeiliIndexer.__new__(MeiliIndexer)
@@ -252,6 +370,70 @@ class TestIterJsonArray:
         path.write_text('{"id": 1}')
         with path.open() as fh, pytest.raises(ValueError, match="JSON array"):
             list(_iter_json_array(fh))
+
+
+class TestBulkParsing:
+    @pytest.mark.parametrize(
+        "payload",
+        ['[{"id":1}', '[{"id":1},]', '[{"id":1}{"id":2}]', "[1]", "[{}] garbage", ""],
+    )
+    def test_rejects_invalid_array(self, payload):
+        with pytest.raises(ValueError):
+            list(_iter_json_array(io.StringIO(payload)))
+
+    @pytest.mark.parametrize("chunk_size", [1, 2, 7])
+    def test_array_objects_can_span_chunks(self, monkeypatch, chunk_size):
+        monkeypatch.setattr("worker.indexer._STREAM_CHUNK_SIZE", chunk_size)
+        payload = '\n[{"id":"first"}, {"id":"second"}]\n'
+        assert list(_iter_json_array(io.StringIO(payload))) == [
+            {"id": "first"},
+            {"id": "second"},
+        ]
+
+    @pytest.mark.parametrize("payload", ['{"id":1}\nnull', '{"id":1}\n[]', '{"id":1}\n{bad'])
+    def test_rejects_invalid_jsonl_with_line_number(self, payload):
+        with pytest.raises(ValueError, match="line 2"):
+            list(_iter_jsonl(io.StringIO(payload)))
+
+    @pytest.mark.parametrize("payload", ['\n{"id":1}\n\n{"id":2}', '\n[{"id":1},{"id":2}]'])
+    def test_detects_both_formats(self, payload):
+        assert list(_iter_bulk_cards(io.StringIO(payload))) == [{"id": 1}, {"id": 2}]
+
+    @pytest.mark.parametrize("payload", ["", " \n", "null", "garbage"])
+    def test_rejects_unknown_or_empty_file(self, payload):
+        with pytest.raises(ValueError, match="bulk file"):
+            list(_iter_bulk_cards(io.StringIO(payload)))
+
+    def test_bad_record_does_not_modify_live_indexes(self, tmp_path):
+        path = tmp_path / "cards.jsonl"
+        path.write_text('{"id":"first","oracle_id":"first"}\nnull\n')
+        indexer = MeiliIndexer.__new__(MeiliIndexer)
+        indexer.client = MagicMock()
+        with pytest.raises(ValueError, match="line 2"):
+            indexer.index_from_file(path)
+        assert indexer.client.mock_calls == []
+
+    def test_jsonl_is_uploaded_to_both_staging_indexes(self, tmp_path):
+        cards = [
+            {"id": "old", "oracle_id": "one", "released_at": "2000-01-01"},
+            {"id": "new", "oracle_id": "one", "released_at": "2026-01-01"},
+        ]
+        path = tmp_path / "cards.jsonl"
+        path.write_text("\n".join(json.dumps(card) for card in cards))
+        indexer = MeiliIndexer.__new__(MeiliIndexer)
+        indexer.client = MagicMock()
+        indexer.client.wait_for_task.return_value = MagicMock(status="succeeded")
+        indexer.batch_size = 100
+        assert indexer.index_from_file(path) == 2
+        uploads = indexer.client.index.return_value.add_documents.call_args_list
+        assert len(uploads) == 2
+        assert all([doc["id"] for doc in call.args[0]] == ["new", "old"] for call in uploads)
+        indexer.client.swap_indexes.assert_called_once_with(
+            [
+                {"indexes": ["cards_distinct", "cards_distinct_next"]},
+                {"indexes": ["cards_all", "cards_all_next"]},
+            ]
+        )
 
 
 class TestDocumentStore:
@@ -294,8 +476,6 @@ class TestGetCount:
         assert count == 0
 
     def test_reraises_on_unrelated_api_error(self):
-        from meilisearch.errors import MeilisearchApiError
-
         mock_index = MagicMock()
         mock_index.get_stats.side_effect = _api_error("internal_error", "boom")
 

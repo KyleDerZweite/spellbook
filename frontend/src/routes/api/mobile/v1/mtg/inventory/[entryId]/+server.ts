@@ -1,31 +1,32 @@
-import { error, json } from '@sveltejs/kit';
+import { normalizeQuantity } from '$lib/server/mtg/validation';
+import { badRequestIfValidation } from '$lib/server/mobile/route-errors';
+import { readString, readJsonObject, requireUuid, readNumber } from '$lib/server/http/request';
+import { json } from '@sveltejs/kit';
 import { requireMobileAuth } from '$lib/server/mobile/auth';
 import { removeInventoryEntry, updateInventoryEntry } from '$lib/server/mobile/mtg-service';
 
 export const PATCH = async (event) => {
 	const auth = await requireMobileAuth(event);
-	const entryId = event.params.entryId?.trim();
-	const body = await event.request.json();
-	if (!entryId) {
-		throw error(400, 'entryId is required');
-	}
+	const entryId = requireUuid(event.params.entryId, 'entryId');
+	const body = await readJsonObject(event.request);
 
-	return json(
-		await updateInventoryEntry(
-			auth,
-			entryId,
-			Number(body?.quantity ?? 1),
-			String(body?.notes ?? '')
-		)
-	);
+	try {
+		return json(
+			await updateInventoryEntry(
+				auth,
+				entryId,
+				normalizeQuantity(readNumber(body.quantity, 'quantity', 1)),
+				readString(body.notes, 'notes', '')
+			)
+		);
+	} catch (cause) {
+		badRequestIfValidation(cause);
+	}
 };
 
 export const DELETE = async (event) => {
 	const auth = await requireMobileAuth(event);
-	const entryId = event.params.entryId?.trim();
-	if (!entryId) {
-		throw error(400, 'entryId is required');
-	}
+	const entryId = requireUuid(event.params.entryId, 'entryId');
 
 	return json(await removeInventoryEntry(auth, entryId));
 };

@@ -1,31 +1,31 @@
-import { error, json } from '@sveltejs/kit';
+import { badRequestIfValidation } from '$lib/server/mobile/route-errors';
+import { readString, readJsonObject, requireUuid } from '$lib/server/http/request';
+import { json } from '@sveltejs/kit';
 import { requireMobileAuth } from '$lib/server/mobile/auth';
 import { deleteDeckEntry, updateDeckEntry } from '$lib/server/mobile/mtg-service';
 
 export const PATCH = async (event) => {
 	const auth = await requireMobileAuth(event);
-	const deckId = event.params.deckId?.trim();
-	const body = await event.request.json();
-	if (!deckId) {
-		throw error(400, 'deckId is required');
-	}
+	const deckId = requireUuid(event.params.deckId, 'deckId');
+	const body = await readJsonObject(event.request);
 
-	return json(
-		await updateDeckEntry(auth, {
-			deckId,
-			name: String(body?.name ?? ''),
-			description: String(body?.description ?? ''),
-			format: String(body?.format ?? 'Commander')
-		})
-	);
+	try {
+		return json(
+			await updateDeckEntry(auth, {
+				deckId,
+				name: readString(body.name, 'name', ''),
+				description: readString(body.description, 'description', ''),
+				format: readString(body.format, 'format', 'Commander')
+			})
+		);
+	} catch (cause) {
+		badRequestIfValidation(cause);
+	}
 };
 
 export const DELETE = async (event) => {
 	const auth = await requireMobileAuth(event);
-	const deckId = event.params.deckId?.trim();
-	if (!deckId) {
-		throw error(400, 'deckId is required');
-	}
+	const deckId = requireUuid(event.params.deckId, 'deckId');
 
 	return json(await deleteDeckEntry(auth, deckId));
 };

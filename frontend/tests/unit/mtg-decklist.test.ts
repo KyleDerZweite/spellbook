@@ -42,6 +42,20 @@ describe('parseArenaDecklist', () => {
 });
 
 describe('formatArenaDecklist', () => {
+	it('round trips set-only exports without treating the set as part of the name', () => {
+		const original = [
+			deckCard({ quantity: 4, name: 'Lightning Bolt' }),
+			deckCard({ quantity: 1, name: 'Negate', role: 'sideboard' })
+		];
+		const parsed = parseArenaDecklist(formatArenaDecklist(original));
+		expect(parsed.malformed).toEqual([]);
+		expect(
+			parsed.lines.map(({ quantity, name, setCode, role }) => ({ quantity, name, setCode, role }))
+		).toEqual(
+			original.map(({ quantity, name, setCode, role }) => ({ quantity, name, setCode, role }))
+		);
+	});
+
 	it('exports main only', () => {
 		expect(formatArenaDecklist([deckCard({ quantity: 4, name: 'Lightning Bolt' })])).toBe(
 			'Deck\n4 Lightning Bolt (STA)\n'

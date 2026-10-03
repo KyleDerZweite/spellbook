@@ -1,10 +1,10 @@
 # MeiliSearch in Spellbook
 
 - Status: Canonical
-- Last Reviewed: 2026-05-18
+- Last Reviewed: 2026-10-03
 - Source of Truth: code
 - Update Triggers: index changes, query changes, search-key handling changes, MTG search behavior changes
-- Related Docs: [Integrations Docs](../README.md), [Indexes and Settings](./indexes-and-settings.md), [Search API](./search-api.md), [Tasks](./tasks.md), [Worker Architecture](../../architecture/worker.md)
+- Related Docs: [Integrations Docs](../README.md), [Indexes and Settings](./indexes-and-settings.md), [Search API](./search-api.md), [Tasks](./tasks.md), [Documents](./documents.md), [Authentication](./authentication.md), [Worker Architecture](../../architecture/worker.md)
 
 Spellbook currently uses MeiliSearch for MTG card catalog search.
 
@@ -37,3 +37,11 @@ Scryfall -> Python worker -> cards_distinct_next + cards_all_next -> atomic inde
 ```
 
 The Python worker downloads MTG bulk data from Scryfall, transforms it, and uploads documents to both indexes.
+
+## Contract owners
+
+- [Indexes and settings](./indexes-and-settings.md)
+- [Document transformation](./documents.md)
+- [Search queries](./search-api.md)
+- [Credentials](./authentication.md)
+- [Asynchronous task handling](./tasks.md)

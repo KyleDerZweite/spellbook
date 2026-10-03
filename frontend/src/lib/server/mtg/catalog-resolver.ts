@@ -119,12 +119,14 @@ function exactNameMatch(card: CardDocument, normalizedName: string): boolean {
 }
 
 async function resolveCandidates(line: ParsedDecklistLine): Promise<CardDocument[]> {
-	if (line.setCode && line.collectorNumber) {
+	if (line.setCode) {
 		const index = getClient().index<CardDocument>('cards_all');
 		const response = await index.search('', {
 			filter: [
 				`set_code = "${escapeFilterValue(line.setCode.toLowerCase())}"`,
-				`collector_number = "${escapeFilterValue(line.collectorNumber)}"`
+				line.collectorNumber
+					? `collector_number = "${escapeFilterValue(line.collectorNumber)}"`
+					: `normalized_name = "${escapeFilterValue(line.normalizedName)}"`
 			],
 			limit: 10
 		});

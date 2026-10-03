@@ -1,52 +1,24 @@
-# System Overview
+# System overview
 
 - Status: Canonical
-- Last Reviewed: 2026-05-18
+- Last Reviewed: 2026-10-03
 - Source of Truth: code
-- Update Triggers: service boundary changes, topology changes, auth boundary changes, data flow changes
-- Related Docs: [Architecture Docs](./README.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Worker](./worker.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md)
+- Update Triggers: service boundaries, topology, authentication, data ownership
+- Related Docs: [Architecture](./README.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Worker](./worker.md), [Auth](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md)
 
-Spellbook currently consists of five primary functional parts:
-
-- SvelteKit frontend
-- OIDC authentication
-- Postgres for user-scoped application data
-- MeiliSearch for MTG catalog search
-- Python worker for MTG catalog ingestion
-
-The mobile and scan foundation adds these supporting parts:
-
-- scan artifact storage, local filesystem in development or S3-compatible object storage in production
-- a scan-worker service
-- a vector index service
-
-## Current High-Level Flow
+Spellbook uses SvelteKit for the web interface and application API, Postgres for account-owned state, MeiliSearch for the MTG catalog, and a Python worker for Scryfall ingestion. Local authentication runs inside SvelteKit.
 
 ```text
-Browser or installed PWA
-  -> Frontend (SvelteKit)
-  -> OIDC provider for login
-  -> Frontend session cookie
-  -> Postgres through SvelteKit server loads, actions, and APIs
-  -> MeiliSearch with search-only key
-  -> scan artifact storage through the frontend server
-  -> scan-worker for scan processing
-
-Optional non-browser client (future)
-  -> Frontend mobile API with bearer token at /api/mobile/v1/...
-
-Scryfall
-  -> Worker
-  -> MeiliSearch
+Browser -> SvelteKit -> Postgres
+Browser -> MeiliSearch using a search-only key
+API client -> SvelteKit using a local session bearer token
+Scryfall -> Python worker -> MeiliSearch staging indexes -> atomic swap
+Scan upload -> SvelteKit -> local or S3 artifact storage
+                        -> Python scan-worker scaffold
 ```
 
-## Current Responsibilities
+The browser and installed web app share one frontend and session cookie. Server repositories enforce ownership using the internal account ID. MeiliSearch holds public catalog data, not inventories or passwords.
 
-- frontend: routes, auth session handling, search UI, inventory UI, decks UI, PWA install surface for mobile
-- frontend mobile API: optional bearer-token validation, MTG mobile endpoints, scan upload orchestration
-- Postgres: user profile, inventories, inventory cards, decks, deck cards, scan state, and inventory/deck idempotency records
-- worker: catalog download, transform, zero-downtime MeiliSearch indexing, sync status
-- scan-worker: scan-processing boundary for normalization, OCR, embeddings, and candidate ranking
-- MeiliSearch: MTG card catalog search and printing lookup
-- OIDC provider: hosted identity and login
-- scan artifact storage: retained scan artifacts outside Postgres
+The `/scan` workspace and scan API store uploads and review state. External scanners can submit catalog-validated candidates for explicit review. The scan-worker returns an empty `no_match` result; recognition, OCR, embeddings, and browser capture remain unimplemented. No vector database is required by the current code.
+
+Use the [product specification](../product/specification.md) for implemented workflows and limits, and the [backend language assessment](./backend-language.md) for the Go and Python tradeoff.

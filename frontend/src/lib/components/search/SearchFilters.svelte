@@ -67,7 +67,7 @@
 	<!-- Colors section -->
 	<Collapsible.Root bind:open={colorsOpen}>
 		<Collapsible.Trigger
-			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm uppercase tracking-widest text-text-secondary transition-colors hover:text-text-primary"
+			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary"
 		>
 			<span>Colors</span>
 			<span
@@ -87,11 +87,12 @@
 							border: 2px solid {filters.selectedColors.has(color.id)
 							? 'var(--color-gold-bright)'
 							: 'transparent'};
-							box-shadow: {filters.selectedColors.has(color.id) ? '0 0 8px rgba(232, 184, 75, 0.4)' : 'none'};
+							box-shadow: {filters.selectedColors.has(color.id) ? '0 0 8px var(--color-gold-dim)' : 'none'};
 							opacity: {filters.selectedColors.has(color.id) ? '1' : '0.55'};
 							background: none;
 						"
 						title={color.label}
+						aria-label={color.label}
 						aria-pressed={filters.selectedColors.has(color.id)}
 					>
 						<i
@@ -110,7 +111,7 @@
 	<!-- Rarity section -->
 	<Collapsible.Root bind:open={rarityOpen}>
 		<Collapsible.Trigger
-			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm uppercase tracking-widest text-text-secondary transition-colors hover:text-text-primary"
+			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary"
 		>
 			<span>Rarity</span>
 			<span
@@ -158,7 +159,7 @@
 	<!-- Card Type section -->
 	<Collapsible.Root bind:open={typesOpen}>
 		<Collapsible.Trigger
-			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm uppercase tracking-widest text-text-secondary transition-colors hover:text-text-primary"
+			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary"
 		>
 			<span>Card Type</span>
 			<span
@@ -178,7 +179,7 @@
 							background-color: {filters.selectedTypes.has(type.id) ? 'var(--color-mist)' : 'transparent'};
 							border: 1px solid {filters.selectedTypes.has(type.id)
 							? 'var(--color-gold)'
-							: 'rgba(196, 146, 42, 0.2)'};
+							: 'var(--color-border)'};
 							color: {filters.selectedTypes.has(type.id)
 							? 'var(--color-gold-bright)'
 							: 'var(--color-text-secondary)'};
@@ -198,7 +199,7 @@
 	<!-- Legality section -->
 	<Collapsible.Root bind:open={legalityOpen}>
 		<Collapsible.Trigger
-			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm uppercase tracking-widest text-text-secondary transition-colors hover:text-text-primary"
+			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary"
 		>
 			<span>Legality</span>
 			<span
@@ -218,7 +219,7 @@
 							background-color: {filters.selectedLegalities.has(format.id) ? 'var(--color-mist)' : 'transparent'};
 							border: 1px solid {filters.selectedLegalities.has(format.id)
 							? 'var(--color-gold)'
-							: 'rgba(196, 146, 42, 0.2)'};
+							: 'var(--color-border)'};
 							color: {filters.selectedLegalities.has(format.id)
 							? 'var(--color-gold-bright)'
 							: 'var(--color-text-secondary)'};
@@ -238,8 +239,8 @@
 		<OrnamentalDivider />
 		<button
 			onclick={() => filters.clear()}
-			class="cursor-pointer rounded border bg-transparent px-3 py-1.5 font-display text-xs uppercase tracking-wider text-gold-bright transition-all duration-150 hover:bg-mist"
-			style="border-color: rgba(196, 146, 42, 0.5);"
+			class="cursor-pointer rounded border bg-transparent px-3 py-1.5 font-display text-xs font-semibold text-gold-bright transition-all duration-150 hover:bg-mist"
+			style="border-color: var(--color-border);"
 		>
 			Clear Filters
 		</button>

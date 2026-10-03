@@ -156,9 +156,10 @@ export async function getDeckCardsEntry(auth: MobileAuthContext, deckId: string)
 export async function updateDeckCardEntry(
 	auth: MobileAuthContext,
 	entryId: string,
-	quantity: number
+	quantity: number,
+	role?: string
 ) {
-	return updateDeckCard(auth.user.accountId, entryId, quantity);
+	return updateDeckCard(auth.user.accountId, entryId, quantity, role);
 }
 
 export async function removeDeckCardEntry(auth: MobileAuthContext, entryId: string) {

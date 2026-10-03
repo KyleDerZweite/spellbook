@@ -1,12 +1,13 @@
 export const SITE_NAME = 'Spellbook';
-export const SITE_DESCRIPTION = 'MTG-first, multi-TCG-ready inventory and deck companion';
+export const SITE_DESCRIPTION =
+	'Build Magic: The Gathering decks, search cards, and organize your inventory.';
 export const SITE_THEME_COLOR = '#0d0b0f';
 export const NO_INDEX_ROBOTS_TAG = 'noindex, nofollow';
 
 export const PUBLIC_METADATA_PAGES = [
 	{
 		path: '/',
-		title: 'Spellbook | Choose Your Game',
+		title: 'Spellbook | Your Magic workspace',
 		description: SITE_DESCRIPTION
 	},
 	{
@@ -27,7 +28,14 @@ export const PUBLIC_METADATA_PAGES = [
 ] as const;
 
 export const PUBLIC_INDEXABLE_PATHS = PUBLIC_METADATA_PAGES.map((page) => page.path);
-export const ROBOTS_DISALLOWED_PATHS = ['/auth/', '/search', '/inventory', '/decks', '/api/'];
+export const ROBOTS_DISALLOWED_PATHS = [
+	'/auth/',
+	'/search',
+	'/inventory',
+	'/decks',
+	'/scan',
+	'/api/'
+];
 
 export interface PageMetadataInput {
 	origin: string;

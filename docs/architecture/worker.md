@@ -1,44 +1,23 @@
 # Worker
 
 - Status: Canonical
-- Last Reviewed: 2026-05-18
+- Last Reviewed: 2026-10-03
 - Source of Truth: code
-- Update Triggers: sync flow changes, Scryfall ingest changes, index behavior changes, state marker changes
-- Related Docs: [System Overview](./system-overview.md), [MeiliSearch Overview](../integrations/meilisearch/README.md), [Tasks](../integrations/meilisearch/tasks.md)
+- Update Triggers: Scryfall formats, synchronization, index swaps, status persistence
+- Related Docs: [System overview](./system-overview.md), [MeiliSearch](../integrations/meilisearch/README.md), [Tasks](../integrations/meilisearch/tasks.md)
 
-The Python worker is responsible for MTG catalog ingestion and indexing.
+The Python worker ingests Scryfall MTG bulk data into MeiliSearch. Startup retries MeiliSearch readiness, configures indexes, and seeds `default_cards` when the catalog is empty. `AGGRESSIVE_PRELOAD=true` enables a background `all_cards` preload. `SYNC_INTERVAL` selects daily, weekly, or manual synchronization.
 
-## Current Responsibilities
+## Ingestion
 
-- wait for MeiliSearch readiness
-- configure live and staging indexes
-- seed `default_cards` when needed
-- optionally preload `all_cards` in the background
-- persist sync status under `WORKER_DATA_DIR/state.json`
+The download client prefers `jsonl_download_uri` when Scryfall supplies it and falls back to `download_uri`. It accepts plain data and gzip payloads, including concatenated gzip members, and rejects truncated gzip data.
 
-## Current Sync Model
+The parser detects JSON Lines and legacy JSON arrays. Both formats stream into a temporary SQLite document store instead of loading the full catalog into memory. Malformed records, empty downloads, and catalogs with no indexable documents fail indexing instead of publishing a partial or empty catalog. The store orders documents by descending release date before batched upload. Insertion order does not guarantee which printing MeiliSearch returns for an oracle ID.
 
-- startup health check for MeiliSearch
-- index configuration
-- seed if the document count suggests the index is empty
-- optional background full preload
-- optional periodic sync based on `SYNC_INTERVAL`
-- indexing writes to `cards_distinct_next` and `cards_all_next`, waits for MeiliSearch tasks, swaps the staging indexes with the live indexes, then removes the old staging names
+[Document transformation](../integrations/meilisearch/documents.md) owns the stored fields. [Task handling](../integrations/meilisearch/tasks.md) owns staging, completion checks, and atomic swaps.
 
-## Current Persistence
+## Persistence and limits
 
-The worker stores sync markers locally so it can skip unchanged Scryfall bulk snapshots.
+The worker writes `state.json` under `WORKER_DATA_DIR`, defaulting to `/tmp/spellbook-worker`. Compose mounts durable storage at `/app/data`. State includes Scryfall timestamps, the last successful sync time, document count, and the last error. Successful sync markers follow successful indexing and swaps.
 
-Default local path:
-
-```text
-/tmp/spellbook-worker/state.json
-```
-
-Compose sets:
-
-```text
-WORKER_DATA_DIR=/app/data
-```
-
-The status file includes Scryfall update timestamps, the last successful sync time, the last indexed document count, and the last error. Scryfall update timestamps are written only after indexing and index swapping complete successfully.
+`LANGUAGES` is parsed but does not filter ingestion. All languages present in the selected bulk snapshot are indexed. The worker has no HTTP health or metrics endpoint; operators inspect logs and `state.json`.

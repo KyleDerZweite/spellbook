@@ -72,6 +72,12 @@ def transform_card(raw: dict) -> dict | None:
         "id": card_id,
         "oracle_id": oracle_id,
         "name": raw.get("name", ""),
+        "printed_name": raw.get("printed_name")
+        or " // ".join(
+            face["printed_name"]
+            for face in raw.get("card_faces") or []
+            if face.get("printed_name")
+        ),
         "normalized_name": normalize_card_name(raw.get("name", "")),
         "lang": raw.get("lang", "en"),
         "released_at": raw.get("released_at", ""),

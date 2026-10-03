@@ -2,6 +2,9 @@
 
 - Status: Accepted
 - Date: 2026-04-08
+- Last Reviewed: 2026-10-03
+- Source of Truth: recorded decision
+- Update Triggers: decision applicability, supersession, related document changes
 - Owners: Spellbook maintainers
 - Related Docs: [Docs Index](../README.md), [Product Docs](../product/README.md), [Architecture Docs](../architecture/README.md)
 

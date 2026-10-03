@@ -1,4 +1,5 @@
 import { error } from '@sveltejs/kit';
+import { RequestConflictError } from '$lib/server/data/request-fingerprint';
 import { ValidationError } from '$lib/server/mtg/validation';
 
 /**
@@ -6,6 +7,9 @@ import { ValidationError } from '$lib/server/mtg/validation';
  * error bubble so infrastructure failures surface as 500s.
  */
 export function badRequestIfValidation(cause: unknown, fallback = 'Invalid request'): never {
+	if (cause instanceof RequestConflictError) {
+		throw error(409, cause.message);
+	}
 	if (cause instanceof ValidationError) {
 		throw error(400, cause.message);
 	}

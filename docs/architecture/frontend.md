@@ -1,54 +1,27 @@
 # Frontend
 
 - Status: Canonical
-- Last Reviewed: 2026-05-21
+- Last Reviewed: 2026-10-03
 - Source of Truth: code
-- Update Triggers: route changes, auth guard changes, search flow changes, inventory/deck UI changes
-- Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Routing and Games](../product/routing-and-games.md), [MeiliSearch Search API](../integrations/meilisearch/search-api.md), [Mobile And Scan](./mobile-and-scan.md), [ADR-0008](../decisions/0008-mtg-only-self-hosted-inventory-and-deck-availability.md)
+- Update Triggers: routes, authentication, search, deck builder, component choices
+- Related Docs: [System overview](./system-overview.md), [Auth](./auth.md), [Routes](../product/routing-and-games.md), [Search API](../integrations/meilisearch/search-api.md), [UI libraries](../reference/ui-libraries.md)
 
-The frontend is a SvelteKit application with SSR enabled on the server. User-facing routes are flat and the current product scope is MTG only.
+The SvelteKit application renders pages on the server and owns the application API. Svelte components and Tailwind styles implement the interface; Bits UI supplies accessible interactive components. The [UI library assessment](../reference/ui-libraries.md) records the selection.
 
-The same application is the mobile surface when installed as a PWA (see `frontend/static/manifest.webmanifest`) and also hosts the optional `/api/mobile/v1/:game/...` bearer-token API for non-browser clients.
+[Routing and games](../product/routing-and-games.md) owns the route list and legacy redirects. [The product specification](../product/specification.md) owns workflow behavior and acceptance criteria.
 
-## Current Implemented Product Routes
+Server loads and actions use the same Postgres repositories as `/api/mobile/v1/mtg/...`. Repositories scope mutations and reads to the authenticated account. The API keeps its existing MTG path segment for compatibility.
 
-- `/`
-- `/search`
-- `/inventory`
-- `/decks`
+Authenticated browser sessions receive a search-only MeiliSearch key. Browser search queries the catalog directly; import resolution and API search run on the server. See [search behavior](../integrations/meilisearch/search-api.md).
 
-Legacy `/mtg/*` and `/collections*` URLs return a 308 redirect to the matching flat route so older bookmarks and external links keep working.
+The web manifest provides install metadata and shortcuts. The installed app uses the same web routes and cookie session. The `/scan` workspace uploads and reviews images through the same authenticated API used by external scanners. A service worker, offline operation, and direct browser camera capture remain planned.
 
-## Current Responsibilities
+The deck builder combines catalog search, printing selection, editable deck entries, and inventory availability. Its behavior and limits belong in the product specification rather than a second feature list here.
 
-- enforce auth for protected routes
-- fetch and pass the MeiliSearch search key to authenticated sessions
-- load and mutate user-owned data through SvelteKit server code backed by Postgres
-- provide MTG search, inventory, and deck experiences
-- serve the installable PWA surface via the web app manifest
-- validate optional mobile bearer tokens against the configured OIDC provider
-- expose MTG mobile endpoints for search, inventory, decks, and scan orchestration
+## Runtime compatibility
 
-## Search Responsibilities
+The application targets Node 24 LTS and pnpm 12, with exact versions in `frontend/.node-version` and `frontend/package.json`. Svelte 5, SvelteKit 2, adapter-node 5, Tailwind 4, and TypeScript 6 remain the compatible application stack. Kit 3 and TypeScript 7 require a separate migration and checker compatibility work.
 
-- browse mode for short queries
-- distinct search for MTG cards
-- printing selection
-- facet loading
-- set progress lookups through MeiliSearch
+`frontend/pnpm-workspace.yaml` records dependency overrides. SvelteKit 2 still requests an older `cookie` release, so the override retains the security fix. Drizzle's legacy loader also needs a patched esbuild dependency. Release-age exceptions name only the exact new releases reviewed during the update. Frozen installs keep these decisions reproducible.
 
-## Inventory and Deck Responsibilities
-
-- inventory is the owned ledger surface
-- spellbook mode is an inventory presentation mode
-- decks compare required cards against owned counts
-
-## Mobile API Responsibilities
-
-The `/api/mobile/v1/mtg/...` surface is optional and exists for non-browser clients. The PWA itself does not use it. The route keeps the existing `mtg` segment for compatibility, not as a near-term multi-game commitment.
-
-- accept bearer-token authenticated requests
-- proxy catalog search and printing lookups server-side
-- read and mutate user-owned data through the Postgres repository layer
-- upload retained scan artifacts to object storage
-- forward scan jobs to `scan-worker`
+The application serves its machine-readable API contract at `/openapi.json`. It describes local authentication and MTG API operations, including typed requests, responses, and cookie or bearer authentication. The route implementation remains the source of truth for error conditions and transaction behavior.

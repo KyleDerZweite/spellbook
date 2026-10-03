@@ -18,19 +18,7 @@ export interface MobileInventoryBatchItem {
 	quantity: number;
 }
 
-export interface ScanCandidate {
-	catalogCardId: string;
-	canonicalCardId: string;
-	oracleId: string;
-	name: string;
-	setCode: string;
-	collectorNumber: string;
-	imageUri: string;
-	similarityScore: number;
-	ocrScore: number;
-	finalScore: number;
-	matchReason: string;
-}
+export type { ScanCandidate } from '$lib/server/data/types';
 
 export interface MobileSearchResponse {
 	query: string;

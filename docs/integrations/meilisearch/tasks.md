@@ -1,7 +1,7 @@
 # MeiliSearch Tasks
 
 - Status: Canonical
-- Last Reviewed: 2026-05-18
+- Last Reviewed: 2026-10-03
 - Source of Truth: code
 - Update Triggers: worker upload flow changes, task wait behavior changes, sync marker changes
 - Related Docs: [MeiliSearch Overview](./README.md), [Worker Architecture](../../architecture/worker.md)
@@ -21,3 +21,5 @@ The Python worker:
 7. waits for the swap task to complete
 8. deletes the old data now held under the `_next` names
 9. persists Scryfall sync timestamps only after the swap succeeds
+
+Every wait checks the completed task status, not just completion of polling. Failed settings or uploads prevent the swap. A failed swap prevents deletion of staged data. Only missing-index deletion and already-existing live-index creation tolerate their specific error codes.

@@ -1,148 +1,85 @@
-# Deployment Guide
+# Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-05-18
-- Source of Truth: mixed
-- Update Triggers: service topology changes, env var changes, auth boundary changes, compose changes
-- Related Docs: [Operations Docs](./README.md), [OIDC Auth Setup](./oidc.md), [Zitadel Provider Notes](./zitadel.md), [Auth Architecture](../architecture/auth.md), [System Overview](../architecture/system-overview.md)
+- Last Reviewed: 2026-10-03
+- Source of Truth: repo config
+- Update Triggers: compose services, images, environment variables, migrations, storage
+- Related Docs: [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [MeiliSearch upgrade](./meilisearch-upgrade.md)
 
-This guide documents the current generic self-hosted deployment shape for Spellbook.
+The canonical service definitions are [`podman-compose.yml`](../../podman-compose.yml) and the local storage override [`podman-compose.dev.yml`](../../podman-compose.dev.yml). Keep live domains, account details, and secret references in private operator notes.
 
-For live domains, client IDs, operator contacts, and other instance-specific notes, keep a separate private note based on [private-instance-template.md](./private-instance-template.md).
+## Services and startup
 
-## Current Architecture
+| Service       | Responsibility                                                       |
+| ------------- | -------------------------------------------------------------------- |
+| `postgres`    | Accounts, credentials, sessions, inventory, decks, and scan metadata |
+| `db-migrate`  | One-shot Drizzle migrations                                          |
+| `meilisearch` | Searchable MTG catalog                                               |
+| `worker`      | Scryfall catalog ingestion and synchronization                       |
+| `frontend`    | SvelteKit web application and API                                    |
+| `scan-worker` | Scan API scaffold that returns no matches                            |
+| `newt`        | Optional Pangolin tunnel, enabled by the `tunnel` profile            |
 
-Spellbook currently runs with the core services below under `podman-compose`:
+`postgres` has a compose health check. `db-migrate` waits for healthy Postgres, and the frontend waits for successful migration completion. Other dependencies require service startup, not readiness. The catalog worker retries MeiliSearch with backoff. No vector database is required.
 
-| Service       | Role                                              |
-| ------------- | ------------------------------------------------- |
-| `postgres`    | Durable database for user-scoped application data |
-| `db-migrate`  | One-shot Drizzle migration runner                 |
-| `meilisearch` | Card catalog search engine                        |
-| `worker`      | Python sync pipeline for MTG catalog ingestion    |
-| `frontend`    | SvelteKit app server                              |
-| `newt`        | Pangolin tunnel agent                             |
+The frontend binds to host loopback port 3000. Configure a reverse proxy or enable the optional tunnel. Publish MeiliSearch through the configured browser-facing search origin; the compose file does not expose its port directly.
 
-The mobile and scan foundation adds these services:
+1. Copy `.env.example` to a private `.env` and replace the database and MeiliSearch credentials.
+2. Set `APP_ORIGIN` and `PUBLIC_MEILISEARCH_URL` to the externally reachable origins.
+3. Configure scan storage as described below.
+4. Run `podman-compose up --build -d` for the base stack.
+5. Inspect migration and worker logs, then register a local account. Enroll existing accounts using [local authentication operations](./local-auth.md).
 
-| Service       | Role                                                                       |
-| ------------- | -------------------------------------------------------------------------- |
-| `scan-worker` | Scan-processing boundary for normalization, OCR, embeddings, and reranking |
-| `qdrant`      | Vector index for image embedding retrieval                                 |
+Use `podman-compose --profile tunnel up --build -d` to include Newt. Set `PANGOLIN_ENDPOINT`, `NEWT_ID`, and `NEWT_SECRET` only for that profile. The tunnel transports requests; local authentication owns login.
 
-Retained scan artifacts use a configurable storage driver. The base compose file is production-shaped and defaults to S3-compatible storage. Local development can layer `podman-compose.dev.yml` on top to use a local named volume instead.
+## Configuration
 
-## Auth Model
+| Variable                                            | Meaning                                                                                                     |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `APP_ORIGIN`                                        | Public application origin; compose also sets adapter-node `ORIGIN` from it                                  |
+| `ADDRESS_HEADER`, `XFF_DEPTH`                       | Optional trusted-proxy client address configuration; leave the header empty until proxy trust is configured |
+| `BODY_SIZE_LIMIT`                                   | Adapter request limit; compose defaults to `12M` to allow multipart overhead around a 10 MiB scan image     |
+| `DATABASE_URL`                                      | Direct server or operator Postgres connection; compose constructs its internal connection from `POSTGRES_*` |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Database and credentials; replace the example password                                                      |
+| `PUBLIC_MEILISEARCH_URL`                            | Browser-facing catalog origin                                                                               |
+| `MEILISEARCH_INTERNAL_URL`                          | Frontend-to-MeiliSearch URL; compose uses `http://meilisearch:7700`                                         |
+| `MEILISEARCH_URL`                                   | Worker-to-MeiliSearch URL; compose uses the internal service                                                |
+| `MEILI_MASTER_KEY`                                  | Server and worker administrative catalog credential                                                         |
+| `AGGRESSIVE_PRELOAD`                                | Whether the worker preloads `all_cards`; defaults to `true`                                                 |
+| `SYNC_INTERVAL`                                     | `daily`, `weekly`, or `manual`                                                                              |
+| `LANGUAGES`                                         | Parsed but currently unused; does not filter catalog ingestion                                              |
+| `WORKER_DATA_DIR`                                   | Persistent worker status directory; compose uses `/app/data`                                                |
+| `SCAN_WORKER_URL`                                   | Internal scan-worker URL; compose uses `http://scan-worker:8080`                                            |
+| `SCAN_STORAGE_DRIVER`                               | `s3` in the base stack or `local` with the development override                                             |
+| `SCAN_LOCAL_STORAGE_DIR`                            | Local artifact directory for the `local` driver                                                             |
+| `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`             | Existing S3-compatible storage endpoint, region, and bucket                                                 |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`          | S3-compatible credentials                                                                                   |
+| `S3_FORCE_PATH_STYLE`                               | Defaults to `true` for S3-compatible services                                                               |
 
-Spellbook handles authentication with a generic OIDC provider using Authorization Code + PKCE.
+Leave `ADDRESS_HEADER` empty for direct deployments. Behind a trusted proxy, set it only when that proxy overwrites the client-address header and direct client access is blocked. For `x-forwarded-for`, set `XFF_DEPTH` to the trusted hop count. Without this configuration, users behind one proxy can share the same process-local authentication attempt limit.
 
-Pangolin is used only as transport and reverse-proxy infrastructure in this deployment model. Pangolin should not own the Spellbook login flow.
+Keep the reverse proxy request limit large enough for the configured adapter limit. JSON handlers independently cap streamed bodies at 1 MiB; scan uploads independently cap their multipart body at 12 MiB and image at 10 MiB. Raising `BODY_SIZE_LIMIT` does not bypass these application limits. See [request validation](../architecture/mobile-and-scan.md#request-validation).
 
-## Required Environment Variables
+OIDC provider variables and `AUTH_SESSION_SECRET` are no longer used. Browser catalog credentials follow the [MeiliSearch authentication contract](../integrations/meilisearch/authentication.md); no operator-supplied public search key is required.
 
-### Frontend
+## Storage and upgrades
 
-| Variable                   | Description                                                                         |
-| -------------------------- | ----------------------------------------------------------------------------------- |
-| `OIDC_ISSUER`              | OIDC issuer URL                                                                     |
-| `OIDC_CLIENT_ID`           | Public OIDC client ID                                                               |
-| `OIDC_MOBILE_CLIENT_ID`    | Optional. Bearer-token client id for `/api/mobile/v1/...`. Not required for the PWA |
-| `APP_ORIGIN`               | Public frontend origin                                                              |
-| `AUTH_SESSION_SECRET`      | 32-byte base64url secret for encrypted cookies                                      |
-| `DATABASE_URL`             | Postgres connection string                                                          |
-| `PUBLIC_MEILISEARCH_URL`   | Browser-facing MeiliSearch URL                                                      |
-| `MEILISEARCH_INTERNAL_URL` | Internal MeiliSearch URL used by the server                                         |
-| `MEILI_MASTER_KEY`         | Used by the frontend server to fetch the search-only key from MeiliSearch           |
-| `SCAN_STORAGE_DRIVER`      | `local` or `s3`. Defaults to `s3` in base compose                                   |
-| `SCAN_LOCAL_STORAGE_DIR`   | Local scan artifact directory when `SCAN_STORAGE_DRIVER=local`                      |
-| `S3_ENDPOINT`              | Required when `SCAN_STORAGE_DRIVER=s3`. S3-compatible endpoint                      |
-| `S3_REGION`                | Required when `SCAN_STORAGE_DRIVER=s3`. Object storage region                       |
-| `S3_BUCKET`                | Required when `SCAN_STORAGE_DRIVER=s3`. Bucket name for retained scan artifacts     |
-| `S3_ACCESS_KEY_ID`         | Required when `SCAN_STORAGE_DRIVER=s3`. S3 access key id                            |
-| `S3_SECRET_ACCESS_KEY`     | Required when `SCAN_STORAGE_DRIVER=s3`. S3 secret access key                        |
-| `S3_FORCE_PATH_STYLE`      | Optional for S3 mode. Defaults to `true` for broad S3-compatible provider support   |
-| `SCAN_WORKER_URL`          | Internal URL for the scan-worker service                                            |
+Existing MeiliSearch instances must follow the [dump/import upgrade procedure](./meilisearch-upgrade.md) before starting the updated image. The procedure preserves the old catalog volume and does not enable automatic database upgrade.
 
-### Postgres
+Migration `0005` adds nullable request fingerprints without rewriting existing mutation history. New conflicting request-ID reuse returns HTTP 409; old null-hash records retain their earlier replay behavior. The [Postgres contract](../architecture/postgres.md#mutation-replay) owns the details.
 
-| Variable            | Description                                                                  |
-| ------------------- | ---------------------------------------------------------------------------- |
-| `POSTGRES_DB`       | Database name, default `spellbook`                                           |
-| `POSTGRES_USER`     | Database user, default `spellbook`                                           |
-| `POSTGRES_PASSWORD` | Database password used by the Postgres container and internal `DATABASE_URL` |
+Postgres, MeiliSearch, and worker status use named volumes. Back up account data before migrations and keep a tested restore procedure. Image versions and runtime pins live in compose, Dockerfiles, and package manifests. Keep these files and lockfiles together when deploying an update.
 
-### Worker and MeiliSearch
+For local scan artifacts, run:
 
-| Variable             | Description                                                        |
-| -------------------- | ------------------------------------------------------------------ |
-| `MEILI_MASTER_KEY`   | MeiliSearch admin key                                              |
-| `AGGRESSIVE_PRELOAD` | `true` loads `all_cards` in the background                         |
-| `SYNC_INTERVAL`      | `daily`, `weekly`, or `manual`                                     |
-| `LANGUAGES`          | Comma-separated language codes                                     |
-| `WORKER_DATA_DIR`    | Worker state directory. Compose sets `/app/data` on a named volume |
-
-## MeiliSearch Search Key Behavior
-
-Do not treat `PUBLIC_MEILISEARCH_SEARCH_KEY` as a required operator-side variable for the current app.
-
-Current behavior:
-
-- the frontend server uses `MEILISEARCH_INTERNAL_URL` and `MEILI_MASTER_KEY`
-- it fetches the default search-only key from MeiliSearch at runtime
-- it exposes that key to authenticated sessions through SvelteKit server data
-
-This matches the current implementation in `frontend/src/hooks.server.ts`.
-
-## Scan Artifact Storage
-
-Current scan uploads are stored outside Postgres.
-
-Development guidance:
-
-- run compose with both files: `podman-compose -f podman-compose.yml -f podman-compose.dev.yml up`
-- `podman-compose.dev.yml` sets `SCAN_STORAGE_DRIVER=local`
-- `podman-compose.dev.yml` mounts the compose-managed `scan_artifacts` volume at `/app/storage/scans` in `frontend` and `scan-worker`
-
-Production guidance:
-
-- use the base `podman-compose.yml`
-- set `SCAN_STORAGE_DRIVER=s3`
-- store original uploads and normalized crops in S3-compatible object storage
-- provision the target bucket outside the Spellbook compose stack
-- keep object lifecycle policy aligned with the current product retention decision
-- do not store binary artifacts directly in Postgres tables
-
-## Worker State
-
-The base compose file mounts the `worker_data` named volume at `/app/data` and sets `WORKER_DATA_DIR=/app/data`. This keeps Scryfall sync status across worker container recreation.
-
-## Fedora And SELinux
-
-The current compose file is intentionally biased toward named volumes instead of host bind mounts for persistent state.
-
-That choice keeps the default deployment more portable across Podman on Fedora and Docker or Podman on Ubuntu:
-
-- Podman-managed named volumes avoid most manual SELinux relabel work on Fedora
-- the same compose file stays valid on non-SELinux hosts
-
-If an operator replaces a named volume with a host bind mount on a Fedora or other SELinux-enforcing host:
-
-- use `:Z` for a private bind mount used by one container
-- use `:z` only when multiple containers must share the same host path
-- these SELinux bind-mount options are ignored on platforms without SELinux
-
-Current Fedora-specific note:
-
-- the verified SELinux alerts seen during `podman-compose up` in this repo come from Podman's rootless `pasta` network helper, not from the Spellbook data volumes
-- this is a host Podman configuration issue rather than a compose-file volume-label issue
-- if those `pasta` alerts are noisy on Fedora, prefer changing Podman's rootless network helper to `slirp4netns` in the local `containers.conf` instead of weakening container labeling in the shared compose file
-- that host-side workaround requires `slirp4netns` to be installed on the Fedora machine
-
-Example user-level Podman config on Fedora:
-
-```toml
-[network]
-default_rootless_network_cmd = "slirp4netns"
+```sh
+podman-compose -f podman-compose.yml -f podman-compose.dev.yml up --build -d
 ```
 
-Place that in `~/.config/containers/containers.conf`, then recreate the stack.
+The override shares the `scan_artifacts` volume at `/app/storage/scans` between the frontend and scan-worker. For S3 storage, provision the bucket separately and configure its lifecycle policy. Uploads remain outside Postgres. Recognition and normalized-image generation are not implemented.
+
+`worker_data` persists `state.json` across container recreation. See [worker operations and limits](../architecture/worker.md).
+
+On SELinux hosts, named volumes avoid most bind-mount relabeling. If replacing them with host paths, use `:Z` for one container or `:z` for a path shared by multiple containers. Host networking configuration belongs in operator notes rather than the shared compose file.
+
+CI validates application changes but does not publish containers or deploy the stack. Operators build and deploy explicitly.

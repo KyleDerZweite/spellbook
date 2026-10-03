@@ -11,6 +11,7 @@ export async function processScanArtifact(input: {
 	const baseUrl = privateEnv.SCAN_WORKER_URL ?? 'http://scan-worker:8080';
 	const response = await fetch(`${baseUrl}/v1/scan/process`, {
 		method: 'POST',
+		signal: AbortSignal.timeout(30_000),
 		headers: {
 			'Content-Type': 'application/json'
 		},

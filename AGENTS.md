@@ -13,6 +13,8 @@ This is the primary instruction file for coding agents. Follow it strictly.
 
 * **Codebase:** The running code, tests, and configuration are the ultimate source of truth. Do not hallucinate capabilities.
 * **Documentation:** Check `docs/README.md` first, then the relevant typed section under `docs/`.
+* **Issue triage:** Before creating or changing issue labels, follow [the issue label rules](docs/ISSUE_LABELS.md).
+* **Pull requests:** Follow the [contribution disclosure rules](CONTRIBUTING.md#pull-request-expectations). Report known AI tools, models, affected work, review, tests, and the responsible contributor. Do not infer other authors' AI use.
 * **Historical Docs:** Do not keep a parallel archive tree under `docs/`. Use git history for superseded documentation.
 * **Duplication:** Do not duplicate complex logic or architecture details in multiple places. Reference the canonical files instead.
 

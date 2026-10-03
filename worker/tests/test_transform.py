@@ -267,3 +267,35 @@ class TestLayoutSets:
         assert "split" in MULTI_FACE_LAYOUTS
         assert "adventure" in MULTI_FACE_LAYOUTS
         assert "normal" not in MULTI_FACE_LAYOUTS
+
+
+class TestPrintedNames:
+    def test_localized_name_preserves_english_import_name(self):
+        card = load_fixture("normal_card.json")
+        card.update(printed_name="Llanowarelfen", lang="de")
+        doc = transform_card(card)
+        assert doc["printed_name"] == "Llanowarelfen"
+        assert doc["lang"] == "de"
+        assert doc["name"] == "Llanowar Elves"
+        assert doc["normalized_name"] == "llanowar elves"
+
+    @pytest.mark.parametrize("printed_name", [None, ""])
+    def test_no_translation_defaults_to_empty_string(self, printed_name):
+        card = load_fixture("normal_card.json")
+        card["printed_name"] = printed_name
+        assert transform_card(card)["printed_name"] == ""
+
+    def test_face_names_are_searchable_together(self):
+        card = load_fixture("dfc_card.json")
+        card["card_faces"][0]["printed_name"] = "Delver lokalisiert"
+        card["card_faces"][1]["printed_name"] = "Insekt lokalisiert"
+        assert transform_card(card)["printed_name"] == "Delver lokalisiert // Insekt lokalisiert"
+
+    def test_top_level_translation_takes_precedence(self):
+        card = load_fixture("split_card.json")
+        card["printed_name"] = "Feuer // Eis"
+        card["card_faces"][0]["printed_name"] = "Feuer"
+        assert transform_card(card)["printed_name"] == "Feuer // Eis"
+
+    def test_english_faces_do_not_add_duplicate_search_names(self):
+        assert transform_card(load_fixture("dfc_card.json"))["printed_name"] == ""

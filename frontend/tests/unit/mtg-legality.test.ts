@@ -2,6 +2,65 @@ import { describe, expect, it } from 'vitest';
 import { generateLegalityWarnings, type LegalityLine } from '../../src/lib/server/mtg/legality';
 
 describe('generateLegalityWarnings', () => {
+	it('counts only main and commanders toward Commander size', () => {
+		const lines = [
+			line({ quantity: 99, card: card({ name: 'Plains', type_line: 'Basic Land' }) }),
+			line({ role: 'commander' }),
+			line({ role: 'companion' })
+		];
+		expect(
+			generateLegalityWarnings(lines, 'Commander').some((w) => w.code === 'commander_size')
+		).toBe(false);
+	});
+	it('checks Commander singleton across printings and respects card exceptions', () => {
+		expect(
+			generateLegalityWarnings([line({ quantity: 2 })], 'Commander').some(
+				(w) => w.code === 'commander_singleton'
+			)
+		).toBe(true);
+		expect(
+			generateLegalityWarnings(
+				[
+					line({
+						quantity: 8,
+						card: card({
+							oracle_text: 'A deck can have any number of cards named Relentless Rats.'
+						})
+					})
+				],
+				'Commander'
+			).some((w) => w.code === 'commander_singleton')
+		).toBe(false);
+	});
+	it('allows one restricted Vintage card and warns on two', () => {
+		const restricted = card({ legalities: { vintage: 'restricted' } });
+		expect(
+			generateLegalityWarnings([line({ card: restricted })], 'Vintage').some(
+				(w) => w.code === 'format_illegal' || w.code === 'restricted_copies'
+			)
+		).toBe(false);
+		expect(
+			generateLegalityWarnings([line({ card: restricted, quantity: 2 })], 'Vintage').some(
+				(w) => w.code === 'restricted_copies'
+			)
+		).toBe(true);
+	});
+	it('does not apply constructed copy limits to draft or maybeboard', () => {
+		expect(generateLegalityWarnings([line({ quantity: 8 })], 'Draft')).toEqual([]);
+		expect(
+			generateLegalityWarnings(
+				[
+					line({
+						quantity: 8,
+						role: 'maybeboard',
+						card: card({ legalities: { modern: 'banned' } })
+					})
+				],
+				'Modern'
+			)
+		).toEqual([{ code: 'main_under_60', message: 'Main deck has fewer than 60 cards.' }]);
+	});
+
 	it('warns when sideboard is over 15', () => {
 		const warnings = generateLegalityWarnings(
 			[line({ quantity: 16, role: 'sideboard' })],

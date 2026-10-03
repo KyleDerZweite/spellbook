@@ -8,6 +8,7 @@
 	}
 
 	let { card }: Props = $props();
+	const id = $props.id();
 
 	let finish = $state<'nonfoil' | 'foil'>('nonfoil');
 	let condition = $state('NM');
@@ -29,6 +30,8 @@
 	$effect(() => {
 		if (!card.is_nonfoil_available && card.is_foil_available) {
 			finish = 'foil';
+		} else if (!card.is_foil_available) {
+			finish = 'nonfoil';
 		}
 	});
 </script>
@@ -42,19 +45,16 @@
 	<input type="hidden" name="imageUri" value={card.image_uri || card.image_uri_small} />
 	<input type="hidden" name="finish" value={finish} />
 	<input type="hidden" name="condition" value={condition} />
-	<input type="hidden" name="quantity" value={quantity} />
 
 	<div>
-		<!-- svelte-ignore a11y_label_has_associated_control -->
-		<label class="mb-1 block font-display text-xs uppercase tracking-wider text-text-secondary">
-			Finish
-		</label>
+		<label for={`${id}-finish`} class="label"> Finish </label>
 		<Select.Root type="single" bind:value={finish} items={FINISHES}>
 			<Select.Trigger
+				id={`${id}-finish`}
 				class="flex w-full cursor-pointer items-center justify-between rounded px-3 py-2 font-body text-sm text-text-primary"
 				style="
 					background-color: var(--color-crypt);
-					border: 1px solid rgba(196, 146, 42, 0.3);
+					border: 1px solid var(--color-border);
 				"
 			>
 				{FINISHES.find((item) => item.value === finish)?.label ?? 'Finish'}
@@ -66,7 +66,7 @@
 					class="z-[100] overflow-hidden rounded"
 					style="
 						background-color: var(--color-slate);
-						border: 1px solid rgba(196, 146, 42, 0.4);
+						border: 1px solid var(--color-border);
 						box-shadow: 0 4px 24px rgba(13, 11, 15, 0.8);
 					"
 				>
@@ -97,23 +97,16 @@
 		</Select.Root>
 	</div>
 
-	<div class="surface-card rounded px-3 py-2 font-body text-xs text-text-secondary">
-		Adds to your {activeGameState.current.toUpperCase()} inventory. Deck building happens separately in
-		the deck studio.
-	</div>
-
 	<!-- Condition -->
 	<div>
-		<!-- svelte-ignore a11y_label_has_associated_control -->
-		<label class="mb-1 block font-display text-xs uppercase tracking-wider text-text-secondary">
-			Condition
-		</label>
+		<label for={`${id}-condition`} class="label"> Condition </label>
 		<Select.Root type="single" bind:value={condition} items={CONDITIONS}>
 			<Select.Trigger
+				id={`${id}-condition`}
 				class="flex w-full cursor-pointer items-center justify-between rounded px-3 py-2 font-body text-sm text-text-primary"
 				style="
 					background-color: var(--color-crypt);
-					border: 1px solid rgba(196, 146, 42, 0.3);
+					border: 1px solid var(--color-border);
 				"
 			>
 				{CONDITIONS.find((c) => c.value === condition)?.label ?? 'NM'}
@@ -125,7 +118,7 @@
 					class="z-[100] overflow-hidden rounded"
 					style="
 						background-color: var(--color-slate);
-						border: 1px solid rgba(196, 146, 42, 0.4);
+						border: 1px solid var(--color-border);
 						box-shadow: 0 4px 24px rgba(13, 11, 15, 0.8);
 					"
 				>
@@ -154,25 +147,36 @@
 
 	<!-- Quantity -->
 	<div>
-		<!-- svelte-ignore a11y_label_has_associated_control -->
-		<label class="mb-1 block font-display text-xs uppercase tracking-wider text-text-secondary">
-			Quantity
-		</label>
+		<label for={`${id}-quantity`} class="label"> Quantity </label>
 		<div class="flex items-center gap-2">
 			<button
 				type="button"
-				onclick={() => (quantity = Math.max(1, quantity - 1))}
+				onclick={() => (quantity = Math.max(1, (quantity || 1) - 1))}
+				aria-label="Decrease quantity"
+				disabled={quantity <= 1}
 				class="flex h-8 w-8 cursor-pointer items-center justify-center rounded font-mono text-sm text-text-primary transition-colors hover:bg-mist"
-				style="border: 1px solid rgba(196, 146, 42, 0.3); background-color: var(--color-crypt);"
+				style="border: 1px solid var(--color-border); background-color: var(--color-crypt);"
 			>
 				-
 			</button>
-			<span class="w-8 text-center font-mono text-sm text-text-primary">{quantity}</span>
+			<input
+				id={`${id}-quantity`}
+				type="number"
+				name="quantity"
+				bind:value={quantity}
+				min="1"
+				max="99"
+				step="1"
+				required
+				class="input w-20 text-center"
+			/>
 			<button
 				type="button"
-				onclick={() => (quantity = Math.min(99, quantity + 1))}
+				onclick={() => (quantity = Math.min(99, (quantity || 1) + 1))}
+				aria-label="Increase quantity"
+				disabled={quantity >= 99}
 				class="flex h-8 w-8 cursor-pointer items-center justify-center rounded font-mono text-sm text-text-primary transition-colors hover:bg-mist"
-				style="border: 1px solid rgba(196, 146, 42, 0.3); background-color: var(--color-crypt);"
+				style="border: 1px solid var(--color-border); background-color: var(--color-crypt);"
 			>
 				+
 			</button>
@@ -182,8 +186,8 @@
 	<!-- Add button -->
 	<button
 		type="submit"
-		class="btn-gold mt-1 w-full cursor-pointer rounded py-2.5 font-display text-sm font-bold uppercase tracking-wider"
+		class="btn-gold mt-1 w-full cursor-pointer rounded py-2.5 font-display text-sm font-semibold"
 	>
-		Add to Inventory
+		Add to inventory
 	</button>
 </form>

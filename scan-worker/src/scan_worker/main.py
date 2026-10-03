@@ -1,15 +1,17 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from fastapi import FastAPI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class ScanProcessRequest(BaseModel):
-    sessionId: str
-    artifactId: str
-    originalObjectKey: str
-    contentType: str
-    fileName: str
+    sessionId: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
+    artifactId: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
+    originalObjectKey: str = Field(min_length=1, max_length=1024, pattern=r"\S")
+    contentType: Literal["image/jpeg", "image/png", "image/webp"]
+    fileName: str = Field(min_length=1, max_length=255, pattern=r"\S")
 
 
 class ScanCandidate(BaseModel):
@@ -27,7 +29,7 @@ class ScanCandidate(BaseModel):
 
 
 class ScanProcessResponse(BaseModel):
-    status: str
+    status: Literal["matched", "ambiguous", "no_match", "failed"]
     normalizedObjectKey: str
     qualityScore: int
     embeddingModelVersion: str
@@ -46,15 +48,11 @@ def health() -> dict[str, str]:
 
 @app.post("/v1/scan/process", response_model=ScanProcessResponse)
 def process_scan(request: ScanProcessRequest) -> ScanProcessResponse:
-    # This is intentionally a scaffold. It preserves the mobile API and worker
-    # boundary while the production OCR + embedding pipeline is developed.
-    normalized_key = request.originalObjectKey.replace("/scan-sessions/", "/scan-normalized/", 1)
-    if normalized_key == request.originalObjectKey:
-        normalized_key = f"scan-normalized/{request.sessionId}/{request.artifactId}.jpg"
-
+    # ponytail: recognition is a scaffold; revisit when OCR and embeddings are implemented.
+    # Reuse the existing artifact until the worker actually writes a normalized image.
     return ScanProcessResponse(
         status="no_match",
-        normalizedObjectKey=normalized_key,
+        normalizedObjectKey=request.originalObjectKey,
         qualityScore=0,
         embeddingModelVersion="stub-v1",
         ocrModelVersion="stub-v1",

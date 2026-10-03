@@ -6,6 +6,8 @@ const config = {
 	preprocess: vitePreprocess(),
 	kit: {
 		adapter: adapter(),
+		// hooks.server.ts enforces form origins, with a bearer-only native scan upload exception.
+		csrf: { trustedOrigins: ['*'] },
 		env: {
 			dir: '..'
 		}

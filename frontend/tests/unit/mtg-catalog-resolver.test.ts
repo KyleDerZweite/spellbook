@@ -59,6 +59,23 @@ afterEach(() => {
 });
 
 describe('resolveDecklistLines', () => {
+	it('honors set-only input and preserves ambiguity between printings', async () => {
+		const { calls, client } = makeMockClient(() => ({
+			hits: [
+				{ id: 'a', name: 'Opt', normalized_name: 'opt', set_code: 'sta', collector_number: '19' },
+				{ id: 'b', name: 'Opt', normalized_name: 'opt', set_code: 'sta', collector_number: '83' }
+			]
+		}));
+		__setCatalogResolverClient(client);
+		const result = await resolveDecklistLines([line('Opt', { setCode: 'STA' })]);
+		expect(calls[0]).toMatchObject({
+			indexUid: 'cards_all',
+			args: { filter: ['set_code = "sta"', 'normalized_name = "opt"'] }
+		});
+		expect(result.resolved).toEqual([]);
+		expect(result.ambiguous[0].candidates.map((card) => card.id)).toEqual(['a', 'b']);
+	});
+
 	it('resolves exact set + collector_number lookups against cards_all', async () => {
 		const { calls, client } = makeMockClient(() => ({
 			hits: [

@@ -2,8 +2,15 @@
 
 - Status: Accepted
 - Date: 2026-04-17
+- Last Reviewed: 2026-10-03
+- Source of Truth: recorded decision
+- Update Triggers: decision applicability, supersession, related document changes
 - Supersedes: [ADR-0002](./0002-android-first-mobile-and-server-side-scan.md)
-- Related Docs: [System Overview](../architecture/system-overview.md), [Mobile And Scan Architecture](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Auth](../architecture/auth.md), [Feature Status](../product/feature-status.md)
+- Related Docs: [System Overview](../architecture/system-overview.md), [Mobile And Scan Architecture](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Auth](../architecture/auth.md), [Product specification](../product/specification.md)
+
+## Current applicability
+
+The single SvelteKit client decision remains accepted. [ADR-0009](./0009-local-authentication.md) replaces the OIDC authentication choice. The manifest exists, but service-worker caching, browser capture, OCR, and embeddings remain planned. Unused vector infrastructure has been removed until a recognizer requires it. See [mobile and scan](../architecture/mobile-and-scan.md) for implementation status.
 
 ## Context
 

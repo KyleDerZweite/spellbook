@@ -1,70 +1,14 @@
 # Spellbook
 
-**Open-source, self-hosted MTG inventory and deck availability**
+Spellbook is an open-source, self-hosted Magic: The Gathering inventory and deck builder. Search the Scryfall catalog, track owned printings, build decks, and compare required cards with inventory.
 
-Spellbook is a self-hosted Magic: The Gathering application for people who want to own their collection data, automate inventory workflows, and answer what decks they can build from the cards they physically have.
+The application uses SvelteKit, Postgres, MeiliSearch, and a Python ingestion worker. Accounts use local username and password authentication. Scan review supports image uploads and manual printing selection. Automatic card recognition and direct browser camera capture remain planned.
 
-Active MTG product areas:
+- [Product specification](docs/product/specification.md)
+- [Documentation index](docs/README.md)
+- [Deployment](docs/operations/deployment.md)
+- [Local authentication and account recovery](docs/operations/local-auth.md)
+- [Backend language assessment](docs/architecture/backend-language.md)
+- [UI library assessment](docs/reference/ui-libraries.md)
 
-- search
-- inventory
-- deck import, export, and availability
-- scan review foundation
-
-Product direction:
-
-- MTG only
-- open source and self-hosted
-- automation-friendly APIs
-- no cloud lock-in
-- no attempt to compete with full-service deckbuilding or marketplace apps
-
-## Current Routes
-
-- `/`
-- `/search`
-- `/inventory`
-- `/decks`
-
-## Architecture
-
-```text
-SvelteKit -> Postgres
-          -> MeiliSearch
-          -> Python worker -> Scryfall data
-```
-
-Core stack:
-
-- Postgres for user-scoped application data
-- SvelteKit for the frontend
-- MeiliSearch for catalog search
-- Python worker for MTG catalog ingestion and sync
-- generic OIDC for authentication, with Zitadel as one supported provider
-
-## Status
-
-| Area             | Status                                      |
-| ---------------- | ------------------------------------------- |
-| MTG search       | Implemented (active)                        |
-| MTG inventory    | Implemented (active, being improved)        |
-| MTG decks        | Implemented, product surface needs redesign |
-| MTG scan         | Backend scaffold and review flow foundation |
-| Non-MTG adapters | Out of scope                                |
-
-## Documentation
-
-- [Docs index](docs/README.md)
-- [Platform overview](docs/product/platform-overview.md)
-- [Routing and games](docs/product/routing-and-games.md)
-- [Deployment guide](docs/operations/deployment.md)
-- [OIDC setup](docs/operations/oidc.md)
-- [Zitadel setup](docs/operations/zitadel.md)
-
-## License
-
-[GNU Affero General Public License v3.0](LICENSE)
-
-## Acknowledgements
-
-- Card data provided by [Scryfall](https://scryfall.com/)
+Card data comes from [Scryfall](https://scryfall.com/). Spellbook is licensed under the [GNU Affero General Public License v3.0](LICENSE).

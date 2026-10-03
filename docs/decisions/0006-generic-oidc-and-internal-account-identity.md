@@ -1,8 +1,13 @@
 # ADR-0006: Generic OIDC And Internal Account Identity
 
-- Status: Accepted
+- Status: Superseded by [ADR-0009](./0009-local-authentication.md)
 - Date: 2026-05-17
-- Related Docs: [Auth Architecture](../architecture/auth.md), [Postgres](../architecture/postgres.md), [OIDC Auth Setup](../operations/oidc.md), [Zitadel Provider Notes](../operations/zitadel.md), [Deployment](../operations/deployment.md)
+- Last Reviewed: 2026-10-03
+- Source of Truth: recorded decision
+- Update Triggers: decision applicability, supersession, related document changes
+- Related Docs: [Auth Architecture](../architecture/auth.md), [Postgres](../architecture/postgres.md), [Local authentication](../operations/local-auth.md), [Deployment](../operations/deployment.md)
+
+This record describes the former OIDC design. [ADR-0009](./0009-local-authentication.md) replaces authentication while preserving internal account ownership.
 
 ## Context
 

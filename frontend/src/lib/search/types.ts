@@ -61,14 +61,7 @@ export type CardType =
 
 /** MTG format identifiers for legality filtering. */
 export type LegalityFormat =
-	| 'standard'
-	| 'pioneer'
-	| 'modern'
-	| 'legacy'
-	| 'vintage'
-	| 'commander'
-	| 'pauper'
-	| 'brawl';
+	'standard' | 'pioneer' | 'modern' | 'legacy' | 'vintage' | 'commander' | 'pauper' | 'brawl';
 
 /** Facet distribution counts returned by MeiliSearch. */
 export interface FacetResponse {

@@ -1,76 +1,72 @@
-# Mobile And Scan Architecture
+# Mobile and scan
 
 - Status: Canonical
-- Last Reviewed: 2026-05-21
+- Last Reviewed: 2026-10-03
 - Source of Truth: code
-- Update Triggers: PWA manifest or service worker changes, mobile API changes, scan worker changes, object storage changes, vector-search changes
-- Related Docs: [System Overview](./system-overview.md), [Frontend](./frontend.md), [Auth](./auth.md), [Postgres](./postgres.md), [Deployment](../operations/deployment.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md)
+- Update Triggers: manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, scan processing
+- Related Docs: [Frontend](./frontend.md), [Auth](./auth.md), [Postgres](./postgres.md), [Deployment](../operations/deployment.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md)
 
-Spellbook delivers mobile through the existing SvelteKit frontend as an installable PWA, with the scan pipeline handled server-side.
+Spellbook has one web client. Its manifest in `frontend/static/manifest.webmanifest` provides install metadata; `frontend/src/app.html` links it. A service worker and offline caching are not implemented. The `/scan` workspace supports image upload, candidate review, manual printing selection, and explicit inventory commit. Direct browser camera capture remains planned.
 
-## Current Boundaries
+## Implemented API boundary
 
-- SvelteKit frontend: web and mobile client, installable via web app manifest
-- frontend server: session auth, MeiliSearch access, scan artifact upload orchestration
-- Postgres: user-scoped inventory, deck, scan session, review queue, and idempotency records
-- scan artifact storage: original uploads and normalized crop storage, backed by local filesystem storage through `podman-compose.dev.yml` in development or S3-compatible storage in production
-- scan-worker: scan processing boundary
-- vector index: reference-image embedding lookup
+The `/api/mobile/v1/mtg/...` API exposes search, inventory, decks, import/export, and scan orchestration. External clients authenticate with local session bearer tokens; the `/scan` workspace uses its browser cookie with origin protection on mutations. See [authentication](./auth.md) for acquisition and revocation.
 
-## PWA Surface
+Authenticated clients can read `GET /api/mobile/v1/mtg/decks/{deckId}/availability`. The route checks deck ownership and reuses the shared allocation function to compare that deck with current aggregate inventory. Its response contains entry counts and totals for required, exact, alternate, and missing copies. It makes no inventory changes or cross-deck reservations. See the [product specification](../product/specification.md#deck-availability) for allocation semantics and [OpenAPI](../../frontend/src/routes/openapi.json/+server.ts) for the wire schema.
 
-The installable mobile surface is the same SvelteKit application served at the public origin. No separate client codebase exists.
+## Request validation
 
-PWA plumbing lives in:
+JSON handlers use the shared [request reader](../../frontend/src/lib/server/http/request.ts). They require `application/json`, valid UTF-8, and a top-level object. The reader counts streamed bytes and rejects bodies over 1 MiB, including requests without a trustworthy `Content-Length`. Wrong media types return HTTP 415, malformed JSON or non-object bodies return HTTP 400, and oversized bodies return HTTP 413.
 
-- `frontend/static/manifest.webmanifest` for install metadata, icons, theme, and shortcuts
-- `frontend/src/app.html` links the manifest and sets `theme-color` and viewport
+Supplied scalar values keep their declared types. Strings are not coerced into numbers, and numeric values must be finite. Route and domain validation enforce UUID identifiers, supported roles and finishes, quantities, and ownership. Omitted or null optional values use only the handler's documented defaults.
 
-A service worker for offline caching is planned but not yet implemented. Until it lands, the PWA behaves as an installable online-only shell.
+Search and printing pagination accept decimal integer query strings, not negative values, fractions, exponent notation, or nonfinite values. Search `limit` defaults to 20 and accepts 0 through 100. Printing `limit` defaults to 100 and accepts 1 through 100. Both offsets default to zero and must be nonnegative safe integers. Invalid pagination returns HTTP 400.
 
-## Scan Capture On Mobile
+[Postgres](./postgres.md#mutation-replay) owns request fingerprint storage and HTTP 409 replay conflicts. The [OpenAPI route](../../frontend/src/routes/openapi.json/+server.ts) owns endpoint-specific fields and responses.
 
-Scan capture runs in the browser on the installed PWA:
+## Scan uploads
 
-- the camera is opened through `getUserMedia`
-- a still frame is captured and posted to the frontend
-- recognition happens server-side
+Native scanners submit frames with a valid `Authorization: Bearer <token>` header and may omit `Origin`. The exact multipart frame endpoint has a narrow exception in the [form-origin guard](./auth.md#entry-points); other form routes do not share it. A foreign origin fails even with a bearer token, and an invalid bearer token never falls back to a browser cookie. Browser cookie uploads require the matching application origin.
 
-The native CameraX capture path from the previous Android shell is removed.
+Frame submission requires `multipart/form-data` with a `file` field. The streamed multipart body is limited to 12 MiB, and the image itself to 10 MiB. Empty or malformed uploads return HTTP 400. Unsupported media types and signatures that do not match the declared JPEG, PNG, or WebP MIME type return HTTP 415. Oversized data returns HTTP 413 before storage.
 
-## Current Mobile API Surface
+The adapter's [deployment limit](../operations/deployment.md#configuration) allows the multipart envelope. Application checks still apply independently of the adapter and reverse proxy.
 
-The SvelteKit server still exposes a mobile contract under `/api/mobile/v1/mtg/...` with bearer-token validation. The `mtg` segment is retained for compatibility with the existing API surface; current product scope is MTG only.
+Scan API processing follows this order:
 
-Current route groups:
+1. A client creates a scan session and uploads an image.
+2. SvelteKit stores the original image in configured local or S3-compatible storage.
+3. SvelteKit passes artifact metadata to `scan-worker`.
+4. The worker returns `no_match`, zero quality, empty OCR tokens, and no candidates.
+5. SvelteKit records artifact metadata and review state in Postgres.
+6. Explicit review commits use the idempotent inventory repository.
 
-- search
-- inventory
-- decks
-- scan
+The worker reports the original object key as its normalized object key because it has not created a normalized image. Its `stub-v1` model versions identify the scaffold. It does not read images, recognize cards, run OCR, generate embeddings, or call a vector database.
 
-These endpoints are retained as an optional integration boundary (for example, a future Capacitor wrap or third-party client). The PWA itself does not require them and uses the session-cookie flow against the standard web routes.
+Storage and worker processing finish before recording the artifact. The worker request times out after 30 seconds. A failed upload, worker call, or database recording attempts to delete the newly created original object. Storage deletion can also fail; cleanup is best effort, and the failure is logged. Without a database commit or another concurrent change, the session remains open for retry. Processing failures return a generic HTTP 502; validation and ownership failures keep their specific responses.
 
-## Current Scan Flow
+## External scanner results
 
-1. The PWA captures a still image in the browser.
-2. The frontend server stores the original upload in scan artifact storage.
-3. The frontend server forwards the artifact metadata to `scan-worker`.
-4. `scan-worker` returns a scan result payload.
-5. The frontend server records scan artifact metadata and candidate payloads in Postgres.
-6. Review items are committed through the idempotent batch inventory repository function.
+The [OpenAPI route](../../frontend/src/routes/openapi.json/+server.ts) owns wire schemas. Current scanner operations include:
 
-The current scan worker implementation is a scaffold that preserves the service boundary and response contract. It is not yet a production recognizer.
+| Operation          | Route under `/api/mobile/v1/mtg`                                | Behavior                                                                               |
+| ------------------ | --------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| List sessions      | `GET /scan/sessions`                                            | Up to 100 owned sessions, newest update first                                          |
+| Read image         | `GET /scan/artifacts/{artifactId}/image`                        | The owned original image, checked as JPEG, PNG, or WebP, with `no-store` and `nosniff` |
+| Submit recognition | `POST /scan/sessions/{sessionId}/artifacts/{artifactId}/result` | Replace an owned artifact's candidate result without changing inventory                |
 
-## Current PWA Constraints
+A recognition submission includes `status`, `modelVersion`, and up to 20 distinct printing candidates. Each candidate includes `catalogCardId`, finite `confidence` from 0 to 1, and optional notes. The server resolves authoritative card metadata through `cards_all`; a client cannot choose ownership or substitute catalog names and identities.
 
-- online-only operation for scan v1
-- no mandatory Google Play Services, Firebase, or app store dependency
-- install is optional and must never be required for core features
-- iOS PWA limitations apply (no background sync, limited push, stricter storage quotas)
+`matched` requires at least one candidate, `ambiguous` requires at least two, and `no_match` or `failed` requires none. Writes lock the session and reject committed or cancelled sessions. Repeated submissions replace the same artifact result and create no additional artifact or inventory entry. The endpoint has no event ID, payload digest, or stale-result version check. A delayed result can replace a newer candidate result while the session remains open for review.
 
-## Current Stability Model
+Session creation and frame upload have no caller-supplied idempotency key. Review commits use the existing `requestId` boundary. These are separate guarantees; commit idempotency does not make the entire capture pipeline replay-safe.
 
-- scan never mutates inventory directly from upload
-- inventory batch commits are idempotent by `requestId`
-- object storage and scan processing are isolated from the existing web inventory and deck routes
+This endpoint accepts results from an external recognizer, but Spellbook's own worker remains a scaffold. Device jobs, tray routing, physical copies, locations, and deck assignments remain proposed in the [card robot integration](../integrations/card-robot.md).
+
+## Data boundaries
+
+Binary uploads live outside Postgres. Postgres stores account ownership, scan session state, artifact metadata, review entries, and mutation request IDs. Uploading an image never adds cards directly to inventory.
+
+Development uses a shared named volume for local artifacts. Production can use an existing S3-compatible bucket. See [deployment](../operations/deployment.md) for configuration.
+
+Recognition and capture work must preserve explicit review before inventory changes. [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md) records the single-client decision; its proposed recognition pipeline is not current functionality.

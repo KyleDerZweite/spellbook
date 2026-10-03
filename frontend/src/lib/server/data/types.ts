@@ -79,11 +79,12 @@ export interface ScanCandidate {
 	similarityScore: number;
 	ocrScore: number;
 	finalScore: number;
+	confidence?: number;
 	matchReason: string;
 }
 
 export interface ScanWorkerResult {
-	status: 'matched' | 'ambiguous' | 'no_match';
+	status: 'matched' | 'ambiguous' | 'no_match' | 'failed';
 	normalizedObjectKey: string;
 	qualityScore: number;
 	embeddingModelVersion: string;

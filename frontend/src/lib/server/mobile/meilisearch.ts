@@ -1,6 +1,7 @@
 import { Meilisearch } from 'meilisearch';
 import { privateEnv } from '$lib/env/private';
 import type { CardDocument } from '$lib/search/types';
+import { ValidationError } from '$lib/server/mtg/validation';
 import type { MobileSearchResponse } from './types';
 
 let client: Meilisearch | null = null;
@@ -45,11 +46,16 @@ export async function searchCatalog(
 	};
 }
 
-export async function getPrintings(oracleId: string, limit = 100): Promise<MobileSearchResponse> {
+export async function getPrintings(
+	oracleId: string,
+	limit = 100,
+	offset = 0
+): Promise<MobileSearchResponse> {
 	const index = getClient().index<CardDocument>('cards_all');
 	const result = await index.search('', {
 		filter: [`oracle_id = "${oracleId}"`],
 		sort: ['set_code:asc'],
+		offset,
 		limit
 	});
 
@@ -58,4 +64,23 @@ export async function getPrintings(oracleId: string, limit = 100): Promise<Mobil
 		hits: result.hits as CardDocument[],
 		estimatedTotalHits: result.estimatedTotalHits ?? 0
 	};
+}
+
+export async function getCatalogPrinting(id: string): Promise<CardDocument> {
+	if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id)) {
+		throw new ValidationError('Invalid catalog card ID');
+	}
+	try {
+		return await getClient().index<CardDocument>('cards_all').getDocument(id);
+	} catch (cause) {
+		if (
+			cause &&
+			typeof cause === 'object' &&
+			'code' in cause &&
+			cause.code === 'document_not_found'
+		) {
+			throw new ValidationError('Catalog printing not found');
+		}
+		throw cause;
+	}
 }

@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, max, sql } from 'drizzle-orm';
+import { mutationFingerprint, RequestConflictError } from './request-fingerprint';
 import { db } from '$lib/server/db/client';
 import { inventories, inventoryCards, inventoryMutationRequests } from '$lib/server/db/schema';
 import {
@@ -30,8 +31,12 @@ function getStats(cards: InventoryCard[]): InventoryStats {
 	return { total, unique, foils, sets, completedSets: 0 };
 }
 
-export async function ensureInventory(accountId: string, game: string): Promise<Inventory> {
-	const existing = await db
+export async function ensureInventory(
+	accountId: string,
+	game: string,
+	executor: typeof db | Tx = db
+): Promise<Inventory> {
+	const existing = await executor
 		.select()
 		.from(inventories)
 		.where(and(eq(inventories.accountId, accountId), eq(inventories.game, game)))
@@ -41,7 +46,7 @@ export async function ensureInventory(accountId: string, game: string): Promise<
 		return existing[0];
 	}
 
-	const [created] = await db
+	const [created] = await executor
 		.insert(inventories)
 		.values({
 			id: crypto.randomUUID(),
@@ -55,7 +60,7 @@ export async function ensureInventory(accountId: string, game: string): Promise<
 		return created;
 	}
 
-	const [afterConflict] = await db
+	const [afterConflict] = await executor
 		.select()
 		.from(inventories)
 		.where(and(eq(inventories.accountId, accountId), eq(inventories.game, game)))
@@ -187,24 +192,58 @@ export async function batchAddInventory(
 	});
 }
 
+interface InventoryMutationInput {
+	requestId: string;
+	source: string;
+	game: string;
+	operations: InventoryBulkOperationInput[];
+}
+
 export async function bulkMutateInventory(
 	accountId: string,
-	input: {
-		requestId: string;
-		source: string;
-		game: string;
-		operations: InventoryBulkOperationInput[];
-	}
+	input: InventoryMutationInput
 ): Promise<InventorySnapshot> {
+	await db.transaction((tx) => applyInventoryMutation(tx, accountId, input));
+	return getInventorySnapshot(accountId, input.game);
+}
+
+export async function applyInventoryMutation(
+	tx: Tx,
+	accountId: string,
+	input: InventoryMutationInput,
+	expectedHash?: string
+): Promise<void> {
 	const requestId = assertRequestId(input.requestId);
 	if (!Array.isArray(input.operations) || input.operations.length === 0) {
 		throw new ValidationError('operations must contain at least one operation');
 	}
 	const operations = input.operations.map(assertInventoryOperation);
-	const inventory = await ensureInventory(accountId, input.game);
+	const requestHash =
+		expectedHash ??
+		mutationFingerprint({ kind: 'inventory', game: input.game, source: input.source, operations });
+	const inventory = await ensureInventory(accountId, input.game, tx);
+	await tx
+		.select({ id: inventories.id })
+		.from(inventories)
+		.where(eq(inventories.id, inventory.id))
+		.for('update');
 
-	const shouldApply = await db.transaction(async (tx) => {
-		const existingRequest = await tx
+	const now = new Date();
+	const claimed = await tx
+		.insert(inventoryMutationRequests)
+		.values({
+			accountId,
+			requestId,
+			source: input.source,
+			requestHash,
+			status: 'applied',
+			createdAt: now,
+			updatedAt: now
+		})
+		.onConflictDoNothing()
+		.returning();
+	if (claimed.length === 0) {
+		const [existing] = await tx
 			.select()
 			.from(inventoryMutationRequests)
 			.where(
@@ -214,33 +253,16 @@ export async function bulkMutateInventory(
 				)
 			)
 			.limit(1);
-
-		if (existingRequest[0]) {
-			return false;
-		}
-
-		const now = new Date();
-		await tx.insert(inventoryMutationRequests).values({
-			accountId,
-			requestId,
-			source: input.source,
-			status: 'applied',
-			createdAt: now,
-			updatedAt: now
-		});
-
-		for (const operation of operations) {
-			await applyInventoryOperation(tx, accountId, inventory.id, input.game, operation, now);
-		}
-
-		await tx.update(inventories).set({ updatedAt: now }).where(eq(inventories.id, inventory.id));
-		return true;
-	});
-
-	if (shouldApply) {
-		await compactInventoryPositions(inventory.id);
+		if (existing?.requestHash && existing.requestHash !== requestHash)
+			throw new RequestConflictError();
+		return;
 	}
-	return getInventorySnapshot(accountId, input.game);
+
+	for (const operation of operations) {
+		await applyInventoryOperation(tx, accountId, inventory.id, input.game, operation, now);
+	}
+	await reflowPositions(tx, inventory.id);
+	await tx.update(inventories).set({ updatedAt: now }).where(eq(inventories.id, inventory.id));
 }
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -400,27 +422,33 @@ async function reflowPositions(tx: Tx, inventoryId: string): Promise<void> {
 	}
 }
 
-async function compactInventoryPositions(inventoryId: string): Promise<void> {
-	await db.transaction(async (tx) => {
-		await reflowPositions(tx, inventoryId);
-	});
-}
-
 export async function reorderInventoryCard(
 	accountId: string,
 	entryId: string,
 	targetPosition: number
 ): Promise<void> {
 	await db.transaction(async (tx) => {
-		const [moved] = await tx
+		const [initial] = await tx
 			.select()
 			.from(inventoryCards)
 			.where(and(eq(inventoryCards.id, entryId), eq(inventoryCards.accountId, accountId)))
 			.limit(1);
 
-		if (!moved) {
+		if (!initial) {
 			return;
 		}
+
+		await tx
+			.select({ id: inventories.id })
+			.from(inventories)
+			.where(eq(inventories.id, initial.inventoryId))
+			.for('update');
+		const [moved] = await tx
+			.select()
+			.from(inventoryCards)
+			.where(and(eq(inventoryCards.id, entryId), eq(inventoryCards.accountId, accountId)))
+			.limit(1);
+		if (!moved) return;
 
 		const ordered = await tx
 			.select()

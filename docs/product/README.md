@@ -1,27 +1,17 @@
-# Product Docs
+# Product docs
 
 - Status: Canonical
-- Last Reviewed: 2026-05-21
-- Source of Truth: mixed
-- Update Triggers: route changes, feature rollout changes, terminology changes, implemented versus planned status changes
-- Related Docs: [Platform Overview](./platform-overview.md), [Functional Requirements](./functional-requirements.md), [Routing and Games](./routing-and-games.md), [Feature Status](./feature-status.md), [UI Design Direction](./ui-design-direction.md), [Docs Index](../README.md)
+- Last Reviewed: 2026-10-03
+- Source of Truth: product documents
+- Update Triggers: product document ownership, specification changes, glossary changes, routes, interface requirements
+- Related Docs: [Specification](./specification.md), [Domain model](./domain-model.md), [Platform overview](./platform-overview.md), [Routes](./routing-and-games.md), [UI direction](./ui-design-direction.md), [Docs index](../README.md)
 
-Product docs describe what Spellbook does and how it is presented.
+Product docs describe Spellbook's requirements, behavior, and user-facing language. Start with the specification; use the other documents for their distinct subjects.
 
-Use this section for:
+- [Product specification](./specification.md) owns functional requirements, implementation status, planned capabilities, and acceptance checks.
+- [Domain model](./domain-model.md) owns card, inventory, deck, availability, and review terminology.
+- [Platform overview](./platform-overview.md) introduces the product and audience.
+- [Routes](./routing-and-games.md) lists implemented pages, API paths, and compatibility redirects.
+- [UI design direction](./ui-design-direction.md) owns interaction patterns, component choices, and visual requirements.
 
-- route surfaces
-- feature status
-- functional requirements
-- user-facing terminology
-- current versus planned product behavior
-
-Do not use this section for deep implementation details that belong in [architecture](../architecture/README.md).
-
-## Files
-
-- [Platform overview](./platform-overview.md)
-- [Functional requirements](./functional-requirements.md)
-- [Routing and games](./routing-and-games.md)
-- [Feature status](./feature-status.md)
-- [UI design direction](./ui-design-direction.md)
+Internal implementation details belong in [architecture](../architecture/README.md), and runtime setup belongs in [operations](../operations/README.md). Superseded product documents belong in git history rather than a parallel active archive.

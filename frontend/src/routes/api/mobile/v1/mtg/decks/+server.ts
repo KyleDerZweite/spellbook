@@ -1,3 +1,5 @@
+import { badRequestIfValidation } from '$lib/server/mobile/route-errors';
+import { readString, readJsonObject } from '$lib/server/http/request';
 import { error, json } from '@sveltejs/kit';
 import { requireMobileAuth } from '$lib/server/mobile/auth';
 import { createDeckEntry, getDeckSnapshotEntry } from '$lib/server/mobile/mtg-service';
@@ -9,16 +11,20 @@ export const GET = async (event) => {
 
 export const POST = async (event) => {
 	const auth = await requireMobileAuth(event);
-	const body = await event.request.json();
+	const body = await readJsonObject(event.request);
 	if (!body?.name) {
 		throw error(400, 'name is required');
 	}
 
-	return json(
-		await createDeckEntry(auth, {
-			name: String(body.name),
-			description: String(body.description ?? ''),
-			format: String(body.format ?? 'Commander')
-		})
-	);
+	try {
+		return json(
+			await createDeckEntry(auth, {
+				name: readString(body.name, 'name'),
+				description: readString(body.description, 'description', ''),
+				format: readString(body.format, 'format', 'Commander')
+			})
+		);
+	} catch (cause) {
+		badRequestIfValidation(cause);
+	}
 };

@@ -1,17 +1,19 @@
 # Postgres
 
 - Status: Canonical
-- Last Reviewed: 2026-05-18
+- Last Reviewed: 2026-10-03
 - Source of Truth: code
-- Update Triggers: schema changes, migration changes, repository changes, auth ownership changes
-- Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [ADR-0006](../decisions/0006-generic-oidc-and-internal-account-identity.md)
+- Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior
+- Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md)
 
 Postgres stores user-scoped application state for Spellbook.
 
 ## Current Tables
 
 - `user_profiles`
-- `auth_identities`
+- `local_credentials`
+- `auth_sessions`
+- `auth_identities`, retained historical provider mappings
 - `inventories`
 - `inventory_cards`
 - `decks`
@@ -24,9 +26,11 @@ Postgres stores user-scoped application state for Spellbook.
 
 ## Current Model Notes
 
-- tables are game-aware through a `game` field
+- inventory, deck, and scan session rows retain an MTG `game` field
 - `user_profiles.account_id` is the internal Spellbook account key
-- `auth_identities` maps external auth providers to the internal account key by `provider_type`, `issuer`, and `subject`
+- `local_credentials` maps normalized usernames to account IDs and stores password hashes
+- `auth_sessions` stores hashed opaque tokens and their expiry
+- `auth_identities` retains historical provider mappings but is no longer used for authentication
 - MTG is the only implemented adapter today
 - `inventories` and `decks` are the current canonical domain objects
 - `inventory_mutation_requests` and `deck_mutation_requests` store per-account `requestId` records for idempotent mobile bulk mutations
@@ -50,3 +54,11 @@ Postgres stores user-scoped application state for Spellbook.
 - add/update/remove deck cards
 - idempotent deck card bulk add, set, decrement, and remove
 - create/update scan sessions, artifacts, and review items
+
+## Mutation replay
+
+Migration `0005_mutation_request_fingerprints.sql` adds nullable `request_hash` columns to inventory and deck mutation records. New mutations bind an account-scoped `requestId` to a SHA-256 fingerprint of the normalized operation and its kind. Deck imports also bind their metadata and resolved operations. Scan review commits include the session and artifact identifiers; server-generated review-row IDs do not change the fingerprint.
+
+An identical retry has one write effect. Reusing an existing request ID with a different stored fingerprint returns HTTP 409 without applying the changed mutation. Existing rows with a null hash retain their earlier duplicate-suppression behavior because their original payload cannot be reconstructed. The migration does not invent or backfill those hashes.
+
+These records prevent duplicate effects; they do not store a historical response snapshot or provide general editor version checking. Scan candidate-result replacement is separate from inventory mutation replay and has no event fingerprint. See [mobile and scan](./mobile-and-scan.md) for that contract.

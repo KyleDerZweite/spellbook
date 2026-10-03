@@ -1,20 +1,14 @@
 import type { Handle } from '@sveltejs/kit';
+import { requireFormOrigin } from '$lib/server/auth/csrf';
 import { privateEnv } from '$lib/env/private';
 import { NO_INDEX_ROBOTS_TAG, createNoIndexRedirect } from '$lib/seo/site';
-import {
-	getAuthSessionSecret,
-	clearSessionCookie,
-	readSessionCookie,
-	writeSessionCookie
-} from '$lib/server/auth/session';
-import { getOidcAuthConfig, refreshAuthSession } from '$lib/server/auth/oidc';
+import { SESSION_COOKIE, clearSessionCookie, validateSession } from '$lib/server/auth/session';
 import { ACTIVE_GAME_COOKIE, DEFAULT_GAME, isGame } from '$lib/state/activeGame.svelte';
 
 let cachedSearchKey: string | null = null;
-const SESSION_REFRESH_WINDOW_MS = 5 * 60 * 1000;
 const PUBLIC_PATH_PREFIXES = ['/auth/', '/privacy', '/terms'];
-const PROTECTED_PATH_PREFIXES = ['/search', '/inventory', '/decks'];
-const NO_INDEX_PATH_PREFIXES = ['/auth/', '/api/', '/search', '/inventory', '/decks'];
+const PROTECTED_PATH_PREFIXES = ['/search', '/inventory', '/decks', '/scan'];
+const NO_INDEX_PATH_PREFIXES = ['/auth/', '/api/', '/search', '/inventory', '/decks', '/scan'];
 
 /**
  * Paths under `/mtg/*` used to be canonical. They are now redirected to
@@ -81,30 +75,6 @@ async function getMeiliSearchKey(): Promise<string> {
 	}
 }
 
-/**
- * Refresh the encrypted auth session when the ID token is close to expiry.
- */
-async function getActiveSession(event: Parameters<Handle>[0]['event']) {
-	const sessionSecret = getAuthSessionSecret(privateEnv);
-	const session = await readSessionCookie(event.cookies, sessionSecret);
-	if (!session) {
-		return null;
-	}
-
-	if (session.expiresAt > Date.now() + SESSION_REFRESH_WINDOW_MS) {
-		return session;
-	}
-
-	try {
-		const refreshed = await refreshAuthSession(getOidcAuthConfig(privateEnv), session);
-		await writeSessionCookie(event.cookies, sessionSecret, refreshed);
-		return refreshed;
-	} catch {
-		clearSessionCookie(event.cookies);
-		return null;
-	}
-}
-
 function isPublicPath(pathname: string): boolean {
 	return pathname === '/' || PUBLIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
@@ -134,6 +104,7 @@ function buildRedirectResponse(location: string): Response {
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
+	requireFormOrigin(event);
 	const pathname = event.url.pathname;
 
 	// Legacy route redirects must run before auth protection so signed-out
@@ -144,8 +115,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 		return buildRedirectResponse(`${legacyTarget}${search}`);
 	}
 
-	const session = await getActiveSession(event);
-	event.locals.user = session?.user ?? null;
+	const token = event.cookies.get(SESSION_COOKIE);
+	const session = await validateSession(token);
+	if (token && !session) clearSessionCookie(event.cookies);
+	event.locals.user = session;
 	event.locals.meiliSearchKey = session ? await getMeiliSearchKey() : '';
 	event.locals.mobileBearerUser = null;
 

@@ -2,8 +2,11 @@
 
 - Status: Accepted
 - Date: 2026-04-25
+- Last Reviewed: 2026-10-03
+- Source of Truth: recorded decision
+- Update Triggers: decision applicability, supersession, related document changes
 - Owners: project
-- Related Docs: [System Overview](../architecture/system-overview.md), [Postgres](../architecture/postgres.md), [Feature Status](../product/feature-status.md), [Deployment](../operations/deployment.md)
+- Related Docs: [System Overview](../architecture/system-overview.md), [Postgres](../architecture/postgres.md), [Product specification](../product/specification.md), [Deployment](../operations/deployment.md)
 
 ## Context
 
@@ -36,5 +39,5 @@ Play is removed from the Spellbook base app scope. A future play experience must
 ## References
 
 - [Postgres Architecture](../architecture/postgres.md)
-- [Feature Status](../product/feature-status.md)
+- [Product specification](../product/specification.md)
 - [Deployment](../operations/deployment.md)

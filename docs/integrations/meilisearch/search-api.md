@@ -1,7 +1,7 @@
 # MeiliSearch Search API
 
 - Status: Canonical
-- Last Reviewed: 2026-04-25
+- Last Reviewed: 2026-10-03
 - Source of Truth: code
 - Update Triggers: query mode changes, filter changes, limit changes, browse-mode behavior changes
 - Related Docs: [MeiliSearch Overview](./README.md), [Indexes and Settings](./indexes-and-settings.md), [Frontend Architecture](../../architecture/frontend.md)

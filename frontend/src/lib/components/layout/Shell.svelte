@@ -10,10 +10,10 @@
 	let { children }: Props = $props();
 </script>
 
-<div class="flex h-screen flex-col overflow-hidden">
+<div class="flex h-dvh flex-col overflow-hidden">
 	<Nav />
-	<main class="flex flex-1 flex-col overflow-y-auto">
-		<div class="flex-1">
+	<main id="main-content" tabindex="-1" class="flex min-h-0 flex-1 flex-col overflow-y-auto">
+		<div class="min-h-0 flex-1">
 			{@render children()}
 		</div>
 		<Footer />

@@ -24,6 +24,28 @@ export const userProfiles = pgTable('user_profiles', {
 	lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow()
 });
 
+export const localCredentials = pgTable('local_credentials', {
+	accountId: text('account_id')
+		.primaryKey()
+		.references(() => userProfiles.accountId, { onDelete: 'cascade' }),
+	username: text('username').notNull().unique(),
+	passwordHash: text('password_hash').notNull(),
+	...timestamps
+});
+
+export const authSessions = pgTable(
+	'auth_sessions',
+	{
+		tokenHash: text('token_hash').primaryKey(),
+		accountId: text('account_id')
+			.notNull()
+			.references(() => userProfiles.accountId, { onDelete: 'cascade' }),
+		expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(table) => [index('auth_sessions_account_idx').on(table.accountId)]
+);
+
 export const authIdentities = pgTable(
 	'auth_identities',
 	{
@@ -163,6 +185,7 @@ export const deckMutationRequests = pgTable(
 	{
 		accountId: text('account_id').notNull(),
 		requestId: text('request_id').notNull(),
+		requestHash: text('request_hash'),
 		deckId: uuid('deck_id')
 			.notNull()
 			.references(() => decks.id, { onDelete: 'cascade' }),
@@ -281,6 +304,7 @@ export const inventoryMutationRequests = pgTable(
 	{
 		accountId: text('account_id').notNull(),
 		requestId: text('request_id').notNull(),
+		requestHash: text('request_hash'),
 		source: text('source').notNull(),
 		status: text('status').notNull(),
 		...timestamps

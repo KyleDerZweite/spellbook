@@ -119,12 +119,12 @@ function parseCardLine(raw: string, currentRole: ParsedDecklistRole): ParsedDeck
 	}
 
 	const quantity = Number(match[1]);
-	if (!Number.isInteger(quantity) || quantity <= 0) {
+	if (!Number.isSafeInteger(quantity) || quantity <= 0) {
 		return null;
 	}
 
 	line = match[2].trim();
-	const printingMatch = line.match(/^(.*?)\s+\(([A-Za-z0-9]+)\)\s+([A-Za-z0-9\-★]+)$/u);
+	const printingMatch = line.match(/^(.*?)\s+\(([A-Za-z0-9]+)\)(?:\s+([A-Za-z0-9\-★]+))?$/u);
 	const name = (printingMatch?.[1] ?? line).trim();
 	if (!name) {
 		return null;

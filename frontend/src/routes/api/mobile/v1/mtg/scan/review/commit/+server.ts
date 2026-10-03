@@ -1,10 +1,8 @@
+import { readJsonObject, readNumber, readString, requireUuid } from '$lib/server/http/request';
 import { error, json } from '@sveltejs/kit';
 import { requireMobileAuth } from '$lib/server/mobile/auth';
-import {
-	batchAddInventory,
-	updateScanSessionStatusEntry,
-	upsertScanReviewItemEntry
-} from '$lib/server/mobile/mtg-service';
+import { commitScanReview } from '$lib/server/data/scan';
+import { badRequestIfValidation } from '$lib/server/mobile/route-errors';
 
 interface ScanReviewCandidateInput {
 	catalogCardId: string;
@@ -36,20 +34,39 @@ interface ScanReviewCommitBody {
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null;
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function parseBody(value: unknown): ScanReviewCommitBody {
 	if (!isRecord(value)) {
 		throw error(400, 'request body must be an object');
 	}
-	const requestId = String(value.requestId ?? '').trim();
-	const sessionId = String(value.sessionId ?? '').trim();
-	if (!requestId || !sessionId || !Array.isArray(value.items)) {
-		throw error(400, 'requestId, sessionId, and items are required');
+	const requestId = readString(value.requestId, 'requestId').trim();
+	const sessionId = requireUuid(value.sessionId, 'sessionId');
+	if (
+		!requestId ||
+		!Array.isArray(value.items) ||
+		value.items.length < 1 ||
+		value.items.length > 100
+	) {
+		throw error(400, 'requestId and 1 to 100 review items are required');
 	}
 	const items = value.items.map((item, index) => parseItem(item, index));
 	return { requestId, sessionId, items };
+}
+
+function parseScore(value: unknown, name: string): number {
+	const score = readNumber(value, name);
+	if (!Number.isInteger(score) || score < 0 || score > 100)
+		error(400, `${name} must be an integer from 0 to 100`);
+	return score;
+}
+
+function parseQuantity(value: unknown): number {
+	const quantity = readNumber(value, 'quantity', 1);
+	if (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 2147483647)
+		error(400, 'quantity must be a positive 32-bit integer');
+	return quantity;
 }
 
 function parseItem(value: unknown, index: number): ScanReviewItemInput {
@@ -60,9 +77,15 @@ function parseItem(value: unknown, index: number): ScanReviewItemInput {
 		throw error(400, `items[${index}].selectedCandidate is required`);
 	}
 	const candidate = value.selectedCandidate;
-	const catalogCardId = String(candidate.catalogCardId ?? '').trim();
-	const canonicalCardId = String(candidate.canonicalCardId ?? '').trim();
-	const name = String(candidate.name ?? '').trim();
+	const catalogCardId = readString(
+		candidate.catalogCardId,
+		'selectedCandidate.catalogCardId'
+	).trim();
+	const canonicalCardId = readString(
+		candidate.canonicalCardId,
+		'selectedCandidate.canonicalCardId'
+	).trim();
+	const name = readString(candidate.name, 'selectedCandidate.name').trim();
 	if (!catalogCardId || !canonicalCardId || !name) {
 		throw error(
 			400,
@@ -70,68 +93,63 @@ function parseItem(value: unknown, index: number): ScanReviewItemInput {
 		);
 	}
 	return {
-		id: value.id === undefined ? undefined : String(value.id),
-		scanArtifactId: String(value.scanArtifactId ?? ''),
+		id: value.id === undefined ? undefined : requireUuid(value.id, `items[${index}].id`),
+		scanArtifactId: requireUuid(value.scanArtifactId, `items[${index}].scanArtifactId`),
 		selectedCandidate: {
 			catalogCardId,
 			canonicalCardId,
 			name,
-			oracleId: String(candidate.oracleId ?? ''),
-			setCode: String(candidate.setCode ?? ''),
-			collectorNumber: String(candidate.collectorNumber ?? ''),
-			imageUri: String(candidate.imageUri ?? ''),
-			similarityScore: Number(candidate.similarityScore ?? 0),
-			ocrScore: Number(candidate.ocrScore ?? 0),
-			finalScore: Number(candidate.finalScore ?? 0),
-			matchReason: String(candidate.matchReason ?? 'manual_review')
+			oracleId: readString(candidate.oracleId, 'selectedCandidate.oracleId'),
+			setCode: readString(candidate.setCode, 'selectedCandidate.setCode'),
+			collectorNumber: readString(candidate.collectorNumber, 'selectedCandidate.collectorNumber'),
+			imageUri: readString(candidate.imageUri, 'selectedCandidate.imageUri'),
+			similarityScore: parseScore(candidate.similarityScore, 'selectedCandidate.similarityScore'),
+			ocrScore: parseScore(candidate.ocrScore, 'selectedCandidate.ocrScore'),
+			finalScore: parseScore(candidate.finalScore, 'selectedCandidate.finalScore'),
+			matchReason: readString(
+				candidate.matchReason,
+				'selectedCandidate.matchReason',
+				'manual_review'
+			)
 		},
-		finish: value.finish === undefined ? undefined : String(value.finish),
-		condition: value.condition === undefined ? undefined : String(value.condition),
-		quantity: value.quantity === undefined ? undefined : Number(value.quantity)
+		finish: readString(value.finish, `items[${index}].finish`, 'nonfoil'),
+		condition: readString(value.condition, `items[${index}].condition`, 'NM'),
+		quantity: parseQuantity(value.quantity)
 	};
 }
 
 export const POST = async (event) => {
 	const auth = await requireMobileAuth(event);
-	const body = parseBody(await event.request.json());
+	const body = parseBody(await readJsonObject(event.request));
 
-	for (const item of body.items) {
-		await upsertScanReviewItemEntry(auth, {
-			id: item.id ?? crypto.randomUUID(),
-			sessionId: body.sessionId,
-			scanArtifactId: item.scanArtifactId,
-			catalogCardId: item.selectedCandidate.catalogCardId,
-			canonicalCardId: item.selectedCandidate.canonicalCardId,
-			oracleId: item.selectedCandidate.oracleId,
-			name: item.selectedCandidate.name,
-			setCode: item.selectedCandidate.setCode,
-			collectorNumber: item.selectedCandidate.collectorNumber ?? '',
-			imageUri: item.selectedCandidate.imageUri ?? '',
-			similarityScore: item.selectedCandidate.similarityScore ?? 0,
-			ocrScore: item.selectedCandidate.ocrScore ?? 0,
-			finalScore: item.selectedCandidate.finalScore ?? 0,
-			matchReason: item.selectedCandidate.matchReason ?? 'manual_review',
-			finish: item.finish ?? 'nonfoil',
-			condition: item.condition ?? 'NM',
-			quantity: item.quantity ?? 1
-		});
+	try {
+		return json(
+			await commitScanReview(
+				auth.user.accountId,
+				body.requestId,
+				body.sessionId,
+				body.items.map((item) => ({
+					id: item.id ?? crypto.randomUUID(),
+					sessionId: body.sessionId,
+					scanArtifactId: item.scanArtifactId,
+					catalogCardId: item.selectedCandidate.catalogCardId,
+					canonicalCardId: item.selectedCandidate.canonicalCardId,
+					oracleId: item.selectedCandidate.oracleId,
+					name: item.selectedCandidate.name,
+					setCode: item.selectedCandidate.setCode,
+					collectorNumber: item.selectedCandidate.collectorNumber ?? '',
+					imageUri: item.selectedCandidate.imageUri ?? '',
+					similarityScore: item.selectedCandidate.similarityScore ?? 0,
+					ocrScore: item.selectedCandidate.ocrScore ?? 0,
+					finalScore: item.selectedCandidate.finalScore ?? 0,
+					matchReason: item.selectedCandidate.matchReason ?? 'manual_review',
+					finish: item.finish ?? 'nonfoil',
+					condition: item.condition ?? 'NM',
+					quantity: item.quantity ?? 1
+				}))
+			)
+		);
+	} catch (cause) {
+		badRequestIfValidation(cause);
 	}
-
-	const committed = await batchAddInventory(auth, {
-		requestId: body.requestId,
-		source: 'scan_review',
-		items: body.items.map((item) => ({
-			catalogCardId: item.selectedCandidate.catalogCardId,
-			canonicalCardId: item.selectedCandidate.canonicalCardId,
-			name: item.selectedCandidate.name,
-			setCode: item.selectedCandidate.setCode,
-			imageUri: item.selectedCandidate.imageUri ?? '',
-			finish: item.finish ?? 'nonfoil',
-			condition: item.condition ?? 'NM',
-			quantity: item.quantity ?? 1
-		}))
-	});
-	await updateScanSessionStatusEntry(auth, body.sessionId, 'committed');
-
-	return json(committed);
 };

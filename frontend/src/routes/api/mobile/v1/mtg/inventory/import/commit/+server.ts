@@ -1,3 +1,4 @@
+import { readString, readJsonObject } from '$lib/server/http/request';
 import { json } from '@sveltejs/kit';
 import { requireMobileAuth } from '$lib/server/mobile/auth';
 import { bulkMutateInventory } from '$lib/server/mobile/mtg-service';
@@ -7,11 +8,11 @@ import { badRequestIfValidation } from '$lib/server/mobile/route-errors';
 
 export const POST = async (event) => {
 	const auth = await requireMobileAuth(event);
-	const body = await event.request.json();
+	const body = await readJsonObject(event.request);
 	try {
 		const defaultFinish = assertFinish(body?.defaultFinish ?? 'nonfoil');
 		const defaultCondition = assertCondition(body?.defaultCondition ?? 'NM');
-		const preview = await previewMtgImport(String(body?.text ?? ''));
+		const preview = await previewMtgImport(readString(body.text, 'text', ''));
 		const operations = preview.resolved
 			.filter(({ line }) => isCommittedDeckRole(line.role) && line.role === 'main')
 			.map(({ line, card }) => ({
@@ -28,8 +29,8 @@ export const POST = async (event) => {
 		}
 
 		const snapshot = await bulkMutateInventory(auth, {
-			requestId: String(body?.requestId ?? ''),
-			source: String(body?.source ?? 'import'),
+			requestId: readString(body.requestId, 'requestId', ''),
+			source: readString(body.source, 'source', 'import'),
 			operations
 		});
 

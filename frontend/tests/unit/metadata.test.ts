@@ -23,6 +23,7 @@ describe('crawl and metadata surface', () => {
 		expect(text).toContain('Disallow: /search');
 		expect(text).toContain('Disallow: /inventory');
 		expect(text).toContain('Disallow: /decks');
+		expect(text).toContain('Disallow: /scan');
 		expect(text).toContain('Disallow: /api/');
 		expect(text).toContain('Allow: /openapi.json');
 		expect(text).toContain('Sitemap: https://spellbook.example.test/sitemap.xml');

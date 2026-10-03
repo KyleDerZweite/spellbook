@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Dialog } from 'bits-ui';
 	import SearchBar from '$lib/components/search/SearchBar.svelte';
 	import SearchFilters from '$lib/components/search/SearchFilters.svelte';
 	import SearchResults from '$lib/components/search/SearchResults.svelte';
@@ -205,17 +206,16 @@
 	<div class="shrink-0 px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
 		<div class="flex items-center justify-between gap-3">
 			<div>
-				<p class="font-mono text-[11px] uppercase tracking-[0.3em] text-text-secondary">
-					{activeGameState.current.toUpperCase()} Catalog
-				</p>
-				<h1 class="font-display text-xl font-bold text-gold-bright sm:text-2xl">Search</h1>
+				<h1 class="font-display text-xl font-semibold text-gold-bright">Card search</h1>
 			</div>
 			<button
 				onclick={() => (filtersOpen = !filtersOpen)}
-				class="flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 font-display text-xs uppercase tracking-wider transition-colors md:hidden"
+				aria-haspopup="dialog"
+				aria-expanded={filtersOpen}
+				class="flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 font-display text-xs font-semibold transition-colors md:hidden"
 				style="
 					background-color: var(--color-slate);
-					border: 1px solid rgba(196, 146, 42, 0.3);
+					border: 1px solid var(--color-border);
 					color: var(--color-text-secondary);
 				"
 			>
@@ -236,46 +236,28 @@
 	<div class="flex min-h-0 flex-1 gap-0">
 		<div
 			class="hidden shrink-0 overflow-y-auto px-6 py-4 md:block"
-			style="border-right: 1px solid rgba(196, 146, 42, 0.15);"
+			style="border-right: 1px solid var(--color-border);"
 		>
 			<SearchFilters {filters} {facets} />
 		</div>
 
-		{#if filtersOpen}
-			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			<div
-				class="fixed inset-0 z-30 md:hidden"
-				onclick={() => (filtersOpen = false)}
-				onkeydown={(e) => {
-					if (e.key === 'Escape') filtersOpen = false;
-				}}
-			>
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
-				<div
-					class="absolute bottom-0 left-0 right-0 max-h-[70vh] overflow-y-auto rounded-t-xl p-5"
-					style="
-						background-color: var(--color-stone);
-						border-top: 1px solid rgba(196, 146, 42, 0.3);
-						box-shadow: 0 -8px 32px rgba(13, 11, 15, 0.8);
-						animation: slide-up 200ms ease-out;
-					"
-					onclick={(e) => e.stopPropagation()}
-					onkeydown={() => {}}
+		<Dialog.Root bind:open={filtersOpen}>
+			<Dialog.Portal>
+				<Dialog.Overlay class="filter-overlay fixed inset-0 z-40" />
+				<Dialog.Content
+					class="fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-xl border border-border bg-stone p-5"
 				>
 					<div class="mb-3 flex items-center justify-between">
-						<span class="font-display text-sm uppercase tracking-widest text-text-secondary"
-							>Filters</span
-						>
-						<button
-							onclick={() => (filtersOpen = false)}
-							class="cursor-pointer border-none bg-transparent text-text-muted transition-colors hover:text-gold-bright"
-							>&#10005;</button
-						>
+						<Dialog.Title class="text-lg font-semibold">Filter cards</Dialog.Title>
+						<Dialog.Close class="btn btn-ghost" aria-label="Close filters">✕</Dialog.Close>
 					</div>
+					<Dialog.Description class="sr-only"
+						>Narrow the catalog by color, rarity, card type, or legality.</Dialog.Description
+					>
 					<SearchFilters {filters} {facets} />
-				</div>
-			</div>
-		{/if}
+				</Dialog.Content>
+			</Dialog.Portal>
+		</Dialog.Root>
 
 		<div class="min-w-0 flex-1 overflow-y-auto p-3 sm:p-4">
 			<SearchResults
@@ -301,8 +283,8 @@
 				<div class="flex items-center justify-center py-4">
 					<button
 						onclick={loadMore}
-						class="cursor-pointer rounded-lg px-6 py-2 font-display text-xs uppercase tracking-wider"
-						style="background-color: var(--color-slate); border: 1px solid rgba(196, 146, 42, 0.3);"
+						class="cursor-pointer rounded-lg px-6 py-2 font-display text-xs font-semibold"
+						style="background-color: var(--color-slate); border: 1px solid var(--color-border);"
 					>
 						Load More
 					</button>

@@ -1,10 +1,14 @@
 # ADR-0007: Backend-first MTG bulk and import API
 
 - Status: Accepted
-- Last Reviewed: 2026-05-18
+- Last Reviewed: 2026-10-03
 - Source of Truth: mixed
 - Update Triggers: MTG import contract changes, bulk mutation contract changes, scan-recognition scope changes, frontend implementation scope changes
-- Related Docs: [Feature Status](../product/feature-status.md), [Routing and Games](../product/routing-and-games.md), [Postgres](../architecture/postgres.md), [Worker](../architecture/worker.md), [MeiliSearch](../integrations/meilisearch/README.md)
+- Related Docs: [Product specification](../product/specification.md), [Routing and Games](../product/routing-and-games.md), [Postgres](../architecture/postgres.md), [Worker](../architecture/worker.md), [MeiliSearch](../integrations/meilisearch/README.md)
+
+## Current applicability
+
+The bulk and import contracts remain accepted. The temporary pause on frontend work ended with the deck builder implementation on 2026-10-03. Scan recognition remains deferred. [The specification](../product/specification.md) owns current workflow scope.
 
 ## Context
 

@@ -2,8 +2,11 @@
 
 - Status: Superseded by [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md)
 - Date: 2026-04-18
+- Last Reviewed: 2026-10-03
+- Source of Truth: recorded decision
+- Update Triggers: decision applicability, supersession, related document changes
 - Owners: Spellbook maintainers
-- Related Docs: [Routing and Games](../product/routing-and-games.md), [Feature Status](../product/feature-status.md), [Frontend Architecture](../architecture/frontend.md), [Platform Overview](../product/platform-overview.md), [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md)
+- Related Docs: [Routing and Games](../product/routing-and-games.md), [Product specification](../product/specification.md), [Frontend Architecture](../architecture/frontend.md), [Platform Overview](../product/platform-overview.md), [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md)
 
 ## Supersession Note
 
@@ -61,7 +64,7 @@ The mobile bearer-token API keeps the `/api/mobile/v1/:game/...` shape because i
 
 ## Follow-Up
 
-- Update `routing-and-games.md` and `feature-status.md` to reflect the flat surface.
+- Update `routing-and-games.md` and `specification.md` to reflect the flat surface.
 - Update `architecture/frontend.md` to drop the `/mtg/...` route listing.
 - Remove any remaining references to `/mtg/...` user-facing routes in product or architecture docs.
 
@@ -71,4 +74,4 @@ The mobile bearer-token API keeps the `/api/mobile/v1/:game/...` shape because i
 - `frontend/src/lib/components/layout/GameSwitcher.svelte`
 - `frontend/src/routes/+layout.server.ts`
 - [Routing and Games](../product/routing-and-games.md)
-- [Feature Status](../product/feature-status.md)
+- [Product specification](../product/specification.md)
