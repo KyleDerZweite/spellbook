@@ -6,7 +6,7 @@
 - Source of Truth: recorded decision
 - Update Triggers: decision applicability, supersession, related document changes
 - Owners: Spellbook maintainers
-- Related Docs: [Routing and Games](../product/routing-and-games.md), [Product specification](../product/specification.md), [Frontend Architecture](../architecture/frontend.md), [Platform Overview](../product/platform-overview.md), [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md)
+- Related Docs: [Routing and Games](../product/routing-and-games.md), [Product specification](../product/specification.md), [Frontend Architecture](../architecture/frontend.md), [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md)
 
 ## Supersession Note
 

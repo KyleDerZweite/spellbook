@@ -19,6 +19,6 @@ Scan upload -> SvelteKit -> local or S3 artifact storage
 
 The browser and installed web app share one frontend and session cookie. Server repositories enforce ownership using the internal account ID. MeiliSearch holds public catalog data, not inventories or passwords.
 
-The `/scan` workspace and scan API store uploads and review state. External scanners can submit catalog-validated candidates for explicit review. The scan-worker returns an empty `no_match` result; recognition, OCR, embeddings, and browser capture remain unimplemented. No vector database is required by the current code.
+[Scan review](./mobile-and-scan.md) accepts uploaded images and external candidates. The bundled recognizer remains a scaffold; no vector database is required.
 
 Use the [product specification](../product/specification.md) for implemented workflows and limits, and the [backend language assessment](./backend-language.md) for the Go and Python tradeoff.

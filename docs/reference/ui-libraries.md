@@ -48,7 +48,7 @@ Bits UI `2.19.5` fixes select label persistence, fast touch dismissal, body styl
 
 Bits UI's upstream [dialog browser tests](https://github.com/huntabyte/bits-ui/blob/main/tests/src/tests/dialog/dialog.browser.test.ts) cover focus trapping, restoration, nested dialogs, and ARIA relationships. Its [select browser tests](https://github.com/huntabyte/bits-ui/blob/main/tests/src/tests/select/select.browser.test.ts) cover keyboard navigation, selection, Escape, and form values. These tests are stronger evidence than an accessibility claim on a landing page. They do not prove that Spellbook's composed controls meet accessibility requirements.
 
-For any changed interactive component, verify its accessible name, keyboard operation, visible focus, and disabled state. Dialogs must manage focus and return it to a useful control. Nested menus and selects must dismiss correctly on keyboard and touch. Check application colors, reduced-motion behavior, and screen-reader announcements in the actual workflow. Successful type checks alone cannot establish those properties.
+The [interface acceptance checks](../product/specification.md#interface-acceptance) and [UI interaction rules](../product/ui-design-direction.md#visual-and-interaction-rules) own Spellbook verification requirements. Library tests and type checks do not establish application accessibility.
 
 ## Adoption guidance
 

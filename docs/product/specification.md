@@ -156,7 +156,7 @@ The current API does not provide a general ETag or version-based editor conflict
 
 ## Interface acceptance
 
-The [UI design direction](./ui-design-direction.md) owns interaction patterns and component choices. This change preserves the original dark-purple and gold design, uses smaller interface text, and avoids new visual subheadings. The broader redesign is deferred to [issue #168](https://github.com/KyleDerZweite/spellbook/issues/168). The release must satisfy these workflow checks:
+The [UI design direction](./ui-design-direction.md) owns visual requirements and the deferred redesign. The release must satisfy these workflow checks:
 
 1. An authenticated user can find a card, choose a printing, and add an owned quantity with finish and condition.
 2. The user can create a deck, search the catalog, add an unowned card, change its quantity and role, and remove it.

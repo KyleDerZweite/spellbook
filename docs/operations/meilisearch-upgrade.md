@@ -6,9 +6,11 @@
 - Update Triggers: MeiliSearch image changes, dump format compatibility, volume mapping, operator migration steps
 - Related Docs: [Deployment](./deployment.md), [MeiliSearch integration](../integrations/meilisearch/README.md), [Worker](../architecture/worker.md), [Operations](./README.md)
 
-Compose now selects MeiliSearch `v1.54.3`. Existing instances using `v1.39.0` must export and import their catalog before starting the new image against persistent data. Keep the old database volume intact and import into a new empty volume. The compose update does not enable `--upgrade-db`.
+Compose selects MeiliSearch `v1.54.3`. This deployment uses a dump migration from `v1.39.0` into a new empty volume, preserving the original database for rollback. Upstream also supports in-place `--upgrade-db`; the compose update does not enable that method. Follow this procedure before starting the updated service on an existing deployment.
 
-The new version passed disposable index, search, and worker integration checks. An upgrade of an operator's existing catalog was not performed by those checks. Rehearse the following procedure with a copy of the deployment before applying it to retained data. It follows the upstream [dump migration procedure](https://github.com/meilisearch/documentation/blob/main/resources/migration/updating.mdx#using-a-dump).
+On 2026-10-03, a disposable migration from `v1.39.0` to `v1.54.3` passed with five synthetic printings across four canonical cards. Both indexes retained their documents, settings, distinct behavior, localized and face-name search, exact printing lookup, and restricted search key. A write task, restart without the import option, and rollback to the unchanged old volume also passed.
+
+That rehearsal used direct Podman equivalents of these commands. It did not test a production snapshot, full-catalog resource use or duration, or the complete production compose lifecycle. Rehearse with a copy of the deployment before applying the procedure to retained data. The steps follow the upstream [dump migration procedure](https://github.com/meilisearch/documentation/blob/main/resources/migration/updating.mdx#using-a-dump).
 
 ## Export with the old version
 

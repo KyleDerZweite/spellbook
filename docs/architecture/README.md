@@ -1,4 +1,4 @@
-# Architecture Docs
+# Architecture
 
 - Status: Canonical
 - Last Reviewed: 2026-10-03
@@ -6,23 +6,14 @@
 - Update Triggers: schema changes, repository changes, auth flow changes, worker flow changes, service boundary changes
 - Related Docs: [System Overview](./system-overview.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Worker](./worker.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Backend language](./backend-language.md), [Docs Index](../README.md)
 
-Architecture docs describe how the current system works internally.
+Architecture documents describe implemented boundaries. Use the product specification for requirements and proposals.
 
-They must follow the codebase, not the roadmap.
-
-Use this section for:
-
-- subsystem boundaries
-- data flow
-- internal contracts
-- implementation-shape explanations
-
-## Files
-
-- [System overview](./system-overview.md)
-- [Frontend](./frontend.md)
-- [Postgres](./postgres.md)
-- [Worker](./worker.md)
-- [Auth](./auth.md)
-- [Mobile and scan](./mobile-and-scan.md)
-- [Backend language and hosted performance](./backend-language.md)
+| Owner                                     | Subject                                                          |
+| ----------------------------------------- | ---------------------------------------------------------------- |
+| [System overview](./system-overview.md)   | Runtime topology and data ownership                              |
+| [Frontend](./frontend.md)                 | Server rendering, repositories, and runtime compatibility        |
+| [Postgres](./postgres.md)                 | Persisted state, ownership, and mutation replay                  |
+| [Worker](./worker.md)                     | Catalog ingestion and synchronization                            |
+| [Authentication](./auth.md)               | Local credentials, sessions, and origin protection               |
+| [Mobile and scan](./mobile-and-scan.md)   | Shared API validation, uploads, and external recognition results |
+| [Backend language](./backend-language.md) | Go, Python, and hosted-performance assessment                    |

@@ -4,44 +4,19 @@
 - Last Reviewed: 2026-10-03
 - Source of Truth: code
 - Update Triggers: index changes, query changes, search-key handling changes, MTG search behavior changes
-- Related Docs: [Integrations Docs](../README.md), [Indexes and Settings](./indexes-and-settings.md), [Search API](./search-api.md), [Tasks](./tasks.md), [Documents](./documents.md), [Authentication](./authentication.md), [Worker Architecture](../../architecture/worker.md)
+- Related Docs: [Integrations Docs](../README.md), [Indexes and Settings](./indexes-and-settings.md), [Search API](./search-api.md), [Tasks](./tasks.md), [Documents](./documents.md), [Authentication](./authentication.md), [Worker Architecture](../../architecture/worker.md), [Search engine assessment](../../reference/search-engines.md)
 
-Spellbook currently uses MeiliSearch for MTG card catalog search.
+MeiliSearch serves Spellbook's searchable MTG catalog. Scryfall supplies card data through the [Python worker](../../architecture/worker.md); [Postgres](../../architecture/postgres.md) owns accounts, inventory, decks, and scan state.
 
-MTG is the only implemented game today. The search layer is game-aware in types, but the current frontend rejects non-MTG searches.
+The integration uses two live indexes. `cards_distinct` groups search results by canonical card; `cards_all` preserves every printing for selection and exact import resolution. Both receive transformed Scryfall records through staging indexes and an atomic swap.
 
-## Current Role
+| Owner                                                      | Contract                                                             |
+| ---------------------------------------------------------- | -------------------------------------------------------------------- |
+| [Indexes and settings](./indexes-and-settings.md)          | Primary keys, distinct behavior, searchable and filterable fields    |
+| [Document transformation](./documents.md)                  | Printing fields, localized names, normalization, and skipped layouts |
+| [Search queries](./search-api.md)                          | Browser browse/search modes, facets, and pagination                  |
+| [Credentials](./authentication.md)                         | Server access and browser search-key delivery                        |
+| [Task handling](./tasks.md)                                | Staging, failed-task handling, swaps, and cleanup                    |
+| [Catalog upgrade](../../operations/meilisearch-upgrade.md) | Existing-volume backup, dump import, and rollback                    |
 
-MeiliSearch is the source of truth for the searchable MTG catalog.
-
-Postgres stores user-scoped data only:
-
-- inventories
-- inventory cards
-- decks
-- deck cards
-
-## Current Indexes
-
-| Index                 | Purpose                                          | Current behavior                              |
-| --------------------- | ------------------------------------------------ | --------------------------------------------- |
-| `cards_distinct`      | Primary MTG search                               | One result per `oracle_id`                    |
-| `cards_distinct_next` | Staging index                                    | Temporary target during zero-downtime reindex |
-| `cards_all`           | Printing lookup and exact import printing lookup | All MTG printings for a selected card         |
-| `cards_all_next`      | Staging index                                    | Temporary target during zero-downtime reindex |
-
-## Current Data Flow
-
-```text
-Scryfall -> Python worker -> cards_distinct_next + cards_all_next -> atomic index swap -> frontend search and import resolution
-```
-
-The Python worker downloads MTG bulk data from Scryfall, transforms it, and uploads documents to both indexes.
-
-## Contract owners
-
-- [Indexes and settings](./indexes-and-settings.md)
-- [Document transformation](./documents.md)
-- [Search queries](./search-api.md)
-- [Credentials](./authentication.md)
-- [Asynchronous task handling](./tasks.md)
+The dated [search engine assessment](../../reference/search-engines.md) compares MeiliSearch, Typesense, and PostgreSQL. It records why the current engine remains suitable and what evidence would justify a replacement.

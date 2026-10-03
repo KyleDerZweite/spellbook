@@ -1,4 +1,4 @@
-# MeiliSearch Authentication
+# MeiliSearch authentication
 
 - Status: Canonical
 - Last Reviewed: 2026-10-03
@@ -6,25 +6,8 @@
 - Update Triggers: search-key handling changes, env var changes, frontend server auth changes
 - Related Docs: [MeiliSearch Overview](./README.md), [Deployment](../../operations/deployment.md), [Auth Architecture](../../architecture/auth.md)
 
-This document describes how Spellbook currently authenticates MeiliSearch access.
+The worker uses `MEILI_MASTER_KEY` to configure indexes and upload catalog documents. The frontend uses it to obtain the default search-only key from MeiliSearch's key API. These administrative credentials stay on the server.
 
-## Server-Side Admin Access
+[`hooks.server.ts`](../../../frontend/src/hooks.server.ts) caches the search-only key in the frontend process and passes it to authenticated browser sessions. The browser initializes its catalog client with that key. Restart the frontend after replacing the search key to clear the cached value.
 
-Spellbook uses `MEILI_MASTER_KEY` on the server side for administrative access.
-
-Current server-side uses:
-
-- the Python worker configures indexes and uploads documents
-- the SvelteKit server lists keys and retrieves the default search-only key
-
-## Browser Access
-
-The browser uses a search-only key.
-
-Current Spellbook behavior:
-
-1. the frontend server calls MeiliSearch internally using `MEILI_MASTER_KEY`
-2. it finds the default search-only key by listing keys
-3. it caches that key in the server process
-4. it passes the key to authenticated sessions
-5. the browser initializes the MeiliSearch client with that key
+[Deployment](../../operations/deployment.md#configuration) owns the internal URL, public URL, and secret configuration. The operator does not supply a separate `PUBLIC_MEILISEARCH_SEARCH_KEY`.

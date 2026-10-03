@@ -4,7 +4,7 @@
 - Last Reviewed: 2026-10-03
 - Source of Truth: mixed
 - Update Triggers: product positioning changes, non-MTG scope changes, frontend redesign scope changes, inventory/deck workflow changes
-- Related Docs: [Platform Overview](../product/platform-overview.md), [Product specification](../product/specification.md), [UI Design Direction](../product/ui-design-direction.md)
+- Related Docs: [Product specification](../product/specification.md), [UI Design Direction](../product/ui-design-direction.md)
 
 ## Current applicability
 

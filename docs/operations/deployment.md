@@ -70,6 +70,10 @@ Migration `0005` adds nullable request fingerprints without rewriting existing m
 
 Postgres, MeiliSearch, and worker status use named volumes. Back up account data before migrations and keep a tested restore procedure. Image versions and runtime pins live in compose, Dockerfiles, and package manifests. Keep these files and lockfiles together when deploying an update.
 
+Runtime support was reviewed on 2026-10-03. The workers pin [Python 3.14.8](https://www.python.org/downloads/release/python-3148/), released on 2026-10-01. Its [release schedule](https://peps.python.org/pep-0745/) provides regular bugfix releases through October 2027 and security releases through October 2030. [Python 3.15](https://peps.python.org/pep-0790/) is scheduled for final release on 2026-10-09 and is not adopted ahead of that release. [Frontend runtime policy](../architecture/frontend.md#runtime-compatibility) owns Node and framework compatibility.
+
+Postgres remains on the supported 17 major series. Its [version policy](https://www.postgresql.org/support/versioning/) distinguishes minor updates from major database upgrades. PostgreSQL 18 also changes the official container's [data-directory layout](https://github.com/docker-library/docs/blob/master/postgres/README.md#pgdata). A future major upgrade needs its own migration and restore verification; changing the image tag alone is insufficient.
+
 For local scan artifacts, run:
 
 ```sh

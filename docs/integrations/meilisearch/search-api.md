@@ -1,4 +1,4 @@
-# MeiliSearch Search API
+# MeiliSearch search queries
 
 - Status: Canonical
 - Last Reviewed: 2026-10-03
@@ -6,41 +6,13 @@
 - Update Triggers: query mode changes, filter changes, limit changes, browse-mode behavior changes
 - Related Docs: [MeiliSearch Overview](./README.md), [Indexes and Settings](./indexes-and-settings.md), [Frontend Architecture](../../architecture/frontend.md)
 
-This document describes how the current Spellbook frontend uses MeiliSearch.
+The [browser search client](../../../frontend/src/lib/search/meilisearch.ts) queries `cards_distinct` and applies active filters.
 
-## Current Search Modes
+| Query length              | Request                                              |
+| ------------------------- | ---------------------------------------------------- |
+| Fewer than two characters | Empty query sorted by `name:asc` for browsing        |
+| Two or more characters    | Free-text query with `limit` and `offset` pagination |
 
-### Browse mode
+Hits render independently of facets. Facet requests follow active filter and game state changes; a facet failure does not fail the hit view. Pagination keeps the original query and filter context. Responses from an outdated context are discarded rather than appended to the current results.
 
-Used when the query is shorter than 2 characters.
-
-Current behavior:
-
-- search `cards_distinct`
-- empty query
-- sort by `name:asc`
-- apply active filters
-- render hits independently of facet loading
-
-### Distinct card search
-
-Used when the query length is 2 or more characters.
-
-Current behavior:
-
-- search `cards_distinct`
-- free-text query
-- apply active filters
-- paginate with `limit` and `offset`
-- render hits independently of facet loading
-
-## Current Facet Behavior
-
-- facet counts are fetched independently from the main hit query
-- facet requests are driven by active filter changes and active game changes
-- facet failures do not fail the main search result view
-
-## Current Pagination Behavior
-
-- pagination requests use the same query and filter context as the current hit list
-- responses from an outdated search context are discarded instead of appended into the current result set
+The [versioned API](../../architecture/mobile-and-scan.md#request-validation) validates pagination separately. [Indexes and settings](./indexes-and-settings.md) owns distinct and printing behavior.
