@@ -2,13 +2,13 @@
 # This avoids most SELinux relabel issues on Fedora while remaining portable to Ubuntu.
 services:
   postgres:
-    image: docker.io/postgres:17
+    image: docker.io/postgres:18.6-bookworm
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-spellbook}
       POSTGRES_USER: ${POSTGRES_USER:-spellbook}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres18_data:/var/lib/postgresql
     healthcheck:
       test:
         [
@@ -24,6 +24,8 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+      args:
+        APP_ORIGIN: ${APP_ORIGIN}
       target: migrator
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-spellbook}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-spellbook}
@@ -32,35 +34,19 @@ services:
         condition: service_healthy
     restart: "no"
 
-  meilisearch:
-    image: docker.io/getmeili/meilisearch:v1.39.0
-    environment:
-      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
-      MEILI_ENV: development
-    volumes:
-      - meilisearch_data:/meili_data
-    restart: unless-stopped
-
-  qdrant:
-    image: docker.io/qdrant/qdrant:v1.15.4
-    volumes:
-      - qdrant_data:/qdrant/storage
-    restart: unless-stopped
-
   worker:
     build:
       context: ./worker
     environment:
-      MEILISEARCH_URL: http://meilisearch:7700
-      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
-      AGGRESSIVE_PRELOAD: ${AGGRESSIVE_PRELOAD:-true}
+      DATABASE_URL: postgres://${POSTGRES_USER:-spellbook}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-spellbook}
+      CATALOG_SOURCE: ${CATALOG_SOURCE:-all_cards}
       SYNC_INTERVAL: ${SYNC_INTERVAL:-daily}
-      LANGUAGES: ${LANGUAGES:-en}
       WORKER_DATA_DIR: /app/data
     volumes:
       - worker_data:/app/data
     depends_on:
-      - meilisearch
+      db-migrate:
+        condition: service_completed_successfully
     restart: unless-stopped
 
   scan-worker:
@@ -74,25 +60,20 @@ services:
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
       S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
-      QDRANT_URL: http://qdrant:6333
-    depends_on:
-      - qdrant
     restart: unless-stopped
 
   frontend:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+      args:
+        APP_ORIGIN: ${APP_ORIGIN}
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-spellbook}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-spellbook}
-      PUBLIC_MEILISEARCH_URL: ${PUBLIC_MEILISEARCH_URL}
-      MEILISEARCH_INTERNAL_URL: http://meilisearch:7700
-      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
-      OIDC_ISSUER: ${OIDC_ISSUER}
-      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID}
-      OIDC_MOBILE_CLIENT_ID: ${OIDC_MOBILE_CLIENT_ID}
       APP_ORIGIN: ${APP_ORIGIN}
-      AUTH_SESSION_SECRET: ${AUTH_SESSION_SECRET}
+      ADDRESS_HEADER: ${ADDRESS_HEADER:-}
+      XFF_DEPTH: ${XFF_DEPTH:-1}
+      BODY_SIZE_LIMIT: ${BODY_SIZE_LIMIT:-12M}
       SCAN_STORAGE_DRIVER: ${SCAN_STORAGE_DRIVER:-s3}
       S3_ENDPOINT: ${S3_ENDPOINT}
       S3_REGION: ${S3_REGION:-us-east-1}
@@ -101,18 +82,20 @@ services:
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY}
       S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-true}
       SCAN_WORKER_URL: http://scan-worker:8080
+    ports:
+      - "127.0.0.1:3000:3000"
     depends_on:
-      - db-migrate
-      - meilisearch
-      - scan-worker
+      db-migrate:
+        condition: service_completed_successfully
+      scan-worker:
+        condition: service_started
     restart: unless-stopped
 
   newt:
-    image: docker.io/fosrl/newt:latest
+    image: docker.io/fosrl/newt:1.18.1
+    profiles: [tunnel]
     container_name: spellbook-newt
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
       PANGOLIN_ENDPOINT: ${PANGOLIN_ENDPOINT}
       NEWT_ID: ${NEWT_ID}
@@ -121,7 +104,5 @@ services:
       - frontend
 
 volumes:
-  postgres_data:
-  meilisearch_data:
-  qdrant_data:
+  postgres18_data:
   worker_data:

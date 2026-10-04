@@ -1,171 +1,133 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { goto } from '$app/navigation';
+	import { asset } from '$app/paths';
 	import { Dialog, DropdownMenu } from 'bits-ui';
-	import { authState } from '$lib/auth/state.svelte';
-	import GameSwitcher from './GameSwitcher.svelte';
+	import Button from '#lib/components/ui/button/Button.svelte';
 
-	// Decks is implemented at /decks but intentionally hidden from the
-	// navigation while search, inventory, and scan are the product focus.
-	// The route still works via direct URL.
-	interface NavLink {
-		href: string;
-		label: string;
-		shortcut?: string;
-	}
-
-	const NAV_LINKS: readonly NavLink[] = [
-		{ href: '/search', label: 'Search', shortcut: '⌘K' },
-		{ href: '/inventory', label: 'Inventory' }
+	const NAV_LINKS = [
+		{ href: '/search', label: 'Card search' },
+		{ href: '/decks', label: 'Deck builder' },
+		{ href: '/inventory', label: 'Inventory' },
+		{ href: '/scan', label: 'Scan review' }
 	];
 
 	let mobileMenuOpen = $state(false);
-
-	const userInitial = $derived(authState.user?.username?.charAt(0).toUpperCase() ?? 'U');
-	const userName = $derived(authState.user?.username || 'User');
-	const userEmail = $derived(authState.user?.email ?? '');
-	const isAuthenticated = $derived(authState.isAuthenticated);
+	let logoutForm: HTMLFormElement | undefined = $state();
+	const user = $derived(page.data.user);
+	const userName = $derived(user?.username || 'Account');
+	const loginUrl = $derived(
+		`/auth/login?returnTo=${encodeURIComponent(`${page.url.pathname}${page.url.search}`)}`
+	);
 
 	function isActive(href: string): boolean {
 		return page.url.pathname === href || page.url.pathname.startsWith(href + '/');
 	}
-
-	function closeMobileMenu() {
-		mobileMenuOpen = false;
-	}
 </script>
 
-<nav class="w-full shrink-0 border-b border-gold/20 bg-stone" aria-label="Primary">
-	<div class="flex h-14 items-center justify-between px-4 sm:px-6">
-		<!-- Left: logo + game dropdown -->
-		<div class="flex items-center gap-3">
-			<a
-				href="/"
-				class="font-display text-lg font-bold tracking-wider text-gold-bright no-underline transition-colors hover:text-amber"
-				aria-label="Spellbook home"
-			>
-				<i class="ms ms-library" aria-hidden="true"></i> SPELLBOOK
-			</a>
-			<div class="hidden sm:block">
-				<GameSwitcher />
-			</div>
-		</div>
+<a
+	href="#main-content"
+	class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-2 focus:z-[200] focus:rounded focus:bg-gold focus:px-4 focus:py-2 focus:text-text-on-gold"
+	>Skip to content</a
+>
 
-		<!-- Center: flat link list -->
-		<div class="hidden items-center gap-8 sm:flex">
+<nav class="workspace-header shrink-0 border-b border-border" aria-label="Primary">
+	<div class="mx-auto flex h-16 max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-6">
+		<a
+			href="/"
+			class="flex items-center gap-2.5 font-display text-lg font-bold tracking-tight text-foreground no-underline"
+			aria-label="Spellbook home"
+		>
+			<img src={asset('logo.webp')} alt="" width="32" height="32" class="h-8 w-8 shrink-0" />
+			Spellbook
+		</a>
+		<div class="hidden h-full items-center gap-1 md:flex">
 			{#each NAV_LINKS as link}
-				{@const active = isActive(link.href)}
 				<a
 					href={link.href}
-					aria-current={active ? 'page' : undefined}
-					class="nav-link {active ? 'nav-link--active' : ''}"
+					aria-current={isActive(link.href) ? 'page' : undefined}
+					class="nav-link {isActive(link.href) ? 'nav-link--active' : ''}">{link.label}</a
 				>
-					<span>{link.label}</span>
-					{#if link.shortcut}
-						<kbd
-							class="ml-2 hidden rounded border border-gold/15 bg-slate px-1 py-0.5 font-mono text-[9px] font-normal tracking-normal text-text-muted lg:inline"
-							aria-hidden="true"
-						>
-							{link.shortcut}
-						</kbd>
-					{/if}
-				</a>
 			{/each}
 		</div>
-
-		<!-- Right: user menu / sign-in -->
-		<div class="flex items-center gap-2 sm:gap-3">
-			{#if isAuthenticated}
+		<div class="flex items-center gap-2">
+			{#if user}
+				<form method="POST" action="/auth/logout" bind:this={logoutForm}></form>
 				<DropdownMenu.Root>
 					<DropdownMenu.Trigger
-						class="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-gold/35 bg-slate font-display text-xs font-bold text-gold-bright transition-all duration-150 hover:ring-2 hover:ring-gold-dim"
-						aria-label="User menu"
+						class="btn btn-secondary max-w-24 sm:max-w-40"
+						aria-label="Account menu"
 					>
-						{userInitial}
+						<span class="truncate">{userName}</span><span
+							aria-hidden="true"
+							class="text-xs text-text-muted">▾</span
+						>
 					</DropdownMenu.Trigger>
-
 					<DropdownMenu.Portal>
 						<DropdownMenu.Content
-							class="surface-menu z-100 min-w-[220px] overflow-hidden rounded py-1"
+							class="surface-menu z-100 min-w-56 max-w-80 rounded-lg p-1"
 							sideOffset={8}
 							align="end"
 						>
-							<div class="px-3 py-2.5">
-								<p class="font-display text-sm font-bold text-text-primary">{userName}</p>
-								{#if userEmail}
-									<p class="font-body text-xs text-text-muted">{userEmail}</p>
-								{/if}
+							<div class="px-3 py-2">
+								<p class="text-sm font-semibold">{userName}</p>
+								{#if user.email}<p class="break-all text-xs text-text-muted">{user.email}</p>{/if}
 							</div>
-
-							<DropdownMenu.Separator class="my-1 h-px bg-gold/15" />
-
-							<DropdownMenu.Item class="menu-item" onSelect={() => goto('/settings')}>
-								Settings
-							</DropdownMenu.Item>
-
-							<DropdownMenu.Item class="menu-item" onSelect={() => goto('/auth/logout')}>
-								Sign Out
-							</DropdownMenu.Item>
+							<DropdownMenu.Separator class="my-1 h-px bg-border" />
+							<DropdownMenu.Item
+								class="menu-item rounded"
+								onSelect={() => logoutForm?.requestSubmit()}>Sign out</DropdownMenu.Item
+							>
 						</DropdownMenu.Content>
 					</DropdownMenu.Portal>
 				</DropdownMenu.Root>
 			{:else}
-				<a
-					href={`/auth/login?returnTo=${encodeURIComponent(`${page.url.pathname}${page.url.search}`)}`}
-					class="rounded border border-gold/35 bg-slate px-3 py-2 font-display text-[10px] uppercase tracking-[0.22em] text-gold-bright no-underline transition-colors hover:text-amber"
-				>
-					Sign In
-				</a>
+				<Button href={loginUrl} variant="ghost">Sign in</Button>
+				<Button href="/auth/register" class="hidden sm:inline-flex">Create account</Button>
 			{/if}
-
-			<!-- Hamburger: mobile only -->
-			<button
-				onclick={() => (mobileMenuOpen = true)}
-				class="flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-gold/25 bg-slate text-text-secondary sm:hidden"
-				aria-label="Open navigation menu"
-				aria-expanded={mobileMenuOpen}
-				aria-controls="mobile-menu-dialog"
-			>
-				&#9776;
-			</button>
+			<Dialog.Root bind:open={mobileMenuOpen}>
+				<Dialog.Trigger
+					class="btn btn-secondary btn-icon md:hidden"
+					aria-label="Open navigation menu"
+					><svg
+						aria-hidden="true"
+						width="18"
+						height="18"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16" /></svg
+					></Dialog.Trigger
+				>
+				<Dialog.Portal>
+					<Dialog.Overlay class="filter-overlay fixed inset-0 z-40" />
+					<Dialog.Content
+						class="fixed inset-x-3 top-3 z-50 rounded-xl border border-border bg-stone p-2 shadow-xl"
+					>
+						<div class="flex items-center justify-between p-3">
+							<Dialog.Title class="font-semibold tracking-tight">Spellbook</Dialog.Title>
+							<Dialog.Close class="btn btn-ghost" aria-label="Close navigation menu">✕</Dialog.Close
+							>
+						</div>
+						<Dialog.Description class="sr-only"
+							>Navigate your Magic card workspace.</Dialog.Description
+						>
+						{#each NAV_LINKS as link}
+							<a
+								href={link.href}
+								aria-current={isActive(link.href) ? 'page' : undefined}
+								onclick={() => (mobileMenuOpen = false)}
+								class="mobile-nav-link {isActive(link.href) ? 'mobile-nav-link--active' : ''}"
+								>{link.label}</a
+							>
+						{/each}
+						{#if !user}<a
+								href="/auth/register"
+								onclick={() => (mobileMenuOpen = false)}
+								class="mobile-nav-link">Create account</a
+							>{/if}
+					</Dialog.Content>
+				</Dialog.Portal>
+			</Dialog.Root>
 		</div>
 	</div>
 </nav>
-
-<Dialog.Root bind:open={mobileMenuOpen}>
-	<Dialog.Portal>
-		<Dialog.Overlay class="filter-overlay fixed inset-0 z-40 sm:hidden" />
-		<Dialog.Content
-			id="mobile-menu-dialog"
-			class="fixed left-0 right-0 top-14 z-50 border-b border-gold/25 bg-stone shadow-[0_8px_24px_rgba(13,11,15,0.8)] sm:hidden"
-		>
-			<Dialog.Title class="sr-only">Navigation menu</Dialog.Title>
-			<Dialog.Description class="sr-only">
-				Switch the active game or jump to a primary section.
-			</Dialog.Description>
-			<div class="flex flex-col py-2">
-				<div class="flex items-center justify-between gap-3 px-5 py-3">
-					<GameSwitcher />
-					<Dialog.Close
-						class="flex h-9 w-9 cursor-pointer items-center justify-center rounded border border-gold/25 bg-slate text-text-secondary"
-						aria-label="Close navigation menu"
-					>
-						&#10005;
-					</Dialog.Close>
-				</div>
-
-				{#each NAV_LINKS as link}
-					{@const active = isActive(link.href)}
-					<a
-						href={link.href}
-						aria-current={active ? 'page' : undefined}
-						onclick={closeMobileMenu}
-						class="mobile-nav-link {active ? 'mobile-nav-link--active' : ''}"
-					>
-						{link.label}
-					</a>
-				{/each}
-			</div>
-		</Dialog.Content>
-	</Dialog.Portal>
-</Dialog.Root>

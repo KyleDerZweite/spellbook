@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { CardDocument } from '$lib/search/types';
-	import VirtualCardGrid from '$lib/components/cards/VirtualCardGrid.svelte';
+	import type { CardDocument } from '#lib/search/types.ts';
+	import VirtualCardGrid from '#lib/components/cards/VirtualCardGrid.svelte';
 
 	interface Props {
 		hits: CardDocument[];
@@ -27,12 +27,12 @@
 	const SKELETON_COUNT = 20;
 </script>
 
-<div class="flex-1 {className}">
+<div class="flex-1 {className}" aria-busy={loading}>
 	{#if error}
 		<!-- Error state -->
 		<div class="flex items-center justify-center py-20">
 			<div class="text-center">
-				<p class="font-display text-lg text-error">Search Failed</p>
+				<p class="font-body text-sm text-error">Search failed</p>
 				<p class="mt-2 max-w-md font-body text-sm text-text-muted">{error}</p>
 				<p class="mt-1 font-body text-xs italic text-text-muted">
 					Try again or adjust your search.
@@ -45,7 +45,7 @@
 			{#each Array(SKELETON_COUNT) as _, i}
 				<div
 					class="overflow-hidden rounded"
-					style="background-color: var(--color-stone); border: 1px solid rgba(196, 146, 42, 0.12);"
+					style="background-color: var(--color-stone); border: 1px solid var(--color-border);"
 				>
 					<div
 						style="aspect-ratio: 5 / 7; background-color: var(--color-slate); animation: skeleton-pulse 1.5s ease-in-out infinite; animation-delay: {i *
@@ -74,9 +74,9 @@
 		<!-- Empty search state -->
 		<div class="flex items-center justify-center py-20">
 			<div class="text-center">
-				<p class="font-display text-lg text-text-secondary">No Cards Found</p>
+				<p class="font-body text-sm text-text-secondary">No cards found</p>
 				<p class="mt-2 font-body text-sm italic text-text-muted">
-					The archives hold no record of "{query}"
+					No cards match "{query}". Try another name or clear the filters.
 				</p>
 			</div>
 		</div>

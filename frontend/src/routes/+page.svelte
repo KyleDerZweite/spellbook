@@ -1,39 +1,22 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import CardGrid from '$lib/components/cards/CardGrid.svelte';
-	import OrnamentalDivider from '$lib/components/layout/OrnamentalDivider.svelte';
-	import { activeGameState } from '$lib/state/activeGame.svelte';
-	import type { CardDocument } from '$lib/search/types';
-	import { SITE_NAME, pageMetadata } from '$lib/seo/site';
+	import { asset } from '$app/paths';
+	import CardGrid from '#lib/components/cards/CardGrid.svelte';
+	import type { CardDocument } from '#lib/search/types.ts';
+	import { SITE_NAME, pageMetadata } from '#lib/seo/site.ts';
 
-	const RECENT_LIMIT = 6;
-
-	let query = $state('');
 	let inputEl: HTMLInputElement | null = $state(null);
-
 	const isAuthenticated = $derived(Boolean(page.data.user));
-	const gameLabel = $derived(activeGameState.current.toUpperCase());
-
+	const stats = $derived(page.data.stats);
+	const recentAdditions = $derived((page.data.recentAdditions as CardDocument[]).slice(0, 6));
 	const meta = $derived(
 		pageMetadata({
 			origin: page.url.origin,
 			path: '/',
-			title: `${SITE_NAME} | Your ${gameLabel} library`,
-			description: 'Search the catalog and track the cards you own, all in one place.'
+			title: `${SITE_NAME} | Your Magic workspace`,
+			description: 'Build Magic: The Gathering decks, search cards, and organize your inventory.'
 		})
 	);
-
-	let stats = $derived(page.data.stats);
-	let setsCompleteLabel = $derived(`${stats.completedSets} / ${stats.sets || 0} sets complete`);
-	let recentAdditions = $derived(
-		(page.data.recentAdditions as CardDocument[]).slice(0, RECENT_LIMIT)
-	);
-
-	$effect(() => {
-		// Focus the search input on first paint so the primary action is ready.
-		inputEl?.focus();
-	});
 
 	$effect(() => {
 		function handleKeydown(event: KeyboardEvent) {
@@ -45,12 +28,6 @@
 		window.addEventListener('keydown', handleKeydown);
 		return () => window.removeEventListener('keydown', handleKeydown);
 	});
-
-	function handleSubmit(event: SubmitEvent) {
-		event.preventDefault();
-		const q = query.trim();
-		goto(q ? `/search?q=${encodeURIComponent(q)}` : '/search');
-	}
 </script>
 
 <svelte:head>
@@ -60,112 +37,271 @@
 	<meta property="og:title" content={meta.title} />
 	<meta property="og:description" content={meta.description} />
 	<meta property="og:url" content={meta.url} />
-	<meta property="og:type" content="website" />
-	<meta property="og:site_name" content={SITE_NAME} />
 	<meta name="twitter:title" content={meta.title} />
 	<meta name="twitter:description" content={meta.description} />
 </svelte:head>
 
-<div class="mx-auto flex max-w-4xl flex-col gap-8 px-6 py-10 sm:px-8 lg:px-12">
-	{#if !isAuthenticated}
-		<section class="surface-card flex flex-col gap-4 p-8 text-center sm:p-10">
-			<p class="font-mono text-[11px] uppercase tracking-[0.3em] text-text-secondary">
-				{gameLabel} Library
-			</p>
-			<h1 class="font-display text-3xl font-bold text-gold-bright sm:text-4xl">
-				Sign in to enter your library.
-			</h1>
-			<p class="font-body text-base leading-7 text-text-secondary">
-				Spellbook keeps your catalog search and owned card ledger behind a personal sign-in.
-			</p>
-			<div class="mt-2 flex justify-center">
-				<a
-					href={`/auth/login?returnTo=${encodeURIComponent('/')}`}
-					class="inline-flex rounded-lg px-6 py-3 font-display text-xs uppercase tracking-[0.24em] text-text-on-gold no-underline bg-linear-to-br from-gold-dim to-gold border border-gold-bright"
+<div class="home-workspace">
+	<section class="workspace-entry panel">
+		<div class="entry-content">
+			<h1>{isAuthenticated ? 'Your workspace' : 'Spellbook'}</h1>
+			{#if isAuthenticated}
+				<form
+					method="GET"
+					action="/search"
+					role="search"
+					aria-label="Search catalog"
+					class="workspace-search"
 				>
-					Sign In
-				</a>
-			</div>
-		</section>
-	{:else}
-		<header class="flex flex-col gap-2">
-			<p class="font-mono text-[11px] uppercase tracking-[0.3em] text-text-secondary">
-				{gameLabel} Library
-			</p>
-			<h1 class="font-display text-2xl font-bold text-gold-bright sm:text-3xl">
-				Your {gameLabel} library
-			</h1>
-			<p class="font-body text-base leading-7 text-text-secondary">
-				Search the catalog, track what you own.
-			</p>
-		</header>
-
-		<form onsubmit={handleSubmit} class="relative" role="search" aria-label="Search catalog">
-			<span
-				class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-text-muted"
-				aria-hidden="true"
-			>
-				&#128269;
-			</span>
-			<input
-				bind:this={inputEl}
-				bind:value={query}
-				type="search"
-				name="q"
-				autocomplete="off"
-				placeholder="Search cards, sets, or oracle text..."
-				aria-label="Search cards, sets, or oracle text"
-				class="search-input w-full rounded-lg py-3 pl-11 pr-20 font-body text-base text-text-primary placeholder:italic placeholder:text-text-muted focus:outline-none bg-crypt border border-gold/30"
-			/>
-			<span
-				class="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 items-center gap-1 font-mono text-[10px] text-text-muted sm:flex"
-			>
-				<kbd class="rounded bg-slate px-1.5 py-0.5">&#8984;K</kbd>
-			</span>
-		</form>
-
-		{#if stats.total === 0}
-			<p class="font-body text-sm leading-7 text-text-secondary">
-				You haven't added any cards yet. Try searching for one to start your library.
-			</p>
-		{:else}
-			<p class="font-mono text-[12px] text-text-secondary">
-				{stats.total}
-				{stats.total === 1 ? 'card' : 'cards'} &middot; {stats.unique} unique &middot; {setsCompleteLabel}
-				&middot;
-				<a
-					href="/inventory"
-					class="text-gold-bright no-underline transition-colors hover:text-amber"
-				>
-					Inventory &#8594;
-				</a>
-			</p>
-		{/if}
-
-		{#if recentAdditions.length > 0}
-			<section class="flex flex-col gap-4">
-				<OrnamentalDivider />
-				<div class="flex items-baseline justify-between gap-4">
-					<h2 class="font-display text-lg text-text-primary">Recent additions</h2>
-					<a
-						href="/inventory"
-						class="font-display text-[11px] uppercase tracking-[0.24em] text-text-secondary no-underline transition-colors hover:text-gold-bright"
+					<label for="workspace-search" class="sr-only">Search Magic cards</label>
+					<input
+						bind:this={inputEl}
+						id="workspace-search"
+						name="q"
+						type="search"
+						autocomplete="off"
+						placeholder="Search cards by name or rules text"
+						class="input"
+					/>
+					<button type="submit" class="btn btn-primary">Search</button>
+				</form>
+			{:else}
+				<div class="account-actions">
+					<a href="/auth/register" class="btn btn-primary">Create account</a><a
+						href="/auth/login"
+						class="btn btn-secondary">Sign in</a
 					>
-						View all &#8594;
-					</a>
 				</div>
-				<CardGrid cards={recentAdditions} />
-			</section>
-		{/if}
-
-		<nav
-			class="mt-2 flex flex-wrap gap-x-6 gap-y-2 font-display text-[11px] uppercase tracking-[0.24em] text-text-secondary"
-			aria-label="Quick links"
-		>
-			<a href="/inventory" class="no-underline transition-colors hover:text-gold-bright">
-				Inventory
-			</a>
-			<span class="text-text-muted">Scan (soon)</span>
-		</nav>
+			{/if}
+			<nav class="workspace-actions" aria-label="Workspace">
+				<a href="/decks"
+					><svg
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.5"
+						aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5" /></svg
+					><span>Deck builder</span></a
+				>
+				<a href="/search"
+					><svg
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.5"
+						aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg
+					><span>Card search</span></a
+				>
+				<a href="/inventory"
+					><svg
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.5"
+						aria-hidden="true"
+						><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M4 10h16M10 10v10" /></svg
+					><span>Inventory</span></a
+				>
+				<a href="/scan"
+					><svg
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.5"
+						aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M7 12h10" /></svg
+					><span>Scan review</span></a
+				>
+			</nav>
+		</div>
+		<div class="entry-art" aria-hidden="true">
+			<img
+				src={asset('brand/card-box.webp')}
+				alt=""
+				width="1200"
+				height="1000"
+				fetchpriority="high"
+			/>
+		</div>
+	</section>
+	{#if isAuthenticated}
+		<dl class="workspace-stats">
+			<div class="panel">
+				<dt>Cards</dt>
+				<dd>{stats.total.toLocaleString()}</dd>
+			</div>
+			<div class="panel">
+				<dt>Unique cards</dt>
+				<dd>{stats.unique.toLocaleString()}</dd>
+			</div>
+			<div class="panel">
+				<dt>Sets</dt>
+				<dd>{stats.sets.toLocaleString()}</dd>
+			</div>
+		</dl>
+	{/if}
+	{#if isAuthenticated && recentAdditions.length > 0}
+		<section aria-label="Recent additions">
+			<CardGrid
+				cards={recentAdditions}
+				onSelect={(card) => {
+					window.location.href = `/search?q=${encodeURIComponent(card.name)}`;
+				}}
+			/>
+		</section>
 	{/if}
 </div>
+
+<style>
+	.home-workspace {
+		width: 100%;
+		max-width: 1280px;
+		margin: 0 auto;
+		padding: 2rem 1.5rem;
+		display: grid;
+		gap: 1rem;
+	}
+	.workspace-entry {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 300px;
+		overflow: hidden;
+		min-height: 300px;
+		background:
+			radial-gradient(
+				ellipse at 100% 50%,
+				color-mix(in srgb, var(--color-primary) 5%, transparent),
+				transparent 60%
+			),
+			var(--color-card);
+	}
+	.entry-content {
+		padding: 2rem;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		gap: 1.5rem;
+		min-width: 0;
+	}
+	h1 {
+		font-size: 1.4rem;
+		line-height: 1.3;
+		font-weight: 650;
+		margin: 0;
+	}
+	.workspace-search {
+		display: flex;
+		gap: 0.5rem;
+	}
+	.workspace-search input {
+		min-width: 0;
+		flex: 1;
+	}
+	.account-actions {
+		display: flex;
+		gap: 0.5rem;
+	}
+	.workspace-actions {
+		display: grid;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 0.5rem;
+	}
+	.workspace-actions a {
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.65rem;
+		border: 1px solid var(--color-border);
+		border-radius: 0.6rem;
+		padding: 0.9rem 0.7rem;
+		text-decoration: none;
+		color: var(--color-text-primary);
+		background: color-mix(in srgb, var(--color-background) 50%, transparent);
+		font-size: 0.75rem;
+		transition:
+			border-color 150ms,
+			background-color 150ms;
+	}
+	.workspace-actions a:hover {
+		border-color: var(--color-primary);
+		background: var(--color-muted);
+	}
+	.workspace-actions svg {
+		width: 21px;
+		height: 21px;
+		color: var(--color-primary);
+	}
+	.workspace-actions a:nth-child(2) svg {
+		color: var(--color-accentblue);
+	}
+	.workspace-actions a:nth-child(3) svg {
+		color: var(--color-accentviolet);
+	}
+	.entry-art {
+		align-self: center;
+		position: relative;
+	}
+	.entry-art img {
+		display: block;
+		width: 100%;
+		height: auto;
+		object-fit: contain;
+	}
+	.workspace-stats {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 0.75rem;
+		margin: 0;
+	}
+	.workspace-stats > div {
+		padding: 1rem 1.2rem;
+	}
+	.workspace-stats dt {
+		color: var(--color-text-secondary);
+		font-size: 0.75rem;
+	}
+	.workspace-stats dd {
+		margin: 0.4rem 0 0;
+		font-size: 1.35rem;
+		font-weight: 600;
+		font-variant-numeric: tabular-nums;
+	}
+	@media (max-width: 1000px) {
+		.workspace-entry {
+			grid-template-columns: minmax(0, 1fr) 230px;
+		}
+		.entry-content {
+			padding: 1.5rem;
+		}
+	}
+	@media (max-width: 700px) {
+		.home-workspace {
+			padding: 1rem;
+		}
+		.workspace-entry {
+			grid-template-columns: 1fr;
+		}
+		.entry-art {
+			grid-row: 1;
+			width: 180px;
+			margin: 0.5rem auto -1rem;
+		}
+		.entry-content {
+			padding: 1.25rem;
+			gap: 1rem;
+		}
+		.workspace-actions {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+		.workspace-actions a {
+			flex-direction: row;
+			align-items: center;
+			padding: 0.85rem;
+		}
+		.workspace-stats > div {
+			padding: 0.85rem 0.75rem;
+		}
+		.workspace-stats dd {
+			font-size: 1.1rem;
+		}
+	}
+</style>

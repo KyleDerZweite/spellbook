@@ -1,4 +1,4 @@
-import type { DeckCard } from '$lib/server/data/types';
+import type { DeckCard } from '#lib/server/data/types.ts';
 import { assertDeckRole, type DeckRole } from './validation';
 
 export type ParsedDecklistRole = DeckRole | 'maybeboard';
@@ -39,8 +39,8 @@ export function normalizeCardName(name: string): string {
 	return name
 		.toLowerCase()
 		.replace(/[’']/g, '')
-		.replace(/[^a-z0-9/]+/g, ' ')
-		.replace(/\s*\/\s*/g, ' // ')
+		.replace(/[^\p{L}\p{N}/]+/gu, ' ')
+		.replace(/\s*\/+\s*/g, ' // ')
 		.replace(/\s+/g, ' ')
 		.trim();
 }
@@ -119,12 +119,12 @@ function parseCardLine(raw: string, currentRole: ParsedDecklistRole): ParsedDeck
 	}
 
 	const quantity = Number(match[1]);
-	if (!Number.isInteger(quantity) || quantity <= 0) {
+	if (!Number.isSafeInteger(quantity) || quantity <= 0) {
 		return null;
 	}
 
 	line = match[2].trim();
-	const printingMatch = line.match(/^(.*?)\s+\(([A-Za-z0-9]+)\)\s+([A-Za-z0-9\-★]+)$/u);
+	const printingMatch = line.match(/^(.*?)\s+\(([A-Za-z0-9]+)\)(?:\s+([A-Za-z0-9\-★]+))?$/u);
 	const name = (printingMatch?.[1] ?? line).trim();
 	if (!name) {
 		return null;

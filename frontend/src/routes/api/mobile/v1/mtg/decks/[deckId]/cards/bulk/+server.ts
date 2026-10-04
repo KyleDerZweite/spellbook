@@ -1,22 +1,21 @@
-import { error, json } from '@sveltejs/kit';
-import { requireMobileAuth } from '$lib/server/mobile/auth';
-import { bulkMutateDeckCards } from '$lib/server/mobile/mtg-service';
-import { badRequestIfValidation } from '$lib/server/mobile/route-errors';
+import type { RequestHandler } from './$types';
+import { readString, readJsonObject, requireUuid } from '#lib/server/http/request.ts';
+import { json } from '@sveltejs/kit';
+import { requireMobileAuth } from '#lib/server/mobile/auth.ts';
+import { bulkMutateDeckCards } from '#lib/server/mobile/mtg-service.ts';
+import { badRequestIfValidation } from '#lib/server/mobile/route-errors.ts';
 
-export const POST = async (event) => {
+export const POST: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
-	const deckId = event.params.deckId?.trim();
-	const body = await event.request.json();
-	if (!deckId) {
-		throw error(400, 'deckId is required');
-	}
+	const deckId = requireUuid(event.params.deckId, 'deckId');
+	const body = await readJsonObject(event.request);
 
 	try {
 		return json(
 			await bulkMutateDeckCards(auth, {
 				deckId,
-				requestId: String(body?.requestId ?? ''),
-				source: String(body?.source ?? 'mobile'),
+				requestId: readString(body.requestId, 'requestId', ''),
+				source: readString(body.source, 'source', 'mobile'),
 				operations: body?.operations
 			})
 		);

@@ -1,6 +1,8 @@
 import { sql } from 'drizzle-orm';
 import {
 	check,
+	customType,
+	doublePrecision,
 	index,
 	integer,
 	jsonb,
@@ -23,6 +25,28 @@ export const userProfiles = pgTable('user_profiles', {
 	email: text('email').notNull().default(''),
 	lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow()
 });
+
+export const localCredentials = pgTable('local_credentials', {
+	accountId: text('account_id')
+		.primaryKey()
+		.references(() => userProfiles.accountId, { onDelete: 'cascade' }),
+	username: text('username').notNull().unique(),
+	passwordHash: text('password_hash').notNull(),
+	...timestamps
+});
+
+export const authSessions = pgTable(
+	'auth_sessions',
+	{
+		tokenHash: text('token_hash').primaryKey(),
+		accountId: text('account_id')
+			.notNull()
+			.references(() => userProfiles.accountId, { onDelete: 'cascade' }),
+		expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(table) => [index('auth_sessions_account_idx').on(table.accountId)]
+);
 
 export const authIdentities = pgTable(
 	'auth_identities',
@@ -163,6 +187,7 @@ export const deckMutationRequests = pgTable(
 	{
 		accountId: text('account_id').notNull(),
 		requestId: text('request_id').notNull(),
+		requestHash: text('request_hash'),
 		deckId: uuid('deck_id')
 			.notNull()
 			.references(() => decks.id, { onDelete: 'cascade' }),
@@ -281,6 +306,7 @@ export const inventoryMutationRequests = pgTable(
 	{
 		accountId: text('account_id').notNull(),
 		requestId: text('request_id').notNull(),
+		requestHash: text('request_hash'),
 		source: text('source').notNull(),
 		status: text('status').notNull(),
 		...timestamps
@@ -295,5 +321,76 @@ export const inventoryMutationRequests = pgTable(
 			'inventory_mutation_requests_status_check',
 			sql`${table.status} in ('applied', 'pending', 'rejected')`
 		)
+	]
+);
+
+const tsvector = customType<{ data: string }>({ dataType: () => 'tsvector' });
+
+export const catalogGenerations = pgTable(
+	'catalog_generations',
+	{
+		id: uuid('id').primaryKey(),
+		sourceType: text('source_type').notNull(),
+		sourceUpdatedAt: timestamp('source_updated_at', { withTimezone: true }).notNull(),
+		documentCount: integer('document_count').notNull().default(0),
+		schemaVersion: integer('schema_version').notNull().default(1),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+		publishedAt: timestamp('published_at', { withTimezone: true })
+	},
+	(table) => [check('catalog_generations_count_check', sql`${table.documentCount} >= 0`)]
+);
+
+export const catalogState = pgTable(
+	'catalog_state',
+	{
+		id: integer('id').primaryKey(),
+		activeGeneration: uuid('active_generation').references(() => catalogGenerations.id),
+		previousGeneration: uuid('previous_generation').references(() => catalogGenerations.id),
+		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(table) => [check('catalog_state_singleton_check', sql`${table.id} = 1`)]
+);
+
+export const catalogPrintings = pgTable(
+	'catalog_printings',
+	{
+		generationId: uuid('generation_id')
+			.notNull()
+			.references(() => catalogGenerations.id, { onDelete: 'cascade' }),
+		id: uuid('id').notNull(),
+		oracleId: uuid('oracle_id').notNull(),
+		name: text('name').notNull(),
+		normalizedName: text('normalized_name').notNull(),
+		printedName: text('printed_name').notNull(),
+		lang: text('lang').notNull(),
+		setCode: text('set_code').notNull(),
+		collectorNumber: text('collector_number').notNull(),
+		rarity: text('rarity').notNull(),
+		cmc: doublePrecision('cmc').notNull(),
+		colors: text('colors').array().notNull(),
+		cardTypes: text('card_types').array().notNull(),
+		legalities: jsonb('legalities').notNull(),
+		searchName: text('search_name').notNull(),
+		searchText: text('search_text').notNull(),
+		document: jsonb('document').notNull(),
+		searchVector: tsvector('search_vector').generatedAlwaysAs(
+			sql`to_tsvector('simple', search_text)`
+		)
+	},
+	(table) => [
+		primaryKey({ columns: [table.generationId, table.id] }),
+		index('catalog_printings_oracle_idx').on(table.generationId, table.oracleId),
+		index('catalog_printings_name_idx').on(table.generationId, table.normalizedName),
+		index('catalog_printings_set_collector_idx').on(
+			table.generationId,
+			table.setCode,
+			table.collectorNumber
+		),
+		index('catalog_printings_order_idx').on(table.generationId, table.name, table.id),
+		index('catalog_printings_search_name_idx').using('gin', sql`${table.searchName} gin_trgm_ops`),
+		index('catalog_printings_search_vector_idx').using('gin', table.searchVector),
+		index('catalog_printings_colors_idx').using('gin', table.colors),
+		index('catalog_printings_card_types_idx').using('gin', table.cardTypes),
+		index('catalog_printings_legalities_idx').using('gin', table.legalities)
 	]
 );

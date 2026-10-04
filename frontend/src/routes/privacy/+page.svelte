@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { SITE_NAME, pageMetadata } from '$lib/seo/site';
+	import { SITE_NAME, pageMetadata } from '#lib/seo/site.ts';
 
 	const meta = $derived(
 		pageMetadata({
@@ -28,12 +28,12 @@
 
 <div class="mx-auto max-w-3xl px-6 py-12">
 	<h1
-		class="mb-2 font-display text-3xl font-bold text-gold-bright"
+		class="mb-2 font-display text-xl font-semibold text-text-primary"
 		style="text-shadow: 0 0 16px rgba(232, 184, 75, 0.2);"
 	>
 		Privacy Policy
 	</h1>
-	<p class="mb-10 font-body text-sm text-text-muted">Last updated: March 25, 2026</p>
+	<p class="mb-10 font-body text-sm text-text-muted">Last updated: October 3, 2026</p>
 
 	<div class="space-y-8 font-body text-sm leading-relaxed text-text-secondary">
 		<!-- 1. Scope -->
@@ -125,8 +125,8 @@
 				<li>Username</li>
 				<li>Email address</li>
 				<li>
-					No local password is stored by Spellbook; authentication is handled by the upstream
-					identity-aware proxy
+					A salted password hash for your local account. Spellbook does not store your password in
+					plaintext.
 				</li>
 				<li>Your inventory, decks, and related card metadata</li>
 			</ul>

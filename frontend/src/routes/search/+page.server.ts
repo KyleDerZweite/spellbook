@@ -1,6 +1,6 @@
 import { fail, redirect, type Actions } from '@sveltejs/kit';
-import { addToInventory } from '$lib/server/data/inventory';
-import { DEFAULT_GAME } from '$lib/state/activeGame.svelte';
+import { addToInventory } from '#lib/server/data/inventory.ts';
+import { DEFAULT_GAME } from '#lib/state/activeGame.svelte.ts';
 
 export const actions: Actions = {
 	addToInventory: async ({ request, locals }) => {

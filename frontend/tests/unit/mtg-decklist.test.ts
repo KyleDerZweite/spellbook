@@ -17,6 +17,20 @@ describe('parseArenaDecklist', () => {
 		expect(parsed.lines[0]).toMatchObject({ setCode: 'sta', collectorNumber: '19' });
 	});
 
+	it('normalizes whole and individual face names while preserving printing hints', () => {
+		const parsed = parseArenaDecklist(
+			'1 Fire/Ice\n1 Fire // Ice\n4 Bonecrusher Giant (ELD) 115\n1 Insectile Aberration\n1 骨砕きの巨人'
+		);
+		expect(parsed.lines.map((line) => line.normalizedName)).toEqual([
+			'fire // ice',
+			'bonecrusher giant',
+			'insectile aberration',
+			'骨砕きの巨人'
+		]);
+		expect(parsed.lines[0].quantity).toBe(2);
+		expect(parsed.lines[1]).toMatchObject({ setCode: 'eld', collectorNumber: '115' });
+	});
+
 	it('parses sideboard, commander, and companion sections', () => {
 		const parsed = parseArenaDecklist(
 			'Sideboard\n2 Negate\nCommander\n1 Atraxa\nCompanion\n1 Jegantha'
@@ -42,6 +56,20 @@ describe('parseArenaDecklist', () => {
 });
 
 describe('formatArenaDecklist', () => {
+	it('round trips set-only exports without treating the set as part of the name', () => {
+		const original = [
+			deckCard({ quantity: 4, name: 'Lightning Bolt' }),
+			deckCard({ quantity: 1, name: 'Negate', role: 'sideboard' })
+		];
+		const parsed = parseArenaDecklist(formatArenaDecklist(original));
+		expect(parsed.malformed).toEqual([]);
+		expect(
+			parsed.lines.map(({ quantity, name, setCode, role }) => ({ quantity, name, setCode, role }))
+		).toEqual(
+			original.map(({ quantity, name, setCode, role }) => ({ quantity, name, setCode, role }))
+		);
+	});
+
 	it('exports main only', () => {
 		expect(formatArenaDecklist([deckCard({ quantity: 4, name: 'Lightning Bolt' })])).toBe(
 			'Deck\n4 Lightning Bolt (STA)\n'

@@ -11,8 +11,8 @@ import type {
 	scanReviewItems,
 	scanSessions,
 	userProfiles
-} from '$lib/server/db/schema';
-import type { CardDocument } from '$lib/search/types';
+} from '#lib/server/db/schema.ts';
+import type { CardDocument } from '#lib/search/types.ts';
 
 export type UserProfile = InferSelectModel<typeof userProfiles>;
 export type AuthIdentity = InferSelectModel<typeof authIdentities>;
@@ -79,11 +79,12 @@ export interface ScanCandidate {
 	similarityScore: number;
 	ocrScore: number;
 	finalScore: number;
+	confidence?: number;
 	matchReason: string;
 }
 
 export interface ScanWorkerResult {
-	status: 'matched' | 'ambiguous' | 'no_match';
+	status: 'matched' | 'ambiguous' | 'no_match' | 'failed';
 	normalizedObjectKey: string;
 	qualityScore: number;
 	embeddingModelVersion: string;

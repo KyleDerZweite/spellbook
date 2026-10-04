@@ -44,7 +44,7 @@ MULTI_FACE_LAYOUTS = frozenset(
 
 
 def transform_card(raw: dict) -> dict | None:
-    """Transform a Scryfall card object into a flat MeiliSearch document.
+    """Transform a Scryfall card object into a flat catalog document.
 
     Returns None for non-game cards (tokens, art series, etc.)
     """
@@ -72,6 +72,12 @@ def transform_card(raw: dict) -> dict | None:
         "id": card_id,
         "oracle_id": oracle_id,
         "name": raw.get("name", ""),
+        "printed_name": raw.get("printed_name")
+        or " // ".join(
+            face["printed_name"]
+            for face in raw.get("card_faces") or []
+            if face.get("printed_name")
+        ),
         "normalized_name": normalize_card_name(raw.get("name", "")),
         "lang": raw.get("lang", "en"),
         "released_at": raw.get("released_at", ""),
@@ -112,8 +118,8 @@ def transform_card(raw: dict) -> dict | None:
 def normalize_card_name(name: str) -> str:
     """Normalize a card name for exact deck-list import matching."""
     normalized = name.lower().replace("'", "").replace("\u2019", "")
-    normalized = re.sub(r"[^a-z0-9/]+", " ", normalized)
-    normalized = re.sub(r"\s*/\s*", " // ", normalized)
+    normalized = re.sub(r"[^\w/]+", " ", normalized).replace("_", " ")
+    normalized = re.sub(r"\s*/+\s*", " // ", normalized)
     normalized = re.sub(r"\s+", " ", normalized)
     return normalized.strip()
 

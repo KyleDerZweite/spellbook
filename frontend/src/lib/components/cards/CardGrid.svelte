@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { CardDocument } from '$lib/search/types';
+	import type { CardDocument } from '#lib/search/types.ts';
 	import RarityBadge from './RarityBadge.svelte';
 
 	interface Props {
@@ -19,7 +19,7 @@
 	{#each cards as card (card.id)}
 		{@const isSelected = selectedId === card.id}
 		<button
-			class="card-grid-item group cursor-pointer overflow-hidden rounded bg-stone p-0 text-left"
+			class="card-grid-item group cursor-pointer overflow-hidden rounded-lg bg-stone p-0 text-left"
 			class:card-grid-item--selected={isSelected}
 			onclick={() => onSelect?.(card)}
 		>
@@ -44,7 +44,7 @@
 
 			<!-- Card info -->
 			<div class="px-2 py-1.5">
-				<p class="truncate font-display text-xs leading-tight text-text-primary" title={card.name}>
+				<p class="truncate text-xs font-medium leading-tight text-text-primary" title={card.name}>
 					{card.name}
 				</p>
 				<div class="mt-0.5 flex items-center gap-1.5">

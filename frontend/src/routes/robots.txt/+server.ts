@@ -1,5 +1,5 @@
-import { privateEnv } from '$lib/env/private';
-import { buildRobotsTxt } from '$lib/seo/site';
+import { privateEnv } from '#lib/env/private.ts';
+import { buildRobotsTxt } from '#lib/seo/site.ts';
 
 export const GET = (event?: { url: URL }) => {
 	const origin = privateEnv.APP_ORIGIN ?? event?.url.origin;

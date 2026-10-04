@@ -29,6 +29,27 @@
 			"when": 1779093493244,
 			"tag": "0003_breezy_justin_hammer",
 			"breakpoints": true
+		},
+		{
+			"idx": 4,
+			"version": "7",
+			"when": 1791053307277,
+			"tag": "0004_local_auth",
+			"breakpoints": true
+		},
+		{
+			"idx": 5,
+			"version": "7",
+			"when": 1791054932365,
+			"tag": "0005_mutation_request_fingerprints",
+			"breakpoints": true
+		},
+		{
+			"idx": 6,
+			"version": "7",
+			"when": 1791058654525,
+			"tag": "0006_postgres_catalog",
+			"breakpoints": true
 		}
 	]
 }

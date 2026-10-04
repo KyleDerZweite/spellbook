@@ -1,12 +1,11 @@
 <script lang="ts">
-	import { Dialog } from 'bits-ui';
+	import { Dialog, Select } from 'bits-ui';
 	import ManaCost from './ManaCost.svelte';
 	import RarityBadge from './RarityBadge.svelte';
 	import CardQuickAdd from './CardQuickAdd.svelte';
-	import OrnamentalDivider from '$lib/components/layout/OrnamentalDivider.svelte';
-	import { searchPrintings } from '$lib/search/meilisearch';
-	import type { CardDocument } from '$lib/search/types';
-	import { getManaFontClass } from '$lib/utils/manaCostParser';
+	import { searchPrintings } from '#lib/search/catalog.ts';
+	import type { CardDocument } from '#lib/search/types.ts';
+	import { getManaFontClass } from '#lib/utils/manaCostParser.ts';
 
 	interface Props {
 		card: CardDocument;
@@ -18,9 +17,9 @@
 	let printings: CardDocument[] = $state([]);
 	let selectedPrinting: CardDocument | null = $state(null);
 	let loadingPrintings = $state(true);
+	let printingsError = $state('');
 	let detailOpen = $state(false);
 	let selectedLang = $state('en');
-	let dropdownOpen = $state(false);
 	let allPrintingsView = $state(false);
 	let foilFilter: 'all' | 'foil' | 'nonfoil' = $state('all');
 
@@ -61,11 +60,11 @@
 		printings = [];
 		selectedPrinting = null;
 		loadingPrintings = true;
+		printingsError = '';
 		selectedLang = 'en';
 		foilFilter = 'all';
 		allPrintingsView = false;
 		activeTab = 'printings';
-		dropdownOpen = false;
 
 		searchPrintings(oracleId, { signal: controller.signal })
 			.then((result) => {
@@ -74,9 +73,10 @@
 					loadingPrintings = false;
 				}
 			})
-			.catch(() => {
+			.catch((cause: unknown) => {
 				if (!controller.signal.aborted) {
 					loadingPrintings = false;
+					printingsError = cause instanceof Error ? cause.message : 'Unable to load printings.';
 				}
 			});
 
@@ -111,7 +111,6 @@
 
 	function selectPrinting(printing: CardDocument) {
 		selectedPrinting = printing;
-		dropdownOpen = false;
 		allPrintingsView = false;
 	}
 
@@ -151,27 +150,26 @@
 	<Dialog.Portal>
 		<Dialog.Overlay
 			class="fixed inset-0 z-40 flex items-end justify-center sm:items-center sm:p-4 lg:p-8"
-			style="background: rgba(13, 11, 15, 0.85); backdrop-filter: blur(4px); animation: fade-in 200ms ease-out;"
+			style="background: rgba(8, 11, 13, 0.85); backdrop-filter: blur(4px); animation: fade-in 200ms ease-out;"
 		>
 			<Dialog.Content
 				class="modal-content relative z-50 flex w-full flex-col rounded-t-xl sm:max-w-5xl sm:rounded-lg"
 				style="
 					max-height: 92dvh;
 					background-color: var(--color-stone);
-					border: 1px solid rgba(196, 146, 42, 0.35);
-					box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset, 0 24px 64px rgba(13, 11, 15, 0.9);
+					border: 1px solid var(--color-border);
+					box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset, 0 24px 64px rgba(8, 11, 13, 0.9);
 					animation: modal-enter 220ms ease-out;
 				"
-				onInteractOutside={(e) => e.preventDefault()}
 			>
 				<!-- Header: name + mana cost + close -->
 				<div
 					class="shrink-0 px-4 pt-4 sm:px-5"
-					style="border-bottom: 1px solid rgba(196, 146, 42, 0.2);"
+					style="border-bottom: 1px solid var(--color-border);"
 				>
 					<div class="flex items-start justify-between gap-2 pr-10">
 						<Dialog.Title
-							class="min-w-0 break-words font-display text-base font-bold text-text-primary sm:text-xl"
+							class="min-w-0 break-words font-display text-base font-semibold text-text-primary"
 							level={2}
 						>
 							{activeCard.name}
@@ -189,7 +187,8 @@
 									activeTab = tab.id;
 									allPrintingsView = false;
 								}}
-								class="relative cursor-pointer border-none bg-transparent pb-2 font-display text-xs uppercase tracking-widest transition-colors"
+								aria-pressed={activeTab === tab.id}
+								class="relative cursor-pointer border-none bg-transparent pb-2 font-display text-xs font-semibold transition-colors"
 								style="color: {activeTab === tab.id
 									? 'var(--color-gold-bright)'
 									: 'var(--color-text-muted)'};"
@@ -230,13 +229,14 @@
 
 					<!-- Tab content (scrollable on desktop) -->
 					<div class="flex min-w-0 flex-1 flex-col gap-4 p-4 sm:p-5 lg:overflow-y-auto">
+						{#if printingsError}<p role="alert" class="text-sm text-text-secondary">
+								{printingsError}
+							</p>{/if}
 						{#if allPrintingsView}
 							<!-- ==================== ALL PRINTINGS GRID ==================== -->
 							<div>
 								<div class="mb-3 flex items-center justify-between">
-									<h3 class="font-display text-sm font-bold text-text-primary">
-										Select a printing
-									</h3>
+									<h3 class="sr-only">Select a printing</h3>
 									<button
 										onclick={() => (allPrintingsView = false)}
 										class="cursor-pointer rounded border-none bg-transparent px-2 py-1 font-body text-xs text-text-muted transition-colors hover:text-gold-bright"
@@ -273,6 +273,8 @@
 													opacity: {selectedLang === lang ? '1' : '0.5'};
 												"
 													title={lang}
+													aria-label={`Show ${lang} printings`}
+													aria-pressed={selectedLang === lang}
 												>
 													{LANG_FLAGS[lang] ?? lang}
 												</button>
@@ -350,115 +352,62 @@
 									Printings unavailable right now.
 								</p>
 							{:else}
-								<!-- Printing dropdown -->
-								<div>
-									<span
-										class="mb-1.5 block font-display text-xs uppercase tracking-widest text-text-secondary"
+								<Select.Root
+									type="single"
+									value={activeCard.id}
+									onValueChange={(id) => {
+										const printing = filteredPrintings.find((item) => item.id === id);
+										if (printing) selectPrinting(printing);
+									}}
+								>
+									<Select.Trigger
+										class="input flex items-center justify-between gap-2 text-left"
+										aria-label="Select card printing"
 									>
-										Printing
-									</span>
-									<!-- svelte-ignore a11y_no_static_element_interactions -->
-									<div class="relative">
-										<button
-											onclick={() => (dropdownOpen = !dropdownOpen)}
-											class="flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left font-body text-sm transition-colors"
-											style="
-												background-color: var(--color-slate);
-												border: 1px solid {dropdownOpen ? 'var(--color-gold)' : 'rgba(196, 146, 42, 0.25)'};
-												color: var(--color-text-primary);
-											"
+										<span class="truncate"
+											>{activeCard.set_name} ({activeCard.set_code.toUpperCase()}) #{activeCard.collector_number}</span
 										>
-											<span class="flex min-w-0 items-center gap-2">
-												<RarityBadge rarity={activeCard.rarity} />
-												<span class="truncate">
-													{activeCard.set_name}
-													<span class="text-text-muted">
-														({activeCard.set_code}) #{activeCard.collector_number}
-													</span>
-												</span>
-											</span>
-											<span
-												class="shrink-0 text-xs text-text-muted transition-transform duration-150"
-												style="transform: rotate({dropdownOpen ? '180deg' : '0deg'});">&#9660;</span
-											>
-										</button>
-
-										{#if dropdownOpen}
-											<div
-												class="fixed inset-0"
-												onclick={() => (dropdownOpen = false)}
-												onkeydown={(e) => {
-													if (e.key === 'Escape') dropdownOpen = false;
-												}}
-												role="button"
-												tabindex="-1"
-												aria-label="Close dropdown"
-											></div>
-											<div
-												class="absolute left-0 z-20 mt-1 w-full overflow-y-auto rounded-lg"
-												style="
-													max-height: 280px;
-													background-color: var(--color-crypt);
-													border: 1px solid rgba(196, 146, 42, 0.3);
-													box-shadow: 0 8px 32px rgba(13, 11, 15, 0.8);
-												"
-											>
+										<span aria-hidden="true">▾</span>
+									</Select.Trigger>
+									<Select.Portal>
+										<Select.Content
+											class="surface-menu z-[100] max-h-72 w-[var(--bits-select-anchor-width)] overflow-y-auto rounded-lg p-1"
+											sideOffset={4}
+										>
+											<Select.Viewport>
 												{#each filteredPrintings as printing (printing.id)}
-													{@const isCurrent =
-														selectedPrinting?.id === printing.id ||
-														(!selectedPrinting && printing.id === card.id)}
-													<button
-														onclick={() => selectPrinting(printing)}
-														class="flex w-full cursor-pointer items-start gap-3 px-3 py-2.5 text-left font-body text-sm transition-colors"
-														style="
-															background-color: {isCurrent ? 'var(--color-mist)' : 'transparent'};
-															border: none;
-															border-bottom: 1px solid rgba(196, 146, 42, 0.08);
-															color: var(--color-text-primary);
-														"
-														onmouseenter={(e) => {
-															if (!isCurrent)
-																(e.currentTarget as HTMLElement).style.backgroundColor =
-																	'var(--color-slate)';
-														}}
-														onmouseleave={(e) => {
-															if (!isCurrent)
-																(e.currentTarget as HTMLElement).style.backgroundColor =
-																	'transparent';
-														}}
+													<Select.Item
+														value={printing.id}
+														label={`${printing.set_name} ${printing.collector_number}`}
+														class="menu-item rounded"
 													>
-														<RarityBadge rarity={printing.rarity} />
-														<div class="min-w-0 flex-1">
-															<span class="block truncate font-medium">
-																{printing.set_name}
-																{#if isCurrent}
-																	<span class="ml-1 text-xs text-gold">(Current)</span>
-																{/if}
-															</span>
-															<span class="text-xs text-text-muted">
-																({printing.set_code}) #{printing.collector_number}
-															</span>
-														</div>
-													</button>
-												{/each}
-												{#if filteredPrintings.length === 0}
-													<p class="px-3 py-3 font-body text-xs italic text-text-muted">
-														No printings match the current filters.
-													</p>
-												{/if}
-											</div>
-										{/if}
-									</div>
-								</div>
+														{#snippet children({ selected })}
+															<RarityBadge rarity={printing.rarity} />
+															<span class="min-w-0 flex-1"
+																><span class="block truncate">{printing.set_name}</span><span
+																	class="text-xs text-text-muted"
+																	>{printing.set_code.toUpperCase()} #{printing.collector_number}</span
+																></span
+															>
+															{#if selected}<span aria-hidden="true" class="text-gold">✓</span>{/if}
+														{/snippet}
+													</Select.Item>
+												{:else}<p class="p-3 text-sm text-text-muted">
+														No printings match these filters.
+													</p>{/each}
+											</Select.Viewport>
+										</Select.Content>
+									</Select.Portal>
+								</Select.Root>
 
 								<!-- Action row: All printings + Foil/Nonfoil -->
 								<div class="flex flex-wrap items-center gap-2">
 									<button
 										onclick={() => (allPrintingsView = true)}
-										class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 font-display text-xs uppercase tracking-wider transition-colors"
+										class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 font-display text-xs font-semibold transition-colors"
 										style="
 											background-color: var(--color-slate);
-											border: 1px solid rgba(196, 146, 42, 0.25);
+											border: 1px solid var(--color-border);
 											color: var(--color-text-secondary);
 										"
 									>
@@ -466,10 +415,10 @@
 									</button>
 									<button
 										onclick={() => (foilFilter = foilFilter === 'nonfoil' ? 'all' : 'nonfoil')}
-										class="inline-flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1.5 font-display text-xs uppercase tracking-wider transition-colors"
+										class="inline-flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1.5 font-display text-xs font-semibold transition-colors"
 										style="
 											background-color: {foilFilter === 'nonfoil' ? 'var(--color-mist)' : 'var(--color-slate)'};
-											border: 1px solid {foilFilter === 'nonfoil' ? 'var(--color-gold)' : 'rgba(196, 146, 42, 0.25)'};
+											border: 1px solid {foilFilter === 'nonfoil' ? 'var(--color-gold)' : 'var(--color-border)'};
 											color: {foilFilter === 'nonfoil' ? 'var(--color-gold-bright)' : 'var(--color-text-secondary)'};
 										"
 									>
@@ -477,10 +426,10 @@
 									</button>
 									<button
 										onclick={() => (foilFilter = foilFilter === 'foil' ? 'all' : 'foil')}
-										class="inline-flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1.5 font-display text-xs uppercase tracking-wider transition-colors"
+										class="inline-flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1.5 font-display text-xs font-semibold transition-colors"
 										style="
 											background-color: {foilFilter === 'foil' ? 'var(--color-mist)' : 'var(--color-slate)'};
-											border: 1px solid {foilFilter === 'foil' ? 'var(--color-gold)' : 'rgba(196, 146, 42, 0.25)'};
+											border: 1px solid {foilFilter === 'foil' ? 'var(--color-gold)' : 'var(--color-border)'};
 											color: {foilFilter === 'foil' ? 'var(--color-gold-bright)' : 'var(--color-text-secondary)'};
 										"
 									>
@@ -501,6 +450,8 @@
 													opacity: {selectedLang === lang ? '1' : '0.5'};
 												"
 												title={lang}
+												aria-label={`Show ${lang} printings`}
+												aria-pressed={selectedLang === lang}
 											>
 												{LANG_FLAGS[lang] ?? lang}
 											</button>
@@ -509,7 +460,7 @@
 								{/if}
 							{/if}
 
-							<OrnamentalDivider />
+							<div class="border-t border-border" aria-hidden="true"></div>
 
 							<!-- Inventory add -->
 							<CardQuickAdd card={activeCard} />
@@ -545,7 +496,7 @@
 								</div>
 							{/if}
 
-							<OrnamentalDivider />
+							<div class="border-t border-border" aria-hidden="true"></div>
 
 							<!-- Card details -->
 							<div class="flex flex-col gap-1.5 font-body text-sm">
@@ -575,13 +526,9 @@
 
 							<!-- Legalities -->
 							{#if activeCard.legalities && Object.keys(activeCard.legalities).length > 0}
-								<OrnamentalDivider />
+								<div class="border-t border-border" aria-hidden="true"></div>
 								<div>
-									<h3
-										class="mb-2 font-display text-xs uppercase tracking-widest text-text-secondary"
-									>
-										Legalities
-									</h3>
+									<h3 class="sr-only">Legalities</h3>
 									<div class="flex flex-wrap gap-1.5">
 										{#each Object.entries(activeCard.legalities) as [format, status]}
 											<span
@@ -592,7 +539,9 @@
 													: status === 'banned'
 														? 'var(--color-error)'
 														: 'var(--color-slate)'};
-													color: {status === 'legal' || status === 'banned' ? '#fff' : 'var(--color-text-muted)'};
+													color: {status === 'legal' || status === 'banned'
+													? 'var(--color-void)'
+													: 'var(--color-text-muted)'};
 												"
 											>
 												{format.replace(/_/g, ' ')}

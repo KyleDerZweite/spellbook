@@ -1,7 +1,7 @@
-import type { AuthUser } from '$lib/auth/types';
-import type { CardDocument } from '$lib/search/types';
+import type { AuthUser } from '#lib/auth/types.ts';
+import type { CardDocument } from '#lib/search/types.ts';
 
-export type { ScanWorkerResult } from '$lib/server/data/types';
+export type { ScanWorkerResult } from '#lib/server/data/types.ts';
 
 export interface MobileAuthContext {
 	user: AuthUser;
@@ -18,19 +18,7 @@ export interface MobileInventoryBatchItem {
 	quantity: number;
 }
 
-export interface ScanCandidate {
-	catalogCardId: string;
-	canonicalCardId: string;
-	oracleId: string;
-	name: string;
-	setCode: string;
-	collectorNumber: string;
-	imageUri: string;
-	similarityScore: number;
-	ocrScore: number;
-	finalScore: number;
-	matchReason: string;
-}
+export type { ScanCandidate } from '#lib/server/data/types.ts';
 
 export interface MobileSearchResponse {
 	query: string;

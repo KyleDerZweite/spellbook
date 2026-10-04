@@ -1,42 +1,29 @@
+import type { RequestHandler } from './$types';
+import { readString, readJsonObject } from '#lib/server/http/request.ts';
 import { json } from '@sveltejs/kit';
-import {
-	createDeckRecord,
-	getDeckByMutationRequest,
-	getDeckCardsForDeck
-} from '$lib/server/data/decks';
-import { requireMobileAuth } from '$lib/server/mobile/auth';
-import { bulkMutateDeckCards } from '$lib/server/mobile/mtg-service';
-import { badRequestIfValidation } from '$lib/server/mobile/route-errors';
-import { isCommittedDeckRole, previewMtgImport, toCardIdentity } from '$lib/server/mtg/import';
+import { importDeck, getDeckCardsForDeck } from '#lib/server/data/decks.ts';
+import { requireMobileAuth } from '#lib/server/mobile/auth.ts';
+import { badRequestIfValidation } from '#lib/server/mobile/route-errors.ts';
+import { isCommittedDeckRole, previewMtgImport, toCardIdentity } from '#lib/server/mtg/import.ts';
 import {
 	DECK_SOURCES,
 	ValidationError,
 	assertRequestId,
 	normalizeSource
-} from '$lib/server/mtg/validation';
+} from '#lib/server/mtg/validation.ts';
 
-export const POST = async (event) => {
+export const POST: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
-	const body = await event.request.json();
+	const body = await readJsonObject(event.request);
 	try {
-		const name = String(body?.name ?? '').trim();
+		const name = readString(body.name, 'name', '').trim();
 		if (!name) {
 			throw new ValidationError('Deck name is required');
 		}
 		const requestId = assertRequestId(body?.requestId);
 		const source = normalizeSource(body?.source, DECK_SOURCES, 'import');
-		const format = String(body?.format ?? 'Commander');
-		const preview = await previewMtgImport(String(body?.text ?? ''), format);
-		const existingDeck = await getDeckByMutationRequest(auth.user.accountId, requestId);
-		if (existingDeck) {
-			return json({
-				deck: existingDeck,
-				deckCards: await getDeckCardsForDeck(auth.user.accountId, existingDeck.id),
-				unresolved: preview.unresolved,
-				ambiguous: preview.ambiguous,
-				warnings: preview.warnings
-			});
-		}
+		const format = readString(body.format, 'format', 'Commander');
+		const preview = await previewMtgImport(readString(body.text, 'text', ''), format);
 		const operations = preview.resolved
 			.filter(({ line }) => isCommittedDeckRole(line.role))
 			.map(({ line, card }) => ({
@@ -50,18 +37,16 @@ export const POST = async (event) => {
 			throw new ValidationError('No resolved deck lines to commit');
 		}
 
-		const deck = await createDeckRecord(auth.user.accountId, {
+		const deck = await importDeck(auth.user.accountId, {
 			game: 'mtg',
 			name,
-			description: String(body?.description ?? ''),
-			format
-		});
-		const deckCards = await bulkMutateDeckCards(auth, {
-			deckId: deck.id,
+			description: readString(body.description, 'description', ''),
+			format,
 			requestId,
 			source,
 			operations
 		});
+		const deckCards = await getDeckCardsForDeck(auth.user.accountId, deck.id);
 
 		return json({
 			deck,

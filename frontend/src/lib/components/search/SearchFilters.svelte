@@ -1,14 +1,13 @@
 <script lang="ts">
 	import { Collapsible } from 'bits-ui';
-	import type { SearchFilterState } from '$lib/search/filters.svelte';
+	import type { SearchFilterState } from '#lib/search/filters.svelte.ts';
 	import type {
 		CardType,
 		FacetResponse,
 		LegalityFormat,
 		ManaColor,
 		Rarity
-	} from '$lib/search/types';
-	import OrnamentalDivider from '$lib/components/layout/OrnamentalDivider.svelte';
+	} from '#lib/search/types.ts';
 
 	interface Props {
 		filters: SearchFilterState;
@@ -63,11 +62,11 @@
 	];
 </script>
 
-<aside class="flex w-full flex-col gap-4 md:w-[240px] md:shrink-0 {className}">
+<aside class="flex w-full flex-col gap-4 md:w-[216px] md:shrink-0 {className}">
 	<!-- Colors section -->
 	<Collapsible.Root bind:open={colorsOpen}>
 		<Collapsible.Trigger
-			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm uppercase tracking-widest text-text-secondary transition-colors hover:text-text-primary"
+			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary"
 		>
 			<span>Colors</span>
 			<span
@@ -87,11 +86,12 @@
 							border: 2px solid {filters.selectedColors.has(color.id)
 							? 'var(--color-gold-bright)'
 							: 'transparent'};
-							box-shadow: {filters.selectedColors.has(color.id) ? '0 0 8px rgba(232, 184, 75, 0.4)' : 'none'};
+							box-shadow: {filters.selectedColors.has(color.id) ? '0 0 8px var(--color-gold-dim)' : 'none'};
 							opacity: {filters.selectedColors.has(color.id) ? '1' : '0.55'};
 							background: none;
 						"
 						title={color.label}
+						aria-label={color.label}
 						aria-pressed={filters.selectedColors.has(color.id)}
 					>
 						<i
@@ -105,12 +105,12 @@
 		</Collapsible.Content>
 	</Collapsible.Root>
 
-	<OrnamentalDivider />
+	<div class="border-t border-border" aria-hidden="true"></div>
 
 	<!-- Rarity section -->
 	<Collapsible.Root bind:open={rarityOpen}>
 		<Collapsible.Trigger
-			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm uppercase tracking-widest text-text-secondary transition-colors hover:text-text-primary"
+			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary"
 		>
 			<span>Rarity</span>
 			<span
@@ -153,14 +153,14 @@
 		</Collapsible.Content>
 	</Collapsible.Root>
 
-	<OrnamentalDivider />
+	<div class="border-t border-border" aria-hidden="true"></div>
 
 	<!-- Card Type section -->
 	<Collapsible.Root bind:open={typesOpen}>
 		<Collapsible.Trigger
-			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm uppercase tracking-widest text-text-secondary transition-colors hover:text-text-primary"
+			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary"
 		>
-			<span>Card Type</span>
+			<span>Card type</span>
 			<span
 				class="inline-block transition-transform duration-200"
 				style:transform={typesOpen ? 'rotate(180deg)' : 'rotate(0deg)'}
@@ -178,7 +178,7 @@
 							background-color: {filters.selectedTypes.has(type.id) ? 'var(--color-mist)' : 'transparent'};
 							border: 1px solid {filters.selectedTypes.has(type.id)
 							? 'var(--color-gold)'
-							: 'rgba(196, 146, 42, 0.2)'};
+							: 'var(--color-border)'};
 							color: {filters.selectedTypes.has(type.id)
 							? 'var(--color-gold-bright)'
 							: 'var(--color-text-secondary)'};
@@ -193,12 +193,12 @@
 		</Collapsible.Content>
 	</Collapsible.Root>
 
-	<OrnamentalDivider />
+	<div class="border-t border-border" aria-hidden="true"></div>
 
 	<!-- Legality section -->
 	<Collapsible.Root bind:open={legalityOpen}>
 		<Collapsible.Trigger
-			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm uppercase tracking-widest text-text-secondary transition-colors hover:text-text-primary"
+			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary"
 		>
 			<span>Legality</span>
 			<span
@@ -218,7 +218,7 @@
 							background-color: {filters.selectedLegalities.has(format.id) ? 'var(--color-mist)' : 'transparent'};
 							border: 1px solid {filters.selectedLegalities.has(format.id)
 							? 'var(--color-gold)'
-							: 'rgba(196, 146, 42, 0.2)'};
+							: 'var(--color-border)'};
 							color: {filters.selectedLegalities.has(format.id)
 							? 'var(--color-gold-bright)'
 							: 'var(--color-text-secondary)'};
@@ -235,13 +235,13 @@
 
 	<!-- Clear filters -->
 	{#if filters.hasFilters}
-		<OrnamentalDivider />
+		<div class="border-t border-border" aria-hidden="true"></div>
 		<button
 			onclick={() => filters.clear()}
-			class="cursor-pointer rounded border bg-transparent px-3 py-1.5 font-display text-xs uppercase tracking-wider text-gold-bright transition-all duration-150 hover:bg-mist"
-			style="border-color: rgba(196, 146, 42, 0.5);"
+			class="cursor-pointer rounded border bg-transparent px-3 py-1.5 font-display text-xs font-semibold text-gold-bright transition-all duration-150 hover:bg-mist"
+			style="border-color: var(--color-border);"
 		>
-			Clear Filters
+			Clear filters
 		</button>
 	{/if}
 </aside>

@@ -1,110 +1,42 @@
 import pytest
 
-from worker.config import WorkerConfig, load_config
+from worker.config import load_config
 
 
-class TestLoadConfigDefaults:
-    """Test that load_config uses correct defaults when only required vars are set."""
-
-    def test_returns_worker_config(self, monkeypatch):
-        monkeypatch.setenv("MEILISEARCH_URL", "http://localhost:7700")
-        monkeypatch.setenv("MEILI_MASTER_KEY", "test-key")
-        cfg = load_config()
-        assert isinstance(cfg, WorkerConfig)
-
-    def test_meilisearch_url(self, monkeypatch):
-        monkeypatch.setenv("MEILISEARCH_URL", "http://localhost:7700")
-        monkeypatch.setenv("MEILI_MASTER_KEY", "test-key")
-        assert load_config().meilisearch_url == "http://localhost:7700"
-
-    def test_aggressive_preload_default_true(self, monkeypatch):
-        monkeypatch.setenv("MEILISEARCH_URL", "http://localhost:7700")
-        monkeypatch.setenv("MEILI_MASTER_KEY", "test-key")
-        assert load_config().aggressive_preload is True
-
-    def test_sync_interval_default_daily(self, monkeypatch):
-        monkeypatch.setenv("MEILISEARCH_URL", "http://localhost:7700")
-        monkeypatch.setenv("MEILI_MASTER_KEY", "test-key")
-        assert load_config().sync_interval == "daily"
-
-    def test_languages_default_en(self, monkeypatch):
-        monkeypatch.setenv("MEILISEARCH_URL", "http://localhost:7700")
-        monkeypatch.setenv("MEILI_MASTER_KEY", "test-key")
-        assert load_config().languages == ["en"]
-
-    def test_scryfall_url_default(self, monkeypatch):
-        monkeypatch.setenv("MEILISEARCH_URL", "http://localhost:7700")
-        monkeypatch.setenv("MEILI_MASTER_KEY", "test-key")
-        assert load_config().scryfall_bulk_url == "https://api.scryfall.com/bulk-data"
-
-    def test_data_dir_default(self, monkeypatch):
-        monkeypatch.setenv("MEILISEARCH_URL", "http://localhost:7700")
-        monkeypatch.setenv("MEILI_MASTER_KEY", "test-key")
-        assert str(load_config().data_dir) == "/tmp/spellbook-worker"
+@pytest.fixture(autouse=True)
+def environment(monkeypatch):
+    for key in (
+        "DATABASE_URL",
+        "CATALOG_SOURCE",
+        "SYNC_INTERVAL",
+        "WORKER_DATA_DIR",
+        "SCRYFALL_BULK_URL",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv("DATABASE_URL", "postgresql://localhost/spellbook")
 
 
-class TestLoadConfigCustom:
-    """Test that load_config respects custom environment variables."""
-
-    @pytest.fixture(autouse=True)
-    def _set_required(self, monkeypatch):
-        monkeypatch.setenv("MEILISEARCH_URL", "http://meili:7700")
-        monkeypatch.setenv("MEILI_MASTER_KEY", "key-123")
-
-    def test_custom_meilisearch_url(self):
-        assert load_config().meilisearch_url == "http://meili:7700"
-
-    def test_aggressive_preload_false(self, monkeypatch):
-        monkeypatch.setenv("AGGRESSIVE_PRELOAD", "false")
-        assert load_config().aggressive_preload is False
-
-    def test_aggressive_preload_case_insensitive(self, monkeypatch):
-        monkeypatch.setenv("AGGRESSIVE_PRELOAD", "FALSE")
-        assert load_config().aggressive_preload is False
-
-    def test_sync_interval_weekly(self, monkeypatch):
-        monkeypatch.setenv("SYNC_INTERVAL", "weekly")
-        assert load_config().sync_interval == "weekly"
-
-    def test_languages_multiple(self, monkeypatch):
-        monkeypatch.setenv("LANGUAGES", "en,de,ja")
-        assert load_config().languages == ["en", "de", "ja"]
-
-    def test_languages_strips_whitespace(self, monkeypatch):
-        monkeypatch.setenv("LANGUAGES", " en , de , ja ")
-        assert load_config().languages == ["en", "de", "ja"]
-
-    def test_languages_ignores_empty_segments(self, monkeypatch):
-        monkeypatch.setenv("LANGUAGES", "en,,de,")
-        assert load_config().languages == ["en", "de"]
-
-    def test_worker_data_dir(self, monkeypatch):
-        monkeypatch.setenv("WORKER_DATA_DIR", "/app/data")
-        assert str(load_config().data_dir) == "/app/data"
+def test_defaults_select_complete_catalog():
+    config = load_config()
+    assert config.catalog_source == "all_cards"
+    assert config.sync_interval == "daily"
+    assert config.scryfall_bulk_url == "https://api.scryfall.com/bulk-data"
 
 
-class TestLoadConfigMissingRequired:
-    """Test that load_config raises when required env vars are missing."""
-
-    def test_missing_meili_master_key(self, monkeypatch):
-        monkeypatch.setenv("MEILISEARCH_URL", "http://localhost:7700")
-        monkeypatch.delenv("MEILI_MASTER_KEY", raising=False)
-        with pytest.raises(ValueError, match="MEILI_MASTER_KEY"):
-            load_config()
-
-    def test_empty_meili_master_key(self, monkeypatch):
-        monkeypatch.setenv("MEILISEARCH_URL", "http://localhost:7700")
-        monkeypatch.setenv("MEILI_MASTER_KEY", "")
-        with pytest.raises(ValueError, match="MEILI_MASTER_KEY"):
-            load_config()
+@pytest.mark.parametrize(
+    "key,value", [("DATABASE_URL", ""), ("CATALOG_SOURCE", "rulings"), ("SYNC_INTERVAL", "hourly")]
+)
+def test_invalid_configuration_fails(monkeypatch, key, value):
+    monkeypatch.setenv(key, value)
+    with pytest.raises(ValueError, match=key):
+        load_config()
 
 
-class TestWorkerConfigImmutability:
-    """Verify the config dataclass is frozen."""
-
-    def test_cannot_mutate(self, monkeypatch):
-        monkeypatch.setenv("MEILISEARCH_URL", "http://localhost:7700")
-        monkeypatch.setenv("MEILI_MASTER_KEY", "test-key")
-        cfg = load_config()
-        with pytest.raises(AttributeError):
-            cfg.meilisearch_url = "http://other:7700"
+def test_explicit_english_snapshot_and_storage(monkeypatch, tmp_path):
+    monkeypatch.setenv("CATALOG_SOURCE", "default_cards")
+    monkeypatch.setenv("WORKER_DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("SYNC_INTERVAL", "manual")
+    config = load_config()
+    assert config.catalog_source == "default_cards"
+    assert config.data_dir == tmp_path
+    assert config.sync_interval == "manual"

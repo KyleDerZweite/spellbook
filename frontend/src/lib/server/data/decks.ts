@@ -1,16 +1,19 @@
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
-import { db } from '$lib/server/db/client';
-import { deckCards, deckMutationRequests, decks, inventoryCards } from '$lib/server/db/schema';
+import { db } from '#lib/server/db/client.ts';
+import { deckCards, deckMutationRequests, decks, inventoryCards } from '#lib/server/db/schema.ts';
 import {
 	assertDeckOperation,
 	assertDeckRole,
 	assertRequestId,
 	normalizeQuantity,
+	normalizeSource,
+	DECK_SOURCES,
 	ValidationError,
 	type DeckBulkOperation,
 	type DeckBulkOperationInput
-} from '$lib/server/mtg/validation';
+} from '#lib/server/mtg/validation.ts';
 import type { Deck, DeckCard, DeckSnapshot } from './types';
+import { mutationFingerprint, RequestConflictError } from './request-fingerprint';
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -105,25 +108,6 @@ export async function deleteDeck(accountId: string, deckId: string): Promise<voi
 	await db.delete(decks).where(and(eq(decks.id, deckId), eq(decks.accountId, accountId)));
 }
 
-export async function getDeckByMutationRequest(
-	accountId: string,
-	requestId: string
-): Promise<Deck | null> {
-	const [row] = await db
-		.select({ deck: decks })
-		.from(deckMutationRequests)
-		.innerJoin(decks, eq(deckMutationRequests.deckId, decks.id))
-		.where(
-			and(
-				eq(deckMutationRequests.accountId, accountId),
-				eq(deckMutationRequests.requestId, requestId),
-				eq(decks.accountId, accountId)
-			)
-		)
-		.limit(1);
-	return row?.deck ?? null;
-}
-
 export async function addDeckCard(
 	accountId: string,
 	input: {
@@ -152,7 +136,7 @@ export async function addDeckCard(
 					setCode: input.setCode,
 					imageUri: input.imageUri
 				},
-				quantity: Math.max(1, Math.trunc(input.quantity)),
+				quantity: input.quantity,
 				role: assertDeckRole(input.role.trim() || 'main')
 			}
 		]
@@ -162,7 +146,8 @@ export async function addDeckCard(
 export async function updateDeckCard(
 	accountId: string,
 	entryId: string,
-	quantity: number
+	quantity: number,
+	role?: string
 ): Promise<DeckCard | null> {
 	const [existing] = await db
 		.select()
@@ -173,6 +158,7 @@ export async function updateDeckCard(
 		return null;
 	}
 
+	const targetRole = role === undefined ? undefined : assertDeckRole(role);
 	const operation =
 		Math.trunc(quantity) <= 0
 			? { op: 'remove' as const, target: { entryId } }
@@ -182,9 +168,21 @@ export async function updateDeckCard(
 		source: 'web',
 		game: existing.game,
 		deckId: existing.deckId,
-		operations: [operation]
+		operations: [
+			operation,
+			...(targetRole && operation.op !== 'remove'
+				? [{ op: 'move' as const, target: { entryId }, role: targetRole }]
+				: [])
+		]
 	});
-	return cards.find((card) => card.id === entryId) ?? null;
+	if (operation.op === 'remove') return null;
+	return (
+		cards.find(
+			(card) =>
+				card.id === entryId ||
+				(targetRole && card.catalogCardId === existing.catalogCardId && card.role === targetRole)
+		) ?? null
+	);
 }
 
 export async function removeDeckCard(accountId: string, entryId: string): Promise<void> {
@@ -221,20 +219,26 @@ export async function bulkMutateDeckCards(
 		throw new ValidationError('operations must contain at least one operation');
 	}
 	const operations = input.operations.map(assertDeckOperation);
-	const [deck] = await db
-		.select()
-		.from(decks)
-		.where(
-			and(eq(decks.id, input.deckId), eq(decks.accountId, accountId), eq(decks.game, input.game))
-		)
-		.limit(1);
-
-	if (!deck) {
-		throw new ValidationError(`Deck not found: ${input.deckId}`);
-	}
-
+	const source = normalizeSource(input.source, DECK_SOURCES, 'web');
+	const requestHash = mutationFingerprint({
+		kind: 'deck.bulk',
+		deckId: input.deckId.toLowerCase(),
+		game: input.game,
+		source,
+		operations
+	});
 	await db.transaction(async (tx) => {
-		const existingRequest = await tx
+		await lockMutationRequest(tx, accountId, requestId);
+		const [deck] = await tx
+			.select()
+			.from(decks)
+			.where(
+				and(eq(decks.id, input.deckId), eq(decks.accountId, accountId), eq(decks.game, input.game))
+			)
+			.limit(1)
+			.for('update');
+		if (!deck) throw new ValidationError(`Deck not found: ${input.deckId}`);
+		const [existingRequest] = await tx
 			.select()
 			.from(deckMutationRequests)
 			.where(
@@ -244,8 +248,11 @@ export async function bulkMutateDeckCards(
 				)
 			)
 			.limit(1);
-
-		if (existingRequest[0]) {
+		if (existingRequest) {
+			if (existingRequest.deckId !== deck.id)
+				throw new RequestConflictError('requestId already belongs to another deck');
+			if (existingRequest.requestHash !== null && existingRequest.requestHash !== requestHash)
+				throw new RequestConflictError('requestId was already used with a different request');
 			return;
 		}
 
@@ -253,8 +260,9 @@ export async function bulkMutateDeckCards(
 		await tx.insert(deckMutationRequests).values({
 			accountId,
 			requestId,
+			requestHash,
 			deckId: deck.id,
-			source: input.source,
+			source,
 			status: 'applied',
 			createdAt: now,
 			updatedAt: now
@@ -270,7 +278,7 @@ export async function bulkMutateDeckCards(
 	return db
 		.select()
 		.from(deckCards)
-		.where(and(eq(deckCards.deckId, deck.id), eq(deckCards.accountId, accountId)))
+		.where(and(eq(deckCards.deckId, input.deckId), eq(deckCards.accountId, accountId)))
 		.orderBy(asc(deckCards.name));
 }
 
@@ -344,6 +352,19 @@ async function applyDeckOperation(
 		return;
 	}
 
+	if (operation.op === 'move') {
+		if (existing.role === operation.role) return;
+		await tx.delete(deckCards).where(eq(deckCards.id, existing.id));
+		await tx
+			.insert(deckCards)
+			.values({ ...existing, role: operation.role, updatedAt: now })
+			.onConflictDoUpdate({
+				target: [deckCards.deckId, deckCards.catalogCardId, deckCards.role],
+				set: { quantity: sql`${deckCards.quantity} + ${existing.quantity}`, updatedAt: now }
+			});
+		return;
+	}
+
 	const quantity = normalizeQuantity(operation.quantity);
 	const nextQuantity = operation.op === 'decrement' ? existing.quantity - quantity : quantity;
 	if (nextQuantity <= 0) {
@@ -376,4 +397,89 @@ export async function getDeckCardsForDeck(accountId: string, deckId: string): Pr
 		.from(deckCards)
 		.where(and(eq(deckCards.deckId, deckId), eq(deckCards.accountId, accountId)))
 		.orderBy(asc(deckCards.role), asc(deckCards.name));
+}
+
+async function lockMutationRequest(tx: Tx, accountId: string, requestId: string): Promise<void> {
+	await tx.execute(
+		sql`select pg_advisory_xact_lock(hashtextextended(${JSON.stringify([accountId, requestId])}, 0))`
+	);
+}
+
+export async function importDeck(
+	accountId: string,
+	input: {
+		requestId: string;
+		source: string;
+		game: string;
+		name: string;
+		description: string;
+		format: string;
+		operations: DeckBulkOperationInput[];
+	}
+): Promise<Deck> {
+	const requestId = assertRequestId(input.requestId);
+	const source = normalizeSource(input.source, DECK_SOURCES, 'import');
+	const name = input.name.trim();
+	if (!name) throw new ValidationError('Deck name is required');
+	if (!Array.isArray(input.operations) || !input.operations.length)
+		throw new ValidationError('No resolved deck lines to commit');
+	const operations = input.operations.map(assertDeckOperation);
+	if (operations.some((operation) => operation.op !== 'add'))
+		throw new ValidationError('Deck import accepts only add operations');
+	const description = input.description.trim();
+	const format = input.format.trim() || 'Commander';
+	const requestHash = mutationFingerprint({
+		kind: 'deck.import',
+		name,
+		description,
+		format,
+		game: input.game,
+		source,
+		operations
+	});
+	return db.transaction(async (tx) => {
+		await lockMutationRequest(tx, accountId, requestId);
+		const [existing] = await tx
+			.select({ deck: decks, requestHash: deckMutationRequests.requestHash })
+			.from(deckMutationRequests)
+			.innerJoin(decks, eq(deckMutationRequests.deckId, decks.id))
+			.where(
+				and(
+					eq(deckMutationRequests.accountId, accountId),
+					eq(deckMutationRequests.requestId, requestId),
+					eq(decks.accountId, accountId)
+				)
+			)
+			.limit(1);
+		if (existing) {
+			if (existing.requestHash !== null && existing.requestHash !== requestHash)
+				throw new RequestConflictError('requestId was already used with a different request');
+			return existing.deck;
+		}
+		const [deck] = await tx
+			.insert(decks)
+			.values({
+				id: crypto.randomUUID(),
+				accountId,
+				game: input.game,
+				name,
+				description,
+				format
+			})
+			.returning();
+		const now = new Date();
+		await tx.insert(deckMutationRequests).values({
+			accountId,
+			requestId,
+			requestHash,
+			deckId: deck.id,
+			source,
+			status: 'applied',
+			createdAt: now,
+			updatedAt: now
+		});
+		for (const operation of operations)
+			await applyDeckOperation(tx, accountId, deck.id, deck.game, operation, now);
+		return deck;
+	});
 }

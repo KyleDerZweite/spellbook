@@ -1,4 +1,10 @@
-# Bits UI Documentation for LLMs
+# Bits UI documentation
+
+- Status: Canonical
+- Last Reviewed: 2026-10-03
+- Source of Truth: vendor documentation
+- Update Triggers: Bits UI upgrades, documentation URL changes, component integration
+- Related Docs: [Reference](./README.md), [Selected UI components](./ui-libraries.md), [Frontend](../architecture/frontend.md)
 
 > Bits UI is a headless component library for Svelte.
 

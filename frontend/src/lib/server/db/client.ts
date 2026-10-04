@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
-import { privateEnv } from '$lib/env/private';
+import { privateEnv } from '#lib/env/private.ts';
 import * as schema from './schema';
 
 const { Pool } = pg;

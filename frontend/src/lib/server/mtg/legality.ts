@@ -1,4 +1,4 @@
-import type { CardDocument } from '$lib/search/types';
+import type { CardDocument } from '#lib/search/types.ts';
 import type { ParsedDecklistRole } from './decklist';
 
 export interface LegalityLine {
@@ -35,50 +35,77 @@ export function generateLegalityWarnings(lines: LegalityLine[], format = ''): Le
 			message: 'Main deck has fewer than 60 cards.'
 		});
 	}
-	if (sideboardCount > 15) {
+	if (
+		CONSTRUCTED_FORMATS.has(normalizedFormat) &&
+		sideboardCount + sumRoles(lines, ['companion']) > 15
+	) {
 		warnings.push({
 			code: 'sideboard_over_15',
 			message: 'Sideboard has more than 15 cards.'
 		});
 	}
 
-	const copyCounts = new Map<string, { name: string; quantity: number }>();
-	for (const line of lines.filter((line) => line.role === 'main' || line.role === 'sideboard')) {
+	const copyCounts = new Map<string, { card: CardDocument; quantity: number }>();
+	const includedRoles =
+		normalizedFormat === 'commander' ? ['main', 'commander'] : ['main', 'sideboard', 'companion'];
+	for (const line of lines.filter((line) => includedRoles.includes(line.role))) {
 		const key = line.card.oracle_id || line.card.name.toLowerCase();
-		const current = copyCounts.get(key) ?? { name: line.card.name, quantity: 0 };
+		const current = copyCounts.get(key) ?? { card: line.card, quantity: 0 };
 		current.quantity += line.quantity;
 		copyCounts.set(key, current);
 	}
-	for (const count of copyCounts.values()) {
-		if (count.quantity > 4 && !BASIC_LANDS.has(count.name.toLowerCase())) {
+	for (const { card, quantity } of copyCounts.values()) {
+		const legality = card.legalities?.[normalizedFormat];
+		const basic = card.type_line.includes('Basic') || BASIC_LANDS.has(card.name.toLowerCase());
+		const unlimited = /deck can have any number of cards named/i.test(card.oracle_text);
+		const copyLimit = legality === 'restricted' || normalizedFormat === 'commander' ? 1 : 4;
+		const numberedException = card.oracle_text.match(
+			/deck can have up to (seven|nine) cards named/i
+		);
+		const limit = numberedException
+			? numberedException[1].toLowerCase() === 'seven'
+				? 7
+				: 9
+			: copyLimit;
+		if (
+			(CONSTRUCTED_FORMATS.has(normalizedFormat) || normalizedFormat === 'commander') &&
+			!basic &&
+			!unlimited &&
+			quantity > limit
+		) {
 			warnings.push({
-				code: 'too_many_copies',
-				message: `${count.name} has more than 4 copies across main deck and sideboard.`,
-				cardName: count.name
+				code:
+					legality === 'restricted'
+						? 'restricted_copies'
+						: normalizedFormat === 'commander'
+							? 'commander_singleton'
+							: 'too_many_copies',
+				message: `${card.name} exceeds the ${limit}-copy limit in ${format}.`,
+				cardName: card.name
+			});
+		}
+	}
+	const checkedCards = new Set<string>();
+	for (const { card, role } of lines) {
+		if (role === 'maybeboard' || checkedCards.has(card.oracle_id)) continue;
+		checkedCards.add(card.oracle_id);
+		const legality = card.legalities?.[normalizedFormat];
+		if (normalizedFormat && legality && legality !== 'legal' && legality !== 'restricted') {
+			warnings.push({
+				code: 'format_illegal',
+				message: `${card.name} is ${legality} in ${format}.`,
+				cardName: card.name
 			});
 		}
 	}
 
-	if (normalizedFormat) {
-		for (const line of lines) {
-			const legality = line.card.legalities?.[normalizedFormat];
-			if (legality && legality !== 'legal') {
-				warnings.push({
-					code: 'format_illegal',
-					message: `${line.card.name} is ${legality} in ${format}.`,
-					cardName: line.card.name
-				});
-			}
-		}
-	}
-
 	if (normalizedFormat === 'commander') {
-		const committedTotal = sumRoles(lines, ['main', 'sideboard', 'commander', 'companion']);
+		const committedTotal = sumRoles(lines, ['main', 'commander']);
 		const commanderCount = sumRoles(lines, ['commander']);
 		if (committedTotal !== 100) {
 			warnings.push({
 				code: 'commander_size',
-				message: 'Commander decks should contain exactly 100 committed cards.'
+				message: 'Commander main deck and commanders should contain exactly 100 cards.'
 			});
 		}
 		if (commanderCount !== 1 && commanderCount !== 2) {

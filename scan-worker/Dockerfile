@@ -1,9 +1,13 @@
-FROM python:3.12-slim
+FROM python:3.14.8-slim-bookworm
 
 WORKDIR /app
 
-COPY pyproject.toml ./
-COPY src/ src/
-RUN pip install --no-cache-dir .
+COPY --from=ghcr.io/astral-sh/uv:0.12.23 /uv /uvx /bin/
 
-CMD ["uvicorn", "scan_worker.main:app", "--host", "0.0.0.0", "--port", "8080"]
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
+
+COPY src/ src/
+RUN uv sync --frozen --no-dev --no-editable
+
+CMD ["uv", "run", "--no-sync", "uvicorn", "scan_worker.main:app", "--host", "0.0.0.0", "--port", "8080"]

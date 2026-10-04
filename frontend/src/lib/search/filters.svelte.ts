@@ -1,33 +1,4 @@
-import type { CardType, LegalityFormat, ManaColor, Rarity } from './types';
-
-const COLORED_MANA: ManaColor[] = ['W', 'U', 'B', 'R', 'G'];
-
-function buildColorFilter(selectedColors: Set<ManaColor>): string | null {
-	if (selectedColors.size === 0) {
-		return null;
-	}
-
-	const includesColorless = selectedColors.has('C');
-	const coloredSelection = COLORED_MANA.filter((color) => selectedColors.has(color));
-
-	if (coloredSelection.length === 0) {
-		return 'colors IS EMPTY';
-	}
-
-	const allowedColors = coloredSelection.map((color) => `colors = "${color}"`).join(' OR ');
-	const forbiddenColors = COLORED_MANA.filter((color) => !coloredSelection.includes(color)).map(
-		(color) => `NOT colors = "${color}"`
-	);
-	const exactSubsetFilter = [`(${allowedColors})`, ...forbiddenColors, 'colors IS NOT EMPTY'].join(
-		' AND '
-	);
-
-	if (!includesColorless) {
-		return `(${exactSubsetFilter})`;
-	}
-
-	return `((colors IS EMPTY) OR (${exactSubsetFilter}))`;
-}
+import type { CardType, CatalogFilters, LegalityFormat, ManaColor, Rarity } from './types.ts';
 
 /**
  * Reactive filter state for card search.
@@ -39,31 +10,13 @@ export class SearchFilterState {
 	selectedTypes: Set<CardType> = $state(new Set());
 	selectedLegalities: Set<LegalityFormat> = $state(new Set(['standard', 'commander']));
 
-	/** Build MeiliSearch filter array from current state. */
-	get meiliFilters(): string[] {
-		const filters: string[] = [];
-
-		const colorFilter = buildColorFilter(this.selectedColors);
-		if (colorFilter) {
-			filters.push(colorFilter);
-		}
-
-		if (this.selectedRarities.size > 0) {
-			const rarityFilters = [...this.selectedRarities].map((r) => `rarity = "${r}"`);
-			filters.push(`(${rarityFilters.join(' OR ')})`);
-		}
-
-		if (this.selectedTypes.size > 0) {
-			const typeFilters = [...this.selectedTypes].map((t) => `card_types = "${t}"`);
-			filters.push(`(${typeFilters.join(' OR ')})`);
-		}
-
-		if (this.selectedLegalities.size > 0) {
-			const legalityFilters = [...this.selectedLegalities].map((f) => `legalities.${f} = "legal"`);
-			filters.push(`(${legalityFilters.join(' OR ')})`);
-		}
-
-		return filters;
+	get catalogFilters(): CatalogFilters {
+		return {
+			colors: [...this.selectedColors],
+			rarities: [...this.selectedRarities],
+			types: [...this.selectedTypes],
+			legalities: [...this.selectedLegalities]
+		};
 	}
 
 	toggleColor(color: ManaColor): void {

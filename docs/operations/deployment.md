@@ -1,148 +1,137 @@
-# Deployment Guide
+# Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-05-18
-- Source of Truth: mixed
-- Update Triggers: service topology changes, env var changes, auth boundary changes, compose changes
-- Related Docs: [Operations Docs](./README.md), [OIDC Auth Setup](./oidc.md), [Zitadel Provider Notes](./zitadel.md), [Auth Architecture](../architecture/auth.md), [System Overview](../architecture/system-overview.md)
+- Last Reviewed: 2026-10-04
+- Source of Truth: repo config
+- Update Triggers: compose services, images, environment variables, migrations, storage
+- Related Docs: [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md)
 
-This guide documents the current generic self-hosted deployment shape for Spellbook.
+The canonical service definitions are [`podman-compose.yml`](../../podman-compose.yml) and the local storage override [`podman-compose.dev.yml`](../../podman-compose.dev.yml). Keep live domains, account details, and secret references in private operator notes.
 
-For live domains, client IDs, operator contacts, and other instance-specific notes, keep a separate private note based on [private-instance-template.md](./private-instance-template.md).
+## Services and startup
 
-## Current Architecture
+| Service       | Responsibility                                                    |
+| ------------- | ----------------------------------------------------------------- |
+| `postgres`    | Accounts, inventory, decks, scan metadata, and the public catalog |
+| `db-migrate`  | One-shot Drizzle migrations                                       |
+| `worker`      | Scryfall catalog ingestion and synchronization                    |
+| `frontend`    | SvelteKit web application and API                                 |
+| `scan-worker` | Scan API scaffold that returns no matches                         |
+| `newt`        | Optional Pangolin tunnel, enabled by the `tunnel` profile         |
 
-Spellbook currently runs with the core services below under `podman-compose`:
+`postgres` has a compose health check. `db-migrate` waits for healthy Postgres, and both the frontend and catalog worker wait for successful migration completion. Other dependencies require service startup, not readiness. The catalog worker also retries database schema readiness with backoff. No vector database is required.
 
-| Service       | Role                                              |
-| ------------- | ------------------------------------------------- |
-| `postgres`    | Durable database for user-scoped application data |
-| `db-migrate`  | One-shot Drizzle migration runner                 |
-| `meilisearch` | Card catalog search engine                        |
-| `worker`      | Python sync pipeline for MTG catalog ingestion    |
-| `frontend`    | SvelteKit app server                              |
-| `newt`        | Pangolin tunnel agent                             |
+The frontend binds to host loopback port 3000. Configure a reverse proxy or enable the optional tunnel. Catalog requests use the same application origin.
 
-The mobile and scan foundation adds these services:
+For an existing PostgreSQL 17 deployment, complete the [database dump/restore upgrade](./postgres-upgrade.md) before starting migrations or the frontend. The new `postgres18_data` volume is initially empty; the original `postgres_data` volume remains available for rollback.
 
-| Service       | Role                                                                       |
-| ------------- | -------------------------------------------------------------------------- |
-| `scan-worker` | Scan-processing boundary for normalization, OCR, embeddings, and reranking |
-| `qdrant`      | Vector index for image embedding retrieval                                 |
+1. Copy `.env.example` to a private `.env` and replace the database credentials.
+2. Set `APP_ORIGIN` to the externally reachable application origin.
+3. Configure scan storage as described below.
+4. Run `podman-compose up --build -d` for the base stack.
+5. Inspect migration and worker logs, then register a local account. Enroll existing accounts using [local authentication operations](./local-auth.md).
 
-Retained scan artifacts use a configurable storage driver. The base compose file is production-shaped and defaults to S3-compatible storage. Local development can layer `podman-compose.dev.yml` on top to use a local named volume instead.
+Use `podman-compose --profile tunnel up --build -d` to include Newt. Set `PANGOLIN_ENDPOINT`, `NEWT_ID`, and `NEWT_SECRET` only for that profile. The tunnel transports requests; local authentication owns login.
 
-## Auth Model
+## Configuration
 
-Spellbook handles authentication with a generic OIDC provider using Authorization Code + PKCE.
+| Variable                                            | Meaning                                                                                                                 |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `APP_ORIGIN`                                        | Public application origin compiled into the frontend; compose passes it as a build argument                             |
+| `ADDRESS_HEADER`, `XFF_DEPTH`                       | Optional trusted-proxy client address configuration; leave the header empty until proxy trust is configured             |
+| `BODY_SIZE_LIMIT`                                   | Adapter request limit; compose defaults to `12M` to allow multipart overhead around a 10 MiB scan image                 |
+| `DATABASE_URL`                                      | Server, catalog worker, or operator PostgreSQL connection; compose constructs its internal connection from `POSTGRES_*` |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Database and credentials; replace the example password                                                                  |
+| `CATALOG_SOURCE`                                    | Scryfall source: `all_cards` by default, or `default_cards`                                                             |
+| `SYNC_INTERVAL`                                     | `daily`, `weekly`, or `manual`                                                                                          |
+| `WORKER_DATA_DIR`                                   | Persistent worker status directory; compose uses `/app/data`                                                            |
+| `SCAN_WORKER_URL`                                   | Internal scan-worker URL; compose uses `http://scan-worker:8080`                                                        |
+| `SCAN_STORAGE_DRIVER`                               | `s3` in the base stack or `local` with the development override                                                         |
+| `SCAN_LOCAL_STORAGE_DIR`                            | Local artifact directory for the `local` driver                                                                         |
+| `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`             | Existing S3-compatible storage endpoint, region, and bucket                                                             |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`          | S3-compatible credentials                                                                                               |
+| `S3_FORCE_PATH_STYLE`                               | Defaults to `true` for S3-compatible services                                                                           |
 
-Pangolin is used only as transport and reverse-proxy infrastructure in this deployment model. Pangolin should not own the Spellbook login flow.
+Set `APP_ORIGIN` before building the frontend or migration image. Changing it requires `podman-compose build frontend db-migrate` and recreation of the frontend. Updating runtime environment variables alone does not change SvelteKit 3's compiled origin.
 
-## Required Environment Variables
+Leave `ADDRESS_HEADER` empty for direct deployments. Behind a trusted proxy, set it only when that proxy overwrites the client-address header and direct client access is blocked. For `x-forwarded-for`, set `XFF_DEPTH` to the trusted hop count. Without this configuration, users behind one proxy can share the same process-local authentication attempt limit.
 
-### Frontend
+Keep the reverse proxy request limit large enough for the configured adapter limit. JSON handlers independently cap streamed bodies at 1 MiB; scan uploads independently cap their multipart body at 12 MiB and image at 10 MiB. Raising `BODY_SIZE_LIMIT` does not bypass these application limits. See [request validation](../architecture/mobile-and-scan.md#request-validation).
 
-| Variable                   | Description                                                                         |
-| -------------------------- | ----------------------------------------------------------------------------------- |
-| `OIDC_ISSUER`              | OIDC issuer URL                                                                     |
-| `OIDC_CLIENT_ID`           | Public OIDC client ID                                                               |
-| `OIDC_MOBILE_CLIENT_ID`    | Optional. Bearer-token client id for `/api/mobile/v1/...`. Not required for the PWA |
-| `APP_ORIGIN`               | Public frontend origin                                                              |
-| `AUTH_SESSION_SECRET`      | 32-byte base64url secret for encrypted cookies                                      |
-| `DATABASE_URL`             | Postgres connection string                                                          |
-| `PUBLIC_MEILISEARCH_URL`   | Browser-facing MeiliSearch URL                                                      |
-| `MEILISEARCH_INTERNAL_URL` | Internal MeiliSearch URL used by the server                                         |
-| `MEILI_MASTER_KEY`         | Used by the frontend server to fetch the search-only key from MeiliSearch           |
-| `SCAN_STORAGE_DRIVER`      | `local` or `s3`. Defaults to `s3` in base compose                                   |
-| `SCAN_LOCAL_STORAGE_DIR`   | Local scan artifact directory when `SCAN_STORAGE_DRIVER=local`                      |
-| `S3_ENDPOINT`              | Required when `SCAN_STORAGE_DRIVER=s3`. S3-compatible endpoint                      |
-| `S3_REGION`                | Required when `SCAN_STORAGE_DRIVER=s3`. Object storage region                       |
-| `S3_BUCKET`                | Required when `SCAN_STORAGE_DRIVER=s3`. Bucket name for retained scan artifacts     |
-| `S3_ACCESS_KEY_ID`         | Required when `SCAN_STORAGE_DRIVER=s3`. S3 access key id                            |
-| `S3_SECRET_ACCESS_KEY`     | Required when `SCAN_STORAGE_DRIVER=s3`. S3 secret access key                        |
-| `S3_FORCE_PATH_STYLE`      | Optional for S3 mode. Defaults to `true` for broad S3-compatible provider support   |
-| `SCAN_WORKER_URL`          | Internal URL for the scan-worker service                                            |
+OIDC provider variables, `AUTH_SESSION_SECRET`, and all MeiliSearch variables are no longer used. Catalog access uses the local application session. Remove obsolete search origins and credentials from deployment configuration.
 
-### Postgres
+## Storage and upgrades
 
-| Variable            | Description                                                                  |
-| ------------------- | ---------------------------------------------------------------------------- |
-| `POSTGRES_DB`       | Database name, default `spellbook`                                           |
-| `POSTGRES_USER`     | Database user, default `spellbook`                                           |
-| `POSTGRES_PASSWORD` | Database password used by the Postgres container and internal `DATABASE_URL` |
+Migration `0005` adds nullable request fingerprints without rewriting existing mutation history. New conflicting request-ID reuse returns HTTP 409; old null-hash records retain their earlier replay behavior. The [Postgres contract](../architecture/postgres.md#mutation-replay) owns the details.
 
-### Worker and MeiliSearch
+PostgreSQL and worker status use named volumes. Back up account data before migrations and keep a tested restore procedure. Image versions and runtime pins live in compose, Dockerfiles, and package manifests. Keep these files and lockfiles together when deploying an update.
 
-| Variable             | Description                                                        |
-| -------------------- | ------------------------------------------------------------------ |
-| `MEILI_MASTER_KEY`   | MeiliSearch admin key                                              |
-| `AGGRESSIVE_PRELOAD` | `true` loads `all_cards` in the background                         |
-| `SYNC_INTERVAL`      | `daily`, `weekly`, or `manual`                                     |
-| `LANGUAGES`          | Comma-separated language codes                                     |
-| `WORKER_DATA_DIR`    | Worker state directory. Compose sets `/app/data` on a named volume |
+Runtime support was reviewed on 2026-10-03. The workers pin [Python 3.14.8](https://www.python.org/downloads/release/python-3148/), released on 2026-10-01. Its [release schedule](https://peps.python.org/pep-0745/) provides regular bugfix releases through October 2027 and security releases through October 2030. [Python 3.15](https://peps.python.org/pep-0790/) is scheduled for final release on 2026-10-09 and is not adopted ahead of that release. [Frontend runtime policy](../architecture/frontend.md#runtime-compatibility) owns Node and framework compatibility.
 
-## MeiliSearch Search Key Behavior
+PostgreSQL 18 uses the new named volume at `/var/lib/postgresql`, with database files under `/var/lib/postgresql/18/docker`. The [database upgrade procedure](./postgres-upgrade.md) owns migration, verification, and rollback for existing PostgreSQL 17 installations.
 
-Do not treat `PUBLIC_MEILISEARCH_SEARCH_KEY` as a required operator-side variable for the current app.
+For local scan artifacts, run:
 
-Current behavior:
-
-- the frontend server uses `MEILISEARCH_INTERNAL_URL` and `MEILI_MASTER_KEY`
-- it fetches the default search-only key from MeiliSearch at runtime
-- it exposes that key to authenticated sessions through SvelteKit server data
-
-This matches the current implementation in `frontend/src/hooks.server.ts`.
-
-## Scan Artifact Storage
-
-Current scan uploads are stored outside Postgres.
-
-Development guidance:
-
-- run compose with both files: `podman-compose -f podman-compose.yml -f podman-compose.dev.yml up`
-- `podman-compose.dev.yml` sets `SCAN_STORAGE_DRIVER=local`
-- `podman-compose.dev.yml` mounts the compose-managed `scan_artifacts` volume at `/app/storage/scans` in `frontend` and `scan-worker`
-
-Production guidance:
-
-- use the base `podman-compose.yml`
-- set `SCAN_STORAGE_DRIVER=s3`
-- store original uploads and normalized crops in S3-compatible object storage
-- provision the target bucket outside the Spellbook compose stack
-- keep object lifecycle policy aligned with the current product retention decision
-- do not store binary artifacts directly in Postgres tables
-
-## Worker State
-
-The base compose file mounts the `worker_data` named volume at `/app/data` and sets `WORKER_DATA_DIR=/app/data`. This keeps Scryfall sync status across worker container recreation.
-
-## Fedora And SELinux
-
-The current compose file is intentionally biased toward named volumes instead of host bind mounts for persistent state.
-
-That choice keeps the default deployment more portable across Podman on Fedora and Docker or Podman on Ubuntu:
-
-- Podman-managed named volumes avoid most manual SELinux relabel work on Fedora
-- the same compose file stays valid on non-SELinux hosts
-
-If an operator replaces a named volume with a host bind mount on a Fedora or other SELinux-enforcing host:
-
-- use `:Z` for a private bind mount used by one container
-- use `:z` only when multiple containers must share the same host path
-- these SELinux bind-mount options are ignored on platforms without SELinux
-
-Current Fedora-specific note:
-
-- the verified SELinux alerts seen during `podman-compose up` in this repo come from Podman's rootless `pasta` network helper, not from the Spellbook data volumes
-- this is a host Podman configuration issue rather than a compose-file volume-label issue
-- if those `pasta` alerts are noisy on Fedora, prefer changing Podman's rootless network helper to `slirp4netns` in the local `containers.conf` instead of weakening container labeling in the shared compose file
-- that host-side workaround requires `slirp4netns` to be installed on the Fedora machine
-
-Example user-level Podman config on Fedora:
-
-```toml
-[network]
-default_rootless_network_cmd = "slirp4netns"
+```sh
+podman-compose -f podman-compose.yml -f podman-compose.dev.yml up --build -d
 ```
 
-Place that in `~/.config/containers/containers.conf`, then recreate the stack.
+The override shares the `scan_artifacts` volume at `/app/storage/scans` between the frontend and scan-worker. For S3 storage, provision the bucket separately and configure its lifecycle policy. Uploads remain outside Postgres. Recognition and normalized-image generation are not implemented.
+
+`worker_data` persists `state.json` across container recreation. See [worker operations and limits](../architecture/worker.md).
+
+On SELinux hosts, named volumes avoid most bind-mount relabeling. If replacing them with host paths, use `:Z` for one container or `:z` for a path shared by multiple containers. Host networking configuration belongs in operator notes rather than the shared compose file.
+
+The [verification workflow](./github-automation.md#ci-coverage) owns CI coverage and its limits. Operators build and deploy explicitly.
+
+## Catalog migration and recovery
+
+Migration `0006` creates the catalog tables and `pg_trgm` extension. The migration database role must be allowed to create that extension, or an administrator must provision it first. The worker then rebuilds the catalog directly from the configured Scryfall source. No MeiliSearch export is required. Existing account data, decks, and inventory stay in their application tables.
+
+Stop the existing MeiliSearch container using the previous compose configuration or its observed container name. The new compose stack no longer manages that service, so an already-running container may remain until stopped. Its old physical volume is not deleted automatically. Preserve that volume until the new catalog is verified; it is not used by PostgreSQL. Do not remove database volumes when rebuilding catalog data.
+
+After migration, inspect the active catalog through the existing protected database connection:
+
+```sql
+SELECT g.id, g.source_type, g.source_updated_at, g.document_count, g.published_at
+FROM catalog_state s
+JOIN catalog_generations g ON g.id = s.active_generation
+WHERE s.id = 1;
+```
+
+A published row with a positive document count indicates catalog publication. The frontend can start before first publication and return empty search results. Inspect worker logs and test authenticated search before opening a fresh deployment to users.
+
+Use `daily` or `weekly` for the persistent compose worker. Reserve `manual` for the one-shot command below; the service restart policy would otherwise restart the completed process. To rerun synchronization once, stop the scheduled worker and run:
+
+```sh
+podman-compose stop worker
+podman-compose run --rm -e SYNC_INTERVAL=manual worker
+```
+
+An unchanged, already-published snapshot is skipped. To force a fresh transformation of the same source timestamp, keep the worker stopped and run this transaction through the protected database connection before the manual command:
+
+```sql
+BEGIN;
+SELECT pg_advisory_xact_lock(1936747619, 1);
+UPDATE catalog_generations
+SET schema_version = 0
+WHERE id = (SELECT active_generation FROM catalog_state WHERE id = 1);
+COMMIT;
+```
+
+This invalidates the publication marker without removing the readable generation. A failed rebuild leaves that catalog available. Confirm the new publication and restart the scheduled worker with `podman-compose up -d worker`.
+
+To restore the previous retained catalog, stop the worker and run:
+
+```sql
+BEGIN;
+SELECT pg_advisory_xact_lock(1936747619, 1);
+UPDATE catalog_state
+SET active_generation = previous_generation,
+    previous_generation = active_generation,
+    updated_at = now()
+WHERE id = 1 AND previous_generation IS NOT NULL;
+COMMIT;
+```
+
+Confirm that the update affected one row and verify the active generation. Zero rows means no previous generation is available. Keep the worker stopped until the source or transformation problem is corrected; another sync can otherwise publish the newer snapshot again. Only one previous generation is retained. [Catalog architecture](../architecture/catalog.md) owns transaction and reader guarantees.

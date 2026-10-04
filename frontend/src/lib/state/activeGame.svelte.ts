@@ -1,4 +1,4 @@
-import type { Game } from '$lib/search/types';
+import type { Game } from '#lib/search/types.ts';
 
 export const ACTIVE_GAME_COOKIE = 'spellbook_game';
 export const DEFAULT_GAME: Game = 'mtg';

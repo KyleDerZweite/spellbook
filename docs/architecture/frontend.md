@@ -1,54 +1,31 @@
 # Frontend
 
 - Status: Canonical
-- Last Reviewed: 2026-05-21
-- Source of Truth: code
-- Update Triggers: route changes, auth guard changes, search flow changes, inventory/deck UI changes
-- Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Routing and Games](../product/routing-and-games.md), [MeiliSearch Search API](../integrations/meilisearch/search-api.md), [Mobile And Scan](./mobile-and-scan.md), [ADR-0008](../decisions/0008-mtg-only-self-hosted-inventory-and-deck-availability.md)
+- Last Reviewed: 2026-10-04
+- Source of Truth: code and upstream runtime documentation
+- Update Triggers: routes, authentication, search, deck builder, component choices, runtime support and compatibility
+- Related Docs: [System overview](./system-overview.md), [Auth](./auth.md), [Routes](../product/routing-and-games.md), [Catalog](./catalog.md), [Selected UI components](../reference/ui-libraries.md)
 
-The frontend is a SvelteKit application with SSR enabled on the server. User-facing routes are flat and the current product scope is MTG only.
+The SvelteKit application renders pages on the server and owns the application API. Svelte components and Tailwind styles implement the interface; Bits UI supplies accessible interactive components. The [selected component guidance](../reference/ui-libraries.md) owns shadcn-svelte source adoption and its boundary with existing Bits UI controls. The shared stylesheet defines the graphite, white, teal, blue, and restrained violet base design described in [design direction](../product/ui-design-direction.md).
 
-The same application is the mobile surface when installed as a PWA (see `frontend/static/manifest.webmanifest`) and also hosts the optional `/api/mobile/v1/:game/...` bearer-token API for non-browser clients.
+[Routing and games](../product/routing-and-games.md) owns the route list and legacy redirects. [The product specification](../product/specification.md) owns workflow behavior and acceptance criteria.
 
-## Current Implemented Product Routes
+Server loads and actions use the same Postgres repositories as `/api/mobile/v1/mtg/...`. Repositories scope mutations and reads to the authenticated account. The API keeps its existing MTG path segment for compatibility.
 
-- `/`
-- `/search`
-- `/inventory`
-- `/decks`
+Authenticated browser search, import resolution, and external API search use the same PostgreSQL [catalog](./catalog.md) through SvelteKit. Browser requests carry the local session cookie; no catalog key or separate search origin is required.
 
-Legacy `/mtg/*` and `/collections*` URLs return a 308 redirect to the matching flat route so older bookmarks and external links keep working.
+[Mobile and scan](./mobile-and-scan.md) owns manifest capabilities, API validation, uploads, and recognition boundaries.
 
-## Current Responsibilities
+## Runtime compatibility
 
-- enforce auth for protected routes
-- fetch and pass the MeiliSearch search key to authenticated sessions
-- load and mutate user-owned data through SvelteKit server code backed by Postgres
-- provide MTG search, inventory, and deck experiences
-- serve the installable PWA surface via the web app manifest
-- validate optional mobile bearer tokens against the configured OIDC provider
-- expose MTG mobile endpoints for search, inventory, decks, and scan orchestration
+The application targets Node 26 and pnpm 12, with exact versions in `frontend/.node-version` and `frontend/package.json`. Node 26 is a stable Current release on 2026-10-03, not yet LTS. The [Node schedule](https://github.com/nodejs/Release/blob/main/schedule.json) starts its LTS phase on 2026-10-28 and supports the release through 2029-04-30.
 
-## Search Responsibilities
+The implemented stack uses Svelte 5, SvelteKit 3, adapter-node 6, and Tailwind 4. The [Kit 3 migration](https://github.com/sveltejs/kit/blob/main/documentation/docs/60-appendix/35-migrating-to-sveltekit-3.md) moves configuration into the SvelteKit Vite plugin. Application imports use the `#lib/*` package mapping, and [`src/env.ts`](../../frontend/src/env.ts) declares environment variables exposed through the framework's environment modules.
 
-- browse mode for short queries
-- distinct search for MTG cards
-- printing selection
-- facet loading
-- set progress lookups through MeiliSearch
+Application type checking uses TypeScript 7 through the `typescript-native` alias. Kit 3 and svelte-check still require TypeScript 6's compiler API. Installing TypeScript 7 as that API dependency fails because it does not provide the expected `ts.sys.readFile` interface. The compatibility dependency supports those tools; it does not replace the project's TypeScript 7 check. The [verification workflow](../operations/github-automation.md#local-checks) owns the commands.
 
-## Inventory and Deck Responsibilities
+[`pnpm-workspace.yaml`](../../frontend/pnpm-workspace.yaml) retains the patched esbuild dependency for Drizzle's legacy loader. Its scoped `runed` peer rule accepts Kit 3 because Bits UI uses the framework-independent entry point, not `runed/kit`. Frozen installs preserve these choices.
 
-- inventory is the owned ledger surface
-- spellbook mode is an inventory presentation mode
-- decks compare required cards against owned counts
+`APP_ORIGIN` configures `paths.origin` at build time in [`vite.config.ts`](../../frontend/vite.config.ts). Compose passes it to both frontend and migration builds. Adapter-node 6 no longer reads runtime `ORIGIN`; changing the public origin requires rebuilding the frontend. [Deployment](../operations/deployment.md) owns the operator procedure.
 
-## Mobile API Responsibilities
-
-The `/api/mobile/v1/mtg/...` surface is optional and exists for non-browser clients. The PWA itself does not use it. The route keeps the existing `mtg` segment for compatibility, not as a near-term multi-game commitment.
-
-- accept bearer-token authenticated requests
-- proxy catalog search and printing lookups server-side
-- read and mutate user-owned data through the Postgres repository layer
-- upload retained scan artifacts to object storage
-- forward scan jobs to `scan-worker`
+The application serves its machine-readable API contract at `/openapi.json`. It describes local authentication and MTG API operations, including typed requests, responses, and cookie or bearer authentication. The route implementation remains the source of truth for error conditions and transaction behavior.

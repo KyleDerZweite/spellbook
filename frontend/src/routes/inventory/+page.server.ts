@@ -4,8 +4,8 @@ import {
 	getInventorySnapshot,
 	removeInventoryCard,
 	updateInventoryCard
-} from '$lib/server/data/inventory';
-import { DEFAULT_GAME } from '$lib/state/activeGame.svelte';
+} from '#lib/server/data/inventory.ts';
+import { DEFAULT_GAME } from '#lib/state/activeGame.svelte.ts';
 
 export const load: PageServerLoad = async ({ locals, parent }) => {
 	if (!locals.user) {

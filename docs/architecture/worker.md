@@ -1,44 +1,27 @@
 # Worker
 
 - Status: Canonical
-- Last Reviewed: 2026-05-18
+- Last Reviewed: 2026-10-03
 - Source of Truth: code
-- Update Triggers: sync flow changes, Scryfall ingest changes, index behavior changes, state marker changes
-- Related Docs: [System Overview](./system-overview.md), [MeiliSearch Overview](../integrations/meilisearch/README.md), [Tasks](../integrations/meilisearch/tasks.md)
+- Update Triggers: Scryfall formats, synchronization, publication, source selection, status persistence
+- Related Docs: [System overview](./system-overview.md), [Catalog](./catalog.md), [Deployment](../operations/deployment.md)
 
-The Python worker is responsible for MTG catalog ingestion and indexing.
+The Python worker ingests Scryfall bulk data into PostgreSQL. Startup retries database schema readiness. `CATALOG_SOURCE` selects `all_cards` by default or `default_cards`; each run synchronizes that source directly. It does not replace a full-language catalog with a recurring default-only refresh. All languages present in the selected snapshot are retained.
 
-## Current Responsibilities
+`SYNC_INTERVAL` selects daily, weekly, or manual execution. Every startup attempts a sync. Manual execution exits after that attempt, with a nonzero exit status on failure. Scheduled execution logs failure and retries after its configured interval.
 
-- wait for MeiliSearch readiness
-- configure live and staging indexes
-- seed `default_cards` when needed
-- optionally preload `all_cards` in the background
-- persist sync status under `WORKER_DATA_DIR/state.json`
+## Ingestion
 
-## Current Sync Model
+The download client prefers `jsonl_download_uri` when Scryfall supplies it and falls back to `download_uri`. It accepts plain data and gzip payloads, including concatenated gzip members, and rejects truncated gzip data.
 
-- startup health check for MeiliSearch
-- index configuration
-- seed if the document count suggests the index is empty
-- optional background full preload
-- optional periodic sync based on `SYNC_INTERVAL`
-- indexing writes to `cards_distinct_next` and `cards_all_next`, waits for MeiliSearch tasks, swaps the staging indexes with the live indexes, then removes the old staging names
+The parser streams JSON Lines and legacy JSON arrays through card transformation into PostgreSQL COPY. It does not load the full catalog into memory. Malformed records, invalid identities, and snapshots without indexable documents fail publication. Downloaded bulk files are removed after each attempt.
 
-## Current Persistence
+[`transform.py`](../../worker/src/worker/transform.py) owns card document transformation. [`catalog.py`](../../worker/src/worker/catalog.py) adds indexed search fields, including printed face text. The [catalog architecture](./catalog.md) owns generation publication, reader consistency, grouping, and search behavior.
 
-The worker stores sync markers locally so it can skip unchanged Scryfall bulk snapshots.
+## Persistence and readiness
 
-Default local path:
+PostgreSQL owns source timestamps, transformation schema versions, and publication counts. A matching active source, sufficiently recent timestamp, matching schema version, and populated generation allow the worker to skip an unchanged snapshot. Losing `state.json` does not discard these markers. Switching the configured source triggers publication of that source.
 
-```text
-/tmp/spellbook-worker/state.json
-```
+The worker writes operator status atomically to `state.json` under `WORKER_DATA_DIR`, defaulting to `/tmp/spellbook-worker`. Compose mounts durable storage at `/app/data`. A successful run records source, completion time, document count, and no error. A failure records the source and exception class without logging credential-bearing exception text. This file is a status report, not the authority for whether a catalog is published.
 
-Compose sets:
-
-```text
-WORKER_DATA_DIR=/app/data
-```
-
-The status file includes Scryfall update timestamps, the last successful sync time, the last indexed document count, and the last error. Scryfall update timestamps are written only after indexing and index swapping complete successfully.
+The worker has no HTTP health or metrics endpoint. Its startup check confirms schema access, not a populated catalog. Inspect the active generation and logs to confirm first-publication readiness. [Deployment](../operations/deployment.md#catalog-migration-and-recovery) owns operator commands.

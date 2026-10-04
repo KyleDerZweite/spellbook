@@ -8,7 +8,7 @@ export class ValidationError extends Error {
 export const VALID_CONDITIONS = ['NM', 'LP', 'MP', 'HP', 'DMG'] as const;
 export const VALID_FINISHES = ['nonfoil', 'foil'] as const;
 export const INVENTORY_OPERATION_TYPES = ['add', 'set', 'decrement', 'remove'] as const;
-export const DECK_OPERATION_TYPES = ['add', 'set', 'decrement', 'remove'] as const;
+export const DECK_OPERATION_TYPES = ['add', 'set', 'decrement', 'remove', 'move'] as const;
 export const DECK_ROLES = ['main', 'sideboard', 'commander', 'companion'] as const;
 export const INVENTORY_SOURCES = ['mobile', 'web', 'import', 'scan', 'scan_review'] as const;
 export const DECK_SOURCES = ['mobile', 'web', 'import'] as const;
@@ -100,6 +100,11 @@ export type DeckBulkOperationInput =
 			quantity: number;
 	  }
 	| {
+			op: 'move';
+			target: { entryId: string };
+			role: DeckRole;
+	  }
+	| {
 			op: 'remove';
 			target: { entryId: string };
 	  };
@@ -122,16 +127,27 @@ export type DeckBulkOperation =
 			quantity: number;
 	  }
 	| {
+			op: 'move';
+			target: { entryId: string };
+			role: DeckRole;
+	  }
+	| {
 			op: 'remove';
 			target: { entryId: string };
 	  };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null;
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function assertString(value: unknown, field: string, fallback = ''): string {
+	if (value === undefined) return fallback;
+	if (typeof value !== 'string') throw new ValidationError(`${field} must be a string`);
+	return value;
 }
 
 export function assertRequestId(value: unknown): string {
-	const requestId = String(value ?? '').trim();
+	const requestId = assertString(value, 'requestId').trim();
 	if (!requestId) {
 		throw new ValidationError('requestId is required');
 	}
@@ -143,7 +159,7 @@ export function normalizeSource<T extends readonly string[]>(
 	allowed: T,
 	fallback: T[number]
 ): T[number] {
-	const source = String(value ?? fallback).trim();
+	const source = assertString(value, 'source', fallback).trim();
 	if (!allowed.includes(source as T[number])) {
 		throw new ValidationError(`Invalid source: ${source}`);
 	}
@@ -154,7 +170,7 @@ export function assertInventoryOperation(value: unknown): InventoryBulkOperation
 	if (!isRecord(value)) {
 		throw new ValidationError('Invalid operation: expected object');
 	}
-	const op = String(value.op ?? '');
+	const op = assertString(value.op, 'op');
 	if (!INVENTORY_OPERATION_TYPES.includes(op as InventoryOperationType)) {
 		throw new ValidationError(`Invalid operation: ${op}`);
 	}
@@ -166,12 +182,12 @@ export function assertInventoryOperation(value: unknown): InventoryBulkOperation
 			finish: assertFinish(value.finish),
 			condition: assertCondition(value.condition),
 			quantity: assertPositiveQuantity(value.quantity),
-			notes: String(value.notes ?? '')
+			notes: assertString(value.notes, 'notes')
 		};
 	}
 
 	const target = { entryId: assertEntryTarget(value.target) };
-	const notes = Object.hasOwn(value, 'notes') ? String(value.notes ?? '') : undefined;
+	const notes = Object.hasOwn(value, 'notes') ? assertString(value.notes, 'notes') : undefined;
 
 	if (op === 'remove') {
 		return { op: 'remove', target, ...(notes === undefined ? {} : { notes }) };
@@ -180,7 +196,10 @@ export function assertInventoryOperation(value: unknown): InventoryBulkOperation
 	return {
 		op: op as 'set' | 'decrement',
 		target,
-		quantity: assertFiniteQuantity(value.quantity),
+		quantity:
+			op === 'decrement'
+				? assertPositiveQuantity(value.quantity)
+				: assertFiniteQuantity(value.quantity),
 		...(notes === undefined ? {} : { notes })
 	};
 }
@@ -189,7 +208,7 @@ export function assertDeckOperation(value: unknown): DeckBulkOperation {
 	if (!isRecord(value)) {
 		throw new ValidationError('Invalid operation: expected object');
 	}
-	const op = String(value.op ?? '');
+	const op = assertString(value.op, 'op');
 	if (!DECK_OPERATION_TYPES.includes(op as DeckOperationType)) {
 		throw new ValidationError(`Invalid operation: ${op}`);
 	}
@@ -208,16 +227,22 @@ export function assertDeckOperation(value: unknown): DeckBulkOperation {
 	if (op === 'remove') {
 		return { op: 'remove', target };
 	}
+	if (op === 'move') {
+		return { op: 'move', target, role: assertDeckRole(value.role) };
+	}
 
 	return {
 		op: op as 'set' | 'decrement',
 		target,
-		quantity: assertFiniteQuantity(value.quantity)
+		quantity:
+			op === 'decrement'
+				? assertPositiveQuantity(value.quantity)
+				: assertFiniteQuantity(value.quantity)
 	};
 }
 
 export function assertFinish(value: unknown): CardFinish {
-	const finish = String(value ?? '').trim();
+	const finish = assertString(value, 'value').trim();
 	if (!VALID_FINISHES.includes(finish as CardFinish)) {
 		throw new ValidationError(`Invalid finish: ${finish}`);
 	}
@@ -225,7 +250,7 @@ export function assertFinish(value: unknown): CardFinish {
 }
 
 export function assertCondition(value: unknown): CardCondition {
-	const condition = String(value ?? '').trim();
+	const condition = assertString(value, 'value').trim();
 	if (!VALID_CONDITIONS.includes(condition as CardCondition)) {
 		throw new ValidationError(`Invalid condition: ${condition}`);
 	}
@@ -233,7 +258,7 @@ export function assertCondition(value: unknown): CardCondition {
 }
 
 export function assertDeckRole(value: unknown): DeckRole {
-	const role = String(value ?? '').trim();
+	const role = assertString(value, 'value').trim();
 	if (!DECK_ROLES.includes(role as DeckRole)) {
 		throw new ValidationError(`Invalid role: ${role}`);
 	}
@@ -241,9 +266,13 @@ export function assertDeckRole(value: unknown): DeckRole {
 }
 
 export function normalizeQuantity(value: unknown): number {
-	const quantity = Math.trunc(Number(value ?? 0));
-	if (!Number.isFinite(quantity)) {
-		throw new ValidationError('Quantity must be a number');
+	const quantity = value;
+	if (
+		typeof quantity !== 'number' ||
+		!Number.isSafeInteger(quantity) ||
+		Math.abs(quantity) > 2147483647
+	) {
+		throw new ValidationError('Quantity must be a finite 32-bit integer');
 	}
 	return quantity;
 }
@@ -261,9 +290,12 @@ function assertFiniteQuantity(value: unknown): number {
 }
 
 function assertEntryTarget(target: unknown): string {
-	const entryId = String((target as { entryId?: unknown } | undefined)?.entryId ?? '').trim();
-	if (!entryId) {
-		throw new ValidationError('target.entryId is required');
+	const entryId = assertString(
+		(target as { entryId?: unknown } | undefined)?.entryId,
+		'target.entryId'
+	).trim();
+	if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(entryId)) {
+		throw new ValidationError('target.entryId must be a UUID');
 	}
 	return entryId;
 }
@@ -274,9 +306,9 @@ function assertCardIdentity(card: unknown): CardIdentityInput {
 			'card.catalogCardId, card.canonicalCardId, and card.name are required'
 		);
 	}
-	const catalogCardId = String(card.catalogCardId ?? '').trim();
-	const canonicalCardId = String(card.canonicalCardId ?? '').trim();
-	const name = String(card.name ?? '').trim();
+	const catalogCardId = assertString(card.catalogCardId, 'card.catalogCardId').trim();
+	const canonicalCardId = assertString(card.canonicalCardId, 'card.canonicalCardId').trim();
+	const name = assertString(card.name, 'card.name').trim();
 	if (!catalogCardId || !canonicalCardId || !name) {
 		throw new ValidationError(
 			'card.catalogCardId, card.canonicalCardId, and card.name are required'
@@ -286,7 +318,7 @@ function assertCardIdentity(card: unknown): CardIdentityInput {
 		catalogCardId,
 		canonicalCardId,
 		name,
-		setCode: String(card.setCode ?? '').trim(),
-		imageUri: String(card.imageUri ?? '').trim()
+		setCode: assertString(card.setCode, 'card.setCode').trim(),
+		imageUri: assertString(card.imageUri, 'card.imageUri').trim()
 	};
 }

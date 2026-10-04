@@ -1,6 +1,107 @@
 import { json } from '@sveltejs/kit';
-import { privateEnv } from '$lib/env/private';
-import { SITE_DESCRIPTION, SITE_NAME } from '$lib/seo/site';
+import { privateEnv } from '#lib/env/private.ts';
+import { SITE_DESCRIPTION, SITE_NAME } from '#lib/seo/site.ts';
+
+type Schema = Record<string, unknown>;
+
+const ref = (name: string): Schema => ({ $ref: `#/components/schemas/${name}` });
+const array = (name: string): Schema => ({ type: 'array', items: ref(name) });
+const nullable = (name: string): Schema => ({ anyOf: [ref(name), { type: 'null' }] });
+const object = (
+	properties: Record<string, Schema>,
+	required = Object.keys(properties)
+): Schema => ({
+	type: 'object',
+	properties,
+	required
+});
+const string: Schema = { type: 'string' };
+const integer: Schema = { type: 'integer' };
+const quantity: Schema = { type: 'integer', minimum: 1 };
+const role: Schema = { enum: ['main', 'sideboard', 'commander', 'companion'] };
+const finish: Schema = { enum: ['nonfoil', 'foil'] };
+const condition: Schema = { enum: ['NM', 'LP', 'MP', 'HP', 'DMG'] };
+const timestamps = {
+	createdAt: { type: 'string', format: 'date-time' },
+	updatedAt: { type: 'string', format: 'date-time' }
+};
+const content = (schema: Schema, mediaType = 'application/json') => ({ [mediaType]: { schema } });
+const response = (description: string, schema: Schema) => ({
+	description,
+	content: content(schema)
+});
+const requestBody = (schema: Schema, mediaType = 'application/json') => ({
+	required: true,
+	content: content(schema, mediaType)
+});
+const pathParameter = (name: string) => ({
+	name,
+	in: 'path',
+	required: true,
+	schema: { type: 'string', format: 'uuid' }
+});
+const authenticated = [{ sessionCookie: [] }, { bearerToken: [] }];
+const errors = {
+	400: response('Invalid request', ref('ErrorResponse')),
+	401: response('A valid session cookie or bearer token is required', ref('ErrorResponse')),
+	403: response(
+		'Cookie-authenticated mutations require a matching Origin header',
+		ref('ErrorResponse')
+	),
+	500: response('Internal server error', ref('ErrorResponse'))
+};
+const jsonBodyErrors = {
+	413: response('JSON request body exceeds 1 MiB', ref('ErrorResponse')),
+	415: response('Use application/json', ref('ErrorResponse'))
+};
+const requestConflict = response(
+	'requestId was already used with another payload, source, or context. Legacy mutation records without a requestHash retain their earlier deduplication behavior.',
+	ref('ErrorResponse')
+);
+const authErrors = {
+	400: errors[400],
+	403: response('Invalid request origin', ref('ErrorResponse')),
+	413: jsonBodyErrors[413],
+	415: response('Use application/json', ref('ErrorResponse')),
+	429: response('Authentication attempt limit reached', ref('ErrorResponse')),
+	500: errors[500]
+};
+const browserAuthErrors = {
+	400: {
+		description: 'Form with invalid credentials or registration details',
+		content: content(string, 'text/html')
+	},
+	403: { description: 'Invalid request origin', content: content(string, 'text/html') },
+	429: {
+		description: 'Authentication attempt limit reached',
+		content: content(string, 'text/html')
+	}
+};
+const returnToParameter = {
+	name: 'returnTo',
+	in: 'query',
+	schema: { type: 'string', default: '/' },
+	description: 'Local path used after authentication; invalid or external paths become /.'
+};
+const operation = (summary: string, result: Schema, input?: Schema, idempotent = false) => ({
+	summary,
+	tags: ['mobile'],
+	security: authenticated,
+	...(input
+		? {
+				requestBody: {
+					...requestBody(input),
+					description: 'A JSON object, at most 1 MiB. Invalid field types return 400.'
+				}
+			}
+		: {}),
+	responses: {
+		200: response('Successful response', result),
+		...errors,
+		...(input ? jsonBodyErrors : {}),
+		...(idempotent ? { 409: requestConflict } : {})
+	}
+});
 
 const SCHEMA = {
 	openapi: '3.1.0',
@@ -8,226 +109,406 @@ const SCHEMA = {
 		title: `${SITE_NAME} OpenAPI Schema`,
 		version: '0.1.0',
 		description:
-			'Machine-readable schema for the Spellbook frontend origin. Most interactive routes require authentication.'
+			'Spellbook local account authentication and the versioned MTG API. API mutations affect the authenticated account only.'
 	},
-	servers: [
-		{
-			url: privateEnv.APP_ORIGIN
-		}
-	],
+	servers: [{ url: privateEnv.APP_ORIGIN }],
 	paths: {
 		'/auth/login': {
+			parameters: [returnToParameter],
 			get: {
-				summary: 'Start the OIDC login flow',
-				description:
-					'Creates the OIDC state cookie and redirects the browser to the configured identity provider authorization endpoint.',
+				summary: 'Show the username and password login form',
+				tags: ['auth'],
+				security: [],
 				responses: {
-					302: {
-						description: 'Redirect to the OIDC authorization endpoint'
-					}
+					200: { description: 'Login page', content: content(string, 'text/html') },
+					303: { description: 'Already authenticated redirect' }
+				}
+			},
+			post: {
+				summary: 'Sign in with the browser form',
+				tags: ['auth'],
+				security: [],
+				requestBody: requestBody(ref('LoginRequest'), 'application/x-www-form-urlencoded'),
+				responses: {
+					303: { description: 'Session cookie set; redirect to the requested local page' },
+					...browserAuthErrors
 				}
 			}
 		},
-		'/auth/callback': {
+		'/auth/register': {
+			parameters: [returnToParameter],
 			get: {
-				summary: 'Handle the OIDC callback',
-				description:
-					'Exchanges the authorization code for a session and redirects back into the app.',
+				summary: 'Show the local account registration form',
+				tags: ['auth'],
+				security: [],
 				responses: {
-					302: {
-						description: 'Redirect back to the requested in-app route'
-					}
+					200: { description: 'Registration page', content: content(string, 'text/html') },
+					303: { description: 'Already authenticated redirect' }
+				}
+			},
+			post: {
+				summary: 'Register a local account with the browser form',
+				tags: ['auth'],
+				security: [],
+				requestBody: requestBody(ref('RegisterRequest'), 'application/x-www-form-urlencoded'),
+				responses: {
+					303: { description: 'Session cookie set; redirect into the app' },
+					...browserAuthErrors
 				}
 			}
 		},
 		'/auth/logout': {
-			get: {
-				summary: 'End the current session',
-				description:
-					'Clears the local session and redirects through the provider logout flow when available.',
+			post: {
+				summary: 'Revoke the browser session and clear its cookie',
+				tags: ['auth'],
+				security: [],
 				responses: {
-					302: {
-						description: 'Redirect to the provider logout endpoint or the app root'
-					}
+					303: { description: 'Redirect to /, including when no session exists' },
+					403: browserAuthErrors[403]
+				}
+			}
+		},
+		'/api/auth/login': {
+			post: {
+				summary: 'Exchange local credentials for an opaque session token',
+				tags: ['auth'],
+				security: [],
+				requestBody: requestBody(ref('LoginRequest')),
+				responses: {
+					200: response('Authenticated session', ref('AuthSession')),
+					...authErrors,
+					401: response('Invalid credentials', ref('ErrorResponse'))
+				}
+			}
+		},
+		'/api/auth/register': {
+			post: {
+				summary: 'Create a local account and an opaque session token',
+				tags: ['auth'],
+				security: [],
+				requestBody: requestBody(ref('RegisterRequest')),
+				responses: {
+					201: response('Registered account and session', ref('AuthSession')),
+					...authErrors
+				}
+			}
+		},
+		'/api/auth/logout': {
+			post: {
+				summary: 'Revoke the supplied session token',
+				tags: ['auth'],
+				security: [{ bearerToken: [] }],
+				responses: {
+					204: { description: 'Session revoked or token already unknown' },
+					401: errors[401],
+					403: authErrors[403],
+					500: errors[500]
 				}
 			}
 		},
 		'/api/mobile/v1/mtg/search': {
 			get: {
-				summary: 'Search the MTG catalog for the mobile client',
-				responses: {
-					200: { description: 'Search response with MTG card hits' },
-					401: { description: 'Bearer token or web session required' }
-				}
+				...operation('Search distinct MTG cards', ref('SearchResponse')),
+				parameters: [
+					{ name: 'q', in: 'query', schema: { type: 'string', maxLength: 300, default: '' } },
+					{
+						name: 'limit',
+						in: 'query',
+						schema: { type: 'integer', default: 20, minimum: 0, maximum: 100 }
+					},
+					{
+						name: 'offset',
+						in: 'query',
+						schema: { type: 'integer', default: 0, minimum: 0, maximum: 1_000_000 }
+					}
+				]
+			},
+			post: {
+				...operation(
+					'Search distinct MTG cards with filters and optional facets',
+					ref('SearchResponse'),
+					ref('CatalogSearchRequest')
+				),
+				description:
+					'Filters apply to printings before deduplication by oracle ID. Results, counts, and facets use one published catalog generation. An unpublished catalog returns an empty result with generationId null.'
+			}
+		},
+		'/api/mobile/v1/mtg/cards/{oracleId}/printings': {
+			parameters: [pathParameter('oracleId')],
+			get: {
+				...operation('List printings of a canonical card', ref('SearchResponse')),
+				parameters: [
+					{
+						name: 'limit',
+						in: 'query',
+						schema: { type: 'integer', default: 100, minimum: 1, maximum: 100 }
+					},
+					{
+						name: 'offset',
+						in: 'query',
+						schema: { type: 'integer', default: 0, minimum: 0, maximum: 1_000_000 }
+					}
+				]
 			}
 		},
 		'/api/mobile/v1/mtg/inventory': {
-			get: {
-				summary: 'Read the authenticated user inventory for mobile',
-				responses: {
-					200: {
-						description: 'Current MTG inventory snapshot',
-						content: {
-							'application/json': { schema: { $ref: '#/components/schemas/InventorySnapshot' } }
-						}
-					},
-					401: { description: 'Bearer token or web session required' }
-				}
-			},
-			post: {
-				summary: 'Commit an idempotent batch inventory add',
-				responses: {
-					200: { description: 'Inventory commit applied or deduplicated' },
-					401: { description: 'Bearer token or web session required' }
-				}
-			}
+			get: operation('Read the account inventory', ref('InventorySnapshot')),
+			post: operation(
+				'Add an idempotent inventory batch',
+				ref('InventorySnapshot'),
+				ref('InventoryBatchRequest'),
+				true
+			)
+		},
+		'/api/mobile/v1/mtg/inventory/batch-add': {
+			post: operation(
+				'Add an idempotent inventory batch',
+				ref('InventorySnapshot'),
+				ref('InventoryBatchRequest'),
+				true
+			)
+		},
+		'/api/mobile/v1/mtg/inventory/{entryId}': {
+			parameters: [pathParameter('entryId')],
+			patch: operation(
+				'Set quantity and notes; nonpositive quantity removes the entry',
+				nullable('InventoryCard'),
+				ref('InventoryEntryUpdate')
+			),
+			delete: operation('Remove an inventory entry', ref('OkResponse'))
 		},
 		'/api/mobile/v1/mtg/inventory/bulk': {
-			post: {
-				summary: 'Apply idempotent MTG inventory bulk operations',
-				requestBody: {
-					required: true,
-					content: {
-						'application/json': { schema: { $ref: '#/components/schemas/InventoryBulkRequest' } }
-					}
-				},
-				responses: {
-					200: {
-						description: 'Inventory snapshot after applying or deduplicating the request',
-						content: {
-							'application/json': { schema: { $ref: '#/components/schemas/InventorySnapshot' } }
-						}
-					},
-					400: { $ref: '#/components/responses/BadRequest' },
-					401: { description: 'Bearer token or web session required' }
-				}
-			}
+			post: operation(
+				'Apply idempotent inventory operations',
+				ref('InventorySnapshot'),
+				ref('InventoryBulkRequest'),
+				true
+			)
 		},
 		'/api/mobile/v1/mtg/inventory/import/preview': {
-			post: {
-				summary: 'Preview an MTG Arena-style inventory import',
-				requestBody: {
-					required: true,
-					content: {
-						'application/json': {
-							schema: { $ref: '#/components/schemas/InventoryImportPreviewRequest' }
-						}
-					}
-				},
-				responses: {
-					200: { description: 'Resolved, unresolved, ambiguous lines, and warnings' },
-					400: { $ref: '#/components/responses/BadRequest' }
-				}
-			}
+			post: operation(
+				'Preview an Arena inventory import',
+				ref('InventoryImportPreviewResponse'),
+				ref('InventoryImportPreviewRequest')
+			)
 		},
 		'/api/mobile/v1/mtg/inventory/import/commit': {
-			post: {
-				summary: 'Commit resolved MTG Arena-style inventory import lines',
-				requestBody: {
-					required: true,
-					content: {
-						'application/json': {
-							schema: { $ref: '#/components/schemas/InventoryImportCommitRequest' }
-						}
-					}
-				},
-				responses: {
-					200: { description: 'Inventory snapshot plus import summary' },
-					400: { $ref: '#/components/responses/BadRequest' }
-				}
-			}
+			post: operation(
+				'Commit resolved inventory import lines',
+				ref('InventoryImportCommitResponse'),
+				ref('InventoryImportCommitRequest'),
+				true
+			)
 		},
 		'/api/mobile/v1/mtg/decks': {
+			get: operation('Read decks, deck cards, and owned inventory', ref('DeckSnapshot')),
+			post: operation(
+				'Create a deck and return the account deck list',
+				array('Deck'),
+				ref('DeckWriteRequest')
+			)
+		},
+		'/api/mobile/v1/mtg/decks/{deckId}': {
+			parameters: [pathParameter('deckId')],
+			patch: operation('Update deck metadata', nullable('Deck'), ref('DeckWriteRequest')),
+			delete: operation('Delete a deck', ref('OkResponse'))
+		},
+		'/api/mobile/v1/mtg/decks/{deckId}/availability': {
+			parameters: [pathParameter('deckId')],
 			get: {
-				summary: 'Read the authenticated user decks for mobile',
+				...operation('Compare one deck with current owned inventory', ref('DeckAvailability')),
+				description:
+					'Allocates exact printings first, then alternate printings of the same canonical card. Does not reserve inventory or allocate cards across other decks.',
 				responses: {
-					200: {
-						description: 'Current deck snapshot',
-						content: {
-							'application/json': { schema: { $ref: '#/components/schemas/DeckSnapshot' } }
-						}
-					},
-					401: { description: 'Bearer token or web session required' }
+					200: response('Current availability for this deck', ref('DeckAvailability')),
+					...errors,
+					404: response('Deck not found in this account', ref('ErrorResponse'))
 				}
 			}
+		},
+		'/api/mobile/v1/mtg/decks/{deckId}/cards': {
+			parameters: [pathParameter('deckId')],
+			post: operation(
+				'Add a printing to a deck role and return its cards',
+				array('DeckCard'),
+				ref('DeckCardAddRequest')
+			)
+		},
+		'/api/mobile/v1/mtg/deck-cards/{entryId}': {
+			parameters: [pathParameter('entryId')],
+			patch: operation(
+				'Set deck entry quantity and optional role; nonpositive quantity removes it',
+				nullable('DeckCard'),
+				ref('DeckCardUpdateRequest')
+			),
+			delete: operation('Remove a deck card entry', ref('OkResponse'))
 		},
 		'/api/mobile/v1/mtg/decks/{deckId}/cards/bulk': {
-			post: {
-				summary: 'Apply idempotent MTG deck card bulk operations',
-				parameters: [{ name: 'deckId', in: 'path', required: true, schema: { type: 'string' } }],
-				requestBody: {
-					required: true,
-					content: {
-						'application/json': { schema: { $ref: '#/components/schemas/DeckCardBulkRequest' } }
-					}
-				},
-				responses: {
-					200: { description: 'Deck cards after applying or deduplicating the request' },
-					400: { $ref: '#/components/responses/BadRequest' }
-				}
-			}
+			parameters: [pathParameter('deckId')],
+			post: operation(
+				'Apply idempotent deck card operations',
+				array('DeckCard'),
+				ref('DeckCardBulkRequest'),
+				true
+			)
 		},
 		'/api/mobile/v1/mtg/decks/import/preview': {
-			post: {
-				summary: 'Preview an MTG Arena-style deck import',
-				requestBody: {
-					required: true,
-					content: {
-						'application/json': {
-							schema: { $ref: '#/components/schemas/DeckImportPreviewRequest' }
-						}
-					}
-				},
-				responses: {
-					200: { description: 'Resolved, unresolved, ambiguous lines, and warnings' },
-					400: { $ref: '#/components/responses/BadRequest' }
-				}
-			}
+			post: operation(
+				'Preview an Arena deck import',
+				ref('InventoryImportPreviewResponse'),
+				ref('DeckImportPreviewRequest')
+			)
 		},
 		'/api/mobile/v1/mtg/decks/import/commit': {
-			post: {
-				summary: 'Create a new deck from resolved MTG Arena-style import lines',
-				requestBody: {
-					required: true,
-					content: {
-						'application/json': { schema: { $ref: '#/components/schemas/DeckImportCommitRequest' } }
-					}
-				},
-				responses: {
-					200: {
-						description: 'Created deck, deck cards, unresolved lines, ambiguous lines, and warnings'
-					},
-					400: { $ref: '#/components/responses/BadRequest' }
-				}
-			}
+			post: operation(
+				'Create a deck from resolved import lines',
+				ref('DeckImportCommitResponse'),
+				ref('DeckImportCommitRequest'),
+				true
+			)
 		},
 		'/api/mobile/v1/mtg/decks/{deckId}/export': {
+			parameters: [pathParameter('deckId')],
 			get: {
-				summary: 'Export a deck as MTG Arena-compatible text',
-				parameters: [
-					{ name: 'deckId', in: 'path', required: true, schema: { type: 'string' } },
-					{ name: 'format', in: 'query', required: false, schema: { const: 'arena' } }
-				],
+				...operation('Export a deck as Arena text', string),
+				parameters: [{ name: 'format', in: 'query', schema: { const: 'arena', default: 'arena' } }],
 				responses: {
-					200: {
-						description: 'MTG Arena text export',
-						content: { 'text/plain': { schema: { type: 'string' } } }
-					},
-					400: { $ref: '#/components/responses/BadRequest' }
+					200: { description: 'Arena decklist', content: content(string, 'text/plain') },
+					...errors
 				}
 			}
 		},
 		'/api/mobile/v1/mtg/scan/sessions': {
+			get: operation(
+				'List the 100 most recently updated scan sessions',
+				object({ sessions: array('ScanSession') })
+			),
+			post: operation('Create a scan session', object({ session: ref('ScanSession') }))
+		},
+		'/api/mobile/v1/mtg/scan/sessions/{sessionId}/artifacts/{artifactId}/result': {
+			parameters: [pathParameter('sessionId'), pathParameter('artifactId')],
 			post: {
-				summary: 'Create a scan session for the mobile scan workflow',
+				...operation(
+					'Replace recognition results for an uploaded scan artifact',
+					object({ artifact: ref('ScanArtifact'), result: ref('ScanWorkerResult') }),
+					ref('ExternalScanResultRequest')
+				),
+				description:
+					'Requires an owned artifact in an open or pending-review session. Repeating a result replaces recognition data without creating artifacts or adding inventory. Card identity comes from the catalog. Inventory changes require an explicit review commit.',
 				responses: {
-					200: { description: 'Created scan session id' },
-					401: { description: 'Bearer token or web session required' }
+					200: response(
+						'Stored recognition result',
+						object({ artifact: ref('ScanArtifact'), result: ref('ScanWorkerResult') })
+					),
+					...errors,
+					...jsonBodyErrors,
+					404: response('Session or artifact not found in this account', ref('ErrorResponse')),
+					409: response('Session is already committed or cancelled', ref('ErrorResponse'))
 				}
 			}
+		},
+		'/api/mobile/v1/mtg/scan/artifacts/{artifactId}/image': {
+			parameters: [pathParameter('artifactId')],
+			get: {
+				...operation('Read the original image for an owned scan artifact', {
+					type: 'string',
+					format: 'binary'
+				}),
+				responses: {
+					200: {
+						description: 'Original image, with its media type detected from its bytes',
+						headers: {
+							'Cache-Control': { schema: { const: 'no-store' } },
+							'X-Content-Type-Options': { schema: { const: 'nosniff' } }
+						},
+						content: {
+							...content({ type: 'string', format: 'binary' }, 'image/jpeg'),
+							...content({ type: 'string', format: 'binary' }, 'image/png'),
+							...content({ type: 'string', format: 'binary' }, 'image/webp')
+						}
+					},
+					...errors,
+					404: response('Artifact or stored image not found in this account', ref('ErrorResponse')),
+					413: response('Stored image exceeds 10 MiB', ref('ErrorResponse')),
+					415: response('Stored content is not JPEG, PNG, or WebP', ref('ErrorResponse'))
+				}
+			}
+		},
+		'/api/mobile/v1/mtg/scan/sessions/{sessionId}/frames': {
+			parameters: [pathParameter('sessionId')],
+			post: {
+				...operation(
+					'Upload and process a scan frame',
+					object({ artifact: ref('ScanArtifact'), result: ref('ScanWorkerResult') })
+				),
+				requestBody: requestBody(
+					object({
+						file: {
+							type: 'string',
+							format: 'binary',
+							description:
+								'Nonempty JPEG, PNG, or WebP image up to 10 MiB. Its signature must match the declared MIME type. The multipart body must not exceed 12 MiB and the filename must be at most 255 characters.'
+						}
+					}),
+					'multipart/form-data'
+				),
+				responses: {
+					200: response(
+						'Processed scan frame',
+						object({ artifact: ref('ScanArtifact'), result: ref('ScanWorkerResult') })
+					),
+					...errors,
+					404: response('Scan session not found in this account', ref('ErrorResponse')),
+					409: response('Scan session is not open for uploads', ref('ErrorResponse')),
+					413: response(
+						'Multipart body exceeds 12 MiB or the image exceeds 10 MiB',
+						ref('ErrorResponse')
+					),
+					415: response(
+						'Use multipart/form-data with a JPEG, PNG, or WebP file whose signature matches its MIME type',
+						ref('ErrorResponse')
+					),
+					502: response('Scan processing failed. Retry the upload.', ref('ErrorResponse'))
+				}
+			}
+		},
+		'/api/mobile/v1/mtg/scan/sessions/{sessionId}/result': {
+			parameters: [pathParameter('sessionId')],
+			get: {
+				...operation(
+					'Read scan artifacts, review items, and the latest result',
+					ref('ScanSessionResult')
+				),
+				responses: {
+					200: response('Owned scan session result', ref('ScanSessionResult')),
+					...errors,
+					404: response('Scan session not found in this account', ref('ErrorResponse'))
+				}
+			}
+		},
+		'/api/mobile/v1/mtg/scan/review/commit': {
+			post: operation(
+				'Commit reviewed scan candidates to inventory',
+				ref('InventorySnapshot'),
+				ref('ScanReviewCommitRequest'),
+				true
+			)
 		}
 	},
 	components: {
+		securitySchemes: {
+			sessionCookie: {
+				type: 'apiKey',
+				in: 'cookie',
+				name: 'spellbook_session',
+				description: 'Opaque local session cookie set by browser login.'
+			},
+			bearerToken: {
+				type: 'http',
+				scheme: 'bearer',
+				description: 'Opaque local session token returned by /api/auth/login or /api/auth/register.'
+			}
+		},
 		responses: {
 			BadRequest: {
 				description: 'Structured error response',
@@ -237,14 +518,346 @@ const SCHEMA = {
 			}
 		},
 		schemas: {
+			LoginRequest: object({
+				username: {
+					type: 'string',
+					description: 'Case-insensitive username, normalized by trimming and lowercasing.'
+				},
+				password: { type: 'string', minLength: 12, maxLength: 128, writeOnly: true }
+			}),
+			RegisterRequest: object({
+				username: {
+					type: 'string',
+					minLength: 3,
+					maxLength: 32,
+					description:
+						'After trimming and lowercasing: starts with a letter or digit; remaining characters are letters, digits, underscores, or hyphens.'
+				},
+				password: { type: 'string', minLength: 12, maxLength: 128, writeOnly: true }
+			}),
+			AuthSession: object({
+				user: object({ accountId: string, username: string, email: string }),
+				token: {
+					type: 'string',
+					pattern: '^[A-Za-z0-9_-]{43}$',
+					description:
+						'Opaque bearer token. Store securely; the JSON API does not set a browser cookie.'
+				},
+				expiresAt: { type: 'string', format: 'date-time' }
+			}),
+			OkResponse: object({ ok: { const: true } }),
+			CardDocument: object(
+				{
+					id: string,
+					oracle_id: string,
+					name: string,
+					printed_name: string,
+					normalized_name: string,
+					lang: string,
+					released_at: string,
+					layout: string,
+					mana_cost: string,
+					cmc: { type: 'number' },
+					type_line: string,
+					oracle_text: string,
+					colors: { type: 'array', items: string },
+					color_identity: { type: 'array', items: string },
+					keywords: { type: 'array', items: string },
+					card_types: { type: 'array', items: string },
+					power: string,
+					toughness: string,
+					rarity: string,
+					set_code: string,
+					set_name: string,
+					collector_number: string,
+					image_uri: string,
+					image_uri_small: string,
+					is_foil_available: { type: 'boolean' },
+					is_nonfoil_available: { type: 'boolean' },
+					legalities: { type: 'object', additionalProperties: string },
+					back_face_name: string,
+					back_face_image_uri: string
+				},
+				['id', 'oracle_id', 'name']
+			),
+			CatalogFilters: {
+				...object(
+					{
+						colors: {
+							type: 'array',
+							maxItems: 100,
+							items: { enum: ['W', 'U', 'B', 'R', 'G', 'C'] },
+							description:
+								'Match a nonempty subset of selected colors. C also accepts colorless cards; C alone accepts only colorless cards.'
+						},
+						rarities: {
+							type: 'array',
+							maxItems: 100,
+							items: { enum: ['common', 'uncommon', 'rare', 'mythic'] }
+						},
+						types: {
+							type: 'array',
+							maxItems: 100,
+							items: {
+								enum: [
+									'Creature',
+									'Instant',
+									'Sorcery',
+									'Enchantment',
+									'Artifact',
+									'Planeswalker',
+									'Land',
+									'Battle',
+									'Kindred'
+								]
+							}
+						},
+						legalities: {
+							type: 'array',
+							maxItems: 100,
+							items: {
+								enum: [
+									'standard',
+									'pioneer',
+									'modern',
+									'legacy',
+									'vintage',
+									'commander',
+									'pauper',
+									'brawl'
+								]
+							}
+						},
+						sets: {
+							type: 'array',
+							maxItems: 100,
+							items: { type: 'string', pattern: '^[A-Za-z0-9]{1,12}$' },
+							description: 'Set codes are normalized to lowercase.'
+						}
+					},
+					[]
+				),
+				additionalProperties: false,
+				description:
+					'Categories combine with AND. Rarities, types, legalities, and sets combine with OR within each category. Empty arrays apply no restriction.'
+			},
+			CatalogSearchRequest: {
+				...object(
+					{
+						query: { type: 'string', maxLength: 300, default: '' },
+						filters: ref('CatalogFilters'),
+						limit: { type: 'integer', minimum: 0, maximum: 100, default: 20 },
+						offset: { type: 'integer', minimum: 0, maximum: 1_000_000, default: 0 },
+						sort: { enum: ['name:asc', 'name:desc'] },
+						facets: { type: 'boolean', default: false }
+					},
+					[]
+				),
+				additionalProperties: false
+			},
+			CatalogFacets: object({
+				colors: { type: 'object', additionalProperties: { type: 'integer', minimum: 0 } },
+				rarity: { type: 'object', additionalProperties: { type: 'integer', minimum: 0 } },
+				set_code: { type: 'object', additionalProperties: { type: 'integer', minimum: 0 } }
+			}),
+			SearchResponse: object(
+				{
+					query: string,
+					hits: array('CardDocument'),
+					estimatedTotalHits: { type: 'integer', minimum: 0 },
+					processingTimeMs: { type: 'number', minimum: 0 },
+					generationId: { type: ['string', 'null'] },
+					facets: ref('CatalogFacets')
+				},
+				['query', 'hits', 'estimatedTotalHits', 'processingTimeMs', 'generationId']
+			),
+			InventoryBatchItem: object(
+				{
+					catalogCardId: string,
+					canonicalCardId: string,
+					name: string,
+					setCode: string,
+					imageUri: string,
+					finish,
+					condition,
+					quantity
+				},
+				['catalogCardId', 'canonicalCardId', 'name', 'finish', 'condition', 'quantity']
+			),
+			InventoryBatchRequest: object(
+				{
+					requestId: { type: 'string', minLength: 1 },
+					source: { type: 'string', default: 'mobile' },
+					items: { type: 'array', minItems: 1, items: ref('InventoryBatchItem') }
+				},
+				['requestId', 'items']
+			),
+			InventoryEntryUpdate: object(
+				{ quantity: { type: 'integer', default: 1 }, notes: { type: 'string', default: '' } },
+				[]
+			),
+			DeckWriteRequest: object(
+				{
+					name: string,
+					description: { type: 'string', default: '' },
+					format: { type: 'string', default: 'Commander' }
+				},
+				['name']
+			),
+			DeckCardAddRequest: object(
+				{
+					catalogCardId: string,
+					canonicalCardId: string,
+					name: string,
+					setCode: string,
+					imageUri: string,
+					quantity: { type: 'integer', minimum: 1, default: 1 },
+					role: { ...role, default: 'main' }
+				},
+				['catalogCardId', 'canonicalCardId', 'name']
+			),
+			DeckCardUpdateRequest: object({ quantity: { type: 'integer', default: 1 }, role }, []),
+			ScanCandidate: {
+				allOf: [
+					object({
+						catalogCardId: string,
+						canonicalCardId: string,
+						oracleId: string,
+						name: string,
+						setCode: string,
+						collectorNumber: string,
+						imageUri: string,
+						similarityScore: { type: 'number' },
+						ocrScore: { type: 'number' },
+						finalScore: { type: 'number' },
+						matchReason: string
+					}),
+					object({ confidence: { type: 'number', minimum: 0, maximum: 1 } }, [])
+				]
+			},
+			ExternalScanResultRequest: {
+				...object({
+					status: { enum: ['matched', 'ambiguous', 'no_match', 'failed'] },
+					modelVersion: { type: 'string', minLength: 1, maxLength: 128 },
+					candidates: {
+						type: 'array',
+						maxItems: 20,
+						description: 'Each catalogCardId must identify a different printing.',
+						items: object(
+							{
+								catalogCardId: { type: 'string', format: 'uuid' },
+								confidence: { type: 'number', minimum: 0, maximum: 1 },
+								notes: { type: 'string', maxLength: 500 }
+							},
+							['catalogCardId', 'confidence']
+						)
+					}
+				}),
+				oneOf: [
+					{ properties: { status: { const: 'matched' }, candidates: { minItems: 1 } } },
+					{ properties: { status: { const: 'ambiguous' }, candidates: { minItems: 2 } } },
+					{ properties: { status: { enum: ['no_match', 'failed'] }, candidates: { maxItems: 0 } } }
+				]
+			},
+			ScanWorkerResult: object({
+				status: { enum: ['matched', 'ambiguous', 'no_match', 'failed'] },
+				normalizedObjectKey: string,
+				qualityScore: { type: 'number' },
+				embeddingModelVersion: string,
+				ocrModelVersion: string,
+				ocrTokens: object({ name: string, setCode: string, collectorNumber: string }, []),
+				candidates: array('ScanCandidate')
+			}),
+			ScanSession: object({
+				id: string,
+				accountId: string,
+				game: { const: 'mtg' },
+				status: { enum: ['open', 'pending_review', 'committed', 'cancelled'] },
+				...timestamps
+			}),
+			ScanArtifact: object({
+				id: string,
+				sessionId: string,
+				accountId: string,
+				originalObjectKey: string,
+				normalizedObjectKey: string,
+				qualityScore: integer,
+				embeddingModelVersion: string,
+				ocrModelVersion: string,
+				status: { enum: ['matched', 'ambiguous', 'no_match', 'failed'] },
+				ocrName: { type: ['string', 'null'] },
+				ocrSetCode: { type: ['string', 'null'] },
+				ocrCollectorNumber: { type: ['string', 'null'] },
+				candidateJson: array('ScanCandidate'),
+				...timestamps
+			}),
+			ScanReviewItem: {
+				allOf: [
+					ref('ScanCandidate'),
+					object({
+						id: string,
+						sessionId: string,
+						scanArtifactId: string,
+						accountId: string,
+						finish,
+						condition,
+						quantity,
+						...timestamps
+					})
+				]
+			},
+			ScanSessionResult: object({
+				session: ref('ScanSession'),
+				artifacts: array('ScanArtifact'),
+				reviewItems: array('ScanReviewItem'),
+				lastResult: nullable('ScanWorkerResult')
+			}),
+			ScanReviewCommitRequest: object({
+				requestId: { type: 'string', minLength: 1 },
+				sessionId: { type: 'string', format: 'uuid' },
+				items: {
+					type: 'array',
+					minItems: 1,
+					maxItems: 100,
+					items: object(
+						{
+							id: { type: 'string', format: 'uuid' },
+							scanArtifactId: { type: 'string', format: 'uuid' },
+							selectedCandidate: object(
+								{
+									catalogCardId: { type: 'string', minLength: 1 },
+									canonicalCardId: { type: 'string', minLength: 1 },
+									name: { type: 'string', minLength: 1 },
+									oracleId: string,
+									setCode: string,
+									collectorNumber: string,
+									imageUri: string,
+									similarityScore: { type: 'integer', minimum: 0, maximum: 100, default: 0 },
+									ocrScore: { type: 'integer', minimum: 0, maximum: 100, default: 0 },
+									finalScore: { type: 'integer', minimum: 0, maximum: 100, default: 0 },
+									matchReason: string
+								},
+								['catalogCardId', 'canonicalCardId', 'name']
+							),
+							finish: { ...finish, default: 'nonfoil' },
+							condition: { ...condition, default: 'NM' },
+							quantity: { ...quantity, maximum: 2147483647, default: 1 }
+						},
+						['scanArtifactId', 'selectedCandidate']
+					)
+				}
+			}),
 			ErrorResponse: {
 				type: 'object',
-				properties: { message: { type: 'string' } },
-				required: ['message']
+				properties: {
+					status: { type: 'integer', minimum: 400, maximum: 599 },
+					message: { type: 'string' }
+				},
+				required: ['status', 'message']
 			},
 			CardIdentity: {
 				type: 'object',
-				required: ['catalogCardId', 'canonicalCardId', 'name', 'setCode', 'imageUri'],
+				required: ['catalogCardId', 'canonicalCardId', 'name'],
 				properties: {
 					catalogCardId: { type: 'string' },
 					canonicalCardId: { type: 'string' },
@@ -256,7 +869,7 @@ const SCHEMA = {
 			EntryTarget: {
 				type: 'object',
 				required: ['entryId'],
-				properties: { entryId: { type: 'string' } }
+				properties: { entryId: { type: 'string', format: 'uuid' } }
 			},
 			InventoryStats: {
 				type: 'object',
@@ -317,12 +930,35 @@ const SCHEMA = {
 					updatedAt: { type: 'string', format: 'date-time' }
 				}
 			},
+			AvailabilityCounts: object({
+				required: { type: 'integer', minimum: 0 },
+				exact: { type: 'integer', minimum: 0 },
+				alternate: { type: 'integer', minimum: 0 },
+				missing: { type: 'integer', minimum: 0 }
+			}),
+			DeckAvailability: object({
+				deckId: { type: 'string', format: 'uuid' },
+				entries: {
+					type: 'array',
+					items: {
+						allOf: [
+							ref('AvailabilityCounts'),
+							object({ entryId: { type: 'string', format: 'uuid' } })
+						]
+					}
+				},
+				totals: ref('AvailabilityCounts')
+			}),
 			MutationRequestRecord: {
 				type: 'object',
-				required: ['accountId', 'requestId', 'source', 'status'],
+				required: ['accountId', 'requestId', 'source', 'status', 'requestHash'],
 				properties: {
 					accountId: { type: 'string' },
 					requestId: { type: 'string' },
+					requestHash: {
+						type: ['string', 'null'],
+						description: 'Normalized mutation fingerprint. Legacy records may be null.'
+					},
 					source: { type: 'string' },
 					status: { type: 'string' },
 					createdAt: { type: 'string', format: 'date-time' },
@@ -415,14 +1051,20 @@ const SCHEMA = {
 				}
 			},
 			InventoryTargetOperation: {
-				type: 'object',
-				required: ['op', 'target'],
-				properties: {
-					op: { enum: ['set', 'decrement', 'remove'] },
-					target: { $ref: '#/components/schemas/EntryTarget' },
-					quantity: { type: 'integer' },
-					notes: { type: 'string' }
-				}
+				oneOf: [
+					object(
+						{ op: { const: 'set' }, target: ref('EntryTarget'), quantity: integer, notes: string },
+						['op', 'target', 'quantity']
+					),
+					object(
+						{ op: { const: 'decrement' }, target: ref('EntryTarget'), quantity, notes: string },
+						['op', 'target', 'quantity']
+					),
+					object({ op: { const: 'remove' }, target: ref('EntryTarget'), notes: string }, [
+						'op',
+						'target'
+					])
+				]
 			},
 			InventoryBulkOperation: {
 				oneOf: [
@@ -432,7 +1074,7 @@ const SCHEMA = {
 			},
 			InventoryBulkRequest: {
 				type: 'object',
-				required: ['requestId', 'source', 'operations'],
+				required: ['requestId', 'operations'],
 				properties: {
 					requestId: { type: 'string' },
 					source: { enum: ['mobile', 'web', 'import', 'scan', 'scan_review'] },
@@ -445,7 +1087,7 @@ const SCHEMA = {
 			},
 			DeckAddOperation: {
 				type: 'object',
-				required: ['op', 'card', 'quantity', 'role'],
+				required: ['op', 'card', 'quantity'],
 				properties: {
 					op: { const: 'add' },
 					card: { $ref: '#/components/schemas/CardIdentity' },
@@ -454,13 +1096,20 @@ const SCHEMA = {
 				}
 			},
 			DeckTargetOperation: {
-				type: 'object',
-				required: ['op', 'target'],
-				properties: {
-					op: { enum: ['set', 'decrement', 'remove'] },
-					target: { $ref: '#/components/schemas/EntryTarget' },
-					quantity: { type: 'integer' }
-				}
+				oneOf: [
+					object({ op: { const: 'set' }, target: ref('EntryTarget'), quantity: integer }, [
+						'op',
+						'target',
+						'quantity'
+					]),
+					object({ op: { const: 'decrement' }, target: ref('EntryTarget'), quantity }, [
+						'op',
+						'target',
+						'quantity'
+					]),
+					object({ op: { const: 'move' }, target: ref('EntryTarget'), role }),
+					object({ op: { const: 'remove' }, target: ref('EntryTarget') }, ['op', 'target'])
+				]
 			},
 			DeckCardBulkOperation: {
 				oneOf: [
@@ -470,7 +1119,7 @@ const SCHEMA = {
 			},
 			DeckCardBulkRequest: {
 				type: 'object',
-				required: ['requestId', 'source', 'operations'],
+				required: ['requestId', 'operations'],
 				properties: {
 					requestId: { type: 'string' },
 					source: { enum: ['mobile', 'web', 'import'] },
@@ -494,7 +1143,7 @@ const SCHEMA = {
 				required: ['line', 'reason'],
 				properties: {
 					line: {
-						oneOf: [
+						anyOf: [
 							{
 								type: 'object',
 								required: ['raw', 'role'],
@@ -559,7 +1208,7 @@ const SCHEMA = {
 			},
 			InventoryImportCommitRequest: {
 				type: 'object',
-				required: ['requestId', 'source', 'text'],
+				required: ['requestId', 'text'],
 				properties: {
 					requestId: { type: 'string' },
 					source: { enum: ['mobile', 'web', 'import', 'scan', 'scan_review'] },
@@ -601,7 +1250,7 @@ const SCHEMA = {
 			},
 			DeckImportCommitRequest: {
 				type: 'object',
-				required: ['requestId', 'source', 'name', 'text'],
+				required: ['requestId', 'name', 'text'],
 				properties: {
 					requestId: { type: 'string' },
 					source: { enum: ['mobile', 'web', 'import'] },

@@ -2,34 +2,47 @@
 	"id": "/",
 	"name": "Spellbook",
 	"short_name": "Spellbook",
-	"description": "MTG-first, multi-TCG-ready inventory and deck companion",
+	"description": "Magic: The Gathering inventory and deck companion",
 	"lang": "en",
 	"dir": "ltr",
-	"start_url": "/mtg/search",
+	"start_url": "/search",
 	"scope": "/",
 	"display": "standalone",
 	"display_override": ["standalone", "minimal-ui", "browser"],
 	"orientation": "portrait-primary",
-	"background_color": "#0d0b0f",
-	"theme_color": "#0d0b0f",
+	"background_color": "#080b0d",
+	"theme_color": "#080b0d",
 	"categories": ["games", "utilities", "productivity"],
 	"icons": [
 		{
-			"src": "/favicon.ico",
-			"sizes": "any",
-			"type": "image/x-icon"
+			"src": "/icon-192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icon-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "/icon-maskable-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
 		}
 	],
 	"shortcuts": [
 		{
 			"name": "MTG Search",
 			"short_name": "Search",
-			"url": "/mtg/search"
+			"url": "/search"
 		},
 		{
 			"name": "Inventory",
 			"short_name": "Inventory",
-			"url": "/mtg/inventory"
+			"url": "/inventory"
 		}
 	]
 }
