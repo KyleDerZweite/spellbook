@@ -1,10 +1,10 @@
 # Card grouping proposal
 
 - Status: Proposed, not implemented
-- Last Reviewed: 2026-10-05
+- Last Reviewed: 2026-10-06
 - Source of Truth: maintainer grouping request, current deck and inventory workflows
 - Update Triggers: grouping decisions, category ownership, automatic suggestions, sorting, deck or inventory entry behavior
-- Related Docs: [Product specification](./specification.md), [Domain model](../../CONTEXT.md), [UI direction](./ui-design-direction.md), [Product index](./README.md)
+- Related Docs: [Product specification](./specification.md), [Domain model](../../GLOSSARY.md), [UI direction](./ui-design-direction.md), [Product index](./README.md)
 
 This proposal adds editable categories and consistent grouping controls to Decks and Inventory. It records recommendations for review, not implemented behavior or an accepted architecture. The [UI direction](./ui-design-direction.md) continues to own shared visual and interaction rules.
 

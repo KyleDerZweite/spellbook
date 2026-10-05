@@ -1,10 +1,10 @@
 # Spellbook product specification
 
 - Status: Canonical
-- Last Reviewed: 2026-10-05
+- Last Reviewed: 2026-10-06
 - Source of Truth: application code, tests, accepted product requirements
 - Update Triggers: account access and preferences, catalog identity, inventory or deck behavior, import formats, API contracts, scan capability and priorities, physical-card integration requirements, supported platforms, release acceptance changes
-- Related Docs: [Domain model](../../CONTEXT.md), [Routes](./routing-and-games.md), [UI direction](./ui-design-direction.md), [System architecture](../architecture/system-overview.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Card scanner and sorter](../integrations/card-robot.md), [Product index](./README.md)
+- Related Docs: [Domain model](../../GLOSSARY.md), [Routes](./routing-and-games.md), [UI direction](./ui-design-direction.md), [System architecture](../architecture/system-overview.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Card scanner and sorter](../integrations/card-robot.md), [Product index](./README.md)
 
 Spellbook is an open-source MTG inventory and deck builder for private accounts on a self-hosted instance. Visitors can search the local catalog and inspect printings without an account. Signed-in users record owned printings, edit decklists, and compare deck requirements with inventory. Hosted operation uses the same account boundaries and runtime services.
 
@@ -52,7 +52,7 @@ The [authentication architecture](../architecture/auth.md) owns the exact regist
 
 ## Catalog and printing identity
 
-The [domain model](../../CONTEXT.md) distinguishes the card's canonical identity from its printing identity. Catalog search groups matching printings by canonical card; printing selection retains individual printing identities. The [catalog architecture](../architecture/catalog.md) owns PostgreSQL storage, publication, query contracts, and selection policy.
+The [domain model](../../GLOSSARY.md) distinguishes the card's canonical identity from its printing identity. Catalog search groups matching printings by canonical card; printing selection retains individual printing identities. The [catalog architecture](../architecture/catalog.md) owns PostgreSQL storage, publication, query contracts, and selection policy.
 
 Search must show a recognizable card name and image and provide useful MTG filters. The printing chooser must expose enough information to distinguish the available set, collector number, and printing. Adding an owned card or deck entry records the selected printing and its canonical identity together.
 

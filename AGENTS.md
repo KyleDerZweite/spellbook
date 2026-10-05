@@ -13,7 +13,7 @@ This is the primary instruction file for coding agents. Follow it strictly.
 
 - **Codebase:** The running code, tests, and configuration are the ultimate source of truth. Do not hallucinate capabilities.
 - **Documentation:** Check `docs/README.md` first, then the relevant typed section under `docs/`.
-- **Domain language:** Read [CONTEXT.md](CONTEXT.md) before changing card identity, inventory, deck, or scan terminology. Keep definitions there and behavior in its canonical owner.
+- **Domain language:** Read [GLOSSARY.md](GLOSSARY.md) before changing card identity, inventory, deck, or scan terminology. Keep definitions there and behavior in its canonical owner.
 - **Issue triage:** Before creating or changing issue labels, follow [the issue label rules](docs/ISSUE_LABELS.md).
 - **Pull requests:** Follow the [contribution disclosure rules](CONTRIBUTING.md#pull-request-expectations). Report known AI tools, models, affected work, review, tests, and the responsible contributor. Do not infer other authors' AI use.
 - **Historical Docs:** Do not keep a parallel archive tree under `docs/`. Use git history for superseded documentation.
@@ -42,7 +42,7 @@ This is the primary instruction file for coding agents. Follow it strictly.
 ## 5. Documentation Knowledge System
 
 - `docs/README.md` is the canonical documentation entrypoint for both humans and agents.
-- Active docs live under typed sections in `docs/`: `product/`, `architecture/`, `operations/`, `integrations/`, `decisions/`, and `reference/`. Root `CONTEXT.md` owns domain terminology.
+- Active docs live under typed sections in `docs/`: `product/`, `architecture/`, `operations/`, `integrations/`, `decisions/`, and `reference/`. Root `GLOSSARY.md` owns domain terminology.
 - Use `docs/decisions/` for significant decisions and tradeoffs.
 - Use plain markdown only. Do not introduce Obsidian-only syntax or workflow assumptions.
 - Do not create ad hoc markdown in random repo locations for durable project knowledge.

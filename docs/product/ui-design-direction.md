@@ -4,7 +4,7 @@
 - Last Reviewed: 2026-10-06
 - Source of Truth: accepted product requirements, application components, selected logo and component choices
 - Update Triggers: public landing content and rejected directions, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements
-- Related Docs: [Product specification](./specification.md), [Routes](./routing-and-games.md), [Domain model](../../CONTEXT.md), [Selected UI components](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Brand assets](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md)
+- Related Docs: [Product specification](./specification.md), [Routes](./routing-and-games.md), [Domain model](../../GLOSSARY.md), [Selected UI components](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Brand assets](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md)
 
 Spellbook prioritizes digitizing, indexing and managing a player's own Magic cards, then building decks from that collection. Public search, owned inventory, deck editing and reviewable scan uploads support this focus. Card artwork and working content establish the visual identity. Neutral dark and light surfaces, grayscale controls, colored navigation icons, and separate display and monospace interface fonts support that content. [ADR-0011](../decisions/0011-collector-workspace-design.md) records the decision.
 
