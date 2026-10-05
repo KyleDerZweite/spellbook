@@ -31,13 +31,13 @@ Keep PostgreSQL for catalog storage, search, and account data. Do not restore Me
 
 Keep the supplied root logo unchanged. Preserve compact interface text and accessible control labels. Further UI changes require a new maintainer request; issue #168 remains deferred.
 
-The current inventory groups printing quantities by finish and condition. Individual copies, physical locations, deck assignments, sorter placements, and automatic recognition remain proposed. The [domain glossary](../../CONTEXT.md) owns their meanings.
+The current inventory groups printing quantities by finish and condition. Individual copies, physical locations, deck assignments, sorter placements, and automatic recognition remain proposed. The [domain glossary](../../GLOSSARY.md) owns their meanings.
 
 Use plain prose, canonical references, and source-backed claims. Disclose known AI tools and actual human review according to [CONTRIBUTING](../../CONTRIBUTING.md). Do not infer other contributors' AI use.
 
 ## Artifacts
 
-- [Documentation index](../../docs/README.md), [specification](../../docs/product/specification.md), and [CONTEXT.md](../../CONTEXT.md).
+- [Documentation index](../../docs/README.md), [specification](../../docs/product/specification.md), and [GLOSSARY.md](../../GLOSSARY.md).
 - [Repository verification](../../docs/operations/github-automation.md), [deployment](../../docs/operations/deployment.md), [database upgrade](../../docs/operations/postgres-upgrade.md), and [local enrollment](../../docs/operations/local-auth.md).
 - [PostgreSQL decision](../../docs/decisions/0010-postgres-catalog.md) and [scanner proposal](../../docs/integrations/card-robot.md).
 - [UI direction](../../docs/product/ui-design-direction.md), [component scope](../../docs/reference/ui-libraries.md), and [brand sources](../../docs/reference/website-icons.md).

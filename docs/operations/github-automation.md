@@ -1,7 +1,7 @@
 # Repository verification and GitHub automation
 
 - Status: Canonical
-- Last Reviewed: 2026-10-04
+- Last Reviewed: 2026-10-05
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
 - Update Triggers: test commands, workflow coverage, runtime pins, browser verification, PR policy, Dependabot policy
 - Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance)
@@ -47,7 +47,7 @@ Set `WORKER_TEST_DATABASE_URL` to a disposable PostgreSQL 18 database when check
 For Markdown changes, install frontend dependencies and run from the repository root:
 
 ```sh
-frontend/node_modules/.bin/prettier --check README.md CONTEXT.md AGENTS.md CONTRIBUTING.md docs .scratch/handoffs
+frontend/node_modules/.bin/prettier --check README.md GLOSSARY.md AGENTS.md CONTRIBUTING.md docs .scratch/handoffs
 ```
 
 Follow [documentation maintenance](../README.md#maintenance) for links, ownership, metadata, and stale claims. Documentation-only changes do not need application tests unless they also change executable behavior.
