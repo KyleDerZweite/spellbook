@@ -30,6 +30,8 @@ Shared CSS styles native scrollbars with the theme-specific `--color-scrollbar` 
 
 [Routing and games](../product/routing-and-games.md) owns the route list and legacy redirects. [The product specification](../product/specification.md) owns workflow behavior and acceptance criteria.
 
+The shared [error page](../../frontend/src/routes/+error.svelte) uses the existing shell and control styles. Missing pages offer Search and Home links; server errors also offer a retry of the current page.
+
 Server loads and actions use the same Postgres repositories as `/api/mobile/v1/mtg/...`. Repositories scope mutations and reads to the authenticated account. The API keeps its existing MTG path segment for compatibility.
 
 Public browser search, authenticated import resolution, and external API search use the same PostgreSQL [catalog](./catalog.md) through SvelteKit. Browser requests can carry the local session cookie, but public catalog reads do not require it. No catalog key or separate search origin is required.

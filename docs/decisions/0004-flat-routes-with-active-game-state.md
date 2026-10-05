@@ -1,16 +1,16 @@
 # ADR-0004: Flat User-Facing Routes With Active Game In Client State
 
-- Status: Superseded by [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md)
+- Status: Superseded by [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md) and [ADR-0013](./0013-game-prefixed-workspaces.md)
 - Date: 2026-04-18
-- Last Reviewed: 2026-10-03
+- Last Reviewed: 2026-10-06
 - Source of Truth: recorded decision
 - Update Triggers: decision applicability, supersession, related document changes
 - Owners: Spellbook maintainers
-- Related Docs: [Routing and Games](../product/routing-and-games.md), [Product specification](../product/specification.md), [Frontend Architecture](../architecture/frontend.md), [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md)
+- Related Docs: [Routing and Games](../product/routing-and-games.md), [Product specification](../product/specification.md), [Frontend Architecture](../architecture/frontend.md), [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md), [ADR-0013](./0013-game-prefixed-workspaces.md)
 
 ## Supersession Note
 
-ADR-0008 supersedes the multi-game product direction behind this decision. The flat user-facing route surface remains current, but active-game switching and future second-game planning are no longer product requirements.
+ADR-0008 supersedes the multi-game product direction behind this decision. ADR-0013 replaces flat workspace routes with the current `/mtg/` prefix. The decision below records the historical route contract.
 
 ## Context
 

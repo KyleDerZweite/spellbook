@@ -1,7 +1,7 @@
 # Card scanner and sorter
 
 - Status: Proposed integration
-- Last Reviewed: 2026-10-05
+- Last Reviewed: 2026-10-06
 - Source of Truth: product requirements, scan API code, hardware concept
 - Update Triggers: capture and recognition APIs, physical inventory schema, device protocol, construction choices, prototype results
 - Related Docs: [Product specification](../product/specification.md), [Domain model](../../GLOSSARY.md), [Mobile and scan](../architecture/mobile-and-scan.md), [API routes](../product/routing-and-games.md), [Local authentication](../operations/local-auth.md)
@@ -14,7 +14,7 @@ Sorting may use colour, card type, or set. Each job needs a fixed mapping from t
 
 Spellbook has account-owned scan sessions, image uploads, stored artifacts, candidate-shaped results, and an explicit review commit to inventory. The scan worker remains a placeholder with no production recognition. Inventory entries group quantities by printing, finish, and condition. Physical copy identifiers, locations, movements, and deck assignments are not implemented.
 
-The `/scan` workspace implements image upload, candidate review, manual catalog selection, and explicit inventory confirmation. External recognizers can replace candidates for an owned artifact. The [scan architecture](../architecture/mobile-and-scan.md) and [OpenAPI source](../../frontend/src/routes/openapi.json/+server.ts) own those implemented contracts. Direct camera capture, device controllers, sorting jobs, motor protocols, sensor-confirmed outcomes, and construction remain proposed.
+The `/mtg/scan` workspace implements image upload, candidate review, manual catalog selection, and explicit inventory confirmation. External recognizers can replace candidates for an owned artifact. The [scan architecture](../architecture/mobile-and-scan.md) and [OpenAPI source](../../frontend/src/routes/openapi.json/+server.ts) own those implemented contracts. Direct camera capture, device controllers, sorting jobs, motor protocols, sensor-confirmed outcomes, and construction remain proposed.
 
 The existing authenticated API supports:
 
