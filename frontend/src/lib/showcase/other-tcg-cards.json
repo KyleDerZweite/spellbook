@@ -70,54 +70,6 @@
 		"refreshedOn": "2026-10-05"
 	},
 	{
-		"slug": "monkey-d-luffy",
-		"id": "OP01-003",
-		"name": "Monkey.D.Luffy",
-		"game": "One Piece",
-		"source": "https://en.onepiece-cardgame.com/cardlist/?series=569101#OP01-003",
-		"metadataSource": "https://en.onepiece-cardgame.com/cardlist/?series=569101",
-		"imageSource": "https://en.onepiece-cardgame.com/images/cardlist/card/OP01-003.png",
-		"width": 560,
-		"height": 782,
-		"refreshedOn": "2026-10-06"
-	},
-	{
-		"slug": "roronoa-zoro",
-		"id": "OP01-025",
-		"name": "Roronoa Zoro",
-		"game": "One Piece",
-		"source": "https://en.onepiece-cardgame.com/cardlist/?series=569101#OP01-025",
-		"metadataSource": "https://en.onepiece-cardgame.com/cardlist/?series=569101",
-		"imageSource": "https://en.onepiece-cardgame.com/images/cardlist/card/OP01-025.png",
-		"width": 560,
-		"height": 782,
-		"refreshedOn": "2026-10-06"
-	},
-	{
-		"slug": "elsa-spirit-of-winter",
-		"id": "1-42",
-		"name": "Elsa - Spirit of Winter",
-		"game": "Disney Lorcana",
-		"source": "https://www.tcgplayer.com/product/507512",
-		"metadataSource": "https://lorcanajson.org/files/current/en/allCards.json",
-		"imageSource": "https://api.lorcana.ravensburger.com/images/en/set1/42_9ccb155ad39736f056e2dd4604aff781f3c9cb90.jpg",
-		"width": 560,
-		"height": 781,
-		"refreshedOn": "2026-10-06"
-	},
-	{
-		"slug": "mickey-mouse-wayward-sorcerer",
-		"id": "1-51",
-		"name": "Mickey Mouse - Wayward Sorcerer",
-		"game": "Disney Lorcana",
-		"source": "https://www.tcgplayer.com/product/492369",
-		"metadataSource": "https://lorcanajson.org/files/current/en/allCards.json",
-		"imageSource": "https://api.lorcana.ravensburger.com/images/en/set1/51_b6973a7151c12abc277263413ef2fcac7e6c7842.jpg",
-		"width": 560,
-		"height": 781,
-		"refreshedOn": "2026-10-06"
-	},
-	{
 		"slug": "agumon",
 		"id": "BT1-010",
 		"name": "Agumon",

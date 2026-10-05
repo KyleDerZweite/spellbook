@@ -50,26 +50,19 @@
 			target="_blank"
 			rel="noopener noreferrer"
 			class="footer-link footer-link--inline">YGOPRODeck</a
-		>,
+		>
+		and
 		<a
 			href="https://www.bandai-tcg-plus.com/"
 			target="_blank"
 			rel="noopener noreferrer"
 			class="footer-link footer-link--inline">Bandai</a
-		>
-		and
-		<a
-			href="https://www.ravensburger.com/"
-			target="_blank"
-			rel="noopener noreferrer"
-			class="footer-link footer-link--inline">Ravensburger</a
 		>.
 	</p>
 	<p class="credits">
 		Magic: The Gathering © Wizards of the Coast / Hasbro. Pokémon © Nintendo / Creatures / GAME
-		FREAK. Yu-Gi-Oh! © Studio Dice / SHUEISHA / TV TOKYO / KONAMI. One Piece © Eiichiro Oda /
-		Shueisha / Toei Animation. Disney Lorcana © Disney. Digimon © Akiyoshi Hongo / Toei Animation.
-		Spellbook is unaffiliated.
+		FREAK. Yu-Gi-Oh! © Studio Dice / SHUEISHA / TV TOKYO / KONAMI. Digimon © Akiyoshi Hongo / Toei
+		Animation. Spellbook is unaffiliated.
 	</p>
 </footer>
 

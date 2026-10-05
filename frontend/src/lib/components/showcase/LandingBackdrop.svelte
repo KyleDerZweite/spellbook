@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { showcaseAsset } from '#lib/showcase/assets.ts';
 	import type { Snippet } from 'svelte';
-	import { otherTCGCards, showcaseCards } from '#lib/showcase/cards.ts';
+	import { otherTCGCards, showcaseCards, showcasePacks } from '#lib/showcase/cards.ts';
 
 	let {
 		action,
@@ -13,47 +13,54 @@
 		deck?: Snippet;
 	} = $props();
 
-	const cardTile = (slug: string) => ({ filename: `${slug}.webp`, pack: false });
-	const wallCards = showcaseCards.map((card) => cardTile(card.slug));
-	const otherCards = otherTCGCards.map((card) => cardTile(card.slug));
-	const magicPack = { filename: 'magic-pack.webp', pack: true };
-	const pokemonPack = { filename: 'pokemon-pack.webp', pack: true };
+	const cardTile = (card: { slug: string; width: number; height: number }) => ({
+		filename: `${card.slug}.webp`,
+		width: card.width,
+		height: card.height,
+		pack: false
+	});
+	const wallCards = showcaseCards.map(cardTile);
+	const otherCards = otherTCGCards.map(cardTile);
+	const [magicPack, pokemonPack, yugiohPack, digimonPack] = showcasePacks.map((pack) => ({
+		...cardTile(pack),
+		pack: true
+	}));
 	const wallTiles = [
-		otherCards[8],
 		wallCards[4],
 		otherCards[0],
+		magicPack,
 		wallCards[2],
 		otherCards[3],
 		wallCards[1],
 		otherCards[6],
 		otherCards[4],
 		wallCards[0],
-		wallCards[7],
-		wallCards[6],
-		otherCards[1],
-		otherCards[10],
-		otherCards[8],
-		otherCards[2],
 		pokemonPack,
-		otherCards[10],
+		wallCards[6],
+		yugiohPack,
+		wallCards[5],
+		otherCards[2],
+		digimonPack,
+		wallCards[8],
+		otherCards[7],
 		wallCards[3],
-		otherCards[9],
 		otherCards[5],
 		magicPack,
-		otherCards[6],
+		otherCards[0],
 		wallCards[9],
-		otherCards[11],
-		otherCards[11],
+		pokemonPack,
+		wallCards[7],
 		wallCards[10],
-		otherCards[7],
+		otherCards[6],
 		wallCards[11],
 		otherCards[1],
-		otherCards[9],
-		otherCards[7],
+		yugiohPack,
+		wallCards[1],
+		digimonPack,
 		otherCards[3],
 		wallCards[0],
 		otherCards[2],
-		pokemonPack,
+		magicPack,
 		wallCards[6]
 	];
 </script>
@@ -65,8 +72,8 @@
 				<img
 					src={showcaseAsset(card.filename)}
 					alt=""
-					width="440"
-					height="614"
+					width={card.width}
+					height={card.height}
 					class="wall-card"
 					class:wall-pack={card.pack}
 					style:--card-order={index}
