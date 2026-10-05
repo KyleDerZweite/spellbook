@@ -7,24 +7,32 @@
 		trigger,
 		open = $bindable(false),
 		children,
+		returnFocus,
 		destructive = false
 	}: {
 		title: string;
 		description: string;
-		trigger: string;
+		trigger?: string;
 		open?: boolean;
 		children: Snippet;
+		returnFocus?: HTMLElement | null;
 		destructive?: boolean;
 	} = $props();
 </script>
 
 <Dialog.Root bind:open>
-	<Dialog.Trigger class={`btn btn-secondary ${destructive ? 'destructive' : ''}`}
-		>{trigger}</Dialog.Trigger
-	>
+	{#if trigger}<Dialog.Trigger class={`btn btn-secondary ${destructive ? 'destructive' : ''}`}
+			>{trigger}</Dialog.Trigger
+		>{/if}
 	<Dialog.Portal>
 		<Dialog.Overlay class="fixed inset-0 z-50 bg-black/70" />
 		<Dialog.Content
+			onCloseAutoFocus={(event) => {
+				if (returnFocus?.isConnected) {
+					event.preventDefault();
+					returnFocus.focus();
+				}
+			}}
 			class="deck-dialog fixed left-1/2 top-1/2 z-50 max-h-[85dvh] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-mist bg-crypt p-6 text-text-primary shadow-2xl"
 		>
 			<div class="mb-2 flex items-start justify-between gap-4">

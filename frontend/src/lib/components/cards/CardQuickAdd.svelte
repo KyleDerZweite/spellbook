@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Select } from 'bits-ui';
+	import Select from '#lib/components/ui/select/Select.svelte';
 	import type { CardDocument } from '#lib/search/types.ts';
 	import { activeGameState } from '#lib/state/activeGame.svelte.ts';
 
@@ -10,7 +10,7 @@
 	let { card }: Props = $props();
 	const id = $props.id();
 
-	let finish = $state<'nonfoil' | 'foil'>('nonfoil');
+	let finish = $state('nonfoil');
 	let condition = $state('NM');
 	let quantity = $state(1);
 
@@ -23,8 +23,8 @@
 	];
 
 	const FINISHES = $derived([
-		{ value: 'nonfoil', label: 'Nonfoil', available: card.is_nonfoil_available },
-		{ value: 'foil', label: 'Foil', available: card.is_foil_available }
+		{ value: 'nonfoil', label: 'Nonfoil', disabled: !card.is_nonfoil_available },
+		{ value: 'foil', label: 'Foil', disabled: !card.is_foil_available }
 	]);
 
 	$effect(() => {
@@ -43,106 +43,28 @@
 	<input type="hidden" name="name" value={card.name} />
 	<input type="hidden" name="setCode" value={card.set_code} />
 	<input type="hidden" name="imageUri" value={card.image_uri || card.image_uri_small} />
-	<input type="hidden" name="finish" value={finish} />
-	<input type="hidden" name="condition" value={condition} />
 
 	<div>
 		<label for={`${id}-finish`} class="label"> Finish </label>
-		<Select.Root type="single" bind:value={finish} items={FINISHES}>
-			<Select.Trigger
-				id={`${id}-finish`}
-				class="input flex w-full items-center justify-between"
-				style="
-					background-color: var(--color-crypt);
-					border: 1px solid var(--color-border);
-				"
-			>
-				{FINISHES.find((item) => item.value === finish)?.label ?? 'Finish'}
-				<span class="text-text-muted">&#9660;</span>
-			</Select.Trigger>
-
-			<Select.Portal>
-				<Select.Content
-					class="z-[100] overflow-hidden rounded"
-					style="
-						background-color: var(--color-slate);
-						border: 1px solid var(--color-border);
-						box-shadow: 0 4px 24px rgba(13, 11, 15, 0.8);
-					"
-				>
-					<Select.Viewport class="p-1">
-						{#each FINISHES as item}
-							<Select.Item
-								value={item.value}
-								label={item.label}
-								disabled={!item.available}
-								class="cursor-pointer rounded px-3 py-2 font-body text-sm text-text-primary transition-colors data-[highlighted]:bg-mist data-[highlighted]:text-amber data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40"
-							>
-								{#snippet children({ selected })}
-									<span class="flex items-center gap-2">
-										{#if selected}
-											<span class="text-gold-bright">&#10003;</span>
-										{/if}
-										{item.label}
-										{#if !item.available}
-											<span class="ml-auto font-mono text-[10px] text-text-muted">n/a</span>
-										{/if}
-									</span>
-								{/snippet}
-							</Select.Item>
-						{/each}
-					</Select.Viewport>
-				</Select.Content>
-			</Select.Portal>
-		</Select.Root>
+		<Select
+			id={`${id}-finish`}
+			name="finish"
+			label="Finish"
+			bind:value={finish}
+			options={FINISHES}
+		/>
 	</div>
 
 	<!-- Condition -->
 	<div>
 		<label for={`${id}-condition`} class="label"> Condition </label>
-		<Select.Root type="single" bind:value={condition} items={CONDITIONS}>
-			<Select.Trigger
-				id={`${id}-condition`}
-				class="input flex w-full items-center justify-between"
-				style="
-					background-color: var(--color-crypt);
-					border: 1px solid var(--color-border);
-				"
-			>
-				{CONDITIONS.find((c) => c.value === condition)?.label ?? 'NM'}
-				<span class="text-text-muted">&#9660;</span>
-			</Select.Trigger>
-
-			<Select.Portal>
-				<Select.Content
-					class="z-[100] overflow-hidden rounded"
-					style="
-						background-color: var(--color-slate);
-						border: 1px solid var(--color-border);
-						box-shadow: 0 4px 24px rgba(13, 11, 15, 0.8);
-					"
-				>
-					<Select.Viewport class="p-1">
-						{#each CONDITIONS as item}
-							<Select.Item
-								value={item.value}
-								label={item.label}
-								class="cursor-pointer rounded px-3 py-2 font-body text-sm text-text-primary transition-colors data-[highlighted]:bg-mist data-[highlighted]:text-amber"
-							>
-								{#snippet children({ selected })}
-									<span class="flex items-center gap-2">
-										{#if selected}
-											<span class="text-gold-bright">&#10003;</span>
-										{/if}
-										{item.label}
-									</span>
-								{/snippet}
-							</Select.Item>
-						{/each}
-					</Select.Viewport>
-				</Select.Content>
-			</Select.Portal>
-		</Select.Root>
+		<Select
+			id={`${id}-condition`}
+			name="condition"
+			label="Condition"
+			bind:value={condition}
+			options={CONDITIONS}
+		/>
 	</div>
 
 	<!-- Quantity -->

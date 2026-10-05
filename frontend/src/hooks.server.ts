@@ -2,30 +2,12 @@ import type { Handle } from '@sveltejs/kit/hooks';
 import { requireFormOrigin } from '#lib/server/auth/csrf.ts';
 import { NO_INDEX_ROBOTS_TAG, createNoIndexRedirect } from '#lib/seo/site.ts';
 import { SESSION_COOKIE, clearSessionCookie, validateSession } from '#lib/server/auth/session.ts';
-import { ACTIVE_GAME_COOKIE, DEFAULT_GAME, isGame } from '#lib/state/activeGame.svelte.ts';
+import { ACTIVE_GAME_COOKIE, DEFAULT_GAME, isAvailableGame } from '#lib/state/activeGame.svelte.ts';
 
 const PUBLIC_PATH_PREFIXES = ['/auth/', '/privacy', '/terms'];
-const PROTECTED_PATH_PREFIXES = ['/search', '/inventory', '/decks', '/scan'];
-const NO_INDEX_PATH_PREFIXES = ['/auth/', '/api/', '/search', '/inventory', '/decks', '/scan'];
-
-/**
- * Paths under `/mtg/*` used to be canonical. They are now redirected to
- * flat root-level paths. The game identity lives in a cookie (see
- * `activeGameState`), not the URL.
- */
-const LEGACY_MTG_REDIRECTS: Record<string, string> = {
-	'/mtg': '/',
-	'/mtg/': '/',
-	'/mtg/search': '/search',
-	'/mtg/inventory': '/inventory',
-	'/mtg/decks': '/decks'
-};
-
-/** Legacy transitional aliases that used to forward into `/mtg/*`. */
-const LEGACY_ALIAS_REDIRECTS: Record<string, string> = {
-	'/collections': '/inventory',
-	'/collections/': '/inventory'
-};
+const PROTECTED_PATH_PREFIXES = ['/mtg/inventory', '/mtg/decks', '/mtg/scan', '/settings'];
+const NO_INDEX_PATH_PREFIXES = ['/auth/', '/api/', '/mtg/', '/settings'];
+const LEGACY_PAGE_PATHS = ['/search', '/inventory', '/decks', '/scan'];
 
 function isPublicPath(pathname: string): boolean {
 	return pathname === '/' || PUBLIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
@@ -38,14 +20,16 @@ function isProtectedPath(pathname: string): boolean {
 }
 
 function resolveLegacyRedirect(pathname: string): string | null {
-	if (pathname in LEGACY_MTG_REDIRECTS) return LEGACY_MTG_REDIRECTS[pathname];
-	if (pathname in LEGACY_ALIAS_REDIRECTS) return LEGACY_ALIAS_REDIRECTS[pathname];
+	if (pathname === '/mtg' || pathname === '/mtg/') return '/mtg/search';
+	if (pathname === '/collections' || pathname === '/collections/') return '/mtg/inventory';
+	if (LEGACY_PAGE_PATHS.some((path) => pathname === path || pathname.startsWith(path + '/'))) {
+		return `/mtg${pathname}`;
+	}
 	return null;
 }
 
 function buildRedirectResponse(location: string): Response {
-	// 308 preserves method and the request body; bookmarks and external
-	// links to the old `/mtg/*` URLs will land on the new flat routes.
+	// 308 preserves methods and bodies while old links move to game-prefixed routes.
 	return new Response(null, {
 		status: 308,
 		headers: {
@@ -59,8 +43,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	requireFormOrigin(event);
 	const pathname = event.url.pathname;
 
-	// Legacy route redirects must run before auth protection so signed-out
-	// users bounce straight to the new flat URL (which then guards itself).
+	// Redirect old page URLs before applying the destination auth guard.
 	const legacyTarget = resolveLegacyRedirect(pathname);
 	if (legacyTarget) {
 		const search = event.url.search;
@@ -83,7 +66,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		});
 	} else {
 		const existing = event.cookies.get(ACTIVE_GAME_COOKIE);
-		if (!isGame(existing)) {
+		if (!isAvailableGame(existing)) {
 			event.cookies.set(ACTIVE_GAME_COOKIE, DEFAULT_GAME, {
 				path: '/',
 				maxAge: 60 * 60 * 24 * 365,

@@ -18,13 +18,14 @@ vi.mock('../../src/lib/server/mtg/deck-builder', () => ({
 	searchDeckCatalog: mocks.search,
 	getDeckLegality: mocks.legality,
 	addCatalogCardToDeck: mocks.add,
+	changeDeckPrinting: vi.fn(),
 	importIntoDeck: vi.fn()
 }));
 vi.mock('../../src/lib/server/catalog/search', () => ({ getPrintings: vi.fn() }));
 vi.mock('../../src/lib/server/mtg/import', () => ({ previewMtgImport: vi.fn() }));
-import { actions, load } from '../../src/routes/decks/+page.server';
+import { actions, load } from '../../src/routes/mtg/decks/+page.server';
 
-function event(url = 'http://localhost/decks', fields: Record<string, string> = {}) {
+function event(url = 'http://localhost/mtg/decks', fields: Record<string, string> = {}) {
 	return {
 		locals: { user: { accountId: 'owner', username: 'Owner', email: 'owner@example.test' } },
 		url: new URL(url),
@@ -43,13 +44,18 @@ beforeEach(() => {
 });
 
 describe('web deck boundaries', () => {
+	it('opens the library without implicitly selecting a deck', async () => {
+		const result = await load(event() as Parameters<typeof load>[0]);
+		expect(result).toMatchObject({ selectedDeckId: null });
+		expect(mocks.legality).not.toHaveBeenCalled();
+	});
 	it('requires a session for every action before reading or mutating data', async () => {
 		for (const action of Object.values(actions)) {
 			const request = event();
 			request.locals.user = null;
 			await expect(action(request)).rejects.toMatchObject({
 				status: 303,
-				location: '/auth/login?returnTo=/decks'
+				location: '/auth/login?returnTo=/mtg/decks'
 			});
 		}
 		expect(mocks.snapshot).not.toHaveBeenCalled();
@@ -57,14 +63,16 @@ describe('web deck boundaries', () => {
 	});
 	it('rejects selecting a deck absent from the account snapshot', async () => {
 		await expect(
-			load(event('http://localhost/decks?deck=someone-elses') as Parameters<typeof load>[0])
+			load(event('http://localhost/mtg/decks?deck=someone-elses') as Parameters<typeof load>[0])
 		).rejects.toMatchObject({ status: 404 });
 		expect(mocks.snapshot).toHaveBeenCalledWith('owner', 'mtg');
 	});
 	it('preserves editable deck data when catalog search and legality checks fail', async () => {
 		mocks.search.mockRejectedValue(new Error('offline'));
 		mocks.legality.mockRejectedValue(new Error('offline'));
-		const result = await load(event('http://localhost/decks?q=Opt') as Parameters<typeof load>[0]);
+		const result = await load(
+			event('http://localhost/mtg/decks?deck=owned&q=Opt') as Parameters<typeof load>[0]
+		);
 		expect(result).toMatchObject({
 			selectedDeckId: 'owned',
 			catalogCards: [],
@@ -75,7 +83,7 @@ describe('web deck boundaries', () => {
 	});
 	it('sends only the selected printing ID to the trusted catalog helper', async () => {
 		await actions.addCard(
-			event('http://localhost/decks?/addCard', {
+			event('http://localhost/mtg/decks?/addCard', {
 				deckId: 'owned',
 				catalogCardId: 'printing',
 				canonicalCardId: 'forged',

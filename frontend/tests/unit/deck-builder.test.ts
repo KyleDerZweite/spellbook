@@ -10,7 +10,11 @@ vi.mock('../../src/lib/server/data/decks', () => ({
 	bulkMutateDeckCards: mocks.mutate,
 	getDeckSnapshot: mocks.snapshot
 }));
-import { addCatalogCardToDeck, exportDecklist } from '../../src/lib/server/mtg/deck-builder';
+import {
+	addCatalogCardToDeck,
+	changeDeckPrinting,
+	exportDecklist
+} from '../../src/lib/server/mtg/deck-builder';
 
 const id = '11111111-1111-4111-8111-111111111111';
 const stored: DeckCard = {
@@ -73,5 +77,46 @@ describe('deck builder catalog boundaries', () => {
 		expect(await exportDecklist([stored])).toBe('Deck\n2 Opt (STA) 19\n');
 		mocks.lookup.mockRejectedValue(new Error('Catalog unavailable'));
 		expect(await exportDecklist([stored])).toBe('Deck\n2 Opt (STA)\n');
+	});
+});
+
+describe('printing changes', () => {
+	const input = {
+		entryId: 'entry',
+		catalogCardId: id,
+		quantity: 3,
+		role: 'sideboard',
+		requestId: 'retry'
+	};
+	it('checks account ownership before changing an entry', async () => {
+		mocks.snapshot.mockResolvedValue({ deckCards: [] });
+		await expect(changeDeckPrinting('account', input)).rejects.toThrow('Deck entry not found');
+		expect(mocks.mutate).not.toHaveBeenCalled();
+	});
+	it('rejects a different canonical card', async () => {
+		mocks.snapshot.mockResolvedValue({ deckCards: [stored] });
+		mocks.lookup.mockResolvedValue({ id, oracle_id: 'other' });
+		await expect(changeDeckPrinting('account', input)).rejects.toThrow('same card');
+		expect(mocks.mutate).not.toHaveBeenCalled();
+	});
+	it('replaces a printing in one atomic mutation with trusted identity', async () => {
+		mocks.snapshot.mockResolvedValue({ deckCards: [stored] });
+		await changeDeckPrinting('account', input);
+		expect(mocks.mutate).toHaveBeenCalledWith(
+			'account',
+			expect.objectContaining({
+				deckId: 'deck',
+				requestId: 'retry',
+				operations: [
+					{ op: 'remove', target: { entryId: 'entry' } },
+					expect.objectContaining({
+						op: 'add',
+						quantity: 3,
+						role: 'sideboard',
+						card: expect.objectContaining({ canonicalCardId: 'oracle' })
+					})
+				]
+			})
+		);
 	});
 });

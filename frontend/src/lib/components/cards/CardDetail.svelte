@@ -1,5 +1,8 @@
 <script lang="ts">
-	import { Dialog, Select } from 'bits-ui';
+	import { Dialog } from 'bits-ui';
+	import Select from '#lib/components/ui/select/Select.svelte';
+	import type { Snippet } from 'svelte';
+	import { page } from '$app/state';
 	import ManaCost from './ManaCost.svelte';
 	import RarityBadge from './RarityBadge.svelte';
 	import CardQuickAdd from './CardQuickAdd.svelte';
@@ -10,9 +13,10 @@
 	interface Props {
 		card: CardDocument;
 		onClose: () => void;
+		actions?: Snippet<[CardDocument]>;
 	}
 
-	let { card, onClose }: Props = $props();
+	let { card, onClose, actions }: Props = $props();
 
 	let printings: CardDocument[] = $state([]);
 	let selectedPrinting: CardDocument | null = $state(null);
@@ -51,7 +55,9 @@
 		detailOpen = true;
 	});
 
-	let activeCard = $derived(selectedPrinting ?? card);
+	let activeCard = $derived(
+		selectedPrinting ?? printings.find((printing) => printing.id === card.id) ?? card
+	);
 
 	// Fetch printings with AbortController cleanup
 	$effect(() => {
@@ -352,53 +358,19 @@
 									Printings unavailable right now.
 								</p>
 							{:else}
-								<Select.Root
-									type="single"
+								<Select
+									label="Select card printing"
 									value={activeCard.id}
-									onValueChange={(id) => {
+									displayValue={`${activeCard.set_name} (${activeCard.set_code.toUpperCase()}) #${activeCard.collector_number}`}
+									options={filteredPrintings.map((printing) => ({
+										value: printing.id,
+										label: `${printing.set_name} (${printing.set_code.toUpperCase()}) #${printing.collector_number}`
+									}))}
+									onchange={(id) => {
 										const printing = filteredPrintings.find((item) => item.id === id);
 										if (printing) selectPrinting(printing);
 									}}
-								>
-									<Select.Trigger
-										class="input flex items-center justify-between gap-2 text-left"
-										aria-label="Select card printing"
-									>
-										<span class="truncate"
-											>{activeCard.set_name} ({activeCard.set_code.toUpperCase()}) #{activeCard.collector_number}</span
-										>
-										<span aria-hidden="true">▾</span>
-									</Select.Trigger>
-									<Select.Portal>
-										<Select.Content
-											class="surface-menu z-[100] max-h-72 w-[var(--bits-select-anchor-width)] overflow-y-auto rounded-lg p-1"
-											sideOffset={4}
-										>
-											<Select.Viewport>
-												{#each filteredPrintings as printing (printing.id)}
-													<Select.Item
-														value={printing.id}
-														label={`${printing.set_name} ${printing.collector_number}`}
-														class="menu-item rounded"
-													>
-														{#snippet children({ selected })}
-															<RarityBadge rarity={printing.rarity} />
-															<span class="min-w-0 flex-1"
-																><span class="block truncate">{printing.set_name}</span><span
-																	class="text-xs text-text-muted"
-																	>{printing.set_code.toUpperCase()} #{printing.collector_number}</span
-																></span
-															>
-															{#if selected}<span aria-hidden="true" class="text-gold">✓</span>{/if}
-														{/snippet}
-													</Select.Item>
-												{:else}<p class="p-3 text-sm text-text-muted">
-														No printings match these filters.
-													</p>{/each}
-											</Select.Viewport>
-										</Select.Content>
-									</Select.Portal>
-								</Select.Root>
+								/>
 
 								<!-- Action row: All printings + Foil/Nonfoil -->
 								<div class="flex flex-wrap items-center gap-2">
@@ -463,7 +435,13 @@
 							<div class="border-t border-border" aria-hidden="true"></div>
 
 							<!-- Inventory add -->
-							<CardQuickAdd card={activeCard} />
+							{#if actions}{@render actions(activeCard)}
+							{:else if page.data.user}<CardQuickAdd card={activeCard} />
+							{:else}<a
+									class="btn btn-primary"
+									href={`/auth/login?returnTo=${encodeURIComponent(`/mtg/search?q=${encodeURIComponent(card.name)}`)}`}
+									>Sign in to add to inventory</a
+								>{/if}
 						{:else}
 							<!-- ==================== CARD INFO TAB ==================== -->
 

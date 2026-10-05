@@ -1,7 +1,7 @@
 # Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-10-04
+- Last Reviewed: 2026-10-05
 - Source of Truth: repo config
 - Update Triggers: compose services, images, environment variables, migrations, storage
 - Related Docs: [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md)
@@ -40,6 +40,7 @@ Use `podman-compose --profile tunnel up --build -d` to include Newt. Set `PANGOL
 | `APP_ORIGIN`                                        | Public application origin compiled into the frontend; compose passes it as a build argument                             |
 | `ADDRESS_HEADER`, `XFF_DEPTH`                       | Optional trusted-proxy client address configuration; leave the header empty until proxy trust is configured             |
 | `BODY_SIZE_LIMIT`                                   | Adapter request limit; compose defaults to `12M` to allow multipart overhead around a 10 MiB scan image                 |
+| `DEMO_MODE`                                         | Set to `true` only for an explicitly seeded disposable demo. See [demo setup](./local-auth.md#demo-mode).               |
 | `DATABASE_URL`                                      | Server, catalog worker, or operator PostgreSQL connection; compose constructs its internal connection from `POSTGRES_*` |
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Database and credentials; replace the example password                                                                  |
 | `CATALOG_SOURCE`                                    | Scryfall source: `all_cards` by default, or `default_cards`                                                             |
@@ -58,7 +59,7 @@ Leave `ADDRESS_HEADER` empty for direct deployments. Behind a trusted proxy, set
 
 Keep the reverse proxy request limit large enough for the configured adapter limit. JSON handlers independently cap streamed bodies at 1 MiB; scan uploads independently cap their multipart body at 12 MiB and image at 10 MiB. Raising `BODY_SIZE_LIMIT` does not bypass these application limits. See [request validation](../architecture/mobile-and-scan.md#request-validation).
 
-OIDC provider variables, `AUTH_SESSION_SECRET`, and all MeiliSearch variables are no longer used. Catalog access uses the local application session. Remove obsolete search origins and credentials from deployment configuration.
+OIDC provider variables, `AUTH_SESSION_SECRET`, and all MeiliSearch variables are no longer used. Browser catalog reads are public; account operations and the versioned integration API require authentication. Remove obsolete search origins and credentials from deployment configuration.
 
 ## Storage and upgrades
 
@@ -99,7 +100,7 @@ JOIN catalog_generations g ON g.id = s.active_generation
 WHERE s.id = 1;
 ```
 
-A published row with a positive document count indicates catalog publication. The frontend can start before first publication and return empty search results. Inspect worker logs and test authenticated search before opening a fresh deployment to users.
+A published row with a positive document count indicates catalog publication. The frontend can start before first publication and return empty search results. Inspect worker logs and test public browser search and authenticated mutations before opening a fresh deployment to users.
 
 Use `daily` or `weekly` for the persistent compose worker. Reserve `manual` for the one-shot command below; the service restart policy would otherwise restart the completed process. To rerun synchronization once, stop the scheduled worker and run:
 

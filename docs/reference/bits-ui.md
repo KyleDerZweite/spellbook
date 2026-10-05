@@ -1,12 +1,14 @@
 # Bits UI documentation
 
 - Status: Canonical
-- Last Reviewed: 2026-10-03
+- Last Reviewed: 2026-10-05
 - Source of Truth: vendor documentation
 - Update Triggers: Bits UI upgrades, documentation URL changes, component integration
 - Related Docs: [Reference](./README.md), [Selected UI components](./ui-libraries.md), [Frontend](../architecture/frontend.md)
 
 > Bits UI is a headless component library for Svelte.
+
+Use the local shared Select and TooltipButton for repeated controls. Their implementation and caller rules are recorded in [Selected UI components](./ui-libraries.md). Read the linked vendor page before changing their Bits composition.
 
 This site provides documentation in a format optimized for Large Language Models, with each page available as a clean markdown file.
 

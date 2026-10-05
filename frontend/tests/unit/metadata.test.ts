@@ -20,6 +20,7 @@ describe('crawl and metadata surface', () => {
 		expect(response.headers.get('content-type')).toContain('text/plain');
 		expect(text).toContain('User-agent: *');
 		expect(text).toContain('Disallow: /auth/');
+		expect(text).toContain('Disallow: /mtg/');
 		expect(text).toContain('Disallow: /search');
 		expect(text).toContain('Disallow: /inventory');
 		expect(text).toContain('Disallow: /decks');

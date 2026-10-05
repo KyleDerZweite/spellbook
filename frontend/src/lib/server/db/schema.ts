@@ -23,6 +23,7 @@ export const userProfiles = pgTable('user_profiles', {
 	accountId: text('account_id').primaryKey(),
 	username: text('username').notNull(),
 	email: text('email').notNull().default(''),
+	avatarId: text('avatar_id').notNull().default('wizard'),
 	lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow()
 });
 

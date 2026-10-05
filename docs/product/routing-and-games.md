@@ -1,12 +1,12 @@
 # Routes and supported game
 
 - Status: Canonical
-- Last Reviewed: 2026-10-03
+- Last Reviewed: 2026-10-06
 - Source of Truth: route handlers and server hooks
-- Update Triggers: route additions or removals, HTTP methods, authentication protection, compatibility redirects, supported game
+- Update Triggers: route additions or removals, development preview routes, HTTP methods, authentication protection, compatibility redirects, supported game
 - Related Docs: [Product specification](./specification.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md)
 
-Spellbook supports MTG. Pages use flat paths, and versioned integration endpoints retain the `mtg` segment. Existing game fields and the active-game cookie are compatibility details, not a commitment to additional games.
+Spellbook supports MTG. Game-specific pages use the `/mtg/` prefix. Public home, authentication, account settings, and legal pages remain shared; versioned integration endpoints keep their existing paths. The header game icon sits immediately before the theme control. It identifies Magic with the Mana Font planeswalker symbol and a tooltip. Cycling is inactive while MTG is the only available game. The `/mtg/` layout owns workspace game identity; the cookie retains the selection for shared pages. Unsupported cookie values reset to MTG. Additional games require their own catalog and workflow implementation before becoming selectable.
 
 The [route source](../../frontend/src/routes/) owns implemented handlers. The [server hooks](../../frontend/src/hooks.server.ts) own page protection and redirects. `/openapi.json` exposes the versioned API description.
 
@@ -15,11 +15,12 @@ The [route source](../../frontend/src/routes/) owns implemented handlers. The [s
 | Route                         | Access and behavior                                                         |
 | ----------------------------- | --------------------------------------------------------------------------- |
 | `/`                           | Public entry page                                                           |
-| `/search`                     | Authenticated catalog search                                                |
-| `/inventory`                  | Authenticated inventory workspace and form actions                          |
-| `/scan`                       | Authenticated image upload, candidate review, and explicit inventory commit |
-| `/decks`                      | Authenticated deck workspace and form actions                               |
-| `/decks/[deckId]/export`      | Authenticated text export of an owned deck                                  |
+| `/mtg/search`                 | Public catalog search and printing details                                  |
+| `/mtg/inventory`              | Authenticated inventory workspace and form actions                          |
+| `/mtg/scan`                   | Authenticated image upload, candidate review, and explicit inventory commit |
+| `/mtg/decks`                  | Authenticated deck library; `?deck=ID` opens the editor and form actions    |
+| `/mtg/decks/[deckId]/export`  | Authenticated text export of an owned deck                                  |
+| `/settings`                   | Authenticated avatar selection and save action; excluded from indexing      |
 | `/auth/login`                 | Local sign-in page and form action                                          |
 | `/auth/register`              | Local account registration page and form action                             |
 | `/auth/logout`                | POST revokes the browser session and clears its cookie                      |
@@ -30,9 +31,13 @@ The [route source](../../frontend/src/routes/) owns implemented handlers. The [s
 | `/openapi.json`               | API description                                                             |
 | `/robots.txt`, `/sitemap.xml` | Search-engine metadata                                                      |
 
+The font comparison and numbered landing prototype routes are removed. In development, `/?review=landing` shows the public landing even for signed-in reviewers. Normal signed-in home retains the account workspace. [Frontend architecture](../architecture/frontend.md) owns the composition review behavior.
+
 Signed-out access to protected pages redirects to `/auth/login` with a local return path. Versioned MTG endpoints accept a bearer session or the authenticated browser session. An Authorization header takes precedence and an invalid bearer token fails without cookie fallback. Unsafe cookie-authenticated requests require same-origin protection. The [authentication document](../architecture/auth.md) owns credential and session rules.
 
 There is no OIDC callback route, game-switching page, play route, public deck page, camera capture page, or offline workspace.
+
+Public read-only browser endpoints are `GET` and `POST /api/catalog/search` and `GET /api/catalog/cards/{oracleId}/printings`. They use the same validated search and printing contracts as their versioned counterparts. Inventory and deck mutations remain authenticated.
 
 ## Versioned MTG API
 
@@ -68,14 +73,6 @@ The [product specification](./specification.md) owns import semantics and scan l
 
 ## Compatibility redirects
 
-These exact paths return HTTP 308 and preserve the query string:
+Legacy flat paths `/search`, `/inventory`, `/decks`, and `/scan`, including child paths, return HTTP 308 to the same path under `/mtg`. Query strings and request methods are preserved. `/collections` and `/collections/` redirect to `/mtg/inventory`. `/mtg` and `/mtg/` redirect to `/mtg/search`.
 
-| Legacy path                     | Destination  |
-| ------------------------------- | ------------ |
-| `/mtg`, `/mtg/`                 | `/`          |
-| `/mtg/search`                   | `/search`    |
-| `/mtg/inventory`                | `/inventory` |
-| `/mtg/decks`                    | `/decks`     |
-| `/collections`, `/collections/` | `/inventory` |
-
-These mappings are not wildcard redirects. Arbitrary `/mtg/*` or `/collections/*` paths are not guaranteed aliases. Redirects run before page authentication so the destination applies its own access rules.
+Redirects run before the destination authentication guard. Other game prefixes have no routes until their catalog and workflows are implemented. [ADR-0013](../decisions/0013-game-prefixed-workspaces.md) records this change.

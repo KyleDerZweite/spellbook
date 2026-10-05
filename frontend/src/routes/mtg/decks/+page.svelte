@@ -1,0 +1,1239 @@
+<script lang="ts">
+	import CardDetail from '#lib/components/cards/CardDetail.svelte';
+	import { storedCardDocument } from '#lib/mtg/stored-card.ts';
+	import type { CardDocument } from '#lib/search/types.ts';
+	import { searchCards } from '#lib/search/catalog.ts';
+	import { Dialog } from 'bits-ui';
+	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
+	import type { SubmitFunction } from '$app/forms';
+	import type { PageProps } from './$types';
+	import DeckDialog from '#lib/components/decks/DeckDialog.svelte';
+	import Select from '#lib/components/ui/select/Select.svelte';
+	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
+	import ManaCost from '#lib/components/cards/ManaCost.svelte';
+	import { allocateDeckAvailability } from '#lib/mtg/deck-availability.ts';
+	import type { previewMtgImport } from '#lib/server/mtg/import.ts';
+
+	const formats = [
+		'Commander',
+		'Standard',
+		'Modern',
+		'Pioneer',
+		'Legacy',
+		'Vintage',
+		'Pauper',
+		'Brawl',
+		'Casual'
+	].map((value) => ({ value, label: value }));
+	const roles = [
+		{ value: 'commander', label: 'Commander' },
+		{ value: 'main', label: 'Main deck' },
+		{ value: 'sideboard', label: 'Sideboard' },
+		{ value: 'companion', label: 'Companion' }
+	];
+	let { data, form }: PageProps = $props();
+	let createOpen = $state(false);
+	let editOpen = $state(false);
+	let importOpen = $state(false);
+	let deleteOpen = $state(false);
+	let actionsTrigger = $state<HTMLButtonElement | null>(null);
+	let busy = $state(false);
+	let importText = $state('');
+	let importRequestId = $state('');
+	let addRole = $state('main');
+	let addQuantity = $state(1);
+	let listQuery = $state('');
+	let ownedOnly = $state(false);
+	let sortBy = $state('name');
+	let view = $state<'list' | 'stacks'>('list');
+	let groupBy = $state('type');
+	let missingOnly = $state(false);
+	let searchOpen = $state(false);
+	let inspected = $state<CardDocument | null>(null);
+	let inspectedEntryId = $state<string | null>(null);
+	let inspectorQuantity = $state(1);
+	let inspectorRole = $state('main');
+	let query = $state('');
+	let results = $state<CardDocument[]>([]);
+	let searching = $state(false);
+	let searchError = $state('');
+	let searchController: AbortController | undefined;
+	let saveStatus = $state('');
+	let removed = $state<(typeof data.deckCards)[number] | null>(null);
+	const inspectedEntry = $derived(data.deckCards.find((card) => card.id === inspectedEntryId));
+	let initializedSearch = $state(false);
+	$effect(() => {
+		if (!initializedSearch) {
+			query = data.query;
+			results = data.catalogCards;
+			initializedSearch = true;
+		}
+	});
+	function inspect(card: CardDocument, entry?: (typeof data.deckCards)[number]) {
+		inspected = card;
+		inspectedEntryId = entry?.id ?? null;
+		inspectorQuantity = entry?.quantity ?? addQuantity;
+		inspectorRole = entry?.role ?? addRole;
+	}
+	async function findCards(event: SubmitEvent) {
+		event.preventDefault();
+		searchController?.abort();
+		const controller = new AbortController();
+		searchController = controller;
+		searching = true;
+		searchError = '';
+		try {
+			const result = await searchCards(query, { signal: controller.signal });
+			if (!controller.signal.aborted) results = result.hits;
+		} catch (cause) {
+			if (!controller.signal.aborted)
+				searchError = cause instanceof Error ? cause.message : 'Search failed.';
+		} finally {
+			if (!controller.signal.aborted) searching = false;
+		}
+	}
+
+	const selectedDeck = $derived(data.decks.find((deck) => deck.id === data.selectedDeckId));
+	const deckCards = $derived(data.deckCards.filter((card) => card.deckId === data.selectedDeckId));
+	const availability = $derived(allocateDeckAvailability(deckCards, data.inventoryCards));
+	const total = $derived(deckCards.reduce((sum, card) => sum + card.quantity, 0));
+	const missing = $derived(
+		Object.values(availability).reduce((sum, entry) => sum + entry.missing, 0)
+	);
+	const ownedByCanonical = $derived.by(() => {
+		const counts = new Map<string, number>();
+		for (const card of data.inventoryCards)
+			counts.set(card.canonicalCardId, (counts.get(card.canonicalCardId) ?? 0) + card.quantity);
+		return counts;
+	});
+	const visibleCards = $derived(
+		deckCards
+			.filter(
+				(card) =>
+					card.name.toLowerCase().includes(listQuery.toLowerCase()) &&
+					(!missingOnly || availability[card.id]?.missing > 0)
+			)
+			.toSorted((a, b) =>
+				sortBy === 'quantity'
+					? b.quantity - a.quantity || a.name.localeCompare(b.name)
+					: a.name.localeCompare(b.name)
+			)
+	);
+	const groups = $derived.by(() => {
+		const grouped = new Map<string, typeof visibleCards>();
+		for (const card of visibleCards) {
+			const types = data.deckDocuments[card.catalogCardId]?.card_types ?? [];
+			const type = [
+				'Land',
+				'Creature',
+				'Planeswalker',
+				'Battle',
+				'Artifact',
+				'Enchantment',
+				'Instant',
+				'Sorcery'
+			].find((value) => types.includes(value));
+			const label =
+				card.role === 'main' && groupBy === 'type' && type
+					? type
+					: (roles.find((role) => role.value === card.role)?.label ?? card.role);
+			grouped.set(label, [...(grouped.get(label) ?? []), card]);
+		}
+		return [...grouped].sort(([a], [b]) =>
+			a === 'Commander' ? -1 : b === 'Commander' ? 1 : a.localeCompare(b)
+		);
+	});
+
+	const catalogCards = $derived(
+		results.filter((card) => !ownedOnly || (ownedByCanonical.get(card.oracle_id) ?? 0) > 0)
+	);
+	const preview = $derived(
+		form?.preview as Awaited<ReturnType<typeof previewMtgImport>> | undefined
+	);
+	const importableCount = $derived(
+		preview?.resolved
+			.filter(({ line }) => line.role !== 'maybeboard')
+			.reduce((sum, { line }) => sum + line.quantity, 0) ?? 0
+	);
+
+	function action(name: string): string {
+		const params = new URLSearchParams();
+		if (data.selectedDeckId) params.set('deck', data.selectedDeckId);
+		if (data.query) params.set('q', data.query);
+		if (data.oracleId) params.set('printing', data.oracleId);
+		return `?/${name}&${params}`;
+	}
+	const save: SubmitFunction = ({ formData, action: target, cancel }) => {
+		if (busy) {
+			cancel();
+			return;
+		}
+		busy = true;
+		saveStatus = 'Saving…';
+		const removedCard = target.searchParams.has('/removeCard')
+			? deckCards.find((card) => card.id === formData.get('entryId'))
+			: undefined;
+		if (target.searchParams.has('/commitImport')) {
+			if (!importRequestId) importRequestId = crypto.randomUUID();
+			formData.set('requestId', importRequestId);
+		} else formData.set('requestId', crypto.randomUUID());
+		return async ({ result, update }) => {
+			try {
+				await update({ reset: false });
+				if (result.type === 'success' || result.type === 'redirect') {
+					saveStatus = 'Saved';
+					if (removedCard) {
+						removed = removedCard;
+						inspected = null;
+					}
+					if (target.searchParams.has('/changePrinting')) inspected = null;
+					if (target.searchParams.has('/addCard') && formData.get('undo')) removed = null;
+					createOpen = false;
+					editOpen = false;
+					deleteOpen = false;
+					if (target.searchParams.has('/commitImport')) {
+						importOpen = false;
+						importText = '';
+						importRequestId = '';
+					}
+				}
+			} finally {
+				if (result.type === 'failure' || result.type === 'error')
+					saveStatus = 'Could not save. Try again.';
+				busy = false;
+			}
+		};
+	};
+</script>
+
+<svelte:head
+	><title>{selectedDeck ? `${selectedDeck.name} | Decks` : 'Decks'} | Spellbook</title></svelte:head
+>
+
+<div class="builder">
+	<header class="builder-heading">
+		<div>
+			<div class="page-title deck-page-title">
+				{#if selectedDeck}<a href="/mtg/decks" class="btn btn-ghost btn-icon" aria-label="All decks"
+						><svg
+							aria-hidden="true"
+							width="18"
+							height="18"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.7"><path d="m14 6-6 6 6 6" /></svg
+						></a
+					>{/if}
+				<h1>{selectedDeck?.name ?? 'Decks'}</h1>
+			</div>
+		</div>
+		<div class="deck-picker">
+			{#if data.decks.length}<Select
+					label="Select deck"
+					value={data.selectedDeckId ?? ''}
+					options={data.decks.map((deck) => ({ value: deck.id, label: deck.name }))}
+					onchange={(value) => goto(`/mtg/decks?deck=${encodeURIComponent(value)}`)}
+				/>{/if}
+			<DeckDialog
+				title="Create a deck"
+				description="Name the deck and choose its format."
+				trigger="New deck"
+				bind:open={createOpen}
+			>
+				<form method="POST" action={action('createDeck')} use:enhance={save} class="form-stack">
+					<label class="label" for="new-name">Deck name</label><input
+						id="new-name"
+						name="name"
+						class="input"
+						required
+						maxlength="200"
+						placeholder="My next deck"
+					/>
+					<label class="label" for="new-format">Format</label><Select
+						id="new-format"
+						name="format"
+						label="Deck format"
+						value="Commander"
+						options={formats}
+					/>
+					<label class="label" for="new-description">Description</label><textarea
+						id="new-description"
+						name="description"
+						class="input"
+						rows="3"
+						maxlength="4000"></textarea>
+					{#if form?.message}<p role="status" class="muted">{form.message}</p>{/if}
+					<button class="btn btn-primary" disabled={busy}>Create deck</button>
+				</form>
+			</DeckDialog>
+		</div>
+	</header>
+	{#if form?.message && !form?.success}<p class="notice" role="alert">{form.message}</p>{/if}
+	{#if selectedDeck}
+		<section class="panel deck-overview" aria-label="Deck overview">
+			<div class="deck-title">
+				<span class="format-badge">{selectedDeck.format}</span>
+
+				{#if selectedDeck.description}<p class="muted">{selectedDeck.description}</p>{/if}
+			</div>
+			<div class="deck-actions">
+				<ActionMenu
+					label="Deck actions"
+					bind:triggerRef={actionsTrigger}
+					items={[
+						{ label: 'Edit details', onSelect: () => (editOpen = true) },
+						{ label: 'Import decklist', onSelect: () => (importOpen = true) },
+						{ label: 'Export Arena', href: `/mtg/decks/${selectedDeck.id}/export`, download: true },
+						{ label: 'Delete deck', destructive: true, onSelect: () => (deleteOpen = true) }
+					]}
+					onCloseAutoFocus={(event) => {
+						if (editOpen || importOpen || deleteOpen) event.preventDefault();
+					}}
+				/>
+				<DeckDialog
+					title="Deck details"
+					description="Update the name, format, or notes for this deck."
+					returnFocus={actionsTrigger}
+					bind:open={editOpen}
+				>
+					{#key selectedDeck.id}<form
+							method="POST"
+							action={action('updateDeck')}
+							use:enhance={save}
+							class="form-stack"
+						>
+							<input type="hidden" name="deckId" value={selectedDeck.id} />
+							<label class="label" for="edit-name">Deck name</label><input
+								id="edit-name"
+								class="input"
+								name="name"
+								value={selectedDeck.name}
+								required
+								maxlength="200"
+							/>
+							<label class="label" for="edit-format">Format</label><Select
+								id="edit-format"
+								name="format"
+								label="Deck format"
+								value={selectedDeck.format}
+								options={formats}
+							/>
+							<label class="label" for="edit-description">Description</label><textarea
+								id="edit-description"
+								class="input"
+								name="description"
+								rows="3"
+								maxlength="4000">{selectedDeck.description}</textarea
+							>
+							{#if form?.message}<p role="status" class="muted">{form.message}</p>{/if}<button
+								class="btn btn-primary"
+								disabled={busy}>Save details</button
+							>
+						</form>{/key}
+				</DeckDialog>
+				<DeckDialog
+					title="Import decklist"
+					description="Paste an Arena decklist. Preview the matches before adding cards to this deck."
+					returnFocus={actionsTrigger}
+					bind:open={importOpen}
+				>
+					<form
+						method="POST"
+						action={action('previewImport')}
+						use:enhance={save}
+						class="form-stack"
+					>
+						<input type="hidden" name="deckId" value={selectedDeck.id} /><label
+							class="label"
+							for="import-text">Decklist</label
+						><textarea
+							id="import-text"
+							name="text"
+							class="input decklist-input"
+							rows="9"
+							maxlength="100000"
+							required
+							bind:value={importText}
+							placeholder={"Commander\n1 Atraxa, Praetors' Voice\n\nDeck\n1 Sol Ring\n10 Forest"}
+						></textarea><button class="btn btn-secondary" disabled={busy}
+							>{busy ? 'Working...' : 'Preview import'}</button
+						>
+					</form>
+					{#if form?.message}<p role="status" class="notice">{form.message}</p>{/if}
+					{#if preview && form?.importText === importText.trim()}
+						<div class="import-preview" aria-live="polite">
+							<p>{importableCount} cards matched for import.</p>
+							{#if preview.unresolved.length || preview.ambiguous.length}<p class="warning">
+									These lines will be skipped. Edit the list and preview again to resolve them.
+								</p>{/if}
+							<ul>
+								{#each preview.unresolved as item}<li>
+										<code>{item.line.raw}</code>: {item.reason}
+									</li>{/each}{#each preview.ambiguous as item}<li>
+										<code>{item.line.raw}</code>: Multiple matches. Add a set code and collector
+										number.
+									</li>{/each}
+							</ul>
+							{#if preview.resolved.some(({ line }) => line.role === 'maybeboard')}<p
+									class="warning"
+								>
+									Maybeboard cards will be skipped.
+								</p>{/if}
+							<details>
+								<summary>Matched cards</summary>
+								<ul>
+									{#each preview.resolved.filter(({ line }) => line.role !== 'maybeboard') as item}<li
+										>
+											{item.line.quantity}
+											{item.card.name} · {item.line.role}
+										</li>{/each}
+								</ul>
+							</details>
+							{#if preview.warnings.length}<details>
+									<summary>Format warnings for imported cards</summary>
+									<ul>
+										{#each preview.warnings as warning}<li>{warning.message}</li>{/each}
+									</ul>
+								</details>{/if}
+							<form method="POST" action={action('commitImport')} use:enhance={save}>
+								<input type="hidden" name="deckId" value={selectedDeck.id} /><input
+									type="hidden"
+									name="text"
+									value={importText}
+								/><button class="btn btn-primary" disabled={busy || !importableCount}
+									>Add {importableCount} matched cards</button
+								>
+							</form>
+						</div>
+					{/if}
+				</DeckDialog>
+				<DeckDialog
+					title="Delete deck"
+					description={`Delete ${selectedDeck.name} and its card list? Your inventory will stay unchanged.`}
+					returnFocus={actionsTrigger}
+					bind:open={deleteOpen}
+					destructive
+					><form method="POST" action={action('deleteDeck')} use:enhance={save}>
+						<input type="hidden" name="deckId" value={selectedDeck.id} /><button
+							class="btn btn-secondary destructive"
+							disabled={busy}>Delete this deck</button
+						>
+					</form></DeckDialog
+				>
+			</div>
+		</section>
+		<div class="deck-summary">
+			<span>{total} cards</span>
+			<button aria-pressed={missingOnly} onclick={() => (missingOnly = !missingOnly)}
+				>{missing} missing</button
+			>
+			<a href="#format-checks"
+				>{data.legalityError
+					? 'Format checks unavailable'
+					: `${data.warnings.length} format warnings`}</a
+			>
+			<span class="save-status" role="status">{saveStatus}</span>
+			<button class="mobile-search btn btn-secondary" onclick={() => (searchOpen = true)}
+				>Find cards</button
+			>
+		</div>
+		{#if removed && removed.deckId === selectedDeck.id}
+			<form method="POST" action={action('addCard')} use:enhance={save} class="undo-row">
+				<span>Removed {removed.name}.</span>
+				<input type="hidden" name="deckId" value={selectedDeck.id} />
+				<input type="hidden" name="catalogCardId" value={removed.catalogCardId} />
+				<input type="hidden" name="quantity" value={removed.quantity} />
+				<input type="hidden" name="role" value={removed.role} /><input
+					type="hidden"
+					name="undo"
+					value="1"
+				/>
+				<button class="btn btn-ghost" disabled={busy}>Undo</button>
+			</form>
+		{/if}
+		<div class="workspace">
+			<section class="panel deck-list" aria-label="Deck cards" aria-busy={busy}>
+				<div class="view-controls" aria-label="Deck view">
+					<button aria-pressed={view === 'list'} onclick={() => (view = 'list')}>List</button>
+					<button aria-pressed={view === 'stacks'} onclick={() => (view = 'stacks')}>Stacks</button>
+				</div>
+				<div class="list-controls">
+					<input
+						class="input"
+						type="search"
+						aria-label="Filter deck cards"
+						placeholder="Find in this deck"
+						bind:value={listQuery}
+					/><Select
+						label="Sort deck cards"
+						bind:value={sortBy}
+						options={[
+							{ value: 'name', label: 'Name' },
+							{ value: 'quantity', label: 'Quantity' }
+						]}
+					/><Select
+						label="Group deck cards"
+						bind:value={groupBy}
+						options={[
+							{ value: 'type', label: 'By type' },
+							{ value: 'role', label: 'By section' }
+						]}
+					/>
+				</div>
+				{#if deckCards.length === 0}<div class="empty-state">
+						<p>Search the catalog to add a card, or import an existing decklist.</p>
+					</div>{/if}
+				<div class:stacks={view === 'stacks'}>
+					{#each groups as [group, cards]}
+						{#if cards.length}
+							<div class="card-group">
+								<div
+									class="role-heading"
+									class:commander-role={cards.every((card) => card.role === 'commander')}
+								>
+									<span>{group}</span><span
+										>{cards.reduce((sum, card) => sum + card.quantity, 0)}</span
+									>
+								</div>
+								{#each cards as card (card.id)}
+									{@const owned = availability[card.id]}
+									<div
+										class="deck-row"
+										class:stack-card={view === 'stacks'}
+										class:commander-entry={card.role === 'commander'}
+									>
+										{#if view === 'stacks'}
+											<button
+												class="stack-art"
+												onclick={() =>
+													inspect(
+														data.deckDocuments[card.catalogCardId] ?? storedCardDocument(card),
+														card
+													)}
+												aria-label={`Inspect ${card.name}`}
+											>
+												{#if card.imageUri}<img
+														src={card.imageUri}
+														alt={card.name}
+														loading="lazy"
+													/>{:else}<span>{card.name}</span>{/if}
+											</button>
+										{/if}
+										<div class="quantity-controls">
+											{#each [-1, 1] as delta}
+												{#if delta === 1}<span>{card.quantity}</span>{/if}
+												<form method="POST" action={action('updateCard')} use:enhance={save}>
+													<input type="hidden" name="entryId" value={card.id} /><input
+														type="hidden"
+														name="quantity"
+														value={card.quantity + delta}
+													/><input type="hidden" name="role" value={card.role} />
+													<button
+														disabled={busy ||
+															(delta === -1 && card.quantity === 1) ||
+															(delta === 1 && card.quantity >= 10000)}
+														aria-label={`${delta === 1 ? 'Increase' : 'Decrease'} ${card.name} quantity`}
+														>{delta === 1 ? '+' : '−'}</button
+													>
+												</form>
+											{/each}
+										</div>
+										<button
+											class="card-name"
+											onclick={() =>
+												inspect(
+													data.deckDocuments[card.catalogCardId] ?? storedCardDocument(card),
+													card
+												)}
+											>{card.name}{#if data.deckDocuments[card.catalogCardId]?.mana_cost}<span
+													class="row-mana"
+													><ManaCost
+														cost={data.deckDocuments[card.catalogCardId].mana_cost}
+													/></span
+												>{/if}</button
+										>
+										<button
+											class="ownership"
+											class:warning={owned?.missing > 0}
+											onclick={() =>
+												inspect(
+													data.deckDocuments[card.catalogCardId] ?? storedCardDocument(card),
+													card
+												)}
+											aria-label={`Inspect ownership of ${card.name}`}
+										>
+											{owned?.missing
+												? `${owned.missing} missing`
+												: owned?.alternate
+													? 'Alternate'
+													: 'Owned'}
+										</button>
+									</div>
+								{/each}
+							</div>
+						{/if}
+					{/each}
+				</div>
+				{#if !visibleCards.length && deckCards.length}<p class="empty-state">
+						No deck cards match this filter.
+					</p>{/if}
+				<details
+					id="format-checks"
+					class="legality"
+					open={data.warnings.length > 0 || !!data.legalityError}
+				>
+					<summary>Format checks {data.warnings.length ? `(${data.warnings.length})` : ''}</summary>
+					<p class="muted">Advisory checks only. Review current format rules before an event.</p>
+					{#if data.legalityError}<p class="warning">
+							{data.legalityError}
+						</p>{:else if data.warnings.length}<ul>
+							{#each data.warnings as warning}<li>{warning.message}</li>{/each}
+						</ul>{:else}<p>No warnings from the available checks.</p>{/if}
+				</details>
+			</section>
+			<aside class="catalog desktop-search" aria-label="Find cards">{@render discovery()}</aside>
+		</div>
+	{:else if data.decks.length}
+		<div class="deck-library">
+			{#each data.decks as deck}
+				{@const cover =
+					data.deckCards.find((card) => card.deckId === deck.id && card.role === 'commander') ??
+					data.deckCards.find((card) => card.deckId === deck.id)}
+				<a class="library-card" href={`/mtg/decks?deck=${deck.id}`}>
+					{#if cover?.imageUri}<img src={cover.imageUri} alt="" />{:else}<div
+							class="library-placeholder"
+							aria-hidden="true"
+						>
+							♧
+						</div>{/if}
+					<strong>{deck.name}</strong><span>{deck.format}</span>
+					<small>Edited {new Date(deck.updatedAt).toLocaleDateString('en-GB')}</small>
+				</a>
+			{/each}
+		</div>
+	{:else}<section class="panel empty-state welcome">
+			<h2>Your next deck starts here.</h2>
+			<p class="muted">Choose a format, add cards, and compare your list with your inventory.</p>
+			<button class="btn btn-primary" onclick={() => (createOpen = true)}
+				>Create your first deck</button
+			>
+		</section>{/if}
+</div>
+
+{#snippet discovery()}
+	<form class="search-form" onsubmit={findCards}>
+		<input
+			class="input"
+			type="search"
+			bind:value={query}
+			aria-label="Search cards"
+			placeholder="Search cards"
+			minlength="2"
+			maxlength="200"
+			required
+		/>
+		<button class="btn btn-primary" disabled={searching}>Search</button>
+	</form>
+	<div class="catalog-options">
+		<label><input type="checkbox" bind:checked={ownedOnly} /> Owned only</label>
+		<span>{searching ? 'Searching…' : `${catalogCards.length} shown`}</span>
+	</div>
+	<div class="add-options">
+		<div class="add-section">
+			<span class="label">Add to</span><Select
+				label="Add to section"
+				bind:value={addRole}
+				options={roles}
+			/>
+		</div>
+		<label
+			>Quantity <input
+				class="input quantity"
+				type="number"
+				min="1"
+				max="10000"
+				bind:value={addQuantity}
+			/></label
+		>
+	</div>
+	<div class="catalog-results" aria-busy={searching}>
+		{#if searchError}<p class="notice" role="alert">{searchError}</p>{/if}
+		{#each catalogCards as card (card.id)}
+			<div class="catalog-row">
+				<button
+					class="catalog-art"
+					onclick={() => inspect(card)}
+					aria-label={`Inspect ${card.name}`}
+					><img
+						src={card.image_uri_small || card.image_uri}
+						alt={card.name}
+						loading="lazy"
+					/></button
+				>
+				<div class="catalog-card-info">
+					<button class="card-name" onclick={() => inspect(card)}>{card.name}</button>
+					<ManaCost cost={card.mana_cost} />
+					<p class="muted">
+						{card.set_code.toUpperCase()} #{card.collector_number} · {ownedByCanonical.get(
+							card.oracle_id
+						) ?? 0} owned
+					</p>
+					<form method="POST" action={action('addCard')} use:enhance={save}>
+						<input type="hidden" name="deckId" value={selectedDeck?.id} /><input
+							type="hidden"
+							name="catalogCardId"
+							value={card.id}
+						/>
+						<input type="hidden" name="role" value={addRole} /><input
+							type="hidden"
+							name="quantity"
+							value={addQuantity}
+						/>
+						<button
+							class="btn btn-secondary"
+							disabled={busy ||
+								!Number.isInteger(addQuantity) ||
+								addQuantity < 1 ||
+								addQuantity > 10000}
+							aria-label={`Add ${card.name}`}>Add</button
+						>
+						<button type="button" class="btn btn-ghost" onclick={() => inspect(card)}
+							>Printings</button
+						>
+					</form>
+				</div>
+			</div>
+		{:else}<p class="empty-state">
+				{query
+					? 'No cards found. Try another search or turn off the owned filter.'
+					: 'Find a card to add to your deck.'}
+			</p>{/each}
+	</div>
+{/snippet}
+
+<Dialog.Root bind:open={searchOpen}>
+	<Dialog.Portal>
+		<Dialog.Overlay class="fixed inset-0 z-40 bg-black/60" />
+		<Dialog.Content
+			class="search-sheet fixed inset-0 z-40 overflow-y-auto bg-crypt p-4 text-text-primary"
+		>
+			<div class="sheet-heading">
+				<Dialog.Title>Find cards</Dialog.Title><Dialog.Close class="btn btn-ghost"
+					>Back to deck</Dialog.Close
+				>
+			</div>
+			{@render discovery()}
+		</Dialog.Content>
+	</Dialog.Portal>
+</Dialog.Root>
+
+{#if inspected}
+	<CardDetail card={inspected} onClose={() => (inspected = null)}>
+		{#snippet actions(printing)}
+			{@const owned = data.inventoryCards.filter(
+				(card) => card.canonicalCardId === printing.oracle_id
+			)}
+			<div class="inspector-form">
+				<p class="muted">
+					{owned
+						.filter((card) => card.catalogCardId === printing.id)
+						.reduce((sum, card) => sum + card.quantity, 0)} exact · {owned
+						.filter((card) => card.catalogCardId !== printing.id)
+						.reduce((sum, card) => sum + card.quantity, 0)} other printings owned
+				</p>
+				{#if inspectedEntry}<p class="muted">
+						This deck: {availability[inspectedEntry.id]?.missing ?? 0} missing. Inventory is not reserved.
+					</p>{/if}
+				<form
+					method="POST"
+					action={action(inspectedEntry ? 'changePrinting' : 'addCard')}
+					use:enhance={save}
+					class="form-stack"
+				>
+					<input type="hidden" name="deckId" value={selectedDeck?.id} /><input
+						type="hidden"
+						name="entryId"
+						value={inspectedEntry?.id}
+					/><input type="hidden" name="catalogCardId" value={printing.id} />
+					<label class="label" for="inspect-quantity">Quantity</label><input
+						class="input"
+						id="inspect-quantity"
+						name="quantity"
+						type="number"
+						min="1"
+						max="10000"
+						required
+						bind:value={inspectorQuantity}
+					/>
+					<label class="label" for="inspect-role">Section</label><Select
+						id="inspect-role"
+						name="role"
+						label="Section"
+						bind:value={inspectorRole}
+						options={roles}
+					/>
+					<p role="status" class="muted">{busy ? 'Saving…' : (form?.message ?? '')}</p>
+					<button class="btn btn-primary" disabled={busy}
+						>{inspectedEntry ? 'Save card' : 'Add to deck'}</button
+					>
+				</form>
+				{#if inspectedEntry}
+					<form method="POST" action={action('removeCard')} use:enhance={save}>
+						<input type="hidden" name="entryId" value={inspectedEntry.id} /><button
+							class="btn btn-ghost destructive"
+							disabled={busy}>Remove card</button
+						>
+					</form>
+				{/if}
+			</div>
+		{/snippet}
+	</CardDetail>
+{/if}
+
+<style>
+	.builder {
+		max-width: 1600px;
+		margin: auto;
+		padding: 2rem;
+	}
+	.builder-heading,
+	.deck-picker,
+	.deck-actions,
+	.catalog-options,
+	.sheet-heading {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		flex-wrap: wrap;
+	}
+	.builder-heading {
+		margin-bottom: 1rem;
+	}
+	.deck-page-title {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+	.deck-page-title :global(.btn-icon) {
+		margin-left: -0.5rem;
+		flex-shrink: 0;
+	}
+	.deck-picker {
+		justify-content: flex-end;
+		flex-wrap: nowrap;
+	}
+	.deck-picker :global([data-select-trigger]) {
+		max-width: 15rem;
+	}
+	.deck-overview {
+		display: flex;
+		justify-content: space-between;
+		gap: 1rem;
+		flex-wrap: wrap;
+		padding: 0 0 1rem;
+		background: transparent;
+		border: 0;
+		box-shadow: none;
+	}
+	.deck-title {
+		max-width: 32rem;
+	}
+	.format-badge,
+	.muted {
+		font-size: 0.8rem;
+		color: var(--color-text-secondary);
+	}
+	.deck-actions {
+		gap: 0.4rem;
+	}
+	.deck-summary {
+		position: sticky;
+		top: var(--app-header-height);
+		z-index: 10;
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 1.4rem;
+		min-height: 3.5rem;
+		background: var(--color-background);
+		font-size: 0.8rem;
+	}
+	.deck-summary button,
+	.deck-summary a {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		color: var(--color-text-secondary);
+	}
+	.deck-summary button[aria-pressed='true'] {
+		color: var(--color-text-primary);
+		text-decoration: underline;
+		text-underline-offset: 6px;
+	}
+	.save-status {
+		margin-left: auto;
+		color: var(--color-text-secondary);
+	}
+	.workspace {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 360px;
+		gap: 2rem;
+		align-items: start;
+	}
+	.deck-list {
+		min-width: 0;
+		background: transparent;
+		border: 0;
+		box-shadow: none;
+	}
+	.catalog {
+		position: sticky;
+		top: calc(var(--app-header-height) + 3.5rem);
+		min-width: 0;
+		padding-top: 1rem;
+	}
+	.catalog-results {
+		max-height: calc(100dvh - 310px);
+		overflow-y: auto;
+		overscroll-behavior: contain;
+	}
+	.view-controls {
+		display: flex;
+		gap: 1.5rem;
+		padding: 1rem 0;
+	}
+	.view-controls button {
+		padding: 0.4rem 0;
+		color: var(--color-text-secondary);
+		border-bottom: 2px solid transparent;
+	}
+	.view-controls button[aria-pressed='true'] {
+		border-color: var(--color-text-primary);
+		color: var(--color-text-primary);
+	}
+	.list-controls {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 8rem 8rem;
+		gap: 0.5rem;
+		margin-bottom: 1rem;
+	}
+	.list-controls input {
+		flex: 1;
+		min-width: 0;
+	}
+	.role-heading {
+		display: flex;
+		justify-content: space-between;
+		gap: 1rem;
+		padding: 1.1rem 0 0.5rem;
+		color: var(--role-accent, var(--color-text-secondary));
+		font-size: 0.75rem;
+	}
+	.deck-row {
+		display: grid;
+		grid-template-columns: 90px minmax(0, 1fr) auto;
+		gap: 0.7rem;
+		align-items: center;
+		min-height: 44px;
+	}
+	.deck-row:hover {
+		background: var(--color-stone);
+	}
+	.commander-entry {
+		border-left: 2px solid var(--color-role-commander);
+	}
+	.row-mana {
+		display: inline-flex;
+		margin-left: 0.5rem;
+		vertical-align: middle;
+	}
+	.card-name {
+		text-align: left;
+		font-size: 0.85rem;
+		overflow-wrap: anywhere;
+		font-weight: 500;
+	}
+	.card-name:hover {
+		text-decoration: underline;
+	}
+	.quantity-controls {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		font-variant-numeric: tabular-nums;
+		font-size: 0.8rem;
+	}
+	.quantity-controls button {
+		width: 30px;
+		min-height: 40px;
+		color: var(--color-text-secondary);
+	}
+	button:disabled {
+		opacity: 0.35;
+		cursor: default;
+	}
+	.ownership {
+		font-size: 0.7rem;
+		color: var(--color-text-secondary);
+		padding: 0.4rem;
+	}
+	.warning {
+		color: var(--color-warning);
+	}
+	.stacks {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+		gap: 1.5rem;
+	}
+	.stack-card {
+		position: relative;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.3rem;
+		padding: 0;
+		background: var(--color-crypt);
+		border-radius: 0.6rem;
+		overflow: hidden;
+		box-shadow: 0 -2px 8px #0003;
+	}
+	.stack-card + .stack-card {
+		margin-top: -300px;
+	}
+	.stack-card:focus-within,
+	.stack-card:hover {
+		z-index: 1;
+	}
+	.stack-art {
+		height: 280px;
+		flex: 0 0 100%;
+		width: 100%;
+		display: block;
+	}
+	.stack-art img {
+		width: 100%;
+		height: 280px;
+		object-fit: contain;
+	}
+	.stack-card .card-name {
+		flex: 1;
+		padding: 0.4rem;
+	}
+	.stack-card .quantity-controls {
+		width: 80px;
+	}
+	.stack-card .ownership {
+		width: 100%;
+		text-align: right;
+	}
+	.search-form {
+		display: flex;
+		gap: 0.5rem;
+	}
+	.search-form input {
+		min-width: 0;
+		flex: 1;
+	}
+	.catalog-options {
+		font-size: 0.75rem;
+		margin: 1rem 0;
+	}
+	.catalog-options label {
+		display: flex;
+		gap: 0.5rem;
+		align-items: center;
+	}
+	.add-options {
+		display: flex;
+		gap: 0.75rem;
+		margin-bottom: 1rem;
+	}
+	.add-options label,
+	.add-section {
+		font-size: 0.7rem;
+		color: var(--color-text-secondary);
+	}
+	.add-section {
+		flex: 1;
+		min-width: 0;
+	}
+	.add-options :global(.input) {
+		margin-top: 0.3rem;
+	}
+	.quantity {
+		width: 4.5rem;
+	}
+	.catalog-row {
+		display: flex;
+		gap: 0.8rem;
+		padding: 1rem 0;
+	}
+	.catalog-art {
+		width: 72px;
+		flex-shrink: 0;
+		align-self: start;
+	}
+	.catalog-art img {
+		width: 100%;
+		border-radius: 5px;
+	}
+	.catalog-card-info {
+		min-width: 0;
+	}
+	.catalog-card-info p {
+		margin: 0.4rem 0;
+	}
+	.catalog-card-info :global(.btn) {
+		font-size: 0.75rem;
+		min-height: 32px;
+		padding: 0.3rem 0.65rem;
+	}
+	.catalog-card-info :global(.card-name) {
+		margin-bottom: 0.4rem;
+	}
+	.legality {
+		padding: 1.5rem 0;
+		font-size: 0.8rem;
+		scroll-margin-top: 5rem;
+	}
+	summary {
+		cursor: pointer;
+	}
+	.legality ul,
+	.import-preview ul {
+		padding-left: 1.2rem;
+		line-height: 1.8;
+	}
+	.empty-state {
+		padding: 3rem 1rem;
+		text-align: center;
+		color: var(--color-text-secondary);
+		font-size: 0.85rem;
+	}
+	.form-stack {
+		display: flex;
+		flex-direction: column;
+		gap: 0.65rem;
+	}
+	.notice,
+	.undo-row {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		font-size: 0.8rem;
+		padding: 0.6rem 0;
+	}
+	.decklist-input {
+		font-family: var(--font-mono);
+	}
+	.import-preview {
+		margin-top: 1rem;
+		font-size: 0.8rem;
+	}
+	.deck-library {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+		gap: 1.5rem;
+	}
+	.library-card {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		color: var(--color-text-primary);
+		text-decoration: none;
+	}
+	.library-card img,
+	.library-placeholder {
+		width: 100%;
+		height: 160px;
+		object-fit: cover;
+		object-position: 50% 25%;
+		border-radius: 0.6rem;
+		background: var(--color-stone);
+	}
+	.library-placeholder {
+		display: grid;
+		place-items: center;
+		font-size: 3rem;
+		color: var(--color-text-muted);
+	}
+	.library-card span,
+	.library-card small {
+		color: var(--color-text-secondary);
+		font-size: 0.8rem;
+	}
+	.library-card:hover strong {
+		text-decoration: underline;
+	}
+	.inspector-form {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+	.mobile-search {
+		display: none;
+	}
+	:global(.destructive) {
+		color: var(--color-error);
+	}
+	@media (max-width: 1000px) {
+		.builder {
+			padding: 1rem;
+		}
+		.workspace {
+			grid-template-columns: 1fr;
+		}
+		.desktop-search {
+			display: none;
+		}
+		.mobile-search {
+			display: inline-flex;
+		}
+		.deck-summary {
+			gap: 0.75rem;
+		}
+		.deck-picker {
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) auto;
+			gap: 0.5rem;
+			width: 100%;
+		}
+		.deck-picker :global([data-select-trigger]) {
+			max-width: none;
+		}
+		.catalog-results {
+			max-height: none;
+		}
+	}
+	@media (max-width: 420px) {
+		.list-controls {
+			grid-template-columns: 1fr 1fr;
+		}
+		.list-controls input {
+			grid-column: 1/-1;
+		}
+		.deck-row {
+			grid-template-columns: 76px minmax(0, 1fr);
+			gap: 0.4rem;
+		}
+		.ownership {
+			grid-column: 2;
+			text-align: left;
+			padding: 0 0 0.5rem;
+		}
+		.stacks {
+			grid-template-columns: 1fr;
+		}
+		.stack-art {
+			height: 360px;
+		}
+		.stack-art img {
+			height: 360px;
+		}
+		.stack-card + .stack-card {
+			margin-top: -330px;
+		}
+	}
+</style>

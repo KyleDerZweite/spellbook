@@ -1,7 +1,9 @@
+import { demoMode, acceptsDemoLogin } from './demo';
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { error, type RequestEvent } from '@sveltejs/kit';
 import type { AuthUser } from '#lib/auth/types.ts';
+import { DEFAULT_AVATAR_ID } from '#lib/profile/avatars.ts';
 import { db } from '#lib/server/db/client.ts';
 import { localCredentials, userProfiles } from '#lib/server/db/schema.ts';
 import { createSession } from './session';
@@ -42,7 +44,9 @@ export async function authenticate(
 	password: unknown
 ): Promise<{ user: AuthUser; session: { token: string; expiresAt: Date } } | null> {
 	const username = normalizeUsername(usernameInput);
-	if (!username || !validPassword(password)) return null;
+	if (demoMode && (mode !== 'login' || username !== 'demo')) return null;
+	if (!username || (!validPassword(password) && !acceptsDemoLogin(mode, username, password)))
+		return null;
 	if (activeDerivations >= 4) error(429, 'Authentication is busy. Try again shortly.');
 	activeDerivations++;
 	try {
@@ -60,7 +64,9 @@ export async function authenticate(
 				throw cause;
 			}
 			const session = await createSession(accountId, passwordHash);
-			return session ? { user: { accountId, username, email: '' }, session } : null;
+			return session
+				? { user: { accountId, username, email: '', avatarId: DEFAULT_AVATAR_ID }, session }
+				: null;
 		}
 		const [credential] = await db
 			.select()
@@ -73,7 +79,8 @@ export async function authenticate(
 			.select({
 				accountId: userProfiles.accountId,
 				username: userProfiles.username,
-				email: userProfiles.email
+				email: userProfiles.email,
+				avatarId: userProfiles.avatarId
 			})
 			.from(userProfiles)
 			.where(eq(userProfiles.accountId, credential.accountId))

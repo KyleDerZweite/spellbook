@@ -1,14 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ validateSession: vi.fn(), searchCatalogRequest: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+	validateSession: vi.fn(),
+	searchCatalogRequest: vi.fn(),
+	getPrintings: vi.fn()
+}));
 vi.mock('#lib/server/auth/session.ts', async (importOriginal) => ({
 	...(await importOriginal<object>()),
 	validateSession: mocks.validateSession
 }));
 vi.mock('#lib/server/catalog/search.ts', () => ({
-	searchCatalogRequest: mocks.searchCatalogRequest
+	searchCatalogRequest: mocks.searchCatalogRequest,
+	getPrintings: mocks.getPrintings
 }));
 import { GET, POST } from '../../src/routes/api/mobile/v1/mtg/search/+server';
+
+import { GET as publicGet, POST as publicPost } from '../../src/routes/api/catalog/search/+server';
+import { GET as publicPrintings } from '../../src/routes/api/catalog/cards/[oracleId]/printings/+server';
 
 const user = { accountId: 'catalog-reader', username: 'mage', email: '' };
 const token = 'a'.repeat(43);
@@ -36,6 +44,18 @@ describe('catalog search authentication', () => {
 			processingTimeMs: 0,
 			generationId: null
 		});
+	});
+
+	it('allows public search, facets and printing lookup without a session', async () => {
+		expect((await publicGet(event('GET') as never)).status).toBe(200);
+		expect((await publicPost(event('POST') as never)).status).toBe(200);
+		mocks.getPrintings.mockResolvedValue({ hits: [] });
+		const request = {
+			...event('GET'),
+			params: { oracleId: '00000000-0000-4000-8000-000000000001' }
+		};
+		expect((await publicPrintings(request as never)).status).toBe(200);
+		expect(mocks.getPrintings).toHaveBeenCalledWith(request.params.oracleId, 100, 0);
 	});
 
 	it('requires authentication before either search method accesses the catalog', async () => {

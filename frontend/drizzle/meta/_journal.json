@@ -50,6 +50,13 @@
 			"when": 1791058654525,
 			"tag": "0006_postgres_catalog",
 			"breakpoints": true
+		},
+		{
+			"idx": 7,
+			"version": "7",
+			"when": 1791213430389,
+			"tag": "0007_profile_avatar",
+			"breakpoints": true
 		}
 	]
 }

@@ -1,26 +1,27 @@
 @import 'tailwindcss';
 @import 'mana-font/css/mana.min.css';
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-	--color-background: #080b0d;
-	--color-foreground: #f4f4f5;
-	--color-card: #171b20;
-	--color-card-foreground: #f4f4f5;
-	--color-surface: #11161b;
-	--color-muted: #23292f;
-	--color-muted-foreground: #a8b1bf;
-	--color-primary: #20d4bf;
-	--color-primary-foreground: #05231f;
-	--color-secondary: #23292f;
-	--color-secondary-foreground: #f4f4f5;
-	--color-accent: #3882f6;
+	--color-background: #101010;
+	--color-foreground: #eeeeee;
+	--color-card: #1b1b1b;
+	--color-card-foreground: #eeeeee;
+	--color-surface: #161616;
+	--color-muted: #272727;
+	--color-muted-foreground: #a3a3a3;
+	--color-primary: #e5e5e5;
+	--color-primary-foreground: #171717;
+	--color-secondary: #272727;
+	--color-secondary-foreground: #eeeeee;
+	--color-accent: #8cbbdd;
 	--color-accent-foreground: #ffffff;
-	--color-violet: #a78bfa;
+	--color-violet: #b5a2ff;
 	--color-accentblue: var(--color-accent);
 	--color-accentviolet: var(--color-violet);
-	--color-border: #343c46;
-	--color-input: #343c46;
-	--color-ring: #20d4bf;
+	--color-border: #363636;
+	--color-input: #737373;
+	--color-ring: #e5e5e5;
 	--color-destructive: #fb8c9b;
 
 	/* Existing domain components share the new semantic palette. */
@@ -28,11 +29,11 @@
 	--color-crypt: var(--color-surface);
 	--color-stone: var(--color-card);
 	--color-slate: var(--color-muted);
-	--color-mist: #2c3540;
-	--color-smoke: #526071;
-	--color-gold-dim: #238b83;
+	--color-mist: #363636;
+	--color-smoke: #737373;
+	--color-gold-dim: #737373;
 	--color-gold: var(--color-primary);
-	--color-gold-bright: #6de5d5;
+	--color-gold-bright: #ffffff;
 	--color-amber: var(--color-primary);
 	--color-ochre: var(--color-accent);
 
@@ -46,24 +47,77 @@
 	--color-rarity-uncommon: #a8c4cc;
 	--color-rarity-rare: #d4af37;
 	--color-rarity-mythic: #d4521a;
+	--color-role-commander: #c4b5ed;
+	--color-scrollbar: #686868;
 
 	--color-text-primary: var(--color-foreground);
-	--color-text-secondary: #b8c1cc;
+	--color-text-secondary: #c4c4c4;
 	--color-text-muted: var(--color-muted-foreground);
 	--color-text-on-gold: var(--color-primary-foreground);
 	--color-success: #71d5a4;
 	--color-error: var(--color-destructive);
 	--color-warning: #f0c47b;
 	--color-info: #8ebaff;
-	--font-display: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
-	--font-body: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+	--font-editorial: var(--font-body);
+	--font-display: 'Marcellus', Georgia, serif;
+	--font-body: 'IBM Plex Mono', monospace;
 	--font-mono: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+}
+
+html.light {
+	color-scheme: light;
+	--color-background: #fafafa;
+	--color-foreground: #202020;
+	--color-card: #ffffff;
+	--color-card-foreground: #202020;
+	--color-surface: #f2f2f2;
+	--color-muted: #e9e9e9;
+	--color-muted-foreground: #606060;
+	--color-primary: #242424;
+	--color-primary-foreground: #ffffff;
+	--color-secondary: #ededed;
+	--color-secondary-foreground: #202020;
+	--color-accent: #326184;
+	--color-violet: #70539d;
+	--color-border: #d5d5d5;
+	--color-input: #858585;
+	--color-ring: #242424;
+	--color-destructive: #b3233b;
+	--color-mist: #d5d5d5;
+	--color-smoke: #858585;
+	--color-gold-dim: #757575;
+	--color-gold-bright: #202020;
+	--color-text-secondary: #505050;
+	--color-success: #21754b;
+	--color-warning: #855600;
+	--color-info: #326184;
+	--color-role-commander: #725098;
+	--color-scrollbar: #929292;
 }
 
 * {
 	box-sizing: border-box;
 	scrollbar-width: thin;
-	scrollbar-color: var(--color-smoke) transparent;
+	scrollbar-color: var(--color-scrollbar) transparent;
+}
+
+@supports not (scrollbar-color: auto) {
+	::-webkit-scrollbar {
+		width: 8px;
+		height: 8px;
+	}
+
+	::-webkit-scrollbar-track,
+	::-webkit-scrollbar-corner {
+		background: transparent;
+	}
+
+	::-webkit-scrollbar-thumb {
+		background: var(--color-scrollbar);
+		border: 2px solid transparent;
+		border-radius: 999px;
+		background-clip: padding-box;
+	}
 }
 
 html,
@@ -71,6 +125,10 @@ body {
 	margin: 0;
 	padding: 0;
 	min-height: 100%;
+}
+
+:root {
+	--layout-wide-width: clamp(100rem, 84vw, 150rem);
 }
 
 html {
@@ -97,11 +155,16 @@ button:disabled {
 }
 
 @layer components {
+	.commander-role {
+		--role-accent: var(--color-role-commander);
+		color: var(--color-role-commander);
+	}
+
 	.surface-card,
 	.panel {
 		background: var(--color-stone);
 		border: 1px solid var(--color-border);
-		border-radius: 0.75rem;
+		border-radius: 1rem;
 		box-shadow: 0 1px 2px #0003;
 	}
 
@@ -145,12 +208,13 @@ button:disabled {
 	}
 
 	.nav-link {
+		position: relative;
 		display: inline-flex;
 		align-items: center;
 		min-height: 2.5rem;
 		padding: 0.5rem 0.875rem;
 		border: 1px solid transparent;
-		border-radius: 0.625rem;
+		border-radius: 0.5rem;
 		font-size: 0.875rem;
 		font-weight: 600;
 		text-decoration: none;
@@ -163,25 +227,41 @@ button:disabled {
 	}
 
 	.nav-link--active {
-		color: var(--color-gold-bright);
-		border-color: #20d4bf35;
-		background: #20d4bf12;
+		color: var(--color-foreground);
+		border-color: transparent;
+		background: transparent;
+	}
+
+	.nav-link::after {
+		content: '';
+		position: absolute;
+		inset: auto 0.75rem 0.15rem;
+		height: 2px;
+		background: currentColor;
+		opacity: 0;
+	}
+
+	.nav-link--active::after,
+	.nav-link:hover::after {
+		opacity: 1;
 	}
 
 	.mobile-nav-link {
 		display: flex;
 		padding: 0.875rem 1.25rem;
 		border: 1px solid transparent;
-		border-radius: 0.625rem;
+		border-radius: 0.5rem;
 		font-weight: 500;
 		text-decoration: none;
 		color: var(--color-text-secondary);
 	}
 
 	.mobile-nav-link--active {
-		color: var(--color-gold-bright);
-		border-color: #20d4bf35;
-		background: var(--color-slate);
+		color: var(--color-foreground);
+		background: transparent;
+		text-decoration: underline;
+		text-decoration-thickness: 2px;
+		text-underline-offset: 6px;
 	}
 
 	.footer-link {
@@ -203,7 +283,7 @@ button:disabled {
 		min-height: 2.5rem;
 		padding: 0.5rem 0.875rem;
 		border: 1px solid transparent;
-		border-radius: 0.625rem;
+		border-radius: 0.5rem;
 		font-size: 0.875rem;
 		font-weight: 600;
 		line-height: 1.4;
@@ -280,7 +360,7 @@ button:disabled {
 		min-height: 2.5rem;
 		padding: 0.5rem 0.75rem;
 		border: 1px solid var(--color-border);
-		border-radius: 0.625rem;
+		border-radius: 0.5rem;
 		background: var(--color-crypt);
 		color: var(--color-text-primary);
 		font-size: 0.875rem;
@@ -314,7 +394,7 @@ button:disabled {
 	}
 
 	.card-grid-item {
-		border: 1px solid var(--color-border);
+		border: 1px solid transparent;
 		transition: border-color 150ms ease;
 	}
 
@@ -403,5 +483,111 @@ button:disabled {
 		animation-iteration-count: 1 !important;
 		transition-duration: 0.01ms !important;
 		scroll-behavior: auto !important;
+	}
+}
+
+/* Shared product layouts keep the working content ahead of supporting copy. */
+@layer components {
+	.app-shell {
+		display: flex;
+		flex-direction: column;
+		height: 100dvh;
+		overflow: hidden;
+	}
+	.app-main {
+		min-width: 0;
+		min-height: 0;
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		overflow-y: auto;
+	}
+	.app-content {
+		flex: 1 0 auto;
+		min-height: 0;
+	}
+	.page-title h1 {
+		font-size: 1.65rem;
+		line-height: 1.25;
+		font-weight: 650;
+		letter-spacing: -0.045em;
+		overflow-wrap: anywhere;
+	}
+	.input {
+		min-height: 2.75rem;
+		border-color: var(--color-input);
+	}
+	.btn {
+		min-height: 2.75rem;
+	}
+	.btn-sm {
+		min-height: 2.5rem;
+	}
+	.account-controls .btn-icon {
+		min-width: 44px;
+	}
+	.auth-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		padding: 1rem 1.5rem;
+	}
+	.auth-brand {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.625rem;
+		font-size: 1.125rem;
+		font-family: var(--font-display);
+		font-weight: 400;
+		color: var(--color-foreground);
+		text-decoration: none;
+	}
+	.auth-switch {
+		margin: 1.75rem -2rem -2rem;
+		padding: 1.25rem;
+		border-top: 1px solid var(--color-border);
+		text-align: center;
+		font-size: 0.8125rem;
+		color: var(--color-text-secondary);
+	}
+	.auth-switch a {
+		color: var(--color-foreground);
+		text-decoration: underline;
+		text-underline-offset: 4px;
+		margin-left: 0.25rem;
+	}
+	.account-layout {
+		max-width: 480px;
+		margin: auto;
+		padding: 3rem 1rem;
+	}
+	.account-form {
+		padding: 2rem;
+		background: var(--color-card);
+		border: 1px solid var(--color-border);
+		border-radius: 0.85rem;
+	}
+	.account-form h1 {
+		font-size: 1.4rem;
+	}
+	.eyebrow {
+		font-size: 0.75rem;
+		color: var(--color-text-secondary);
+		font-weight: 500;
+	}
+	@media (max-width: 700px) {
+		.account-layout {
+			padding: 1.5rem 1rem;
+		}
+		.auth-switch {
+			margin: 1.75rem -1.5rem -1.5rem;
+		}
+		.account-form {
+			padding: 1.5rem;
+		}
+		.input {
+			font-size: 1rem;
+		}
 	}
 }

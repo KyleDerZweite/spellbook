@@ -81,8 +81,13 @@ async function resolveDeckCards(cards: DeckCard[]): Promise<Map<string, CardDocu
 	return result;
 }
 
-export async function getDeckLegality(cards: DeckCard[], format: string) {
+export async function getDeckLegality(
+	cards: DeckCard[],
+	format: string,
+	resolved?: Map<string, CardDocument>
+) {
 	const catalogCards = await resolveDeckCards(cards);
+	for (const [id, card] of catalogCards) resolved?.set(id, card);
 	return generateLegalityWarnings(
 		cards.map((row) => ({
 			quantity: row.quantity,
@@ -105,4 +110,37 @@ export async function exportDecklist(cards: DeckCard[]): Promise<string> {
 	} catch {
 		return formatArenaDecklist(cards);
 	}
+}
+
+export async function changeDeckPrinting(
+	accountId: string,
+	input: {
+		entryId: string;
+		catalogCardId: string;
+		quantity: number;
+		role: string;
+		requestId: string;
+	}
+) {
+	const snapshot = await getDeckSnapshot(accountId);
+	const entry = snapshot.deckCards.find((card) => card.id === input.entryId);
+	if (!entry) throw new ValidationError('Deck entry not found');
+	const printing = await getCatalogPrinting(input.catalogCardId);
+	if (printing.oracle_id !== entry.canonicalCardId)
+		throw new ValidationError('Choose a printing of the same card');
+	return bulkMutateDeckCards(accountId, {
+		deckId: entry.deckId,
+		requestId: input.requestId,
+		game: 'mtg',
+		source: 'web',
+		operations: [
+			{ op: 'remove', target: { entryId: entry.id } },
+			{
+				op: 'add',
+				card: toCardIdentity(printing),
+				quantity: input.quantity,
+				role: assertDeckRole(input.role)
+			}
+		]
+	});
 }

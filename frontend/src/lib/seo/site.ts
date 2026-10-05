@@ -30,6 +30,7 @@ export const PUBLIC_METADATA_PAGES = [
 export const PUBLIC_INDEXABLE_PATHS = PUBLIC_METADATA_PAGES.map((page) => page.path);
 export const ROBOTS_DISALLOWED_PATHS = [
 	'/auth/',
+	'/mtg/',
 	'/search',
 	'/inventory',
 	'/decks',

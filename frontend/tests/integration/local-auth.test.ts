@@ -14,14 +14,82 @@ import { POST as login } from '../../src/routes/api/auth/login/+server';
 import { POST as logout } from '../../src/routes/api/auth/logout/+server';
 import { hashPassword } from '../../src/lib/server/auth/password';
 import { requireMobileAuth } from '../../src/lib/server/mobile/auth';
+import {
+	actions as settingsActions,
+	load as loadSettings
+} from '../../src/routes/settings/+page.server';
 
 const run = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 run('local accounts and persisted sessions', () => {
 	const accountIds: string[] = [];
+	const settingsRequest = (avatarId?: string, accountId?: string) => {
+		const body = new FormData();
+		if (avatarId !== undefined) body.set('avatarId', avatarId);
+		if (accountId) body.set('accountId', accountId);
+		return new Request('https://spellbook.test/settings', { method: 'POST', body });
+	};
 	afterAll(async () => {
 		if (accountIds.length)
 			await db.delete(userProfiles).where(inArray(userProfiles.accountId, accountIds));
 		await pool.end();
+	});
+	it('requires authentication for settings reads and updates', async () => {
+		const event = { locals: { user: null }, request: settingsRequest('dragon') };
+		expect(() => loadSettings(event as never)).toThrow(
+			expect.objectContaining({ status: 303, location: '/auth/login?returnTo=/settings' })
+		);
+		await expect(settingsActions.default(event as never)).rejects.toMatchObject({
+			status: 303,
+			location: '/auth/login?returnTo=/settings'
+		});
+	});
+	it('rejects missing and unknown avatars without changing the stored preference', async () => {
+		const user = await authenticate(
+			'register',
+			`mage_${crypto.randomUUID().slice(0, 12)}`,
+			'correct horse battery'
+		);
+		accountIds.push(user!.user.accountId);
+		for (const avatarId of [undefined, 'unknown', 'https://example.test/picture.png']) {
+			const result = await settingsActions.default({
+				locals: { user: user!.user },
+				request: settingsRequest(avatarId)
+			} as never);
+			expect(result).toMatchObject({
+				status: 400,
+				data: { success: false, avatarId: avatarId ?? '' }
+			});
+		}
+		expect((await validateSession(user!.session.token))?.avatarId).toBe('wizard');
+	});
+	it('persists an avatar for the current account and updates active sessions and login', async () => {
+		const password = 'correct horse battery';
+		const user = await authenticate(
+			'register',
+			`mage_${crypto.randomUUID().slice(0, 12)}`,
+			password
+		);
+		const other = await authenticate(
+			'register',
+			`mage_${crypto.randomUUID().slice(0, 12)}`,
+			password
+		);
+		accountIds.push(user!.user.accountId, other!.user.accountId);
+		const locals = { user: user!.user };
+		const result = await settingsActions.default({
+			locals,
+			request: settingsRequest('dragon', other!.user.accountId)
+		} as never);
+		expect(result).toEqual({ success: true, message: 'Avatar saved.' });
+		expect(locals.user.avatarId).toBe('dragon');
+		expect(await loadSettings({ locals } as never)).toMatchObject({
+			user: { accountId: user!.user.accountId, avatarId: 'dragon' }
+		});
+		expect((await validateSession(user!.session.token))?.avatarId).toBe('dragon');
+		expect((await authenticate('login', user!.user.username, password))?.user.avatarId).toBe(
+			'dragon'
+		);
+		expect((await validateSession(other!.session.token))?.avatarId).toBe('wizard');
 	});
 	it('registers atomically, authenticates normalized usernames and rejects duplicates', async () => {
 		const username = `mage_${crypto.randomUUID().slice(0, 12)}`;

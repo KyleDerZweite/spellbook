@@ -71,7 +71,7 @@ describe('central form origin protection', () => {
 			{ method: 'PUT' },
 			{ contentType: 'text/plain' },
 			{ route: '/auth/login' },
-			{ route: '/inventory' },
+			{ route: '/mtg/inventory' },
 			{ route: null },
 			{ bearer: 'Bearer invalid' },
 			{ bearer: undefined }
@@ -107,7 +107,12 @@ describe('central form origin protection', () => {
 			});
 			expect(() => requireFormOrigin(withBody)).toThrow(expect.objectContaining({ status: 403 }));
 		}
-		for (const route of ['/auth/logout', '/inventory', '/api/mobile/v1/mtg/decks', null] as const) {
+		for (const route of [
+			'/auth/logout',
+			'/mtg/inventory',
+			'/api/mobile/v1/mtg/decks',
+			null
+		] as const) {
 			expect(() =>
 				requireFormOrigin(
 					event({ method: 'DELETE', route, contentType: null, bearer: `Bearer ${token}` })

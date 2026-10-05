@@ -1296,9 +1296,27 @@ const SCHEMA = {
 };
 
 export const GET = () => {
-	return json(SCHEMA, {
-		headers: {
-			'Cache-Control': 'public, max-age=3600'
+	const catalogSearch = SCHEMA.paths['/api/mobile/v1/mtg/search'];
+	const catalogPrintings = SCHEMA.paths['/api/mobile/v1/mtg/cards/{oracleId}/printings'];
+	return json(
+		{
+			...SCHEMA,
+			paths: {
+				...SCHEMA.paths,
+				'/api/catalog/search': {
+					get: { ...catalogSearch.get, security: [] },
+					post: { ...catalogSearch.post, security: [] }
+				},
+				'/api/catalog/cards/{oracleId}/printings': {
+					...catalogPrintings,
+					get: { ...catalogPrintings.get, security: [] }
+				}
+			}
+		},
+		{
+			headers: {
+				'Cache-Control': 'public, max-age=3600'
+			}
 		}
-	});
+	);
 };

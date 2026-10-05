@@ -1,9 +1,9 @@
 # Local authentication and account recovery
 
 - Status: Canonical
-- Last Reviewed: 2026-10-03
+- Last Reviewed: 2026-10-05
 - Source of Truth: code
-- Update Triggers: registration policy, credential recovery command, migration, reverse proxy origin
+- Update Triggers: registration policy, credential recovery command, migration, reverse proxy origin, demo mode and seed data
 - Related Docs: [Authentication architecture](../architecture/auth.md), [Deployment](./deployment.md), [Postgres](../architecture/postgres.md), [ADR-0009](../decisions/0009-local-authentication.md)
 
 New users register at `/auth/register` and sign in at `/auth/login`. Registration is public. The [authentication contract](../architecture/auth.md) defines credential rules, sessions, and JSON API login.
@@ -43,3 +43,24 @@ OIDC, Zitadel, and `AUTH_SESSION_SECRET` settings are obsolete. Set the public o
 Behind a proxy, configure trusted client-address headers using the [deployment procedure](./deployment.md). Without this setting, multiple users can share the proxy address and its attempt limit.
 
 For multiple frontend replicas, configure a shared rate limit at the reverse proxy. The built-in attempt limit is per process.
+
+## Demo mode
+
+Use a disposable PostgreSQL database whose name ends in `_demo` or `_design`. Set `DATABASE_URL` and `APP_ORIGIN`, then run from `frontend/` with the pinned Node version:
+
+```sh
+pnpm db:migrate
+pnpm dev:demo --host 0.0.0.0
+```
+
+`dev:demo` seeds the database and starts Vite with `DEMO_MODE=true`. Sign in with username `demo` and password `demo`. The seed contains a limited real-card catalog, a 100-card Commander deck, an empty deck, and inventory with exact, alternate, and missing copies. Card records come from Scryfall; images retain their source URLs. This is a shared editable account. Changes persist across server restarts.
+
+The seed refuses databases with other usernames. To explicitly delete all accounts and their related data in the selected disposable database and recreate the demo:
+
+```sh
+pnpm demo:seed --reset-users
+```
+
+Reset also replaces the active sample catalog and revokes existing sessions through account deletion. Ordinary `pnpm demo:seed` preserves an existing demo account and edits. The seed transaction rolls back on failure. No external card API is needed to seed; image display still requires network access.
+
+For a built demo server, seed before starting and set `DEMO_MODE=true` in its runtime environment. Normal deployments leave it unset. Demo mode does not replace ordinary authentication with an automatic session.

@@ -1,0 +1,1 @@
+ALTER TABLE "user_profiles" ADD COLUMN "avatar_id" text DEFAULT 'wizard' NOT NULL;

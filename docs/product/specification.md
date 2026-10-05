@@ -1,12 +1,12 @@
 # Spellbook product specification
 
 - Status: Canonical
-- Last Reviewed: 2026-10-04
+- Last Reviewed: 2026-10-05
 - Source of Truth: application code, tests, accepted product requirements
-- Update Triggers: account access, catalog identity, inventory or deck behavior, import formats, API contracts, scan capability, physical-card integration requirements, supported platforms, release acceptance changes
-- Related Docs: [Domain model](../../CONTEXT.md), [Routes](./routing-and-games.md), [UI direction](./ui-design-direction.md), [System architecture](../architecture/system-overview.md), [Authentication](../architecture/auth.md), [Deployment](../operations/deployment.md), [Card scanner and sorter](../integrations/card-robot.md), [Product index](./README.md)
+- Update Triggers: account access and preferences, catalog identity, inventory or deck behavior, import formats, API contracts, scan capability and priorities, physical-card integration requirements, supported platforms, release acceptance changes
+- Related Docs: [Domain model](../../CONTEXT.md), [Routes](./routing-and-games.md), [UI direction](./ui-design-direction.md), [System architecture](../architecture/system-overview.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Card scanner and sorter](../integrations/card-robot.md), [Product index](./README.md)
 
-Spellbook is an open-source MTG inventory and deck builder for private accounts on a self-hosted instance. Users search a local catalog, record owned printings, edit decklists, and compare deck requirements with inventory. Hosted operation uses the same account boundaries and runtime services.
+Spellbook is an open-source MTG inventory and deck builder for private accounts on a self-hosted instance. Visitors can search the local catalog and inspect printings without an account. Signed-in users record owned printings, edit decklists, and compare deck requirements with inventory. Hosted operation uses the same account boundaries and runtime services.
 
 This document owns product requirements and implementation status. The glossary owns terminology. Architecture documents own internal implementation details, and operations documents own installation and recovery steps. Requirements marked planned are not shipped capabilities.
 
@@ -17,6 +17,8 @@ The primary users are collectors maintaining a private owned-card ledger, player
 The core workflow is to find a printing, record its owned quantity, build or import a deck, inspect exact and alternate printing availability, edit the deck, and export it. Inventory ownership and deck requirements remain separate throughout this workflow.
 
 Public deck sharing, social feeds, marketplaces, financial portfolio management, collaborative editing, AI deck recommendations, native mobile clients, and gameplay simulation are outside the current scope. A separate future play application may consume catalog and deck data.
+
+Reliable card scanning and an installable mobile app are future product priorities. The working website, catalog, inventory, and deck tools provide their foundation. The [mobile and scan architecture](../architecture/mobile-and-scan.md) owns implementation status and the accepted PWA-first direction. An app download, production recognition, and direct camera capture are not currently available.
 
 ## Capability status
 
@@ -37,6 +39,8 @@ Local authentication and the interactive deck workspace are implemented. The dec
 ## Account access and ownership
 
 The application uses local usernames and passwords. Users can register a local account, sign in, use the private workspace, and sign out without an external identity provider. Registration is public on the instance; there is no invite-only or first-user-only policy. OIDC redirects, discovery, provider tokens, and external identity linking are removed from active authentication.
+
+Signed-in users can choose a local sprite avatar in [Settings](./routing-and-games.md). The choice persists with their account. Profile photo uploads and language preferences are deferred. The [UI direction](./ui-design-direction.md) owns account menu placement and avatar presentation.
 
 An account's internal identifier owns its inventory, decks, scan sessions, and mutation requests. A username is a login identifier, not a database ownership key. Renaming or recovering credentials must preserve the owning account. Existing accounts require an explicit operator-controlled migration that preserves their internal identifiers.
 
@@ -64,13 +68,13 @@ Supported finishes are `nonfoil` and `foil`. Supported conditions are `NM`, `LP`
 
 The canonical bulk mutation path accepts add, set, decrement, and remove operations. Positive owned quantities remain stored; setting or decrementing to zero or less removes the entry. Invalid operations, finishes, conditions, and nonfinite quantities must fail validation. An error must not leave a partially applied bulk request.
 
-Users can inspect inventory as a list, search and filter owned entries, sort them, and see set progress. Progress describes owned canonical cards rather than the count of every printing variant.
+Users can inspect inventory as a compact list, search owned entries, filter by set and finish, and sort by name, set or recent update. Selecting a set reveals owned-name progress. Progress describes owned canonical cards rather than the count of every printing variant. Quantity edits preserve notes and the current filters. The inspector edits quantity and notes for the selected owned entry. The decrement control stops at one; explicit removal asks for confirmation.
 
 Physical locations, binder or box assignment, loans, individual copy identifiers, per-copy provenance, and physical movement history are planned. The inventory currently stores aggregate quantities. Catalog printing identity includes language, but there is no separate physical-copy language or location record. Inventory export and CSV exchange require separate implementation; deck text export does not establish inventory export support.
 
 ## Deck builder
 
-The implemented workspace uses `/decks?deck=ID` to select an owned deck. Catalog queries use `q`, and printing selection uses the canonical card identifier in `printing`. Deck rows support local name filtering and name or quantity sorting. An owned-results filter narrows catalog results without preventing users from adding an unowned card.
+The implemented workspace uses `/mtg/decks?deck=ID` to select an owned deck. Catalog queries use `q`, and printing selection uses the canonical card identifier in `printing`. Deck rows support local name filtering and name or quantity sorting. An owned-results filter narrows catalog results without preventing users from adding an unowned card.
 
 A user must be able to create, select, rename, describe, change the format of, and delete a private deck. A deck entry records printing identity, canonical identity, quantity, and role. The supported roles are main deck, sideboard, commander, and companion.
 
@@ -116,7 +120,7 @@ CSV mappings for ManaBox, Moxfield, Archidekt, and generic columns are planned. 
 
 ## Scan review
 
-The authenticated `/scan` workspace creates and reopens account-owned sessions, uploads a JPEG, PNG, or WebP photo, and displays stored images and recognition candidates. The initial workflow uses one photo per session. Users can search the catalog, select a printing manually, set quantity, finish, and condition, then confirm an explicit inventory commit. Draft selections remain local until commit. Committed sessions are read-only.
+The authenticated `/mtg/scan` workspace creates and reopens account-owned sessions, uploads a JPEG, PNG, or WebP photo, and displays stored images and recognition candidates. The initial workflow uses one photo per session. Users can search the catalog, select a printing manually, set quantity, finish, and condition, then confirm an explicit inventory commit. Draft selections remain local until commit. Committed sessions are read-only.
 
 Scan APIs list recent owned sessions, accept image artifacts, return candidate matches, serve owned images, and accept externally produced candidate results. External results identify a model version and resolve submitted printing identifiers against the catalog. A result replaces the artifact's current candidates under a session lock; identical retries do not create additional artifacts, review entries, or inventory. Committed and cancelled sessions reject result changes.
 
@@ -129,6 +133,8 @@ The built-in recognizer remains a placeholder. OCR, trained embedding inference,
 The [mobile and scan architecture](../architecture/mobile-and-scan.md) owns endpoint bodies, candidate counts and score ranges, supported image signatures, upload limits, session listing limits, storage behavior, and worker boundaries.
 
 ## Physical scanner and sorter preparation
+
+A physical card-scanning, indexing, sorting, and deck-assembly product is a separate later project. Its proposed integration must not make hardware a requirement for the current website.
 
 A future device may feed individual MTG cards from a stack, capture each card, and sort it into configured output trays. Colour, type, and set are candidate sorting rules. A Jetson may run recognition, and a microcontroller may control motors and sensors. Hardware selection, construction, recognition models, and the movement protocol are undecided.
 

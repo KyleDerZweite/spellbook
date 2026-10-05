@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { CardDocument } from '#lib/search/types.ts';
-	import RarityBadge from './RarityBadge.svelte';
+	import CardGridItem from './CardGridItem.svelte';
 
 	interface Props {
 		cards: CardDocument[];
@@ -12,8 +12,8 @@
 	let { cards, selectedId = null, onSelect, class: className = '' }: Props = $props();
 
 	const GAP = 16;
-	const MIN_COL_WIDTH = 160;
-	const INFO_HEIGHT = 42;
+	const MIN_COL_WIDTH = 190;
+	const INFO_HEIGHT = 56;
 	const OVERSCAN = 3;
 
 	let wrapperEl: HTMLDivElement | null = $state(null);
@@ -22,7 +22,12 @@
 	let visibleTop = $state(0);
 
 	const cols = $derived(
-		containerWidth > 0 ? Math.max(1, Math.floor((containerWidth + GAP) / (MIN_COL_WIDTH + GAP))) : 1
+		containerWidth > 0
+			? Math.max(
+					1,
+					Math.floor((containerWidth + GAP) / ((containerWidth < 480 ? 130 : MIN_COL_WIDTH) + GAP))
+				)
+			: 1
 	);
 	const colWidth = $derived(cols > 0 ? (containerWidth - GAP * (cols - 1)) / cols : MIN_COL_WIDTH);
 	const imageHeight = $derived(colWidth * (7 / 5));
@@ -103,7 +108,8 @@
 		<div
 			class="grid"
 			style="
-				grid-template-columns: repeat({cols}, 1fr);
+				grid-template-columns: repeat({cols}, minmax(0, 1fr));
+				grid-auto-rows: {rowHeight - GAP}px;
 				gap: {GAP}px;
 				position: absolute;
 				left: 0;
@@ -112,43 +118,7 @@
 			"
 		>
 			{#each visibleItems as { card } (card.id)}
-				{@const isSelected = selectedId === card.id}
-				<button
-					class="card-grid-item group cursor-pointer overflow-hidden rounded bg-stone p-0 text-left"
-					class:card-grid-item--selected={isSelected}
-					onclick={() => onSelect?.(card)}
-				>
-					<div
-						class="relative overflow-hidden"
-						style="aspect-ratio: 5 / 7; border-radius: 8px 8px 0 0;"
-					>
-						<img
-							src={card.image_uri || card.image_uri_small}
-							alt={card.name}
-							loading="lazy"
-							class="block h-full w-full object-cover"
-						/>
-						{#if card.is_foil_available}
-							<div
-								class="foil-shimmer absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-							></div>
-						{/if}
-					</div>
-					<div class="px-2 py-1.5">
-						<p
-							class="truncate font-display text-xs leading-tight text-text-primary"
-							title={card.name}
-						>
-							{card.name}
-						</p>
-						<div class="mt-0.5 flex items-center gap-1.5">
-							<span class="font-mono text-[10px] uppercase text-text-secondary">
-								{card.set_code}
-							</span>
-							<RarityBadge rarity={card.rarity} />
-						</div>
-					</div>
-				</button>
+				<CardGridItem {card} selected={selectedId === card.id} {onSelect} />
 			{/each}
 		</div>
 	{/if}

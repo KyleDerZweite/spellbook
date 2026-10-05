@@ -9,8 +9,8 @@
 	><title>Create an account | Spellbook</title><meta name="robots" content="noindex" /></svelte:head
 >
 
-<div class="mx-auto flex min-h-[70vh] max-w-md flex-col justify-center px-4 py-10">
-	<section class="panel p-6 sm:p-8">
+<div class="account-layout">
+	<section class="account-form">
 		<h1 class="mb-6 font-display text-xl font-semibold text-text-primary">Create an account</h1>
 		<form
 			method="POST"
@@ -70,9 +70,10 @@
 				>{pending ? 'Please wait...' : 'Create an account'}</button
 			>
 		</form>
-		<a
-			class="mt-6 block text-center text-xs text-gold-bright underline underline-offset-4"
-			href={`/auth/login?returnTo=${encodeURIComponent(data.returnTo)}`}>Sign in to your account</a
-		>
+		<p class="auth-switch">
+			Already have an account? <a href={`/auth/login?returnTo=${encodeURIComponent(data.returnTo)}`}
+				>Sign in</a
+			>
+		</p>
 	</section>
 </div>

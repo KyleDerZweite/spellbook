@@ -1,7 +1,7 @@
 # Architecture
 
 - Status: Canonical
-- Last Reviewed: 2026-10-03
+- Last Reviewed: 2026-10-05
 - Source of Truth: code
 - Update Triggers: schema changes, repository changes, auth flow changes, worker flow changes, service boundary changes
 - Related Docs: [System Overview](./system-overview.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Worker](./worker.md), [Catalog](./catalog.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Docs Index](../README.md)
@@ -17,3 +17,5 @@ Architecture documents distinguish implemented boundaries from explicitly marked
 | [Worker](./worker.md)                   | Catalog ingestion and synchronization                                  |
 | [Authentication](./auth.md)             | Local credentials, sessions, and origin protection                     |
 | [Mobile and scan](./mobile-and-scan.md) | API validation, uploads, recognition results, and proposed recognition |
+
+[Managed authentication evaluation](./auth-provider-evaluation.md) compares future provider options; local authentication remains implemented.

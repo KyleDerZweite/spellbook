@@ -62,18 +62,19 @@
 		{value}
 		oninput={handleInput}
 		{placeholder}
-		class="input search-input w-full py-2.5 pl-10 pr-10 text-sm"
+		class="input search-input w-full py-2.5 pl-10 pr-12 text-sm"
 		style="
 			background-color: var(--color-crypt);
-			border: 1px solid var(--color-border);
+			border: 1px solid var(--color-input);
 		"
 	/>
 
 	<!-- Clear button or Cmd+K hint -->
 	{#if value}
 		<button
+			type="button"
 			onclick={handleClear}
-			class="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer border-none bg-transparent text-text-muted transition-colors hover:text-gold-bright"
+			class="absolute right-0 top-1/2 flex size-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg border-none bg-transparent text-text-muted transition-colors hover:text-text-primary"
 			aria-label="Clear search"
 		>
 			&#10005;
@@ -86,3 +87,9 @@
 		</span>
 	{/if}
 </div>
+
+<style>
+	.search-input::-webkit-search-cancel-button {
+		-webkit-appearance: none;
+	}
+</style>

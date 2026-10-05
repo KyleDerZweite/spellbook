@@ -1,12 +1,14 @@
 <script lang="ts">
+	import { dev } from '$app/env';
+	import PublicLanding from '#lib/components/showcase/PublicLanding.svelte';
 	import { page } from '$app/state';
-	import { asset } from '$app/paths';
 	import CardGrid from '#lib/components/cards/CardGrid.svelte';
 	import type { CardDocument } from '#lib/search/types.ts';
 	import { SITE_NAME, pageMetadata } from '#lib/seo/site.ts';
 
 	let inputEl: HTMLInputElement | null = $state(null);
 	const isAuthenticated = $derived(Boolean(page.data.user));
+	const isLandingReview = $derived(dev && page.url.searchParams.get('review') === 'landing');
 	const stats = $derived(page.data.stats);
 	const recentAdditions = $derived((page.data.recentAdditions as CardDocument[]).slice(0, 6));
 	const meta = $derived(
@@ -41,267 +43,354 @@
 	<meta name="twitter:description" content={meta.description} />
 </svelte:head>
 
-<div class="home-workspace">
-	<section class="workspace-entry panel">
-		<div class="entry-content">
-			<h1>{isAuthenticated ? 'Your workspace' : 'Spellbook'}</h1>
-			{#if isAuthenticated}
-				<form
-					method="GET"
-					action="/search"
-					role="search"
-					aria-label="Search catalog"
-					class="workspace-search"
-				>
-					<label for="workspace-search" class="sr-only">Search Magic cards</label>
-					<input
-						bind:this={inputEl}
-						id="workspace-search"
-						name="q"
-						type="search"
-						autocomplete="off"
-						placeholder="Search cards by name or rules text"
-						class="input"
-					/>
-					<button type="submit" class="btn btn-primary">Search</button>
-				</form>
-			{:else}
-				<div class="account-actions">
-					<a href="/auth/register" class="btn btn-primary">Create account</a><a
-						href="/auth/login"
-						class="btn btn-secondary">Sign in</a
-					>
-				</div>
-			{/if}
-			<nav class="workspace-actions" aria-label="Workspace">
-				<a href="/decks"
-					><svg
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1.5"
-						aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5" /></svg
-					><span>Deck builder</span></a
-				>
-				<a href="/search"
-					><svg
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1.5"
-						aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg
-					><span>Card search</span></a
-				>
-				<a href="/inventory"
-					><svg
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1.5"
-						aria-hidden="true"
-						><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M4 10h16M10 10v10" /></svg
-					><span>Inventory</span></a
-				>
-				<a href="/scan"
-					><svg
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1.5"
-						aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M7 12h10" /></svg
-					><span>Scan review</span></a
-				>
-			</nav>
-		</div>
-		<div class="entry-art" aria-hidden="true">
-			<img
-				src={asset('brand/card-box.webp')}
-				alt=""
-				width="1200"
-				height="1000"
-				fetchpriority="high"
-			/>
-		</div>
-	</section>
-	{#if isAuthenticated}
-		<dl class="workspace-stats">
-			<div class="panel">
-				<dt>Cards</dt>
+<div
+	class:home-workspace={isAuthenticated && !isLandingReview}
+	class:public-home={!isAuthenticated || isLandingReview}
+>
+	{#if isAuthenticated && !isLandingReview}
+		<header class="dashboard-header">
+			<div class="page-title">
+				<h1>Your cards</h1>
+			</div>
+			<a href="/mtg/scan" class="btn btn-secondary">Scan cards</a>
+		</header>
+		<form
+			method="GET"
+			action="/mtg/search"
+			role="search"
+			aria-label="Search catalog"
+			class="dashboard-search"
+		>
+			<label for="workspace-search" class="sr-only">Search Magic cards</label><svg
+				aria-hidden="true"
+				width="20"
+				height="20"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1.6"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg
+			>
+			<input
+				bind:this={inputEl}
+				id="workspace-search"
+				name="q"
+				type="search"
+				placeholder="Search Magic cards by name or rules text"
+				autocomplete="off"
+			/><kbd>⌘ / Ctrl K</kbd><button class="btn btn-primary">Search cards</button>
+		</form>
+		<dl class="inventory-totals">
+			<div>
 				<dd>{stats.total.toLocaleString()}</dd>
+				<dt>{stats.total === 1 ? 'card owned' : 'cards owned'}</dt>
 			</div>
-			<div class="panel">
-				<dt>Unique cards</dt>
+			<div>
 				<dd>{stats.unique.toLocaleString()}</dd>
+				<dt>{stats.unique === 1 ? 'unique card' : 'unique cards'}</dt>
 			</div>
-			<div class="panel">
-				<dt>Sets</dt>
+			<div>
 				<dd>{stats.sets.toLocaleString()}</dd>
+				<dt>{stats.sets === 1 ? 'set' : 'sets'}</dt>
 			</div>
+			<a href="/mtg/inventory">Open inventory <span aria-hidden="true">→</span></a>
 		</dl>
-	{/if}
-	{#if isAuthenticated && recentAdditions.length > 0}
-		<section aria-label="Recent additions">
-			<CardGrid
-				cards={recentAdditions}
-				onSelect={(card) => {
-					window.location.href = `/search?q=${encodeURIComponent(card.name)}`;
-				}}
-			/>
-		</section>
+		<div class="dashboard-columns">
+			<section class="recent-cards" aria-labelledby="recent-heading">
+				<div class="section-heading">
+					<h2 id="recent-heading">Recent cards</h2>
+					<a href="/mtg/inventory">View all →</a>
+				</div>
+				{#if recentAdditions.length}<CardGrid
+						cards={recentAdditions}
+						onSelect={(card) => {
+							window.location.href = `/mtg/search?q=${encodeURIComponent(card.name)}`;
+						}}
+					/>
+				{:else}<div class="empty-workspace">
+						<svg
+							width="48"
+							height="48"
+							viewBox="0 0 48 48"
+							fill="none"
+							stroke="currentColor"
+							aria-hidden="true"
+							><rect x="15" y="7" width="23" height="33" rx="4" /><path
+								d="M10 12 5 14l7 30 20-5M22 23h9m-4.5-4.5v9"
+							/></svg
+						>
+						<h3>No cards yet</h3>
+						<p>Search for a card to add it.</p>
+						<a href="/mtg/search" class="btn btn-primary">Find cards</a>
+					</div>{/if}
+			</section>
+			<aside class="decks-section" aria-labelledby="decks-heading">
+				<div class="section-heading">
+					<h2 id="decks-heading">Decks</h2>
+					<a href="/mtg/decks">Open builder →</a>
+				</div>
+				{#each page.data.recentDecks as deck}<a
+						class="deck-link"
+						href={`/mtg/decks?deck=${deck.id}`}
+						><span class="deck-icon" aria-hidden="true">▱</span><span
+							><strong>{deck.name}</strong><small>{deck.format}</small></span
+						><span aria-hidden="true">→</span></a
+					>
+				{:else}<div class="deck-empty">
+						<h3>No decks yet</h3>
+						<p>Create a deck or import a decklist.</p>
+						<a class="btn btn-secondary" href="/mtg/decks">Create a deck</a>
+					</div>{/each}
+				<a href="/mtg/scan" class="scan-link"
+					><svg
+						width="22"
+						height="22"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M7 12h10" /></svg
+					><span><strong>Scan cards</strong><small>Upload and review a photo.</small></span><span
+						aria-hidden="true">→</span
+					></a
+				>
+			</aside>
+		</div>
+	{:else}
+		<PublicLanding />
 	{/if}
 </div>
 
 <style>
-	.home-workspace {
-		width: 100%;
-		max-width: 1280px;
-		margin: 0 auto;
-		padding: 2rem 1.5rem;
-		display: grid;
-		gap: 1rem;
-	}
-	.workspace-entry {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) 300px;
-		overflow: hidden;
-		min-height: 300px;
-		background:
-			radial-gradient(
-				ellipse at 100% 50%,
-				color-mix(in srgb, var(--color-primary) 5%, transparent),
-				transparent 60%
-			),
-			var(--color-card);
-	}
-	.entry-content {
-		padding: 2rem;
+	.public-home {
 		display: flex;
 		flex-direction: column;
-		justify-content: center;
-		gap: 1.5rem;
-		min-width: 0;
-	}
-	h1 {
-		font-size: 1.4rem;
-		line-height: 1.3;
-		font-weight: 650;
-		margin: 0;
-	}
-	.workspace-search {
-		display: flex;
-		gap: 0.5rem;
-	}
-	.workspace-search input {
-		min-width: 0;
 		flex: 1;
-	}
-	.account-actions {
-		display: flex;
-		gap: 0.5rem;
-	}
-	.workspace-actions {
-		display: grid;
-		grid-template-columns: repeat(4, minmax(0, 1fr));
-		gap: 0.5rem;
-	}
-	.workspace-actions a {
 		min-width: 0;
+	}
+	.home-workspace {
+		max-width: 1440px;
+		margin: auto;
+		padding: 2rem 2.5rem 3rem;
+	}
+	.section-heading {
 		display: flex;
-		flex-direction: column;
-		align-items: flex-start;
-		gap: 0.65rem;
-		border: 1px solid var(--color-border);
-		border-radius: 0.6rem;
-		padding: 0.9rem 0.7rem;
-		text-decoration: none;
-		color: var(--color-text-primary);
-		background: color-mix(in srgb, var(--color-background) 50%, transparent);
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		margin-bottom: 1.25rem;
+	}
+	.section-heading h2 {
+		font-size: 1rem;
+		font-weight: 600;
+		letter-spacing: -0.02em;
+	}
+	.section-heading a {
 		font-size: 0.75rem;
-		transition:
-			border-color 150ms,
-			background-color 150ms;
+		color: var(--color-text-secondary);
+		text-decoration: none;
+		white-space: nowrap;
 	}
-	.workspace-actions a:hover {
-		border-color: var(--color-primary);
-		background: var(--color-muted);
-	}
-	.workspace-actions svg {
-		width: 21px;
-		height: 21px;
+	.section-heading a:hover {
 		color: var(--color-primary);
 	}
-	.workspace-actions a:nth-child(2) svg {
-		color: var(--color-accentblue);
+	.dashboard-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		margin-bottom: 1.5rem;
 	}
-	.workspace-actions a:nth-child(3) svg {
-		color: var(--color-accentviolet);
-	}
-	.entry-art {
-		align-self: center;
-		position: relative;
-	}
-	.entry-art img {
-		display: block;
-		width: 100%;
-		height: auto;
-		object-fit: contain;
-	}
-	.workspace-stats {
-		display: grid;
-		grid-template-columns: repeat(3, minmax(0, 1fr));
+	.dashboard-search {
+		display: flex;
+		align-items: center;
 		gap: 0.75rem;
-		margin: 0;
+		border: 1px solid var(--color-input);
+		border-radius: 0.75rem;
+		padding: 0.5rem 0.5rem 0.5rem 1rem;
+		background: var(--color-surface);
 	}
-	.workspace-stats > div {
-		padding: 1rem 1.2rem;
+	.dashboard-search svg {
+		color: var(--color-text-muted);
+		flex-shrink: 0;
 	}
-	.workspace-stats dt {
-		color: var(--color-text-secondary);
-		font-size: 0.75rem;
+	.dashboard-search input {
+		flex: 1;
+		min-width: 0;
+		background: transparent;
+		border: 0;
+		padding: 0.65rem 0.25rem;
+		font-size: 0.95rem;
 	}
-	.workspace-stats dd {
-		margin: 0.4rem 0 0;
-		font-size: 1.35rem;
-		font-weight: 600;
+	.dashboard-search kbd {
+		font-size: 0.65rem;
+		color: var(--color-text-muted);
+		padding: 0.2rem 0.4rem;
+		border: 1px solid var(--color-border);
+		border-radius: 4px;
+	}
+	.inventory-totals {
+		display: flex;
+		align-items: center;
+		gap: 2rem;
+		padding: 1.5rem 0;
+		margin-bottom: 1rem;
+		border-bottom: 1px solid var(--color-border);
+	}
+	.inventory-totals > div {
+		display: flex;
+		gap: 0.5rem;
+		align-items: baseline;
+	}
+	.inventory-totals dd {
+		font-weight: 650;
+		font-size: 1.3rem;
 		font-variant-numeric: tabular-nums;
 	}
+	.inventory-totals dt {
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+	}
+	.inventory-totals > a {
+		margin-left: auto;
+		font-size: 0.75rem;
+		color: var(--color-text-secondary);
+		text-decoration: none;
+	}
+	.dashboard-columns {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 300px;
+		gap: 2rem;
+		padding-top: 1rem;
+	}
+	.recent-cards {
+		min-width: 0;
+	}
+	.empty-workspace {
+		border: 1px dashed var(--color-border);
+		border-radius: 0.75rem;
+		padding: 3rem 1.5rem;
+		text-align: center;
+	}
+	.empty-workspace svg {
+		margin: 0 auto 1rem;
+		color: var(--color-text-muted);
+	}
+	.empty-workspace h3,
+	.deck-empty h3 {
+		font-size: 1rem;
+		font-weight: 550;
+	}
+	.empty-workspace p,
+	.deck-empty p {
+		font-size: 0.8rem;
+		line-height: 1.7;
+		color: var(--color-text-muted);
+		margin: 0.5rem auto 1.25rem;
+		max-width: 25rem;
+	}
+	.deck-empty {
+		border: 1px solid var(--color-border);
+		padding: 1.25rem;
+		border-radius: 0.75rem;
+	}
+	.deck-link {
+		display: flex;
+		align-items: center;
+		gap: 0.8rem;
+		padding: 1rem 0;
+		border-bottom: 1px solid var(--color-border);
+		color: var(--color-text-primary);
+		text-decoration: none;
+	}
+	.deck-icon {
+		width: 42px;
+		height: 48px;
+		display: grid;
+		place-items: center;
+		border-radius: 5px;
+		background: var(--color-muted);
+		color: var(--color-primary);
+		font-size: 2rem;
+	}
+	.deck-link > span:nth-child(2) {
+		flex: 1;
+		min-width: 0;
+	}
+	.deck-link strong,
+	.scan-link strong {
+		display: block;
+		font-size: 0.85rem;
+		font-weight: 550;
+		overflow-wrap: anywhere;
+	}
+	.deck-link small,
+	.scan-link small {
+		display: block;
+		font-size: 0.7rem;
+		color: var(--color-text-muted);
+		margin-top: 0.3rem;
+	}
+	.deck-link:hover strong {
+		color: var(--color-primary);
+	}
+	.scan-link {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		margin-top: 1.5rem;
+		padding: 1.25rem;
+		background: var(--color-surface);
+		border-radius: 0.75rem;
+		color: var(--color-text-secondary);
+		text-decoration: none;
+	}
+	.scan-link svg {
+		flex-shrink: 0;
+	}
 	@media (max-width: 1000px) {
-		.workspace-entry {
-			grid-template-columns: minmax(0, 1fr) 230px;
-		}
-		.entry-content {
+		.home-workspace {
 			padding: 1.5rem;
+		}
+		.dashboard-columns {
+			grid-template-columns: 1fr 260px;
+			gap: 1.5rem;
 		}
 	}
 	@media (max-width: 700px) {
 		.home-workspace {
-			padding: 1rem;
+			padding: 1.25rem 1rem 2rem;
 		}
-		.workspace-entry {
+		.section-heading {
+			align-items: flex-start;
+			flex-wrap: wrap;
+			gap: 0.65rem;
+		}
+		.dashboard-columns {
 			grid-template-columns: 1fr;
 		}
-		.entry-art {
-			grid-row: 1;
-			width: 180px;
-			margin: 0.5rem auto -1rem;
+		.dashboard-search {
+			flex-wrap: wrap;
 		}
-		.entry-content {
-			padding: 1.25rem;
-			gap: 1rem;
+		.dashboard-search kbd {
+			display: none;
 		}
-		.workspace-actions {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
+		.dashboard-search input {
+			font-size: 1rem;
 		}
-		.workspace-actions a {
-			flex-direction: row;
-			align-items: center;
-			padding: 0.85rem;
+		.dashboard-search button {
+			width: 100%;
 		}
-		.workspace-stats > div {
-			padding: 0.85rem 0.75rem;
+		.inventory-totals {
+			gap: 0.75rem;
+			flex-wrap: wrap;
 		}
-		.workspace-stats dd {
-			font-size: 1.1rem;
+		.inventory-totals > div {
+			flex-direction: column;
+			gap: 0;
+			flex: 1;
+		}
+		.inventory-totals > a {
+			width: 100%;
+			margin: 0.5rem 0 0;
 		}
 	}
 </style>

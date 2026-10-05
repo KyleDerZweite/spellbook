@@ -17,6 +17,16 @@ import { mutationFingerprint, RequestConflictError } from './request-fingerprint
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
+/** Recently edited decks for the account's home workspace. */
+export async function getRecentDecks(accountId: string, game = 'mtg') {
+	return db
+		.select({ id: decks.id, name: decks.name, format: decks.format })
+		.from(decks)
+		.where(and(eq(decks.accountId, accountId), eq(decks.game, game)))
+		.orderBy(desc(decks.updatedAt), asc(decks.name))
+		.limit(4);
+}
+
 export async function getDeckSnapshot(accountId: string, game = 'mtg'): Promise<DeckSnapshot> {
 	const [userDecks, userDeckCards, ownedCards, mutationRequests] = await Promise.all([
 		db

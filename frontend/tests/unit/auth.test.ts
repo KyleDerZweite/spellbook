@@ -110,21 +110,88 @@ describe('local auth', () => {
 		).toBeUndefined();
 		expect(hashSessionToken(token)).toHaveLength(64);
 	});
+	it.each([
+		['/search?q=Sol%20Ring', '/mtg/search?q=Sol%20Ring'],
+		['/inventory', '/mtg/inventory'],
+		['/decks/example/export', '/mtg/decks/example/export'],
+		['/scan?session=example', '/mtg/scan?session=example'],
+		['/collections', '/mtg/inventory'],
+		['/mtg', '/mtg/search']
+	])('redirects legacy page %s without losing its destination', async (path, target) => {
+		const url = new URL(path, 'https://spellbook.test');
+		const resolve = vi.fn();
+		const response = await handle({
+			event: { url, request: new Request(url), cookies: cookies(), locals: {} },
+			resolve
+		} as never);
+		expect(response.status).toBe(308);
+		expect(response.headers.get('location')).toBe(target);
+		expect(resolve).not.toHaveBeenCalled();
+	});
+	it('allows signed-out card search', async () => {
+		const resolve = vi.fn().mockResolvedValue(new Response('search'));
+		const response = await handle({
+			event: {
+				url: new URL('https://spellbook.test/mtg/search?q=bolt'),
+				cookies: cookies(),
+				locals: {},
+				request: new Request('https://spellbook.test/mtg/search?q=bolt')
+			},
+			resolve
+		} as never);
+		expect(response.status).toBe(200);
+		expect(resolve).toHaveBeenCalledOnce();
+	});
 	it('redirects protected routes and clears invalid sessions', async () => {
 		const jar = cookies();
 		jar.set(SESSION_COOKIE, 'expired');
 		const response = await handle({
 			event: {
-				url: new URL('https://spellbook.test/search?q=bolt'),
+				url: new URL('https://spellbook.test/mtg/inventory?q=bolt'),
 				cookies: jar,
 				locals: {},
-				request: new Request('https://spellbook.test/search?q=bolt')
+				request: new Request('https://spellbook.test/mtg/inventory?q=bolt')
 			},
 			resolve: vi.fn()
 		} as never);
 		expect(response.status).toBe(302);
-		expect(response.headers.get('location')).toBe('/auth/login?returnTo=%2Fsearch%3Fq%3Dbolt');
+		expect(response.headers.get('location')).toBe(
+			'/auth/login?returnTo=%2Fmtg%2Finventory%3Fq%3Dbolt'
+		);
 		expect(response.headers.get('x-robots-tag')).toBe(NO_INDEX_ROBOTS_TAG);
 		expect(jar.delete).toHaveBeenCalledWith(SESSION_COOKIE, { path: '/' });
+	});
+	it('protects settings and marks authenticated responses as noindex', async () => {
+		const url = new URL('https://spellbook.test/settings');
+		const event = { url, request: new Request(url), cookies: cookies(), locals: {} };
+		const resolve = vi.fn().mockResolvedValue(new Response('settings'));
+		const unauthenticated = await handle({ event, resolve } as never);
+		expect(unauthenticated.status).toBe(302);
+		expect(unauthenticated.headers.get('location')).toBe('/auth/login?returnTo=%2Fsettings');
+		expect(resolve).not.toHaveBeenCalled();
+		mocks.validateSession.mockResolvedValue({ accountId: 'account', username: 'mage', email: '' });
+		const authenticated = await handle({ event, resolve } as never);
+		expect(authenticated.status).toBe(200);
+		expect(authenticated.headers.get('x-robots-tag')).toBe(NO_INDEX_ROBOTS_TAG);
+	});
+	it('rejects foreign-origin settings forms before resolving the action', async () => {
+		const url = new URL('https://spellbook.test/settings');
+		const resolve = vi.fn();
+		await expect(
+			handle({
+				event: {
+					url,
+					request: new Request(url, {
+						method: 'POST',
+						headers: { origin: 'https://foreign.test' },
+						body: new URLSearchParams({ avatarId: 'dragon' })
+					}),
+					cookies: cookies(),
+					locals: {}
+				},
+				resolve
+			} as never)
+		).rejects.toMatchObject({ status: 403 });
+		expect(resolve).not.toHaveBeenCalled();
 	});
 });

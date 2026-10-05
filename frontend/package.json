@@ -15,7 +15,9 @@
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:check": "drizzle-kit check",
-		"check:ts": "node node_modules/typescript-native/bin/tsc --noEmit"
+		"check:ts": "node node_modules/typescript-native/bin/tsc --noEmit",
+		"demo:seed": "node scripts/demo/seed.mjs",
+		"dev:demo": "pnpm demo:seed && DEMO_MODE=true vite dev"
 	},
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3.1146.0",

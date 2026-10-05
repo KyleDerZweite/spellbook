@@ -1,18 +1,20 @@
 # Authentication
 
 - Status: Canonical
-- Last Reviewed: 2026-10-03
+- Last Reviewed: 2026-10-05
 - Source of Truth: code
-- Update Triggers: credentials, sessions, protected routes, bearer tokens, origin checks
-- Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md)
+- Update Triggers: credentials, sessions, protected routes, bearer tokens, origin checks, demo mode, account preferences
+- Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Routes](../product/routing-and-games.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md)
 
 Spellbook authenticates local accounts by username and password. `user_profiles.account_id` remains the stable ownership key for inventories, decks, and scans. Registration generates a new account ID; operator enrollment preserves an existing account ID.
 
 ## Credentials and sessions
 
-`local_credentials` stores a unique normalized username and salted scrypt password hash. Usernames contain 3 to 32 ASCII letters, digits, underscores, or hyphens, start with a letter or digit, and are trimmed and lowercased. Passwords contain 12 to 128 characters. Scrypt uses `N=32768`, `r=8`, `p=3`, a random 16-byte salt, and a 64-byte result.
+`local_credentials` stores a unique normalized username and salted scrypt password hash. Usernames contain 3 to 32 ASCII letters, digits, underscores, or hyphens, start with a letter or digit, and are trimmed and lowercased. Passwords contain 12 to 128 characters. Explicit `DEMO_MODE=true` permits the seeded `demo` account to sign in with `demo`, still using password hashing and ordinary sessions. This mode rejects registration and other usernames. The login page displays the demo credentials; the registration page redirects to login. [Demo setup](../operations/local-auth.md#demo-mode) owns seeding and reset commands. Scrypt uses `N=32768`, `r=8`, `p=3`, a random 16-byte salt, and a 64-byte result.
 
 Sessions use random 32-byte opaque tokens. `auth_sessions` stores only the token's SHA-256 digest, account ID, creation time, and fixed 30-day expiry. Validation checks the database on each request. Logout revokes the current session; operator password recovery revokes every session for that account.
+
+`user_profiles.avatar_id` stores the account's selected sprite, with `wizard` as the default. Migration `0007_profile_avatar.sql` adds this field for existing accounts without changing their identities or sessions. Login, registration, and session validation return `avatarId` with the user. The authenticated `/settings` form validates choices against the shared [avatar collection](../../frontend/src/lib/profile/avatars.ts) and updates only the current account. Apply the normal database migrations before deploying code that reads this field.
 
 The browser receives the `spellbook_session` cookie with `HttpOnly`, `SameSite=Lax`, and `Secure` on HTTPS. The cookie contains the opaque token. The installed web app uses this same session. There is no refresh token or identity-provider callback.
 
@@ -44,7 +46,7 @@ Login and registration share a per-process limit of 20 attempts per client addre
 
 ## Access and migration
 
-`/search`, `/inventory`, `/decks`, and `/scan`, including their child routes, require authentication. Legacy MTG and collection URLs redirect before the guard. `returnTo` accepts only local paths.
+`/mtg/inventory`, `/mtg/decks`, `/mtg/scan`, and `/settings`, including their child routes, require authentication. Catalog browsing at `/mtg/search` and read-only `/api/catalog/*` endpoints is public. Saving inventory or decks still requires authentication. Legacy MTG and collection URLs redirect before the guard. `returnTo` accepts only local paths.
 
 Registration is public. Email verification, emailed reset links, and a self-service password-change page are not implemented. The [operator procedure](../operations/local-auth.md) covers recovery and enrollment of accounts created under OIDC.
 

@@ -9,19 +9,15 @@ export const SUPPORTED_GAMES: Game[] = ['mtg', 'pokemon', 'yugioh'];
 /** Games that actually have catalog + inventory support right now. */
 export const AVAILABLE_GAMES: Game[] = ['mtg'];
 
+export function isAvailableGame(value: unknown): value is Game {
+	return typeof value === 'string' && AVAILABLE_GAMES.includes(value as Game);
+}
+
 export function isGame(value: unknown): value is Game {
 	return typeof value === 'string' && (SUPPORTED_GAMES as string[]).includes(value);
 }
 
-/**
- * Reactive active-game state. The active game now lives in client state
- * (persisted to a cookie server-side) rather than in the URL, so the user
- * sees flat routes (`/search`, `/inventory`) but every data call still
- * scopes to a specific game.
- *
- * Only `mtg` is a valid value today; picking a disabled game in the
- * GameSwitcher is a no-op and must not call `set`.
- */
+/** Shared active-game selection. Game-specific pages live under their game prefix. */
 class ActiveGameState {
 	current: Game = $state(DEFAULT_GAME);
 

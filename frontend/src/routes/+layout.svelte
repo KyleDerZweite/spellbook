@@ -3,7 +3,7 @@
 	import Shell from '#lib/components/layout/Shell.svelte';
 	import { authState } from '#lib/auth/state.svelte.ts';
 	import { activeGameState } from '#lib/state/activeGame.svelte.ts';
-	import { SITE_NAME, SITE_THEME_COLOR } from '#lib/seo/site.ts';
+	import { SITE_NAME } from '#lib/seo/site.ts';
 	import type { Snippet } from 'svelte';
 	import type { AuthUser } from '#lib/auth/types.ts';
 	import type { Game } from '#lib/search/types.ts';
@@ -32,7 +32,6 @@
 	<meta property="og:site_name" content={SITE_NAME} />
 	<meta property="og:type" content="website" />
 	<meta name="twitter:card" content="summary" />
-	<meta name="theme-color" content={SITE_THEME_COLOR} />
 </svelte:head>
 
 <Shell>

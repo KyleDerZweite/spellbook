@@ -6,7 +6,7 @@ import type {
 	SearchResult
 } from './types.ts';
 
-const CATALOG_API = '/api/mobile/v1/mtg';
+const CATALOG_API = '/api/catalog';
 
 function ensureSupportedGame(game: Game = 'mtg'): void {
 	if (game !== 'mtg') throw new Error(`${game.toUpperCase()} search is not available yet`);
@@ -21,13 +21,7 @@ async function requestCatalog(path: string, init: RequestInit): Promise<SearchRe
 	if (!response.ok) {
 		const body: unknown = await response.json().catch(() => null);
 		const message = body && typeof body === 'object' && 'message' in body ? body.message : null;
-		throw new Error(
-			typeof message === 'string'
-				? message
-				: response.status === 401
-					? 'Sign in to search the catalog.'
-					: 'Catalog search failed. Try again.'
-		);
+		throw new Error(typeof message === 'string' ? message : 'Catalog search failed. Try again.');
 	}
 	return response.json();
 }
