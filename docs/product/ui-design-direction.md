@@ -1,10 +1,10 @@
 # UI design direction
 
 - Status: Canonical
-- Last Reviewed: 2026-10-04
+- Last Reviewed: 2026-10-05
 - Source of Truth: accepted product requirements, application components, selected logo and component choices
 - Update Triggers: navigation, deck editor interactions, component choices, visual design, brand identity, icon direction, responsive behavior, accessibility requirements
-- Related Docs: [Product specification](./specification.md), [Routes](./routing-and-games.md), [Domain model](../../CONTEXT.md), [Selected UI components](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Brand assets](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md)
+- Related Docs: [Product specification](./specification.md), [Routes](./routing-and-games.md), [Domain model](../../GLOSSARY.md), [Selected UI components](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Brand assets](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md)
 
 Spellbook is a card workspace with direct access to search, inventory, decks, and scan review. Its base design uses dark graphite surfaces, white sans-serif text, teal primary actions, blue accents, and small violet details. The supplied logo and visual reference inform these choices; the application adapts their core idea to its own workflows. This base design is implemented and remains fixed for the current scope. Further UI work is deferred in [issue #168](https://github.com/KyleDerZweite/spellbook/issues/168).
 
