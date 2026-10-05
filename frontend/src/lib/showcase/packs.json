@@ -1,0 +1,56 @@
+[
+	{
+		"slug": "magic-pack",
+		"name": "Foundations Play Booster",
+		"game": "Magic: The Gathering",
+		"set": "FDN",
+		"setName": "Foundations",
+		"source": "https://next-magic.com/en/products/foundations-play-booster",
+		"imageSource": "https://cdn.shopify.com/s/files/1/0607/1792/4488/files/1879C8A2-3274-4070-AE1D-4BA6634297E8.png?v=1731506138",
+		"width": 266,
+		"height": 520,
+		"sourceWidth": 1200,
+		"sourceHeight": 1200
+	},
+	{
+		"slug": "pokemon-pack",
+		"name": "Scarlet & Violet Booster Pack",
+		"game": "Pokémon",
+		"set": "SV01",
+		"setName": "Scarlet & Violet",
+		"source": "https://card-binder.com/products/pokemon-scarlet-violet-base-set-booster-pack",
+		"imageSource": "https://cdn.shopify.com/s/files/1/0865/2816/4189/files/Scarlet-Violet-Booster-Pack-4.webp?v=1723834446",
+		"width": 224,
+		"height": 403,
+		"sourceWidth": 450,
+		"sourceHeight": 450
+	},
+	{
+		"slug": "yugioh-pack",
+		"name": "Age of Overlord Booster Pack",
+		"game": "Yu-Gi-Oh!",
+		"set": "AGOV",
+		"setName": "Age of Overlord",
+		"source": "https://www.yugioh-card.com/en/products/agov/",
+		"imageSource": "https://www.yugioh-card.com/en/wp-content/uploads/2023/06/AGOV_550.png",
+		"width": 305,
+		"height": 529,
+		"sourceWidth": 550,
+		"sourceHeight": 550,
+		"refreshedOn": "2026-10-06"
+	},
+	{
+		"slug": "digimon-pack",
+		"name": "Dimensional Phase Booster Pack",
+		"game": "Digimon",
+		"set": "BT11",
+		"setName": "Dimensional Phase",
+		"source": "https://world.digimoncard.com/products/pack/ver11.php",
+		"imageSource": "https://world.digimoncard.com/images/products/pack/ver11/img_pkg.png",
+		"width": 200,
+		"height": 334,
+		"sourceWidth": 196,
+		"sourceHeight": 350,
+		"refreshedOn": "2026-10-06"
+	}
+]
