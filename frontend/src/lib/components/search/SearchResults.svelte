@@ -10,6 +10,9 @@
 		browseMode: boolean;
 		selectedId?: string | null;
 		onSelect?: (card: CardDocument) => void;
+		onRetry?: () => void;
+		onClearFilters?: () => void;
+		hasFilters?: boolean;
 		class?: string;
 	}
 
@@ -21,6 +24,9 @@
 		browseMode,
 		selectedId = null,
 		onSelect,
+		onRetry,
+		onClearFilters,
+		hasFilters = false,
 		class: className = ''
 	}: Props = $props();
 
@@ -34,9 +40,8 @@
 			<div class="text-center">
 				<p class="font-body text-sm text-error">Search failed</p>
 				<p class="mt-2 max-w-md font-body text-sm text-text-muted">{error}</p>
-				<p class="mt-1 font-body text-xs italic text-text-muted">
-					Try again or adjust your search.
-				</p>
+				{#if onRetry}<button class="btn btn-secondary mt-4" onclick={onRetry}>Retry search</button
+					>{/if}
 			</div>
 		</div>
 	{:else if loading && hits.length === 0}
@@ -76,8 +81,12 @@
 			<div class="text-center">
 				<p class="font-body text-sm text-text-secondary">No cards found</p>
 				<p class="mt-2 font-body text-sm italic text-text-muted">
-					No cards match "{query}". Try another name or clear the filters.
+					No cards match "{query}". Try another name.
 				</p>
+				{#if hasFilters && onClearFilters}<button
+						class="btn btn-secondary mt-4"
+						onclick={onClearFilters}>Clear filters</button
+					>{/if}
 			</div>
 		</div>
 	{:else if hits.length > 0}

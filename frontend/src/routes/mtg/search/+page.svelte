@@ -27,6 +27,7 @@
 	let sentinel: HTMLDivElement | null = $state(null);
 	let filtersOpen = $state(false);
 	let searchVersion = 0;
+	let retryVersion = $state(0);
 	let facetVersion = 0;
 	let loadMoreController: AbortController | null = null;
 	let catalogGeneration: string | null | undefined;
@@ -43,6 +44,7 @@
 	);
 
 	$effect(() => {
+		void retryVersion;
 		const q = query.trim();
 		const f = filters.catalogFilters;
 		const game = activeGameState.current;
@@ -301,19 +303,22 @@
 		</Dialog.Root>
 
 		<div class="min-w-0 flex-1 overflow-y-auto p-3 sm:p-4">
-			<div class="mb-4 flex items-center justify-between gap-3 text-xs text-text-muted">
-				<span aria-live="polite"
-					>{loading
-						? 'Finding cards…'
-						: `${hits.length} ${hits.length === 1 ? 'card' : 'cards'} loaded`}</span
-				><span>Choose a card to view printings</span>
-			</div>
+			{#if !error}<div class="mb-4 flex items-center justify-between gap-3 text-xs text-text-muted">
+					<span aria-live="polite"
+						>{loading
+							? 'Finding cards…'
+							: `${hits.length} ${hits.length === 1 ? 'card' : 'cards'} loaded`}</span
+					>
+				</div>{/if}
 			<SearchResults
 				{hits}
 				{loading}
 				{error}
 				{query}
 				{browseMode}
+				onRetry={() => retryVersion++}
+				onClearFilters={() => filters.clear()}
+				hasFilters={activeFilters.length > 0}
 				selectedId={selectedCard?.id}
 				onSelect={handleSelect}
 			/>

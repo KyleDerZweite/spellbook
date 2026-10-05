@@ -17,11 +17,13 @@
 		<form
 			method="POST"
 			class="space-y-5"
+			aria-busy={pending}
+			aria-describedby={form?.message ? 'auth-error' : undefined}
 			use:enhance={() => {
 				pending = true;
 				return async ({ update }) => {
 					try {
-						await update();
+						await update({ reset: false });
 					} finally {
 						pending = false;
 					}
@@ -30,7 +32,8 @@
 		>
 			{#if form?.message}<p
 					role="alert"
-					class="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm"
+					id="auth-error"
+					class="rounded-lg border border-error p-3 text-sm text-error"
 				>
 					{form.message}
 				</p>{/if}
@@ -38,6 +41,7 @@
 				<label for="username" class="label">Username</label>
 				<input
 					id="username"
+					aria-describedby={form?.message ? 'auth-error' : undefined}
 					name="username"
 					autocomplete="username"
 					required
@@ -51,6 +55,7 @@
 				<label for="password" class="label">Password</label>
 				<input
 					id="password"
+					aria-describedby={form?.message ? 'auth-error' : undefined}
 					name="password"
 					type="password"
 					autocomplete="current-password"

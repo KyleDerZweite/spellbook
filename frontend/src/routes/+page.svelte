@@ -86,7 +86,7 @@
 			</div>
 			<div>
 				<dd>{stats.unique.toLocaleString()}</dd>
-				<dt>{stats.unique === 1 ? 'unique card' : 'unique cards'}</dt>
+				<dt>{stats.unique === 1 ? 'card name' : 'card names'}</dt>
 			</div>
 			<div>
 				<dd>{stats.sets.toLocaleString()}</dd>
@@ -140,18 +140,6 @@
 						<p>Create a deck or import a decklist.</p>
 						<a class="btn btn-secondary" href="/mtg/decks">Create a deck</a>
 					</div>{/each}
-				<a href="/mtg/scan" class="scan-link"
-					><svg
-						width="22"
-						height="22"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M7 12h10" /></svg
-					><span><strong>Scan cards</strong><small>Upload and review a photo.</small></span><span
-						aria-hidden="true">→</span
-					></a
-				>
 			</aside>
 		</div>
 	{:else}
@@ -169,14 +157,14 @@
 	.home-workspace {
 		max-width: 1440px;
 		margin: auto;
-		padding: 2rem 2.5rem 3rem;
+		padding: 1.5rem 2rem 2.5rem;
 	}
 	.section-heading {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 1rem;
-		margin-bottom: 1.25rem;
+		margin-bottom: 0.75rem;
 	}
 	.section-heading h2 {
 		font-size: 1rem;
@@ -197,7 +185,7 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 1rem;
-		margin-bottom: 1.5rem;
+		margin-bottom: 1rem;
 	}
 	.dashboard-search {
 		display: flex;
@@ -231,9 +219,8 @@
 		display: flex;
 		align-items: center;
 		gap: 2rem;
-		padding: 1.5rem 0;
+		padding: 1.25rem 0;
 		margin-bottom: 1rem;
-		border-bottom: 1px solid var(--color-border);
 	}
 	.inventory-totals > div {
 		display: flex;
@@ -257,9 +244,21 @@
 	}
 	.dashboard-columns {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) 300px;
+		grid-template-columns: minmax(0, 1fr) 280px;
 		gap: 2rem;
 		padding-top: 1rem;
+	}
+	.recent-cards :global(.card-grid) {
+		grid-template-columns: repeat(6, minmax(0, 132px));
+		gap: 0.75rem;
+	}
+	.recent-cards :global(.card-grid-item p) {
+		white-space: normal;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		line-clamp: 2;
+		min-height: 2.5em;
 	}
 	.recent-cards {
 		min-width: 0;
@@ -297,7 +296,6 @@
 		align-items: center;
 		gap: 0.8rem;
 		padding: 1rem 0;
-		border-bottom: 1px solid var(--color-border);
 		color: var(--color-text-primary);
 		text-decoration: none;
 	}
@@ -315,15 +313,13 @@
 		flex: 1;
 		min-width: 0;
 	}
-	.deck-link strong,
-	.scan-link strong {
+	.deck-link strong {
 		display: block;
 		font-size: 0.85rem;
 		font-weight: 550;
 		overflow-wrap: anywhere;
 	}
-	.deck-link small,
-	.scan-link small {
+	.deck-link small {
 		display: block;
 		font-size: 0.7rem;
 		color: var(--color-text-muted);
@@ -332,30 +328,20 @@
 	.deck-link:hover strong {
 		color: var(--color-primary);
 	}
-	.scan-link {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		margin-top: 1.5rem;
-		padding: 1.25rem;
-		background: var(--color-surface);
-		border-radius: 0.75rem;
-		color: var(--color-text-secondary);
-		text-decoration: none;
-	}
-	.scan-link svg {
-		flex-shrink: 0;
-	}
-	@media (max-width: 1000px) {
+	@media (max-width: 1100px) {
 		.home-workspace {
 			padding: 1.5rem;
 		}
 		.dashboard-columns {
-			grid-template-columns: 1fr 260px;
+			grid-template-columns: 1fr;
 			gap: 1.5rem;
 		}
 	}
 	@media (max-width: 700px) {
+		.recent-cards :global(.card-grid) {
+			grid-template-columns: repeat(2, minmax(0, 132px));
+			gap: 1rem;
+		}
 		.home-workspace {
 			padding: 1.25rem 1rem 2rem;
 		}

@@ -25,7 +25,7 @@
 		{ value: 'recent', label: 'Recently updated' }
 	];
 	const finishOptions = [
-		{ value: 'all', label: 'All finishes' },
+		{ value: 'all', label: 'Any finish' },
 		{ value: 'nonfoil', label: 'Nonfoil' },
 		{ value: 'foil', label: 'Foil' }
 	];
@@ -148,7 +148,7 @@
 			<p class="inventory-totals">
 				<strong>{data.stats.total.toLocaleString()}</strong> cards <span>·</span>
 				<strong>{data.stats.unique.toLocaleString()}</strong>
-				unique <span>·</span> <strong>{data.stats.sets}</strong> sets
+				card names <span>·</span> <strong>{data.stats.sets}</strong> sets
 			</p>
 		</div>
 		<div class="inventory-actions">
@@ -191,7 +191,7 @@
 				label="Sort inventory"
 				bind:value={sortBy}
 				options={sortOptions}
-				displayValue={`Sort: ${sortOptions.find((option) => option.value === sortBy)?.label}`}
+				displayValue={sortOptions.find((option) => option.value === sortBy)?.label}
 			/>
 		</div>
 		<div class="inventory-context">
@@ -362,14 +362,14 @@
 		width: 100%;
 		max-width: 1280px;
 		margin: 0 auto;
-		padding: 2rem 2rem 3rem;
+		padding: 1.5rem 2rem 2.5rem;
 	}
 	.inventory-heading {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 1rem;
-		margin-bottom: 2rem;
+		margin-bottom: 1.25rem;
 	}
 	.inventory-totals {
 		margin-top: 0.5rem;
@@ -414,7 +414,7 @@
 		padding-left: 2.4rem;
 	}
 	.inventory-context {
-		min-height: 3.5rem;
+		min-height: 2.5rem;
 		display: flex;
 		align-items: center;
 		flex-wrap: wrap;
@@ -422,7 +422,7 @@
 		row-gap: 0.25rem;
 		font-size: 0.75rem;
 		color: var(--color-text-muted);
-		padding: 0.75rem 0;
+		padding: 0.5rem 0;
 	}
 	.clear-filters {
 		text-decoration: underline;
@@ -650,40 +650,63 @@
 		}
 		.inventory-heading {
 			align-items: flex-start;
-			flex-direction: column;
-			margin-bottom: 1.5rem;
-			gap: 1rem;
+			gap: 0.5rem;
+			margin-bottom: 1rem;
+		}
+		.inventory-heading > div:first-child {
+			min-width: 0;
+		}
+		.inventory-totals {
+			font-size: 0.75rem;
+		}
+		.inventory-totals span {
+			margin: 0 0.15rem;
 		}
 		.inventory-actions {
-			width: 100%;
-			justify-content: flex-end;
+			flex-direction: column-reverse;
+			gap: 0;
+		}
+		.inventory-actions .btn {
+			font-size: 0.75rem;
 		}
 		.inventory-toolbar {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			gap: 0.5rem;
 		}
-		.inventory-toolbar :global(> button:last-child) {
-			grid-column: 1 / -1;
+		.inventory-toolbar :global(> button) {
+			font-size: 0.75rem;
+			padding-inline: 0.5rem;
+			gap: 0.25rem;
 		}
 		.inventory-row {
-			grid-template-columns: minmax(0, 1fr) 65px;
-			padding: 0.75rem 0;
-			gap: 0.25rem 0.5rem;
+			grid-template-columns: minmax(0, 1fr) 112px;
+			padding: 0.375rem 0;
+			gap: 0 0.5rem;
 		}
 		.card-identity {
-			grid-column: 1 / -1;
-			gap: 0.75rem;
+			grid-column: 1;
+			grid-row: 1 / 3;
+			gap: 0.625rem;
+		}
+		.card-identity strong {
+			font-size: 0.8125rem;
+		}
+		.mobile-metadata {
+			font-size: 0.75rem;
 		}
 		.quantity-controls {
-			justify-content: flex-start;
-			margin-left: 44px;
+			grid-column: 2;
 		}
-		.quantity-button,
-		.remove-entry {
-			min-height: 44px;
-			min-width: 44px;
+		.quantity-button {
+			width: 44px;
+			height: 44px;
 		}
 		.quantity {
-			min-width: 2rem;
+			min-width: 24px;
+		}
+		.remove-entry {
+			grid-column: 2;
+			min-height: 44px;
 		}
 		.remove-confirmation {
 			flex-wrap: wrap;
@@ -699,9 +722,22 @@
 		.set-progress progress {
 			width: 100%;
 		}
-		.save-status {
-			width: 100%;
-			margin-left: 0;
+		.save-status:empty {
+			display: none;
+		}
+	}
+	@media (max-width: 360px) {
+		.inventory-heading {
+			flex-wrap: wrap;
+		}
+		.inventory-actions {
+			flex-direction: row;
+		}
+		.inventory-toolbar {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+		.inventory-toolbar :global(> button:last-child) {
+			grid-column: 1 / -1;
 		}
 	}
 </style>

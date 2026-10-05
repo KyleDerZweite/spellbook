@@ -248,55 +248,16 @@
 		</div>
 		<button class="btn btn-primary" disabled={busy} onclick={createSession}>New scan</button>
 	</div>
-	<div
-		class="surface-card grid grid-cols-1 items-end gap-3 p-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
-	>
-		<div class="min-w-0">
-			<label for="scan-session" class="mb-1 block">Session</label>
-			<Select
-				id="scan-session"
-				label="Session"
-				placeholder="Choose a scan"
-				value={session?.id ?? ''}
-				disabled={busy}
-				onchange={openSession}
-				options={sessions.map((entry) => ({
-					value: entry.id,
-					label: `${entry.id.slice(0, 8)} · ${(entry.id === session?.id ? session.status : entry.status).replaceAll('_', ' ')}`
-				}))}
-			/>
-		</div>
-		<form
-			class="flex min-w-0 items-end gap-2"
-			onsubmit={(event) => {
-				event.preventDefault();
-				openSession(sessionInput.trim());
-			}}
-		>
-			<div class="min-w-0 flex-1">
-				<label for="scan-session-id" class="mb-1 block">Session ID</label><input
-					id="scan-session-id"
-					class="input w-full font-mono text-xs"
-					bind:value={sessionInput}
-					required
-					disabled={busy}
-				/>
-			</div>
-			<button class="btn btn-secondary" disabled={busy}>Open</button>
-		</form>
-		{#if session}<button class="btn btn-secondary" disabled={busy} onclick={refresh}>Refresh</button
-			>{/if}
-	</div>
+
 	{#if failure}<p role="alert" class="rounded border border-error p-3 text-text-primary">
 			{failure}
 		</p>{/if}
 	<p role="status" class:sr-only={!message}>{message}</p>
 	{#if !session}
-		<p class="text-text-secondary">Create a scan or open an existing session to review a photo.</p>
+		<p class="text-text-secondary">Start a scan to upload and review a card photo.</p>
 	{:else}
 		<div class="flex flex-wrap items-center gap-3 text-text-secondary">
 			<span>{session.status.replaceAll('_', ' ')}</span>
-			<code class="break-all text-xs">{session.id}</code>
 		</div>
 		{#if session.status === 'open'}
 			<form
@@ -333,7 +294,7 @@
 						alt="Original card submitted for review"
 						class="max-h-[420px] w-full rounded object-contain"
 					/>
-					<p class="break-all font-mono text-xs text-text-secondary">Photo {artifact.id}</p>
+
 					{#if candidates.length === 0}<p class="text-text-secondary">
 							No recognition candidates. Search the catalog to select the printing manually.
 						</p>{/if}
@@ -526,4 +487,62 @@
 			</div>
 		{/if}
 	{/if}
+	<div
+		class="scan-sessions grid grid-cols-1 items-end gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]"
+	>
+		<div class="min-w-0">
+			<label for="scan-session" class="mb-1 block">Recent scans</label>
+			<Select
+				id="scan-session"
+				label="Session"
+				placeholder={sessions.length ? 'Choose a scan' : 'No scans yet'}
+				value={session?.id ?? ''}
+				disabled={busy}
+				onchange={openSession}
+				options={sessions.map((entry) => ({
+					value: entry.id,
+					label: `${new Date(entry.createdAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })} · ${(entry.id === session?.id ? session.status : entry.status).replaceAll('_', ' ')}`
+				}))}
+			/>
+		</div>
+		<details class="scan-recovery">
+			<summary>Open by session ID</summary>
+			<form
+				class="mt-3 flex min-w-0 items-end gap-2"
+				onsubmit={(event) => {
+					event.preventDefault();
+					openSession(sessionInput.trim());
+				}}
+			>
+				<div class="min-w-0 flex-1">
+					<label for="scan-session-id" class="mb-1 block">Session ID</label><input
+						id="scan-session-id"
+						class="input w-full font-mono text-xs"
+						bind:value={sessionInput}
+						required
+						disabled={busy}
+					/>
+				</div>
+				<button class="btn btn-secondary" disabled={busy}>Open</button>
+			</form>
+		</details>
+		{#if session}<button class="btn btn-secondary" disabled={busy} onclick={refresh}>Refresh</button
+			>{/if}
+	</div>
 </div>
+
+<style>
+	.scan-sessions {
+		padding-top: 1rem;
+		border-top: 1px solid var(--color-border);
+		font-size: 0.8125rem;
+	}
+	.scan-recovery summary {
+		cursor: pointer;
+		min-height: 44px;
+		display: flex;
+		align-items: center;
+		text-decoration: underline;
+		text-underline-offset: 4px;
+	}
+</style>

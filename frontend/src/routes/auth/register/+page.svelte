@@ -15,11 +15,13 @@
 		<form
 			method="POST"
 			class="space-y-5"
+			aria-busy={pending}
+			aria-describedby={form?.message ? 'auth-error' : undefined}
 			use:enhance={() => {
 				pending = true;
 				return async ({ update }) => {
 					try {
-						await update();
+						await update({ reset: false });
 					} finally {
 						pending = false;
 					}
@@ -28,7 +30,8 @@
 		>
 			{#if form?.message}<p
 					role="alert"
-					class="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm"
+					id="auth-error"
+					class="rounded-lg border border-error p-3 text-sm text-error"
 				>
 					{form.message}
 				</p>{/if}
@@ -42,7 +45,7 @@
 					minlength="3"
 					maxlength="32"
 					value={form?.username ?? ''}
-					aria-describedby="username-help"
+					aria-describedby={form?.message ? 'username-help auth-error' : 'username-help'}
 					class="input w-full"
 				/>
 				<p id="username-help" class="mt-2 text-xs text-[var(--color-text-secondary)]">
@@ -59,7 +62,7 @@
 					required
 					minlength="12"
 					maxlength="128"
-					aria-describedby="password-help"
+					aria-describedby={form?.message ? 'password-help auth-error' : 'password-help'}
 					class="input w-full"
 				/>
 				<p id="password-help" class="mt-2 text-xs text-[var(--color-text-secondary)]">

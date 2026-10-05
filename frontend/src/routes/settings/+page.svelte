@@ -84,13 +84,13 @@
 		width: 100%;
 		max-width: 44rem;
 		margin: 0 auto;
-		padding: 3rem 1.5rem;
+		padding: 2rem 1.5rem;
 	}
 	.settings-identity {
 		display: flex;
 		align-items: center;
 		gap: 1rem;
-		margin: 2rem 0 2.5rem;
+		margin: 1.25rem 0 1.5rem;
 		font-size: 0.9375rem;
 		overflow-wrap: anywhere;
 	}

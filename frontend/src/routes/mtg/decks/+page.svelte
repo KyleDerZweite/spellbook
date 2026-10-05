@@ -226,20 +226,48 @@
 							stroke-width="1.7"><path d="m14 6-6 6 6 6" /></svg
 						></a
 					>{/if}
-				<h1>{selectedDeck?.name ?? 'Decks'}</h1>
+				<div>
+					<h1>{selectedDeck?.name ?? 'Decks'}</h1>
+					{#if selectedDeck}<p class="deck-format">{selectedDeck.format}</p>{/if}
+				</div>
 			</div>
 		</div>
 		<div class="deck-picker">
-			{#if data.decks.length}<Select
-					label="Select deck"
-					value={data.selectedDeckId ?? ''}
-					options={data.decks.map((deck) => ({ value: deck.id, label: deck.name }))}
-					onchange={(value) => goto(`/mtg/decks?deck=${encodeURIComponent(value)}`)}
-				/>{/if}
+			{#if selectedDeck}
+				<ActionMenu
+					label="Deck actions"
+					iconOnly
+					bind:triggerRef={actionsTrigger}
+					items={[
+						{ label: 'New deck', onSelect: () => (createOpen = true) },
+						{ label: 'Edit details', onSelect: () => (editOpen = true) },
+						{ label: 'Import decklist', onSelect: () => (importOpen = true) },
+						{ label: 'Export Arena', href: `/mtg/decks/${selectedDeck.id}/export`, download: true },
+						{ label: 'Delete deck', destructive: true, onSelect: () => (deleteOpen = true) }
+					]}
+					onCloseAutoFocus={(event) => {
+						if (createOpen || editOpen || importOpen || deleteOpen) event.preventDefault();
+					}}
+				>
+					{#snippet trigger()}<svg
+							aria-hidden="true"
+							width="20"
+							height="20"
+							viewBox="0 0 24 24"
+							fill="currentColor"
+							><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle
+								cx="19"
+								cy="12"
+								r="1.8"
+							/></svg
+						>{/snippet}
+				</ActionMenu>
+			{/if}
 			<DeckDialog
 				title="Create a deck"
 				description="Name the deck and choose its format."
-				trigger="New deck"
+				trigger={selectedDeck ? undefined : 'New deck'}
+				returnFocus={selectedDeck ? actionsTrigger : undefined}
 				bind:open={createOpen}
 			>
 				<form method="POST" action={action('createDeck')} use:enhance={save} class="form-stack">
@@ -272,26 +300,11 @@
 	</header>
 	{#if form?.message && !form?.success}<p class="notice" role="alert">{form.message}</p>{/if}
 	{#if selectedDeck}
-		<section class="panel deck-overview" aria-label="Deck overview">
-			<div class="deck-title">
-				<span class="format-badge">{selectedDeck.format}</span>
-
-				{#if selectedDeck.description}<p class="muted">{selectedDeck.description}</p>{/if}
-			</div>
+		<section class="deck-overview" aria-label="Deck overview">
+			{#if selectedDeck.description}<p class="deck-description muted">
+					{selectedDeck.description}
+				</p>{/if}
 			<div class="deck-actions">
-				<ActionMenu
-					label="Deck actions"
-					bind:triggerRef={actionsTrigger}
-					items={[
-						{ label: 'Edit details', onSelect: () => (editOpen = true) },
-						{ label: 'Import decklist', onSelect: () => (importOpen = true) },
-						{ label: 'Export Arena', href: `/mtg/decks/${selectedDeck.id}/export`, download: true },
-						{ label: 'Delete deck', destructive: true, onSelect: () => (deleteOpen = true) }
-					]}
-					onCloseAutoFocus={(event) => {
-						if (editOpen || importOpen || deleteOpen) event.preventDefault();
-					}}
-				/>
 				<DeckDialog
 					title="Deck details"
 					description="Update the name, format, or notes for this deck."
@@ -455,11 +468,13 @@
 		{/if}
 		<div class="workspace">
 			<section class="panel deck-list" aria-label="Deck cards" aria-busy={busy}>
-				<div class="view-controls" aria-label="Deck view">
-					<button aria-pressed={view === 'list'} onclick={() => (view = 'list')}>List</button>
-					<button aria-pressed={view === 'stacks'} onclick={() => (view = 'stacks')}>Stacks</button>
-				</div>
 				<div class="list-controls">
+					<div class="view-controls" aria-label="Deck view">
+						<button aria-pressed={view === 'list'} onclick={() => (view = 'list')}>List</button>
+						<button aria-pressed={view === 'stacks'} onclick={() => (view = 'stacks')}
+							>Stacks</button
+						>
+					</div>
 					<input
 						class="input"
 						type="search"
@@ -606,16 +621,31 @@
 							class="library-placeholder"
 							aria-hidden="true"
 						>
-							♧
+							<svg
+								aria-hidden="true"
+								width="40"
+								height="40"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="1.4"
+								><rect x="7" y="3" width="13" height="18" rx="2" /><path
+									d="m4 6-2 1 3 15 11-2"
+								/></svg
+							>
 						</div>{/if}
-					<strong>{deck.name}</strong><span>{deck.format}</span>
+					<strong>{deck.name}</strong><span
+						>{deck.format} · {data.deckCards
+							.filter((card) => card.deckId === deck.id)
+							.reduce((sum, card) => sum + card.quantity, 0)} cards</span
+					>
 					<small>Edited {new Date(deck.updatedAt).toLocaleDateString('en-GB')}</small>
 				</a>
 			{/each}
 		</div>
 	{:else}<section class="panel empty-state welcome">
-			<h2>Your next deck starts here.</h2>
-			<p class="muted">Choose a format, add cards, and compare your list with your inventory.</p>
+			<p>No decks yet.</p>
+
 			<button class="btn btn-primary" onclick={() => (createOpen = true)}
 				>Create your first deck</button
 			>
@@ -796,7 +826,7 @@
 	.builder {
 		max-width: 1600px;
 		margin: auto;
-		padding: 2rem;
+		padding: 1.5rem 2rem;
 	}
 	.builder-heading,
 	.deck-picker,
@@ -810,7 +840,7 @@
 		flex-wrap: wrap;
 	}
 	.builder-heading {
-		margin-bottom: 1rem;
+		margin-bottom: 0.75rem;
 	}
 	.deck-page-title {
 		display: flex;
@@ -828,8 +858,16 @@
 	.deck-picker :global([data-select-trigger]) {
 		max-width: 15rem;
 	}
+	.deck-format {
+		font-size: 0.75rem;
+		color: var(--color-text-secondary);
+		margin-top: 0.125rem;
+	}
+	.deck-description {
+		margin-bottom: 0.5rem;
+	}
 	.deck-overview {
-		display: flex;
+		display: contents;
 		justify-content: space-between;
 		gap: 1rem;
 		flex-wrap: wrap;
@@ -838,15 +876,12 @@
 		border: 0;
 		box-shadow: none;
 	}
-	.deck-title {
-		max-width: 32rem;
-	}
-	.format-badge,
 	.muted {
 		font-size: 0.8rem;
 		color: var(--color-text-secondary);
 	}
 	.deck-actions {
+		display: contents;
 		gap: 0.4rem;
 	}
 	.deck-summary {
@@ -856,8 +891,8 @@
 		display: flex;
 		align-items: center;
 		flex-wrap: wrap;
-		gap: 1.4rem;
-		min-height: 3.5rem;
+		gap: 1rem;
+		min-height: 2.75rem;
 		background: var(--color-background);
 		font-size: 0.8rem;
 	}
@@ -891,7 +926,7 @@
 	}
 	.catalog {
 		position: sticky;
-		top: calc(var(--app-header-height) + 3.5rem);
+		top: calc(var(--app-header-height) + 2.75rem);
 		min-width: 0;
 		padding-top: 1rem;
 	}
@@ -903,7 +938,7 @@
 	.view-controls {
 		display: flex;
 		gap: 1.5rem;
-		padding: 1rem 0;
+		padding: 0;
 	}
 	.view-controls button {
 		padding: 0.4rem 0;
@@ -916,7 +951,7 @@
 	}
 	.list-controls {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) 8rem 8rem;
+		grid-template-columns: auto minmax(0, 1fr) 8rem 8rem;
 		gap: 0.5rem;
 		margin-bottom: 1rem;
 	}
@@ -928,7 +963,7 @@
 		display: flex;
 		justify-content: space-between;
 		gap: 1rem;
-		padding: 1.1rem 0 0.5rem;
+		padding: 0.625rem 0 0.375rem;
 		color: var(--role-accent, var(--color-text-secondary));
 		font-size: 0.75rem;
 	}
@@ -1134,7 +1169,7 @@
 	}
 	.deck-library {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(0, 180px));
 		gap: 1.5rem;
 	}
 	.library-card {
@@ -1147,9 +1182,8 @@
 	.library-card img,
 	.library-placeholder {
 		width: 100%;
-		height: 160px;
-		object-fit: cover;
-		object-position: 50% 25%;
+		aspect-ratio: 488 / 680;
+		object-fit: contain;
 		border-radius: 0.6rem;
 		background: var(--color-stone);
 	}
@@ -1172,7 +1206,7 @@
 		flex-direction: column;
 		gap: 1rem;
 	}
-	.mobile-search {
+	.deck-summary .mobile-search {
 		display: none;
 	}
 	:global(.destructive) {
@@ -1188,17 +1222,34 @@
 		.desktop-search {
 			display: none;
 		}
-		.mobile-search {
+		.deck-summary .mobile-search {
 			display: inline-flex;
+			margin-left: auto;
 		}
 		.deck-summary {
 			gap: 0.75rem;
 		}
 		.deck-picker {
-			display: grid;
-			grid-template-columns: minmax(0, 1fr) auto;
+			flex-shrink: 0;
+		}
+		.builder-heading {
+			flex-wrap: nowrap;
+			align-items: flex-start;
 			gap: 0.5rem;
-			width: 100%;
+		}
+		.builder-heading > div:first-child {
+			min-width: 0;
+		}
+		.deck-picker :global(.btn) {
+			font-size: 0.75rem;
+			padding-inline: 0.625rem;
+		}
+		.deck-summary {
+			font-size: 0.75rem;
+			gap: 0.5rem;
+		}
+		.save-status:empty {
+			display: none;
 		}
 		.deck-picker :global([data-select-trigger]) {
 			max-width: none;
@@ -1209,10 +1260,27 @@
 	}
 	@media (max-width: 420px) {
 		.list-controls {
-			grid-template-columns: 1fr 1fr;
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+		}
+		.list-controls :global(> button) {
+			font-size: 0.75rem;
+			padding-inline: 0.5rem;
+			gap: 0.25rem;
+		}
+		.view-controls {
+			gap: 0.75rem;
+			align-items: center;
+		}
+		.view-controls button {
+			min-height: 44px;
+			font-size: 0.75rem;
+		}
+		.deck-library {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 		.list-controls input {
 			grid-column: 1/-1;
+			order: -1;
 		}
 		.deck-row {
 			grid-template-columns: 76px minmax(0, 1fr);

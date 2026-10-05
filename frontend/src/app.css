@@ -61,7 +61,7 @@
 	--font-editorial: var(--font-body);
 	--font-display: 'Marcellus', Georgia, serif;
 	--font-body: 'IBM Plex Mono', monospace;
-	--font-mono: ui-monospace, 'SFMono-Regular', Consolas, monospace;
+	--font-mono: var(--font-body);
 }
 
 html.light {
@@ -92,6 +92,10 @@ html.light {
 	--color-warning: #855600;
 	--color-info: #326184;
 	--color-role-commander: #725098;
+	--color-rarity-common: #62676d;
+	--color-rarity-uncommon: #50727b;
+	--color-rarity-rare: #856912;
+	--color-rarity-mythic: #ac420d;
 	--color-scrollbar: #929292;
 }
 
@@ -507,6 +511,7 @@ button:disabled {
 		min-height: 0;
 	}
 	.page-title h1 {
+		font-family: var(--font-display);
 		font-size: 1.65rem;
 		line-height: 1.25;
 		font-weight: 650;
@@ -561,6 +566,10 @@ button:disabled {
 		max-width: 480px;
 		margin: auto;
 		padding: 3rem 1rem;
+	}
+	.legal-page {
+		max-width: 74ch;
+		line-height: 1.75;
 	}
 	.account-form {
 		padding: 2rem;

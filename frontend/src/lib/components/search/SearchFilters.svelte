@@ -27,7 +27,7 @@
 	<!-- Colors section -->
 	<Collapsible.Root bind:open={colorsOpen}>
 		<Collapsible.Trigger
-			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary"
+			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-body text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary"
 		>
 			<span>Colors</span>
 			<span
@@ -71,7 +71,7 @@
 	<!-- Rarity section -->
 	<Collapsible.Root bind:open={rarityOpen}>
 		<Collapsible.Trigger
-			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary"
+			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-body text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary"
 		>
 			<span>Rarity</span>
 			<span
@@ -119,7 +119,7 @@
 	<!-- Card Type section -->
 	<Collapsible.Root bind:open={typesOpen}>
 		<Collapsible.Trigger
-			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary"
+			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-body text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary"
 		>
 			<span>Card type</span>
 			<span
@@ -159,7 +159,7 @@
 	<!-- Legality section -->
 	<Collapsible.Root bind:open={legalityOpen}>
 		<Collapsible.Trigger
-			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-display text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary"
+			class="flex w-full cursor-pointer items-center justify-between border-none bg-transparent py-2 font-body text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary"
 		>
 			<span>Legality</span>
 			<span
@@ -199,7 +199,7 @@
 		<div class="border-t border-border" aria-hidden="true"></div>
 		<button
 			onclick={() => filters.clear()}
-			class="cursor-pointer rounded border bg-transparent px-3 py-1.5 font-display text-xs font-semibold text-gold-bright transition-all duration-150 hover:bg-mist"
+			class="cursor-pointer rounded border bg-transparent px-3 py-1.5 font-body text-xs font-semibold text-gold-bright transition-all duration-150 hover:bg-mist"
 			style="border-color: var(--color-border);"
 		>
 			Clear filters
