@@ -26,6 +26,8 @@
 	let selectedLang = $state('en');
 	let allPrintingsView = $state(false);
 	let foilFilter: 'all' | 'foil' | 'nonfoil' = $state('all');
+	let quickAddPending = $state(false);
+	let returnFocus: HTMLElement | null = null;
 
 	type TabId = 'printings' | 'info';
 	let activeTab: TabId = $state('printings');
@@ -52,6 +54,7 @@
 
 	// bits-ui Dialog needs a false->true transition to properly open
 	$effect(() => {
+		returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 		detailOpen = true;
 	});
 
@@ -159,6 +162,12 @@
 			style="background: rgba(8, 11, 13, 0.85); backdrop-filter: blur(4px); animation: fade-in 200ms ease-out;"
 		>
 			<Dialog.Content
+				onCloseAutoFocus={(event) => {
+					if (returnFocus?.isConnected) {
+						event.preventDefault();
+						returnFocus.focus();
+					}
+				}}
 				class="modal-content relative z-50 flex w-full flex-col rounded-t-xl sm:max-w-5xl sm:rounded-lg"
 				style="
 					max-height: 92dvh;
@@ -194,7 +203,8 @@
 									allPrintingsView = false;
 								}}
 								aria-pressed={activeTab === tab.id}
-								class="relative cursor-pointer border-none bg-transparent pb-2 font-display text-xs font-semibold transition-colors"
+								disabled={quickAddPending}
+								class="relative min-h-11 cursor-pointer border-none bg-transparent pb-2 font-body text-sm transition-colors disabled:opacity-50"
 								style="color: {activeTab === tab.id
 									? 'var(--color-gold-bright)'
 									: 'var(--color-text-muted)'};"
@@ -213,7 +223,7 @@
 
 				<!-- Close button -->
 				<Dialog.Close
-					class="absolute right-3 top-3 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded border-none bg-void/60 text-text-secondary transition-colors hover:text-gold-bright"
+					class="absolute right-2 top-2 z-10 flex h-11 w-11 cursor-pointer items-center justify-center rounded border-none bg-void/60 text-text-secondary transition-colors hover:text-gold-bright"
 					aria-label="Close card detail"
 				>
 					&#10005;
@@ -223,13 +233,25 @@
 				<div class="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
 					<!-- Card image -->
 					{#if activeCard.image_uri || activeCard.image_uri_small}
-						<div class="shrink-0 px-4 pt-3 pb-0 sm:px-5 sm:pt-4 lg:overflow-y-auto lg:pb-5">
+						<div class="inspector-media">
 							<img
 								src={activeCard.image_uri || activeCard.image_uri_small}
 								alt={activeCard.name}
-								class="block w-full rounded-2xl sm:max-w-[300px] lg:w-[280px] xl:w-[320px]"
+								class="inspector-art"
 								style="aspect-ratio: 488 / 680;"
 							/>
+							<div class="mobile-printing-identity">
+								<p>{activeCard.set_name || activeCard.set_code.toUpperCase()}</p>
+								<p class="text-text-secondary">
+									{[
+										activeCard.set_code.toUpperCase(),
+										activeCard.collector_number ? `#${activeCard.collector_number}` : '',
+										activeCard.lang ? `· ${activeCard.lang.toUpperCase()}` : ''
+									]
+										.filter(Boolean)
+										.join(' ')}
+								</p>
+							</div>
 						</div>
 					{/if}
 
@@ -245,7 +267,7 @@
 									<h3 class="sr-only">Select a printing</h3>
 									<button
 										onclick={() => (allPrintingsView = false)}
-										class="cursor-pointer rounded border-none bg-transparent px-2 py-1 font-body text-xs text-text-muted transition-colors hover:text-gold-bright"
+										class="min-h-11 cursor-pointer rounded border-none bg-transparent px-2 py-1 font-body text-sm text-text-muted transition-colors hover:text-gold-bright"
 									>
 										&#8592; Back
 									</button>
@@ -271,8 +293,9 @@
 										<div class="mb-3 flex flex-wrap gap-1">
 											{#each availableLanguages as lang (lang)}
 												<button
+													disabled={quickAddPending}
 													onclick={() => (selectedLang = lang)}
-													class="cursor-pointer rounded px-1.5 py-0.5 text-sm leading-none transition-all duration-150"
+													class="min-h-11 min-w-11 cursor-pointer rounded px-2 py-1 text-sm leading-none transition-all duration-150"
 													style="
 													background-color: {selectedLang === lang ? 'var(--color-mist)' : 'transparent'};
 													border: 1px solid {selectedLang === lang ? 'var(--color-gold)' : 'transparent'};
@@ -306,7 +329,7 @@
 											>
 												{#if isActive}
 													<div
-														class="py-0.5 text-center font-display text-[10px] uppercase tracking-wider"
+														class="py-1 text-center font-body text-xs"
 														style="background-color: var(--color-gold); color: var(--color-text-on-gold);"
 													>
 														Selected
@@ -320,11 +343,11 @@
 													loading="lazy"
 												/>
 												<div class="flex items-center gap-1 px-1.5 py-1">
-													<span class="font-mono text-[10px] uppercase text-text-muted">
+													<span class="font-body text-xs uppercase text-text-muted">
 														{printing.set_code}
 													</span>
 													<RarityBadge rarity={printing.rarity} />
-													<span class="font-mono text-[10px] text-text-muted">
+													<span class="font-body text-xs text-text-muted">
 														#{printing.collector_number}
 													</span>
 												</div>
@@ -360,6 +383,7 @@
 							{:else}
 								<Select
 									label="Select card printing"
+									disabled={quickAddPending}
 									value={activeCard.id}
 									displayValue={`${activeCard.set_name} (${activeCard.set_code.toUpperCase()}) #${activeCard.collector_number}`}
 									options={filteredPrintings.map((printing) => ({
@@ -372,41 +396,32 @@
 									}}
 								/>
 
-								<!-- Action row: All printings + Foil/Nonfoil -->
-								<div class="flex flex-wrap items-center gap-2">
+								<div class="printing-tools">
 									<button
+										type="button"
 										onclick={() => (allPrintingsView = true)}
-										class="inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 font-display text-xs font-semibold transition-colors"
-										style="
-											background-color: var(--color-slate);
-											border: 1px solid var(--color-border);
-											color: var(--color-text-secondary);
-										"
+										disabled={quickAddPending}
+										class="btn btn-secondary font-body text-xs">All printings</button
 									>
-										&#9638; All printings
-									</button>
-									<button
-										onclick={() => (foilFilter = foilFilter === 'nonfoil' ? 'all' : 'nonfoil')}
-										class="inline-flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1.5 font-display text-xs font-semibold transition-colors"
-										style="
-											background-color: {foilFilter === 'nonfoil' ? 'var(--color-mist)' : 'var(--color-slate)'};
-											border: 1px solid {foilFilter === 'nonfoil' ? 'var(--color-gold)' : 'var(--color-border)'};
-											color: {foilFilter === 'nonfoil' ? 'var(--color-gold-bright)' : 'var(--color-text-secondary)'};
-										"
-									>
-										Nonfoil
-									</button>
-									<button
-										onclick={() => (foilFilter = foilFilter === 'foil' ? 'all' : 'foil')}
-										class="inline-flex cursor-pointer items-center gap-1 rounded-lg px-3 py-1.5 font-display text-xs font-semibold transition-colors"
-										style="
-											background-color: {foilFilter === 'foil' ? 'var(--color-mist)' : 'var(--color-slate)'};
-											border: 1px solid {foilFilter === 'foil' ? 'var(--color-gold)' : 'var(--color-border)'};
-											color: {foilFilter === 'foil' ? 'var(--color-gold-bright)' : 'var(--color-text-secondary)'};
-										"
-									>
-										Foil
-									</button>
+									<fieldset class="printing-availability" disabled={quickAddPending}>
+										<legend>Printing availability</legend>
+										<div>
+											{#each ['nonfoil', 'foil'] as finish}
+												<button
+													type="button"
+													onclick={() =>
+														(foilFilter =
+															foilFilter === finish
+																? 'all'
+																: finish === 'foil'
+																	? 'foil'
+																	: 'nonfoil')}
+													aria-pressed={foilFilter === finish}
+													>{finish === 'foil' ? 'Foil' : 'Nonfoil'}</button
+												>
+											{/each}
+										</div>
+									</fieldset>
 								</div>
 
 								<!-- Language flags (own row) -->
@@ -414,8 +429,9 @@
 									<div class="flex flex-wrap gap-1">
 										{#each availableLanguages as lang (lang)}
 											<button
+												disabled={quickAddPending}
 												onclick={() => (selectedLang = lang)}
-												class="cursor-pointer rounded px-1.5 py-0.5 text-sm leading-none transition-all duration-150"
+												class="min-h-11 min-w-11 cursor-pointer rounded px-2 py-1 text-sm leading-none transition-all duration-150"
 												style="
 													background-color: {selectedLang === lang ? 'var(--color-mist)' : 'transparent'};
 													border: 1px solid {selectedLang === lang ? 'var(--color-gold)' : 'transparent'};
@@ -436,7 +452,10 @@
 
 							<!-- Inventory add -->
 							{#if actions}{@render actions(activeCard)}
-							{:else if page.data.user}<CardQuickAdd card={activeCard} />
+							{:else if page.data.user}<CardQuickAdd
+									card={activeCard}
+									onPendingChange={(pending) => (quickAddPending = pending)}
+								/>
 							{:else}<a
 									class="btn btn-primary"
 									href={`/auth/login?returnTo=${encodeURIComponent(`/mtg/search?q=${encodeURIComponent(card.name)}`)}`}
@@ -541,3 +560,85 @@
 		</Dialog.Overlay>
 	</Dialog.Portal>
 </Dialog.Root>
+
+<style>
+	.inspector-media {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		flex-shrink: 0;
+		padding: 1rem 1rem 0;
+	}
+	.inspector-art {
+		display: block;
+		width: 160px;
+		max-width: 100%;
+		height: auto;
+		object-fit: contain;
+		border-radius: 0.625rem;
+		flex-shrink: 0;
+	}
+	.mobile-printing-identity {
+		min-width: 0;
+		font-size: 0.8125rem;
+		line-height: 1.5;
+		overflow-wrap: anywhere;
+	}
+	.mobile-printing-identity p + p {
+		margin-top: 0.5rem;
+	}
+	.printing-tools {
+		display: flex;
+		align-items: flex-end;
+		justify-content: space-between;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+	}
+	.printing-availability {
+		min-width: 0;
+	}
+	.printing-availability legend {
+		color: var(--color-text-secondary);
+		font-size: 0.75rem;
+	}
+	.printing-availability > div {
+		display: flex;
+		gap: 0.75rem;
+	}
+	.printing-availability button {
+		min-height: 44px;
+		min-width: 44px;
+		font-size: 0.8125rem;
+		color: var(--color-text-secondary);
+		cursor: pointer;
+	}
+	.printing-availability button[aria-pressed='true'] {
+		color: var(--color-text-primary);
+		text-decoration: underline;
+		text-underline-offset: 5px;
+	}
+	.printing-availability button:disabled {
+		opacity: 0.5;
+	}
+	@media (min-width: 1024px) {
+		.inspector-media {
+			display: block;
+			padding: 1.25rem;
+			overflow-y: auto;
+		}
+		.inspector-art {
+			width: 280px;
+		}
+		.mobile-printing-identity {
+			display: none;
+		}
+	}
+	@media (max-width: 359px) {
+		.inspector-media {
+			gap: 0.75rem;
+		}
+		.mobile-printing-identity {
+			font-size: 0.75rem;
+		}
+	}
+</style>
