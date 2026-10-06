@@ -15,7 +15,7 @@ Use the [issue label rules](./ISSUE_LABELS.md) for repository triage and the [co
 | [Product](./product/README.md)           | Specification, terminology, routes, and design direction                         |
 | [Architecture](./architecture/README.md) | Service boundaries, data contracts, authentication, and recognition proposals    |
 | [Operations](./operations/README.md)     | Deployment, environment variables, account recovery, and repository verification |
-| [Integrations](./integrations/README.md) | External scanner and sorter proposals                                            |
+| [Integrations](./integrations/README.md) | External scanner and sorter proposals, market-price research                     |
 | [Decisions](./decisions/README.md)       | Significant choices, tradeoffs, and explicit supersession                        |
 | [Reference](./reference/README.md)       | Selected components and external dependency documentation                        |
 

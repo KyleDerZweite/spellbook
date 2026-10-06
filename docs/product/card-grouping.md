@@ -1,49 +1,46 @@
-# Card grouping proposal
+# Card grouping
 
-- Status: Proposed, not implemented
+- Status: Canonical, Inventory groups implemented; deck categories proposed
 - Last Reviewed: 2026-10-06
-- Source of Truth: maintainer grouping request, current deck and inventory workflows
-- Update Triggers: grouping decisions, category ownership, automatic suggestions, sorting, deck or inventory entry behavior
-- Related Docs: [Product specification](./specification.md), [Domain model](../../GLOSSARY.md), [UI direction](./ui-design-direction.md), [Product index](./README.md)
+- Source of Truth: maintainer grouping decision, inventory and deck implementations
+- Update Triggers: inventory groups, memberships, scan targets, deck category decisions
+- Related Docs: [Product specification](./specification.md), [Domain model](../../GLOSSARY.md), [Frontend](../architecture/frontend.md), [Postgres](../architecture/postgres.md), [Mobile and scan](../architecture/mobile-and-scan.md), [UI direction](./ui-design-direction.md), [Product index](./README.md)
 
-This proposal adds editable categories and consistent grouping controls to Decks and Inventory. It records recommendations for review, not implemented behavior or an accepted architecture. The [UI direction](./ui-design-direction.md) continues to own shared visual and interaction rules.
+## Inventory groups
 
-Currently, Decks groups by card type or section and sorts by name or quantity. Inventory's clickable column headers support set grouping and additional finish, condition or quantity ordering. Its toolbar Sort menu exposes the same ordering choices, including Newest first by entry creation date. [Owned inventory](./specification.md#owned-inventory) defines this implemented behavior. Neither workflow stores custom categories. Existing deck `role` values identify Main deck, Commander, Sideboard and Companion; categories must remain separate from those sections.
+Inventory has one additional Groups view within `/mtg/inventory`. It does not add List/Grid variants or new automatic grouping controls. Existing list sorting and filtering remain available. Inventory groups are account-owned selections of entire inventory entries. They are separate from Decks and do not change deck requirements, availability or owned quantities.
 
-## Presentation
+Cards is the default view. Groups uses `?view=groups`; opening a named group uses `?view=groups&group=UUID` and the same compact inventory rows. View links preserve the shared header and content width. Groups shows empty groups as well as populated groups, with full entry and copy counts. The open group uses the shared filters and matching counts. Groups can be created, renamed and deleted. Group names contain 1 to 64 trimmed characters and are unique within one inventory, ignoring case, enforced by a database unique index. Creating or renaming a group does not add cards.
 
-Use the same shared Group and Sort controls in both workspaces. A small collapsible group header contains its name and copy count, followed by the existing rows or stacks. Keep neutral surfaces and spacing instead of enclosing every group in a panel. Category actions use the shared action menu. A group heading is functional navigation, not a decorative subtitle.
+Assign cards in an open group leads to Cards, where the row action menu opens a Groups selection dialog. One entry can belong to multiple groups. Save replaces its selected memberships atomically, including an empty selection to remove all assignments; Cancel discards the draft. All copies within an entry share its memberships. The dialog identifies the entry's printing, finish, condition and quantity. Close returns focus to its row menu, or the group navigation when the saved selection removed that row from the current view. Pending and error handling follow the shared interaction rules.
 
-| Workspace | Recommended default      | Group options                                                       | Sort options                                                      |
-| --------- | ------------------------ | ------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| Decks     | Category, name ascending | Category, Type, Section                                             | Name ascending or descending, Quantity; Mana value when available |
-| Inventory | None, name ascending     | None, Category, Set, Finish, Condition; Type after metadata support | Name ascending or descending, Quantity, Newest first              |
+Deleting a group requires confirmation and removes only its memberships. Deleting an inventory entry removes its memberships. Quantity edits update group counts without changing assignments. Overlapping group counts must not be summed as total ownership. The Inventory total counts every entry once. Removing a membership never removes owned cards.
 
-Grouping and sorting are independent. Sorting orders entries inside each group; it does not rearrange the categories. Use a stable category order, alphabetical set groups and fixed type order. Break equal sort values with name, printing and entry identity so rows do not jump unexpectedly. Grouping choices must not change ownership, deck requirements or stored display positions.
+## Implementation contract
 
-Inventory starts ungrouped to preserve its compact list. Decks starts with categories once that feature exists. An entry without a category appears under Uncategorized. An empty deck shows its existing empty state, without a list of empty starter groups. Hide empty automatic groups; retain empty categories that the user created so they can still edit them.
+A separate inventory-groups repository owns CRUD, batched group/count/membership reads and replacing an owned entry's memberships. The existing Inventory route supplies the presentation and form actions. Actions take account identity from the authenticated session and delegate to the repository. The repository validates entry and group ownership against the same inventory and game. Unknown or foreign identifiers fail without a partial membership update. The repository locks the owned inventory entry to serialize full membership replacements.
 
-Commander stays first. Main deck uses the selected category or type grouping. Sideboard and Companion remain visibly separate sections, even when their entries share a category with Main deck. Section names retain their existing meaning and cannot be renamed through category controls.
+`inventory_groups` stores a stable UUID, inventory reference, name and timestamps. `inventory_group_memberships` joins a group ID to an entry ID, with a composite primary key and cascading foreign keys. The existing printing/finish/condition uniqueness and aggregate quantities remain unchanged. No dependency on deck tables or catalog reference data is introduced. The route loads memberships in a batch and filters locally, consistent with the current Inventory snapshot.
 
-Apply filters before computing visible group counts. Sum quantities, not rows: deck counts represent required copies and inventory counts represent owned copies. Keep the unfiltered workspace total distinguishable from matching counts. Collapsing a group changes visibility only. Inventory set completion continues to count distinct canonical cards separately from copy counts.
+Reuse ActionMenu, FilterPopover, Select and ConfirmationDialog where their behavior fits. Group dialogs use Bits Dialog for focus and dismissal. Groups and Cards use the same row rendering. New views do not duplicate the navbar, card inspector or inventory addition form.
 
-Use a keyboard-operable disclosure button with its expanded state. Keep group actions usable on touch and keyboard without hover. Reuse the existing Select and ActionMenu components; share group presentation where it has the same behavior across both pages.
+## Later Scan integration
 
-## Categories and suggestions
+Scan overhaul is a separate slice. Today's scan upload, review and commit remain unchanged. A future selector can choose an Inventory group by its stable identifier. The eventual scan commit must validate the target inventory, include the group ID in its idempotency fingerprint and update inventory plus membership within the existing transaction. A deleted or foreign target must fail before ownership changes.
 
-Inventory group ownership remains undecided. The primary-category model below is one option, not an accepted contract. The current alternatives are:
+Groups represent whole entries, not scan batches or physical locations. If a scan adds one copy to an entry that already owns three identical copies, assigning that entry to a group includes all four. Assigning only the scanned copy needs separate quantity allocations and is outside this slice. The recognition worker never owns group or account mutations.
 
-| Approach               | Behavior                                                                                            | Tradeoff                                                                                      |
-| ---------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Grouped views          | Switch between None, Set, Finish and Condition without changing entries.                            | Improves browsing but does not create personal selections.                                    |
-| Named inventory groups | Save overlapping selections such as Trade or Commander pool by referencing existing entries. | Groups can share entries, so their copy counts must not be added together as total ownership. |
-| Physical locations     | Allocate quantities to a binder, box or other location.                                             | Requires quantity allocations and rules for changes to owned stock.                           |
+## Acceptance
 
-Start with grouped views and independent sorting. Then review named groups separately from deck categories. All inventory still counts each entry once. Deleting a named group would remove its references, not owned cards. Entry membership applies to all copies in that entry; keeping two and trading three needs explicit quantity allocations. A later List or Grid view would change presentation independently of grouping. These are proposals and need a reviewed persistence contract before implementation.
+Verify CRUD and reload persistence, empty groups, multiple memberships without duplicated Inventory totals, Cancel and failed save retention, group deletion without lost cards, quantity changes, entry-deletion cascades and account isolation. Invalid mixed membership requests must roll back completely. Check keyboard focus, pending guards, desktop/mobile rendering and existing Card Details and Search overlay behavior. Existing scan and deck behavior must remain independent.
 
-For the primary-category option, give each entry one primary category. This keeps every entry in one visible group and makes the group totals add up. A card that draws a card and counters a spell can belong to Counterspells in one deck and Draw in another. Multiple secondary tags would be a separate filter, rather than changing the primary grouping.
+## Deck categories, proposed
 
-Deck categories belong to one deck. Inventory categories belong to an account and game and apply to its owned entries. Neither assignment changes the public catalog. Inventory must not inherit a category from whichever deck happened to be opened last. Renaming a deck category does not rename inventory categories or another deck's categories.
+Deck categories remain a separate unaccepted proposal. Current Decks groups by card type or section and sorts by name or quantity. Existing roles identify Main deck, Commander, Sideboard and Companion; categories must remain separate from those sections. No deck categories are implemented by the Inventory group slice.
+
+Give each deck entry one primary category. This keeps every entry in one visible group and makes the group totals add up. A card that draws a card and counters a spell can belong to Counterspells in one deck and Draw in another. Multiple secondary tags would be a separate filter, rather than changing the primary grouping.
+
+Deck categories belong to one deck. Deck categories do not change Inventory groups or the public catalog. Renaming a deck category does not rename another deck's categories.
 
 Identify categories by stable IDs with editable names and ordering. Use an optional category reference on the entry, with Uncategorized as the fallback rather than a required setup step. Reject blank names and duplicate names within the same owner, ignoring case and surrounding whitespace. Assignment mutations must verify both the entry owner and category owner.
 
@@ -54,11 +51,3 @@ Suggested starter categories include Lands, Ramp, Draw, Counterspells, Removal, 
 The current catalog supplies types, keywords and oracle text, but no authoritative strategy categories. Start automatic suggestions with narrow, deterministic rules and tested examples. Leave uncertain or multi-purpose cards in Uncategorized for review. Producing mana does not by itself make a land Ramp. Broad text matching does not establish a deck's strategy, and the interface must not present these rules as AI analysis.
 
 Track whether an assignment is automatic or manual when suggestions are persisted. Manual choices always win. New cards can receive an automatic suggestion, but catalog refreshes and repeated imports must not silently reorganize existing assignments. Renamed categories keep their suggestion association through their stable ID; deleted suggestions must not immediately recreate a category the user removed. An explicit review action can reconsider automatic assignments later.
-
-## Scope and verification
-
-Begin with shared grouping presentation and independent sorting. Inventory can first group by its stored fields without new persistence. Category editing and assignments need a separate accepted contract. Name descending and grouping by stored inventory fields need no new catalog service. Inventory Type grouping requires batch catalog metadata because inventory entries currently store no card type; do not add per-row requests or treat placeholder card documents as authoritative metadata. Add automatic suggestions only when their rules and unknown cases have useful coverage.
-
-The primary-category option uses entry-level categories and one primary assignment. All interchangeable copies within an inventory entry share its category. Named inventory groups remain an alternative awaiting a decision. Splitting copies into Trade and Keep would require quantity allocations and is outside either entry-membership option. Reusable cross-deck templates, drag-and-drop ordering and inferred deck archetypes can remain later decisions.
-
-Verify account and deck isolation, rename and deletion behavior, stable sorting, filtered quantity totals, automatic versus manual assignments, printing replacement, import additions and section merges. Browser checks should cover a realistic 100-card deck, duplicate printings, long category names, narrow screens, keyboard controls and collapsed groups. Existing availability and set-completion calculations must retain their distinct semantics.

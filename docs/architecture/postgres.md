@@ -16,6 +16,8 @@ PostgreSQL stores account-owned application state and the public Scryfall catalo
 - `auth_identities`, retained historical provider mappings
 - `inventories`
 - `inventory_cards`
+- `inventory_groups`
+- `inventory_group_memberships`
 - `decks`
 - `deck_cards`
 - `scan_sessions`
@@ -39,6 +41,7 @@ PostgreSQL stores account-owned application state and the public Scryfall catalo
 - MTG is the only implemented adapter today
 - `inventories` and `decks` are the current canonical domain objects
 - `inventory_mutation_requests` and `deck_mutation_requests` store per-account `requestId` records for idempotent mobile bulk mutations
+- additive migration `0010_inventory_groups.sql` adds account-inventory groups and cascading entry memberships; the group repository scopes every mutation to the authenticated inventory and serializes membership replacement by locking the entry
 - the Python worker publishes public printing metadata using the [catalog generation contract](./catalog.md)
 - scan binary artifacts remain in object storage, not Postgres
 
@@ -56,6 +59,7 @@ PostgreSQL stores account-owned application state and the public Scryfall catalo
 
 - update the authenticated account's avatar, artwork and validated profile card definition in one statement
 - inventory creation and lookup
+- create/rename/delete inventory groups and replace entry memberships atomically
 - add/update/remove/reorder inventory cards
 - idempotent batch inventory add
 - idempotent inventory bulk add, set, decrement, and remove

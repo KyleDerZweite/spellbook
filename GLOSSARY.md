@@ -38,6 +38,14 @@ _Avoid_: Inventory version, search session
 An account's ledger of owned physical MTG cards, represented by grouped inventory entries.
 _Avoid_: Collection as a separate domain object, deck
 
+**Inventory group**:
+A named selection of inventory entries within one inventory. An entry can belong to multiple groups, and all its copies share that membership.
+_Avoid_: Deck, physical location, scan batch, owned quantity
+
+**Group membership**:
+An association between an inventory entry and an inventory group, without changing ownership.
+_Avoid_: Deck entry, copy allocation, physical reservation
+
 **Inventory entry**:
 A quantity of one printing with one finish and condition in an account's inventory. It represents interchangeable copies rather than individually identified physical cards.
 _Avoid_: Printing, physical copy

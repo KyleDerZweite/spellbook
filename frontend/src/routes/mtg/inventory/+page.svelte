@@ -1,8 +1,15 @@
 <script lang="ts">
+	import { page } from '$app/state';
+	import { inventoryAction } from '#lib/mtg/inventory-action.ts';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { tick } from 'svelte';
 	import type { PageProps } from './$types';
 	import CardDetail from '#lib/components/cards/CardDetail.svelte';
+	import GroupDirectory from '#lib/components/inventory/GroupDirectory.svelte';
+	import GroupEditor from '#lib/components/inventory/GroupEditor.svelte';
+	import EntryGroups from '#lib/components/inventory/EntryGroups.svelte';
+	import { GroupMutation } from '#lib/mtg/groupMutation.svelte.ts';
+	import type { InventoryGroup } from '#lib/server/data/inventory-groups.ts';
 	import Select from '#lib/components/ui/select/Select.svelte';
 	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
 	import FilterPopover from '#lib/components/ui/popover/FilterPopover.svelte';
@@ -76,6 +83,58 @@
 		{ value: 'foil', label: 'Foil' }
 	];
 	let inventoryCards = $derived(data.cards);
+	let groupDirectory = $derived(data.groupsView && !data.selectedGroupId);
+	let selectedGroup = $derived(data.groups.find((group) => group.id === data.selectedGroupId));
+	let groupLink = $state<HTMLAnchorElement | null>(null);
+	let groupReturnTarget = $state<HTMLElement | null>(null);
+	let editingGroup = $state<{ group: InventoryGroup | null } | null>(null);
+	let deletingGroup = $state<InventoryGroup | null>(null);
+	let assigningEntryId = $state<string | null>(null);
+	let assigningEntry = $derived(inventoryCards.find((entry) => entry.id === assigningEntryId));
+	const groupDeletion = new GroupMutation(() => (deletingGroup = null));
+	let groupEntryIds = $derived(
+		new Set(
+			data.memberships
+				.filter((membership) => membership.groupId === data.selectedGroupId)
+				.map((membership) => membership.entryId)
+		)
+	);
+	let groupCards = $derived(
+		data.selectedGroupId
+			? inventoryCards.filter((entry) => groupEntryIds.has(entry.id))
+			: inventoryCards
+	);
+	function membershipsFor(entryId: string) {
+		return data.memberships
+			.filter((membership) => membership.entryId === entryId)
+			.map((membership) => membership.groupId);
+	}
+	function entryGroupNames(entryId: string) {
+		const ids = new Set(membershipsFor(entryId));
+		return data.groups
+			.filter((group) => ids.has(group.id))
+			.map((group) => group.name)
+			.join(' · ');
+	}
+	function editGroup(group: InventoryGroup | null, trigger: HTMLElement | null) {
+		groupReturnTarget = trigger;
+		editingGroup = { group };
+	}
+	function removeGroup(group: InventoryGroup, trigger: HTMLElement | null) {
+		groupReturnTarget = trigger;
+		groupDeletion.error = '';
+		deletingGroup = group;
+	}
+	function assignGroups(entryId: string) {
+		groupReturnTarget = rowMenuRefs[entryId] ?? searchInput;
+		assigningEntryId = entryId;
+	}
+	function returnFromGroup(event: Event) {
+		event.preventDefault();
+		if (groupReturnTarget?.isConnected) groupReturnTarget.focus({ preventScroll: true });
+		else groupLink?.focus({ preventScroll: true });
+	}
+
 	let inspected = $derived(inventoryCards.find((card) => card.id === inspection?.entryId));
 	let removing = $derived(inventoryCards.find((card) => card.id === removeId));
 	const normalizeSet = (code: string) => code.toLowerCase();
@@ -102,7 +161,7 @@
 	);
 	let listCards = $derived(
 		orderInventory(
-			filterInventory(inventoryCards, {
+			filterInventory(groupCards, {
 				query,
 				sets: selectedSets,
 				finish: selectedFinish,
@@ -283,17 +342,48 @@
 			</p>
 		</div>
 		<div class="inventory-actions">
-			<a href="/mtg/scan" class="btn btn-ghost">Scan</a><a
-				href="/mtg/search"
-				onclick={openSearch}
-				class="btn btn-primary">Add cards</a
-			>
+			{#if groupDirectory}<button
+					class="btn btn-primary"
+					onclick={(event) => editGroup(null, event.currentTarget)}>New group</button
+				>{:else if selectedGroup}
+				<a href="/mtg/inventory" class="btn btn-secondary">Assign cards</a>
+			{:else}
+				<a href="/mtg/scan" class="btn btn-ghost">Scan</a><a
+					href="/mtg/search"
+					onclick={openSearch}
+					class="btn btn-primary">Add cards</a
+				>
+			{/if}
 		</div>
 	</div>
+	<nav class="inventory-views" aria-label="Inventory views">
+		<a
+			href="/mtg/inventory"
+			class:active={!data.groupsView}
+			aria-current={!data.groupsView ? 'page' : undefined}>Cards</a
+		><a
+			bind:this={groupLink}
+			href="/mtg/inventory?view=groups"
+			class:active={data.groupsView}
+			aria-current={data.groupsView ? 'page' : undefined}>Groups</a
+		>
+	</nav>
+	{#if selectedGroup}<div class="selected-group">
+			<a href="/mtg/inventory?view=groups">All groups</a><span aria-hidden="true">/</span><strong
+				>{selectedGroup.name}</strong
+			>
+		</div>{/if}
 	{#if !removeId && (mutationError || form?.message)}<p class="mutation-error" role="alert">
 			{mutationError || form?.message}
 		</p>{/if}
-	{#if inventoryCards.length === 0}
+	{#if groupDirectory}
+		<GroupDirectory
+			groups={data.groups}
+			dialogOpen={editingGroup !== null || deletingGroup !== null}
+			onRename={editGroup}
+			onRemove={removeGroup}
+		/>
+	{:else if inventoryCards.length === 0}
 		<div class="empty-state">
 			<p>No cards yet.</p>
 			<a bind:this={emptyAction} href="/mtg/search" onclick={openSearch} class="btn btn-secondary"
@@ -529,8 +619,14 @@
 			<span></span>
 		</div>
 		{#if listCards.length === 0}<div class="empty-state">
-				<p>No cards match these filters.</p>
-				<button class="btn btn-secondary" onclick={clearFilters}>Clear filters</button>
+				<p>
+					{data.selectedGroupId && !hasFilters
+						? 'No cards in this group yet. Assign cards from their row menu in Cards.'
+						: 'No cards match these filters.'}
+				</p>
+				{#if hasFilters}<button class="btn btn-secondary" onclick={clearFilters}
+						>Clear filters</button
+					>{/if}
 			</div>
 		{:else}
 			<ul class="inventory-list" aria-label="Inventory entries">
@@ -558,7 +654,10 @@
 										'finish',
 										card.finish
 									)}{@render metadata('condition', card.condition)}</span
-								>{#if card.notes}<span class="entry-notes">{card.notes}</span>{/if}</span
+								>{#if entryGroupNames(card.id)}<span
+										class="entry-groups"
+										title={entryGroupNames(card.id)}>{entryGroupNames(card.id)}</span
+									>{/if}{#if card.notes}<span class="entry-notes">{card.notes}</span>{/if}</span
 							></button
 						>
 						<span class="row-metadata">{@render metadata('set', card.setCode)}</span><span
@@ -569,7 +668,11 @@
 								{#if delta === 1}<span class="quantity" aria-label={`${card.quantity} copies`}
 										>{card.quantity}</span
 									>{/if}
-								<form method="POST" action="?/updateQuantity" use:enhance={saveEntry}>
+								<form
+									method="POST"
+									action={inventoryAction('updateQuantity', page.url)}
+									use:enhance={saveEntry}
+								>
 									<input type="hidden" name="entryId" value={card.id} /><input
 										type="hidden"
 										name="quantity"
@@ -601,7 +704,12 @@
 								() => rowMenuRefs[card.id] ?? null, (ref) => (rowMenuRefs[card.id] = ref)
 							}
 							onCloseAutoFocus={(event) => {
-								if (removeId === card.id || inspection?.entryId === card.id) event.preventDefault();
+								if (
+									removeId === card.id ||
+									inspection?.entryId === card.id ||
+									assigningEntryId === card.id
+								)
+									event.preventDefault();
 							}}
 							items={[
 								{
@@ -609,6 +717,11 @@
 									disabled: pendingId !== null,
 									onSelect: () =>
 										openInspection(card.id, 'add', rowMenuRefs[card.id] ?? searchInput)
+								},
+								{
+									label: 'Groups',
+									disabled: pendingId !== null,
+									onSelect: () => assignGroups(card.id)
 								},
 								{
 									label: 'Remove',
@@ -627,6 +740,40 @@
 	{/if}
 </div>
 
+{#if editingGroup}<GroupEditor
+		group={editingGroup.group}
+		onClose={() => (editingGroup = null)}
+		onCloseAutoFocus={returnFromGroup}
+	/>{/if}
+{#if assigningEntry}<EntryGroups
+		entry={assigningEntry}
+		groups={data.groups}
+		groupIds={membershipsFor(assigningEntry.id)}
+		onClose={() => (assigningEntryId = null)}
+		onCloseAutoFocus={returnFromGroup}
+	/>{/if}
+<ConfirmationDialog
+	open={deletingGroup !== null}
+	title="Delete this group?"
+	description={`Delete ${deletingGroup?.name ?? ''}? Your cards stay in inventory; only this group's assignments are removed.`}
+	pending={groupDeletion.pending}
+	error={groupDeletion.error}
+	onCancel={() => (deletingGroup = null)}
+	onCloseAutoFocus={returnFromGroup}
+>
+	<form
+		method="POST"
+		action={inventoryAction('deleteGroup', page.url)}
+		use:enhance={groupDeletion.submit}
+	>
+		<input type="hidden" name="groupId" value={deletingGroup?.id ?? ''} /><button
+			class="btn btn-destructive"
+			disabled={groupDeletion.pending}
+			type="submit">{groupDeletion.pending ? 'Deleting...' : 'Delete group'}</button
+		>
+	</form>
+</ConfirmationDialog>
+
 <ConfirmationDialog
 	open={removeId !== null}
 	title="Remove this entry?"
@@ -638,7 +785,7 @@
 	onCancel={cancelRemoval}
 	onCloseAutoFocus={returnFromRemoval}
 >
-	<form method="POST" action="?/remove" use:enhance={saveEntry}>
+	<form method="POST" action={inventoryAction('remove', page.url)} use:enhance={saveEntry}>
 		<input type="hidden" name="entryId" value={removeId ?? ''} />
 		<button class="btn btn-destructive" type="submit" disabled={pendingId !== null || !removing}
 			>{pendingId === removeId ? 'Removing…' : 'Remove'}</button
@@ -665,7 +812,12 @@
 	/>
 	{#snippet editEntryActions(activeCard: CardDocument)}
 		{#if inspected && activeCard.id === inspected.catalogCardId}
-			<form method="POST" action="?/updateQuantity" use:enhance={saveEntry} class="inspector-form">
+			<form
+				method="POST"
+				action={inventoryAction('updateQuantity', page.url)}
+				use:enhance={saveEntry}
+				class="inspector-form"
+			>
 				<input type="hidden" name="entryId" value={inspected.id} />
 				<p>
 					{inspected.setCode.toUpperCase()} · {inspected.finish === 'foil' ? 'Foil' : 'Nonfoil'} · {inspected.condition}
@@ -719,6 +871,50 @@
 {/snippet}
 
 <style>
+	.inventory-views {
+		display: flex;
+		gap: 1.25rem;
+		margin-bottom: 0.75rem;
+	}
+	.inventory-views a {
+		display: inline-flex;
+		align-items: center;
+		min-height: 44px;
+		padding-inline: 0.125rem;
+		text-decoration: none;
+		font-size: 0.8125rem;
+		color: var(--color-text-secondary);
+		border-bottom: 2px solid transparent;
+	}
+	.inventory-views a.active {
+		color: var(--color-text-primary);
+		border-bottom-color: currentColor;
+	}
+	.selected-group {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.625rem;
+		margin-bottom: 0.75rem;
+		font-size: 0.8125rem;
+	}
+	.selected-group a {
+		color: var(--color-text-secondary);
+	}
+	.selected-group strong {
+		font-weight: 500;
+		overflow-wrap: anywhere;
+	}
+	.entry-groups {
+		display: block;
+		color: var(--color-text-secondary);
+		font-size: 0.6875rem;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 100%;
+	}
+
 	.inventory-result-count {
 		color: var(--color-text-muted);
 		font-size: 0.75rem;
