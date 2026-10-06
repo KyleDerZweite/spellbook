@@ -1,10 +1,10 @@
 # Decision Records
 
 - Status: Canonical
-- Last Reviewed: 2026-10-05
+- Last Reviewed: 2026-10-06
 - Source of Truth: mixed
 - Update Triggers: major architectural decisions, major product decisions, documentation system changes, supersession of earlier decisions
-- Related Docs: [ADR Template](./ADR-template.md), [ADR-0001](./0001-docs-first-knowledge-system.md), [ADR-0006](./0006-generic-oidc-and-internal-account-identity.md), [ADR-0007](./0007-backend-first-mtg-bulk-import-api.md), [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md), [ADR-0009](./0009-local-authentication.md), [Docs Index](../README.md)
+- Related Docs: [ADR Template](./ADR-template.md), [ADR-0001](./0001-docs-first-knowledge-system.md), [ADR-0006](./0006-generic-oidc-and-internal-account-identity.md), [ADR-0007](./0007-backend-first-mtg-bulk-import-api.md), [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md), [ADR-0009](./0009-local-authentication.md), [ADR-0014](./0014-public-landing-and-private-workspace.md), [Docs Index](../README.md)
 
 This section stores architecture and product decision records.
 
@@ -47,3 +47,5 @@ Rules:
 - [ADR-0012: Public catalog browsing](./0012-public-catalog-browsing.md)
 
 - [ADR-0013: Game-prefixed workspaces](./0013-game-prefixed-workspaces.md)
+
+- [ADR-0014: Public Landing und privater Workspace](./0014-public-landing-and-private-workspace.md)

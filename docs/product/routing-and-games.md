@@ -14,7 +14,8 @@ The [route source](../../frontend/src/routes/) owns implemented handlers. The [s
 
 | Route                         | Access and behavior                                                         |
 | ----------------------------- | --------------------------------------------------------------------------- |
-| `/`                           | Public entry page                                                           |
+| `/`                           | Public landing for signed-out and signed-in users                           |
+| `/mtg/dashboard`              | Authenticated account summaries and per-deck availability                   |
 | `/mtg/search`                 | Public catalog search and printing details                                  |
 | `/mtg/inventory`              | Authenticated inventory workspace and form actions                          |
 | `/mtg/scan`                   | Authenticated image upload, candidate review, and explicit inventory commit |
@@ -31,9 +32,9 @@ The [route source](../../frontend/src/routes/) owns implemented handlers. The [s
 | `/openapi.json`               | API description                                                             |
 | `/robots.txt`, `/sitemap.xml` | Search-engine metadata                                                      |
 
-The font comparison and numbered landing prototype routes are removed. In development, `/?review=landing` shows the public landing even for signed-in reviewers. Normal signed-in home retains the account workspace. [Frontend architecture](../architecture/frontend.md) owns the composition review behavior.
+The font comparison and numbered landing prototype routes are removed. The `review=landing` composition override is removed; `/` is the landing review target for any session. The brand links to `/`. The first navigation item is Dashboard for signed-in users and Home for guests. [Frontend architecture](../architecture/frontend.md) owns page composition.
 
-Signed-out access to protected pages redirects to `/auth/login` with a local return path. Versioned MTG endpoints accept a bearer session or the authenticated browser session. An Authorization header takes precedence and an invalid bearer token fails without cookie fallback. Unsafe cookie-authenticated requests require same-origin protection. The [authentication document](../architecture/auth.md) owns credential and session rules.
+Signed-out access to protected pages redirects to `/auth/login` with the local path and query preserved. Login and registration default to `/mtg/inventory` when no safe destination is supplied. An explicit safe `returnTo`, including `/` or `/mtg/decks?deck=ID`, remains authoritative. Versioned MTG endpoints accept a bearer session or the authenticated browser session. An Authorization header takes precedence and an invalid bearer token fails without cookie fallback. Unsafe cookie-authenticated requests require same-origin protection. The [authentication document](../architecture/auth.md) owns credential and session rules.
 
 There is no OIDC callback route, game-switching page, play route, public deck page, camera capture page, or offline workspace.
 

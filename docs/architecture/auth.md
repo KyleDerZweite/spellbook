@@ -1,9 +1,9 @@
 # Authentication
 
 - Status: Canonical
-- Last Reviewed: 2026-10-05
+- Last Reviewed: 2026-10-06
 - Source of Truth: code
-- Update Triggers: credentials, sessions, protected routes, bearer tokens, origin checks, demo mode, account preferences
+- Update Triggers: credentials, sessions, protected routes, bearer tokens, origin checks, demo mode, account preferences, post-login destinations
 - Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Routes](../product/routing-and-games.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md)
 
 Spellbook authenticates local accounts by username and password. `user_profiles.account_id` remains the stable ownership key for inventories, decks, and scans. Registration generates a new account ID; operator enrollment preserves an existing account ID.
@@ -46,7 +46,7 @@ Login and registration share a per-process limit of 20 attempts per client addre
 
 ## Access and migration
 
-`/mtg/inventory`, `/mtg/decks`, `/mtg/scan`, and `/settings`, including their child routes, require authentication. Catalog browsing at `/mtg/search` and read-only `/api/catalog/*` endpoints is public. Saving inventory or decks still requires authentication. Legacy MTG and collection URLs redirect before the guard. `returnTo` accepts only local paths.
+`/mtg/dashboard`, `/mtg/inventory`, `/mtg/decks`, `/mtg/scan`, and `/settings`, including their child routes, require authentication. Catalog browsing at `/mtg/search` and read-only `/api/catalog/*` endpoints is public. Saving inventory or decks still requires authentication. Legacy MTG and collection URLs redirect before the guard. The public root remains the landing after sign-in. Login and registration default to `/mtg/inventory`; a safe explicit `returnTo` preserves its path and query, including a deck selection or `/`. The guard supplies the protected destination with its query. `returnTo` must start with one slash and contain no backslashes or control characters; absent or rejected values use the inventory default.
 
 Registration is public. Email verification, emailed reset links, and a self-service password-change page are not implemented. The [operator procedure](../operations/local-auth.md) covers recovery and enrollment of accounts created under OIDC.
 

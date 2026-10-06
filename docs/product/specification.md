@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-06
 - Source of Truth: application code, tests, accepted product requirements
-- Update Triggers: account access and preferences, catalog identity, inventory or deck behavior, import formats, API contracts, scan capability and priorities, physical-card integration requirements, supported platforms, release acceptance changes
+- Update Triggers: account access and preferences, dashboard summaries, catalog identity, inventory or deck behavior, import formats, API contracts, scan capability and priorities, physical-card integration requirements, supported platforms, release acceptance changes
 - Related Docs: [Domain model](../../GLOSSARY.md), [Routes](./routing-and-games.md), [UI direction](./ui-design-direction.md), [System architecture](../architecture/system-overview.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Card scanner and sorter](../integrations/card-robot.md), [Product index](./README.md)
 
 Spellbook is an open-source MTG inventory and deck builder for private accounts on a self-hosted instance. Visitors can search the local catalog and inspect printings without an account. Signed-in users record owned printings, edit decklists, and compare deck requirements with inventory. Hosted operation uses the same account boundaries and runtime services.
@@ -25,6 +25,7 @@ Reliable card scanning and an installable mobile app are future product prioriti
 | Capability             | Current contract                                                                                                         | Boundary                                                                           |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
 | Catalog search         | Search locally indexed Scryfall cards and select printings                                                               | Search quality and catalog freshness depend on successful worker ingestion         |
+| Dashboard              | Current account inventory totals, distributions, recently edited entries, deck availability and pending scan reviews     | No prices, growth history or reservation across decks                              |
 | Owned inventory        | Add, change, decrement, remove, and bulk mutate printing entries                                                         | No physical locations or per-copy identifiers                                      |
 | Inventory presentation | List presentation, filters, sorting, and owned set progress                                                              | No binder-style view or physical-location tracking                                 |
 | Deck builder           | Private deck editing, catalog and printing selection, role moves, import/export, and exact/alternate/missing totals      | Availability allocates within one deck and does not reserve inventory across decks |
@@ -49,6 +50,16 @@ The server derives the account from the authenticated session. A client-supplied
 Passwords require a salted, memory-hard hash. The server stores only hashes of opaque session tokens, checks expiry on each authenticated request, and revokes the session on logout. Browser sessions use an HttpOnly cookie with the appropriate secure and same-site settings. JSON authentication endpoints return a bearer token for API clients without setting a browser cookie. Unsafe cookie-authenticated requests require origin protection. Authentication errors must not reveal whether a username exists.
 
 The [authentication architecture](../architecture/auth.md) owns the exact registration policy, credential limits, session duration, rate limits, cookie behavior, bearer-token behavior, and migration procedure. Email verification, email password recovery, MFA, and delegated identity providers are not current features.
+
+## Dashboard
+
+The public `/` landing is stable across sessions. Signed-in users open their private account summary at `/mtg/dashboard`; Inventory remains the default destination after login or registration without an explicit safe return path.
+
+Dashboard totals distinguish physical copies, canonical card names, printings, sets, foil copies and decks. Set, finish and condition distributions use owned quantities. The page shows the eight largest sets, an Other sets remainder, and up to eight recently edited inventory entries ordered by their stored update time. Recent edits do not establish an acquisition history.
+
+Each deck reports required, exact, alternate and missing quantities through the existing [availability calculation](#deck-availability), independently against the full inventory. The summary does not reserve copies across decks. Pending scan review counts include owned sessions with `pending_review` status. An unavailable scan count is explicit; a failed account load offers retry. Empty inventory and deck states link to their next actions.
+
+Prices, portfolio values, historical growth and synthetic trends are outside this dashboard. Its summaries use existing account records and require no new persistence model.
 
 ## Catalog and printing identity
 

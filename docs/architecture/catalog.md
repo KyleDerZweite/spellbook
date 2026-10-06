@@ -1,9 +1,9 @@
 # Catalog
 
 - Status: Canonical
-- Last Reviewed: 2026-10-05
+- Last Reviewed: 2026-10-06
 - Source of Truth: code
-- Update Triggers: catalog schema, publication, search ranking, filters, facets, import resolution, printing selection
+- Update Triggers: catalog schema, publication, search ranking, filters, facets, browser pagination and cache bounds, import resolution, printing selection
 - Related Docs: [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [ADR-0010](../decisions/0010-postgres-catalog.md)
 
 PostgreSQL stores the public Scryfall catalog alongside account-owned application data. SvelteKit provides public read-only browser search and printing lookup through `/api/catalog/search` and `/api/catalog/cards/{oracleId}/printings`. The existing versioned integration routes retain authentication. Both use shared request validation and catalog handlers. Browsers use the application API; they receive no database credential or search-service key. The catalog contains card metadata, not ownership quantities.
@@ -26,9 +26,15 @@ Search returns one representative printing per `oracle_id`. Matching relevance w
 
 Filter categories combine with AND. Rarity, type, legality, and set values combine with OR within their category. Selected colors include nonempty card-color subsets of those selected colors. `C` also includes colorless cards. Color filtering uses the card's colors, not Commander color identity.
 
-Optional color, rarity, and set facets count distinct oracle IDs in each bucket over the matching printings. A canonical card may occur in more than one bucket, so facet counts need not sum to the result total. `estimatedTotalHits` contains the exact distinct-card count for the request, despite its compatibility name. The browser requests available facets separately from its entered query and initially selects Standard or Commander legality.
+Optional color, rarity, and set facets count distinct oracle IDs in each bucket over the matching printings. A canonical card may occur in more than one bucket, so facet counts need not sum to the result total. `estimatedTotalHits` contains the exact distinct-card count for the request, despite its compatibility name. Search starts unfiltered. The first page supplies facets for the current query and filters; later pages do not replace them.
 
 Authenticated `GET /api/mobile/v1/mtg/search` supports the existing query and pagination contract. `POST` on that route accepts structured filters and optional facets and name sorting. [OpenAPI](../../frontend/src/routes/openapi.json/+server.ts) owns exact field names, accepted values, defaults, and limits. Raw search-engine expressions are not accepted.
+
+## Browser result window
+
+The browser grid represents the full result total with absolute card indexes. [CatalogWindow](../../frontend/src/lib/search/catalogWindow.ts) loads 50-result pages for the visible range and adjacent ranges, with up to three requests in flight and a planning window of 12 pages. It retains at most four search contexts and 20 pages across them. Evicted ranges load again when needed; scrolling does not accumulate the whole catalog in memory.
+
+Each context includes the game, query, filters and request options. Activation cancels old requests and validates page zero before further pagination. A changed `generationId` clears cached contexts, resets the grid and reloads page zero so totals, facets and displayed pages remain coherent. Range failures remain retryable with the query and filters preserved. These client limits do not change the public or authenticated API. Full-catalog browser performance still requires representative production-scale verification.
 
 ## Printing and import identity
 
