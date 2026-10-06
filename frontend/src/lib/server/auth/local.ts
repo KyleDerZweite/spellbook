@@ -39,6 +39,16 @@ export function takeAuthAttempt(address: string, now = Date.now()): void {
 	});
 }
 
+export async function withPasswordDerivation<T>(operation: () => Promise<T>): Promise<T> {
+	if (activeDerivations >= 4) error(429, 'Authentication is busy. Try again shortly.');
+	activeDerivations++;
+	try {
+		return await operation();
+	} finally {
+		activeDerivations--;
+	}
+}
+
 export async function authenticate(
 	mode: 'login' | 'register',
 	usernameInput: unknown,
@@ -52,9 +62,7 @@ export async function authenticate(
 	if (demoMode && (mode !== 'login' || username !== 'demo')) return null;
 	if (!username || (!validPassword(password) && !acceptsDemoLogin(mode, username, password)))
 		return null;
-	if (activeDerivations >= 4) error(429, 'Authentication is busy. Try again shortly.');
-	activeDerivations++;
-	try {
+	return withPasswordDerivation(async () => {
 		if (mode === 'register') {
 			const passwordHash = await hashPassword(password);
 			const accountId = randomUUID();
@@ -97,7 +105,5 @@ export async function authenticate(
 		if (!user) return null;
 		const session = await createSession(user.accountId, credential.passwordHash);
 		return session ? { user, session } : null;
-	} finally {
-		activeDerivations--;
-	}
+	});
 }

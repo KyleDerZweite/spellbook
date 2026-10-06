@@ -29,20 +29,28 @@ import {
 	actions as settingsActions,
 	load as loadSettings
 } from '../../src/routes/settings/+page.server';
+import {
+	actions as cardActions,
+	load as loadCard
+} from '../../src/routes/settings/profile-card/+page.server';
 
 const run = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 run('local accounts and persisted sessions', () => {
 	const accountIds: string[] = [];
 	const settingsRequest = (avatarId?: string, accountId?: string, artworkId?: string) => {
 		const body = new FormData();
+		body.set('intent', 'avatar');
 		if (avatarId !== undefined) body.set('avatarId', avatarId);
 		if (accountId) body.set('accountId', accountId);
 		if (artworkId !== undefined) body.set('artworkId', artworkId);
-		return new Request('https://spellbook.test/settings', { method: 'POST', body });
+		return new Request('https://spellbook.test/settings', {
+			method: 'POST',
+			headers: { origin: 'https://spellbook.test' },
+			body
+		});
 	};
 	const cardRequest = (card: ProfileCardDefinition, accountId?: string) => {
 		const body = new FormData();
-		body.set('avatarId', 'dragon');
 		body.set('artworkId', 'astral');
 		if (accountId) body.set('accountId', accountId);
 		for (const [field, value] of Object.entries(card)) {
@@ -56,9 +64,14 @@ run('local accounts and persisted sessions', () => {
 		body: FormData,
 		user: NonNullable<Awaited<ReturnType<typeof validateSession>>>
 	) =>
-		settingsActions.default({
+		cardActions.default({
+			url: new URL('https://spellbook.test/settings/profile-card'),
 			locals: { user },
-			request: new Request('https://spellbook.test/settings', { method: 'POST', body })
+			request: new Request('https://spellbook.test/settings/profile-card', {
+				method: 'POST',
+				headers: { origin: 'https://spellbook.test' },
+				body
+			})
 		} as never);
 	afterAll(async () => {
 		if (accountIds.length)
@@ -66,15 +79,23 @@ run('local accounts and persisted sessions', () => {
 		await pool.end();
 	});
 	it('requires authentication for settings reads and updates', async () => {
-		const event = { locals: { user: null }, request: settingsRequest('dragon') };
-		await expect(loadSettings(event as never)).rejects.toMatchObject({
-			status: 303,
-			location: '/auth/login?returnTo=/settings'
-		});
-		await expect(settingsActions.default(event as never)).rejects.toMatchObject({
-			status: 303,
-			location: '/auth/login?returnTo=/settings'
-		});
+		const event = {
+			locals: { user: null },
+			url: new URL('https://spellbook.test/settings'),
+			request: settingsRequest('dragon')
+		};
+		for (const handler of [loadSettings, settingsActions.default]) {
+			await expect(handler(event as never)).rejects.toMatchObject({
+				status: 303,
+				location: '/auth/login?returnTo=/settings'
+			});
+		}
+		for (const handler of [loadCard, cardActions.default]) {
+			await expect(handler(event as never)).rejects.toMatchObject({
+				status: 303,
+				location: '/auth/login?returnTo=/settings/profile-card'
+			});
+		}
 	});
 	it('rejects missing and unknown avatars without changing the stored preference', async () => {
 		const user = await authenticate(
@@ -85,6 +106,7 @@ run('local accounts and persisted sessions', () => {
 		accountIds.push(user!.user.accountId);
 		for (const avatarId of [undefined, 'unknown', 'https://example.test/picture.png']) {
 			const result = await settingsActions.default({
+				url: new URL('https://spellbook.test/settings'),
 				locals: { user: user!.user },
 				request: settingsRequest(avatarId)
 			} as never);
@@ -110,34 +132,44 @@ run('local accounts and persisted sessions', () => {
 		accountIds.push(user!.user.accountId, other!.user.accountId);
 		const locals = { user: user!.user };
 		const result = await settingsActions.default({
+			url: new URL('https://spellbook.test/settings'),
 			locals,
 			request: settingsRequest('dragon', other!.user.accountId, 'astral')
 		} as never);
-		expect(result).toEqual({ success: true, message: 'Profile saved.' });
+		expect(result).toEqual({
+			intent: 'avatar',
+			success: true,
+			message: 'Avatar saved.',
+			errors: {}
+		});
 		expect(locals.user.avatarId).toBe('dragon');
-		expect(locals.user.artworkId).toBe('astral');
+		expect(locals.user.artworkId).toBe('grove');
 		expect(await loadSettings({ locals } as never)).toMatchObject({
-			user: { accountId: user!.user.accountId, avatarId: 'dragon', artworkId: 'astral' }
+			user: { accountId: user!.user.accountId, avatarId: 'dragon', artworkId: 'grove' }
 		});
 		expect(await validateSession(user!.session.token)).toMatchObject({
 			avatarId: 'dragon',
-			artworkId: 'astral'
+			artworkId: 'grove'
 		});
 		expect((await authenticate('login', user!.user.username, password))?.user).toMatchObject({
 			avatarId: 'dragon',
-			artworkId: 'astral'
+			artworkId: 'grove'
 		});
 		expect(await validateSession(other!.session.token)).toMatchObject({
 			avatarId: 'wizard',
 			artworkId: 'grove'
 		});
-		await settingsActions.default({ locals, request: settingsRequest('slime') } as never);
+		await settingsActions.default({
+			url: new URL('https://spellbook.test/settings'),
+			locals,
+			request: settingsRequest('slime')
+		} as never);
 		expect(await validateSession(user!.session.token)).toMatchObject({
 			avatarId: 'slime',
-			artworkId: 'astral'
+			artworkId: 'grove'
 		});
 	});
-	it('saves and reloads all profile card fields for only the authenticated account and preserves legacy edits', async () => {
+	it('saves and reloads a card without an avatar for only the authenticated account and preserves independent edits', async () => {
 		const user = await authenticate(
 			'register',
 			`mage_${crypto.randomUUID().slice(0, 12)}`,
@@ -165,9 +197,13 @@ run('local accounts and persisted sessions', () => {
 		};
 		expect(await submitCard(cardRequest(card, other!.user.accountId), user!.user)).toEqual({
 			success: true,
-			message: 'Profile saved.'
+			message: 'Profile card saved.'
 		});
-		expect(await loadSettings({ locals: { user: user!.user } } as never)).toMatchObject({ card });
+		expect(await loadCard({ locals: { user: user!.user } } as never)).toMatchObject({ card });
+		expect(await validateSession(user!.session.token)).toMatchObject({
+			avatarId: 'wizard',
+			artworkId: 'astral'
+		});
 		expect(await profileData.getProfileCard(other!.user.accountId, other!.user.username)).toEqual(
 			defaultProfileCard(other!.user.username)
 		);
@@ -179,15 +215,23 @@ run('local accounts and persisted sessions', () => {
 			settingsRequest('slime'),
 			settingsRequest('wizard', undefined, 'tide')
 		]) {
-			await settingsActions.default({ locals: { user: user!.user }, request } as never);
+			await settingsActions.default({
+				url: new URL('https://spellbook.test/settings'),
+				locals: { user: user!.user },
+				request
+			} as never);
 			expect(await profileData.getProfileCard(user!.user.accountId, user!.user.username)).toEqual(
 				card
 			);
 		}
+		expect(await validateSession(user!.session.token)).toMatchObject({
+			avatarId: 'wizard',
+			artworkId: 'astral'
+		});
 		const standard = { ...card, legendary: false, power: '', toughness: '' };
 		expect(await submitCard(cardRequest(standard), user!.user)).toEqual({
 			success: true,
-			message: 'Profile saved.'
+			message: 'Profile card saved.'
 		});
 		expect(await profileData.getProfileCard(user!.user.accountId, user!.user.username)).toEqual(
 			standard
@@ -223,7 +267,6 @@ run('local accounts and persisted sessions', () => {
 				status: 400,
 				data: {
 					success: false,
-					avatarId: 'dragon',
 					artworkId: 'astral',
 					card: { [field]: value ?? '' },
 					errors: expect.any(Object)
@@ -248,7 +291,7 @@ run('local accounts and persisted sessions', () => {
 			status: 400,
 			data: { errors: { template: expect.any(String), typeLine: expect.any(String) } }
 		});
-		for (const field of ['avatarId', 'artworkId']) {
+		for (const field of ['artworkId']) {
 			const body = cardRequest({ ...card, name: 'Must not save' });
 			body.set(field, 'unknown');
 			expect(await submitCard(body, user!.user)).toMatchObject({
@@ -362,7 +405,7 @@ run('local accounts and persisted sessions', () => {
 		});
 		expect((await validateSession(cookie.mock.calls[0][1]))?.artworkId).toBe('ember');
 	});
-	it('rejects invalid settings artwork without changing either preference', async () => {
+	it('rejects invalid card artwork without changing preferences', async () => {
 		const user = await authenticate(
 			'register',
 			`mage_${crypto.randomUUID().slice(0, 12)}`,
@@ -371,14 +414,11 @@ run('local accounts and persisted sessions', () => {
 		);
 		accountIds.push(user!.user.accountId);
 		for (const artworkId of ['', 'unknown', 'https://example.test/art.webp']) {
-			expect(
-				await settingsActions.default({
-					locals: { user: user!.user },
-					request: settingsRequest('dragon', undefined, artworkId)
-				} as never)
-			).toMatchObject({
+			const body = cardRequest(defaultProfileCard(user!.user.username));
+			body.set('artworkId', artworkId);
+			expect(await submitCard(body, user!.user)).toMatchObject({
 				status: 400,
-				data: { success: false, avatarId: 'dragon', artworkId }
+				data: { success: false, artworkId }
 			});
 		}
 		expect(await validateSession(user!.session.token)).toMatchObject({
@@ -415,11 +455,12 @@ run('local accounts and persisted sessions', () => {
 		}
 		expect(
 			await settingsActions.default({
+				url: new URL('https://spellbook.test/settings'),
 				locals,
 				request: settingsRequest('dragon', undefined, 'ember')
 			} as never)
-		).toEqual({ success: true, message: 'Profile saved.' });
-		expect((await validateSession(user!.session.token))?.artworkId).toBe('ember');
+		).toEqual({ intent: 'avatar', success: true, message: 'Avatar saved.', errors: {} });
+		expect((await validateSession(user!.session.token))?.artworkId).toBe('grove');
 	});
 	it('aggregates owned quantities, canonical cards, printings, sets, foils and MTG decks for only the current account', async () => {
 		const accountId = `profile-${crypto.randomUUID()}`;

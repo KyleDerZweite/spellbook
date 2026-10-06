@@ -12,8 +12,14 @@ export function hashSessionToken(token: string): string {
 	return createHash('sha256').update(token).digest('hex');
 }
 
-export async function createSession(accountId: string, expectedPasswordHash: string) {
-	return db.transaction(async (tx) => {
+type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+export async function createSession(
+	accountId: string,
+	expectedPasswordHash: string,
+	transaction?: Transaction
+) {
+	const issue = async (tx: Transaction) => {
 		// Password resets acquire this same lock before replacing credentials and revoking sessions.
 		const [profile] = await tx
 			.select({ accountId: userProfiles.accountId })
@@ -32,7 +38,8 @@ export async function createSession(accountId: string, expectedPasswordHash: str
 			.insert(authSessions)
 			.values({ tokenHash: hashSessionToken(token), accountId, expiresAt });
 		return { token, expiresAt };
-	});
+	};
+	return transaction ? issue(transaction) : db.transaction(issue);
 }
 
 export async function validateSession(token: string | undefined): Promise<AuthUser | null> {
