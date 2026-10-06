@@ -1,0 +1,75 @@
+# Accepted application contract
+
+- Status: Accepted design on 2026-10-06, planned and not implemented
+- Last Reviewed: 2026-10-06
+- Source of Truth: Kyle's Q56 acceptance of the reviewed implementation contract
+- Update Triggers: workspace ownership, use-case interfaces, experimental API migration, mutation receipts and revisions, Inventory queries and cache limits, synchronization and acceptance evidence
+- Related Docs: [Architecture](./README.md), [System overview](./system-overview.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Authentication](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Product specification](../product/specification.md), [UI direction](../product/ui-design-direction.md), [Value and costs](./value-and-costs.md), [Category rules](./category-rules.md), [Verification](../operations/github-automation.md), [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md), [ADR-0016](../decisions/0016-postgres-saved-state-invalidation.md), [ADR-0017](../decisions/0017-revisioned-inventory-windows-and-mutation-receipts.md)
+
+Kyle accepted the full nineteen-slice contract, its blocking dependencies and real HTTP/PostgreSQL/browser acceptance seam in Q56 on 2026-10-06. This document owns the shared application mechanisms. Product owners retain user-facing requirements. Acceptance of the design establishes no shipped capability, benchmark result or deployment. The [accepted parent specification, stories and slice dependency graph](https://github.com/KyleDerZweite/spellbook/issues/173) records delivery scope. [Slice 1](https://github.com/KyleDerZweite/spellbook/issues/174) begins the workspace migration. GitHub Issues owns delivery slices, not a second copy of canonical behavior.
+
+## Module ownership
+
+Keep SvelteKit and PostgreSQL in one deployment. Use root workspace packages `frontend/`, `backend/` and `contracts/` with existing dependencies. Preserve pinned runtimes, dependency patches, peer rules, migration history and lock/cache ownership. Frozen install, development, tests, production package resolution, containers, migrator, operator commands and CI must migrate together.
+
+Contracts owns explicit JSON-safe requests, DTOs and discriminated errors. Timestamps are ISO strings and revisions are opaque decimal strings. Contracts imports neither implementation, database rows, platform APIs nor framework types. Backend owns trusted actor authentication, account authorization, validated use cases, persistence, transactions and artifact storage. Frontend owns presentation, navigation, HTTP parsing and origin policy, cookies and conversion into native forms or HTTP responses.
+
+Use small application interfaces for Auth/Profile, Catalog, Inventory/Groups, Decks, Scan, Valuation/Costs/History and Categories. Backend maps DTOs at that interface so in-process web adapters and public HTTP adapters receive the same serialized semantics. The named frontend server composition adapter supplies configuration and constructs backend implementations. Browser modules never import backend. Backend never imports frontend or SvelteKit helpers.
+
+Check imports with the existing TypeScript compiler API, resolving aliases, type imports, dynamic imports and re-exports. Deliberately forbidden imports and built client output verify enforcement. During expand and contract, an enumerated server compatibility allowlist permits existing callers without allowing new frontend persistence or backend-to-frontend dependencies. Remove adapters only after all callers migrate. Independent deployments, a complete external HTTP adapter for every web call and the separate app remain later work.
+
+## Adapter and mutation contracts
+
+Web and public API adapters call the same authorized use cases for local authentication/session inspection, preferences, password rotation, Profile Card/artwork, Dashboard, Catalog enrichment, Inventory/Groups, Deck create/edit/import/export/role/printing/availability/search operations, and Scan upload/review/commit. Preserve public paths and map safe errors consistently. Server Dashboard summaries and selected-deck availability must avoid transferring full Inventory or account mutation-request history.
+
+Q56 approved changing experimental v1 wire contracts in place. Bounded Inventory reads replace snapshots; mutation, import and Scan responses become compact; Notes/Description writes require their field revision. For each migrated operation, document old and new requests/responses in OpenAPI and migration notes. Existing consumers are not automatically compatible. No legacy route may bypass stale-text protection or remain an unbounded internal refresh path.
+
+Backend authentication supplies the actor. Caller account IDs confer no authority. Quantity deltas carry a stable request ID. The account-scoped fingerprint binds the normalized payload and rejects changed-payload reuse. Persist the minimal original acknowledgement in the writing transaction, including request identity, affected stable entity identities, applied change, revision and removed identities. Replay returns this original acknowledgement after later edits or deletion/recreation. Clients fetch current state separately. Keep the documented legacy treatment of null fingerprints.
+
+Patch only supplied fields. Avatar and selection fields use the last successful save. Disjoint patches preserve independent changes. Notes and Description use independent revisions that quantity and unrelated metadata do not advance. A stale save returns the latest saved field and revision; the frontend retains its draft and original base revision.
+
+All Inventory writers lock the Inventory parent before entries before groups. Scan commit keeps Scan-session-before-Inventory order; Inventory and cost operations never acquire a Scan session afterward. Shared transaction helpers compose atomic bulk/import and Scan operations. Before bounded reads activate, every entry, group, membership, reorder, import and Scan writer must advance the monotonic Inventory revision in its writing transaction. Successful semantic changes advance it; retries and no-ops do not. This query revision is separate from field revisions.
+
+Ordinary quantity changes and removal neither scan/rewrite unrelated positions nor return all entries. Explicit reorder keeps its separate behavior. Row decrement stops at one; confirmed Remove remains a separate action. Printing replacement is a semantic operation that preserves source identity/provenance, rather than remove/add copying.
+
+## Inventory query contract
+
+Backend accepts normalized filters, the existing composite order, optional group, offset and bounded limit. Start with 50 entries and a maximum of 100 per request. Preserve name/set/newest and variant-order transitions with stable printing/finish/condition/entry-ID ties. PostgreSQL ICU root collation makes name/set ordering canonical; UUID ties are byte-stable. Migration preflight must fail if that collation is unavailable and record ICU versions.
+
+A read-only local probe matched the current Node en-US comparator for these examples: `10, 100_, 100%, 2, A B, A-B, AB, aether, Aether, Æther, Angel, Ángel, Eclair, éclair, Other, Öther, 卡牌, 土地`. This is limited example evidence. A client locale's former order can differ from the accepted server order. Scalability and other ordering cases remain unverified.
+
+Search uses literal case-insensitive substrings of name, set code, condition and Notes, escaping percent and underscore. Selected sets combine with OR; text, sets, finish, condition and group combine with AND. Group membership joins cannot duplicate entries. Summary fields distinguish entry count, copy count, distinct canonical-card count and set count. Inventory's foil-entry count remains separate from Dashboard's foil-copy count. Overlapping groups are never summed as global holdings.
+
+One short consistent database read returns query identity, revision, page, matching entry/copy counts, global totals and complete group counts. Loaded entries include their memberships. Owned set options and one-set progress remain complete metadata. One-set progress keeps its current independence from group/text/finish/condition filters. Later pages require the active revision; changed revisions explicitly reset the window instead of mixing versions.
+
+Expose an authorized single-entry read with its text revision/memberships and an entry-location operation. Location accepts normalized query, entry ID and expected revision, returning its matching absolute index, not-in-query or RevisionChanged. It shares page ordering and read consistency. The frontend does not find anchors by loading preceding pages. Removal reanchors to captured surviving neighbor IDs, then the existing Search/empty-state target.
+
+Native GET URLs use `q`, repeated `set`, `finish`, `condition`, `sort`, `dir`, `variant`, `variantDir`, `view`, `group` and one-based `page`. HTTP queries share the normalizer with offset/limit. Links and form return locations preserve the query. Invalid limits, directions, scopes or IDs fail validation.
+
+## Frontend state and shared controls
+
+InventoryWindow owns cancellation, stale-response guards, revision coherence and bounded cache eviction. Initial candidates are four query contexts, twenty cached pages total, three concurrent requests and a twelve-page planning range. Measure and tune these limits. Entry, row and measurement maps evict with pages, except a small bounded set of focused/dialog/pending snapshots. Logout/account changes clear account caches.
+
+A separate virtual list owns variable row geometry, visible indexes, overscan and stable scroll anchors using the existing ScrollArea viewport. Labels remain readable rather than clipped to enforce fixed row heights. Routes own dirty drafts, stable inspector documents, pending operation IDs and logical focus outside the page cache. Eviction cannot discard this state. Refresh reanchors by entry ID and preserves intra-row position where possible. A changed Remove quantity needs an updated consequence before commit. A remotely deleted target retains its draft and shows the deletion. Native page links and forms provide the bounded no-JavaScript fallback.
+
+Keep CatalogWindow separate because catalog generations and mutable account revisions have different lifecycles. Reuse transport/range helpers only for actual duplication. Shared Button owns Primary, Secondary, Ghost and Destructive purposes, geometry, pending and focus behavior. Text/navigation links retain underline hover; icon Ghost actions retain background hover. Preserve native anchor/submit and Bits trigger semantics. WorkspaceHeader accepts title, metadata and actions. QuantityControl and existing dialog lifecycle provide shared rendering while Inventory and Deck callers retain data/mutation ownership. Deck Library/editor use explicit feature inputs without an Inventory loading superclass. Preserve the accepted Search toolbar, Home, Settings, fonts and brand.
+
+## Saved-state synchronization
+
+Use authenticated account-scoped SSE invalidation through PostgreSQL LISTEN/NOTIFY using existing PostgreSQL, pg and Node capabilities. Database triggers cover committed application writes and operator session revocation. Notifications contain account identity and coarse topics, without document text or credentials. Rollbacks produce no notification. Each application process owns one dedicated listener connection and fans notifications to local subscribers.
+
+The browser uses a same-origin session cookie; a later app uses bearer authentication. Tokens never enter URLs. Register before initial reset, refetch on connection/reconnect/resume, and queue a subsequent refresh if invalidation arrives during a fetch. Signals promise refetch, not durable replay; replicas need no sticky sessions. Refetch relevant active bounded queries and derived summaries. Update saved snapshots and clean fields while retaining dirty drafts and their base revisions.
+
+Bind each stream to backend session identity/expiry with an expiry timer and bounded periodic revalidation. Auth notifications revalidate affected sessions. Listener recovery revalidates all sessions before fanout resumes, including missed revocations. Revocation discards queued protected notifications, sends `auth-expired` where possible and closes. Browser clients close EventSource and clear protected saved state. Reconnect returns an API authentication failure rather than an HTML redirect. Invalid explicit bearer credentials never fall back to cookies.
+
+The stream interface owns heartbeats, abort cleanup and bounded slow-consumer queues. Verify actual proxy buffering and idle behavior. Healthy connected clients target saved-change visibility within approximately two seconds; outages remain visible and recovery refetches current state. No offline writes or closed-app push is selected.
+
+## Acceptance evidence
+
+Use the real built application over HTTP with isolated PostgreSQL 18. Constructed route events alone cannot establish cookies, streaming or network behavior. Assert account-visible outcomes, persistence, errors and rollback. Use two application processes, two authenticated clients and an unrelated account to verify disjoint saves, text conflicts, lost-response replay, changed-payload rejection, import/Scan atomicity, cross-process notifications, reconnect/resume, listener recovery and logout/password/operator revocation. Measure the synchronization target.
+
+Rendered browser journeys cover retained drafts, failure states, virtualized focus, dialog return, Search overlay, Add another, group navigation and Deck interactions. Include keyboard, zoom, long metadata, light/dark, 360px mobile, wide desktop and no-JavaScript pagination/forms. Preserve Home and Settings behavior.
+
+Use disposable accounts with 1,000, 10,000 and 50,000 distinct valid Inventory entries from real catalog printings and allowed finish/condition combinations. Report copies separately. Include overlapping/empty groups, repeated canonical cards and selective filters; preserve existing demo accounts. Record machine resources, source generation, revisions and fixtures. Measure first/deep windows, orders/filters, counts, groups and set progress with query plans, cold/warm latency and payload size. Measure scrolling, jumps, resize, long tasks, DOM/cache/request bounds and pending rows. Start/middle/end quantity/removal measurements must prove no unrelated scans or snapshot responses. Revise offset addressing if deep positions fail the declared target; no hardware-independent latency promise is selected.
+
+Run relevant current-head type, lint, unit/integration, build, import/workspace, container and docs checks under the [verification workflow](../operations/github-automation.md). Later value/category integration refreshes affected scale/sync evidence. Record missing browser/proxy/provider evidence and its consequence. Design acceptance, passed checks, owner UI acceptance and deployment remain separate states.

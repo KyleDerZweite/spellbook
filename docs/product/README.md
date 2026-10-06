@@ -12,7 +12,7 @@ Product docs describe Spellbook's requirements, behavior, and user-facing langua
 - [Domain model](../../GLOSSARY.md) owns card, inventory, deck, availability, and review terminology.
 - [Routes](./routing-and-games.md) lists implemented pages, API paths, and compatibility redirects.
 - [UI design direction](./ui-design-direction.md) owns interaction patterns, component choices, and visual requirements.
-- [Card grouping](./card-grouping.md) owns Inventory groups and their memberships, plus Deck entry and whole-deck categories under review.
+- [Card grouping](./card-grouping.md) owns Inventory groups and their memberships, plus accepted, unimplemented Deck entry and whole-deck categories.
 - [Value tracking](./value-tracking.md) owns planned daily holdings/value history and Pack/Bulk cost batches. [Market price research](../integrations/market-prices.md) owns provider facts and evaluation.
 
 Internal implementation details belong in [architecture](../architecture/README.md), and runtime setup belongs in [operations](../operations/README.md). Superseded product documents belong in git history rather than a parallel active archive.

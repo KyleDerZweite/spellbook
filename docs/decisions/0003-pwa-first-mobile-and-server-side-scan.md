@@ -6,11 +6,11 @@
 - Source of Truth: recorded decision
 - Update Triggers: decision applicability, supersession, related document changes
 - Supersedes: [ADR-0002](./0002-android-first-mobile-and-server-side-scan.md)
-- Related Docs: [System Overview](../architecture/system-overview.md), [Mobile And Scan Architecture](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Auth](../architecture/auth.md), [Product specification](../product/specification.md)
+- Related Docs: [System Overview](../architecture/system-overview.md), [Mobile And Scan Architecture](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Auth](../architecture/auth.md), [Product specification](../product/specification.md), [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md), [Application contract](../architecture/application-contract.md)
 
 ## Current applicability
 
-SvelteKit remains the implemented web and mobile-web client. On 2026-10-06, the maintainer selected API preparation now and a separate app delivery later, reopening the exclusive single-client restriction below. The later app's technology and client reuse strategy are not selected. The [system overview](../architecture/system-overview.md#boundary-redesign-under-review) owns this design review. This does not restore the removed Android prototype or claim an implemented native client.
+SvelteKit remains the implemented web and mobile-web client. On 2026-10-06, the maintainer selected API preparation now and a separate app delivery later, reopening the exclusive single-client restriction below. The later app's technology and client reuse strategy are not selected. The [system overview](../architecture/system-overview.md#accepted-boundary-redesign) links the accepted module contract. Q56 accepted backend/API preparation while keeping separate app delivery and technology selection for a later pass. This does not restore the removed Android prototype or claim an implemented native client.
 
 [ADR-0010](./0010-postgres-catalog.md) replaces the historical MeiliSearch catalog with PostgreSQL. [ADR-0009](./0009-local-authentication.md) replaces the OIDC authentication choice. The manifest exists, but service-worker caching, browser capture, OCR, and embeddings remain planned. Unused vector infrastructure has been removed until a recognizer requires it. See [mobile and scan](../architecture/mobile-and-scan.md) for implementation status.
 

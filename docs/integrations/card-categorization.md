@@ -1,12 +1,12 @@
 # Card and deck categorization
 
-- Status: Source/rule direction selected; Jev prototype recorded, no category integration implemented
+- Status: Source/rule design accepted; optional local Commander Spellbook adapter selected, no category integration implemented
 - Last Reviewed: 2026-10-06
 - Source of Truth: linked primary documentation, local public Scryfall snapshots, recorded Jev HTTP experiment and read-only repository inspection
 - Update Triggers: classifier access, model versions and prices, taxonomy coverage, category quality, custom criteria, deck context and selected provider
-- Related Docs: [Integrations](./README.md), [Card grouping](../product/card-grouping.md), [Domain glossary](../../GLOSSARY.md), [Catalog](../architecture/catalog.md), [Worker](../architecture/worker.md), [System overview](../architecture/system-overview.md)
+- Related Docs: [Integrations](./README.md), [Card grouping](../product/card-grouping.md), [Domain glossary](../../GLOSSARY.md), [Catalog](../architecture/catalog.md), [Worker](../architecture/worker.md), [System overview](../architecture/system-overview.md), [Category rules](../architecture/category-rules.md)
 
-This document owns source and classifier research. [Card grouping](../product/card-grouping.md#deck-categories-design-under-review) owns the requested Deck entry and whole-deck category behavior. After the authenticated Jev experiment, the maintainer selected sources and explicit rules for this pass. Jev stays a prototype. Free-text meanings and stronger or hybrid semantic classification are deferred; no production inference provider is selected.
+This document owns source and classifier research. [Card grouping](../product/card-grouping.md#deck-categories-accepted-design) owns the requested Deck entry and whole-deck category behavior. After the authenticated Jev experiment, the maintainer selected sources and explicit rules for this pass. Jev stays a prototype. Free-text meanings and stronger or hybrid semantic classification are deferred; no production inference provider is selected.
 
 ## Existing application and comparable tools
 
@@ -80,7 +80,7 @@ The local Oracle Cards snapshot contains 38,708 records. Excluding tokens, emble
 
 The prototype supports Jev as a candidate for optional generic card suggestions. It does not support dependable automatic combo detection or arbitrary custom meanings in deck context. The maintainer selected deterministic source/rule defaults and manual override for this pass on 2026-10-06. A stronger classifier or hybrid system remains later evaluation. The prototype did not establish population quality.
 
-Optional inference should not be required to read or edit existing Inventory or Decks. Retaining prior valid classifications, default behavior when inference is unavailable, and explicit Review/Reset need a reviewed interface before integration. No production provider was selected by this experiment.
+Optional inference should not be required to read or edit existing Inventory or Decks. The accepted [category contract](../architecture/category-rules.md) defines prior-valid-source retention, unknown/pending behavior and explicit Review/Reset for source/rule classification. No production provider was selected by this experiment.
 
 ## Curated combo alternative
 
@@ -90,4 +90,4 @@ Unauthenticated queries to [Find My Combos](https://backend.commanderspellbook.c
 
 Variant records contain Oracle IDs, required quantities, zones/states, prerequisites and produced outcomes. A local matcher could supply a positive signal that a deck contains the requirements for a documented combo. Card presence alone does not establish every prerequisite or guarantee execution. No match means no documented variant was found in that snapshot, not proof that no combo exists. This source does not classify every card or make arbitrary natural-language category meanings reliable.
 
-The API asks for attribution, sparse requests and handling HTTP 429. Bulk reading can avoid sending private deck composition to its remote checker. The [MIT statement](https://commanderspellbook.com/about/) covers website and backend source code; inspected materials did not state a separate dataset redistribution license. Scheduled local reading is expressly documented. This remains an unselected integration candidate, with no local matcher or importer implemented.
+The API asks for attribution, sparse requests and handling HTTP 429. Bulk reading can avoid sending private deck composition to its remote checker. The [MIT statement](https://commanderspellbook.com/about/) covers website and backend source code; inspected materials did not state a separate dataset redistribution license. Scheduled local reading is expressly documented. Q56 on 2026-10-06 selected the optional local bulk importer and reduced matcher for this pass. The [category contract](../architecture/category-rules.md#optional-local-combo-adapter) owns supported constraints, participant/outcome rules and provenance. The local matcher and importer remain unbuilt; the probe does not establish their acceptance evidence.

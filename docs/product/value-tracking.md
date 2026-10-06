@@ -1,10 +1,10 @@
 # Value tracking
 
-- Status: Design in progress, not implemented
+- Status: Accepted design on 2026-10-06, not implemented
 - Last Reviewed: 2026-10-06
-- Source of Truth: accepted maintainer requirements, existing Inventory behavior and explicitly marked open decisions
+- Source of Truth: accepted maintainer requirements and Q56 design, existing Inventory behavior
 - Update Triggers: price providers and fallback policy, daily history, reporting currency and timezone, cost batches, allocation and correction rules, tracking rollout and demo assumptions, valuation UI and API contracts
-- Related Docs: [Product index](./README.md), [Specification](./specification.md), [Domain glossary](../../GLOSSARY.md), [Market price research](../integrations/market-prices.md), [Postgres](../architecture/postgres.md), [Worker](../architecture/worker.md), [System overview](../architecture/system-overview.md), [Design direction](./ui-design-direction.md)
+- Related Docs: [Product index](./README.md), [Specification](./specification.md), [Domain glossary](../../GLOSSARY.md), [Market price research](../integrations/market-prices.md), [Postgres](../architecture/postgres.md), [Worker](../architecture/worker.md), [System overview](../architecture/system-overview.md), [Design direction](./ui-design-direction.md), [Value and cost persistence](../architecture/value-and-costs.md), [Application contract](../architecture/application-contract.md)
 
 ## Selected scope
 
@@ -17,6 +17,8 @@ Trading starts with external product links. Sales, proceeds, sale fees, realized
 The selected source set is Scryfall as the baseline, with optional Cardmarket Price Guide and MTGJSON imports. Requiring a configured API key is acceptable for an optional source. Accounts must still work when optional sources are disabled, unconfigured or missing a reference. Preserve an unknown value when no eligible configured source supplies one. References with the same upstream are not independent confirmations. The [provider research](../integrations/market-prices.md) owns source availability, measures and mapping limits.
 
 For EUR totals, prefer eligible fresh references before stale fallbacks. Within the same freshness class, prefer configured Cardmarket trend, then Scryfall EUR, then a matching MTGJSON EUR reference. Preserve the chosen source and measure with every observation. This priority does not make different source measures interchangeable or independent confirmations. The maintainer confirmed this policy on 2026-10-06.
+
+References are fresh through 24 hours from source time, then eligible as stale through seven days. Reimporting unchanged data does not reset that age. Within each source, prefer exact printing before the eligible English fallback. Thus a fresh higher-priority English fallback can precede a fresh lower-priority exact printing. For MTGJSON EUR totals, only the validated paper/Cardmarket/retail series with matching normal or foil finish is eligible; its measure remains retail reference rather than Cardmarket trend. Absent or ambiguous series remain unknown. Q56 accepted this ordering and eligibility.
 
 When a daily refresh fails, the last valid reference remains eligible for current totals for up to seven days, visibly marked stale. Show its source date and stale coverage. After that limit it is unknown for current totals. A successful source response with a missing or null reference does not preserve an older price as its current result. Check eligible configured fallbacks, then report unknown.
 
@@ -56,12 +58,12 @@ The current quantity state remains separate from daily history. Daily history be
 
 Retain personal daily holdings history and the historical references needed for that history without automatic expiry. The complete unused catalog needs current prices, not indefinite daily price history for every printing. Missing observations must not be synthesized from today's values.
 
-Dashboard summarizes current values, coverage and daily history. Inventory and Card Details show relevant price references and entry points to cost assignment. A private Costs/History workspace provides batch capture and corrections, reachable from Dashboard and Inventory. Its route and interaction design remain to be reviewed. Public Home retains its accepted design.
+Dashboard summarizes current values, coverage and daily history. Inventory and Card Details show relevant price references and entry points to cost assignment. A private Costs/History workspace provides batch capture and corrections, reachable from Dashboard and Inventory. Its implementation must provide the accepted preview, frozen-reference commitment and correction behavior; no route or completed UI is claimed here. Public Home retains its accepted design.
 
 Decks also show the estimated reference value of all required cards and of their missing quantities. These are market estimates, separate from the owner's acquisition costs. Deck entries do not currently specify a finish, so this calculation uses nonfoil references and exposes unknown quantities and coverage. Availability does not reserve owned copies.
 
-## Implementation contract still needed
+## Accepted implementation contract
 
-The selected behavior still needs concrete ownership, allocation/revision storage, daily scheduling and API contracts. Verify FIFO reductions, subset cost assignment, cent rounding, source failures, historical restatement, account isolation and request replay against those contracts.
+Kyle accepted the lot-portion, exact-cent, correction and capture mechanisms in Q56 on 2026-10-06. [Value and cost persistence](../architecture/value-and-costs.md) owns stable quantity intervals, compressed cent allocations, frozen observations, revision checks, PostgreSQL lease capture and atomic historical restatement. [The application contract](../architecture/application-contract.md) owns authorization, shared use cases, locking and replay acknowledgements.
 
-These requirements do not make the implementation slice Ready. Reconcile the product, module, mutation and acceptance contracts before implementation.
+Corrections preserve original batch membership, method and reference weights, including retired portions. Acquisition-date edits are descriptive and neither backdate holdings nor reorder FIFO. The default configurable daily capture tolerance is five minutes around day close. Missed captures remain gaps; restart never invents an uncaptured day from current holdings. These accepted mechanisms are unimplemented and still require their real-database/source/browser evidence.

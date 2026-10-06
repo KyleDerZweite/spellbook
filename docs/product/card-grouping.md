@@ -3,8 +3,8 @@
 - Status: Canonical, Inventory groups implemented; source/rule categories selected for the next pass
 - Last Reviewed: 2026-10-06
 - Source of Truth: maintainer grouping decision, inventory and deck implementations
-- Update Triggers: inventory groups, memberships, scan targets, deck entry and whole-deck categories, automatic classification, account category definitions and manual overrides
-- Related Docs: [Product specification](./specification.md), [Domain model](../../GLOSSARY.md), [Classifier research](../integrations/card-categorization.md), [Frontend](../architecture/frontend.md), [Postgres](../architecture/postgres.md), [Mobile and scan](../architecture/mobile-and-scan.md), [UI direction](./ui-design-direction.md), [Product index](./README.md)
+- Update Triggers: inventory groups, memberships, scan targets, deck entry and whole-deck categories, automatic classification, account category definitions and manual overrides, accepted design contracts and implementation evidence
+- Related Docs: [Product specification](./specification.md), [Domain model](../../GLOSSARY.md), [Classifier research](../integrations/card-categorization.md), [Frontend](../architecture/frontend.md), [Postgres](../architecture/postgres.md), [Mobile and scan](../architecture/mobile-and-scan.md), [UI direction](./ui-design-direction.md), [Product index](./README.md), [Category rules](../architecture/category-rules.md)
 
 ## Inventory groups
 
@@ -34,11 +34,11 @@ Groups represent whole entries, not scan batches or physical locations. If a sca
 
 Verify CRUD and reload persistence, empty groups, multiple memberships without duplicated Inventory totals, Cancel and failed save retention, group deletion without lost cards, quantity changes, entry-deletion cascades and account isolation. Invalid mixed membership requests must roll back completely. Check keyboard focus, pending guards, desktop/mobile rendering and existing Card Details and Search overlay behavior. Existing scan and deck behavior must remain independent.
 
-## Deck categories, design under review
+## Deck categories, accepted design
 
 The maintainer selected both Deck entry categories inside the editor and Deck categories for whole decks in the Library. These are separate concepts in the [glossary](../../GLOSSARY.md). Full automatic default categorization, editable custom meanings and manual override are required. No category feature is implemented by the Inventory group slice.
 
-Scryfall Oracle Tags remains a selected source for card traits. On 2026-10-06, the maintainer selected automatic categorization from sources, card types and explicit rules. Free-text-only meanings and a stronger or hybrid semantic classifier are outside this pass. Jev remains the recorded prototype. Known combo outcomes can provide source-backed rules; the [integration research](../integrations/card-categorization.md) owns their evidence and remaining adapter questions.
+Scryfall Oracle Tags remains a selected source for card traits. On 2026-10-06, the maintainer selected automatic categorization from sources, card types and explicit rules. Free-text-only meanings and a stronger or hybrid semantic classifier are outside this pass. Jev remains the recorded prototype. Q56 accepted the optional local Commander Spellbook bulk adapter for documented ingredients/outcomes. [Integration research](../integrations/card-categorization.md) owns dated source evidence; [category rules](../architecture/category-rules.md) owns the accepted adapter constraints and evaluation mechanisms. No category integration is implemented.
 
 ### Deck entry categories
 
@@ -52,9 +52,9 @@ Identify categories by stable IDs with editable names and ordering. Use an optio
 
 Rename changes the label without moving entries. Removing a category offers a replacement category or Uncategorized and moves its entries atomically. Removing a category never removes cards. Quantity changes and import additions preserve existing assignments. Role moves and printing replacement preserve the source category when no merge occurs. When either operation merges into an existing entry, preserve the destination entry's category and explain the result before committing a conflicting merge. The maintainer confirmed this merge rule on 2026-10-06.
 
-Suggested starter categories include Lands, Ramp, Draw, Counterspells, Removal, Board wipes, Protection and Recursion. Only populated suggestions need to appear. Custom names such as Token makers or Sacrifice outlets describe the user's deck plan without requiring a predefined taxonomy.
+The accepted first-match starter order is Lands, Board wipes, Counterspells, Removal, Ramp, Draw, Protection, Recursion. Custom-rule priority precedes starters and is independent of display-group ordering. Only populated suggestions need to appear. Custom names such as Token makers or Sacrifice outlets describe the user's deck plan without requiring a predefined taxonomy.
 
-The current catalog supplies types, keywords and Oracle text, but does not ingest the selected Oracle Tags source yet. Producing mana does not by itself make a land Ramp. Broad text matching does not establish a deck's strategy. Rules need deterministic match priority for multi-purpose cards and overlapping definitions; the concrete rule interface remains part of the design contract. The interface must not present source/rule mapping as AI analysis.
+The current catalog supplies types, keywords and Oracle text, but does not ingest the selected Oracle Tags source yet. Producing mana does not by itself make a land Ramp. Broad text matching does not establish a deck's strategy. The accepted [rule interface](../architecture/category-rules.md#bounded-rule-interface) supports explicit catalog traits, versioned source tags and bounded predicates. Missing source evidence remains unknown, including under negation. A broad Token-makers starter is excluded because the inspected narrow subtree does not support it. The interface must not present source/rule mapping as AI analysis.
 
 Track whether an assignment is automatic or manual when suggestions are persisted. Apply automatic categorization once to existing Main-deck entries and to new entries. Manual choices always win, including a deliberate Uncategorized choice. Quantity changes, import additions and daily source refreshes must not silently reorganize existing assignments. Only an explicit Review/Reset re-evaluates automatic assignments. The maintainer confirmed this lifecycle on 2026-10-06.
 
@@ -66,8 +66,8 @@ Deck categories group whole decks in the Library. The maintainer selected automa
 
 Definitions belong to the account. One deck can belong to multiple categories, such as Control and Combo. Library filters use these assignments; overall totals count each deck once even when categories overlap. Whole-deck categories do not replace the selected primary category of each entry, its role or the deck's format.
 
-Re-evaluate automatic whole-deck assignments after saved composition changes, coalescing short editing bursts. Preserve manual decisions. Editing a definition's meaning or rules does not reorganize existing decks until explicit Review/Reset. New decks use the current definitions. The maintainer confirmed this lifecycle and multiple categories per deck on 2026-10-06. Definition versioning and deck-local snapshots still need a concrete implementation contract.
+Re-evaluate automatic whole-deck assignments after saved composition changes, coalescing short editing bursts. Preserve manual decisions. Editing a definition's meaning or rules does not reorganize existing decks until explicit Review/Reset. New decks use the current definitions. The maintainer confirmed this lifecycle and multiple categories per deck on 2026-10-06. Q56 accepted immutable definition versions and adoption of the full ordered bundle at deck creation, including definitions that do not initially match. [Category rules](../architecture/category-rules.md) owns storage and revision protection. Composition-triggered whole-deck reevaluation uses the latest valid source facts with exact provenance; a source refresh alone never reassigns categories. Unknown reevaluation retains a prior valid result visibly pending/stale.
 
 ## Classifier research
 
-[Automatic card categorization](../integrations/card-categorization.md) owns the dated Oracle Tags coverage probe, comparable-tool findings, Jev experiment and curated combo alternative. Source coverage and typed model output do not establish primary-category quality. The selected source/rule direction needs reviewed interfaces and acceptance examples. Existing manual assignments and the accepted Review/Reset lifecycle must survive source changes.
+[Automatic card categorization](../integrations/card-categorization.md) owns the dated Oracle Tags coverage probe, comparable-tool findings, Jev experiment and curated combo alternative. Source coverage and typed model output do not establish primary-category quality. Q56 accepted the [category contract](../architecture/category-rules.md), including supported rules, source provenance, version adoption and fixed-example acceptance requirements. Review previews latest definitions/sources and preserves manual decisions. Reset releases manual choices only within the selected scope. Both show moves and changed labels before commit, reject stale composition/decision revisions and restore suppressed origins only by explicit selection. Existing manual assignments must survive source changes.

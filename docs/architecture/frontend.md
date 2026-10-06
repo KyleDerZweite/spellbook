@@ -3,8 +3,8 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-06
 - Source of Truth: code, accepted design requirements and upstream runtime documentation
-- Update Triggers: routes, authentication, public landing, responsive layout, typography, development review controls, search, shared scroll viewports, inventory ordering and filters, bounded inventory loading and scale evidence, deck builder, component choices, runtime support and compatibility
-- Related Docs: [System overview](./system-overview.md), [Auth](./auth.md), [Routes](../product/routing-and-games.md), [Catalog](./catalog.md), [Selected UI components](../reference/ui-libraries.md), [Design direction](../product/ui-design-direction.md)
+- Update Triggers: routes, authentication, public landing, responsive layout, typography, development review controls, search, shared scroll viewports, inventory ordering and filters, bounded inventory loading and scale evidence, deck builder, component choices, runtime support and compatibility, accepted design contracts and implementation evidence
+- Related Docs: [System overview](./system-overview.md), [Auth](./auth.md), [Routes](../product/routing-and-games.md), [Catalog](./catalog.md), [Selected UI components](../reference/ui-libraries.md), [Design direction](../product/ui-design-direction.md), [Application contract](./application-contract.md)
 
 The SvelteKit application renders pages on the server and owns the application API. Svelte components and Tailwind styles implement the interface; Bits UI supplies accessible interactive components. The [selected component guidance](../reference/ui-libraries.md) owns shadcn-svelte source adoption and its boundary with existing Bits UI controls. The shared stylesheet defines the neutral light and dark, icon-accented card workspace design described in [design direction](../product/ui-design-direction.md).
 
@@ -58,7 +58,7 @@ Search starts without selected filters. [CatalogWindow](../../frontend/src/lib/s
 
 ## Inventory loading under design
 
-The maintainer selected bounded Inventory loading and a virtualized list on 2026-10-06, using Search's window approach as a reference. This is not implemented. The existing Inventory route still loads its full snapshot and filters locally. The next contract must put full-data filters, sort order, summary counts and group counts in backend queries while the frontend keeps a bounded window and renders visible rows. Window refresh and eviction must preserve stable entry identity, drafts, pending mutations and dialog/focus targets. Benchmark thousands of entries with real server queries and rendered scrolling before claiming this scales. The design belongs with the shared backend and contract migration, not a separate browser-only pagination layer.
+The maintainer selected bounded Inventory loading and a virtualized list on 2026-10-06, using Search's window approach as a reference. This is not implemented. The existing Inventory route still loads its full snapshot and filters locally. Q56 accepted the [application contract](./application-contract.md#inventory-query-contract) for full-data backend filters, ordering, counts and groups, with a bounded frontend window and virtual rows. Window refresh and eviction must preserve stable entry identity, drafts, pending mutations and dialog/focus targets. Benchmark thousands of entries with real server queries and rendered scrolling before claiming this scales. The design belongs with the shared backend and contract migration, not a separate browser-only pagination layer.
 
 ## Runtime compatibility
 
