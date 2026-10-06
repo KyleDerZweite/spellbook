@@ -1,7 +1,7 @@
 # Spellbook product specification
 
 - Status: Canonical
-- Last Reviewed: 2026-10-06
+- Last Reviewed: 2026-10-07
 - Source of Truth: application code, tests, accepted product requirements
 - Update Triggers: account access and preferences, dashboard summaries, catalog identity, inventory or deck behavior, bounded Inventory loading and scaling evidence, value tracking and cost batches, import formats, API contracts, scan capability and priorities, physical-card integration requirements, supported platforms, release acceptance changes
 - Related Docs: [Domain model](../../GLOSSARY.md), [Routes](./routing-and-games.md), [UI direction](./ui-design-direction.md), [Value tracking](./value-tracking.md), [System architecture](../architecture/system-overview.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Card scanner and sorter](../integrations/card-robot.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [Category rules](../architecture/category-rules.md)
@@ -61,7 +61,7 @@ Settings provides a configurable regular MTG profile card with a live preview. N
 
 The card definition stores text templates and presentation fields separately from current inventory totals. Supported placeholders are `{total_owned_cards}`, `{unique_card_names}`, `{owned_printings}`, `{owned_sets}`, `{foil_copies}` and `{total_decks}`. Owned cards means summed physical-copy quantities; represented sets does not mean completed sets. Values resolve from the current authenticated account during rendering and remain unavailable when totals cannot load. They are never saved back into the template.
 
-One shared validator owns allowed fields, limits, mana grammar and placeholder names. The Settings action owns authenticated persistence; the preview owns no queries or writes. Save must retain all inputs on failure and persist them across reload without changing account identity or visibility. UI and future agent adapters use the same validated definition. Agent editing endpoints, additional TCG templates, public sharing, image export and rank remain future work.
+One shared validator owns allowed fields, limits, mana grammar and placeholder names. Backend Profile owns authenticated persistence through shared web/API use cases; the preview owns no queries or writes. Save must retain all inputs on failure and persist them across reload without changing account identity or visibility. UI and authenticated API clients use the same validated definition. Profile patches change only supplied fields, preserving disjoint edits. Enhanced card saves submit edits; native saves derive edits from the saved card/artwork baseline. Invalid submissions retain inputs, and unchanged card submissions authenticate without writing. [Authentication](../architecture/auth.md#account-http-contract) owns the HTTP and concurrency details. Additional TCG templates, public sharing, image export and rank remain future work.
 
 ## Dashboard
 
@@ -69,9 +69,9 @@ The public `/` landing is stable across sessions. Signed-in users open their pri
 
 Dashboard totals distinguish physical copies, canonical card names, printings, sets, foil copies and decks. Set, finish and condition distributions use owned quantities. The page shows the eight largest sets, an Other sets remainder, and up to eight recently edited inventory entries ordered by their stored update time. Recent edits do not establish an acquisition history.
 
-Each deck reports required, exact, alternate and missing quantities through the existing [availability calculation](#deck-availability), independently against the full inventory. The summary does not reserve copies across decks. Pending scan review counts include owned sessions with `pending_review` status. An unavailable scan count is explicit; a failed account load offers retry. Empty inventory and deck states link to their next actions.
+Each deck reports required, exact, alternate and missing quantities following the existing [availability rules](#deck-availability), independently against the full inventory. The summary does not reserve copies across decks. Pending scan review counts include owned sessions with `pending_review` status. An unavailable scan count is explicit; a failed account load offers retry. Empty inventory and deck states link to their next actions.
 
-Prices, portfolio values, historical growth and synthetic trends are outside this dashboard. Its summaries use existing account records and require no new persistence model.
+Backend returns account aggregates and at most eight recent entries to both the page and authenticated Dashboard API, without transferring the complete Inventory. Prices, portfolio values, historical growth and synthetic trends are outside the implemented dashboard. Its summaries use existing account records and require no new persistence model.
 
 ## Catalog and printing identity
 

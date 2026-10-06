@@ -50,7 +50,7 @@ Rules:
 
 - [ADR-0014: Public landing and private workspace](./0014-public-landing-and-private-workspace.md)
 
-- [ADR-0015: Shared backend use cases and client contracts](./0015-shared-backend-use-cases-and-client-contracts.md), workspace/Catalog/local-authentication boundary implemented; full API parity planned
+- [ADR-0015: Shared backend use cases and client contracts](./0015-shared-backend-use-cases-and-client-contracts.md), workspace/Catalog/Auth/Profile/Dashboard boundaries implemented; remaining API parity planned
 
 - [ADR-0016: PostgreSQL saved-state invalidation](./0016-postgres-saved-state-invalidation.md), accepted design; not implemented
 - [ADR-0017: Revisioned Inventory windows and mutation receipts](./0017-revisioned-inventory-windows-and-mutation-receipts.md), accepted design; not implemented

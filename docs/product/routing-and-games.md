@@ -1,14 +1,14 @@
 # Routes and supported game
 
 - Status: Canonical
-- Last Reviewed: 2026-10-06
+- Last Reviewed: 2026-10-07
 - Source of Truth: route handlers and server hooks
 - Update Triggers: route additions or removals, development preview routes, HTTP methods, authentication protection, compatibility redirects, supported game
 - Related Docs: [Product specification](./specification.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md)
 
 Spellbook supports MTG. Game-specific pages use the `/mtg/` prefix. Public home, authentication, account settings, and legal pages remain shared; versioned integration endpoints keep their existing paths. The header game icon sits immediately before the theme control. It identifies Magic with the Mana Font planeswalker symbol and a tooltip. Cycling is inactive while MTG is the only available game. The `/mtg/` layout owns workspace game identity; the cookie retains the selection for shared pages. Unsupported cookie values reset to MTG. Additional games require their own catalog and workflow implementation before becoming selectable.
 
-The [route source](../../frontend/src/routes/) owns implemented handlers. The [server hooks](../../frontend/src/hooks.server.ts) own page protection and redirects. `/openapi.json` exposes the versioned API description.
+The [route source](../../frontend/src/routes/) owns implemented handlers. The [server hooks](../../frontend/src/hooks.server.ts) own page protection and redirects. `/openapi.json` exposes authentication, account and versioned MTG API contracts.
 
 ## Pages and account routes
 
@@ -30,6 +30,10 @@ The [route source](../../frontend/src/routes/) owns implemented handlers. The [s
 | `/privacy`, `/terms`          | Public information pages                                                    |
 | `/api/auth/register`          | POST creates a local account and returns a bearer session                   |
 | `/api/auth/login`             | POST verifies local credentials and returns a bearer session                |
+| `/api/account/profile`        | Authenticated GET profile read and PATCH supplied preference/card fields    |
+| `/api/account/dashboard`      | Authenticated GET account aggregates and deck availability summaries        |
+| `/api/account/password`       | Authenticated POST password rotation and replacement session                |
+| `/api/auth/session`           | Authenticated GET selected-session inspection                               |
 | `/api/auth/logout`            | POST revokes the presented bearer session                                   |
 | `/openapi.json`               | API description                                                             |
 | `/llms.txt`                   | Public Markdown overview, application links, and agent registration rules   |

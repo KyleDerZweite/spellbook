@@ -49,17 +49,23 @@ The backend [schema](../../backend/src/db/schema.ts) owns table definitions, and
 
 ## Current Access Pattern
 
-- backend Catalog and local authentication use Drizzle ORM and `pg` through frontend server composition; remaining SvelteKit feature repositories use explicit compatibility adapters
+- backend Catalog, Auth, Profile and Dashboard use Drizzle ORM and `pg` through frontend server composition; remaining SvelteKit feature repositories use explicit compatibility adapters
 - browser pages load user data through server load functions and route actions
 - optional mobile API endpoints call the same repository functions as web routes
 - repository functions enforce ownership by internal Spellbook `accountId`
-- the Settings profile repository reads account-scoped MTG totals directly from `inventory_cards` and `decks` without creating inventory rows or calling the catalog worker
+- the backend Profile use case reads account-scoped MTG totals directly from `inventory_cards` and `decks` without creating inventory rows or calling the catalog worker
 - profile totals count owned quantities, distinct canonical card IDs, distinct printing IDs, distinct set codes, foil quantities, and decks; a totals read failure leaves profile customization available
-- the profile repository reads the saved card independently of totals and validates it against the shared definition; [authentication](./auth.md) owns Settings validation, default handling and atomic preference updates
+- the backend Profile use case reads the saved card independently of totals and validates it against the shared definition; [authentication](./auth.md) owns Settings validation, default handling and atomic preference updates
+
+## Dashboard summary reads
+
+The backend [Dashboard use case](../../backend/src/profile/dashboard.ts) revalidates its trusted actor and reads account-scoped MTG summaries in one repeatable-read, read-only transaction. SQL computes copy/card/printing/set/foil/deck totals and quantity-weighted set, finish and condition distributions. Finish/condition results retain explicit zero buckets. Per-deck SQL allocates exact printing quantities before alternate copies of the same canonical card, independently for each deck.
+
+The DTO contains complete summary distributions and deck availability totals, plus at most eight recent entries ordered by `updated_at DESC, id`. It maps `updatedAt` to ISO strings and never transfers the full Inventory or mutation-request history. A savepoint isolates unavailable scan-count reads, returning `pendingScanReviews: null` while retaining other summaries. Profile totals also remain aggregate reads; unavailable totals do not block profile-card customization.
 
 ## Current Mutation Surface
 
-- update the authenticated account's avatar, artwork and validated profile card definition in one statement
+- patch supplied account email/avatar/artwork fields and merge validated card fields under the account lock, preserving omitted values
 - inventory creation and lookup
 - create/rename/delete inventory groups and replace entry memberships atomically
 - add/update/remove/reorder inventory cards

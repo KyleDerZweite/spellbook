@@ -12,11 +12,11 @@ Spellbook authenticates local accounts by username and password. `user_profiles.
 
 The backend [local-authentication use case](../../backend/src/auth/local.ts) owns credential validation, hashing, rate/derivation limits and database sessions. [Frontend composition](../../frontend/src/lib/server/composition.ts) privately consumes the shared database resource and supplies demo-mode configuration. The named [database compatibility adapter](../../frontend/src/lib/server/db/client.ts) injects database/build-analysis configuration and constructs the single backend database resource. [`contracts/src/auth.ts`](../../contracts/src/auth.ts) owns the safe user/session/application shapes; `expiresAt` is an ISO string at this boundary. The frontend owns cookie handling, origin checks, native forms and HTTP error mapping. Existing public response shapes remain unchanged.
 
-The shared [profile contract](../../contracts/src/profile.ts) owns artwork IDs, defaults, ID validation and the card definition type. Frontend artwork metadata owns labels/image paths, and the full card validator remains in frontend. Settings preference and password persistence remain enumerated compatibility code for later feature migration. A legacy session adapter converts expiry to Date for untouched password callers; this does not change the new auth DTO.
+The shared [profile contract](../../contracts/src/profile.ts) owns avatar/artwork IDs, defaults, ID validation, contact-email normalization and profile patch/read types. [profile-card.ts](../../contracts/src/profile-card.ts) owns full card validation, limits, mana grammar, defaults and KPI names. Frontend owns labels/image paths and current-metric rendering. The backend [Profile use case](../../backend/src/profile/profile.ts) owns preference/card persistence and aggregate profile totals. Settings forms and account HTTP adapters call these same use cases. Password handling delegates to backend Auth; the removed Settings/Profile persistence imports no longer need boundary exceptions.
 
 Backend authentication, session validation and inspection produce server-side actors associated with their validated session. The backend's `requireActor` revalidates that session and derives current account identity from the database, including when called inside a writing transaction. A copied or fabricated `AuthUser` DTO has no actor authority. Changing a trusted object's account fields cannot select a different account. HTTP adapters authenticate credentials again rather than accepting a serialized actor as authority.
 
-The backend also provides current-password-confirmed rotation and JSON-safe session inspection. Rotation checks the verified credential again under the account-row lock, updates the hash, revokes old sessions and creates its replacement in one transaction. Existing web password handling remains the named compatibility caller until the Account/Profile migration. This foundation adds no public endpoint by itself; the entry-point table below describes the routes currently implemented.
+The backend also provides current-password-confirmed rotation and JSON-safe session inspection. Rotation checks the verified credential again under the account-row lock, updates the hash, revokes old sessions and creates its replacement in one transaction. Web password handling and the account API both call this rotation use case. Session inspection is exposed through the account HTTP adapter; the entry-point table below lists implemented routes.
 
 ## Credentials and sessions
 
@@ -26,13 +26,13 @@ The explicit demo deployment supplies a Demo profile-card fallback only for user
 
 Sessions use random 32-byte opaque tokens. `auth_sessions` stores only the token's SHA-256 digest, account ID, creation time, and fixed 30-day expiry. Validation checks the database on each request. Logout revokes the current session. Operator password recovery and self-service password changes revoke every old session for that account.
 
-`user_profiles.avatar_id` stores the account's selected sprite, with `wizard` as the default. Migration `0007_profile_avatar.sql` adds this field for existing accounts without changing their identities or sessions. Login, registration, and session validation return `avatarId` with the user. The authenticated `/settings` action accepts `intent=avatar`, validates choices against the shared [avatar collection](../../frontend/src/lib/profile/avatars.ts), and updates only the current account's avatar. Apply the normal database migrations before deploying code that reads this field.
+`user_profiles.avatar_id` stores the account's selected sprite, with `wizard` as the default. Migration `0007_profile_avatar.sql` adds this field for existing accounts without changing their identities or sessions. Login, registration, and session validation return `avatarId` with the user. The authenticated `/settings` action accepts `intent=avatar`, validates choices against the shared [avatar IDs](../../contracts/src/profile.ts), and updates only the current account's avatar. Apply the normal database migrations before deploying code that reads this field.
 
-`user_profiles.artwork_id` stores the selected profile artwork, with `grove` as the default. Migration `0008_profile_artwork.sql` adds the field for existing accounts. Registration accepts an optional `artworkId` from the shared [artwork collection](../../frontend/src/lib/profile/artwork.ts). Omission uses the default; an explicit invalid choice rejects registration before account creation. Login and session validation return the stored `artworkId`. The authenticated `/settings/profile-card` form requires artwork from that collection and updates it together with the complete card definition. It does not require or change an avatar. Submitted account IDs never select the update target.
+`user_profiles.artwork_id` stores the selected profile artwork, with `grove` as the default. Migration `0008_profile_artwork.sql` adds the field for existing accounts. Registration accepts an optional `artworkId` from the shared [artwork IDs](../../contracts/src/profile.ts). Omission uses the default; an explicit invalid choice rejects registration before account creation. Login and session validation return the stored `artworkId`. The authenticated `/settings/profile-card` form requires artwork from that collection and delegates only edited artwork/card fields to the backend Profile patch. It does not require or change an avatar. Submitted account IDs never select the update target.
 
-Migration `0009_profile_card.sql` adds nullable `user_profiles.profile_card` JSONB for the private card design. The authenticated `/settings` and `/settings/profile-card` loads read it through the account-scoped [profile repository](../../frontend/src/lib/server/data/profile.ts), independently of inventory totals. Missing or invalid stored designs use the shared username-based default without writing it. Session and login responses retain their existing user shape.
+Migration `0009_profile_card.sql` adds nullable `user_profiles.profile_card` JSONB for the private card design. The authenticated `/settings` and `/settings/profile-card` loads read it through the account-scoped [Profile use case](../../backend/src/profile/profile.ts), independently of inventory totals. Missing or invalid stored designs use the shared username-based default without writing it. Session and login responses retain their existing user shape.
 
-The `/settings/profile-card` action validates complete card submissions through the shared [card definition](../../frontend/src/lib/profile/card.ts), including field types, limits, mana symbols and KPI placeholders. It validates artwork before one account-scoped update saves the card and artwork. Invalid submissions return field errors, safe submitted strings and the legendary boolean for correction. An omitted native legendary checkbox means false. The database stores placeholder text, while the presentation resolves current account metrics.
+The `/settings/profile-card` action validates complete card submissions through the shared [card validator](../../contracts/src/profile-card.ts), including field types, limits, mana symbols and KPI placeholders. Backend validates the saved card merged with supplied fields under the account-row lock, then saves supplied preference/card changes atomically. Unknown fields or invalid merged cards fail without partial changes. Invalid submissions return field errors, safe submitted strings and the legendary boolean for correction. An omitted native legendary checkbox means false. The database stores placeholder text, while the presentation resolves current account metrics.
 
 The `/settings` action also accepts `intent=email`. It trims an optional contact email and accepts an empty value or a valid email address of at most 254 characters. Email changes preserve the avatar, artwork, card and username. Contact email is not verified and does not authenticate an account or enable recovery. Each Settings action requires the same origin and uses `locals.user.accountId` for ownership.
 
@@ -40,19 +40,33 @@ The `/settings/password` form requires the current password, a new password of 1
 
 The browser receives the `spellbook_session` cookie with `HttpOnly`, `SameSite=Lax`, and `Secure` on HTTPS. The cookie contains the opaque token. The installed web app uses this same session. There is no refresh token or identity-provider callback.
 
+## Account HTTP contract
+
+The [account adapter](../../frontend/src/lib/server/account.ts) and [OpenAPI](../../frontend/src/routes/openapi.json/+server.ts) own HTTP parsing, responses and exact schemas. These routes accept a validated bearer session or browser cookie. An explicit Authorization header takes precedence; invalid bearer credentials never fall back to cookies. Cookie mutations require matching Origin. Successful account responses use HTTP 200 and `Cache-Control: no-store`.
+
+`GET /api/account/profile` returns `{ user, card, totals, statsError }`. Totals are aggregate profile metrics, or null with a visible `statsError` when unavailable. `PATCH` accepts optional `email`, `avatarId`, `artworkId` and partial `profileCard` fields. Omitted fields retain their saved values. Backend revalidates the session-produced actor and merges card fields under the account lock; disjoint edits survive, while the same supplied field uses the last successful save. Empty patches are authenticated no-ops returning the current profile. Invalid/unknown fields return HTTP 400 with `{ kind: 'ValidationFailed', message, fields }`.
+
+Enhanced card forms submit only edited fields. Native forms carry `baselineCard` and `baselineArtworkId`, allowing the adapter to derive the user's edits from the submitted baseline rather than overwrite disjoint later changes. Invalid baselines fail with retained inputs and a reload instruction. An unchanged valid form remains an authenticated no-op. This baseline is a change detector, not actor authority or an optimistic text revision.
+
+`GET /api/account/dashboard` returns the [DashboardSummary](../../contracts/src/dashboard.ts) contract. `GET /api/auth/session` returns `{ user, expiresAt }` for the selected validated session, without its token or stored hash. `POST /api/account/password` accepts only `currentPassword` and `newPassword`, rotates through backend Auth and returns `{ token, expiresAt }`. Expiry is an ISO string. Cookie callers receive a replacement cookie; bearer callers receive the replacement token without a cookie. Incorrect passwords or invalid fields return HTTP 400; revoked/expired sessions return HTTP 401 and rate limits return HTTP 429. Existing demo password immutability remains enforced.
+
 ## Entry points
 
-| Endpoint                  | Behavior                                                         |
-| ------------------------- | ---------------------------------------------------------------- |
-| `/settings`               | Contact email and avatar load and separate form intents          |
-| `/settings/profile-card`  | Private card definition and artwork load and form action         |
-| `/settings/password`      | Current-password-confirmed change and fresh browser session      |
-| `/auth/register`          | Local account registration page and form action                  |
-| `/auth/login`             | Local login page and form action                                 |
-| `POST /auth/logout`       | Revoke the browser session and redirect to `/`                   |
-| `POST /api/auth/register` | Accept JSON credentials and return a session token with HTTP 201 |
-| `POST /api/auth/login`    | Accept JSON credentials and return a session token with HTTP 200 |
-| `POST /api/auth/logout`   | Revoke the supplied bearer token and return HTTP 204             |
+| Endpoint                                                 | Behavior                                                              |
+| -------------------------------------------------------- | --------------------------------------------------------------------- |
+| `/settings`                                              | Contact email and avatar load and separate form intents               |
+| `/settings/profile-card`                                 | Private card definition and artwork load and form action              |
+| `/settings/password`                                     | Current-password-confirmed change and fresh browser session           |
+| `/auth/register`                                         | Local account registration page and form action                       |
+| `/auth/login`                                            | Local login page and form action                                      |
+| `POST /auth/logout`                                      | Revoke the browser session and redirect to `/`                        |
+| `POST /api/auth/register`                                | Accept JSON credentials and return a session token with HTTP 201      |
+| `POST /api/auth/login`                                   | Accept JSON credentials and return a session token with HTTP 200      |
+| `GET /api/account/profile`, `PATCH /api/account/profile` | Read current profile and patch supplied preference/card fields        |
+| `GET /api/account/dashboard`                             | Read account aggregates, deck availability and bounded recent entries |
+| `POST /api/account/password`                             | Rotate credentials and return a replacement session                   |
+| `GET /api/auth/session`                                  | Inspect the selected authenticated session                            |
+| `POST /api/auth/logout`                                  | Revoke the supplied bearer token and return HTTP 204                  |
 
 JSON credentials have `username` and `password` fields. Registration also accepts the optional `artworkId` preference. Successful responses contain `user`, `token`, and `expiresAt`; JSON login does not set a cookie. `/api/mobile/v1/mtg/...` accepts `Authorization: Bearer <token>` or a browser session. An explicit invalid bearer header fails instead of falling back to a cookie.
 

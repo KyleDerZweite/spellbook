@@ -1,7 +1,7 @@
 # Mobile and scan
 
 - Status: Canonical
-- Last Reviewed: 2026-10-06
+- Last Reviewed: 2026-10-07
 - Source of Truth: code, proposed recognition design, primary documentation
 - Update Triggers: manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, scan processing, recognition evaluation, owned-card search, device runtime selection
 - Related Docs: [Frontend](./frontend.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../../GLOSSARY.md), [Deployment](../operations/deployment.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md)
@@ -10,7 +10,7 @@ Spellbook has one web client. Its manifest in `frontend/static/manifest.webmanif
 
 ## Implemented API boundary
 
-The `/api/mobile/v1/mtg/...` API exposes search, inventory, decks, import/export, and scan orchestration. External clients authenticate with local session bearer tokens; the `/mtg/scan` workspace uses its browser cookie with origin protection on mutations. See [authentication](./auth.md) for acquisition and revocation.
+The `/api/mobile/v1/mtg/...` API exposes search, inventory, decks, import/export, and scan orchestration. The account routes expose Profile read/patch, Dashboard summaries, password rotation and session inspection through the same backend use cases as Settings/Dashboard. [Authentication](./auth.md#account-http-contract) owns their exact contract; [route inventory](../product/routing-and-games.md) lists their paths. External clients authenticate with local session bearer tokens; the `/mtg/scan` workspace uses its browser cookie with origin protection on mutations. See [authentication](./auth.md) for acquisition and revocation.
 
 Authenticated clients can read `GET /api/mobile/v1/mtg/decks/{deckId}/availability`. The route checks deck ownership and reuses the shared allocation function to compare that deck with current aggregate inventory. Its response contains entry counts and totals for required, exact, alternate, and missing copies. It makes no inventory changes or cross-deck reservations. See the [product specification](../product/specification.md#deck-availability) for allocation semantics and [OpenAPI](../../frontend/src/routes/openapi.json/+server.ts) for the wire schema.
 
