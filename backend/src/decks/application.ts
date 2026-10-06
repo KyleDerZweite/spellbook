@@ -2,6 +2,7 @@ import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { AuthUser } from '@spellbook/contracts/auth.ts';
 import { ActorError, type createLocalAuth } from '../auth/local.ts';
 import type { Database } from '../db/client.ts';
+import { databaseInteger, DatabaseIntegerRangeError } from '../db/numbers.ts';
 import {
 	decks,
 	deckCards,
@@ -68,9 +69,8 @@ function cardDto(row: CardRow): DeckCard {
 	};
 }
 function aggregateQuantity(value: string | number): number {
-	const quantity = Number(value);
-	if (!Number.isSafeInteger(quantity) || quantity < 0)
-		throw new Error('Quantity aggregate is outside the JSON safe integer range');
+	const quantity = databaseInteger(value);
+	if (quantity < 0) throw new DatabaseIntegerRangeError();
 	return quantity;
 }
 export class DescriptionConflictError extends ValidationError {
@@ -336,16 +336,20 @@ export function createDecks(
 		deckId: string,
 		operation: DeckOperation,
 		now: Date,
-		resolvedPrintings: Map<string, CardDocument>
+		resolvedPrintings: Map<string, CardDocument>,
+		decrementFloor: 0 | 1
 	): Promise<DeckAcknowledgement['changes'][number] & { removed?: string; changed: boolean }> {
 		if (operation.op === 'add') {
+			const printing = resolvedPrintings.get(operation.card.catalogCardId);
+			if (!printing) throw new ValidationError('Printing not found');
+			const identity = toCardIdentity(printing);
 			const [before] = await tx
 				.select()
 				.from(deckCards)
 				.where(
 					and(
 						eq(deckCards.deckId, deckId),
-						eq(deckCards.catalogCardId, operation.card.catalogCardId),
+						eq(deckCards.catalogCardId, identity.catalogCardId),
 						eq(deckCards.role, operation.role || 'main')
 					)
 				)
@@ -358,7 +362,7 @@ export function createDecks(
 					accountId,
 					deckId,
 					game: 'mtg',
-					...operation.card,
+					...identity,
 					quantity: operation.quantity,
 					role: operation.role || 'main',
 					createdAt: now,
@@ -367,6 +371,7 @@ export function createDecks(
 				.onConflictDoUpdate({
 					target: [deckCards.deckId, deckCards.catalogCardId, deckCards.role],
 					set: {
+						...identity,
 						quantity: sql`${deckCards.quantity}+${operation.quantity}`,
 						updatedAt: now
 					}
@@ -462,11 +467,11 @@ export function createDecks(
 				: operation.op === 'increment'
 					? entry.quantity + operation.quantity
 					: operation.op === 'decrement'
-						? Math.max(0, entry.quantity - operation.quantity)
+						? Math.max(decrementFloor, entry.quantity - operation.quantity)
 						: operation.quantity;
 		normalizeQuantity(quantity);
 		if (quantity <= 0) await tx.delete(deckCards).where(eq(deckCards.id, entry.id));
-		else
+		else if (quantity !== entry.quantity)
 			await tx
 				.update(deckCards)
 				.set({ quantity, updatedAt: now })
@@ -486,7 +491,8 @@ export function createDecks(
 		input: DeckBulkInput,
 		create?: { name: string; description: string; format: string },
 		intent?: unknown,
-		actor?: AuthUser
+		actor?: AuthUser,
+		decrementFloor: 0 | 1 = 0
 	) {
 		game(input.game);
 		const requestId = assertRequestId(input.requestId);
@@ -499,7 +505,8 @@ export function createDecks(
 						...(create ? { create } : { deckId: input.deckId.toLowerCase() }),
 						game: input.game,
 						source,
-						operations: normalized
+						operations: normalized,
+						...(decrementFloor ? { decrementFloor } : {})
 					})
 				: mutationFingerprint(intent);
 
@@ -519,12 +526,17 @@ export function createDecks(
 			if (recorded.acknowledgement) return recorded.acknowledgement;
 		}
 		const resolvedPrintings = new Map<string, CardDocument>();
-		for (const operation of normalized)
-			if (operation.op === 'replace' && !resolvedPrintings.has(operation.catalogCardId))
-				resolvedPrintings.set(
-					operation.catalogCardId,
-					await catalog.getCatalogPrinting(operation.catalogCardId)
-				);
+		for (const operation of recorded ? [] : normalized) {
+			const printingId =
+				operation.op === 'add'
+					? operation.card.catalogCardId
+					: operation.op === 'replace'
+						? operation.catalogCardId
+						: null;
+			if (printingId && !resolvedPrintings.has(printingId))
+				resolvedPrintings.set(printingId, await catalog.getCatalogPrinting(printingId));
+		}
+
 		return db.transaction(async (tx) => {
 			await authorizeWrite(tx, accountId, actor);
 			await tx.execute(
@@ -572,7 +584,15 @@ export function createDecks(
 			const now = new Date();
 			let semanticChange = false;
 			for (const operation of normalized) {
-				const change = await apply(tx, accountId, deck.id, operation, now, resolvedPrintings);
+				const change = await apply(
+					tx,
+					accountId,
+					deck.id,
+					operation,
+					now,
+					resolvedPrintings,
+					decrementFloor
+				);
 				const { removed, changed, ...dto } = change;
 				semanticChange ||= changed;
 				changes.push(dto);
@@ -642,7 +662,7 @@ export function createDecks(
 	) {
 		const deckId =
 			(await retryEntry(accountId, requestId)) || (await entryDeck(accountId, entryId));
-		return bulkMutateDeckCards(
+		return mutation(
 			accountId,
 			{
 				deckId,
@@ -669,7 +689,10 @@ export function createDecks(
 						: [])
 				]
 			},
-			actor
+			undefined,
+			undefined,
+			actor,
+			delta !== undefined && delta < 0 ? 1 : 0
 		);
 	}
 	async function removeDeckCard(

@@ -1,3 +1,4 @@
+import { ensureDeckCatalogFixture } from '../deck-catalog-fixture.ts';
 import type { AuthUser } from '@spellbook/contracts/auth.ts';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
@@ -10,6 +11,7 @@ run('MTG repository bulk operations', () => {
 
 	beforeAll(async () => {
 		modules = await loadModules();
+		deckFixture = await ensureDeckCatalogFixture(modules.pool);
 	});
 
 	beforeEach(async () => {
@@ -89,7 +91,7 @@ run('MTG repository bulk operations', () => {
 			source: 'mobile',
 			game: 'mtg',
 			deckId: deck.id,
-			operations: [deckAddOperation('card-3', 2), deckAddOperation('card-3', 3)]
+			operations: [deckAddOperation(2), deckAddOperation(3)]
 		});
 
 		expect(await modules.getDeckCardsForDeck(actor, deck.id)).toMatchObject([{ quantity: 5 }]);
@@ -107,7 +109,7 @@ run('MTG repository bulk operations', () => {
 			source: 'mobile',
 			game: 'mtg',
 			deckId: deck.id,
-			operations: [deckAddOperation('card-4', 2)]
+			operations: [deckAddOperation(2)]
 		});
 		const entryId = cards.changes[0].entryId;
 
@@ -152,10 +154,12 @@ function inventoryAddOperation(cardId: string, quantity: number) {
 	};
 }
 
-function deckAddOperation(cardId: string, quantity: number) {
+let deckFixture: Awaited<ReturnType<typeof ensureDeckCatalogFixture>>;
+
+function deckAddOperation(quantity: number) {
 	return {
 		op: 'add' as const,
-		card: cardIdentity(cardId),
+		card: deckFixture,
 		quantity,
 		role: 'main' as const
 	};

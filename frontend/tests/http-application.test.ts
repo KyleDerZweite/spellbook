@@ -765,7 +765,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				assert.equal((await settings.json()).totals.total, 4294967294);
 			}
 		);
-await t.test(
+		await t.test(
 			'Deck API returns original compact acknowledgements after later mutations',
 			async () => {
 				const login = await request('/api/auth/login', { username, password });
@@ -815,7 +815,7 @@ await t.test(
 				);
 			}
 		);
-await t.test(
+		await t.test(
 			'single-entry atomic deltas retain caller intent after later edits and deletion',
 			async () => {
 				const login = await request('/api/auth/login', { username, password });
@@ -892,7 +892,7 @@ await t.test(
 				assert.equal((await patch({ ...input, delta: 2 })).status, 409);
 			}
 		);
-await t.test(
+		await t.test(
 			'Deck Description conflicts preserve independent metadata saves and expose latest saved text',
 			async () => {
 				const login = await request('/api/auth/login', { username, password });
@@ -949,7 +949,7 @@ await t.test(
 				assert.equal('mutationRequests' in snapshot, false);
 			}
 		);
-await t.test(
+		await t.test(
 			'Deck retries survive entry recreation and deck deletion, with changed payload rejection',
 			async () => {
 				const login = await request('/api/auth/login', { username, password });
@@ -1019,7 +1019,7 @@ await t.test(
 				assert.deepEqual(await (await request(path, input, { authorization })).json(), ack);
 			}
 		);
-await t.test(
+		await t.test(
 			'Deck import preview, atomic commit and web/API exports share the current Deck interface',
 			async () => {
 				const login = await request('/api/auth/login', { username, password });
@@ -1077,7 +1077,7 @@ await t.test(
 				assert.equal(after.decks.length, before.decks.length);
 			}
 		);
-await t.test(
+		await t.test(
 			'semantic printing replacement preserves source identity and destination provenance',
 			async (context) => {
 				const fixturePath = process.env.DECK_SCALE_FIXTURE;
@@ -1251,7 +1251,7 @@ await t.test(
 				assert.equal(bad.status, 400);
 			}
 		);
-await t.test(
+		await t.test(
 			'aggregate quantities exceed int32 without overflowing supported entries',
 			async () => {
 				const response = await request('/api/auth/register', {
@@ -1335,7 +1335,7 @@ await t.test(
 				});
 			}
 		);
-await t.test(
+		await t.test(
 			'selected Deck reads remain bounded with 1k, 10k and 50k real Inventory positions',
 			async (context) => {
 				const fixturePath = process.env.DECK_SCALE_FIXTURE;
@@ -1534,6 +1534,74 @@ await t.test(
 						2
 					)
 				);
+			}
+		);
+		await t.test(
+			'bulk additions use authoritative printing identity and replay without Catalog refetch',
+			async () => {
+				const login = await request('/api/auth/login', { username, password });
+				const authorization = `Bearer ${(await login.json()).token}`;
+				const deck = (
+					await (
+						await request(
+							'/api/mobile/v1/mtg/decks',
+							{ name: 'Trusted printing identity', format: 'Modern' },
+							{ authorization }
+						)
+					).json()
+				).at(-1);
+				const input = {
+					requestId: randomUUID(),
+					operations: [
+						{
+							op: 'add',
+							card: {
+								catalogCardId: card.id,
+								canonicalCardId: randomUUID(),
+								name: 'Forged name',
+								setCode: 'fake',
+								imageUri: 'https://invalid.example/forged.png'
+							},
+							quantity: 2,
+							role: 'main'
+						}
+					]
+				};
+				const path = `/api/mobile/v1/mtg/decks/${deck.id}/cards/bulk`;
+				const added = await request(path, input, { authorization });
+				assert.equal(added.status, 200);
+				const ack = await added.json();
+				const snapshot = await (
+					await request(`/api/mobile/v1/mtg/decks?deck=${deck.id}`, undefined, { authorization })
+				).json();
+				assert.deepEqual(
+					{
+						catalogCardId: snapshot.deckCards[0].catalogCardId,
+						canonicalCardId: snapshot.deckCards[0].canonicalCardId,
+						name: snapshot.deckCards[0].name,
+						setCode: snapshot.deckCards[0].setCode,
+						imageUri: snapshot.deckCards[0].imageUri
+					},
+					{
+						catalogCardId: card.id,
+						canonicalCardId: card.oracle_id,
+						name: card.name,
+						setCode: card.set_code,
+						imageUri: card.image_uri
+					}
+				);
+				await pool.query(
+					'UPDATE catalog_state SET active_generation=NULL WHERE id=1 AND active_generation=$1',
+					[generation]
+				);
+				try {
+					assert.deepEqual(await (await request(path, input, { authorization })).json(), ack);
+				} finally {
+					await pool.query(
+						'UPDATE catalog_state SET active_generation=$1 WHERE id=1 AND active_generation IS NULL',
+						[generation]
+					);
+				}
 			}
 		);
 	} finally {

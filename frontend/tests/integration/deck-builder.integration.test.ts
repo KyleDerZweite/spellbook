@@ -1,3 +1,4 @@
+import { ensureDeckCatalogFixture } from '../deck-catalog-fixture.ts';
 import type { AuthUser } from '@spellbook/contracts/auth.ts';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { eq } from 'drizzle-orm';
@@ -8,8 +9,10 @@ run('deck builder transactions', () => {
 	let modules: Awaited<ReturnType<typeof loadModules>>;
 	let accountId: string;
 	let actor: AuthUser;
+	let card: Awaited<ReturnType<typeof ensureDeckCatalogFixture>>;
 	beforeAll(async () => {
 		modules = await loadModules();
+		card = await ensureDeckCatalogFixture(modules.pool);
 	});
 	beforeEach(async () => {
 		const account = await modules.application.auth.authenticate(
@@ -35,13 +38,7 @@ run('deck builder transactions', () => {
 		op: 'add' as const,
 		quantity,
 		role,
-		card: {
-			catalogCardId: 'printing',
-			canonicalCardId: 'oracle',
-			name: 'Opt',
-			setCode: 'sta',
-			imageUri: ''
-		}
+		card
 	});
 
 	it('serves owned availability from real deck and inventory data without reserving copies', async () => {
@@ -316,6 +313,104 @@ run('deck builder transactions', () => {
 			latest: { description: 'My description', descriptionRevision: '1' }
 		});
 	});
+	it('keeps concurrent ordinary decrements at one and preserves original no-op acknowledgements', async () => {
+		const deck = await modules.createDeckRecord(actor, deckInput);
+		const added = await modules.bulkMutateDeckCards(actor, {
+			requestId: crypto.randomUUID(),
+			source: 'web',
+			game: 'mtg',
+			deckId: deck.id,
+			operations: [operation(2)]
+		});
+		const entryId = added.changes[0].entryId;
+		const other = await modules.application.auth.authenticate(
+			'login',
+			actor.username,
+			'deck-integration-fixture-password'
+		);
+		if (!other) throw new Error('Second client login failed');
+		const requestIds = [crypto.randomUUID(), crypto.randomUUID()];
+		const clients = [actor, other.user];
+		const answers = await Promise.all(
+			clients.map((client, index) =>
+				modules.updateDeckCard(client, entryId, undefined, undefined, requestIds[index], -1)
+			)
+		);
+		expect(answers.map((answer) => answer.changes[0].quantity)).toEqual([1, 1]);
+		expect(answers.map((answer) => answer.revision)).toEqual(['2', '2']);
+		expect(answers.map((answer) => answer.changes[0].delta).sort()).toEqual([-1, 0]);
+		expect(answers.every((answer) => answer.removedEntryIds.length === 0)).toBe(true);
+		expect(await modules.getDeckCardsForDeck(actor, deck.id)).toMatchObject([
+			{ id: entryId, quantity: 1 }
+		]);
+		await modules.updateDeckCard(actor, entryId, undefined, undefined, crypto.randomUUID(), 1);
+		for (const [index, client] of clients.entries())
+			expect(
+				await modules.updateDeckCard(client, entryId, undefined, undefined, requestIds[index], -1)
+			).toEqual(answers[index]);
+		expect(await modules.getDeckCardsForDeck(actor, deck.id)).toMatchObject([
+			{ id: entryId, quantity: 2 }
+		]);
+		await expect(
+			modules.bulkMutateDeckCards(actor, {
+				requestId: requestIds[0],
+				source: 'web',
+				game: 'mtg',
+				deckId: deck.id,
+				operations: [{ op: 'decrement', target: { entryId }, quantity: 1 }]
+			})
+		).rejects.toMatchObject({ name: 'RequestConflictError' });
+	});
+
+	it('validates signed delta bounds and keeps ordinary reductions separate from bulk removal', async () => {
+		const deck = await modules.createDeckRecord(actor, deckInput);
+		const added = await modules.bulkMutateDeckCards(actor, {
+			requestId: crypto.randomUUID(),
+			source: 'web',
+			game: 'mtg',
+			deckId: deck.id,
+			operations: [operation(2)]
+		});
+		const entryId = added.changes[0].entryId;
+		const reduced = await modules.updateDeckCard(
+			actor,
+			entryId,
+			undefined,
+			undefined,
+			crypto.randomUUID(),
+			-2147483647
+		);
+		expect(reduced.changes[0]).toMatchObject({ quantity: 1, delta: -1 });
+		expect(reduced.removedEntryIds).toEqual([]);
+		for (const delta of [0, 1.5, NaN, Infinity, 2147483648, -2147483648])
+			await expect(
+				modules.updateDeckCard(actor, entryId, undefined, undefined, crypto.randomUUID(), delta)
+			).rejects.toMatchObject({ kind: 'ValidationFailed' });
+		await modules.updateDeckCard(
+			actor,
+			entryId,
+			undefined,
+			undefined,
+			crypto.randomUUID(),
+			2147483646
+		);
+		await expect(
+			modules.updateDeckCard(actor, entryId, undefined, undefined, crypto.randomUUID(), 1)
+		).rejects.toMatchObject({ kind: 'ValidationFailed' });
+		expect(await modules.getDeckCardsForDeck(actor, deck.id)).toMatchObject([
+			{ quantity: 2147483647 }
+		]);
+		const removed = await modules.bulkMutateDeckCards(actor, {
+			requestId: crypto.randomUUID(),
+			source: 'web',
+			game: 'mtg',
+			deckId: deck.id,
+			operations: [{ op: 'decrement', target: { entryId }, quantity: 2147483647 }]
+		});
+		expect(removed.removedEntryIds).toEqual([entryId]);
+		expect(await modules.getDeckCardsForDeck(actor, deck.id)).toEqual([]);
+	});
+
 	it('does not advance Deck composition revision for a quantity no-op', async () => {
 		const deck = await modules.createDeckRecord(actor, deckInput);
 		const first = await modules.bulkMutateDeckCards(actor, {

@@ -1026,7 +1026,16 @@ const SCHEMA = {
 				['requestId', 'catalogCardId', 'canonicalCardId', 'name']
 			),
 			DeckCardUpdateRequest: object(
-				{ requestId: string, quantity: integer, delta: integer, role },
+				{
+					requestId: string,
+					quantity: integer,
+					delta: {
+						...integer,
+						description:
+							'Nonzero signed quantity delta. Ordinary decreases stop at one copy; use DELETE to remove the entry.'
+					},
+					role
+				},
 				['requestId']
 			),
 			ScanCandidate: {
