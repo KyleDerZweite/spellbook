@@ -1258,7 +1258,7 @@
 			max-height: none;
 		}
 	}
-	@media (max-width: 420px) {
+	@media (max-width: 640px) {
 		.list-controls {
 			grid-template-columns: repeat(3, minmax(0, 1fr));
 		}
@@ -1275,12 +1275,14 @@
 			min-height: 44px;
 			font-size: 0.75rem;
 		}
-		.deck-library {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-		}
 		.list-controls input {
 			grid-column: 1/-1;
 			order: -1;
+		}
+	}
+	@media (max-width: 420px) {
+		.deck-library {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 		.deck-row {
 			grid-template-columns: 76px minmax(0, 1fr);

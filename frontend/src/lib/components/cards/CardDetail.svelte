@@ -114,6 +114,7 @@
 	});
 
 	function handleOpenChange(open: boolean) {
+		if (!open && quickAddPending) return;
 		if (!open) onClose();
 		detailOpen = open;
 	}
@@ -162,6 +163,8 @@
 			style="background: rgba(8, 11, 13, 0.85); backdrop-filter: blur(4px); animation: fade-in 200ms ease-out;"
 		>
 			<Dialog.Content
+				escapeKeydownBehavior={quickAddPending ? 'ignore' : 'close'}
+				interactOutsideBehavior={quickAddPending ? 'ignore' : 'close'}
 				onCloseAutoFocus={(event) => {
 					if (returnFocus?.isConnected) {
 						event.preventDefault();
@@ -223,6 +226,7 @@
 
 				<!-- Close button -->
 				<Dialog.Close
+					disabled={quickAddPending}
 					class="absolute right-2 top-2 z-10 flex h-11 w-11 cursor-pointer items-center justify-center rounded border-none bg-void/60 text-text-secondary transition-colors hover:text-gold-bright"
 					aria-label="Close card detail"
 				>

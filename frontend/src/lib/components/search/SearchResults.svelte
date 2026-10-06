@@ -75,17 +75,23 @@
 				</div>
 			{/each}
 		</div>
-	{:else if !browseMode && query.length >= 2 && hits.length === 0 && !loading}
+	{:else if hits.length === 0 && !loading && (browseMode || query.length >= 2)}
 		<!-- Empty search state -->
 		<div class="flex items-center justify-center py-20">
 			<div class="text-center">
-				<p class="font-body text-sm text-text-secondary">No cards found</p>
+				<p class="font-body text-sm text-text-secondary">
+					{hasFilters || query.length >= 2 ? 'No cards found' : 'No cards available'}
+				</p>
 				<p class="mt-2 font-body text-sm italic text-text-muted">
-					No cards match "{query}". Try another name.
+					{#if query.length >= 2}No cards match "{query}". Try another name.
+					{:else if hasFilters}No cards match these filters.
+					{:else}No cards are available in this catalog.{/if}
 				</p>
 				{#if hasFilters && onClearFilters}<button
 						class="btn btn-secondary mt-4"
 						onclick={onClearFilters}>Clear filters</button
+					>{:else if onRetry}<button class="btn btn-secondary mt-4" onclick={onRetry}
+						>Retry search</button
 					>{/if}
 			</div>
 		</div>
