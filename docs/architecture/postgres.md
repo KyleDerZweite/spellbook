@@ -8,7 +8,7 @@
 
 PostgreSQL stores account-owned application state and the public Scryfall catalog.
 
-The backend [schema](../../backend/src/db/schema.ts) owns table definitions, and [database construction](../../backend/src/db/client.ts) owns Drizzle/pg setup. Frontend composition supplies configuration. Frontend schema/client modules are compatibility adapters for untouched repositories; the existing [Drizzle migration history](../../frontend/drizzle/) and migration commands remain unchanged.
+The backend [schema](../../backend/src/db/schema.ts) owns table definitions, and [database construction](../../backend/src/db/client.ts) owns Drizzle/pg setup. The named [frontend database compatibility adapter](../../frontend/src/lib/server/db/client.ts) injects database/build-analysis configuration and constructs one backend database resource. Frontend composition privately consumes that resource and exports only feature use cases. Raw `db`/`pool` exports stay in the database adapter for exact allowed compatibility consumers. Frontend schema/client modules are compatibility adapters for untouched repositories; the existing [Drizzle migration history](../../frontend/drizzle/) and migration commands remain unchanged.
 
 ## Current Tables
 
