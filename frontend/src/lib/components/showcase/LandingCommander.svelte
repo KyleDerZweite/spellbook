@@ -3,9 +3,9 @@
 	import Button from '#lib/components/ui/button/Button.svelte';
 	import { commanderDeck, commanderStack } from '#lib/showcase/commander-deck.ts';
 
-	let pointedCard = $state<number | null>(null);
-	let focusedCard = $state<number | null>(null);
-	const selectedCard = $derived(pointedCard ?? focusedCard);
+	let selectedCard = $state(0);
+	let deckElement: HTMLElement;
+	const currentCard = $derived(commanderStack[selectedCard]);
 	const colorNames: Record<string, string> = {
 		W: 'White',
 		U: 'Blue',
@@ -14,104 +14,60 @@
 		G: 'Green'
 	};
 
-	function cardLayer(index: number) {
-		if (index === selectedCard) return commanderStack.length + 1;
-		if (selectedCard !== null && index < selectedCard) return index + 1;
-		return commanderStack.length - index;
+	function selectCard(index: number) {
+		selectedCard = (index + commanderStack.length) % commanderStack.length;
 	}
 
 	function moveFocus(event: KeyboardEvent, index: number) {
-		if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+		if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key))
+			return;
 		event.preventDefault();
-		pointedCard = null;
-		const buttons = (event.currentTarget as HTMLElement)
-			.closest('.stack')
-			?.querySelectorAll<HTMLButtonElement>('.stack-hit');
-		if (!buttons?.length) return;
-		const next =
+		selectCard(
 			event.key === 'Home'
 				? 0
 				: event.key === 'End'
-					? buttons.length - 1
-					: (index + (event.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length;
-		buttons[next].focus();
-		focusedCard = next;
+					? commanderStack.length - 1
+					: index + (['ArrowRight', 'ArrowDown'].includes(event.key) ? 1 : -1)
+		);
+		deckElement.querySelectorAll<HTMLButtonElement>('[data-deck-card]')[selectedCard]?.focus();
 	}
 </script>
 
-<article class="commander-card" aria-label="Commander deck preview">
-	<header>
-		<a
-			class="deck-title"
-			href={commanderDeck.sourceURL}
-			target="_blank"
-			rel="noreferrer"
-			aria-label={'View ' + commanderDeck.name + ' on Archidekt (opens in a new tab)'}
-		>
-			{commanderDeck.name}
-		</a>
-		<span
-			class="colors"
-			role="img"
-			aria-label="{commanderDeck.colorIdentity
-				.map((color) => colorNames[color])
-				.join(' and ')} color identity"
-		>
-			{#each commanderDeck.colorIdentity as color (color)}
-				<i class="ms ms-cost ms-{color.toLowerCase()}" aria-hidden="true"></i>
-			{/each}
-		</span>
-	</header>
-	<div
-		class="stack"
-		style:--stack-count={commanderStack.length}
-		role="group"
-		aria-label="Preview deck cards"
-		onpointerleave={(event) => {
-			if (event.pointerType !== 'touch') pointedCard = null;
-		}}
-		onfocusout={(event) => {
-			const stack = event.currentTarget;
-			queueMicrotask(() => {
-				if (!stack.contains(document.activeElement)) focusedCard = null;
-			});
-		}}
+<article class="commander-deck" aria-label="Commander deck preview" bind:this={deckElement}>
+	<a
+		class="deck-title"
+		href={commanderDeck.sourceURL}
+		target="_blank"
+		rel="noreferrer"
+		aria-label={'View ' + commanderDeck.name + ' on Archidekt (opens in a new tab)'}
 	>
-		{#each commanderStack as card, index (card.catalogCardId)}
-			<div
-				class="card-slot"
-				class:selected={selectedCard === index}
-				class:commander={card.role === 'commander'}
-				style={'--index:' +
-					index +
-					';--shift:' +
-					(selectedCard !== null && index < selectedCard
-						? `${-Math.min(24, 8 * (selectedCard - index) + 6)}px`
-						: selectedCard !== null && index > selectedCard
-							? '10px'
-							: '0px') +
-					';--layer:' +
-					cardLayer(index)}
-			>
+		{commanderDeck.name}
+	</a>
+	<div class="deck-stage" role="group" aria-label="Preview deck cards">
+		<div class="ground-shadow" aria-hidden="true"></div>
+		<div class="deck-box">
+			<div class="box-back material" aria-hidden="true"></div>
+			<div class="box-floor" aria-hidden="true"></div>
+			<div class="sleeve-edges" aria-hidden="true"></div>
+			{#each commanderStack as card, index (card.catalogCardId)}
 				<Button
 					variant="ghost"
-					class="stack-hit"
+					class={card.role === 'commander'
+						? 'preview-card commander-window'
+						: 'preview-card seated-card'}
+					data-deck-card
+					data-selected={selectedCard === index}
+					style={'--card-depth:' + (-49 + (index - 1) * 16) + 'px'}
+					tabindex={selectedCard === index ? 0 : -1}
 					aria-label={'Preview ' + card.name + (card.role === 'commander' ? ', Commander' : '')}
 					aria-pressed={selectedCard === index}
-					onpointermove={(event) => {
-						if (event.pointerType !== 'touch') pointedCard = index;
+					onpointerenter={(event) => {
+						if (event.pointerType !== 'touch') selectCard(index);
 					}}
-					onfocus={() => {
-						pointedCard = null;
-						focusedCard = index;
-					}}
-					onclick={() => {
-						pointedCard = null;
-						focusedCard = index;
-					}}
+					onfocus={() => selectCard(index)}
+					onclick={() => selectCard(index)}
 					onkeydown={(event) => moveFocus(event, index)}
-				/>
-				<span class="stack-picture" aria-hidden="true">
+				>
 					<img
 						src={showcaseAsset(card.localImage)}
 						alt=""
@@ -120,184 +76,365 @@
 						draggable="false"
 						fetchpriority={card.role === 'commander' ? 'high' : 'auto'}
 					/>
-					{#if card.role === 'commander'}<span class="commander-marker commander-role"
-							>Commander</span
-						>{/if}
-				</span>
-			</div>
-		{/each}
+				</Button>
+			{/each}
+			<div class="box-left material" aria-hidden="true"></div>
+			<div class="box-right material" aria-hidden="true"></div>
+			<div class="box-front material" aria-hidden="true"></div>
+			<div class="front-rim" aria-hidden="true"></div>
+		</div>
+	</div>
+	<div class="card-selection">
+		<Button
+			variant="ghost"
+			size="icon"
+			class="browse-card"
+			aria-label="Preview previous card"
+			onclick={() => selectCard(selectedCard - 1)}
+		>
+			<svg
+				aria-hidden="true"
+				width="16"
+				height="16"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1.5"><path d="m14 6-6 6 6 6" /></svg
+			>
+		</Button>
+		<p class="current-card" aria-live="polite" aria-atomic="true">
+			<span>{currentCard.name}</span>
+			<span class="card-position">{selectedCard + 1} / {commanderStack.length}</span>
+		</p>
+		<Button
+			variant="ghost"
+			size="icon"
+			class="browse-card"
+			aria-label="Preview next card"
+			onclick={() => selectCard(selectedCard + 1)}
+		>
+			<svg
+				aria-hidden="true"
+				width="16"
+				height="16"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1.5"><path d="m10 6 6 6-6 6" /></svg
+			>
+		</Button>
 	</div>
 	<div class="deck-details">
 		<div class="deck-meta">
 			<span
 				><span class="commander-role">{commanderDeck.format}</span> · {commanderDeck.cardCount} cards</span
 			>
+			<span
+				class="colors"
+				role="img"
+				aria-label="{commanderDeck.colorIdentity
+					.map((color) => colorNames[color])
+					.join(' and ')} color identity"
+			>
+				{#each commanderDeck.colorIdentity as color (color)}
+					<i class="ms ms-cost ms-{color.toLowerCase()}" aria-hidden="true"></i>
+				{/each}
+			</span>
 		</div>
 		<div class="deck-credit">
 			<span class="credit">{commanderDeck.creator}</span>
-			<a class="source" href={commanderDeck.sourceURL} target="_blank" rel="noreferrer">
-				Archidekt <span aria-hidden="true">↗</span>
-			</a>
+			<a class="source" href={commanderDeck.sourceURL} target="_blank" rel="noreferrer"
+				>Archidekt <span aria-hidden="true">↗</span></a
+			>
 		</div>
 	</div>
 </article>
 
 <style>
-	.commander-card {
-		width: min(100%, var(--landing-deck-width, 324px));
-		padding: 1.1rem 1.25rem 1rem;
-		border: 1px solid color-mix(in srgb, var(--color-border) 70%, transparent);
-		border-radius: 1.25rem;
-		background: color-mix(in srgb, var(--color-card) 91%, transparent);
-		color: var(--color-card-foreground);
-		backdrop-filter: blur(18px);
-		box-shadow:
-			0 20px 56px #0002,
-			0 2px 5px #0001;
+	.commander-deck {
+		position: relative;
+		isolation: isolate;
+		width: 100%;
+		color: var(--color-foreground);
 	}
-	header,
-	.deck-meta {
-		display: flex;
-		justify-content: space-between;
-		gap: 0.75rem;
-	}
-	header {
-		align-items: flex-start;
+	.commander-deck::before {
+		content: '';
+		position: absolute;
+		z-index: -1;
+		inset: -9% -18% -8%;
+		pointer-events: none;
+		background: radial-gradient(
+			ellipse,
+			var(--color-background) 23%,
+			color-mix(in srgb, var(--color-background) 90%, transparent) 42%,
+			transparent 72%
+		);
 	}
 	.deck-title {
-		min-width: 0;
+		display: block;
+		max-width: 20rem;
+		margin-inline: auto;
 		color: inherit;
+		text-align: center;
 		text-decoration: none;
-		font-family: var(--landing-heading-font, var(--font-display));
+		font-family: var(--font-display);
 		font-size: 1.2rem;
-		font-weight: var(--landing-heading-weight, 500);
-		font-synthesis: none;
-		line-height: 1.2;
-		overflow-wrap: anywhere;
+		font-weight: 400;
+		line-height: 1.3;
+		text-wrap: balance;
 	}
-	.colors {
-		display: inline-flex;
-		gap: 0.3rem;
-		padding-top: 0.2rem;
-		font-size: 0.95rem;
-		flex-shrink: 0;
-	}
-	.stack {
-		--card-width: var(--landing-card-width, 147px);
-		--stack-width: calc(var(--card-width) + (var(--stack-count) - 1) * 9px);
+	.deck-stage {
 		position: relative;
-		height: calc(266px + (var(--card-width) - 147px) * 680 / 488);
-		margin: 0.8rem 0 0.35rem;
+		height: 338px;
+		perspective: 1050px;
+		perspective-origin: 50% 40%;
 	}
-	.card-slot {
-		display: contents;
-	}
-	.stack :global(.stack-hit),
-	.stack-picture {
+	.deck-box {
 		position: absolute;
-		left: calc(50% - var(--stack-width) / 2 + var(--index) * 9px);
-		top: calc(40px - var(--index) * 1.5px);
-		width: var(--card-width);
-		aspect-ratio: 488 / 680;
-		border-radius: 4% / 3%;
-		z-index: var(--layer);
-		transform: translateX(var(--shift))
-			rotate(calc(var(--index) * 9deg / (var(--stack-count) - 1) - 4deg));
-		transform-origin: 50% 50%;
-		transition: transform 150ms cubic-bezier(0.2, 0.7, 0.2, 1);
+		left: calc(50% - 89px);
+		top: 85px;
+		width: 178px;
+		height: 234px;
+		transform-style: preserve-3d;
+		transform: rotateX(-18deg) rotateY(-27deg) rotateZ(-3deg);
 	}
-	.stack :global(.stack-hit) {
-		height: auto;
-		padding: 0;
-		border: 0;
-		background: transparent;
-		outline: none;
-		box-shadow: none;
+	.material {
+		background-color: #242527;
+		background-image:
+			repeating-linear-gradient(32deg, #ffffff05 0 1px, transparent 1px 3px),
+			repeating-linear-gradient(-32deg, #00000025 0 1px, transparent 1px 3px);
+		border: 1px solid #444549;
+		box-shadow:
+			inset 0 0 0 3px #191a1c,
+			inset 0 0 0 4px #ffffff12;
 	}
-	.stack-picture {
+	.box-back,
+	.box-front,
+	.box-left,
+	.box-right,
+	.box-floor,
+	.front-rim,
+	.sleeve-edges {
+		position: absolute;
 		pointer-events: none;
 	}
-	.selected .stack-picture,
-	.selected :global(.stack-hit) {
-		transform: translateY(-12px) rotate(0deg) scale(1.16);
+	.box-back {
+		inset: -7px 0 0;
+		border-radius: 8px 8px 4px 4px;
+		transform: translateZ(-63px);
+		background-color: #151618;
 	}
-	.stack :global(.stack-hit:hover) {
-		background: transparent;
+	.box-floor {
+		width: 178px;
+		height: 126px;
+		top: 171px;
+		background: #101113;
+		transform: rotateX(90deg);
 	}
-	.commander-marker {
+	.box-left,
+	.box-right {
+		top: 0;
+		width: 126px;
+		height: 234px;
+		border-radius: 5px;
+		background-color: #1c1d1f;
+	}
+	.box-left {
+		left: -63px;
+		transform: rotateY(90deg);
+	}
+	.box-right {
+		left: 115px;
+		transform: rotateY(90deg);
+		background-image:
+			linear-gradient(105deg, #ffffff08, transparent 65%, #0003),
+			repeating-linear-gradient(32deg, #ffffff05 0 1px, transparent 1px 3px),
+			repeating-linear-gradient(-32deg, #00000025 0 1px, transparent 1px 3px);
+	}
+	.box-front {
+		inset: 0;
+		border-radius: 7px;
+		transform: translateZ(63px);
+	}
+	.box-front::after {
+		content: '';
 		position: absolute;
-		inset: auto 0.25rem 0.25rem;
-		border-radius: 0.2rem;
-		padding: 0.2rem 0.3rem;
-		background: var(--color-card);
-		font-size: 0.5rem;
-		line-height: 1.4;
-		text-align: center;
+		inset: 8px;
+		border: 1px dashed #77797c55;
+		border-radius: 4px;
 	}
-	.commander img {
-		outline: 2px solid var(--color-role-commander);
-		outline-offset: 2px;
+	.front-rim {
+		left: 1px;
+		top: -3px;
+		width: 176px;
+		height: 6px;
+		background: linear-gradient(#696a6d, #292a2d 45%, #101113);
+		border-radius: 5px;
+		transform: translateZ(64px);
 	}
-	.stack img {
+	.sleeve-edges {
+		left: 14px;
+		top: -3px;
+		width: 150px;
+		height: 110px;
+		background: repeating-linear-gradient(
+			to bottom,
+			#afb1b3 0 1px,
+			#45474c 1px 2px,
+			#777a7d 2px 3px
+		);
+		transform-origin: 50% 0;
+		transform: translateZ(-53px) rotateX(90deg);
+		border: 1px solid #26282b;
+	}
+	.deck-box :global(.preview-card) {
+		position: absolute;
+		left: 14px;
+		top: 0;
+		display: block;
+		width: 150px;
+		height: auto;
+		min-height: 0;
+		padding: 0;
+		aspect-ratio: 488 / 680;
+		border: 0;
+		border-radius: 6px;
+		background: #141519;
+		box-shadow:
+			0 0 0 1px #161719,
+			0 2px 3px #0006;
+		transition: transform 140ms cubic-bezier(0.2, 0.7, 0.2, 1);
+	}
+	.deck-box :global(.seated-card) {
+		transform: translate3d(0, -6px, var(--card-depth));
+	}
+	.deck-box :global(.seated-card[data-selected='true']) {
+		transform: translate3d(0, -70px, var(--card-depth));
+	}
+	.deck-box :global(.commander-window) {
+		top: 13px;
+		transform: translateZ(64px);
+		box-shadow:
+			0 0 0 4px #141517,
+			0 0 0 5px #484a4d,
+			0 3px 5px #0008;
+	}
+	.deck-box :global(.commander-window)::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+		pointer-events: none;
+		background: linear-gradient(125deg, #ffffff18, transparent 38%, transparent 78%, #ffffff0a);
+	}
+	.deck-box :global(.preview-card:hover) {
+		background: #141519;
+	}
+	.deck-box :global(.preview-card:focus-visible) {
+		outline: 3px solid var(--color-ring);
+		outline-offset: 4px;
+	}
+	.deck-box :global(.preview-card img) {
 		display: block;
 		width: 100%;
 		height: auto;
 		border-radius: inherit;
-		box-shadow:
-			0 2px 4px #0004,
-			0 9px 17px #0002;
 		pointer-events: none;
 		user-select: none;
 	}
-	.stack :global(.stack-hit:focus-visible + .stack-picture),
-	.deck-title:focus-visible,
-	.source:focus-visible {
-		outline: 2px solid var(--color-ring);
-		outline-offset: 5px;
+	.ground-shadow {
+		position: absolute;
+		left: 14%;
+		right: 7%;
+		bottom: 1px;
+		height: 30px;
+		border-radius: 50%;
+		background: #0005;
+		filter: blur(16px);
+		transform: rotate(-8deg);
+		pointer-events: none;
+	}
+	.card-selection {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
+		margin-top: 0.25rem;
+	}
+	.card-selection :global(.browse-card) {
+		width: 44px;
+		height: 44px;
+		flex-shrink: 0;
+		color: var(--color-text-secondary);
+	}
+	.current-card {
+		flex: 1;
+		min-width: 0;
+		min-height: 3.25rem;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		gap: 0.15rem;
+		margin: 0;
+		font-size: 0.6875rem;
+		line-height: 1.5;
+		text-align: center;
+	}
+	.card-position {
+		font-size: 0.625rem;
+		color: var(--color-text-secondary);
+	}
+	.deck-details {
+		margin: 0.55rem 0.25rem 0;
+	}
+	.deck-meta,
+	.deck-credit {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.25rem 0.75rem;
+		color: var(--color-text-secondary);
+		font-size: 0.6875rem;
+		line-height: 1.6;
+	}
+	.colors {
+		display: inline-flex;
+		gap: 0.3rem;
+		font-size: 0.85rem;
+	}
+	.deck-credit {
+		flex-wrap: wrap;
+		margin-top: 0.25rem;
+		font-size: 0.625rem;
+	}
+	.credit {
+		overflow-wrap: anywhere;
+		min-width: 0;
+	}
+	.source {
+		color: inherit;
+		text-decoration: none;
 	}
 	.deck-title:hover,
 	.source:hover {
 		text-decoration: underline;
 		text-underline-offset: 0.2em;
 	}
-	.deck-meta {
-		align-items: flex-start;
-		margin-top: 0.6rem;
-		font-size: 0.72rem;
-		color: var(--color-muted-foreground);
-		gap: 0.45rem;
+	.deck-title:focus-visible,
+	.source:focus-visible {
+		outline: 2px solid var(--color-ring);
+		outline-offset: 5px;
 	}
-	.deck-meta > span:first-child {
-		flex-shrink: 0;
-	}
-	.credit {
-		overflow-wrap: anywhere;
-		min-width: 0;
-	}
-	.deck-credit {
-		display: flex;
-		flex-wrap: wrap;
-		justify-content: space-between;
-		gap: 0.15rem 0.75rem;
-		margin-top: 0.25rem;
-		font-size: 0.65rem;
-		color: var(--color-muted-foreground);
-	}
-	.source {
-		display: inline-block;
-		color: var(--color-muted-foreground);
-		font-size: inherit;
-		text-decoration: none;
-	}
-	@media (max-width: 600px) {
-		.commander-card {
-			width: min(100%, 300px);
-			padding: 1rem;
+	@media (min-width: 1800px) {
+		.deck-stage {
+			height: 382px;
+		}
+		.deck-box {
+			top: 106px;
+			transform: scale(1.13) rotateX(-18deg) rotateY(-27deg) rotateZ(-3deg);
 		}
 	}
 	@media (prefers-reduced-motion: reduce) {
-		.stack-picture,
-		.stack :global(.stack-hit) {
+		.deck-box :global(.preview-card) {
 			transition: none;
 		}
 	}
