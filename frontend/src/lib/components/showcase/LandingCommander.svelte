@@ -3,7 +3,7 @@
 	import Button from '#lib/components/ui/button/Button.svelte';
 	import { commanderDeck, commanderStack } from '#lib/showcase/commander-deck.ts';
 
-	let selectedCard = $state(0);
+	let selectedCard = $state(1);
 	let deckElement: HTMLElement;
 	const currentCard = $derived(commanderStack[selectedCard]);
 	const colorNames: Record<string, string> = {
@@ -163,12 +163,23 @@
 		z-index: -1;
 		inset: -9% -18% -8%;
 		pointer-events: none;
-		background: radial-gradient(
-			ellipse,
-			var(--color-background) 23%,
-			color-mix(in srgb, var(--color-background) 90%, transparent) 42%,
-			transparent 72%
-		);
+		background:
+			radial-gradient(
+				ellipse 52% 12% at 50% 12%,
+				color-mix(in srgb, var(--color-background) 96%, transparent) 35%,
+				transparent 100%
+			),
+			radial-gradient(
+				ellipse 54% 16% at 50% 87%,
+				color-mix(in srgb, var(--color-background) 96%, transparent) 35%,
+				transparent 100%
+			),
+			radial-gradient(
+				ellipse,
+				var(--color-background) 23%,
+				color-mix(in srgb, var(--color-background) 90%, transparent) 42%,
+				transparent 72%
+			);
 	}
 	.deck-title {
 		display: block;
@@ -185,14 +196,14 @@
 	}
 	.deck-stage {
 		position: relative;
-		height: 338px;
+		height: 329px;
 		perspective: 1050px;
 		perspective-origin: 50% 40%;
 	}
 	.deck-box {
 		position: absolute;
 		left: calc(50% - 89px);
-		top: 85px;
+		top: 76px;
 		width: 178px;
 		height: 234px;
 		transform-style: preserve-3d;
@@ -244,6 +255,7 @@
 		transform: rotateY(90deg);
 	}
 	.box-right {
+		mask-image: radial-gradient(ellipse 27px 34px at 50% 0, transparent 98%, black 100%);
 		left: 115px;
 		transform: rotateY(90deg);
 		background-image:
@@ -380,7 +392,7 @@
 		text-align: center;
 	}
 	.card-position {
-		font-size: 0.625rem;
+		font-size: 0.6875rem;
 		color: var(--color-text-secondary);
 	}
 	.deck-details {
@@ -404,7 +416,7 @@
 	.deck-credit {
 		flex-wrap: wrap;
 		margin-top: 0.25rem;
-		font-size: 0.625rem;
+		font-size: 0.6875rem;
 	}
 	.credit {
 		overflow-wrap: anywhere;
@@ -426,10 +438,10 @@
 	}
 	@media (min-width: 1800px) {
 		.deck-stage {
-			height: 382px;
+			height: 372px;
 		}
 		.deck-box {
-			top: 106px;
+			top: 96px;
 			transform: scale(1.13) rotateX(-18deg) rotateY(-27deg) rotateZ(-3deg);
 		}
 	}
