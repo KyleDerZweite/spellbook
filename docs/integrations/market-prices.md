@@ -1,7 +1,7 @@
 # Market prices for the dashboard and trading
 
 - Status: Research with accepted source/publication design, not implemented
-- Last Reviewed: 2026-10-06
+- Last Reviewed: 2026-10-07
 - Source of Truth: linked provider documentation, public data responses, and repository code
 - Update Triggers: provider access or terms, price fields and freshness, printing identity, inventory cost basis, accepted pricing or trading scope
 - Related Docs: [Integrations](./README.md), [Value tracking](../product/value-tracking.md), [Domain glossary](../../GLOSSARY.md), [Product specification](../product/specification.md#dashboard), [Catalog](../architecture/catalog.md), [Worker](../architecture/worker.md), [Postgres](../architecture/postgres.md), [Value and cost persistence](../architecture/value-and-costs.md)
@@ -14,7 +14,7 @@ The maintainer selected Scryfall as the baseline and optional Cardmarket Price G
 
 The [Worker](../architecture/worker.md) downloads `all_cards` by default and syncs daily. [transform_card](../../worker/src/worker/transform.py) does not carry over `prices`, marketplace IDs, or `purchase_uris`. [CardDocument](../../frontend/src/lib/search/types.ts) also lacks these fields. The information is therefore available in the source, but not in the published application catalog.
 
-The [Inventory schema](../../frontend/src/lib/server/db/schema.ts) stores printing, quantity, finish, and condition. It does not store acquisition costs or purchases. The [dashboard calculation](../../frontend/src/lib/mtg/dashboard.ts) counts current inventory and deck availability. The [product specification](../product/specification.md#dashboard) currently excludes prices and historical value trends. The accepted [value-tracking contract](../product/value-tracking.md) describes the planned addition; current Dashboard behavior remains unchanged.
+The [Inventory schema](../../frontend/src/lib/server/db/schema.ts) stores printing, quantity, finish, and condition. It does not store acquisition costs or purchases. The [backend Dashboard calculation](../../backend/src/profile/dashboard.ts) uses bounded SQL aggregates for current Inventory and Deck availability. The [product specification](../product/specification.md#dashboard) currently excludes prices and historical value trends. The accepted [value-tracking contract](../product/value-tracking.md) describes the planned addition; current Dashboard behavior remains unchanged.
 
 ## Available sources
 
