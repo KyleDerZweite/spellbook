@@ -3,6 +3,7 @@
 	import { afterNavigate, snapshot } from '$app/navigation';
 	import Nav from './Nav.svelte';
 	import Footer from './Footer.svelte';
+	import SearchOverlay from '#lib/components/search/SearchOverlay.svelte';
 
 	interface Props {
 		children: Snippet;
@@ -18,14 +19,22 @@
 			if (main) main.scrollTop = top;
 		}
 	});
-	afterNavigate(({ from, to, type }) => {
-		if (main && from && to && type !== 'popstate' && from.url.pathname !== to.url.pathname) {
+	afterNavigate(({ from, to, type, shallow }) => {
+		if (
+			main &&
+			from &&
+			to &&
+			!shallow &&
+			type !== 'popstate' &&
+			from.url.pathname !== to.url.pathname
+		) {
 			main.scrollTop = 0;
 		}
 	});
 </script>
 
 <div class="app-shell bg-background">
+	<SearchOverlay />
 	<Nav />
 	<main bind:this={main} id="main-content" tabindex="-1" class="app-main">
 		<div class="app-content">

@@ -1,6 +1,9 @@
 <script lang="ts">
 	import '../app.css';
 	import Shell from '#lib/components/layout/Shell.svelte';
+	import { page } from '$app/state';
+	import { parseSearchUrl } from '#lib/search/navigation.ts';
+	import { provideSearchSession } from '#lib/search/session.svelte.ts';
 	import { authState } from '#lib/auth/state.svelte.ts';
 	import { activeGameState } from '#lib/state/activeGame.svelte.ts';
 	import { SITE_NAME } from '#lib/seo/site.ts';
@@ -17,6 +20,8 @@
 	}
 
 	let { data, children }: Props = $props();
+	const search = provideSearchSession();
+	if (page.url.pathname === '/mtg/search') search.hydrate(parseSearchUrl(page.url));
 
 	$effect(() => {
 		authState.user = data.user;

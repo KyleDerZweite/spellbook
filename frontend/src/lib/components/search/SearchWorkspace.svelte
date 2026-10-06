@@ -1,0 +1,266 @@
+<script lang="ts">
+	import { Dialog } from 'bits-ui';
+	import SearchBar from '#lib/components/search/SearchBar.svelte';
+	import SearchFilters from '#lib/components/search/SearchFilters.svelte';
+	import SearchResults from '#lib/components/search/SearchResults.svelte';
+	import CardInspector from '#lib/components/cards/CardInspector.svelte';
+	import { cardAt, type CatalogRange } from '#lib/search/catalogWindow.ts';
+	import { getSearchSession } from '#lib/search/session.svelte.ts';
+	import { onDestroy, tick, untrack, type Snippet } from 'svelte';
+	import { getActiveFilters } from '#lib/search/filter-options.ts';
+	import type { CardDocument } from '#lib/search/types.ts';
+
+	let { controls }: { controls?: Snippet } = $props();
+	const session = getSearchSession();
+	const filters = session.filters;
+	const catalog = session.catalog;
+	const query = $derived(session.query);
+	const snapshot = $derived(session.snapshot);
+	const selectedCard = $derived(session.selectedCard);
+	let backButton: HTMLButtonElement | null = $state(null);
+	let searchInput: HTMLInputElement | null = $state(null);
+	let resultsElement: HTMLDivElement | null = $state(null);
+	let resultTrigger: HTMLElement | null = null;
+	let filtersOpen = $state(false);
+	let range: CatalogRange = $state(session.range);
+	const warmedImages = new Set<string>();
+	const activeFilters = $derived(getActiveFilters(filters));
+	const browseMode = $derived(query.trim().length < 2);
+	const facets = $derived(snapshot.facets);
+	const loading = $derived(snapshot.loading);
+	const error = $derived(snapshot.error);
+
+	function resetFocus() {
+		if (selectedCard) backButton?.focus();
+		else searchInput?.focus();
+	}
+
+	$effect(() => {
+		void query;
+		void filters.catalogFilters;
+		const timer = setTimeout(() => untrack(() => session.activate()), 150);
+		return () => {
+			clearTimeout(timer);
+			catalog.dispose();
+		};
+	});
+
+	$effect(() => {
+		if (selectedCard) void tick().then(() => requestAnimationFrame(() => backButton?.focus()));
+	});
+
+	$effect(() => {
+		session.focus = resetFocus;
+	});
+	onDestroy(() => {
+		if (session.focus === resetFocus) session.focus = () => {};
+	});
+
+	function handleRange(next: CatalogRange) {
+		range = next;
+		session.range = next;
+		catalog.setRange(next);
+	}
+
+	$effect(() => {
+		if (selectedCard) return;
+		const current = snapshot;
+		const windowRange = range;
+		const connection = (
+			navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } }
+		).connection;
+		if (connection?.saveData || ['slow-2g', '2g'].includes(connection?.effectiveType ?? '')) return;
+		const timer = setTimeout(() => {
+			for (let step = 0; step < 12; step++) {
+				const index =
+					windowRange.direction === 1 ? windowRange.end + step : windowRange.start - 1 - step;
+				const card = cardAt(current, index);
+				const url = card?.image_uri || card?.image_uri_small;
+				if (!url || warmedImages.has(url)) continue;
+				warmedImages.add(url);
+				if (warmedImages.size > 120) warmedImages.delete(warmedImages.values().next().value!);
+				const image = new Image();
+				image.decoding = 'async';
+				image.src = url;
+			}
+		}, 120);
+		return () => clearTimeout(timer);
+	});
+
+	function handleSelect(card: CardDocument) {
+		resultTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+		session.selectedCard = selectedCard?.id === card.id ? null : card;
+	}
+
+	function handleCloseDetail() {
+		if (session.pending) return;
+		const id = selectedCard?.id;
+		session.selectedCard = null;
+		void tick().then(() => {
+			const card = id
+				? resultsElement?.querySelector<HTMLElement>(`[data-card-id="${CSS.escape(id)}"]`)
+				: null;
+			if (card) card.focus();
+			else if (resultTrigger?.isConnected) resultTrigger.focus();
+			else resetFocus();
+		});
+	}
+</script>
+
+<div class="catalog-workspace flex min-h-0 flex-1 flex-col">
+	<div class="shrink-0 pb-3 sm:pb-4">
+		<div class="search-toolbar flex items-center justify-between gap-3">
+			{#if selectedCard}
+				<button
+					bind:this={backButton}
+					class="btn btn-ghost"
+					onclick={handleCloseDetail}
+					disabled={session.pending}>← Back to results</button
+				>
+			{:else}
+				<SearchBar
+					bind:inputRef={searchInput}
+					value={query}
+					onInput={(value) => session.setQuery(value)}
+					class="search-query min-w-0 flex-1"
+				/>
+			{/if}
+			<button
+				onclick={() => (filtersOpen = !filtersOpen)}
+				aria-haspopup="dialog"
+				aria-label={`Filters, ${activeFilters.length} active`}
+				aria-expanded={filtersOpen}
+				class="btn btn-secondary md:hidden"
+				hidden={!!selectedCard}
+				style="
+					background-color: var(--color-slate);
+					border: 1px solid var(--color-border);
+					color: var(--color-text-secondary);
+				"
+			>
+				Filters
+				{#if activeFilters.length && !selectedCard}
+					<span class="text-text-muted tabular-nums" aria-hidden="true">{activeFilters.length}</span
+					>
+				{/if}
+			</button>
+			{@render controls?.()}
+		</div>
+		{#if activeFilters.length && !selectedCard}
+			<div
+				class="mt-1 flex flex-wrap items-center gap-x-1"
+				role="group"
+				aria-label="Active filters"
+			>
+				{#each activeFilters as filter (filter.key)}
+					<button
+						type="button"
+						class="btn btn-ghost min-h-11 gap-2 px-2 text-xs"
+						aria-label={`Remove ${filter.label} filter`}
+						onclick={filter.remove}
+					>
+						{filter.label}
+						<svg
+							aria-hidden="true"
+							width="12"
+							height="12"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.7"
+							stroke-linecap="round"><path d="m6 6 12 12M6 18 18 6" /></svg
+						>
+					</button>
+				{/each}
+				<button
+					type="button"
+					class="btn btn-ghost min-h-11 px-2 text-xs text-text-muted underline underline-offset-4"
+					onclick={() => filters.clear()}>Clear filters</button
+				>
+			</div>
+		{/if}
+	</div>
+
+	<div class="border-t border-border" aria-hidden="true"></div>
+
+	<div class="relative flex min-h-0 flex-1">
+		<div class="flex min-h-0 flex-1 gap-0" style:visibility={selectedCard ? 'hidden' : undefined}>
+			<div
+				class="hidden shrink-0 overflow-y-auto px-6 py-4 md:block"
+				style="border-right: 1px solid var(--color-border);"
+			>
+				<SearchFilters {filters} {facets} />
+			</div>
+
+			<Dialog.Root bind:open={filtersOpen}>
+				<Dialog.Portal>
+					<Dialog.Overlay class="filter-overlay fixed inset-0 z-[80]" />
+					<Dialog.Content
+						class="fixed inset-x-0 bottom-0 z-[90] max-h-[85dvh] overflow-y-auto rounded-t-xl border border-border bg-stone p-5"
+					>
+						<div class="mb-3 flex items-center justify-between">
+							<Dialog.Title class="text-lg font-semibold">Filter cards</Dialog.Title>
+							<Dialog.Close class="btn btn-ghost" aria-label="Close filters">✕</Dialog.Close>
+						</div>
+						<Dialog.Description class="sr-only"
+							>Narrow the catalog by color, rarity, card type, or legality.</Dialog.Description
+						>
+						<SearchFilters {filters} {facets} />
+					</Dialog.Content>
+				</Dialog.Portal>
+			</Dialog.Root>
+
+			<div
+				bind:this={resultsElement}
+				class="min-w-0 flex-1 overflow-y-auto p-3 sm:p-4"
+				aria-label="Card results"
+			>
+				{#if !error}<div
+						class="mb-4 flex items-center justify-between gap-3 text-xs text-text-muted"
+					>
+						<span aria-live="polite"
+							>{loading
+								? snapshot.total
+									? `${snapshot.total.toLocaleString()} cards · Loading range…`
+									: 'Finding cards…'
+								: `${snapshot.total.toLocaleString()} ${snapshot.total === 1 ? 'card' : 'cards'}`}</span
+						>
+					</div>{/if}
+				<SearchResults
+					totalCount={snapshot.total}
+					getCard={(index) => cardAt(snapshot, index)}
+					onRangeChange={handleRange}
+					resetKey={snapshot.reset}
+					initialScrollTop={session.scrollTop}
+					onScrollPositionChange={(top) => (session.scrollTop = top)}
+					onFocusReset={resetFocus}
+					{loading}
+					{error}
+					{query}
+					{browseMode}
+					onRetry={() => catalog.retry()}
+					onClearFilters={() => filters.clear()}
+					hasFilters={activeFilters.length > 0}
+					selectedId={selectedCard?.id}
+					onSelect={handleSelect}
+				/>
+			</div>
+		</div>
+		{#if selectedCard}
+			<div class="absolute inset-0 flex min-h-0 flex-col overflow-hidden">
+				<CardInspector card={selectedCard} onPendingChange={(value) => (session.pending = value)} />
+			</div>
+		{/if}
+	</div>
+</div>
+
+<style>
+	@media (max-width: 767px) {
+		.search-toolbar {
+			flex-wrap: wrap;
+		}
+		.search-toolbar :global(.search-query) {
+			flex-basis: 100%;
+		}
+	}
+</style>

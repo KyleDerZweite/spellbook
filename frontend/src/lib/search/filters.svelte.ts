@@ -5,6 +5,8 @@ import type { CardType, CatalogFilters, LegalityFormat, ManaColor, Rarity } from
  * Uses Svelte 5 runes ($state) for reactivity.
  */
 export class SearchFilterState {
+	constructor(private changed: () => void = () => {}) {}
+
 	selectedColors: Set<ManaColor> = $state(new Set());
 	selectedRarities: Set<Rarity> = $state(new Set());
 	selectedTypes: Set<CardType> = $state(new Set());
@@ -27,6 +29,7 @@ export class SearchFilterState {
 			next.add(color);
 		}
 		this.selectedColors = next;
+		this.changed();
 	}
 
 	toggleRarity(rarity: Rarity): void {
@@ -37,6 +40,7 @@ export class SearchFilterState {
 			next.add(rarity);
 		}
 		this.selectedRarities = next;
+		this.changed();
 	}
 
 	toggleType(type: CardType): void {
@@ -47,6 +51,7 @@ export class SearchFilterState {
 			next.add(type);
 		}
 		this.selectedTypes = next;
+		this.changed();
 	}
 
 	toggleLegality(format: LegalityFormat): void {
@@ -57,6 +62,7 @@ export class SearchFilterState {
 			next.add(format);
 		}
 		this.selectedLegalities = next;
+		this.changed();
 	}
 
 	clear(): void {
@@ -64,6 +70,7 @@ export class SearchFilterState {
 		this.selectedRarities = new Set();
 		this.selectedTypes = new Set();
 		this.selectedLegalities = new Set();
+		this.changed();
 	}
 
 	get hasFilters(): boolean {

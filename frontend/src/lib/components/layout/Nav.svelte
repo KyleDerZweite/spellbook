@@ -1,5 +1,7 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
+	import { getSearchSession } from '#lib/search/session.svelte.ts';
+	import { isPrimaryClick } from '#lib/search/navigation.ts';
 	import type { ComponentProps } from 'svelte';
 	import { page } from '$app/state';
 	import { asset } from '$app/paths';
@@ -10,6 +12,7 @@
 	import ThemeToggle from './ThemeToggle.svelte';
 	import GameSwitcher from './GameSwitcher.svelte';
 
+	const search = getSearchSession();
 	const user = $derived(page.data.user);
 	const NAV_LINKS = $derived([
 		{
@@ -56,8 +59,21 @@
 		{ label: 'Sign out', onSelect: () => logoutForm?.requestSubmit() }
 	];
 
+	function searchClick(event: MouseEvent, mobile = false) {
+		if (!isPrimaryClick(event)) return;
+		event.preventDefault();
+		const trigger = event.currentTarget as HTMLElement;
+		if (mobile) {
+			mobileMenuOpen = false;
+			void tick().then(() => search.open(undefined, trigger));
+		} else search.open(undefined, trigger);
+	}
+
 	function isActive(href: string): boolean {
-		return page.url.pathname === href || page.url.pathname.startsWith(href + '/');
+		const path = page.state.searchOverlay
+			? (page.shallow?.url.pathname ?? page.url.pathname)
+			: page.url.pathname;
+		return path === href || path.startsWith(href + '/');
 	}
 </script>
 
@@ -83,6 +99,7 @@
 			{#each NAV_LINKS as link}
 				<a
 					href={link.href}
+					onclick={link.href === '/mtg/search' ? (event) => searchClick(event) : undefined}
 					aria-label={link.label}
 					title={link.label}
 					aria-current={isActive(link.href) ? 'page' : undefined}
@@ -151,7 +168,10 @@
 							<a
 								href={link.href}
 								aria-current={isActive(link.href) ? 'page' : undefined}
-								onclick={() => (mobileMenuOpen = false)}
+								onclick={(event) => {
+									if (link.href === '/mtg/search') searchClick(event, true);
+									else mobileMenuOpen = false;
+								}}
 								class="mobile-nav-link {isActive(link.href) ? 'mobile-nav-link--active' : ''}"
 								>{link.label}</a
 							>

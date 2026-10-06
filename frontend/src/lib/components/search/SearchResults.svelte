@@ -8,6 +8,8 @@
 		totalCount: number;
 		getCard: (index: number) => CardDocument | undefined;
 		onRangeChange: (range: CatalogRange) => void;
+		initialScrollTop?: number;
+		onScrollPositionChange?: (top: number) => void;
 		resetKey: number;
 		onFocusReset: () => void;
 		loading: boolean;
@@ -26,6 +28,8 @@
 		totalCount,
 		getCard,
 		onRangeChange,
+		initialScrollTop = 0,
+		onScrollPositionChange,
 		resetKey,
 		onFocusReset,
 		loading,
@@ -95,6 +99,8 @@
 			{getCard}
 			{onRangeChange}
 			{resetKey}
+			{initialScrollTop}
+			{onScrollPositionChange}
 			{onFocusReset}
 			{selectedId}
 			{onSelect}

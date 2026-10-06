@@ -6,6 +6,7 @@
 		name?: string;
 		submitLabel?: string;
 		class?: string;
+		inputRef?: HTMLInputElement | null;
 	}
 
 	let {
@@ -14,10 +15,9 @@
 		placeholder = 'Search cards by name or rules text...',
 		name,
 		submitLabel,
+		inputRef = $bindable(null),
 		class: className = ''
 	}: Props = $props();
-
-	let inputEl: HTMLInputElement | null = $state(null);
 
 	function handleInput(e: Event) {
 		const target = e.target as HTMLInputElement;
@@ -26,20 +26,8 @@
 
 	function handleClear() {
 		onInput('');
-		inputEl?.focus();
+		inputRef?.focus();
 	}
-
-	// Cmd+K / Ctrl+K to focus search
-	$effect(() => {
-		function handleKeydown(e: KeyboardEvent) {
-			if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-				e.preventDefault();
-				inputEl?.focus();
-			}
-		}
-		window.addEventListener('keydown', handleKeydown);
-		return () => window.removeEventListener('keydown', handleKeydown);
-	});
 </script>
 
 <div class="relative {className}">
@@ -61,7 +49,7 @@
 	<label>
 		<span class="sr-only">Search cards</span>
 		<input
-			bind:this={inputEl}
+			bind:this={inputRef}
 			type="search"
 			{name}
 			enterkeyhint={submitLabel ? 'search' : undefined}

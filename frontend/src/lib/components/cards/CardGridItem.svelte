@@ -12,6 +12,7 @@
 </script>
 
 <button
+	data-card-id={card.id}
 	class="card-grid-item group min-w-0 cursor-pointer rounded-lg bg-transparent p-0 text-left"
 	class:card-grid-item--selected={selected}
 	onclick={() => onSelect?.(card)}

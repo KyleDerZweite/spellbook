@@ -9,6 +9,8 @@
 		totalCount?: number;
 		getCard?: (index: number) => CardDocument | undefined;
 		onRangeChange?: (range: CatalogRange) => void;
+		initialScrollTop?: number;
+		onScrollPositionChange?: (top: number) => void;
 		resetKey?: number;
 		onFocusReset?: () => void;
 		selectedId?: string | null;
@@ -21,6 +23,8 @@
 		totalCount = cards.length,
 		getCard = (index: number) => cards[index],
 		onRangeChange,
+		initialScrollTop = 0,
+		onScrollPositionChange,
 		resetKey = 0,
 		onFocusReset,
 		selectedId = null,
@@ -92,15 +96,23 @@
 		});
 	});
 
+	const measured = $derived(containerWidth > 0 && viewportHeight > 0);
+	let firstReset = true;
 	$effect(() => {
 		void resetToken;
-		if (!wrapperEl) return;
+		if (!wrapperEl || !measured) return;
 		const wrapper = wrapperEl;
-		untrack(() => {
+		return untrack(() => {
 			if (wrapper.contains(document.activeElement)) onFocusReset?.();
 			focused = null;
-			getScrollParent(wrapper).scrollTop = 0;
+			const top = firstReset ? initialScrollTop : 0;
+			firstReset = false;
+			const parent = getScrollParent(wrapper);
+			const frame = requestAnimationFrame(() => {
+				parent.scrollTop = top;
+			});
 			visibleTop = 0;
+			return () => cancelAnimationFrame(frame);
 		});
 	});
 
@@ -135,6 +147,7 @@
 
 		let ticking = false;
 		function onScroll() {
+			onScrollPositionChange?.(scrollParent.scrollTop);
 			if (!ticking) {
 				requestAnimationFrame(() => {
 					measure();

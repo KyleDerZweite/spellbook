@@ -130,6 +130,13 @@ export class CatalogWindow {
 		this.pump();
 	}
 
+	/** Revalidate publication after a hidden workspace resumes without resetting its position. */
+	resume(): void {
+		this.validated = false;
+		this.started = true;
+		this.pump();
+	}
+
 	setRange(range: CatalogRange): void {
 		this.range = range;
 		if (!this.started || !this.validated || !this.active) return;
@@ -152,6 +159,7 @@ export class CatalogWindow {
 	}
 
 	dispose(): void {
+		this.started = false;
 		this.cancel();
 	}
 

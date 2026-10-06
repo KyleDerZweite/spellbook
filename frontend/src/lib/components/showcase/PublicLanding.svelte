@@ -1,9 +1,11 @@
 <script lang="ts">
+	import { getSearchSession } from '#lib/search/session.svelte.ts';
 	import { snapshot } from '$app/navigation';
 	import LandingBackdrop from './LandingBackdrop.svelte';
 	import LandingCommander from './LandingCommander.svelte';
 	import SearchBar from '#lib/components/search/SearchBar.svelte';
 
+	const search = getSearchSession();
 	let query = $state('');
 	snapshot({
 		id: 'landing-card-search',
@@ -25,6 +27,10 @@
 		class="landing-search"
 		action="/mtg/search"
 		method="GET"
+		onsubmit={(event) => {
+			event.preventDefault();
+			search.open(query, event.currentTarget.querySelector('input') ?? undefined);
+		}}
 		role="search"
 		aria-label="Card search"
 	>

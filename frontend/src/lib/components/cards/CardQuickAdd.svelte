@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance, type SubmitFunction } from '$app/forms';
+	import { refreshAll } from '$app/navigation';
 	import Select from '#lib/components/ui/select/Select.svelte';
 	import type { CardDocument } from '#lib/search/types.ts';
 	import { activeGameState } from '#lib/state/activeGame.svelte.ts';
@@ -34,7 +35,14 @@
 			try {
 				if (result.type === 'success' && result.data?.success) {
 					message = `Added ${addedQuantity} ${addedQuantity === 1 ? 'copy' : 'copies'} of ${addedName} to inventory.`;
+					try {
+						await refreshAll();
+					} catch {
+						message += ' Refresh the page to update inventory and deck counts.';
+					}
 				} else if (result.type === 'redirect') {
+					pending = false;
+					onPendingChange?.(false);
 					await update({ reset: false });
 				} else if (result.type === 'failure') {
 					error =
@@ -75,7 +83,7 @@
 
 <form
 	method="POST"
-	action="?/addToInventory"
+	action="/mtg/search?/addToInventory"
 	use:enhance={add}
 	class="quick-add"
 	aria-busy={pending}

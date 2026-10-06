@@ -256,3 +256,43 @@ describe('bounded catalog window', () => {
 		expect(h.snapshot.loading).toBe(false);
 	});
 });
+
+describe('catalog workspace resume', () => {
+	it('revalidates a hidden workspace without resetting its range or cached pages', async () => {
+		const h = harness();
+		h.window.activate(input);
+		h.window.start();
+		await settle(h);
+		h.window.setRange({ start: 3000, end: 3050, direction: 1 });
+		await settle(h);
+		const reset = h.snapshot.reset;
+		h.window.dispose();
+		const before = h.requests.length;
+		h.window.setRange({ start: 3000, end: 3050, direction: 1 });
+		expect(h.requests).toHaveLength(before);
+		h.window.resume();
+		expect(h.requests.slice(before).map((request) => request.offset)).toEqual([0]);
+		expect(h.snapshot.reset).toBe(reset);
+		expect(cardAt(h.snapshot, 3000)?.id).toBe('first-3000');
+		h.requests.at(-1)!.resolve(page());
+		await flush();
+		expect(h.snapshot.reset).toBe(reset);
+		expect(h.snapshot.loading).toBe(false);
+		expect(cardAt(h.snapshot, 3000)?.id).toBe('first-3000');
+	});
+
+	it('resets resumed results when publication changed while Search was hidden', async () => {
+		const h = harness();
+		h.window.activate(input);
+		h.window.start();
+		await settle(h);
+		const reset = h.snapshot.reset;
+		h.window.dispose();
+		h.window.resume();
+		h.requests.at(-1)!.resolve(page(0, 'second', 12));
+		await flush();
+		expect(h.snapshot.reset).toBe(reset + 1);
+		expect(h.snapshot.total).toBe(12);
+		expect(cardAt(h.snapshot, 0)?.id).toBe('second-0');
+	});
+});
