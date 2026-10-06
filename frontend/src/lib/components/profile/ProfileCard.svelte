@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Avatar from './Avatar.svelte';
 	import ProfileCardText from './ProfileCardText.svelte';
+	import ProfileFrameRegion from './ProfileFrameRegion.svelte';
 	import ManaCost from '#lib/components/cards/ManaCost.svelte';
 	import { getProfileArtwork } from '#lib/profile/artwork.ts';
 	import {
@@ -27,22 +28,25 @@
 	let artwork = $derived(getProfileArtwork(artworkId));
 	let card = $derived(definition ?? defaultProfileCard(username));
 	let rarity = $derived(PROFILE_CARD_RARITIES.find((r) => r.value === card.rarity));
+	let assetPrefix = $derived(
+		`/profile/frames/${card.frame === 'gold' ? 'multicolored' : card.frame}${card.legendary ? '-legendary' : ''}`
+	);
+	let frame = $derived(`${assetPrefix}-spell.webp`);
+	let creatureFrame = $derived(`${assetPrefix}-creature.webp`);
 </script>
 
-<article
-	class="profile-card"
-	class:legendary={card.legendary}
-	data-frame={card.frame}
-	aria-label={`Profile card for ${username}`}
->
-	<div class="profile-card-frame">
-		<div class="card-name">
+<article class="profile-card" data-frame={card.frame} aria-label={`Profile card for ${username}`}>
+	<div class="card-name frame-section">
+		<ProfileFrameRegion src={frame} box={[0, 0, 745, 120]} start={56} end={14} />
+		<div class="card-name-content frame-content">
 			<h2>{card.name || username}</h2>
 			{#if validProfileManaCost(card.manaCost)}<ManaCost
 					cost={card.manaCost}
 					class="card-mana flex-wrap justify-end"
 				/>{/if}
 		</div>
+	</div>
+	<div class="card-art-section frame-section">
 		<img
 			class="card-art"
 			src={artwork.src}
@@ -50,7 +54,11 @@
 			width="960"
 			height="640"
 		/>
-		<div class="card-type">
+		<ProfileFrameRegion src={frame} box={[0, 120, 745, 456]} />
+	</div>
+	<div class="card-type frame-section">
+		<ProfileFrameRegion src={frame} box={[0, 576, 745, 79]} start={18} end={19} />
+		<div class="card-type-content frame-content">
 			<span>{card.typeLine || 'Collector'}</span><span
 				class="rarity"
 				data-rarity={card.rarity}
@@ -59,19 +67,34 @@
 				><i class="ms ms-rarity" aria-hidden="true"></i></span
 			>
 		</div>
-		<div class="card-rules">
+	</div>
+	<div class="card-rules frame-section">
+		<ProfileFrameRegion src={frame} box={[0, 655, 745, 270]} />
+		<div class="card-rules-content frame-content">
 			<ProfileCardText text={card.rulesText} {totals} />
 			{#if card.flavorText}<div class="card-flavor">
 					<ProfileCardText text={card.flavorText} {totals} />
 				</div>{/if}
-			{#if card.power || card.toughness}<div class="card-stats">
+		</div>
+	</div>
+	<div class="card-bottom frame-section">
+		<ProfileFrameRegion src={frame} box={[0, 925, 745, 115]} start={50} end={40} />
+		{#if card.power || card.toughness}<div class="card-stats">
+				<ProfileFrameRegion
+					src={creatureFrame}
+					box={[575, 925, 132, 64]}
+					start={12}
+					end={12}
+					horizontal
+				/>
+				<div class="card-stats-content frame-content">
 					<span>{resolveProfileText(card.power, totals) || '…'}</span><span>/</span><span
 						>{resolveProfileText(card.toughness, totals) || '…'}</span
 					>
-				</div>{/if}
-		</div>
-		<div class="card-footer">
-			<span class="card-owner"><Avatar id={avatarId} size={18} /><span>@{username}</span></span
+				</div>
+			</div>{/if}
+		<div class="card-footer frame-content">
+			<span class="card-owner"><Avatar id={avatarId} size={14} /><span>@{username}</span></span
 			><span class="font-display">Spellbook</span>
 		</div>
 	</div>
@@ -79,163 +102,100 @@
 
 <style>
 	.profile-card {
-		--frame-dark: #264535;
-		--frame-light: #829178;
-		--paper: #e8ebda;
 		width: 100%;
 		max-width: 420px;
-		padding: 12px;
-		color: #201d19;
-		border-radius: 20px;
-		background: #101111;
+		color: #191b18;
 		container-type: inline-size;
+		font-family: var(--font-display);
 	}
-	.profile-card[data-frame='white'] {
-		--frame-dark: #8e815e;
-		--frame-light: #ded2ac;
-		--paper: #f3eddc;
-	}
-	.profile-card[data-frame='blue'] {
-		--frame-dark: #244962;
-		--frame-light: #88a8b5;
-		--paper: #e4edf1;
-	}
-	.profile-card[data-frame='black'] {
-		--frame-dark: #2b2633;
-		--frame-light: #817582;
-		--paper: #e4dfe5;
-	}
-	.profile-card[data-frame='red'] {
-		--frame-dark: #78382c;
-		--frame-light: #cf9070;
-		--paper: #f3e4da;
-	}
-	.profile-card[data-frame='gold'] {
-		--frame-dark: #796031;
-		--frame-light: #c8b57e;
-		--paper: #f2e9d2;
-	}
-	.profile-card[data-frame='colorless'] {
-		--frame-dark: #4b5758;
-		--frame-light: #a4b5b4;
-		--paper: #e6e8e3;
-	}
-	.profile-card-frame {
+	.frame-section {
 		position: relative;
-		display: flex;
-		flex-direction: column;
-		padding: 10px 8px 5px;
-		min-height: 140cqw;
-		border-radius: 12px 12px 6px 6px;
-		border: 1px solid #101111;
-		background: linear-gradient(
-			110deg,
-			var(--frame-dark),
-			var(--frame-light) 34%,
-			var(--frame-dark) 72%,
-			var(--frame-light)
-		);
 	}
-	.legendary .profile-card-frame {
-		padding-top: 18px;
-	}
-	.legendary .profile-card-frame::before {
-		content: '';
-		position: absolute;
-		top: 5px;
-		left: 24%;
-		right: 24%;
-		height: 13px;
-		border: 2px solid var(--paper);
-		border-bottom: 0;
-		border-radius: 50% 50% 0 0;
-		box-shadow: 0 -2px 0 #141615;
-	}
-	.card-name,
-	.card-type {
-		display: flex;
-		align-items: center;
-		gap: 0.45rem;
-		padding: 5px 8px;
-		background: var(--paper);
-		border: 2px solid #252824;
-		box-shadow: inset 0 1px 0 #fff9;
+	.frame-content {
+		position: relative;
+		z-index: 1;
+		min-width: 0;
 	}
 	.card-name {
-		position: relative;
-		justify-content: space-between;
-		flex-wrap: wrap;
-		border-radius: 12px 12px 5px 5px;
+		min-height: 16.1074cqw;
+		padding: 6.4429cqw 7.7852cqw 2.1477cqw;
+	}
+	.card-name-content {
+		display: flex;
+		align-items: flex-start;
+		gap: 1.2cqw;
 	}
 	.card-name h2 {
-		flex: 1 1 8rem;
+		flex: 1 1 0;
 		min-width: 0;
 		margin: 0;
 		font-family: var(--font-display);
-		font-size: clamp(1.125rem, 6cqw, 1.6rem);
+		font-size: clamp(1rem, 5cqw, 1.375rem);
 		font-weight: 400;
 		line-height: 1.15;
 		overflow-wrap: anywhere;
 	}
 	.card-name :global(.card-mana) {
-		max-width: 100%;
+		flex: 0 1 auto;
+		max-width: 43%;
 		margin-left: auto;
-		font-size: clamp(0.875rem, 4.2cqw, 1.125rem);
+		font-size: clamp(0.75rem, 3.8cqw, 1rem);
+	}
+	.card-art-section {
+		height: 61.2081cqw;
 	}
 	.card-art {
+		position: absolute;
+		inset: 0 auto 0 7.7852%;
 		display: block;
-		width: 100%;
-		height: auto;
-		aspect-ratio: 3 / 2;
+		width: 84.4295%;
+		height: 100%;
 		object-fit: contain;
-		border: 2px solid #202720;
-		border-top: 0;
-		border-bottom: 0;
+		background: #17201a;
 	}
 	.card-type {
+		min-height: 10.604cqw;
+		padding: 2.5503cqw 7.7852cqw 2.1477cqw;
+	}
+	.card-type-content {
+		display: flex;
+		align-items: center;
 		justify-content: space-between;
-		margin-inline: -2px;
-		border-radius: 7px;
-		font-family: var(--font-display);
-		font-size: clamp(0.875rem, 4cqw, 1.05rem);
+		gap: 1.2cqw;
+		font-size: clamp(0.8125rem, 4cqw, 1.05rem);
 		line-height: 1.25;
 	}
-	.card-type > span:first-child {
+	.card-type-content > span:first-child {
 		min-width: 0;
 		overflow-wrap: anywhere;
 	}
 	.rarity {
 		display: grid;
 		place-items: center;
-		width: 20px;
-		height: 22px;
-		flex-shrink: 0;
-		color: #9c772d;
-		font-size: 19px;
+		flex: 0 0 5cqw;
+		color: #946b20;
+		font-size: 4.8cqw;
 		filter: drop-shadow(0 1px 0 #fff9);
 	}
 	.rarity[data-rarity='common'] {
 		color: #292a28;
 	}
 	.rarity[data-rarity='uncommon'] {
-		color: #74777d;
+		color: #62656a;
 	}
 	.rarity[data-rarity='mythic'] {
-		color: #ba4f24;
+		color: #a6411a;
 	}
 	.card-rules {
+		min-height: 36.2416cqw;
+		padding: 2.5cqw 9cqw 1cqw;
+		font-size: clamp(0.875rem, 4.2cqw, 1.125rem);
+		line-height: 1.45;
+	}
+	.card-rules-content {
 		display: flex;
-		flex: 1 0 auto;
 		flex-direction: column;
-		gap: 0.75rem;
-		min-height: 145px;
-		padding: 13px 10px 9px;
-		border: 2px solid #252824;
-		border-top: 0;
-		background: var(--paper);
-		font-family: var(--font-display);
-		font-size: clamp(0.9375rem, 4.35cqw, 1.125rem);
-		line-height: 1.4;
+		gap: 3cqw;
 	}
 	.card-rules :global(.ms) {
 		font-size: 0.84em;
@@ -243,23 +203,33 @@
 	.card-flavor {
 		font-style: italic;
 	}
+	.card-bottom {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		justify-content: flex-end;
+		min-height: 15.4362cqw;
+		padding: 0.5cqw 5.1cqw 2.3cqw;
+	}
 	.card-stats {
+		position: relative;
+		min-width: 17.7181cqw;
+		max-width: 90%;
+		min-height: 8.5906cqw;
+		margin-bottom: 1.5cqw;
+		font-size: clamp(0.875rem, 4.3cqw, 1.125rem);
+		font-variant-numeric: tabular-nums;
+		line-height: 1.25;
+	}
+	.card-stats-content {
 		display: flex;
 		flex-wrap: wrap;
-		align-self: flex-end;
-		justify-content: flex-end;
-		gap: 0.3rem;
-		max-width: 100%;
-		margin-top: auto;
-		padding: 2px 10px;
-		border: 2px solid #40463c;
-		border-radius: 8px 3px 8px 3px;
-		background: var(--paper);
-		box-shadow: inset 0 1px 0 #fff9;
-		font-size: 1.1em;
-		font-variant-numeric: tabular-nums;
+		align-items: center;
+		justify-content: center;
+		gap: 0.6cqw;
+		padding: 1.9cqw 2cqw;
 	}
-	.card-stats span {
+	.card-stats-content span {
 		min-width: 0;
 		overflow-wrap: anywhere;
 	}
@@ -267,22 +237,22 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 0.5rem;
-		margin-top: 4px;
-		padding: 4px 5px;
-		border-radius: 0 0 3px 3px;
-		background: #1c211d;
+		gap: 1cqw;
+		width: 100%;
+		padding-inline: 2.7cqw;
 		color: #f1f0e8;
-		font-size: 10px;
+		font-family: var(--font-body);
+		font-size: clamp(0.5rem, 2.5cqw, 0.625rem);
+		line-height: 1.4;
 	}
 	.card-owner {
 		display: flex;
 		align-items: center;
 		min-width: 0;
-		gap: 0.4rem;
+		gap: 0.7cqw;
 		overflow-wrap: anywhere;
 	}
 	.card-footer .font-display {
-		font-size: 15px;
+		font-size: 3.4cqw;
 	}
 </style>

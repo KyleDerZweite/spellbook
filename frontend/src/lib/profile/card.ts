@@ -142,6 +142,16 @@ export function defaultProfileCard(username: string): ProfileCardDefinition {
 	};
 }
 
+export function demoProfileCard(): ProfileCardDefinition {
+	return {
+		...defaultProfileCard('demo'),
+		name: 'Demo, Collection Keeper',
+		rulesText:
+			'Your inventory holds {total_owned_cards} copies.\n{unique_card_names} card names. {total_decks} decks.',
+		flavorText: 'Every deck starts with a card worth keeping.'
+	};
+}
+
 function templateError(value: string, allowMana: boolean): string | undefined {
 	let error: string | undefined;
 	const rest = value.replace(/\{([^{}]+)\}/g, (token, key: string) => {

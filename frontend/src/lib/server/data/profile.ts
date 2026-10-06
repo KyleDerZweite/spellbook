@@ -1,11 +1,13 @@
 import { and, eq, sql } from 'drizzle-orm';
 import {
 	defaultProfileCard,
+	demoProfileCard,
 	validateProfileCard,
 	type ProfileCardDefinition
 } from '#lib/profile/card.ts';
 import type { ProfileTotals } from '#lib/profile/types.ts';
 import { db } from '#lib/server/db/client.ts';
+import { demoMode } from '#lib/server/auth/demo.ts';
 import { decks, inventoryCards, userProfiles } from '#lib/server/db/schema.ts';
 
 export async function getProfileCard(
@@ -17,7 +19,8 @@ export async function getProfileCard(
 		.from(userProfiles)
 		.where(eq(userProfiles.accountId, accountId));
 	const card = validateProfileCard(profile?.card);
-	return card.success ? card.value : defaultProfileCard(username);
+	if (card.success) return card.value;
+	return demoMode && username === 'demo' ? demoProfileCard() : defaultProfileCard(username);
 }
 
 export async function getProfileTotals(accountId: string): Promise<ProfileTotals> {

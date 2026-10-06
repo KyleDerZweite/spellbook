@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { getManaFontClass } from '../../src/lib/utils/manaCostParser';
 import {
 	defaultProfileCard,
+	demoProfileCard,
 	insertProfileKpi,
 	profileTextSegments,
 	resolveProfileText,
@@ -15,6 +16,14 @@ import {
 const totals = { total: 1234, names: 43, printings: 50, sets: 8, foils: 6, decks: 2 };
 
 describe('profile card definitions and live metrics', () => {
+	it('keeps the demo design valid and resolves current metrics without changing account defaults', () => {
+		const card = demoProfileCard();
+		expect(validateProfileCard(card)).toEqual({ success: true, value: card });
+		expect(resolveProfileText(card.rulesText, totals)).toBe(
+			'Your inventory holds 1,234 copies.\n43 card names. 2 decks.'
+		);
+		expect(defaultProfileCard('demo').name).toBe('demo');
+	});
 	it('accepts the default definition and stores tokens rather than resolved totals', () => {
 		const card = defaultProfileCard('Kyle');
 		expect(validateProfileCard(card)).toEqual({ success: true, value: card });

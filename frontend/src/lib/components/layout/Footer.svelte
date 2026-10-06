@@ -57,6 +57,12 @@
 			target="_blank"
 			rel="noopener noreferrer"
 			class="footer-link footer-link--inline">Bandai</a
+		>. Frames:
+		<a
+			href="https://mtg-card-maker.herokuapp.com/"
+			target="_blank"
+			rel="noopener noreferrer"
+			class="footer-link footer-link--inline">CardCraft</a
 		>.
 	</p>
 	<p class="credits">

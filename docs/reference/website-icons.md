@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-06
 - Source of Truth: selected logo, Blender scene and generator, frontend assets and provenance data, browser specifications
-- Update Triggers: logo replacement, illustration source, landing artwork and deck sources, showcase manifest or refresh procedure, asset generation, favicon or manifest changes, installation requirements
+- Update Triggers: logo replacement, illustration source, landing artwork and deck sources, showcase manifest or refresh procedure, asset generation, profile frame source or preparation, favicon or manifest changes, installation requirements
 - Related Docs: [Reference](./README.md), [Design direction](../product/ui-design-direction.md), [Frontend](../architecture/frontend.md), [Original logo](../../logo.png)
 
 The root [logo.png](../../logo.png) is an unchanged copy of the logo supplied by the maintainer. It is a 1254 by 1254 pixel transparent PNG and is the source for the committed browser assets. The navigation uses a 128 by 128 pixel lossless WebP, displayed at 32 by 32 pixels. The adjacent brand text names the link, so the image has an empty alt attribute.
@@ -68,3 +68,17 @@ These are third-party card artworks, not original Spellbook branding or assets c
 Transparent pack margins are trimmed without changing the packaging artwork. The retained pack sources do not establish a pack-opening or purchase feature. The rejected isolated three-card and two-pack row should not return as filler beneath an unrelated hero.
 
 The game control uses the `ms-planeswalker` glyph from the existing Mana Font dependency to identify MTG, with an accessible name and tooltip. It sits before the theme icon and does not imply additional game support.
+
+## Profile card frames
+
+The [frame manifest](../../frontend/brand/profile-frames.json) records 28 regular 745 by 1040 pixel RGBA PNGs loaded by [CardCraft](https://mtg-card-maker.herokuapp.com/) on 2026-10-06. Seven colors each provide Spell and Creature variants, with Standard and Legendary styling. Local assets under `frontend/static/profile/frames/` use lossless WebP with identical decoded RGBA pixels, including partial-alpha edges. The manifest owns exact source URLs, source and output SHA256 hashes, dimensions, transparent-pixel counts and the inspected deployment-bundle hash. No runtime request goes to CardCraft.
+
+These are third-party MTG frame reproductions. A corresponding upstream repository, commit, image author, frame-specific reuse license and official Wizards publication are unverified. CardCraft's software dependency notices do not establish an image license. These images are not covered by Spellbook's code license. The shared footer links to CardCraft as their source.
+
+[prepare-frames.py](../../frontend/scripts/profile/prepare-frames.py) downloads the recorded sources, rejects changed source hashes, creates lossless WebP and verifies every decoded RGBA pixel before replacing the prepared assets. Python and Pillow are offline preparation tools, without a frontend build dependency. Run from the repository root:
+
+```sh
+python3 frontend/scripts/profile/prepare-frames.py
+```
+
+The optional `--source-dir` accepts the directory of previously extracted original PNGs. The renderer uses local SVG crops rather than claiming separate original Crown or Power/Toughness layers. It preserves the fully transparent common artwork rectangle `[58,120,687,576]`, uses the Spell frame for the main regions and the Creature frame for the optional Power/Toughness capsule. Long valid content expands the corresponding text region while preserving the existing field limits.

@@ -10,6 +10,8 @@ Spellbook authenticates local accounts by username and password. `user_profiles.
 
 ## Credentials and sessions
 
+The explicit demo deployment supplies a Demo profile-card fallback only for username `demo` when no valid card definition is stored. Saved definitions and normal account defaults take precedence. This does not reset avatar, artwork, inventory or deck edits.
+
 `local_credentials` stores a unique normalized username and salted scrypt password hash. Usernames contain 3 to 32 ASCII letters, digits, underscores, or hyphens, start with a letter or digit, and are trimmed and lowercased. Passwords contain 12 to 128 characters. Explicit `DEMO_MODE=true` permits the seeded `demo` account to sign in with `demo`, still using password hashing and ordinary sessions. This mode rejects registration and other usernames. The login page displays the demo credentials; the registration page redirects to login. [Demo setup](../operations/local-auth.md#demo-mode) owns seeding and reset commands. Scrypt uses `N=32768`, `r=8`, `p=3`, a random 16-byte salt, and a 64-byte result.
 
 Sessions use random 32-byte opaque tokens. `auth_sessions` stores only the token's SHA-256 digest, account ID, creation time, and fixed 30-day expiry. Validation checks the database on each request. Logout revokes the current session. Operator password recovery and self-service password changes revoke every old session for that account.
