@@ -14,7 +14,7 @@ export class SearchFilterState {
 
 	get catalogFilters(): CatalogFilters {
 		return {
-			colors: [...this.selectedColors],
+			colorIdentity: [...this.selectedColors],
 			rarities: [...this.selectedRarities],
 			types: [...this.selectedTypes],
 			legalities: [...this.selectedLegalities]

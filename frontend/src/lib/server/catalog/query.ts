@@ -12,6 +12,7 @@ export interface CatalogSearchInput {
 
 const allowedValues = {
 	colors: ['W', 'U', 'B', 'R', 'G', 'C'],
+	colorIdentity: ['W', 'U', 'B', 'R', 'G', 'C'],
 	rarities: ['common', 'uncommon', 'rare', 'mythic'],
 	types: [
 		'Creature',

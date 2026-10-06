@@ -22,7 +22,7 @@ export function parseSearchUrl(url: {
 	return {
 		query: url.searchParams.get('q') ?? '',
 		filters: {
-			colors: values(url.searchParams, 'color', MANA_COLORS),
+			colorIdentity: values(url.searchParams, 'color', MANA_COLORS),
 			rarities: values(url.searchParams, 'rarity', RARITIES),
 			types: values(url.searchParams, 'type', CARD_TYPES),
 			legalities: values(url.searchParams, 'legal', LEGALITY_FORMATS)
@@ -34,7 +34,7 @@ export function searchHref({ query, filters }: SearchInput): string {
 	const params = new URLSearchParams();
 	if (query) params.set('q', query);
 	for (const [key, selected] of [
-		['color', filters.colors],
+		['color', filters.colorIdentity],
 		['rarity', filters.rarities],
 		['type', filters.types],
 		['legal', filters.legalities]

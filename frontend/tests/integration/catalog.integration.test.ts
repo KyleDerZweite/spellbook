@@ -56,6 +56,7 @@ run('PostgreSQL catalog snapshots and search', () => {
 			name: 'Fire // Ice',
 			normalized_name: 'fire // ice',
 			colors: ['U', 'R'],
+			color_identity: ['U', 'R'],
 			card_types: ['Instant'],
 			set_code: 'tst',
 			collector_number: '2'
@@ -64,6 +65,7 @@ run('PostgreSQL catalog snapshots and search', () => {
 			name: 'Sol Ring',
 			normalized_name: 'sol ring',
 			colors: [],
+			color_identity: [],
 			card_types: ['Artifact'],
 			rarity: 'uncommon',
 			set_code: 'tst',
@@ -73,6 +75,7 @@ run('PostgreSQL catalog snapshots and search', () => {
 			name: 'Swords to Plowshares',
 			normalized_name: 'swords to plowshares',
 			colors: ['W'],
+			color_identity: ['W'],
 			card_types: ['Instant'],
 			rarity: 'uncommon',
 			set_code: 'tst',
@@ -190,6 +193,82 @@ run('PostgreSQL catalog snapshots and search', () => {
 			).hits.map((card) => card.name)
 		).toEqual(['Sol Ring']);
 	});
+	it('fits identity subsets into a red-green palette including colorless cards', async () => {
+		const cards = [
+			document(20, 20, { name: 'Lightning Bolt', colors: ['R'], color_identity: ['R'] }),
+			document(21, 21, {
+				name: 'Burning-Tree Emissary',
+				mana_cost: '{R/G}{R/G}',
+				colors: ['R', 'G'],
+				color_identity: ['R', 'G']
+			}),
+			document(22, 22, {
+				name: 'Gruul Signet',
+				colors: [],
+				color_identity: ['R', 'G'],
+				card_types: ['Artifact'],
+				oracle_text: '{1}, {T}: Add {R}{G}.'
+			}),
+			document(23, 23, {
+				name: 'Elves of Deep Shadow',
+				colors: ['G'],
+				color_identity: ['B', 'G'],
+				oracle_text: '{T}: Add {B}. This creature deals 1 damage to you.'
+			}),
+			document(24, 24, {
+				name: 'Azorius Signet',
+				colors: [],
+				color_identity: ['W', 'U'],
+				card_types: ['Artifact'],
+				oracle_text: '{1}, {T}: Add {W}{U}.'
+			})
+		];
+		const names = async (filters: unknown) =>
+			(await search({ filters })).hits.map((card) => card.name);
+		try {
+			for (const card of cards) await insertDocument(card);
+			const palette = ['R', 'G'];
+			const expected = [
+				'Burning-Tree Emissary',
+				'Gruul Signet',
+				'Lightning Bolt',
+				'Llanowar Elves',
+				'Sol Ring'
+			];
+			expect(await names({ colorIdentity: palette })).toEqual(expected);
+			expect(await names({ colorIdentity: ['G', 'R', 'C'] })).toEqual(expected);
+			expect(await names({ colorIdentity: ['C'] })).toEqual(['Sol Ring']);
+			expect(await names({ colorIdentity: ['G'] })).toEqual(['Llanowar Elves', 'Sol Ring']);
+			expect(await names({ colorIdentity: [] })).toEqual(await names({}));
+			expect(await names({ colors: ['G'], colorIdentity: palette })).toEqual(['Llanowar Elves']);
+			expect(await names({ colors: ['G'] })).toEqual(['Elves of Deep Shadow', 'Llanowar Elves']);
+			expect(await names({ colors: ['C'] })).toEqual([
+				'Azorius Signet',
+				'Gruul Signet',
+				'Sol Ring'
+			]);
+			const result = await search({ filters: { colorIdentity: palette }, facets: true, limit: 2 });
+			expect(result).toMatchObject({
+				estimatedTotalHits: 5,
+				generationId: generation,
+				facets: { colors: { R: 2, G: 2, C: 2 } }
+			});
+			expect(result.hits.map((card) => card.name)).toEqual(expected.slice(0, 2));
+			expect(
+				(await search({ filters: { colorIdentity: palette }, offset: 2 })).hits.map(
+					(card) => card.name
+				)
+			).toEqual(expected.slice(2));
+			expect(
+				(await search({ query: 'Elves of Deep Shadow', filters: { colorIdentity: palette } })).hits
+			).toEqual([]);
+		} finally {
+			await modules.pool.query('DELETE FROM catalog_printings WHERE id=ANY($1::uuid[])', [
+				cards.map((card) => card.id)
+			]);
+		}
+	});
+
 	it('returns stable pagination, complete counts, and query-scoped facets', async () => {
 		expect((await search({ limit: 1, offset: 1 })).hits[0].name).toBe('Llanowar Elves');
 		expect((await search({ limit: 1, sort: 'name:desc' })).hits[0].name).toBe(

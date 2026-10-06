@@ -47,7 +47,7 @@ export class SearchSession {
 	hydrate(input: SearchInput): void {
 		if (searchHref(input) === searchHref(this.input)) return;
 		this.query = input.query;
-		this.filters.selectedColors = new Set(input.filters.colors);
+		this.filters.selectedColors = new Set(input.filters.colorIdentity);
 		this.filters.selectedRarities = new Set(input.filters.rarities);
 		this.filters.selectedTypes = new Set(input.filters.types);
 		this.filters.selectedLegalities = new Set(input.filters.legalities);

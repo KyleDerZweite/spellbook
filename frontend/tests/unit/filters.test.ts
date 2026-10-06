@@ -5,7 +5,7 @@ describe('SearchFilterState', () => {
 	it('starts with the complete catalog and no implicit legality restriction', () => {
 		const state = new SearchFilterState();
 		expect(state.catalogFilters).toEqual({
-			colors: [],
+			colorIdentity: [],
 			rarities: [],
 			types: [],
 			legalities: []
@@ -21,7 +21,7 @@ describe('SearchFilterState', () => {
 		state.toggleType('Creature');
 		state.toggleLegality('modern');
 		expect(state.catalogFilters).toEqual({
-			colors: ['R'],
+			colorIdentity: ['R'],
 			rarities: ['rare'],
 			types: ['Creature'],
 			legalities: ['modern']
@@ -33,15 +33,15 @@ describe('SearchFilterState', () => {
 		expect(state.hasFilters).toBe(false);
 	});
 
-	it('preserves colorless as an explicit option for server subset filtering', () => {
+	it('preserves colorless as an explicit option for identity palette filtering', () => {
 		const state = new SearchFilterState();
 		state.clear();
 		state.toggleColor('C');
-		expect(state.catalogFilters.colors).toEqual(['C']);
+		expect(state.catalogFilters.colorIdentity).toEqual(['C']);
 		state.toggleColor('R');
-		expect(state.catalogFilters.colors).toEqual(['C', 'R']);
+		expect(state.catalogFilters.colorIdentity).toEqual(['C', 'R']);
 		state.toggleColor('C');
-		expect(state.catalogFilters.colors).toEqual(['R']);
+		expect(state.catalogFilters.colorIdentity).toEqual(['R']);
 	});
 
 	it('takes independent filter snapshots for in-flight requests', () => {
@@ -49,8 +49,8 @@ describe('SearchFilterState', () => {
 		const before = state.catalogFilters;
 		state.toggleColor('G');
 		before.legalities?.push('legacy');
-		expect(before.colors).toEqual([]);
-		expect(state.catalogFilters.colors).toEqual(['G']);
+		expect(before.colorIdentity).toEqual([]);
+		expect(state.catalogFilters.colorIdentity).toEqual(['G']);
 		expect(state.catalogFilters.legalities).toEqual([]);
 	});
 
@@ -61,7 +61,12 @@ describe('SearchFilterState', () => {
 		state.toggleType('Instant');
 		state.toggleLegality('commander');
 		state.clear();
-		expect(state.catalogFilters).toEqual({ colors: [], rarities: [], types: [], legalities: [] });
+		expect(state.catalogFilters).toEqual({
+			colorIdentity: [],
+			rarities: [],
+			types: [],
+			legalities: []
+		});
 		expect(state.hasFilters).toBe(false);
 	});
 });

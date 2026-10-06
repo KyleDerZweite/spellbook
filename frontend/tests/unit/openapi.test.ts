@@ -234,6 +234,7 @@ describe('OpenAPI contract', () => {
 			additionalProperties: false,
 			properties: {
 				colors: { maxItems: 100, items: { enum: ['W', 'U', 'B', 'R', 'G', 'C'] } },
+				colorIdentity: { maxItems: 100, items: { enum: ['W', 'U', 'B', 'R', 'G', 'C'] } },
 				sets: { maxItems: 100, items: { pattern: '^[A-Za-z0-9]{1,12}$' } }
 			}
 		});

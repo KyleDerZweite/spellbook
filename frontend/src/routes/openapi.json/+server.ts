@@ -608,6 +608,13 @@ const SCHEMA = {
 							description:
 								'Match a nonempty subset of selected colors. C also accepts colorless cards; C alone accepts only colorless cards.'
 						},
+						colorIdentity: {
+							type: 'array',
+							maxItems: 100,
+							items: { enum: ['W', 'U', 'B', 'R', 'G', 'C'] },
+							description:
+								'Match color identities that are subsets of the selected palette, including empty identities. C alone accepts only empty identities. C adds no restriction to a colored palette.'
+						},
 						rarities: {
 							type: 'array',
 							maxItems: 100,

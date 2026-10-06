@@ -25,6 +25,7 @@ export function buildSearchContextKey({
 		query: mode === 'browse' ? '' : normalizedQuery.toLowerCase(),
 		filters: {
 			colors: [...new Set(filters.colors ?? [])].sort(),
+			colorIdentity: [...new Set(filters.colorIdentity ?? [])].sort(),
 			rarities: [...new Set(filters.rarities ?? [])].sort(),
 			types: [...new Set(filters.types ?? [])].sort(),
 			legalities: [...new Set(filters.legalities ?? [])].sort(),

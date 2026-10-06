@@ -6,12 +6,12 @@ describe('buildSearchContextKey', () => {
 		const first = buildSearchContextKey({
 			game: 'mtg',
 			query: ' bolt ',
-			filters: { rarities: ['rare'], colors: ['R', 'G'] }
+			filters: { rarities: ['rare'], colors: ['R', 'G'], colorIdentity: ['R', 'G', 'R'] }
 		});
 		const second = buildSearchContextKey({
 			game: 'mtg',
 			query: 'bolt',
-			filters: { colors: ['G', 'R'], rarities: ['rare'] }
+			filters: { colors: ['G', 'R'], colorIdentity: ['G', 'R'], rarities: ['rare'] }
 		});
 		expect(first).toBe(second);
 	});
@@ -21,7 +21,14 @@ describe('buildSearchContextKey', () => {
 			buildSearchContextKey({
 				game: 'mtg',
 				query: '',
-				filters: { colors: [], rarities: [], types: [], legalities: [], sets: [] }
+				filters: {
+					colors: [],
+					colorIdentity: [],
+					rarities: [],
+					types: [],
+					legalities: [],
+					sets: []
+				}
 			})
 		);
 	});
@@ -32,9 +39,17 @@ describe('buildSearchContextKey', () => {
 			buildSearchContextKey({ game: 'mtg', query: 'brainstorm', filters: {} }),
 			buildSearchContextKey({ game: 'pokemon', query: 'bolt', filters: {} }),
 			buildSearchContextKey({ game: 'mtg', query: 'bolt', filters: { colors: ['R'] } }),
+			buildSearchContextKey({ game: 'mtg', query: 'bolt', filters: { colorIdentity: ['R'] } }),
 			buildSearchContextKey({ game: 'mtg', query: 'bolt', filters: { sets: ['dom'] } })
 		])
 			expect(changed).not.toBe(baseline);
+	});
+
+	it('keeps printed colors and color identity in separate page contexts', () => {
+		const input = { game: 'mtg' as const, query: 'elf' };
+		expect(buildSearchContextKey({ ...input, filters: { colors: ['G'] } })).not.toBe(
+			buildSearchContextKey({ ...input, filters: { colorIdentity: ['G'] } })
+		);
 	});
 
 	it('includes page size and sort, and reuses case-insensitive server queries', () => {

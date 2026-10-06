@@ -75,6 +75,7 @@ export interface FacetResponse {
 
 export interface CatalogFilters {
 	colors?: ManaColor[];
+	colorIdentity?: ManaColor[];
 	rarities?: Rarity[];
 	types?: CardType[];
 	legalities?: LegalityFormat[];

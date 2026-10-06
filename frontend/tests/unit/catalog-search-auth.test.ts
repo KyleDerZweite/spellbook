@@ -20,14 +20,19 @@ import { GET as publicPrintings } from '../../src/routes/api/catalog/cards/[orac
 
 const user = { accountId: 'catalog-reader', username: 'mage', email: '' };
 const token = 'a'.repeat(43);
-function event(method: 'GET' | 'POST', authenticated = false, headers: HeadersInit = {}) {
+function event(
+	method: 'GET' | 'POST',
+	authenticated = false,
+	headers: HeadersInit = {},
+	body: unknown = {}
+) {
 	const url = new URL('https://spellbook.test/api/mobile/v1/mtg/search');
 	return {
 		url,
 		request: new Request(url, {
 			method,
 			headers: { 'content-type': 'application/json', ...headers },
-			...(method === 'POST' ? { body: '{}' } : {})
+			...(method === 'POST' ? { body: JSON.stringify(body) } : {})
 		}),
 		locals: { user: authenticated ? user : null }
 	};
@@ -56,6 +61,22 @@ describe('catalog search authentication', () => {
 		};
 		expect((await publicPrintings(request as never)).status).toBe(200);
 		expect(mocks.getPrintings).toHaveBeenCalledWith(request.params.oracleId, 100, 0);
+	});
+
+	it('validates the same identity palette for public and authenticated POST', async () => {
+		const body = { filters: { colorIdentity: ['R', 'G', 'R'], colors: ['R'] } };
+		expect((await publicPost(event('POST', false, {}, body) as never)).status).toBe(200);
+		expect(
+			(await POST(event('POST', true, { origin: 'https://spellbook.test' }, body) as never)).status
+		).toBe(200);
+		expect(mocks.searchCatalogRequest.mock.calls.map(([input]) => input.filters)).toEqual([
+			{ colorIdentity: ['R', 'G'], colors: ['R'] },
+			{ colorIdentity: ['R', 'G'], colors: ['R'] }
+		]);
+		await expect(
+			publicPost(event('POST', false, {}, { filters: { colorIdentity: ['blue'] } }) as never)
+		).rejects.toMatchObject({ status: 400 });
+		expect(mocks.searchCatalogRequest).toHaveBeenCalledTimes(2);
 	});
 
 	it('requires authentication before either search method accesses the catalog', async () => {

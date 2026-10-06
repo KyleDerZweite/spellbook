@@ -9,7 +9,7 @@ describe('Search navigation', () => {
 		const input = {
 			query: 'Lightning Bolt & "elf"',
 			filters: {
-				colors: ['R', 'U'] as const,
+				colorIdentity: ['R', 'U'] as const,
 				rarities: ['common'] as const,
 				types: ['Instant'] as const,
 				legalities: ['modern', 'commander'] as const
@@ -20,7 +20,7 @@ describe('Search navigation', () => {
 				searchHref({
 					query: input.query,
 					filters: {
-						colors: [...input.filters.colors],
+						colorIdentity: [...input.filters.colorIdentity],
 						rarities: [...input.filters.rarities],
 						types: [...input.filters.types],
 						legalities: [...input.filters.legalities]
@@ -31,7 +31,7 @@ describe('Search navigation', () => {
 		);
 		expect(parsed.query).toBe(input.query);
 		expect(parsed.filters).toEqual({
-			colors: ['U', 'R'],
+			colorIdentity: ['U', 'R'],
 			rarities: ['common'],
 			types: ['Instant'],
 			legalities: ['modern', 'commander']
@@ -46,7 +46,7 @@ describe('Search navigation', () => {
 			)
 		);
 		expect(parsed.filters).toEqual({
-			colors: ['G'],
+			colorIdentity: ['G'],
 			rarities: ['rare'],
 			types: ['Creature'],
 			legalities: ['legacy']
@@ -77,12 +77,15 @@ describe('Search navigation', () => {
 		const first = new SearchSession();
 		const second = new SearchSession();
 		first.hydrate(parseSearchUrl(new URL('/mtg/search?q=elf&color=G', origin)));
+		expect(first.filters.selectedColors).toEqual(new Set(['G']));
+		expect(first.input.filters.colorIdentity).toEqual(['G']);
+		expect(first.input.filters.colors).toBeUndefined();
 		first.scrollTop = 840;
 		first.hydrate(parseSearchUrl(new URL(searchHref(first.input), origin)));
 		expect(first.scrollTop).toBe(840);
 		expect(second.input).toEqual({
 			query: '',
-			filters: { colors: [], rarities: [], types: [], legalities: [] }
+			filters: { colorIdentity: [], rarities: [], types: [], legalities: [] }
 		});
 		first.hydrate(parseSearchUrl(new URL('/mtg/search?q=bolt', origin)));
 		expect(first.scrollTop).toBe(0);

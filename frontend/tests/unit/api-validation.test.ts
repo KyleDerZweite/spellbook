@@ -393,7 +393,7 @@ describe('catalog search request validation', () => {
 		expect(
 			parseCatalogSearchRequest({
 				query: '  Opt  ',
-				filters: { colors: ['U', 'C', 'U'], sets: ['DOM', 'dom'] },
+				filters: { colors: ['U', 'C', 'U'], colorIdentity: ['R', 'G', 'R'], sets: ['DOM', 'dom'] },
 				limit: 0,
 				offset: 1_000_000,
 				sort: 'name:desc',
@@ -401,7 +401,7 @@ describe('catalog search request validation', () => {
 			})
 		).toEqual({
 			query: 'Opt',
-			filters: { colors: ['U', 'C'], sets: ['dom'] },
+			filters: { colors: ['U', 'C'], colorIdentity: ['R', 'G'], sets: ['dom'] },
 			limit: 0,
 			offset: 1_000_000,
 			sort: 'name:desc',
@@ -437,6 +437,11 @@ describe('catalog search request validation', () => {
 		JSON.parse('{"filters":{"__proto__":[]}}'),
 		{ filters: { colors: 'U' } },
 		{ filters: { colors: ['blue'] } },
+		{ filters: { colorIdentity: 'R' } },
+		{ filters: { colorIdentity: ['r'] } },
+		{ filters: { colorIdentity: ['RG'] } },
+		{ filters: { colorIdentity: [null] } },
+		{ filters: { colorIdentity: Array(101).fill('R') } },
 		{ filters: { rarities: [null] } },
 		{ filters: { rarities: ['special'] } },
 		{ filters: { types: ['creature'] } },

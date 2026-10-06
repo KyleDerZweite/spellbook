@@ -51,6 +51,10 @@ export async function searchCatalogRequest(input: CatalogSearchInput): Promise<S
 			filters.colors.includes('C') ? `(cardinality(p.colors) = 0 OR ${matches})` : matches
 		);
 	}
+	if (filters.colorIdentity?.length) {
+		const palette = filters.colorIdentity.filter((color) => color !== 'C');
+		where.push(`p.document->'color_identity' <@ ${bind(JSON.stringify(palette))}::jsonb`);
+	}
 	if (filters.rarities?.length) where.push(`p.rarity = ANY(${bind(filters.rarities)}::text[])`);
 	if (filters.types?.length) where.push(`p.card_types && ${bind(filters.types)}::text[]`);
 	if (filters.sets?.length) where.push(`p.set_code = ANY(${bind(filters.sets)}::text[])`);

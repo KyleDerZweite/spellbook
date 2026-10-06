@@ -66,6 +66,13 @@ describe('authenticated catalog client', () => {
 		});
 	});
 
+	it('sends a color identity palette without a printed-color restriction', async () => {
+		await browseCards({ filters: { colorIdentity: ['R', 'G'] } });
+		expect(JSON.parse(fetchMock.mock.calls[0][1]!.body as string).filters).toEqual({
+			colorIdentity: ['R', 'G']
+		});
+	});
+
 	it('browses without a query in alphabetical order', async () => {
 		await browseCards();
 		expect(JSON.parse(fetchMock.mock.calls[0][1]!.body as string)).toEqual({
