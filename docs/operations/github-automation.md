@@ -1,16 +1,16 @@
 # Repository verification and GitHub automation
 
 - Status: Canonical
-- Last Reviewed: 2026-10-06
+- Last Reviewed: 2026-10-07
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
 - Update Triggers: test commands, workflow coverage, runtime pins, browser verification, PR policy, Dependabot policy, engineering skill tracker and domain layout
-- Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance)
+- Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance), [Application boundaries](../architecture/application-contract.md#implementation-status)
 
 This document owns repository check commands, CI coverage, and verification evidence. Product and integration documents own behavior and acceptance criteria. Run checks appropriate to the changed behavior; do not treat a passing command as proof of requirements it does not exercise.
 
 ## Local checks
 
-Use the Node version in [`frontend/.node-version`](../../frontend/.node-version) and the package manager in [`frontend/package.json`](../../frontend/package.json). Before building for browser review, set `APP_ORIGIN` to the origin the browser will use. [Deployment configuration](./deployment.md#configuration) owns the build-time origin and rebuild procedure. From `frontend/`, run:
+Use the Node version in [`frontend/.node-version`](../../frontend/.node-version) and the package manager in [root package.json](../../package.json). Root [workspace policies](../../pnpm-workspace.yaml) and [pnpm-lock.yaml](../../pnpm-lock.yaml) own the frozen install across frontend/backend/contracts. Commands run from `frontend/` resolve this same root workspace. Before building for browser review, set `APP_ORIGIN` to the origin the browser will use. [Deployment configuration](./deployment.md#configuration) owns the build-time origin and rebuild procedure. From `frontend/`, run:
 
 Lint, builds and Vitest regenerate SvelteKit files, including environment configuration. Run them in an isolated worktree or stop that checkout's dev server first. Restart the shared preview with `./dev.sh` from the repository root after the checks, so test configuration cannot enter the running app through HMR.
 
@@ -22,14 +22,18 @@ pnpm build
 pnpm db:check
 ```
 
-`lint` includes Prettier, SvelteKit synchronization, the TypeScript 7 check, and Svelte checking. Running those nested checks again adds no coverage unless isolating a failure. `db:check` checks Drizzle migration consistency; it does not apply migrations or exercise transactions.
+`lint` includes the root TypeScript import-boundary checker and forbidden-import tests, Prettier, SvelteKit synchronization, the TypeScript 7 check, and Svelte checking. `build` also checks built client output for backend/persistence leakage. Running those nested checks again adds no coverage unless isolating a failure. `db:check` checks Drizzle migration consistency; it does not apply migrations or exercise transactions.
 
 For frontend integration tests, set `DATABASE_URL` and `TEST_DATABASE_URL` to the same disposable PostgreSQL 18 database, then run from `frontend/`:
 
 ```sh
 pnpm db:migrate
 pnpm test:integration
+APP_ORIGIN=http://127.0.0.1:5191 pnpm build
+pnpm test:http
 ```
+
+The HTTP suite starts the built Node application and verifies public Catalog DTOs and browser/API local-authentication journeys against the same disposable database. The default origin is `http://127.0.0.1:5191`; when setting `TEST_HTTP_PORT`, rebuild with matching `APP_ORIGIN`. The suite fails without matching `DATABASE_URL` and `TEST_DATABASE_URL`. It temporarily publishes a catalog fixture, so do not run it against a shared database or concurrent catalog publisher.
 
 The database role needs schema and extension creation privileges. Integration cases write fixtures and remove test data or schemas. Without `TEST_DATABASE_URL`, database suites skip; a successful process with skipped suites is not a database verification result.
 
@@ -56,7 +60,7 @@ Follow [documentation maintenance](../README.md#maintenance) for links, ownershi
 
 ## CI coverage
 
-[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs on pull requests and pushes to `main`. Its jobs run the application commands above with frozen installs. Frontend and catalog-worker integration jobs provision separate PostgreSQL services. The workflow is the source of truth for job names, environment variables, and tool versions.
+[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs on pull requests and pushes to `main`. Its jobs use the root package-manager pin and cache lockfile, then run the application commands above with frozen workspace installs. The frontend integration job builds and runs `test:http` after migration and repository integration tests. Frontend and catalog-worker integration jobs provision separate PostgreSQL services. The workflow is the source of truth for job names, environment variables, and tool versions.
 
 CI does not run the root Markdown command, browser workflows, container builds, image publication, or deployment. These remain explicit checks when relevant. [Deployment](./deployment.md) owns container startup and operator verification; [database upgrades](./postgres-upgrade.md) owns restore rehearsal and rollback checks.
 
@@ -68,7 +72,7 @@ Record the commands run, results, skipped coverage, and remaining limits with th
 
 ## Dependabot
 
-[`.github/dependabot.yml`](../../.github/dependabot.yml) opens dependency updates for GitHub Actions, frontend npm packages, and both Python workers. These pull requests require passing CI and manual review and merge. No repository workflow auto-merges them.
+[`.github/dependabot.yml`](../../.github/dependabot.yml) opens dependency updates for GitHub Actions, root-workspace npm packages, and both Python workers. These pull requests require passing CI and manual review and merge. No repository workflow auto-merges them.
 
 ## Engineering skill configuration
 

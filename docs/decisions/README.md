@@ -1,7 +1,7 @@
 # Decision Records
 
 - Status: Canonical
-- Last Reviewed: 2026-10-06
+- Last Reviewed: 2026-10-07
 - Source of Truth: mixed
 - Update Triggers: major architectural decisions, major product decisions, documentation system changes, supersession of earlier decisions
 - Related Docs: [ADR Template](./ADR-template.md), [ADR-0001](./0001-docs-first-knowledge-system.md), [ADR-0006](./0006-generic-oidc-and-internal-account-identity.md), [ADR-0007](./0007-backend-first-mtg-bulk-import-api.md), [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md), [ADR-0009](./0009-local-authentication.md), [ADR-0014](./0014-public-landing-and-private-workspace.md), [Docs Index](../README.md), [Accepted mechanisms](../architecture/application-contract.md)
@@ -50,7 +50,7 @@ Rules:
 
 - [ADR-0014: Public landing and private workspace](./0014-public-landing-and-private-workspace.md)
 
-- [ADR-0015: Shared backend use cases and client contracts](./0015-shared-backend-use-cases-and-client-contracts.md), accepted for the next pass; not implemented
+- [ADR-0015: Shared backend use cases and client contracts](./0015-shared-backend-use-cases-and-client-contracts.md), workspace/Catalog/local-authentication boundary implemented; full API parity planned
 
 - [ADR-0016: PostgreSQL saved-state invalidation](./0016-postgres-saved-state-invalidation.md), accepted design; not implemented
 - [ADR-0017: Revisioned Inventory windows and mutation receipts](./0017-revisioned-inventory-windows-and-mutation-receipts.md), accepted design; not implemented

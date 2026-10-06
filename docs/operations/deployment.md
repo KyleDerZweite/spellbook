@@ -1,16 +1,16 @@
 # Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-10-06
+- Last Reviewed: 2026-10-07
 - Source of Truth: repo config
-- Update Triggers: compose services and first startup, catalog import and recovery, images, local launch commands and preview target, environment variables, migrations, storage
+- Update Triggers: compose services and first startup, catalog import and recovery, images, local launch commands and preview target, environment variables, migrations, storage, workspace ownership and compatibility adapters
 - Related Docs: [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Classifier research](../integrations/card-categorization.md)
 
 The canonical service definitions are [`podman-compose.yml`](../../podman-compose.yml) and the local storage override [`podman-compose.dev.yml`](../../podman-compose.dev.yml). Keep live domains, account details, and secret references in private operator notes.
 
 ## Local development
 
-[`dev.sh`](../../dev.sh) starts the host development environment. It uses the pinned Node version through `fnm` when available; otherwise activate that version before launching. Install frontend dependencies with `pnpm --dir frontend install --frozen-lockfile` and prepare the scan-worker environment with `uv sync --project scan-worker --frozen`. An existing PostgreSQL database with migrations applied is required. [Demo setup](./local-auth.md#demo-mode) owns the explicit initial migration and seed commands.
+[`dev.sh`](../../dev.sh) starts the host development environment. It uses the pinned Node version through `fnm` when available; otherwise activate that version before launching. Install the root workspace dependencies with `pnpm install --frozen-lockfile` from the repository root and prepare the scan-worker environment with `uv sync --project scan-worker --frozen`. An existing PostgreSQL database with migrations applied is required. [Demo setup](./local-auth.md#demo-mode) owns the explicit initial migration and seed commands.
 
 Copy [`.env.local.example`](../../.env.local.example) to the ignored root `.env.local` and set its database connection. Enable `DEMO_MODE` only for the prepared disposable demo. The launcher reads `.env.local`, not the deployment `.env`; environment variables already supplied by the caller take precedence. Run from the repository root:
 
@@ -25,6 +25,12 @@ Stopping the launcher terminates its own frontend and scan-worker processes. An 
 The T3 project uses `./dev.sh` as its Dev server script and `http://localhost:5173/` as its design-review preview URL. The root always shows the public landing, including with a signed-in demo session. Open `/mtg/dashboard` to review the private account summary. The removed `review=landing` override is no longer needed. The preview URL is a local app setting, not deployment configuration.
 
 The Compose base file starts the built stack on port 3000. Its `podman-compose.dev.yml` override selects a shared local scan-storage volume instead of S3; it does not run Vite or enable Hot Reload.
+
+## Workspace image ownership
+
+[Root package.json](../../package.json), [pnpm-workspace.yaml](../../pnpm-workspace.yaml) and [pnpm-lock.yaml](../../pnpm-lock.yaml) own Node workspace install policies and the package-manager pin. Frontend-scoped install commands still resolve this frozen root workspace. Keep the root manifests and `frontend/`, `backend/`, `contracts/` and `scripts/` in the image build context.
+
+The [frontend Dockerfile](../../frontend/Dockerfile) copies workspace manifests before installation, builds the frontend with backend/contracts sources and the client-boundary check, then installs production workspace dependencies for runtime. The runtime starts `node frontend/build/index.js` from `/app`. The migrator keeps `/app/frontend` and `pnpm db:migrate`, preserving existing Compose/operator commands and `frontend/drizzle/` history. Compose contexts remain the repository root. This module split adds no independently deployed backend service.
 
 ## Services and startup
 

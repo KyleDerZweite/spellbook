@@ -1,12 +1,14 @@
 # Postgres
 
 - Status: Canonical
-- Last Reviewed: 2026-10-06
+- Last Reviewed: 2026-10-07
 - Source of Truth: code
-- Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals
-- Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md)
+- Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership and compatibility adapters
+- Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md), [Application contract](./application-contract.md)
 
 PostgreSQL stores account-owned application state and the public Scryfall catalog.
+
+The backend [schema](../../backend/src/db/schema.ts) owns table definitions, and [database construction](../../backend/src/db/client.ts) owns Drizzle/pg setup. Frontend composition supplies configuration. Frontend schema/client modules are compatibility adapters for untouched repositories; the existing [Drizzle migration history](../../frontend/drizzle/) and migration commands remain unchanged.
 
 ## Current Tables
 
@@ -47,7 +49,7 @@ PostgreSQL stores account-owned application state and the public Scryfall catalo
 
 ## Current Access Pattern
 
-- SvelteKit server code connects to Postgres through Drizzle ORM and `pg`
+- backend Catalog and local authentication use Drizzle ORM and `pg` through frontend server composition; remaining SvelteKit feature repositories use explicit compatibility adapters
 - browser pages load user data through server load functions and route actions
 - optional mobile API endpoints call the same repository functions as web routes
 - repository functions enforce ownership by internal Spellbook `accountId`

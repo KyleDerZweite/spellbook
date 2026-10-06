@@ -1,12 +1,24 @@
 # Accepted application contract
 
-- Status: Accepted design on 2026-10-06, planned and not implemented
-- Last Reviewed: 2026-10-06
-- Source of Truth: Kyle's Q56 acceptance of the reviewed implementation contract
+- Status: Accepted design; slice 1 workspace, Catalog and local authentication implemented; later slices planned
+- Last Reviewed: 2026-10-07
+- Source of Truth: workspace/Catalog/local-authentication code and Kyle's Q56 acceptance of later contracts
 - Update Triggers: workspace ownership, use-case interfaces, experimental API migration, mutation receipts and revisions, Inventory queries and cache limits, synchronization and acceptance evidence
 - Related Docs: [Architecture](./README.md), [System overview](./system-overview.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Authentication](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Product specification](../product/specification.md), [UI direction](../product/ui-design-direction.md), [Value and costs](./value-and-costs.md), [Category rules](./category-rules.md), [Verification](../operations/github-automation.md), [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md), [ADR-0016](../decisions/0016-postgres-saved-state-invalidation.md), [ADR-0017](../decisions/0017-revisioned-inventory-windows-and-mutation-receipts.md)
 
-Kyle accepted the full nineteen-slice contract, its blocking dependencies and real HTTP/PostgreSQL/browser acceptance seam in Q56 on 2026-10-06. This document owns the shared application mechanisms. Product owners retain user-facing requirements. Acceptance of the design establishes no shipped capability, benchmark result or deployment. The [accepted parent specification, stories and slice dependency graph](https://github.com/KyleDerZweite/spellbook/issues/173) records delivery scope. [Slice 1](https://github.com/KyleDerZweite/spellbook/issues/174) begins the workspace migration. GitHub Issues owns delivery slices, not a second copy of canonical behavior.
+Kyle accepted the full nineteen-slice contract, its blocking dependencies and real HTTP/PostgreSQL/browser acceptance seam in Q56 on 2026-10-06. This document owns the shared application mechanisms. Product owners retain user-facing requirements. Acceptance of the design establishes no capability or benchmark evidence beyond the implementation status below. Deployment remains a separate operator action. The [accepted parent specification, stories and slice dependency graph](https://github.com/KyleDerZweite/spellbook/issues/173) records delivery scope. [Slice 1](https://github.com/KyleDerZweite/spellbook/issues/174) begins the workspace migration. GitHub Issues owns delivery slices, not a second copy of canonical behavior.
+
+## Implementation status
+
+Slice 1 establishes the root pnpm workspace, safe Catalog/local-authentication contracts, backend schema/database construction and checked frontend server composition. [Root package.json](../../package.json), [pnpm-workspace.yaml](../../pnpm-workspace.yaml) and [pnpm-lock.yaml](../../pnpm-lock.yaml) own package-manager pins, dependency policies and the frozen install. Frontend commands resolve this workspace even when invoked from `frontend/`.
+
+[`composition.ts`](../../frontend/src/lib/server/composition.ts) injects database/demo configuration and constructs backend Catalog and local authentication. [`backend/src/db/schema.ts`](../../backend/src/db/schema.ts) owns the schema. Existing frontend schema/client modules are compatibility adapters; `frontend/drizzle/` remains the migration history. [`boundary-policy.json`](../../scripts/boundary-policy.json) enumerates exact compatibility imports awaiting [removal slice 19](https://github.com/KyleDerZweite/spellbook/issues/192). This includes untouched feature repositories and Settings password changes, rather than complete backend migration.
+
+[`contracts/src/catalog.ts`](../../contracts/src/catalog.ts), [`auth.ts`](../../contracts/src/auth.ts), [`profile.ts`](../../contracts/src/profile.ts) and [`errors.ts`](../../contracts/src/errors.ts) own the extracted safe shapes. Catalog explicitly maps returned printing fields, excluding unknown stored fields. Local authentication returns ISO-string `expiresAt`; frontend adapters own cookies, origins, native forms and HTTP errors. Shared profile artwork IDs/defaults/validation and the card definition type live in contracts; frontend retains artwork rendering metadata and full card validation. Untouched feature view types may retain Dates and are not new wire DTOs.
+
+The TypeScript [boundary checker](../../scripts/check-boundaries.mjs) resolves actual workspace package imports and tsconfig aliases, including type imports, re-exports and dynamic imports. Lint runs it and its forbidden-import tests. Build runs the [client-output checker](../../scripts/check-client.mjs). [Verification](../operations/github-automation.md) owns current commands and the real HTTP/PostgreSQL seam.
+
+The remaining adapter parity, compact mutation acknowledgements, field/Inventory revisions, bounded Inventory loading, shared Deck UI, SSE, valuation, history and categories below remain accepted planned contracts. Slice 1 does not establish these later outcomes or scalability.
 
 ## Module ownership
 

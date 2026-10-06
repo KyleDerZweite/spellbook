@@ -1,12 +1,12 @@
 # System overview
 
 - Status: Canonical
-- Last Reviewed: 2026-10-06
+- Last Reviewed: 2026-10-07
 - Source of Truth: code and explicitly marked design requirements
 - Update Triggers: service boundaries, topology, authentication, data ownership, runtime allocation, hosted capacity requirements, frontend/backend separation and cross-client synchronization
 - Related Docs: [Architecture](./README.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Worker](./worker.md), [Auth](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [Realtime backend evaluation](../integrations/realtime-backends.md), [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md), [Accepted application contract](./application-contract.md), [Value and costs](./value-and-costs.md), [Category rules](./category-rules.md)
 
-Spellbook uses TypeScript and SvelteKit for the web interface and application API, PostgreSQL for account-owned state and the MTG catalog, and a Python worker for Scryfall ingestion. Local authentication runs inside SvelteKit.
+Spellbook uses TypeScript and SvelteKit for the web interface and application API, PostgreSQL for account-owned state and the MTG catalog, and a Python worker for Scryfall ingestion. Backend local-authentication and Catalog use cases run within the SvelteKit deployment.
 
 ```text
 Browser -> SvelteKit -> Postgres
@@ -16,7 +16,7 @@ Scan upload -> SvelteKit -> local or S3 artifact storage
                         -> Python scan-worker scaffold
 ```
 
-The browser and installed web app share one frontend and session cookie. Server repositories enforce ownership using the internal account ID. The [catalog](./catalog.md) uses separate PostgreSQL tables for public printing metadata. Account-owned data remains scoped by the authenticated account.
+The browser and installed web app share one frontend and session cookie. Root pnpm workspace packages separate `frontend/`, `backend/` and `contracts/`. The frontend server composition constructs backend Catalog and local authentication; untouched account workflows still use enumerated compatibility adapters. Server repositories enforce ownership using the internal account ID. The [catalog](./catalog.md) uses separate PostgreSQL tables for public printing metadata. Account-owned data remains scoped by the authenticated account.
 
 [Scan review](./mobile-and-scan.md) accepts uploaded images and external candidates. The bundled recognizer remains a scaffold; no vector database is required.
 
@@ -38,4 +38,4 @@ The selected concurrent-edit rules depend on the data. Avatar and individual sel
 
 Self hosting remains the preferred operating mode. The maintainer selected PostgreSQL as the source of truth for account state and the MTG catalog, with saved-change sync planned without Convex in this pass. The [realtime backend evaluation](../integrations/realtime-backends.md) owns the dated provider research and managed-service cost ceiling for any later reconsideration. The accepted transport uses the existing PostgreSQL, pg and Node capabilities. No database replacement is selected.
 
-Kyle accepted the concrete nineteen-slice design and blocking dependencies in Q56 on 2026-10-06. The [application contract](./application-contract.md), [value/cost persistence](./value-and-costs.md) and [category rules](./category-rules.md) own the reviewed mechanisms. The full-stack SvelteKit implementation above remains the running system. Design acceptance does not establish implementation, scalability, synchronization evidence or deployment. The single-client choice in [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md) must be reconsidered explicitly if a separate app client is selected.
+Kyle accepted the concrete nineteen-slice design and blocking dependencies in Q56 on 2026-10-06. The [application contract](./application-contract.md), [value/cost persistence](./value-and-costs.md) and [category rules](./category-rules.md) own the reviewed mechanisms. Slice 1 implements the workspace and Catalog/local-authentication boundary within the same SvelteKit runtime. The remaining mechanisms stay planned, as listed in the application contract. Design acceptance does not establish implementation, scalability, synchronization evidence or deployment. The single-client choice in [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md) must be reconsidered explicitly if a separate app client is selected.

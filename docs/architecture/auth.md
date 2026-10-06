@@ -1,12 +1,18 @@
 # Authentication
 
 - Status: Canonical
-- Last Reviewed: 2026-10-06
+- Last Reviewed: 2026-10-07
 - Source of Truth: code
-- Update Triggers: credentials, sessions, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, post-login destinations, agent discovery
-- Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Routes](../product/routing-and-games.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md)
+- Update Triggers: credentials, sessions, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, post-login destinations, agent discovery, workspace ownership and compatibility adapters
+- Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Routes](../product/routing-and-games.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md), [Application contract](./application-contract.md)
 
 Spellbook authenticates local accounts by username and password. `user_profiles.account_id` remains the stable ownership key for inventories, decks, and scans. Registration generates a new account ID; operator enrollment preserves an existing account ID.
+
+## Application ownership
+
+The backend [local-authentication use case](../../backend/src/auth/local.ts) owns credential validation, hashing, rate/derivation limits and database sessions. [Frontend composition](../../frontend/src/lib/server/composition.ts) supplies the database and demo-mode configuration. [`contracts/src/auth.ts`](../../contracts/src/auth.ts) owns the safe user/session/application shapes; `expiresAt` is an ISO string at this boundary. The frontend owns cookie handling, origin checks, native forms and HTTP error mapping. Existing public response shapes remain unchanged.
+
+The shared [profile contract](../../contracts/src/profile.ts) owns artwork IDs, defaults, ID validation and the card definition type. Frontend artwork metadata owns labels/image paths, and the full card validator remains in frontend. Settings preference and password persistence remain enumerated compatibility code for later feature migration. A legacy session adapter converts expiry to Date for untouched password callers; this does not change the new auth DTO.
 
 ## Credentials and sessions
 

@@ -1,12 +1,12 @@
 # Frontend
 
 - Status: Canonical
-- Last Reviewed: 2026-10-06
+- Last Reviewed: 2026-10-07
 - Source of Truth: code, accepted design requirements and upstream runtime documentation
 - Update Triggers: routes, authentication, public landing, responsive layout, typography, development review controls, search, shared scroll viewports, inventory ordering and filters, bounded inventory loading and scale evidence, deck builder, component choices, runtime support and compatibility, accepted design contracts and implementation evidence
 - Related Docs: [System overview](./system-overview.md), [Auth](./auth.md), [Routes](../product/routing-and-games.md), [Catalog](./catalog.md), [Selected UI components](../reference/ui-libraries.md), [Design direction](../product/ui-design-direction.md), [Application contract](./application-contract.md)
 
-The SvelteKit application renders pages on the server and owns the application API. Svelte components and Tailwind styles implement the interface; Bits UI supplies accessible interactive components. The [selected component guidance](../reference/ui-libraries.md) owns shadcn-svelte source adoption and its boundary with existing Bits UI controls. The shared stylesheet defines the neutral light and dark, icon-accented card workspace design described in [design direction](../product/ui-design-direction.md).
+The SvelteKit application renders pages and owns HTTP adapters. Its named server composition constructs backend Catalog and local-authentication use cases. Other feature repositories remain enumerated compatibility code under the [application contract](./application-contract.md#implementation-status). Svelte components and Tailwind styles implement the interface; Bits UI supplies accessible interactive components. The [selected component guidance](../reference/ui-libraries.md) owns shadcn-svelte source adoption and its boundary with existing Bits UI controls. The shared stylesheet defines the neutral light and dark, icon-accented card workspace design described in [design direction](../product/ui-design-direction.md).
 
 The root `/` always renders the shared [PublicLanding](../../frontend/src/lib/components/showcase/PublicLanding.svelte), including for signed-in users. Its native GET search form targets public `/mtg/search` with the query in `q`. With JavaScript, it opens the shared Search overlay above the mounted landing page. The private `/mtg/dashboard` is a separate account workspace. [The product specification](../product/specification.md#dashboard) owns its summaries and limits.
 
@@ -62,13 +62,13 @@ The maintainer selected bounded Inventory loading and a virtualized list on 2026
 
 ## Runtime compatibility
 
-The application targets Node 26 and pnpm 12, with exact versions in `frontend/.node-version` and `frontend/package.json`. Node 26 is a stable Current release on 2026-10-03, not yet LTS. The [Node schedule](https://github.com/nodejs/Release/blob/main/schedule.json) starts its LTS phase on 2026-10-28 and supports the release through 2029-04-30.
+The application targets Node 26 and pnpm 12, with the Node version in [`frontend/.node-version`](../../frontend/.node-version) and package-manager pin in [root package.json](../../package.json). Root pnpm workspace manifests and lockfile own installs across frontend, backend and contracts. Node 26 is a stable Current release on 2026-10-03, not yet LTS. The [Node schedule](https://github.com/nodejs/Release/blob/main/schedule.json) starts its LTS phase on 2026-10-28 and supports the release through 2029-04-30.
 
 The implemented stack uses Svelte 5, SvelteKit 3, adapter-node 6, and Tailwind 4. The [Kit 3 migration](https://github.com/sveltejs/kit/blob/main/documentation/docs/60-appendix/35-migrating-to-sveltekit-3.md) moves configuration into the SvelteKit Vite plugin. Application imports use the `#lib/*` package mapping, and [`src/env.ts`](../../frontend/src/env.ts) declares environment variables exposed through the framework's environment modules.
 
 Application type checking uses TypeScript 7 through the `typescript-native` alias. Kit 3 and svelte-check still require TypeScript 6's compiler API. Installing TypeScript 7 as that API dependency fails because it does not provide the expected `ts.sys.readFile` interface. The compatibility dependency supports those tools; it does not replace the project's TypeScript 7 check. The [verification workflow](../operations/github-automation.md#local-checks) owns the commands.
 
-[`pnpm-workspace.yaml`](../../frontend/pnpm-workspace.yaml) retains the patched esbuild dependency for Drizzle's legacy loader. Its scoped `runed` peer rule accepts Kit 3 because Bits UI uses the framework-independent entry point, not `runed/kit`. Frozen installs preserve these choices.
+[Root pnpm-workspace.yaml](../../pnpm-workspace.yaml) retains the patched esbuild dependency for Drizzle's legacy loader. Its scoped `runed` peer rule accepts Kit 3 because Bits UI uses the framework-independent entry point, not `runed/kit`. The [root lockfile](../../pnpm-lock.yaml) preserves these choices. Commands invoked from `frontend/` resolve the same root workspace; there is no separate frontend lockfile.
 
 `APP_ORIGIN` configures `paths.origin` at build time in [`vite.config.ts`](../../frontend/vite.config.ts). Compose passes it to both frontend and migration builds. Adapter-node 6 no longer reads runtime `ORIGIN`; changing the public origin requires rebuilding the frontend. [Deployment](../operations/deployment.md) owns the operator procedure.
 
