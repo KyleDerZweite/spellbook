@@ -21,9 +21,13 @@
 	} from '#lib/mtg/inventory-view.ts';
 	import { storedCardDocument } from '#lib/mtg/stored-card.ts';
 	import { getSetCatalogSize } from '#lib/search/catalog.ts';
+	import { getSearchSession } from '#lib/search/session.svelte.ts';
+	import { isPrimaryClick } from '#lib/search/navigation.ts';
+	import type { CardDocument } from '#lib/search/types.ts';
 	import { activeGameState } from '#lib/state/activeGame.svelte.ts';
 
 	let { data, form }: PageProps = $props();
+	const search = getSearchSession();
 	let order = $state<InventoryOrder>({ base: 'name', direction: 'asc', variant: null });
 	let query = $state('');
 	let selectedSets = $state<string[]>([]);
@@ -36,7 +40,12 @@
 	let conditionTrigger = $state<HTMLButtonElement | null>(null);
 	let selectedFinish = $state('all');
 	let selectedCondition = $state('all');
-	let inspectedId = $state<string | null>(null);
+	let inspection = $state<{
+		entryId: string;
+		mode: 'edit' | 'add';
+		card: CardDocument;
+		returnFocus: HTMLElement | null;
+	} | null>(null);
 	let removeId = $state<string | null>(null);
 	let pendingId = $state<string | null>(null);
 	let status = $state('');
@@ -67,7 +76,7 @@
 		{ value: 'foil', label: 'Foil' }
 	];
 	let inventoryCards = $derived(data.cards);
-	let inspected = $derived(inventoryCards.find((card) => card.id === inspectedId));
+	let inspected = $derived(inventoryCards.find((card) => card.id === inspection?.entryId));
 	let removing = $derived(inventoryCards.find((card) => card.id === removeId));
 	const normalizeSet = (code: string) => code.toLowerCase();
 	const setName = (code: string) => data.setNames[normalizeSet(code)] ?? code.toUpperCase();
@@ -112,6 +121,19 @@
 		}, 60_000);
 		return () => clearInterval(timer);
 	});
+	function openSearch(event: MouseEvent) {
+		if (!isPrimaryClick(event)) return;
+		event.preventDefault();
+		search.open(
+			undefined,
+			event.currentTarget instanceof HTMLElement ? event.currentTarget : undefined
+		);
+	}
+	function openInspection(id: string, mode: 'edit' | 'add', returnFocus: HTMLElement | null) {
+		const card = inventoryCards.find((entry) => entry.id === id);
+		if (!card) return;
+		inspection = { entryId: id, mode, card: storedCardDocument(card), returnFocus };
+	}
 	function openRemoval(id: string) {
 		mutationError = '';
 		removalReturnTarget = rowMenuRefs[id] ?? searchInput;
@@ -263,6 +285,7 @@
 		<div class="inventory-actions">
 			<a href="/mtg/scan" class="btn btn-ghost">Scan</a><a
 				href="/mtg/search"
+				onclick={openSearch}
 				class="btn btn-primary">Add cards</a
 			>
 		</div>
@@ -273,7 +296,7 @@
 	{#if inventoryCards.length === 0}
 		<div class="empty-state">
 			<p>No cards yet.</p>
-			<a bind:this={emptyAction} href="/mtg/search" class="btn btn-secondary"
+			<a bind:this={emptyAction} href="/mtg/search" onclick={openSearch} class="btn btn-secondary"
 				>Find your first card</a
 			>
 		</div>
@@ -515,7 +538,7 @@
 					<li class="inventory-row" class:saving={pendingId === card.id}>
 						<button
 							class="card-identity"
-							onclick={() => (inspectedId = card.id)}
+							onclick={(event) => openInspection(card.id, 'edit', event.currentTarget)}
 							aria-label={`Inspect ${card.name}, ${card.setCode.toUpperCase()}, ${card.finish}, ${card.condition}`}
 							aria-describedby={isNewInventoryEntry(card.createdAt, asOf)
 								? `inventory-new-${card.id}`
@@ -578,9 +601,15 @@
 								() => rowMenuRefs[card.id] ?? null, (ref) => (rowMenuRefs[card.id] = ref)
 							}
 							onCloseAutoFocus={(event) => {
-								if (removeId === card.id) event.preventDefault();
+								if (removeId === card.id || inspection?.entryId === card.id) event.preventDefault();
 							}}
 							items={[
+								{
+									label: 'Add another',
+									disabled: pendingId !== null,
+									onSelect: () =>
+										openInspection(card.id, 'add', rowMenuRefs[card.id] ?? searchInput)
+								},
 								{
 									label: 'Remove',
 									destructive: true,
@@ -627,51 +656,50 @@
 	>
 {/snippet}
 
-{#if inspected}
-	<CardDetail card={storedCardDocument(inspected)} onClose={() => (inspectedId = null)}>
-		{#snippet actions(activeCard)}
-			{#if inspected && activeCard.id === inspected.catalogCardId}
-				<form
-					method="POST"
-					action="?/updateQuantity"
-					use:enhance={saveEntry}
-					class="inspector-form"
-				>
-					<input type="hidden" name="entryId" value={inspected.id} />
-					<p>
-						{inspected.setCode.toUpperCase()} · {inspected.finish === 'foil' ? 'Foil' : 'Nonfoil'} · {inspected.condition}
-					</p>
-					<label class="label" for="inventory-quantity">Owned quantity</label><input
-						class="input"
-						id="inventory-quantity"
-						name="quantity"
-						type="number"
-						min="1"
-						step="1"
-						required
-						value={inspected.quantity}
-					/><label class="label" for="inventory-notes">Notes</label><textarea
-						class="input"
-						id="inventory-notes"
-						name="notes"
-						rows="2"
-						value={inspected.notes}></textarea><button
-						type="submit"
-						class="btn btn-primary"
-						disabled={pendingId !== null}>{pendingId === inspected.id ? 'Saving…' : 'Save'}</button
-					>{#if mutationError}<p class="mutation-error" role="alert">{mutationError}</p>{:else}<p
-							class="text-sm text-text-muted"
-							role="status"
-						>
-							{status}
-						</p>{/if}
-				</form>
-			{:else}<a
-					class="btn btn-secondary"
-					href={`/mtg/search?q=${encodeURIComponent(activeCard.name)}`}>Find this card in Search</a
-				>{/if}
-		{/snippet}
-	</CardDetail>
+{#if inspection}
+	<CardDetail
+		card={inspection.card}
+		returnFocus={inspection.returnFocus}
+		actions={inspection.mode === 'edit' ? editEntryActions : undefined}
+		onClose={() => (inspection = null)}
+	/>
+	{#snippet editEntryActions(activeCard: CardDocument)}
+		{#if inspected && activeCard.id === inspected.catalogCardId}
+			<form method="POST" action="?/updateQuantity" use:enhance={saveEntry} class="inspector-form">
+				<input type="hidden" name="entryId" value={inspected.id} />
+				<p>
+					{inspected.setCode.toUpperCase()} · {inspected.finish === 'foil' ? 'Foil' : 'Nonfoil'} · {inspected.condition}
+				</p>
+				<label class="label" for="inventory-quantity">Owned quantity</label><input
+					class="input"
+					id="inventory-quantity"
+					name="quantity"
+					type="number"
+					min="1"
+					step="1"
+					required
+					value={inspected.quantity}
+				/><label class="label" for="inventory-notes">Notes</label><textarea
+					class="input"
+					id="inventory-notes"
+					name="notes"
+					rows="2"
+					value={inspected.notes}></textarea><button
+					type="submit"
+					class="btn btn-primary"
+					disabled={pendingId !== null}>{pendingId === inspected.id ? 'Saving…' : 'Save'}</button
+				>{#if mutationError}<p class="mutation-error" role="alert">{mutationError}</p>{:else}<p
+						class="text-sm text-text-muted"
+						role="status"
+					>
+						{status}
+					</p>{/if}
+			</form>
+		{:else}<a
+				class="btn btn-secondary"
+				href={`/mtg/search?q=${encodeURIComponent(activeCard.name)}`}>Find this card in Search</a
+			>{/if}
+	{/snippet}
 {/if}
 
 {#snippet metadata(kind: 'set' | 'finish' | 'condition', value: string)}

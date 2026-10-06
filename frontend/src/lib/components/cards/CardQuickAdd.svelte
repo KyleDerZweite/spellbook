@@ -19,9 +19,10 @@
 	let pending = $state(false);
 	let error = $state('');
 	let message = $state('');
+	const hasAvailableFinish = $derived(card.is_nonfoil_available || card.is_foil_available);
 
 	const add: SubmitFunction = ({ formData, cancel }) => {
-		if (pending) {
+		if (pending || !hasAvailableFinish) {
 			cancel();
 			return;
 		}
@@ -157,9 +158,12 @@
 			/>
 		</div>
 	</div>
-	<button type="submit" disabled={pending} class="btn btn-primary w-full">
+	<button type="submit" disabled={pending || !hasAvailableFinish} class="btn btn-primary w-full">
 		{pending ? 'Adding...' : 'Add to inventory'}
 	</button>
+	{#if !hasAvailableFinish}<p class="text-sm text-text-secondary">
+			Choose a printing with an available Nonfoil or Foil finish.
+		</p>{/if}
 	{#if error}<p id={`${id}-error`} role="alert" class="text-sm text-error">{error}</p>{/if}
 	<p role="status" aria-live="polite" class:sr-only={!message} class="text-sm text-text-secondary">
 		{message}

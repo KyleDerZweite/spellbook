@@ -8,13 +8,14 @@
 		card: CardDocument;
 		onClose: () => void;
 		actions?: Snippet<[CardDocument]>;
+		returnFocus?: HTMLElement | null;
 	}
-	let { card, onClose, actions }: Props = $props();
+	let { card, onClose, actions, returnFocus }: Props = $props();
 	let detailOpen = $state(false);
 	let pending = $state(false);
-	let returnFocus: HTMLElement | null = null;
+	let initialFocus: HTMLElement | null = null;
 	$effect(() => {
-		returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+		initialFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 		detailOpen = true;
 	});
 	function changeOpen(open: boolean) {
@@ -34,9 +35,10 @@
 				escapeKeydownBehavior={pending ? 'ignore' : 'close'}
 				interactOutsideBehavior={pending ? 'ignore' : 'close'}
 				onCloseAutoFocus={(event) => {
-					if (returnFocus?.isConnected) {
+					const target = returnFocus ?? initialFocus;
+					if (target?.isConnected) {
 						event.preventDefault();
-						returnFocus.focus();
+						target.focus({ preventScroll: true });
 					}
 				}}
 				class="modal-content relative z-50 flex w-full flex-col rounded-t-xl border border-border bg-stone shadow-xl sm:max-w-5xl sm:rounded-lg"
