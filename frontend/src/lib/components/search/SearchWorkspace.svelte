@@ -174,11 +174,7 @@
 				</Dialog.Portal>
 			</Dialog.Root>
 
-			<div
-				bind:this={resultsElement}
-				class="search-results-pane min-w-0 flex-1 overflow-y-auto p-3 sm:p-4"
-				aria-label="Card results"
-			>
+			<div class="search-results-column flex min-h-0 min-w-0 flex-1 flex-col">
 				<div class="search-status" aria-live="polite">
 					<span class="result-count"
 						>{loading && !snapshot.total
@@ -195,24 +191,30 @@
 						<span class="text-text-muted">Loading…</span>
 					{/if}
 				</div>
-				<SearchResults
-					totalCount={snapshot.total}
-					getCard={(index) => cardAt(snapshot, index)}
-					onRangeChange={handleRange}
-					resetKey={snapshot.reset}
-					initialScrollTop={session.scrollTop}
-					onScrollPositionChange={(top) => (session.scrollTop = top)}
-					onFocusReset={resetFocus}
-					{loading}
-					{error}
-					{query}
-					{browseMode}
-					onRetry={() => catalog.retry()}
-					onClearFilters={() => filters.clear()}
-					hasFilters={activeFilters.length > 0}
-					selectedId={selectedCard?.id}
-					onSelect={handleSelect}
-				/>
+				<div
+					bind:this={resultsElement}
+					class="search-results-pane min-h-0 min-w-0 flex-1 overflow-y-auto px-3 pb-3 sm:px-4 sm:pb-4"
+					aria-label="Card results"
+				>
+					<SearchResults
+						totalCount={snapshot.total}
+						getCard={(index) => cardAt(snapshot, index)}
+						onRangeChange={handleRange}
+						resetKey={snapshot.reset}
+						initialScrollTop={session.scrollTop}
+						onScrollPositionChange={(top) => (session.scrollTop = top)}
+						onFocusReset={resetFocus}
+						{loading}
+						{error}
+						{query}
+						{browseMode}
+						onRetry={() => catalog.retry()}
+						onClearFilters={() => filters.clear()}
+						hasFilters={activeFilters.length > 0}
+						selectedId={selectedCard?.id}
+						onSelect={handleSelect}
+					/>
+				</div>
 			</div>
 		</div>
 		{#if selectedCard}
@@ -235,13 +237,11 @@
 	}
 	.search-status {
 		display: flex;
-		position: sticky;
-		top: 0;
-		z-index: 10;
+		flex-shrink: 0;
 		height: 40px;
 		align-items: center;
 		gap: 12px;
-		margin-bottom: 8px;
+		padding: 0 16px;
 		font-size: 12px;
 		color: var(--color-text-muted);
 		background: var(--color-background);
@@ -270,6 +270,9 @@
 	}
 
 	@media (max-width: 767px) {
+		.search-status {
+			padding-inline: 12px;
+		}
 		.search-toolbar {
 			flex-wrap: wrap;
 		}
