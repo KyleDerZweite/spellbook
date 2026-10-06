@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import type { ComponentProps } from 'svelte';
 	import { page } from '$app/state';
 	import { asset } from '$app/paths';
 	import { Dialog } from 'bits-ui';
@@ -49,8 +50,9 @@
 	let mobileMenuOpen = $state(false);
 	let logoutForm: HTMLFormElement | undefined = $state();
 	const userName = $derived(user?.username || 'Account');
-	const accountActions = [
+	const accountActions: ComponentProps<typeof ActionMenu>['items'] = [
 		{ label: 'Settings', href: '/settings' },
+		{ label: 'App coming soon', disabled: true },
 		{ label: 'Sign out', onSelect: () => logoutForm?.requestSubmit() }
 	];
 
@@ -70,10 +72,10 @@
 		<div class="brand-controls">
 			<a
 				href="/"
-				class="flex items-center gap-2.5 font-display text-2xl font-normal tracking-tight text-foreground no-underline"
+				class="brand-link font-display font-normal tracking-tight text-foreground no-underline"
 				aria-label="Spellbook home"
 			>
-				<img src={asset('logo.webp')} alt="" width="32" height="32" class="h-8 w-8 shrink-0" />
+				<img src={asset('logo.webp')} alt="" width="28" height="28" class="shrink-0" />
 				<span class="brand-name">Spellbook</span>
 			</a>
 		</div>
@@ -87,8 +89,8 @@
 					class="nav-link {isActive(link.href) ? 'nav-link--active' : ''}"
 					><svg
 						aria-hidden="true"
-						width="18"
-						height="18"
+						width="14"
+						height="14"
 						viewBox="0 0 24 24"
 						fill="none"
 						stroke="currentColor"
@@ -108,7 +110,7 @@
 				{#if user}
 					<ActionMenu label="Account menu" iconOnly items={accountActions}>
 						{#snippet trigger()}
-							<Avatar id={user.avatarId} size={30} />
+							<Avatar id={user.avatarId} size={26} />
 						{/snippet}
 						{#snippet header()}
 							{@render accountIdentity()}
@@ -166,7 +168,9 @@
 											>
 										{:else}<button
 												class="btn btn-ghost"
+												disabled={item.disabled}
 												onclick={() => {
+													if (item.disabled) return;
 													mobileMenuOpen = false;
 													item.onSelect?.();
 												}}>{item.label}</button
@@ -209,7 +213,9 @@
 	}
 	.mobile-account-actions {
 		display: flex;
-		gap: 0.5rem;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0;
 		margin: 0.5rem 0 0 -0.875rem;
 	}
 	@media (min-width: 1024px) {
@@ -279,16 +285,25 @@
 		align-items: center;
 		gap: 0.5rem;
 	}
+	.brand-link {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-size: 1.75rem;
+	}
 	.desktop-links {
 		display: flex;
 		gap: 0.2rem;
 		justify-content: center;
 	}
 	.desktop-links :global(.nav-link) {
-		gap: 0.55rem;
+		gap: 0.4rem;
+		min-width: 44px;
+		min-height: 44px;
 		font-size: 0.8rem;
 		font-weight: 500;
-		padding: 0.65rem 0.8rem;
+		padding: 0.5rem 0.6rem;
+		justify-content: center;
 	}
 	.desktop-links :global(a:nth-child(1) .nav-icon) {
 		color: #b7a7e5;
@@ -324,7 +339,21 @@
 		margin-left: auto;
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: 0;
+	}
+	.account-controls :global(.btn-icon) {
+		width: 44px;
+		min-width: 44px;
+		height: 44px;
+		min-height: 44px;
+		padding: 0;
+	}
+	.account-controls > :global(.btn-icon svg) {
+		width: 16px;
+		height: 16px;
+	}
+	.account-controls :global(.game-symbol) {
+		font-size: 16px;
 	}
 	@media (max-width: 1100px) {
 		.nav-inner {
@@ -345,9 +374,6 @@
 		.nav-inner {
 			gap: 0.5rem;
 			padding-inline: 1rem;
-		}
-		.account-controls {
-			gap: 0.25rem;
 		}
 		.brand-controls {
 			gap: 0.25rem;

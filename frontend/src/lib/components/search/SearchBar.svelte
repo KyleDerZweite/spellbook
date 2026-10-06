@@ -3,6 +3,8 @@
 		value: string;
 		onInput: (value: string) => void;
 		placeholder?: string;
+		name?: string;
+		submitLabel?: string;
 		class?: string;
 	}
 
@@ -10,6 +12,8 @@
 		value,
 		onInput,
 		placeholder = 'Search cards by name or rules text...',
+		name,
+		submitLabel,
 		class: className = ''
 	}: Props = $props();
 
@@ -54,20 +58,25 @@
 		>
 	</span>
 
-	<input
-		bind:this={inputEl}
-		type="search"
-		aria-label="Search cards"
-		autocomplete="off"
-		{value}
-		oninput={handleInput}
-		{placeholder}
-		class="input search-input w-full py-2.5 pl-10 pr-12 text-sm"
-		style="
+	<label>
+		<span class="sr-only">Search cards</span>
+		<input
+			bind:this={inputEl}
+			type="search"
+			{name}
+			enterkeyhint={submitLabel ? 'search' : undefined}
+			autocomplete="off"
+			{value}
+			oninput={handleInput}
+			{placeholder}
+			class="input search-input w-full py-2.5 pl-10 pr-12 text-sm"
+			class:with-submit={!!submitLabel}
+			style="
 			background-color: var(--color-crypt);
 			border: 1px solid var(--color-input);
 		"
-	/>
+		/>
+	</label>
 
 	<!-- Clear button or Cmd+K hint -->
 	{#if value}
@@ -75,20 +84,52 @@
 			type="button"
 			onclick={handleClear}
 			class="absolute right-0 top-1/2 flex size-11 -translate-y-1/2 cursor-pointer items-center justify-center rounded-lg border-none bg-transparent text-text-muted transition-colors hover:text-text-primary"
+			class:clear-before-submit={!!submitLabel}
 			aria-label="Clear search"
 		>
 			&#10005;
 		</button>
-	{:else}
+	{:else if !submitLabel}
 		<span
 			class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 hidden items-center gap-0.5 font-mono text-[10px] text-text-muted sm:flex"
 		>
 			<kbd class="rounded bg-slate px-1 py-0.5">&#8984;K</kbd>
 		</span>
 	{/if}
+	{#if submitLabel}
+		<button type="submit" class="btn btn-ghost submit-search" aria-label={submitLabel}>
+			<svg
+				aria-hidden="true"
+				width="18"
+				height="18"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1.6"
+				stroke-linecap="round"
+				stroke-linejoin="round"><path d="M5 12h14m-6-6 6 6-6 6" /></svg
+			>
+		</button>
+	{/if}
 </div>
 
 <style>
+	.with-submit {
+		padding-right: 5.5rem;
+	}
+	.clear-before-submit {
+		right: 2.75rem;
+	}
+	.submit-search {
+		position: absolute;
+		right: 0;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 44px;
+		height: 44px;
+		padding: 0;
+		border: 0;
+	}
 	.search-input::-webkit-search-cancel-button {
 		-webkit-appearance: none;
 	}

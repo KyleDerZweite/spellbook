@@ -1,6 +1,15 @@
 <script lang="ts">
+	import { snapshot } from '$app/navigation';
 	import LandingBackdrop from './LandingBackdrop.svelte';
 	import LandingCommander from './LandingCommander.svelte';
+	import SearchBar from '#lib/components/search/SearchBar.svelte';
+
+	let query = $state('');
+	snapshot({
+		id: 'landing-card-search',
+		capture: () => query,
+		restore: (value) => (query = value)
+	});
 </script>
 
 <div class="public-landing backdrop-family">
@@ -11,38 +20,22 @@
 	<LandingCommander />
 {/snippet}
 
-{#snippet arrow()}
-	<svg
-		aria-hidden="true"
-		width="18"
-		height="18"
-		viewBox="0 0 24 24"
-		fill="none"
-		stroke="currentColor"
-		stroke-width="1.6"
-		stroke-linecap="round"
-		stroke-linejoin="round"><path d="M5 12h14m-6-6 6 6-6 6" /></svg
-	>
-{/snippet}
 {#snippet searchAction()}
-	<div class="landing-actions">
-		<a class="btn btn-primary search-action" href="/mtg/search">Search cards {@render arrow()}</a>
-		<button class="btn btn-ghost app-action" type="button" disabled>
-			<svg
-				aria-hidden="true"
-				width="16"
-				height="16"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="1.6"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				><rect x="7" y="2" width="10" height="20" rx="2" /><path d="M11 18h2" /></svg
-			>
-			App coming soon
-		</button>
-	</div>
+	<form
+		class="landing-search"
+		action="/mtg/search"
+		method="GET"
+		role="search"
+		aria-label="Card search"
+	>
+		<SearchBar
+			value={query}
+			onInput={(value) => (query = value)}
+			name="q"
+			placeholder="Search cards..."
+			submitLabel="Search cards"
+		/>
+	</form>
 {/snippet}
 {#snippet supportNotice()}
 	<p class="support-note">
@@ -73,25 +66,8 @@
 		font-weight: var(--landing-heading-weight, 500);
 		font-synthesis: none;
 	}
-	.landing-actions {
-		display: flex;
-		align-items: center;
-		flex-wrap: wrap;
-		gap: 0.5rem;
-	}
-	.search-action {
-		gap: 1rem;
-		min-height: 44px;
-		padding-inline: 1rem;
-		font-size: 0.875rem;
-	}
-	.app-action {
-		min-height: 44px;
-		gap: 0.5rem;
-		padding-inline: 0.625rem;
-		color: var(--color-text-secondary);
-		font-size: 0.8125rem;
-		opacity: 1;
+	.landing-search {
+		width: min(100%, clamp(320px, 28vw, 480px));
 	}
 	.support-note {
 		display: flex;
