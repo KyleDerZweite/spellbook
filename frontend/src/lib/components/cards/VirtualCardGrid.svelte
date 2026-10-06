@@ -69,10 +69,10 @@
 	);
 
 	const visibleItems = $derived.by(() => {
-		if (endRow < startRow || containerWidth <= 0) return [];
+		if (containerWidth <= 0) return [];
 		const start = startRow * cols;
 		const end = Math.min(itemCount, (endRow + 1) * cols);
-		const indices = Array.from({ length: end - start }, (_, index) => start + index);
+		const indices = Array.from({ length: Math.max(0, end - start) }, (_, index) => start + index);
 		if (focused && !indices.includes(focused.index)) {
 			indices.push(focused.index);
 			indices.sort((a, b) => a - b);

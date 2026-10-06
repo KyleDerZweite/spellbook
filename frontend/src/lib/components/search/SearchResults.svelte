@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import type { CatalogRange } from '#lib/search/catalogWindow.ts';
 	import type { CardDocument } from '#lib/search/types.ts';
 	import VirtualCardGrid from '#lib/components/cards/VirtualCardGrid.svelte';
@@ -40,9 +41,15 @@
 	}: Props = $props();
 
 	const SKELETON_COUNT = 20;
+	let resultsEl: HTMLDivElement | null = $state(null);
+	const showsGrid = $derived((!error || totalCount > 0) && (totalCount > 0 || loading));
+
+	$effect.pre(() => {
+		if (!showsGrid && resultsEl?.contains(document.activeElement)) untrack(onFocusReset);
+	});
 </script>
 
-<div class="flex-1 {className}" aria-busy={loading}>
+<div bind:this={resultsEl} class="flex-1 {className}" aria-busy={loading}>
 	{#if error && totalCount === 0}
 		<!-- Error state -->
 		<div class="flex items-center justify-center py-20">
@@ -75,7 +82,10 @@
 		</div>
 	{:else if totalCount > 0 || loading}
 		{#if error}
-			<div class="mb-3 flex flex-wrap items-center gap-3" role="alert">
+			<div
+				class="sticky top-0 z-10 mb-3 flex flex-wrap items-center gap-3 bg-background py-2"
+				role="alert"
+			>
 				<p class="text-sm text-error">{error}</p>
 				{#if onRetry}<button class="btn btn-secondary" onclick={onRetry}>Retry search</button>{/if}
 			</div>
