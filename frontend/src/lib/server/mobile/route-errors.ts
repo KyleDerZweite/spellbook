@@ -1,7 +1,4 @@
-import {
-	DescriptionConflictError,
-	DeckNotFoundError
-} from '@spellbook/backend/decks/application.ts';
+import { DescriptionConflictError, DeckNotFoundError } from '#lib/server/data/decks.ts';
 import { error } from '@sveltejs/kit';
 import { RequestConflictError } from '#lib/server/data/request-fingerprint.ts';
 import { ValidationError } from '#lib/server/mtg/validation.ts';
