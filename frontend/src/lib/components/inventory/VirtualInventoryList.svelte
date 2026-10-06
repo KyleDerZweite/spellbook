@@ -3,6 +3,7 @@
 	import { tick, untrack } from 'svelte';
 	import ScrollArea from '#lib/components/ui/scroll-area/ScrollArea.svelte';
 	import type { InventoryEntry } from '@spellbook/contracts/inventory.ts';
+	import { inventoryRowSlots, type InventoryRowSlot } from '#lib/inventory/rows.ts';
 	let {
 		total,
 		getEntry,
@@ -27,11 +28,16 @@
 		height = $state(650),
 		measurementVersion = $state(0),
 		focused = $state<number | null>(null);
-	let focusedSnapshot = $state<{ index: number; entry: InventoryEntry } | null>(null);
+	let focusedSnapshot = $state<{ queryKey: string; index: number; entry: InventoryEntry } | null>(
+		null
+	);
 	function rendered(index: number) {
 		version;
 		return (
-			getEntry(index) ?? (focusedSnapshot?.index === index ? focusedSnapshot.entry : undefined)
+			getEntry(index) ??
+			(focusedSnapshot?.queryKey === queryKey && focusedSnapshot.index === index
+				? focusedSnapshot.entry
+				: undefined)
 		);
 	}
 	const heights = new Map<number, { id: string; height: number }>();
@@ -78,6 +84,7 @@
 		measurementVersion;
 		return heights.size;
 	});
+	let rows = $derived(inventoryRowSlots(queryKey, indexes, rendered));
 	let extent = $derived.by(() => {
 		measurementVersion;
 		return offset(total);
@@ -97,15 +104,17 @@
 			scrollTop = viewport.scrollTop;
 		}
 	}
-	function measure(node: HTMLElement, index: number) {
+	function measure(node: HTMLElement, slot: InventoryRowSlot) {
+		const { index, queryKey: owner } = slot;
+		const id = slot.entry?.id;
+		if (!id) return;
 		const observer = new ResizeObserver(() => {
-			const entry = rendered(index);
-			if (!entry) return;
+			if (queryKey !== owner || rendered(index)?.id !== id || !node.isConnected) return;
 			const measured = node.getBoundingClientRect().height + 8;
 			const old = heights.get(index);
-			if (old?.id === entry.id && Math.abs(old.height - measured) < 0.5) return;
+			if (old?.id === id && Math.abs(old.height - measured) < 0.5) return;
 			const previous = old?.height ?? estimate;
-			heights.set(index, { id: entry.id, height: measured });
+			heights.set(index, { id, height: measured });
 			if (viewport && index < indexAt(viewport.scrollTop)) {
 				viewport.scrollTop += measured - previous;
 				scrollTop = viewport.scrollTop;
@@ -161,9 +170,21 @@
 		const scroll = () => (scrollTop = element.scrollTop);
 		const focus = (event: FocusEvent) => {
 			const row = (event.target as HTMLElement).closest<HTMLElement>('[data-inventory-index]');
-			focused = row ? Number(row.dataset.inventoryIndex) : null;
-			const entry = focused === null ? undefined : getEntry(focused);
-			focusedSnapshot = entry && focused !== null ? { index: focused, entry } : null;
+			if (!row) {
+				focused = null;
+				focusedSnapshot = null;
+				return;
+			}
+			const index = Number(row.dataset.inventoryIndex);
+			const entry = getEntry(index);
+			if (
+				!entry ||
+				row.dataset.inventoryQuery !== queryKey ||
+				entry.id !== row.dataset.inventoryEntry
+			)
+				return;
+			focused = index;
+			focusedSnapshot = { queryKey, index, entry };
 		};
 		element.addEventListener('scroll', scroll, { passive: true });
 		element.addEventListener('focusin', focus);
@@ -192,13 +213,15 @@
 		style:height={`${extent}px`}
 		data-measurements={measuredCount}
 	>
-		{#each indexes as index (index)}<li
+		{#each rows as slot (slot.key)}<li
 				class="virtual-row"
-				data-inventory-index={index}
-				style:top={`${offset(index)}px`}
-				use:measure={index}
+				data-inventory-index={slot.index}
+				data-inventory-query={slot.queryKey}
+				data-inventory-entry={slot.entry?.id}
+				style:top={`${offset(slot.index)}px`}
+				use:measure={slot}
 			>
-				{#if rendered(index)}{@render row(rendered(index)!, index)}{:else}<div
+				{#if slot.entry}{@render row(slot.entry, slot.index)}{:else}<div
 						class="row-placeholder"
 						aria-label="Loading inventory entry"
 						aria-busy="true"
