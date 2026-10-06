@@ -56,6 +56,8 @@ The [domain model](../../GLOSSARY.md) distinguishes the card's canonical identit
 
 Search must show a recognizable card name and image and provide useful MTG filters. The printing chooser must expose enough information to distinguish the available set, collector number, and printing. Adding an owned card or deck entry records the selected printing and its canonical identity together.
 
+The web Search form reports the local result of adding an owned card. While a request is pending, it prevents repeat submissions, printing changes and inspector dismissal. Completion or failure preserves the selected printing, quantity, finish and condition for review or another explicit action. This form does not provide automatic retry or request-level idempotency.
+
 Matching by display name alone is insufficient for availability. Two printings of one canonical card can be interchangeable for a deck while remaining distinct inventory entries. Two different canonical cards with similar names must remain distinct.
 
 Catalog data is shared reference data. Owned quantities, notes, and deck membership belong to the account and do not modify the shared catalog. Missing catalog images must not remove the accessible card name or block quantity editing.

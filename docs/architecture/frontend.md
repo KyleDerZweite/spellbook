@@ -32,6 +32,10 @@ Shared CSS styles native scrollbars with the theme-specific `--color-scrollbar` 
 
 The shared [error page](../../frontend/src/routes/+error.svelte) uses the existing shell and control styles. Missing pages offer Search and Home links; server errors also offer a retry of the current page.
 
+[CardDetail](../../frontend/src/lib/components/cards/CardDetail.svelte) owns the shared card inspector, printing selection and dialog lifecycle. Signed-in Search uses its default QuickAdd form. Inventory and Decks supply action content through its existing snippet interface and retain responsibility for their mutations.
+
+[CardQuickAdd](../../frontend/src/lib/components/cards/CardQuickAdd.svelte) owns Search's enhanced inventory form, submission state and local result feedback. It reports pending state to CardDetail through a callback. The existing server action remains the mutation boundary. The [product specification](../product/specification.md#catalog-and-printing-identity) owns the pending, input-retention and retry contract.
+
 Server loads and actions use the same Postgres repositories as `/api/mobile/v1/mtg/...`. Repositories scope mutations and reads to the authenticated account. The API keeps its existing MTG path segment for compatibility.
 
 Public browser search, authenticated import resolution, and external API search use the same PostgreSQL [catalog](./catalog.md) through SvelteKit. Browser requests can carry the local session cookie, but public catalog reads do not require it. No catalog key or separate search origin is required.
