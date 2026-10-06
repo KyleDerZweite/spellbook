@@ -51,7 +51,12 @@ run('PostgreSQL catalog snapshots and search', () => {
 			printed_name: 'ラノワールのエルフ',
 			oracle_text: '緑のマナを加える。'
 		}),
-		document(3, 1, { set_code: 'lea', collector_number: '210', released_at: '1993-08-05' }),
+		document(3, 1, {
+			set_code: 'lea',
+			set_name: 'Limited Edition Alpha',
+			collector_number: '210',
+			released_at: '1993-08-05'
+		}),
 		document(4, 2, {
 			name: 'Fire // Ice',
 			normalized_name: 'fire // ice',
@@ -83,11 +88,11 @@ run('PostgreSQL catalog snapshots and search', () => {
 			legalities: { standard: 'legal', commander: 'legal' }
 		})
 	];
-	const insertDocument = async (card: CardDocument) => {
+	const insertDocument = async (card: CardDocument, generationId = generation) => {
 		await modules.pool.query(
 			`INSERT INTO catalog_printings(generation_id,id,oracle_id,name,normalized_name,printed_name,lang,set_code,collector_number,rarity,cmc,colors,card_types,legalities,search_name,search_text,document) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
 			[
-				generation,
+				generationId,
 				card.id,
 				card.oracle_id,
 				card.name,
@@ -192,6 +197,48 @@ run('PostgreSQL catalog snapshots and search', () => {
 				})
 			).hits.map((card) => card.name)
 		).toEqual(['Sol Ring']);
+	});
+	it('resolves requested set names in one batch independently of owned printing IDs', async () => {
+		await expect(modules.getCatalogPrinting(id(999))).rejects.toThrow('Catalog printing not found');
+		expect(await modules.getCatalogSetNames([' DOM ', 'dom', 'LEA', 'missing'])).toEqual({
+			dom: 'Dominaria',
+			lea: 'Limited Edition Alpha'
+		});
+		expect(await modules.getCatalogSetNames([])).toEqual({});
+	});
+	it('omits missing and blank set names while using another printing with a usable name', async () => {
+		const cards = [
+			document(30, 30, { set_code: 'blank', set_name: '   ' }),
+			document(31, 31, { set_code: 'mixed', set_name: '' }),
+			document(32, 32, { set_code: 'mixed', set_name: '  Test Set  ' })
+		];
+		try {
+			for (const card of cards) await insertDocument(card);
+			expect(await modules.getCatalogSetNames(['blank', 'mixed', 'absent'])).toEqual({
+				mixed: 'Test Set'
+			});
+		} finally {
+			await modules.pool.query('DELETE FROM catalog_printings WHERE id=ANY($1::uuid[])', [
+				cards.map((card) => card.id)
+			]);
+		}
+	});
+	it('loads set names only from the active generation and follows publication changes', async () => {
+		await insertDocument(document(1, 1, { set_name: 'Published Dominaria' }), staged);
+		try {
+			expect(await modules.getCatalogSetNames(['dom'])).toEqual({ dom: 'Dominaria' });
+			await modules.pool.query('UPDATE catalog_state SET active_generation=$1 WHERE id=1', [
+				staged
+			]);
+			expect(await modules.getCatalogSetNames(['dom', 'lea'])).toEqual({
+				dom: 'Published Dominaria'
+			});
+		} finally {
+			await modules.pool.query('UPDATE catalog_state SET active_generation=$1 WHERE id=1', [
+				generation
+			]);
+			await modules.pool.query('DELETE FROM catalog_printings WHERE generation_id=$1', [staged]);
+		}
 	});
 	it('fits identity subsets into a red-green palette including colorless cards', async () => {
 		const cards = [
@@ -378,6 +425,7 @@ run('PostgreSQL catalog snapshots and search', () => {
 	it('returns an empty catalog with explicit generation identity before publication', async () => {
 		await modules.pool.query('UPDATE catalog_state SET active_generation=NULL WHERE id=1');
 		try {
+			expect(await modules.getCatalogSetNames(['dom', 'lea'])).toEqual({});
 			expect(await search({ facets: true })).toMatchObject({
 				generationId: null,
 				hits: [],

@@ -104,6 +104,24 @@ export async function searchCatalog(query: string, limit = 20, offset = 0): Prom
 	return searchCatalogRequest(parseCatalogSearchRequest({ query, limit, offset }));
 }
 
+export async function getCatalogSetNames(
+	setCodes: readonly string[]
+): Promise<Record<string, string>> {
+	const codes = [...new Set(setCodes.map((code) => code.trim().toLowerCase()).filter(Boolean))];
+	if (codes.length === 0) return {};
+	const result = await pool.query<{ set_code: string; set_name: string | null }>(
+		`SELECT p.set_code, MIN(NULLIF(BTRIM(p.document->>'set_name'), '')) AS set_name
+		FROM catalog_printings p
+		JOIN catalog_state s ON s.id=1 AND s.active_generation=p.generation_id
+		WHERE p.set_code=ANY($1::text[])
+		GROUP BY p.set_code`,
+		[codes]
+	);
+	return Object.fromEntries(
+		result.rows.flatMap((row) => (row.set_name ? [[row.set_code, row.set_name]] : []))
+	);
+}
+
 export async function getPrintings(
 	oracleId: string,
 	limit = 100,

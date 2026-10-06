@@ -6,6 +6,7 @@ import {
 	updateInventoryCard
 } from '#lib/server/data/inventory.ts';
 import { DEFAULT_GAME } from '#lib/state/activeGame.svelte.ts';
+import { getCatalogSetNames } from '#lib/server/catalog/search.ts';
 
 export const load: PageServerLoad = async ({ locals, parent }) => {
 	if (!locals.user) {
@@ -14,7 +15,8 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 
 	const { activeGame } = await parent();
 	const snapshot = await getInventorySnapshot(locals.user.accountId, activeGame ?? DEFAULT_GAME);
-	return { ...snapshot, viewedAt: new Date() };
+	const setNames = await getCatalogSetNames(snapshot.cards.map((card) => card.setCode));
+	return { ...snapshot, setNames, viewedAt: new Date() };
 };
 
 export const actions: Actions = {
