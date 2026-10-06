@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-06
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
-- Update Triggers: test commands, workflow coverage, runtime pins, browser verification, PR policy, Dependabot policy
+- Update Triggers: test commands, workflow coverage, runtime pins, browser verification, PR policy, Dependabot policy, engineering skill tracker and domain layout
 - Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance)
 
 This document owns repository check commands, CI coverage, and verification evidence. Product and integration documents own behavior and acceptance criteria. Run checks appropriate to the changed behavior; do not treat a passing command as proof of requirements it does not exercise.
@@ -69,3 +69,21 @@ Record the commands run, results, skipped coverage, and remaining limits with th
 ## Dependabot
 
 [`.github/dependabot.yml`](../../.github/dependabot.yml) opens dependency updates for GitHub Actions, frontend npm packages, and both Python workers. These pull requests require passing CI and manual review and merge. No repository workflow auto-merges them.
+
+## Engineering skill configuration
+
+### Issue tracker
+
+GitHub Issues in `KyleDerZweite/spellbook` are the repository's issue tracker. Use `gh` from this clone. When a skill says to publish to the issue tracker, create a GitHub issue. When it says to fetch a ticket, read its body, labels, comments, and linked work with `gh issue view`.
+
+Read the [issue label policy](../ISSUE_LABELS.md) before triage. Keep multi-line issue bodies in a temporary file and pass `--body-file`. A tracker operation needs authorization from the current request or invoked workflow. This configuration does not authorize unsolicited issues, comments, priority changes, merges, or releases.
+
+PRs as a request surface: no.
+
+### Domain docs
+
+Spellbook uses one domain context. Start with [the docs index](../README.md), then read the root [glossary](../../GLOSSARY.md) and relevant [decision records](../decisions/README.md) before domain exploration. Use the glossary's canonical terms. Keep definitions in the glossary and behavior in its existing product or architecture owner.
+
+ADRs live in `docs/decisions/`; preserve their numbering, filenames, template, and supersession rules. Check the status of a decision before applying it. Surface a conflict with an accepted decision and resolve it with the maintainer before changing its contract. A proposal or superseded decision does not describe implemented behavior.
+
+Skills that default to `docs/agents/` or `docs/adr/` must use these existing owners. Edit this configuration and the label mapping directly when they change; rerun setup only to change the tracker or reconsider the layout.

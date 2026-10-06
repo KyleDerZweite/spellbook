@@ -68,3 +68,17 @@ This is the primary instruction file for coding agents. Follow it strictly.
 
 - For any usage or integration of the BitsUI dependency, always check `docs/reference/bits-ui.md` first, then follow the links there to the needed Bits UI documentation.
 - For catalog search or publication changes, read `docs/architecture/catalog.md` first, then `docs/architecture/worker.md` for ingestion and `docs/operations/deployment.md` for rebuild and recovery procedures. Keep the authenticated API contract and transactional generation publication consistent.
+
+## Agent skills
+
+### Issue tracker
+
+Use GitHub Issues for this repository. Read [the engineering skill configuration](docs/operations/github-automation.md#engineering-skill-configuration) before tracker operations.
+
+### Triage labels
+
+Use the repository's [triage role mapping and label policy](docs/ISSUE_LABELS.md#engineering-skill-triage-roles) before triage.
+
+### Domain docs
+
+Use the single-context root glossary and `docs/decisions/`. Read [the domain consumer rules](docs/operations/github-automation.md#domain-docs) before domain exploration.

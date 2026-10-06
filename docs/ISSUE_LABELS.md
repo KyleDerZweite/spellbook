@@ -1,9 +1,9 @@
 # Issue labels
 
 - Status: Canonical
-- Last Reviewed: 2026-10-04
+- Last Reviewed: 2026-10-06
 - Source of Truth: maintainer policy and GitHub repository labels
-- Update Triggers: label definitions, issue triage policy, contribution policy, label automation
+- Update Triggers: label definitions, issue triage policy, contribution policy, label automation, engineering skill triage role mapping
 - Related Docs: [Contributing](../CONTRIBUTING.md), [Agent instructions](../AGENTS.md), [GitHub automation](./operations/github-automation.md), [Docs index](./README.md)
 
 Use labels to describe an issue's type, affected area, and current work status. A label does not promise acceptance, implementation, a merge, or a delivery date. GitHub's open or closed issue state records completion; there is no separate completion label.
@@ -54,6 +54,22 @@ Maintainers control `priority:p0` through `priority:p3`. These mean critical, hi
 Preserve the existing `duplicate`, `invalid`, and `wontfix` labels. Apply them only for an explicit maintainer disposition. A duplicate needs a reference to the issue that owns the work. Deferral uses `status:deferred`, not `wontfix`.
 
 Apply `help wanted` only when a maintainer welcomes outside implementation work on that issue. Apply `good first issue` only when a maintainer has identified a bounded task with enough context for a new contributor. The general contribution policy does not automatically qualify every issue for either label.
+
+## Engineering skill triage roles
+
+Engineering skills use these roles. Apply the repository label in the second column, including when a skill uses the default name from the first column.
+
+| Skill role        | Repository label    | Meaning                                                                                | Color    |
+| ----------------- | ------------------- | -------------------------------------------------------------------------------------- | -------- |
+| `needs-triage`    | `needs-triage`      | The maintainer still needs to evaluate the issue.                                      | `fbca04` |
+| `needs-info`      | `status:needs-info` | A specific unanswered question prevents progress.                                      | Existing |
+| `ready-for-agent` | `ready-for-agent`   | The maintainer accepted the scope and an agent can implement the reviewed contract.    | `0e8a16` |
+| `ready-for-human` | `ready-for-human`   | The maintainer accepted the scope and identified implementation that requires a human. | `1d76db` |
+| `wontfix`         | `wontfix`           | The maintainer explicitly decided not to implement the issue.                          | Existing |
+
+`needs-triage`, `ready-for-agent`, and `ready-for-human` are work-status labels even though their names omit `status:`. Apply at most one work-status label across these and the existing status labels. Replace readiness with `status:in-progress` when implementation starts. Remove work-status labels when closing an issue.
+
+A feature is ready only when its accepted outcome, component responsibilities, interfaces, dependency directions, and acceptance evidence are recorded in a reviewed contract or referenced from established owners. Withdraw readiness when an accepted direction changes or a prerequisite becomes unresolved. Readiness grants no additional execution, publishing, merging, or deployment authority.
 
 ## Agent workflow
 
