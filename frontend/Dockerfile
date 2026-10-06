@@ -1,40 +1,34 @@
 # Stage 1: Build
 FROM node:26.10.0-bookworm-slim AS builder
-
 WORKDIR /app
-
-# Copy package files first for better layer caching
-COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY frontend/package.json ./frontend/package.json
+COPY backend/package.json ./backend/package.json
+COPY contracts/package.json ./contracts/package.json
 RUN npm install --global "$(node --print 'require("./package.json").packageManager')"
 RUN pnpm install --frozen-lockfile
-
-# Copy frontend source
-COPY frontend/ ./
-
-# Build with adapter-node. The public origin is part of the SvelteKit 3 build.
+COPY frontend/ ./frontend/
+COPY backend/ ./backend/
+COPY contracts/ ./contracts/
+COPY scripts/ ./scripts/
 ARG APP_ORIGIN
-RUN pnpm build
+RUN pnpm --dir frontend build
 
 FROM builder AS migrator
+WORKDIR /app/frontend
 CMD ["pnpm", "db:migrate"]
 
-# Stage 2: Runtime
 FROM node:26.10.0-bookworm-slim AS runtime
-
 WORKDIR /app
-
-COPY --from=builder /app/build ./build
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/pnpm-lock.yaml ./
-COPY --from=builder /app/pnpm-workspace.yaml ./
-
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY frontend/package.json ./frontend/package.json
+COPY backend/ ./backend/
+COPY contracts/ ./contracts/
+COPY --from=builder /app/frontend/build ./frontend/build
 RUN npm install --global "$(node --print 'require("./package.json").packageManager')"
 RUN pnpm install --prod --frozen-lockfile
-
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV BODY_SIZE_LIMIT=12M
-
 EXPOSE 3000
-
-CMD ["node", "build/index.js"]
+CMD ["node", "frontend/build/index.js"]

@@ -17,19 +17,8 @@ export const PROFILE_CARD_RARITIES = [
 	{ value: 'mythic', label: 'Mythic' }
 ] as const;
 
-export interface ProfileCardDefinition {
-	template: 'mtg';
-	name: string;
-	frame: (typeof PROFILE_CARD_FRAMES)[number]['value'];
-	legendary: boolean;
-	rarity: (typeof PROFILE_CARD_RARITIES)[number]['value'];
-	manaCost: string;
-	typeLine: string;
-	rulesText: string;
-	flavorText: string;
-	power: string;
-	toughness: string;
-}
+export type { ProfileCardDefinition } from '@spellbook/contracts/profile.ts';
+import type { ProfileCardDefinition } from '@spellbook/contracts/profile.ts';
 
 export const PROFILE_CARD_LIMITS = {
 	name: 40,

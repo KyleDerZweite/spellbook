@@ -1,0 +1,23 @@
+{
+	"name": "@spellbook/backend",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./*": "./src/*"
+	},
+	"engines": {
+		"node": ">=26 <27",
+		"pnpm": "12.8.1"
+	},
+	"dependencies": {
+		"@spellbook/contracts": "workspace:*",
+		"drizzle-orm": "^0.45.3",
+		"pg": "^8.23.1"
+	},
+	"devDependencies": {
+		"@types/pg": "^8.23.1",
+		"@types/node": "^26.6.4"
+	}
+}

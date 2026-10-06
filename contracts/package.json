@@ -1,0 +1,14 @@
+{
+	"name": "@spellbook/contracts",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts",
+		"./*": "./src/*"
+	},
+	"engines": {
+		"node": ">=26 <27",
+		"pnpm": "12.8.1"
+	}
+}

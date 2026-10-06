@@ -1,6 +1,6 @@
 <script lang="ts">
 	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
-	import type { InventoryGroup } from '#lib/server/data/inventory-groups.ts';
+	import type { InventoryGroup } from '#lib/types/legacy.ts';
 	let {
 		groups,
 		dialogOpen,

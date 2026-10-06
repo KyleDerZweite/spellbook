@@ -1,0 +1,163 @@
+{
+	"removalTicket": "https://github.com/KyleDerZweite/spellbook/issues/192",
+	"adapters": [
+		{
+			"file": "frontend/src/lib/server/composition.ts",
+			"specifier": "@spellbook/backend"
+		},
+		{
+			"file": "frontend/src/lib/server/auth/local.ts",
+			"specifier": "@spellbook/backend/auth/local.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/auth/password.ts",
+			"specifier": "@spellbook/backend/auth/password.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/auth/session.ts",
+			"specifier": "@spellbook/backend/auth/session.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/catalog/query.ts",
+			"specifier": "@spellbook/backend/catalog/query.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/db/schema.ts",
+			"specifier": "@spellbook/backend/db/schema.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/mtg/validation.ts",
+			"specifier": "@spellbook/backend/mtg/validation.ts"
+		}
+	],
+	"legacy": [
+		{
+			"file": "frontend/src/lib/server/data/decks.ts",
+			"specifier": "drizzle-orm"
+		},
+		{
+			"file": "frontend/src/lib/server/data/decks.ts",
+			"specifier": "#lib/server/db/client.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/data/decks.ts",
+			"specifier": "#lib/server/db/schema.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/data/inventory-groups.ts",
+			"specifier": "drizzle-orm"
+		},
+		{
+			"file": "frontend/src/lib/server/data/inventory-groups.ts",
+			"specifier": "#lib/server/db/client.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/data/inventory-groups.ts",
+			"specifier": "#lib/server/db/schema.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/data/inventory.ts",
+			"specifier": "drizzle-orm"
+		},
+		{
+			"file": "frontend/src/lib/server/data/inventory.ts",
+			"specifier": "#lib/server/db/client.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/data/inventory.ts",
+			"specifier": "#lib/server/db/schema.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/data/profile.ts",
+			"specifier": "drizzle-orm"
+		},
+		{
+			"file": "frontend/src/lib/server/data/profile.ts",
+			"specifier": "#lib/server/db/client.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/data/profile.ts",
+			"specifier": "#lib/server/db/schema.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/data/scan.ts",
+			"specifier": "drizzle-orm"
+		},
+		{
+			"file": "frontend/src/lib/server/data/scan.ts",
+			"specifier": "#lib/server/db/client.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/data/scan.ts",
+			"specifier": "#lib/server/db/schema.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/data/types.ts",
+			"specifier": "drizzle-orm"
+		},
+		{
+			"file": "frontend/src/lib/server/data/types.ts",
+			"specifier": "#lib/server/db/schema.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/data/users.ts",
+			"specifier": "drizzle-orm"
+		},
+		{
+			"file": "frontend/src/lib/server/data/users.ts",
+			"specifier": "#lib/server/db/client.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/data/users.ts",
+			"specifier": "#lib/server/db/schema.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/mobile/storage.ts",
+			"specifier": "@aws-sdk/client-s3"
+		},
+		{
+			"file": "frontend/src/routes/settings/+page.server.ts",
+			"specifier": "drizzle-orm"
+		},
+		{
+			"file": "frontend/src/routes/settings/+page.server.ts",
+			"specifier": "#lib/server/db/client.ts"
+		},
+		{
+			"file": "frontend/src/routes/settings/+page.server.ts",
+			"specifier": "#lib/server/db/schema.ts"
+		},
+		{
+			"file": "frontend/src/routes/settings/profile-card/+page.server.ts",
+			"specifier": "drizzle-orm"
+		},
+		{
+			"file": "frontend/src/routes/settings/profile-card/+page.server.ts",
+			"specifier": "#lib/server/db/client.ts"
+		},
+		{
+			"file": "frontend/src/routes/settings/profile-card/+page.server.ts",
+			"specifier": "#lib/server/db/schema.ts"
+		},
+		{
+			"file": "frontend/scripts/demo/seed.mjs",
+			"specifier": "pg"
+		},
+		{
+			"file": "frontend/scripts/set-local-password.mjs",
+			"specifier": "pg"
+		},
+		{
+			"file": "frontend/src/lib/server/auth/change-password.ts",
+			"specifier": "drizzle-orm"
+		},
+		{
+			"file": "frontend/src/lib/server/auth/change-password.ts",
+			"specifier": "#lib/server/db/client.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/auth/change-password.ts",
+			"specifier": "#lib/server/db/schema.ts"
+		}
+	]
+}

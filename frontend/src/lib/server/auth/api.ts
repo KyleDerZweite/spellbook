@@ -18,7 +18,7 @@ export async function authenticateApi(event: RequestEvent, mode: 'login' | 'regi
 		);
 	const { user, session } = authenticated;
 	return json(
-		{ user, token: session.token, expiresAt: session.expiresAt.toISOString() },
+		{ user, token: session.token, expiresAt: session.expiresAt },
 		{
 			status: mode === 'register' ? 201 : 200,
 			headers: { 'Cache-Control': 'no-store' }

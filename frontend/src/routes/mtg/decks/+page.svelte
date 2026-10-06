@@ -13,7 +13,7 @@
 	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
 	import ManaCost from '#lib/components/cards/ManaCost.svelte';
 	import { allocateDeckAvailability } from '#lib/mtg/deck-availability.ts';
-	import type { previewMtgImport } from '#lib/server/mtg/import.ts';
+	import type { ImportPreview } from '#lib/types/import-preview.ts';
 
 	const formats = [
 		'Commander',
@@ -148,9 +148,7 @@
 	const catalogCards = $derived(
 		results.filter((card) => !ownedOnly || (ownedByCanonical.get(card.oracle_id) ?? 0) > 0)
 	);
-	const preview = $derived(
-		form?.preview as Awaited<ReturnType<typeof previewMtgImport>> | undefined
-	);
+	const preview = $derived(form?.preview as ImportPreview | undefined);
 	const importableCount = $derived(
 		preview?.resolved
 			.filter(({ line }) => line.role !== 'maybeboard')

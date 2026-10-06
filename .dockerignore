@@ -49,3 +49,11 @@ scryfall/
 # OS
 .DS_Store
 Thumbs.db
+
+# Workspace packages and isolated local worktrees
+node_modules/
+backend/node_modules/
+contracts/node_modules/
+.local/
+.git
+data/

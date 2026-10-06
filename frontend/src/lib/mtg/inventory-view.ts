@@ -1,4 +1,4 @@
-import type { InventoryCard } from '#lib/server/data/types.ts';
+import type { InventoryCard } from '#lib/types/legacy.ts';
 
 export type InventoryDirection = 'asc' | 'desc';
 export type InventoryVariantColumn = 'finish' | 'condition' | 'quantity';

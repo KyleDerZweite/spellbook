@@ -1,5 +1,5 @@
 import { allocateDeckAvailability } from './deck-availability';
-import type { Deck, DeckCard, InventoryCard } from '#lib/server/data/types.ts';
+import type { Deck, DeckCard, InventoryCard } from '#lib/types/legacy.ts';
 
 type OwnedEntry = Pick<
 	InventoryCard,

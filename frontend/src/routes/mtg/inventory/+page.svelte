@@ -9,7 +9,7 @@
 	import GroupEditor from '#lib/components/inventory/GroupEditor.svelte';
 	import EntryGroups from '#lib/components/inventory/EntryGroups.svelte';
 	import { GroupMutation } from '#lib/mtg/groupMutation.svelte.ts';
-	import type { InventoryGroup } from '#lib/server/data/inventory-groups.ts';
+	import type { InventoryGroup } from '#lib/types/legacy.ts';
 	import Select from '#lib/components/ui/select/Select.svelte';
 	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
 	import FilterPopover from '#lib/components/ui/popover/FilterPopover.svelte';

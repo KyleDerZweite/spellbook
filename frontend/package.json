@@ -6,26 +6,29 @@
 	"scripts": {
 		"dev": "vite dev",
 		"dev:local": "node --env-file-if-exists=../.env.local scripts/dev.mjs",
-		"build": "vite build",
+		"build": "vite build && node ../scripts/check-client.mjs",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && pnpm check:ts && svelte-check --tsconfig ./tsconfig.json",
 		"test:unit": "vitest run --project unit",
 		"test:integration": "vitest run --project integration",
-		"lint": "prettier --check . && pnpm check",
+		"lint": "pnpm --dir .. check:boundaries && pnpm --dir .. test:boundaries && prettier --config .prettierrc --check . ../backend ../contracts ../scripts ../package.json && pnpm check",
 		"format": "prettier --write .",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:check": "drizzle-kit check",
 		"check:ts": "node node_modules/typescript-native/bin/tsc --noEmit",
 		"demo:seed": "node scripts/demo/seed.mjs",
-		"dev:demo": "pnpm demo:seed && DEMO_MODE=true vite dev"
+		"dev:demo": "pnpm demo:seed && DEMO_MODE=true vite dev",
+		"test:http": "node --test tests/http-application.test.ts"
 	},
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3.1146.0",
 		"bits-ui": "^2.19.5",
 		"drizzle-orm": "^0.45.3",
 		"mana-font": "^1.18.0",
-		"pg": "^8.23.1"
+		"pg": "^8.23.1",
+		"@spellbook/backend": "workspace:*",
+		"@spellbook/contracts": "workspace:*"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-node": "^6.0.0",

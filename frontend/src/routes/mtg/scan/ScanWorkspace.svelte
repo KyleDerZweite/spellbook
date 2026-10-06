@@ -3,7 +3,7 @@
 	import { untrack } from 'svelte';
 	import Select from '#lib/components/ui/select/Select.svelte';
 	import type { CardDocument } from '#lib/search/types.ts';
-	import type { ScanCandidate, ScanSession, ScanSessionResult } from '#lib/server/data/types.ts';
+	import type { ScanCandidate, ScanSession, ScanSessionResult } from '#lib/types/legacy.ts';
 
 	let {
 		sessions,

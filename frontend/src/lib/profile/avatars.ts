@@ -162,7 +162,8 @@ const sprites = [
 
 export type AvatarId = (typeof sprites)[number]['id'];
 
-export const DEFAULT_AVATAR_ID: AvatarId = 'wizard';
+export { DEFAULT_AVATAR_ID } from '@spellbook/contracts/profile.ts';
+import { DEFAULT_AVATAR_ID } from '@spellbook/contracts/profile.ts';
 
 export const AVATARS = sprites.map(({ id, label, pixels }) => ({
 	id,

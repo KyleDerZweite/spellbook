@@ -1,7 +1,1 @@
-export interface AuthUser {
-	accountId: string;
-	username: string;
-	email: string;
-	avatarId?: string;
-	artworkId?: string;
-}
+export type * from '@spellbook/contracts/auth.ts';
