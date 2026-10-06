@@ -1,21 +1,26 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { afterNavigate, snapshot } from '$app/navigation';
+	import { afterNavigate, beforeNavigate, snapshot } from '$app/navigation';
 	import Nav from './Nav.svelte';
 	import Footer from './Footer.svelte';
 	import SearchOverlay from '#lib/components/search/SearchOverlay.svelte';
+	import ScrollArea from '#lib/components/ui/scroll-area/ScrollArea.svelte';
+	import { cancelWheelScroll } from '#lib/components/ui/scroll-area/wheel.ts';
 
 	interface Props {
 		children: Snippet;
 	}
 
 	let { children }: Props = $props();
-	let main = $state<HTMLElement>();
+	let main = $state<HTMLDivElement | null>(null);
+
+	beforeNavigate(() => cancelWheelScroll(main));
 
 	snapshot({
 		id: 'workspace-scroll',
 		capture: () => main?.scrollTop ?? 0,
 		restore: (top) => {
+			cancelWheelScroll(main);
 			if (main) main.scrollTop = top;
 		}
 	});
@@ -28,6 +33,7 @@
 			type !== 'popstate' &&
 			from.url.pathname !== to.url.pathname
 		) {
+			cancelWheelScroll(main);
 			main.scrollTop = 0;
 		}
 	});
@@ -35,13 +41,24 @@
 
 <div class="app-shell bg-background">
 	<SearchOverlay />
-	<Nav />
-	<main bind:this={main} id="main-content" tabindex="-1" class="app-main">
+	<Nav scrollViewport={main} />
+	<ScrollArea
+		tag="main"
+		bind:viewportRef={main}
+		id="main-content"
+		tabindex={-1}
+		class="app-main"
+		viewportClass="app-main-viewport"
+		viewportLabel="Main content"
+		onfocus={(event) => {
+			if (event.target === event.currentTarget) main?.focus({ preventScroll: true });
+		}}
+	>
 		<div class="app-content">
 			{@render children()}
 		</div>
 		<Footer />
-	</main>
+	</ScrollArea>
 </div>
 
 <style>

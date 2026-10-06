@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
+	import { tick } from 'svelte';
 	import { getSearchSession } from '#lib/search/session.svelte.ts';
 	import { isPrimaryClick } from '#lib/search/navigation.ts';
 	import type { ComponentProps } from 'svelte';
@@ -11,6 +11,8 @@
 	import AuthEntry from './AuthEntry.svelte';
 	import ThemeToggle from './ThemeToggle.svelte';
 	import GameSwitcher from './GameSwitcher.svelte';
+
+	let { scrollViewport }: { scrollViewport: HTMLElement | null } = $props();
 
 	const search = getSearchSession();
 	const user = $derived(page.data.user);
@@ -39,8 +41,8 @@
 	]);
 
 	let collapsed = $state(false);
-	onMount(() => {
-		const main = document.querySelector('.app-main');
+	$effect(() => {
+		const main = scrollViewport;
 		const update = () => {
 			const top = main?.scrollTop ?? 0;
 			if (top > 160) collapsed = true;
@@ -285,6 +287,8 @@
 	}
 	.primary-nav + :global(.app-main) {
 		margin-top: calc(-1 * var(--app-header-height));
+	}
+	.primary-nav + :global(.app-main .app-main-viewport) {
 		scroll-padding-top: calc(var(--app-header-height) + 18px);
 	}
 	.primary-nav + :global(.app-main .app-content) {
