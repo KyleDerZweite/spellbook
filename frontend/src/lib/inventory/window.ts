@@ -34,6 +34,8 @@ export class InventoryWindow {
 	>();
 	private queue: Job[] = [];
 	private replacing = false;
+	private locationWaiters = 0;
+	private slotWaiters = new Set<() => void>();
 	private listeners = new Map<string, Promise<void>>();
 	error = '';
 	constructor(
@@ -43,6 +45,56 @@ export class InventoryWindow {
 	) {}
 	get identity() {
 		return this.generation;
+	}
+	private async lookup<T>(call: (signal: AbortSignal) => Promise<T>, signal: AbortSignal) {
+		const identity = this.identity;
+		let wake!: () => void;
+		const aborted = new Promise<void>((resolve) => {
+			wake = resolve;
+		});
+		signal.addEventListener('abort', wake, { once: true });
+		this.slotWaiters.add(wake);
+		this.locationWaiters++;
+		let acquired = false;
+		try {
+			while (this.active.size >= 3) {
+				if (signal.aborted || identity !== this.identity) return null;
+				await Promise.race([...this.listeners.values(), aborted]);
+			}
+			if (signal.aborted || identity !== this.identity) return null;
+			acquired = true;
+		} finally {
+			signal.removeEventListener('abort', wake);
+			this.slotWaiters.delete(wake);
+			this.locationWaiters--;
+			if (!acquired) this.pump();
+		}
+		const key = `location:${identity}:${++this.clock}`;
+		const controller = new AbortController();
+		const abort = () => controller.abort();
+		signal.addEventListener('abort', abort, { once: true });
+		let complete!: () => void;
+		this.listeners.set(
+			key,
+			new Promise<void>((resolve) => {
+				complete = resolve;
+			})
+		);
+		this.active.set(key, { controller, offset: -1, planned: false });
+		this.changed();
+		try {
+			return await call(controller.signal);
+		} catch (cause) {
+			if (controller.signal.aborted) return null;
+			throw cause;
+		} finally {
+			signal.removeEventListener('abort', abort);
+			this.active.delete(key);
+			this.listeners.delete(key);
+			complete();
+			this.changed();
+			this.pump();
+		}
 	}
 	async locateAndLoad(
 		entryId: string,
@@ -59,14 +111,17 @@ export class InventoryWindow {
 			const identity = this.identity,
 				current = this.current;
 			if (!current || signal.aborted || account !== this.account) return null;
-			let result: InventoryLocation | RevisionChanged;
+			let result: InventoryLocation | RevisionChanged | null;
 			try {
-				result = await locate(current.query, entryId, current.revision, signal);
+				result = await this.lookup(
+					(lookupSignal) => locate(current.query, entryId, current.revision, lookupSignal),
+					signal
+				);
 			} catch (cause) {
 				if (signal.aborted || identity !== this.identity) return null;
 				throw cause;
 			}
-			if (signal.aborted || identity !== this.identity) return null;
+			if (!result || signal.aborted || identity !== this.identity) return null;
 			if (result.kind === 'RevisionChanged') {
 				this.beforeRevisionReset();
 				const restored = await this.open(this.account, current.query, signal);
@@ -182,6 +237,7 @@ export class InventoryWindow {
 		this.changed();
 	}
 	private cancel() {
+		for (const wake of this.slotWaiters) wake();
 		for (const active of this.active.values()) active.controller.abort();
 		for (const job of this.queue) job.resolve();
 		this.queue = [];
@@ -218,7 +274,7 @@ export class InventoryWindow {
 		return promise;
 	}
 	private pump() {
-		while (this.active.size < 3 && this.queue.length) {
+		while (this.active.size < 3 && this.queue.length && this.locationWaiters === 0) {
 			const job = this.queue.shift()!;
 			void this.execute(job);
 		}

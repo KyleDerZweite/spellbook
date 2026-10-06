@@ -263,3 +263,138 @@ it('discards a location reset interrupted by query replacement', async () => {
 	expect(calls).toBe(1);
 	expect(window.current?.query.q).toBe('other');
 });
+
+it('shares three transport slots with lookup and releases lookup before its page load', async () => {
+	let active = 0,
+		peak = 0,
+		lookups = 0;
+	const pending: Array<() => void> = [];
+	const begin = () => {
+		active++;
+		peak = Math.max(peak, active);
+	};
+	const window = new InventoryWindow(
+		(q) =>
+			new Promise((resolve) => {
+				begin();
+				pending.push(() => {
+					active--;
+					resolve(page(q.offset));
+				});
+			}),
+		() => {}
+	);
+	window.seed('owner', page());
+	window.plan(500, 600);
+	let complete!: () => void;
+	const located = window.locateAndLoad(
+		'entry',
+		() =>
+			new Promise((resolve) => {
+				lookups++;
+				begin();
+				complete = () => {
+					active--;
+					resolve({ kind: 'Location', revision: '1', index: 75 });
+				};
+			}),
+		new AbortController().signal
+	);
+	expect(active).toBe(3);
+	expect(lookups).toBe(0);
+	pending.shift()!();
+	await new Promise((resolve) => setTimeout(resolve, 0));
+	expect(lookups).toBe(1);
+	expect(window.metrics().requests).toBe(3);
+	complete();
+	for (let i = 0; i < 6; i++) {
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		pending.splice(0).forEach((finish) => finish());
+	}
+	expect(await located).toEqual({ identity: window.identity, index: 75 });
+	expect(peak).toBe(3);
+	expect(active).toBe(0);
+	expect(window.metrics().requests).toBe(0);
+});
+
+it('cancels a waiting lookup and cancels an active lookup on replacement without leaked slots', async () => {
+	let calls = 0;
+	const pending: Array<() => void> = [];
+	const window = new InventoryWindow(
+		(q, _revision, signal) =>
+			new Promise((resolve) => {
+				const finish = () => resolve(page(q.offset, q.q));
+				signal.addEventListener('abort', finish, { once: true });
+				pending.push(finish);
+			}),
+		() => {}
+	);
+	window.seed('owner', page());
+	window.plan(500, 600);
+	const waiting = new AbortController();
+	const canceled = window.locateAndLoad(
+		'entry',
+		async () => {
+			calls++;
+			return { kind: 'Location', revision: '1', index: 75 };
+		},
+		waiting.signal
+	);
+	waiting.abort();
+	expect(await canceled).toBeNull();
+	expect(calls).toBe(0);
+	window.clear();
+	await new Promise((resolve) => setTimeout(resolve, 0));
+	window.seed('owner', page());
+	let lookupSignal!: AbortSignal;
+	const active = window.locateAndLoad(
+		'entry',
+		(_q, _id, _revision, signal) =>
+			new Promise((resolve) => {
+				lookupSignal = signal;
+				signal.addEventListener(
+					'abort',
+					() => resolve({ kind: 'Location', revision: '1', index: 75 }),
+					{ once: true }
+				);
+			}),
+		new AbortController().signal
+	);
+	expect(window.metrics().requests).toBe(1);
+	const replacement = window.open('owner', { ...query, q: 'other' }, new AbortController().signal);
+	expect(lookupSignal.aborted).toBe(true);
+	expect(await active).toBeNull();
+	await new Promise((resolve) => setTimeout(resolve, 0));
+	pending.splice(0).forEach((finish) => finish());
+	await replacement;
+	expect(window.current?.query.q).toBe('other');
+	expect(window.metrics().requests).toBe(0);
+});
+
+it('discards a waiting lookup on query replacement even if old transports ignore abort', async () => {
+	const pending: Array<() => void> = [];
+	const window = new InventoryWindow(
+		(q) =>
+			new Promise((resolve) => {
+				pending.push(() => resolve(page(q.offset)));
+			}),
+		() => {}
+	);
+	window.seed('owner', page());
+	window.plan(500, 600);
+	let calls = 0;
+	const located = window.locateAndLoad(
+		'entry',
+		async () => {
+			calls++;
+			return { kind: 'Location', revision: '1', index: 75 };
+		},
+		new AbortController().signal
+	);
+	window.seed('owner', page(0, 'other'));
+	expect(await located).toBeNull();
+	expect(calls).toBe(0);
+	pending.splice(0).forEach((finish) => finish());
+	await new Promise((resolve) => setTimeout(resolve, 0));
+	expect(window.metrics().requests).toBe(0);
+});
