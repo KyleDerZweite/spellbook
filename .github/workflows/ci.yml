@@ -111,6 +111,7 @@ jobs:
         env:
           APP_ORIGIN: http://127.0.0.1:5191
       - run: pnpm test:http
+      - run: pnpm test:sync
 
   worker-tests:
     name: Worker Tests

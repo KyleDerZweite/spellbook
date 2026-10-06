@@ -153,6 +153,24 @@ const SCHEMA = {
 	},
 	servers: [{ url: privateEnv.APP_ORIGIN }],
 	paths: {
+		'/api/account/events': {
+			get: {
+				summary:
+					'Stream account-scoped saved-state invalidations; reconnect refetches current state',
+				security: authenticated,
+				responses: {
+					200: {
+						description:
+							'SSE reset/recovering/auth-expired events have empty data; invalidate data contains only coarse profile/inventory/decks/scan topics. Heartbeats every 15 seconds; no replay or event IDs.',
+						content: { 'text/event-stream': { schema: { type: 'string' } } }
+					},
+					401: response('Authentication required', ref('ErrorResponse')),
+					403: response('Foreign or null Origin rejected', ref('ErrorResponse')),
+					400: response('Query parameters unsupported', ref('ErrorResponse')),
+					503: response('Saved state temporarily unavailable', ref('ErrorResponse'))
+				}
+			}
+		},
 		'/api/account/profile': {
 			get: operation(
 				'Read authenticated account profile and aggregate totals',
