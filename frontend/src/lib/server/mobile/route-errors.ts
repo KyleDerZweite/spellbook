@@ -7,6 +7,13 @@ import { ValidationError } from '#lib/server/mtg/validation.ts';
  * error bubble so infrastructure failures surface as 500s.
  */
 export function badRequestIfValidation(cause: unknown, fallback = 'Invalid request'): never {
+	if (
+		cause &&
+		typeof cause === 'object' &&
+		'kind' in cause &&
+		cause.kind === 'InvalidInventoryCount'
+	)
+		throw error(500, 'Inventory totals cannot be represented exactly.');
 	if (cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'Unauthenticated')
 		throw error(401, 'Authentication required');
 	if (cause instanceof RequestConflictError) {

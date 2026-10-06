@@ -48,6 +48,13 @@ export const load: PageServerLoad = async ({ locals, parent, url }) => {
 			}
 		};
 	} catch (cause) {
+		if (
+			cause &&
+			typeof cause === 'object' &&
+			'kind' in cause &&
+			cause.kind === 'InvalidInventoryCount'
+		)
+			error(500, 'Inventory totals cannot be represented exactly.');
 		if (cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'Unauthenticated')
 			error(401, 'Authentication required');
 		if (cause instanceof ValidationError) {

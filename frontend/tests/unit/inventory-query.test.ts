@@ -1,3 +1,5 @@
+import { isHttpError } from '@sveltejs/kit';
+import { badRequestIfValidation } from '#lib/server/mobile/route-errors.ts';
 import { describe, expect, it } from 'vitest';
 import {
 	normalizeInventoryQuery,
@@ -47,4 +49,16 @@ describe('Inventory bounded query', () => {
 			variant: null
 		});
 	});
+});
+
+it('returns a controlled Inventory count failure instead of an inexact wire value', () => {
+	try {
+		badRequestIfValidation({ kind: 'InvalidInventoryCount', message: 'private diagnostic' });
+	} catch (cause) {
+		if (!isHttpError(cause)) throw cause;
+		expect(cause.status).toBe(500);
+		expect(cause.body.message).toBe('Inventory totals cannot be represented exactly.');
+		return;
+	}
+	throw Error('Expected controlled failure');
 });

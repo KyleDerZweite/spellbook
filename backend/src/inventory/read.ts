@@ -10,7 +10,24 @@ import type {
 	RevisionChanged
 } from '@spellbook/contracts/inventory.ts';
 import { normalizeInventoryQuery, inventoryQueryKey } from './query.ts';
+import { databaseInteger, DatabaseIntegerRangeError } from '../db/numbers.ts';
 import { ValidationError } from '../mtg/validation.ts';
+class InventoryCountError extends Error {
+	readonly kind = 'InvalidInventoryCount';
+	constructor() {
+		super('Inventory totals cannot be represented exactly.');
+	}
+}
+function count(value: unknown) {
+	try {
+		const result = databaseInteger(value);
+		if (result < 0) throw new DatabaseIntegerRangeError();
+		return result;
+	} catch (cause) {
+		if (cause instanceof DatabaseIntegerRangeError) throw new InventoryCountError();
+		throw cause;
+	}
+}
 const uuid = (value: string) => {
 	if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(value))
 		throw new ValidationError('entryId must be a UUID');
@@ -141,21 +158,42 @@ export function createInventory(
 			);
 			const entries = rows.rows.map(entry);
 			const {
-				rows: [matching]
-			} = await client.query<{ entryCount: number; copyCount: number }>(
-				`SELECT count(*)::int AS "entryCount",COALESCE(sum(c.quantity),0)::float8 AS "copyCount" FROM inventory_cards c WHERE ${selected.where}`,
+				rows: [matchingRow]
+			} = await client.query<{ entryCount: string; copyCount: string }>(
+				`SELECT count(*)::text AS "entryCount",COALESCE(sum(c.quantity),0)::text AS "copyCount" FROM inventory_cards c WHERE ${selected.where}`,
 				selected.values
 			);
 			const {
-				rows: [totals]
-			} = await client.query<InventoryPage['totals']>(
-				`SELECT count(*)::int AS "entryCount",COALESCE(sum(quantity),0)::float8 AS "copyCount",count(DISTINCT canonical_card_id COLLATE "C")::int AS "canonicalCardCount",count(*) FILTER(WHERE finish='foil')::int AS "foilEntryCount",count(DISTINCT set_code COLLATE "C")::int AS "setCount" FROM inventory_cards WHERE inventory_id=$1 AND account_id=$2 AND game='mtg'`,
+				rows: [totalsRow]
+			} = await client.query<Record<keyof InventoryPage['totals'], string>>(
+				`SELECT count(*)::text AS "entryCount",COALESCE(sum(quantity),0)::text AS "copyCount",count(DISTINCT canonical_card_id COLLATE "C")::text AS "canonicalCardCount",count(*) FILTER(WHERE finish='foil')::text AS "foilEntryCount",count(DISTINCT set_code COLLATE "C")::text AS "setCount" FROM inventory_cards WHERE inventory_id=$1 AND account_id=$2 AND game='mtg'`,
 				[inventoryId, accountId]
 			);
-			const { rows: groups } = await client.query<InventoryGroupCount>(
-				`SELECT g.id,g.name,count(c.id)::int AS "entryCount",COALESCE(sum(c.quantity),0)::float8 AS quantity FROM inventory_groups g LEFT JOIN inventory_group_memberships m ON m.group_id=g.id LEFT JOIN inventory_cards c ON c.id=m.entry_id AND c.inventory_id=g.inventory_id AND c.account_id=$2 AND c.game='mtg' WHERE g.inventory_id=$1 GROUP BY g.id ORDER BY g.name COLLATE "inventory_root",g.id`,
+			const { rows: groupRows } = await client.query<{
+				id: string;
+				name: string;
+				entryCount: string;
+				quantity: string;
+			}>(
+				`SELECT g.id,g.name,count(c.id)::text AS "entryCount",COALESCE(sum(c.quantity),0)::text AS quantity FROM inventory_groups g LEFT JOIN inventory_group_memberships m ON m.group_id=g.id LEFT JOIN inventory_cards c ON c.id=m.entry_id AND c.inventory_id=g.inventory_id AND c.account_id=$2 AND c.game='mtg' WHERE g.inventory_id=$1 GROUP BY g.id ORDER BY g.name COLLATE "inventory_root",g.id`,
 				[inventoryId, accountId]
 			);
+			const matching = {
+				entryCount: count(matchingRow.entryCount),
+				copyCount: count(matchingRow.copyCount)
+			};
+			const totals = {
+				entryCount: count(totalsRow.entryCount),
+				copyCount: count(totalsRow.copyCount),
+				canonicalCardCount: count(totalsRow.canonicalCardCount),
+				foilEntryCount: count(totalsRow.foilEntryCount),
+				setCount: count(totalsRow.setCount)
+			};
+			const groups: InventoryGroupCount[] = groupRows.map((row) => ({
+				...row,
+				entryCount: count(row.entryCount),
+				quantity: count(row.quantity)
+			}));
 			const { rows: memberships } = await client.query<{
 				entryId: string;
 				groupId: string;
@@ -172,13 +210,17 @@ export function createInventory(
 				const {
 					rows: [progress]
 				} = await client.query<{
-					ownedCanonicalCount: number;
-					catalogCanonicalCount: number;
+					ownedCanonicalCount: string;
+					catalogCanonicalCount: string;
 				}>(
-					`SELECT (SELECT count(DISTINCT canonical_card_id COLLATE "C")::int FROM inventory_cards WHERE inventory_id=$1 AND lower(set_code)=$2 AND account_id=$3 AND game='mtg') AS "ownedCanonicalCount",(SELECT count(DISTINCT p.oracle_id)::int FROM catalog_printings p JOIN catalog_state s ON s.id=1 AND s.active_generation=p.generation_id WHERE p.set_code=$2) AS "catalogCanonicalCount"`,
+					`SELECT (SELECT count(DISTINCT canonical_card_id COLLATE "C")::text FROM inventory_cards WHERE inventory_id=$1 AND lower(set_code)=$2 AND account_id=$3 AND game='mtg') AS "ownedCanonicalCount",(SELECT count(DISTINCT p.oracle_id)::text FROM catalog_printings p JOIN catalog_state s ON s.id=1 AND s.active_generation=p.generation_id WHERE p.set_code=$2) AS "catalogCanonicalCount"`,
 					[inventoryId, query.sets[0], accountId]
 				);
-				setProgress = { setCode: query.sets[0], ...progress };
+				setProgress = {
+					setCode: query.sets[0],
+					ownedCanonicalCount: count(progress.ownedCanonicalCount),
+					catalogCanonicalCount: count(progress.catalogCanonicalCount)
+				};
 			}
 			const directory = groups.filter(
 				(g) => !query.q || g.name.toLowerCase().includes(query.q.toLowerCase())
@@ -236,14 +278,14 @@ export function createInventory(
 				return { kind: 'RevisionChanged' as const, revision: currentRevision };
 			await validateGroup(client, inventoryId, query);
 			const selected = selection(query, inventoryId, accountId);
-			const { rows } = await client.query<{ index: number }>(
-				`SELECT position::int AS index FROM (SELECT c.id,row_number() OVER(ORDER BY ${selected.order})-1 AS position FROM inventory_cards c WHERE ${selected.where}) ordered WHERE id=$${selected.values.length + 1}`,
+			const { rows } = await client.query<{ index: string }>(
+				`SELECT position::text AS index FROM (SELECT c.id,row_number() OVER(ORDER BY ${selected.order})-1 AS position FROM inventory_cards c WHERE ${selected.where}) ordered WHERE id=$${selected.values.length + 1}`,
 				[...selected.values, id]
 			);
 			return {
 				kind: 'Location' as const,
 				revision: currentRevision,
-				index: rows[0]?.index ?? null
+				index: rows[0] ? count(rows[0].index) : null
 			};
 		});
 	}
