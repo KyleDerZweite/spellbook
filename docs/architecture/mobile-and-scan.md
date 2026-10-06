@@ -3,10 +3,18 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: code, proposed recognition design, primary documentation
-- Update Triggers: manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, scan processing, recognition evaluation, owned-card search, device runtime selection
-- Related Docs: [Frontend](./frontend.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../../GLOSSARY.md), [Deployment](../operations/deployment.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md)
+- Update Triggers: manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, device runtime selection
+- Related Docs: [Application contract](./application-contract.md), [Frontend](./frontend.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../../GLOSSARY.md), [Deployment](../operations/deployment.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md)
 
 Spellbook has one web client. Its manifest in `frontend/static/manifest.webmanifest` provides install metadata; `frontend/src/app.html` links it. A service worker and offline caching are not implemented. The `/mtg/scan` workspace supports image upload, candidate review, manual printing selection, and explicit inventory commit. Direct browser camera capture remains planned.
+
+## Bounded Inventory HTTP reads
+
+The accepted experimental v1 migration replaces `GET /api/mobile/v1/mtg/inventory` snapshot reads with an InventoryPage DTO. It accepts normalized filters/order/group plus offset and limit, defaulting to 50 with a maximum of 100. Supplying `revision` pins the request; drift returns HTTP 409 with `{ kind: 'RevisionChanged', revision }`. Entries, loaded memberships, query identity and complete counts/set/group metadata share one snapshot. Timestamps are ISO strings and revisions are decimal strings.
+
+`GET /inventory/{entryId}` returns an owned entry, memberships and revision, or 404. `GET /inventory/{entryId}/location` requires the expected revision and returns the matching absolute index or null; drift returns the same 409 shape. All relative paths use the versioned MTG prefix. Invalid queries return 400; invalid selected groups return 400 in the API and 404 in native page loading. [The application contract](./application-contract.md#inventory-query-contract) owns normalization and ordering; [OpenAPI](../../frontend/src/routes/openapi.json/+server.ts) owns exact wire schemas.
+
+POST/PATCH/DELETE, bulk, import and Scan mutation responses retain their legacy shapes with additive revisions. Compact receipts and stale Notes protection remain slice 4 work. Consumers of the former GET snapshot must migrate to page/detail/location reads.
 
 ## Implemented API boundary
 
@@ -105,7 +113,7 @@ The global catalog contains public printing reference data. An inventory entry r
 
 For server-side owned search, filter inventory by the authenticated account and join its printing IDs to the active PostgreSQL catalog generation. Apply catalog text and printing filters there, together with owned quantity, finish, and condition filters. Reuse existing indexes first and inspect representative query plans before adding indexes. Never copy private quantities, notes, images, or ownership markers into the global catalog or create a separate search document for each owned copy.
 
-Catalog publication must not remove an owned entry when a printing is absent from the new snapshot. Preserve the entry and its stored metadata, using an optional catalog join with an explicit missing-reference result. This joined search is proposed scalability work. The current inventory endpoint returns an account-owned snapshot, and the inventory page filters it in the browser. Its existing ledger indexes do not establish a paginated SQL search endpoint. Candidate retrieval searches global printings, since an import may identify a card the account does not yet own.
+Catalog publication does not remove owned entries. Current bounded Inventory search filters stored entry metadata in SQL and uses the active catalog only for set metadata/progress. Rich catalog-field joined owned search remains proposed. Candidate retrieval searches global printings, since an import may identify a card the account does not yet own.
 
 Catalog identity and image similarity cannot distinguish two physical copies of the same printing. Deduplicating by printing ID would incorrectly discard a second legitimate copy; treating every photograph as a copy would double-count recaptures. Proposed capture or event identifiers prevent software replay, while a later physical-card cycle or copy record must establish whether the card itself is new. The current candidate endpoint's missing stale-result and event protocol remains a separate follow-up, as described above. A single ordinary capture does not reliably establish foil treatment or condition. Keep those fields under user confirmation; do not infer them from a printing's available finishes.
 

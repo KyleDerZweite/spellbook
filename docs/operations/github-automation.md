@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
-- Update Triggers: test commands, workflow coverage, runtime pins, browser verification, PR policy, Dependabot policy, engineering skill tracker and domain layout, optional account-summary scale fixtures
+- Update Triggers: test commands, workflow coverage, runtime pins, browser verification, PR policy, Dependabot policy, engineering skill tracker and domain layout, optional account-summary and Inventory scale fixtures
 - Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance), [Application boundaries](../architecture/application-contract.md#implementation-status)
 
 This document owns repository check commands, CI coverage, and verification evidence. Product and integration documents own behavior and acceptance criteria. Run checks appropriate to the changed behavior; do not treat a passing command as proof of requirements it does not exercise.
@@ -47,6 +47,8 @@ TEST_SCALE_CATALOG_PATH=/absolute/path/to/public-catalog.jsonl pnpm test:http
 ```
 
 Use the same source fixture for both runs. Those cases verify aggregate identities, account isolation, bounded recent entries and Dashboard response size. They do not establish virtualized Inventory loading or general latency targets. Without the variable, optional scale cases skip; normal CI requires no local catalog file. Record skipped scale coverage explicitly.
+
+The opt-in [Inventory scale script](../../backend/scripts/inventory-scale.ts) is a local disposable evidence harness, not a normal CI prerequisite. Its source declares the isolated database name, public JSONL/manifest path and fixture checks. Provision that exact isolated database, apply current migrations, and supply matching `TEST_DATABASE_URL` and `DATABASE_URL` through the existing protected environment. From the repository root run `node backend/scripts/inventory-scale.ts`; `--analyze` captures analyzed plans and `--measure-only --final` remeasures existing fixture accounts. The script creates accounts with 1,000, 10,000 and 50,000 entries and writes machine/source/implementation hashes, plans and raw timings under ignored `.local/inventory-evidence/`. Keep its protected credential file local. These query measurements require separate final-head HTTP and rendered scrolling/focus acceptance; they are not a deployment or scalability claim.
 
 For each changed Python package, run the following from `worker/` or `scan-worker/`. The [CI workflow](../../.github/workflows/ci.yml) owns the pinned Python and uv versions.
 

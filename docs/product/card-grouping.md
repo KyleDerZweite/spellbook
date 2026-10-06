@@ -1,7 +1,7 @@
 # Card grouping
 
 - Status: Canonical, Inventory groups implemented; source/rule categories selected for the next pass
-- Last Reviewed: 2026-10-06
+- Last Reviewed: 2026-10-07
 - Source of Truth: maintainer grouping decision, inventory and deck implementations
 - Update Triggers: inventory groups, memberships, scan targets, deck entry and whole-deck categories, automatic classification, account category definitions and manual overrides, accepted design contracts and implementation evidence
 - Related Docs: [Product specification](./specification.md), [Domain model](../../GLOSSARY.md), [Classifier research](../integrations/card-categorization.md), [Frontend](../architecture/frontend.md), [Postgres](../architecture/postgres.md), [Mobile and scan](../architecture/mobile-and-scan.md), [UI direction](./ui-design-direction.md), [Product index](./README.md), [Category rules](../architecture/category-rules.md)
@@ -18,9 +18,9 @@ Deleting a group requires confirmation and removes only its memberships. Deletin
 
 ## Implementation contract
 
-A separate inventory-groups repository owns CRUD, batched group/count/membership reads and replacing an owned entry's memberships. The existing Inventory route supplies the presentation and form actions. Actions take account identity from the authenticated session and delegate to the repository. The repository validates entry and group ownership against the same inventory and game. Unknown or foreign identifiers fail without a partial membership update. The repository locks the owned inventory entry to serialize full membership replacements.
+A separate inventory-groups repository owns CRUD, batched group/count/membership reads and replacing an owned entry's memberships. The existing Inventory route supplies the presentation and form actions. Actions take account identity from the authenticated session and delegate to the repository. The repository validates entry and group ownership against the same inventory and game. Unknown or foreign identifiers fail without a partial membership update. The repository locks the Inventory parent before the owned entry and groups, serializing membership replacement and advancing the Inventory revision for semantic changes.
 
-`inventory_groups` stores a stable UUID, inventory reference, name and timestamps. `inventory_group_memberships` joins a group ID to an entry ID, with a composite primary key and cascading foreign keys. The existing printing/finish/condition uniqueness and aggregate quantities remain unchanged. No dependency on deck tables or catalog reference data is introduced. The route loads memberships in a batch and filters locally, consistent with the current Inventory snapshot.
+`inventory_groups` stores a stable UUID, inventory reference, name and timestamps. `inventory_group_memberships` joins a group ID to an entry ID, with a composite primary key and cascading foreign keys. The existing printing/finish/condition uniqueness and aggregate quantities remain unchanged. No dependency on deck tables or catalog reference data is introduced. Backend page reads apply filters before paging and return memberships only for loaded entries. Full group counts remain metadata; the directory page is bounded. [The query contract](../architecture/application-contract.md#inventory-query-contract) owns consistency and count semantics.
 
 Reuse ActionMenu, FilterPopover, Select and ConfirmationDialog where their behavior fits. Group dialogs use Bits Dialog for focus and dismissal. Groups and Cards use the same row rendering. New views do not duplicate the navbar, card inspector or inventory addition form.
 

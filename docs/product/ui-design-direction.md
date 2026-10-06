@@ -1,7 +1,7 @@
 # UI design direction
 
 - Status: Canonical
-- Last Reviewed: 2026-10-06
+- Last Reviewed: 2026-10-07
 - Source of Truth: accepted product requirements, application components, selected logo and component choices
 - Update Triggers: public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, accepted design contracts and implementation evidence
 - Related Docs: [Product specification](./specification.md), [Routes](./routing-and-games.md), [Domain model](../../GLOSSARY.md), [Selected UI components](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Brand assets](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md)
@@ -18,7 +18,7 @@ The selected action policy has four purposes: Primary for the page's main action
 
 On 2026-10-06, Kyle also requested lazy loading for Inventory and verification with thousands of entries. Inventory must use bounded result loading and virtualization, with complete-data filtering, sorting and counts rather than applying those operations only to a loaded page. [Application contract](../architecture/application-contract.md#inventory-query-contract) owns the accepted bounded query and window design. Group views, note drafts, focus and saved-change refreshes must remain usable as rows leave the viewport.
 
-Q56 accepted the shared Button, WorkspaceHeader, QuantityControl, dialog and bounded loading contracts on 2026-10-06. [Application contract](../architecture/application-contract.md#frontend-state-and-shared-controls) owns their responsibilities and browser evidence. This refinement is not yet applied. The maintainer also requested a review of all current docs and decisions; existing descriptions remain implementation evidence until a reviewed replacement or explicit supersession changes them.
+Q56 accepted the shared Button, WorkspaceHeader, QuantityControl, dialog and bounded loading contracts on 2026-10-06. [Application contract](../architecture/application-contract.md#frontend-state-and-shared-controls) owns their responsibilities and browser evidence. Inventory now uses these shared controls and bounded loading; Deck UI adoption and saved-state synchronization remain planned. The maintainer also requested a review of all current docs and decisions; existing descriptions remain implementation evidence until a reviewed replacement or explicit supersession changes them.
 
 ## References and component choice
 

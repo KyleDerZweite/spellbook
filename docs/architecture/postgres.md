@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: code
-- Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership and compatibility adapters
+- Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership and compatibility adapters, Inventory revisions, bounded reads and ICU ordering
 - Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md), [Application contract](./application-contract.md)
 
 PostgreSQL stores account-owned application state and the public Scryfall catalog.
@@ -43,19 +43,25 @@ The backend [schema](../../backend/src/db/schema.ts) owns table definitions, and
 - MTG is the only implemented adapter today
 - `inventories` and `decks` are the current canonical domain objects
 - `inventory_mutation_requests` and `deck_mutation_requests` store per-account `requestId` records for idempotent mobile bulk mutations
-- additive migration `0010_inventory_groups.sql` adds account-inventory groups and cascading entry memberships; the group repository scopes every mutation to the authenticated inventory and serializes membership replacement by locking the entry
+- additive migration `0010_inventory_groups.sql` adds account-inventory groups and cascading entry memberships; the group repository scopes every mutation to the authenticated inventory and serializes membership replacement by locking the Inventory parent before the entry and groups
 - the Python worker publishes public printing metadata using the [catalog generation contract](./catalog.md)
 - scan binary artifacts remain in object storage, not Postgres
 
 ## Current Access Pattern
 
-- backend Catalog, Auth, Profile and Dashboard use Drizzle ORM and `pg` through frontend server composition; remaining SvelteKit feature repositories use explicit compatibility adapters
+- backend Catalog, Auth, Profile, Dashboard and Inventory reads use Drizzle ORM and `pg` through frontend server composition; remaining SvelteKit feature repositories use explicit compatibility adapters
 - browser pages load user data through server load functions and route actions
 - optional mobile API endpoints call the same repository functions as web routes
 - repository functions enforce ownership by internal Spellbook `accountId`
 - the backend Profile use case reads account-scoped MTG totals directly from `inventory_cards` and `decks` without creating inventory rows or calling the catalog worker
 - profile totals count owned quantities, distinct canonical card IDs, distinct printing IDs, distinct set codes, foil quantities, and decks; a totals read failure leaves profile customization available
 - the backend Profile use case reads the saved card independently of totals and validates it against the shared definition; [authentication](./auth.md) owns Settings validation, default handling and atomic preference updates
+
+## Inventory read and write consistency
+
+[Migration 0011](../../frontend/drizzle/0011_inventory_windows.sql) adds bigint Inventory and Notes revisions, ICU root ordering and a name/set window index. The [application contract](./application-contract.md#inventory-query-contract) owns page ordering, metadata and revision resets. Backend page/detail/location reads use one repeatable-read, read-only snapshot scoped to the trusted actor and MTG, including counts, memberships and catalog-derived set metadata. An absent Inventory returns empty data without creating a parent.
+
+Existing writers use the shared [Inventory helper](../../backend/src/inventory/write.ts) to lock the parent before entries and groups and advance its revision in the write transaction. Scan retains session-before-Inventory ordering. Notes has an independent stored revision; stale-text rejection and original mutation receipts remain planned. Legacy mutation responses still expose their prior snapshot shapes. [Deployment](../operations/deployment.md#inventory-collation-and-recovery) owns ICU preflight and recovery.
 
 ## Dashboard summary reads
 

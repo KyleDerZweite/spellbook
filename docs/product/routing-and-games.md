@@ -17,7 +17,7 @@ The [route source](../../frontend/src/routes/) owns implemented handlers. The [s
 | `/`                           | Public landing for signed-out and signed-in users                           |
 | `/mtg/dashboard`              | Authenticated account summaries and per-deck availability                   |
 | `/mtg/search`                 | Public catalog search and printing details                                  |
-| `/mtg/inventory`              | Authenticated inventory workspace and form actions                          |
+| `/mtg/inventory`              | Authenticated bounded Inventory pages, GET filters and form actions         |
 | `/mtg/scan`                   | Authenticated image upload, candidate review, and explicit inventory commit |
 | `/mtg/decks`                  | Authenticated deck library; `?deck=ID` opens the editor and form actions    |
 | `/mtg/decks/[deckId]/export`  | Authenticated text export of an owned deck                                  |
@@ -63,7 +63,7 @@ All paths below begin with `/api/mobile/v1/mtg`. The historical `mobile` name do
 | `/inventory/bulk`                                          | Idempotent inventory mutations                            |
 | `/inventory/import/preview`                                | Text import interpretation                                |
 | `/inventory/import/commit`                                 | Resolved inventory import                                 |
-| `/inventory/[entryId]`                                     | Owned entry mutation                                      |
+| `/inventory/[entryId]`                                     | Owned entry GET and legacy mutation                       |
 | `/decks`                                                   | Account deck list and creation                            |
 | `/decks/[deckId]`                                          | Owned deck retrieval, metadata changes, and deletion      |
 | `/decks/[deckId]/availability`                             | Owned deck availability counts without inventory mutation |
@@ -79,6 +79,8 @@ All paths below begin with `/api/mobile/v1/mtg`. The historical `mobile` name do
 | `/scan/sessions/[sessionId]/artifacts/[artifactId]/result` | Catalog-validated external candidate-result replacement   |
 | `/scan/artifacts/[artifactId]/image`                       | Owned original image retrieval                            |
 | `/scan/review/commit`                                      | Explicit inventory commit of reviewed candidates          |
+
+`GET /inventory/[entryId]/location` locates an owned entry within a normalized query at an expected revision. [The Inventory HTTP contract](../architecture/mobile-and-scan.md#bounded-inventory-http-reads) records the experimental v1 snapshot-to-page migration and errors.
 
 The [product specification](./specification.md) owns import semantics and scan limitations. Refer to the OpenAPI contract for methods, request bodies, response schemas, and error responses rather than inferring them from this route list.
 

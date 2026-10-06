@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-06
-- Last Reviewed: 2026-10-06
+- Last Reviewed: 2026-10-07
 - Owners: Kyle
 - Source of Truth: Kyle's Q56 acceptance of the reviewed implementation contract
 - Update Triggers: Inventory query addressing, revisions, ordering/collation, writer locking, compact receipts and scale evidence
@@ -10,7 +10,7 @@
 
 ## Context
 
-This is accepted design for the next pass, not an implemented capability.
+Slice 3 implements revisioned bounded reads, parent-lock participation, ICU ordering and browser window/list mechanisms. Compact original mutation receipts and stale-field protection remain accepted planned work. Implementation does not establish completed browser or scale acceptance.
 
 Full account snapshots, client-only filtering and unrelated position scans make large Inventory expensive. Paging without revision coherence can mix states. Retry deduplication alone does not return the original operation result after subsequent changes.
 
