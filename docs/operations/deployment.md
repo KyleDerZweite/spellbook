@@ -22,7 +22,7 @@ The equivalent frontend command is `pnpm --dir frontend dev:local`. The launcher
 
 Stopping the launcher terminates its own frontend and scan-worker processes. An error or occupied port shuts down the other child process too. Existing services and the database are not stopped. Startup does not apply migrations, seed or reset accounts, synchronize the catalog, build containers or start a tunnel. The scan-worker still returns no matches; manual review remains available.
 
-The T3 project can save `./dev.sh` as its Dev server script with the preview URL `http://localhost:5173`. This is a local app setting, not deployment configuration.
+The T3 project saves `./dev.sh` as its Dev server script with the design-review preview URL `http://localhost:5173/?review=landing`. This opens the accepted landing even when a local demo session is already signed in. Plain `/` still follows the current signed-in Home behavior described in [frontend architecture](../architecture/frontend.md). The preview URL is a local app setting, not deployment configuration.
 
 The Compose base file starts the built stack on port 3000. Its `.dev.yml` override selects a shared local scan-storage volume instead of S3; it does not run Vite or enable Hot Reload.
 
