@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { and, eq, gt } from 'drizzle-orm';
 import type { AuthUser } from '@spellbook/contracts/auth.ts';
-import type { Database } from '../db/client.ts';
+import type { Database, Transaction } from '../db/client.ts';
 import { authSessions, localCredentials, userProfiles } from '../db/schema.ts';
 
 export const SESSION_COOKIE = 'spellbook_session';
@@ -42,15 +42,16 @@ export function createSessionStore(db: Database) {
 		return transaction ? issue(transaction) : db.transaction(issue);
 	}
 
-	async function validateSession(token: string | undefined): Promise<AuthUser | null> {
+	async function inspectSession(token: string | undefined, executor: Database | Transaction = db) {
 		if (!token || !/^[A-Za-z0-9_-]{43}$/.test(token)) return null;
-		const [user] = await db
+		const [user] = await executor
 			.select({
 				accountId: userProfiles.accountId,
 				username: userProfiles.username,
 				email: userProfiles.email,
 				avatarId: userProfiles.avatarId,
-				artworkId: userProfiles.artworkId
+				artworkId: userProfiles.artworkId,
+				expiresAt: authSessions.expiresAt
 			})
 			.from(authSessions)
 			.innerJoin(userProfiles, eq(authSessions.accountId, userProfiles.accountId))
@@ -61,7 +62,13 @@ export function createSessionStore(db: Database) {
 				)
 			)
 			.limit(1);
-		return user ?? null;
+		if (!user) return null;
+		const { expiresAt, ...profile } = user;
+		return { user: profile, expiresAt: expiresAt.toISOString() };
+	}
+
+	async function validateSession(token: string | undefined) {
+		return (await inspectSession(token))?.user ?? null;
 	}
 
 	async function revokeSession(token: string | undefined): Promise<void> {
@@ -69,5 +76,5 @@ export function createSessionStore(db: Database) {
 			await db.delete(authSessions).where(eq(authSessions.tokenHash, hashSessionToken(token)));
 	}
 
-	return { createSession, validateSession, revokeSession };
+	return { createSession, validateSession, revokeSession, inspectSession };
 }

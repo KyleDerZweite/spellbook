@@ -9,18 +9,43 @@ import type {
 	Authenticated,
 	AuthUser,
 	LocalAuthApplication,
+	SessionInfo,
 	AuthFailure
 } from '@spellbook/contracts/auth.ts';
-import type { Database } from '../db/client.ts';
-import { localCredentials, userProfiles } from '../db/schema.ts';
+import type { Database, Transaction } from '../db/client.ts';
+import { localCredentials, userProfiles, authSessions } from '../db/schema.ts';
 import { hashPassword, normalizeUsername, validPassword, verifyPassword } from './password.ts';
 import { createSessionStore } from './session.ts';
 
 export class AuthError extends Error implements AuthFailure {
 	readonly kind = 'RateLimited';
 }
+export class ActorError extends Error {
+	readonly kind = 'Unauthenticated';
+	constructor() {
+		super('Authentication required');
+	}
+}
 export function createLocalAuth(db: Database, config: { demoMode: boolean }) {
-	const { createSession, validateSession, revokeSession } = createSessionStore(db);
+	const { createSession, revokeSession, inspectSession: readSession } = createSessionStore(db);
+	const actors = new WeakMap<AuthUser, string>();
+	function trust(user: AuthUser, token: string) {
+		actors.set(user, token);
+		return user;
+	}
+	async function inspectSession(token: string | undefined): Promise<SessionInfo | null> {
+		const session = await readSession(token);
+		return session && token ? { ...session, user: trust(session.user, token) } : null;
+	}
+	async function validateSession(token: string | undefined) {
+		return (await inspectSession(token))?.user ?? null;
+	}
+	async function requireActor(actor: AuthUser, transaction?: Transaction): Promise<AuthUser> {
+		const token = actors.get(actor);
+		const session = await readSession(token, transaction);
+		if (!session) throw new ActorError();
+		return trust(session.user, token!);
+	}
 	const demoMode = config.demoMode;
 	function acceptsDemoLogin(
 		mode: 'login' | 'register',
@@ -88,13 +113,16 @@ export function createLocalAuth(db: Database, config: { demoMode: boolean }) {
 				const session = await createSession(accountId, passwordHash);
 				return session
 					? {
-							user: {
-								accountId,
-								username,
-								email: '',
-								avatarId: DEFAULT_AVATAR_ID,
-								artworkId
-							},
+							user: trust(
+								{
+									accountId,
+									username,
+									email: '',
+									avatarId: DEFAULT_AVATAR_ID,
+									artworkId
+								},
+								session.token
+							),
 							session
 						}
 					: null;
@@ -119,7 +147,44 @@ export function createLocalAuth(db: Database, config: { demoMode: boolean }) {
 				.limit(1);
 			if (!user) return null;
 			const session = await createSession(user.accountId, credential.passwordHash);
-			return session ? { user, session } : null;
+			return session ? { user: trust(user, session.token), session } : null;
+		});
+	}
+
+	async function changePassword(actor: AuthUser, currentPassword: string, newPassword: string) {
+		const user = await requireActor(actor);
+		if (demoMode || !currentPassword || currentPassword.length > 128 || !validPassword(newPassword))
+			return null;
+		return withPasswordDerivation(async () => {
+			const [credential] = await db
+				.select({ passwordHash: localCredentials.passwordHash })
+				.from(localCredentials)
+				.where(eq(localCredentials.accountId, user.accountId));
+			if (!(await verifyPassword(currentPassword, credential?.passwordHash ?? null)) || !credential)
+				return null;
+			const passwordHash = await hashPassword(newPassword);
+			return db.transaction(async (tx) => {
+				const [profile] = await tx
+					.select({ accountId: userProfiles.accountId })
+					.from(userProfiles)
+					.where(eq(userProfiles.accountId, user.accountId))
+					.for('update');
+				if (!profile) return null;
+				await requireActor(actor, tx);
+				const [current] = await tx
+					.select({ passwordHash: localCredentials.passwordHash })
+					.from(localCredentials)
+					.where(eq(localCredentials.accountId, user.accountId));
+				if (current?.passwordHash !== credential.passwordHash) return null;
+				await tx
+					.update(localCredentials)
+					.set({ passwordHash, updatedAt: new Date() })
+					.where(eq(localCredentials.accountId, user.accountId));
+				await tx.delete(authSessions).where(eq(authSessions.accountId, user.accountId));
+				const session = await createSession(user.accountId, passwordHash, tx);
+				if (!session) throw new Error('Unable to issue the replacement session');
+				return session;
+			});
 		});
 	}
 
@@ -129,10 +194,16 @@ export function createLocalAuth(db: Database, config: { demoMode: boolean }) {
 		validateSession,
 		revokeSession,
 		takeAuthAttempt,
-		withPasswordDerivation
+		withPasswordDerivation,
+		inspectSession,
+		requireActor,
+		changePassword
 	} satisfies LocalAuthApplication & {
 		createSession: typeof createSession;
 		takeAuthAttempt: typeof takeAuthAttempt;
 		withPasswordDerivation: typeof withPasswordDerivation;
+		inspectSession: typeof inspectSession;
+		requireActor: typeof requireActor;
+		changePassword: typeof changePassword;
 	};
 }

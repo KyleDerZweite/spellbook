@@ -23,6 +23,21 @@ export interface LocalAuthApplication {
 		password: unknown,
 		preferences?: { artworkId?: unknown }
 	): Promise<Authenticated | null>;
+	inspectSession(token: string | undefined): Promise<SessionInfo | null>;
+	changePassword(
+		actor: AuthUser,
+		currentPassword: string,
+		newPassword: string
+	): Promise<AuthSession | null>;
 	validateSession(token: string | undefined): Promise<AuthUser | null>;
 	revokeSession(token: string | undefined): Promise<void>;
+}
+
+export interface SessionInfo {
+	user: AuthUser;
+	expiresAt: string;
+}
+export interface PasswordChange {
+	currentPassword: string;
+	newPassword: string;
 }
