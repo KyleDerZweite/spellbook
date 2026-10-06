@@ -13,9 +13,12 @@
 		DMG: 'Damaged'
 	};
 	const topSets = $derived(dashboard?.sets.slice(0, 8) ?? []);
+	const otherSetCount = $derived(Math.max(0, (dashboard?.sets.length ?? 0) - 8));
 	const otherSets = $derived(
 		dashboard?.sets.slice(8).reduce((sum, set) => sum + set.quantity, 0) ?? 0
 	);
+	const setScale = $derived(Math.max(1, otherSets, ...topSets.map((set) => set.quantity)));
+	const percent = new Intl.NumberFormat(undefined, { style: 'percent', maximumFractionDigits: 1 });
 	async function retry() {
 		retrying = true;
 		try {
@@ -29,164 +32,222 @@
 <svelte:head
 	><title>Dashboard | Spellbook</title><meta name="robots" content="noindex" /></svelte:head
 >
-
 <div class="workspace-container dashboard-page">
 	<header class="dashboard-header">
 		<div class="page-title"><h1>Dashboard</h1></div>
 		<div class="dashboard-actions">
-			<a href="/mtg/search" class="btn btn-primary">Add cards</a><a
+			<a href="/mtg/search" class="btn btn-primary btn-sm">Add cards</a><a
 				href="/mtg/scan"
-				class="btn btn-secondary">Upload photo</a
+				class="btn btn-secondary btn-sm">Upload photo</a
 			>
 		</div>
 	</header>
 	{#if data.loadError}
 		<div class="dashboard-empty" role="alert">
 			<p>{data.loadError}</p>
-			<button class="btn btn-secondary" onclick={retry} disabled={retrying}
+			<button class="btn btn-secondary btn-sm" onclick={retry} disabled={retrying}
 				>{retrying ? 'Loading...' : 'Try again'}</button
 			>
 		</div>
 	{:else if dashboard}
 		<dl class="dashboard-totals">
-			{#each [{ label: 'Cards owned', value: dashboard.totals.total }, { label: 'Card names', value: dashboard.totals.names }, { label: 'Printings', value: dashboard.totals.printings }, { label: 'Sets', value: dashboard.totals.sets }, { label: 'Foil copies', value: dashboard.totals.foils }, { label: 'Decks', value: dashboard.totals.decks }] as stat}
-				<div>
+			<div class="owned-total">
+				<dd>{dashboard.totals.total.toLocaleString()}</dd>
+				<dt>Cards owned</dt>
+			</div>
+			{#each [{ label: 'Card names', value: dashboard.totals.names }, { label: 'Printings', value: dashboard.totals.printings }, { label: 'Sets', value: dashboard.totals.sets }] as stat}<div
+				>
 					<dd>{stat.value.toLocaleString()}</dd>
 					<dt>{stat.label}</dt>
-				</div>
-			{/each}
+				</div>{/each}
 		</dl>
+		{#if dashboard.pendingScanReviews === null}
+			<div class="scan-summary unavailable">
+				<span>Review count unavailable.</span><a href="/mtg/scan"
+					>Open Scan to review your sessions</a
+				>
+			</div>
+		{:else if dashboard.pendingScanReviews > 0}
+			<div class="scan-summary pending">
+				<span
+					>{dashboard.pendingScanReviews.toLocaleString()}
+					{dashboard.pendingScanReviews === 1 ? 'session' : 'sessions'} pending review</span
+				><a href="/mtg/scan">Review scans</a>
+			</div>
+		{/if}
 		{#if dashboard.totals.total === 0}
 			<div class="dashboard-empty">
 				<p>Your inventory is empty. Add cards from Search or upload a photo for review.</p>
-				<a href="/mtg/search" class="btn btn-primary">Add cards</a>
-			</div>
-		{:else}
-			<div class="distribution-grid">
-				<section aria-labelledby="sets-heading">
-					<h2 id="sets-heading">Sets</h2>
-					<dl class="distribution-list">
-						{#each topSets as set}<div>
-								<dt>{set.label.toUpperCase()}</dt>
-								<dd>{set.quantity.toLocaleString()} <span>copies</span></dd>
-								<progress
-									max={dashboard.totals.total}
-									value={set.quantity}
-									aria-label={`${set.label.toUpperCase()}: ${set.quantity} copies`}
-								></progress>
-							</div>{/each}
-						{#if otherSets}<div>
-								<dt>Other sets</dt>
-								<dd>{otherSets.toLocaleString()} <span>copies</span></dd>
-								<progress
-									max={dashboard.totals.total}
-									value={otherSets}
-									aria-label={`Other sets: ${otherSets} copies`}
-								></progress>
-							</div>{/if}
-					</dl>
-				</section>
-				<section aria-labelledby="finish-heading">
-					<h2 id="finish-heading">Finish</h2>
-					<dl class="distribution-list">
-						{#each dashboard.finishes as finish}<div>
-								<dt>{finishLabels[finish.label] ?? finish.label}</dt>
-								<dd>{finish.quantity.toLocaleString()} <span>copies</span></dd>
-								<progress
-									max={dashboard.totals.total}
-									value={finish.quantity}
-									aria-label={`${finishLabels[finish.label] ?? finish.label}: ${finish.quantity} copies`}
-								></progress>
-							</div>{/each}
-					</dl>
-				</section>
-				<section aria-labelledby="condition-heading">
-					<h2 id="condition-heading">Condition</h2>
-					<dl class="distribution-list">
-						{#each dashboard.conditions as condition}<div>
-								<dt>{conditionLabels[condition.label] ?? condition.label}</dt>
-								<dd>{condition.quantity.toLocaleString()} <span>copies</span></dd>
-								<progress
-									max={dashboard.totals.total}
-									value={condition.quantity}
-									aria-label={`${conditionLabels[condition.label] ?? condition.label}: ${condition.quantity} copies`}
-								></progress>
-							</div>{/each}
-					</dl>
-				</section>
+				<a href="/mtg/search" class="btn btn-primary btn-sm">Add cards</a>
 			</div>
 		{/if}
-		<div class="dashboard-columns">
+		<div class="dashboard-overview" class:empty-inventory={dashboard.totals.total === 0}>
 			<section aria-labelledby="decks-heading">
 				<div class="section-heading">
-					<h2 id="decks-heading">Deck availability</h2>
+					<h2 id="decks-heading">
+						Deck availability <span>{dashboard.totals.decks.toLocaleString()}</span>
+					</h2>
 					<a href="/mtg/decks">Open decks</a>
 				</div>
 				{#if dashboard.decks.length}
 					<p class="dashboard-note">
 						Each deck compares against your full inventory independently.
 					</p>
-					<!-- svelte-ignore a11y_no_noninteractive_tabindex (The scroll region must be reachable for keyboard scrolling.) -->
-					<div class="table-scroll" tabindex="0" role="region" aria-label="Deck availability">
-						<table>
-							<thead
-								><tr
-									><th scope="col">Deck</th><th scope="col">Required</th><th scope="col">Exact</th
-									><th scope="col">Alternate</th><th scope="col">Missing</th></tr
-								></thead
-							><tbody
-								>{#each dashboard.decks as deck}<tr
-										><th scope="row"
-											><a href={`/mtg/decks?deck=${encodeURIComponent(deck.id)}`}>{deck.name}</a
-											><small>{deck.format}</small></th
-										><td>{deck.required}</td><td>{deck.exact}</td><td>{deck.alternate}</td><td
-											>{deck.missing}</td
-										></tr
-									>{/each}</tbody
-							>
-						</table>
-					</div>
+					<ul class="deck-list">
+						{#each dashboard.decks as deck}<li>
+								<div class="deck-heading">
+									<a href={`/mtg/decks?deck=${encodeURIComponent(deck.id)}`}>{deck.name}</a><span
+										>{deck.format}</span
+									>
+								</div>
+								{#if deck.required > 0}
+									<div class="deck-required">{deck.required.toLocaleString()} required</div>
+									<div class="composition-bar" aria-hidden="true">
+										<span class="exact" style:width={`${(deck.exact / deck.required) * 100}%`}
+										></span><span
+											class="alternate"
+											style:width={`${(deck.alternate / deck.required) * 100}%`}
+										></span><span
+											class="missing"
+											style:width={`${(deck.missing / deck.required) * 100}%`}
+										></span>
+									</div>
+									<dl class="deck-values">
+										<div class="exact">
+											<dt><span class="legend-mark"></span>Exact</dt>
+											<dd>{deck.exact.toLocaleString()}</dd>
+										</div>
+										<div class="alternate">
+											<dt><span class="legend-mark"></span>Alternate</dt>
+											<dd>{deck.alternate.toLocaleString()}</dd>
+										</div>
+										<div class="missing">
+											<dt><span class="legend-mark"></span>Missing</dt>
+											<dd>{deck.missing.toLocaleString()}</dd>
+										</div>
+									</dl>
+								{:else}<p class="dashboard-note empty-deck">No cards yet.</p>{/if}
+							</li>{/each}
+					</ul>
 				{:else}<p class="dashboard-note">No decks yet.</p>
-					<a href="/mtg/decks" class="btn btn-secondary">Create a deck</a>{/if}
+					<a href="/mtg/decks" class="btn btn-secondary btn-sm">Create a deck</a>{/if}
 			</section>
-			<section aria-labelledby="recent-heading">
-				<div class="section-heading">
-					<h2 id="recent-heading">Recently edited inventory</h2>
-					<a href="/mtg/inventory">Open inventory</a>
-				</div>
-				<ul class="recent-entries">
-					{#each dashboard.recentEntries as entry}<li>
-							<a href={`/mtg/search?q=${encodeURIComponent(entry.name)}`}>
-								{#if entry.imageUri}<img
-										src={entry.imageUri}
-										alt=""
-										width="34"
-										height="48"
-										loading="lazy"
-									/>{/if}<span
-									><strong>{entry.name}</strong><small
-										>{entry.setCode.toUpperCase()} · {finishLabels[entry.finish] ?? entry.finish} · {entry.condition}</small
-									></span
-								><span class="entry-quantity">{entry.quantity}×</span>
-							</a>
-						</li>{:else}<li class="dashboard-note">No inventory entries yet.</li>{/each}
-				</ul>
-			</section>
+			{#if dashboard.totals.total > 0}
+				<section aria-labelledby="sets-heading">
+					<div class="section-heading">
+						<h2 id="sets-heading">Sets</h2>
+						<span class="unit-label">Copies · Share</span>
+					</div>
+					<dl
+						class="set-distribution"
+						style:--set-count-width={`${Math.max(3, setScale.toLocaleString().length)}ch`}
+					>
+						{#each topSets as set}<div>
+								<dt>{set.label.toUpperCase()}</dt>
+								<dd>
+									<span class="set-bar" aria-hidden="true"
+										><span style:width={`${(set.quantity / setScale) * 100}%`}></span></span
+									><span>{set.quantity.toLocaleString()}</span><span class="set-share"
+										>{percent.format(set.share)}</span
+									>
+								</dd>
+							</div>{/each}
+						{#if otherSets > 0}<div class="other-sets">
+								<dt>Other sets <small>{otherSetCount.toLocaleString()} sets</small></dt>
+								<dd>
+									<span class="set-bar" aria-hidden="true"
+										><span style:width={`${(otherSets / setScale) * 100}%`}></span></span
+									><span>{otherSets.toLocaleString()}</span><span class="set-share"
+										>{percent.format(otherSets / dashboard.totals.total)}</span
+									>
+								</dd>
+							</div>{/if}
+					</dl>
+				</section>
+			{/if}
 		</div>
-		<div class="scan-summary">
-			<a href="/mtg/scan">Scan review</a><span
-				>{dashboard.pendingScanReviews === null
-					? 'Review count unavailable. Open Scan to review your sessions.'
-					: `${dashboard.pendingScanReviews.toLocaleString()} ${dashboard.pendingScanReviews === 1 ? 'session' : 'sessions'} pending review`}</span
-			>
-		</div>
+		{#if dashboard.totals.total > 0}
+			<div class="inventory-profile">
+				<section aria-labelledby="finish-heading">
+					<div class="section-heading">
+						<h2 id="finish-heading">Finish</h2>
+						<span class="unit-label">{dashboard.totals.foils.toLocaleString()} foil copies</span>
+					</div>
+					<div class="composition-bar" aria-hidden="true">
+						{#each dashboard.finishes as finish}<span
+								data-finish={finish.label}
+								style:width={`${finish.share * 100}%`}
+							></span>{/each}
+					</div>
+					<dl class="profile-values">
+						{#each dashboard.finishes as finish}<div data-finish={finish.label}>
+								<dt>
+									<span class="legend-mark"></span>{finishLabels[finish.label] ?? finish.label}
+								</dt>
+								<dd>
+									{finish.quantity.toLocaleString()} <span>{percent.format(finish.share)}</span>
+								</dd>
+							</div>{/each}
+					</dl>
+				</section>
+				<section aria-labelledby="condition-heading">
+					<h2 id="condition-heading">Condition</h2>
+					<div class="composition-bar" aria-hidden="true">
+						{#each dashboard.conditions as condition}<span
+								data-condition={condition.label}
+								style:width={`${condition.share * 100}%`}
+							></span>{/each}
+					</div>
+					<dl class="profile-values condition-values">
+						{#each dashboard.conditions as condition}<div data-condition={condition.label}>
+								<dt>
+									<span class="legend-mark"></span><span
+										>{conditionLabels[condition.label] ?? condition.label}</span
+									>
+								</dt>
+								<dd>
+									{condition.quantity.toLocaleString()}
+									<span>{percent.format(condition.share)}</span>
+								</dd>
+							</div>{/each}
+					</dl>
+				</section>
+			</div>
+		{:else}<p class="dashboard-note">{dashboard.totals.foils.toLocaleString()} foil copies</p>{/if}
+		<section class="recent-section" aria-labelledby="recent-heading">
+			<div class="section-heading">
+				<h2 id="recent-heading">Recently edited inventory</h2>
+				<a href="/mtg/inventory">Open inventory</a>
+			</div>
+			<ul class="recent-entries">
+				{#each dashboard.recentEntries as entry}<li>
+						<a href={`/mtg/search?q=${encodeURIComponent(entry.name)}`}>
+							{#if entry.imageUri}<img
+									src={entry.imageUri}
+									alt=""
+									width="34"
+									height="48"
+									loading="lazy"
+								/>{/if}<span class="entry-info"
+								><strong>{entry.name}</strong><small
+									>{entry.setCode.toUpperCase()} · {finishLabels[entry.finish] ?? entry.finish} · {entry.condition}</small
+								></span
+							><span class="entry-quantity">{entry.quantity.toLocaleString()}×</span>
+						</a>
+					</li>{:else}<li class="dashboard-note">No inventory entries yet.</li>{/each}
+			</ul>
+		</section>
+		{#if dashboard.pendingScanReviews === 0}<div class="scan-summary">
+				<a href="/mtg/scan">Scan review</a><span>0 sessions pending review</span>
+			</div>{/if}
 	{/if}
 </div>
 
 <style>
 	.dashboard-header,
 	.dashboard-actions,
-	.section-heading {
+	.section-heading,
+	.deck-heading {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -198,20 +259,28 @@
 	}
 	.dashboard-totals {
 		display: grid;
-		grid-template-columns: repeat(6, minmax(0, 1fr));
-		gap: 1rem;
-		margin: 2rem 0 2.5rem;
+		grid-template-columns: 1.35fr repeat(3, 1fr);
+		align-items: end;
+		gap: 1.5rem;
+		margin: 1.5rem 0 2rem;
+	}
+	dd {
+		font-variant-numeric: tabular-nums;
 	}
 	.dashboard-totals dd {
-		font-size: clamp(1.65rem, 2vw, 2.4rem);
-		font-variant-numeric: tabular-nums;
+		font-size: 1.5rem;
 		line-height: 1.3;
+	}
+	.dashboard-totals .owned-total dd {
+		font-size: 2.5rem;
 	}
 	.dashboard-totals dt,
 	.dashboard-note,
-	.distribution-list dd span,
+	.unit-label,
 	small,
-	.scan-summary span {
+	.deck-required,
+	.deck-heading span,
+	.scan-summary {
 		color: var(--color-text-secondary);
 		font-size: 0.75rem;
 	}
@@ -221,106 +290,218 @@
 		font-weight: 400;
 		margin-bottom: 1rem;
 	}
-	.distribution-grid {
+	h2 span {
+		margin-left: 0.5rem;
+		font: 0.875rem var(--font-body);
+		color: var(--color-text-secondary);
+	}
+	.dashboard-overview {
 		display: grid;
-		grid-template-columns: 1.25fr 1fr 1fr;
-		gap: 3rem;
-		padding-bottom: 2.5rem;
-	}
-	.distribution-list > div {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) auto;
-		gap: 0.35rem 1rem;
-		margin-bottom: 1rem;
-		font-size: 0.8rem;
-	}
-	.distribution-list dt {
-		overflow-wrap: anywhere;
-	}
-	.distribution-list dd {
-		font-variant-numeric: tabular-nums;
-	}
-	progress {
-		grid-column: 1 / -1;
-		appearance: none;
-		width: 100%;
-		height: 4px;
-		border: 0;
-		border-radius: 2px;
-		overflow: hidden;
-		background: var(--color-muted);
-		color: var(--color-text-muted);
-	}
-	progress::-webkit-progress-bar {
-		background: var(--color-muted);
-	}
-	progress::-webkit-progress-value {
-		background: var(--color-text-muted);
-	}
-	progress::-moz-progress-bar {
-		background: var(--color-text-muted);
-	}
-	.dashboard-columns {
-		display: grid;
-		grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+		grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
 		gap: 3rem;
 	}
-	.dashboard-columns section {
+	.dashboard-overview.empty-inventory {
+		grid-template-columns: 1fr;
+	}
+	section {
 		min-width: 0;
 	}
 	.section-heading {
 		align-items: baseline;
 		flex-wrap: wrap;
 		gap: 0.5rem;
+		margin-bottom: 1rem;
 	}
 	.section-heading h2 {
-		margin-bottom: 0.5rem;
+		margin-bottom: 0;
 	}
-	.section-heading a,
-	.scan-summary a {
+	.section-heading a {
 		font-size: 0.75rem;
 	}
 	.dashboard-note {
 		line-height: 1.7;
 		margin-bottom: 1rem;
 	}
-	.table-scroll {
-		overflow-x: auto;
-	}
-	table {
-		border-collapse: collapse;
-		width: 100%;
-		font-size: 0.75rem;
-	}
-	th,
-	td {
-		text-align: right;
-		padding: 0.9rem 0.65rem;
-		border-bottom: 1px solid var(--color-border);
-		font-variant-numeric: tabular-nums;
-	}
-	th:first-child {
-		text-align: left;
-		padding-left: 0;
-	}
-	thead th {
-		font-weight: 400;
-		color: var(--color-text-secondary);
-	}
-	tbody th {
-		font-weight: 400;
-		min-width: 10rem;
-		max-width: 24rem;
-		overflow-wrap: anywhere;
-	}
-	tbody th small {
-		display: block;
-		margin-top: 0.25rem;
-	}
+	.deck-list,
 	.recent-entries {
 		list-style: none;
-		margin: 0;
 		padding: 0;
+		margin: 0;
+	}
+	.deck-list li + li {
+		margin-top: 1.25rem;
+		padding-top: 1.25rem;
+		border-top: 1px solid var(--color-border);
+	}
+	.deck-heading {
+		align-items: baseline;
+		flex-wrap: wrap;
+		gap: 0.4rem 0.75rem;
+	}
+	.deck-heading a {
+		font-size: 0.875rem;
+		overflow-wrap: anywhere;
+	}
+	.deck-required {
+		margin: 0.4rem 0 0.75rem;
+	}
+	.composition-bar {
+		display: flex;
+		width: 100%;
+		height: 12px;
+		overflow: hidden;
+		border-radius: 3px;
+	}
+	.composition-bar > span {
+		height: 100%;
+		background: var(--segment-color);
+	}
+	.exact {
+		--segment-color: var(--color-success);
+	}
+	.alternate,
+	[data-finish='foil'] {
+		--segment-color: var(--color-violet);
+	}
+	.missing {
+		--segment-color: var(--color-warning);
+	}
+	.composition-bar .missing,
+	.missing .legend-mark {
+		background-image: repeating-linear-gradient(
+			135deg,
+			transparent 0 3px,
+			var(--color-background) 3px 4px
+		);
+	}
+	[data-finish='nonfoil'] {
+		--segment-color: var(--color-text-muted);
+	}
+	[data-condition='NM'] {
+		--segment-color: var(--color-success);
+	}
+	[data-condition='LP'] {
+		--segment-color: var(--color-info);
+	}
+	[data-condition='MP'] {
+		--segment-color: var(--color-warning);
+	}
+	[data-condition='HP'] {
+		--segment-color: var(--color-violet);
+	}
+	[data-condition='DMG'] {
+		--segment-color: var(--color-error);
+	}
+	.deck-values {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 0.5rem;
+		margin-top: 0.6rem;
+		font-size: 0.75rem;
+	}
+	.deck-values dt,
+	.profile-values dt {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		color: var(--color-text-secondary);
+	}
+	.condition-values dt {
+		align-items: baseline;
+		overflow-wrap: anywhere;
+	}
+	.deck-values dd {
+		margin-top: 0.35rem;
+		font-size: 1rem;
+	}
+	.legend-mark {
+		display: inline-block;
+		width: 8px;
+		height: 8px;
+		border-radius: 1px;
+		background: var(--segment-color);
+		flex-shrink: 0;
+	}
+	.empty-deck {
+		margin: 0.5rem 0 0;
+	}
+	.set-distribution {
+		font-size: 0.8rem;
+	}
+	.set-distribution > div {
+		display: grid;
+		grid-template-columns: 7rem minmax(0, 1fr);
+		align-items: center;
+		gap: 1rem;
+		min-height: 32px;
+	}
+	.set-distribution dt {
+		overflow-wrap: anywhere;
+	}
+	.set-distribution dd {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) var(--set-count-width) 4rem;
+		align-items: center;
+		gap: 0.75rem;
+		text-align: right;
+	}
+	.set-bar {
+		height: 12px;
+	}
+	.set-bar > span {
+		display: block;
+		height: 100%;
+		background: var(--color-info);
+		border-radius: 2px;
+	}
+	.set-share {
+		color: var(--color-text-secondary);
+		font-size: 0.75rem;
+	}
+	.set-distribution .other-sets {
+		margin-top: 0.4rem;
+		padding-top: 0.6rem;
+		border-top: 1px solid var(--color-border);
+	}
+	.other-sets small {
+		display: block;
+		margin-top: 0.2rem;
+	}
+	.other-sets .set-bar > span {
+		background: var(--color-text-muted);
+	}
+	.inventory-profile {
+		display: grid;
+		grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+		gap: 3rem;
+		margin-top: 2rem;
+	}
+	.profile-values {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem 2rem;
+		margin-top: 0.75rem;
+		font-size: 0.75rem;
+	}
+	.profile-values dd {
+		margin-top: 0.35rem;
+	}
+	.profile-values dd span {
+		margin-left: 0.5rem;
+		color: var(--color-text-secondary);
+	}
+	.condition-values {
+		display: grid;
+		grid-template-columns: repeat(5, minmax(0, 1fr));
+		gap: 0.75rem;
+	}
+	.recent-section {
+		margin-top: 2rem;
+	}
+	.recent-entries {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0 3rem;
 	}
 	.recent-entries a {
 		display: flex;
@@ -339,6 +520,9 @@
 		border-radius: 3px;
 		flex-shrink: 0;
 	}
+	.entry-info {
+		min-width: 0;
+	}
 	.recent-entries strong {
 		display: block;
 		font-size: 0.8rem;
@@ -356,14 +540,20 @@
 	}
 	.scan-summary {
 		display: flex;
+		align-items: baseline;
 		flex-wrap: wrap;
-		gap: 1rem;
+		gap: 0.5rem 1rem;
 		margin-top: 2rem;
-		padding-top: 1.5rem;
-		border-top: 1px solid var(--color-border);
+	}
+	.scan-summary.pending,
+	.scan-summary.unavailable {
+		margin: -0.5rem 0 1.5rem;
+	}
+	.scan-summary.pending span {
+		color: var(--color-warning);
 	}
 	.dashboard-empty {
-		padding: 2rem 0;
+		padding: 1rem 0 2rem;
 		font-size: 0.85rem;
 		line-height: 1.8;
 	}
@@ -371,16 +561,14 @@
 		max-width: 45rem;
 		margin-bottom: 1rem;
 	}
-	@media (max-width: 1000px) {
-		.dashboard-totals {
-			grid-template-columns: repeat(3, minmax(0, 1fr));
-		}
-		.distribution-grid {
-			gap: 1.5rem;
-		}
-		.dashboard-columns {
+	@media (max-width: 900px) {
+		.dashboard-overview,
+		.inventory-profile {
 			grid-template-columns: 1fr;
 			gap: 2rem;
+		}
+		.recent-entries {
+			gap: 0 1.5rem;
 		}
 	}
 	@media (max-width: 600px) {
@@ -388,15 +576,29 @@
 			align-items: flex-start;
 			flex-direction: column;
 		}
-		.distribution-grid {
-			grid-template-columns: 1fr;
+		.dashboard-totals {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
 			gap: 1rem;
 		}
-		.dashboard-totals {
-			gap: 1.5rem 0.75rem;
+		.dashboard-totals .owned-total {
+			grid-column: 1/-1;
 		}
-		.dashboard-totals dt {
-			font-size: 0.65rem;
+		.dashboard-totals .owned-total dd {
+			font-size: 2.25rem;
+		}
+		.recent-entries {
+			grid-template-columns: 1fr;
+		}
+		.set-distribution > div {
+			grid-template-columns: 5.5rem minmax(0, 1fr);
+			gap: 0.5rem;
+		}
+		.set-distribution dd {
+			grid-template-columns: minmax(0, 1fr) var(--set-count-width) 3.5rem;
+			gap: 0.5rem;
+		}
+		.condition-values {
+			grid-template-columns: repeat(3, minmax(0, 1fr));
 		}
 	}
 </style>
