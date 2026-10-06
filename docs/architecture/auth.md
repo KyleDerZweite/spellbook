@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: code
-- Update Triggers: credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, post-login destinations, agent discovery, workspace ownership and compatibility adapters
+- Update Triggers: credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, summary reporting failures, post-login destinations, agent discovery, workspace ownership and compatibility adapters
 - Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Routes](../product/routing-and-games.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md), [Application contract](./application-contract.md)
 
 Spellbook authenticates local accounts by username and password. `user_profiles.account_id` remains the stable ownership key for inventories, decks, and scans. Registration generates a new account ID; operator enrollment preserves an existing account ID.
@@ -48,7 +48,11 @@ The [account adapter](../../frontend/src/lib/server/account.ts) and [OpenAPI](..
 
 Enhanced card forms submit only edited fields. Native forms carry `baselineCard` and `baselineArtworkId`, allowing the adapter to derive the user's edits from the submitted baseline rather than overwrite disjoint later changes. Invalid baselines fail with retained inputs and a reload instruction. An unchanged valid form remains an authenticated no-op. This baseline is a change detector, not actor authority or an optimistic text revision.
 
+If concurrent changes make the merged card invalid, native and enhanced saves return HTTP 400 with field errors and the submitted draft. This includes changes committed between the adapter's read and the backend write. The editor keeps the submitted fields available for correction and retry.
+
 `GET /api/account/dashboard` returns the [DashboardSummary](../../contracts/src/dashboard.ts) contract. `GET /api/auth/session` returns `{ user, expiresAt }` for the selected validated session, without its token or stored hash. `POST /api/account/password` accepts only `currentPassword` and `newPassword`, rotates through backend Auth and returns `{ token, expiresAt }`. Expiry is an ISO string. Cookie callers receive a replacement cookie; bearer callers receive the replacement token without a cookie. Incorrect passwords or invalid fields return HTTP 400; revoked/expired sessions return HTTP 401 and rate limits return HTTP 429. Existing demo password immutability remains enforced.
+
+If totals exceed the exact JSON-number reporting range, Dashboard returns HTTP 503 with `{ status: 503, message: 'Your collection totals exceed the supported reporting range.' }`. Profile reads remain HTTP 200 with `totals: null` and that message in `statsError`, so preferences remain available. [Postgres](./postgres.md#dashboard-summary-reads) owns aggregate arithmetic and its reporting boundary. Per-entry quantity limits remain unchanged.
 
 ## Entry points
 

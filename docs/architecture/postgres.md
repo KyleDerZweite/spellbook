@@ -63,6 +63,8 @@ The backend [Dashboard use case](../../backend/src/profile/dashboard.ts) revalid
 
 The DTO contains complete summary distributions and deck availability totals, plus at most eight recent entries ordered by `updated_at DESC, id`. It maps `updatedAt` to ISO strings and never transfers the full Inventory or mutation-request history. A savepoint isolates unavailable scan-count reads, returning `pendingScanReviews: null` while retaining other summaries. Profile totals also remain aggregate reads; unavailable totals do not block profile-card customization.
 
+SQL keeps quantity sums as exact numeric aggregates rather than narrowing account or deck totals to signed 32-bit integers. The backend [integer decoder](../../backend/src/db/numbers.ts) converts results to JSON numbers only within the safe integer range; summary counts must also be nonnegative. Larger reporting totals fail explicitly instead of rounding. This does not change stored quantities or their per-entry limits. [Authentication](./auth.md#account-http-contract) owns the HTTP failure and Profile fallback responses.
+
 ## Current Mutation Surface
 
 - patch supplied account email/avatar/artwork fields and merge validated card fields under the account lock, preserving omitted values
