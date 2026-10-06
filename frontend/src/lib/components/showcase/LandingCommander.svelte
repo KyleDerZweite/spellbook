@@ -61,7 +61,7 @@
 					tabindex={selectedCard === index ? 0 : -1}
 					aria-label={'Preview ' + card.name + (card.role === 'commander' ? ', Commander' : '')}
 					aria-pressed={selectedCard === index}
-					onpointerenter={(event) => {
+					onpointermove={(event) => {
 						if (event.pointerType !== 'touch') selectCard(index);
 					}}
 					onfocus={() => selectCard(index)}
