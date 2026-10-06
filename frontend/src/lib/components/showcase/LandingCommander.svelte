@@ -196,14 +196,14 @@
 	}
 	.deck-stage {
 		position: relative;
-		height: 329px;
+		height: 365px;
 		perspective: 1050px;
 		perspective-origin: 50% 40%;
 	}
 	.deck-box {
 		position: absolute;
 		left: calc(50% - 89px);
-		top: 76px;
+		top: 112px;
 		width: 178px;
 		height: 234px;
 		transform-style: preserve-3d;
@@ -212,12 +212,12 @@
 	.material {
 		background-color: #242527;
 		background-image:
-			repeating-linear-gradient(32deg, #ffffff05 0 1px, transparent 1px 3px),
-			repeating-linear-gradient(-32deg, #00000025 0 1px, transparent 1px 3px);
-		border: 1px solid #444549;
+			repeating-linear-gradient(32deg, #ffffff03 0 1px, transparent 1px 2px),
+			repeating-linear-gradient(-32deg, #0000000c 0 1px, transparent 1px 2px);
+		border: 1px solid #393a3c;
 		box-shadow:
 			inset 0 0 0 3px #191a1c,
-			inset 0 0 0 4px #ffffff12;
+			inset 0 0 0 4px #ffffff09;
 	}
 	.box-back,
 	.box-front,
@@ -259,9 +259,9 @@
 		left: 115px;
 		transform: rotateY(90deg);
 		background-image:
-			linear-gradient(105deg, #ffffff08, transparent 65%, #0003),
-			repeating-linear-gradient(32deg, #ffffff05 0 1px, transparent 1px 3px),
-			repeating-linear-gradient(-32deg, #00000025 0 1px, transparent 1px 3px);
+			linear-gradient(105deg, #ffffff04, transparent 65%, #0001),
+			repeating-linear-gradient(32deg, #ffffff03 0 1px, transparent 1px 2px),
+			repeating-linear-gradient(-32deg, #0000000c 0 1px, transparent 1px 2px);
 	}
 	.box-front {
 		inset: 0;
@@ -272,7 +272,7 @@
 		content: '';
 		position: absolute;
 		inset: 8px;
-		border: 1px dashed #77797c55;
+		border: 1px dashed #77797c33;
 		border-radius: 4px;
 	}
 	.front-rim {
@@ -280,7 +280,7 @@
 		top: -3px;
 		width: 176px;
 		height: 6px;
-		background: linear-gradient(#696a6d, #292a2d 45%, #101113);
+		background: linear-gradient(#46474a, #242528 45%, #17181a);
 		border-radius: 5px;
 		transform: translateZ(64px);
 	}
@@ -292,9 +292,9 @@
 		height: 110px;
 		background: repeating-linear-gradient(
 			to bottom,
-			#afb1b3 0 1px,
-			#45474c 1px 2px,
-			#777a7d 2px 3px
+			#777a7d 0 0.4px,
+			#3a3c40 0.4px 0.75px,
+			#55585b 0.75px 1.1px
 		);
 		transform-origin: 50% 0;
 		transform: translateZ(-53px) rotateX(90deg);
@@ -322,14 +322,14 @@
 		transform: translate3d(0, -6px, var(--card-depth));
 	}
 	.deck-box :global(.seated-card[data-selected='true']) {
-		transform: translate3d(0, -70px, var(--card-depth));
+		transform: translate3d(0, -90px, var(--card-depth));
 	}
 	.deck-box :global(.commander-window) {
 		top: 13px;
 		transform: translateZ(64px);
 		box-shadow:
 			0 0 0 4px #141517,
-			0 0 0 5px #484a4d,
+			0 0 0 5px #3a3b3e,
 			0 3px 5px #0008;
 	}
 	.deck-box :global(.commander-window)::after {
@@ -388,12 +388,12 @@
 		justify-content: center;
 		gap: 0.15rem;
 		margin: 0;
-		font-size: 0.6875rem;
+		font-size: 0.75rem;
 		line-height: 1.5;
 		text-align: center;
 	}
 	.card-position {
-		font-size: 0.6875rem;
+		font-size: 0.75rem;
 		color: var(--color-text-secondary);
 	}
 	.deck-details {
@@ -406,7 +406,7 @@
 		justify-content: space-between;
 		gap: 0.25rem 0.75rem;
 		color: var(--color-text-secondary);
-		font-size: 0.6875rem;
+		font-size: 0.75rem;
 		line-height: 1.6;
 	}
 	.colors {
@@ -417,13 +417,18 @@
 	.deck-credit {
 		flex-wrap: wrap;
 		margin-top: 0.25rem;
-		font-size: 0.6875rem;
+		font-size: 0.75rem;
 	}
 	.credit {
 		overflow-wrap: anywhere;
 		min-width: 0;
 	}
 	.source {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		min-height: 44px;
+		padding-inline: 0.25rem;
 		color: inherit;
 		text-decoration: none;
 	}
@@ -439,10 +444,10 @@
 	}
 	@media (min-width: 1800px) {
 		.deck-stage {
-			height: 372px;
+			height: 408px;
 		}
 		.deck-box {
-			top: 96px;
+			top: 132px;
 			transform: scale(1.13) rotateX(-18deg) rotateY(-27deg) rotateZ(-3deg);
 		}
 	}
