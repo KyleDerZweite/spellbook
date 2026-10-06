@@ -9,6 +9,7 @@
 		id,
 		required = false,
 		disabled = false,
+		iconOnly = false,
 		placeholder,
 		displayValue,
 		class: className = '',
@@ -21,6 +22,7 @@
 		id?: string;
 		required?: boolean;
 		disabled?: boolean;
+		iconOnly?: boolean;
 		placeholder?: string;
 		displayValue?: string;
 		class?: string;
@@ -39,27 +41,48 @@
 >
 	<Select.Trigger
 		{id}
-		class={['input flex min-w-0 items-center justify-between gap-3 text-left', className]}
-		aria-label={label}
+		class={[
+			iconOnly
+				? 'btn btn-ghost btn-icon'
+				: 'input flex min-w-0 items-center justify-between gap-3 text-left',
+			className
+		]}
+		aria-label={iconOnly
+			? `${label}, ${options.find((option) => option.value === value)?.label ?? placeholder ?? 'Any'}`
+			: label}
 	>
-		<span class="truncate"
-			>{displayValue ??
-				options.find((option) => option.value === value)?.label ??
-				placeholder ??
-				label}</span
-		>
-		<svg
-			aria-hidden="true"
-			class="shrink-0 text-text-muted"
-			width="16"
-			height="16"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="1.7"
-			stroke-linecap="round"
-			stroke-linejoin="round"><path d="m7 10 5 5 5-5" /></svg
-		>
+		{#if iconOnly}
+			<svg
+				aria-hidden="true"
+				width="14"
+				height="14"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1.7"
+				stroke-linecap="round"
+				stroke-linejoin="round"><path d="M4 4h16l-6 7v7l-4 2v-9z" /></svg
+			>
+		{:else}
+			<span class="truncate"
+				>{displayValue ??
+					options.find((option) => option.value === value)?.label ??
+					placeholder ??
+					label}</span
+			>
+			<svg
+				aria-hidden="true"
+				class="shrink-0 text-text-muted"
+				width="16"
+				height="16"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1.7"
+				stroke-linecap="round"
+				stroke-linejoin="round"><path d="m7 10 5 5 5-5" /></svg
+			>
+		{/if}
 	</Select.Trigger>
 	<Select.Portal>
 		<Select.Content

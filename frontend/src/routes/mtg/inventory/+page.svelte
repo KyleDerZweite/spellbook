@@ -3,15 +3,27 @@
 	import type { PageProps } from './$types';
 	import CardDetail from '#lib/components/cards/CardDetail.svelte';
 	import Select from '#lib/components/ui/select/Select.svelte';
+	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
+	import {
+		describeInventoryOrder,
+		filterInventory,
+		inventoryConditions,
+		inventorySetColor,
+		nextInventoryOrder,
+		orderInventory,
+		type InventoryColumn,
+		type InventoryOrder
+	} from '#lib/mtg/inventory-view.ts';
 	import { storedCardDocument } from '#lib/mtg/stored-card.ts';
 	import { getSetCatalogSize } from '#lib/search/catalog.ts';
 	import { activeGameState } from '#lib/state/activeGame.svelte.ts';
 
 	let { data, form }: PageProps = $props();
-	let sortBy = $state('name');
+	let order = $state<InventoryOrder>({ base: 'name', direction: 'asc', variant: null });
 	let query = $state('');
 	let selectedSet = $state('all');
 	let selectedFinish = $state('all');
+	let selectedCondition = $state('all');
 	let inspectedId = $state<string | null>(null);
 	let removeId = $state<string | null>(null);
 	let pendingId = $state<string | null>(null);
@@ -19,10 +31,16 @@
 	let mutationError = $state('');
 	let setCatalogTotal = $state<number | null>(null);
 	let setProgressLoading = $state(false);
-	const sortOptions = [
-		{ value: 'name', label: 'Name' },
-		{ value: 'set', label: 'Set' },
-		{ value: 'recent', label: 'Recently updated' }
+	const columns: Array<{ column: Exclude<InventoryColumn, 'recent'>; label: string }> = [
+		{ column: 'name', label: 'Card' },
+		{ column: 'set', label: 'Set' },
+		{ column: 'finish', label: 'Finish' },
+		{ column: 'condition', label: 'Condition' },
+		{ column: 'quantity', label: 'Quantity' }
+	];
+	const conditionOptions = [
+		{ value: 'all', label: 'Any condition' },
+		...inventoryConditions.map((value) => ({ value, label: value }))
 	];
 	const finishOptions = [
 		{ value: 'all', label: 'Any finish' },
@@ -43,29 +61,35 @@
 			.map((value) => ({ value, label: value.toUpperCase() }))
 	]);
 	let hasFilters = $derived(
-		query.trim() !== '' || selectedSet !== 'all' || selectedFinish !== 'all'
+		query.trim() !== '' ||
+			selectedSet !== 'all' ||
+			selectedFinish !== 'all' ||
+			selectedCondition !== 'all'
 	);
-	let listCards = $derived.by(() => {
-		const normalizedQuery = query.trim().toLowerCase();
-		const next = inventoryCards.filter((card) => {
-			if (selectedSet !== 'all' && card.setCode !== selectedSet) return false;
-			if (selectedFinish !== 'all' && card.finish !== selectedFinish) return false;
-			return (
-				!normalizedQuery ||
-				[card.name, card.setCode, card.condition, card.notes].some((value) =>
-					value.toLowerCase().includes(normalizedQuery)
-				)
-			);
-		});
-		next.sort((a, b) => {
-			if (sortBy === 'set')
-				return a.setCode.localeCompare(b.setCode) || a.name.localeCompare(b.name);
-			if (sortBy === 'recent')
-				return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-			return a.name.localeCompare(b.name) || a.setCode.localeCompare(b.setCode);
-		});
-		return next;
-	});
+	let listCards = $derived(
+		orderInventory(
+			filterInventory(inventoryCards, {
+				query,
+				set: selectedSet,
+				finish: selectedFinish,
+				condition: selectedCondition
+			}),
+			order
+		)
+	);
+	let sortDescription = $derived(describeInventoryOrder(order));
+	function columnDirection(column: InventoryColumn) {
+		return order.base === column
+			? order.direction
+			: order.variant?.column === column
+				? order.variant.direction
+				: null;
+	}
+	function setColumnFilter(column: InventoryColumn, value: string) {
+		if (column === 'set') selectedSet = value;
+		if (column === 'finish') selectedFinish = value;
+		if (column === 'condition') selectedCondition = value;
+	}
 	let matchingQuantity = $derived(listCards.reduce((total, card) => total + card.quantity, 0));
 	let ownedInSet = $derived(
 		new Set(
@@ -100,6 +124,7 @@
 		query = '';
 		selectedSet = 'all';
 		selectedFinish = 'all';
+		selectedCondition = 'all';
 	}
 	const saveEntry: SubmitFunction = ({ formData, action, cancel }) => {
 		if (pendingId) {
@@ -185,24 +210,41 @@
 					class="input"
 				/>
 			</div>
-			<Select label="Filter by set" bind:value={selectedSet} options={setOptions} />
-			<Select label="Filter by finish" bind:value={selectedFinish} options={finishOptions} />
-			<Select
-				label="Sort inventory"
-				bind:value={sortBy}
-				options={sortOptions}
-				displayValue={sortOptions.find((option) => option.value === sortBy)?.label}
-			/>
-		</div>
-		<div class="inventory-context">
-			<p>
+			<p class="inventory-result-count">
 				{listCards.length}
 				{listCards.length === 1 ? 'entry' : 'entries'} <span>·</span>
 				{matchingQuantity} cards
 			</p>
-			{#if hasFilters}<button type="button" class="clear-filters" onclick={clearFilters}
-					>Clear filters</button
-				>{/if}<span class="save-status" role="status">{status}</span>
+		</div>
+		<div class="inventory-context">
+			<div class="active-filters">
+				{#if selectedSet !== 'all'}<button
+						type="button"
+						class="active-filter"
+						aria-label={`Clear set filter ${selectedSet.toUpperCase()}`}
+						onclick={() => (selectedSet = 'all')}
+						>Set: {selectedSet.toUpperCase()} <span aria-hidden="true">×</span></button
+					>{/if}
+				{#if selectedFinish !== 'all'}<button
+						type="button"
+						class="active-filter"
+						aria-label={`Clear finish filter ${selectedFinish}`}
+						onclick={() => (selectedFinish = 'all')}
+						>{selectedFinish === 'foil' ? 'Foil' : 'Nonfoil'}
+						<span aria-hidden="true">×</span></button
+					>{/if}
+				{#if selectedCondition !== 'all'}<button
+						type="button"
+						class="active-filter"
+						aria-label={`Clear condition filter ${selectedCondition}`}
+						onclick={() => (selectedCondition = 'all')}
+						>{selectedCondition} <span aria-hidden="true">×</span></button
+					>{/if}
+				{#if hasFilters}<button type="button" class="clear-filters" onclick={clearFilters}
+						>Clear filters</button
+					>{/if}
+			</div>
+			<span class="save-status" role="status">{status}</span>
 		</div>
 		{#if selectedSet !== 'all'}
 			<div class="set-progress">
@@ -222,18 +264,85 @@
 					></progress>{/if}
 			</div>
 		{/if}
+		<p class="sr-only" id="inventory-order" role="status">{sortDescription}</p>
+		<div
+			class="inventory-columns"
+			role="group"
+			aria-label="Inventory sorting and filters"
+			aria-describedby="inventory-order"
+		>
+			{#each columns as { column, label }}
+				<div class="column-header">
+					<button
+						type="button"
+						class="column-sort"
+						aria-pressed={columnDirection(column) !== null}
+						aria-label={`Sort by ${label.toLowerCase()} ${columnDirection(column) === 'asc' ? 'descending' : 'ascending'}`}
+						onclick={() => (order = nextInventoryOrder(order, column))}
+						>{label}{#if columnDirection(column)}<span aria-hidden="true"
+								>{columnDirection(column) === 'asc' ? '↑' : '↓'}</span
+							>{/if}</button
+					>
+					{#if column === 'name'}
+						<ActionMenu
+							label="Card ordering"
+							iconOnly
+							class="card-order-menu"
+							items={[
+								{
+									label: 'Recently updated',
+									onSelect: () => (order = nextInventoryOrder(order, 'recent'))
+								}
+							]}
+						>
+							{#snippet trigger()}<svg
+									aria-hidden="true"
+									width="14"
+									height="14"
+									viewBox="0 0 24 24"
+									fill="currentColor"
+									><circle cx="12" cy="5" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle
+										cx="12"
+										cy="19"
+										r="1.7"
+									/></svg
+								>{/snippet}
+						</ActionMenu>
+					{:else if column === 'set' || column === 'finish' || column === 'condition'}
+						<Select
+							iconOnly
+							class="inventory-filter"
+							label={`Filter by ${column}`}
+							value={column === 'set'
+								? selectedSet
+								: column === 'finish'
+									? selectedFinish
+									: selectedCondition}
+							options={column === 'set'
+								? setOptions
+								: column === 'finish'
+									? finishOptions
+									: conditionOptions}
+							onchange={(value) => setColumnFilter(column, value)}
+						/>
+					{/if}
+				</div>
+			{/each}
+			<span></span>
+		</div>
+		{#if order.base === 'recent'}<p class="recent-order">Recently updated</p>{/if}
 		{#if listCards.length === 0}<div class="empty-state">
 				<p>No cards match these filters.</p>
 				<button class="btn btn-secondary" onclick={clearFilters}>Clear filters</button>
 			</div>
 		{:else}
-			<div class="inventory-columns" aria-hidden="true">
-				<span>Card</span><span>Set</span><span>Finish</span><span>Condition</span><span
-					>Quantity</span
-				><span></span>
-			</div>
 			<ul class="inventory-list" aria-label="Inventory entries">
-				{#each listCards as card (card.id)}
+				{#each listCards as card, index (card.id)}
+					{#if order.base === 'set' && (index === 0 || listCards[index - 1]?.setCode !== card.setCode)}<li
+							class="set-group"
+						>
+							{@render metadata('set', card.setCode)}
+						</li>{/if}
 					<li class="inventory-row" class:saving={pendingId === card.id}>
 						<button
 							class="card-identity"
@@ -241,13 +350,16 @@
 							aria-label={`Inspect ${card.name}, ${card.setCode.toUpperCase()}, ${card.finish}, ${card.condition}`}
 							><img src={card.imageUri} alt="" width="40" height="56" loading="lazy" /><span
 								><strong>{card.name}</strong><span class="mobile-metadata"
-									>{card.setCode.toUpperCase()} · {card.finish === 'foil' ? 'Foil' : 'Nonfoil'} · {card.condition}</span
+									>{@render metadata('set', card.setCode)}{@render metadata(
+										'finish',
+										card.finish
+									)}{@render metadata('condition', card.condition)}</span
 								>{#if card.notes}<span class="entry-notes">{card.notes}</span>{/if}</span
 							></button
 						>
-						<span class="row-metadata set-code">{card.setCode.toUpperCase()}</span><span
-							class="row-metadata">{card.finish === 'foil' ? 'Foil' : 'Nonfoil'}</span
-						><span class="row-metadata">{card.condition}</span>
+						<span class="row-metadata">{@render metadata('set', card.setCode)}</span><span
+							class="row-metadata">{@render metadata('finish', card.finish)}</span
+						><span class="row-metadata">{@render metadata('condition', card.condition)}</span>
 						<div class="quantity-controls">
 							{#each [-1, 1] as delta}
 								{#if delta === 1}<span class="quantity" aria-label={`${card.quantity} copies`}
@@ -357,7 +469,115 @@
 	</CardDetail>
 {/if}
 
+{#snippet metadata(kind: 'set' | 'finish' | 'condition', value: string)}
+	<span
+		class="metadata-frame"
+		data-finish={kind === 'finish' ? value : undefined}
+		data-condition={kind === 'condition' ? value : undefined}
+		style={kind === 'set' ? `--metadata-color: ${inventorySetColor(value)}` : undefined}
+		>{kind === 'set'
+			? value.toUpperCase()
+			: kind === 'finish'
+				? value === 'foil'
+					? 'Foil'
+					: 'Nonfoil'
+				: value}</span
+	>
+{/snippet}
+
 <style>
+	.inventory-result-count {
+		color: var(--color-text-muted);
+		font-size: 0.75rem;
+		font-variant-numeric: tabular-nums;
+		white-space: nowrap;
+	}
+	.inventory-result-count span {
+		margin-inline: 0.4rem;
+	}
+	.active-filters {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.5rem;
+	}
+	.active-filter {
+		color: var(--color-text-secondary);
+		cursor: pointer;
+		min-height: 44px;
+	}
+	.active-filter span {
+		margin-left: 0.25rem;
+	}
+	.column-header {
+		display: flex;
+		align-items: center;
+		gap: 0.125rem;
+		min-width: 0;
+	}
+	.column-sort {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		min-height: 44px;
+		cursor: pointer;
+		color: var(--color-text-secondary);
+	}
+	.column-sort:hover,
+	.column-sort[aria-pressed='true'] {
+		text-decoration: underline;
+		text-underline-offset: 4px;
+	}
+	.column-sort span {
+		font-size: 0.875rem;
+	}
+	.column-header :global(.inventory-filter),
+	.column-header :global(.card-order-menu) {
+		width: 44px;
+		height: 44px;
+		min-height: 44px;
+		padding: 0;
+		border: 0;
+		border-radius: 0;
+		background: transparent;
+		flex-shrink: 0;
+	}
+	.recent-order {
+		color: var(--color-text-muted);
+		font-size: 0.75rem;
+		margin-bottom: 0.5rem;
+	}
+	.set-group {
+		padding: 1rem 0.625rem 0.5rem;
+	}
+	.metadata-frame {
+		--metadata-color: var(--color-text-muted);
+		display: inline-flex;
+		align-items: center;
+		border: 1px solid color-mix(in srgb, var(--metadata-color) 65%, transparent);
+		border-radius: 0.25rem;
+		padding: 0.125rem 0.375rem;
+		color: var(--color-text-secondary);
+		font-size: 0.75rem;
+		line-height: 1.3;
+		white-space: nowrap;
+	}
+	[data-finish='foil'],
+	[data-condition='HP'] {
+		--metadata-color: var(--color-violet);
+	}
+	[data-condition='NM'] {
+		--metadata-color: var(--color-success);
+	}
+	[data-condition='LP'] {
+		--metadata-color: var(--color-info);
+	}
+	[data-condition='MP'] {
+		--metadata-color: var(--color-warning);
+	}
+	[data-condition='DMG'] {
+		--metadata-color: var(--color-error);
+	}
 	.inventory-heading {
 		display: flex;
 		align-items: center;
@@ -376,7 +596,6 @@
 		font-variant-numeric: tabular-nums;
 	}
 	.inventory-totals span,
-	.inventory-context p span,
 	.set-progress p span {
 		margin: 0 0.4rem;
 		color: var(--color-text-muted);
@@ -388,7 +607,8 @@
 	}
 	.inventory-toolbar {
 		display: grid;
-		grid-template-columns: minmax(180px, 1fr) 140px 150px 190px;
+		grid-template-columns: minmax(180px, 1fr) auto;
+		align-items: center;
 		gap: 0.625rem;
 	}
 	.inventory-search {
@@ -408,7 +628,7 @@
 		padding-left: 2.4rem;
 	}
 	.inventory-context {
-		min-height: 2.5rem;
+		min-height: 3rem;
 		display: flex;
 		align-items: center;
 		flex-wrap: wrap;
@@ -416,15 +636,17 @@
 		row-gap: 0.25rem;
 		font-size: 0.75rem;
 		color: var(--color-text-muted);
-		padding: 0.5rem 0;
+		padding: 0.125rem 0;
 	}
 	.clear-filters {
+		min-height: 44px;
 		text-decoration: underline;
 		text-underline-offset: 3px;
 		cursor: pointer;
 		color: var(--color-text-secondary);
 	}
 	.save-status {
+		min-height: 1.25rem;
 		margin-left: auto;
 	}
 	.set-progress {
@@ -454,7 +676,7 @@
 	.inventory-columns,
 	.inventory-row {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) 75px 85px 85px 115px 65px;
+		grid-template-columns: minmax(0, 1fr) 115px 140px 160px 115px 65px;
 		gap: 1rem;
 		align-items: center;
 	}
@@ -463,8 +685,8 @@
 		font-size: 0.75rem;
 		color: var(--color-text-muted);
 	}
-	.inventory-columns span:nth-child(5) {
-		text-align: center;
+	.inventory-columns > .column-header:nth-child(5) {
+		justify-content: center;
 	}
 	.inventory-list {
 		margin: 0;
@@ -516,9 +738,6 @@
 	.row-metadata {
 		color: var(--color-text-secondary);
 		font-size: 0.8125rem;
-	}
-	.set-code {
-		letter-spacing: 0.025em;
 	}
 	.mobile-metadata {
 		display: none;
@@ -611,25 +830,26 @@
 		margin: 0.25rem 0 0;
 	}
 	@media (max-width: 900px) {
-		.inventory-toolbar {
-			grid-template-columns: repeat(3, minmax(0, 1fr));
-		}
-		.inventory-search {
-			grid-column: 1 / -1;
-		}
-		.inventory-columns,
 		.inventory-row {
 			grid-template-columns: minmax(0, 1fr) 108px 55px;
 			gap: 0.5rem;
 		}
 		.inventory-columns {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.25rem 0.5rem;
+			padding-inline: 0;
+		}
+		.inventory-columns > span {
 			display: none;
 		}
 		.row-metadata {
 			display: none;
 		}
 		.mobile-metadata {
-			display: block;
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.25rem;
 			color: var(--color-text-muted);
 			font-size: 0.75rem;
 			margin-top: 0.25rem;
@@ -658,13 +878,11 @@
 			font-size: 0.75rem;
 		}
 		.inventory-toolbar {
-			grid-template-columns: repeat(3, minmax(0, 1fr));
+			grid-template-columns: minmax(0, 1fr);
 			gap: 0.5rem;
 		}
-		.inventory-toolbar :global(> button) {
-			font-size: 0.75rem;
-			padding-inline: 0.5rem;
-			gap: 0.25rem;
+		.inventory-result-count {
+			justify-self: end;
 		}
 		.inventory-row {
 			grid-template-columns: minmax(0, 1fr) 112px;
@@ -710,9 +928,6 @@
 		.set-progress progress {
 			width: 100%;
 		}
-		.save-status:empty {
-			display: none;
-		}
 	}
 	@media (max-width: 360px) {
 		.inventory-heading {
@@ -720,12 +935,6 @@
 		}
 		.inventory-actions {
 			flex-direction: row;
-		}
-		.inventory-toolbar {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-		}
-		.inventory-toolbar :global(> button:last-child) {
-			grid-column: 1 / -1;
 		}
 	}
 </style>
