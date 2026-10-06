@@ -17,7 +17,7 @@ export function getManaFontClass(symbol: string): string {
 
 	// Hybrid / phyrexian: remove slash, lowercase (e.g. "W/U" -> "ms-wu", "W/P" -> "ms-wp")
 	if (symbol.includes('/')) {
-		return `ms-${lower.replace('/', '')}`;
+		return `ms-${lower.replaceAll('/', '')}`;
 	}
 
 	// Generic mana (numbers 0-20)
@@ -27,6 +27,7 @@ export function getManaFontClass(symbol: string): string {
 
 	// Named tap symbol
 	if (lower === 't') return 'ms-tap';
+	if (lower === 'q') return 'ms-untap';
 
 	// All other symbols: straightforward lowercase mapping
 	// Covers: w, u, b, r, g, c, x, q (untap), s (snow), e (energy), etc.

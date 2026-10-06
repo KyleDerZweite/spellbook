@@ -51,6 +51,14 @@ Passwords require a salted, memory-hard hash. The server stores only hashes of o
 
 The [authentication architecture](../architecture/auth.md) owns the exact registration policy, credential limits, session duration, rate limits, cookie behavior, bearer-token behavior, and migration procedure. Email verification, email password recovery, MFA, and delegated identity providers are not current features.
 
+## Profile card editor
+
+The accepted next slice replaces the fixed profile-card statistics layout with a configurable regular MTG card in Settings. It is not implemented yet. Name, mana cost, frame color, legendary frame, rarity, type line, rules text, flavor text and optional paired Power/Toughness are editable. Legendary frame changes presentation without rewriting the free type line. Artwork comes from the existing generated library; sprite selection remains an account preference. No upload or specialized card layout is included.
+
+The card definition stores text templates and presentation fields separately from current inventory totals. Supported placeholders are `{total_owned_cards}`, `{unique_card_names}`, `{owned_printings}`, `{owned_sets}`, `{foil_copies}` and `{total_decks}`. Owned cards means summed physical-copy quantities; represented sets does not mean completed sets. Values resolve from the current authenticated account during rendering and remain unavailable when totals cannot load. They are never saved back into the template.
+
+One shared validator owns allowed fields, limits, mana grammar and placeholder names. The Settings action owns authenticated persistence; the preview owns no queries or writes. Save must retain all inputs on failure and persist them across reload without changing account identity or visibility. UI and future agent adapters use the same validated definition. Agent editing endpoints, additional TCG templates, public sharing, image export and rank remain future work.
+
 ## Dashboard
 
 The public `/` landing is stable across sessions. Signed-in users open their private account summary at `/mtg/dashboard`; Inventory remains the default destination after login or registration without an explicit safe return path.

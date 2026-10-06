@@ -1,14 +1,22 @@
 # Spellbook
 
 - Status: Canonical domain glossary
-- Last Reviewed: 2026-10-04
+- Last Reviewed: 2026-10-06
 - Source of Truth: product specification, schema, catalog and account repositories
-- Update Triggers: card identity, inventory grouping, deck roles and availability, scan review, physical-card terminology
+- Update Triggers: card identity, inventory grouping, deck roles and availability, scan review, physical-card terminology, profile cards and metric placeholders
 - Related Docs: [Product specification](docs/product/specification.md), [Catalog](docs/architecture/catalog.md), [Postgres](docs/architecture/postgres.md), [Card scanner and sorter](docs/integrations/card-robot.md)
 
 Spellbook describes MTG catalog identities, owned cards, deck requirements, and scan review in one context. This glossary owns terminology; the linked documents own behavior and proposed capabilities.
 
 ## Language
+
+**Profile card**:
+A user-designed digital card representing an account, with chosen artwork and text that may include current account metrics.
+_Avoid_: Canonical card, printing, inventory entry
+
+**KPI placeholder**:
+A named marker in profile-card text that refers to a current measured account value rather than a fixed user-written number.
+_Avoid_: Rank, historical trend, completed-set claim
 
 **Canonical card**:
 A Magic: The Gathering identity shared across printings, identified by Scryfall's `oracle_id` and recorded as `canonicalCardId` in inventory and deck entries.
