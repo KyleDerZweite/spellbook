@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: code
-- Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership and compatibility adapters, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries
+- Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership and compatibility adapters, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers
 - Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md), [Application contract](./application-contract.md)
 
 PostgreSQL stores account-owned application state and the public Scryfall catalog.
@@ -80,6 +80,12 @@ SQL keeps quantity sums as exact numeric aggregates rather than narrowing accoun
 The backend [Deck application](../../backend/src/decks/application.ts) reads library totals/covers, selected composition and relevant owned-printing aggregates in a repeatable-read, read-only transaction. SQL restricts Inventory aggregation to the selected canonical identities. Search/inspector ownership accepts at most 100 canonical identities. Exact SQL sums pass through the shared integer decoder with a nonnegative check; unsupported JSON integer ranges fail instead of rounding. The backend [canonical quantity helper](../../backend/src/decks/availability.ts) sums across printings with bigint and validates the safe JSON range before returning ownership DTOs to printing selectors, selected Decks or search. Per-entry limits remain unchanged. Dashboard retains its separate backend summary owner.
 
 Writes lock the account profile and revalidate the session inside the transaction, then serialize the Deck operation and request identity. Catalog resolution precedes the write transaction. Semantic entry changes advance composition revision; Description changes advance only their independent field revision. [The application contract](./application-contract.md#implemented-deck-application-boundary) owns delta, merge and draft semantics.
+
+## Saved-state notifications
+
+[Migration 0013](../../frontend/drizzle/0013_saved_state.sql) adds the notification function and AFTER row triggers without changing table columns or existing rows. It requires no new Drizzle schema snapshot. Triggers cover Profile changes, sessions/credentials, Inventory entries/groups/memberships, Decks/cards and Scan sessions/artifacts/review items. Profile updates limited to `last_seen_at` emit nothing. Group ownership derives from the Inventory parent.
+
+PostgreSQL delivers notifications after commit; rollback emits nothing. The payload contains account identity and a coarse topic. Auth is transport control and never becomes a protected browser topic. [The application contract](./application-contract.md#saved-state-synchronization) owns the listener, session barrier and bounded queues. [Deployment](../operations/deployment.md#saved-state-streaming) owns migrator and connection capacity requirements.
 
 ## Current Mutation Surface
 

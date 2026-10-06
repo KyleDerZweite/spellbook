@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: code
-- Update Triggers: credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, summary reporting failures, post-login destinations, agent discovery, workspace ownership and compatibility adapters
+- Update Triggers: credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, summary reporting failures, post-login destinations, agent discovery, workspace ownership and compatibility adapters, SavedState stream authority and origin policy
 - Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Routes](../product/routing-and-games.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md), [Application contract](./application-contract.md)
 
 Spellbook authenticates local accounts by username and password. `user_profiles.account_id` remains the stable ownership key for inventories, decks, and scans. Registration generates a new account ID; operator enrollment preserves an existing account ID.
@@ -54,6 +54,14 @@ If concurrent changes make the merged card invalid, native and enhanced saves re
 
 If totals exceed the exact JSON-number reporting range, Dashboard returns HTTP 503 with `{ status: 503, message: 'Your collection totals exceed the supported reporting range.' }`. Profile reads remain HTTP 200 with `totals: null` and that message in `statsError`, so preferences remain available. [Postgres](./postgres.md#dashboard-summary-reads) owns aggregate arithmetic and its reporting boundary. Per-entry quantity limits remain unchanged.
 
+## Saved-state stream
+
+`GET /api/account/events` uses the canonical Authorization-before-cookie authentication rule. Malformed or invalid explicit Authorization never falls back to cookies. Native EventSource uses same-origin cookies; header-capable clients use bearer authentication. The route rejects all query parameters and supports no URL credentials or client-selected account identity.
+
+A missing Origin is accepted. A supplied Origin must match the compiled application origin; foreign and literal `null` Origins return 403. Missing/invalid sessions return 401 instead of a login redirect. Listener startup failures return 503 with `Saved state temporarily unavailable`. Responses use `Content-Type: text/event-stream`, `Cache-Control: no-store` and `X-Accel-Buffering: no`. [OpenAPI](../../frontend/src/routes/openapi.json/+server.ts) owns the additive route and status contract. Existing versioned MTG paths remain unchanged.
+
+Backend Auth `actorSession` derives the bound account and expiry from its private trusted-actor binding and returns a safe session DTO without token/hash. Frontend-supplied identity or expiry confers no stream authority. [The application contract](./application-contract.md#saved-state-synchronization) owns delivery revalidation, expiry, queues and listener recovery.
+
 ## Entry points
 
 | Endpoint                                                 | Behavior                                                              |
@@ -69,6 +77,7 @@ If totals exceed the exact JSON-number reporting range, Dashboard returns HTTP 5
 | `GET /api/account/profile`, `PATCH /api/account/profile` | Read current profile and patch supplied preference/card fields        |
 | `GET /api/account/dashboard`                             | Read account aggregates, deck availability and bounded recent entries |
 | `POST /api/account/password`                             | Rotate credentials and return a replacement session                   |
+| `GET /api/account/events`                                | Session-bound SavedState event stream                                 |
 | `GET /api/auth/session`                                  | Inspect the selected authenticated session                            |
 | `POST /api/auth/logout`                                  | Revoke the supplied bearer token and return HTTP 204                  |
 
