@@ -54,7 +54,9 @@
 			<span>{card.typeLine || 'Collector'}</span><span
 				class="rarity"
 				data-rarity={card.rarity}
-				aria-label={`${rarity?.label ?? 'Unknown'} rarity`}>{rarity?.label[0] ?? '?'}</span
+				role="img"
+				aria-label={`${rarity?.label ?? 'Unknown'} rarity`}
+				><i class="ms ms-rarity" aria-hidden="true"></i></span
 			>
 		</div>
 		<div class="card-rules">
@@ -185,7 +187,7 @@
 		width: 100%;
 		height: auto;
 		aspect-ratio: 3 / 2;
-		object-fit: cover;
+		object-fit: contain;
 		border: 2px solid #202720;
 		border-top: 0;
 		border-bottom: 0;
@@ -208,19 +210,18 @@
 		width: 20px;
 		height: 22px;
 		flex-shrink: 0;
-		background: #836c38;
-		color: #fff;
-		font: 11px var(--font-body);
-		clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+		color: #9c772d;
+		font-size: 19px;
+		filter: drop-shadow(0 1px 0 #fff9);
 	}
 	.rarity[data-rarity='common'] {
-		background: #292a28;
+		color: #292a28;
 	}
 	.rarity[data-rarity='uncommon'] {
-		background: #63666c;
+		color: #74777d;
 	}
 	.rarity[data-rarity='mythic'] {
-		background: #ac4c26;
+		color: #ba4f24;
 	}
 	.card-rules {
 		display: flex;

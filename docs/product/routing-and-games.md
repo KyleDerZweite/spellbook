@@ -12,25 +12,27 @@ The [route source](../../frontend/src/routes/) owns implemented handlers. The [s
 
 ## Pages and account routes
 
-| Route                         | Access and behavior                                                                |
-| ----------------------------- | ---------------------------------------------------------------------------------- |
-| `/`                           | Public landing for signed-out and signed-in users                                  |
-| `/mtg/dashboard`              | Authenticated account summaries and per-deck availability                          |
-| `/mtg/search`                 | Public catalog search and printing details                                         |
-| `/mtg/inventory`              | Authenticated inventory workspace and form actions                                 |
-| `/mtg/scan`                   | Authenticated image upload, candidate review, and explicit inventory commit        |
-| `/mtg/decks`                  | Authenticated deck library; `?deck=ID` opens the editor and form actions           |
-| `/mtg/decks/[deckId]/export`  | Authenticated text export of an owned deck                                         |
-| `/settings`                   | Authenticated private profile card and artwork/avatar save; excluded from indexing |
-| `/auth/login`                 | Local sign-in page and form action                                                 |
-| `/auth/register`              | Local account registration page and form action                                    |
-| `/auth/logout`                | POST revokes the browser session and clears its cookie                             |
-| `/privacy`, `/terms`          | Public information pages                                                           |
-| `/api/auth/register`          | POST creates a local account and returns a bearer session                          |
-| `/api/auth/login`             | POST verifies local credentials and returns a bearer session                       |
-| `/api/auth/logout`            | POST revokes the presented bearer session                                          |
-| `/openapi.json`               | API description                                                                    |
-| `/robots.txt`, `/sitemap.xml` | Search-engine metadata                                                             |
+| Route                         | Access and behavior                                                         |
+| ----------------------------- | --------------------------------------------------------------------------- |
+| `/`                           | Public landing for signed-out and signed-in users                           |
+| `/mtg/dashboard`              | Authenticated account summaries and per-deck availability                   |
+| `/mtg/search`                 | Public catalog search and printing details                                  |
+| `/mtg/inventory`              | Authenticated inventory workspace and form actions                          |
+| `/mtg/scan`                   | Authenticated image upload, candidate review, and explicit inventory commit |
+| `/mtg/decks`                  | Authenticated deck library; `?deck=ID` opens the editor and form actions    |
+| `/mtg/decks/[deckId]/export`  | Authenticated text export of an owned deck                                  |
+| `/settings`                   | Authenticated contact email and Edit avatar dialog; excluded from indexing  |
+| `/settings/profile-card`      | Authenticated private card editor and artwork save; excluded from indexing  |
+| `/settings/password`          | Authenticated current-password-confirmed change; disabled in demo mode      |
+| `/auth/login`                 | Local sign-in page and form action                                          |
+| `/auth/register`              | Local account registration page and form action                             |
+| `/auth/logout`                | POST revokes the browser session and clears its cookie                      |
+| `/privacy`, `/terms`          | Public information pages                                                    |
+| `/api/auth/register`          | POST creates a local account and returns a bearer session                   |
+| `/api/auth/login`             | POST verifies local credentials and returns a bearer session                |
+| `/api/auth/logout`            | POST revokes the presented bearer session                                   |
+| `/openapi.json`               | API description                                                             |
+| `/robots.txt`, `/sitemap.xml` | Search-engine metadata                                                      |
 
 `GET /agents.md` provides public Markdown instructions for creating a new account through the existing registration API. The shared HTML head links to this guide. Demo deployments instead state that registration is disabled. This guide does not implement the proposed auth.md protocol.
 

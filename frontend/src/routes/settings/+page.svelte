@@ -1,222 +1,192 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { onMount, untrack, tick } from 'svelte';
+	import { untrack, tick } from 'svelte';
+	import Avatar from '#lib/components/profile/Avatar.svelte';
+	import AvatarEditor from '#lib/components/profile/AvatarEditor.svelte';
 	import ProfileCard from '#lib/components/profile/ProfileCard.svelte';
-	import ProfileCardEditor from '#lib/components/profile/ProfileCardEditor.svelte';
-	import AvatarPicker from '#lib/components/profile/AvatarPicker.svelte';
 	import { getAvatar } from '#lib/profile/avatars.ts';
-	import { getProfileArtwork } from '#lib/profile/artwork.ts';
-	import {
-		PROFILE_CARD_FRAMES,
-		PROFILE_CARD_RARITIES,
-		type ProfileCardErrors
-	} from '#lib/profile/card.ts';
 	import type { PageProps } from './$types';
-
 	let { data, form }: PageProps = $props();
-	let selectedAvatar = $derived(
-		getAvatar(form && 'avatarId' in form ? form.avatarId : data.user.avatarId).id as string
-	);
-	let selectedArtwork = $derived(
-		getProfileArtwork(form && 'artworkId' in form ? form.artworkId : data.user.artworkId)
-			.id as string
-	);
-	let rejectedCard = $derived(form && 'card' in form ? form.card : undefined);
-	let incomingCard = $derived({
-		...data.card,
-		...(rejectedCard
-			? {
-					name: rejectedCard.name,
-					manaCost: rejectedCard.manaCost,
-					typeLine: rejectedCard.typeLine,
-					rulesText: rejectedCard.rulesText,
-					flavorText: rejectedCard.flavorText,
-					power: rejectedCard.power,
-					toughness: rejectedCard.toughness,
-					legendary: rejectedCard.legendary,
-					frame:
-						PROFILE_CARD_FRAMES.find((f) => f.value === rejectedCard.frame)?.value ??
-						data.card.frame,
-					rarity:
-						PROFILE_CARD_RARITIES.find((r) => r.value === rejectedCard.rarity)?.value ??
-						data.card.rarity
-				}
-			: {})
-	});
-	let card = $state(untrack(() => incomingCard));
-	$effect(() => {
-		card = { ...incomingCard };
-	});
-	let errors: ProfileCardErrors = $derived(
-		form && 'errors' in form
-			? Object.fromEntries(
-					Object.entries(form.errors ?? {}).filter(
-						([field]) =>
-							!rejectedCard ||
-							card[field as keyof typeof card] === rejectedCard[field as keyof typeof rejectedCard]
-					)
-				)
-			: {}
+	let email = $state(
+		untrack(() => (form?.intent === 'email' && 'email' in form ? form.email : data.user.email))
 	);
 	let pending = $state(false);
 	let saveError = $state('');
-	let preview: HTMLDivElement;
-	let previewHeight = $state(0);
-	let viewportHeight = $state(0);
-	let canStick = $derived(previewHeight > 0 && previewHeight < viewportHeight - 140);
-	let isSaved = $derived(
-		selectedAvatar === data.user.avatarId &&
-			selectedArtwork === data.user.artworkId &&
-			JSON.stringify(card) === JSON.stringify(data.card)
-	);
-
-	onMount(() => {
-		const measure = () => {
-			previewHeight = preview.getBoundingClientRect().height;
-			viewportHeight = window.innerHeight;
-		};
-		const observer = new ResizeObserver(measure);
-		observer.observe(preview);
-		window.addEventListener('resize', measure);
-		measure();
-		return () => {
-			observer.disconnect();
-			window.removeEventListener('resize', measure);
-		};
+	let profileForm: HTMLFormElement;
+	let lastSavedEmail = $state(untrack(() => data.user.email));
+	$effect(() => {
+		if (data.user.email !== lastSavedEmail) {
+			email = data.user.email;
+			lastSavedEmail = data.user.email;
+		}
 	});
+	let emailError = $derived(
+		form?.intent === 'email' && 'errors' in form ? form.errors.email : undefined
+	);
 </script>
 
 <svelte:head
-	><title>Settings | Spellbook</title><meta
-		name="robots"
-		content="noindex, nofollow"
-	/></svelte:head
+	><title>Profile | Spellbook</title><meta name="robots" content="noindex, nofollow" /></svelte:head
 >
-
-<div class="settings-page workspace-container">
-	<div class="page-title"><h1>Settings</h1></div>
-	<div class="settings-profile">
-		<div bind:this={preview} class="settings-preview" class:sticky-preview={canStick}>
+<div class="profile-page">
+	<div class="page-title"><h1>Profile</h1></div>
+	<div class="profile-settings">
+		<div class="profile-fields">
+			<div>
+				<label for="profile-username" class="label">Username</label><input
+					id="profile-username"
+					class="input"
+					value={data.user.username}
+					readonly
+					autocomplete="username"
+				/>
+			</div>
+			<form
+				bind:this={profileForm}
+				method="POST"
+				aria-busy={pending}
+				use:enhance={() => {
+					pending = true;
+					saveError = '';
+					return async ({ result, update }) => {
+						try {
+							if (result.type === 'error') saveError = 'Could not save your email. Try again.';
+							else await update({ reset: false });
+						} finally {
+							pending = false;
+						}
+						if (result.type === 'failure') {
+							await tick();
+							profileForm.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+						}
+					};
+				}}
+			>
+				<input type="hidden" name="intent" value="email" />
+				<label for="profile-email" class="label">Email</label>
+				<input
+					id="profile-email"
+					name="email"
+					class="input"
+					type="email"
+					autocomplete="email"
+					maxlength={254}
+					bind:value={email}
+					disabled={pending}
+					aria-invalid={!!emailError}
+					aria-describedby="email-help email-error"
+				/>
+				<p id="email-help" class="field-help">
+					Optional contact email. Sign in with your username.
+				</p>
+				<p id="email-error" class="field-error">{emailError ?? ''}</p>
+				<div class="profile-save">
+					<button class="btn btn-primary" disabled={pending}
+						>{pending ? 'Saving...' : 'Save email'}</button
+					>
+					<p
+						role="status"
+						class="text-sm text-text-secondary"
+						class:text-error={!!saveError || (form?.intent === 'email' && !form.success)}
+					>
+						{saveError || (form?.intent === 'email' ? form.message : '')}
+					</p>
+				</div>
+			</form>
+			<div class="profile-avatar">
+				<div
+					class="avatar-image"
+					role="img"
+					aria-label={`${getAvatar(data.user.avatarId).label} avatar`}
+				>
+					<Avatar id={data.user.avatarId} size={88} />
+				</div>
+				<AvatarEditor avatarId={data.user.avatarId} />
+			</div>
+		</div>
+		<div class="profile-card-summary">
 			<ProfileCard
 				username={data.user.username}
-				avatarId={selectedAvatar}
-				artworkId={selectedArtwork}
+				avatarId={data.user.avatarId}
+				artworkId={data.user.artworkId}
 				totals={data.totals}
-				definition={card}
+				definition={data.card}
 			/>
-			<p class="preview-status">Private profile card · {isSaved ? 'Saved' : 'Unsaved changes'}</p>
+			<a href="/settings/profile-card" class="btn btn-secondary">Edit Card</a>
 			{#if data.statsError}<p role="status" class="text-sm text-text-secondary">
 					{data.statsError}
 				</p>{/if}
 		</div>
-		<form
-			method="POST"
-			aria-busy={pending}
-			aria-describedby="profile-status"
-			use:enhance={() => {
-				pending = true;
-				saveError = '';
-				return async ({ result, update }) => {
-					try {
-						if (result.type === 'error') saveError = 'Could not save your profile. Try again.';
-						else {
-							await update({ reset: false });
-							if (result.type === 'failure') {
-								pending = false;
-								await tick();
-								document
-									.querySelector<HTMLElement>('.settings-page [aria-invalid="true"]')
-									?.focus();
-							}
-						}
-					} finally {
-						pending = false;
-					}
-				};
-			}}
-		>
-			<ProfileCardEditor
-				bind:card
-				bind:artworkId={selectedArtwork}
-				disabled={pending}
-				{errors}
-				totals={data.totals}
-			/>
-			<AvatarPicker bind:selected={selectedAvatar} disabled={pending} />
-			<div class="settings-save">
-				<button class="btn btn-primary" disabled={pending}
-					>{pending ? 'Saving...' : 'Save profile'}</button
-				>
-				<div
-					id="profile-status"
-					aria-live="polite"
-					aria-atomic="true"
-					class="text-sm text-text-secondary"
-				>
-					{#if saveError}<span class="text-error">{saveError}</span
-						>{:else if form?.message && (!form.success || isSaved)}<span
-							class:text-error={!form.success}>{form.message}</span
-						>{/if}
-				</div>
-			</div>
-		</form>
 	</div>
 </div>
 
 <style>
-	.settings-page {
-		min-width: 0;
-	}
-	.settings-profile {
+	.profile-settings {
 		display: grid;
-		grid-template-columns: minmax(280px, 420px) minmax(0, 560px);
-		gap: clamp(1.5rem, 4vw, 4rem);
-		align-items: start;
+		grid-template-columns: minmax(0, 440px) minmax(0, 300px);
+		gap: 3rem;
 		margin-top: 1.5rem;
+		justify-content: space-between;
+		align-items: start;
 	}
-	.settings-preview {
-		min-width: 0;
-	}
-	.sticky-preview {
-		position: sticky;
-		top: 16px;
-	}
-	.settings-preview > p {
-		max-width: 420px;
-		margin-top: 0.75rem;
-	}
-	.preview-status {
-		color: var(--color-text-muted);
-		font-size: 0.6875rem;
-		text-align: center;
-	}
-	.settings-page form {
+	.profile-fields {
 		display: flex;
 		flex-direction: column;
-		gap: 1.5rem;
+		gap: 1.75rem;
 		min-width: 0;
+		width: 100%;
+		max-width: 440px;
 	}
-	.settings-save {
+	.profile-save {
 		display: flex;
 		align-items: center;
 		gap: 1rem;
-		min-height: 44px;
+		flex-wrap: wrap;
+		margin-top: 1rem;
 	}
-	@media (max-width: 900px) {
-		.settings-profile {
+	.profile-avatar {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.75rem;
+	}
+	.avatar-image {
+		display: grid;
+		place-items: center;
+		width: 112px;
+		height: 112px;
+		background: var(--color-stone);
+		border-radius: 50%;
+	}
+	.profile-card-summary {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1rem;
+		min-width: 0;
+	}
+	.field-help {
+		margin-top: 0.5rem;
+		color: var(--color-text-muted);
+		font-size: 0.6875rem;
+		line-height: 1.5;
+	}
+	.field-error {
+		margin-top: 0.35rem;
+		color: var(--color-error);
+		font-size: 0.75rem;
+	}
+	.field-error:empty {
+		display: none;
+	}
+	@media (max-width: 760px) {
+		.profile-settings {
 			grid-template-columns: minmax(0, 1fr);
-			gap: 1.75rem;
-			max-width: 560px;
+			gap: 2rem;
+		}
+		.profile-card-summary {
+			width: min(100%, 300px);
 			margin-inline: auto;
-		}
-		.settings-preview {
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			position: static;
-		}
-		.settings-save {
-			flex-wrap: wrap;
 		}
 	}
 </style>

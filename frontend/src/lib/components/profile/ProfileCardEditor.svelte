@@ -85,7 +85,7 @@
 	<label class="legendary-control"
 		><input type="checkbox" name="legendary" bind:checked={card.legendary} {disabled} /> Legendary frame</label
 	>
-	<ArtworkPicker bind:selected={artworkId} {disabled} compact />
+	<ArtworkPicker bind:selected={artworkId} {disabled} />
 	<div>
 		<label class="label" for="card-type">Type line</label><input
 			class="input"

@@ -9,6 +9,7 @@
 	<input {...attributes} type={visible ? 'text' : 'password'} class="input password-input" />
 	<button
 		type="button"
+		disabled={attributes.disabled}
 		class="btn btn-ghost password-toggle"
 		aria-label={visible ? 'Hide password' : 'Show password'}
 		aria-controls={attributes.id}

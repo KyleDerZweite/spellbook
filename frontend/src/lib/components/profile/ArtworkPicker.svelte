@@ -17,6 +17,8 @@
 				<span class="artwork-option">
 					<img
 						src={artwork.src.replace('.webp', '-thumb.webp')}
+						srcset={`${artwork.src.replace('.webp', '-thumb.webp')} 320w, ${artwork.src} 960w`}
+						sizes="(max-width: 600px) 45vw, 260px"
 						alt=""
 						width="320"
 						height="213"
@@ -72,7 +74,7 @@
 		width: 100%;
 		height: auto;
 		aspect-ratio: 3 / 2;
-		object-fit: cover;
+		object-fit: contain;
 	}
 	.artwork-label {
 		display: block;
@@ -103,10 +105,6 @@
 	.artwork-choice input:disabled + .artwork-option {
 		opacity: 0.6;
 		cursor: wait;
-	}
-	.compact .artwork-option img {
-		height: 76px;
-		aspect-ratio: auto;
 	}
 	.compact .artwork-options {
 		gap: 0.5rem;
