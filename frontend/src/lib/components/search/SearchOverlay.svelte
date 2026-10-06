@@ -119,6 +119,10 @@
 			}}
 			onCloseAutoFocus={(event) => {
 				event.preventDefault();
+				if (fullRoute) {
+					void tick().then(() => session.focus());
+					return;
+				}
 				const desktop = document.querySelector<HTMLElement>('.primary-nav a[href="/mtg/search"]');
 				const fallback = desktop?.getClientRects().length
 					? desktop
@@ -132,7 +136,9 @@
 			<Dialog.Description class="sr-only"
 				>Search the Magic catalog, inspect printings, and add cards to inventory.</Dialog.Description
 			>
-			<SearchWorkspace controls={overlayControls} />
+			{#if open}
+				<SearchWorkspace controls={overlayControls} />
+			{/if}
 		</Dialog.Content>
 	</Dialog.Portal>
 </Dialog.Root>
