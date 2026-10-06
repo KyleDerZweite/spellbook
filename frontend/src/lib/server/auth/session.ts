@@ -42,7 +42,8 @@ export async function validateSession(token: string | undefined): Promise<AuthUs
 			accountId: userProfiles.accountId,
 			username: userProfiles.username,
 			email: userProfiles.email,
-			avatarId: userProfiles.avatarId
+			avatarId: userProfiles.avatarId,
+			artworkId: userProfiles.artworkId
 		})
 		.from(authSessions)
 		.innerJoin(userProfiles, eq(authSessions.accountId, userProfiles.accountId))

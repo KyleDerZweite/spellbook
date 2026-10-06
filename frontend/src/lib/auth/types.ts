@@ -3,4 +3,5 @@ export interface AuthUser {
 	username: string;
 	email: string;
 	avatarId?: string;
+	artworkId?: string;
 }

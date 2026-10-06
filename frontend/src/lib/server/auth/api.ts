@@ -7,7 +7,8 @@ export async function authenticateApi(event: RequestEvent, mode: 'login' | 'regi
 	takeAuthAttempt(event.getClientAddress());
 	const body = await readJsonObject(event.request);
 	const { username, password } = body as Record<string, unknown>;
-	const authenticated = await authenticate(mode, username, password);
+	const preferences = Object.hasOwn(body, 'artworkId') ? { artworkId: body.artworkId } : {};
+	const authenticated = await authenticate(mode, username, password, preferences);
 	if (!authenticated)
 		error(
 			mode === 'login' ? 401 : 400,

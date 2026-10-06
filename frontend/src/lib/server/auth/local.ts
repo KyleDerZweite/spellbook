@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { error, type RequestEvent } from '@sveltejs/kit';
 import type { AuthUser } from '#lib/auth/types.ts';
+import { DEFAULT_ARTWORK_ID, isProfileArtworkId } from '#lib/profile/artwork.ts';
 import { DEFAULT_AVATAR_ID } from '#lib/profile/avatars.ts';
 import { db } from '#lib/server/db/client.ts';
 import { localCredentials, userProfiles } from '#lib/server/db/schema.ts';
@@ -41,8 +42,12 @@ export function takeAuthAttempt(address: string, now = Date.now()): void {
 export async function authenticate(
 	mode: 'login' | 'register',
 	usernameInput: unknown,
-	password: unknown
+	password: unknown,
+	preferences: { artworkId?: unknown } = {}
 ): Promise<{ user: AuthUser; session: { token: string; expiresAt: Date } } | null> {
+	const artworkInput = 'artworkId' in preferences ? preferences.artworkId : DEFAULT_ARTWORK_ID;
+	if (mode === 'register' && !isProfileArtworkId(artworkInput)) return null;
+	const artworkId = isProfileArtworkId(artworkInput) ? artworkInput : DEFAULT_ARTWORK_ID;
 	const username = normalizeUsername(usernameInput);
 	if (demoMode && (mode !== 'login' || username !== 'demo')) return null;
 	if (!username || (!validPassword(password) && !acceptsDemoLogin(mode, username, password)))
@@ -55,7 +60,7 @@ export async function authenticate(
 			const accountId = randomUUID();
 			try {
 				await db.transaction(async (tx) => {
-					await tx.insert(userProfiles).values({ accountId, username });
+					await tx.insert(userProfiles).values({ accountId, username, artworkId });
 					await tx.insert(localCredentials).values({ accountId, username, passwordHash });
 				});
 			} catch (cause) {
@@ -65,7 +70,10 @@ export async function authenticate(
 			}
 			const session = await createSession(accountId, passwordHash);
 			return session
-				? { user: { accountId, username, email: '', avatarId: DEFAULT_AVATAR_ID }, session }
+				? {
+						user: { accountId, username, email: '', avatarId: DEFAULT_AVATAR_ID, artworkId },
+						session
+					}
 				: null;
 		}
 		const [credential] = await db
@@ -80,7 +88,8 @@ export async function authenticate(
 				accountId: userProfiles.accountId,
 				username: userProfiles.username,
 				email: userProfiles.email,
-				avatarId: userProfiles.avatarId
+				avatarId: userProfiles.avatarId,
+				artworkId: userProfiles.artworkId
 			})
 			.from(userProfiles)
 			.where(eq(userProfiles.accountId, credential.accountId))

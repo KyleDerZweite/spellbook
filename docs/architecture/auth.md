@@ -16,6 +16,8 @@ Sessions use random 32-byte opaque tokens. `auth_sessions` stores only the token
 
 `user_profiles.avatar_id` stores the account's selected sprite, with `wizard` as the default. Migration `0007_profile_avatar.sql` adds this field for existing accounts without changing their identities or sessions. Login, registration, and session validation return `avatarId` with the user. The authenticated `/settings` form validates choices against the shared [avatar collection](../../frontend/src/lib/profile/avatars.ts) and updates only the current account. Apply the normal database migrations before deploying code that reads this field.
 
+`user_profiles.artwork_id` stores the selected profile artwork, with `grove` as the default. Migration `0008_profile_artwork.sql` adds the field for existing accounts. Registration accepts an optional `artworkId` from the shared [artwork collection](../../frontend/src/lib/profile/artwork.ts). Omission uses the default; an explicit invalid choice rejects registration before account creation. Login and session validation return the stored `artworkId`. The authenticated Settings form updates the current account's avatar and optional artwork. Omitting artwork preserves the stored choice for older forms. Submitted account IDs never select the update target.
+
 The browser receives the `spellbook_session` cookie with `HttpOnly`, `SameSite=Lax`, and `Secure` on HTTPS. The cookie contains the opaque token. The installed web app uses this same session. There is no refresh token or identity-provider callback.
 
 ## Entry points
@@ -29,7 +31,7 @@ The browser receives the `spellbook_session` cookie with `HttpOnly`, `SameSite=L
 | `POST /api/auth/login`    | Accept JSON credentials and return a session token with HTTP 200 |
 | `POST /api/auth/logout`   | Revoke the supplied bearer token and return HTTP 204             |
 
-JSON credentials have `username` and `password` fields. Successful responses contain `user`, `token`, and `expiresAt`; JSON login does not set a cookie. `/api/mobile/v1/mtg/...` accepts `Authorization: Bearer <token>` or a browser session. An explicit invalid bearer header fails instead of falling back to a cookie.
+JSON credentials have `username` and `password` fields. Registration also accepts the optional `artworkId` preference. Successful responses contain `user`, `token`, and `expiresAt`; JSON login does not set a cookie. `/api/mobile/v1/mtg/...` accepts `Authorization: Bearer <token>` or a browser session. An explicit invalid bearer header fails instead of falling back to a cookie.
 
 Browser mutations require a matching request origin. JSON login and registration allow a missing origin for non-browser clients but reject a foreign origin. Cookie-authenticated API mutations also require the same origin.
 
