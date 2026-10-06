@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: code
-- Update Triggers: credentials, sessions, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, post-login destinations, agent discovery, workspace ownership and compatibility adapters
+- Update Triggers: credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, post-login destinations, agent discovery, workspace ownership and compatibility adapters
 - Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Routes](../product/routing-and-games.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md), [Application contract](./application-contract.md)
 
 Spellbook authenticates local accounts by username and password. `user_profiles.account_id` remains the stable ownership key for inventories, decks, and scans. Registration generates a new account ID; operator enrollment preserves an existing account ID.
@@ -13,6 +13,10 @@ Spellbook authenticates local accounts by username and password. `user_profiles.
 The backend [local-authentication use case](../../backend/src/auth/local.ts) owns credential validation, hashing, rate/derivation limits and database sessions. [Frontend composition](../../frontend/src/lib/server/composition.ts) privately consumes the shared database resource and supplies demo-mode configuration. The named [database compatibility adapter](../../frontend/src/lib/server/db/client.ts) injects database/build-analysis configuration and constructs the single backend database resource. [`contracts/src/auth.ts`](../../contracts/src/auth.ts) owns the safe user/session/application shapes; `expiresAt` is an ISO string at this boundary. The frontend owns cookie handling, origin checks, native forms and HTTP error mapping. Existing public response shapes remain unchanged.
 
 The shared [profile contract](../../contracts/src/profile.ts) owns artwork IDs, defaults, ID validation and the card definition type. Frontend artwork metadata owns labels/image paths, and the full card validator remains in frontend. Settings preference and password persistence remain enumerated compatibility code for later feature migration. A legacy session adapter converts expiry to Date for untouched password callers; this does not change the new auth DTO.
+
+Backend authentication, session validation and inspection produce server-side actors associated with their validated session. The backend's `requireActor` revalidates that session and derives current account identity from the database, including when called inside a writing transaction. A copied or fabricated `AuthUser` DTO has no actor authority. Changing a trusted object's account fields cannot select a different account. HTTP adapters authenticate credentials again rather than accepting a serialized actor as authority.
+
+The backend also provides current-password-confirmed rotation and JSON-safe session inspection. Rotation checks the verified credential again under the account-row lock, updates the hash, revokes old sessions and creates its replacement in one transaction. Existing web password handling remains the named compatibility caller until the Account/Profile migration. This foundation adds no public endpoint by itself; the entry-point table below describes the routes currently implemented.
 
 ## Credentials and sessions
 

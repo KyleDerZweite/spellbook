@@ -1,6 +1,6 @@
 # Accepted application contract
 
-- Status: Accepted design; slice 1 workspace, Catalog and local authentication implemented; later slices planned
+- Status: Accepted design; slice 1 and trusted Auth actor foundation implemented; later feature slices planned
 - Last Reviewed: 2026-10-07
 - Source of Truth: workspace/Catalog/local-authentication code and Kyle's Q56 acceptance of later contracts
 - Update Triggers: workspace ownership, use-case interfaces, experimental API migration, mutation receipts and revisions, Inventory queries and cache limits, synchronization and acceptance evidence
@@ -11,6 +11,8 @@ Kyle accepted the full nineteen-slice contract, its blocking dependencies and re
 ## Implementation status
 
 Slice 1 establishes the root pnpm workspace, safe Catalog/local-authentication contracts, backend schema/database construction and checked frontend server composition. [Root package.json](../../package.json), [pnpm-workspace.yaml](../../pnpm-workspace.yaml) and [pnpm-lock.yaml](../../pnpm-lock.yaml) own package-manager pins, dependency policies and the frozen install. Frontend commands resolve this workspace even when invoked from `frontend/`.
+
+The shared Auth foundation now provides session-produced actor authority, session inspection and atomic backend password rotation. [Authentication](./auth.md#application-ownership) owns these implemented rules. Account/Profile HTTP parity and the Inventory/Deck feature migrations remain planned until their slices are integrated.
 
 [`composition.ts`](../../frontend/src/lib/server/composition.ts) privately consumes the shared database resource through an exact allowed policy edge, injects demo configuration and exports only backend Catalog and local-authentication use cases. The named [database compatibility adapter](../../frontend/src/lib/server/db/client.ts) injects `DATABASE_URL` and build-analysis configuration, constructs one backend database resource and exclusively exports raw `db`/`pool` handles to allowed legacy consumers. [`backend/src/db/schema.ts`](../../backend/src/db/schema.ts) owns the schema. Existing frontend schema/client modules are compatibility adapters; `frontend/drizzle/` remains the migration history. [`boundary-policy.json`](../../scripts/boundary-policy.json) enumerates exact compatibility imports awaiting [removal slice 19](https://github.com/KyleDerZweite/spellbook/issues/192). This includes untouched feature repositories and Settings password changes, rather than complete backend migration.
 
