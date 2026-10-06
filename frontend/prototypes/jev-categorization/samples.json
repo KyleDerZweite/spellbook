@@ -1,0 +1,2237 @@
+{
+  "schema_version": 1,
+  "frozen_before_inference": true,
+  "source": {
+    "kind": "local_scryfall_oracle_bulk",
+    "filename": "oracle-cards-20261006090155.jsonl",
+    "sha256": "32c4bc997920666fea033e877928c4db66798eececd1650dd1b1cf236a6478a3",
+    "snapshot_date": "2026-10-06",
+    "url": "https://scryfall.com/docs/api/bulk-data",
+    "inference_calls": 0
+  },
+  "rubric": {
+    "primary_keys": [
+      "lands",
+      "ramp",
+      "draw",
+      "counterspells",
+      "removal",
+      "board_wipes",
+      "protection",
+      "recursion",
+      "tokens",
+      "sacrifice",
+      "creatures",
+      "artifacts",
+      "enchantments",
+      "other"
+    ],
+    "deck_keys": [
+      "aggro",
+      "burn",
+      "control",
+      "midrange",
+      "ramp",
+      "combo",
+      "tokens",
+      "counter_theme",
+      "infinite_counters"
+    ],
+    "primary_policy": "One primary per entry. acceptable_primary is evaluator ambiguity, not multiple assignment. Lands are not Ramp solely for producing mana. Functional purpose usually beats card-type fallback. Counter synergy remains a trait because Counter theme is not a primary key.",
+    "trait_policy": "required_traits are minimum text-grounded semantic checks, not exhaustive or authoritative tags. Explicit synonym normalization is required.",
+    "deck_policy": "Whole-deck multi-label classification: all required_categories present; all predictions within acceptable_categories; no forbidden_categories. Infinite counters requires a concrete supported repeatable loop, not counter-card counts. Combo requires a specific supported interaction, not generic synergy.",
+    "limits": "Synthetic lists without selected format. No tournament legality, optimality, draw probability or exhaustive combo absence claimed. Expectations handwritten before inference."
+  },
+  "cards": [
+    {
+      "id": "plains",
+      "oracle_id": "bc71ebf6-2056-41f7-be35-b2e5c34afa99",
+      "name": "Plains",
+      "mana_cost": "",
+      "cmc": 0.0,
+      "type_line": "Basic Land — Plains",
+      "oracle_text": "({T}: Add {W}.)",
+      "keywords": [],
+      "colors": [],
+      "color_identity": [
+        "W"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/trk/317/plains?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "lands"
+        ],
+        "required_traits": [
+          "land"
+        ],
+        "rationale": "Oracle text or type directly supports lands; no other strategy inferred."
+      }
+    },
+    {
+      "id": "island",
+      "oracle_id": "b2c6aa39-2d2a-459c-a555-fb48ba993373",
+      "name": "Island",
+      "mana_cost": "",
+      "cmc": 0.0,
+      "type_line": "Basic Land — Island",
+      "oracle_text": "({T}: Add {U}.)",
+      "keywords": [],
+      "colors": [],
+      "color_identity": [
+        "U"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/trk/319/island?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "lands"
+        ],
+        "required_traits": [
+          "land"
+        ],
+        "rationale": "Oracle text or type directly supports lands; no other strategy inferred."
+      }
+    },
+    {
+      "id": "swamp",
+      "oracle_id": "56719f6a-1a6c-4c0a-8d21-18f7d7350b68",
+      "name": "Swamp",
+      "mana_cost": "",
+      "cmc": 0.0,
+      "type_line": "Basic Land — Swamp",
+      "oracle_text": "({T}: Add {B}.)",
+      "keywords": [],
+      "colors": [],
+      "color_identity": [
+        "B"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/trk/321/swamp?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "lands"
+        ],
+        "required_traits": [
+          "land"
+        ],
+        "rationale": "Oracle text or type directly supports lands; no other strategy inferred."
+      }
+    },
+    {
+      "id": "mountain",
+      "oracle_id": "a3fb7228-e76b-4e96-a40e-20b5fed75685",
+      "name": "Mountain",
+      "mana_cost": "",
+      "cmc": 0.0,
+      "type_line": "Basic Land — Mountain",
+      "oracle_text": "({T}: Add {R}.)",
+      "keywords": [],
+      "colors": [],
+      "color_identity": [
+        "R"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/trk/323/mountain?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "lands"
+        ],
+        "required_traits": [
+          "land"
+        ],
+        "rationale": "Oracle text or type directly supports lands; no other strategy inferred."
+      }
+    },
+    {
+      "id": "forest",
+      "oracle_id": "b34bb2dc-c1af-4d77-b0b3-a0fb342a5fc6",
+      "name": "Forest",
+      "mana_cost": "",
+      "cmc": 0.0,
+      "type_line": "Basic Land — Forest",
+      "oracle_text": "({T}: Add {G}.)",
+      "keywords": [],
+      "colors": [],
+      "color_identity": [
+        "G"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/trk/325/forest?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "lands"
+        ],
+        "required_traits": [
+          "land"
+        ],
+        "rationale": "Oracle text or type directly supports lands; no other strategy inferred."
+      }
+    },
+    {
+      "id": "command-tower",
+      "oracle_id": "0895c9b7-ae7d-4bb3-af17-3b75deb50a25",
+      "name": "Command Tower",
+      "mana_cost": "",
+      "cmc": 0.0,
+      "type_line": "Land",
+      "oracle_text": "{T}: Add one mana of any color in your commander's color identity.",
+      "keywords": [],
+      "colors": [],
+      "color_identity": [],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/frc/22/command-tower?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "lands"
+        ],
+        "required_traits": [
+          "land",
+          "commander_color_mana"
+        ],
+        "rationale": "Commander-dependent colors do not imply acceleration or useful commanderless mana."
+      }
+    },
+    {
+      "id": "llanowar-reborn",
+      "oracle_id": "92acb789-0e42-465c-ac16-40fefec48805",
+      "name": "Llanowar Reborn",
+      "mana_cost": "",
+      "cmc": 0.0,
+      "type_line": "Land",
+      "oracle_text": "This land enters tapped.\n{T}: Add {G}.\nGraft 1 (This land enters with a +1/+1 counter on it. Whenever a creature enters, you may move a +1/+1 counter from this land onto it.)",
+      "keywords": [
+        "Graft"
+      ],
+      "colors": [],
+      "color_identity": [
+        "G"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/lcc/341/llanowar-reborn?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "lands"
+        ],
+        "required_traits": [
+          "land",
+          "counter_synergy"
+        ],
+        "rationale": "Graft is secondary; a mana land remains Lands, not Ramp."
+      }
+    },
+    {
+      "id": "sol-ring",
+      "oracle_id": "6ad8011d-3471-4369-9d68-b264cc027487",
+      "name": "Sol Ring",
+      "mana_cost": "{1}",
+      "cmc": 1.0,
+      "type_line": "Artifact",
+      "oracle_text": "{T}: Add {C}{C}.",
+      "keywords": [],
+      "colors": [],
+      "color_identity": [],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/frc/21/sol-ring?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "ramp"
+        ],
+        "required_traits": [
+          "mana_acceleration"
+        ],
+        "rationale": "Oracle text or type directly supports ramp; no other strategy inferred."
+      }
+    },
+    {
+      "id": "rampant-growth",
+      "oracle_id": "8539f295-5d58-4436-a73a-b9277c4c7795",
+      "name": "Rampant Growth",
+      "mana_cost": "{1}{G}",
+      "cmc": 2.0,
+      "type_line": "Sorcery",
+      "oracle_text": "Search your library for a basic land card, put that card onto the battlefield tapped, then shuffle.",
+      "keywords": [],
+      "colors": [
+        "G"
+      ],
+      "color_identity": [
+        "G"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/tdc/265/rampant-growth?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "ramp"
+        ],
+        "required_traits": [
+          "mana_acceleration"
+        ],
+        "rationale": "Oracle text or type directly supports ramp; no other strategy inferred."
+      }
+    },
+    {
+      "id": "cultivate",
+      "oracle_id": "8b755881-a72d-4e21-a369-d2924eb4585a",
+      "name": "Cultivate",
+      "mana_cost": "{2}{G}",
+      "cmc": 3.0,
+      "type_line": "Sorcery",
+      "oracle_text": "Search your library for up to two basic land cards, reveal those cards, put one onto the battlefield tapped and the other into your hand, then shuffle.",
+      "keywords": [],
+      "colors": [
+        "G"
+      ],
+      "color_identity": [
+        "G"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/msc/172/cultivate?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "ramp"
+        ],
+        "required_traits": [
+          "land_search",
+          "mana_acceleration"
+        ],
+        "rationale": "One basic enters tapped and another goes to hand; not card draw."
+      }
+    },
+    {
+      "id": "llanowar-elves",
+      "oracle_id": "68954295-54e3-4303-a6bc-fc4547a4e3a3",
+      "name": "Llanowar Elves",
+      "mana_cost": "{G}",
+      "cmc": 1.0,
+      "type_line": "Creature — Elf Druid",
+      "oracle_text": "{T}: Add {G}.",
+      "keywords": [],
+      "colors": [
+        "G"
+      ],
+      "color_identity": [
+        "G"
+      ],
+      "layout": "normal",
+      "power": "1",
+      "toughness": "1",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/fdn/227/llanowar-elves?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "ramp"
+        ],
+        "required_traits": [
+          "mana_acceleration"
+        ],
+        "rationale": "Oracle text or type directly supports ramp; no other strategy inferred."
+      }
+    },
+    {
+      "id": "birds-of-paradise",
+      "oracle_id": "d3a0b660-358c-41bd-9cd2-41fbf3491b1a",
+      "name": "Birds of Paradise",
+      "mana_cost": "{G}",
+      "cmc": 1.0,
+      "type_line": "Creature — Bird",
+      "oracle_text": "Flying\n{T}: Add one mana of any color.",
+      "keywords": [
+        "Flying"
+      ],
+      "colors": [
+        "G"
+      ],
+      "color_identity": [
+        "G"
+      ],
+      "layout": "normal",
+      "power": "0",
+      "toughness": "1",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/msc/170/birds-of-paradise?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "ramp"
+        ],
+        "required_traits": [
+          "creature",
+          "mana_acceleration",
+          "flying"
+        ],
+        "rationale": "Mana creature acceleration; flying does not establish Aggro."
+      }
+    },
+    {
+      "id": "dark-ritual",
+      "oracle_id": "53f7c868-b03e-4fc2-8dcf-a75bbfa3272b",
+      "name": "Dark Ritual",
+      "mana_cost": "{B}",
+      "cmc": 1.0,
+      "type_line": "Instant",
+      "oracle_text": "Add {B}{B}{B}.",
+      "keywords": [],
+      "colors": [
+        "B"
+      ],
+      "color_identity": [
+        "B"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/msc/793/dark-ritual?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "ramp"
+        ],
+        "required_traits": [
+          "mana_acceleration",
+          "temporary_mana"
+        ],
+        "rationale": "One-shot mana gain rather than a permanent mana source."
+      }
+    },
+    {
+      "id": "divination",
+      "oracle_id": "273b339c-964b-4a18-8eb5-ceb8abcdfd9e",
+      "name": "Divination",
+      "mana_cost": "{2}{U}",
+      "cmc": 3.0,
+      "type_line": "Sorcery",
+      "oracle_text": "Draw two cards.",
+      "keywords": [],
+      "colors": [
+        "U"
+      ],
+      "color_identity": [
+        "U"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/m19/51/divination?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "draw"
+        ],
+        "required_traits": [
+          "card_draw"
+        ],
+        "rationale": "Oracle text or type directly supports draw; no other strategy inferred."
+      }
+    },
+    {
+      "id": "opt",
+      "oracle_id": "713332c1-5bd8-400f-bfff-c1ca0697a043",
+      "name": "Opt",
+      "mana_cost": "{U}",
+      "cmc": 1.0,
+      "type_line": "Instant",
+      "oracle_text": "Scry 1. (Look at the top card of your library. You may put that card on the bottom.)\nDraw a card.",
+      "keywords": [
+        "Scry"
+      ],
+      "colors": [
+        "U"
+      ],
+      "color_identity": [
+        "U"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/tdc/158/opt?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "draw"
+        ],
+        "required_traits": [
+          "card_draw",
+          "card_selection"
+        ],
+        "rationale": "Scry then draw; scry is not an extra card drawn."
+      }
+    },
+    {
+      "id": "harmonize",
+      "oracle_id": "7eff84f1-f772-497a-b350-bbc93d0230f7",
+      "name": "Harmonize",
+      "mana_cost": "{2}{G}{G}",
+      "cmc": 4.0,
+      "type_line": "Sorcery",
+      "oracle_text": "Draw three cards.",
+      "keywords": [],
+      "colors": [
+        "G"
+      ],
+      "color_identity": [
+        "G"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/msc/175/harmonize?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "draw"
+        ],
+        "required_traits": [
+          "card_draw"
+        ],
+        "rationale": "Oracle text or type directly supports draw; no other strategy inferred."
+      }
+    },
+    {
+      "id": "sign-in-blood",
+      "oracle_id": "c6207f6a-a624-4754-88f5-dbe700c841ff",
+      "name": "Sign in Blood",
+      "mana_cost": "{B}{B}",
+      "cmc": 2.0,
+      "type_line": "Sorcery",
+      "oracle_text": "Target player draws two cards and loses 2 life.",
+      "keywords": [],
+      "colors": [
+        "B"
+      ],
+      "color_identity": [
+        "B"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/dsc/156/sign-in-blood?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "draw"
+        ],
+        "required_traits": [
+          "card_draw",
+          "life_loss"
+        ],
+        "rationale": "Target player draws and loses life; life loss is not damage."
+      }
+    },
+    {
+      "id": "rhystic-study",
+      "oracle_id": "53236dd7-845a-444c-96d5-f41ed7325d8f",
+      "name": "Rhystic Study",
+      "mana_cost": "{2}{U}",
+      "cmc": 3.0,
+      "type_line": "Enchantment",
+      "oracle_text": "Whenever an opponent casts a spell, you may draw a card unless that player pays {1}.",
+      "keywords": [],
+      "colors": [
+        "U"
+      ],
+      "color_identity": [
+        "U"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/j22/114/rhystic-study?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "draw"
+        ],
+        "required_traits": [
+          "card_draw"
+        ],
+        "rationale": "Oracle text or type directly supports draw; no other strategy inferred."
+      }
+    },
+    {
+      "id": "village-rites",
+      "oracle_id": "365548fb-5acc-4a8a-b20b-26d28b7d029f",
+      "name": "Village Rites",
+      "mana_cost": "{B}",
+      "cmc": 1.0,
+      "type_line": "Instant",
+      "oracle_text": "As an additional cost to cast this spell, sacrifice a creature.\nDraw two cards.",
+      "keywords": [],
+      "colors": [
+        "B"
+      ],
+      "color_identity": [
+        "B"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/inr/137/village-rites?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "draw",
+          "sacrifice"
+        ],
+        "required_traits": [
+          "card_draw",
+          "sacrifice_cost"
+        ],
+        "rationale": "Creature sacrifice is a cost, not a repeatable sacrifice outlet."
+      }
+    },
+    {
+      "id": "growth-spiral",
+      "oracle_id": "34bcc217-dd91-45a0-90d7-a94d02f1f317",
+      "name": "Growth Spiral",
+      "mana_cost": "{G}{U}",
+      "cmc": 2.0,
+      "type_line": "Instant",
+      "oracle_text": "Draw a card. You may put a land card from your hand onto the battlefield.",
+      "keywords": [],
+      "colors": [
+        "G",
+        "U"
+      ],
+      "color_identity": [
+        "G",
+        "U"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/dsc/88/growth-spiral?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "ramp",
+          "draw"
+        ],
+        "required_traits": [
+          "card_draw",
+          "extra_land_drop"
+        ],
+        "rationale": "Optional land from hand, not land search."
+      }
+    },
+    {
+      "id": "return-of-the-wildspeaker",
+      "oracle_id": "2b76f9e9-cd28-4eaf-8674-215c34263f96",
+      "name": "Return of the Wildspeaker",
+      "mana_cost": "{4}{G}",
+      "cmc": 5.0,
+      "type_line": "Instant",
+      "oracle_text": "Choose one —\n• Draw cards equal to the greatest power among non-Human creatures you control.\n• Non-Human creatures you control get +3/+3 until end of turn.",
+      "keywords": [],
+      "colors": [
+        "G"
+      ],
+      "color_identity": [
+        "G"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/ecc/115/return-of-the-wildspeaker?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "draw",
+          "other"
+        ],
+        "required_traits": [
+          "card_draw",
+          "team_power_boost",
+          "modal"
+        ],
+        "rationale": "Non-Human-dependent draw or team boost; boost is not inherently protection."
+      }
+    },
+    {
+      "id": "counterspell",
+      "oracle_id": "cc187110-1148-4090-bbb8-e205694a39f5",
+      "name": "Counterspell",
+      "mana_cost": "{U}{U}",
+      "cmc": 2.0,
+      "type_line": "Instant",
+      "oracle_text": "Counter target spell.",
+      "keywords": [],
+      "colors": [
+        "U"
+      ],
+      "color_identity": [
+        "U"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/dsc/114/counterspell?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "counterspells"
+        ],
+        "required_traits": [
+          "spell_counter"
+        ],
+        "rationale": "Oracle text or type directly supports counterspells; no other strategy inferred."
+      }
+    },
+    {
+      "id": "negate",
+      "oracle_id": "3407fe41-fdd3-4119-8f70-4bc4590a379f",
+      "name": "Negate",
+      "mana_cost": "{1}{U}",
+      "cmc": 2.0,
+      "type_line": "Instant",
+      "oracle_text": "Counter target noncreature spell.",
+      "keywords": [],
+      "colors": [
+        "U"
+      ],
+      "color_identity": [
+        "U"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/tmt/47/negate?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "counterspells"
+        ],
+        "required_traits": [
+          "spell_counter"
+        ],
+        "rationale": "Oracle text or type directly supports counterspells; no other strategy inferred."
+      }
+    },
+    {
+      "id": "dovin-s-veto",
+      "oracle_id": "1b388371-f9ef-45b4-82a3-ca20a8cd7807",
+      "name": "Dovin's Veto",
+      "mana_cost": "{W}{U}",
+      "cmc": 2.0,
+      "type_line": "Instant",
+      "oracle_text": "This spell can't be countered.\nCounter target noncreature spell.",
+      "keywords": [],
+      "colors": [
+        "U",
+        "W"
+      ],
+      "color_identity": [
+        "U",
+        "W"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/war/193/dovins-veto?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "counterspells"
+        ],
+        "required_traits": [
+          "spell_counter"
+        ],
+        "rationale": "Oracle text or type directly supports counterspells; no other strategy inferred."
+      }
+    },
+    {
+      "id": "archmage-s-charm",
+      "oracle_id": "85cbb035-25df-43bb-ae06-ab098f448b02",
+      "name": "Archmage's Charm",
+      "mana_cost": "{U}{U}{U}",
+      "cmc": 3.0,
+      "type_line": "Instant",
+      "oracle_text": "Choose one —\n• Counter target spell.\n• Target player draws two cards.\n• Gain control of target nonland permanent with mana value 1 or less.",
+      "keywords": [],
+      "colors": [
+        "U"
+      ],
+      "color_identity": [
+        "U"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/mh1/40/archmages-charm?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "counterspells",
+          "draw",
+          "removal"
+        ],
+        "required_traits": [
+          "spell_counter",
+          "card_draw",
+          "gain_control",
+          "modal"
+        ],
+        "rationale": "Three modes support different purposes; primary cannot be certain without context."
+      }
+    },
+    {
+      "id": "cryptic-command",
+      "oracle_id": "a3e51a35-09df-4189-b131-08a21e6a557d",
+      "name": "Cryptic Command",
+      "mana_cost": "{1}{U}{U}{U}",
+      "cmc": 4.0,
+      "type_line": "Instant",
+      "oracle_text": "Choose two —\n• Counter target spell.\n• Return target permanent to its owner's hand.\n• Tap all creatures your opponents control.\n• Draw a card.",
+      "keywords": [],
+      "colors": [
+        "U"
+      ],
+      "color_identity": [
+        "U"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/ima/48/cryptic-command?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "counterspells",
+          "draw",
+          "removal",
+          "protection"
+        ],
+        "required_traits": [
+          "spell_counter",
+          "card_draw",
+          "bounce",
+          "tap_opponents_creatures",
+          "modal"
+        ],
+        "rationale": "Choose two modes; bounce and tap are temporary interaction, not destruction."
+      }
+    },
+    {
+      "id": "swords-to-plowshares",
+      "oracle_id": "b1544f21-7e98-461b-aed5-e748b0168c52",
+      "name": "Swords to Plowshares",
+      "mana_cost": "{W}",
+      "cmc": 1.0,
+      "type_line": "Instant",
+      "oracle_text": "Exile target creature. Its controller gains life equal to its power.",
+      "keywords": [],
+      "colors": [
+        "W"
+      ],
+      "color_identity": [
+        "W"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/frc/37/swords-to-plowshares?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "removal"
+        ],
+        "required_traits": [
+          "targeted_removal"
+        ],
+        "rationale": "Oracle text or type directly supports removal; no other strategy inferred."
+      }
+    },
+    {
+      "id": "path-to-exile",
+      "oracle_id": "d683d985-9888-4d21-8b5f-69e69ce4a03b",
+      "name": "Path to Exile",
+      "mana_cost": "{W}",
+      "cmc": 1.0,
+      "type_line": "Instant",
+      "oracle_text": "Exile target creature. Its controller may search their library for a basic land card, put that card onto the battlefield tapped, then shuffle.",
+      "keywords": [],
+      "colors": [
+        "W"
+      ],
+      "color_identity": [
+        "W"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/frc/30/path-to-exile?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "removal"
+        ],
+        "required_traits": [
+          "targeted_removal"
+        ],
+        "rationale": "Oracle text or type directly supports removal; no other strategy inferred."
+      }
+    },
+    {
+      "id": "doom-blade",
+      "oracle_id": "59e7f2ae-4535-4191-98be-3e65b6b2befa",
+      "name": "Doom Blade",
+      "mana_cost": "{1}{B}",
+      "cmc": 2.0,
+      "type_line": "Instant",
+      "oracle_text": "Destroy target nonblack creature.",
+      "keywords": [],
+      "colors": [
+        "B"
+      ],
+      "color_identity": [
+        "B"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/msc/576/doom-blade?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "removal"
+        ],
+        "required_traits": [
+          "targeted_removal"
+        ],
+        "rationale": "Oracle text or type directly supports removal; no other strategy inferred."
+      }
+    },
+    {
+      "id": "lightning-bolt",
+      "oracle_id": "4457ed35-7c10-48c8-9776-456485fdf070",
+      "name": "Lightning Bolt",
+      "mana_cost": "{R}",
+      "cmc": 1.0,
+      "type_line": "Instant",
+      "oracle_text": "Lightning Bolt deals 3 damage to any target.",
+      "keywords": [],
+      "colors": [
+        "R"
+      ],
+      "color_identity": [
+        "R"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/msc/806/lightning-bolt?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "removal"
+        ],
+        "required_traits": [
+          "targeted_removal",
+          "direct_damage"
+        ],
+        "rationale": "Any target includes players; primary Burn is absent from the chosen vocabulary."
+      }
+    },
+    {
+      "id": "beast-within",
+      "oracle_id": "7735eeba-693b-47e2-bd51-414379cf1016",
+      "name": "Beast Within",
+      "mana_cost": "{2}{G}",
+      "cmc": 3.0,
+      "type_line": "Instant",
+      "oracle_text": "Destroy target permanent. Its controller creates a 3/3 green Beast creature token.",
+      "keywords": [],
+      "colors": [
+        "G"
+      ],
+      "color_identity": [
+        "G"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/msc/169/beast-within?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "removal"
+        ],
+        "required_traits": [
+          "targeted_removal",
+          "token_creation"
+        ],
+        "rationale": "Permanent destruction gives its controller a Beast; Tokens need not be primary."
+      }
+    },
+    {
+      "id": "abrade",
+      "oracle_id": "f9db72dc-9a5b-48a4-a86e-7464d9a2166a",
+      "name": "Abrade",
+      "mana_cost": "{1}{R}",
+      "cmc": 2.0,
+      "type_line": "Instant",
+      "oracle_text": "Choose one —\n• Abrade deals 3 damage to target creature.\n• Destroy target artifact.",
+      "keywords": [],
+      "colors": [
+        "R"
+      ],
+      "color_identity": [
+        "R"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/soc/234/abrade?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "removal"
+        ],
+        "required_traits": [
+          "targeted_removal",
+          "creature_damage",
+          "artifact_destruction",
+          "modal"
+        ],
+        "rationale": "Damage targets a creature, not a player."
+      }
+    },
+    {
+      "id": "wrath-of-god",
+      "oracle_id": "34515b16-c9a4-4f98-8c77-416a7a523407",
+      "name": "Wrath of God",
+      "mana_cost": "{2}{W}{W}",
+      "cmc": 4.0,
+      "type_line": "Sorcery",
+      "oracle_text": "Destroy all creatures. They can't be regenerated.",
+      "keywords": [],
+      "colors": [
+        "W"
+      ],
+      "color_identity": [
+        "W"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/cmm/70/wrath-of-god?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "board_wipes"
+        ],
+        "required_traits": [
+          "mass_removal",
+          "destroy"
+        ],
+        "rationale": "All-creature destruction with no regeneration."
+      }
+    },
+    {
+      "id": "damnation",
+      "oracle_id": "d57a8f0b-7989-4db5-8756-6f2690097252",
+      "name": "Damnation",
+      "mana_cost": "{2}{B}{B}",
+      "cmc": 4.0,
+      "type_line": "Sorcery",
+      "oracle_text": "Destroy all creatures. They can't be regenerated.",
+      "keywords": [],
+      "colors": [
+        "B"
+      ],
+      "color_identity": [
+        "B"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/2x2/73/damnation?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "board_wipes"
+        ],
+        "required_traits": [
+          "mass_removal",
+          "destroy"
+        ],
+        "rationale": "All-creature destruction with no regeneration."
+      }
+    },
+    {
+      "id": "blasphemous-act",
+      "oracle_id": "7a2484a9-04fd-41a0-8224-610c1c07ed10",
+      "name": "Blasphemous Act",
+      "mana_cost": "{8}{R}",
+      "cmc": 9.0,
+      "type_line": "Sorcery",
+      "oracle_text": "This spell costs {1} less to cast for each creature on the battlefield.\nBlasphemous Act deals 13 damage to each creature.",
+      "keywords": [],
+      "colors": [
+        "R"
+      ],
+      "color_identity": [
+        "R"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/msc/163/blasphemous-act?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "board_wipes"
+        ],
+        "required_traits": [
+          "mass_removal",
+          "creature_damage"
+        ],
+        "rationale": "Damage to each creature, not players."
+      }
+    },
+    {
+      "id": "farewell",
+      "oracle_id": "4eb813fd-2d5a-4b02-8193-662681ef4e7d",
+      "name": "Farewell",
+      "mana_cost": "{4}{W}{W}",
+      "cmc": 6.0,
+      "type_line": "Sorcery",
+      "oracle_text": "Choose one or more —\n• Exile all artifacts.\n• Exile all creatures.\n• Exile all enchantments.\n• Exile all graveyards.",
+      "keywords": [],
+      "colors": [
+        "W"
+      ],
+      "color_identity": [
+        "W"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/mkc/64/farewell?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "board_wipes"
+        ],
+        "required_traits": [
+          "mass_removal",
+          "exile",
+          "modal"
+        ],
+        "rationale": "Selectable mass exile, not destroy or targeted removal."
+      }
+    },
+    {
+      "id": "austere-command",
+      "oracle_id": "09cc8709-fe10-472a-b05c-e89f3523018d",
+      "name": "Austere Command",
+      "mana_cost": "{4}{W}{W}",
+      "cmc": 6.0,
+      "type_line": "Sorcery",
+      "oracle_text": "Choose two —\n• Destroy all artifacts.\n• Destroy all enchantments.\n• Destroy all creatures with mana value 3 or less.\n• Destroy all creatures with mana value 4 or greater.",
+      "keywords": [],
+      "colors": [
+        "W"
+      ],
+      "color_identity": [
+        "W"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/msc/121/austere-command?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "board_wipes"
+        ],
+        "required_traits": [
+          "mass_removal",
+          "modal"
+        ],
+        "rationale": "Selectable mass destruction scopes."
+      }
+    },
+    {
+      "id": "heroic-intervention",
+      "oracle_id": "24882fa2-3fe9-4c1b-aa3d-0e6488b9db27",
+      "name": "Heroic Intervention",
+      "mana_cost": "{1}{G}",
+      "cmc": 2.0,
+      "type_line": "Instant",
+      "oracle_text": "Permanents you control gain hexproof and indestructible until end of turn.",
+      "keywords": [],
+      "colors": [
+        "G"
+      ],
+      "color_identity": [
+        "G"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/cmm/295/heroic-intervention?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "protection"
+        ],
+        "required_traits": [
+          "protection",
+          "hexproof",
+          "indestructible"
+        ],
+        "rationale": "Your permanents gain hexproof and indestructible for the turn."
+      }
+    },
+    {
+      "id": "snakeskin-veil",
+      "oracle_id": "1e6a24be-8281-41c1-a5ba-b68f0ef1d7b8",
+      "name": "Snakeskin Veil",
+      "mana_cost": "{G}",
+      "cmc": 1.0,
+      "type_line": "Instant",
+      "oracle_text": "Put a +1/+1 counter on target creature you control. It gains hexproof until end of turn. (It can't be the target of spells or abilities your opponents control.)",
+      "keywords": [],
+      "colors": [
+        "G"
+      ],
+      "color_identity": [
+        "G"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/tdm/159/snakeskin-veil?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "protection"
+        ],
+        "required_traits": [
+          "protection",
+          "counter_synergy"
+        ],
+        "rationale": "Counter plus hexproof on a target creature."
+      }
+    },
+    {
+      "id": "lightning-greaves",
+      "oracle_id": "ca204b66-8d0c-431a-8d34-282f7c2d17da",
+      "name": "Lightning Greaves",
+      "mana_cost": "{2}",
+      "cmc": 2.0,
+      "type_line": "Artifact — Equipment",
+      "oracle_text": "Equipped creature has haste and shroud. (It can't be the target of spells or abilities.)\nEquip {0}",
+      "keywords": [
+        "Equip"
+      ],
+      "colors": [],
+      "color_identity": [],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/msc/202/lightning-greaves?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "protection"
+        ],
+        "required_traits": [
+          "protection",
+          "haste",
+          "equipment"
+        ],
+        "rationale": "Shroud and haste; shroud restricts your targeting too."
+      }
+    },
+    {
+      "id": "reanimate",
+      "oracle_id": "a044474a-cd72-4e9d-bd8d-a08f2de9cdc0",
+      "name": "Reanimate",
+      "mana_cost": "{B}",
+      "cmc": 1.0,
+      "type_line": "Sorcery",
+      "oracle_text": "Put target creature card from a graveyard onto the battlefield under your control. You lose life equal to that card's mana value.",
+      "keywords": [],
+      "colors": [
+        "B"
+      ],
+      "color_identity": [
+        "B"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/dsc/155/reanimate?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "recursion"
+        ],
+        "required_traits": [
+          "graveyard_return"
+        ],
+        "rationale": "Oracle text or type directly supports recursion; no other strategy inferred."
+      }
+    },
+    {
+      "id": "eternal-witness",
+      "oracle_id": "30b24e8e-3b0e-4d8e-90f3-f66eb7c1858c",
+      "name": "Eternal Witness",
+      "mana_cost": "{1}{G}{G}",
+      "cmc": 3.0,
+      "type_line": "Creature — Human Shaman",
+      "oracle_text": "When this creature enters, you may return target card from your graveyard to your hand.",
+      "keywords": [],
+      "colors": [
+        "G"
+      ],
+      "color_identity": [
+        "G"
+      ],
+      "layout": "normal",
+      "power": "2",
+      "toughness": "1",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/cmm/286/eternal-witness?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "recursion"
+        ],
+        "required_traits": [
+          "graveyard_return"
+        ],
+        "rationale": "Oracle text or type directly supports recursion; no other strategy inferred."
+      }
+    },
+    {
+      "id": "regrowth",
+      "oracle_id": "e6e4a8bd-5c40-4654-8de1-0da9afed90fd",
+      "name": "Regrowth",
+      "mana_cost": "{1}{G}",
+      "cmc": 2.0,
+      "type_line": "Sorcery",
+      "oracle_text": "Return target card from your graveyard to your hand.",
+      "keywords": [],
+      "colors": [
+        "G"
+      ],
+      "color_identity": [
+        "G"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/mh1/175/regrowth?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "recursion"
+        ],
+        "required_traits": [
+          "graveyard_return"
+        ],
+        "rationale": "Oracle text or type directly supports recursion; no other strategy inferred."
+      }
+    },
+    {
+      "id": "unearth",
+      "oracle_id": "4e0b647a-6e1a-421b-bca9-8d5e346bda80",
+      "name": "Unearth",
+      "mana_cost": "{B}",
+      "cmc": 1.0,
+      "type_line": "Sorcery",
+      "oracle_text": "Return target creature card with mana value 3 or less from your graveyard to the battlefield.\nCycling {2} ({2}, Discard this card: Draw a card.)",
+      "keywords": [
+        "Cycling"
+      ],
+      "colors": [
+        "B"
+      ],
+      "color_identity": [
+        "B"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/2x2/96/unearth?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "recursion"
+        ],
+        "required_traits": [
+          "graveyard_return"
+        ],
+        "rationale": "Oracle text or type directly supports recursion; no other strategy inferred."
+      }
+    },
+    {
+      "id": "raise-the-alarm",
+      "oracle_id": "5b2364d7-a811-4595-a1b4-224c70555ffa",
+      "name": "Raise the Alarm",
+      "mana_cost": "{1}{W}",
+      "cmc": 2.0,
+      "type_line": "Instant",
+      "oracle_text": "Create two 1/1 white Soldier creature tokens.",
+      "keywords": [],
+      "colors": [
+        "W"
+      ],
+      "color_identity": [
+        "W"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/cmr/41/raise-the-alarm?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "tokens"
+        ],
+        "required_traits": [
+          "token_creation"
+        ],
+        "rationale": "Oracle text or type directly supports tokens; no other strategy inferred."
+      }
+    },
+    {
+      "id": "dragon-fodder",
+      "oracle_id": "d0d2c45b-b6e3-4999-bdab-976e8f0d6617",
+      "name": "Dragon Fodder",
+      "mana_cost": "{1}{R}",
+      "cmc": 2.0,
+      "type_line": "Sorcery",
+      "oracle_text": "Create two 1/1 red Goblin creature tokens.",
+      "keywords": [],
+      "colors": [
+        "R"
+      ],
+      "color_identity": [
+        "R"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/fdn/535/dragon-fodder?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "tokens"
+        ],
+        "required_traits": [
+          "token_creation"
+        ],
+        "rationale": "Oracle text or type directly supports tokens; no other strategy inferred."
+      }
+    },
+    {
+      "id": "krenko-mob-boss",
+      "oracle_id": "68418069-f615-40ef-ae0d-764192acae00",
+      "name": "Krenko, Mob Boss",
+      "mana_cost": "{2}{R}{R}",
+      "cmc": 4.0,
+      "type_line": "Legendary Creature — Goblin Warrior",
+      "oracle_text": "{T}: Create X 1/1 red Goblin creature tokens, where X is the number of Goblins you control.",
+      "keywords": [],
+      "colors": [
+        "R"
+      ],
+      "color_identity": [
+        "R"
+      ],
+      "layout": "normal",
+      "power": "3",
+      "toughness": "3",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/fdn/204/krenko-mob-boss?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "tokens"
+        ],
+        "required_traits": [
+          "creature",
+          "token_creation",
+          "goblin_synergy"
+        ],
+        "rationale": "Activated Goblin token creation scales with Goblin count."
+      }
+    },
+    {
+      "id": "avenger-of-zendikar",
+      "oracle_id": "4ba5b3f6-503b-43e6-b66e-4f8c55cffed7",
+      "name": "Avenger of Zendikar",
+      "mana_cost": "{5}{G}{G}",
+      "cmc": 7.0,
+      "type_line": "Creature — Elemental",
+      "oracle_text": "When this creature enters, create a 0/1 green Plant creature token for each land you control.\nLandfall — Whenever a land you control enters, you may put a +1/+1 counter on each Plant creature you control.",
+      "keywords": [
+        "Landfall"
+      ],
+      "colors": [
+        "G"
+      ],
+      "color_identity": [
+        "G"
+      ],
+      "layout": "normal",
+      "power": "5",
+      "toughness": "5",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/ecc/98/avenger-of-zendikar?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "tokens",
+          "creatures"
+        ],
+        "required_traits": [
+          "creature",
+          "token_creation",
+          "landfall",
+          "counter_synergy"
+        ],
+        "rationale": "Plant creation and landfall counters on Plants."
+      }
+    },
+    {
+      "id": "viscera-seer",
+      "oracle_id": "f82a4e85-526d-4456-b700-7760043a31be",
+      "name": "Viscera Seer",
+      "mana_cost": "{B}",
+      "cmc": 1.0,
+      "type_line": "Creature — Vampire Wizard",
+      "oracle_text": "Sacrifice a creature: Scry 1. (Look at the top card of your library. You may put that card on the bottom.)",
+      "keywords": [
+        "Scry"
+      ],
+      "colors": [
+        "B"
+      ],
+      "color_identity": [
+        "B"
+      ],
+      "layout": "normal",
+      "power": "1",
+      "toughness": "1",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/soc/229/viscera-seer?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "sacrifice"
+        ],
+        "required_traits": [
+          "sacrifice_outlet",
+          "card_selection"
+        ],
+        "rationale": "Repeatable creature sacrifice to scry, not card draw."
+      }
+    },
+    {
+      "id": "carrion-feeder",
+      "oracle_id": "a1cc5e37-b09a-4b7f-afd5-77c1c35aa425",
+      "name": "Carrion Feeder",
+      "mana_cost": "{B}",
+      "cmc": 1.0,
+      "type_line": "Creature — Zombie",
+      "oracle_text": "This creature can't block.\nSacrifice a creature: Put a +1/+1 counter on this creature.",
+      "keywords": [],
+      "colors": [
+        "B"
+      ],
+      "color_identity": [
+        "B"
+      ],
+      "layout": "normal",
+      "power": "1",
+      "toughness": "1",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/mh1/81/carrion-feeder?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "sacrifice",
+          "creatures"
+        ],
+        "required_traits": [
+          "creature",
+          "sacrifice_outlet",
+          "counter_synergy"
+        ],
+        "rationale": "Repeatable sacrifice places +1/+1 counters; cannot block."
+      }
+    },
+    {
+      "id": "ashnod-s-altar",
+      "oracle_id": "4d18bcba-a346-445e-a182-6cc30b7e066d",
+      "name": "Ashnod's Altar",
+      "mana_cost": "{3}",
+      "cmc": 3.0,
+      "type_line": "Artifact",
+      "oracle_text": "Sacrifice a creature: Add {C}{C}.",
+      "keywords": [],
+      "colors": [],
+      "color_identity": [],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/cmm/368/ashnods-altar?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "sacrifice",
+          "ramp"
+        ],
+        "required_traits": [
+          "sacrifice_outlet",
+          "mana_acceleration"
+        ],
+        "rationale": "Repeatable sacrifice produces mana."
+      }
+    },
+    {
+      "id": "scurry-oak",
+      "oracle_id": "eee6c02b-7d6a-4445-ad27-8b03176147d4",
+      "name": "Scurry Oak",
+      "mana_cost": "{2}{G}",
+      "cmc": 3.0,
+      "type_line": "Creature — Treefolk",
+      "oracle_text": "Evolve (Whenever a creature you control enters, if that creature has greater power or toughness than this creature, put a +1/+1 counter on this creature.)\nWhenever one or more +1/+1 counters are put on this creature, you may create a 1/1 green Squirrel creature token.",
+      "keywords": [
+        "Evolve"
+      ],
+      "colors": [
+        "G"
+      ],
+      "color_identity": [
+        "G"
+      ],
+      "layout": "normal",
+      "power": "1",
+      "toughness": "2",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/mh2/172/scurry-oak?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "tokens",
+          "creatures"
+        ],
+        "required_traits": [
+          "creature",
+          "counter_synergy",
+          "token_creation",
+          "evolve"
+        ],
+        "rationale": "Counter placement can create a green Squirrel; alone it does not establish an infinite loop."
+      }
+    },
+    {
+      "id": "ivy-lane-denizen",
+      "oracle_id": "a5da5ad6-4ed2-4041-a983-76a8c87fa109",
+      "name": "Ivy Lane Denizen",
+      "mana_cost": "{3}{G}",
+      "cmc": 4.0,
+      "type_line": "Creature — Elf Warrior",
+      "oracle_text": "Whenever another green creature you control enters, put a +1/+1 counter on target creature.",
+      "keywords": [],
+      "colors": [
+        "G"
+      ],
+      "color_identity": [
+        "G"
+      ],
+      "layout": "normal",
+      "power": "2",
+      "toughness": "3",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/clu/166/ivy-lane-denizen?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "creatures",
+          "other"
+        ],
+        "required_traits": [
+          "creature",
+          "counter_synergy",
+          "green_creature_entry"
+        ],
+        "rationale": "Another green creature entering can place a counter on a target creature."
+      }
+    },
+    {
+      "id": "conclave-mentor",
+      "oracle_id": "a2fe5937-212c-4e71-8d6e-f408b38100aa",
+      "name": "Conclave Mentor",
+      "mana_cost": "{G}{W}",
+      "cmc": 2.0,
+      "type_line": "Creature — Centaur Cleric",
+      "oracle_text": "If one or more +1/+1 counters would be put on a creature you control, that many plus one +1/+1 counters are put on that creature instead.\nWhen this creature dies, you gain life equal to its power.",
+      "keywords": [],
+      "colors": [
+        "G",
+        "W"
+      ],
+      "color_identity": [
+        "G",
+        "W"
+      ],
+      "layout": "normal",
+      "power": "2",
+      "toughness": "2",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/moc/320/conclave-mentor?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "creatures",
+          "other"
+        ],
+        "required_traits": [
+          "creature",
+          "counter_synergy",
+          "counter_amplification",
+          "lifegain"
+        ],
+        "rationale": "Counter amplification plus death-triggered lifegain."
+      }
+    },
+    {
+      "id": "grizzly-bears",
+      "oracle_id": "14c8f55d-d177-4c25-a931-ebeb9e6062a0",
+      "name": "Grizzly Bears",
+      "mana_cost": "{1}{G}",
+      "cmc": 2.0,
+      "type_line": "Creature — Bear",
+      "oracle_text": "",
+      "keywords": [],
+      "colors": [
+        "G"
+      ],
+      "color_identity": [
+        "G"
+      ],
+      "layout": "normal",
+      "power": "2",
+      "toughness": "2",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/10e/268/grizzly-bears?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "creatures"
+        ],
+        "required_traits": [
+          "creature"
+        ],
+        "rationale": "Plain creature fallback without functional strategy text."
+      }
+    },
+    {
+      "id": "delver-of-secrets",
+      "oracle_id": "edd531b9-f615-4399-8c8c-1c5e18c4acbf",
+      "name": "Delver of Secrets // Insectile Aberration",
+      "cmc": 1.0,
+      "type_line": "Creature — Human Wizard // Creature — Human Insect",
+      "keywords": [
+        "Flying",
+        "Transform"
+      ],
+      "color_identity": [
+        "U"
+      ],
+      "layout": "transform",
+      "oracle_text": "",
+      "card_faces": [
+        {
+          "name": "Delver of Secrets",
+          "mana_cost": "{U}",
+          "type_line": "Creature — Human Wizard",
+          "oracle_text": "At the beginning of your upkeep, look at the top card of your library. You may reveal that card. If an instant or sorcery card is revealed this way, transform this creature.",
+          "colors": [
+            "U"
+          ],
+          "power": "1",
+          "toughness": "1"
+        },
+        {
+          "name": "Insectile Aberration",
+          "mana_cost": "",
+          "type_line": "Creature — Human Insect",
+          "oracle_text": "Flying",
+          "colors": [
+            "U"
+          ],
+          "color_indicator": [
+            "U"
+          ],
+          "power": "3",
+          "toughness": "2"
+        }
+      ],
+      "source_url": "https://scryfall.com/card/inr/60/delver-of-secrets-insectile-aberration?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "creatures"
+        ],
+        "required_traits": [
+          "creature",
+          "transform",
+          "spell_synergy",
+          "flying_back_face"
+        ],
+        "rationale": "Instant/sorcery top-card check transforms to a flying reverse face."
+      }
+    },
+    {
+      "id": "monastery-swiftspear",
+      "oracle_id": "dafd2713-d1bc-474b-b390-d2ff20b5375e",
+      "name": "Monastery Swiftspear",
+      "mana_cost": "{R}",
+      "cmc": 1.0,
+      "type_line": "Creature — Human Monk",
+      "oracle_text": "Haste\nProwess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.)",
+      "keywords": [
+        "Prowess",
+        "Haste"
+      ],
+      "colors": [
+        "R"
+      ],
+      "color_identity": [
+        "R"
+      ],
+      "layout": "normal",
+      "power": "1",
+      "toughness": "2",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/bro/144/monastery-swiftspear?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "creatures"
+        ],
+        "required_traits": [
+          "creature",
+          "haste",
+          "prowess"
+        ],
+        "rationale": "Cheap haste/prowess threat without inherent direct damage."
+      }
+    },
+    {
+      "id": "goblin-guide",
+      "oracle_id": "51d9564b-44fc-4de1-9119-09d7b4089378",
+      "name": "Goblin Guide",
+      "mana_cost": "{R}",
+      "cmc": 1.0,
+      "type_line": "Creature — Goblin Scout",
+      "oracle_text": "Haste\nWhenever this creature attacks, defending player reveals the top card of their library. If it's a land card, that player puts it into their hand.",
+      "keywords": [
+        "Haste"
+      ],
+      "colors": [
+        "R"
+      ],
+      "color_identity": [
+        "R"
+      ],
+      "layout": "normal",
+      "power": "2",
+      "toughness": "2",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/2xm/127/goblin-guide?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "creatures"
+        ],
+        "required_traits": [
+          "creature",
+          "haste"
+        ],
+        "rationale": "Cheap haste attacker; attack trigger can give defender a land."
+      }
+    },
+    {
+      "id": "hardened-scales",
+      "oracle_id": "a1f3da21-af6d-450e-bf0b-985d158418e6",
+      "name": "Hardened Scales",
+      "mana_cost": "{G}",
+      "cmc": 1.0,
+      "type_line": "Enchantment",
+      "oracle_text": "If one or more +1/+1 counters would be put on a creature you control, that many plus one +1/+1 counters are put on it instead.",
+      "keywords": [],
+      "colors": [
+        "G"
+      ],
+      "color_identity": [
+        "G"
+      ],
+      "layout": "normal",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/soc/272/hardened-scales?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "enchantments",
+          "other"
+        ],
+        "required_traits": [
+          "enchantment",
+          "counter_synergy",
+          "counter_amplification"
+        ],
+        "rationale": "Adds an extra counter when +1/+1 counters would be placed on your creature."
+      }
+    },
+    {
+      "id": "ornithopter",
+      "oracle_id": "a3a98bc9-caa0-49b7-951c-fe4e4f54e4ba",
+      "name": "Ornithopter",
+      "mana_cost": "{0}",
+      "cmc": 0.0,
+      "type_line": "Artifact Creature — Thopter",
+      "oracle_text": "Flying",
+      "keywords": [
+        "Flying"
+      ],
+      "colors": [],
+      "color_identity": [],
+      "layout": "normal",
+      "power": "0",
+      "toughness": "2",
+      "card_faces": [],
+      "source_url": "https://scryfall.com/card/dmr/233/ornithopter?utm_source=api",
+      "expected": {
+        "acceptable_primary": [
+          "creatures",
+          "artifacts"
+        ],
+        "required_traits": [
+          "creature",
+          "artifact",
+          "flying"
+        ],
+        "rationale": "Zero-mana artifact creature without inherent mana production."
+      }
+    }
+  ],
+  "decks": [
+    {
+      "id": "d01",
+      "cards": [
+        {
+          "id": "island",
+          "quantity": 16
+        },
+        {
+          "id": "plains",
+          "quantity": 8
+        },
+        {
+          "id": "counterspell",
+          "quantity": 4
+        },
+        {
+          "id": "negate",
+          "quantity": 4
+        },
+        {
+          "id": "opt",
+          "quantity": 4
+        },
+        {
+          "id": "divination",
+          "quantity": 4
+        },
+        {
+          "id": "swords-to-plowshares",
+          "quantity": 4
+        },
+        {
+          "id": "wrath-of-god",
+          "quantity": 4
+        },
+        {
+          "id": "cryptic-command",
+          "quantity": 4
+        },
+        {
+          "id": "archmage-s-charm",
+          "quantity": 4
+        },
+        {
+          "id": "raise-the-alarm",
+          "quantity": 4
+        }
+      ],
+      "expected": {
+        "required_categories": [
+          "control"
+        ],
+        "acceptable_categories": [
+          "control",
+          "tokens"
+        ],
+        "forbidden_categories": [],
+        "rationale": "Countermagic, draw, removal, sweepers and token finishers support Control."
+      }
+    },
+    {
+      "id": "d02",
+      "cards": [
+        {
+          "id": "mountain",
+          "quantity": 24
+        },
+        {
+          "id": "lightning-bolt",
+          "quantity": 4
+        },
+        {
+          "id": "abrade",
+          "quantity": 4
+        },
+        {
+          "id": "dragon-fodder",
+          "quantity": 4
+        },
+        {
+          "id": "krenko-mob-boss",
+          "quantity": 4
+        },
+        {
+          "id": "monastery-swiftspear",
+          "quantity": 4
+        },
+        {
+          "id": "goblin-guide",
+          "quantity": 4
+        },
+        {
+          "id": "ornithopter",
+          "quantity": 4
+        },
+        {
+          "id": "ashnod-s-altar",
+          "quantity": 4
+        },
+        {
+          "id": "blasphemous-act",
+          "quantity": 4
+        }
+      ],
+      "expected": {
+        "required_categories": [
+          "aggro"
+        ],
+        "acceptable_categories": [
+          "aggro",
+          "burn",
+          "tokens"
+        ],
+        "forbidden_categories": [],
+        "rationale": "Cheap haste pressure and Bolt alongside token production. Burn is secondary because only Bolt directly damages players."
+      }
+    },
+    {
+      "id": "d03",
+      "cards": [
+        {
+          "id": "forest",
+          "quantity": 24
+        },
+        {
+          "id": "llanowar-elves",
+          "quantity": 4
+        },
+        {
+          "id": "birds-of-paradise",
+          "quantity": 4
+        },
+        {
+          "id": "sol-ring",
+          "quantity": 4
+        },
+        {
+          "id": "rampant-growth",
+          "quantity": 4
+        },
+        {
+          "id": "cultivate",
+          "quantity": 4
+        },
+        {
+          "id": "harmonize",
+          "quantity": 4
+        },
+        {
+          "id": "avenger-of-zendikar",
+          "quantity": 4
+        },
+        {
+          "id": "beast-within",
+          "quantity": 4
+        },
+        {
+          "id": "return-of-the-wildspeaker",
+          "quantity": 4
+        }
+      ],
+      "expected": {
+        "required_categories": [
+          "ramp"
+        ],
+        "acceptable_categories": [
+          "ramp",
+          "tokens",
+          "counter_theme",
+          "midrange"
+        ],
+        "forbidden_categories": [],
+        "rationale": "Acceleration supports an expensive token finisher; landfall counters are secondary."
+      }
+    },
+    {
+      "id": "d04",
+      "cards": [
+        {
+          "id": "forest",
+          "quantity": 12
+        },
+        {
+          "id": "plains",
+          "quantity": 12
+        },
+        {
+          "id": "scurry-oak",
+          "quantity": 4
+        },
+        {
+          "id": "hardened-scales",
+          "quantity": 4
+        },
+        {
+          "id": "conclave-mentor",
+          "quantity": 4
+        },
+        {
+          "id": "snakeskin-veil",
+          "quantity": 4
+        },
+        {
+          "id": "heroic-intervention",
+          "quantity": 4
+        },
+        {
+          "id": "llanowar-elves",
+          "quantity": 4
+        },
+        {
+          "id": "birds-of-paradise",
+          "quantity": 4
+        },
+        {
+          "id": "cultivate",
+          "quantity": 4
+        },
+        {
+          "id": "harmonize",
+          "quantity": 4
+        }
+      ],
+      "expected": {
+        "required_categories": [
+          "counter_theme"
+        ],
+        "acceptable_categories": [
+          "counter_theme",
+          "ramp",
+          "tokens",
+          "midrange"
+        ],
+        "forbidden_categories": [
+          "infinite_counters",
+          "combo"
+        ],
+        "rationale": "Counter amplification and Oak tokens without Denizen or another identified self-sustaining re-trigger in this complete list."
+      }
+    },
+    {
+      "id": "d05",
+      "cards": [
+        {
+          "id": "forest",
+          "quantity": 12
+        },
+        {
+          "id": "plains",
+          "quantity": 12
+        },
+        {
+          "id": "scurry-oak",
+          "quantity": 4
+        },
+        {
+          "id": "hardened-scales",
+          "quantity": 4
+        },
+        {
+          "id": "conclave-mentor",
+          "quantity": 4
+        },
+        {
+          "id": "snakeskin-veil",
+          "quantity": 4
+        },
+        {
+          "id": "ivy-lane-denizen",
+          "quantity": 4
+        },
+        {
+          "id": "llanowar-elves",
+          "quantity": 4
+        },
+        {
+          "id": "birds-of-paradise",
+          "quantity": 4
+        },
+        {
+          "id": "cultivate",
+          "quantity": 4
+        },
+        {
+          "id": "harmonize",
+          "quantity": 4
+        }
+      ],
+      "expected": {
+        "required_categories": [
+          "counter_theme",
+          "infinite_counters",
+          "combo"
+        ],
+        "acceptable_categories": [
+          "counter_theme",
+          "infinite_counters",
+          "combo",
+          "ramp",
+          "tokens"
+        ],
+        "forbidden_categories": [],
+        "rationale": "Denizen counter on Oak creates a green Squirrel, which re-triggers Denizen. Requires both permanents, an initial trigger, choosing to continue and no disruption; not inevitable victory."
+      }
+    },
+    {
+      "id": "d06",
+      "cards": [
+        {
+          "id": "swamp",
+          "quantity": 12
+        },
+        {
+          "id": "forest",
+          "quantity": 12
+        },
+        {
+          "id": "viscera-seer",
+          "quantity": 4
+        },
+        {
+          "id": "carrion-feeder",
+          "quantity": 4
+        },
+        {
+          "id": "ashnod-s-altar",
+          "quantity": 4
+        },
+        {
+          "id": "village-rites",
+          "quantity": 4
+        },
+        {
+          "id": "reanimate",
+          "quantity": 4
+        },
+        {
+          "id": "unearth",
+          "quantity": 4
+        },
+        {
+          "id": "eternal-witness",
+          "quantity": 4
+        },
+        {
+          "id": "regrowth",
+          "quantity": 4
+        },
+        {
+          "id": "beast-within",
+          "quantity": 4
+        }
+      ],
+      "expected": {
+        "required_categories": [
+          "midrange"
+        ],
+        "acceptable_categories": [
+          "midrange",
+          "counter_theme"
+        ],
+        "forbidden_categories": [
+          "infinite_counters",
+          "combo"
+        ],
+        "rationale": "Sacrifice, draw and graveyard return form a resource-recycling value shell. No specifically supported self-sustaining loop."
+      }
+    }
+  ],
+  "fixture_revision": 2,
+  "fixture_corrections": [
+    {
+      "revision": 2,
+      "previous_sha256": "032aaf1c89e6e4a1afdd94b0ba3fcef882988f3dd97dc4a7331a8d2e6b07da8d",
+      "before_full_evaluation": true,
+      "changed_card_ids": [
+        "llanowar-elves"
+      ],
+      "reason": "Exclude token, double-faced token, emblem and art-series records from exact-name source resolution. Llanowar Elves now uses the playable FDN card with {G}, mana value 1 and its own Oracle identity. Independent expectations unchanged. Initial smoke inference covered Plains and Island only."
+    }
+  ]
+}

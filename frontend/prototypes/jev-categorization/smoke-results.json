@@ -1,0 +1,955 @@
+{
+  "schema_version": 1,
+  "model": "jev-1.13.0",
+  "fixture_sha256": "032aaf1c89e6e4a1afdd94b0ba3fcef882988f3dd97dc4a7331a8d2e6b07da8d",
+  "started_at": "2026-10-06T20:54:29.172Z",
+  "price_usd_per_million_input": 0.042,
+  "budget_usd": 4,
+  "requests": [
+    {
+      "kind": "card",
+      "id": "plains",
+      "attempt": 1,
+      "state": {
+        "name": "Plains",
+        "mana_cost": "",
+        "cmc": 0,
+        "type_line": "Basic Land — Plains",
+        "oracle_text": "({T}: Add {W}.)",
+        "keywords": [],
+        "colors": [],
+        "color_identity": [
+          "W"
+        ],
+        "layout": "normal",
+        "card_faces": []
+      },
+      "questions": {
+        "primary": {
+          "type": "choice",
+          "instructions": "Classify this Magic: The Gathering card into exactly one useful deck entry category from the supplied criteria. Read all card faces. Prefer its central functional role over its card type, except that a land stays Lands. For multi-purpose cards choose a defensible useful primary; do not invent deck context.",
+          "criteria": {
+            "lands": "A land card, including a land with other abilities. Lands stay Lands rather than Ramp.",
+            "ramp": "Mana acceleration: mana rocks, mana creatures, land acceleration, extra land drops or temporary mana. Ordinary land mana production alone is not Ramp.",
+            "draw": "Drawing cards or selecting cards from the library as a main function.",
+            "counterspells": "Countering spells on the stack as a main function.",
+            "removal": "Targeted removal: destroying, exiling, bouncing or taking control of opposing permanents, or targeted damage. Mass removal belongs to Board wipes.",
+            "board_wipes": "Mass removal of many permanents or creatures at once, rather than an ordinary targeted removal spell.",
+            "protection": "Protecting your permanents from removal or combat, through hexproof, indestructible, protection, regeneration or similar effects.",
+            "recursion": "Returning cards from your graveyard to hand, battlefield or another usable zone.",
+            "tokens": "Creating tokens as a main function. Do not prefer this for a removal spell that compensates its target controller with a token.",
+            "sacrifice": "A reusable sacrifice outlet, or a spell whose central function is converting your sacrificed permanent into a resource.",
+            "creatures": "A creature that fits none of the more specific functional categories well. This is a fallback, not the default for functional creatures.",
+            "artifacts": "An artifact that fits none of the functional categories well. Artifact creatures may instead use Creatures.",
+            "enchantments": "An enchantment that fits none of the functional categories well.",
+            "other": "A card that fits none of these categories well, for example a counter-amplification enchantment or a team pump spell without another fitting function."
+          }
+        },
+        "ramp": {
+          "type": "noul",
+          "instructions": "Does the supplied Magic: The Gathering card have this trait? Read every face and every mode. Evaluate only the trait in the criteria, independently of its primary category.",
+          "criteria": {
+            "true": "The card increases available mana through acceleration, additional land drops or temporary mana. Ordinary land mana production alone does not count.",
+            "false": "The stated condition is not supported by the supplied Oracle text and composition. Do not assume unlisted effects or cards."
+          }
+        },
+        "draw": {
+          "type": "noul",
+          "instructions": "Does the supplied Magic: The Gathering card have this trait? Read every face and every mode. Evaluate only the trait in the criteria, independently of its primary category.",
+          "criteria": {
+            "true": "The card can explicitly draw cards or select cards from the library.",
+            "false": "The stated condition is not supported by the supplied Oracle text and composition. Do not assume unlisted effects or cards."
+          }
+        },
+        "counterspells": {
+          "type": "noul",
+          "instructions": "Does the supplied Magic: The Gathering card have this trait? Read every face and every mode. Evaluate only the trait in the criteria, independently of its primary category.",
+          "criteria": {
+            "true": "The card can counter a spell on the stack.",
+            "false": "The stated condition is not supported by the supplied Oracle text and composition. Do not assume unlisted effects or cards."
+          }
+        },
+        "removal": {
+          "type": "noul",
+          "instructions": "Does the supplied Magic: The Gathering card have this trait? Read every face and every mode. Evaluate only the trait in the criteria, independently of its primary category.",
+          "criteria": {
+            "true": "The card can target and remove, bounce, gain control of or damage an opposing permanent. Do not count mass-only removal here.",
+            "false": "The stated condition is not supported by the supplied Oracle text and composition. Do not assume unlisted effects or cards."
+          }
+        },
+        "board_wipes": {
+          "type": "noul",
+          "instructions": "Does the supplied Magic: The Gathering card have this trait? Read every face and every mode. Evaluate only the trait in the criteria, independently of its primary category.",
+          "criteria": {
+            "true": "The card can remove or damage many permanents or creatures at once.",
+            "false": "The stated condition is not supported by the supplied Oracle text and composition. Do not assume unlisted effects or cards."
+          }
+        },
+        "protection": {
+          "type": "noul",
+          "instructions": "Does the supplied Magic: The Gathering card have this trait? Read every face and every mode. Evaluate only the trait in the criteria, independently of its primary category.",
+          "criteria": {
+            "true": "The card protects your permanents with hexproof, indestructible, protection, regeneration or a similar protective effect.",
+            "false": "The stated condition is not supported by the supplied Oracle text and composition. Do not assume unlisted effects or cards."
+          }
+        },
+        "recursion": {
+          "type": "noul",
+          "instructions": "Does the supplied Magic: The Gathering card have this trait? Read every face and every mode. Evaluate only the trait in the criteria, independently of its primary category.",
+          "criteria": {
+            "true": "The card returns cards from your graveyard to hand, battlefield or another usable zone.",
+            "false": "The stated condition is not supported by the supplied Oracle text and composition. Do not assume unlisted effects or cards."
+          }
+        },
+        "tokens": {
+          "type": "noul",
+          "instructions": "Does the supplied Magic: The Gathering card have this trait? Read every face and every mode. Evaluate only the trait in the criteria, independently of its primary category.",
+          "criteria": {
+            "true": "The card creates tokens, including conditional token creation and tokens given to an opponent. This is a trait, not a primary recommendation.",
+            "false": "The stated condition is not supported by the supplied Oracle text and composition. Do not assume unlisted effects or cards."
+          }
+        },
+        "sacrifice": {
+          "type": "noul",
+          "instructions": "Does the supplied Magic: The Gathering card have this trait? Read every face and every mode. Evaluate only the trait in the criteria, independently of its primary category.",
+          "criteria": {
+            "true": "The card lets you sacrifice your own permanents as a cost or effect.",
+            "false": "The stated condition is not supported by the supplied Oracle text and composition. Do not assume unlisted effects or cards."
+          }
+        },
+        "counter_theme": {
+          "type": "noul",
+          "instructions": "Does the supplied Magic: The Gathering card have this trait? Read every face and every mode. Evaluate only the trait in the criteria, independently of its primary category.",
+          "criteria": {
+            "true": "The card places, moves or amplifies counters on permanents or explicitly rewards them. Countering a spell is unrelated.",
+            "false": "The stated condition is not supported by the supplied Oracle text and composition. Do not assume unlisted effects or cards."
+          }
+        }
+      },
+      "status": "ok",
+      "estimated_usd": 0.00007942200000000001,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 1891,
+        "output_tokens": 312
+      },
+      "returned_model": "jev-1.13.0",
+      "answers": {
+        "primary": {
+          "type": "choice",
+          "choice": "lands",
+          "confidence": 1,
+          "probabilities": {
+            "lands": 1,
+            "ramp": 0,
+            "draw": 0,
+            "counterspells": 0,
+            "removal": 0,
+            "board_wipes": 0,
+            "protection": 0,
+            "recursion": 0,
+            "tokens": 0,
+            "sacrifice": 0,
+            "creatures": 0,
+            "artifacts": 0,
+            "enchantments": 0,
+            "other": 0
+          }
+        },
+        "ramp": {
+          "type": "noul",
+          "noul": 0.04
+        },
+        "draw": {
+          "type": "noul",
+          "noul": 0.02
+        },
+        "counterspells": {
+          "type": "noul",
+          "noul": 0.02
+        },
+        "removal": {
+          "type": "noul",
+          "noul": 0.03
+        },
+        "board_wipes": {
+          "type": "noul",
+          "noul": 0.02
+        },
+        "protection": {
+          "type": "noul",
+          "noul": 0.02
+        },
+        "recursion": {
+          "type": "noul",
+          "noul": 0.02
+        },
+        "tokens": {
+          "type": "noul",
+          "noul": 0.03
+        },
+        "sacrifice": {
+          "type": "noul",
+          "noul": 0.03
+        },
+        "counter_theme": {
+          "type": "noul",
+          "noul": 0.04
+        }
+      },
+      "elapsed_ms": 443
+    },
+    {
+      "kind": "card",
+      "id": "island",
+      "attempt": 1,
+      "state": {
+        "name": "Island",
+        "mana_cost": "",
+        "cmc": 0,
+        "type_line": "Basic Land — Island",
+        "oracle_text": "({T}: Add {U}.)",
+        "keywords": [],
+        "colors": [],
+        "color_identity": [
+          "U"
+        ],
+        "layout": "normal",
+        "card_faces": []
+      },
+      "questions": {
+        "primary": {
+          "type": "choice",
+          "instructions": "Classify this Magic: The Gathering card into exactly one useful deck entry category from the supplied criteria. Read all card faces. Prefer its central functional role over its card type, except that a land stays Lands. For multi-purpose cards choose a defensible useful primary; do not invent deck context.",
+          "criteria": {
+            "lands": "A land card, including a land with other abilities. Lands stay Lands rather than Ramp.",
+            "ramp": "Mana acceleration: mana rocks, mana creatures, land acceleration, extra land drops or temporary mana. Ordinary land mana production alone is not Ramp.",
+            "draw": "Drawing cards or selecting cards from the library as a main function.",
+            "counterspells": "Countering spells on the stack as a main function.",
+            "removal": "Targeted removal: destroying, exiling, bouncing or taking control of opposing permanents, or targeted damage. Mass removal belongs to Board wipes.",
+            "board_wipes": "Mass removal of many permanents or creatures at once, rather than an ordinary targeted removal spell.",
+            "protection": "Protecting your permanents from removal or combat, through hexproof, indestructible, protection, regeneration or similar effects.",
+            "recursion": "Returning cards from your graveyard to hand, battlefield or another usable zone.",
+            "tokens": "Creating tokens as a main function. Do not prefer this for a removal spell that compensates its target controller with a token.",
+            "sacrifice": "A reusable sacrifice outlet, or a spell whose central function is converting your sacrificed permanent into a resource.",
+            "creatures": "A creature that fits none of the more specific functional categories well. This is a fallback, not the default for functional creatures.",
+            "artifacts": "An artifact that fits none of the functional categories well. Artifact creatures may instead use Creatures.",
+            "enchantments": "An enchantment that fits none of the functional categories well.",
+            "other": "A card that fits none of these categories well, for example a counter-amplification enchantment or a team pump spell without another fitting function."
+          }
+        },
+        "ramp": {
+          "type": "noul",
+          "instructions": "Does the supplied Magic: The Gathering card have this trait? Read every face and every mode. Evaluate only the trait in the criteria, independently of its primary category.",
+          "criteria": {
+            "true": "The card increases available mana through acceleration, additional land drops or temporary mana. Ordinary land mana production alone does not count.",
+            "false": "The stated condition is not supported by the supplied Oracle text and composition. Do not assume unlisted effects or cards."
+          }
+        },
+        "draw": {
+          "type": "noul",
+          "instructions": "Does the supplied Magic: The Gathering card have this trait? Read every face and every mode. Evaluate only the trait in the criteria, independently of its primary category.",
+          "criteria": {
+            "true": "The card can explicitly draw cards or select cards from the library.",
+            "false": "The stated condition is not supported by the supplied Oracle text and composition. Do not assume unlisted effects or cards."
+          }
+        },
+        "counterspells": {
+          "type": "noul",
+          "instructions": "Does the supplied Magic: The Gathering card have this trait? Read every face and every mode. Evaluate only the trait in the criteria, independently of its primary category.",
+          "criteria": {
+            "true": "The card can counter a spell on the stack.",
+            "false": "The stated condition is not supported by the supplied Oracle text and composition. Do not assume unlisted effects or cards."
+          }
+        },
+        "removal": {
+          "type": "noul",
+          "instructions": "Does the supplied Magic: The Gathering card have this trait? Read every face and every mode. Evaluate only the trait in the criteria, independently of its primary category.",
+          "criteria": {
+            "true": "The card can target and remove, bounce, gain control of or damage an opposing permanent. Do not count mass-only removal here.",
+            "false": "The stated condition is not supported by the supplied Oracle text and composition. Do not assume unlisted effects or cards."
+          }
+        },
+        "board_wipes": {
+          "type": "noul",
+          "instructions": "Does the supplied Magic: The Gathering card have this trait? Read every face and every mode. Evaluate only the trait in the criteria, independently of its primary category.",
+          "criteria": {
+            "true": "The card can remove or damage many permanents or creatures at once.",
+            "false": "The stated condition is not supported by the supplied Oracle text and composition. Do not assume unlisted effects or cards."
+          }
+        },
+        "protection": {
+          "type": "noul",
+          "instructions": "Does the supplied Magic: The Gathering card have this trait? Read every face and every mode. Evaluate only the trait in the criteria, independently of its primary category.",
+          "criteria": {
+            "true": "The card protects your permanents with hexproof, indestructible, protection, regeneration or a similar protective effect.",
+            "false": "The stated condition is not supported by the supplied Oracle text and composition. Do not assume unlisted effects or cards."
+          }
+        },
+        "recursion": {
+          "type": "noul",
+          "instructions": "Does the supplied Magic: The Gathering card have this trait? Read every face and every mode. Evaluate only the trait in the criteria, independently of its primary category.",
+          "criteria": {
+            "true": "The card returns cards from your graveyard to hand, battlefield or another usable zone.",
+            "false": "The stated condition is not supported by the supplied Oracle text and composition. Do not assume unlisted effects or cards."
+          }
+        },
+        "tokens": {
+          "type": "noul",
+          "instructions": "Does the supplied Magic: The Gathering card have this trait? Read every face and every mode. Evaluate only the trait in the criteria, independently of its primary category.",
+          "criteria": {
+            "true": "The card creates tokens, including conditional token creation and tokens given to an opponent. This is a trait, not a primary recommendation.",
+            "false": "The stated condition is not supported by the supplied Oracle text and composition. Do not assume unlisted effects or cards."
+          }
+        },
+        "sacrifice": {
+          "type": "noul",
+          "instructions": "Does the supplied Magic: The Gathering card have this trait? Read every face and every mode. Evaluate only the trait in the criteria, independently of its primary category.",
+          "criteria": {
+            "true": "The card lets you sacrifice your own permanents as a cost or effect.",
+            "false": "The stated condition is not supported by the supplied Oracle text and composition. Do not assume unlisted effects or cards."
+          }
+        },
+        "counter_theme": {
+          "type": "noul",
+          "instructions": "Does the supplied Magic: The Gathering card have this trait? Read every face and every mode. Evaluate only the trait in the criteria, independently of its primary category.",
+          "criteria": {
+            "true": "The card places, moves or amplifies counters on permanents or explicitly rewards them. Countering a spell is unrelated.",
+            "false": "The stated condition is not supported by the supplied Oracle text and composition. Do not assume unlisted effects or cards."
+          }
+        }
+      },
+      "status": "ok",
+      "estimated_usd": 0.00007942200000000001,
+      "http_status": 200,
+      "usage": {
+        "input_tokens": 1891,
+        "output_tokens": 312
+      },
+      "returned_model": "jev-1.13.0",
+      "answers": {
+        "primary": {
+          "type": "choice",
+          "choice": "lands",
+          "confidence": 1,
+          "probabilities": {
+            "counterspells": 0,
+            "draw": 0,
+            "creatures": 0,
+            "board_wipes": 0,
+            "tokens": 0,
+            "sacrifice": 0,
+            "ramp": 0,
+            "other": 0,
+            "removal": 0,
+            "protection": 0,
+            "enchantments": 0,
+            "recursion": 0,
+            "artifacts": 0,
+            "lands": 1
+          }
+        },
+        "ramp": {
+          "type": "noul",
+          "noul": 0.05
+        },
+        "draw": {
+          "type": "noul",
+          "noul": 0.03
+        },
+        "counterspells": {
+          "type": "noul",
+          "noul": 0.02
+        },
+        "removal": {
+          "type": "noul",
+          "noul": 0.03
+        },
+        "board_wipes": {
+          "type": "noul",
+          "noul": 0.02
+        },
+        "protection": {
+          "type": "noul",
+          "noul": 0.02
+        },
+        "recursion": {
+          "type": "noul",
+          "noul": 0.02
+        },
+        "tokens": {
+          "type": "noul",
+          "noul": 0.03
+        },
+        "sacrifice": {
+          "type": "noul",
+          "noul": 0.02
+        },
+        "counter_theme": {
+          "type": "noul",
+          "noul": 0.04
+        }
+      },
+      "elapsed_ms": 270
+    }
+  ],
+  "baseline": {
+    "plains": {
+      "primary": "lands",
+      "scores": {},
+      "matched_traits": []
+    },
+    "island": {
+      "primary": "lands",
+      "scores": {},
+      "matched_traits": []
+    },
+    "swamp": {
+      "primary": "lands",
+      "scores": {},
+      "matched_traits": []
+    },
+    "mountain": {
+      "primary": "lands",
+      "scores": {},
+      "matched_traits": []
+    },
+    "forest": {
+      "primary": "lands",
+      "scores": {},
+      "matched_traits": []
+    },
+    "command-tower": {
+      "primary": "lands",
+      "scores": {},
+      "matched_traits": []
+    },
+    "llanowar-reborn": {
+      "primary": "lands",
+      "scores": {},
+      "matched_traits": []
+    },
+    "sol-ring": {
+      "primary": "ramp",
+      "scores": {
+        "ramp": 3
+      },
+      "matched_traits": [
+        "ramp"
+      ]
+    },
+    "rampant-growth": {
+      "primary": "ramp",
+      "scores": {
+        "ramp": 3
+      },
+      "matched_traits": [
+        "ramp"
+      ]
+    },
+    "cultivate": {
+      "primary": "ramp",
+      "scores": {
+        "ramp": 1
+      },
+      "matched_traits": [
+        "ramp"
+      ]
+    },
+    "llanowar-elves": {
+      "primary": "creatures",
+      "scores": {},
+      "matched_traits": []
+    },
+    "birds-of-paradise": {
+      "primary": "ramp",
+      "scores": {
+        "ramp": 1
+      },
+      "matched_traits": [
+        "ramp"
+      ]
+    },
+    "dark-ritual": {
+      "primary": "ramp",
+      "scores": {
+        "ramp": 3
+      },
+      "matched_traits": [
+        "ramp"
+      ]
+    },
+    "divination": {
+      "primary": "draw",
+      "scores": {
+        "draw": 1
+      },
+      "matched_traits": [
+        "draw"
+      ]
+    },
+    "opt": {
+      "primary": "draw",
+      "scores": {
+        "draw": 1
+      },
+      "matched_traits": [
+        "draw"
+      ]
+    },
+    "harmonize": {
+      "primary": "draw",
+      "scores": {
+        "draw": 1
+      },
+      "matched_traits": [
+        "draw"
+      ]
+    },
+    "sign-in-blood": {
+      "primary": "draw",
+      "scores": {
+        "draw": 1
+      },
+      "matched_traits": [
+        "draw"
+      ]
+    },
+    "rhystic-study": {
+      "primary": "draw",
+      "scores": {
+        "draw": 1
+      },
+      "matched_traits": [
+        "draw"
+      ]
+    },
+    "village-rites": {
+      "primary": "draw",
+      "scores": {
+        "draw": 1,
+        "sacrifice": 1
+      },
+      "matched_traits": [
+        "draw",
+        "sacrifice"
+      ]
+    },
+    "growth-spiral": {
+      "primary": "ramp",
+      "scores": {
+        "ramp": 1,
+        "draw": 1
+      },
+      "matched_traits": [
+        "ramp",
+        "draw"
+      ]
+    },
+    "return-of-the-wildspeaker": {
+      "primary": "draw",
+      "scores": {
+        "draw": 1
+      },
+      "matched_traits": [
+        "draw"
+      ]
+    },
+    "counterspell": {
+      "primary": "counterspells",
+      "scores": {
+        "counterspells": 3
+      },
+      "matched_traits": [
+        "counterspells"
+      ]
+    },
+    "negate": {
+      "primary": "counterspells",
+      "scores": {
+        "counterspells": 3
+      },
+      "matched_traits": [
+        "counterspells"
+      ]
+    },
+    "dovin-s-veto": {
+      "primary": "counterspells",
+      "scores": {
+        "counterspells": 1
+      },
+      "matched_traits": [
+        "counterspells"
+      ]
+    },
+    "archmage-s-charm": {
+      "primary": "draw",
+      "scores": {
+        "draw": 1,
+        "counterspells": 1
+      },
+      "matched_traits": [
+        "draw",
+        "counterspells"
+      ]
+    },
+    "cryptic-command": {
+      "primary": "draw",
+      "scores": {
+        "draw": 1,
+        "counterspells": 1,
+        "removal": 1
+      },
+      "matched_traits": [
+        "draw",
+        "counterspells",
+        "removal"
+      ]
+    },
+    "swords-to-plowshares": {
+      "primary": "removal",
+      "scores": {
+        "removal": 1
+      },
+      "matched_traits": [
+        "removal"
+      ]
+    },
+    "path-to-exile": {
+      "primary": "ramp",
+      "scores": {
+        "ramp": 1,
+        "removal": 1
+      },
+      "matched_traits": [
+        "ramp",
+        "removal"
+      ]
+    },
+    "doom-blade": {
+      "primary": "removal",
+      "scores": {
+        "removal": 3
+      },
+      "matched_traits": [
+        "removal"
+      ]
+    },
+    "lightning-bolt": {
+      "primary": "removal",
+      "scores": {
+        "removal": 1
+      },
+      "matched_traits": [
+        "removal"
+      ]
+    },
+    "beast-within": {
+      "primary": "removal",
+      "scores": {
+        "removal": 1
+      },
+      "matched_traits": [
+        "removal"
+      ]
+    },
+    "abrade": {
+      "primary": "removal",
+      "scores": {
+        "removal": 1
+      },
+      "matched_traits": [
+        "removal"
+      ]
+    },
+    "wrath-of-god": {
+      "primary": "board_wipes",
+      "scores": {
+        "board_wipes": 3
+      },
+      "matched_traits": [
+        "board_wipes"
+      ]
+    },
+    "damnation": {
+      "primary": "board_wipes",
+      "scores": {
+        "board_wipes": 1
+      },
+      "matched_traits": [
+        "board_wipes"
+      ]
+    },
+    "blasphemous-act": {
+      "primary": "board_wipes",
+      "scores": {
+        "board_wipes": 1
+      },
+      "matched_traits": [
+        "board_wipes"
+      ]
+    },
+    "farewell": {
+      "primary": "board_wipes",
+      "scores": {
+        "board_wipes": 1
+      },
+      "matched_traits": [
+        "board_wipes"
+      ]
+    },
+    "austere-command": {
+      "primary": "board_wipes",
+      "scores": {
+        "board_wipes": 1
+      },
+      "matched_traits": [
+        "board_wipes"
+      ]
+    },
+    "heroic-intervention": {
+      "primary": "protection",
+      "scores": {
+        "protection": 1
+      },
+      "matched_traits": [
+        "protection"
+      ]
+    },
+    "snakeskin-veil": {
+      "primary": "protection",
+      "scores": {
+        "protection": 1
+      },
+      "matched_traits": [
+        "protection"
+      ]
+    },
+    "lightning-greaves": {
+      "primary": "protection",
+      "scores": {
+        "protection": 1
+      },
+      "matched_traits": [
+        "protection"
+      ]
+    },
+    "reanimate": {
+      "primary": "recursion",
+      "scores": {
+        "recursion": 1
+      },
+      "matched_traits": [
+        "recursion"
+      ]
+    },
+    "eternal-witness": {
+      "primary": "recursion",
+      "scores": {
+        "recursion": 1
+      },
+      "matched_traits": [
+        "recursion"
+      ]
+    },
+    "regrowth": {
+      "primary": "recursion",
+      "scores": {
+        "recursion": 3
+      },
+      "matched_traits": [
+        "recursion"
+      ]
+    },
+    "unearth": {
+      "primary": "draw",
+      "scores": {
+        "draw": 1,
+        "recursion": 1
+      },
+      "matched_traits": [
+        "draw",
+        "recursion"
+      ]
+    },
+    "raise-the-alarm": {
+      "primary": "other",
+      "scores": {},
+      "matched_traits": []
+    },
+    "dragon-fodder": {
+      "primary": "other",
+      "scores": {},
+      "matched_traits": []
+    },
+    "krenko-mob-boss": {
+      "primary": "tokens",
+      "scores": {
+        "tokens": 1
+      },
+      "matched_traits": [
+        "tokens"
+      ]
+    },
+    "avenger-of-zendikar": {
+      "primary": "creatures",
+      "scores": {},
+      "matched_traits": []
+    },
+    "viscera-seer": {
+      "primary": "sacrifice",
+      "scores": {
+        "sacrifice": 1
+      },
+      "matched_traits": [
+        "sacrifice"
+      ]
+    },
+    "carrion-feeder": {
+      "primary": "sacrifice",
+      "scores": {
+        "sacrifice": 1
+      },
+      "matched_traits": [
+        "sacrifice"
+      ]
+    },
+    "ashnod-s-altar": {
+      "primary": "sacrifice",
+      "scores": {
+        "ramp": 1,
+        "sacrifice": 3
+      },
+      "matched_traits": [
+        "ramp",
+        "sacrifice"
+      ]
+    },
+    "scurry-oak": {
+      "primary": "tokens",
+      "scores": {
+        "tokens": 1
+      },
+      "matched_traits": [
+        "tokens"
+      ]
+    },
+    "ivy-lane-denizen": {
+      "primary": "creatures",
+      "scores": {},
+      "matched_traits": []
+    },
+    "conclave-mentor": {
+      "primary": "creatures",
+      "scores": {},
+      "matched_traits": []
+    },
+    "grizzly-bears": {
+      "primary": "creatures",
+      "scores": {},
+      "matched_traits": []
+    },
+    "delver-of-secrets": {
+      "primary": "creatures",
+      "scores": {},
+      "matched_traits": []
+    },
+    "monastery-swiftspear": {
+      "primary": "creatures",
+      "scores": {},
+      "matched_traits": []
+    },
+    "goblin-guide": {
+      "primary": "creatures",
+      "scores": {},
+      "matched_traits": []
+    },
+    "hardened-scales": {
+      "primary": "enchantments",
+      "scores": {},
+      "matched_traits": []
+    },
+    "ornithopter": {
+      "primary": "creatures",
+      "scores": {},
+      "matched_traits": []
+    }
+  },
+  "question_version": "1.0.0-frozen-before-inference",
+  "criteria": {
+    "primary": {
+      "lands": "A land card, including a land with other abilities. Lands stay Lands rather than Ramp.",
+      "ramp": "Mana acceleration: mana rocks, mana creatures, land acceleration, extra land drops or temporary mana. Ordinary land mana production alone is not Ramp.",
+      "draw": "Drawing cards or selecting cards from the library as a main function.",
+      "counterspells": "Countering spells on the stack as a main function.",
+      "removal": "Targeted removal: destroying, exiling, bouncing or taking control of opposing permanents, or targeted damage. Mass removal belongs to Board wipes.",
+      "board_wipes": "Mass removal of many permanents or creatures at once, rather than an ordinary targeted removal spell.",
+      "protection": "Protecting your permanents from removal or combat, through hexproof, indestructible, protection, regeneration or similar effects.",
+      "recursion": "Returning cards from your graveyard to hand, battlefield or another usable zone.",
+      "tokens": "Creating tokens as a main function. Do not prefer this for a removal spell that compensates its target controller with a token.",
+      "sacrifice": "A reusable sacrifice outlet, or a spell whose central function is converting your sacrificed permanent into a resource.",
+      "creatures": "A creature that fits none of the more specific functional categories well. This is a fallback, not the default for functional creatures.",
+      "artifacts": "An artifact that fits none of the functional categories well. Artifact creatures may instead use Creatures.",
+      "enchantments": "An enchantment that fits none of the functional categories well.",
+      "other": "A card that fits none of these categories well, for example a counter-amplification enchantment or a team pump spell without another fitting function."
+    },
+    "traits": {
+      "ramp": "The card increases available mana through acceleration, additional land drops or temporary mana. Ordinary land mana production alone does not count.",
+      "draw": "The card can explicitly draw cards or select cards from the library.",
+      "counterspells": "The card can counter a spell on the stack.",
+      "removal": "The card can target and remove, bounce, gain control of or damage an opposing permanent. Do not count mass-only removal here.",
+      "board_wipes": "The card can remove or damage many permanents or creatures at once.",
+      "protection": "The card protects your permanents with hexproof, indestructible, protection, regeneration or a similar protective effect.",
+      "recursion": "The card returns cards from your graveyard to hand, battlefield or another usable zone.",
+      "tokens": "The card creates tokens, including conditional token creation and tokens given to an opponent. This is a trait, not a primary recommendation.",
+      "sacrifice": "The card lets you sacrifice your own permanents as a cost or effect.",
+      "counter_theme": "The card places, moves or amplifies counters on permanents or explicitly rewards them. Countering a spell is unrelated."
+    },
+    "decks": {
+      "aggro": "An aggressive strategy centered on cheap creatures and fast combat pressure.",
+      "burn": "A strategy with a meaningful density of spells or repeatable abilities that directly damage the opponent, not merely their creatures.",
+      "control": "A controlling strategy with substantial countermagic, removal, sweepers and card advantage.",
+      "midrange": "A strategy centered on resource value, durable creatures and incremental advantage rather than fast aggro, dedicated ramp or a specific combo.",
+      "ramp": "A strategy with substantial mana acceleration used to cast more expensive payoffs.",
+      "combo": "A concrete interaction between cards supports a repeatable engine or a decisive combo. Generic synergy or counter amplification alone is insufficient.",
+      "tokens": "Token creation is a meaningful plan, with producers and/or payoffs.",
+      "counter_theme": "Building, amplifying or rewarding +1/+1 counters is a meaningful plan. This is distinct from counterspells.",
+      "infinite_counters": "The listed cards support a concrete repeatable loop that can put an arbitrarily large number of +1/+1 counters on a permanent without a finite resource stopping it. A prerequisite initial trigger and optional repetition are allowed. Merely generating counters or amplifying them is insufficient. Do not assume unlisted combo pieces."
+    }
+  },
+  "limits": [
+    "Handwritten rubric and synthetic decks, not a representative accuracy benchmark.",
+    "Reported token spend is a calculated estimate, not a provider invoice.",
+    "No account data, production integration or private deck content."
+  ],
+  "baseline_source": {
+    "filename": "oracle-tags-20261006090032.jsonl",
+    "sha256": "041c63e1446b090d05937009e7e261c6c5216c902736967466203f5e5c6de3b4",
+    "roots": {
+      "ramp": "ramp",
+      "draw": "draw",
+      "counterspells": "counterspell",
+      "removal": "spot-removal",
+      "board_wipes": "sweeper",
+      "protection": "protection",
+      "recursion": "recursion",
+      "sacrifice": "sacrifice-outlet",
+      "tokens": "repeatable-token-generator"
+    },
+    "tie_order": [
+      "ramp",
+      "draw",
+      "counterspells",
+      "removal",
+      "board_wipes",
+      "protection",
+      "recursion",
+      "sacrifice",
+      "tokens"
+    ],
+    "note": "Provisional mapping. Type fallback and this tie order are not accepted production rules. Repeatable token root misses one-shot token creators."
+  },
+  "completed_at": "2026-10-06T20:54:30.415Z",
+  "total_estimated_usd": 0.00015884400000000003,
+  "input_tokens": 3782
+}

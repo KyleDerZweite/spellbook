@@ -1,0 +1,4584 @@
+{
+  "fixture_sha256": "89d3bb34b849b31c60e8975a88c2117cf919e6b432199561b40d3312f9add0f9",
+  "model": "jev-1.13.0",
+  "threshold": 0.8,
+  "card_primary": {
+    "passed": 60,
+    "total": 60,
+    "baseline_passed": 56,
+    "failures": [],
+    "high_confidence_failures": 0
+  },
+  "minimum_traits": {
+    "passed": 55,
+    "total": 60,
+    "missed": [
+      {
+        "id": "rampant-growth",
+        "missed": [
+          "ramp"
+        ]
+      },
+      {
+        "id": "cultivate",
+        "missed": [
+          "ramp"
+        ]
+      },
+      {
+        "id": "lightning-bolt",
+        "missed": [
+          "removal"
+        ]
+      },
+      {
+        "id": "lightning-greaves",
+        "missed": [
+          "protection"
+        ]
+      },
+      {
+        "id": "viscera-seer",
+        "missed": [
+          "draw"
+        ]
+      }
+    ]
+  },
+  "deck_rubric": {
+    "passed": 4,
+    "total": 6
+  },
+  "order_probe": [
+    {
+      "id": "archmage-s-charm",
+      "original": "counterspells",
+      "reversed": "counterspells",
+      "changed": false,
+      "confidence": 0.8
+    },
+    {
+      "id": "cryptic-command",
+      "original": "counterspells",
+      "reversed": "counterspells",
+      "changed": false,
+      "confidence": 0.64
+    },
+    {
+      "id": "village-rites",
+      "original": "draw",
+      "reversed": "draw",
+      "changed": false,
+      "confidence": 0.9
+    },
+    {
+      "id": "ashnod-s-altar",
+      "original": "sacrifice",
+      "reversed": "sacrifice",
+      "changed": false,
+      "confidence": 0.83
+    },
+    {
+      "id": "growth-spiral",
+      "original": "ramp",
+      "reversed": "draw",
+      "changed": true,
+      "confidence": 0.55
+    }
+  ],
+  "contexts": [
+    {
+      "id": "d04",
+      "primary": {
+        "type": "choice",
+        "choice": "infinite_counters",
+        "confidence": 0.43,
+        "probabilities": {
+          "tokens": 0.27,
+          "enchantments": 0,
+          "creatures": 0.25,
+          "protection": 0,
+          "sacrifice": 0,
+          "infinite_counters": 0.47000000000000003,
+          "board_wipes": 0,
+          "ramp": 0,
+          "other": 0.01,
+          "recursion": 0,
+          "counterspells": 0,
+          "artifacts": 0,
+          "removal": 0,
+          "draw": 0,
+          "lands": 0
+        }
+      },
+      "probability": 0.17
+    },
+    {
+      "id": "d05",
+      "primary": {
+        "type": "choice",
+        "choice": "infinite_counters",
+        "confidence": 0.51,
+        "probabilities": {
+          "enchantments": 0,
+          "tokens": 0.19,
+          "sacrifice": 0,
+          "draw": 0,
+          "creatures": 0.23,
+          "ramp": 0,
+          "board_wipes": 0,
+          "removal": 0,
+          "counterspells": 0,
+          "artifacts": 0,
+          "infinite_counters": 0.56,
+          "other": 0.01,
+          "lands": 0,
+          "protection": 0,
+          "recursion": 0
+        }
+      },
+      "probability": 0.19
+    }
+  ],
+  "exploratory": [
+    {
+      "kind": "exploratory_simple",
+      "id": "d04",
+      "answers": {
+        "infinite_counters": {
+          "type": "noul",
+          "noul": 0.29
+        },
+        "category": {
+          "type": "choice",
+          "choice": "counter_theme",
+          "confidence": 0.87,
+          "probabilities": {
+            "counter_theme": 0.92,
+            "infinite_counters": 0.08,
+            "neither": 0
+          }
+        }
+      },
+      "status": "ok"
+    },
+    {
+      "kind": "exploratory_focused",
+      "id": "d04",
+      "answers": {
+        "infinite_counters": {
+          "type": "noul",
+          "noul": 0.29
+        },
+        "category": {
+          "type": "choice",
+          "choice": "counter_theme",
+          "confidence": 0.88,
+          "probabilities": {
+            "neither": 0,
+            "infinite_counters": 0.07,
+            "counter_theme": 0.93
+          }
+        }
+      },
+      "status": "ok"
+    },
+    {
+      "kind": "exploratory_simple",
+      "id": "d05",
+      "answers": {
+        "infinite_counters": {
+          "type": "noul",
+          "noul": 0.3
+        },
+        "category": {
+          "type": "choice",
+          "choice": "counter_theme",
+          "confidence": 0.83,
+          "probabilities": {
+            "infinite_counters": 0.11,
+            "counter_theme": 0.89,
+            "neither": 0
+          }
+        }
+      },
+      "status": "ok"
+    },
+    {
+      "kind": "exploratory_focused",
+      "id": "d05",
+      "answers": {
+        "infinite_counters": {
+          "type": "noul",
+          "noul": 0.31
+        },
+        "category": {
+          "type": "choice",
+          "choice": "counter_theme",
+          "confidence": 0.83,
+          "probabilities": {
+            "counter_theme": 0.89,
+            "infinite_counters": 0.11,
+            "neither": 0
+          }
+        }
+      },
+      "status": "ok"
+    },
+    {
+      "kind": "exploratory_complete",
+      "id": "d04",
+      "answers": {
+        "infinite_counters": {
+          "type": "noul",
+          "noul": 0.37
+        },
+        "category": {
+          "type": "choice",
+          "choice": "counter_theme",
+          "confidence": 0.87,
+          "probabilities": {
+            "counter_theme": 0.91,
+            "infinite_counters": 0.08,
+            "neither": 0.01
+          }
+        },
+        "original_loop": {
+          "type": "noul",
+          "noul": 0.11
+        },
+        "combo": {
+          "type": "noul",
+          "noul": 0.6
+        }
+      },
+      "status": "ok"
+    },
+    {
+      "kind": "exploratory_complete",
+      "id": "d05",
+      "answers": {
+        "infinite_counters": {
+          "type": "noul",
+          "noul": 0.38
+        },
+        "category": {
+          "type": "choice",
+          "choice": "counter_theme",
+          "confidence": 0.83,
+          "probabilities": {
+            "infinite_counters": 0.11,
+            "counter_theme": 0.89,
+            "neither": 0
+          }
+        },
+        "original_loop": {
+          "type": "noul",
+          "noul": 0.1
+        },
+        "combo": {
+          "type": "noul",
+          "noul": 0.65
+        }
+      },
+      "status": "ok"
+    }
+  ],
+  "integration": {
+    "attempts": 79,
+    "successful": 79,
+    "failures": [],
+    "input_tokens": 151191,
+    "prior_smoke_input_tokens": 3782,
+    "estimated_total_usd": 0.006508866000000001,
+    "median_ms": 330,
+    "max_ms": 2414
+  },
+  "cards": [
+    {
+      "id": "plains",
+      "name": "Plains",
+      "expected": {
+        "acceptable_primary": [
+          "lands"
+        ],
+        "required_traits": [
+          "land"
+        ],
+        "rationale": "Oracle text or type directly supports lands; no other strategy inferred."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "lands",
+        "confidence": 1,
+        "probabilities": {
+          "counterspells": 0,
+          "draw": 0,
+          "tokens": 0,
+          "lands": 1,
+          "board_wipes": 0,
+          "enchantments": 0,
+          "creatures": 0,
+          "removal": 0,
+          "protection": 0,
+          "sacrifice": 0,
+          "other": 0,
+          "artifacts": 0,
+          "recursion": 0,
+          "ramp": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "lands",
+        "scores": {},
+        "matched_traits": []
+      },
+      "required_mapped_traits": [],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.05,
+        "draw": 0.02,
+        "counterspells": 0.02,
+        "removal": 0.03,
+        "board_wipes": 0.02,
+        "protection": 0.02,
+        "recursion": 0.02,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 545,
+      "usage": {
+        "input_tokens": 1891,
+        "output_tokens": 312
+      }
+    },
+    {
+      "id": "island",
+      "name": "Island",
+      "expected": {
+        "acceptable_primary": [
+          "lands"
+        ],
+        "required_traits": [
+          "land"
+        ],
+        "rationale": "Oracle text or type directly supports lands; no other strategy inferred."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "lands",
+        "confidence": 1,
+        "probabilities": {
+          "draw": 0,
+          "board_wipes": 0,
+          "removal": 0,
+          "creatures": 0,
+          "enchantments": 0,
+          "counterspells": 0,
+          "lands": 1,
+          "artifacts": 0,
+          "recursion": 0,
+          "other": 0,
+          "sacrifice": 0,
+          "protection": 0,
+          "ramp": 0,
+          "tokens": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "lands",
+        "scores": {},
+        "matched_traits": []
+      },
+      "required_mapped_traits": [],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.04,
+        "draw": 0.02,
+        "counterspells": 0.02,
+        "removal": 0.03,
+        "board_wipes": 0.02,
+        "protection": 0.02,
+        "recursion": 0.02,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 259,
+      "usage": {
+        "input_tokens": 1891,
+        "output_tokens": 312
+      }
+    },
+    {
+      "id": "swamp",
+      "name": "Swamp",
+      "expected": {
+        "acceptable_primary": [
+          "lands"
+        ],
+        "required_traits": [
+          "land"
+        ],
+        "rationale": "Oracle text or type directly supports lands; no other strategy inferred."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "lands",
+        "confidence": 1,
+        "probabilities": {
+          "lands": 1,
+          "board_wipes": 0,
+          "ramp": 0,
+          "tokens": 0,
+          "artifacts": 0,
+          "draw": 0,
+          "protection": 0,
+          "counterspells": 0,
+          "other": 0,
+          "enchantments": 0,
+          "sacrifice": 0,
+          "recursion": 0,
+          "creatures": 0,
+          "removal": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "lands",
+        "scores": {},
+        "matched_traits": []
+      },
+      "required_mapped_traits": [],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.04,
+        "draw": 0.02,
+        "counterspells": 0.02,
+        "removal": 0.03,
+        "board_wipes": 0.02,
+        "protection": 0.03,
+        "recursion": 0.02,
+        "tokens": 0.02,
+        "sacrifice": 0.03,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 296,
+      "usage": {
+        "input_tokens": 1892,
+        "output_tokens": 312
+      }
+    },
+    {
+      "id": "mountain",
+      "name": "Mountain",
+      "expected": {
+        "acceptable_primary": [
+          "lands"
+        ],
+        "required_traits": [
+          "land"
+        ],
+        "rationale": "Oracle text or type directly supports lands; no other strategy inferred."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "lands",
+        "confidence": 1,
+        "probabilities": {
+          "ramp": 0,
+          "removal": 0,
+          "other": 0,
+          "creatures": 0,
+          "board_wipes": 0,
+          "protection": 0,
+          "draw": 0,
+          "enchantments": 0,
+          "recursion": 0,
+          "artifacts": 0,
+          "lands": 1,
+          "tokens": 0,
+          "sacrifice": 0,
+          "counterspells": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "lands",
+        "scores": {},
+        "matched_traits": []
+      },
+      "required_mapped_traits": [],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.05,
+        "draw": 0.02,
+        "counterspells": 0.02,
+        "removal": 0.03,
+        "board_wipes": 0.02,
+        "protection": 0.02,
+        "recursion": 0.02,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.05
+      },
+      "elapsed_ms": 277,
+      "usage": {
+        "input_tokens": 1890,
+        "output_tokens": 312
+      }
+    },
+    {
+      "id": "forest",
+      "name": "Forest",
+      "expected": {
+        "acceptable_primary": [
+          "lands"
+        ],
+        "required_traits": [
+          "land"
+        ],
+        "rationale": "Oracle text or type directly supports lands; no other strategy inferred."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "lands",
+        "confidence": 1,
+        "probabilities": {
+          "recursion": 0,
+          "creatures": 0,
+          "enchantments": 0,
+          "counterspells": 0,
+          "artifacts": 0,
+          "ramp": 0,
+          "other": 0,
+          "draw": 0,
+          "lands": 1,
+          "sacrifice": 0,
+          "tokens": 0,
+          "protection": 0,
+          "removal": 0,
+          "board_wipes": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "lands",
+        "scores": {},
+        "matched_traits": []
+      },
+      "required_mapped_traits": [],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.05,
+        "draw": 0.02,
+        "counterspells": 0.02,
+        "removal": 0.03,
+        "board_wipes": 0.02,
+        "protection": 0.02,
+        "recursion": 0.02,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 327,
+      "usage": {
+        "input_tokens": 1890,
+        "output_tokens": 312
+      }
+    },
+    {
+      "id": "command-tower",
+      "name": "Command Tower",
+      "expected": {
+        "acceptable_primary": [
+          "lands"
+        ],
+        "required_traits": [
+          "land",
+          "commander_color_mana"
+        ],
+        "rationale": "Commander-dependent colors do not imply acceleration or useful commanderless mana."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "lands",
+        "confidence": 1,
+        "probabilities": {
+          "recursion": 0,
+          "creatures": 0,
+          "enchantments": 0,
+          "counterspells": 0,
+          "artifacts": 0,
+          "ramp": 0,
+          "other": 0,
+          "draw": 0,
+          "tokens": 0,
+          "protection": 0,
+          "lands": 1,
+          "sacrifice": 0,
+          "removal": 0,
+          "board_wipes": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "lands",
+        "scores": {},
+        "matched_traits": []
+      },
+      "required_mapped_traits": [],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.12,
+        "draw": 0.03,
+        "counterspells": 0.02,
+        "removal": 0.02,
+        "board_wipes": 0.02,
+        "protection": 0.02,
+        "recursion": 0.03,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 329,
+      "usage": {
+        "input_tokens": 1893,
+        "output_tokens": 312
+      }
+    },
+    {
+      "id": "llanowar-reborn",
+      "name": "Llanowar Reborn",
+      "expected": {
+        "acceptable_primary": [
+          "lands"
+        ],
+        "required_traits": [
+          "land",
+          "counter_synergy"
+        ],
+        "rationale": "Graft is secondary; a mana land remains Lands, not Ramp."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "lands",
+        "confidence": 1,
+        "probabilities": {
+          "draw": 0,
+          "counterspells": 0,
+          "removal": 0,
+          "creatures": 0,
+          "protection": 0,
+          "enchantments": 0,
+          "lands": 1,
+          "artifacts": 0,
+          "ramp": 0,
+          "recursion": 0,
+          "sacrifice": 0,
+          "other": 0,
+          "board_wipes": 0,
+          "tokens": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "lands",
+        "scores": {},
+        "matched_traits": []
+      },
+      "required_mapped_traits": [
+        "counter_theme"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.09,
+        "draw": 0.02,
+        "counterspells": 0.02,
+        "removal": 0.05,
+        "board_wipes": 0.03,
+        "protection": 0.03,
+        "recursion": 0.04,
+        "tokens": 0.04,
+        "sacrifice": 0.04,
+        "counter_theme": 0.97
+      },
+      "elapsed_ms": 325,
+      "usage": {
+        "input_tokens": 1938,
+        "output_tokens": 312
+      }
+    },
+    {
+      "id": "sol-ring",
+      "name": "Sol Ring",
+      "expected": {
+        "acceptable_primary": [
+          "ramp"
+        ],
+        "required_traits": [
+          "mana_acceleration"
+        ],
+        "rationale": "Oracle text or type directly supports ramp; no other strategy inferred."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "ramp",
+        "confidence": 1,
+        "probabilities": {
+          "draw": 0,
+          "enchantments": 0,
+          "protection": 0,
+          "other": 0,
+          "removal": 0,
+          "recursion": 0,
+          "artifacts": 0,
+          "tokens": 0,
+          "sacrifice": 0,
+          "creatures": 0,
+          "lands": 0,
+          "counterspells": 0,
+          "ramp": 1,
+          "board_wipes": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "ramp",
+        "scores": {
+          "ramp": 3
+        },
+        "matched_traits": [
+          "ramp"
+        ]
+      },
+      "required_mapped_traits": [
+        "ramp"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.93,
+        "draw": 0.02,
+        "counterspells": 0.02,
+        "removal": 0.03,
+        "board_wipes": 0.02,
+        "protection": 0.02,
+        "recursion": 0.02,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.06
+      },
+      "elapsed_ms": 317,
+      "usage": {
+        "input_tokens": 1889,
+        "output_tokens": 313
+      }
+    },
+    {
+      "id": "rampant-growth",
+      "name": "Rampant Growth",
+      "expected": {
+        "acceptable_primary": [
+          "ramp"
+        ],
+        "required_traits": [
+          "mana_acceleration"
+        ],
+        "rationale": "Oracle text or type directly supports ramp; no other strategy inferred."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "ramp",
+        "confidence": 0.98,
+        "probabilities": {
+          "protection": 0,
+          "creatures": 0,
+          "artifacts": 0,
+          "board_wipes": 0,
+          "enchantments": 0,
+          "recursion": 0,
+          "lands": 0.01,
+          "draw": 0,
+          "sacrifice": 0,
+          "tokens": 0,
+          "ramp": 0.99,
+          "other": 0,
+          "counterspells": 0,
+          "removal": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "ramp",
+        "scores": {
+          "ramp": 3
+        },
+        "matched_traits": [
+          "ramp"
+        ]
+      },
+      "required_mapped_traits": [
+        "ramp"
+      ],
+      "missed_mapped_traits": [
+        "ramp"
+      ],
+      "trait_recall_pass": false,
+      "traits": {
+        "ramp": 0.69,
+        "draw": 0.81,
+        "counterspells": 0.02,
+        "removal": 0.03,
+        "board_wipes": 0.02,
+        "protection": 0.02,
+        "recursion": 0.03,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 308,
+      "usage": {
+        "input_tokens": 1910,
+        "output_tokens": 313
+      }
+    },
+    {
+      "id": "cultivate",
+      "name": "Cultivate",
+      "expected": {
+        "acceptable_primary": [
+          "ramp"
+        ],
+        "required_traits": [
+          "land_search",
+          "mana_acceleration"
+        ],
+        "rationale": "One basic enters tapped and another goes to hand; not card draw."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "ramp",
+        "confidence": 0.88,
+        "probabilities": {
+          "tokens": 0,
+          "board_wipes": 0,
+          "ramp": 0.89,
+          "other": 0,
+          "recursion": 0,
+          "counterspells": 0,
+          "artifacts": 0,
+          "removal": 0,
+          "draw": 0.11,
+          "protection": 0,
+          "creatures": 0,
+          "sacrifice": 0,
+          "lands": 0,
+          "enchantments": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "ramp",
+        "scores": {
+          "ramp": 1
+        },
+        "matched_traits": [
+          "ramp"
+        ]
+      },
+      "required_mapped_traits": [
+        "ramp"
+      ],
+      "missed_mapped_traits": [
+        "ramp"
+      ],
+      "trait_recall_pass": false,
+      "traits": {
+        "ramp": 0.57,
+        "draw": 0.93,
+        "counterspells": 0.02,
+        "removal": 0.03,
+        "board_wipes": 0.02,
+        "protection": 0.03,
+        "recursion": 0.04,
+        "tokens": 0.04,
+        "sacrifice": 0.03,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 291,
+      "usage": {
+        "input_tokens": 1921,
+        "output_tokens": 313
+      }
+    },
+    {
+      "id": "llanowar-elves",
+      "name": "Llanowar Elves",
+      "expected": {
+        "acceptable_primary": [
+          "ramp"
+        ],
+        "required_traits": [
+          "mana_acceleration"
+        ],
+        "rationale": "Oracle text or type directly supports ramp; no other strategy inferred."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "ramp",
+        "confidence": 0.99,
+        "probabilities": {
+          "recursion": 0,
+          "creatures": 0.01,
+          "removal": 0,
+          "counterspells": 0,
+          "enchantments": 0,
+          "ramp": 0.99,
+          "protection": 0,
+          "draw": 0,
+          "lands": 0,
+          "sacrifice": 0,
+          "tokens": 0,
+          "other": 0,
+          "artifacts": 0,
+          "board_wipes": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "ramp",
+        "scores": {
+          "ramp": 3
+        },
+        "matched_traits": [
+          "ramp"
+        ]
+      },
+      "required_mapped_traits": [
+        "ramp"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.92,
+        "draw": 0.02,
+        "counterspells": 0.02,
+        "removal": 0.03,
+        "board_wipes": 0.02,
+        "protection": 0.03,
+        "recursion": 0.03,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.05
+      },
+      "elapsed_ms": 303,
+      "usage": {
+        "input_tokens": 1901,
+        "output_tokens": 313
+      }
+    },
+    {
+      "id": "birds-of-paradise",
+      "name": "Birds of Paradise",
+      "expected": {
+        "acceptable_primary": [
+          "ramp"
+        ],
+        "required_traits": [
+          "creature",
+          "mana_acceleration",
+          "flying"
+        ],
+        "rationale": "Mana creature acceleration; flying does not establish Aggro."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "ramp",
+        "confidence": 0.91,
+        "probabilities": {
+          "draw": 0,
+          "enchantments": 0,
+          "tokens": 0,
+          "other": 0,
+          "board_wipes": 0,
+          "counterspells": 0,
+          "removal": 0,
+          "creatures": 0.08,
+          "sacrifice": 0,
+          "artifacts": 0,
+          "lands": 0,
+          "protection": 0,
+          "ramp": 0.92,
+          "recursion": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "ramp",
+        "scores": {
+          "ramp": 1
+        },
+        "matched_traits": [
+          "ramp"
+        ]
+      },
+      "required_mapped_traits": [
+        "ramp"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.88,
+        "draw": 0.03,
+        "counterspells": 0.02,
+        "removal": 0.03,
+        "board_wipes": 0.02,
+        "protection": 0.03,
+        "recursion": 0.03,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.05
+      },
+      "elapsed_ms": 414,
+      "usage": {
+        "input_tokens": 1905,
+        "output_tokens": 313
+      }
+    },
+    {
+      "id": "dark-ritual",
+      "name": "Dark Ritual",
+      "expected": {
+        "acceptable_primary": [
+          "ramp"
+        ],
+        "required_traits": [
+          "mana_acceleration",
+          "temporary_mana"
+        ],
+        "rationale": "One-shot mana gain rather than a permanent mana source."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "ramp",
+        "confidence": 0.97,
+        "probabilities": {
+          "removal": 0,
+          "enchantments": 0,
+          "ramp": 0.98,
+          "artifacts": 0,
+          "recursion": 0,
+          "draw": 0,
+          "other": 0,
+          "sacrifice": 0.02,
+          "lands": 0,
+          "creatures": 0,
+          "counterspells": 0,
+          "protection": 0,
+          "tokens": 0,
+          "board_wipes": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "ramp",
+        "scores": {
+          "ramp": 3
+        },
+        "matched_traits": [
+          "ramp"
+        ]
+      },
+      "required_mapped_traits": [
+        "ramp"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.94,
+        "draw": 0.03,
+        "counterspells": 0.02,
+        "removal": 0.03,
+        "board_wipes": 0.02,
+        "protection": 0.02,
+        "recursion": 0.03,
+        "tokens": 0.03,
+        "sacrifice": 0.04,
+        "counter_theme": 0.05
+      },
+      "elapsed_ms": 424,
+      "usage": {
+        "input_tokens": 1894,
+        "output_tokens": 313
+      }
+    },
+    {
+      "id": "divination",
+      "name": "Divination",
+      "expected": {
+        "acceptable_primary": [
+          "draw"
+        ],
+        "required_traits": [
+          "card_draw"
+        ],
+        "rationale": "Oracle text or type directly supports draw; no other strategy inferred."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "draw",
+        "confidence": 1,
+        "probabilities": {
+          "enchantments": 0,
+          "tokens": 0,
+          "draw": 1,
+          "protection": 0,
+          "sacrifice": 0,
+          "removal": 0,
+          "recursion": 0,
+          "lands": 0,
+          "counterspells": 0,
+          "artifacts": 0,
+          "board_wipes": 0,
+          "ramp": 0,
+          "creatures": 0,
+          "other": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "draw",
+        "scores": {
+          "draw": 1
+        },
+        "matched_traits": [
+          "draw"
+        ]
+      },
+      "required_mapped_traits": [
+        "draw"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.04,
+        "draw": 0.98,
+        "counterspells": 0.02,
+        "removal": 0.03,
+        "board_wipes": 0.02,
+        "protection": 0.02,
+        "recursion": 0.03,
+        "tokens": 0.03,
+        "sacrifice": 0.02,
+        "counter_theme": 0.03
+      },
+      "elapsed_ms": 427,
+      "usage": {
+        "input_tokens": 1894,
+        "output_tokens": 312
+      }
+    },
+    {
+      "id": "opt",
+      "name": "Opt",
+      "expected": {
+        "acceptable_primary": [
+          "draw"
+        ],
+        "required_traits": [
+          "card_draw",
+          "card_selection"
+        ],
+        "rationale": "Scry then draw; scry is not an extra card drawn."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "draw",
+        "confidence": 1,
+        "probabilities": {
+          "board_wipes": 0,
+          "draw": 1,
+          "counterspells": 0,
+          "other": 0,
+          "recursion": 0,
+          "removal": 0,
+          "artifacts": 0,
+          "protection": 0,
+          "lands": 0,
+          "sacrifice": 0,
+          "ramp": 0,
+          "tokens": 0,
+          "enchantments": 0,
+          "creatures": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "draw",
+        "scores": {
+          "draw": 1
+        },
+        "matched_traits": [
+          "draw"
+        ]
+      },
+      "required_mapped_traits": [
+        "draw"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.03,
+        "draw": 0.98,
+        "counterspells": 0.02,
+        "removal": 0.03,
+        "board_wipes": 0.02,
+        "protection": 0.02,
+        "recursion": 0.02,
+        "tokens": 0.02,
+        "sacrifice": 0.02,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 431,
+      "usage": {
+        "input_tokens": 1917,
+        "output_tokens": 312
+      }
+    },
+    {
+      "id": "harmonize",
+      "name": "Harmonize",
+      "expected": {
+        "acceptable_primary": [
+          "draw"
+        ],
+        "required_traits": [
+          "card_draw"
+        ],
+        "rationale": "Oracle text or type directly supports draw; no other strategy inferred."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "draw",
+        "confidence": 1,
+        "probabilities": {
+          "removal": 0,
+          "creatures": 0,
+          "lands": 0,
+          "counterspells": 0,
+          "other": 0,
+          "board_wipes": 0,
+          "tokens": 0,
+          "enchantments": 0,
+          "sacrifice": 0,
+          "ramp": 0,
+          "protection": 0,
+          "recursion": 0,
+          "draw": 1,
+          "artifacts": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "draw",
+        "scores": {
+          "draw": 1
+        },
+        "matched_traits": [
+          "draw"
+        ]
+      },
+      "required_mapped_traits": [
+        "draw"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.04,
+        "draw": 0.98,
+        "counterspells": 0.02,
+        "removal": 0.03,
+        "board_wipes": 0.02,
+        "protection": 0.02,
+        "recursion": 0.03,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 409,
+      "usage": {
+        "input_tokens": 1897,
+        "output_tokens": 312
+      }
+    },
+    {
+      "id": "sign-in-blood",
+      "name": "Sign in Blood",
+      "expected": {
+        "acceptable_primary": [
+          "draw"
+        ],
+        "required_traits": [
+          "card_draw",
+          "life_loss"
+        ],
+        "rationale": "Target player draws and loses life; life loss is not damage."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "draw",
+        "confidence": 0.99,
+        "probabilities": {
+          "counterspells": 0,
+          "draw": 1,
+          "tokens": 0,
+          "lands": 0,
+          "board_wipes": 0,
+          "enchantments": 0,
+          "creatures": 0,
+          "removal": 0,
+          "protection": 0,
+          "sacrifice": 0,
+          "other": 0,
+          "artifacts": 0,
+          "recursion": 0,
+          "ramp": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "draw",
+        "scores": {
+          "draw": 1
+        },
+        "matched_traits": [
+          "draw"
+        ]
+      },
+      "required_mapped_traits": [
+        "draw"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.03,
+        "draw": 0.96,
+        "counterspells": 0.02,
+        "removal": 0.04,
+        "board_wipes": 0.02,
+        "protection": 0.02,
+        "recursion": 0.02,
+        "tokens": 0.02,
+        "sacrifice": 0.03,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 411,
+      "usage": {
+        "input_tokens": 1901,
+        "output_tokens": 312
+      }
+    },
+    {
+      "id": "rhystic-study",
+      "name": "Rhystic Study",
+      "expected": {
+        "acceptable_primary": [
+          "draw"
+        ],
+        "required_traits": [
+          "card_draw"
+        ],
+        "rationale": "Oracle text or type directly supports draw; no other strategy inferred."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "draw",
+        "confidence": 0.96,
+        "probabilities": {
+          "creatures": 0,
+          "draw": 0.96,
+          "enchantments": 0.02,
+          "recursion": 0,
+          "lands": 0,
+          "protection": 0,
+          "board_wipes": 0,
+          "other": 0.01,
+          "artifacts": 0,
+          "ramp": 0,
+          "sacrifice": 0,
+          "counterspells": 0.01,
+          "removal": 0,
+          "tokens": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "draw",
+        "scores": {
+          "draw": 1
+        },
+        "matched_traits": [
+          "draw"
+        ]
+      },
+      "required_mapped_traits": [
+        "draw"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.04,
+        "draw": 0.95,
+        "counterspells": 0.04,
+        "removal": 0.03,
+        "board_wipes": 0.02,
+        "protection": 0.02,
+        "recursion": 0.03,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 414,
+      "usage": {
+        "input_tokens": 1911,
+        "output_tokens": 312
+      }
+    },
+    {
+      "id": "village-rites",
+      "name": "Village Rites",
+      "expected": {
+        "acceptable_primary": [
+          "draw",
+          "sacrifice"
+        ],
+        "required_traits": [
+          "card_draw",
+          "sacrifice_cost"
+        ],
+        "rationale": "Creature sacrifice is a cost, not a repeatable sacrifice outlet."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "draw",
+        "confidence": 0.93,
+        "probabilities": {
+          "enchantments": 0,
+          "creatures": 0,
+          "recursion": 0,
+          "artifacts": 0,
+          "tokens": 0,
+          "other": 0,
+          "sacrifice": 0.07,
+          "draw": 0.93,
+          "lands": 0,
+          "protection": 0,
+          "ramp": 0,
+          "board_wipes": 0,
+          "removal": 0,
+          "counterspells": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "draw",
+        "scores": {
+          "draw": 1,
+          "sacrifice": 1
+        },
+        "matched_traits": [
+          "draw",
+          "sacrifice"
+        ]
+      },
+      "required_mapped_traits": [
+        "draw",
+        "sacrifice"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.03,
+        "draw": 0.97,
+        "counterspells": 0.02,
+        "removal": 0.03,
+        "board_wipes": 0.03,
+        "protection": 0.03,
+        "recursion": 0.04,
+        "tokens": 0.03,
+        "sacrifice": 0.96,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 289,
+      "usage": {
+        "input_tokens": 1906,
+        "output_tokens": 312
+      }
+    },
+    {
+      "id": "growth-spiral",
+      "name": "Growth Spiral",
+      "expected": {
+        "acceptable_primary": [
+          "ramp",
+          "draw"
+        ],
+        "required_traits": [
+          "card_draw",
+          "extra_land_drop"
+        ],
+        "rationale": "Optional land from hand, not land search."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "ramp",
+        "confidence": 0.48,
+        "probabilities": {
+          "draw": 0.47,
+          "counterspells": 0,
+          "tokens": 0,
+          "lands": 0,
+          "board_wipes": 0,
+          "enchantments": 0,
+          "protection": 0,
+          "removal": 0,
+          "creatures": 0,
+          "sacrifice": 0,
+          "other": 0,
+          "artifacts": 0,
+          "recursion": 0,
+          "ramp": 0.53
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "ramp",
+        "scores": {
+          "ramp": 1,
+          "draw": 1
+        },
+        "matched_traits": [
+          "ramp",
+          "draw"
+        ]
+      },
+      "required_mapped_traits": [
+        "draw"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.78,
+        "draw": 0.98,
+        "counterspells": 0.02,
+        "removal": 0.04,
+        "board_wipes": 0.02,
+        "protection": 0.02,
+        "recursion": 0.03,
+        "tokens": 0.04,
+        "sacrifice": 0.03,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 349,
+      "usage": {
+        "input_tokens": 1914,
+        "output_tokens": 313
+      }
+    },
+    {
+      "id": "return-of-the-wildspeaker",
+      "name": "Return of the Wildspeaker",
+      "expected": {
+        "acceptable_primary": [
+          "draw",
+          "other"
+        ],
+        "required_traits": [
+          "card_draw",
+          "team_power_boost",
+          "modal"
+        ],
+        "rationale": "Non-Human-dependent draw or team boost; boost is not inherently protection."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "other",
+        "confidence": 0.63,
+        "probabilities": {
+          "tokens": 0,
+          "other": 0.66,
+          "enchantments": 0,
+          "removal": 0,
+          "creatures": 0.01,
+          "draw": 0.33,
+          "ramp": 0,
+          "sacrifice": 0,
+          "lands": 0,
+          "counterspells": 0,
+          "protection": 0,
+          "board_wipes": 0,
+          "recursion": 0,
+          "artifacts": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "draw",
+        "scores": {
+          "draw": 1
+        },
+        "matched_traits": [
+          "draw"
+        ]
+      },
+      "required_mapped_traits": [
+        "draw"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.04,
+        "draw": 0.94,
+        "counterspells": 0.02,
+        "removal": 0.04,
+        "board_wipes": 0.03,
+        "protection": 0.03,
+        "recursion": 0.03,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.23
+      },
+      "elapsed_ms": 409,
+      "usage": {
+        "input_tokens": 1929,
+        "output_tokens": 312
+      }
+    },
+    {
+      "id": "counterspell",
+      "name": "Counterspell",
+      "expected": {
+        "acceptable_primary": [
+          "counterspells"
+        ],
+        "required_traits": [
+          "spell_counter"
+        ],
+        "rationale": "Oracle text or type directly supports counterspells; no other strategy inferred."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "counterspells",
+        "confidence": 1,
+        "probabilities": {
+          "recursion": 0,
+          "creatures": 0,
+          "enchantments": 0,
+          "counterspells": 1,
+          "removal": 0,
+          "ramp": 0,
+          "other": 0,
+          "protection": 0,
+          "sacrifice": 0,
+          "tokens": 0,
+          "draw": 0,
+          "lands": 0,
+          "artifacts": 0,
+          "board_wipes": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "counterspells",
+        "scores": {
+          "counterspells": 3
+        },
+        "matched_traits": [
+          "counterspells"
+        ]
+      },
+      "required_mapped_traits": [
+        "counterspells"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.03,
+        "draw": 0.03,
+        "counterspells": 0.98,
+        "removal": 0.05,
+        "board_wipes": 0.02,
+        "protection": 0.03,
+        "recursion": 0.02,
+        "tokens": 0.02,
+        "sacrifice": 0.03,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 315,
+      "usage": {
+        "input_tokens": 1893,
+        "output_tokens": 316
+      }
+    },
+    {
+      "id": "negate",
+      "name": "Negate",
+      "expected": {
+        "acceptable_primary": [
+          "counterspells"
+        ],
+        "required_traits": [
+          "spell_counter"
+        ],
+        "rationale": "Oracle text or type directly supports counterspells; no other strategy inferred."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "counterspells",
+        "confidence": 1,
+        "probabilities": {
+          "sacrifice": 0,
+          "creatures": 0,
+          "artifacts": 0,
+          "board_wipes": 0,
+          "other": 0,
+          "draw": 0,
+          "lands": 0,
+          "recursion": 0,
+          "protection": 0,
+          "tokens": 0,
+          "enchantments": 0,
+          "ramp": 0,
+          "counterspells": 1,
+          "removal": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "counterspells",
+        "scores": {
+          "counterspells": 3
+        },
+        "matched_traits": [
+          "counterspells"
+        ]
+      },
+      "required_mapped_traits": [
+        "counterspells"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.03,
+        "draw": 0.03,
+        "counterspells": 0.97,
+        "removal": 0.07,
+        "board_wipes": 0.02,
+        "protection": 0.03,
+        "recursion": 0.02,
+        "tokens": 0.03,
+        "sacrifice": 0.02,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 342,
+      "usage": {
+        "input_tokens": 1895,
+        "output_tokens": 316
+      }
+    },
+    {
+      "id": "dovin-s-veto",
+      "name": "Dovin's Veto",
+      "expected": {
+        "acceptable_primary": [
+          "counterspells"
+        ],
+        "required_traits": [
+          "spell_counter"
+        ],
+        "rationale": "Oracle text or type directly supports counterspells; no other strategy inferred."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "counterspells",
+        "confidence": 1,
+        "probabilities": {
+          "sacrifice": 0,
+          "board_wipes": 0,
+          "ramp": 0,
+          "draw": 0,
+          "removal": 0,
+          "recursion": 0,
+          "protection": 0,
+          "counterspells": 1,
+          "lands": 0,
+          "creatures": 0,
+          "other": 0,
+          "enchantments": 0,
+          "artifacts": 0,
+          "tokens": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "counterspells",
+        "scores": {
+          "counterspells": 1
+        },
+        "matched_traits": [
+          "counterspells"
+        ]
+      },
+      "required_mapped_traits": [
+        "counterspells"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.03,
+        "draw": 0.02,
+        "counterspells": 0.98,
+        "removal": 0.39,
+        "board_wipes": 0.03,
+        "protection": 0.04,
+        "recursion": 0.02,
+        "tokens": 0.02,
+        "sacrifice": 0.03,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 302,
+      "usage": {
+        "input_tokens": 1914,
+        "output_tokens": 316
+      }
+    },
+    {
+      "id": "archmage-s-charm",
+      "name": "Archmage's Charm",
+      "expected": {
+        "acceptable_primary": [
+          "counterspells",
+          "draw",
+          "removal"
+        ],
+        "required_traits": [
+          "spell_counter",
+          "card_draw",
+          "gain_control",
+          "modal"
+        ],
+        "rationale": "Three modes support different purposes; primary cannot be certain without context."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "counterspells",
+        "confidence": 0.82,
+        "probabilities": {
+          "ramp": 0,
+          "tokens": 0,
+          "draw": 0,
+          "protection": 0,
+          "sacrifice": 0,
+          "removal": 0.14,
+          "recursion": 0,
+          "lands": 0,
+          "counterspells": 0.84,
+          "enchantments": 0,
+          "board_wipes": 0,
+          "artifacts": 0,
+          "creatures": 0,
+          "other": 0.02
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "draw",
+        "scores": {
+          "draw": 1,
+          "counterspells": 1
+        },
+        "matched_traits": [
+          "draw",
+          "counterspells"
+        ]
+      },
+      "required_mapped_traits": [
+        "counterspells",
+        "draw"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.04,
+        "draw": 0.95,
+        "counterspells": 0.96,
+        "removal": 0.93,
+        "board_wipes": 0.03,
+        "protection": 0.03,
+        "recursion": 0.03,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.06
+      },
+      "elapsed_ms": 325,
+      "usage": {
+        "input_tokens": 1924,
+        "output_tokens": 316
+      }
+    },
+    {
+      "id": "cryptic-command",
+      "name": "Cryptic Command",
+      "expected": {
+        "acceptable_primary": [
+          "counterspells",
+          "draw",
+          "removal",
+          "protection"
+        ],
+        "required_traits": [
+          "spell_counter",
+          "card_draw",
+          "bounce",
+          "tap_opponents_creatures",
+          "modal"
+        ],
+        "rationale": "Choose two modes; bounce and tap are temporary interaction, not destruction."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "counterspells",
+        "confidence": 0.64,
+        "probabilities": {
+          "removal": 0.21,
+          "ramp": 0,
+          "enchantments": 0,
+          "protection": 0,
+          "creatures": 0,
+          "recursion": 0,
+          "other": 0.05,
+          "sacrifice": 0,
+          "lands": 0,
+          "draw": 0.01,
+          "counterspells": 0.68,
+          "artifacts": 0,
+          "tokens": 0,
+          "board_wipes": 0.05
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "draw",
+        "scores": {
+          "draw": 1,
+          "counterspells": 1,
+          "removal": 1
+        },
+        "matched_traits": [
+          "draw",
+          "counterspells",
+          "removal"
+        ]
+      },
+      "required_mapped_traits": [
+        "counterspells",
+        "draw"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.04,
+        "draw": 0.96,
+        "counterspells": 0.96,
+        "removal": 0.85,
+        "board_wipes": 0.68,
+        "protection": 0.03,
+        "recursion": 0.07,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 367,
+      "usage": {
+        "input_tokens": 1926,
+        "output_tokens": 316
+      }
+    },
+    {
+      "id": "swords-to-plowshares",
+      "name": "Swords to Plowshares",
+      "expected": {
+        "acceptable_primary": [
+          "removal"
+        ],
+        "required_traits": [
+          "targeted_removal"
+        ],
+        "rationale": "Oracle text or type directly supports removal; no other strategy inferred."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "removal",
+        "confidence": 1,
+        "probabilities": {
+          "protection": 0,
+          "creatures": 0,
+          "artifacts": 0,
+          "board_wipes": 0,
+          "other": 0,
+          "recursion": 0,
+          "lands": 0,
+          "enchantments": 0,
+          "sacrifice": 0,
+          "tokens": 0,
+          "ramp": 0,
+          "draw": 0,
+          "counterspells": 0,
+          "removal": 1
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "removal",
+        "scores": {
+          "removal": 1
+        },
+        "matched_traits": [
+          "removal"
+        ]
+      },
+      "required_mapped_traits": [
+        "removal"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.03,
+        "draw": 0.03,
+        "counterspells": 0.02,
+        "removal": 0.85,
+        "board_wipes": 0.03,
+        "protection": 0.03,
+        "recursion": 0.03,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.06
+      },
+      "elapsed_ms": 310,
+      "usage": {
+        "input_tokens": 1905,
+        "output_tokens": 313
+      }
+    },
+    {
+      "id": "path-to-exile",
+      "name": "Path to Exile",
+      "expected": {
+        "acceptable_primary": [
+          "removal"
+        ],
+        "required_traits": [
+          "targeted_removal"
+        ],
+        "rationale": "Oracle text or type directly supports removal; no other strategy inferred."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "removal",
+        "confidence": 0.99,
+        "probabilities": {
+          "recursion": 0,
+          "creatures": 0,
+          "enchantments": 0,
+          "counterspells": 0,
+          "removal": 0.99,
+          "ramp": 0.01,
+          "protection": 0,
+          "draw": 0,
+          "tokens": 0,
+          "sacrifice": 0,
+          "lands": 0,
+          "other": 0,
+          "artifacts": 0,
+          "board_wipes": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": false,
+      "baseline": {
+        "primary": "ramp",
+        "scores": {
+          "ramp": 1,
+          "removal": 1
+        },
+        "matched_traits": [
+          "ramp",
+          "removal"
+        ]
+      },
+      "required_mapped_traits": [
+        "removal"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.63,
+        "draw": 0.6,
+        "counterspells": 0.02,
+        "removal": 0.89,
+        "board_wipes": 0.03,
+        "protection": 0.03,
+        "recursion": 0.06,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 366,
+      "usage": {
+        "input_tokens": 1916,
+        "output_tokens": 313
+      }
+    },
+    {
+      "id": "doom-blade",
+      "name": "Doom Blade",
+      "expected": {
+        "acceptable_primary": [
+          "removal"
+        ],
+        "required_traits": [
+          "targeted_removal"
+        ],
+        "rationale": "Oracle text or type directly supports removal; no other strategy inferred."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "removal",
+        "confidence": 1,
+        "probabilities": {
+          "draw": 0,
+          "protection": 0,
+          "other": 0,
+          "ramp": 0,
+          "removal": 1,
+          "sacrifice": 0,
+          "recursion": 0,
+          "tokens": 0,
+          "lands": 0,
+          "board_wipes": 0,
+          "counterspells": 0,
+          "artifacts": 0,
+          "enchantments": 0,
+          "creatures": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "removal",
+        "scores": {
+          "removal": 3
+        },
+        "matched_traits": [
+          "removal"
+        ]
+      },
+      "required_mapped_traits": [
+        "removal"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.03,
+        "draw": 0.03,
+        "counterspells": 0.02,
+        "removal": 0.89,
+        "board_wipes": 0.03,
+        "protection": 0.02,
+        "recursion": 0.02,
+        "tokens": 0.02,
+        "sacrifice": 0.03,
+        "counter_theme": 0.03
+      },
+      "elapsed_ms": 345,
+      "usage": {
+        "input_tokens": 1896,
+        "output_tokens": 313
+      }
+    },
+    {
+      "id": "lightning-bolt",
+      "name": "Lightning Bolt",
+      "expected": {
+        "acceptable_primary": [
+          "removal"
+        ],
+        "required_traits": [
+          "targeted_removal",
+          "direct_damage"
+        ],
+        "rationale": "Any target includes players; primary Burn is absent from the chosen vocabulary."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "removal",
+        "confidence": 1,
+        "probabilities": {
+          "removal": 1,
+          "ramp": 0,
+          "counterspells": 0,
+          "recursion": 0,
+          "enchantments": 0,
+          "artifacts": 0,
+          "draw": 0,
+          "sacrifice": 0,
+          "lands": 0,
+          "creatures": 0,
+          "other": 0,
+          "protection": 0,
+          "tokens": 0,
+          "board_wipes": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "removal",
+        "scores": {
+          "removal": 1
+        },
+        "matched_traits": [
+          "removal"
+        ]
+      },
+      "required_mapped_traits": [
+        "removal"
+      ],
+      "missed_mapped_traits": [
+        "removal"
+      ],
+      "trait_recall_pass": false,
+      "traits": {
+        "ramp": 0.03,
+        "draw": 0.02,
+        "counterspells": 0.02,
+        "removal": 0.68,
+        "board_wipes": 0.03,
+        "protection": 0.02,
+        "recursion": 0.02,
+        "tokens": 0.02,
+        "sacrifice": 0.02,
+        "counter_theme": 0.03
+      },
+      "elapsed_ms": 409,
+      "usage": {
+        "input_tokens": 1900,
+        "output_tokens": 313
+      }
+    },
+    {
+      "id": "beast-within",
+      "name": "Beast Within",
+      "expected": {
+        "acceptable_primary": [
+          "removal"
+        ],
+        "required_traits": [
+          "targeted_removal",
+          "token_creation"
+        ],
+        "rationale": "Permanent destruction gives its controller a Beast; Tokens need not be primary."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "removal",
+        "confidence": 1,
+        "probabilities": {
+          "other": 0,
+          "enchantments": 0,
+          "counterspells": 0,
+          "ramp": 0,
+          "draw": 0,
+          "protection": 0,
+          "artifacts": 0,
+          "lands": 0,
+          "removal": 1,
+          "creatures": 0,
+          "board_wipes": 0,
+          "tokens": 0,
+          "sacrifice": 0,
+          "recursion": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "removal",
+        "scores": {
+          "removal": 1
+        },
+        "matched_traits": [
+          "removal"
+        ]
+      },
+      "required_mapped_traits": [
+        "removal",
+        "tokens"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.04,
+        "draw": 0.02,
+        "counterspells": 0.03,
+        "removal": 0.94,
+        "board_wipes": 0.04,
+        "protection": 0.03,
+        "recursion": 0.03,
+        "tokens": 0.96,
+        "sacrifice": 0.04,
+        "counter_theme": 0.09
+      },
+      "elapsed_ms": 319,
+      "usage": {
+        "input_tokens": 1906,
+        "output_tokens": 313
+      }
+    },
+    {
+      "id": "abrade",
+      "name": "Abrade",
+      "expected": {
+        "acceptable_primary": [
+          "removal"
+        ],
+        "required_traits": [
+          "targeted_removal",
+          "creature_damage",
+          "artifact_destruction",
+          "modal"
+        ],
+        "rationale": "Damage targets a creature, not a player."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "removal",
+        "confidence": 1,
+        "probabilities": {
+          "removal": 1,
+          "enchantments": 0,
+          "draw": 0,
+          "ramp": 0,
+          "counterspells": 0,
+          "creatures": 0,
+          "artifacts": 0,
+          "sacrifice": 0,
+          "lands": 0,
+          "recursion": 0,
+          "other": 0,
+          "protection": 0,
+          "tokens": 0,
+          "board_wipes": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "removal",
+        "scores": {
+          "removal": 1
+        },
+        "matched_traits": [
+          "removal"
+        ]
+      },
+      "required_mapped_traits": [
+        "removal"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.03,
+        "draw": 0.03,
+        "counterspells": 0.02,
+        "removal": 0.95,
+        "board_wipes": 0.03,
+        "protection": 0.02,
+        "recursion": 0.02,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 322,
+      "usage": {
+        "input_tokens": 1908,
+        "output_tokens": 313
+      }
+    },
+    {
+      "id": "wrath-of-god",
+      "name": "Wrath of God",
+      "expected": {
+        "acceptable_primary": [
+          "board_wipes"
+        ],
+        "required_traits": [
+          "mass_removal",
+          "destroy"
+        ],
+        "rationale": "All-creature destruction with no regeneration."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "board_wipes",
+        "confidence": 1,
+        "probabilities": {
+          "other": 0,
+          "enchantments": 0,
+          "creatures": 0,
+          "ramp": 0,
+          "counterspells": 0,
+          "draw": 0,
+          "artifacts": 0,
+          "lands": 0,
+          "removal": 0,
+          "protection": 0,
+          "board_wipes": 1,
+          "tokens": 0,
+          "sacrifice": 0,
+          "recursion": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "board_wipes",
+        "scores": {
+          "board_wipes": 3
+        },
+        "matched_traits": [
+          "board_wipes"
+        ]
+      },
+      "required_mapped_traits": [
+        "board_wipes"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.03,
+        "draw": 0.03,
+        "counterspells": 0.02,
+        "removal": 0.08,
+        "board_wipes": 0.96,
+        "protection": 0.03,
+        "recursion": 0.02,
+        "tokens": 0.02,
+        "sacrifice": 0.03,
+        "counter_theme": 0.03
+      },
+      "elapsed_ms": 337,
+      "usage": {
+        "input_tokens": 1903,
+        "output_tokens": 314
+      }
+    },
+    {
+      "id": "damnation",
+      "name": "Damnation",
+      "expected": {
+        "acceptable_primary": [
+          "board_wipes"
+        ],
+        "required_traits": [
+          "mass_removal",
+          "destroy"
+        ],
+        "rationale": "All-creature destruction with no regeneration."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "board_wipes",
+        "confidence": 1,
+        "probabilities": {
+          "removal": 0,
+          "ramp": 0,
+          "counterspells": 0,
+          "enchantments": 0,
+          "artifacts": 0,
+          "draw": 0,
+          "recursion": 0,
+          "sacrifice": 0,
+          "lands": 0,
+          "creatures": 0,
+          "other": 0,
+          "protection": 0,
+          "tokens": 0,
+          "board_wipes": 1
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "board_wipes",
+        "scores": {
+          "board_wipes": 1
+        },
+        "matched_traits": [
+          "board_wipes"
+        ]
+      },
+      "required_mapped_traits": [
+        "board_wipes"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.03,
+        "draw": 0.02,
+        "counterspells": 0.02,
+        "removal": 0.08,
+        "board_wipes": 0.97,
+        "protection": 0.02,
+        "recursion": 0.02,
+        "tokens": 0.02,
+        "sacrifice": 0.03,
+        "counter_theme": 0.03
+      },
+      "elapsed_ms": 380,
+      "usage": {
+        "input_tokens": 1902,
+        "output_tokens": 314
+      }
+    },
+    {
+      "id": "blasphemous-act",
+      "name": "Blasphemous Act",
+      "expected": {
+        "acceptable_primary": [
+          "board_wipes"
+        ],
+        "required_traits": [
+          "mass_removal",
+          "creature_damage"
+        ],
+        "rationale": "Damage to each creature, not players."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "board_wipes",
+        "confidence": 1,
+        "probabilities": {
+          "lands": 0,
+          "draw": 0,
+          "board_wipes": 1,
+          "removal": 0,
+          "creatures": 0,
+          "enchantments": 0,
+          "counterspells": 0,
+          "recursion": 0,
+          "tokens": 0,
+          "other": 0,
+          "ramp": 0,
+          "artifacts": 0,
+          "sacrifice": 0,
+          "protection": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "board_wipes",
+        "scores": {
+          "board_wipes": 1
+        },
+        "matched_traits": [
+          "board_wipes"
+        ]
+      },
+      "required_mapped_traits": [
+        "board_wipes"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.04,
+        "draw": 0.03,
+        "counterspells": 0.02,
+        "removal": 0.15,
+        "board_wipes": 0.96,
+        "protection": 0.02,
+        "recursion": 0.03,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.07
+      },
+      "elapsed_ms": 351,
+      "usage": {
+        "input_tokens": 1922,
+        "output_tokens": 314
+      }
+    },
+    {
+      "id": "farewell",
+      "name": "Farewell",
+      "expected": {
+        "acceptable_primary": [
+          "board_wipes"
+        ],
+        "required_traits": [
+          "mass_removal",
+          "exile",
+          "modal"
+        ],
+        "rationale": "Selectable mass exile, not destroy or targeted removal."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "board_wipes",
+        "confidence": 1,
+        "probabilities": {
+          "other": 0,
+          "enchantments": 0,
+          "protection": 0,
+          "ramp": 0,
+          "counterspells": 0,
+          "draw": 0,
+          "creatures": 0,
+          "removal": 0,
+          "lands": 0,
+          "artifacts": 0,
+          "board_wipes": 1,
+          "tokens": 0,
+          "sacrifice": 0,
+          "recursion": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "board_wipes",
+        "scores": {
+          "board_wipes": 1
+        },
+        "matched_traits": [
+          "board_wipes"
+        ]
+      },
+      "required_mapped_traits": [
+        "board_wipes"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.03,
+        "draw": 0.03,
+        "counterspells": 0.02,
+        "removal": 0.08,
+        "board_wipes": 0.96,
+        "protection": 0.02,
+        "recursion": 0.02,
+        "tokens": 0.03,
+        "sacrifice": 0.04,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 281,
+      "usage": {
+        "input_tokens": 1924,
+        "output_tokens": 314
+      }
+    },
+    {
+      "id": "austere-command",
+      "name": "Austere Command",
+      "expected": {
+        "acceptable_primary": [
+          "board_wipes"
+        ],
+        "required_traits": [
+          "mass_removal",
+          "modal"
+        ],
+        "rationale": "Selectable mass destruction scopes."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "board_wipes",
+        "confidence": 1,
+        "probabilities": {
+          "removal": 0,
+          "sacrifice": 0,
+          "creatures": 0,
+          "other": 0,
+          "tokens": 0,
+          "recursion": 0,
+          "enchantments": 0,
+          "protection": 0,
+          "counterspells": 0,
+          "ramp": 0,
+          "lands": 0,
+          "board_wipes": 1,
+          "artifacts": 0,
+          "draw": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "board_wipes",
+        "scores": {
+          "board_wipes": 1
+        },
+        "matched_traits": [
+          "board_wipes"
+        ]
+      },
+      "required_mapped_traits": [
+        "board_wipes"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.03,
+        "draw": 0.03,
+        "counterspells": 0.02,
+        "removal": 0.09,
+        "board_wipes": 0.97,
+        "protection": 0.02,
+        "recursion": 0.02,
+        "tokens": 0.02,
+        "sacrifice": 0.03,
+        "counter_theme": 0.03
+      },
+      "elapsed_ms": 304,
+      "usage": {
+        "input_tokens": 1933,
+        "output_tokens": 314
+      }
+    },
+    {
+      "id": "heroic-intervention",
+      "name": "Heroic Intervention",
+      "expected": {
+        "acceptable_primary": [
+          "protection"
+        ],
+        "required_traits": [
+          "protection",
+          "hexproof",
+          "indestructible"
+        ],
+        "rationale": "Your permanents gain hexproof and indestructible for the turn."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "protection",
+        "confidence": 1,
+        "probabilities": {
+          "creatures": 0,
+          "draw": 0,
+          "recursion": 0,
+          "enchantments": 0,
+          "lands": 0,
+          "protection": 1,
+          "board_wipes": 0,
+          "artifacts": 0,
+          "other": 0,
+          "ramp": 0,
+          "sacrifice": 0,
+          "counterspells": 0,
+          "removal": 0,
+          "tokens": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "protection",
+        "scores": {
+          "protection": 1
+        },
+        "matched_traits": [
+          "protection"
+        ]
+      },
+      "required_mapped_traits": [
+        "protection"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.03,
+        "draw": 0.02,
+        "counterspells": 0.03,
+        "removal": 0.04,
+        "board_wipes": 0.03,
+        "protection": 0.98,
+        "recursion": 0.02,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 284,
+      "usage": {
+        "input_tokens": 1907,
+        "output_tokens": 314
+      }
+    },
+    {
+      "id": "snakeskin-veil",
+      "name": "Snakeskin Veil",
+      "expected": {
+        "acceptable_primary": [
+          "protection"
+        ],
+        "required_traits": [
+          "protection",
+          "counter_synergy"
+        ],
+        "rationale": "Counter plus hexproof on a target creature."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "protection",
+        "confidence": 1,
+        "probabilities": {
+          "board_wipes": 0,
+          "draw": 0,
+          "artifacts": 0,
+          "lands": 0,
+          "other": 0,
+          "creatures": 0,
+          "sacrifice": 0,
+          "counterspells": 0,
+          "protection": 1,
+          "removal": 0,
+          "recursion": 0,
+          "ramp": 0,
+          "enchantments": 0,
+          "tokens": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "protection",
+        "scores": {
+          "protection": 1
+        },
+        "matched_traits": [
+          "protection"
+        ]
+      },
+      "required_mapped_traits": [
+        "protection",
+        "counter_theme"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.03,
+        "draw": 0.02,
+        "counterspells": 0.04,
+        "removal": 0.04,
+        "board_wipes": 0.02,
+        "protection": 0.94,
+        "recursion": 0.02,
+        "tokens": 0.04,
+        "sacrifice": 0.02,
+        "counter_theme": 0.97
+      },
+      "elapsed_ms": 322,
+      "usage": {
+        "input_tokens": 1927,
+        "output_tokens": 314
+      }
+    },
+    {
+      "id": "lightning-greaves",
+      "name": "Lightning Greaves",
+      "expected": {
+        "acceptable_primary": [
+          "protection"
+        ],
+        "required_traits": [
+          "protection",
+          "haste",
+          "equipment"
+        ],
+        "rationale": "Shroud and haste; shroud restricts your targeting too."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "protection",
+        "confidence": 0.85,
+        "probabilities": {
+          "enchantments": 0,
+          "ramp": 0,
+          "recursion": 0,
+          "removal": 0,
+          "draw": 0,
+          "board_wipes": 0,
+          "sacrifice": 0,
+          "artifacts": 0.12,
+          "other": 0.01,
+          "creatures": 0,
+          "tokens": 0,
+          "protection": 0.87,
+          "lands": 0,
+          "counterspells": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "protection",
+        "scores": {
+          "protection": 1
+        },
+        "matched_traits": [
+          "protection"
+        ]
+      },
+      "required_mapped_traits": [
+        "protection"
+      ],
+      "missed_mapped_traits": [
+        "protection"
+      ],
+      "trait_recall_pass": false,
+      "traits": {
+        "ramp": 0.03,
+        "draw": 0.02,
+        "counterspells": 0.02,
+        "removal": 0.04,
+        "board_wipes": 0.02,
+        "protection": 0.48,
+        "recursion": 0.02,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 302,
+      "usage": {
+        "input_tokens": 1913,
+        "output_tokens": 314
+      }
+    },
+    {
+      "id": "reanimate",
+      "name": "Reanimate",
+      "expected": {
+        "acceptable_primary": [
+          "recursion"
+        ],
+        "required_traits": [
+          "graveyard_return"
+        ],
+        "rationale": "Oracle text or type directly supports recursion; no other strategy inferred."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "recursion",
+        "confidence": 1,
+        "probabilities": {
+          "draw": 0,
+          "enchantments": 0,
+          "tokens": 0,
+          "other": 0,
+          "board_wipes": 0,
+          "counterspells": 0,
+          "removal": 0,
+          "lands": 0,
+          "sacrifice": 0,
+          "recursion": 1,
+          "creatures": 0,
+          "artifacts": 0,
+          "ramp": 0,
+          "protection": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "recursion",
+        "scores": {
+          "recursion": 1
+        },
+        "matched_traits": [
+          "recursion"
+        ]
+      },
+      "required_mapped_traits": [
+        "recursion"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.03,
+        "draw": 0.02,
+        "counterspells": 0.02,
+        "removal": 0.13,
+        "board_wipes": 0.03,
+        "protection": 0.02,
+        "recursion": 0.85,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 302,
+      "usage": {
+        "input_tokens": 1914,
+        "output_tokens": 314
+      }
+    },
+    {
+      "id": "eternal-witness",
+      "name": "Eternal Witness",
+      "expected": {
+        "acceptable_primary": [
+          "recursion"
+        ],
+        "required_traits": [
+          "graveyard_return"
+        ],
+        "rationale": "Oracle text or type directly supports recursion; no other strategy inferred."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "recursion",
+        "confidence": 1,
+        "probabilities": {
+          "sacrifice": 0,
+          "creatures": 0,
+          "ramp": 0,
+          "board_wipes": 0,
+          "removal": 0,
+          "recursion": 1,
+          "protection": 0,
+          "counterspells": 0,
+          "lands": 0,
+          "tokens": 0,
+          "other": 0,
+          "enchantments": 0,
+          "artifacts": 0,
+          "draw": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "recursion",
+        "scores": {
+          "recursion": 1
+        },
+        "matched_traits": [
+          "recursion"
+        ]
+      },
+      "required_mapped_traits": [
+        "recursion"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.04,
+        "draw": 0.05,
+        "counterspells": 0.02,
+        "removal": 0.05,
+        "board_wipes": 0.03,
+        "protection": 0.03,
+        "recursion": 0.95,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 471,
+      "usage": {
+        "input_tokens": 1913,
+        "output_tokens": 314
+      }
+    },
+    {
+      "id": "regrowth",
+      "name": "Regrowth",
+      "expected": {
+        "acceptable_primary": [
+          "recursion"
+        ],
+        "required_traits": [
+          "graveyard_return"
+        ],
+        "rationale": "Oracle text or type directly supports recursion; no other strategy inferred."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "recursion",
+        "confidence": 1,
+        "probabilities": {
+          "removal": 0,
+          "ramp": 0,
+          "artifacts": 0,
+          "enchantments": 0,
+          "draw": 0,
+          "recursion": 1,
+          "counterspells": 0,
+          "sacrifice": 0,
+          "lands": 0,
+          "creatures": 0,
+          "other": 0,
+          "protection": 0,
+          "tokens": 0,
+          "board_wipes": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "recursion",
+        "scores": {
+          "recursion": 3
+        },
+        "matched_traits": [
+          "recursion"
+        ]
+      },
+      "required_mapped_traits": [
+        "recursion"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.03,
+        "draw": 0.04,
+        "counterspells": 0.02,
+        "removal": 0.03,
+        "board_wipes": 0.02,
+        "protection": 0.02,
+        "recursion": 0.97,
+        "tokens": 0.02,
+        "sacrifice": 0.03,
+        "counter_theme": 0.03
+      },
+      "elapsed_ms": 346,
+      "usage": {
+        "input_tokens": 1901,
+        "output_tokens": 314
+      }
+    },
+    {
+      "id": "unearth",
+      "name": "Unearth",
+      "expected": {
+        "acceptable_primary": [
+          "recursion"
+        ],
+        "required_traits": [
+          "graveyard_return"
+        ],
+        "rationale": "Oracle text or type directly supports recursion; no other strategy inferred."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "recursion",
+        "confidence": 1,
+        "probabilities": {
+          "counterspells": 0,
+          "draw": 0,
+          "tokens": 0,
+          "lands": 0,
+          "board_wipes": 0,
+          "enchantments": 0,
+          "protection": 0,
+          "removal": 0,
+          "creatures": 0,
+          "sacrifice": 0,
+          "other": 0,
+          "artifacts": 0,
+          "recursion": 1,
+          "ramp": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": false,
+      "baseline": {
+        "primary": "draw",
+        "scores": {
+          "draw": 1,
+          "recursion": 1
+        },
+        "matched_traits": [
+          "draw",
+          "recursion"
+        ]
+      },
+      "required_mapped_traits": [
+        "recursion"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.04,
+        "draw": 0.84,
+        "counterspells": 0.02,
+        "removal": 0.05,
+        "board_wipes": 0.03,
+        "protection": 0.03,
+        "recursion": 0.94,
+        "tokens": 0.04,
+        "sacrifice": 0.05,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 374,
+      "usage": {
+        "input_tokens": 1929,
+        "output_tokens": 314
+      }
+    },
+    {
+      "id": "raise-the-alarm",
+      "name": "Raise the Alarm",
+      "expected": {
+        "acceptable_primary": [
+          "tokens"
+        ],
+        "required_traits": [
+          "token_creation"
+        ],
+        "rationale": "Oracle text or type directly supports tokens; no other strategy inferred."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "tokens",
+        "confidence": 1,
+        "probabilities": {
+          "board_wipes": 0,
+          "draw": 0,
+          "other": 0,
+          "counterspells": 0,
+          "removal": 0,
+          "recursion": 0,
+          "artifacts": 0,
+          "protection": 0,
+          "lands": 0,
+          "ramp": 0,
+          "sacrifice": 0,
+          "tokens": 1,
+          "enchantments": 0,
+          "creatures": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": false,
+      "baseline": {
+        "primary": "other",
+        "scores": {},
+        "matched_traits": []
+      },
+      "required_mapped_traits": [
+        "tokens"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.03,
+        "draw": 0.02,
+        "counterspells": 0.02,
+        "removal": 0.03,
+        "board_wipes": 0.02,
+        "protection": 0.02,
+        "recursion": 0.02,
+        "tokens": 0.97,
+        "sacrifice": 0.03,
+        "counter_theme": 0.06
+      },
+      "elapsed_ms": 344,
+      "usage": {
+        "input_tokens": 1900,
+        "output_tokens": 312
+      }
+    },
+    {
+      "id": "dragon-fodder",
+      "name": "Dragon Fodder",
+      "expected": {
+        "acceptable_primary": [
+          "tokens"
+        ],
+        "required_traits": [
+          "token_creation"
+        ],
+        "rationale": "Oracle text or type directly supports tokens; no other strategy inferred."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "tokens",
+        "confidence": 1,
+        "probabilities": {
+          "lands": 0,
+          "ramp": 0,
+          "draw": 0,
+          "counterspells": 0,
+          "removal": 0,
+          "board_wipes": 0,
+          "protection": 0,
+          "recursion": 0,
+          "tokens": 1,
+          "sacrifice": 0,
+          "creatures": 0,
+          "artifacts": 0,
+          "enchantments": 0,
+          "other": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": false,
+      "baseline": {
+        "primary": "other",
+        "scores": {},
+        "matched_traits": []
+      },
+      "required_mapped_traits": [
+        "tokens"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.04,
+        "draw": 0.02,
+        "counterspells": 0.02,
+        "removal": 0.03,
+        "board_wipes": 0.02,
+        "protection": 0.02,
+        "recursion": 0.03,
+        "tokens": 0.97,
+        "sacrifice": 0.03,
+        "counter_theme": 0.06
+      },
+      "elapsed_ms": 326,
+      "usage": {
+        "input_tokens": 1903,
+        "output_tokens": 312
+      }
+    },
+    {
+      "id": "krenko-mob-boss",
+      "name": "Krenko, Mob Boss",
+      "expected": {
+        "acceptable_primary": [
+          "tokens"
+        ],
+        "required_traits": [
+          "creature",
+          "token_creation",
+          "goblin_synergy"
+        ],
+        "rationale": "Activated Goblin token creation scales with Goblin count."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "tokens",
+        "confidence": 1,
+        "probabilities": {
+          "removal": 0,
+          "sacrifice": 0,
+          "draw": 0,
+          "creatures": 0,
+          "artifacts": 0,
+          "board_wipes": 0,
+          "tokens": 1,
+          "counterspells": 0,
+          "enchantments": 0,
+          "recursion": 0,
+          "ramp": 0,
+          "lands": 0,
+          "other": 0,
+          "protection": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "tokens",
+        "scores": {
+          "tokens": 1
+        },
+        "matched_traits": [
+          "tokens"
+        ]
+      },
+      "required_mapped_traits": [
+        "tokens"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.05,
+        "draw": 0.03,
+        "counterspells": 0.03,
+        "removal": 0.04,
+        "board_wipes": 0.04,
+        "protection": 0.03,
+        "recursion": 0.03,
+        "tokens": 0.96,
+        "sacrifice": 0.04,
+        "counter_theme": 0.2
+      },
+      "elapsed_ms": 295,
+      "usage": {
+        "input_tokens": 1927,
+        "output_tokens": 312
+      }
+    },
+    {
+      "id": "avenger-of-zendikar",
+      "name": "Avenger of Zendikar",
+      "expected": {
+        "acceptable_primary": [
+          "tokens",
+          "creatures"
+        ],
+        "required_traits": [
+          "creature",
+          "token_creation",
+          "landfall",
+          "counter_synergy"
+        ],
+        "rationale": "Plant creation and landfall counters on Plants."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "tokens",
+        "confidence": 0.92,
+        "probabilities": {
+          "removal": 0,
+          "tokens": 0.93,
+          "draw": 0,
+          "artifacts": 0,
+          "other": 0,
+          "creatures": 0.07,
+          "lands": 0,
+          "recursion": 0,
+          "ramp": 0,
+          "sacrifice": 0,
+          "protection": 0,
+          "counterspells": 0,
+          "enchantments": 0,
+          "board_wipes": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "creatures",
+        "scores": {},
+        "matched_traits": []
+      },
+      "required_mapped_traits": [
+        "tokens",
+        "counter_theme"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.06,
+        "draw": 0.03,
+        "counterspells": 0.03,
+        "removal": 0.04,
+        "board_wipes": 0.04,
+        "protection": 0.03,
+        "recursion": 0.03,
+        "tokens": 0.96,
+        "sacrifice": 0.04,
+        "counter_theme": 0.96
+      },
+      "elapsed_ms": 300,
+      "usage": {
+        "input_tokens": 1950,
+        "output_tokens": 312
+      }
+    },
+    {
+      "id": "viscera-seer",
+      "name": "Viscera Seer",
+      "expected": {
+        "acceptable_primary": [
+          "sacrifice"
+        ],
+        "required_traits": [
+          "sacrifice_outlet",
+          "card_selection"
+        ],
+        "rationale": "Repeatable creature sacrifice to scry, not card draw."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "sacrifice",
+        "confidence": 0.85,
+        "probabilities": {
+          "board_wipes": 0,
+          "draw": 0.09,
+          "counterspells": 0,
+          "other": 0.01,
+          "removal": 0,
+          "recursion": 0,
+          "sacrifice": 0.86,
+          "protection": 0,
+          "lands": 0,
+          "artifacts": 0,
+          "ramp": 0,
+          "tokens": 0,
+          "enchantments": 0,
+          "creatures": 0.04
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "sacrifice",
+        "scores": {
+          "sacrifice": 1
+        },
+        "matched_traits": [
+          "sacrifice"
+        ]
+      },
+      "required_mapped_traits": [
+        "sacrifice",
+        "draw"
+      ],
+      "missed_mapped_traits": [
+        "draw"
+      ],
+      "trait_recall_pass": false,
+      "traits": {
+        "ramp": 0.04,
+        "draw": 0.4,
+        "counterspells": 0.02,
+        "removal": 0.04,
+        "board_wipes": 0.03,
+        "protection": 0.02,
+        "recursion": 0.03,
+        "tokens": 0.03,
+        "sacrifice": 0.94,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 345,
+      "usage": {
+        "input_tokens": 1926,
+        "output_tokens": 315
+      }
+    },
+    {
+      "id": "carrion-feeder",
+      "name": "Carrion Feeder",
+      "expected": {
+        "acceptable_primary": [
+          "sacrifice",
+          "creatures"
+        ],
+        "required_traits": [
+          "creature",
+          "sacrifice_outlet",
+          "counter_synergy"
+        ],
+        "rationale": "Repeatable sacrifice places +1/+1 counters; cannot block."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "sacrifice",
+        "confidence": 0.83,
+        "probabilities": {
+          "removal": 0,
+          "enchantments": 0,
+          "protection": 0,
+          "ramp": 0,
+          "sacrifice": 0.84,
+          "tokens": 0,
+          "artifacts": 0,
+          "counterspells": 0,
+          "creatures": 0.15,
+          "draw": 0,
+          "recursion": 0,
+          "other": 0.01,
+          "lands": 0,
+          "board_wipes": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "sacrifice",
+        "scores": {
+          "sacrifice": 1
+        },
+        "matched_traits": [
+          "sacrifice"
+        ]
+      },
+      "required_mapped_traits": [
+        "sacrifice",
+        "counter_theme"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.04,
+        "draw": 0.03,
+        "counterspells": 0.02,
+        "removal": 0.04,
+        "board_wipes": 0.03,
+        "protection": 0.03,
+        "recursion": 0.03,
+        "tokens": 0.04,
+        "sacrifice": 0.91,
+        "counter_theme": 0.94
+      },
+      "elapsed_ms": 330,
+      "usage": {
+        "input_tokens": 1913,
+        "output_tokens": 315
+      }
+    },
+    {
+      "id": "ashnod-s-altar",
+      "name": "Ashnod's Altar",
+      "expected": {
+        "acceptable_primary": [
+          "sacrifice",
+          "ramp"
+        ],
+        "required_traits": [
+          "sacrifice_outlet",
+          "mana_acceleration"
+        ],
+        "rationale": "Repeatable sacrifice produces mana."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "sacrifice",
+        "confidence": 0.9,
+        "probabilities": {
+          "ramp": 0.09,
+          "tokens": 0,
+          "draw": 0,
+          "protection": 0,
+          "sacrifice": 0.91,
+          "removal": 0,
+          "recursion": 0,
+          "lands": 0,
+          "counterspells": 0,
+          "artifacts": 0,
+          "board_wipes": 0,
+          "enchantments": 0,
+          "creatures": 0,
+          "other": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "sacrifice",
+        "scores": {
+          "ramp": 1,
+          "sacrifice": 3
+        },
+        "matched_traits": [
+          "ramp",
+          "sacrifice"
+        ]
+      },
+      "required_mapped_traits": [
+        "sacrifice",
+        "ramp"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.81,
+        "draw": 0.02,
+        "counterspells": 0.02,
+        "removal": 0.03,
+        "board_wipes": 0.03,
+        "protection": 0.02,
+        "recursion": 0.02,
+        "tokens": 0.03,
+        "sacrifice": 0.94,
+        "counter_theme": 0.05
+      },
+      "elapsed_ms": 294,
+      "usage": {
+        "input_tokens": 1895,
+        "output_tokens": 315
+      }
+    },
+    {
+      "id": "scurry-oak",
+      "name": "Scurry Oak",
+      "expected": {
+        "acceptable_primary": [
+          "tokens",
+          "creatures"
+        ],
+        "required_traits": [
+          "creature",
+          "counter_synergy",
+          "token_creation",
+          "evolve"
+        ],
+        "rationale": "Counter placement can create a green Squirrel; alone it does not establish an infinite loop."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "tokens",
+        "confidence": 0.63,
+        "probabilities": {
+          "recursion": 0,
+          "creatures": 0.33,
+          "enchantments": 0,
+          "counterspells": 0,
+          "artifacts": 0,
+          "draw": 0,
+          "protection": 0,
+          "other": 0,
+          "sacrifice": 0,
+          "lands": 0,
+          "tokens": 0.67,
+          "ramp": 0,
+          "removal": 0,
+          "board_wipes": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "tokens",
+        "scores": {
+          "tokens": 1
+        },
+        "matched_traits": [
+          "tokens"
+        ]
+      },
+      "required_mapped_traits": [
+        "counter_theme",
+        "tokens"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.04,
+        "draw": 0.03,
+        "counterspells": 0.02,
+        "removal": 0.04,
+        "board_wipes": 0.03,
+        "protection": 0.03,
+        "recursion": 0.03,
+        "tokens": 0.95,
+        "sacrifice": 0.04,
+        "counter_theme": 0.96
+      },
+      "elapsed_ms": 296,
+      "usage": {
+        "input_tokens": 1959,
+        "output_tokens": 312
+      }
+    },
+    {
+      "id": "ivy-lane-denizen",
+      "name": "Ivy Lane Denizen",
+      "expected": {
+        "acceptable_primary": [
+          "creatures",
+          "other"
+        ],
+        "required_traits": [
+          "creature",
+          "counter_synergy",
+          "green_creature_entry"
+        ],
+        "rationale": "Another green creature entering can place a counter on a target creature."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "creatures",
+        "confidence": 0.59,
+        "probabilities": {
+          "tokens": 0,
+          "removal": 0,
+          "board_wipes": 0,
+          "protection": 0,
+          "other": 0.37,
+          "lands": 0,
+          "draw": 0,
+          "recursion": 0,
+          "enchantments": 0,
+          "artifacts": 0,
+          "sacrifice": 0,
+          "ramp": 0,
+          "counterspells": 0,
+          "creatures": 0.63
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "creatures",
+        "scores": {},
+        "matched_traits": []
+      },
+      "required_mapped_traits": [
+        "counter_theme"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.04,
+        "draw": 0.03,
+        "counterspells": 0.02,
+        "removal": 0.04,
+        "board_wipes": 0.02,
+        "protection": 0.03,
+        "recursion": 0.02,
+        "tokens": 0.04,
+        "sacrifice": 0.03,
+        "counter_theme": 0.96
+      },
+      "elapsed_ms": 292,
+      "usage": {
+        "input_tokens": 1913,
+        "output_tokens": 313
+      }
+    },
+    {
+      "id": "conclave-mentor",
+      "name": "Conclave Mentor",
+      "expected": {
+        "acceptable_primary": [
+          "creatures",
+          "other"
+        ],
+        "required_traits": [
+          "creature",
+          "counter_synergy",
+          "counter_amplification",
+          "lifegain"
+        ],
+        "rationale": "Counter amplification plus death-triggered lifegain."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "creatures",
+        "confidence": 0.59,
+        "probabilities": {
+          "draw": 0,
+          "sacrifice": 0,
+          "removal": 0,
+          "creatures": 0.63,
+          "artifacts": 0,
+          "board_wipes": 0,
+          "tokens": 0,
+          "counterspells": 0,
+          "enchantments": 0,
+          "recursion": 0,
+          "ramp": 0,
+          "lands": 0,
+          "other": 0.37,
+          "protection": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "creatures",
+        "scores": {},
+        "matched_traits": []
+      },
+      "required_mapped_traits": [
+        "counter_theme"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.03,
+        "draw": 0.03,
+        "counterspells": 0.02,
+        "removal": 0.04,
+        "board_wipes": 0.02,
+        "protection": 0.04,
+        "recursion": 0.03,
+        "tokens": 0.04,
+        "sacrifice": 0.03,
+        "counter_theme": 0.96
+      },
+      "elapsed_ms": 369,
+      "usage": {
+        "input_tokens": 1951,
+        "output_tokens": 313
+      }
+    },
+    {
+      "id": "grizzly-bears",
+      "name": "Grizzly Bears",
+      "expected": {
+        "acceptable_primary": [
+          "creatures"
+        ],
+        "required_traits": [
+          "creature"
+        ],
+        "rationale": "Plain creature fallback without functional strategy text."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "creatures",
+        "confidence": 1,
+        "probabilities": {
+          "creatures": 1,
+          "recursion": 0,
+          "ramp": 0,
+          "draw": 0,
+          "lands": 0,
+          "other": 0,
+          "tokens": 0,
+          "removal": 0,
+          "counterspells": 0,
+          "board_wipes": 0,
+          "protection": 0,
+          "enchantments": 0,
+          "sacrifice": 0,
+          "artifacts": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "creatures",
+        "scores": {},
+        "matched_traits": []
+      },
+      "required_mapped_traits": [],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.05,
+        "draw": 0.03,
+        "counterspells": 0.02,
+        "removal": 0.04,
+        "board_wipes": 0.03,
+        "protection": 0.03,
+        "recursion": 0.03,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.05
+      },
+      "elapsed_ms": 340,
+      "usage": {
+        "input_tokens": 1892,
+        "output_tokens": 313
+      }
+    },
+    {
+      "id": "delver-of-secrets",
+      "name": "Delver of Secrets // Insectile Aberration",
+      "expected": {
+        "acceptable_primary": [
+          "creatures"
+        ],
+        "required_traits": [
+          "creature",
+          "transform",
+          "spell_synergy",
+          "flying_back_face"
+        ],
+        "rationale": "Instant/sorcery top-card check transforms to a flying reverse face."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "creatures",
+        "confidence": 0.78,
+        "probabilities": {
+          "board_wipes": 0,
+          "draw": 0.19,
+          "ramp": 0,
+          "recursion": 0,
+          "tokens": 0,
+          "sacrifice": 0,
+          "protection": 0,
+          "lands": 0,
+          "removal": 0,
+          "artifacts": 0,
+          "creatures": 0.8,
+          "other": 0.01,
+          "counterspells": 0,
+          "enchantments": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "creatures",
+        "scores": {},
+        "matched_traits": []
+      },
+      "required_mapped_traits": [],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.04,
+        "draw": 0.42,
+        "counterspells": 0.03,
+        "removal": 0.04,
+        "board_wipes": 0.03,
+        "protection": 0.03,
+        "recursion": 0.03,
+        "tokens": 0.04,
+        "sacrifice": 0.03,
+        "counter_theme": 0.05
+      },
+      "elapsed_ms": 295,
+      "usage": {
+        "input_tokens": 2085,
+        "output_tokens": 313
+      }
+    },
+    {
+      "id": "monastery-swiftspear",
+      "name": "Monastery Swiftspear",
+      "expected": {
+        "acceptable_primary": [
+          "creatures"
+        ],
+        "required_traits": [
+          "creature",
+          "haste",
+          "prowess"
+        ],
+        "rationale": "Cheap haste/prowess threat without inherent direct damage."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "creatures",
+        "confidence": 1,
+        "probabilities": {
+          "draw": 0,
+          "artifacts": 0,
+          "ramp": 0,
+          "other": 0,
+          "sacrifice": 0,
+          "lands": 0,
+          "enchantments": 0,
+          "removal": 0,
+          "protection": 0,
+          "recursion": 0,
+          "creatures": 1,
+          "board_wipes": 0,
+          "tokens": 0,
+          "counterspells": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "creatures",
+        "scores": {},
+        "matched_traits": []
+      },
+      "required_mapped_traits": [],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.04,
+        "draw": 0.03,
+        "counterspells": 0.02,
+        "removal": 0.05,
+        "board_wipes": 0.03,
+        "protection": 0.03,
+        "recursion": 0.03,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.23
+      },
+      "elapsed_ms": 307,
+      "usage": {
+        "input_tokens": 1931,
+        "output_tokens": 313
+      }
+    },
+    {
+      "id": "goblin-guide",
+      "name": "Goblin Guide",
+      "expected": {
+        "acceptable_primary": [
+          "creatures"
+        ],
+        "required_traits": [
+          "creature",
+          "haste"
+        ],
+        "rationale": "Cheap haste attacker; attack trigger can give defender a land."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "creatures",
+        "confidence": 0.74,
+        "probabilities": {
+          "board_wipes": 0,
+          "draw": 0.22,
+          "artifacts": 0,
+          "sacrifice": 0,
+          "other": 0.01,
+          "counterspells": 0,
+          "creatures": 0.77,
+          "lands": 0,
+          "enchantments": 0,
+          "removal": 0,
+          "recursion": 0,
+          "ramp": 0,
+          "protection": 0,
+          "tokens": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "creatures",
+        "scores": {},
+        "matched_traits": []
+      },
+      "required_mapped_traits": [],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.05,
+        "draw": 0.3,
+        "counterspells": 0.02,
+        "removal": 0.04,
+        "board_wipes": 0.02,
+        "protection": 0.03,
+        "recursion": 0.04,
+        "tokens": 0.03,
+        "sacrifice": 0.03,
+        "counter_theme": 0.04
+      },
+      "elapsed_ms": 323,
+      "usage": {
+        "input_tokens": 1928,
+        "output_tokens": 313
+      }
+    },
+    {
+      "id": "hardened-scales",
+      "name": "Hardened Scales",
+      "expected": {
+        "acceptable_primary": [
+          "enchantments",
+          "other"
+        ],
+        "required_traits": [
+          "enchantment",
+          "counter_synergy",
+          "counter_amplification"
+        ],
+        "rationale": "Adds an extra counter when +1/+1 counters would be placed on your creature."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "other",
+        "confidence": 0.97,
+        "probabilities": {
+          "creatures": 0,
+          "draw": 0,
+          "enchantments": 0.02,
+          "recursion": 0,
+          "lands": 0,
+          "protection": 0,
+          "board_wipes": 0,
+          "artifacts": 0,
+          "other": 0.98,
+          "ramp": 0,
+          "sacrifice": 0,
+          "counterspells": 0,
+          "removal": 0,
+          "tokens": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "enchantments",
+        "scores": {},
+        "matched_traits": []
+      },
+      "required_mapped_traits": [
+        "counter_theme"
+      ],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.03,
+        "draw": 0.02,
+        "counterspells": 0.02,
+        "removal": 0.03,
+        "board_wipes": 0.02,
+        "protection": 0.04,
+        "recursion": 0.02,
+        "tokens": 0.04,
+        "sacrifice": 0.03,
+        "counter_theme": 0.96
+      },
+      "elapsed_ms": 324,
+      "usage": {
+        "input_tokens": 1923,
+        "output_tokens": 312
+      }
+    },
+    {
+      "id": "ornithopter",
+      "name": "Ornithopter",
+      "expected": {
+        "acceptable_primary": [
+          "creatures",
+          "artifacts"
+        ],
+        "required_traits": [
+          "creature",
+          "artifact",
+          "flying"
+        ],
+        "rationale": "Zero-mana artifact creature without inherent mana production."
+      },
+      "primary": {
+        "type": "choice",
+        "choice": "creatures",
+        "confidence": 0.98,
+        "probabilities": {
+          "tokens": 0,
+          "creatures": 0.99,
+          "ramp": 0,
+          "draw": 0,
+          "removal": 0,
+          "recursion": 0,
+          "protection": 0,
+          "counterspells": 0,
+          "lands": 0,
+          "board_wipes": 0,
+          "other": 0,
+          "sacrifice": 0,
+          "artifacts": 0.01,
+          "enchantments": 0
+        }
+      },
+      "pass": true,
+      "baseline_pass": true,
+      "baseline": {
+        "primary": "creatures",
+        "scores": {},
+        "matched_traits": []
+      },
+      "required_mapped_traits": [],
+      "missed_mapped_traits": [],
+      "trait_recall_pass": true,
+      "traits": {
+        "ramp": 0.04,
+        "draw": 0.03,
+        "counterspells": 0.03,
+        "removal": 0.04,
+        "board_wipes": 0.03,
+        "protection": 0.03,
+        "recursion": 0.03,
+        "tokens": 0.04,
+        "sacrifice": 0.03,
+        "counter_theme": 0.05
+      },
+      "elapsed_ms": 351,
+      "usage": {
+        "input_tokens": 1892,
+        "output_tokens": 313
+      }
+    }
+  ],
+  "decks": [
+    {
+      "id": "d01",
+      "expected": {
+        "required_categories": [
+          "control"
+        ],
+        "acceptable_categories": [
+          "control",
+          "tokens"
+        ],
+        "forbidden_categories": [],
+        "rationale": "Countermagic, draw, removal, sweepers and token finishers support Control."
+      },
+      "predicted": [
+        "control"
+      ],
+      "missing": [],
+      "extra": [],
+      "pass": true,
+      "probabilities": {
+        "aggro": 0.05,
+        "burn": 0.05,
+        "control": 0.87,
+        "midrange": 0.29,
+        "ramp": 0.05,
+        "combo": 0.2,
+        "tokens": 0.19,
+        "counter_theme": 0.03,
+        "infinite_counters": 0.03
+      },
+      "elapsed_ms": 353,
+      "usage": {
+        "input_tokens": 2629,
+        "output_tokens": 157
+      }
+    },
+    {
+      "id": "d02",
+      "expected": {
+        "required_categories": [
+          "aggro"
+        ],
+        "acceptable_categories": [
+          "aggro",
+          "burn",
+          "tokens"
+        ],
+        "forbidden_categories": [],
+        "rationale": "Cheap haste pressure and Bolt alongside token production. Burn is secondary because only Bolt directly damages players."
+      },
+      "predicted": [
+        "aggro",
+        "tokens"
+      ],
+      "missing": [],
+      "extra": [],
+      "pass": true,
+      "probabilities": {
+        "aggro": 0.87,
+        "burn": 0.49,
+        "control": 0.05,
+        "midrange": 0.22,
+        "ramp": 0.45,
+        "combo": 0.67,
+        "tokens": 0.88,
+        "counter_theme": 0.35,
+        "infinite_counters": 0.04
+      },
+      "elapsed_ms": 307,
+      "usage": {
+        "input_tokens": 2576,
+        "output_tokens": 157
+      }
+    },
+    {
+      "id": "d03",
+      "expected": {
+        "required_categories": [
+          "ramp"
+        ],
+        "acceptable_categories": [
+          "ramp",
+          "tokens",
+          "counter_theme",
+          "midrange"
+        ],
+        "forbidden_categories": [],
+        "rationale": "Acceleration supports an expensive token finisher; landfall counters are secondary."
+      },
+      "predicted": [
+        "ramp"
+      ],
+      "missing": [],
+      "extra": [],
+      "pass": true,
+      "probabilities": {
+        "aggro": 0.19,
+        "burn": 0.05,
+        "control": 0.07,
+        "midrange": 0.49,
+        "ramp": 0.88,
+        "combo": 0.53,
+        "tokens": 0.76,
+        "counter_theme": 0.69,
+        "infinite_counters": 0.1
+      },
+      "elapsed_ms": 334,
+      "usage": {
+        "input_tokens": 2578,
+        "output_tokens": 157
+      }
+    },
+    {
+      "id": "d04",
+      "expected": {
+        "required_categories": [
+          "counter_theme"
+        ],
+        "acceptable_categories": [
+          "counter_theme",
+          "ramp",
+          "tokens",
+          "midrange"
+        ],
+        "forbidden_categories": [
+          "infinite_counters",
+          "combo"
+        ],
+        "rationale": "Counter amplification and Oak tokens without Denizen or another identified self-sustaining re-trigger in this complete list."
+      },
+      "predicted": [
+        "counter_theme"
+      ],
+      "missing": [],
+      "extra": [],
+      "pass": true,
+      "probabilities": {
+        "aggro": 0.46,
+        "burn": 0.04,
+        "control": 0.03,
+        "midrange": 0.74,
+        "ramp": 0.56,
+        "combo": 0.57,
+        "tokens": 0.66,
+        "counter_theme": 0.9,
+        "infinite_counters": 0.08
+      },
+      "elapsed_ms": 391,
+      "usage": {
+        "input_tokens": 2763,
+        "output_tokens": 157
+      }
+    },
+    {
+      "id": "d05",
+      "expected": {
+        "required_categories": [
+          "counter_theme",
+          "infinite_counters",
+          "combo"
+        ],
+        "acceptable_categories": [
+          "counter_theme",
+          "infinite_counters",
+          "combo",
+          "ramp",
+          "tokens"
+        ],
+        "forbidden_categories": [],
+        "rationale": "Denizen counter on Oak creates a green Squirrel, which re-triggers Denizen. Requires both permanents, an initial trigger, choosing to continue and no disruption; not inevitable victory."
+      },
+      "predicted": [
+        "counter_theme"
+      ],
+      "missing": [
+        "infinite_counters",
+        "combo"
+      ],
+      "extra": [],
+      "pass": false,
+      "probabilities": {
+        "aggro": 0.46,
+        "burn": 0.04,
+        "control": 0.03,
+        "midrange": 0.72,
+        "ramp": 0.57,
+        "combo": 0.61,
+        "tokens": 0.71,
+        "counter_theme": 0.92,
+        "infinite_counters": 0.1
+      },
+      "elapsed_ms": 414,
+      "usage": {
+        "input_tokens": 2769,
+        "output_tokens": 157
+      }
+    },
+    {
+      "id": "d06",
+      "expected": {
+        "required_categories": [
+          "midrange"
+        ],
+        "acceptable_categories": [
+          "midrange",
+          "counter_theme"
+        ],
+        "forbidden_categories": [
+          "infinite_counters",
+          "combo"
+        ],
+        "rationale": "Sacrifice, draw and graveyard return form a resource-recycling value shell. No specifically supported self-sustaining loop."
+      },
+      "predicted": [],
+      "missing": [
+        "midrange"
+      ],
+      "extra": [],
+      "pass": false,
+      "probabilities": {
+        "aggro": 0.26,
+        "burn": 0.06,
+        "control": 0.09,
+        "midrange": 0.71,
+        "ramp": 0.35,
+        "combo": 0.65,
+        "tokens": 0.32,
+        "counter_theme": 0.57,
+        "infinite_counters": 0.4
+      },
+      "elapsed_ms": 462,
+      "usage": {
+        "input_tokens": 2676,
+        "output_tokens": 157
+      }
+    }
+  ],
+  "interpretation_limits": [
+    "Small hand-selected fixture with synthetic decks; no population accuracy claim.",
+    "Deck rubric is diagnostic for the matched loop contrast; aggro/midrange exclusions are subjective.",
+    "Trait scoring checks mapped minimum traits only; additional correct traits are not penalized.",
+    "Baseline uses a provisional fixed tie order and narrow token root, not an optimized Tagger classifier.",
+    "0.8 Noul threshold is exploratory and uncalibrated; provider confidence is not verified correctness."
+  ]
+}
