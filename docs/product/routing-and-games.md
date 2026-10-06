@@ -32,9 +32,11 @@ The [route source](../../frontend/src/routes/) owns implemented handlers. The [s
 | `/api/auth/login`             | POST verifies local credentials and returns a bearer session                |
 | `/api/auth/logout`            | POST revokes the presented bearer session                                   |
 | `/openapi.json`               | API description                                                             |
+| `/llms.txt`                   | Public Markdown overview, application links, and agent registration rules   |
+| `/agents.md`                  | Permanent same-origin redirect to `/llms.txt`                               |
 | `/robots.txt`, `/sitemap.xml` | Search-engine metadata                                                      |
 
-`GET /agents.md` provides public Markdown instructions for creating a new account through the existing registration API. The shared HTML head links to this guide. Demo deployments instead state that registration is disabled. This guide does not implement the proposed auth.md protocol.
+`GET /llms.txt` provides a public Markdown overview and links to the application and API, with instructions for creating a new account through the existing registration API. The shared HTML head links to it with `rel="describedby"`. Demo deployments instead state that registration is disabled. `/agents.md` returns HTTP 308 to `/llms.txt` without duplicating the guide. This guide does not implement the proposed auth.md protocol.
 
 The font comparison and numbered landing prototype routes are removed. The `review=landing` composition override is removed; `/` is the landing review target for any session. The brand links to `/`. Normal primary Search clicks and Ctrl+K or Cmd+K open the shared catalog overlay above the current page. The landing form opens it with the submitted query. Search links retain `/mtg/search` for modified clicks and no-JavaScript navigation. The visible query URL supports direct visits and reloads as a full page; Full view replaces the overlay entry. Close, Escape and Back return to the background page, and Forward reopens Search. [Frontend architecture](../architecture/frontend.md) owns session, history and page composition. The first navigation item is Dashboard for signed-in users and Home for guests.
 

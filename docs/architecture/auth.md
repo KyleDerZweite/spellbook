@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-06
 - Source of Truth: code
-- Update Triggers: credentials, sessions, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, post-login destinations
+- Update Triggers: credentials, sessions, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, post-login destinations, agent discovery
 - Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Routes](../product/routing-and-games.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md)
 
 Spellbook authenticates local accounts by username and password. `user_profiles.account_id` remains the stable ownership key for inventories, decks, and scans. Registration generates a new account ID; operator enrollment preserves an existing account ID.
@@ -69,4 +69,4 @@ Migration `0004` adds credentials and sessions without changing account IDs. His
 
 ## Agent account creation
 
-`GET /agents.md` describes ordinary local account registration and credential storage for agents. The current JSON API remains the authentication owner, with full-account sessions rather than delegated scopes. Demo mode publishes a disabled-registration guide. The [provider evaluation](./auth-provider-evaluation.md#future-authmd-integration) records the separate future auth.md protocol work.
+`GET /llms.txt` provides a public Markdown overview, application and API links, and ordinary local account registration and credential storage rules for agents. The shared HTML head discovers it through `rel="describedby"`, following the [llms.txt proposal](https://llmstxt.org/). `/agents.md` permanently redirects to `/llms.txt`. The current JSON API remains the authentication owner, with full-account sessions rather than delegated scopes. Demo mode publishes a disabled-registration guide. The [provider evaluation](./auth-provider-evaluation.md#future-authmd-integration) records the separate future auth.md protocol work.

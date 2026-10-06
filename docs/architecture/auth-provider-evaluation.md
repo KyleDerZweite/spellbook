@@ -28,7 +28,7 @@ Sources: [WorkOS SvelteKit SDK](https://github.com/workos/authkit-sveltekit), [A
 
 ## Future auth.md integration
 
-Kyle's accepted scope on 2026-10-06 is ordinary registration of the agent's own new account using the existing username/password API. The [authentication contract](./auth.md) owns that implemented behavior and the public `/agents.md` guide. Full auth.md integration is deferred. The choice between independently self-hosted and managed deployment profiles remains open. This decision does not select WorkOS AuthKit or authorize identity migration.
+Kyle's accepted scope on 2026-10-06 is ordinary registration of the agent's own new account using the existing username/password API. The [authentication contract](./auth.md) owns that implemented behavior and the public `/llms.txt` guide. Full auth.md integration is deferred. The choice between independently self-hosted and managed deployment profiles remains open. This decision does not select WorkOS AuthKit or authorize identity migration.
 
 WorkOS's [auth.md protocol](https://workos.com/auth-md) is independent of WorkOS infrastructure. Its [User claimed flow](https://workos.com/auth-md/docs/flows/claimed) can operate without an agent identity provider. The agent presents a code and verification link; the user signs in or registers at the application and confirms the code. That authorizes the agent against an account. It does not provide fully automatic account creation. The [Agent verified flow](https://workos.com/auth-md/docs/flows/verified) requires a participating, trusted provider that can issue an audience-bound identity assertion. Provider examples in the guide do not establish that a particular agent runtime supports that capability.
 
