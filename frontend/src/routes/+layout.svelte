@@ -32,6 +32,7 @@
 	<meta property="og:site_name" content={SITE_NAME} />
 	<meta property="og:type" content="website" />
 	<meta name="twitter:card" content="summary" />
+	<link rel="alternate" type="text/markdown" href="/agents.md" title="Agent account registration" />
 </svelte:head>
 
 <Shell>
