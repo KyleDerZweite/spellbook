@@ -8,7 +8,7 @@
 
 This proposal adds editable categories and consistent grouping controls to Decks and Inventory. It records recommendations for review, not implemented behavior or an accepted architecture. The [UI direction](./ui-design-direction.md) continues to own shared visual and interaction rules.
 
-Currently, Decks groups by card type or section and sorts by name or quantity. Inventory's clickable column headers support set grouping and additional finish, condition or quantity ordering. Its Card menu retains Recently updated. [Owned inventory](./specification.md#owned-inventory) defines this implemented behavior. Neither workflow stores custom categories. Existing deck `role` values identify Main deck, Commander, Sideboard and Companion; categories must remain separate from those sections.
+Currently, Decks groups by card type or section and sorts by name or quantity. Inventory's clickable column headers support set grouping and additional finish, condition or quantity ordering. Its Card menu offers Newest first by entry creation date. [Owned inventory](./specification.md#owned-inventory) defines this implemented behavior. Neither workflow stores custom categories. Existing deck `role` values identify Main deck, Commander, Sideboard and Companion; categories must remain separate from those sections.
 
 ## Presentation
 
@@ -17,7 +17,7 @@ Use the same shared Group and Sort controls in both workspaces. A small collapsi
 | Workspace | Recommended default      | Group options                                                       | Sort options                                                      |
 | --------- | ------------------------ | ------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Decks     | Category, name ascending | Category, Type, Section                                             | Name ascending or descending, Quantity; Mana value when available |
-| Inventory | None, name ascending     | None, Category, Set, Finish, Condition; Type after metadata support | Name ascending or descending, Quantity, Recently updated          |
+| Inventory | None, name ascending     | None, Category, Set, Finish, Condition; Type after metadata support | Name ascending or descending, Quantity, Newest first              |
 
 Grouping and sorting are independent. Sorting orders entries inside each group; it does not rearrange the categories. Use a stable category order, alphabetical set groups and fixed type order. Break equal sort values with name, printing and entry identity so rows do not jump unexpectedly. Grouping choices must not change ownership, deck requirements or stored display positions.
 

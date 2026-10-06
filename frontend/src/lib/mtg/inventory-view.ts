@@ -2,9 +2,9 @@ import type { InventoryCard } from '#lib/server/data/types.ts';
 
 export type InventoryDirection = 'asc' | 'desc';
 export type InventoryVariantColumn = 'finish' | 'condition' | 'quantity';
-export type InventoryColumn = 'name' | 'set' | 'recent' | InventoryVariantColumn;
+export type InventoryColumn = 'name' | 'set' | 'newest' | InventoryVariantColumn;
 export interface InventoryOrder {
-	base: 'name' | 'set' | 'recent';
+	base: 'name' | 'set' | 'newest';
 	direction: InventoryDirection;
 	variant: { column: InventoryVariantColumn; direction: InventoryDirection } | null;
 }
@@ -24,7 +24,7 @@ type InventoryViewEntry = Pick<
 	| 'condition'
 	| 'quantity'
 	| 'notes'
-	| 'updatedAt'
+	| 'createdAt'
 >;
 const finishes = ['nonfoil', 'foil'];
 export const inventoryConditions = ['NM', 'LP', 'MP', 'HP', 'DMG'];
@@ -33,7 +33,7 @@ const reverse = (direction: InventoryDirection): InventoryDirection =>
 const sign = (direction: InventoryDirection) => (direction === 'asc' ? 1 : -1);
 
 export function nextInventoryOrder(order: InventoryOrder, column: InventoryColumn): InventoryOrder {
-	if (column === 'recent') return { base: 'recent', direction: 'desc', variant: null };
+	if (column === 'newest') return { base: 'newest', direction: 'desc', variant: null };
 	if (column === 'name' || column === 'set') {
 		return {
 			base: column,
@@ -42,8 +42,8 @@ export function nextInventoryOrder(order: InventoryOrder, column: InventoryColum
 		};
 	}
 	return {
-		base: order.base === 'recent' ? 'name' : order.base,
-		direction: order.base === 'recent' ? 'asc' : order.direction,
+		base: order.base === 'newest' ? 'name' : order.base,
+		direction: order.base === 'newest' ? 'asc' : order.direction,
 		variant: {
 			column,
 			direction: order.variant?.column === column ? reverse(order.variant.direction) : 'asc'
@@ -89,7 +89,7 @@ export function orderInventory<T extends InventoryViewEntry>(
 			finishes.indexOf(a.finish) - finishes.indexOf(b.finish) ||
 			inventoryConditions.indexOf(a.condition) - inventoryConditions.indexOf(b.condition) ||
 			a.id.localeCompare(b.id);
-		if (order.base === 'recent') return b.updatedAt.getTime() - a.updatedAt.getTime() || tie;
+		if (order.base === 'newest') return b.createdAt.getTime() - a.createdAt.getTime() || tie;
 		if (order.base === 'set') {
 			return (
 				a.setCode.localeCompare(b.setCode) * sign(order.direction) ||
@@ -108,7 +108,7 @@ export function orderInventory<T extends InventoryViewEntry>(
 }
 
 export function describeInventoryOrder(order: InventoryOrder): string {
-	if (order.base === 'recent') return 'Sorted by most recently updated.';
+	if (order.base === 'newest') return 'Sorted by entry creation date, newest first.';
 	const direction = (value: InventoryDirection) => (value === 'asc' ? 'ascending' : 'descending');
 	const variant = order.variant
 		? `${order.variant.column} ${direction(order.variant.direction)}, then `
@@ -116,6 +116,11 @@ export function describeInventoryOrder(order: InventoryOrder): string {
 	return order.base === 'set'
 		? `Grouped by set ${direction(order.direction)}, then ${variant}card name ascending.`
 		: `Sorted by ${variant}card name ${direction(order.direction)}, then set ascending.`;
+}
+
+export function isNewInventoryEntry(createdAt: Date, asOf: Date): boolean {
+	const age = asOf.getTime() - createdAt.getTime();
+	return age >= 0 && age < 7 * 24 * 60 * 60 * 1000;
 }
 
 export function inventorySetColor(setCode: string): string {

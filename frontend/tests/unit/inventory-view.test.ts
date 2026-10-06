@@ -3,6 +3,7 @@ import {
 	describeInventoryOrder,
 	filterInventory,
 	inventorySetColor,
+	isNewInventoryEntry,
 	nextInventoryOrder,
 	orderInventory,
 	type InventoryFilters,
@@ -21,6 +22,7 @@ function entry(
 		quantity: number;
 		notes: string;
 		catalogCardId: string;
+		createdAt: Date;
 		updatedAt: Date;
 	}> = {}
 ) {
@@ -33,6 +35,7 @@ function entry(
 		quantity: 1,
 		notes: '',
 		catalogCardId: id,
+		createdAt: new Date('2026-10-01'),
 		updatedAt: new Date('2026-10-01'),
 		...overrides
 	};
@@ -130,18 +133,22 @@ describe('inventory column ordering', () => {
 			variant: { column: 'condition', direction: 'asc' }
 		});
 	});
-	it('retains Recently updated and leaves that mode predictably on an ordinary header click', () => {
-		const recent = nextInventoryOrder(nextInventoryOrder(initial, 'finish'), 'recent');
-		expect(recent).toEqual({ base: 'recent', direction: 'desc', variant: null });
-		const dated = [entry('older'), entry('newer', { updatedAt: new Date('2026-10-06') })];
-		expect(orderInventory(dated, recent).map((card) => card.id)).toEqual(['newer', 'older']);
-		expect(nextInventoryOrder(recent, 'name')).toEqual(initial);
-		expect(nextInventoryOrder(recent, 'set')).toEqual({
+	it('uses entry creation date for Newest first and leaves that mode predictably on an ordinary header click', () => {
+		const newest = nextInventoryOrder(nextInventoryOrder(initial, 'finish'), 'newest');
+		expect(newest).toEqual({ base: 'newest', direction: 'desc', variant: null });
+		const dated = [
+			entry('older', { updatedAt: new Date('2026-10-07') }),
+			entry('newer', { createdAt: new Date('2026-10-06') })
+		];
+		expect(orderInventory(dated, newest).map((card) => card.id)).toEqual(['newer', 'older']);
+		expect(describeInventoryOrder(newest)).toBe('Sorted by entry creation date, newest first.');
+		expect(nextInventoryOrder(newest, 'name')).toEqual(initial);
+		expect(nextInventoryOrder(newest, 'set')).toEqual({
 			base: 'set',
 			direction: 'asc',
 			variant: null
 		});
-		expect(nextInventoryOrder(recent, 'finish')).toEqual({
+		expect(nextInventoryOrder(newest, 'finish')).toEqual({
 			...initial,
 			variant: { column: 'finish', direction: 'asc' }
 		});
@@ -192,5 +199,19 @@ describe('inventory filters', () => {
 		expect(inventorySetColor('sta')).toMatch(
 			/^var\(--color-(info|violet|success|warning|text-muted)\)$/
 		);
+	});
+});
+
+describe('new inventory entry badges', () => {
+	const now = new Date('2026-10-06T12:00:00Z');
+	it('marks entries new for exactly seven elapsed days from creation', () => {
+		expect(isNewInventoryEntry(now, now)).toBe(true);
+		expect(isNewInventoryEntry(new Date('2026-09-29T12:00:00.001Z'), now)).toBe(true);
+		expect(isNewInventoryEntry(new Date('2026-09-29T12:00:00Z'), now)).toBe(false);
+		expect(isNewInventoryEntry(new Date('2026-09-28T12:00:00Z'), now)).toBe(false);
+	});
+	it('does not mark future or invalid creation dates new', () => {
+		expect(isNewInventoryEntry(new Date('2026-10-06T12:00:01Z'), now)).toBe(false);
+		expect(isNewInventoryEntry(new Date('invalid'), now)).toBe(false);
 	});
 });

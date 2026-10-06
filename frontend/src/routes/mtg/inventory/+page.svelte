@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance, type SubmitFunction } from '$app/forms';
+	import { tick } from 'svelte';
 	import type { PageProps } from './$types';
 	import CardDetail from '#lib/components/cards/CardDetail.svelte';
 	import Select from '#lib/components/ui/select/Select.svelte';
@@ -9,6 +10,7 @@
 		filterInventory,
 		inventoryConditions,
 		inventorySetColor,
+		isNewInventoryEntry,
 		nextInventoryOrder,
 		orderInventory,
 		type InventoryColumn,
@@ -31,7 +33,14 @@
 	let mutationError = $state('');
 	let setCatalogTotal = $state<number | null>(null);
 	let setProgressLoading = $state(false);
-	const columns: Array<{ column: Exclude<InventoryColumn, 'recent'>; label: string }> = [
+	let viewedAt = $state<Date | null>(null);
+	let asOf = $derived(viewedAt ?? data.viewedAt);
+	let searchInput = $state<HTMLInputElement | null>(null);
+	let emptyAction = $state<HTMLAnchorElement | null>(null);
+	let removeCancel = $state<HTMLButtonElement | null>(null);
+	let rowMenuRefs = $state<Record<string, HTMLButtonElement | null>>({});
+	const addedDate = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeZone: 'UTC' });
+	const columns: Array<{ column: Exclude<InventoryColumn, 'newest'>; label: string }> = [
 		{ column: 'name', label: 'Card' },
 		{ column: 'set', label: 'Set' },
 		{ column: 'finish', label: 'Finish' },
@@ -78,6 +87,25 @@
 		)
 	);
 	let sortDescription = $derived(describeInventoryOrder(order));
+	$effect(() => {
+		const anchor = data.viewedAt.getTime();
+		const started = Date.now();
+		viewedAt = data.viewedAt;
+		const timer = setInterval(() => {
+			viewedAt = new Date(anchor + Date.now() - started);
+		}, 60_000);
+		return () => clearInterval(timer);
+	});
+	async function cancelRemoval(id: string) {
+		removeId = null;
+		await tick();
+		rowMenuRefs[id]?.focus();
+	}
+	function focusRemoval(event: Event, id: string) {
+		if (removeId !== id) return;
+		event.preventDefault();
+		void tick().then(() => (removeCancel ?? rowMenuRefs[id])?.focus());
+	}
 	function columnDirection(column: InventoryColumn) {
 		return order.base === column
 			? order.direction
@@ -140,8 +168,14 @@
 		return async ({ result, update }) => {
 			try {
 				if (result.type === 'success') {
+					const index = listCards.findIndex((entry) => entry.id === id);
+					const neighbor = listCards[index + 1] ?? listCards[index - 1];
 					await update({ reset: false });
 					removeId = null;
+					if (removing) {
+						await tick();
+						(rowMenuRefs[neighbor?.id ?? ''] ?? searchInput ?? emptyAction)?.focus();
+					}
 					status = removing
 						? `${card?.name ?? 'Entry'} removed.`
 						: `${card?.name ?? 'Quantity'} saved.`;
@@ -189,7 +223,9 @@
 	{#if inventoryCards.length === 0}
 		<div class="empty-state">
 			<p>No cards yet.</p>
-			<a href="/mtg/search" class="btn btn-secondary">Find your first card</a>
+			<a bind:this={emptyAction} href="/mtg/search" class="btn btn-secondary"
+				>Find your first card</a
+			>
 		</div>
 	{:else}
 		<div class="inventory-toolbar">
@@ -204,6 +240,7 @@
 					stroke-width="1.5"><circle cx="10" cy="10" r="7" /><path d="m15 15 6 6" /></svg
 				><input
 					type="search"
+					bind:this={searchInput}
 					aria-label="Search inventory"
 					bind:value={query}
 					placeholder="Search inventory"
@@ -276,12 +313,16 @@
 					<button
 						type="button"
 						class="column-sort"
-						aria-pressed={columnDirection(column) !== null}
+						class:has-direction={columnDirection(column) !== null ||
+							(column === 'name' && order.base === 'newest')}
+						aria-pressed={columnDirection(column) !== null ||
+							(column === 'name' && order.base === 'newest')}
 						aria-label={`Sort by ${label.toLowerCase()} ${columnDirection(column) === 'asc' ? 'descending' : 'ascending'}`}
 						onclick={() => (order = nextInventoryOrder(order, column))}
-						>{label}{#if columnDirection(column)}<span aria-hidden="true"
-								>{columnDirection(column) === 'asc' ? '↑' : '↓'}</span
-							>{/if}</button
+						>{column === 'name' && order.base === 'newest' ? 'Newest' : label}<span
+							class="sort-direction"
+							aria-hidden="true">{columnDirection(column) === 'asc' ? '↑' : '↓'}</span
+						></button
 					>
 					{#if column === 'name'}
 						<ActionMenu
@@ -290,23 +331,12 @@
 							class="card-order-menu"
 							items={[
 								{
-									label: 'Recently updated',
-									onSelect: () => (order = nextInventoryOrder(order, 'recent'))
+									label: 'Newest first',
+									onSelect: () => (order = nextInventoryOrder(order, 'newest'))
 								}
 							]}
 						>
-							{#snippet trigger()}<svg
-									aria-hidden="true"
-									width="14"
-									height="14"
-									viewBox="0 0 24 24"
-									fill="currentColor"
-									><circle cx="12" cy="5" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle
-										cx="12"
-										cy="19"
-										r="1.7"
-									/></svg
-								>{/snippet}
+							{#snippet trigger()}{@render menuDots()}{/snippet}
 						</ActionMenu>
 					{:else if column === 'set' || column === 'finish' || column === 'condition'}
 						<Select
@@ -330,26 +360,32 @@
 			{/each}
 			<span></span>
 		</div>
-		{#if order.base === 'recent'}<p class="recent-order">Recently updated</p>{/if}
 		{#if listCards.length === 0}<div class="empty-state">
 				<p>No cards match these filters.</p>
 				<button class="btn btn-secondary" onclick={clearFilters}>Clear filters</button>
 			</div>
 		{:else}
 			<ul class="inventory-list" aria-label="Inventory entries">
-				{#each listCards as card, index (card.id)}
-					{#if order.base === 'set' && (index === 0 || listCards[index - 1]?.setCode !== card.setCode)}<li
-							class="set-group"
-						>
-							{@render metadata('set', card.setCode)}
-						</li>{/if}
+				{#each listCards as card (card.id)}
 					<li class="inventory-row" class:saving={pendingId === card.id}>
 						<button
 							class="card-identity"
 							onclick={() => (inspectedId = card.id)}
 							aria-label={`Inspect ${card.name}, ${card.setCode.toUpperCase()}, ${card.finish}, ${card.condition}`}
+							aria-describedby={isNewInventoryEntry(card.createdAt, asOf)
+								? `inventory-new-${card.id}`
+								: undefined}
 							><img src={card.imageUri} alt="" width="40" height="56" loading="lazy" /><span
-								><strong>{card.name}</strong><span class="mobile-metadata"
+								><span class="card-name"
+									><strong>{card.name}</strong>{#if isNewInventoryEntry(card.createdAt, asOf)}<span
+											class="new-entry"
+											id={`inventory-new-${card.id}`}
+											title={`Added ${addedDate.format(card.createdAt)} UTC. New for 7 days.`}
+											>New<span class="sr-only"
+												>, entry added {addedDate.format(card.createdAt)} UTC, marked new for 7 days</span
+											></span
+										>{/if}</span
+								><span class="mobile-metadata"
 									>{@render metadata('set', card.setCode)}{@render metadata(
 										'finish',
 										card.finish
@@ -389,12 +425,25 @@
 								</form>
 							{/each}
 						</div>
-						<button
-							class="remove-entry"
-							aria-label={`Remove ${card.name} entry`}
-							disabled={pendingId !== null}
-							onclick={() => (removeId = removeId === card.id ? null : card.id)}>Remove</button
+						<ActionMenu
+							label={`Actions for ${card.name}, ${card.setCode.toUpperCase()}, ${card.finish}, ${card.condition}`}
+							iconOnly
+							class="entry-menu"
+							bind:triggerRef={
+								() => rowMenuRefs[card.id] ?? null, (ref) => (rowMenuRefs[card.id] = ref)
+							}
+							onCloseAutoFocus={(event) => focusRemoval(event, card.id)}
+							items={[
+								{
+									label: 'Remove',
+									destructive: true,
+									disabled: pendingId !== null,
+									onSelect: () => (removeId = card.id)
+								}
+							]}
 						>
+							{#snippet trigger()}{@render menuDots()}{/snippet}
+						</ActionMenu>
 						{#if removeId === card.id}<div class="remove-confirmation">
 								<p>
 									Remove {card.quantity > 1 ? 'all ' : ''}{card.quantity}
@@ -402,9 +451,10 @@
 								</p>
 								<div>
 									<button
+										bind:this={removeCancel}
 										class="btn btn-ghost btn-sm"
 										disabled={pendingId !== null}
-										onclick={() => (removeId = null)}>Cancel</button
+										onclick={() => cancelRemoval(card.id)}>Cancel</button
 									>
 									<form method="POST" action="?/remove" use:enhance={saveEntry}>
 										<input type="hidden" name="entryId" value={card.id} /><button
@@ -421,6 +471,16 @@
 		{/if}
 	{/if}
 </div>
+
+{#snippet menuDots()}
+	<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"
+		><circle cx="12" cy="5" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle
+			cx="12"
+			cy="19"
+			r="1.7"
+		/></svg
+	>
+{/snippet}
 
 {#if inspected}
 	<CardDetail card={storedCardDocument(inspected)} onClose={() => (inspectedId = null)}>
@@ -522,14 +582,25 @@
 		min-height: 44px;
 		cursor: pointer;
 		color: var(--color-text-secondary);
+		white-space: nowrap;
+	}
+	.column-header:first-child .column-sort {
+		min-width: 8ch;
+		justify-content: space-between;
 	}
 	.column-sort:hover,
 	.column-sort[aria-pressed='true'] {
 		text-decoration: underline;
 		text-underline-offset: 4px;
 	}
-	.column-sort span {
+	.sort-direction {
 		font-size: 0.875rem;
+		width: 1ch;
+		flex-shrink: 0;
+		visibility: hidden;
+	}
+	.has-direction .sort-direction {
+		visibility: visible;
 	}
 	.column-header :global(.inventory-filter),
 	.column-header :global(.card-order-menu) {
@@ -542,13 +613,19 @@
 		background: transparent;
 		flex-shrink: 0;
 	}
-	.recent-order {
-		color: var(--color-text-muted);
-		font-size: 0.75rem;
-		margin-bottom: 0.5rem;
+	.card-name {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.375rem;
 	}
-	.set-group {
-		padding: 1rem 0.625rem 0.5rem;
+	.new-entry {
+		border: 1px solid color-mix(in srgb, var(--color-info) 65%, transparent);
+		border-radius: 0.25rem;
+		padding: 0.125rem 0.375rem;
+		color: var(--color-text-secondary);
+		font-size: 0.625rem;
+		line-height: 1.3;
 	}
 	.metadata-frame {
 		--metadata-color: var(--color-text-muted);
@@ -676,7 +753,7 @@
 	.inventory-columns,
 	.inventory-row {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) 115px 140px 160px 115px 65px;
+		grid-template-columns: minmax(0, 1fr) 115px 140px 160px 115px 44px;
 		gap: 1rem;
 		align-items: center;
 	}
@@ -780,14 +857,11 @@
 		font-size: 0.8125rem;
 		font-variant-numeric: tabular-nums;
 	}
-	.remove-entry {
+	:global(.entry-menu) {
+		width: 44px;
+		height: 44px;
 		color: var(--color-text-muted);
-		font-size: 0.75rem;
-		min-height: 36px;
-		cursor: pointer;
-	}
-	.remove-entry:hover {
-		color: var(--color-error);
+		justify-self: center;
 	}
 	.remove-confirmation {
 		grid-column: 1 / -1;
@@ -910,9 +984,8 @@
 		.quantity {
 			min-width: 24px;
 		}
-		.remove-entry {
+		:global(.entry-menu) {
 			grid-column: 2;
-			min-height: 44px;
 		}
 		.remove-confirmation {
 			flex-wrap: wrap;

@@ -13,7 +13,8 @@ export const load: PageServerLoad = async ({ locals, parent }) => {
 	}
 
 	const { activeGame } = await parent();
-	return getInventorySnapshot(locals.user.accountId, activeGame ?? DEFAULT_GAME);
+	const snapshot = await getInventorySnapshot(locals.user.accountId, activeGame ?? DEFAULT_GAME);
+	return { ...snapshot, viewedAt: new Date() };
 };
 
 export const actions: Actions = {
