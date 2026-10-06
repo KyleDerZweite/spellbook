@@ -31,7 +31,17 @@ Use a keyboard-operable disclosure button with its expanded state. Keep group ac
 
 ## Categories and suggestions
 
-Give each entry one primary category. This keeps every entry in one visible group and makes the group totals add up. A card that draws a card and counters a spell can belong to Counterspells in one deck and Draw in another. Multiple secondary tags are a possible later filter, not part of the first grouping model.
+Inventory group ownership remains undecided. The primary-category model below is one option, not an accepted contract. The current alternatives are:
+
+| Approach               | Behavior                                                                                            | Tradeoff                                                                                      |
+| ---------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Grouped views          | Switch between None, Set, Finish and Condition without changing entries.                            | Improves browsing but does not create personal selections.                                    |
+| Named inventory groups | Save overlapping selections such as Trade or Commander pool by referencing existing entries. | Groups can share entries, so their copy counts must not be added together as total ownership. |
+| Physical locations     | Allocate quantities to a binder, box or other location.                                             | Requires quantity allocations and rules for changes to owned stock.                           |
+
+Start with grouped views and independent sorting. Then review named groups separately from deck categories. All inventory still counts each entry once. Deleting a named group would remove its references, not owned cards. Entry membership applies to all copies in that entry; keeping two and trading three needs explicit quantity allocations. A later List or Grid view would change presentation independently of grouping. These are proposals and need a reviewed persistence contract before implementation.
+
+For the primary-category option, give each entry one primary category. This keeps every entry in one visible group and makes the group totals add up. A card that draws a card and counters a spell can belong to Counterspells in one deck and Draw in another. Multiple secondary tags would be a separate filter, rather than changing the primary grouping.
 
 Deck categories belong to one deck. Inventory categories belong to an account and game and apply to its owned entries. Neither assignment changes the public catalog. Inventory must not inherit a category from whichever deck happened to be opened last. Renaming a deck category does not rename inventory categories or another deck's categories.
 
@@ -47,8 +57,8 @@ Track whether an assignment is automatic or manual when suggestions are persiste
 
 ## Scope and verification
 
-Begin with shared grouping presentation, independent sorting, category editing and assignment persistence. Name descending and grouping by stored inventory fields need no new catalog service. Inventory Type grouping requires batch catalog metadata because inventory entries currently store no card type; do not add per-row requests or treat placeholder card documents as authoritative metadata. Add automatic suggestions only when their rules and unknown cases have useful coverage.
+Begin with shared grouping presentation and independent sorting. Inventory can first group by its stored fields without new persistence. Category editing and assignments need a separate accepted contract. Name descending and grouping by stored inventory fields need no new catalog service. Inventory Type grouping requires batch catalog metadata because inventory entries currently store no card type; do not add per-row requests or treat placeholder card documents as authoritative metadata. Add automatic suggestions only when their rules and unknown cases have useful coverage.
 
-The recommended first release uses entry-level categories and one primary assignment. This means all interchangeable copies within an inventory entry share its category. Splitting copies into Trade and Keep would require a separate ownership model and is outside this proposal. Reusable cross-deck templates, multi-tag groups, drag-and-drop ordering and inferred deck archetypes can remain later decisions.
+The primary-category option uses entry-level categories and one primary assignment. All interchangeable copies within an inventory entry share its category. Named inventory groups remain an alternative awaiting a decision. Splitting copies into Trade and Keep would require quantity allocations and is outside either entry-membership option. Reusable cross-deck templates, drag-and-drop ordering and inferred deck archetypes can remain later decisions.
 
 Verify account and deck isolation, rename and deletion behavior, stable sorting, filtered quantity totals, automatic versus manual assignments, printing replacement, import additions and section merges. Browser checks should cover a realistic 100-card deck, duplicate printings, long category names, narrow screens, keyboard controls and collapsed groups. Existing availability and set-completion calculations must retain their distinct semantics.
