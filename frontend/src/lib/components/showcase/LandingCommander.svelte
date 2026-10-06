@@ -161,7 +161,7 @@
 		content: '';
 		position: absolute;
 		z-index: -1;
-		inset: -9% -18% -8%;
+		inset: -9% 0 -8%;
 		pointer-events: none;
 		background:
 			radial-gradient(
@@ -227,7 +227,7 @@
 	.front-rim,
 	.sleeve-edges {
 		position: absolute;
-		pointer-events: none;
+		pointer-events: auto;
 	}
 	.box-back {
 		inset: -7px 0 0;
@@ -255,7 +255,7 @@
 		transform: rotateY(90deg);
 	}
 	.box-right {
-		mask-image: radial-gradient(ellipse 27px 34px at 50% 0, transparent 98%, black 100%);
+		clip-path: path('M 0 0 H 36 V 8 C 36 43 90 43 90 8 V 0 H 126 V 234 H 0 Z');
 		left: 115px;
 		transform: rotateY(90deg);
 		background-image:
@@ -285,6 +285,7 @@
 		transform: translateZ(64px);
 	}
 	.sleeve-edges {
+		pointer-events: none;
 		left: 14px;
 		top: -3px;
 		width: 150px;
