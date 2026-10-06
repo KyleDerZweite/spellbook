@@ -78,6 +78,13 @@
 			"when": 1791307844968,
 			"tag": "0010_inventory_groups",
 			"breakpoints": true
+		},
+		{
+			"idx": 11,
+			"version": "7",
+			"when": 1791327225584,
+			"tag": "0011_inventory_windows",
+			"breakpoints": true
 		}
 	]
 }

@@ -5,6 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { ChildProcess } from 'node:child_process';
 import { httpTestOrigin, startHttpApplication, stopHttpApplication } from './http-runtime.ts';
+import type { InventoryPage } from '@spellbook/contracts/inventory.ts';
 import type { CardDocument } from '@spellbook/contracts/catalog.ts';
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
@@ -151,6 +152,109 @@ test('built HTTP application preserves public Catalog and local account journeys
 				);
 			}
 		);
+		await t.test(
+			'Inventory windows stay bounded and coherent under concurrent writes',
+			async () => {
+				const login = await (await request('/api/auth/login', { username, password })).json();
+				const headers = { authorization: `Bearer ${login.token}` };
+				const path = '/api/mobile/v1/mtg/inventory';
+				const operations = Array.from({ length: 120 }, (_, i) => ({
+					op: 'add',
+					card: {
+						catalogCardId: randomUUID(),
+						canonicalCardId: card.oracle_id,
+						name: `Window ${String(i).padStart(3, '0')}`,
+						setCode: card.set_code,
+						imageUri: card.image_uri
+					},
+					finish: 'nonfoil',
+					condition: 'NM',
+					quantity: 2,
+					notes: i === 7 ? 'Literal %_ Notes' : ''
+				}));
+				const id = randomUUID();
+				const responses = await Promise.all([
+					request(path + '/bulk', { requestId: id, operations }, headers),
+					request(path + '/bulk', { requestId: id, operations }, headers)
+				]);
+				assert.deepEqual(
+					responses.map((r) => r.status),
+					[200, 200]
+				);
+				const first: InventoryPage = await (await request(path, undefined, headers)).json();
+				assert.equal(first.entries.length, 50);
+				assert.equal(first.totals.entryCount, 120);
+				assert.equal(first.totals.copyCount, 240);
+				const next: InventoryPage = await (
+					await request(path + `?page=2&revision=${first.revision}`, undefined, headers)
+				).json();
+				assert.equal(next.entries.length, 50);
+				assert.equal(new Set([...first.entries, ...next.entries].map((e) => e.id)).size, 100);
+				const literal = await (await request(path + '?q=%25_', undefined, headers)).json();
+				assert.equal(literal.entries.length, 1);
+				assert.equal(literal.entries[0].notes, 'Literal %_ Notes');
+				const target = first.entries[0];
+				const location = await (
+					await request(
+						path + `/${target.id}/location?revision=${first.revision}`,
+						undefined,
+						headers
+					)
+				).json();
+				assert.equal(location.index, 0);
+				const detail = await (await request(path + `/${target.id}`, undefined, headers)).json();
+				assert.equal(detail.entry.id, target.id);
+				assert.equal(typeof detail.entry.notesRevision, 'string');
+				const write = {
+					requestId: randomUUID(),
+					operations: [{ op: 'set', target: { entryId: target.id }, quantity: 3, notes: 'changed' }]
+				};
+				assert.equal((await request(path + '/bulk', write, headers)).status, 200);
+				assert.equal(
+					(await request(path + `?page=2&revision=${first.revision}`, undefined, headers)).status,
+					409
+				);
+				assert.equal(
+					(
+						await request(
+							path + `/${target.id}/location?revision=${first.revision}`,
+							undefined,
+							headers
+						)
+					).status,
+					409
+				);
+				assert.equal((await request(path + '?limit=101', undefined, headers)).status, 400);
+				const other = await (
+					await request('/api/auth/register', {
+						username: `other_${randomUUID().slice(0, 8)}`,
+						password
+					})
+				).json();
+				accounts.push(other.user.accountId);
+				assert.equal(
+					(
+						await request(path + `/${target.id}`, undefined, {
+							authorization: `Bearer ${other.token}`
+						})
+					).status,
+					404
+				);
+				const own = await (await request(path, undefined, headers)).json();
+				assert.equal(own.totals.copyCount, 241);
+				const native = await request(
+					'/mtg/inventory?q=Window&page=2&sort=name&dir=desc',
+					undefined,
+					{ cookie: `spellbook_session=${login.token}` }
+				);
+				assert.equal(native.status, 200);
+				const html = await native.text();
+				assert.match(html, /page=1/);
+				assert.match(html, /name="sort"/);
+				assert.equal((html.match(/data-inventory-row/g) || []).length, 50);
+			}
+		);
+
 		await t.test(
 			'native web forms set cookies, preserve destinations and enforce protected pages',
 			async () => {

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ValidationError } from '../../src/lib/server/mtg/validation';
 
 const mocks = vi.hoisted(() => ({
+	page: vi.fn(),
 	snapshot: vi.fn(),
 	groups: vi.fn(),
 	create: vi.fn(),
@@ -23,6 +24,10 @@ vi.mock('#lib/server/data/inventory-groups.ts', () => ({
 	replaceInventoryGroupMemberships: mocks.assign,
 	InventoryGroupNotFoundError: class InventoryGroupNotFoundError extends Error {}
 }));
+vi.mock('#lib/server/data/inventory-window.ts', async () => {
+	const { inventoryQueryFromUrl } = await import('@spellbook/backend/inventory/query.ts');
+	return { inventoryQueryFromUrl, inventoryApplication: { page: mocks.page } };
+});
 vi.mock('#lib/server/catalog/search.ts', () => ({ getCatalogSetNames: mocks.setNames }));
 import { InventoryGroupNotFoundError } from '../../src/lib/server/data/inventory-groups';
 import { actions, load } from '../../src/routes/mtg/inventory/+page.server';
@@ -50,6 +55,20 @@ beforeEach(() => {
 		groups: [{ id: groupId, name: 'Binder', entryCount: 0, quantity: 0 }],
 		memberships: []
 	});
+	mocks.page.mockImplementation(async (_account, query) => {
+		if (query.group && query.group !== groupId)
+			throw new ValidationError('Inventory group not found');
+		return {
+			kind: 'Page',
+			query,
+			entries: [],
+			groups: [{ id: groupId, name: 'Binder', entryCount: 0, quantity: 0 }],
+			memberships: [],
+			sets: [],
+			viewedAt: '2026-10-07T00:00:00Z',
+			totals: { copyCount: 0, canonicalCardCount: 0, foilEntryCount: 0, setCount: 0 }
+		};
+	});
 	mocks.setNames.mockResolvedValue({});
 	mocks.create.mockResolvedValue({ id: groupId });
 });
@@ -70,7 +89,7 @@ describe('Inventory group route boundaries', () => {
 	it('loads Cards by default and exposes the group snapshot in a batch', async () => {
 		const result = await load(event() as never);
 		expect(result).toMatchObject({ groupsView: false, selectedGroupId: null, memberships: [] });
-		expect(mocks.groups).toHaveBeenCalledExactlyOnceWith('owner', 'mtg');
+		expect(result).toMatchObject({ cards: [], window: { kind: 'Page' } });
 	});
 
 	it('opens the groups directory and an owned UUID detail', async () => {
@@ -89,14 +108,15 @@ describe('Inventory group route boundaries', () => {
 		).toMatchObject({ groupsView: true, selectedGroupId: groupId });
 	});
 
-	it.each(['not-a-uuid', '', '8b707e20-8d7d-4b74-b253-df03ffb106cf'])(
-		'rejects missing or foreign group selection %s',
-		async (id) => {
-			await expect(
-				load(event(`https://spellbook.test/mtg/inventory?view=groups&group=${id}`) as never)
-			).rejects.toMatchObject({ status: 404 });
-		}
-	);
+	it.each([
+		['not-a-uuid', 400],
+		['', 400],
+		['8b707e20-8d7d-4b74-b253-df03ffb106cf', 404]
+	])('rejects missing or foreign group selection %s', async (id, status) => {
+		await expect(
+			load(event(`https://spellbook.test/mtg/inventory?view=groups&group=${id}`) as never)
+		).rejects.toMatchObject({ status });
+	});
 
 	it('takes the account and game from the server for CRUD', async () => {
 		const fields: [string, string][] = [

@@ -43,6 +43,29 @@ const pathParameter = (name: string) => ({
 	required: true,
 	schema: { type: 'string', format: 'uuid' }
 });
+const inventoryRevision: Schema = { type: 'string', pattern: '^(0|[1-9][0-9]*)$' };
+const inventoryQueryProperties: Record<string, Schema> = {
+	q: { type: 'string', maxLength: 300, default: '' },
+	sets: { type: 'array', maxItems: 100, items: { type: 'string', pattern: '^[a-z0-9]{1,12}$' } },
+	finish: { enum: ['all', 'foil', 'nonfoil'], default: 'all' },
+	condition: { enum: ['all', 'NM', 'LP', 'MP', 'HP', 'DMG'], default: 'all' },
+	sort: { enum: ['name', 'set', 'newest'], default: 'name' },
+	dir: { enum: ['asc', 'desc'], default: 'asc' },
+	variant: { enum: ['finish', 'condition', 'quantity', null], default: null },
+	variantDir: { enum: ['asc', 'desc'], default: 'asc' },
+	view: { enum: ['cards', 'groups'], default: 'cards' },
+	group: { anyOf: [{ type: 'string', format: 'uuid' }, { type: 'null' }] },
+	offset: { type: 'integer', minimum: 0 },
+	limit: { type: 'integer', minimum: 1, maximum: 100, default: 50 }
+};
+const inventoryParameters = Object.entries(inventoryQueryProperties)
+	.filter(([key]) => key !== 'sets')
+	.map(([name, schema]) => ({ name, in: 'query', schema }))
+	.concat([
+		{ name: 'set', in: 'query', schema: inventoryQueryProperties.sets },
+		{ name: 'page', in: 'query', schema: { type: 'integer', minimum: 1, default: 1 } },
+		{ name: 'revision', in: 'query', schema: inventoryRevision }
+	]);
 const authenticated = [{ sessionCookie: [] }, { bearerToken: [] }];
 const errors = {
 	400: response('Invalid request', ref('ErrorResponse')),
@@ -317,7 +340,21 @@ const SCHEMA = {
 			}
 		},
 		'/api/mobile/v1/mtg/inventory': {
-			get: operation('Read the account inventory', ref('InventorySnapshot')),
+			get: {
+				...operation(
+					'Read a bounded Inventory window with complete snapshot metrics',
+					ref('InventoryPage')
+				),
+				parameters: inventoryParameters,
+				responses: {
+					200: response('Current consistent window', ref('InventoryPage')),
+					...errors,
+					409: response(
+						'Inventory changed; reset this query window',
+						ref('InventoryRevisionChanged')
+					)
+				}
+			},
 			post: operation(
 				'Add an idempotent inventory batch',
 				ref('InventorySnapshot'),
@@ -335,12 +372,43 @@ const SCHEMA = {
 		},
 		'/api/mobile/v1/mtg/inventory/{entryId}': {
 			parameters: [pathParameter('entryId')],
+			get: {
+				...operation('Read an authorized entry and memberships', ref('InventoryEntryDetail')),
+				responses: {
+					200: response('Current entry', ref('InventoryEntryDetail')),
+					...errors,
+					404: response('Entry not found', ref('ErrorResponse'))
+				}
+			},
 			patch: operation(
 				'Set quantity and notes; nonpositive quantity removes the entry',
 				nullable('InventoryCard'),
 				ref('InventoryEntryUpdate')
 			),
 			delete: operation('Remove an inventory entry', ref('OkResponse'))
+		},
+		'/api/mobile/v1/mtg/inventory/{entryId}/location': {
+			parameters: [pathParameter('entryId')],
+			get: {
+				...operation(
+					'Locate an authorized entry within this query and revision',
+					ref('InventoryLocation')
+				),
+				parameters: inventoryParameters.map((p) =>
+					p.name === 'revision' ? { ...p, required: true } : p
+				),
+				responses: {
+					200: response(
+						'Absolute entry index, or null when not in this query',
+						ref('InventoryLocation')
+					),
+					...errors,
+					409: response(
+						'Inventory changed; reset this query window',
+						ref('InventoryRevisionChanged')
+					)
+				}
+			}
 		},
 		'/api/mobile/v1/mtg/inventory/bulk': {
 			post: operation(
@@ -1070,6 +1138,87 @@ const SCHEMA = {
 					completedSets: { type: 'integer' }
 				}
 			},
+			InventoryRevisionChanged: object({
+				kind: { const: 'RevisionChanged' },
+				revision: inventoryRevision
+			}),
+			InventoryWindowQuery: object(inventoryQueryProperties),
+			InventoryWindowEntry: object({
+				id: { type: 'string', format: 'uuid' },
+				accountId: string,
+				inventoryId: { type: 'string', format: 'uuid' },
+				game: string,
+				catalogCardId: string,
+				canonicalCardId: string,
+				name: string,
+				setCode: string,
+				imageUri: string,
+				quantity,
+				finish,
+				condition,
+				notes: string,
+				notesRevision: inventoryRevision,
+				spellbookPosition: { type: 'integer', minimum: 0 },
+				...timestamps
+			}),
+			InventoryGroupCount: object({
+				id: { type: 'string', format: 'uuid' },
+				name: string,
+				entryCount: { type: 'integer', minimum: 0 },
+				quantity: { type: 'integer', minimum: 0 }
+			}),
+			InventoryCounts: object({
+				entryCount: { type: 'integer', minimum: 0 },
+				copyCount: { type: 'integer', minimum: 0 }
+			}),
+			InventoryTotals: object({
+				entryCount: { type: 'integer', minimum: 0 },
+				copyCount: { type: 'integer', minimum: 0 },
+				canonicalCardCount: { type: 'integer', minimum: 0 },
+				foilEntryCount: { type: 'integer', minimum: 0 },
+				setCount: { type: 'integer', minimum: 0 }
+			}),
+			InventoryPage: object({
+				kind: { const: 'Page' },
+				query: ref('InventoryWindowQuery'),
+				queryKey: string,
+				revision: inventoryRevision,
+				entries: { ...array('InventoryWindowEntry'), maxItems: 100 },
+				memberships: {
+					type: 'array',
+					items: object({
+						entryId: { type: 'string', format: 'uuid' },
+						groupId: { type: 'string', format: 'uuid' }
+					})
+				},
+				groups: array('InventoryGroupCount'),
+				groupPage: { ...array('InventoryGroupCount'), maxItems: 100 },
+				groupCount: { type: 'integer', minimum: 0 },
+				matching: ref('InventoryCounts'),
+				totals: ref('InventoryTotals'),
+				sets: { type: 'array', items: object({ code: string, name: string }) },
+				setProgress: {
+					anyOf: [
+						object({
+							setCode: string,
+							ownedCanonicalCount: { type: 'integer', minimum: 0 },
+							catalogCanonicalCount: { type: 'integer', minimum: 0 }
+						}),
+						{ type: 'null' }
+					]
+				},
+				viewedAt: { type: 'string', format: 'date-time' }
+			}),
+			InventoryEntryDetail: object({
+				entry: ref('InventoryWindowEntry'),
+				memberships: { type: 'array', items: { type: 'string', format: 'uuid' } },
+				revision: inventoryRevision
+			}),
+			InventoryLocation: object({
+				kind: { const: 'Location' },
+				revision: inventoryRevision,
+				index: { anyOf: [{ type: 'integer', minimum: 0 }, { type: 'null' }] }
+			}),
 			InventoryCard: {
 				type: 'object',
 				required: [

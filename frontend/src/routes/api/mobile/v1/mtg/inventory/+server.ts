@@ -1,14 +1,24 @@
+import { inventoryApplication, inventoryQueryFromUrl } from '#lib/server/data/inventory-window.ts';
 import type { RequestHandler } from './$types';
 import { readString, readNumber, readJsonObject } from '#lib/server/http/request.ts';
 import { error, json } from '@sveltejs/kit';
 import { requireMobileAuth } from '#lib/server/mobile/auth.ts';
-import { getInventorySnapshotEntry, batchAddInventory } from '#lib/server/mobile/mtg-service.ts';
+import { batchAddInventory } from '#lib/server/mobile/mtg-service.ts';
 import { badRequestIfValidation } from '#lib/server/mobile/route-errors.ts';
 import { assertInventoryOperation } from '#lib/server/mtg/validation.ts';
 
 export const GET: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
-	return json(await getInventorySnapshotEntry(auth));
+	try {
+		const page = await inventoryApplication.page(
+			auth.user,
+			inventoryQueryFromUrl(event.url),
+			event.url.searchParams.get('revision') ?? undefined
+		);
+		return json(page, { status: page.kind === 'RevisionChanged' ? 409 : 200 });
+	} catch (cause) {
+		badRequestIfValidation(cause);
+	}
 };
 
 export const POST: RequestHandler = async (event) => {

@@ -109,6 +109,7 @@ try {
 			inventory,
 			account
 		]);
+		await client.query('SELECT id FROM inventories WHERE id=$1 FOR UPDATE', [inventory]);
 		for (const [i, d] of [commander, ...spells.slice(0, 40), alternate, forest].entries()) {
 			await client.query(
 				"INSERT INTO inventory_cards(id,inventory_id,account_id,game,catalog_card_id,canonical_card_id,name,set_code,image_uri,quantity,finish,condition,spellbook_position,notes) VALUES($1,$2,$3,'mtg',$4,$5,$6,$7,$8,$9,'nonfoil','NM',$10,'')",
@@ -126,6 +127,7 @@ try {
 				]
 			);
 		}
+		await client.query('UPDATE inventories SET revision=revision+1 WHERE id=$1', [inventory]);
 		await client.query('COMMIT');
 		console.log('Demo ready. Username: demo. Password: demo.');
 	}

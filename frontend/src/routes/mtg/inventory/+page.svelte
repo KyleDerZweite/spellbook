@@ -1,8 +1,20 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import WorkspaceHeader from '#lib/components/layout/WorkspaceHeader.svelte';
+	import Button from '#lib/components/ui/button/Button.svelte';
+	import QuantityControl from '#lib/components/ui/QuantityControl.svelte';
+	import VirtualInventoryList from '#lib/components/inventory/VirtualInventoryList.svelte';
+	import { InventoryWindow, inventoryUrl } from '#lib/inventory/window.ts';
+	import type {
+		InventoryEntry,
+		InventoryQuery,
+		InventoryPage
+	} from '@spellbook/contracts/inventory.ts';
+	import type { InventoryCard } from '#lib/types/legacy.ts';
 	import { page } from '$app/state';
 	import { inventoryAction } from '#lib/mtg/inventory-action.ts';
 	import { enhance, type SubmitFunction } from '$app/forms';
-	import { tick } from 'svelte';
+	import { tick, onMount, untrack } from 'svelte';
 	import type { PageProps } from './$types';
 	import CardDetail from '#lib/components/cards/CardDetail.svelte';
 	import GroupDirectory from '#lib/components/inventory/GroupDirectory.svelte';
@@ -17,27 +29,30 @@
 	import ScrollArea from '#lib/components/ui/scroll-area/ScrollArea.svelte';
 	import {
 		describeInventoryOrder,
-		filterInventory,
 		inventoryConditions,
 		inventorySetColor,
 		isNewInventoryEntry,
 		nextInventoryOrder,
-		orderInventory,
 		type InventoryColumn,
 		type InventoryOrder
 	} from '#lib/mtg/inventory-view.ts';
 	import { storedCardDocument } from '#lib/mtg/stored-card.ts';
-	import { getSetCatalogSize } from '#lib/search/catalog.ts';
 	import { getSearchSession } from '#lib/search/session.svelte.ts';
 	import { isPrimaryClick } from '#lib/search/navigation.ts';
 	import type { CardDocument } from '#lib/search/types.ts';
-	import { activeGameState } from '#lib/state/activeGame.svelte.ts';
 
 	let { data, form }: PageProps = $props();
 	const search = getSearchSession();
-	let order = $state<InventoryOrder>({ base: 'name', direction: 'asc', variant: null });
-	let query = $state('');
-	let selectedSets = $state<string[]>([]);
+	const initialQuery = untrack(() => data.window.query);
+	let order = $state<InventoryOrder>({
+		base: initialQuery.sort,
+		direction: initialQuery.dir,
+		variant: initialQuery.variant
+			? { column: initialQuery.variant, direction: initialQuery.variantDir }
+			: null
+	});
+	let query = $state(initialQuery.q);
+	let selectedSets = $state<string[]>(initialQuery.sets);
 	let filterOpen = $state(false);
 	let setQuery = $state('');
 	let filterField = $state<'set' | 'finish' | 'condition'>('set');
@@ -45,8 +60,8 @@
 	let setSearchInput = $state<HTMLInputElement | null>(null);
 	let finishTrigger = $state<HTMLButtonElement | null>(null);
 	let conditionTrigger = $state<HTMLButtonElement | null>(null);
-	let selectedFinish = $state('all');
-	let selectedCondition = $state('all');
+	let selectedFinish = $state(initialQuery.finish as string);
+	let selectedCondition = $state(initialQuery.condition as string);
 	let inspection = $state<{
 		entryId: string;
 		mode: 'edit' | 'add';
@@ -54,6 +69,7 @@
 		returnFocus: HTMLElement | null;
 	} | null>(null);
 	let removeId = $state<string | null>(null);
+	let assigningEntryId = $state<string | null>(null);
 	let pendingId = $state<string | null>(null);
 	let status = $state('');
 	let mutationError = $state('');
@@ -82,36 +98,230 @@
 		{ value: 'nonfoil', label: 'Nonfoil' },
 		{ value: 'foil', label: 'Foil' }
 	];
-	let inventoryCards = $derived(data.cards);
-	let groupDirectory = $derived(data.groupsView && !data.selectedGroupId);
-	let selectedGroup = $derived(data.groups.find((group) => group.id === data.selectedGroupId));
+	let hydrated = $state(false),
+		windowVersion = $state(0),
+		virtualList = $state<ReturnType<typeof VirtualInventoryList> | null>(null);
+	let revisionAnchor: { id: string | null; index: number; intra: number } | null = null;
+	const window = new InventoryWindow(
+		async (input, revision, signal) => {
+			const response = await fetch(
+				`/api/mobile/v1/mtg/inventory?${inventoryUrl(input, revision)}`,
+				{ signal }
+			);
+			if (response.status === 401) {
+				window.clear();
+				void goto('/auth/login?returnTo=/mtg/inventory');
+				throw new Error('Sign in again to load inventory.');
+			}
+			const result = await response.json();
+			if (!response.ok && result.kind !== 'RevisionChanged')
+				throw new Error(result.message ?? 'Could not load inventory. Try again.');
+			return result;
+		},
+		() => windowVersion++,
+		() => {
+			revisionAnchor = virtualList?.anchor() ?? null;
+		}
+	);
+	const asLegacy = (entry: InventoryEntry): InventoryCard => ({
+		...entry,
+		createdAt: new Date(entry.createdAt),
+		updatedAt: new Date(entry.updatedAt)
+	});
+	let currentWindow = $derived.by(() => {
+		windowVersion;
+		return window.current ?? data.window;
+	});
+	let loadedEntries = $derived.by(() => {
+		windowVersion;
+		return hydrated
+			? window.loaded()
+			: data.window.entries.map((entry, index) => ({
+					entry,
+					index: data.window.query.offset + index
+				}));
+	});
+	let inventoryCards = $derived(loadedEntries.map((row) => asLegacy(row.entry)));
+	let metrics = $derived.by(() => {
+		windowVersion;
+		return window.metrics();
+	});
+	let pins = $derived(
+		[inspection?.entryId, removeId, assigningEntryId, pendingId].flatMap((id) => {
+			const entry = loadedEntries.find((row) => row.entry.id === id);
+			return entry ? [entry.index] : [];
+		})
+	);
+	onMount(() => {
+		hydrated = true;
+		window.seed(page.data.user?.accountId ?? 'session', data.window);
+		return () => window.clear();
+	});
+	$effect(() => {
+		if (!hydrated) return;
+		const initial = data.window;
+		untrack(() => {
+			query = initial.query.q;
+			selectedSets = initial.query.sets;
+			selectedFinish = initial.query.finish;
+			selectedCondition = initial.query.condition;
+			order = {
+				base: initial.query.sort,
+				direction: initial.query.dir,
+				variant: initial.query.variant
+					? { column: initial.query.variant, direction: initial.query.variantDir }
+					: null
+			};
+			const samePage =
+				window.current?.queryKey === initial.queryKey &&
+				window.current?.query.offset === initial.query.offset;
+			const anchor = samePage ? virtualList?.anchor() : null;
+			window.seed(page.data.user?.accountId ?? 'session', initial);
+			if (anchor?.id) void restoreAnchor(anchor.id, anchor.intra, anchor.index);
+			else void virtualList?.scrollToIndex(initial.query.offset);
+			void refreshTargets();
+		});
+	});
+	function requestQuery(): InventoryQuery {
+		return {
+			...data.window.query,
+			q: query,
+			sets: selectedSets,
+			finish: selectedFinish as InventoryQuery['finish'],
+			condition: selectedCondition as InventoryQuery['condition'],
+			sort: order.base,
+			dir: order.direction,
+			variant: order.variant?.column ?? null,
+			variantDir: order.variant?.direction ?? 'asc',
+			offset: 0,
+			limit: 50
+		};
+	}
+	function nativeUrl(input: InventoryQuery, pageNumber = 1) {
+		const params = inventoryUrl(input);
+		params.delete('offset');
+		params.delete('limit');
+		params.set('page', String(pageNumber));
+		return `/mtg/inventory?${params}`;
+	}
+	$effect(() => {
+		if (!hydrated) return;
+		const input = requestQuery();
+		const same =
+			JSON.stringify({ ...input, offset: 0 }) ===
+			JSON.stringify({ ...currentWindow.query, offset: 0 });
+		if (same) return;
+		const controller = new AbortController();
+		const timer = setTimeout(() => {
+			void (async () => {
+				try {
+					await window.open(page.data.user?.accountId ?? 'session', input, controller.signal);
+					if (controller.signal.aborted) return;
+					await goto(nativeUrl(input), { replace: true, reset: false, shallow: true });
+				} catch (cause) {
+					if (!controller.signal.aborted)
+						mutationError = cause instanceof Error ? cause.message : 'Could not apply filters.';
+				}
+			})();
+		}, 200);
+		return () => {
+			clearTimeout(timer);
+			controller.abort();
+		};
+	});
+	async function restoreAnchor(id: string, intra = 0, fallbackIndex = 0) {
+		const current = window.current;
+		if (!current) return;
+		const response = await fetch(
+			`/api/mobile/v1/mtg/inventory/${id}/location?${inventoryUrl(current.query, current.revision)}`
+		);
+		const result = await response.json();
+		if (result.kind === 'Location' && result.index !== null) {
+			await window.request(Math.floor(result.index / 50) * 50);
+			await virtualList?.scrollToIndex(result.index, intra);
+		} else if (result.kind === 'Location') {
+			await virtualList?.scrollToIndex(
+				Math.min(fallbackIndex, Math.max(0, current.matching.entryCount - 1))
+			);
+		}
+	}
+	let observedRevision = '';
+	$effect(() => {
+		const revision = currentWindow.revision;
+		if (!hydrated || revision === observedRevision) return;
+		observedRevision = revision;
+		untrack(() => {
+			const anchor = revisionAnchor ?? virtualList?.anchor();
+			revisionAnchor = null;
+			if (anchor?.id) void restoreAnchor(anchor.id, anchor.intra, anchor.index);
+			void refreshTargets();
+		});
+	});
+	let targetEntries = $state<Record<string, InventoryCard>>({}),
+		notesDraft = $state(''),
+		quantityDraft = $state(1),
+		draftDirty = $state(false),
+		targetGone = $state(false);
+	async function refreshTargets() {
+		for (const id of [inspection?.entryId, removeId, assigningEntryId].filter(
+			(id): id is string => !!id
+		)) {
+			const response = await fetch(`/api/mobile/v1/mtg/inventory/${id}`);
+			if (response.status === 404) {
+				if (id === inspection?.entryId) targetGone = true;
+				delete targetEntries[id];
+				continue;
+			}
+			if (!response.ok) continue;
+			const detail = await response.json();
+			targetEntries[id] = asLegacy(detail.entry);
+			if (id === inspection?.entryId && !draftDirty) {
+				notesDraft = detail.entry.notes;
+				quantityDraft = detail.entry.quantity;
+			}
+		}
+	}
+	$effect(() => {
+		windowVersion;
+		if (!hydrated) return;
+		untrack(() => {
+			const retained = new Set([
+				...inventoryCards.map((e) => e.id),
+				inspection?.entryId,
+				removeId,
+				assigningEntryId,
+				pendingId
+			]);
+			for (const id of Object.keys(rowMenuRefs)) if (!retained.has(id)) delete rowMenuRefs[id];
+			for (const id of Object.keys(targetEntries))
+				if (![inspection?.entryId, removeId, assigningEntryId, pendingId].includes(id))
+					delete targetEntries[id];
+		});
+	});
+	let groupDirectory = $derived(
+		currentWindow.query.view === 'groups' && !currentWindow.query.group
+	);
+	let selectedGroup = $derived(
+		currentWindow.groups.find((group) => group.id === currentWindow.query.group)
+	);
 	let groupLink = $state<HTMLAnchorElement | null>(null);
 	let groupReturnTarget = $state<HTMLElement | null>(null);
 	let editingGroup = $state<{ group: InventoryGroup | null } | null>(null);
 	let deletingGroup = $state<InventoryGroup | null>(null);
-	let assigningEntryId = $state<string | null>(null);
-	let assigningEntry = $derived(inventoryCards.find((entry) => entry.id === assigningEntryId));
+
+	let assigningEntry = $derived(
+		targetEntries[assigningEntryId ?? ''] ??
+			inventoryCards.find((entry) => entry.id === assigningEntryId)
+	);
 	const groupDeletion = new GroupMutation(() => (deletingGroup = null));
-	let groupEntryIds = $derived(
-		new Set(
-			data.memberships
-				.filter((membership) => membership.groupId === data.selectedGroupId)
-				.map((membership) => membership.entryId)
-		)
-	);
-	let groupCards = $derived(
-		data.selectedGroupId
-			? inventoryCards.filter((entry) => groupEntryIds.has(entry.id))
-			: inventoryCards
-	);
 	function membershipsFor(entryId: string) {
-		return data.memberships
+		return (hydrated ? window.memberships() : currentWindow.memberships)
 			.filter((membership) => membership.entryId === entryId)
 			.map((membership) => membership.groupId);
 	}
 	function entryGroupNames(entryId: string) {
 		const ids = new Set(membershipsFor(entryId));
-		return data.groups
+		return currentWindow.groups
 			.filter((group) => ids.has(group.id))
 			.map((group) => group.name)
 			.join(' · ');
@@ -127,6 +337,7 @@
 	}
 	function assignGroups(entryId: string) {
 		groupReturnTarget = rowMenuRefs[entryId] ?? searchInput;
+		targetEntries[entryId] = inventoryCards.find((e) => e.id === entryId)!;
 		assigningEntryId = entryId;
 	}
 	function returnFromGroup(event: Event) {
@@ -135,12 +346,13 @@
 		else groupLink?.focus({ preventScroll: true });
 	}
 
-	let inspected = $derived(inventoryCards.find((card) => card.id === inspection?.entryId));
-	let removing = $derived(inventoryCards.find((card) => card.id === removeId));
+	let inspected = $derived(targetEntries[inspection?.entryId ?? '']);
+	let removing = $derived(targetEntries[removeId ?? '']);
 	const normalizeSet = (code: string) => code.toLowerCase();
-	const setName = (code: string) => data.setNames[normalizeSet(code)] ?? code.toUpperCase();
+	const setName = (code: string) =>
+		currentWindow.sets.find((s) => s.code === normalizeSet(code))?.name ?? code.toUpperCase();
 	let setOptions = $derived(
-		[...new Set([...inventoryCards.map((card) => normalizeSet(card.setCode)), ...selectedSets])]
+		[...new Set([...currentWindow.sets.map((set) => set.code), ...selectedSets])]
 			.map((value) => ({ value, label: setName(value) }))
 			.sort((a, b) => a.label.localeCompare(b.label) || a.value.localeCompare(b.value))
 	);
@@ -159,17 +371,7 @@
 	let hasColumnFilters = $derived(
 		selectedSets.length > 0 || selectedFinish !== 'all' || selectedCondition !== 'all'
 	);
-	let listCards = $derived(
-		orderInventory(
-			filterInventory(groupCards, {
-				query,
-				sets: selectedSets,
-				finish: selectedFinish,
-				condition: selectedCondition
-			}),
-			order
-		)
-	);
+	let listCards = $derived(inventoryCards);
 	let sortDescription = $derived(describeInventoryOrder(order));
 	$effect(() => {
 		const anchor = data.viewedAt.getTime();
@@ -191,20 +393,27 @@
 	function openInspection(id: string, mode: 'edit' | 'add', returnFocus: HTMLElement | null) {
 		const card = inventoryCards.find((entry) => entry.id === id);
 		if (!card) return;
+		targetEntries[id] = card;
+		notesDraft = card.notes;
+		quantityDraft = card.quantity;
+		draftDirty = false;
+		targetGone = false;
 		inspection = { entryId: id, mode, card: storedCardDocument(card), returnFocus };
 	}
 	function openRemoval(id: string) {
 		mutationError = '';
 		removalReturnTarget = rowMenuRefs[id] ?? searchInput;
+		targetEntries[id] = inventoryCards.find((e) => e.id === id)!;
 		removeId = id;
 	}
 	function cancelRemoval() {
 		removeId = null;
 		mutationError = '';
 	}
-	function returnFromRemoval(event: Event) {
+	async function returnFromRemoval(event: Event) {
 		event.preventDefault();
 		if (removalReturnTarget?.isConnected) removalReturnTarget.focus({ preventScroll: true });
+		else searchInput?.focus({ preventScroll: true });
 	}
 	function editFilter(field: 'set' | 'finish' | 'condition', event: MouseEvent) {
 		filterField = field;
@@ -249,35 +458,11 @@
 				? order.variant.direction
 				: null;
 	}
-	let matchingQuantity = $derived(listCards.reduce((total, card) => total + card.quantity, 0));
-	let ownedInSet = $derived(
-		new Set(
-			inventoryCards
-				.filter((card) => normalizeSet(card.setCode) === singleSet)
-				.map((card) => card.canonicalCardId)
-		).size
-	);
-
+	let matchingQuantity = $derived(currentWindow.matching.copyCount);
+	let ownedInSet = $derived(currentWindow.setProgress?.ownedCanonicalCount ?? 0);
 	$effect(() => {
-		const setCode = singleSet;
-		const game = activeGameState.current;
-		setCatalogTotal = null;
-		setProgressLoading = setCode !== null;
-		if (setCode === null) return;
-		let cancelled = false;
-		getSetCatalogSize(setCode, game)
-			.then((total) => {
-				if (!cancelled) setCatalogTotal = total;
-			})
-			.catch(() => {
-				if (!cancelled) setCatalogTotal = null;
-			})
-			.finally(() => {
-				if (!cancelled) setProgressLoading = false;
-			});
-		return () => {
-			cancelled = true;
-		};
+		setCatalogTotal = currentWindow.setProgress?.catalogCanonicalCount ?? null;
+		setProgressLoading = false;
 	});
 	function clearFilters() {
 		query = '';
@@ -302,7 +487,10 @@
 					const index = listCards.findIndex((entry) => entry.id === id);
 					const neighbor = listCards[index + 1] ?? listCards[index - 1];
 					await update({ reset: false });
+					await refreshTargets();
+					if (!removing) draftDirty = false;
 					if (removing) {
+						if (neighbor) await restoreAnchor(neighbor.id);
 						await tick();
 						removalReturnTarget = rowMenuRefs[neighbor?.id ?? ''] ?? searchInput ?? emptyAction;
 						removeId = null;
@@ -318,6 +506,7 @@
 							? result.data.message
 							: 'Could not save this change. Try again.';
 					status = '';
+					if (removing) await refreshTargets();
 				}
 			} catch {
 				mutationError = 'Could not refresh inventory. Reload before trying again.';
@@ -332,40 +521,94 @@
 <svelte:head><title>Inventory | Spellbook</title></svelte:head>
 
 <div class="inventory-page workspace-container">
-	<div class="inventory-heading">
-		<div>
-			<div class="page-title"><h1>Inventory</h1></div>
-			<p class="inventory-totals">
-				<strong>{data.stats.total.toLocaleString()}</strong> cards <span>·</span>
-				<strong>{data.stats.unique.toLocaleString()}</strong>
-				card names <span>·</span> <strong>{data.stats.sets}</strong> sets
-			</p>
-		</div>
-		<div class="inventory-actions">
-			{#if groupDirectory}<button
-					class="btn btn-primary"
-					onclick={(event) => editGroup(null, event.currentTarget)}>New group</button
-				>{:else if selectedGroup}
-				<a href="/mtg/inventory" class="btn btn-secondary">Assign cards</a>
-			{:else}
-				<a href="/mtg/scan" class="btn btn-ghost">Scan</a><a
+	<WorkspaceHeader title="Inventory">
+		{#snippet metadata()}<p class="inventory-totals">
+				<strong>{currentWindow.totals.copyCount.toLocaleString()}</strong> cards <span>·</span>
+				<strong>{currentWindow.totals.canonicalCardCount.toLocaleString()}</strong>
+				card names <span>·</span> <strong>{currentWindow.totals.setCount}</strong> sets
+			</p>{/snippet}
+		{#snippet actions()}{#if groupDirectory}<Button
+					onclick={(event) => editGroup(null, event.currentTarget)}>New group</Button
+				>{:else if selectedGroup}<Button variant="secondary" href="/mtg/inventory"
+					>Assign cards</Button
+				>{:else}<Button variant="ghost" href="/mtg/scan">Scan</Button><Button
 					href="/mtg/search"
-					onclick={openSearch}
-					class="btn btn-primary">Add cards</a
-				>
-			{/if}
-		</div>
-	</div>
+					onclick={openSearch}>Add cards</Button
+				>{/if}{/snippet}
+	</WorkspaceHeader>
+	<noscript
+		><form method="GET" class="native-inventory-filters" aria-label="Inventory filters">
+			<label>Search<input class="input" type="search" name="q" value={data.window.query.q} /></label
+			><label
+				>Sets<select class="input" name="set" multiple
+					>{#each data.window.sets as set}<option
+							value={set.code}
+							selected={data.window.query.sets.includes(set.code)}>{set.name}</option
+						>{/each}</select
+				></label
+			><label
+				>Finish<select class="input" name="finish"
+					>{#each finishOptions as option}<option
+							value={option.value}
+							selected={data.window.query.finish === option.value}>{option.label}</option
+						>{/each}</select
+				></label
+			><label
+				>Condition<select class="input" name="condition"
+					>{#each conditionOptions as option}<option
+							value={option.value}
+							selected={data.window.query.condition === option.value}>{option.label}</option
+						>{/each}</select
+				></label
+			><label
+				>Sort<select class="input" name="sort"
+					>{#each ['name', 'set', 'newest'] as value}<option
+							{value}
+							selected={data.window.query.sort === value}>{value}</option
+						>{/each}</select
+				></label
+			><label
+				>Direction<select class="input" name="dir"
+					><option value="asc" selected={data.window.query.dir === 'asc'}>Ascending</option><option
+						value="desc"
+						selected={data.window.query.dir === 'desc'}>Descending</option
+					></select
+				></label
+			><label
+				>Variant<select class="input" name="variant"
+					><option value="">None</option>{#each ['finish', 'condition', 'quantity'] as value}<option
+							{value}
+							selected={data.window.query.variant === value}>{value}</option
+						>{/each}</select
+				></label
+			><label
+				>Variant direction<select class="input" name="variantDir"
+					><option value="asc" selected={data.window.query.variantDir === 'asc'}>Ascending</option
+					><option value="desc" selected={data.window.query.variantDir === 'desc'}
+						>Descending</option
+					></select
+				></label
+			><input
+				type="hidden"
+				name="view"
+				value={data.window.query.view}
+			/>{#if data.window.query.group}<input
+					type="hidden"
+					name="group"
+					value={data.window.query.group}
+				/>{/if}<Button type="submit">Apply filters</Button>
+		</form></noscript
+	>
 	<nav class="inventory-views" aria-label="Inventory views">
 		<a
 			href="/mtg/inventory"
-			class:active={!data.groupsView}
-			aria-current={!data.groupsView ? 'page' : undefined}>Cards</a
+			class:active={!(currentWindow.query.view === 'groups')}
+			aria-current={!(currentWindow.query.view === 'groups') ? 'page' : undefined}>Cards</a
 		><a
 			bind:this={groupLink}
 			href="/mtg/inventory?view=groups"
-			class:active={data.groupsView}
-			aria-current={data.groupsView ? 'page' : undefined}>Groups</a
+			class:active={currentWindow.query.view === 'groups'}
+			aria-current={currentWindow.query.view === 'groups' ? 'page' : undefined}>Groups</a
 		>
 	</nav>
 	{#if selectedGroup}<div class="selected-group">
@@ -378,12 +621,12 @@
 		</p>{/if}
 	{#if groupDirectory}
 		<GroupDirectory
-			groups={data.groups}
+			groups={currentWindow.groupPage}
 			dialogOpen={editingGroup !== null || deletingGroup !== null}
 			onRename={editGroup}
 			onRemove={removeGroup}
 		/>
-	{:else if inventoryCards.length === 0}
+	{:else if currentWindow.totals.entryCount === 0}
 		<div class="empty-state">
 			<p>No cards yet.</p>
 			<a bind:this={emptyAction} href="/mtg/search" onclick={openSearch} class="btn btn-secondary"
@@ -520,8 +763,8 @@
 					>Sort{/snippet}
 			</ActionMenu>
 			<p class="inventory-result-count">
-				{listCards.length}
-				{listCards.length === 1 ? 'entry' : 'entries'} <span>·</span>
+				{currentWindow.matching.entryCount}
+				{currentWindow.matching.entryCount === 1 ? 'entry' : 'entries'} <span>·</span>
 				{matchingQuantity} cards
 			</p>
 		</div>
@@ -618,7 +861,7 @@
 			{/each}
 			<span></span>
 		</div>
-		{#if listCards.length === 0}<div class="empty-state">
+		{#if currentWindow.matching.entryCount === 0}<div class="empty-state">
 				<p>
 					{data.selectedGroupId && !hasFilters
 						? 'No cards in this group yet. Assign cards from their row menu in Cards.'
@@ -629,113 +872,146 @@
 					>{/if}
 			</div>
 		{:else}
-			<ul class="inventory-list" aria-label="Inventory entries">
-				{#each listCards as card (card.id)}
-					<li class="inventory-row" class:saving={pendingId === card.id}>
-						<button
-							class="card-identity"
-							onclick={(event) => openInspection(card.id, 'edit', event.currentTarget)}
-							aria-label={`Inspect ${card.name}, ${card.setCode.toUpperCase()}, ${card.finish}, ${card.condition}`}
-							aria-describedby={isNewInventoryEntry(card.createdAt, asOf)
-								? `inventory-new-${card.id}`
-								: undefined}
-							><img src={card.imageUri} alt="" width="40" height="56" loading="lazy" /><span
-								><span class="card-name"
-									><strong>{card.name}</strong>{#if isNewInventoryEntry(card.createdAt, asOf)}<span
-											class="new-entry"
-											id={`inventory-new-${card.id}`}
-											title={`Added ${addedDate.format(card.createdAt)} UTC. New for 7 days.`}
-											>New<span class="sr-only"
-												>, entry added {addedDate.format(card.createdAt)} UTC, marked new for 7 days</span
-											></span
-										>{/if}</span
-								><span class="mobile-metadata"
-									>{@render metadata('set', card.setCode)}{@render metadata(
-										'finish',
-										card.finish
-									)}{@render metadata('condition', card.condition)}</span
-								>{#if entryGroupNames(card.id)}<span
-										class="entry-groups"
-										title={entryGroupNames(card.id)}>{entryGroupNames(card.id)}</span
-									>{/if}{#if card.notes}<span class="entry-notes">{card.notes}</span>{/if}</span
-							></button
-						>
-						<span class="row-metadata">{@render metadata('set', card.setCode)}</span><span
-							class="row-metadata">{@render metadata('finish', card.finish)}</span
-						><span class="row-metadata">{@render metadata('condition', card.condition)}</span>
-						<div class="quantity-controls">
-							{#each [-1, 1] as delta}
-								{#if delta === 1}<span class="quantity" aria-label={`${card.quantity} copies`}
-										>{card.quantity}</span
-									>{/if}
-								<form
-									method="POST"
-									action={inventoryAction('updateQuantity', page.url)}
-									use:enhance={saveEntry}
-								>
-									<input type="hidden" name="entryId" value={card.id} /><input
-										type="hidden"
-										name="quantity"
-										value={card.quantity + delta}
-									/><input type="hidden" name="notes" value={card.notes} /><button
-										type="submit"
-										class="quantity-button"
-										disabled={pendingId !== null || (delta === -1 && card.quantity <= 1)}
-										aria-label={`${delta === -1 ? 'Decrease' : 'Increase'} ${card.name} quantity`}
-										><svg
-											aria-hidden="true"
-											width="14"
-											height="14"
-											viewBox="0 0 24 24"
-											fill="none"
-											stroke="currentColor"
-											stroke-width="1.5"
-											><path d="M5 12h14" />{#if delta === 1}<path d="M12 5v14" />{/if}</svg
-										></button
-									>
-								</form>
-							{/each}
-						</div>
-						<ActionMenu
-							label={`Actions for ${card.name}, ${card.setCode.toUpperCase()}, ${card.finish}, ${card.condition}`}
-							iconOnly
-							class="entry-menu"
-							bind:triggerRef={
-								() => rowMenuRefs[card.id] ?? null, (ref) => (rowMenuRefs[card.id] = ref)
+			{#snippet entryRow(card: InventoryCard)}
+				<div
+					class="inventory-row"
+					data-inventory-row={card.id}
+					class:saving={pendingId === card.id}
+				>
+					<button
+						class="card-identity"
+						onclick={(event) => openInspection(card.id, 'edit', event.currentTarget)}
+						aria-label={`Inspect ${card.name}, ${card.setCode.toUpperCase()}, ${card.finish}, ${card.condition}`}
+						aria-describedby={isNewInventoryEntry(card.createdAt, asOf)
+							? `inventory-new-${card.id}`
+							: undefined}
+						><img src={card.imageUri} alt="" width="40" height="56" loading="lazy" /><span
+							><span class="card-name"
+								><strong>{card.name}</strong>{#if isNewInventoryEntry(card.createdAt, asOf)}<span
+										class="new-entry"
+										id={`inventory-new-${card.id}`}
+										title={`Added ${addedDate.format(card.createdAt)} UTC. New for 7 days.`}
+										>New<span class="sr-only"
+											>, entry added {addedDate.format(card.createdAt)} UTC, marked new for 7 days</span
+										></span
+									>{/if}</span
+							><span class="mobile-metadata"
+								>{@render metadata('set', card.setCode)}{@render metadata(
+									'finish',
+									card.finish
+								)}{@render metadata('condition', card.condition)}</span
+							>{#if entryGroupNames(card.id)}<span
+									class="entry-groups"
+									title={entryGroupNames(card.id)}>{entryGroupNames(card.id)}</span
+								>{/if}{#if card.notes}<span class="entry-notes">{card.notes}</span>{/if}</span
+						></button
+					>
+					<span class="row-metadata">{@render metadata('set', card.setCode)}</span><span
+						class="row-metadata">{@render metadata('finish', card.finish)}</span
+					><span class="row-metadata">{@render metadata('condition', card.condition)}</span>
+					<QuantityControl
+						quantity={card.quantity}
+						label={card.name}
+						action={inventoryAction('updateQuantity', page.url)}
+						submit={saveEntry}
+						disabled={pendingId !== null}
+					>
+						{#snippet fields(delta)}<input type="hidden" name="entryId" value={card.id} /><input
+								type="hidden"
+								name="quantity"
+								value={card.quantity + delta}
+							/><input type="hidden" name="notes" value={card.notes} />{/snippet}
+					</QuantityControl>
+					<ActionMenu
+						label={`Actions for ${card.name}, ${card.setCode.toUpperCase()}, ${card.finish}, ${card.condition}`}
+						iconOnly
+						class="entry-menu"
+						bind:triggerRef={
+							() => rowMenuRefs[card.id] ?? null, (ref) => (rowMenuRefs[card.id] = ref)
+						}
+						onCloseAutoFocus={(event) => {
+							if (
+								removeId === card.id ||
+								inspection?.entryId === card.id ||
+								assigningEntryId === card.id
+							)
+								event.preventDefault();
+						}}
+						items={[
+							{
+								label: 'Add another',
+								disabled: pendingId !== null,
+								onSelect: () => openInspection(card.id, 'add', rowMenuRefs[card.id] ?? searchInput)
+							},
+							{
+								label: 'Groups',
+								disabled: pendingId !== null,
+								onSelect: () => assignGroups(card.id)
+							},
+							{
+								label: 'Remove',
+								destructive: true,
+								disabled: pendingId !== null,
+								onSelect: () => openRemoval(card.id)
 							}
-							onCloseAutoFocus={(event) => {
-								if (
-									removeId === card.id ||
-									inspection?.entryId === card.id ||
-									assigningEntryId === card.id
-								)
-									event.preventDefault();
-							}}
-							items={[
-								{
-									label: 'Add another',
-									disabled: pendingId !== null,
-									onSelect: () =>
-										openInspection(card.id, 'add', rowMenuRefs[card.id] ?? searchInput)
-								},
-								{
-									label: 'Groups',
-									disabled: pendingId !== null,
-									onSelect: () => assignGroups(card.id)
-								},
-								{
-									label: 'Remove',
-									destructive: true,
-									disabled: pendingId !== null,
-									onSelect: () => openRemoval(card.id)
-								}
-							]}
-						/>
-					</li>
-				{/each}
-			</ul>
+						]}
+					/>
+				</div>{/snippet}
+			{#if hydrated}<VirtualInventoryList
+					bind:this={virtualList}
+					total={currentWindow.matching.entryCount}
+					queryKey={currentWindow.queryKey}
+					version={windowVersion}
+					loadedIndexes={loadedEntries.map((row) => row.index)}
+					pinnedIndexes={pins}
+					getEntry={(index) => window.at(index)}
+					onRange={(start, end) => window.plan(start, end)}
+				>
+					{#snippet row(entry: InventoryEntry)}{@render entryRow(asLegacy(entry))}{/snippet}
+				</VirtualInventoryList>{:else}<ul class="inventory-list" aria-label="Inventory entries">
+					{#each listCards as card (card.id)}<li>{@render entryRow(card)}</li>{/each}
+				</ul>{/if}
 		{/if}
 	{/if}
+	<nav class="inventory-pagination" aria-label="Inventory pages">
+		{#if currentWindow.query.offset > 0}<Button
+				variant="secondary"
+				href={nativeUrl(
+					currentWindow.query,
+					Math.max(1, Math.floor(currentWindow.query.offset / 50))
+				)}>Previous</Button
+			>{/if}
+		<span
+			>Page {Math.floor(currentWindow.query.offset / 50) + 1} of {Math.max(
+				1,
+				Math.ceil(
+					(groupDirectory ? currentWindow.groupCount : currentWindow.matching.entryCount) / 50
+				)
+			)}</span
+		>
+		{#if currentWindow.query.offset + 50 < (groupDirectory ? currentWindow.groupCount : currentWindow.matching.entryCount)}<Button
+				variant="secondary"
+				href={nativeUrl(currentWindow.query, Math.floor(currentWindow.query.offset / 50) + 2)}
+				>Next</Button
+			>{/if}
+	</nav>
+	<div
+		hidden
+		data-inventory-cache-pages={metrics.pages}
+		data-inventory-cache-entries={metrics.entries}
+		data-inventory-contexts={metrics.contexts}
+		data-inventory-requests={metrics.requests}
+		data-inventory-reference-count={Object.keys(rowMenuRefs).length}
+		data-inventory-target-count={Object.keys(targetEntries).length}
+	></div>
+	{#if hydrated && window.error}<p role="alert">
+			{window.error}<Button
+				variant="secondary"
+				onclick={() =>
+					window.plan(virtualList?.anchor().index ?? 0, (virtualList?.anchor().index ?? 0) + 50)}
+				>Try again</Button
+			>
+		</p>{/if}
 </div>
 
 {#if editingGroup}<GroupEditor
@@ -745,7 +1021,7 @@
 	/>{/if}
 {#if assigningEntry}<EntryGroups
 		entry={assigningEntry}
-		groups={data.groups}
+		groups={currentWindow.groups}
 		groupIds={membershipsFor(assigningEntry.id)}
 		onClose={() => (assigningEntryId = null)}
 		onCloseAutoFocus={returnFromGroup}
@@ -784,7 +1060,11 @@
 	onCloseAutoFocus={returnFromRemoval}
 >
 	<form method="POST" action={inventoryAction('remove', page.url)} use:enhance={saveEntry}>
-		<input type="hidden" name="entryId" value={removeId ?? ''} />
+		<input type="hidden" name="entryId" value={removeId ?? ''} /><input
+			type="hidden"
+			name="expectedQuantity"
+			value={removing?.quantity ?? 0}
+		/>
 		<button class="btn btn-destructive" type="submit" disabled={pendingId !== null || !removing}
 			>{pendingId === removeId ? 'Removing…' : 'Remove'}</button
 		>
@@ -796,10 +1076,22 @@
 		card={inspection.card}
 		returnFocus={inspection.returnFocus}
 		actions={inspection.mode === 'edit' ? editEntryActions : undefined}
-		onClose={() => (inspection = null)}
+		onClose={() => {
+			const id = inspection?.entryId;
+			inspection = null;
+			if (id)
+				void restoreAnchor(id).then(() => {
+					(rowMenuRefs[id] ?? searchInput)?.focus({ preventScroll: true });
+				});
+		}}
 	/>
 	{#snippet editEntryActions(activeCard: CardDocument)}
-		{#if inspected && activeCard.id === inspected.catalogCardId}
+		{#if targetGone}<p role="alert">This entry was removed. Your unsaved notes are retained.</p>
+			<label class="label" for="removed-notes">Unsaved Notes</label><textarea
+				id="removed-notes"
+				class="input"
+				bind:value={notesDraft}
+			></textarea>{:else if inspected && activeCard.id === inspected.catalogCardId}
 			<form
 				method="POST"
 				action={inventoryAction('updateQuantity', page.url)}
@@ -818,16 +1110,19 @@
 					min="1"
 					step="1"
 					required
-					value={inspected.quantity}
+					bind:value={quantityDraft}
+					oninput={() => (draftDirty = true)}
 				/><label class="label" for="inventory-notes">Notes</label><textarea
 					class="input"
 					id="inventory-notes"
 					name="notes"
 					rows="2"
-					value={inspected.notes}></textarea><button
+					bind:value={notesDraft}
+					oninput={() => (draftDirty = true)}></textarea><button
 					type="submit"
 					class="btn btn-primary"
-					disabled={pendingId !== null}>{pendingId === inspected.id ? 'Saving…' : 'Save'}</button
+					disabled={pendingId !== null || targetGone}
+					>{pendingId === inspected.id ? 'Saving…' : 'Save'}</button
 				>{#if mutationError}<p class="mutation-error" role="alert">{mutationError}</p>{:else}<p
 						class="text-sm text-text-muted"
 						role="status"
@@ -859,6 +1154,26 @@
 {/snippet}
 
 <style>
+	.inventory-pagination {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+		margin-top: 1rem;
+		font-size: 0.75rem;
+	}
+	.native-inventory-filters {
+		display: flex;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+	}
+	.native-inventory-filters label {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
 	.inventory-views {
 		display: flex;
 		gap: 1.25rem;
@@ -897,10 +1212,9 @@
 		display: block;
 		color: var(--color-text-secondary);
 		font-size: 0.6875rem;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
 		max-width: 100%;
+
+		overflow-wrap: anywhere;
 	}
 
 	.inventory-result-count {
@@ -1116,13 +1430,6 @@
 	[data-condition='DMG'] {
 		--metadata-color: var(--color-error);
 	}
-	.inventory-heading {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 1rem;
-		margin-bottom: 1.25rem;
-	}
 	.inventory-totals {
 		margin-top: 0.5rem;
 		color: var(--color-text-muted);
@@ -1137,11 +1444,6 @@
 	.set-progress p span {
 		margin: 0 0.4rem;
 		color: var(--color-text-muted);
-	}
-	.inventory-actions {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
 	}
 	.inventory-toolbar {
 		display: grid;
@@ -1269,40 +1571,11 @@
 	.entry-notes {
 		display: block;
 		max-width: 100%;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
 		color: var(--color-text-muted);
 		font-size: 0.75rem;
 		margin-top: 0.15rem;
-	}
-	.quantity-controls {
-		display: flex;
-		justify-content: center;
-		align-items: center;
-	}
-	.quantity-button {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 36px;
-		height: 36px;
-		border-radius: 0.375rem;
-		color: var(--color-text-secondary);
-		cursor: pointer;
-	}
-	.quantity-button:hover:not(:disabled) {
-		background: var(--color-muted);
-		color: var(--color-text-primary);
-	}
-	.quantity-button:disabled {
-		opacity: 0.25;
-	}
-	.quantity {
-		min-width: 2rem;
-		text-align: center;
-		font-size: 0.8125rem;
-		font-variant-numeric: tabular-nums;
+
+		overflow-wrap: anywhere;
 	}
 	:global(.entry-menu) {
 		width: 44px;
@@ -1364,26 +1637,11 @@
 		}
 	}
 	@media (max-width: 560px) {
-		.inventory-heading {
-			align-items: flex-start;
-			gap: 0.5rem;
-			margin-bottom: 1rem;
-		}
-		.inventory-heading > div:first-child {
-			min-width: 0;
-		}
 		.inventory-totals {
 			font-size: 0.75rem;
 		}
 		.inventory-totals span {
 			margin: 0 0.15rem;
-		}
-		.inventory-actions {
-			flex-direction: column-reverse;
-			gap: 0;
-		}
-		.inventory-actions .btn {
-			font-size: 0.75rem;
 		}
 		.inventory-toolbar {
 			grid-template-columns: auto auto minmax(0, 1fr);
@@ -1421,15 +1679,8 @@
 		.mobile-metadata {
 			font-size: 0.75rem;
 		}
-		.quantity-controls {
+		:global(.quantity-control) {
 			grid-column: 2;
-		}
-		.quantity-button {
-			width: 44px;
-			height: 44px;
-		}
-		.quantity {
-			min-width: 24px;
 		}
 		:global(.entry-menu) {
 			grid-column: 2;
@@ -1444,11 +1695,5 @@
 		}
 	}
 	@media (max-width: 360px) {
-		.inventory-heading {
-			flex-wrap: wrap;
-		}
-		.inventory-actions {
-			flex-direction: row;
-		}
 	}
 </style>

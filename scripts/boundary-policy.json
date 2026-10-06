@@ -32,6 +32,14 @@
 		{
 			"file": "frontend/src/lib/server/db/client.ts",
 			"specifier": "@spellbook/backend"
+		},
+		{
+			"file": "frontend/src/lib/server/data/inventory.ts",
+			"specifier": "@spellbook/backend/inventory/write.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/data/inventory-window.ts",
+			"specifier": "@spellbook/backend/inventory/query.ts"
 		}
 	],
 	"legacy": [

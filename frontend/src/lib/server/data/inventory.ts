@@ -1,3 +1,9 @@
+import {
+	ensureInventory as ensureBackendInventory,
+	lockInventory,
+	advanceInventoryRevision
+} from '@spellbook/backend/inventory/write.ts';
+export { lockInventory, advanceInventoryRevision };
 import { and, asc, desc, eq, max, sql } from 'drizzle-orm';
 import { mutationFingerprint, RequestConflictError } from './request-fingerprint';
 import { db } from '#lib/server/db/client.ts';
@@ -36,41 +42,7 @@ export async function ensureInventory(
 	game: string,
 	executor: typeof db | Tx = db
 ): Promise<Inventory> {
-	const existing = await executor
-		.select()
-		.from(inventories)
-		.where(and(eq(inventories.accountId, accountId), eq(inventories.game, game)))
-		.limit(1);
-
-	if (existing[0]) {
-		return existing[0];
-	}
-
-	const [created] = await executor
-		.insert(inventories)
-		.values({
-			id: crypto.randomUUID(),
-			accountId,
-			game
-		})
-		.onConflictDoNothing()
-		.returning();
-
-	if (created) {
-		return created;
-	}
-
-	const [afterConflict] = await executor
-		.select()
-		.from(inventories)
-		.where(and(eq(inventories.accountId, accountId), eq(inventories.game, game)))
-		.limit(1);
-
-	if (!afterConflict) {
-		throw new Error(`Inventory not found for ${game}`);
-	}
-
-	return afterConflict;
+	return ensureBackendInventory(executor, accountId, game);
 }
 
 export async function getInventorySnapshot(
@@ -192,7 +164,10 @@ export async function batchAddInventory(
 	});
 }
 
+export class InventoryQuantityChangedError extends Error {}
+
 interface InventoryMutationInput {
+	expectedEntryQuantity?: { entryId: string; quantity: number };
 	requestId: string;
 	source: string;
 	game: string;
@@ -221,12 +196,24 @@ export async function applyInventoryMutation(
 	const requestHash =
 		expectedHash ??
 		mutationFingerprint({ kind: 'inventory', game: input.game, source: input.source, operations });
-	const inventory = await ensureInventory(accountId, input.game, tx);
-	await tx
-		.select({ id: inventories.id })
-		.from(inventories)
-		.where(eq(inventories.id, inventory.id))
-		.for('update');
+	const inventory = await lockInventory(tx, accountId, input.game);
+	if (input.expectedEntryQuantity) {
+		const expected = input.expectedEntryQuantity;
+		const [current] = await tx
+			.select({ quantity: inventoryCards.quantity })
+			.from(inventoryCards)
+			.where(
+				and(
+					eq(inventoryCards.id, expected.entryId),
+					eq(inventoryCards.inventoryId, inventory.id),
+					eq(inventoryCards.accountId, accountId)
+				)
+			);
+		if (!current || current.quantity !== expected.quantity)
+			throw new InventoryQuantityChangedError(
+				'This entry changed. Review the current number of copies before removing it.'
+			);
+	}
 
 	const now = new Date();
 	const claimed = await tx
@@ -258,11 +245,16 @@ export async function applyInventoryMutation(
 		return;
 	}
 
+	let changed = false;
 	for (const operation of operations) {
-		await applyInventoryOperation(tx, accountId, inventory.id, input.game, operation, now);
+		changed =
+			(await applyInventoryOperation(tx, accountId, inventory.id, input.game, operation, now)) ||
+			changed;
 	}
-	await reflowPositions(tx, inventory.id);
-	await tx.update(inventories).set({ updatedAt: now }).where(eq(inventories.id, inventory.id));
+	if (changed) {
+		await reflowPositions(tx, inventory.id);
+		await advanceInventoryRevision(tx, inventory.id);
+	}
 }
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -274,7 +266,7 @@ async function applyInventoryOperation(
 	game: string,
 	operation: InventoryBulkOperation,
 	now: Date
-): Promise<void> {
+): Promise<boolean> {
 	if (operation.op === 'add') {
 		const [{ maxPosition }] = await tx
 			.select({ maxPosition: max(inventoryCards.spellbookPosition) })
@@ -316,18 +308,20 @@ async function applyInventoryOperation(
 					imageUri: operation.card.imageUri,
 					quantity: sql`${inventoryCards.quantity} + ${quantity}`,
 					notes: operation.notes,
+					notesRevision: sql`CASE WHEN ${inventoryCards.notes} IS DISTINCT FROM ${operation.notes} THEN ${inventoryCards.notesRevision}+1 ELSE ${inventoryCards.notesRevision} END`,
 					updatedAt: now
 				}
 			});
-		return;
+		return true;
 	}
 
 	const entryId = operation.target.entryId;
 	if (operation.op === 'remove') {
-		await tx
+		const deleted = await tx
 			.delete(inventoryCards)
-			.where(and(eq(inventoryCards.id, entryId), eq(inventoryCards.accountId, accountId)));
-		return;
+			.where(and(eq(inventoryCards.id, entryId), eq(inventoryCards.accountId, accountId)))
+			.returning({ id: inventoryCards.id });
+		return deleted.length > 0;
 	}
 
 	const [existing] = await tx
@@ -336,11 +330,13 @@ async function applyInventoryOperation(
 		.where(and(eq(inventoryCards.id, entryId), eq(inventoryCards.accountId, accountId)))
 		.limit(1);
 	if (!existing) {
-		return;
+		return false;
 	}
 
 	const quantity = normalizeQuantity(operation.quantity);
 	const nextQuantity = operation.op === 'decrement' ? existing.quantity - quantity : quantity;
+	if (nextQuantity === existing.quantity && (operation.notes ?? existing.notes) === existing.notes)
+		return false;
 	if (nextQuantity <= 0) {
 		await tx
 			.delete(inventoryCards)
@@ -351,10 +347,15 @@ async function applyInventoryOperation(
 			.set({
 				quantity: nextQuantity,
 				notes: operation.notes ?? existing.notes,
+				notesRevision:
+					operation.notes !== undefined && operation.notes !== existing.notes
+						? sql`${inventoryCards.notesRevision}+1`
+						: existing.notesRevision,
 				updatedAt: now
 			})
 			.where(and(eq(inventoryCards.id, entryId), eq(inventoryCards.accountId, accountId)));
 	}
+	return true;
 }
 
 export async function updateInventoryCard(
@@ -385,7 +386,11 @@ export async function updateInventoryCard(
 	return snapshot.cards.find((card) => card.id === entryId) ?? null;
 }
 
-export async function removeInventoryCard(accountId: string, entryId: string): Promise<void> {
+export async function removeInventoryCard(
+	accountId: string,
+	entryId: string,
+	expectedQuantity?: number
+): Promise<void> {
 	const [existing] = await db
 		.select()
 		.from(inventoryCards)
@@ -399,7 +404,9 @@ export async function removeInventoryCard(accountId: string, entryId: string): P
 		requestId: crypto.randomUUID(),
 		source: 'web',
 		game: existing.game,
-		operations: [{ op: 'remove', target: { entryId } }]
+		operations: [{ op: 'remove', target: { entryId } }],
+		expectedEntryQuantity:
+			expectedQuantity === undefined ? undefined : { entryId, quantity: expectedQuantity }
 	});
 }
 
@@ -461,9 +468,11 @@ export async function reorderInventoryCard(
 		withoutMoved.splice(boundedPosition, 0, moved);
 
 		const now = new Date();
+		let changed = false;
 		for (let index = 0; index < withoutMoved.length; index += 1) {
 			const row = withoutMoved[index];
 			if (row.spellbookPosition !== index) {
+				changed = true;
 				await tx
 					.update(inventoryCards)
 					.set({ spellbookPosition: index, updatedAt: now })
@@ -471,9 +480,6 @@ export async function reorderInventoryCard(
 			}
 		}
 
-		await tx
-			.update(inventories)
-			.set({ updatedAt: now })
-			.where(eq(inventories.id, moved.inventoryId));
+		if (changed) await advanceInventoryRevision(tx, moved.inventoryId);
 	});
 }

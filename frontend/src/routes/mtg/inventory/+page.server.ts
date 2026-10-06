@@ -1,21 +1,20 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import {
-	getInventorySnapshot,
+	InventoryQuantityChangedError,
 	removeInventoryCard,
 	updateInventoryCard
 } from '#lib/server/data/inventory.ts';
 import {
 	createInventoryGroup,
 	deleteInventoryGroup,
-	getInventoryGroups,
 	InventoryGroupNotFoundError,
 	renameInventoryGroup,
 	replaceInventoryGroupMemberships
 } from '#lib/server/data/inventory-groups.ts';
 import { ValidationError } from '#lib/server/mtg/validation.ts';
 import { DEFAULT_GAME } from '#lib/state/activeGame.svelte.ts';
-import { getCatalogSetNames } from '#lib/server/catalog/search.ts';
+import { inventoryApplication, inventoryQueryFromUrl } from '#lib/server/data/inventory-window.ts';
 
 export const load: PageServerLoad = async ({ locals, parent, url }) => {
 	if (!locals.user) {
@@ -24,28 +23,39 @@ export const load: PageServerLoad = async ({ locals, parent, url }) => {
 
 	const { activeGame } = await parent();
 	const game = activeGame ?? DEFAULT_GAME;
-	const [snapshot, groupSnapshot] = await Promise.all([
-		getInventorySnapshot(locals.user.accountId, game),
-		getInventoryGroups(locals.user.accountId, game)
-	]);
-	const groupsView = url.searchParams.get('view') === 'groups';
-	const requestedGroupId = url.searchParams.get('group');
-	const selectedGroupId = requestedGroupId?.toLowerCase() ?? null;
-	if (
-		selectedGroupId !== null &&
-		!groupSnapshot.groups.some((group) => group.id === selectedGroupId)
-	) {
-		error(404, 'Inventory group not found');
+	try {
+		const window = await inventoryApplication.page(locals.user, inventoryQueryFromUrl(url));
+		if (window.kind !== 'Page') throw new Error('Initial window must be current');
+		return {
+			window,
+			cards: window.entries.map((entry) => ({
+				...entry,
+				createdAt: new Date(entry.createdAt),
+				updatedAt: new Date(entry.updatedAt)
+			})),
+			groups: window.groups,
+			memberships: window.memberships,
+			groupsView: window.query.view === 'groups',
+			selectedGroupId: window.query.group,
+			setNames: Object.fromEntries(window.sets.map((s) => [s.code, s.name])),
+			viewedAt: new Date(window.viewedAt),
+			stats: {
+				total: window.totals.copyCount,
+				unique: window.totals.canonicalCardCount,
+				foils: window.totals.foilEntryCount,
+				sets: window.totals.setCount,
+				completedSets: 0
+			}
+		};
+	} catch (cause) {
+		if (cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'Unauthenticated')
+			error(401, 'Authentication required');
+		if (cause instanceof ValidationError) {
+			if (cause.message === 'Inventory group not found') error(404, cause.message);
+			error(400, cause.message);
+		}
+		throw cause;
 	}
-	const setNames = await getCatalogSetNames(snapshot.cards.map((card) => card.setCode));
-	return {
-		...snapshot,
-		...groupSnapshot,
-		groupsView,
-		selectedGroupId,
-		setNames,
-		viewedAt: new Date()
-	};
 };
 
 function groupFailure(cause: unknown) {
@@ -146,7 +156,16 @@ export const actions: Actions = {
 			return fail(400, { message: 'entryId is required' });
 		}
 
-		await removeInventoryCard(locals.user.accountId, entryId);
+		const expectedQuantity = Number(form.get('expectedQuantity'));
+		if (!Number.isSafeInteger(expectedQuantity) || expectedQuantity < 1)
+			return fail(400, { message: 'Review the entry quantity before removing it.' });
+		try {
+			await removeInventoryCard(locals.user.accountId, entryId, expectedQuantity);
+		} catch (cause) {
+			if (cause instanceof InventoryQuantityChangedError)
+				return fail(409, { message: cause.message });
+			throw cause;
+		}
 		return { success: true };
 	}
 };

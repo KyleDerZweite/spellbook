@@ -1,8 +1,9 @@
+import { inventoryApplication } from '#lib/server/data/inventory-window.ts';
 import type { RequestHandler } from './$types';
 import { normalizeQuantity } from '#lib/server/mtg/validation.ts';
 import { badRequestIfValidation } from '#lib/server/mobile/route-errors.ts';
 import { readString, readJsonObject, requireUuid, readNumber } from '#lib/server/http/request.ts';
-import { json } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
 import { requireMobileAuth } from '#lib/server/mobile/auth.ts';
 import { removeInventoryEntry, updateInventoryEntry } from '#lib/server/mobile/mtg-service.ts';
 
@@ -30,4 +31,18 @@ export const DELETE: RequestHandler = async (event) => {
 	const entryId = requireUuid(event.params.entryId, 'entryId');
 
 	return json(await removeInventoryEntry(auth, entryId));
+};
+
+export const GET: RequestHandler = async (event) => {
+	const auth = await requireMobileAuth(event);
+	try {
+		const detail = await inventoryApplication.getEntry(
+			auth.user,
+			requireUuid(event.params.entryId, 'entryId')
+		);
+		if (!detail) error(404, 'Inventory entry not found');
+		return json(detail);
+	} catch (cause) {
+		badRequestIfValidation(cause);
+	}
 };

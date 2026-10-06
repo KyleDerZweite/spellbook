@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
 	import type { InventoryGroup } from '#lib/types/legacy.ts';
 	let {
@@ -13,6 +14,12 @@
 		onRemove: (group: InventoryGroup, trigger: HTMLElement | null) => void;
 	} = $props();
 	let triggers = $state<Record<string, HTMLButtonElement | null>>({});
+	$effect(() => {
+		const retained = new Set(groups.map((g) => g.id));
+		untrack(() => {
+			for (const id of Object.keys(triggers)) if (!retained.has(id)) delete triggers[id];
+		});
+	});
 </script>
 
 {#if groups.length === 0}

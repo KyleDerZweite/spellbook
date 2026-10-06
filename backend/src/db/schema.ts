@@ -15,6 +15,15 @@ import {
 	uuid
 } from 'drizzle-orm/pg-core';
 
+const decimalRevision = customType<{ data: string; driverData: string }>({
+	dataType() {
+		return 'bigint';
+	},
+	fromDriver(value) {
+		return String(value);
+	}
+});
+
 const timestamps = {
 	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
@@ -83,6 +92,7 @@ export const inventories = pgTable(
 			.notNull()
 			.references(() => userProfiles.accountId, { onDelete: 'cascade' }),
 		game: text('game').notNull(),
+		revision: decimalRevision('revision').notNull().default('0'),
 		...timestamps
 	},
 	(table) => [
@@ -109,6 +119,7 @@ export const inventoryCards = pgTable(
 		finish: text('finish').notNull(),
 		condition: text('condition').notNull(),
 		notes: text('notes').notNull().default(''),
+		notesRevision: decimalRevision('notes_revision').notNull().default('0'),
 		spellbookPosition: integer('spellbook_position').notNull(),
 		...timestamps
 	},
@@ -128,7 +139,12 @@ export const inventoryCards = pgTable(
 		),
 		index('inventory_cards_account_game_idx').on(table.accountId, table.game),
 		index('inventory_cards_inventory_position_idx').on(table.inventoryId, table.spellbookPosition),
-		index('inventory_cards_canonical_card_idx').on(table.canonicalCardId)
+		index('inventory_cards_canonical_card_idx').on(table.canonicalCardId),
+		index('inventory_cards_window_name_idx').on(
+			table.inventoryId,
+			sql`${table.name} COLLATE "inventory_root"`,
+			sql`${table.setCode} COLLATE "inventory_root"`
+		)
 	]
 );
 

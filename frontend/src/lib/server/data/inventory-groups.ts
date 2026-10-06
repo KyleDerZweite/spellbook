@@ -7,7 +7,7 @@ import {
 	inventoryGroups
 } from '#lib/server/db/schema.ts';
 import { ValidationError } from '#lib/server/mtg/validation.ts';
-import { ensureInventory } from './inventory';
+import { lockInventory, advanceInventoryRevision } from './inventory';
 
 export interface InventoryGroup {
 	id: string;
@@ -41,13 +41,6 @@ function normalizeName(value: string): string {
 		throw new ValidationError('Group name must contain 1 to 64 characters');
 	}
 	return name;
-}
-
-function ownedInventoryIds(accountId: string, game: string) {
-	return db
-		.select({ id: inventories.id })
-		.from(inventories)
-		.where(and(eq(inventories.accountId, accountId), eq(inventories.game, game)));
 }
 
 function handleNameConflict(error: unknown): never {
@@ -109,13 +102,16 @@ export async function getInventoryGroups(accountId: string, game = 'mtg') {
 
 export async function createInventoryGroup(accountId: string, name: string, game = 'mtg') {
 	const normalizedName = normalizeName(name);
-	const inventory = await ensureInventory(accountId, game);
 	try {
-		const [group] = await db
-			.insert(inventoryGroups)
-			.values({ id: crypto.randomUUID(), inventoryId: inventory.id, name: normalizedName })
-			.returning();
-		return group;
+		return await db.transaction(async (tx) => {
+			const inventory = await lockInventory(tx, accountId, game);
+			const [group] = await tx
+				.insert(inventoryGroups)
+				.values({ id: crypto.randomUUID(), inventoryId: inventory.id, name: normalizedName })
+				.returning();
+			await advanceInventoryRevision(tx, inventory.id);
+			return group;
+		});
 	} catch (error) {
 		handleNameConflict(error);
 	}
@@ -127,21 +123,26 @@ export async function renameInventoryGroup(
 	name: string,
 	game = 'mtg'
 ) {
-	const id = assertId(groupId, 'groupId');
-	const normalizedName = normalizeName(name);
+	const id = assertId(groupId, 'groupId'),
+		normalizedName = normalizeName(name);
 	try {
-		const [group] = await db
-			.update(inventoryGroups)
-			.set({ name: normalizedName, updatedAt: new Date() })
-			.where(
-				and(
-					eq(inventoryGroups.id, id),
-					inArray(inventoryGroups.inventoryId, ownedInventoryIds(accountId, game))
-				)
-			)
-			.returning();
-		if (!group) throw new InventoryGroupNotFoundError();
-		return group;
+		return await db.transaction(async (tx) => {
+			const inventory = await lockInventory(tx, accountId, game);
+			const [existing] = await tx
+				.select()
+				.from(inventoryGroups)
+				.where(and(eq(inventoryGroups.id, id), eq(inventoryGroups.inventoryId, inventory.id)))
+				.for('update');
+			if (!existing) throw new InventoryGroupNotFoundError();
+			if (existing.name === normalizedName) return existing;
+			const [group] = await tx
+				.update(inventoryGroups)
+				.set({ name: normalizedName, updatedAt: new Date() })
+				.where(eq(inventoryGroups.id, id))
+				.returning();
+			await advanceInventoryRevision(tx, inventory.id);
+			return group;
+		});
 	} catch (error) {
 		handleNameConflict(error);
 	}
@@ -149,16 +150,15 @@ export async function renameInventoryGroup(
 
 export async function deleteInventoryGroup(accountId: string, groupId: string, game = 'mtg') {
 	const id = assertId(groupId, 'groupId');
-	const [deleted] = await db
-		.delete(inventoryGroups)
-		.where(
-			and(
-				eq(inventoryGroups.id, id),
-				inArray(inventoryGroups.inventoryId, ownedInventoryIds(accountId, game))
-			)
-		)
-		.returning({ id: inventoryGroups.id });
-	if (!deleted) throw new InventoryGroupNotFoundError();
+	await db.transaction(async (tx) => {
+		const inventory = await lockInventory(tx, accountId, game);
+		const [deleted] = await tx
+			.delete(inventoryGroups)
+			.where(and(eq(inventoryGroups.id, id), eq(inventoryGroups.inventoryId, inventory.id)))
+			.returning({ id: inventoryGroups.id });
+		if (!deleted) throw new InventoryGroupNotFoundError();
+		await advanceInventoryRevision(tx, inventory.id);
+	});
 }
 
 export async function replaceInventoryGroupMemberships(
@@ -167,45 +167,47 @@ export async function replaceInventoryGroupMemberships(
 	groupIds: string[],
 	game = 'mtg'
 ) {
-	const id = assertId(entryId, 'entryId');
-	const selectedIds = [...new Set(groupIds.map((groupId) => assertId(groupId, 'groupId')))];
+	const id = assertId(entryId, 'entryId'),
+		selectedIds = [...new Set(groupIds.map((g) => assertId(g, 'groupId')))].sort();
 	await db.transaction(async (tx) => {
+		const inventory = await lockInventory(tx, accountId, game);
 		const [entry] = await tx
-			.select({ inventoryId: inventoryCards.inventoryId })
+			.select({ id: inventoryCards.id })
 			.from(inventoryCards)
-			.innerJoin(inventories, eq(inventories.id, inventoryCards.inventoryId))
 			.where(
 				and(
 					eq(inventoryCards.id, id),
 					eq(inventoryCards.accountId, accountId),
-					eq(inventoryCards.game, game),
-					eq(inventories.accountId, accountId),
-					eq(inventories.game, game)
+					eq(inventoryCards.inventoryId, inventory.id),
+					eq(inventoryCards.game, game)
 				)
 			)
-			.for('update', { of: inventoryCards });
+			.for('update');
 		if (!entry) throw new InventoryGroupNotFoundError('Inventory entry not found');
-
-		if (selectedIds.length > 0) {
+		if (selectedIds.length) {
 			const groups = await tx
 				.select({ id: inventoryGroups.id })
 				.from(inventoryGroups)
 				.where(
 					and(
 						inArray(inventoryGroups.id, selectedIds),
-						eq(inventoryGroups.inventoryId, entry.inventoryId)
+						eq(inventoryGroups.inventoryId, inventory.id)
 					)
 				)
 				.orderBy(asc(inventoryGroups.id))
 				.for('key share');
 			if (groups.length !== selectedIds.length) throw new InventoryGroupNotFoundError();
 		}
-
+		const current = await tx
+			.select({ id: inventoryGroupMemberships.groupId })
+			.from(inventoryGroupMemberships)
+			.where(eq(inventoryGroupMemberships.entryId, id));
+		if (JSON.stringify(current.map((g) => g.id).sort()) === JSON.stringify(selectedIds)) return;
 		await tx.delete(inventoryGroupMemberships).where(eq(inventoryGroupMemberships.entryId, id));
-		if (selectedIds.length > 0) {
+		if (selectedIds.length)
 			await tx
 				.insert(inventoryGroupMemberships)
 				.values(selectedIds.map((groupId) => ({ groupId, entryId: id })));
-		}
+		await advanceInventoryRevision(tx, inventory.id);
 	});
 }
