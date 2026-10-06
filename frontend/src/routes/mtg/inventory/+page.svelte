@@ -730,9 +730,7 @@
 									onSelect: () => openRemoval(card.id)
 								}
 							]}
-						>
-							{#snippet trigger()}{@render menuDots()}{/snippet}
-						</ActionMenu>
+						/>
 					</li>
 				{/each}
 			</ul>
@@ -792,16 +790,6 @@
 		>
 	</form>
 </ConfirmationDialog>
-
-{#snippet menuDots()}
-	<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"
-		><circle cx="12" cy="5" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle
-			cx="12"
-			cy="19"
-			r="1.7"
-		/></svg
-	>
-{/snippet}
 
 {#if inspection}
 	<CardDetail

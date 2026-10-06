@@ -37,7 +37,18 @@
 		class={['btn', iconOnly ? 'btn-ghost btn-icon' : 'btn-secondary', className]}
 		aria-label={label}
 	>
-		{#if trigger}{@render trigger()}{:else}{label}{/if}
+		{#if trigger}{@render trigger()}{:else if iconOnly}<svg
+				aria-hidden="true"
+				width="16"
+				height="16"
+				viewBox="0 0 24 24"
+				fill="currentColor"
+				><circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle
+					cx="12"
+					cy="19"
+					r="1.5"
+				/></svg
+			>{:else}{label}{/if}
 		{#if !iconOnly}<svg
 				aria-hidden="true"
 				class="shrink-0 text-text-muted"
