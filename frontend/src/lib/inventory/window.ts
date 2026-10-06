@@ -28,13 +28,14 @@ export class InventoryWindow {
 	private clock = 0;
 	private key = '';
 	private generation = 0;
+	// Delayed aborts keep their permits until the actual transport settles.
 	private active = new Map<
 		string,
-		{ controller: AbortController; offset: number; planned: boolean }
+		{ controller: AbortController; offset: number; planned: boolean; done: Promise<void> }
 	>();
 	private queue: Job[] = [];
 	private replacing = false;
-	private locationWaiters = 0;
+	private priorityWaiters = 0;
 	private slotWaiters = new Set<() => void>();
 	private listeners = new Map<string, Promise<void>>();
 	error = '';
@@ -46,7 +47,7 @@ export class InventoryWindow {
 	get identity() {
 		return this.generation;
 	}
-	private async lookup<T>(call: (signal: AbortSignal) => Promise<T>, signal: AbortSignal) {
+	private async withSlot<T>(call: (signal: AbortSignal) => Promise<T>, signal: AbortSignal) {
 		const identity = this.identity;
 		let wake!: () => void;
 		const aborted = new Promise<void>((resolve) => {
@@ -54,22 +55,24 @@ export class InventoryWindow {
 		});
 		signal.addEventListener('abort', wake, { once: true });
 		this.slotWaiters.add(wake);
-		this.locationWaiters++;
+		this.priorityWaiters++;
 		let acquired = false;
 		try {
 			while (this.active.size >= 3) {
 				if (signal.aborted || identity !== this.identity) return null;
-				await Promise.race([...this.listeners.values(), aborted]);
+				await Promise.race(
+					[...this.active.values()].map((request) => request.done).concat(aborted)
+				);
 			}
 			if (signal.aborted || identity !== this.identity) return null;
 			acquired = true;
 		} finally {
 			signal.removeEventListener('abort', wake);
 			this.slotWaiters.delete(wake);
-			this.locationWaiters--;
+			this.priorityWaiters--;
 			if (!acquired) this.pump();
 		}
-		const key = `location:${identity}:${++this.clock}`;
+		const key = `transport:${identity}:${++this.clock}`;
 		const controller = new AbortController();
 		const abort = () => controller.abort();
 		signal.addEventListener('abort', abort, { once: true });
@@ -80,7 +83,12 @@ export class InventoryWindow {
 				complete = resolve;
 			})
 		);
-		this.active.set(key, { controller, offset: -1, planned: false });
+		this.active.set(key, {
+			controller,
+			offset: -1,
+			planned: false,
+			done: this.listeners.get(key)!
+		});
 		this.changed();
 		try {
 			return await call(controller.signal);
@@ -113,7 +121,7 @@ export class InventoryWindow {
 			if (!current || signal.aborted || account !== this.account) return null;
 			let result: InventoryLocation | RevisionChanged | null;
 			try {
-				result = await this.lookup(
+				result = await this.withSlot(
 					(lookupSignal) => locate(current.query, entryId, current.revision, lookupSignal),
 					signal
 				);
@@ -178,48 +186,20 @@ export class InventoryWindow {
 		this.changed();
 	}
 	async open(account: string, query: InventoryQuery, signal: AbortSignal) {
-		const pending = [...this.listeners.values()];
 		this.cancel();
 		const generation = ++this.generation;
 		this.replacing = true;
-		// Aborted transports release their slots before the new query starts.
-		await Promise.all(pending);
-		if (signal.aborted || generation !== this.generation) {
-			if (generation === this.generation) {
-				this.replacing = false;
-				this.changed();
-				this.pump();
-			}
-			return;
-		}
-		const controller = new AbortController(),
-			key = `query:${generation}`;
-		const abort = () => controller.abort();
-		signal.addEventListener('abort', abort, { once: true });
-		let complete!: () => void;
-		this.listeners.set(
-			key,
-			new Promise<void>((resolve) => {
-				complete = resolve;
-			})
-		);
-		this.active.set(key, { controller, offset: 0, planned: false });
-		this.changed();
 		try {
-			const page = await this.transport(
-				{ ...query, offset: 0, limit: 50 },
-				undefined,
-				controller.signal
+			const page = await this.withSlot(
+				(transportSignal) =>
+					this.transport({ ...query, offset: 0, limit: 50 }, undefined, transportSignal),
+				signal
 			);
-			if (page.kind === 'Page' && !controller.signal.aborted && generation === this.generation) {
+			if (page?.kind === 'Page' && !signal.aborted && generation === this.generation) {
 				this.seed(account, page);
 				return this.identity;
 			}
 		} finally {
-			signal.removeEventListener('abort', abort);
-			this.active.delete(key);
-			this.listeners.delete(key);
-			complete();
 			if (generation === this.generation) this.replacing = false;
 			this.changed();
 			this.pump();
@@ -274,7 +254,7 @@ export class InventoryWindow {
 		return promise;
 	}
 	private pump() {
-		while (this.active.size < 3 && this.queue.length && this.locationWaiters === 0) {
+		while (this.active.size < 3 && this.queue.length && this.priorityWaiters === 0) {
 			const job = this.queue.shift()!;
 			void this.execute(job);
 		}
@@ -284,7 +264,12 @@ export class InventoryWindow {
 			key = this.key,
 			context = this.contexts.get(key)!;
 		const controller = new AbortController();
-		this.active.set(job.key, { controller, offset: job.offset, planned: job.planned });
+		this.active.set(job.key, {
+			controller,
+			offset: job.offset,
+			planned: job.planned,
+			done: this.listeners.get(job.key)!
+		});
 		this.changed();
 		try {
 			const result = await this.transport(

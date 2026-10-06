@@ -114,6 +114,46 @@ it('cancels old pages before a filter replacement and bounds its transport slot'
 	expect(window.metrics().requests).toBe(0);
 });
 
+it('bounds overlapping replacements while three older transports delay abort', async () => {
+	let active = 0,
+		peak = 0;
+	const requests: Array<{ q: InventoryQuery; finish: () => void; signal: AbortSignal }> = [];
+	const window = new InventoryWindow(
+		(q, _revision, signal) =>
+			new Promise((resolve) => {
+				active++;
+				peak = Math.max(peak, active);
+				requests.push({
+					q,
+					signal,
+					finish: () => {
+						active--;
+						resolve(page(q.offset, q.q));
+					}
+				});
+			}),
+		() => {}
+	);
+	window.seed('owner', page());
+	window.plan(500, 600);
+	const first = window.open('owner', { ...query, q: 'first' }, new AbortController().signal);
+	const latest = window.open('owner', { ...query, q: 'latest' }, new AbortController().signal);
+	await new Promise((resolve) => setTimeout(resolve, 0));
+	expect(active).toBe(3);
+	expect(requests).toHaveLength(3);
+	expect(requests.every((r) => r.signal.aborted)).toBe(true);
+	requests[0].finish();
+	await new Promise((resolve) => setTimeout(resolve, 0));
+	expect(requests).toHaveLength(4);
+	expect(requests[3].q.q).toBe('latest');
+	expect(active).toBe(3);
+	requests.slice(1).forEach((r) => r.finish());
+	await Promise.all([first, latest]);
+	expect(window.current?.query.q).toBe('latest');
+	expect(peak).toBe(3);
+	expect(window.metrics().requests).toBe(0);
+});
+
 it('retains entries only in budgeted cache pages, independently of current metadata', async () => {
 	const initial = page();
 	const entry: import('@spellbook/contracts/inventory.ts').InventoryEntry = {
