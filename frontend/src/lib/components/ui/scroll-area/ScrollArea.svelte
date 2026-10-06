@@ -10,6 +10,7 @@
 		viewportClass?: string;
 		viewportRef?: HTMLDivElement | null;
 		viewportLabel?: string;
+		viewportTabindex?: number;
 		smoothWheel?: boolean;
 	};
 
@@ -20,6 +21,7 @@
 		viewportClass = '',
 		viewportRef = $bindable(null),
 		viewportLabel,
+		viewportTabindex = 0,
 		smoothWheel = true,
 		...restProps
 	}: Props = $props();
@@ -35,7 +37,7 @@
 			<BitsScrollArea.Viewport
 				bind:ref={viewportRef}
 				class={['scroll-area-viewport', viewportClass]}
-				tabindex={0}
+				tabindex={viewportTabindex}
 				aria-label={viewportLabel}
 			>
 				{@render children()}

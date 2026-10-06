@@ -130,6 +130,22 @@ describe('shared wheel scrolling', () => {
 		expect(viewport.scrollTop).toBe(800);
 	});
 
+	it.each([100, -100])('finishes pending boundary motion for repeated %s notches', (deltaY) => {
+		viewport.scrollHeight = 350;
+		viewport.scrollTop = deltaY > 0 ? 0 : 150;
+		for (let notch = 0; notch < 3; notch++) {
+			expect(wheel(viewport, { deltaY }).defaultPrevented).toBe(true);
+		}
+		advance(50);
+		expect(viewport.scrollTop).toBeGreaterThan(0);
+		expect(viewport.scrollTop).toBeLessThan(150);
+		// Another notch keeps the existing finish time rather than restarting the animation.
+		expect(wheel(viewport, { deltaY }).defaultPrevented).toBe(true);
+		advance(50);
+		expect(viewport.scrollTop).toBe(deltaY > 0 ? 150 : 0);
+		expect(wheel(viewport, { deltaY }).defaultPrevented).toBe(false);
+	});
+
 	it.each(['pointerdown', 'touchstart', 'keydown'])('cancels for manual %s input', (type) => {
 		wheel(viewport);
 		viewport.dispatchEvent(new Event(type));

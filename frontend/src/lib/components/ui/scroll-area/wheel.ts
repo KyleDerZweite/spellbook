@@ -66,15 +66,16 @@ export function smoothWheelScroll(viewport: HTMLElement): () => void {
 
 		const delta = event.deltaY * (event.deltaMode === 1 ? 16 : 1);
 		const max = Math.max(0, viewport.scrollHeight - viewport.clientHeight);
-		const currentTarget =
-			frame && delta * (target - viewport.scrollTop) >= 0 ? target : viewport.scrollTop;
-		const next = Math.max(0, Math.min(max, currentTarget + delta));
-		// Leave events at a boundary native so a containing scroll pane can take over.
-		if (next === currentTarget) {
+		// Chain only once the viewport itself has reached the boundary.
+		if ((delta > 0 && viewport.scrollTop >= max) || (delta < 0 && viewport.scrollTop <= 0)) {
 			cancel();
 			return;
 		}
+		const currentTarget =
+			frame && delta * (target - viewport.scrollTop) >= 0 ? target : viewport.scrollTop;
+		const next = Math.max(0, Math.min(max, currentTarget + delta));
 		event.preventDefault();
+		if (frame && next === currentTarget) return;
 		cancelAnimationFrame(frame);
 		from = viewport.scrollTop;
 		expected = from;
