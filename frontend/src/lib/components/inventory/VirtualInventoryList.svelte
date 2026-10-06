@@ -86,9 +86,13 @@
 		const index = indexAt(scrollTop);
 		return { id: rendered(index)?.id ?? null, index, intra: scrollTop - offset(index) };
 	}
-	export async function scrollToIndex(index: number, intra = 0) {
+	export async function scrollToIndex(
+		index: number,
+		intra = 0,
+		isCurrent: () => boolean = () => true
+	) {
 		await tick();
-		if (viewport) {
+		if (viewport && isCurrent()) {
 			viewport.scrollTop = Math.max(0, offset(index) + intra);
 			scrollTop = viewport.scrollTop;
 		}

@@ -149,3 +149,117 @@ it('retains entries only in budgeted cache pages, independently of current metad
 	expect(window.current?.entries).toEqual([]);
 	expect(window.metrics().entries).toBe(0);
 });
+
+it('discards a location that finishes after query replacement', async () => {
+	let finish!: (result: import('@spellbook/contracts/inventory.ts').InventoryLocation) => void;
+	let requests = 0;
+	const window = new InventoryWindow(
+		async (q) => {
+			requests++;
+			return page(q.offset, q.q);
+		},
+		() => {}
+	);
+	window.seed('owner', page());
+	const located = window.locateAndLoad(
+		'entry',
+		() =>
+			new Promise((resolve) => {
+				finish = resolve;
+			}),
+		new AbortController().signal
+	);
+	window.seed('owner', page(0, 'replacement'));
+	finish({ kind: 'Location', revision: '1', index: 500 });
+	expect(await located).toBeNull();
+	expect(requests).toBe(0);
+	expect(window.metrics().pages).toBe(2);
+});
+
+it('resets and retries a location revision before loading its page', async () => {
+	const window = new InventoryWindow(
+		async (q) => page(q.offset, q.q, '2'),
+		() => {}
+	);
+	window.seed('owner', page());
+	let calls = 0;
+	const located = await window.locateAndLoad(
+		'entry',
+		async () =>
+			++calls === 1
+				? { kind: 'RevisionChanged', revision: '2' }
+				: { kind: 'Location', revision: '2', index: 75 },
+		new AbortController().signal
+	);
+	expect(calls).toBe(2);
+	expect(window.current?.revision).toBe('2');
+	expect(located).toEqual({ identity: window.identity, index: 75 });
+	expect(window.metrics().pages).toBe(2);
+});
+
+it('retries after a revision reset while loading the located page', async () => {
+	const window = new InventoryWindow(
+		async (q, revision) =>
+			revision === '1' ? { kind: 'RevisionChanged', revision: '2' } : page(q.offset, q.q, '2'),
+		() => {}
+	);
+	window.seed('owner', page());
+	let calls = 0;
+	const result = await window.locateAndLoad(
+		'entry',
+		async (_q, _id, revision) => ({ kind: 'Location', revision, index: ++calls === 1 ? 75 : 76 }),
+		new AbortController().signal
+	);
+	expect(calls).toBe(2);
+	expect(result).toEqual({ identity: window.identity, index: 76 });
+});
+
+it('discards a loaded location page after a different query was activated', async () => {
+	let finish!: (page: InventoryPage) => void;
+	const window = new InventoryWindow(
+		() =>
+			new Promise((resolve) => {
+				finish = resolve;
+			}),
+		() => {}
+	);
+	window.seed('owner', page());
+	const located = window.locateAndLoad(
+		'entry',
+		async () => ({ kind: 'Location', revision: '1', index: 500 }),
+		new AbortController().signal
+	);
+	await new Promise((resolve) => setTimeout(resolve, 0));
+	window.seed('owner', page(0, 'other'));
+	finish(page(500));
+	expect(await located).toBeNull();
+	expect(window.current?.query.q).toBe('other');
+	expect(window.at(500)).toBeUndefined();
+});
+
+it('discards a location reset interrupted by query replacement', async () => {
+	let finish!: (page: InventoryPage) => void;
+	const window = new InventoryWindow(
+		() =>
+			new Promise((resolve) => {
+				finish = resolve;
+			}),
+		() => {}
+	);
+	window.seed('owner', page());
+	let calls = 0;
+	const located = window.locateAndLoad(
+		'entry',
+		async () => {
+			calls++;
+			return { kind: 'RevisionChanged', revision: '2' };
+		},
+		new AbortController().signal
+	);
+	await new Promise((resolve) => setTimeout(resolve, 0));
+	window.seed('owner', page(0, 'other', '2'));
+	finish(page(0, '', '2'));
+	expect(await located).toBeNull();
+	expect(calls).toBe(1);
+	expect(window.current?.query.q).toBe('other');
+});

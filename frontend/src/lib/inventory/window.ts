@@ -1,6 +1,7 @@
 import type {
 	InventoryEntry,
 	InventoryPage,
+	InventoryLocation,
 	InventoryQuery,
 	RevisionChanged
 } from '@spellbook/contracts/inventory.ts';
@@ -40,6 +41,57 @@ export class InventoryWindow {
 		private changed: () => void,
 		private beforeRevisionReset: () => void = () => {}
 	) {}
+	get identity() {
+		return this.generation;
+	}
+	async locateAndLoad(
+		entryId: string,
+		locate: (
+			query: InventoryQuery,
+			entryId: string,
+			revision: string,
+			signal: AbortSignal
+		) => Promise<InventoryLocation | RevisionChanged>,
+		signal: AbortSignal
+	) {
+		const account = this.account;
+		for (let attempt = 0; attempt < 2; attempt++) {
+			const identity = this.identity,
+				current = this.current;
+			if (!current || signal.aborted || account !== this.account) return null;
+			let result: InventoryLocation | RevisionChanged;
+			try {
+				result = await locate(current.query, entryId, current.revision, signal);
+			} catch (cause) {
+				if (signal.aborted || identity !== this.identity) return null;
+				throw cause;
+			}
+			if (signal.aborted || identity !== this.identity) return null;
+			if (result.kind === 'RevisionChanged') {
+				this.beforeRevisionReset();
+				const restored = await this.open(this.account, current.query, signal);
+				if (signal.aborted || restored !== this.identity || account !== this.account) return null;
+				continue;
+			}
+			if (result.revision !== current.revision) return null;
+			if (result.index !== null) {
+				await this.request(Math.floor(result.index / 50) * 50);
+				if (signal.aborted || account !== this.account) return null;
+				if (identity !== this.identity) {
+					if (
+						!this.replacing &&
+						this.current?.queryKey === current.queryKey &&
+						this.current.revision !== current.revision
+					)
+						continue;
+					return null;
+				}
+			}
+			return { identity, index: result.index };
+		}
+		return null;
+	}
+
 	get current() {
 		return this.contexts.get(this.key)?.page;
 	}
@@ -104,8 +156,10 @@ export class InventoryWindow {
 				undefined,
 				controller.signal
 			);
-			if (page.kind === 'Page' && !controller.signal.aborted && generation === this.generation)
+			if (page.kind === 'Page' && !controller.signal.aborted && generation === this.generation) {
 				this.seed(account, page);
+				return this.identity;
+			}
 		} finally {
 			signal.removeEventListener('abort', abort);
 			this.active.delete(key);

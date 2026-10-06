@@ -101,6 +101,8 @@
 	let hydrated = $state(false),
 		windowVersion = $state(0),
 		virtualList = $state<ReturnType<typeof VirtualInventoryList> | null>(null);
+	let anchorRestoreActive = false,
+		anchorController: AbortController | null = null;
 	let revisionAnchor: { id: string | null; index: number; intra: number } | null = null;
 	const window = new InventoryWindow(
 		async (input, revision, signal) => {
@@ -120,7 +122,7 @@
 		},
 		() => windowVersion++,
 		() => {
-			revisionAnchor = virtualList?.anchor() ?? null;
+			if (!anchorRestoreActive) revisionAnchor = virtualList?.anchor() ?? null;
 		}
 	);
 	const asLegacy = (entry: InventoryEntry): InventoryCard => ({
@@ -155,7 +157,10 @@
 	onMount(() => {
 		hydrated = true;
 		window.seed(page.data.user?.accountId ?? 'session', data.window);
-		return () => window.clear();
+		return () => {
+			anchorController?.abort();
+			window.clear();
+		};
 	});
 	$effect(() => {
 		if (!hydrated) return;
@@ -229,29 +234,59 @@
 			controller.abort();
 		};
 	});
+
 	async function restoreAnchor(id: string, intra = 0, fallbackIndex = 0) {
-		const current = window.current;
-		if (!current) return;
-		const response = await fetch(
-			`/api/mobile/v1/mtg/inventory/${id}/location?${inventoryUrl(current.query, current.revision)}`
-		);
-		const result = await response.json();
-		if (result.kind === 'Location' && result.index !== null) {
-			await window.request(Math.floor(result.index / 50) * 50);
-			await virtualList?.scrollToIndex(result.index, intra);
-		} else if (result.kind === 'Location') {
-			await virtualList?.scrollToIndex(
-				Math.min(fallbackIndex, Math.max(0, current.matching.entryCount - 1))
+		anchorController?.abort();
+		const controller = new AbortController();
+		anchorController = controller;
+		anchorRestoreActive = true;
+		try {
+			const location = await window.locateAndLoad(
+				id,
+				async (query, entryId, revision, signal) => {
+					const response = await fetch(
+						`/api/mobile/v1/mtg/inventory/${entryId}/location?${inventoryUrl(query, revision)}`,
+						{ signal }
+					);
+					const result = await response.json();
+					if (!response.ok && result.kind !== 'RevisionChanged')
+						throw Error('Could not restore the inventory position.');
+					return result;
+				},
+				controller.signal
 			);
+			if (!location || controller.signal.aborted || window.identity !== location.identity)
+				return false;
+			const index =
+				location.index ??
+				Math.min(fallbackIndex, Math.max(0, (window.current?.matching.entryCount ?? 0) - 1));
+			await virtualList?.scrollToIndex(
+				index,
+				location.index === null ? 0 : intra,
+				() => !controller.signal.aborted && window.identity === location.identity
+			);
+			return !controller.signal.aborted && window.identity === location.identity;
+		} catch (cause) {
+			if (!controller.signal.aborted)
+				mutationError =
+					cause instanceof Error ? cause.message : 'Could not restore the inventory position.';
+			return false;
+		} finally {
+			if (anchorController === controller) {
+				anchorRestoreActive = false;
+				anchorController = null;
+				revisionAnchor = null;
+			}
 		}
 	}
+
 	let observedRevision = '';
 	$effect(() => {
 		const revision = currentWindow.revision;
 		if (!hydrated || revision === observedRevision) return;
 		observedRevision = revision;
 		untrack(() => {
-			const anchor = revisionAnchor ?? virtualList?.anchor();
+			const anchor = anchorRestoreActive ? null : (revisionAnchor ?? virtualList?.anchor());
 			revisionAnchor = null;
 			if (anchor?.id) void restoreAnchor(anchor.id, anchor.intra, anchor.index);
 			void refreshTargets();
@@ -1080,7 +1115,8 @@
 			const id = inspection?.entryId;
 			inspection = null;
 			if (id)
-				void restoreAnchor(id).then(() => {
+				void restoreAnchor(id).then((restored) => {
+					if (!restored) return;
 					(rowMenuRefs[id] ?? searchInput)?.focus({ preventScroll: true });
 				});
 		}}
