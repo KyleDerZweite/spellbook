@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-06
 - Source of Truth: code
-- Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences and totals
+- Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals
 - Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md)
 
 PostgreSQL stores account-owned application state and the public Scryfall catalog.
@@ -32,6 +32,7 @@ PostgreSQL stores account-owned application state and the public Scryfall catalo
 - inventory, deck, and scan session rows retain an MTG `game` field
 - `user_profiles.account_id` is the internal Spellbook account key
 - `user_profiles.avatar_id` and `artwork_id` store private account presentation preferences; additive migration `0008_profile_artwork.sql` defaults existing artwork selections to `grove`
+- `user_profiles.profile_card` stores a nullable typed JSONB card definition; additive migration `0009_profile_card.sql` leaves existing rows null and writes no preset or resolved metric values
 - `local_credentials` maps normalized usernames to account IDs and stores password hashes
 - `auth_sessions` stores hashed opaque tokens and their expiry
 - `auth_identities` retains historical provider mappings but is no longer used for authentication
@@ -49,10 +50,11 @@ PostgreSQL stores account-owned application state and the public Scryfall catalo
 - repository functions enforce ownership by internal Spellbook `accountId`
 - the Settings profile repository reads account-scoped MTG totals directly from `inventory_cards` and `decks` without creating inventory rows or calling the catalog worker
 - profile totals count owned quantities, distinct canonical card IDs, distinct printing IDs, distinct set codes, foil quantities, and decks; a totals read failure leaves profile customization available
+- the profile repository reads the saved card independently of totals and validates it against the shared definition; [authentication](./auth.md) owns Settings validation, default handling and atomic preference updates
 
 ## Current Mutation Surface
 
-- update the authenticated account's avatar and artwork selection
+- update the authenticated account's avatar, artwork and validated profile card definition in one statement
 - inventory creation and lookup
 - add/update/remove/reorder inventory cards
 - idempotent batch inventory add

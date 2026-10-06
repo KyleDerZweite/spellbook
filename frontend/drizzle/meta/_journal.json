@@ -64,6 +64,13 @@
 			"when": 1791278208940,
 			"tag": "0008_profile_artwork",
 			"breakpoints": true
+		},
+		{
+			"idx": 9,
+			"version": "7",
+			"when": 1791281673275,
+			"tag": "0009_profile_card",
+			"breakpoints": true
 		}
 	]
 }

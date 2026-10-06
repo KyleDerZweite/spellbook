@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm';
+import type { ProfileCardDefinition } from '#lib/profile/card.ts';
 import {
 	check,
 	customType,
@@ -25,6 +26,7 @@ export const userProfiles = pgTable('user_profiles', {
 	email: text('email').notNull().default(''),
 	avatarId: text('avatar_id').notNull().default('wizard'),
 	artworkId: text('artwork_id').notNull().default('grove'),
+	profileCard: jsonb('profile_card').$type<ProfileCardDefinition>(),
 	lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow()
 });
 

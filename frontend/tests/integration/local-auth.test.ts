@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { afterAll, describe, expect, it, vi } from 'vitest';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
+import { defaultProfileCard, type ProfileCardDefinition } from '../../src/lib/profile/card';
 import { db, pool } from '../../src/lib/server/db/client';
 import {
 	authSessions,
@@ -39,6 +40,26 @@ run('local accounts and persisted sessions', () => {
 		if (artworkId !== undefined) body.set('artworkId', artworkId);
 		return new Request('https://spellbook.test/settings', { method: 'POST', body });
 	};
+	const cardRequest = (card: ProfileCardDefinition, accountId?: string) => {
+		const body = new FormData();
+		body.set('avatarId', 'dragon');
+		body.set('artworkId', 'astral');
+		if (accountId) body.set('accountId', accountId);
+		for (const [field, value] of Object.entries(card)) {
+			if (field === 'legendary') {
+				if (value) body.set(field, 'on');
+			} else body.set(field, String(value));
+		}
+		return body;
+	};
+	const submitCard = (
+		body: FormData,
+		user: NonNullable<Awaited<ReturnType<typeof validateSession>>>
+	) =>
+		settingsActions.default({
+			locals: { user },
+			request: new Request('https://spellbook.test/settings', { method: 'POST', body })
+		} as never);
 	afterAll(async () => {
 		if (accountIds.length)
 			await db.delete(userProfiles).where(inArray(userProfiles.accountId, accountIds));
@@ -115,6 +136,168 @@ run('local accounts and persisted sessions', () => {
 			avatarId: 'slime',
 			artworkId: 'astral'
 		});
+	});
+	it('saves and reloads all profile card fields for only the authenticated account and preserves legacy edits', async () => {
+		const user = await authenticate(
+			'register',
+			`mage_${crypto.randomUUID().slice(0, 12)}`,
+			'correct horse battery'
+		);
+		const other = await authenticate(
+			'register',
+			`mage_${crypto.randomUUID().slice(0, 12)}`,
+			'correct horse battery'
+		);
+		accountIds.push(user!.user.accountId, other!.user.accountId);
+		const card: ProfileCardDefinition = {
+			template: 'mtg',
+			name: 'The Archive Keeper',
+			frame: 'gold',
+			legendary: true,
+			rarity: 'mythic',
+			manaCost: '{3}{W/U}{G/P}',
+			typeLine: 'Artifact Creature · Wizard',
+			rulesText:
+				'Own {total_owned_cards} copies and {owned_printings} printings.\n{T}: Draw a card.',
+			flavorText: 'Across {owned_sets} sets and {unique_card_names} names.',
+			power: '{foil_copies}',
+			toughness: '{total_decks}'
+		};
+		expect(await submitCard(cardRequest(card, other!.user.accountId), user!.user)).toEqual({
+			success: true,
+			message: 'Profile saved.'
+		});
+		expect(await loadSettings({ locals: { user: user!.user } } as never)).toMatchObject({ card });
+		expect(await profileData.getProfileCard(other!.user.accountId, other!.user.username)).toEqual(
+			defaultProfileCard(other!.user.username)
+		);
+		expect(await validateSession(other!.session.token)).toMatchObject({
+			avatarId: 'wizard',
+			artworkId: 'grove'
+		});
+		for (const request of [
+			settingsRequest('slime'),
+			settingsRequest('wizard', undefined, 'tide')
+		]) {
+			await settingsActions.default({ locals: { user: user!.user }, request } as never);
+			expect(await profileData.getProfileCard(user!.user.accountId, user!.user.username)).toEqual(
+				card
+			);
+		}
+		const standard = { ...card, legendary: false, power: '', toughness: '' };
+		expect(await submitCard(cardRequest(standard), user!.user)).toEqual({
+			success: true,
+			message: 'Profile saved.'
+		});
+		expect(await profileData.getProfileCard(user!.user.accountId, user!.user.username)).toEqual(
+			standard
+		);
+	});
+	it('rejects incomplete or invalid card edits before any preference write and retains safe submitted values', async () => {
+		const user = await authenticate(
+			'register',
+			`mage_${crypto.randomUUID().slice(0, 12)}`,
+			'correct horse battery'
+		);
+		accountIds.push(user!.user.accountId);
+		const card = defaultProfileCard(user!.user.username);
+		await db
+			.update(userProfiles)
+			.set({ profileCard: card })
+			.where(eq(userProfiles.accountId, user!.user.accountId));
+		const invalid = [
+			{ field: 'rulesText', value: '{account_id}' },
+			{ field: 'flavorText', value: '{total_owned_cards' },
+			{ field: 'manaCost', value: '{NOT-MANA}' },
+			{ field: 'typeLine', value: 'Creature\nWizard' },
+			{ field: 'frame', value: 'unknown' },
+			{ field: 'template', value: 'special' },
+			{ field: 'power', value: '3' },
+			{ field: 'flavorText', value: undefined }
+		];
+		for (const { field, value } of invalid) {
+			const body = cardRequest(card);
+			if (value === undefined) body.delete(field);
+			else body.set(field, value);
+			expect(await submitCard(body, user!.user)).toMatchObject({
+				status: 400,
+				data: {
+					success: false,
+					avatarId: 'dragon',
+					artworkId: 'astral',
+					card: { [field]: value ?? '' },
+					errors: expect.any(Object)
+				}
+			});
+			const [stored] = await db
+				.select()
+				.from(userProfiles)
+				.where(eq(userProfiles.accountId, user!.user.accountId));
+			expect(stored).toMatchObject({ avatarId: 'wizard', artworkId: 'grove', profileCard: card });
+		}
+		const fileBody = cardRequest(card);
+		fileBody.set('name', new Blob(['not text']), 'name.txt');
+		expect(await submitCard(fileBody, user!.user)).toMatchObject({
+			status: 400,
+			data: { card: { name: '' }, errors: { name: expect.any(String) } }
+		});
+		const partialBody = new FormData();
+		partialBody.set('avatarId', 'dragon');
+		partialBody.set('name', 'Incomplete');
+		expect(await submitCard(partialBody, user!.user)).toMatchObject({
+			status: 400,
+			data: { errors: { template: expect.any(String), typeLine: expect.any(String) } }
+		});
+		for (const field of ['avatarId', 'artworkId']) {
+			const body = cardRequest({ ...card, name: 'Must not save' });
+			body.set(field, 'unknown');
+			expect(await submitCard(body, user!.user)).toMatchObject({
+				status: 400,
+				data: { card: { name: 'Must not save' } }
+			});
+		}
+		expect(await profileData.getProfileCard(user!.user.accountId, user!.user.username)).toEqual(
+			card
+		);
+		expect(await validateSession(user!.session.token)).toMatchObject({
+			avatarId: 'wizard',
+			artworkId: 'grove'
+		});
+	});
+	it('uses an unsaved default for absent or invalid stored cards and retains a saved card when totals fail', async () => {
+		const user = await authenticate(
+			'register',
+			`mage_${crypto.randomUUID().slice(0, 12)}`,
+			'correct horse battery'
+		);
+		accountIds.push(user!.user.accountId);
+		const locals = { user: user!.user };
+		const card = defaultProfileCard(user!.user.username);
+		expect(await loadSettings({ locals } as never)).toMatchObject({ card });
+		const [stored] = await db
+			.select()
+			.from(userProfiles)
+			.where(eq(userProfiles.accountId, user!.user.accountId));
+		expect(stored.profileCard).toBeNull();
+		await db
+			.update(userProfiles)
+			.set({ profileCard: sql`'{"template":"invalid"}'::jsonb` })
+			.where(eq(userProfiles.accountId, user!.user.accountId));
+		expect(await loadSettings({ locals } as never)).toMatchObject({ card });
+		const customized = { ...card, name: 'Persisted customization' };
+		await submitCard(cardRequest(customized), user!.user);
+		const totalsRead = vi
+			.spyOn(profileData, 'getProfileTotals')
+			.mockRejectedValueOnce(new Error('inventory read failed'));
+		try {
+			expect(await loadSettings({ locals } as never)).toMatchObject({
+				card: customized,
+				totals: null,
+				statsError: expect.any(String)
+			});
+		} finally {
+			totalsRead.mockRestore();
+		}
 	});
 	it('rejects explicit invalid artwork before creating an account', async () => {
 		for (const artworkId of ['', 'unknown', 'https://example.test/art.webp', null, 42, undefined]) {

@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-06
 - Source of Truth: code
-- Update Triggers: credentials, sessions, protected routes, bearer tokens, origin checks, demo mode, account preferences, post-login destinations
+- Update Triggers: credentials, sessions, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, post-login destinations
 - Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Routes](../product/routing-and-games.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md)
 
 Spellbook authenticates local accounts by username and password. `user_profiles.account_id` remains the stable ownership key for inventories, decks, and scans. Registration generates a new account ID; operator enrollment preserves an existing account ID.
@@ -17,6 +17,10 @@ Sessions use random 32-byte opaque tokens. `auth_sessions` stores only the token
 `user_profiles.avatar_id` stores the account's selected sprite, with `wizard` as the default. Migration `0007_profile_avatar.sql` adds this field for existing accounts without changing their identities or sessions. Login, registration, and session validation return `avatarId` with the user. The authenticated `/settings` form validates choices against the shared [avatar collection](../../frontend/src/lib/profile/avatars.ts) and updates only the current account. Apply the normal database migrations before deploying code that reads this field.
 
 `user_profiles.artwork_id` stores the selected profile artwork, with `grove` as the default. Migration `0008_profile_artwork.sql` adds the field for existing accounts. Registration accepts an optional `artworkId` from the shared [artwork collection](../../frontend/src/lib/profile/artwork.ts). Omission uses the default; an explicit invalid choice rejects registration before account creation. Login and session validation return the stored `artworkId`. The authenticated Settings form updates the current account's avatar and optional artwork. Omitting artwork preserves the stored choice for older forms. Submitted account IDs never select the update target.
+
+Migration `0009_profile_card.sql` adds nullable `user_profiles.profile_card` JSONB for the private card design. The authenticated Settings load reads it through the account-scoped [profile repository](../../frontend/src/lib/server/data/profile.ts), independently of inventory totals. Missing or invalid stored designs use the shared username-based default without writing it. Session and login responses retain their existing user shape.
+
+The Settings action validates complete card submissions through the shared [card definition](../../frontend/src/lib/profile/card.ts), including field types, limits, mana symbols and KPI placeholders. It validates avatar and artwork before one account-scoped update saves all submitted preferences. Invalid submissions return field errors and safe submitted strings and the legendary boolean for correction. Forms with no card fields preserve the stored design; submitting any card field requires the complete definition, with an omitted native legendary checkbox meaning false. The database stores placeholder text, while the presentation resolves current account metrics. No additional endpoint or authentication mechanism is introduced.
 
 The browser receives the `spellbook_session` cookie with `HttpOnly`, `SameSite=Lax`, and `Secure` on HTTPS. The cookie contains the opaque token. The installed web app uses this same session. There is no refresh token or identity-provider callback.
 
