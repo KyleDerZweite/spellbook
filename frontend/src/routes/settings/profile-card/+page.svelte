@@ -106,7 +106,13 @@
 			method="POST"
 			aria-busy={pending}
 			aria-describedby="profile-status"
-			use:enhance={() => {
+			use:enhance={({ formData }) => {
+				formData.set('partial', 'true');
+				for (const field of Object.keys(data.card) as (keyof typeof data.card)[]) {
+					if (card[field] === data.card[field]) formData.delete(field);
+					else if (field === 'legendary') formData.set(field, card.legendary ? 'on' : 'off');
+				}
+				if (selectedArtwork === data.user.artworkId) formData.delete('artworkId');
 				pending = true;
 				saveError = '';
 				return async ({ result, update }) => {
@@ -128,6 +134,8 @@
 				};
 			}}
 		>
+			<input type="hidden" name="baselineCard" value={JSON.stringify(data.card)} />
+			<input type="hidden" name="baselineArtworkId" value={data.user.artworkId} />
 			<ProfileCardEditor
 				bind:card
 				bind:artworkId={selectedArtwork}

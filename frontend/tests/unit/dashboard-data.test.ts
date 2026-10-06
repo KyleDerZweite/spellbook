@@ -1,29 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-const mocks = vi.hoisted(() => ({ snapshot: vi.fn(), pending: vi.fn() }));
-vi.mock('../../src/lib/server/data/decks', () => ({ getDeckSnapshot: mocks.snapshot }));
-vi.mock('../../src/lib/server/data/scan', () => ({ countPendingScanReviews: mocks.pending }));
-import { getDashboard } from '../../src/lib/server/data/dashboard';
-beforeEach(() => {
-	vi.clearAllMocks();
-	mocks.snapshot.mockResolvedValue({ decks: [], inventoryCards: [], deckCards: [] });
-	mocks.pending.mockResolvedValue(120);
-});
-describe('dashboard account data', () => {
-	it('uses full repository data and account-scoped pending count rather than the recent-session list', async () => {
-		const result = await getDashboard('owner', 'mtg');
-		expect(mocks.snapshot).toHaveBeenCalledWith('owner', 'mtg');
-		expect(mocks.pending).toHaveBeenCalledWith('owner', 'mtg');
-		expect(result.pendingScanReviews).toBe(120);
+const mocks = vi.hoisted(() => ({ get: vi.fn() }));
+vi.mock('../../src/lib/server/composition.ts', () => ({
+	application: { dashboard: { get: mocks.get } }
+}));
+import { getDashboard } from '../../src/lib/server/data/dashboard.ts';
+import type { AuthUser } from '@spellbook/contracts/auth.ts';
+const user: AuthUser = {
+	accountId: 'owner',
+	username: 'mage',
+	email: '',
+	avatarId: 'wizard',
+	artworkId: 'grove'
+};
+beforeEach(() => vi.clearAllMocks());
+describe('dashboard web adaptation', () => {
+	it('preserves the authenticated actor and backend summary', async () => {
+		const summary = { totals: { total: 3 }, pendingScanReviews: null };
+		mocks.get.mockResolvedValue(summary);
+		expect(await getDashboard(user)).toBe(summary);
+		expect(mocks.get).toHaveBeenCalledWith(user);
 	});
-	it('reports unavailable scan counts separately from successful account totals', async () => {
-		mocks.pending.mockRejectedValue(new Error('scan query failed'));
-		expect(await getDashboard('owner')).toMatchObject({
-			totals: { total: 0 },
-			pendingScanReviews: null
-		});
-	});
-	it('preserves snapshot failures instead of returning invented empty account data', async () => {
-		mocks.snapshot.mockRejectedValue(new Error('inventory query failed'));
-		await expect(getDashboard('owner')).rejects.toThrow('inventory query failed');
+	it('preserves use-case failure for the page retry state', async () => {
+		mocks.get.mockRejectedValue(new Error('read failed'));
+		await expect(getDashboard(user)).rejects.toThrow('read failed');
 	});
 });

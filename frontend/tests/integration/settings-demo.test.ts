@@ -1,14 +1,27 @@
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
 import { db, pool } from '../../src/lib/server/db/client';
-import { localCredentials, userProfiles } from '../../src/lib/server/db/schema';
+import { authSessions, localCredentials, userProfiles } from '../../src/lib/server/db/schema';
 import { authenticate } from '../../src/lib/server/auth/local';
 import { hashPassword } from '../../src/lib/server/auth/password';
-import { createSession, validateSession } from '../../src/lib/server/auth/session';
+import {
+	createSession,
+	validateSession,
+	hashSessionToken
+} from '../../src/lib/server/auth/session';
 import { actions, load } from '../../src/routes/settings/password/+page.server';
 import { getProfileCard } from '../../src/lib/server/data/profile';
 import { defaultProfileCard, demoProfileCard } from '../../src/lib/profile/card';
 
+async function actor(accountId: string) {
+	const token = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64url');
+	await db.insert(authSessions).values({
+		accountId,
+		tokenHash: hashSessionToken(token),
+		expiresAt: new Date(Date.now() + 60000)
+	});
+	return (await validateSession(token))!;
+}
 const run =
 	process.env.TEST_DATABASE_URL && process.env.DEMO_MODE === 'true' ? describe : describe.skip;
 run('immutable demo password', () => {
@@ -26,8 +39,8 @@ run('immutable demo password', () => {
 			{ accountId: cardAccountId, username: 'demo', artworkId: 'tide' },
 			{ accountId: normalAccountId, username: 'mage' }
 		]);
-		expect(await getProfileCard(cardAccountId, 'demo')).toEqual(demoProfileCard());
-		expect(await getProfileCard(normalAccountId, 'mage')).toEqual(defaultProfileCard('mage'));
+		expect(await getProfileCard(await actor(cardAccountId))).toEqual(demoProfileCard());
+		expect(await getProfileCard(await actor(normalAccountId))).toEqual(defaultProfileCard('mage'));
 		const custom = {
 			...defaultProfileCard('demo'),
 			name: 'Saved demo design',
@@ -37,7 +50,7 @@ run('immutable demo password', () => {
 			.update(userProfiles)
 			.set({ profileCard: custom })
 			.where(eq(userProfiles.accountId, cardAccountId));
-		expect(await getProfileCard(cardAccountId, 'demo')).toEqual(custom);
+		expect(await getProfileCard(await actor(cardAccountId))).toEqual(custom);
 		const [stored] = await db
 			.select()
 			.from(userProfiles)

@@ -21,6 +21,7 @@ import {
 import { POST as login } from '../../src/routes/api/auth/login/+server';
 import { POST as register } from '../../src/routes/api/auth/register/+server';
 import { submitAuthForm } from '../../src/lib/server/auth/forms';
+import { application } from '../../src/lib/server/composition.ts';
 import * as profileData from '../../src/lib/server/data/profile';
 import { POST as logout } from '../../src/routes/api/auth/logout/+server';
 import { hashPassword } from '../../src/lib/server/auth/password';
@@ -34,6 +35,15 @@ import {
 	load as loadCard
 } from '../../src/routes/settings/profile-card/+page.server';
 
+async function trustedFixtureActor(accountId: string) {
+	const token = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64url');
+	await db.insert(authSessions).values({
+		accountId,
+		tokenHash: hashSessionToken(token),
+		expiresAt: new Date(Date.now() + 60000)
+	});
+	return (await validateSession(token))!;
+}
 const run = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 run('local accounts and persisted sessions', () => {
 	const accountIds: string[] = [];
@@ -204,7 +214,7 @@ run('local accounts and persisted sessions', () => {
 			avatarId: 'wizard',
 			artworkId: 'astral'
 		});
-		expect(await profileData.getProfileCard(other!.user.accountId, other!.user.username)).toEqual(
+		expect(await profileData.getProfileCard(other!.user)).toEqual(
 			defaultProfileCard(other!.user.username)
 		);
 		expect(await validateSession(other!.session.token)).toMatchObject({
@@ -220,9 +230,7 @@ run('local accounts and persisted sessions', () => {
 				locals: { user: user!.user },
 				request
 			} as never);
-			expect(await profileData.getProfileCard(user!.user.accountId, user!.user.username)).toEqual(
-				card
-			);
+			expect(await profileData.getProfileCard(user!.user)).toEqual(card);
 		}
 		expect(await validateSession(user!.session.token)).toMatchObject({
 			avatarId: 'wizard',
@@ -233,9 +241,7 @@ run('local accounts and persisted sessions', () => {
 			success: true,
 			message: 'Profile card saved.'
 		});
-		expect(await profileData.getProfileCard(user!.user.accountId, user!.user.username)).toEqual(
-			standard
-		);
+		expect(await profileData.getProfileCard(user!.user)).toEqual(standard);
 	});
 	it('rejects incomplete or invalid card edits before any preference write and retains safe submitted values', async () => {
 		const user = await authenticate(
@@ -299,9 +305,7 @@ run('local accounts and persisted sessions', () => {
 				data: { card: { name: 'Must not save' } }
 			});
 		}
-		expect(await profileData.getProfileCard(user!.user.accountId, user!.user.username)).toEqual(
-			card
-		);
+		expect(await profileData.getProfileCard(user!.user)).toEqual(card);
 		expect(await validateSession(user!.session.token)).toMatchObject({
 			avatarId: 'wizard',
 			artworkId: 'grove'
@@ -329,9 +333,12 @@ run('local accounts and persisted sessions', () => {
 		expect(await loadSettings({ locals } as never)).toMatchObject({ card });
 		const customized = { ...card, name: 'Persisted customization' };
 		await submitCard(cardRequest(customized), user!.user);
-		const totalsRead = vi
-			.spyOn(profileData, 'getProfileTotals')
-			.mockRejectedValueOnce(new Error('inventory read failed'));
+		const totalsRead = vi.spyOn(application.profile, 'get').mockResolvedValueOnce({
+			user: user!.user,
+			card: customized,
+			totals: null,
+			statsError: 'Your collection totals are temporarily unavailable.'
+		});
 		try {
 			expect(await loadSettings({ locals } as never)).toMatchObject({
 				card: customized,
@@ -441,9 +448,12 @@ run('local accounts and persisted sessions', () => {
 		expect(
 			await db.select().from(inventories).where(eq(inventories.accountId, user!.user.accountId))
 		).toEqual([]);
-		const totalsRead = vi
-			.spyOn(profileData, 'getProfileTotals')
-			.mockRejectedValueOnce(new Error('database read failed'));
+		const totalsRead = vi.spyOn(application.profile, 'get').mockResolvedValueOnce({
+			user: user!.user,
+			card: defaultProfileCard(user!.user.username),
+			totals: null,
+			statsError: 'Your collection totals are temporarily unavailable.'
+		});
 		try {
 			expect(await loadSettings({ locals } as never)).toMatchObject({
 				user: user!.user,
@@ -516,13 +526,13 @@ run('local accounts and persisted sessions', () => {
 		]);
 		expect(
 			await loadSettings({
-				locals: { user: { accountId, username: accountId, email: '' } }
+				locals: { user: await trustedFixtureActor(accountId) }
 			} as never)
 		).toMatchObject({
 			totals: { total: 14, names: 2, printings: 3, sets: 2, foils: 8, decks: 2 },
 			statsError: null
 		});
-		expect(await profileData.getProfileTotals(otherId)).toEqual({
+		expect(await profileData.getProfileTotals(await trustedFixtureActor(otherId))).toEqual({
 			total: 99,
 			names: 1,
 			printings: 1,

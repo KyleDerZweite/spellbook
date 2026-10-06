@@ -10,7 +10,7 @@ describe('private dashboard loader', () => {
 			dashboard: { totals: { total: 3 } },
 			loadError: null
 		});
-		expect(mocks.dashboard).toHaveBeenCalledWith('owner');
+		expect(mocks.dashboard).toHaveBeenCalledWith({ accountId: 'owner' });
 	});
 	it('rejects requests without an authenticated account', async () => {
 		await expect(load({ locals: { user: null } } as never)).rejects.toMatchObject({ status: 401 });

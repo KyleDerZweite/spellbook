@@ -106,6 +106,19 @@ const operation = (summary: string, result: Schema, input?: Schema, idempotent =
 	}
 });
 
+const profileCardProperties = {
+	template: { const: 'mtg' },
+	name: string,
+	frame: { enum: ['white', 'blue', 'black', 'red', 'green', 'gold', 'colorless'] },
+	legendary: { type: 'boolean' },
+	rarity: { enum: ['common', 'uncommon', 'rare', 'mythic'] },
+	manaCost: string,
+	typeLine: string,
+	rulesText: string,
+	flavorText: string,
+	power: string,
+	toughness: string
+};
 const SCHEMA = {
 	openapi: '3.1.0',
 	info: {
@@ -116,6 +129,45 @@ const SCHEMA = {
 	},
 	servers: [{ url: privateEnv.APP_ORIGIN }],
 	paths: {
+		'/api/account/profile': {
+			get: operation(
+				'Read authenticated account profile and aggregate totals',
+				ref('AccountProfile')
+			),
+			patch: {
+				...operation(
+					'Patch supplied profile fields atomically; omitted fields remain saved',
+					ref('AccountProfile'),
+					ref('ProfilePatch')
+				),
+				responses: {
+					...operation('', ref('AccountProfile'), ref('ProfilePatch')).responses,
+					400: response('Invalid profile fields', ref('ProfileValidationFailure'))
+				}
+			}
+		},
+		'/api/account/dashboard': {
+			get: operation(
+				'Read account aggregates, deck availability totals and eight recent entries',
+				ref('DashboardSummary')
+			)
+		},
+		'/api/auth/session': {
+			get: operation('Inspect selected session without exposing its token hash', ref('SessionInfo'))
+		},
+		'/api/account/password': {
+			post: {
+				...operation(
+					'Rotate password, revoke other sessions and issue a replacement session',
+					ref('PasswordSession'),
+					ref('PasswordChange')
+				),
+				responses: {
+					...operation('', ref('PasswordSession'), ref('PasswordChange')).responses,
+					429: authErrors[429]
+				}
+			}
+		},
 		'/auth/login': {
 			parameters: [returnToParameter],
 			get: {
@@ -521,6 +573,100 @@ const SCHEMA = {
 			}
 		},
 		schemas: {
+			ProfileUser: object({
+				accountId: string,
+				username: string,
+				email: string,
+				avatarId: { enum: AVATARS.map((avatar) => avatar.id) },
+				artworkId: { enum: PROFILE_ARTWORK.map((artwork) => artwork.id) }
+			}),
+			ProfileCard: object(profileCardProperties),
+			ProfileTotals: object({
+				total: integer,
+				names: integer,
+				printings: integer,
+				sets: integer,
+				foils: integer,
+				decks: integer
+			}),
+			AccountProfile: object({
+				user: ref('ProfileUser'),
+				card: ref('ProfileCard'),
+				totals: nullable('ProfileTotals'),
+				statsError: { type: ['string', 'null'] }
+			}),
+			ProfilePatch: {
+				...object(
+					{
+						email: { type: 'string', maxLength: 254 },
+						avatarId: { enum: AVATARS.map((avatar) => avatar.id) },
+						artworkId: { enum: PROFILE_ARTWORK.map((artwork) => artwork.id) },
+						profileCard: {
+							...object(profileCardProperties, []),
+							additionalProperties: false,
+							description: 'Only supplied card fields are merged into the saved card.'
+						}
+					},
+					[]
+				),
+				additionalProperties: false
+			},
+			ProfileValidationFailure: object({
+				kind: { const: 'ValidationFailed' },
+				message: string,
+				fields: { type: 'object', additionalProperties: string }
+			}),
+			SessionInfo: object({
+				user: ref('ProfileUser'),
+				expiresAt: { type: 'string', format: 'date-time' }
+			}),
+			PasswordChange: {
+				...object({
+					currentPassword: { type: 'string', maxLength: 128, writeOnly: true },
+					newPassword: { type: 'string', minLength: 12, maxLength: 128, writeOnly: true }
+				}),
+				additionalProperties: false
+			},
+			PasswordSession: object({
+				token: { type: 'string', pattern: '^[A-Za-z0-9_-]{43}$' },
+				expiresAt: { type: 'string', format: 'date-time' }
+			}),
+			DashboardDistribution: object({
+				label: string,
+				quantity: integer,
+				share: { type: 'number', minimum: 0, maximum: 1 }
+			}),
+			DashboardRecentEntry: object({
+				id: string,
+				catalogCardId: string,
+				canonicalCardId: string,
+				name: string,
+				setCode: string,
+				imageUri: string,
+				quantity,
+				finish,
+				condition,
+				updatedAt: { type: 'string', format: 'date-time' }
+			}),
+			DashboardDeck: object({
+				id: string,
+				name: string,
+				format: string,
+				required: integer,
+				exact: integer,
+				alternate: integer,
+				missing: integer
+			}),
+			DashboardSummary: object({
+				totals: ref('ProfileTotals'),
+				sets: array('DashboardDistribution'),
+				finishes: array('DashboardDistribution'),
+				conditions: array('DashboardDistribution'),
+				recentEntries: { ...array('DashboardRecentEntry'), maxItems: 8 },
+				decks: array('DashboardDeck'),
+				pendingScanReviews: { type: ['integer', 'null'] }
+			}),
+
 			LoginRequest: object({
 				username: {
 					type: 'string',

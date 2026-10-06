@@ -43,7 +43,7 @@ export const actions: Actions = {
 				message: 'Check the password fields and try again.',
 				errors
 			});
-		const session = await changePassword(event.locals.user.accountId, currentPassword, newPassword);
+		const session = await changePassword(event.locals.user, currentPassword, newPassword);
 		if (!session) {
 			errors.currentPassword = 'Enter your current password and try again.';
 			return fail(400, {

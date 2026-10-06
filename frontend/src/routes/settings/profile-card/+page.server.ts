@@ -1,11 +1,9 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
 import { isProfileArtworkId } from '#lib/profile/artwork.ts';
 import { validateProfileCard } from '#lib/profile/card.ts';
 import { requireSameOrigin } from '#lib/server/auth/local.ts';
 import { getProfileSettings } from '#lib/server/settings.ts';
-import { db } from '#lib/server/db/client.ts';
-import { userProfiles } from '#lib/server/db/schema.ts';
+import { application } from '#lib/server/composition.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 const cardFields = [
@@ -33,22 +31,36 @@ export const actions: Actions = {
 		if (!locals.user) redirect(303, '/auth/login?returnTo=/settings/profile-card');
 		requireSameOrigin(event);
 		const form = await request.formData();
-		const artworkId = form.get('artworkId');
+		const partial = form.get('partial') === 'true';
+		const current = partial ? await getProfileSettings(locals.user) : null;
+		const artworkId =
+			partial && !form.has('artworkId') ? current!.user.artworkId : form.get('artworkId');
 		const cardInput = Object.fromEntries(
 			cardFields.map((field) => [
 				field,
-				field === 'legendary' ? form.get(field) === 'on' : form.get(field)
+				partial && !form.has(field)
+					? current!.card[field]
+					: field === 'legendary'
+						? form.get(field) === 'on'
+						: form.get(field)
 			])
 		);
 		const text = (field: (typeof cardFields)[number]) => {
 			const value = form.get(field);
-			return typeof value === 'string' ? value.replace(/\r\n?/g, '\n') : '';
+			return typeof value === 'string'
+				? value.replace(/\r\n?/g, '\n')
+				: partial && typeof current!.card[field] === 'string'
+					? String(current!.card[field])
+					: '';
 		};
 		const card = {
 			template: text('template'),
 			name: text('name'),
 			frame: text('frame'),
-			legendary: form.get('legendary') === 'on',
+			legendary:
+				partial && !form.has('legendary')
+					? current!.card.legendary
+					: form.get('legendary') === 'on',
 			rarity: text('rarity'),
 			manaCost: text('manaCost'),
 			typeLine: text('typeLine'),
@@ -69,13 +81,39 @@ export const actions: Actions = {
 				artworkId: typeof artworkId === 'string' ? artworkId : ''
 			});
 		}
-		const [profile] = await db
-			.update(userProfiles)
-			.set({ artworkId, profileCard: validatedCard.value })
-			.where(eq(userProfiles.accountId, locals.user.accountId))
-			.returning({ artworkId: userProfiles.artworkId });
-		if (!profile) redirect(303, '/auth/login?returnTo=/settings/profile-card');
-		locals.user = { ...locals.user, ...profile };
+		let baseline: typeof validatedCard.value | null = null;
+		if (form.has('baselineCard')) {
+			try {
+				const result = validateProfileCard(JSON.parse(String(form.get('baselineCard'))));
+				if (result.success) baseline = result.value;
+			} catch {}
+			if (!baseline || !isProfileArtworkId(form.get('baselineArtworkId')))
+				return fail(400, {
+					success: false,
+					message: 'Reload the card editor and try again.',
+					errors: { form: 'Invalid saved card baseline.' },
+					card,
+					artworkId
+				});
+		}
+		const profileCard = Object.fromEntries(
+			Object.entries(validatedCard.value).filter(([field, value]) =>
+				partial
+					? form.has(field)
+					: baseline
+						? value !== baseline[field as keyof typeof baseline]
+						: true
+			)
+		);
+		const artworkChanged =
+			form.has('artworkId') && (!baseline || artworkId !== form.get('baselineArtworkId'));
+		locals.user = (
+			await application.profile.patch(locals.user, {
+				...(artworkChanged ? { artworkId } : {}),
+				...(Object.keys(profileCard).length ? { profileCard } : {})
+			})
+		).user;
+
 		return { success: true, message: 'Profile card saved.' };
 	}
 };

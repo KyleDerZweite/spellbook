@@ -72,18 +72,6 @@
 			"specifier": "#lib/server/db/schema.ts"
 		},
 		{
-			"file": "frontend/src/lib/server/data/profile.ts",
-			"specifier": "drizzle-orm"
-		},
-		{
-			"file": "frontend/src/lib/server/data/profile.ts",
-			"specifier": "#lib/server/db/client.ts"
-		},
-		{
-			"file": "frontend/src/lib/server/data/profile.ts",
-			"specifier": "#lib/server/db/schema.ts"
-		},
-		{
 			"file": "frontend/src/lib/server/data/scan.ts",
 			"specifier": "drizzle-orm"
 		},
@@ -101,47 +89,11 @@
 		},
 		{
 			"file": "frontend/src/lib/server/data/types.ts",
-			"specifier": "#lib/server/db/schema.ts"
-		},
-		{
-			"file": "frontend/src/lib/server/data/users.ts",
-			"specifier": "drizzle-orm"
-		},
-		{
-			"file": "frontend/src/lib/server/data/users.ts",
-			"specifier": "#lib/server/db/client.ts"
-		},
-		{
-			"file": "frontend/src/lib/server/data/users.ts",
 			"specifier": "#lib/server/db/schema.ts"
 		},
 		{
 			"file": "frontend/src/lib/server/mobile/storage.ts",
 			"specifier": "@aws-sdk/client-s3"
-		},
-		{
-			"file": "frontend/src/routes/settings/+page.server.ts",
-			"specifier": "drizzle-orm"
-		},
-		{
-			"file": "frontend/src/routes/settings/+page.server.ts",
-			"specifier": "#lib/server/db/client.ts"
-		},
-		{
-			"file": "frontend/src/routes/settings/+page.server.ts",
-			"specifier": "#lib/server/db/schema.ts"
-		},
-		{
-			"file": "frontend/src/routes/settings/profile-card/+page.server.ts",
-			"specifier": "drizzle-orm"
-		},
-		{
-			"file": "frontend/src/routes/settings/profile-card/+page.server.ts",
-			"specifier": "#lib/server/db/client.ts"
-		},
-		{
-			"file": "frontend/src/routes/settings/profile-card/+page.server.ts",
-			"specifier": "#lib/server/db/schema.ts"
 		},
 		{
 			"file": "frontend/scripts/demo/seed.mjs",
@@ -150,18 +102,6 @@
 		{
 			"file": "frontend/scripts/set-local-password.mjs",
 			"specifier": "pg"
-		},
-		{
-			"file": "frontend/src/lib/server/auth/change-password.ts",
-			"specifier": "drizzle-orm"
-		},
-		{
-			"file": "frontend/src/lib/server/auth/change-password.ts",
-			"specifier": "#lib/server/db/client.ts"
-		},
-		{
-			"file": "frontend/src/lib/server/auth/change-password.ts",
-			"specifier": "#lib/server/db/schema.ts"
 		},
 		{
 			"file": "frontend/src/lib/server/composition.ts",

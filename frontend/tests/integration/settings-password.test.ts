@@ -5,7 +5,6 @@ import { authSessions, localCredentials, userProfiles } from '../../src/lib/serv
 import { authenticate, withPasswordDerivation } from '../../src/lib/server/auth/local';
 import { changePassword } from '../../src/lib/server/auth/change-password';
 import * as passwords from '../../src/lib/server/auth/password';
-import * as sessions from '../../src/lib/server/auth/session';
 import {
 	createSession,
 	hashSessionToken,
@@ -150,11 +149,14 @@ run('current-password-confirmed changes', () => {
 			.from(localCredentials)
 			.where(eq(localCredentials.accountId, user.user.accountId));
 		const request = event(user.user, values);
-		const issue = vi.spyOn(sessions, 'createSession').mockResolvedValueOnce(null);
+		await pool.query(
+			`CREATE OR REPLACE FUNCTION reject_profile_test_session() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.account_id = TG_ARGV[0] THEN RAISE EXCEPTION 'test replacement session refused'; END IF; RETURN NEW; END $$`
+		);
+		await pool.query(
+			`CREATE TRIGGER reject_profile_test_session BEFORE INSERT ON auth_sessions FOR EACH ROW EXECUTE FUNCTION reject_profile_test_session('${user.user.accountId}')`
+		);
 		try {
-			await expect(actions.default(request as never)).rejects.toThrow(
-				'Unable to issue the replacement session'
-			);
+			await expect(actions.default(request as never)).rejects.toThrow();
 			const [stored] = await db
 				.select()
 				.from(localCredentials)
@@ -163,7 +165,8 @@ run('current-password-confirmed changes', () => {
 			expect(await validateSession(user.session.token)).toEqual(user.user);
 			expect(request.cookies.set).not.toHaveBeenCalled();
 		} finally {
-			issue.mockRestore();
+			await pool.query('DROP TRIGGER IF EXISTS reject_profile_test_session ON auth_sessions');
+			await pool.query('DROP FUNCTION IF EXISTS reject_profile_test_session()');
 		}
 	});
 	it('rejects foreign and missing origins before any password change', async () => {
@@ -210,49 +213,49 @@ run('current-password-confirmed changes', () => {
 	it('rejects a stale verified credential after operator recovery without overwriting its replacement', async () => {
 		const user = await register();
 		const recoveryHash = await passwords.hashPassword('operator replacement password');
-		let release!: () => void;
-		let verified!: () => void;
-		const gate = new Promise<void>((resolve) => {
-			release = resolve;
-		});
-		const ready = new Promise<void>((resolve) => {
-			verified = resolve;
-		});
-		const hash = passwords.hashPassword;
-		const spy = vi.spyOn(passwords, 'hashPassword').mockImplementation(async (password) => {
-			verified();
-			await gate;
-			return hash(password);
-		});
-		const changing = changePassword(user.user.accountId, currentPassword, newPassword);
+		const locker = await pool.connect();
+		await locker.query('BEGIN');
+		await locker.query('SELECT account_id FROM user_profiles WHERE account_id=$1 FOR UPDATE', [
+			user.user.accountId
+		]);
+		const lockerPid = (await locker.query<{ pid: number }>('SELECT pg_backend_pid() AS pid'))
+			.rows[0].pid;
+		const changing = changePassword(user.user, currentPassword, newPassword);
+		// Observe the actual profile-lock wait before committing operator recovery.
 		try {
-			await ready;
-			await db.transaction(async (tx) => {
-				await tx
-					.select()
-					.from(userProfiles)
-					.where(eq(userProfiles.accountId, user.user.accountId))
-					.for('update');
-				await tx
-					.update(localCredentials)
-					.set({ passwordHash: recoveryHash })
-					.where(eq(localCredentials.accountId, user.user.accountId));
-				await tx.delete(authSessions).where(eq(authSessions.accountId, user.user.accountId));
-			});
-			release();
-			expect(await changing).toBeNull();
+			const deadline = Date.now() + 10000;
+			let blocked = false;
+			while (Date.now() < deadline) {
+				const rows = (
+					await pool.query<{ blocked: boolean }>(
+						'SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE $1=ANY(pg_blocking_pids(pid))) AS blocked',
+						[lockerPid]
+					)
+				).rows;
+				if (rows[0].blocked) {
+					blocked = true;
+					break;
+				}
+				await new Promise((resolve) => setTimeout(resolve, 20));
+			}
+			expect(blocked).toBe(true);
+			await locker.query('UPDATE local_credentials SET password_hash=$1 WHERE account_id=$2', [
+				recoveryHash,
+				user.user.accountId
+			]);
+			await locker.query('DELETE FROM auth_sessions WHERE account_id=$1', [user.user.accountId]);
+			await locker.query('COMMIT');
+			await expect(changing).rejects.toMatchObject({ status: 401 });
 			const [stored] = await db
 				.select()
 				.from(localCredentials)
 				.where(eq(localCredentials.accountId, user.user.accountId));
 			expect(stored.passwordHash).toBe(recoveryHash);
-			expect(
-				await db.select().from(authSessions).where(eq(authSessions.accountId, user.user.accountId))
-			).toEqual([]);
+			expect(await validateSession(user.session.token)).toBeNull();
 		} finally {
-			release();
-			await changing;
-			spy.mockRestore();
+			await locker.query('ROLLBACK');
+			locker.release();
+			await changing.catch(() => {});
 		}
 	});
 });

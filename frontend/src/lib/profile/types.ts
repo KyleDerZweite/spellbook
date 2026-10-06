@@ -1,8 +1,1 @@
-export interface ProfileTotals {
-	total: number;
-	names: number;
-	printings: number;
-	sets: number;
-	foils: number;
-	decks: number;
-}
+export type { ProfileTotals } from '@spellbook/contracts/profile.ts';

@@ -160,12 +160,17 @@ const sprites = [
 	}
 ] as const;
 
-export type AvatarId = (typeof sprites)[number]['id'];
+export type { AvatarId } from '@spellbook/contracts/profile.ts';
+import type { AvatarId } from '@spellbook/contracts/profile.ts';
 
 export { DEFAULT_AVATAR_ID } from '@spellbook/contracts/profile.ts';
-import { DEFAULT_AVATAR_ID } from '@spellbook/contracts/profile.ts';
+import { DEFAULT_AVATAR_ID, PROFILE_AVATAR_IDS } from '@spellbook/contracts/profile.ts';
 
-export const AVATARS = sprites.map(({ id, label, pixels }) => ({
+export const AVATARS = PROFILE_AVATAR_IDS.map((id) => {
+	const sprite = sprites.find((sprite) => sprite.id === id);
+	if (!sprite) throw new Error(`Missing avatar artwork: ${id}`);
+	return sprite;
+}).map(({ id, label, pixels }) => ({
 	id,
 	label,
 	paths: Object.entries(palette).flatMap(([pixel, fill]) => {
@@ -182,9 +187,7 @@ export const AVATARS = sprites.map(({ id, label, pixels }) => ({
 	paths: readonly { fill: string; d: string }[];
 }[];
 
-export function isAvatarId(value: unknown): value is AvatarId {
-	return typeof value === 'string' && AVATARS.some((avatar) => avatar.id === value);
-}
+export { isAvatarId } from '@spellbook/contracts/profile.ts';
 
 export function getAvatar(value: unknown) {
 	return AVATARS.find((avatar) => avatar.id === value) ?? AVATARS[0]!;

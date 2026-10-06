@@ -1,10 +1,9 @@
+import { normalizeContactEmail } from '@spellbook/contracts/profile.ts';
 import { fail, redirect } from '@sveltejs/kit';
-import { eq } from 'drizzle-orm';
 import { isAvatarId } from '#lib/profile/avatars.ts';
 import { requireSameOrigin } from '#lib/server/auth/local.ts';
 import { getProfileSettings } from '#lib/server/settings.ts';
-import { db } from '#lib/server/db/client.ts';
-import { userProfiles } from '#lib/server/db/schema.ts';
+import { application } from '#lib/server/composition.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -22,15 +21,8 @@ export const actions: Actions = {
 		const errors: { email?: string; avatarId?: string } = {};
 		if (intent === 'email') {
 			const value = form.get('email');
-			const email = typeof value === 'string' ? value.trim() : '';
-			if (
-				typeof value !== 'string' ||
-				email.length > 254 ||
-				(email !== '' &&
-					!/^[a-z\d.!#$%&'*+/=?^_`{|}~-]+@[a-z\d](?:[a-z\d-]*[a-z\d])?(?:\.[a-z\d](?:[a-z\d-]*[a-z\d])?)+$/i.test(
-						email
-					))
-			) {
+			const email = normalizeContactEmail(value);
+			if (email === null) {
 				errors.email = 'Enter a valid email address, or leave it empty.';
 				return fail(400, {
 					intent,
@@ -40,13 +32,7 @@ export const actions: Actions = {
 					email: typeof value === 'string' ? value : ''
 				});
 			}
-			const [profile] = await db
-				.update(userProfiles)
-				.set({ email })
-				.where(eq(userProfiles.accountId, locals.user.accountId))
-				.returning({ email: userProfiles.email });
-			if (!profile) redirect(303, '/auth/login?returnTo=/settings');
-			locals.user = { ...locals.user, ...profile };
+			locals.user = (await application.profile.patch(locals.user, { email })).user;
 			return { intent, success: true, message: 'Email saved.', errors };
 		}
 		if (intent === 'avatar') {
@@ -61,13 +47,7 @@ export const actions: Actions = {
 					avatarId: typeof avatarId === 'string' ? avatarId : ''
 				});
 			}
-			const [profile] = await db
-				.update(userProfiles)
-				.set({ avatarId })
-				.where(eq(userProfiles.accountId, locals.user.accountId))
-				.returning({ avatarId: userProfiles.avatarId });
-			if (!profile) redirect(303, '/auth/login?returnTo=/settings');
-			locals.user = { ...locals.user, ...profile };
+			locals.user = (await application.profile.patch(locals.user, { avatarId })).user;
 			return { intent, success: true, message: 'Avatar saved.', errors };
 		}
 		return fail(400, {
