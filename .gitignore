@@ -73,6 +73,7 @@ logs/
 letsencrypt/
 
 # Data directories
+/.local/
 /data/
 /uploads/
 /backups/
