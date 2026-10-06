@@ -81,6 +81,7 @@
 	let searchError = $state('');
 	let searchController: AbortController | undefined;
 	let saveStatus = $state('');
+	let saveError = $state('');
 	let removed = $state<(typeof data.deckCards)[number] | null>(null);
 	const inspectedEntry = $derived(data.deckCards.find((card) => card.id === inspectedEntryId));
 	let initializedSearch = $state(false);
@@ -207,12 +208,18 @@
 		if (data.oracleId) params.set('printing', data.oracleId);
 		return `?/${name}&${params}`;
 	}
+	function reportUnconfirmedSave() {
+		saveError = 'Could not confirm the save. Your changes are still here. Try again.';
+		saveStatus = 'Could not confirm the save. Try again.';
+	}
+
 	const save: SubmitFunction = ({ formData, action: target, cancel }) => {
 		if (busy) {
 			cancel();
 			return;
 		}
 		busy = true;
+		saveError = '';
 		saveStatus = 'Saving…';
 		const removedCard = target.searchParams.has('/removeCard')
 			? deckCards.find((card) => card.id === formData.get('entryId'))
@@ -236,6 +243,10 @@
 
 		return async ({ result, update }) => {
 			try {
+				if (result.type === 'error') {
+					reportUnconfirmedSave();
+					return;
+				}
 				await update({ reset: false });
 				if (result.type === 'success' || result.type === 'redirect') {
 					saveStatus = 'Saved';
@@ -256,14 +267,19 @@
 						importRequestId = '';
 					}
 				}
+			} catch {
+				reportUnconfirmedSave();
 			} finally {
-				if (result.type === 'failure' || result.type === 'error')
-					saveStatus = 'Could not save. Try again.';
+				if (result.type === 'failure') saveStatus = 'Could not save. Try again.';
 				busy = false;
 			}
 		};
 	};
 </script>
+
+{#snippet retryError()}
+	{#if saveError}<p class="notice" role="alert">{saveError}</p>{/if}
+{/snippet}
 
 <svelte:head
 	><title>{selectedDeck ? `${selectedDeck.name} | Decks` : 'Decks'} | Spellbook</title></svelte:head
@@ -351,13 +367,17 @@
 						class="input"
 						rows="3"
 						maxlength="4000"></textarea>
-					{#if form?.message}<p role="status" class="muted">{form.message}</p>{/if}
+					{@render retryError()}
+					{#if !saveError && form?.message}<p role="status" class="muted">{form.message}</p>{/if}
 					<button class="btn btn-primary" disabled={busy}>Create deck</button>
 				</form>
 			</DeckDialog>
 		</div>
 	</header>
-	{#if form?.message && !form?.success}<p class="notice" role="alert">{form.message}</p>{/if}
+	{@render retryError()}
+	{#if !saveError && form?.message && !form?.success}<p class="notice" role="alert">
+			{form.message}
+		</p>{/if}
 	{#if selectedDeck}
 		<section class="deck-overview" aria-label="Deck overview">
 			{#if selectedDeck.description}<p class="deck-description muted">
@@ -418,10 +438,10 @@
 										}}>Use latest revision and keep my draft</button
 									>
 								</div>{/if}
-							{#if form?.message}<p role="status" class="muted">{form.message}</p>{/if}<button
-								class="btn btn-primary"
-								disabled={busy}>Save details</button
-							>
+							{@render retryError()}
+							{#if !saveError && form?.message}<p role="status" class="muted">
+									{form.message}
+								</p>{/if}<button class="btn btn-primary" disabled={busy}>Save details</button>
 						</form>{/key}
 				</DeckDialog>
 				<DeckDialog
@@ -453,7 +473,8 @@
 							>{busy ? 'Working...' : 'Preview import'}</button
 						>
 					</form>
-					{#if form?.message}<p role="status" class="notice">{form.message}</p>{/if}
+					{@render retryError()}
+					{#if !saveError && form?.message}<p role="status" class="notice">{form.message}</p>{/if}
 					{#if preview && form?.importText === importText.trim()}
 						<div class="import-preview" aria-live="polite">
 							<p>{importableCount} cards matched for import.</p>
@@ -510,9 +531,12 @@
 					destructive
 					><form method="POST" action={action('deleteDeck')} use:enhance={save}>
 						<input type="hidden" name="requestId" value={data.requestId} />
-						<input type="hidden" name="deckId" value={selectedDeck.id} /><button
-							class="btn btn-secondary destructive"
-							disabled={busy}>Delete this deck</button
+						<input
+							type="hidden"
+							name="deckId"
+							value={selectedDeck.id}
+						/>{@render retryError()}<button class="btn btn-secondary destructive" disabled={busy}
+							>Delete this deck</button
 						>
 					</form></DeckDialog
 				>
@@ -885,7 +909,10 @@
 						bind:value={inspectorRole}
 						options={roles}
 					/>
-					<p role="status" class="muted">{busy ? 'Saving…' : (form?.message ?? '')}</p>
+					{@render retryError()}
+					<p role="status" class="muted">
+						{busy ? 'Saving…' : saveError ? '' : (form?.message ?? '')}
+					</p>
 					<button class="btn btn-primary" disabled={busy}
 						>{inspectedEntry ? 'Save card' : 'Add to deck'}</button
 					>
