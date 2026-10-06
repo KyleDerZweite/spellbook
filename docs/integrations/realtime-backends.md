@@ -1,0 +1,45 @@
+# Realtime backend evaluation
+
+- Status: Research, no provider selected
+- Last Reviewed: 2026-10-06
+- Source of Truth: linked vendor documentation and current repository code
+- Update Triggers: provider pricing, usage limits, client support, authentication requirements, accepted backend and synchronization contracts
+- Related Docs: [Integrations](./README.md), [System overview](../architecture/system-overview.md#boundary-redesign-under-review), [Authentication](../architecture/auth.md), [Catalog](../architecture/catalog.md), [Postgres](../architecture/postgres.md), [Mobile and scan](../architecture/mobile-and-scan.md)
+
+The maintainer prefers self hosting but will consider a managed backend if its benefits and recurring cost justify the dependency. This pass prepares a separate backend for the web client and a later app. The selected synchronization scope is online-first visibility of saved account changes, with fresh reads after reconnect or app resume. Offline writes are outside this pass. This evaluation does not select a provider or implement synchronization.
+
+## Convex capabilities and coupling
+
+Convex combines a document database, TypeScript query and mutation functions, and client subscriptions. It tracks the data read by subscribed queries and sends updated results when those dependencies change. That provides automatic reactive queries when using the Convex database, functions and client libraries. It does not add automatic subscriptions to existing PostgreSQL repository queries. See [Convex realtime](https://docs.convex.dev/realtime) and [query functions](https://docs.convex.dev/functions/query-functions).
+
+Convex provides [Svelte support](https://docs.convex.dev/client/svelte/overview) and [SvelteKit server-rendering helpers](https://docs.convex.dev/client/svelte/sveltekit-server-rendering), plus [Android](https://docs.convex.dev/client/android/overview), [Swift](https://docs.convex.dev/client/swift/overview) and React Native clients. Direct SDK use couples a client to Convex function references and subscription semantics. Its [HTTP/OpenAPI access](https://docs.convex.dev/client/open-api) can provide typed request/response clients, but those requests do not have automatic realtime subscriptions. A provider-independent Spellbook interface would still need its own stable HTTP and update contracts.
+
+Direct Convex clients authenticate through JWT-based integration. Spellbook's current opaque session cookies are not that interface. Preserving local sign-in would require a tested token bridge and account mapping, or the project would need a separate authentication migration. See [authentication](https://docs.convex.dev/auth/overview) and the [custom JWT provider](https://docs.convex.dev/auth/advanced/custom-jwt). No auth migration is selected.
+
+## Listed cloud prices
+
+These prices were checked on 2026-10-06. The [pricing page](https://www.convex.dev/pricing) displays US East at a 1.0 multiplier. The [regions documentation](https://docs.convex.dev/production/regions) applies a 1.3 multiplier to non-US usage, including Ireland. It does not establish that fixed plan fees receive the same multiplier. Included resources are generally shared by the team. Currency conversion and taxes are not included here.
+
+| Plan         | Base price                                               | Included resources relevant to this review                                                                                                                                                        |
+| ------------ | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Free         | $0                                                       | 1M monthly function calls, 0.5 GB database, 0.5 GB search storage, 1 GB database I/O and 1 GB egress                                                                                              |
+| Starter      | $0 plus usage above allowances                           | The same included resources as Free; additional function calls cost $2.20 per million, database storage $0.22 per GB, database I/O $0.22 per GB and egress $0.132 per GB at the displayed US rate |
+| Professional | $25 per developer per month, plus usage above allowances | 25M function calls, 50 GB database, 1 GB search storage, 50 GB database I/O and 50 GB egress                                                                                                      |
+
+Free has hard resource caps; Starter supports usage-based overages. Function-call usage includes subscription updates, so the number of connected subscribers and changed query results affects cost. Action compute, file storage and search usage have separate allowances and charges. Convex's database-storage billing guidance counts each index as another table copy, which makes index selection relevant to a catalog estimate. See [pricing](https://www.convex.dev/pricing), [production limits](https://docs.convex.dev/production/state/limits) and [index guidance](https://docs.convex.dev/understanding/best-practices). The base price is not a complete Spellbook bill estimate.
+
+A useful estimate needs the chosen region, developer count, transformed catalog and index sizes, connected clients, subscriptions per client, write frequency, result sizes, scan-image retention and database/search I/O. No representative Convex workload or full-catalog cost measurement has been performed.
+
+## Catalog and self-hosting implications
+
+Convex documents limits on document size, transaction reads/writes, indexes and search result sizes. Spellbook currently depends on PostgreSQL text and trigram search, structured filters, canonical-card grouping, facets and atomic catalog-generation publication. A database migration would need to reproduce those contracts and measure full-catalog storage, indexing, publication and search behavior. Advertised quotas do not establish that compatibility. See [Convex limits](https://docs.convex.dev/production/state/limits) and the current [catalog contract](../architecture/catalog.md).
+
+[Self-hosted Convex](https://docs.convex.dev/self-hosting) is available. Its [deployment guide](https://github.com/get-convex/convex-backend/blob/main/self-hosted/README.md) includes PostgreSQL and other storage choices. Using PostgreSQL underneath Convex does not preserve Spellbook's SQL repositories or remove Convex's function and client contracts. Self hosting avoids the cloud usage bill while leaving the operator responsible for storage, upgrades, backups and service operation.
+
+## Comparison and unresolved choice
+
+Keeping PostgreSQL authoritative and exposing the existing use cases through a separate Spellbook API preserves the current data model and catalog behavior. Account-scoped update notifications could tell connected clients to refetch affected resources after successful writes. That is a design proposal, not existing functionality. Authorization, notification delivery, multiple backend instances, reconnect recovery and draft preservation still need contracts and verification.
+
+Convex could reduce the work required for reactive queries if it owns the relevant state. That benefit must be weighed against data/query migration, SDK and authentication coupling, recurring cost and self-hosted operations. Adding Convex beside PostgreSQL just to mirror account records or relay notifications would create a second system to operate and synchronize. No such dual-store design is selected.
+
+The provider choice remains open pending the maintainer's cost ceiling and the reviewed API, synchronization and deployment requirements. Keep research separate from the implemented architecture.

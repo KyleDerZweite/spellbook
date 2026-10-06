@@ -10,6 +10,14 @@ Spellbook prioritizes digitizing, indexing and managing a player's own Magic car
 
 Kyle accepted the current Home and Settings design on 2026-10-06. Use these areas as references for the remaining workspaces. A subsequent targeted follow-up replaces the profile-card frame with the regular transparent assets loaded by [CardCraft](https://mtg-card-maker.herokuapp.com/) and supplies a clearer Demo card. Home and the remaining Settings layout retain their accepted design.
 
+## Current refinement direction
+
+On 2026-10-06, Kyle selected the current Inventory as the starting point for shared Deck controls and layout. Consolidate repeated controls and recurring page-action geometry through their existing component and token owners. Inventory's Add cards and the deck library's New deck must use a consistent primary-action treatment and alignment.
+
+Reduce accidental button variants while preserving distinct purposes. Kyle prefers navigation's underline treatment. The landing deckbox arrows currently use background hover; review that treatment with the other icon actions rather than assuming it is the default for all controls. Links retain navigation semantics; buttons and forms retain their actions, pending state, focus and keyboard behavior. Route-specific styles must not create different geometry for the same shared control. The final action-variant policy remains part of this review.
+
+The component contracts and affected callers still need review before implementation. This refinement is not yet applied. The maintainer also requested a review of all current docs and decisions; existing descriptions remain implementation evidence until a reviewed replacement or explicit supersession changes them.
+
 ## References and component choice
 
 [Archidekt](https://archidekt.com/) informs prominent discovery and artwork-led deck browsing. [Scryfall](https://scryfall.com/search?q=t%3Aelf&order=name) informs large, readable card images with a compact search toolbar. These screens were inspected during this design pass. A subsequent signed-in Archidekt review covered deck search and card inspection; Moxfield public deck review covered compact lists, alternate views, and analysis. These references informed compact deck rows, persistent discovery, and shared card inspection. Borrow task structure and information hierarchy, not branding, advertisements, or features absent from Spellbook. For each redesigned flow, inspect its entry point, errors, alternate paths, completion, and first useful task. Choose controls after understanding that sequence.
