@@ -1,10 +1,10 @@
 # Card grouping
 
-- Status: Canonical, Inventory groups implemented; deck categories selected for design review
+- Status: Canonical, Inventory groups implemented; source/rule categories selected for the next pass
 - Last Reviewed: 2026-10-06
 - Source of Truth: maintainer grouping decision, inventory and deck implementations
-- Update Triggers: inventory groups, memberships, scan targets, deck categories, automatic classification, account category templates and manual overrides
-- Related Docs: [Product specification](./specification.md), [Domain model](../../GLOSSARY.md), [Frontend](../architecture/frontend.md), [Postgres](../architecture/postgres.md), [Mobile and scan](../architecture/mobile-and-scan.md), [UI direction](./ui-design-direction.md), [Product index](./README.md)
+- Update Triggers: inventory groups, memberships, scan targets, deck entry and whole-deck categories, automatic classification, account category definitions and manual overrides
+- Related Docs: [Product specification](./specification.md), [Domain model](../../GLOSSARY.md), [Classifier research](../integrations/card-categorization.md), [Frontend](../architecture/frontend.md), [Postgres](../architecture/postgres.md), [Mobile and scan](../architecture/mobile-and-scan.md), [UI direction](./ui-design-direction.md), [Product index](./README.md)
 
 ## Inventory groups
 
@@ -36,11 +36,17 @@ Verify CRUD and reload persistence, empty groups, multiple memberships without d
 
 ## Deck categories, design under review
 
-On 2026-10-06, the maintainer included deck categories in the next implementation pass and selected one primary category per deck entry, separate from its role. The Category view groups Main deck; Commander, Sideboard and Companion retain their sections. Full automatic default categorization is required, with editable categories and manual override. Scryfall Oracle Tags remains a selected source. A semantic classifier such as TypeSafe Jev or a local model is now under evaluation; no additional provider is selected. Multi-purpose primary selection and reuse of custom categories across new decks remain under review. Current Decks groups by card type or section and sorts by name or quantity. No deck categories are implemented by the Inventory group slice.
+The maintainer selected both Deck entry categories inside the editor and Deck categories for whole decks in the Library. These are separate concepts in the [glossary](../../GLOSSARY.md). Full automatic default categorization, editable custom meanings and manual override are required. No category feature is implemented by the Inventory group slice.
+
+Scryfall Oracle Tags remains a selected source for card traits. On 2026-10-06, the maintainer selected automatic categorization from sources, card types and explicit rules. Free-text-only meanings and a stronger or hybrid semantic classifier are outside this pass. Jev remains the recorded prototype. Known combo outcomes can provide source-backed rules; the [integration research](../integrations/card-categorization.md) owns their evidence and remaining adapter questions.
+
+### Deck entry categories
+
+One primary category belongs to each deck entry, separate from its role. The Category view groups Main deck; Commander, Sideboard and Companion retain their sections. Current Decks groups by card type or section and sorts by name or quantity.
 
 The selected contract gives each deck entry one optional primary category. All copies of that entry share the assignment. This keeps every entry in one visible group and makes the group totals add up. A card that draws a card and counters a spell can belong to Counterspells in one deck and Draw in another. Multiple secondary tags would be a separate filter, rather than changing the primary grouping.
 
-Deck categories belong to one deck. Deck categories do not change Inventory groups or the public catalog. Renaming a deck category does not rename another deck's categories.
+Deck entry categories belong to one deck. They do not change Inventory groups or the public catalog. Reusable definitions belong to an account library with separate scopes for Deck entries and whole Decks. Names, meaning and explicit rules are edited together when creating a new meaning. The definition is then available automatically to new decks. Existing decks retain their names and assignments until explicit Review/Reset; the starter Draw meaning remains available as a fallback. The maintainer confirmed this ownership on 2026-10-06.
 
 Identify categories by stable IDs with editable names and ordering. Use an optional category reference on the entry, with Uncategorized as the fallback rather than a required setup step. Reject blank names and duplicate names within the same owner, ignoring case and surrounding whitespace. Assignment mutations must verify both the entry owner and category owner.
 
@@ -48,26 +54,20 @@ Rename changes the label without moving entries. Removing a category offers a re
 
 Suggested starter categories include Lands, Ramp, Draw, Counterspells, Removal, Board wipes, Protection and Recursion. Only populated suggestions need to appear. Custom names such as Token makers or Sacrifice outlets describe the user's deck plan without requiring a predefined taxonomy.
 
-The current catalog supplies types, keywords and Oracle text, but does not ingest the selected Oracle Tags source yet. Producing mana does not by itself make a land Ramp. Broad text matching does not establish a deck's strategy. Multi-purpose primary-category selection remains unresolved, and the interface must not present deterministic mapping as AI analysis.
+The current catalog supplies types, keywords and Oracle text, but does not ingest the selected Oracle Tags source yet. Producing mana does not by itself make a land Ramp. Broad text matching does not establish a deck's strategy. Rules need deterministic match priority for multi-purpose cards and overlapping definitions; the concrete rule interface remains part of the design contract. The interface must not present source/rule mapping as AI analysis.
 
 Track whether an assignment is automatic or manual when suggestions are persisted. Apply automatic categorization once to existing Main-deck entries and to new entries. Manual choices always win, including a deliberate Uncategorized choice. Quantity changes, import additions and daily source refreshes must not silently reorganize existing assignments. Only an explicit Review/Reset re-evaluates automatic assignments. The maintainer confirmed this lifecycle on 2026-10-06.
 
-Renamed categories keep their suggestion association through their stable ID; deleted suggestions must not immediately recreate a category the user removed. Account-wide category templates, custom automatic meanings and their relationship to deck-local labels remain under review.
+Renamed entry categories keep stable identifiers; deleted suggestions must not immediately recreate a category the user removed. Changing Draw into a new meaning such as Infinite Counter updates explicit classification criteria and its reusable account definition, rather than inferring meaning from a label alone. The selected pass uses rules, not free-text semantic inference.
 
-## Automatic-category input research
+### Deck categories
 
-Research on 2026-10-06 found that [Archidekt's announcement](https://archidekt.com/news/4958603) describes automatic defaults derived from common user assignments within an allowlisted vocabulary. It does not publish its algorithm or assignment dataset. Moxfield's [public repository](https://github.com/moxfield/moxfield-public) and first-party [tag feedback](https://moxfield.nolt.io/617) do not establish a public automatic strategy classifier. These findings do not justify recreating either site's hidden implementation.
+Deck categories group whole decks in the Library. The maintainer selected automatic reuse of custom meanings, including an Infinite Counter example, for new decks. This classification may need the deck's full composition. Card-level traits alone do not establish an infinite combo or an archetype.
 
-[Scryfall's Tags API](https://scryfall.com/docs/api/tags) documents a public daily Oracle Tags bulk export. A no-credential fetch on 2026-10-06 confirmed the [bulk descriptor](https://api.scryfall.com/bulk-data/bd8df61e-5d0a-47a2-9086-40137a645b98). Tags join by `oracle_id` and have stable UUIDs, mutable names, parent/child relationships and direct card taggings. Consumers collect descendant taggings for parent traits. Weights describe prominence, not confidence probabilities. The community-maintained taxonomy is useful input, not a deck-specific purpose.
+Definitions belong to the account. One deck can belong to multiple categories, such as Control and Combo. Library filters use these assignments; overall totals count each deck once even when categories overlap. Whole-deck categories do not replace the selected primary category of each entry, its role or the deck's format.
 
-The sampled snapshot gave Command Tower a rainbow-land trait without Ramp, Rampant Growth a land-ramp trait, Sol Ring a mana-rock descendant of Ramp, and Archmage's Charm both Draw and Counterspell traits. Multiple inferred traits therefore need a local policy for the single primary category. Source adoption and explicit Review/Reset are selected. Mapping, ties and classifier quality remain under review. Full-catalog coverage and category conflicts have not been measured.
+Re-evaluate automatic whole-deck assignments after saved composition changes, coalescing short editing bursts. Preserve manual decisions. Editing a definition's meaning or rules does not reorganize existing decks until explicit Review/Reset. New decks use the current definitions. The maintainer confirmed this lifecycle and multiple categories per deck on 2026-10-06. Definition versioning and deck-local snapshots still need a concrete implementation contract.
 
-## Semantic-classifier evaluation
+## Classifier research
 
-The maintainer requested an evaluation of TypeSafe Jev for automatic categories. The [HTTP API](https://docs.typesafe.ai/api) accepts structured card data as state and evaluates typed questions. A [Choice](https://docs.typesafe.ai/primitives/choice) selects one defined option; separate [Noul](https://docs.typesafe.ai/primitives/noul) questions can recognize multiple traits. The category list is supplied as criteria, not trained as customer-specific weights. The reviewed API documents shared-state questions, rather than an independent-record batch endpoint. Packing multiple card records into shared state would need its own quality and context-budget checks.
-
-On 2026-10-06, the [model documentation](https://docs.typesafe.ai/models) lists Jev 1.13 at $0.042 per million input tokens, with output tokens free. It documents a hosted API and no downloadable weights or self-hosting procedure. No free allowance was established. Illustratively, 50,000 records at 1,000 input tokens each cost $2.10; actual catalog input size and spend have not been measured. A direct HTTP adapter would not require the vendor SDK, but would still depend on its hosted service and credentials.
-
-No MTG quality advantage is established by typed output or the provider's confidence value. The [confidence guidance](https://docs.typesafe.ai/confidence) calls for target-domain evaluation, and the [model limitations](https://docs.typesafe.ai/model-jaggedness/jev-1.13) include option-order and irrelevant-state sensitivity. A candidate evaluation should compare a labeled card sample against Oracle Tags and the local default policy before selecting a provider. No authenticated inference call or model installation has occurred.
-
-Catalog-time classification can produce generic card traits. It cannot know a later deck's intended use or a new account's custom category meaning. Category selection must remain separate from trait inference. Cached classifications with explicit input, taxonomy and model versions are a candidate design, not a selected integration. Existing manual assignments and the accepted Review/Reset lifecycle must survive any classifier change.
+[Automatic card categorization](../integrations/card-categorization.md) owns the dated Oracle Tags coverage probe, comparable-tool findings, Jev experiment and curated combo alternative. Source coverage and typed model output do not establish primary-category quality. The selected source/rule direction needs reviewed interfaces and acceptance examples. Existing manual assignments and the accepted Review/Reset lifecycle must survive source changes.

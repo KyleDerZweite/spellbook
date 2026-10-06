@@ -4,7 +4,7 @@
 - Last Reviewed: 2026-10-06
 - Source of Truth: code and explicitly marked design requirements
 - Update Triggers: service boundaries, topology, authentication, data ownership, runtime allocation, hosted capacity requirements, frontend/backend separation and cross-client synchronization
-- Related Docs: [Architecture](./README.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Worker](./worker.md), [Auth](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [Realtime backend evaluation](../integrations/realtime-backends.md)
+- Related Docs: [Architecture](./README.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Worker](./worker.md), [Auth](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [Realtime backend evaluation](../integrations/realtime-backends.md), [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md)
 
 Spellbook uses TypeScript and SvelteKit for the web interface and application API, PostgreSQL for account-owned state and the MTG catalog, and a Python worker for Scryfall ingestion. Local authentication runs inside SvelteKit.
 
@@ -26,7 +26,7 @@ Before setting hosted capacity targets, measure request latency, database query 
 
 ## Boundary redesign under review
 
-On 2026-10-06, the maintainer selected root `frontend/`, `backend/` and `contracts/` ownership with enforced import rules, initially in one SvelteKit deployment. SvelteKit retains rendering, native form actions and HTTP routes. Backend modules own persistence, account authorization and use cases. The web routes and external API must use those same use cases. Shared contracts must describe serialized data independently of database row types and backend implementation imports.
+On 2026-10-06, the maintainer selected root `frontend/`, `backend/` and `contracts/` ownership with enforced import rules, initially in one SvelteKit deployment. [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md) records that accepted direction. SvelteKit retains rendering, native form actions and HTTP routes. Backend modules own persistence, account authorization and use cases. The web routes and external API must use those same use cases. Shared contracts must describe serialized data independently of database row types and backend implementation imports.
 
 The later app will configure its API address for local operation or a deployment behind a load balancer. Web server routes may initially call the backend interface within the same process. Relocating every web operation to an external backend URL requires a complete, tested HTTP adapter and remains a later pass. Frontend feature components must depend on contracts and the application interface rather than persistence. Another backend implementation must satisfy the same request, response, error, authentication and mutation semantics; a configurable URL alone does not provide that compatibility.
 

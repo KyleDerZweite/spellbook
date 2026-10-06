@@ -2,8 +2,8 @@
 
 - Status: Canonical
 - Last Reviewed: 2026-10-06
-- Source of Truth: code and upstream runtime documentation
-- Update Triggers: routes, authentication, public landing, responsive layout, typography, development review controls, search, shared scroll viewports, inventory ordering and filters, deck builder, component choices, runtime support and compatibility
+- Source of Truth: code, accepted design requirements and upstream runtime documentation
+- Update Triggers: routes, authentication, public landing, responsive layout, typography, development review controls, search, shared scroll viewports, inventory ordering and filters, bounded inventory loading and scale evidence, deck builder, component choices, runtime support and compatibility
 - Related Docs: [System overview](./system-overview.md), [Auth](./auth.md), [Routes](../product/routing-and-games.md), [Catalog](./catalog.md), [Selected UI components](../reference/ui-libraries.md), [Design direction](../product/ui-design-direction.md)
 
 The SvelteKit application renders pages on the server and owns the application API. Svelte components and Tailwind styles implement the interface; Bits UI supplies accessible interactive components. The [selected component guidance](../reference/ui-libraries.md) owns shadcn-svelte source adoption and its boundary with existing Bits UI controls. The shared stylesheet defines the neutral light and dark, icon-accented card workspace design described in [design direction](../product/ui-design-direction.md).
@@ -55,6 +55,10 @@ Search starts without selected filters. [CatalogWindow](../../frontend/src/lib/s
 [SearchWorkspace](../../frontend/src/lib/components/search/SearchWorkspace.svelte) reserves a 288-pixel desktop sidebar and uses shared ScrollArea viewports for the sidebar and results. VirtualCardGrid measures and restores the actual results viewport. [SearchFilters](../../frontend/src/lib/components/search/SearchFilters.svelte) reuses Bits UI Collapsible for each group and shows selections in the controls. The workspace owns a fixed-height count, loading and retry row outside the scrolling results pane. Cards cannot scroll behind that row. [SearchResults](../../frontend/src/lib/components/search/SearchResults.svelte) owns the grid and empty-result content. Their pane origins and card widths stay unchanged when filter groups expand or selections change.
 
 [Mobile and scan](./mobile-and-scan.md) owns manifest capabilities, API validation, uploads, and recognition boundaries.
+
+## Inventory loading under design
+
+The maintainer selected bounded Inventory loading and a virtualized list on 2026-10-06, using Search's window approach as a reference. This is not implemented. The existing Inventory route still loads its full snapshot and filters locally. The next contract must put full-data filters, sort order, summary counts and group counts in backend queries while the frontend keeps a bounded window and renders visible rows. Window refresh and eviction must preserve stable entry identity, drafts, pending mutations and dialog/focus targets. Benchmark thousands of entries with real server queries and rendered scrolling before claiming this scales. The design belongs with the shared backend and contract migration, not a separate browser-only pagination layer.
 
 ## Runtime compatibility
 

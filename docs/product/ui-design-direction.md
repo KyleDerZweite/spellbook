@@ -16,7 +16,9 @@ On 2026-10-06, Kyle selected Home, Search and Inventory as references for this r
 
 The selected action policy has four purposes: Primary for the page's main action, Secondary for other visible actions, Ghost for compact icon actions with background hover, and Destructive for deletion. Navigation and ordinary text links keep underline hover. Links retain navigation semantics; buttons and forms retain their actions, pending state, focus and keyboard behavior. Shared components and tokens own geometry and alignment. Route-specific styles must not create different geometry for the same shared control.
 
-The component contracts and affected callers still need review before implementation. This refinement is not yet applied. The maintainer also requested a review of all current docs and decisions; existing descriptions remain implementation evidence until a reviewed replacement or explicit supersession changes them.
+On 2026-10-06, Kyle also requested lazy loading for Inventory and verification with thousands of entries. Inventory must use bounded result loading and virtualization, with complete-data filtering, sorting and counts rather than applying those operations only to a loaded page. [Frontend architecture](../architecture/frontend.md) owns the pending window contract. Group views, note drafts, focus and saved-change refreshes must remain usable as rows leave the viewport.
+
+The component and loading contracts still need review before implementation. This refinement is not yet applied. The maintainer also requested a review of all current docs and decisions; existing descriptions remain implementation evidence until a reviewed replacement or explicit supersession changes them.
 
 ## References and component choice
 

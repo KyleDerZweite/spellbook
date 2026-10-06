@@ -4,7 +4,7 @@
 - Last Reviewed: 2026-10-06
 - Source of Truth: repo config
 - Update Triggers: compose services and first startup, catalog import and recovery, images, local launch commands and preview target, environment variables, migrations, storage
-- Related Docs: [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md)
+- Related Docs: [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Classifier research](../integrations/card-categorization.md)
 
 The canonical service definitions are [`podman-compose.yml`](../../podman-compose.yml) and the local storage override [`podman-compose.dev.yml`](../../podman-compose.dev.yml). Keep live domains, account details, and secret references in private operator notes.
 
@@ -83,6 +83,8 @@ Leave `ADDRESS_HEADER` empty for direct deployments. Behind a trusted proxy, set
 Keep the reverse proxy request limit large enough for the configured adapter limit. JSON handlers independently cap streamed bodies at 1 MiB; scan uploads independently cap their multipart body at 12 MiB and image at 10 MiB. Raising `BODY_SIZE_LIMIT` does not bypass these application limits. See [request validation](../architecture/mobile-and-scan.md#request-validation).
 
 OIDC provider variables, `AUTH_SESSION_SECRET`, and all MeiliSearch variables are no longer used. Browser catalog reads are public; account operations and the versioned integration API require authentication. Remove obsolete search origins and credentials from deployment configuration.
+
+The optional `TYPESAFE_API_KEY` in `.env.example` belongs only to the isolated [Jev evaluation](../integrations/card-categorization.md). The prototype reads it explicitly from a protected env file. The application does not consume it and Compose does not forward it. Do not expose it through public frontend variables. A production classifier integration remains unselected.
 
 ## Storage and upgrades
 

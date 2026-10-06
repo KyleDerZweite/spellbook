@@ -3,18 +3,20 @@
 - Status: Design in progress, not implemented
 - Last Reviewed: 2026-10-06
 - Source of Truth: accepted maintainer requirements, existing Inventory behavior and explicitly marked open decisions
-- Update Triggers: price providers and fallback policy, daily history, reporting currency and timezone, cost batches, allocation and correction rules, valuation UI and API contracts
+- Update Triggers: price providers and fallback policy, daily history, reporting currency and timezone, cost batches, allocation and correction rules, tracking rollout and demo assumptions, valuation UI and API contracts
 - Related Docs: [Product index](./README.md), [Specification](./specification.md), [Domain glossary](../../GLOSSARY.md), [Market price research](../integrations/market-prices.md), [Postgres](../architecture/postgres.md), [Worker](../architecture/worker.md), [System overview](../architecture/system-overview.md), [Design direction](./ui-design-direction.md)
 
 ## Selected scope
 
 The maintainer selected daily Card and Inventory value history, acquisition-cost coverage and Pack/Bulk cost batches for this pass. A cost batch assigns an entered acquisition amount to specified card quantities. It can cover cards already scanned into Inventory without increasing their quantities again. The comparison with a reference value is an estimated value difference, not realized profit.
 
-Existing holdings start with unknown acquisition costs. An explicitly free acquisition has a known zero cost; a forgotten purchase amount remains unknown. Missing references and costs are not zero. Daily price and calculation cadence is sufficient; variation within a day is acceptable.
+An explicitly free acquisition has a known zero cost; a forgotten purchase amount remains unknown. Persist that distinction. The maintainer selected zero as the calculation assumption for unknown acquisition costs, while displaying the cost as unknown. Estimated differences must expose that assumption and cost coverage. Missing market references remain unknown. Daily price and calculation cadence is sufficient; variation within a day is acceptable.
 
 Trading starts with external product links. Sales, proceeds, sale fees, realized profit and the retrospective purchase/sale ledger are deferred. Marketplace account connections, listings, stock synchronization, orders and automatic transaction imports are outside this pass.
 
-The selected source set is Scryfall as the baseline, with optional Cardmarket Price Guide and MTGJSON imports. Requiring a configured API key is acceptable for an optional source. Accounts must still work when optional sources are disabled, unconfigured or missing a reference. Preserve an unknown value when no eligible configured source supplies one. References with the same upstream are not independent confirmations. The [provider research](../integrations/market-prices.md) owns source availability, measures and mapping limits. Precedence and exact matching remain under review.
+The selected source set is Scryfall as the baseline, with optional Cardmarket Price Guide and MTGJSON imports. Requiring a configured API key is acceptable for an optional source. Accounts must still work when optional sources are disabled, unconfigured or missing a reference. Preserve an unknown value when no eligible configured source supplies one. References with the same upstream are not independent confirmations. The [provider research](../integrations/market-prices.md) owns source availability, measures and mapping limits.
+
+For EUR totals, prefer eligible fresh references before stale fallbacks. Within the same freshness class, prefer configured Cardmarket trend, then Scryfall EUR, then a matching MTGJSON EUR reference. Preserve the chosen source and measure with every observation. This priority does not make different source measures interchangeable or independent confirmations. The maintainer confirmed this policy on 2026-10-06.
 
 When a daily refresh fails, the last valid reference remains eligible for current totals for up to seven days, visibly marked stale. Show its source date and stale coverage. After that limit it is unknown for current totals. A successful source response with a missing or null reference does not preserve an older price as its current result. Check eligible configured fallbacks, then report unknown.
 
@@ -24,7 +26,17 @@ Inventory currently stores aggregate printing, finish and condition quantities w
 
 The selected tracking model must preserve current Inventory identity and account isolation. Cost-batch records and daily history must survive removal or recreation of a current Inventory entry. Cost records must not imply individual physical-copy identifiers or deck reservations.
 
-Ordinary Add, scan, import and quantity flows stay direct and do not require financial fields. Added quantities start with unknown costs until explicitly assigned. Cost assignment must distinguish newly added quantities from older copies of the same printing, finish and condition. Inventory group membership covers an entire entry and cannot identify just the copies from a pack. Logical acquisition lots can distinguish those quantities without adding physical-copy identifiers. The earlier FIFO choice remains the proposed removal policy for the reduced scope; allocation eligibility and correction behavior are still under review.
+## Selected mutation and cost behavior
+
+Ordinary Add, scan, import and quantity flows stay direct and do not require financial fields. Added quantities start with unknown costs until explicitly assigned. Cost assignment must distinguish newly added quantities from older copies of the same printing, finish and condition. Inventory group membership covers an entire entry and cannot identify just the copies from a pack. Logical acquisition lots can distinguish those quantities without adding physical-copy identifiers. Normal quantity reductions retire the oldest lots first, whether their costs are known or unknown. A later Add starts a new unknown-cost lot. This FIFO policy records no sale.
+
+New cost batches allocate currently held unknown-cost quantities. Scan and import quantities can provide a preselection. Assignment does not add quantities again. Known costs change through an explicit correction to the existing batch. Removed quantities retain recorded history but cannot receive a new batch allocation in this pass.
+
+The default allocation divides half the Batch total equally per selected copy and half in proportion to those copies' eligible EUR reference values. Quantities count as copies, not distinct entry names. If any selected card lacks an eligible reference, or the weighted reference sum is zero, the entire Batch uses equal allocation. The Preview shows the method, quantities and source dates. Preserve the exact EUR total with deterministic cent rounding. Store the allocation and reference observations used; later daily price changes do not reassign acquisition costs.
+
+Adding or correcting a batch cost restates affected stored cost and estimated value-difference statistics, with a traceable correction revision. Preserve the historical quantities and market references. Do not invent days before tracking began or fill missing daily data. A price refresh alone never changes allocated acquisition costs. The maintainer confirmed FIFO and historical cost restatement on 2026-10-06.
+
+The maintainer confirmed that the review dataset consists of demonstration cards and decks, with no production account holdings to reconstruct. This pass does not need a legacy purchase-evidence recovery flow.
 
 ## Reporting requirements
 
@@ -32,9 +44,13 @@ EUR is the selected currency for entered costs and tracking totals. Other source
 
 The selected reporting calendar uses an instance-configurable timezone, defaulting to `Europe/Berlin`. Daily history captures the end-of-day state. Current holdings remain live and current estimated value uses the latest eligible daily prices. Missing historical days are visible gaps. Preserve the calendar and source dates attached to existing snapshots rather than silently relabeling them after a timezone change.
 
-Keep price coverage and acquisition-cost coverage distinct. A market-value estimate uses eligible price references for the held quantities. A complete estimated difference requires both reference values and known costs for those same quantities. Show known amounts and coverage when data is incomplete, rather than extrapolating a complete gain. Newly added holdings can increase estimated value without establishing a gain.
+Keep price coverage and acquisition-cost coverage distinct. A market-value estimate uses eligible references for the held quantities. Its estimated difference subtracts allocated costs for those same quantities, using the selected zero assumption for unknown costs. Show known cost, unknown-cost quantities and the assumption separately. A known free copy and an unknown-cost copy contribute the same assumed cost to this calculation but have different evidence status. Newly added holdings can increase estimated value without establishing realized profit.
 
-Every reference retains its source, measure where known, currency and data time. Exact printing and finish, language fallback, condition limits and stale-source handling need explicit rules. A source import time is not the time of an individual market sale. Historical values must use stored observations for their date, rather than today's price presented as an older observation.
+The zero assumption applies only to acquisition costs. Missing market prices must not become zero. A card without an eligible reference has an unknown value difference. Aggregate comparisons of covered quantities must show that coverage and cannot claim a complete Batch or Inventory result when reference prices are missing.
+
+Every reference retains its source, measure where known, currency and data time. Prefer an exact product/printing and finish match. If a differently named language printing has no price, an unambiguous English printing from the same edition, collector number and printing variant may supply a visibly marked fallback. Variant mapping must account for relevant artwork and promotional differences; ambiguity remains unknown. Finish must match. Etched does not inherit a Foil or Nonfoil price. References have no invented condition discount and remain estimates. The maintainer confirmed this fallback on 2026-10-06.
+
+A source import time is not the time of an individual market sale. Historical values must use stored observations for their date, rather than today's price presented as an older observation.
 
 The current quantity state remains separate from daily history. Daily history begins when valid tracking records exist. Missing historical data must remain visible. Report unknown or partial results with their coverage rather than presenting a complete gain or value.
 
@@ -44,8 +60,8 @@ Dashboard summarizes current values, coverage and daily history. Inventory and C
 
 Decks also show the estimated reference value of all required cards and of their missing quantities. These are market estimates, separate from the owner's acquisition costs. Deck entries do not currently specify a finish, so this calculation uses nonfoil references and exposes unknown quantities and coverage. Availability does not reserve owned copies.
 
-## Decisions still open
+## Implementation contract still needed
 
-The review must settle equal or alternative batch allocation, eligible quantities, removal policy, and whether later cost corrections restate earlier cost statistics. It must also settle provider precedence, exact printing/finish matching and any explicit language fallback.
+The selected behavior still needs concrete ownership, allocation/revision storage, daily scheduling and API contracts. Verify FIFO reductions, subset cost assignment, cent rounding, source failures, historical restatement, account isolation and request replay against those contracts.
 
 These requirements do not make the implementation slice Ready. Reconcile the product, module, mutation and acceptance contracts before implementation.

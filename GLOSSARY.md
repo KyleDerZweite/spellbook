@@ -3,7 +3,7 @@
 - Status: Canonical domain glossary
 - Last Reviewed: 2026-10-06
 - Source of Truth: product specification, accepted domain requirements, schema, catalog and account repositories
-- Update Triggers: card identity, inventory grouping, deck roles, categories and availability, reference prices and acquisition costs, scan review, physical-card terminology, profile cards and metric placeholders
+- Update Triggers: card identity, inventory grouping, deck roles, deck entry categories, whole-deck categories and availability, reference prices and acquisition costs, scan review, physical-card terminology, profile cards and metric placeholders
 - Related Docs: [Product specification](docs/product/specification.md), [Value tracking](docs/product/value-tracking.md), [Catalog](docs/architecture/catalog.md), [Postgres](docs/architecture/postgres.md), [Card scanner and sorter](docs/integrations/card-robot.md)
 
 Spellbook describes MTG catalog identities, owned cards, deck requirements, and scan review in one context. This glossary owns terminology; the linked documents own behavior and proposed capabilities.
@@ -94,9 +94,17 @@ _Avoid_: Owned card, inventory entry
 A deck entry's section, one of `main`, `sideboard`, `commander`, or `companion`.
 _Avoid_: Physical location, card type
 
+**Deck entry category**:
+A deck-owned primary grouping of entries by purpose. Each entry has at most one category, shared by all its copies; Uncategorized means unassigned.
+_Avoid_: Deck category, deck role, inventory group, secondary tag
+
 **Deck category**:
-A deck-owned primary grouping of entries by purpose. Each entry has at most one category, shared by all its copies. Uncategorized represents unassigned entries. A category does not change a deck role or establish ownership.
-_Avoid_: Deck role, inventory group, secondary tag
+An account-owned grouping of whole decks by strategy, archetype or another user-defined meaning. It is separate from the categories of cards within a deck.
+_Avoid_: Deck entry category, deck role, format
+
+**Category definition**:
+An account-owned reusable name, meaning and classification rules for either Deck entries or whole Decks. Its scope is explicit; deck-local categories and assignments remain separate from the definition.
+_Avoid_: Deck entry category, Deck category assignment, catalog tag
 
 **Deck availability**:
 A comparison of one deck's required quantities with its owner's inventory, allocating exact printing matches before alternate printings.

@@ -49,3 +49,5 @@ Rules:
 - [ADR-0013: Game-prefixed workspaces](./0013-game-prefixed-workspaces.md)
 
 - [ADR-0014: Public landing and private workspace](./0014-public-landing-and-private-workspace.md)
+
+- [ADR-0015: Shared backend use cases and client contracts](./0015-shared-backend-use-cases-and-client-contracts.md), accepted for the next pass; not implemented
