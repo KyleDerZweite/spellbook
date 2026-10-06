@@ -444,10 +444,10 @@
 	}
 	@media (min-width: 1800px) {
 		.deck-stage {
-			height: 408px;
+			height: 422px;
 		}
 		.deck-box {
-			top: 132px;
+			top: 146px;
 			transform: scale(1.13) rotateX(-18deg) rotateY(-27deg) rotateZ(-3deg);
 		}
 	}
