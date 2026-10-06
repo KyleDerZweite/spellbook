@@ -7,7 +7,9 @@ import {
 	profileTextSegments,
 	resolveProfileText,
 	validateProfileCard,
-	validProfileManaCost
+	validProfileManaCost,
+	PROFILE_CARD_LIMITS,
+	PROFILE_CARD_LINE_LIMITS
 } from '../../src/lib/profile/card';
 
 const totals = { total: 1234, names: 43, printings: 50, sets: 8, foils: 6, decks: 2 };
@@ -103,6 +105,22 @@ describe('profile card definitions and live metrics', () => {
 				.success
 		).toBe(true);
 	});
+	it('limits Power/Toughness to card values and a single KPI', () => {
+		const card = defaultProfileCard('Kyle');
+		for (const power of ['0', '-1', '9999999', '*', 'X', '1+*', '*-1', '{total_owned_cards}'])
+			expect(validateProfileCard({ ...card, power, toughness: '1' }).success).toBe(true);
+		for (const power of [
+			'a whole sentence',
+			'99999999',
+			'{total_owned_cards} cards',
+			'{total_decks}{foil_copies}'
+		])
+			expect(validateProfileCard({ ...card, power, toughness: '1' })).toMatchObject({
+				success: false,
+				errors: { power: expect.any(String) }
+			});
+	});
+
 	it('requires paired Power and Toughness, supports their KPIs and validates content limits', () => {
 		const card = defaultProfileCard('Kyle');
 		expect(
@@ -115,11 +133,21 @@ describe('profile card definitions and live metrics', () => {
 		});
 		for (const patch of [
 			{ name: '' },
-			{ name: 'x'.repeat(49) },
+			{ name: 'x'.repeat(PROFILE_CARD_LIMITS.name + 1) },
 			{ typeLine: 'x\ny' },
-			{ rulesText: 'x'.repeat(501) },
-			{ flavorText: 'x'.repeat(161) },
-			{ power: 'x'.repeat(25), toughness: '1' }
+			{ rulesText: 'x'.repeat(PROFILE_CARD_LIMITS.rulesText + 1) },
+			{ flavorText: 'x'.repeat(PROFILE_CARD_LIMITS.flavorText + 1) },
+			{ power: 'x'.repeat(PROFILE_CARD_LIMITS.power + 1), toughness: '1' },
+			{
+				rulesText: Array(PROFILE_CARD_LINE_LIMITS.rulesText + 1)
+					.fill('line')
+					.join('\n')
+			},
+			{
+				flavorText: Array(PROFILE_CARD_LINE_LIMITS.flavorText + 1)
+					.fill('line')
+					.join('\n')
+			}
 		])
 			expect(validateProfileCard({ ...card, ...patch }).success).toBe(false);
 	});

@@ -1,164 +1,287 @@
 <script lang="ts">
 	import Avatar from './Avatar.svelte';
+	import ProfileCardText from './ProfileCardText.svelte';
+	import ManaCost from '#lib/components/cards/ManaCost.svelte';
 	import { getProfileArtwork } from '#lib/profile/artwork.ts';
+	import {
+		defaultProfileCard,
+		resolveProfileText,
+		validProfileManaCost,
+		PROFILE_CARD_RARITIES,
+		type ProfileCardDefinition
+	} from '#lib/profile/card.ts';
 	import type { ProfileTotals } from '#lib/profile/types.ts';
-
 	let {
 		username,
 		avatarId,
 		artworkId,
-		totals
+		totals,
+		definition
 	}: {
 		username: string;
 		avatarId?: string;
 		artworkId?: string;
 		totals: ProfileTotals | null;
+		definition?: ProfileCardDefinition;
 	} = $props();
-	const number = new Intl.NumberFormat('en');
 	let artwork = $derived(getProfileArtwork(artworkId));
+	let card = $derived(definition ?? defaultProfileCard(username));
+	let rarity = $derived(PROFILE_CARD_RARITIES.find((r) => r.value === card.rarity));
 </script>
 
-<article class="profile-card" aria-label={`Private profile card for ${username}`}>
-	<div class="profile-card-name">
-		<h2>{username}</h2>
-		<Avatar id={avatarId} size={32} />
-	</div>
-	<img
-		class="profile-card-art"
-		src={artwork.src}
-		alt={artwork.label + ' profile artwork'}
-		width="960"
-		height="640"
-	/>
-	<div class="profile-card-type">
-		<svg
-			width="14"
-			height="14"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="1.6"
-			aria-hidden="true"
-			><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg
-		>
-		<span>Private profile</span>
-	</div>
-	{#if totals}
-		<dl class="profile-card-totals">
-			<div class="primary-stat">
-				<dt>Owned copies</dt>
-				<dd>{number.format(totals.total)}</dd>
-			</div>
-			<div class="primary-stat">
-				<dt>Card names</dt>
-				<dd>{number.format(totals.names)}</dd>
-			</div>
-			<div>
-				<dt>Printings</dt>
-				<dd>{number.format(totals.printings)}</dd>
-			</div>
-			<div>
-				<dt>Sets</dt>
-				<dd>{number.format(totals.sets)}</dd>
-			</div>
-			<div>
-				<dt>Foil copies</dt>
-				<dd>{number.format(totals.foils)}</dd>
-			</div>
-			<div>
-				<dt>Decks</dt>
-				<dd>{number.format(totals.decks)}</dd>
-			</div>
-		</dl>
-	{:else}
-		<p class="profile-card-unavailable">Stats unavailable</p>
-	{/if}
-	<div class="profile-card-footer">
-		<span>Magic: The Gathering</span><span class="font-display">Spellbook</span>
+<article
+	class="profile-card"
+	class:legendary={card.legendary}
+	data-frame={card.frame}
+	aria-label={`Profile card for ${username}`}
+>
+	<div class="profile-card-frame">
+		<div class="card-name">
+			<h2>{card.name || username}</h2>
+			{#if validProfileManaCost(card.manaCost)}<ManaCost
+					cost={card.manaCost}
+					class="card-mana flex-wrap justify-end"
+				/>{/if}
+		</div>
+		<img
+			class="card-art"
+			src={artwork.src}
+			alt={artwork.label + ' profile artwork'}
+			width="960"
+			height="640"
+		/>
+		<div class="card-type">
+			<span>{card.typeLine || 'Collector'}</span><span
+				class="rarity"
+				data-rarity={card.rarity}
+				aria-label={`${rarity?.label ?? 'Unknown'} rarity`}>{rarity?.label[0] ?? '?'}</span
+			>
+		</div>
+		<div class="card-rules">
+			<ProfileCardText text={card.rulesText} {totals} />
+			{#if card.flavorText}<div class="card-flavor">
+					<ProfileCardText text={card.flavorText} {totals} />
+				</div>{/if}
+			{#if card.power || card.toughness}<div class="card-stats">
+					<span>{resolveProfileText(card.power, totals) || '…'}</span><span>/</span><span
+						>{resolveProfileText(card.toughness, totals) || '…'}</span
+					>
+				</div>{/if}
+		</div>
+		<div class="card-footer">
+			<span class="card-owner"><Avatar id={avatarId} size={18} /><span>@{username}</span></span
+			><span class="font-display">Spellbook</span>
+		</div>
 	</div>
 </article>
 
 <style>
 	.profile-card {
+		--frame-dark: #264535;
+		--frame-light: #829178;
+		--paper: #e8ebda;
 		width: 100%;
-		max-width: 340px;
-		padding: 0.65rem;
-		border: 1px solid var(--color-border);
-		border-radius: 0.875rem;
-		background: var(--color-stone);
-		box-shadow: 0 12px 30px #0002;
-		color: var(--color-text-primary);
+		max-width: 420px;
+		padding: 12px;
+		color: #201d19;
+		border-radius: 20px;
+		background: #101111;
+		container-type: inline-size;
 	}
-	.profile-card-name {
+	.profile-card[data-frame='white'] {
+		--frame-dark: #8e815e;
+		--frame-light: #ded2ac;
+		--paper: #f3eddc;
+	}
+	.profile-card[data-frame='blue'] {
+		--frame-dark: #244962;
+		--frame-light: #88a8b5;
+		--paper: #e4edf1;
+	}
+	.profile-card[data-frame='black'] {
+		--frame-dark: #2b2633;
+		--frame-light: #817582;
+		--paper: #e4dfe5;
+	}
+	.profile-card[data-frame='red'] {
+		--frame-dark: #78382c;
+		--frame-light: #cf9070;
+		--paper: #f3e4da;
+	}
+	.profile-card[data-frame='gold'] {
+		--frame-dark: #796031;
+		--frame-light: #c8b57e;
+		--paper: #f2e9d2;
+	}
+	.profile-card[data-frame='colorless'] {
+		--frame-dark: #4b5758;
+		--frame-light: #a4b5b4;
+		--paper: #e6e8e3;
+	}
+	.profile-card-frame {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		padding: 10px 8px 5px;
+		min-height: 140cqw;
+		border-radius: 12px 12px 6px 6px;
+		border: 1px solid #101111;
+		background: linear-gradient(
+			110deg,
+			var(--frame-dark),
+			var(--frame-light) 34%,
+			var(--frame-dark) 72%,
+			var(--frame-light)
+		);
+	}
+	.legendary .profile-card-frame {
+		padding-top: 18px;
+	}
+	.legendary .profile-card-frame::before {
+		content: '';
+		position: absolute;
+		top: 5px;
+		left: 24%;
+		right: 24%;
+		height: 13px;
+		border: 2px solid var(--paper);
+		border-bottom: 0;
+		border-radius: 50% 50% 0 0;
+		box-shadow: 0 -2px 0 #141615;
+	}
+	.card-name,
+	.card-type {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		gap: 0.75rem;
-		padding: 0.3rem 0.4rem 0.6rem;
+		gap: 0.45rem;
+		padding: 5px 8px;
+		background: var(--paper);
+		border: 2px solid #252824;
+		box-shadow: inset 0 1px 0 #fff9;
 	}
-	.profile-card-name h2 {
+	.card-name {
+		position: relative;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		border-radius: 12px 12px 5px 5px;
+	}
+	.card-name h2 {
+		flex: 1 1 8rem;
+		min-width: 0;
 		margin: 0;
 		font-family: var(--font-display);
-		font-size: 1.375rem;
+		font-size: clamp(1.125rem, 6cqw, 1.6rem);
 		font-weight: 400;
-		line-height: 1.2;
+		line-height: 1.15;
 		overflow-wrap: anywhere;
 	}
-	.profile-card-art {
+	.card-name :global(.card-mana) {
+		max-width: 100%;
+		margin-left: auto;
+		font-size: clamp(0.875rem, 4.2cqw, 1.125rem);
+	}
+	.card-art {
 		display: block;
 		width: 100%;
 		height: auto;
 		aspect-ratio: 3 / 2;
 		object-fit: cover;
-		border-radius: 0.375rem;
+		border: 2px solid #202720;
+		border-top: 0;
+		border-bottom: 0;
 	}
-	.profile-card-type {
-		display: flex;
-		align-items: center;
-		gap: 0.4rem;
-		padding: 0.7rem 0.4rem;
-		font-size: 0.75rem;
-		color: var(--color-text-secondary);
+	.card-type {
+		justify-content: space-between;
+		margin-inline: -2px;
+		border-radius: 7px;
+		font-family: var(--font-display);
+		font-size: clamp(0.875rem, 4cqw, 1.05rem);
+		line-height: 1.25;
 	}
-	.profile-card-totals {
+	.card-type > span:first-child {
+		min-width: 0;
+		overflow-wrap: anywhere;
+	}
+	.rarity {
 		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 0.875rem 1rem;
-		margin: 0;
-		padding: 0.875rem 0.6rem;
-		background: var(--color-slate);
-		border-radius: 0.375rem;
+		place-items: center;
+		width: 20px;
+		height: 22px;
+		flex-shrink: 0;
+		background: #836c38;
+		color: #fff;
+		font: 11px var(--font-body);
+		clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
 	}
-	.profile-card-totals dt {
-		font-size: 0.75rem;
-		color: var(--color-text-secondary);
+	.rarity[data-rarity='common'] {
+		background: #292a28;
 	}
-	.profile-card-totals dd {
-		margin: 0.2rem 0 0;
-		font-size: 0.875rem;
+	.rarity[data-rarity='uncommon'] {
+		background: #63666c;
+	}
+	.rarity[data-rarity='mythic'] {
+		background: #ac4c26;
+	}
+	.card-rules {
+		display: flex;
+		flex: 1 0 auto;
+		flex-direction: column;
+		gap: 0.75rem;
+		min-height: 145px;
+		padding: 13px 10px 9px;
+		border: 2px solid #252824;
+		border-top: 0;
+		background: var(--paper);
+		font-family: var(--font-display);
+		font-size: clamp(0.9375rem, 4.35cqw, 1.125rem);
+		line-height: 1.4;
+	}
+	.card-rules :global(.ms) {
+		font-size: 0.84em;
+	}
+	.card-flavor {
+		font-style: italic;
+	}
+	.card-stats {
+		display: flex;
+		flex-wrap: wrap;
+		align-self: flex-end;
+		justify-content: flex-end;
+		gap: 0.3rem;
+		max-width: 100%;
+		margin-top: auto;
+		padding: 2px 10px;
+		border: 2px solid #40463c;
+		border-radius: 8px 3px 8px 3px;
+		background: var(--paper);
+		box-shadow: inset 0 1px 0 #fff9;
+		font-size: 1.1em;
 		font-variant-numeric: tabular-nums;
 	}
-	.profile-card-totals .primary-stat dd {
-		font-size: 1.75rem;
-		line-height: 1.2;
+	.card-stats span {
+		min-width: 0;
+		overflow-wrap: anywhere;
 	}
-	.profile-card-footer {
+	.card-footer {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 0.5rem;
-		padding: 0.7rem 0.35rem 0.15rem;
-		color: var(--color-text-secondary);
-		font-size: 0.5625rem;
+		margin-top: 4px;
+		padding: 4px 5px;
+		border-radius: 0 0 3px 3px;
+		background: #1c211d;
+		color: #f1f0e8;
+		font-size: 10px;
 	}
-	.profile-card-footer .font-display {
-		font-size: 0.875rem;
+	.card-owner {
+		display: flex;
+		align-items: center;
+		min-width: 0;
+		gap: 0.4rem;
+		overflow-wrap: anywhere;
 	}
-	.profile-card-unavailable {
-		margin: 0;
-		padding: 2rem 0.5rem;
-		text-align: center;
-		font-size: 0.8125rem;
-		color: var(--color-text-secondary);
+	.card-footer .font-display {
+		font-size: 15px;
 	}
 </style>

@@ -32,14 +32,16 @@ export interface ProfileCardDefinition {
 }
 
 export const PROFILE_CARD_LIMITS = {
-	name: 48,
+	name: 40,
 	manaCost: 80,
-	typeLine: 72,
-	rulesText: 500,
-	flavorText: 160,
+	typeLine: 60,
+	rulesText: 400,
+	flavorText: 120,
 	power: 24,
 	toughness: 24
 } as const;
+
+export const PROFILE_CARD_LINE_LIMITS = { rulesText: 8, flavorText: 3 } as const;
 
 export const PROFILE_KPIS = [
 	{ key: 'total_owned_cards', label: 'Owned copies', metric: 'total' },
@@ -190,6 +192,11 @@ export function validateProfileCard(
 		if (!['rulesText', 'flavorText'].includes(field) && /\n/.test(text[field]))
 			errors[field] = 'Use one line for this field.';
 	}
+	for (const [field, limit] of Object.entries(PROFILE_CARD_LINE_LIMITS)) {
+		if (text[field] && text[field].split('\n').length > limit)
+			errors[field as keyof typeof PROFILE_CARD_LINE_LIMITS] = `Use at most ${limit} lines.`;
+	}
+
 	for (const field of ['name', 'typeLine'] as const) {
 		if (field in text && !text[field])
 			errors[field] = field === 'name' ? 'Enter a card name.' : 'Enter a type line.';
@@ -201,6 +208,17 @@ export function validateProfileCard(
 		if (field in text)
 			errors[field] ??= templateError(text[field], field === 'rulesText' || field === 'flavorText');
 	}
+	for (const field of ['power', 'toughness'] as const) {
+		const value = text[field];
+		if (
+			value &&
+			!/^(?:-?\d{1,7}|[*XYZ](?:[+-]\d{1,2})?|\d{1,2}[+-][*XYZ])$/.test(value) &&
+			!PROFILE_KPIS.some((kpi) => value === `{${kpi.key}}`)
+		)
+			errors[field] ??=
+				'Use a number, *, X, a simple card value such as 1+*, or one KPI placeholder.';
+	}
+
 	if ('power' in text && 'toughness' in text && Boolean(text.power) !== Boolean(text.toughness)) {
 		errors[text.power ? 'toughness' : 'power'] =
 			'Fill both Power and Toughness, or leave both empty.';
