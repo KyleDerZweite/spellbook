@@ -62,7 +62,7 @@
 		width: 100%;
 		max-width: var(--layout-wide-width);
 		margin: auto;
-		padding: 2rem;
+		padding: 2rem 2rem 0.5rem;
 	}
 	.backdrop-family {
 		--backdrop-inset: 2rem;

@@ -100,8 +100,8 @@
 		display: grid;
 		grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
 		align-items: center;
-		min-height: 640px;
-		padding: 3.5rem 0 1.5rem;
+		min-height: 620px;
+		padding: 3.5rem 0 0.5rem;
 		column-gap: 2.5rem;
 	}
 	.artwork {
