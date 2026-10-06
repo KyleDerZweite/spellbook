@@ -8,6 +8,8 @@
 
 Spellbook prioritizes digitizing, indexing and managing a player's own Magic cards, then building decks from that collection. Public search, owned inventory, deck editing and reviewable scan uploads support this focus. Card artwork and working content establish the visual identity. Neutral dark and light surfaces, grayscale controls, colored navigation icons, and separate display and monospace interface fonts support that content. [ADR-0011](../decisions/0011-collector-workspace-design.md) records the decision.
 
+Kyle accepted the current Home and Settings design on 2026-10-06. This design pass is complete for those areas; use them as references for the remaining workspaces. Investigating frame assets loaded by [CardCraft](https://mtg-card-maker.herokuapp.com/) remains an optional future idea, not an implementation requirement. The current authored profile-card frame remains unchanged.
+
 ## References and component choice
 
 [Archidekt](https://archidekt.com/) informs prominent discovery and artwork-led deck browsing. [Scryfall](https://scryfall.com/search?q=t%3Aelf&order=name) informs large, readable card images with a compact search toolbar. These screens were inspected during this design pass. A subsequent signed-in Archidekt review covered deck search and card inspection; Moxfield public deck review covered compact lists, alternate views, and analysis. These references informed compact deck rows, persistent discovery, and shared card inspection. Borrow task structure and information hierarchy, not branding, advertisements, or features absent from Spellbook. For each redesigned flow, inspect its entry point, errors, alternate paths, completion, and first useful task. Choose controls after understanding that sequence.
