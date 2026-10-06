@@ -28,6 +28,9 @@
 		class: className = ''
 	}: Props = $props();
 
+	const itemCount = $derived(totalCount);
+	const resetToken = $derived(resetKey);
+
 	const GAP = 16;
 	const MIN_COL_WIDTH = 190;
 	const INFO_HEIGHT = 56;
@@ -51,7 +54,7 @@
 	const colWidth = $derived(cols > 0 ? (containerWidth - GAP * (cols - 1)) / cols : MIN_COL_WIDTH);
 	const imageHeight = $derived(colWidth * (7 / 5));
 	const rowHeight = $derived(imageHeight + INFO_HEIGHT + GAP);
-	const totalRows = $derived(Math.ceil(totalCount / cols));
+	const totalRows = $derived(Math.ceil(itemCount / cols));
 	const totalHeight = $derived(Math.max(0, totalRows > 0 ? totalRows * rowHeight - GAP : 0));
 
 	const startRow = $derived(
@@ -68,7 +71,7 @@
 	const visibleItems = $derived.by(() => {
 		if (endRow < startRow || containerWidth <= 0) return [];
 		const start = startRow * cols;
-		const end = Math.min(totalCount, (endRow + 1) * cols);
+		const end = Math.min(itemCount, (endRow + 1) * cols);
 		const indices = Array.from({ length: end - start }, (_, index) => start + index);
 		if (focused && !indices.includes(focused.index)) {
 			indices.push(focused.index);
@@ -84,19 +87,21 @@
 		if (containerWidth <= 0 || endRow < startRow) return;
 		onRangeChange?.({
 			start: startRow * cols,
-			end: Math.min(totalCount, (endRow + 1) * cols),
+			end: Math.min(itemCount, (endRow + 1) * cols),
 			direction
 		});
 	});
 
 	$effect(() => {
-		void resetKey;
+		void resetToken;
 		if (!wrapperEl) return;
 		const wrapper = wrapperEl;
-		if (wrapper.contains(document.activeElement)) onFocusReset?.();
-		focused = null;
-		getScrollParent(wrapper).scrollTop = 0;
-		visibleTop = 0;
+		untrack(() => {
+			if (wrapper.contains(document.activeElement)) onFocusReset?.();
+			focused = null;
+			getScrollParent(wrapper).scrollTop = 0;
+			visibleTop = 0;
+		});
 	});
 
 	function getScrollParent(el: HTMLElement): HTMLElement {
