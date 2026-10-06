@@ -29,6 +29,7 @@
 		focused = $state<number | null>(null);
 	let focusedSnapshot = $state<{ index: number; entry: InventoryEntry } | null>(null);
 	function rendered(index: number) {
+		version;
 		return (
 			getEntry(index) ?? (focusedSnapshot?.index === index ? focusedSnapshot.entry : undefined)
 		);
