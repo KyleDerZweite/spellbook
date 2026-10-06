@@ -100,7 +100,7 @@
 	<title>Search | Spellbook</title>
 </svelte:head>
 
-<div class="workspace-container flex h-full flex-col">
+<div class="workspace-container catalog-workspace flex flex-col">
 	<div class="shrink-0 pb-3 sm:pb-4">
 		<div class="flex items-center justify-between gap-3">
 			<div>
@@ -224,3 +224,10 @@
 		{/if}
 	</div>
 </div>
+
+<style>
+	.catalog-workspace {
+		height: calc(100dvh - var(--app-header-height));
+		min-height: 32rem;
+	}
+</style>
