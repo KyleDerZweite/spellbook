@@ -14,6 +14,8 @@ The accepted experimental v1 migration replaces `GET /api/mobile/v1/mtg/inventor
 
 `GET /inventory/{entryId}` returns an owned entry, memberships and revision, or 404. `GET /inventory/{entryId}/location` requires the expected revision and returns the matching absolute index or null; drift returns the same 409 shape. All relative paths use the versioned MTG prefix. Invalid queries return 400; invalid selected groups return 400 in the API and 404 in native page loading. [The application contract](./application-contract.md#inventory-query-contract) owns normalization and ordering; [OpenAPI](../../frontend/src/routes/openapi.json/+server.ts) owns exact wire schemas.
 
+If Inventory counts or a location index cannot be represented as a nonnegative safe JSON integer, API reads and native page loading return HTTP 500 with `Inventory totals cannot be represented exactly.` They never return rounded counts. [Postgres](./postgres.md#inventory-read-and-write-consistency) owns decoding and SQL aggregate rules.
+
 POST/PATCH/DELETE, bulk, import and Scan mutation responses retain their legacy shapes with additive revisions. Compact receipts and stale Notes protection remain slice 4 work. Consumers of the former GET snapshot must migrate to page/detail/location reads.
 
 ## Implemented API boundary

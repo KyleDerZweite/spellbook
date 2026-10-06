@@ -61,6 +61,8 @@ The backend [schema](../../backend/src/db/schema.ts) owns table definitions, and
 
 [Migration 0011](../../frontend/drizzle/0011_inventory_windows.sql) adds bigint Inventory and Notes revisions, ICU root ordering and a name/set window index. The [application contract](./application-contract.md#inventory-query-contract) owns page ordering, metadata and revision resets. Backend page/detail/location reads use one repeatable-read, read-only snapshot scoped to the trusted actor and MTG, including counts, memberships and catalog-derived set metadata. An absent Inventory returns empty data without creating a parent.
 
+Inventory SQL counts, copy sums, group totals, set progress and location indexes remain exact text until the shared [integer decoder](../../backend/src/db/numbers.ts) validates a nonnegative safe JSON integer. Unsupported ranges fail explicitly instead of narrowing to signed 32-bit values or rounding through floating-point SQL casts. [The HTTP contract](./mobile-and-scan.md#bounded-inventory-http-reads) owns the controlled failure response. Per-entry quantity limits are unchanged.
+
 Existing writers use the shared [Inventory helper](../../backend/src/inventory/write.ts) to lock the parent before entries and groups and advance its revision in the write transaction. Scan retains session-before-Inventory ordering. Notes has an independent stored revision; stale-text rejection and original mutation receipts remain planned. Legacy mutation responses still expose their prior snapshot shapes. [Deployment](../operations/deployment.md#inventory-collation-and-recovery) owns ICU preflight and recovery.
 
 ## Dashboard summary reads
