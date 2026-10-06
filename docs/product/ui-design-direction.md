@@ -12,7 +12,7 @@ Kyle accepted the current Home and Settings design on 2026-10-06. Use these area
 
 ## Current refinement direction
 
-On 2026-10-06, Kyle selected the current Inventory as the starting point for shared Deck controls and layout. Consolidate repeated controls and recurring page-action geometry through their existing component and token owners. Inventory's Add cards and the deck library's New deck must use a consistent primary-action treatment and alignment.
+On 2026-10-06, Kyle selected Home, Search and Inventory as references for this refinement. Inventory is the starting point for shared Deck controls and layout. Align the deck library and editor, extracting shared buttons, workspace headers, quantity controls and dialogs where their responsibilities match. Other routes reuse these controls for the same tasks. Consolidate repeated controls and recurring page-action geometry through their existing component and token owners. Inventory's Add cards and the deck library's New deck must use a consistent primary-action treatment and alignment.
 
 The selected action policy has four purposes: Primary for the page's main action, Secondary for other visible actions, Ghost for compact icon actions with background hover, and Destructive for deletion. Navigation and ordinary text links keep underline hover. Links retain navigation semantics; buttons and forms retain their actions, pending state, focus and keyboard behavior. Shared components and tokens own geometry and alignment. Route-specific styles must not create different geometry for the same shared control.
 

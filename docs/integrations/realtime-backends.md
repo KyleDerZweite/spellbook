@@ -1,6 +1,6 @@
 # Realtime backend evaluation
 
-- Status: Research, no provider selected
+- Status: Research, PostgreSQL retained for the current pass
 - Last Reviewed: 2026-10-06
 - Source of Truth: linked vendor documentation and current repository code
 - Update Triggers: provider pricing, usage limits, client support, authentication requirements, accepted backend and synchronization contracts
@@ -8,7 +8,7 @@
 
 The maintainer prefers self hosting but will consider a managed backend if its benefits and recurring cost justify the dependency. On 2026-10-06, the maintainer set an ideal managed-service cost of $0 and a maximum of $10 per month, in addition to any retained hosting costs. Professional's listed base fee exceeds that ceiling before usage. Free or Starter needs a representative workload estimate and verified cost controls before adoption.
 
-This pass prepares backend contracts for the web client and a later app in one SvelteKit deployment. Independent backend deployment and a complete external HTTP adapter for web server calls are deferred. The [system overview](../architecture/system-overview.md#boundary-redesign-under-review) owns the selected module and synchronization contracts. This evaluation does not select a provider or implement synchronization.
+This pass prepares backend contracts for the web client and a later app in one SvelteKit deployment. Independent backend deployment and a complete external HTTP adapter for web server calls are deferred. The maintainer selected PostgreSQL and saved-change synchronization without Convex on 2026-10-06. The [system overview](../architecture/system-overview.md#boundary-redesign-under-review) owns the selected module and synchronization contracts. This research does not implement synchronization.
 
 ## Convex capabilities and coupling
 
@@ -40,10 +40,10 @@ Convex documents limits on document size, transaction reads/writes, indexes and 
 
 [Self-hosted Convex](https://docs.convex.dev/self-hosting) is available. Its [deployment guide](https://github.com/get-convex/convex-backend/blob/main/self-hosted/README.md) includes PostgreSQL and other storage choices. Using PostgreSQL underneath Convex does not preserve Spellbook's SQL repositories or remove Convex's function and client contracts. Self hosting avoids the cloud usage bill while leaving the operator responsible for storage, upgrades, backups and service operation.
 
-## Comparison and unresolved choice
+## Current choice and alternatives
 
 Keeping PostgreSQL authoritative and exposing the existing use cases through a Spellbook API preserves the current data model and catalog behavior. That API can initially share the SvelteKit deployment. Account-scoped update notifications could tell connected clients to refetch affected resources after successful writes. That is a design proposal, not existing functionality. Authorization, notification delivery, multiple backend instances, reconnect recovery and draft preservation still need contracts and verification.
 
 Convex could reduce the work required for reactive queries if it owns the relevant state. That benefit must be weighed against data/query migration, SDK and authentication coupling, recurring cost and self-hosted operations. Adding Convex beside PostgreSQL just to mirror account records or relay notifications would create a second system to operate and synchronize. No such dual-store design is selected.
 
-The provider choice remains open pending a workload estimate, verified cost controls and the reviewed API, synchronization and deployment requirements. Keep research separate from the implemented architecture.
+The current pass retains PostgreSQL to preserve the existing data model and catalog while avoiding a provider migration and additional dependency. Convex remains an evaluated alternative. Reconsidering it needs a workload estimate, verified cost controls and a reviewed migration contract. Keep research separate from the implemented architecture.

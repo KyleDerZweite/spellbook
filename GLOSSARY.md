@@ -3,7 +3,7 @@
 - Status: Canonical domain glossary
 - Last Reviewed: 2026-10-06
 - Source of Truth: product specification, schema, catalog and account repositories
-- Update Triggers: card identity, inventory grouping, deck roles and availability, scan review, physical-card terminology, profile cards and metric placeholders
+- Update Triggers: card identity, inventory grouping, deck roles, categories and availability, scan review, physical-card terminology, profile cards and metric placeholders
 - Related Docs: [Product specification](docs/product/specification.md), [Catalog](docs/architecture/catalog.md), [Postgres](docs/architecture/postgres.md), [Card scanner and sorter](docs/integrations/card-robot.md)
 
 Spellbook describes MTG catalog identities, owned cards, deck requirements, and scan review in one context. This glossary owns terminology; the linked documents own behavior and proposed capabilities.
@@ -77,6 +77,10 @@ _Avoid_: Owned card, inventory entry
 **Deck role**:
 A deck entry's section, one of `main`, `sideboard`, `commander`, or `companion`.
 _Avoid_: Physical location, card type
+
+**Deck category**:
+A deck-owned primary grouping of entries by purpose. Each entry has at most one category, shared by all its copies. Uncategorized represents unassigned entries. A category does not change a deck role or establish ownership.
+_Avoid_: Deck role, inventory group, secondary tag
 
 **Deck availability**:
 A comparison of one deck's required quantities with its owner's inventory, allocating exact printing matches before alternate printings.

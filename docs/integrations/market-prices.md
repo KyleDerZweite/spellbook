@@ -8,6 +8,8 @@
 
 A daily shared price import from Scryfall is enough for an initial dashboard estimate. The existing bulk data already includes prices. Cardmarket offers public downloads for a specifically named Cardmarket trend price. Direct marketplace APIs are not a reliable basis for a new integration at present because both providers restrict new access. This recommendation is a proposal. Prices and trading are not implemented.
 
+On 2026-10-06, the maintainer included price/trading features in the next implementation pass. Trading starts with external product links. The maintainer wants daily price and tracking updates and accepts variation within a day. Valuation, transaction capture, cost basis and historical persistence still need a reviewed contract. The proposal below is not a complete accepted implementation contract.
+
 ## Current state in Spellbook
 
 The [Worker](../architecture/worker.md) downloads `all_cards` by default and syncs daily. [transform_card](../../worker/src/worker/transform.py) does not carry over `prices`, marketplace IDs, or `purchase_uris`. [CardDocument](../../frontend/src/lib/search/types.ts) also lacks these fields. The information is therefore available in the source, but not in the published application catalog.

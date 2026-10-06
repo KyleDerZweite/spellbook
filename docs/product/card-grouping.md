@@ -1,6 +1,6 @@
 # Card grouping
 
-- Status: Canonical, Inventory groups implemented; deck categories proposed
+- Status: Canonical, Inventory groups implemented; deck categories selected for design review
 - Last Reviewed: 2026-10-06
 - Source of Truth: maintainer grouping decision, inventory and deck implementations
 - Update Triggers: inventory groups, memberships, scan targets, deck category decisions
@@ -34,11 +34,11 @@ Groups represent whole entries, not scan batches or physical locations. If a sca
 
 Verify CRUD and reload persistence, empty groups, multiple memberships without duplicated Inventory totals, Cancel and failed save retention, group deletion without lost cards, quantity changes, entry-deletion cascades and account isolation. Invalid mixed membership requests must roll back completely. Check keyboard focus, pending guards, desktop/mobile rendering and existing Card Details and Search overlay behavior. Existing scan and deck behavior must remain independent.
 
-## Deck categories, proposed
+## Deck categories, design under review
 
-Deck categories remain a separate unaccepted proposal. Current Decks groups by card type or section and sorts by name or quantity. Existing roles identify Main deck, Commander, Sideboard and Companion; categories must remain separate from those sections. No deck categories are implemented by the Inventory group slice.
+On 2026-10-06, the maintainer included deck categories in the next implementation pass and selected one primary category per deck entry, separate from its role. Current Decks groups by card type or section and sorts by name or quantity. Existing roles identify Main deck, Commander, Sideboard and Companion. No deck categories are implemented by the Inventory group slice. Display, assignment suggestions and merge behavior still need the current design review.
 
-Give each deck entry one primary category. This keeps every entry in one visible group and makes the group totals add up. A card that draws a card and counters a spell can belong to Counterspells in one deck and Draw in another. Multiple secondary tags would be a separate filter, rather than changing the primary grouping.
+The selected contract gives each deck entry one optional primary category. All copies of that entry share the assignment. This keeps every entry in one visible group and makes the group totals add up. A card that draws a card and counters a spell can belong to Counterspells in one deck and Draw in another. Multiple secondary tags would be a separate filter, rather than changing the primary grouping.
 
 Deck categories belong to one deck. Deck categories do not change Inventory groups or the public catalog. Renaming a deck category does not rename another deck's categories.
 

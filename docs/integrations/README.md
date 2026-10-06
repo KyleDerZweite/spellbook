@@ -12,4 +12,4 @@ Scryfall ingestion belongs to the [worker architecture](../architecture/worker.m
 
 [Market price research](./market-prices.md) compares Scryfall and marketplace reference data for a later Inventory valuation. Prices, cost basis and trading connections are not implemented.
 
-[Realtime backend evaluation](./realtime-backends.md) records dated Convex pricing, client and auth coupling, and comparison with the proposed PostgreSQL/API update path. No provider or synchronization mechanism is selected.
+[Realtime backend evaluation](./realtime-backends.md) records dated Convex pricing, client and auth coupling, and the choice to retain PostgreSQL for the current pass. The synchronization mechanism remains under design review.

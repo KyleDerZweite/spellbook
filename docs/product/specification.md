@@ -16,9 +16,11 @@ The primary users are collectors maintaining a private owned-card ledger, player
 
 The core workflow is to find a printing, record its owned quantity, build or import a deck, inspect exact and alternate printing availability, edit the deck, and export it. Inventory ownership and deck requirements remain separate throughout this workflow.
 
-Public deck sharing, social feeds, marketplaces, financial portfolio management, collaborative editing, AI deck recommendations, native mobile clients, and gameplay simulation are outside the current scope. A separate future play application may consume catalog and deck data.
+Public deck sharing, social feeds, collaborative editing, AI deck recommendations and gameplay simulation remain outside this pass. Marketplace account connections and financial tracking are not implemented. The next-pass price/trading requirements are under review below. The separate app implementation remains later work. A separate future play application may consume catalog and deck data.
 
-Reliable card scanning and an installable mobile app are future product priorities. The working website, catalog, inventory, and deck tools provide their foundation. The [mobile and scan architecture](../architecture/mobile-and-scan.md) owns implementation status and the accepted PWA-first direction. An app download, production recognition, and direct camera capture are not currently available.
+On 2026-10-06, the maintainer selected clearer frontend/backend modules, shared app-ready contracts, online-first saved-state sync, UI consolidation, price/trading features and deck categories for the next implementation pass. These are planned requirements, not implemented capabilities. Price/trading details remain under review in [market price research](../integrations/market-prices.md); category details remain under review in [card grouping](./card-grouping.md#deck-categories-design-under-review). Physical locations and sorter integration, automatic scan recognition, gameplay and the separate app implementation remain later work. Existing workflows and the domain ownership model must survive the refactor.
+
+Reliable card scanning and an installable mobile app are future product priorities. The working website, catalog, inventory, and deck tools provide their foundation. The [mobile and scan architecture](../architecture/mobile-and-scan.md) owns implementation status and the recorded PWA-first direction. The separate app's technology will be selected in its later pass. An app download, production recognition, and direct camera capture are not currently available.
 
 ## Capability status
 
