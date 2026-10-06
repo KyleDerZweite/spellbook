@@ -1,5 +1,6 @@
 import { it, expect } from 'vitest';
 import { InventoryWindow } from '#lib/inventory/window.ts';
+import { inventoryRowSlots } from '#lib/inventory/rows.ts';
 import type { InventoryPage, InventoryQuery } from '@spellbook/contracts/inventory.ts';
 const query: InventoryQuery = {
 	q: '',
@@ -437,4 +438,65 @@ it('discards a waiting lookup on query replacement even if old transports ignore
 	pending.splice(0).forEach((finish) => finish());
 	await new Promise((resolve) => setTimeout(resolve, 0));
 	expect(window.metrics().requests).toBe(0);
+});
+
+it('keeps teardown callbacks on their captured entry after eviction and query replacement', async () => {
+	const initial = page();
+	const entry = {
+		id: 'entry',
+		inventoryId: 'inventory',
+		accountId: 'owner',
+		game: 'mtg' as const,
+		catalogCardId: 'printing',
+		canonicalCardId: 'oracle',
+		name: 'Card',
+		setCode: 'set',
+		imageUri: '',
+		quantity: 1,
+		finish: 'nonfoil' as const,
+		condition: 'NM' as const,
+		notes: 'saved notes',
+		notesRevision: '1',
+		spellbookPosition: 0,
+		createdAt: initial.viewedAt,
+		updatedAt: initial.viewedAt
+	};
+	initial.entries = [entry];
+	const window = new InventoryWindow(
+		async (q) => page(q.offset),
+		() => {}
+	);
+	window.seed('owner', initial);
+	const [captured] = inventoryRowSlots(initial.queryKey, [0], (index) => window.at(index));
+	const refs: Record<string, unknown> = {};
+	const staleCleanup = () => {
+		const card = { ...captured.entry!, createdAt: new Date(captured.entry!.createdAt) };
+		refs[card.id] = null;
+		return card;
+	};
+	for (let i = 1; i <= 20; i++) await window.request(i * 50);
+	expect(window.at(0)).toBeUndefined();
+	window.seed('owner', page(0, 'replacement'));
+	const [placeholder] = inventoryRowSlots('replacement', [0], (index) => window.at(index));
+	expect(placeholder.entry).toBeUndefined();
+	expect(placeholder.key).not.toBe(captured.key);
+	const [replaced] = inventoryRowSlots(initial.queryKey, [0], () => ({
+		...entry,
+		id: 'different-entry'
+	}));
+	expect(replaced.key).not.toBe(captured.key);
+	expect(() => new Date(window.at(0)!.createdAt)).toThrow(
+		"Cannot read properties of undefined (reading 'createdAt')"
+	);
+	expect(staleCleanup()).toMatchObject({ id: entry.id, notes: 'saved notes' });
+	expect(staleCleanup().createdAt.toISOString()).toBe(new Date(initial.viewedAt).toISOString());
+	expect(refs).toEqual({ entry: null });
+});
+
+it('changes placeholder identity without mixing query contexts', () => {
+	const [first] = inventoryRowSlots('first', [100], () => undefined);
+	const [second] = inventoryRowSlots('second', [100], () => undefined);
+	expect(first.key).not.toBe(second.key);
+	expect(first.entry).toBeUndefined();
+	expect(second.entry).toBeUndefined();
 });
