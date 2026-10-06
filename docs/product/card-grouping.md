@@ -8,7 +8,7 @@
 
 This proposal adds editable categories and consistent grouping controls to Decks and Inventory. It records recommendations for review, not implemented behavior or an accepted architecture. The [UI direction](./ui-design-direction.md) continues to own shared visual and interaction rules.
 
-Currently, Decks groups by card type or section and sorts by name or quantity. Inventory has no grouping control and sorts by name, set or recently updated. Neither workflow stores custom categories. Existing deck `role` values identify Main deck, Commander, Sideboard and Companion; categories must remain separate from those sections.
+Currently, Decks groups by card type or section and sorts by name or quantity. Inventory's clickable column headers support set grouping and additional finish, condition or quantity ordering. Its Card menu retains Recently updated. [Owned inventory](./specification.md#owned-inventory) defines this implemented behavior. Neither workflow stores custom categories. Existing deck `role` values identify Main deck, Commander, Sideboard and Companion; categories must remain separate from those sections.
 
 ## Presentation
 

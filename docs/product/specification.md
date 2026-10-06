@@ -85,13 +85,17 @@ Catalog data is shared reference data. Owned quantities, notes, and deck members
 
 ## Owned inventory
 
-Each account has one MTG inventory. Entries group by inventory, printing, finish, and condition. Repeated adds to the same group increase its quantity. Entries retain notes and an ordering position. The current inventory list uses the selected name, set, or recent-update sort.
+Each account has one MTG inventory. Entries group by inventory, printing, finish, and condition. Repeated adds to the same group increase its quantity. Entries retain notes and an ordering position. List sorting does not change that persisted identity or position.
 
 Supported finishes are `nonfoil` and `foil`. Supported conditions are `NM`, `LP`, `MP`, `HP`, and `DMG`. These are the persisted choices even when the source catalog describes additional finish types.
 
 The canonical bulk mutation path accepts add, set, decrement, and remove operations. Positive owned quantities remain stored; setting or decrementing to zero or less removes the entry. Invalid operations, finishes, conditions, and nonfinite quantities must fail validation. An error must not leave a partially applied bulk request.
 
-Users can inspect inventory as a compact list, search owned entries, filter by set and finish, and sort by name, set or recent update. Selecting a set reveals owned-name progress. Progress describes owned canonical cards rather than the count of every printing variant. Quantity edits preserve notes and the current filters. The inspector edits quantity and notes for the selected owned entry. The decrement control stops at one; explicit removal asks for confirmation.
+Users can inspect inventory as a compact list and search owned entries. Small selectors beside the Set, Finish and Condition headers apply filters with AND. The result count beside Search reports matching entries and their total copies. Clear filters preserves the selected ordering.
+
+Clicking Card sorts names ascending, and repeated clicks reverse the direction. Clicking Set groups entries by set code; repeated clicks reverse the set order while names within each set remain ascending. Either base header clears the additional ordering. Finish, Condition and Quantity apply one additional ordering at a time, before names and within sets when set grouping is active. Repeated clicks reverse that ordering. Finish starts with Nonfoil before Foil, Condition with `NM, LP, MP, HP, DMG`, and Quantity uses numeric order. Card's action menu retains Recently updated. A variant click from that mode returns to name ascending with the chosen variant ordering.
+
+Selecting a set reveals owned-name progress. Progress describes owned canonical cards rather than the count of every printing variant and ignores other list filters. Quantity edits preserve notes and the current filters. The inspector edits quantity and notes for the selected owned entry. The decrement control stops at one; explicit removal asks for confirmation.
 
 Physical locations, binder or box assignment, loans, individual copy identifiers, per-copy provenance, and physical movement history are planned. The inventory currently stores aggregate quantities. Catalog printing identity includes language, but there is no separate physical-copy language or location record. Inventory export and CSV exchange require separate implementation; deck text export does not establish inventory export support.
 

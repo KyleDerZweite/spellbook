@@ -123,7 +123,7 @@ JOIN catalog_generations g ON g.id = s.active_generation
 WHERE s.id = 1;
 ```
 
-A published row with a positive document count indicates catalog publication. The frontend can start before first publication and return empty search results. The worker writes its last attempt to `worker_data/state.json`, but that file is not a health endpoint or the publication authority. Inspect worker logs and the active generation to verify the catalog. Test public browser search and authenticated mutations before opening a fresh deployment to users.
+A published row with a positive document count indicates catalog publication. The frontend can start before first publication and return empty search results. `worker_data/state.json` records the last publication or failed synchronization attempt. Skipping an unchanged catalog does not update it; an earlier error can remain in that file. It is not a health endpoint or the publication authority. Inspect worker logs and the active generation to verify the catalog. Test public browser search and authenticated mutations before opening a fresh deployment to users.
 
 Use `daily` or `weekly` for the persistent compose worker. Reserve `manual` for the one-shot command below; the service restart policy would otherwise restart the completed process. To rerun synchronization once, stop the scheduled worker and run:
 

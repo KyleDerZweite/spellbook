@@ -829,7 +829,7 @@
 	.inspector-form .label {
 		margin: 0.25rem 0 0;
 	}
-	@media (max-width: 900px) {
+	@media (max-width: 1100px) {
 		.inventory-row {
 			grid-template-columns: minmax(0, 1fr) 108px 55px;
 			gap: 0.5rem;

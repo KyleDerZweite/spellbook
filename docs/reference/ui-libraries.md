@@ -1,7 +1,7 @@
 # Selected UI components
 
 - Status: Canonical
-- Last Reviewed: 2026-10-05
+- Last Reviewed: 2026-10-06
 - Source of Truth: accepted product decision, current application, upstream documentation
 - Update Triggers: component adoption, generated source ownership, Svelte or Tailwind compatibility, interaction requirements
 - Related Docs: [Reference](./README.md), [Bits UI](./bits-ui.md), [Frontend](../architecture/frontend.md), [Design direction](../product/ui-design-direction.md), [Product specification](../product/specification.md)
@@ -10,7 +10,7 @@ Spellbook uses shadcn-svelte source components with Bits UI, Svelte, and Tailwin
 
 shadcn-svelte supplies editable component source and Tailwind styling. The local Button uses existing CSS variants and Svelte class arrays; it adds no CLI or class-composition dependency. Bits UI supplies the keyboard, focus, and ARIA behavior for complex controls. Spellbook owns copied source, local changes, upstream fix adoption, and composed workflow behavior. Keep native inputs, checkboxes, radio groups, and buttons for simple form behavior. The avatar picker uses labeled native radios and the shared [Avatar](../../frontend/src/lib/components/profile/Avatar.svelte) renderer. Use the shared Select for option lists rather than adding a native select or another Bits composition.
 
-The shared Select owns neutral trigger and menu styling, selected checkmarks, portalling, disabled options, and Bits keyboard behavior. Pass `options`, an accessible `label`, and a value or `bind:value`. Use `name` for form submission instead of duplicating its hidden input. Keep selectors inside their forms. Callers own filtering and save behavior. Scan selectors explicitly clear review confirmation when their values change.
+The shared Select owns neutral trigger and menu styling, selected checkmarks, portalling, disabled options, and Bits keyboard behavior. Pass `options`, an accessible `label`, and a value or `bind:value`. Set `iconOnly` for a compact filter trigger; its accessible name includes the selected option. Callers must also display active filter values. Ordinary selectors retain the labeled input trigger. Use `name` for form submission instead of duplicating its hidden input. Keep selectors inside their forms. Callers own filtering and save behavior. Scan selectors explicitly clear review confirmation when their values change.
 
 ActionMenu owns action lists, link and download items, keyboard navigation, and the shared menu appearance. Use it for commands rather than option selection. Set `iconOnly` for the desktop account trigger to omit the chevron and reuse the shared icon-button styling. When a command opens a dialog, suppress the menu's close autofocus while that dialog opens, then return focus to the menu trigger when the dialog closes.
 

@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-06
 - Source of Truth: code and upstream runtime documentation
-- Update Triggers: routes, authentication, public landing, responsive layout, typography, development review controls, search, deck builder, component choices, runtime support and compatibility
+- Update Triggers: routes, authentication, public landing, responsive layout, typography, development review controls, search, inventory ordering and filters, deck builder, component choices, runtime support and compatibility
 - Related Docs: [System overview](./system-overview.md), [Auth](./auth.md), [Routes](../product/routing-and-games.md), [Catalog](./catalog.md), [Selected UI components](../reference/ui-libraries.md), [Design direction](../product/ui-design-direction.md)
 
 The SvelteKit application renders pages on the server and owns the application API. Svelte components and Tailwind styles implement the interface; Bits UI supplies accessible interactive components. The [selected component guidance](../reference/ui-libraries.md) owns shadcn-svelte source adoption and its boundary with existing Bits UI controls. The shared stylesheet defines the neutral light and dark, icon-accented card workspace design described in [design direction](../product/ui-design-direction.md).
@@ -39,6 +39,8 @@ Shared CSS styles native scrollbars with the theme-specific `--color-scrollbar` 
 The shared [error page](../../frontend/src/routes/+error.svelte) uses the existing shell and control styles. Missing pages offer Search and Home links; server errors also offer a retry of the current page.
 
 [CardInspector](../../frontend/src/lib/components/cards/CardInspector.svelte) owns shared printing selection and inspector content. Search renders it inline with Back to results inside its workspace. [CardDetail](../../frontend/src/lib/components/cards/CardDetail.svelte) retains the dialog lifecycle for Inventory and Decks, which supply action content through its existing snippet interface and retain responsibility for their mutations.
+
+The Inventory route owns local filter and order state, set progress, and the existing enhanced quantity, note and removal forms. The pure [inventory view helper](../../frontend/src/lib/mtg/inventory-view.ts) filters and orders copied arrays without changing stored entries. It defines header transitions and a stable set-code color convention. The route uses one metadata snippet for desktop and mobile rows, the shared Select for filter choices and ActionMenu for the Recent command. These view helpers have no runtime database dependency. [Owned inventory](../product/specification.md#owned-inventory) owns ordering semantics.
 
 [CardQuickAdd](../../frontend/src/lib/components/cards/CardQuickAdd.svelte) owns Search's enhanced inventory form, submission state and local result feedback. It reports pending state to its host through a callback. Pending additions block printing changes and dismissal. The absolute `/mtg/search?/addToInventory` server action remains the authenticated mutation boundary even over another route. Confirmed additions refresh background page data with `refreshAll` while preserving shallow history state and form inputs. A refresh failure keeps the confirmed success and asks for a page refresh. The [product specification](../product/specification.md#catalog-and-printing-identity) owns the pending, input-retention and retry contract.
 
