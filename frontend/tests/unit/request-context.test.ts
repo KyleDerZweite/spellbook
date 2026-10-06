@@ -37,6 +37,22 @@ describe('buildSearchContextKey', () => {
 			expect(changed).not.toBe(baseline);
 	});
 
+	it('includes page size and sort, and reuses case-insensitive server queries', () => {
+		const baseline = { game: 'mtg' as const, query: 'bolt', filters: {} };
+		expect(buildSearchContextKey(baseline)).toBe(
+			buildSearchContextKey({ ...baseline, query: ' BOLT ' })
+		);
+		expect(buildSearchContextKey(baseline)).not.toBe(
+			buildSearchContextKey({ ...baseline, limit: 100 })
+		);
+		expect(buildSearchContextKey(baseline)).not.toBe(
+			buildSearchContextKey({ ...baseline, sort: 'name:desc' })
+		);
+		expect(buildSearchContextKey({ ...baseline, query: 'a' })).toBe(
+			buildSearchContextKey({ ...baseline, query: '' })
+		);
+	});
+
 	it('changes across the browse and search boundary', () => {
 		expect(buildSearchContextKey({ game: 'mtg', query: 'a', filters: {} })).not.toBe(
 			buildSearchContextKey({ game: 'mtg', query: 'ab', filters: {} })

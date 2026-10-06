@@ -1,15 +1,32 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import type { CardDocument } from '#lib/search/types.ts';
+	import type { CatalogRange } from '#lib/search/catalogWindow.ts';
 	import CardGridItem from './CardGridItem.svelte';
 
 	interface Props {
-		cards: CardDocument[];
+		cards?: CardDocument[];
+		totalCount?: number;
+		getCard?: (index: number) => CardDocument | undefined;
+		onRangeChange?: (range: CatalogRange) => void;
+		resetKey?: number;
+		onFocusReset?: () => void;
 		selectedId?: string | null;
 		onSelect?: (card: CardDocument) => void;
 		class?: string;
 	}
 
-	let { cards, selectedId = null, onSelect, class: className = '' }: Props = $props();
+	let {
+		cards = [],
+		totalCount = cards.length,
+		getCard = (index: number) => cards[index],
+		onRangeChange,
+		resetKey = 0,
+		onFocusReset,
+		selectedId = null,
+		onSelect,
+		class: className = ''
+	}: Props = $props();
 
 	const GAP = 16;
 	const MIN_COL_WIDTH = 190;
@@ -20,6 +37,8 @@
 	let containerWidth = $state(0);
 	let viewportHeight = $state(0);
 	let visibleTop = $state(0);
+	let direction: 1 | -1 = $state(1);
+	let focused: { index: number; card: CardDocument } | null = $state(null);
 
 	const cols = $derived(
 		containerWidth > 0
@@ -32,7 +51,7 @@
 	const colWidth = $derived(cols > 0 ? (containerWidth - GAP * (cols - 1)) / cols : MIN_COL_WIDTH);
 	const imageHeight = $derived(colWidth * (7 / 5));
 	const rowHeight = $derived(imageHeight + INFO_HEIGHT + GAP);
-	const totalRows = $derived(Math.ceil(cards.length / cols));
+	const totalRows = $derived(Math.ceil(totalCount / cols));
 	const totalHeight = $derived(Math.max(0, totalRows > 0 ? totalRows * rowHeight - GAP : 0));
 
 	const startRow = $derived(
@@ -49,11 +68,36 @@
 	const visibleItems = $derived.by(() => {
 		if (endRow < startRow || containerWidth <= 0) return [];
 		const start = startRow * cols;
-		const end = Math.min(cards.length, (endRow + 1) * cols);
-		return cards.slice(start, end).map((card, i) => ({ card, index: start + i }));
+		const end = Math.min(totalCount, (endRow + 1) * cols);
+		const indices = Array.from({ length: end - start }, (_, index) => start + index);
+		if (focused && !indices.includes(focused.index)) {
+			indices.push(focused.index);
+			indices.sort((a, b) => a - b);
+		}
+		return indices.map((index) => ({
+			index,
+			card: focused?.index === index ? focused.card : getCard(index)
+		}));
 	});
 
-	const offsetY = $derived(startRow * rowHeight);
+	$effect(() => {
+		if (containerWidth <= 0 || endRow < startRow) return;
+		onRangeChange?.({
+			start: startRow * cols,
+			end: Math.min(totalCount, (endRow + 1) * cols),
+			direction
+		});
+	});
+
+	$effect(() => {
+		void resetKey;
+		if (!wrapperEl) return;
+		const wrapper = wrapperEl;
+		if (wrapper.contains(document.activeElement)) onFocusReset?.();
+		focused = null;
+		getScrollParent(wrapper).scrollTop = 0;
+		visibleTop = 0;
+	});
 
 	function getScrollParent(el: HTMLElement): HTMLElement {
 		let parent = el.parentElement;
@@ -75,7 +119,9 @@
 			viewportHeight = scrollParent.clientHeight;
 			const wr = wrapper.getBoundingClientRect();
 			const pr = scrollParent.getBoundingClientRect();
-			visibleTop = Math.max(0, pr.top - wr.top);
+			const nextTop = Math.max(0, pr.top - wr.top);
+			if (nextTop !== visibleTop) direction = nextTop > visibleTop ? 1 : -1;
+			visibleTop = nextTop;
 		}
 
 		const ro = new ResizeObserver(() => measure());
@@ -94,7 +140,7 @@
 		}
 
 		scrollParent.addEventListener('scroll', onScroll, { passive: true });
-		measure();
+		untrack(measure);
 
 		return () => {
 			ro.disconnect();
@@ -105,21 +151,54 @@
 
 <div bind:this={wrapperEl} class={className} style="height: {totalHeight}px; position: relative;">
 	{#if containerWidth > 0}
-		<div
-			class="grid"
-			style="
-				grid-template-columns: repeat({cols}, minmax(0, 1fr));
-				grid-auto-rows: {rowHeight - GAP}px;
-				gap: {GAP}px;
-				position: absolute;
-				left: 0;
-				right: 0;
-				top: {offsetY}px;
-			"
-		>
-			{#each visibleItems as { card } (card.id)}
-				<CardGridItem {card} selected={selectedId === card.id} {onSelect} />
-			{/each}
-		</div>
+		{#each visibleItems as { card, index } (index)}
+			<div
+				class="catalog-slot"
+				style="position: absolute; top: {Math.floor(index / cols) * rowHeight}px; left: {(index %
+					cols) *
+					(colWidth + GAP)}px; width: {colWidth}px; height: {rowHeight - GAP}px;"
+				onfocusin={() => {
+					if (card) focused = { index, card };
+				}}
+				onfocusout={(event) => {
+					if (!event.currentTarget.contains(event.relatedTarget as Node | null)) focused = null;
+				}}
+			>
+				{#if card}
+					<CardGridItem {card} selected={selectedId === card.id} {onSelect} />
+				{:else}
+					<div class="catalog-placeholder" aria-hidden="true">
+						<div class="catalog-placeholder-image"></div>
+						<div class="catalog-placeholder-name"></div>
+						<div class="catalog-placeholder-meta"></div>
+					</div>
+				{/if}
+			</div>
+		{/each}
 	{/if}
 </div>
+
+<style>
+	.catalog-slot :global(.card-grid-item) {
+		width: 100%;
+	}
+	.catalog-placeholder-image {
+		aspect-ratio: 5 / 7;
+		border-radius: 9px;
+		background: var(--color-slate);
+	}
+	.catalog-placeholder-name {
+		width: 75%;
+		height: 14px;
+		margin-top: 8px;
+		border-radius: 3px;
+		background: var(--color-slate);
+	}
+	.catalog-placeholder-meta {
+		width: 40%;
+		height: 12px;
+		margin-top: 4px;
+		border-radius: 3px;
+		background: var(--color-slate);
+	}
+</style>

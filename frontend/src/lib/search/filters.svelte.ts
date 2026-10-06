@@ -8,7 +8,7 @@ export class SearchFilterState {
 	selectedColors: Set<ManaColor> = $state(new Set());
 	selectedRarities: Set<Rarity> = $state(new Set());
 	selectedTypes: Set<CardType> = $state(new Set());
-	selectedLegalities: Set<LegalityFormat> = $state(new Set(['standard', 'commander']));
+	selectedLegalities: Set<LegalityFormat> = $state(new Set());
 
 	get catalogFilters(): CatalogFilters {
 		return {

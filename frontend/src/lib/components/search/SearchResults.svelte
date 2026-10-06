@@ -1,9 +1,14 @@
 <script lang="ts">
+	import type { CatalogRange } from '#lib/search/catalogWindow.ts';
 	import type { CardDocument } from '#lib/search/types.ts';
 	import VirtualCardGrid from '#lib/components/cards/VirtualCardGrid.svelte';
 
 	interface Props {
-		hits: CardDocument[];
+		totalCount: number;
+		getCard: (index: number) => CardDocument | undefined;
+		onRangeChange: (range: CatalogRange) => void;
+		resetKey: number;
+		onFocusReset: () => void;
 		loading: boolean;
 		error?: string | null;
 		query: string;
@@ -17,7 +22,11 @@
 	}
 
 	let {
-		hits,
+		totalCount,
+		getCard,
+		onRangeChange,
+		resetKey,
+		onFocusReset,
 		loading,
 		error = null,
 		query,
@@ -34,7 +43,7 @@
 </script>
 
 <div class="flex-1 {className}" aria-busy={loading}>
-	{#if error}
+	{#if error && totalCount === 0}
 		<!-- Error state -->
 		<div class="flex items-center justify-center py-20">
 			<div class="text-center">
@@ -44,38 +53,7 @@
 					>{/if}
 			</div>
 		</div>
-	{:else if loading && hits.length === 0}
-		<!-- Skeleton loading state -->
-		<div class="grid gap-4" style="grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));">
-			{#each Array(SKELETON_COUNT) as _, i}
-				<div
-					class="overflow-hidden rounded"
-					style="background-color: var(--color-stone); border: 1px solid var(--color-border);"
-				>
-					<div
-						style="aspect-ratio: 5 / 7; background-color: var(--color-slate); animation: skeleton-pulse 1.5s ease-in-out infinite; animation-delay: {i *
-							50}ms;"
-					></div>
-					<div class="px-2 py-2">
-						<div
-							class="mb-1 h-3 rounded"
-							style="width: {60 +
-								(i % 3) *
-									15}%; background-color: var(--color-slate); animation: skeleton-pulse 1.5s ease-in-out infinite; animation-delay: {i *
-								50 +
-								100}ms;"
-						></div>
-						<div
-							class="h-2.5 rounded"
-							style="width: 40%; background-color: var(--color-slate); animation: skeleton-pulse 1.5s ease-in-out infinite; animation-delay: {i *
-								50 +
-								200}ms;"
-						></div>
-					</div>
-				</div>
-			{/each}
-		</div>
-	{:else if hits.length === 0 && !loading && (browseMode || query.length >= 2)}
+	{:else if totalCount === 0 && !loading && (browseMode || query.length >= 2)}
 		<!-- Empty search state -->
 		<div class="flex items-center justify-center py-20">
 			<div class="text-center">
@@ -95,7 +73,21 @@
 					>{/if}
 			</div>
 		</div>
-	{:else if hits.length > 0}
-		<VirtualCardGrid cards={hits} {selectedId} {onSelect} />
+	{:else if totalCount > 0 || loading}
+		{#if error}
+			<div class="mb-3 flex flex-wrap items-center gap-3" role="alert">
+				<p class="text-sm text-error">{error}</p>
+				{#if onRetry}<button class="btn btn-secondary" onclick={onRetry}>Retry search</button>{/if}
+			</div>
+		{/if}
+		<VirtualCardGrid
+			totalCount={totalCount || SKELETON_COUNT}
+			{getCard}
+			{onRangeChange}
+			{resetKey}
+			{onFocusReset}
+			{selectedId}
+			{onSelect}
+		/>
 	{/if}
 </div>

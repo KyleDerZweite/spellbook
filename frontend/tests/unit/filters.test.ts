@@ -2,15 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { SearchFilterState } from '../../src/lib/search/filters.svelte.ts';
 
 describe('SearchFilterState', () => {
-	it('keeps the default standard and commander legality selection', () => {
+	it('starts with the complete catalog and no implicit legality restriction', () => {
 		const state = new SearchFilterState();
 		expect(state.catalogFilters).toEqual({
 			colors: [],
 			rarities: [],
 			types: [],
-			legalities: ['standard', 'commander']
+			legalities: []
 		});
-		expect(state.hasFilters).toBe(true);
+		expect(state.hasFilters).toBe(false);
 	});
 
 	it('toggles every category without changing the other categories', () => {
@@ -51,14 +51,15 @@ describe('SearchFilterState', () => {
 		before.legalities?.push('legacy');
 		expect(before.colors).toEqual([]);
 		expect(state.catalogFilters.colors).toEqual(['G']);
-		expect(state.catalogFilters.legalities).toEqual(['standard', 'commander']);
+		expect(state.catalogFilters.legalities).toEqual([]);
 	});
 
-	it('clears all selections including default legalities', () => {
+	it('clears all selected categories', () => {
 		const state = new SearchFilterState();
 		state.toggleColor('G');
 		state.toggleRarity('uncommon');
 		state.toggleType('Instant');
+		state.toggleLegality('commander');
 		state.clear();
 		expect(state.catalogFilters).toEqual({ colors: [], rarities: [], types: [], legalities: [] });
 		expect(state.hasFilters).toBe(false);

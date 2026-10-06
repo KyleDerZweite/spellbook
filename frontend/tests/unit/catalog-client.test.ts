@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
 	browseCards,
-	getFacets,
 	getSetCatalogSize,
 	searchCards,
 	searchPrintings
@@ -77,18 +76,20 @@ describe('authenticated catalog client', () => {
 		});
 	});
 
-	it('requests filtered facets without documents', async () => {
+	it('requests matching facets with the document page and preserves generation', async () => {
 		const facets = { colors: { R: 4 }, rarity: { rare: 4 }, set_code: { dom: 2 } };
-		fetchMock.mockResolvedValueOnce(Response.json({ ...empty, facets }));
-		const controller = new AbortController();
-		expect(await getFacets({ rarities: ['rare'] }, controller.signal)).toEqual(facets);
+		fetchMock.mockResolvedValueOnce(Response.json({ ...empty, query: 'bolt', facets }));
+		const result = await searchCards('bolt', { filters: { rarities: ['rare'] }, facets: true });
+		expect(result.facets).toEqual(facets);
+		expect(result.generationId).toBe('first');
 		expect(JSON.parse(fetchMock.mock.calls[0][1]!.body as string)).toEqual({
-			query: '',
+			query: 'bolt',
 			filters: { rarities: ['rare'] },
-			limit: 0,
+			limit: 20,
+			offset: 0,
 			facets: true
 		});
-		expect(fetchMock.mock.calls[0][1]?.signal).toBe(controller.signal);
+		expect(fetchMock).toHaveBeenCalledTimes(1);
 	});
 
 	it('uses a set-filtered canonical count for inventory progress', async () => {

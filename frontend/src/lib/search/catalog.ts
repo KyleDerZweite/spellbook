@@ -1,10 +1,4 @@
-import type {
-	CatalogFilters,
-	CatalogSearchRequest,
-	FacetResponse,
-	Game,
-	SearchResult
-} from './types.ts';
+import type { CatalogFilters, CatalogSearchRequest, Game, SearchResult } from './types.ts';
 
 const CATALOG_API = '/api/catalog';
 
@@ -41,6 +35,7 @@ export interface SearchOptions {
 	limit?: number;
 	offset?: number;
 	sort?: CatalogSearchRequest['sort'];
+	facets?: boolean;
 	signal?: AbortSignal;
 }
 
@@ -58,7 +53,8 @@ export async function searchCards(
 			filters: options.filters,
 			limit: options.limit ?? 20,
 			offset: options.offset ?? 0,
-			sort: options.sort
+			sort: options.sort,
+			facets: options.facets
 		},
 		options.signal
 	);
@@ -72,18 +68,11 @@ export async function browseCards(options: SearchOptions = {}): Promise<SearchRe
 			filters: options.filters,
 			limit: options.limit ?? 50,
 			offset: options.offset ?? 0,
-			sort: options.sort ?? 'name:asc'
+			sort: options.sort ?? 'name:asc',
+			facets: options.facets
 		},
 		options.signal
 	);
-}
-
-export async function getFacets(
-	filters?: CatalogFilters,
-	signal?: AbortSignal
-): Promise<FacetResponse> {
-	const result = await search({ query: '', filters, limit: 0, facets: true }, signal);
-	return result.facets ?? { colors: {}, rarity: {}, set_code: {} };
 }
 
 /** Card detail needs all printings; the API caps each page at 100. */
