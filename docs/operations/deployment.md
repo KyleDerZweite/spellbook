@@ -3,8 +3,8 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: repo config
-- Update Triggers: compose services and first startup, catalog import and recovery, images, local launch commands and preview target, environment variables, migrations, storage, workspace ownership and compatibility adapters, Inventory ICU preflight and collation recovery
-- Related Docs: [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Classifier research](../integrations/card-categorization.md)
+- Update Triggers: compose services and first startup, catalog import and recovery, images, local launch commands and preview target, environment variables, migrations, storage, workspace ownership and compatibility adapters, Inventory ICU preflight and collation recovery, Deck revision/acknowledgement migrations
+- Related Docs: [Postgres](../architecture/postgres.md), [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Classifier research](../integrations/card-categorization.md)
 
 The canonical service definitions are [`podman-compose.yml`](../../podman-compose.yml) and the local storage override [`podman-compose.dev.yml`](../../podman-compose.dev.yml). Keep live domains, account details, and secret references in private operator notes.
 
@@ -95,6 +95,8 @@ The optional `TYPESAFE_API_KEY` in `.env.example` belongs only to the isolated [
 ## Storage and upgrades
 
 Migration `0005` adds nullable request fingerprints without rewriting existing mutation history. New conflicting request-ID reuse returns HTTP 409; old null-hash records retain their earlier replay behavior. The [Postgres contract](../architecture/postgres.md#mutation-replay) owns the details.
+
+[Migration 0012](../../frontend/drizzle/0012_deck_contracts.sql) adds Deck Description/composition revisions and persisted compact acknowledgements, retaining request records after Deck deletion. Run the existing migrator for the integrated migration history before starting these Deck contracts. [Postgres](../architecture/postgres.md#deck-persistence-and-reads) owns their persistence semantics. Existing operator commands, database/image ownership and dependencies are unchanged.
 
 PostgreSQL and worker status use named volumes. Back up account data before migrations and keep a tested restore procedure. Image versions and runtime pins live in compose, Dockerfiles, and package manifests. Keep these files and lockfiles together when deploying an update.
 

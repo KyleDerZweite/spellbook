@@ -54,31 +54,33 @@ Public read-only browser endpoints are `GET` and `POST /api/catalog/search` and 
 
 All paths below begin with `/api/mobile/v1/mtg`. The historical `mobile` name does not restrict clients to mobile devices.
 
-| Relative path                                              | Purpose                                                   |
-| ---------------------------------------------------------- | --------------------------------------------------------- |
-| `/search`                                                  | Catalog queries                                           |
-| `/cards/[oracleId]/printings`                              | Printings for a canonical card                            |
-| `/inventory`                                               | Account inventory                                         |
-| `/inventory/batch-add`                                     | Batch additions                                           |
-| `/inventory/bulk`                                          | Idempotent inventory mutations                            |
-| `/inventory/import/preview`                                | Text import interpretation                                |
-| `/inventory/import/commit`                                 | Resolved inventory import                                 |
-| `/inventory/[entryId]`                                     | Owned entry GET and legacy mutation                       |
-| `/decks`                                                   | Account deck list and creation                            |
-| `/decks/[deckId]`                                          | Owned deck retrieval, metadata changes, and deletion      |
-| `/decks/[deckId]/availability`                             | Owned deck availability counts without inventory mutation |
-| `/decks/[deckId]/cards`                                    | Deck entries and additions                                |
-| `/decks/[deckId]/cards/bulk`                               | Idempotent deck entry mutations                           |
-| `/decks/[deckId]/export`                                   | Arena-style text export                                   |
-| `/decks/import/preview`                                    | Deck text interpretation and warnings                     |
-| `/decks/import/commit`                                     | Resolved deck import                                      |
-| `/deck-cards/[entryId]`                                    | Deck entry mutation                                       |
-| `/scan/sessions`                                           | Account scan session creation and latest-session listing  |
-| `/scan/sessions/[sessionId]/frames`                        | Scan artifact submission                                  |
-| `/scan/sessions/[sessionId]/result`                        | Candidate retrieval                                       |
-| `/scan/sessions/[sessionId]/artifacts/[artifactId]/result` | Catalog-validated external candidate-result replacement   |
-| `/scan/artifacts/[artifactId]/image`                       | Owned original image retrieval                            |
-| `/scan/review/commit`                                      | Explicit inventory commit of reviewed candidates          |
+| Relative path                                              | Purpose                                                        |
+| ---------------------------------------------------------- | -------------------------------------------------------------- |
+| `/search`                                                  | Catalog queries                                                |
+| `/cards/[oracleId]/printings`                              | Printings for a canonical card                                 |
+| `/inventory`                                               | Account inventory                                              |
+| `/inventory/batch-add`                                     | Batch additions                                                |
+| `/inventory/bulk`                                          | Idempotent inventory mutations                                 |
+| `/inventory/import/preview`                                | Text import interpretation                                     |
+| `/inventory/import/commit`                                 | Resolved inventory import                                      |
+| `/inventory/[entryId]`                                     | Owned entry GET and legacy mutation                            |
+| `/decks`                                                   | Account deck list and creation                                 |
+| `/decks/search`                                            | Authenticated Catalog search with bounded ownership aggregates |
+| `/decks/ownership`                                         | Owned-printing aggregates for at most 100 canonical identities |
+| `/decks/[deckId]`                                          | Owned deck retrieval, metadata changes, and deletion           |
+| `/decks/[deckId]/availability`                             | Owned deck availability counts without inventory mutation      |
+| `/decks/[deckId]/cards`                                    | Deck entries and additions                                     |
+| `/decks/[deckId]/cards/bulk`                               | Idempotent deck entry mutations                                |
+| `/decks/[deckId]/export`                                   | Arena-style text export                                        |
+| `/decks/import/preview`                                    | Deck text interpretation and warnings                          |
+| `/decks/import/commit`                                     | Resolved deck import                                           |
+| `/deck-cards/[entryId]`                                    | Deck entry mutation                                            |
+| `/scan/sessions`                                           | Account scan session creation and latest-session listing       |
+| `/scan/sessions/[sessionId]/frames`                        | Scan artifact submission                                       |
+| `/scan/sessions/[sessionId]/result`                        | Candidate retrieval                                            |
+| `/scan/sessions/[sessionId]/artifacts/[artifactId]/result` | Catalog-validated external candidate-result replacement        |
+| `/scan/artifacts/[artifactId]/image`                       | Owned original image retrieval                                 |
+| `/scan/review/commit`                                      | Explicit inventory commit of reviewed candidates               |
 
 `GET /inventory/[entryId]/location` locates an owned entry within a normalized query at an expected revision. [The Inventory HTTP contract](../architecture/mobile-and-scan.md#bounded-inventory-http-reads) records the experimental v1 snapshot-to-page migration and errors.
 
