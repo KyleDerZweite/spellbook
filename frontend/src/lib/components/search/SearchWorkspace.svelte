@@ -146,49 +146,13 @@
 			</button>
 			{@render controls?.()}
 		</div>
-		{#if activeFilters.length && !selectedCard}
-			<div
-				class="mt-1 flex flex-wrap items-center gap-x-1"
-				role="group"
-				aria-label="Active filters"
-			>
-				{#each activeFilters as filter (filter.key)}
-					<button
-						type="button"
-						class="btn btn-ghost min-h-11 gap-2 px-2 text-xs"
-						aria-label={`Remove ${filter.label} filter`}
-						onclick={filter.remove}
-					>
-						{filter.label}
-						<svg
-							aria-hidden="true"
-							width="12"
-							height="12"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="1.7"
-							stroke-linecap="round"><path d="m6 6 12 12M6 18 18 6" /></svg
-						>
-					</button>
-				{/each}
-				<button
-					type="button"
-					class="btn btn-ghost min-h-11 px-2 text-xs text-text-muted underline underline-offset-4"
-					onclick={() => filters.clear()}>Clear filters</button
-				>
-			</div>
-		{/if}
 	</div>
 
 	<div class="border-t border-border" aria-hidden="true"></div>
 
 	<div class="relative flex min-h-0 flex-1">
 		<div class="flex min-h-0 flex-1 gap-0" style:visibility={selectedCard ? 'hidden' : undefined}>
-			<div
-				class="hidden shrink-0 overflow-y-auto px-6 py-4 md:block"
-				style="border-right: 1px solid var(--color-border);"
-			>
+			<div class="search-sidebar hidden shrink-0 overflow-y-auto md:block">
 				<SearchFilters {filters} {facets} />
 			</div>
 
@@ -212,20 +176,25 @@
 
 			<div
 				bind:this={resultsElement}
-				class="min-w-0 flex-1 overflow-y-auto p-3 sm:p-4"
+				class="search-results-pane min-w-0 flex-1 overflow-y-auto p-3 sm:p-4"
 				aria-label="Card results"
 			>
-				{#if !error}<div
-						class="mb-4 flex items-center justify-between gap-3 text-xs text-text-muted"
+				<div class="search-status" aria-live="polite">
+					<span class="result-count"
+						>{loading && !snapshot.total
+							? 'Finding cards…'
+							: `${snapshot.total.toLocaleString()} ${snapshot.total === 1 ? 'card' : 'cards'}`}</span
 					>
-						<span aria-live="polite"
-							>{loading
-								? snapshot.total
-									? `${snapshot.total.toLocaleString()} cards · Loading range…`
-									: 'Finding cards…'
-								: `${snapshot.total.toLocaleString()} ${snapshot.total === 1 ? 'card' : 'cards'}`}</span
+					{#if error}
+						<span class="search-status-error" title={error}
+							>Search unavailable<span class="sr-only">: {error}</span></span
 						>
-					</div>{/if}
+						<button type="button" class="status-retry" onclick={() => catalog.retry()}>Retry</button
+						>
+					{:else if loading && snapshot.total}
+						<span class="text-text-muted">Loading…</span>
+					{/if}
+				</div>
 				<SearchResults
 					totalCount={snapshot.total}
 					getCard={(index) => cardAt(snapshot, index)}
@@ -255,6 +224,51 @@
 </div>
 
 <style>
+	.search-sidebar {
+		width: 288px;
+		padding: 12px 16px;
+		border-right: 1px solid var(--color-border);
+		scrollbar-gutter: stable;
+	}
+	.search-results-pane {
+		scrollbar-gutter: stable;
+	}
+	.search-status {
+		display: flex;
+		position: sticky;
+		top: 0;
+		z-index: 10;
+		height: 40px;
+		align-items: center;
+		gap: 12px;
+		margin-bottom: 8px;
+		font-size: 12px;
+		color: var(--color-text-muted);
+		background: var(--color-background);
+	}
+	.result-count {
+		flex-shrink: 0;
+		font-variant-numeric: tabular-nums;
+	}
+	.search-status-error {
+		overflow: hidden;
+		color: var(--color-error);
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.status-retry {
+		flex-shrink: 0;
+		min-height: 32px;
+		border: 0;
+		background: none;
+		padding: 4px 0;
+		font: inherit;
+		color: var(--color-text-primary);
+		text-decoration: underline;
+		text-underline-offset: 4px;
+		cursor: pointer;
+	}
+
 	@media (max-width: 767px) {
 		.search-toolbar {
 			flex-wrap: wrap;

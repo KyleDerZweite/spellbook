@@ -60,8 +60,6 @@
 			<div class="text-center">
 				<p class="font-body text-sm text-error">Search failed</p>
 				<p class="mt-2 max-w-md font-body text-sm text-text-muted">{error}</p>
-				{#if onRetry}<button class="btn btn-secondary mt-4" onclick={onRetry}>Retry search</button
-					>{/if}
 			</div>
 		</div>
 	{:else if totalCount === 0 && !loading && (browseMode || query.length >= 2)}
@@ -85,15 +83,6 @@
 			</div>
 		</div>
 	{:else if totalCount > 0 || loading}
-		{#if error}
-			<div
-				class="sticky top-0 z-10 mb-3 flex flex-wrap items-center gap-3 bg-background py-2"
-				role="alert"
-			>
-				<p class="text-sm text-error">{error}</p>
-				{#if onRetry}<button class="btn btn-secondary" onclick={onRetry}>Retry search</button>{/if}
-			</div>
-		{/if}
 		<VirtualCardGrid
 			totalCount={totalCount || SKELETON_COUNT}
 			{getCard}
