@@ -6,7 +6,9 @@
 - Update Triggers: provider pricing, usage limits, client support, authentication requirements, accepted backend and synchronization contracts
 - Related Docs: [Integrations](./README.md), [System overview](../architecture/system-overview.md#boundary-redesign-under-review), [Authentication](../architecture/auth.md), [Catalog](../architecture/catalog.md), [Postgres](../architecture/postgres.md), [Mobile and scan](../architecture/mobile-and-scan.md)
 
-The maintainer prefers self hosting but will consider a managed backend if its benefits and recurring cost justify the dependency. This pass prepares a separate backend for the web client and a later app. The selected synchronization scope is online-first visibility of saved account changes, with fresh reads after reconnect or app resume. Offline writes are outside this pass. This evaluation does not select a provider or implement synchronization.
+The maintainer prefers self hosting but will consider a managed backend if its benefits and recurring cost justify the dependency. On 2026-10-06, the maintainer set an ideal managed-service cost of $0 and a maximum of $10 per month, in addition to any retained hosting costs. Professional's listed base fee exceeds that ceiling before usage. Free or Starter needs a representative workload estimate and verified cost controls before adoption.
+
+This pass prepares backend contracts for the web client and a later app in one SvelteKit deployment. Independent backend deployment and a complete external HTTP adapter for web server calls are deferred. The [system overview](../architecture/system-overview.md#boundary-redesign-under-review) owns the selected module and synchronization contracts. This evaluation does not select a provider or implement synchronization.
 
 ## Convex capabilities and coupling
 
@@ -28,6 +30,8 @@ These prices were checked on 2026-10-06. The [pricing page](https://www.convex.d
 
 Free has hard resource caps; Starter supports usage-based overages. Function-call usage includes subscription updates, so the number of connected subscribers and changed query results affects cost. Action compute, file storage and search usage have separate allowances and charges. Convex's database-storage billing guidance counts each index as another table copy, which makes index selection relevant to a catalog estimate. See [pricing](https://www.convex.dev/pricing), [production limits](https://docs.convex.dev/production/state/limits) and [index guidance](https://docs.convex.dev/understanding/best-practices). The base price is not a complete Spellbook bill estimate.
 
+An active subscription can configure a team-wide warning threshold or a hard disable threshold. The warning only sends email. Exceeding the disable threshold stops all projects in the team and causes function calls to fail. The threshold covers metered usage above plan allowances and excludes developer seat fees. A $10 threshold is a practical service stop, but the documentation does not specify metering overshoot or guarantee an invoice ceiling to the cent. See [spending limits](https://docs.convex.dev/dashboard/teams/teams#spending-limits). Free deployments may return HTTP errors after extended quota excess; see the [pricing FAQ](https://www.convex.dev/pricing/faq).
+
 A useful estimate needs the chosen region, developer count, transformed catalog and index sizes, connected clients, subscriptions per client, write frequency, result sizes, scan-image retention and database/search I/O. No representative Convex workload or full-catalog cost measurement has been performed.
 
 ## Catalog and self-hosting implications
@@ -38,8 +42,8 @@ Convex documents limits on document size, transaction reads/writes, indexes and 
 
 ## Comparison and unresolved choice
 
-Keeping PostgreSQL authoritative and exposing the existing use cases through a separate Spellbook API preserves the current data model and catalog behavior. Account-scoped update notifications could tell connected clients to refetch affected resources after successful writes. That is a design proposal, not existing functionality. Authorization, notification delivery, multiple backend instances, reconnect recovery and draft preservation still need contracts and verification.
+Keeping PostgreSQL authoritative and exposing the existing use cases through a Spellbook API preserves the current data model and catalog behavior. That API can initially share the SvelteKit deployment. Account-scoped update notifications could tell connected clients to refetch affected resources after successful writes. That is a design proposal, not existing functionality. Authorization, notification delivery, multiple backend instances, reconnect recovery and draft preservation still need contracts and verification.
 
 Convex could reduce the work required for reactive queries if it owns the relevant state. That benefit must be weighed against data/query migration, SDK and authentication coupling, recurring cost and self-hosted operations. Adding Convex beside PostgreSQL just to mirror account records or relay notifications would create a second system to operate and synchronize. No such dual-store design is selected.
 
-The provider choice remains open pending the maintainer's cost ceiling and the reviewed API, synchronization and deployment requirements. Keep research separate from the implemented architecture.
+The provider choice remains open pending a workload estimate, verified cost controls and the reviewed API, synchronization and deployment requirements. Keep research separate from the implemented architecture.

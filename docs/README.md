@@ -10,14 +10,14 @@ Start with the [product specification](./product/specification.md) for current b
 
 Use the [issue label rules](./ISSUE_LABELS.md) for repository triage and the [contribution policy](../CONTRIBUTING.md) for proposals, pull requests, and AI assistance disclosure.
 
-| Section                                  | Owns                                                                             |
-| ---------------------------------------- | -------------------------------------------------------------------------------- |
-| [Product](./product/README.md)           | Specification, terminology, routes, and design direction                         |
-| [Architecture](./architecture/README.md) | Service boundaries, data contracts, authentication, and recognition proposals    |
-| [Operations](./operations/README.md)     | Deployment, environment variables, account recovery, and repository verification |
-| [Integrations](./integrations/README.md) | External scanner and sorter proposals, market-price research                     |
-| [Decisions](./decisions/README.md)       | Significant choices, tradeoffs, and explicit supersession                        |
-| [Reference](./reference/README.md)       | Selected components and external dependency documentation                        |
+| Section                                  | Owns                                                                              |
+| ---------------------------------------- | --------------------------------------------------------------------------------- |
+| [Product](./product/README.md)           | Specification, terminology, routes, and design direction                          |
+| [Architecture](./architecture/README.md) | Service boundaries, data contracts, authentication, and recognition proposals     |
+| [Operations](./operations/README.md)     | Deployment, environment variables, account recovery, and repository verification  |
+| [Integrations](./integrations/README.md) | External scanner and sorter proposals, market-price and realtime backend research |
+| [Decisions](./decisions/README.md)       | Significant choices, tradeoffs, and explicit supersession                         |
+| [Reference](./reference/README.md)       | Selected components and external dependency documentation                         |
 
 ## Maintenance
 

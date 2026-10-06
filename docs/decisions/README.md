@@ -48,4 +48,4 @@ Rules:
 
 - [ADR-0013: Game-prefixed workspaces](./0013-game-prefixed-workspaces.md)
 
-- [ADR-0014: Public Landing und privater Workspace](./0014-public-landing-and-private-workspace.md)
+- [ADR-0014: Public landing and private workspace](./0014-public-landing-and-private-workspace.md)

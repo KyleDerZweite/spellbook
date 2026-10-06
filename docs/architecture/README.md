@@ -1,9 +1,9 @@
 # Architecture
 
 - Status: Canonical
-- Last Reviewed: 2026-10-05
+- Last Reviewed: 2026-10-06
 - Source of Truth: code
-- Update Triggers: schema changes, repository changes, auth flow changes, worker flow changes, service boundary changes
+- Update Triggers: schema changes, repository changes, auth flow changes, worker flow changes, service boundaries and reviewed module contracts
 - Related Docs: [System Overview](./system-overview.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Worker](./worker.md), [Catalog](./catalog.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Docs Index](../README.md)
 
 Architecture documents distinguish implemented boundaries from explicitly marked proposals. Use the product specification for requirements and current workflow scope.
