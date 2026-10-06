@@ -211,8 +211,8 @@
 	<title>Search | Spellbook</title>
 </svelte:head>
 
-<div class="flex h-full flex-col">
-	<div class="shrink-0 px-4 pt-4 pb-3 sm:px-6 sm:pt-6 sm:pb-4">
+<div class="workspace-container flex h-full flex-col">
+	<div class="shrink-0 pb-3 sm:pb-4">
 		<div class="flex items-center justify-between gap-3">
 			<div>
 				<div class="page-title">
@@ -274,7 +274,7 @@
 		{/if}
 	</div>
 
-	<div class="border-t border-border mx-4 sm:mx-6" aria-hidden="true"></div>
+	<div class="border-t border-border" aria-hidden="true"></div>
 
 	<div class="flex min-h-0 flex-1 gap-0">
 		<div

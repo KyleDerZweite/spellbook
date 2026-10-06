@@ -211,7 +211,7 @@
 	><title>{selectedDeck ? `${selectedDeck.name} | Decks` : 'Decks'} | Spellbook</title></svelte:head
 >
 
-<div class="builder">
+<div class="builder workspace-container">
 	<header class="builder-heading">
 		<div>
 			<div class="page-title deck-page-title">
@@ -823,11 +823,6 @@
 {/if}
 
 <style>
-	.builder {
-		max-width: 1600px;
-		margin: auto;
-		padding: 1.5rem 2rem;
-	}
 	.builder-heading,
 	.deck-picker,
 	.deck-actions,
@@ -1213,9 +1208,6 @@
 		color: var(--color-error);
 	}
 	@media (max-width: 1000px) {
-		.builder {
-			padding: 1rem;
-		}
 		.workspace {
 			grid-template-columns: 1fr;
 		}

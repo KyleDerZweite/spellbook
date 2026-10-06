@@ -241,7 +241,7 @@
 	}
 </script>
 
-<div class="mx-auto max-w-6xl space-y-5 px-4 py-6 text-sm sm:px-6">
+<div class="workspace-container space-y-5 text-sm">
 	<div class="flex flex-wrap items-center justify-between gap-3">
 		<div class="page-title">
 			<h1>Scan</h1>

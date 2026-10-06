@@ -132,7 +132,7 @@ body {
 }
 
 :root {
-	--layout-wide-width: clamp(100rem, 84vw, 150rem);
+	--layout-wide-width: clamp(72rem, 84vw, 150rem);
 }
 
 html {
@@ -599,4 +599,12 @@ button:disabled {
 			font-size: 1rem;
 		}
 	}
+}
+
+/* Shared outer width for every account workspace. */
+.workspace-container {
+	width: min(calc(100% - 2rem), var(--layout-wide-width));
+	min-width: 0;
+	margin-inline: auto;
+	padding-block: 1.5rem 2.5rem;
 }

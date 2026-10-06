@@ -141,7 +141,7 @@
 
 <svelte:head><title>Inventory | Spellbook</title></svelte:head>
 
-<div class="inventory-page">
+<div class="inventory-page workspace-container">
 	<div class="inventory-heading">
 		<div>
 			<div class="page-title"><h1>Inventory</h1></div>
@@ -358,12 +358,6 @@
 {/if}
 
 <style>
-	.inventory-page {
-		width: 100%;
-		max-width: 1280px;
-		margin: 0 auto;
-		padding: 1.5rem 2rem 2.5rem;
-	}
 	.inventory-heading {
 		display: flex;
 		align-items: center;
@@ -617,9 +611,6 @@
 		margin: 0.25rem 0 0;
 	}
 	@media (max-width: 900px) {
-		.inventory-page {
-			padding: 1.5rem;
-		}
 		.inventory-toolbar {
 			grid-template-columns: repeat(3, minmax(0, 1fr));
 		}
@@ -645,9 +636,6 @@
 		}
 	}
 	@media (max-width: 560px) {
-		.inventory-page {
-			padding: 1rem;
-		}
 		.inventory-heading {
 			align-items: flex-start;
 			gap: 0.5rem;

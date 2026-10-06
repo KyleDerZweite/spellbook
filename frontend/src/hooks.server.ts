@@ -5,7 +5,13 @@ import { SESSION_COOKIE, clearSessionCookie, validateSession } from '#lib/server
 import { ACTIVE_GAME_COOKIE, DEFAULT_GAME, isAvailableGame } from '#lib/state/activeGame.svelte.ts';
 
 const PUBLIC_PATH_PREFIXES = ['/auth/', '/privacy', '/terms'];
-const PROTECTED_PATH_PREFIXES = ['/mtg/inventory', '/mtg/decks', '/mtg/scan', '/settings'];
+const PROTECTED_PATH_PREFIXES = [
+	'/mtg/dashboard',
+	'/mtg/inventory',
+	'/mtg/decks',
+	'/mtg/scan',
+	'/settings'
+];
 const NO_INDEX_PATH_PREFIXES = ['/auth/', '/api/', '/mtg/', '/settings'];
 const LEGACY_PAGE_PATHS = ['/search', '/inventory', '/decks', '/scan'];
 

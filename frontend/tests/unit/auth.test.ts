@@ -67,8 +67,9 @@ describe('local auth', () => {
 			'/\nlocation',
 			null
 		])
-			expect(sanitizeReturnTo(value)).toBe('/');
+			expect(sanitizeReturnTo(value)).toBe('/mtg/inventory');
 		expect(sanitizeReturnTo('/decks?q=test')).toBe('/decks?q=test');
+		expect(sanitizeReturnTo('/')).toBe('/');
 	});
 	it('requires the same origin on browser mutations', () => {
 		const url = new URL('https://spellbook.test/auth/login');
@@ -161,19 +162,28 @@ describe('local auth', () => {
 		expect(response.headers.get('x-robots-tag')).toBe(NO_INDEX_ROBOTS_TAG);
 		expect(jar.delete).toHaveBeenCalledWith(SESSION_COOKIE, { path: '/' });
 	});
-	it('protects settings and marks authenticated responses as noindex', async () => {
-		const url = new URL('https://spellbook.test/settings');
-		const event = { url, request: new Request(url), cookies: cookies(), locals: {} };
-		const resolve = vi.fn().mockResolvedValue(new Response('settings'));
-		const unauthenticated = await handle({ event, resolve } as never);
-		expect(unauthenticated.status).toBe(302);
-		expect(unauthenticated.headers.get('location')).toBe('/auth/login?returnTo=%2Fsettings');
-		expect(resolve).not.toHaveBeenCalled();
-		mocks.validateSession.mockResolvedValue({ accountId: 'account', username: 'mage', email: '' });
-		const authenticated = await handle({ event, resolve } as never);
-		expect(authenticated.status).toBe(200);
-		expect(authenticated.headers.get('x-robots-tag')).toBe(NO_INDEX_ROBOTS_TAG);
-	});
+	it.each(['/settings', '/mtg/dashboard', '/mtg/dashboard?tab=decks'])(
+		'protects %s and marks authenticated responses as noindex',
+		async (path) => {
+			const url = new URL(path, 'https://spellbook.test');
+			const event = { url, request: new Request(url), cookies: cookies(), locals: {} };
+			const resolve = vi.fn().mockResolvedValue(new Response('settings'));
+			const unauthenticated = await handle({ event, resolve } as never);
+			expect(unauthenticated.status).toBe(302);
+			expect(unauthenticated.headers.get('location')).toBe(
+				`/auth/login?returnTo=${encodeURIComponent(path)}`
+			);
+			expect(resolve).not.toHaveBeenCalled();
+			mocks.validateSession.mockResolvedValue({
+				accountId: 'account',
+				username: 'mage',
+				email: ''
+			});
+			const authenticated = await handle({ event, resolve } as never);
+			expect(authenticated.status).toBe(200);
+			expect(authenticated.headers.get('x-robots-tag')).toBe(NO_INDEX_ROBOTS_TAG);
+		}
+	);
 	it('rejects foreign-origin settings forms before resolving the action', async () => {
 		const url = new URL('https://spellbook.test/settings');
 		const resolve = vi.fn();

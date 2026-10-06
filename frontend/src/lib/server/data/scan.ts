@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq } from 'drizzle-orm';
 import { mutationFingerprint, RequestConflictError } from './request-fingerprint';
 import { db } from '#lib/server/db/client.ts';
 import {
@@ -525,4 +525,19 @@ export async function submitScanResult(
 		candidates
 	};
 	return { artifact, result };
+}
+
+/** Full account count, independent of the recent-session list limit. */
+export async function countPendingScanReviews(accountId: string, game = 'mtg'): Promise<number> {
+	const [result] = await db
+		.select({ total: count() })
+		.from(scanSessions)
+		.where(
+			and(
+				eq(scanSessions.accountId, accountId),
+				eq(scanSessions.game, game),
+				eq(scanSessions.status, 'pending_review')
+			)
+		);
+	return result.total;
 }

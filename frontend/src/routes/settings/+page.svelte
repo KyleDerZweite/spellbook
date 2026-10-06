@@ -15,7 +15,7 @@
 	<meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
-<div class="settings-page">
+<div class="settings-page workspace-container">
 	<h1 class="font-display text-2xl font-semibold tracking-tight text-text-primary">Settings</h1>
 	<div class="settings-identity">
 		<Avatar id={data.user.avatarId} size={48} />
@@ -81,10 +81,10 @@
 
 <style>
 	.settings-page {
-		width: 100%;
+		min-width: 0;
+	}
+	.settings-page form {
 		max-width: 44rem;
-		margin: 0 auto;
-		padding: 2rem 1.5rem;
 	}
 	.settings-identity {
 		display: flex;
@@ -153,9 +153,6 @@
 		margin-top: 1.5rem;
 	}
 	@media (max-width: 639px) {
-		.settings-page {
-			padding: 2rem 1.25rem;
-		}
 		.avatar-choices {
 			grid-template-columns: repeat(3, minmax(0, 1fr));
 		}

@@ -9,8 +9,13 @@
 	import ThemeToggle from './ThemeToggle.svelte';
 	import GameSwitcher from './GameSwitcher.svelte';
 
-	const NAV_LINKS = [
-		{ href: '/', label: 'Home', icon: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z' },
+	const user = $derived(page.data.user);
+	const NAV_LINKS = $derived([
+		{
+			href: user ? '/mtg/dashboard' : '/',
+			label: user ? 'Dashboard' : 'Home',
+			icon: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z'
+		},
 		{
 			href: '/mtg/search',
 			label: 'Search',
@@ -27,7 +32,7 @@
 			label: 'Scan',
 			icon: 'M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M7 12h10'
 		}
-	];
+	]);
 
 	let collapsed = $state(false);
 	onMount(() => {
@@ -43,7 +48,6 @@
 	});
 	let mobileMenuOpen = $state(false);
 	let logoutForm: HTMLFormElement | undefined = $state();
-	const user = $derived(page.data.user);
 	const userName = $derived(user?.username || 'Account');
 	const accountActions = [
 		{ label: 'Settings', href: '/settings' },
@@ -66,7 +70,7 @@
 		<div class="brand-controls">
 			<a
 				href="/"
-				class="flex items-center gap-2.5 font-display text-lg font-normal tracking-tight text-foreground no-underline"
+				class="flex items-center gap-2.5 font-display text-2xl font-normal tracking-tight text-foreground no-underline"
 				aria-label="Spellbook home"
 			>
 				<img src={asset('logo.webp')} alt="" width="32" height="32" class="h-8 w-8 shrink-0" />
@@ -261,10 +265,10 @@
 		padding-top: var(--app-header-height);
 	}
 	.nav-inner {
-		max-width: var(--layout-wide-width);
+		width: 100%;
 		margin: auto;
 		min-height: var(--app-header-height);
-		padding: 0 2rem;
+		padding: 0 clamp(1rem, 1.5vw, 2rem);
 		display: grid;
 		grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
 		align-items: center;
@@ -340,7 +344,7 @@
 	@media (max-width: 700px) {
 		.nav-inner {
 			gap: 0.5rem;
-			padding-inline: 0.75rem;
+			padding-inline: 1rem;
 		}
 		.account-controls {
 			gap: 0.25rem;

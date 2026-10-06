@@ -11,7 +11,7 @@ import { hashPassword, normalizeUsername, validPassword, verifyPassword } from '
 
 export function sanitizeReturnTo(value: string | null | undefined): string {
 	if (!value || !value.startsWith('/') || value.startsWith('//') || /[\\\x00-\x1f\x7f]/.test(value))
-		return '/';
+		return '/mtg/inventory';
 	return value;
 }
 

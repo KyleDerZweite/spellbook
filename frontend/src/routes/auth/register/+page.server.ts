@@ -5,8 +5,8 @@ import { submitAuthForm } from '#lib/server/auth/forms.ts';
 import { sanitizeReturnTo } from '#lib/server/auth/local.ts';
 
 export const load: PageServerLoad = ({ locals, url }) => {
-	if (demoMode) redirect(303, '/auth/login');
 	const returnTo = sanitizeReturnTo(url.searchParams.get('returnTo'));
+	if (demoMode) redirect(303, `/auth/login?returnTo=${encodeURIComponent(returnTo)}`);
 	if (locals.user) redirect(303, returnTo);
 	return { returnTo };
 };
