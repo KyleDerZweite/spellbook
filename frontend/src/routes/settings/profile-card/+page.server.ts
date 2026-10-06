@@ -1,6 +1,10 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { error, fail, redirect } from '@sveltejs/kit';
 import { isProfileArtworkId } from '#lib/profile/artwork.ts';
-import { validateProfileCard } from '#lib/profile/card.ts';
+import {
+	validateProfileCard,
+	type ProfileCardErrors,
+	type ProfileCardDefinition
+} from '#lib/profile/card.ts';
 import { requireSameOrigin } from '#lib/server/auth/local.ts';
 import { getProfileSettings } from '#lib/server/settings.ts';
 import { application } from '#lib/server/composition.ts';
@@ -33,6 +37,15 @@ export const actions: Actions = {
 		const form = await request.formData();
 		const partial = form.get('partial') === 'true';
 		const current = partial ? await getProfileSettings(locals.user) : null;
+		let baseline: ProfileCardDefinition | null = null;
+		if (form.has('baselineCard')) {
+			try {
+				const result = validateProfileCard(JSON.parse(String(form.get('baselineCard'))));
+				if (result.success) baseline = result.value;
+			} catch {}
+		}
+		const draftBase = baseline ?? current?.card;
+
 		const artworkId =
 			partial && !form.has('artworkId') ? current!.user.artworkId : form.get('artworkId');
 		const cardInput = Object.fromEntries(
@@ -49,8 +62,8 @@ export const actions: Actions = {
 			const value = form.get(field);
 			return typeof value === 'string'
 				? value.replace(/\r\n?/g, '\n')
-				: partial && typeof current!.card[field] === 'string'
-					? String(current!.card[field])
+				: partial && typeof draftBase?.[field] === 'string'
+					? String(draftBase[field])
 					: '';
 		};
 		const card = {
@@ -58,9 +71,7 @@ export const actions: Actions = {
 			name: text('name'),
 			frame: text('frame'),
 			legendary:
-				partial && !form.has('legendary')
-					? current!.card.legendary
-					: form.get('legendary') === 'on',
+				partial && !form.has('legendary') ? draftBase!.legendary : form.get('legendary') === 'on',
 			rarity: text('rarity'),
 			manaCost: text('manaCost'),
 			typeLine: text('typeLine'),
@@ -81,12 +92,7 @@ export const actions: Actions = {
 				artworkId: typeof artworkId === 'string' ? artworkId : ''
 			});
 		}
-		let baseline: typeof validatedCard.value | null = null;
 		if (form.has('baselineCard')) {
-			try {
-				const result = validateProfileCard(JSON.parse(String(form.get('baselineCard'))));
-				if (result.success) baseline = result.value;
-			} catch {}
 			if (!baseline || !isProfileArtworkId(form.get('baselineArtworkId')))
 				return fail(400, {
 					success: false,
@@ -107,12 +113,38 @@ export const actions: Actions = {
 		);
 		const artworkChanged =
 			form.has('artworkId') && (!baseline || artworkId !== form.get('baselineArtworkId'));
-		locals.user = (
-			await application.profile.patch(locals.user, {
-				...(artworkChanged ? { artworkId } : {}),
-				...(Object.keys(profileCard).length ? { profileCard } : {})
-			})
-		).user;
+		try {
+			locals.user = (
+				await application.profile.patch(locals.user, {
+					...(artworkChanged ? { artworkId } : {}),
+					...(Object.keys(profileCard).length ? { profileCard } : {})
+				})
+			).user;
+		} catch (cause) {
+			if (cause && typeof cause === 'object' && 'kind' in cause) {
+				if (cause.kind === 'Unauthenticated') error(401, 'Authentication required');
+				if (
+					cause.kind === 'ValidationFailed' &&
+					'fields' in cause &&
+					cause.fields &&
+					typeof cause.fields === 'object'
+				) {
+					const errors: ProfileCardErrors = {};
+					for (const field of [...cardFields, 'form'] as const) {
+						const value = Reflect.get(cause.fields, field);
+						if (typeof value === 'string') errors[field] = value;
+					}
+					return fail(400, {
+						success: false,
+						message: 'Your saved card changed. Review the highlighted fields and try again.',
+						errors,
+						card,
+						artworkId
+					});
+				}
+			}
+			throw cause;
+		}
 
 		return { success: true, message: 'Profile card saved.' };
 	}

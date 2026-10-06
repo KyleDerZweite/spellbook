@@ -1,3 +1,5 @@
+import type { DashboardSummary } from '@spellbook/contracts/dashboard.ts';
+import { seedWideSummary } from './fixtures/wide-summary.ts';
 import { seedAccountScaleInventory } from './fixtures/account-scale.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -475,6 +477,186 @@ test('built HTTP application preserves public Catalog and local account journeys
 				});
 				assert.equal(page.status, 200);
 				assert.match(await page.text(), /50,000/);
+			}
+		);
+		await t.test(
+			'Profile Card stale native and enhanced merges return field errors and retain submitted drafts',
+			async () => {
+				const account = await (
+					await request('/api/auth/register', {
+						username: `merge_${randomUUID().slice(0, 8)}`,
+						password
+					})
+				).json();
+				accounts.push(account.user.accountId);
+				const cookie = `spellbook_session=${account.token}`;
+				const patch = (profileCard: unknown) =>
+					fetch(`${origin}/api/account/profile`, {
+						method: 'PATCH',
+						headers: {
+							'content-type': 'application/json',
+							authorization: `Bearer ${account.token}`
+						},
+						body: JSON.stringify({ profileCard })
+					});
+				assert.equal((await patch({ power: '1', toughness: '1' })).status, 200);
+				const html = await (await request('/settings/profile-card', undefined, { cookie })).text();
+				const encoded = /name="baselineCard" value="([^"]*)"/.exec(html)?.[1];
+				assert.ok(encoded);
+				const baselineCard = encoded
+					.replace(/&quot;/g, '"')
+					.replace(/&#39;/g, "'")
+					.replace(/&lt;/g, '<')
+					.replace(/&gt;/g, '>')
+					.replace(/&amp;/g, '&');
+				const baseline = JSON.parse(baselineCard);
+				const full = new URLSearchParams({
+					baselineCard,
+					baselineArtworkId: 'grove',
+					artworkId: 'grove'
+				});
+				for (const [field, value] of Object.entries({ ...baseline, power: '2' })) {
+					if (field === 'legendary') {
+						if (value) full.set(field, 'on');
+					} else full.set(field, String(value));
+				}
+				assert.equal((await patch({ power: '', toughness: '' })).status, 200);
+				const submit = (body: URLSearchParams, enhanced = false) =>
+					fetch(`${origin}/settings/profile-card`, {
+						method: 'POST',
+						headers: {
+							cookie,
+							origin,
+							'content-type': 'application/x-www-form-urlencoded',
+							accept: enhanced ? 'application/json' : 'text/html',
+							...(enhanced ? { 'x-sveltekit-action': 'true' } : {})
+						},
+						body,
+						redirect: 'manual'
+					});
+				const rejected = await submit(full);
+				assert.equal(rejected.status, 400);
+				const draftHtml = await rejected.text();
+				assert.match(draftHtml, /Fill both Power and Toughness/);
+				assert.match(draftHtml, /name="power"[^>]*value="2"/);
+				assert.match(draftHtml, /name="toughness"[^>]*value="1"/);
+				const staleEnhanced = await submit(
+					new URLSearchParams({
+						partial: 'true',
+						power: '2',
+						baselineCard,
+						baselineArtworkId: 'grove'
+					}),
+					true
+				);
+				assert.equal(staleEnhanced.status, 400);
+				const staleResult = await staleEnhanced.json();
+				const staleValues = JSON.parse(staleResult.data);
+				const staleDraft = staleValues[staleValues[0].card];
+				assert.equal(staleValues[staleDraft.power], '2');
+				assert.equal(staleValues[staleDraft.toughness], '1');
+
+				assert.equal((await patch({ power: '1', toughness: '1' })).status, 200);
+				const locker = await pool.connect();
+				await locker.query('BEGIN');
+				await locker.query('SELECT account_id FROM user_profiles WHERE account_id=$1 FOR UPDATE', [
+					account.user.accountId
+				]);
+				const pid = (await locker.query<{ pid: number }>('SELECT pg_backend_pid() AS pid')).rows[0]
+					.pid;
+				const pending = submit(
+					new URLSearchParams({
+						partial: 'true',
+						power: '2',
+						baselineCard,
+						baselineArtworkId: 'grove'
+					}),
+					true
+				);
+				try {
+					let blocked = false;
+					const deadline = Date.now() + 10000;
+					while (Date.now() < deadline) {
+						blocked = (
+							await pool.query<{ blocked: boolean }>(
+								'SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE $1=ANY(pg_blocking_pids(pid))) AS blocked',
+								[pid]
+							)
+						).rows[0].blocked;
+						if (blocked) break;
+						await new Promise((resolve) => setTimeout(resolve, 20));
+					}
+					assert.equal(blocked, true, 'enhanced merge waits after reading the old complete card');
+					await locker.query(
+						`UPDATE user_profiles SET profile_card=profile_card || '{"power":"","toughness":""}'::jsonb WHERE account_id=$1`,
+						[account.user.accountId]
+					);
+					await locker.query('COMMIT');
+					const race = await pending;
+					assert.equal(race.status, 400);
+					const result = await race.json();
+					assert.equal(result.type, 'failure');
+					const values = JSON.parse(result.data);
+					const draft = values[values[0].card];
+					assert.equal(values[draft.power], '2');
+					assert.equal(values[draft.toughness], '1');
+					const errors = values[values[0].errors];
+					assert.match(values[errors.toughness], /Fill both Power and Toughness/);
+				} finally {
+					await locker.query('ROLLBACK');
+					locker.release();
+					await pending.catch(() => {});
+				}
+				const saved = await (await request('/api/account/profile', undefined, { cookie })).json();
+				assert.equal(saved.card.power, '');
+				assert.equal(saved.card.toughness, '');
+			}
+		);
+		await t.test(
+			'large permitted entry quantities produce exact aggregate JSON numbers',
+			async () => {
+				const account = await (
+					await request('/api/auth/register', {
+						username: `wide_${randomUUID().slice(0, 8)}`,
+						password
+					})
+				).json();
+				accounts.push(account.user.accountId);
+				const { setCode } = await seedWideSummary(pool, account.user.accountId);
+				const headers = { authorization: `Bearer ${account.token}` };
+				const response = await request('/api/account/dashboard', undefined, headers);
+				assert.equal(response.status, 200);
+				const summary = (await response.json()) as DashboardSummary;
+				assert.equal(summary.totals.total, 4294967294);
+				assert.equal(summary.totals.foils, 2147483647);
+				assert.deepEqual(summary.sets, [{ label: setCode, quantity: 4294967294, share: 1 }]);
+				assert.deepEqual(
+					summary.finishes.map((row) => [row.quantity, row.share]),
+					[
+						[2147483647, 0.5],
+						[2147483647, 0.5]
+					]
+				);
+				assert.equal(summary.conditions[0].quantity, 4294967294);
+				assert.equal(summary.conditions[0].share, 1);
+				assert.deepEqual(
+					summary.decks
+						.map(({ name, required, exact, alternate, missing }) => ({
+							name,
+							required,
+							exact,
+							alternate,
+							missing
+						}))
+						.sort((a, b) => a.name.localeCompare(b.name)),
+					[
+						{ name: 'Missing', required: 4294967294, exact: 0, alternate: 0, missing: 4294967294 },
+						{ name: 'Owned', required: 4294967294, exact: 4294967294, alternate: 0, missing: 0 }
+					]
+				);
+				const settings = await request('/api/account/profile', undefined, headers);
+				assert.equal(settings.status, 200);
+				assert.equal((await settings.json()).totals.total, 4294967294);
 			}
 		);
 	} finally {

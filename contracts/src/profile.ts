@@ -72,3 +72,14 @@ export function normalizeContactEmail(value: unknown): string | null {
 		? email
 		: null;
 }
+
+export interface SummaryFailure {
+	kind: 'SummaryOutOfRange';
+	message: string;
+}
+
+export const SUMMARY_RANGE_MESSAGE = 'Your collection totals exceed the supported reporting range.';
+export interface SummaryOutOfRangeResponse {
+	status: 503;
+	message: typeof SUMMARY_RANGE_MESSAGE;
+}

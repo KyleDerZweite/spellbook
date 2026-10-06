@@ -1,3 +1,4 @@
+import { SUMMARY_RANGE_MESSAGE } from '@spellbook/contracts/profile.ts';
 import { json } from '@sveltejs/kit';
 import { PROFILE_ARTWORK, DEFAULT_ARTWORK_ID } from '#lib/profile/artwork.ts';
 import { AVATARS } from '#lib/profile/avatars.ts';
@@ -147,10 +148,19 @@ const SCHEMA = {
 			}
 		},
 		'/api/account/dashboard': {
-			get: operation(
-				'Read account aggregates, deck availability totals and eight recent entries',
-				ref('DashboardSummary')
-			)
+			get: {
+				...operation(
+					'Read account aggregates, deck availability totals and eight recent entries',
+					ref('DashboardSummary')
+				),
+				responses: {
+					...operation('', ref('DashboardSummary')).responses,
+					503: response(
+						'Stored totals exceed the exact JSON integer reporting range',
+						ref('SummaryOutOfRangeResponse')
+					)
+				}
+			}
 		},
 		'/api/auth/session': {
 			get: operation('Inspect selected session without exposing its token hash', ref('SessionInfo'))
@@ -573,6 +583,13 @@ const SCHEMA = {
 			}
 		},
 		schemas: {
+			SummaryOutOfRangeResponse: {
+				...object({
+					status: { type: 'integer', const: 503 },
+					message: { type: 'string', const: SUMMARY_RANGE_MESSAGE }
+				}),
+				additionalProperties: false
+			},
 			ProfileUser: object({
 				accountId: string,
 				username: string,

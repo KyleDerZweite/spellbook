@@ -1,3 +1,4 @@
+import { seedWideSummary } from '../fixtures/wide-summary.ts';
 import { seedAccountScaleInventory } from '../fixtures/account-scale.ts';
 import { afterAll, describe, expect, it } from 'vitest';
 import { createDatabase, createLocalAuth } from '@spellbook/backend';
@@ -146,6 +147,45 @@ run('authorized account profile patches', () => {
 			{ required: 8, exact: 7, alternate: 0, missing: 1 },
 			{ required: 8, exact: 7, alternate: 0, missing: 1 }
 		]);
+	});
+	it('reports totals and allocations beyond signed32-bit sums exactly', async () => {
+		const { createDashboard } = await import('@spellbook/backend');
+		const account = (await auth.authenticate(
+			'register',
+			`wide_${crypto.randomUUID().slice(0, 8)}`,
+			'wide-summary-test-password'
+		))!;
+		accounts.push(account.user.accountId);
+		const { setCode } = await seedWideSummary(database.pool, account.user.accountId);
+		const summary = await createDashboard(database.pool, auth).get(account.user);
+		const expected = {
+			total: 4294967294,
+			names: 1,
+			printings: 1,
+			sets: 1,
+			foils: 2147483647,
+			decks: 2
+		};
+		expect(summary.totals).toEqual(expected);
+		expect((await profile.get(account.user)).totals).toEqual(expected);
+		expect(summary.sets).toEqual([{ label: setCode, quantity: 4294967294, share: 1 }]);
+		expect(summary.finishes.map((row) => [row.quantity, row.share])).toEqual([
+			[2147483647, 0.5],
+			[2147483647, 0.5]
+		]);
+		expect(summary.conditions.map((row) => row.quantity)).toEqual([4294967294, 0, 0, 0, 0]);
+		expect(summary.decks.find((deck) => deck.name === 'Owned')).toMatchObject({
+			required: 4294967294,
+			exact: 4294967294,
+			alternate: 0,
+			missing: 0
+		});
+		expect(summary.decks.find((deck) => deck.name === 'Missing')).toMatchObject({
+			required: 4294967294,
+			exact: 0,
+			alternate: 0,
+			missing: 4294967294
+		});
 	});
 });
 

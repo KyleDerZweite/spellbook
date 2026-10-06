@@ -1,5 +1,5 @@
 import type { AuthUser } from './auth.ts';
-import type { ProfileTotals } from './profile.ts';
+import type { ProfileTotals, SummaryFailure } from './profile.ts';
 export interface DashboardDistribution {
 	label: string;
 	quantity: number;
@@ -38,3 +38,5 @@ export interface DashboardSummary {
 export interface DashboardApplication {
 	get(actor: AuthUser): Promise<DashboardSummary>;
 }
+
+export type DashboardFailure = SummaryFailure | { kind: 'Unauthenticated'; message: string };

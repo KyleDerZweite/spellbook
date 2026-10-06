@@ -1,3 +1,4 @@
+import { profileTotals, SummaryRangeError } from './summary-number.ts';
 import { and, eq, sql } from 'drizzle-orm';
 import type { AuthUser } from '@spellbook/contracts/auth.ts';
 import {
@@ -47,23 +48,18 @@ export function createProfile(
 	async function totals(accountId: string): Promise<ProfileTotals> {
 		const [value] = await db
 			.select({
-				total: sql<number>`coalesce(sum(${inventoryCards.quantity}),0)`.mapWith(Number),
-				names: sql<number>`count(distinct ${inventoryCards.canonicalCardId})`.mapWith(Number),
-				printings: sql<number>`count(distinct ${inventoryCards.catalogCardId})`.mapWith(Number),
-				sets: sql<number>`count(distinct ${inventoryCards.setCode})`.mapWith(Number),
-				foils:
-					sql<number>`coalesce(sum(${inventoryCards.quantity}) filter(where ${inventoryCards.finish}='foil'),0)`.mapWith(
-						Number
-					),
-				decks:
-					sql<number>`(select count(*) from ${decks} where ${decks.accountId}=${accountId} and ${decks.game}='mtg')`.mapWith(
-						Number
-					)
+				total: sql<string>`coalesce(sum(${inventoryCards.quantity}::numeric),0)`,
+				names: sql<string>`count(distinct ${inventoryCards.canonicalCardId})`,
+				printings: sql<string>`count(distinct ${inventoryCards.catalogCardId})`,
+				sets: sql<string>`count(distinct ${inventoryCards.setCode})`,
+				foils: sql<string>`coalesce(sum(${inventoryCards.quantity}::numeric) filter(where ${inventoryCards.finish}='foil'),0)`,
+				decks: sql<string>`(select count(*) from ${decks} where ${decks.accountId}=${accountId} and ${decks.game}='mtg')`
 			})
 			.from(inventoryCards)
 			.where(and(eq(inventoryCards.accountId, accountId), eq(inventoryCards.game, 'mtg')));
-		return value;
+		return profileTotals(value);
 	}
+
 	async function get(actor: AuthUser) {
 		const user = await auth.requireActor(actor);
 		const [profile] = await db
@@ -73,12 +69,15 @@ export function createProfile(
 		const card = cardFor(profile?.card, user.username);
 		try {
 			return { user, card, totals: await totals(user.accountId), statsError: null };
-		} catch {
+		} catch (cause) {
 			return {
 				user,
 				card,
 				totals: null,
-				statsError: 'Your collection totals are temporarily unavailable.'
+				statsError:
+					cause instanceof SummaryRangeError
+						? cause.message
+						: 'Your collection totals are temporarily unavailable.'
 			};
 		}
 	}

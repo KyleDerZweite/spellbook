@@ -3,8 +3,8 @@ import { application } from '#lib/server/composition.ts';
 import { requireMobileAuth } from '#lib/server/mobile/auth.ts';
 import { readJsonObject } from '#lib/server/http/request.ts';
 import { takeAuthAttempt } from '#lib/server/auth/local.ts';
-import { writeSessionCookie } from '#lib/server/auth/session.ts';
-import type { ProfilePatch } from '@spellbook/contracts/profile.ts';
+import { writeSessionCookie, getBearerToken, SESSION_COOKIE } from '#lib/server/auth/session.ts';
+import { SUMMARY_RANGE_MESSAGE, type ProfilePatch } from '@spellbook/contracts/profile.ts';
 
 export async function accountResponse(
 	event: RequestEvent,
@@ -30,10 +30,8 @@ export async function accountResponse(
 				const actor = await application.auth.requireActor(user);
 				// Resolve the selected session through the same bearer-preference transport rule.
 				const token = event.request.headers.has('authorization')
-					? /^Bearer ([A-Za-z0-9_-]{43})$/i.exec(
-							event.request.headers.get('authorization') ?? ''
-						)?.[1]
-					: event.cookies.get('spellbook_session');
+					? getBearerToken(event.request)
+					: event.cookies.get(SESSION_COOKIE);
 				const session = await application.auth.inspectSession(token);
 				if (!session) error(401, 'Authentication required');
 				result = { user: actor, expiresAt: session.expiresAt };
@@ -63,6 +61,7 @@ export async function accountResponse(
 		return json(result, { headers: { 'Cache-Control': 'no-store' } });
 	} catch (cause) {
 		if (cause && typeof cause === 'object' && 'kind' in cause) {
+			if (cause.kind === 'SummaryOutOfRange') error(503, SUMMARY_RANGE_MESSAGE);
 			if (cause.kind === 'Unauthenticated') error(401, 'Authentication required');
 			if (cause.kind === 'RateLimited')
 				error(429, cause instanceof Error ? cause.message : 'Too many attempts');
