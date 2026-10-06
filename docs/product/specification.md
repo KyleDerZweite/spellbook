@@ -41,7 +41,7 @@ Local authentication and the interactive deck workspace are implemented. The dec
 
 The application uses local usernames and passwords. Users can register a local account, sign in, use the private workspace, and sign out without an external identity provider. Registration is public on the instance; there is no invite-only or first-user-only policy. OIDC redirects, discovery, provider tokens, and external identity linking are removed from active authentication.
 
-Signed-in users can choose a local sprite avatar in [Settings](./routing-and-games.md). The choice persists with their account. Profile photo uploads and language preferences are deferred. The [UI direction](./ui-design-direction.md) owns account menu placement and avatar presentation.
+Signed-in users can choose a local sprite avatar and profile artwork in [Settings](./routing-and-games.md). Both choices persist with their account. Registration also offers the generated artwork library. A private profile card shows the username, selected avatar and artwork, plus actual owned-copy, distinct card-name, printing, represented-set, foil-copy and deck totals. Rank, public profile sharing and set-completion claims are not implemented. Profile photo uploads and language preferences are deferred. The [UI direction](./ui-design-direction.md) owns account menu placement and avatar presentation.
 
 An account's internal identifier owns its inventory, decks, scan sessions, and mutation requests. A username is a login identifier, not a database ownership key. Renaming or recovering credentials must preserve the owning account. Existing accounts require an explicit operator-controlled migration that preserves their internal identifiers.
 

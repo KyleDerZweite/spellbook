@@ -187,6 +187,32 @@ describe('OpenAPI contract', () => {
 		).toBeDefined();
 	});
 
+	it('documents Inventory as the default browser authentication destination', async () => {
+		const schema = (await GET().json()) as Document;
+		for (const path of ['/auth/login', '/auth/register']) {
+			expect(schema.paths[path]!.parameters).toContainEqual({
+				name: 'returnTo',
+				in: 'query',
+				schema: { type: 'string', default: '/mtg/inventory' },
+				description:
+					'Local path used after authentication; invalid or external paths become /mtg/inventory.'
+			});
+		}
+	});
+
+	it('keeps artwork optional for registration and documents persisted profile choices', async () => {
+		const schema = (await GET().json()) as Document;
+		expect(schema.components.schemas.RegisterRequest).toMatchObject({
+			required: ['username', 'password'],
+			properties: { artworkId: { enum: ['grove', 'tide', 'ember', 'astral'], default: 'grove' } }
+		});
+		expect(schema.components.schemas.AuthSession).toMatchObject({
+			properties: {
+				user: { properties: { avatarId: { type: 'string' }, artworkId: { type: 'string' } } }
+			}
+		});
+	});
+
 	it('documents bounded catalog filtering and generation-aware search responses', async () => {
 		const schema = (await GET().json()) as Document;
 		const search = schema.paths['/api/mobile/v1/mtg/search']!;

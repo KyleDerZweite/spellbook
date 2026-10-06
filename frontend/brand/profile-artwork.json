@@ -1,125 +1,125 @@
 {
-  "generationDate": "2026-10-06",
-  "mode": "built-in image_gen",
-  "purpose": "Original artwork for private Spellbook user profile cards",
-  "assets": [
-    {
-      "id": "grove",
-      "description": "A pine marten watching an oak leaf above a mossy book in a forest library.",
-      "generationDate": "2026-10-06",
-      "mode": "built-in image_gen",
-      "originalSourcePath": "/home/kyle/.codex/generated_images/01a1107d-8953-7961-a2d7-26fb17e88973/exec-26128336-6469-46ee-9299-0b1b48f472e5.png",
-      "finalPrompt": "Use case: illustration-story\nAsset type: original fantasy collectible-card artwork for Spellbook's private user profile, displayed as a small landscape picture.\nScene: a huge old forest library grown into living roots. Close foreground, a wild pine marten familiar with glossy dark eyes and a pale throat patch balances on a closed, weathered moss-green book wedged between roots. It is stretching toward one copper oak leaf suspended over its nose; its long curved tail makes a clean sweeping silhouette. The woodland is a few broad silhouettes and fern fronds, not a wall of detail.\nArt direction: professional hand-painted fantasy card illustration, expressive opaque gouache and thin oil glazes on textured board. Confident visible brushwork, sophisticated draftsmanship, natural animal anatomy, selective sharp edges around the face and book, loose quieter edges in the background. Looks like a commissioned painting scanned from an artist's studio, never a 3D render. Strange and endearing without looking like a mascot or children's sticker.\nComposition: one landscape image, 3:2 aspect ratio. Intimate low three-quarter view; the marten and book fill the central two thirds, with the face clear near center. Bold light-dark shapes that remain readable at 340x210px. Full bleed painting edge to edge, no framing. Preserve subject away from the outer 10 percent for modest cropping.\nPalette and light: deep pine green, olive, ochre parchment and small russet leaf accents. One dappled shaft of warm afternoon sunlight touches the animal's face, restrained natural highlights, rich dark root shadows. Luminous pigment rather than glowing magic.\nConstraints: completely original creature and scene, no known fictional characters. No text, letters, writing, symbols, logos, signatures, watermarks, UI, borders or card frame. No photorealism, airbrushing, 3D, cute giant eyes, anime, epic wizard, purple magical haze, flying particles, clutter, bokeh, extreme bloom, generic fantasy wallpaper. Generate one single finished illustration.",
-      "savedRelativePaths": {
-        "main": "frontend/static/profile/artwork/grove.webp",
-        "thumbnail": "frontend/static/profile/artwork/grove-thumb.webp"
-      },
-      "dimensions": {
-        "main": {
-          "width": 960,
-          "height": 640
-        },
-        "thumbnail": {
-          "width": 320,
-          "height": 213
-        }
-      },
-      "optimization": {
-        "encoder": "ImageMagick with libwebp",
-        "mainQuality": 85,
-        "thumbnailQuality": 82,
-        "webpMethod": 6,
-        "metadataStripped": true
-      }
-    },
-    {
-      "id": "tide",
-      "description": "A silver-haired archivist protecting a book at a sea archive during a storm.",
-      "generationDate": "2026-10-06",
-      "mode": "built-in image_gen",
-      "originalSourcePath": "/home/kyle/.codex/generated_images/01a1107d-8953-7961-a2d7-26fb17e88973/exec-99b7834d-e720-402d-9e96-474523de7a79.png",
-      "finalPrompt": "Use case: illustration-story\nAsset type: original fantasy collectible-card artwork for Spellbook's private user profile, displayed as a small landscape picture.\nScene: the open stone doorway of a sea archive during a storm. An older woman archivist in a weathered mustard-yellow oilskin coat stands firmly on wet black steps, turned three-quarter profile into the wind. She holds one closed heavy sea-green volume against her torso with both forearms, its plain cover tied with a cord. Her cropped silver hair and coat hem blow sideways. Behind her, a monumental curling teal wave rolls past the doorway, with a pale gull riding the air above it. Her calm, stubborn expression contrasts with the force of the water. A section of salt-worn shelves just inside the doorway quietly makes the place an archive.\nArt direction: professional hand-painted fantasy collectible-card illustration, expressive opaque gouache and thin oil glazes on textured board, selective confident brushwork, strong draftsmanship, convincing anatomy and weight. Crisp face, simple substantial coat folds, broad carved-looking wave strokes, quieter background. Looks like a commissioned painting scanned from an artist's studio, no 3D render or photo effect. Strange lived-in fantasy, not cinematic wallpaper.\nComposition: one landscape image, 3:2 aspect ratio, full bleed edge to edge. Mid-shot with the archivist near center-left and a single powerful wave arc occupying the other half. The mustard silhouette and the ocean must read immediately at 340x210px. Keep her head and book inside central 80 percent. Coherent anatomy, one woman, two arms.\nPalette and light: slate ink, cold jade-teal sea, chalk-white sea foam, restrained mustard coat, pale silver sky. Soft storm daylight, broad cool highlights and deep stone shadows. No magic glow.\nConstraints: wholly original person and environment, no copyrighted characters or recognizable game costumes. No text, letters, writing, symbols, logos, signatures, watermarks, UI, borders or card frame. No photorealism, airbrushing, 3D, anime, glamour model, wizard hat, purple haze, floating particles, bokeh, lens flare, extreme bloom. Generate one single finished illustration.",
-      "savedRelativePaths": {
-        "main": "frontend/static/profile/artwork/tide.webp",
-        "thumbnail": "frontend/static/profile/artwork/tide-thumb.webp"
-      },
-      "dimensions": {
-        "main": {
-          "width": 960,
-          "height": 640
-        },
-        "thumbnail": {
-          "width": 320,
-          "height": 213
-        }
-      },
-      "optimization": {
-        "encoder": "ImageMagick with libwebp",
-        "mainQuality": 85,
-        "thumbnailQuality": 82,
-        "webpMethod": 6,
-        "metadataStripped": true
-      }
-    },
-    {
-      "id": "ember",
-      "description": "A mineral-plated salamander guarding a copper ring on a forge anvil.",
-      "generationDate": "2026-10-06",
-      "mode": "built-in image_gen",
-      "originalSourcePath": "/home/kyle/.codex/generated_images/01a1107d-8953-7961-a2d7-26fb17e88973/exec-1330d07e-1d3f-479a-9d85-4247a3f1de79.png",
-      "finalPrompt": "Use case: lighting-weather\nInput image: the forge salamander painting is the edit target.\nPrimary request: preserve this exact landscape illustration, creature design, pose, anatomy, anvil, ring, tools, furnace, painterly style and crop. Change only the local light and painted value contrast so the salamander's face and shoulders remain immediately legible in a small 320-pixel thumbnail. Raise the warm terracotta midtones on its face, throat, upper back and front paw by about one stop, including a restrained warm edge along the head silhouette against the dark backdrop. Keep the anvil a quieter dark charcoal mass. Preserve the forehead plates and small normal amber eyes. This is reflected furnace light on matte painted mineral plates, not self-glowing skin. Keep the existing ember fissures modest and unchanged. Retain deep shadows and earthly copper/oxblood palette.\nConstraints: no new objects, no changed shapes, no larger eyes, no text, symbols, borders, signature, watermark, no flame stream, no extra sparks, no neon, no bloom, no 3D finish. Preserve full bleed 3:2 image and handcrafted oil/gouache appearance.",
-      "initialPrompt": "Use case: illustration-story\nAsset type: original fantasy collectible-card artwork for Spellbook's private user profile, displayed as a small landscape picture.\nScene: inside a soot-dark mountain forge, a stout ember salamander is curled possessively around a scarred iron anvil. The creature has the long low body of a real fire salamander, broad blunt head, small intelligent amber eyes, four clearly placed sturdy feet, and overlapping charcoal and burnt-red mineral plates like cooling kiln glaze. It gently rests one front foot on a single unfinished copper ring on the anvil. Warm ember light shines through a few fine cracks between its plates, suggesting a creature that keeps the forge warm. An old pair of tongs leans against stone at the side; no people. Its tail curves around the anvil's foot. Behind is one broad furnace opening with banked coals and warm terracotta masonry, quiet and dim, no roaring flames.\nArt direction: professional hand-painted fantasy collectible-card illustration. Opaque gouache and oil glazes on textured board, sculptural broad brush marks, deliberate edge control, strong animal anatomy, substantial iron and ceramic textures, detailed focal face but background painted in large quiet masses. A commissioned studio painting with material pigment, not a render. Earthy craft and personality, not a cute sticker or generic dragon.\nComposition: one landscape image, 3:2 aspect ratio, full bleed edge to edge. Close low-angle three-quarter view, salamander head and copper ring near center, creature and anvil fill central two thirds. A bold low creature silhouette against a simple warm furnace rectangle. Readable at 340x210px, head and ring safely inside central 80 percent.\nPalette and light: iron charcoal, dark oxblood, burnt sienna, clay orange and a small amber light accent. Controlled orange reflected light on the face and worn anvil edge; deep cool charcoal shadows. Ember cracks are restrained and physically lit, never neon. No airborne sparks.\nConstraints: wholly original creature, no known fictional characters. No text, letters, writing, symbols, logos, signatures, watermarks, UI, borders or card frame. No photorealism, 3D, glossy plastic, airbrush, anime, giant cartoon eyes, winged dragon, wizard, purple glow, particle effects, bokeh, lens flare, extreme bloom, decorative clutter. Generate one single finished illustration.",
-      "editInputSourcePath": "/home/kyle/.codex/generated_images/01a1107d-8953-7961-a2d7-26fb17e88973/exec-91ec632c-576b-4d19-b669-bfabff57be71.png",
-      "savedRelativePaths": {
-        "main": "frontend/static/profile/artwork/ember.webp",
-        "thumbnail": "frontend/static/profile/artwork/ember-thumb.webp"
-      },
-      "dimensions": {
-        "main": {
-          "width": 960,
-          "height": 640
-        },
-        "thumbnail": {
-          "width": 320,
-          "height": 213
-        }
-      },
-      "optimization": {
-        "encoder": "ImageMagick with libwebp",
-        "mainQuality": 85,
-        "thumbnailQuality": 82,
-        "webpMethod": 6,
-        "metadataStripped": true
-      }
-    },
-    {
-      "id": "astral",
-      "description": "A brass armillary sphere framing the moon in a ruined mountain observatory.",
-      "generationDate": "2026-10-06",
-      "mode": "built-in image_gen",
-      "originalSourcePath": "/home/kyle/.codex/generated_images/01a1107d-8953-7961-a2d7-26fb17e88973/exec-e2406499-7437-4a6c-b1a8-d5f0c9bfc2e5.png",
-      "finalPrompt": "Use case: illustration-story\nAsset type: original fantasy collectible-card artwork for Spellbook's private user profile, displayed as a small landscape picture.\nScene: a forgotten open-roof observatory high above a quiet midnight valley. A monumental antique brass armillary sphere sits on a low blue stone pedestal in the foreground, its few broad interlocking orbital rings framing a pale waxing moon in the real sky beyond. The mechanism has believable rivets and tarnished edges, and a small smooth ivory globe at its center. A worn closed indigo book rests on the pedestal. Through a broken circular observatory aperture behind it, see a few distant slate mountains and a deep blue night sky with sparse tiny natural stars. No people or animals. The sphere, moon and architectural arch make an elegant, unusual alignment, like a quiet discovery rather than a spectacle.\nArt direction: professional hand-painted fantasy collectible-card illustration. Opaque gouache and oil glazes on textured board, rich layered blue pigments, visible assured brushwork, deliberate edge control, convincing metal geometry and weathered stone. Crisp restrained highlights on brass, broad quiet background strokes. A commissioned studio painting scanned from textured board, not a photograph or 3D render. Scholarly celestial mystery without purple magical clouds.\nComposition: one landscape image, 3:2 aspect ratio, full bleed edge to edge. Low three-quarter close view of the large brass instrument; concentric ring silhouette dominant in central two thirds, with the moon visible cleanly within the open rings. A few simple strong shapes, readable instantly at 340x210px. Main instrument, book and moon inside central 80 percent. Rings are solid engineered metal bands, coherent perspective and intersections, no tangled wire.\nPalette and light: midnight Prussian blue, desaturated blue slate, antique pale brass, chalk ivory. Natural cold moonlight and subtle warm metallic reflections, deep luminous blue shadows. No artificial glow around objects.\nConstraints: completely original environment and design. No text, letters, written markings, numbers, runes, logos, signatures, watermarks, UI, borders or card frame. No photorealism, airbrushing, 3D, purple nebulae, luminous galaxy portals, starburst, particle effects, bokeh, lens flare, extreme bloom, wizard, decorative clutter. Generate one single finished illustration.",
-      "savedRelativePaths": {
-        "main": "frontend/static/profile/artwork/astral.webp",
-        "thumbnail": "frontend/static/profile/artwork/astral-thumb.webp"
-      },
-      "dimensions": {
-        "main": {
-          "width": 960,
-          "height": 640
-        },
-        "thumbnail": {
-          "width": 320,
-          "height": 213
-        }
-      },
-      "optimization": {
-        "encoder": "ImageMagick with libwebp",
-        "mainQuality": 85,
-        "thumbnailQuality": 82,
-        "webpMethod": 6,
-        "metadataStripped": true
-      }
-    }
-  ]
+	"generationDate": "2026-10-06",
+	"mode": "built-in image_gen",
+	"purpose": "Original artwork for private Spellbook user profile cards",
+	"assets": [
+		{
+			"id": "grove",
+			"description": "A pine marten watching an oak leaf above a mossy book in a forest library.",
+			"generationDate": "2026-10-06",
+			"mode": "built-in image_gen",
+			"originalSourcePath": "/home/kyle/.codex/generated_images/01a1107d-8953-7961-a2d7-26fb17e88973/exec-26128336-6469-46ee-9299-0b1b48f472e5.png",
+			"finalPrompt": "Use case: illustration-story\nAsset type: original fantasy collectible-card artwork for Spellbook's private user profile, displayed as a small landscape picture.\nScene: a huge old forest library grown into living roots. Close foreground, a wild pine marten familiar with glossy dark eyes and a pale throat patch balances on a closed, weathered moss-green book wedged between roots. It is stretching toward one copper oak leaf suspended over its nose; its long curved tail makes a clean sweeping silhouette. The woodland is a few broad silhouettes and fern fronds, not a wall of detail.\nArt direction: professional hand-painted fantasy card illustration, expressive opaque gouache and thin oil glazes on textured board. Confident visible brushwork, sophisticated draftsmanship, natural animal anatomy, selective sharp edges around the face and book, loose quieter edges in the background. Looks like a commissioned painting scanned from an artist's studio, never a 3D render. Strange and endearing without looking like a mascot or children's sticker.\nComposition: one landscape image, 3:2 aspect ratio. Intimate low three-quarter view; the marten and book fill the central two thirds, with the face clear near center. Bold light-dark shapes that remain readable at 340x210px. Full bleed painting edge to edge, no framing. Preserve subject away from the outer 10 percent for modest cropping.\nPalette and light: deep pine green, olive, ochre parchment and small russet leaf accents. One dappled shaft of warm afternoon sunlight touches the animal's face, restrained natural highlights, rich dark root shadows. Luminous pigment rather than glowing magic.\nConstraints: completely original creature and scene, no known fictional characters. No text, letters, writing, symbols, logos, signatures, watermarks, UI, borders or card frame. No photorealism, airbrushing, 3D, cute giant eyes, anime, epic wizard, purple magical haze, flying particles, clutter, bokeh, extreme bloom, generic fantasy wallpaper. Generate one single finished illustration.",
+			"savedRelativePaths": {
+				"main": "frontend/static/profile/artwork/grove.webp",
+				"thumbnail": "frontend/static/profile/artwork/grove-thumb.webp"
+			},
+			"dimensions": {
+				"main": {
+					"width": 960,
+					"height": 640
+				},
+				"thumbnail": {
+					"width": 320,
+					"height": 213
+				}
+			},
+			"optimization": {
+				"encoder": "ImageMagick with libwebp",
+				"mainQuality": 85,
+				"thumbnailQuality": 82,
+				"webpMethod": 6,
+				"metadataStripped": true
+			}
+		},
+		{
+			"id": "tide",
+			"description": "A silver-haired archivist protecting a book at a sea archive during a storm.",
+			"generationDate": "2026-10-06",
+			"mode": "built-in image_gen",
+			"originalSourcePath": "/home/kyle/.codex/generated_images/01a1107d-8953-7961-a2d7-26fb17e88973/exec-99b7834d-e720-402d-9e96-474523de7a79.png",
+			"finalPrompt": "Use case: illustration-story\nAsset type: original fantasy collectible-card artwork for Spellbook's private user profile, displayed as a small landscape picture.\nScene: the open stone doorway of a sea archive during a storm. An older woman archivist in a weathered mustard-yellow oilskin coat stands firmly on wet black steps, turned three-quarter profile into the wind. She holds one closed heavy sea-green volume against her torso with both forearms, its plain cover tied with a cord. Her cropped silver hair and coat hem blow sideways. Behind her, a monumental curling teal wave rolls past the doorway, with a pale gull riding the air above it. Her calm, stubborn expression contrasts with the force of the water. A section of salt-worn shelves just inside the doorway quietly makes the place an archive.\nArt direction: professional hand-painted fantasy collectible-card illustration, expressive opaque gouache and thin oil glazes on textured board, selective confident brushwork, strong draftsmanship, convincing anatomy and weight. Crisp face, simple substantial coat folds, broad carved-looking wave strokes, quieter background. Looks like a commissioned painting scanned from an artist's studio, no 3D render or photo effect. Strange lived-in fantasy, not cinematic wallpaper.\nComposition: one landscape image, 3:2 aspect ratio, full bleed edge to edge. Mid-shot with the archivist near center-left and a single powerful wave arc occupying the other half. The mustard silhouette and the ocean must read immediately at 340x210px. Keep her head and book inside central 80 percent. Coherent anatomy, one woman, two arms.\nPalette and light: slate ink, cold jade-teal sea, chalk-white sea foam, restrained mustard coat, pale silver sky. Soft storm daylight, broad cool highlights and deep stone shadows. No magic glow.\nConstraints: wholly original person and environment, no copyrighted characters or recognizable game costumes. No text, letters, writing, symbols, logos, signatures, watermarks, UI, borders or card frame. No photorealism, airbrushing, 3D, anime, glamour model, wizard hat, purple haze, floating particles, bokeh, lens flare, extreme bloom. Generate one single finished illustration.",
+			"savedRelativePaths": {
+				"main": "frontend/static/profile/artwork/tide.webp",
+				"thumbnail": "frontend/static/profile/artwork/tide-thumb.webp"
+			},
+			"dimensions": {
+				"main": {
+					"width": 960,
+					"height": 640
+				},
+				"thumbnail": {
+					"width": 320,
+					"height": 213
+				}
+			},
+			"optimization": {
+				"encoder": "ImageMagick with libwebp",
+				"mainQuality": 85,
+				"thumbnailQuality": 82,
+				"webpMethod": 6,
+				"metadataStripped": true
+			}
+		},
+		{
+			"id": "ember",
+			"description": "A mineral-plated salamander guarding a copper ring on a forge anvil.",
+			"generationDate": "2026-10-06",
+			"mode": "built-in image_gen",
+			"originalSourcePath": "/home/kyle/.codex/generated_images/01a1107d-8953-7961-a2d7-26fb17e88973/exec-1330d07e-1d3f-479a-9d85-4247a3f1de79.png",
+			"finalPrompt": "Use case: lighting-weather\nInput image: the forge salamander painting is the edit target.\nPrimary request: preserve this exact landscape illustration, creature design, pose, anatomy, anvil, ring, tools, furnace, painterly style and crop. Change only the local light and painted value contrast so the salamander's face and shoulders remain immediately legible in a small 320-pixel thumbnail. Raise the warm terracotta midtones on its face, throat, upper back and front paw by about one stop, including a restrained warm edge along the head silhouette against the dark backdrop. Keep the anvil a quieter dark charcoal mass. Preserve the forehead plates and small normal amber eyes. This is reflected furnace light on matte painted mineral plates, not self-glowing skin. Keep the existing ember fissures modest and unchanged. Retain deep shadows and earthly copper/oxblood palette.\nConstraints: no new objects, no changed shapes, no larger eyes, no text, symbols, borders, signature, watermark, no flame stream, no extra sparks, no neon, no bloom, no 3D finish. Preserve full bleed 3:2 image and handcrafted oil/gouache appearance.",
+			"initialPrompt": "Use case: illustration-story\nAsset type: original fantasy collectible-card artwork for Spellbook's private user profile, displayed as a small landscape picture.\nScene: inside a soot-dark mountain forge, a stout ember salamander is curled possessively around a scarred iron anvil. The creature has the long low body of a real fire salamander, broad blunt head, small intelligent amber eyes, four clearly placed sturdy feet, and overlapping charcoal and burnt-red mineral plates like cooling kiln glaze. It gently rests one front foot on a single unfinished copper ring on the anvil. Warm ember light shines through a few fine cracks between its plates, suggesting a creature that keeps the forge warm. An old pair of tongs leans against stone at the side; no people. Its tail curves around the anvil's foot. Behind is one broad furnace opening with banked coals and warm terracotta masonry, quiet and dim, no roaring flames.\nArt direction: professional hand-painted fantasy collectible-card illustration. Opaque gouache and oil glazes on textured board, sculptural broad brush marks, deliberate edge control, strong animal anatomy, substantial iron and ceramic textures, detailed focal face but background painted in large quiet masses. A commissioned studio painting with material pigment, not a render. Earthy craft and personality, not a cute sticker or generic dragon.\nComposition: one landscape image, 3:2 aspect ratio, full bleed edge to edge. Close low-angle three-quarter view, salamander head and copper ring near center, creature and anvil fill central two thirds. A bold low creature silhouette against a simple warm furnace rectangle. Readable at 340x210px, head and ring safely inside central 80 percent.\nPalette and light: iron charcoal, dark oxblood, burnt sienna, clay orange and a small amber light accent. Controlled orange reflected light on the face and worn anvil edge; deep cool charcoal shadows. Ember cracks are restrained and physically lit, never neon. No airborne sparks.\nConstraints: wholly original creature, no known fictional characters. No text, letters, writing, symbols, logos, signatures, watermarks, UI, borders or card frame. No photorealism, 3D, glossy plastic, airbrush, anime, giant cartoon eyes, winged dragon, wizard, purple glow, particle effects, bokeh, lens flare, extreme bloom, decorative clutter. Generate one single finished illustration.",
+			"editInputSourcePath": "/home/kyle/.codex/generated_images/01a1107d-8953-7961-a2d7-26fb17e88973/exec-91ec632c-576b-4d19-b669-bfabff57be71.png",
+			"savedRelativePaths": {
+				"main": "frontend/static/profile/artwork/ember.webp",
+				"thumbnail": "frontend/static/profile/artwork/ember-thumb.webp"
+			},
+			"dimensions": {
+				"main": {
+					"width": 960,
+					"height": 640
+				},
+				"thumbnail": {
+					"width": 320,
+					"height": 213
+				}
+			},
+			"optimization": {
+				"encoder": "ImageMagick with libwebp",
+				"mainQuality": 85,
+				"thumbnailQuality": 82,
+				"webpMethod": 6,
+				"metadataStripped": true
+			}
+		},
+		{
+			"id": "astral",
+			"description": "A brass armillary sphere framing the moon in a ruined mountain observatory.",
+			"generationDate": "2026-10-06",
+			"mode": "built-in image_gen",
+			"originalSourcePath": "/home/kyle/.codex/generated_images/01a1107d-8953-7961-a2d7-26fb17e88973/exec-e2406499-7437-4a6c-b1a8-d5f0c9bfc2e5.png",
+			"finalPrompt": "Use case: illustration-story\nAsset type: original fantasy collectible-card artwork for Spellbook's private user profile, displayed as a small landscape picture.\nScene: a forgotten open-roof observatory high above a quiet midnight valley. A monumental antique brass armillary sphere sits on a low blue stone pedestal in the foreground, its few broad interlocking orbital rings framing a pale waxing moon in the real sky beyond. The mechanism has believable rivets and tarnished edges, and a small smooth ivory globe at its center. A worn closed indigo book rests on the pedestal. Through a broken circular observatory aperture behind it, see a few distant slate mountains and a deep blue night sky with sparse tiny natural stars. No people or animals. The sphere, moon and architectural arch make an elegant, unusual alignment, like a quiet discovery rather than a spectacle.\nArt direction: professional hand-painted fantasy collectible-card illustration. Opaque gouache and oil glazes on textured board, rich layered blue pigments, visible assured brushwork, deliberate edge control, convincing metal geometry and weathered stone. Crisp restrained highlights on brass, broad quiet background strokes. A commissioned studio painting scanned from textured board, not a photograph or 3D render. Scholarly celestial mystery without purple magical clouds.\nComposition: one landscape image, 3:2 aspect ratio, full bleed edge to edge. Low three-quarter close view of the large brass instrument; concentric ring silhouette dominant in central two thirds, with the moon visible cleanly within the open rings. A few simple strong shapes, readable instantly at 340x210px. Main instrument, book and moon inside central 80 percent. Rings are solid engineered metal bands, coherent perspective and intersections, no tangled wire.\nPalette and light: midnight Prussian blue, desaturated blue slate, antique pale brass, chalk ivory. Natural cold moonlight and subtle warm metallic reflections, deep luminous blue shadows. No artificial glow around objects.\nConstraints: completely original environment and design. No text, letters, written markings, numbers, runes, logos, signatures, watermarks, UI, borders or card frame. No photorealism, airbrushing, 3D, purple nebulae, luminous galaxy portals, starburst, particle effects, bokeh, lens flare, extreme bloom, wizard, decorative clutter. Generate one single finished illustration.",
+			"savedRelativePaths": {
+				"main": "frontend/static/profile/artwork/astral.webp",
+				"thumbnail": "frontend/static/profile/artwork/astral-thumb.webp"
+			},
+			"dimensions": {
+				"main": {
+					"width": 960,
+					"height": 640
+				},
+				"thumbnail": {
+					"width": 320,
+					"height": 213
+				}
+			},
+			"optimization": {
+				"encoder": "ImageMagick with libwebp",
+				"mainQuality": 85,
+				"thumbnailQuality": 82,
+				"webpMethod": 6,
+				"metadataStripped": true
+			}
+		}
+	]
 }

@@ -53,3 +53,7 @@ Login and registration share a per-process limit of 20 attempts per client addre
 Registration is public. Email verification, emailed reset links, and a self-service password-change page are not implemented. The [operator procedure](../operations/local-auth.md) covers recovery and enrollment of accounts created under OIDC.
 
 Migration `0004` adds credentials and sessions without changing account IDs. Historical `auth_identities` records remain in the database but do not authenticate requests. OIDC tokens, provider configuration, and encrypted legacy sessions are no longer accepted.
+
+## Agent account creation
+
+`GET /agents.md` describes ordinary local account registration and credential storage for agents. The current JSON API remains the authentication owner, with full-account sessions rather than delegated scopes. Demo mode publishes a disabled-registration guide. The [provider evaluation](./auth-provider-evaluation.md#future-authmd-integration) records the separate future auth.md protocol work.

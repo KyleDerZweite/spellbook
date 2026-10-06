@@ -1,160 +1,125 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import Avatar from '#lib/components/profile/Avatar.svelte';
-	import { AVATARS, getAvatar } from '#lib/profile/avatars.ts';
+	import ProfileCard from '#lib/components/profile/ProfileCard.svelte';
+	import AvatarPicker from '#lib/components/profile/AvatarPicker.svelte';
+	import ArtworkPicker from '#lib/components/profile/ArtworkPicker.svelte';
+	import { getAvatar } from '#lib/profile/avatars.ts';
+	import { getProfileArtwork } from '#lib/profile/artwork.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
-	let selectedAvatar = $derived(getAvatar(data.user.avatarId).id);
+	let selectedAvatar = $derived(getAvatar(data.user.avatarId).id as string);
+	let selectedArtwork = $derived(getProfileArtwork(data.user.artworkId).id as string);
 	let pending = $state(false);
 	let saveError = $state('');
+	let isSaved = $derived(
+		selectedAvatar === data.user.avatarId && selectedArtwork === data.user.artworkId
+	);
 </script>
 
-<svelte:head>
-	<title>Settings | Spellbook</title>
-	<meta name="robots" content="noindex, nofollow" />
-</svelte:head>
+<svelte:head
+	><title>Settings | Spellbook</title><meta
+		name="robots"
+		content="noindex, nofollow"
+	/></svelte:head
+>
 
 <div class="settings-page workspace-container">
-	<h1 class="font-display text-2xl font-semibold tracking-tight text-text-primary">Settings</h1>
-	<div class="settings-identity">
-		<Avatar id={data.user.avatarId} size={48} />
-		<span>{data.user.username}</span>
-	</div>
-	<form
-		method="POST"
-		use:enhance={() => {
-			pending = true;
-			saveError = '';
-			return async ({ result, update }) => {
-				try {
-					if (result.type === 'error') saveError = 'Could not save your avatar. Try again.';
-					else await update({ reset: false });
-				} finally {
-					pending = false;
-				}
-			};
-		}}
-	>
-		<fieldset disabled={pending} aria-describedby="avatar-status">
-			<legend class="mb-4 text-sm font-medium text-text-primary">Avatar</legend>
-			<div class="avatar-choices">
-				{#each AVATARS as avatar (avatar.id)}
-					<label class="avatar-choice">
-						<input type="radio" name="avatarId" value={avatar.id} bind:group={selectedAvatar} />
-						<span class="avatar-option">
-							<Avatar id={avatar.id} size={48} />
-							<span>{avatar.label}</span>
-							<svg
-								class="avatar-check"
-								aria-hidden="true"
-								width="12"
-								height="12"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"><path d="m5 12 4 4L19 6" /></svg
-							>
-						</span>
-					</label>
-				{/each}
-			</div>
-		</fieldset>
-		<div class="settings-save">
-			<button class="btn btn-primary" disabled={pending}>
-				{pending ? 'Saving...' : 'Save'}
-			</button>
-			<div
-				id="avatar-status"
-				aria-live="polite"
-				aria-atomic="true"
-				class="text-sm text-text-secondary"
-			>
-				{#if saveError}<span class="text-error">{saveError}</span>
-				{:else if form?.message && (!form.success || selectedAvatar === data.user.avatarId)}
-					<span class:text-error={!form.success}>{form.message}</span>
-				{/if}
-			</div>
+	<div class="page-title"><h1>Settings</h1></div>
+	<div class="settings-profile">
+		<div class="settings-preview">
+			<ProfileCard
+				username={data.user.username}
+				avatarId={selectedAvatar}
+				artworkId={selectedArtwork}
+				totals={data.totals}
+			/>
+			{#if data.statsError}<p role="status" class="text-sm text-text-secondary">
+					{data.statsError}
+				</p>{/if}
 		</div>
-	</form>
+		<form
+			method="POST"
+			aria-busy={pending}
+			aria-describedby="profile-status"
+			use:enhance={() => {
+				pending = true;
+				saveError = '';
+				return async ({ result, update }) => {
+					try {
+						if (result.type === 'error') saveError = 'Could not save your profile. Try again.';
+						else await update({ reset: false });
+					} finally {
+						pending = false;
+					}
+				};
+			}}
+		>
+			<ArtworkPicker bind:selected={selectedArtwork} disabled={pending} />
+			<AvatarPicker bind:selected={selectedAvatar} disabled={pending} />
+			<div class="settings-save">
+				<button class="btn btn-primary" disabled={pending}
+					>{pending ? 'Saving...' : 'Save profile'}</button
+				>
+				<div
+					id="profile-status"
+					aria-live="polite"
+					aria-atomic="true"
+					class="text-sm text-text-secondary"
+				>
+					{#if saveError}<span class="text-error">{saveError}</span>
+					{:else if form?.message && (!form.success || isSaved)}<span
+							class:text-error={!form.success}>{form.message}</span
+						>{/if}
+				</div>
+			</div>
+		</form>
+	</div>
 </div>
 
 <style>
 	.settings-page {
 		min-width: 0;
 	}
-	.settings-page form {
-		max-width: 44rem;
-	}
-	.settings-identity {
-		display: flex;
-		align-items: center;
-		gap: 1rem;
-		margin: 1.25rem 0 1.5rem;
-		font-size: 0.9375rem;
-		overflow-wrap: anywhere;
-	}
-	.avatar-choices {
+	.settings-profile {
 		display: grid;
-		grid-template-columns: repeat(6, minmax(0, 1fr));
-		gap: 0.625rem;
+		grid-template-columns: minmax(260px, 340px) minmax(0, 520px);
+		gap: clamp(1.5rem, 4vw, 4rem);
+		align-items: start;
+		margin-top: 1.5rem;
 	}
-	.avatar-choice {
-		position: relative;
+	.settings-preview {
 		min-width: 0;
-		cursor: pointer;
 	}
-	.avatar-choice input {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		opacity: 0;
+	.settings-preview > p {
+		max-width: 340px;
+		margin-top: 0.75rem;
 	}
-	.avatar-option {
+	.settings-page form {
 		display: flex;
 		flex-direction: column;
-		align-items: center;
-		gap: 0.75rem;
-		padding: 1rem 0.25rem 0.75rem;
-		border: 1px solid var(--color-border);
-		border-radius: 0.625rem;
-		color: var(--color-text-secondary);
-		font-size: 0.75rem;
-	}
-	.avatar-choice:hover .avatar-option {
-		background: var(--color-stone);
-	}
-	.avatar-choice input:checked + .avatar-option {
-		color: var(--color-text-primary);
-		border-color: var(--color-text-secondary);
-		background: var(--color-stone);
-	}
-	.avatar-choice input:focus-visible + .avatar-option {
-		outline: 2px solid var(--color-text-primary);
-		outline-offset: 3px;
-	}
-	.avatar-choice input:disabled + .avatar-option {
-		cursor: wait;
-		opacity: 0.65;
-	}
-	.avatar-check {
-		position: absolute;
-		top: 0.375rem;
-		right: 0.375rem;
-		visibility: hidden;
-	}
-	.avatar-choice input:checked + .avatar-option .avatar-check {
-		visibility: visible;
+		gap: 1.5rem;
+		min-width: 0;
 	}
 	.settings-save {
 		display: flex;
 		align-items: center;
 		gap: 1rem;
-		margin-top: 1.5rem;
+		min-height: 44px;
 	}
-	@media (max-width: 639px) {
-		.avatar-choices {
-			grid-template-columns: repeat(3, minmax(0, 1fr));
+	@media (max-width: 800px) {
+		.settings-profile {
+			grid-template-columns: minmax(0, 1fr);
+			gap: 1.75rem;
+			max-width: 520px;
+		}
+		.settings-preview {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+		}
+		.settings-save {
+			flex-wrap: wrap;
 		}
 	}
 </style>

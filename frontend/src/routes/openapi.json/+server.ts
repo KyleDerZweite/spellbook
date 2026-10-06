@@ -1,4 +1,6 @@
 import { json } from '@sveltejs/kit';
+import { PROFILE_ARTWORK, DEFAULT_ARTWORK_ID } from '#lib/profile/artwork.ts';
+import { AVATARS } from '#lib/profile/avatars.ts';
 import { privateEnv } from '#lib/env/private.ts';
 import { SITE_DESCRIPTION, SITE_NAME } from '#lib/seo/site.ts';
 
@@ -80,8 +82,9 @@ const browserAuthErrors = {
 const returnToParameter = {
 	name: 'returnTo',
 	in: 'query',
-	schema: { type: 'string', default: '/' },
-	description: 'Local path used after authentication; invalid or external paths become /.'
+	schema: { type: 'string', default: '/mtg/inventory' },
+	description:
+		'Local path used after authentication; invalid or external paths become /mtg/inventory.'
 };
 const operation = (summary: string, result: Schema, input?: Schema, idempotent = false) => ({
 	summary,
@@ -525,18 +528,33 @@ const SCHEMA = {
 				},
 				password: { type: 'string', minLength: 12, maxLength: 128, writeOnly: true }
 			}),
-			RegisterRequest: object({
-				username: {
-					type: 'string',
-					minLength: 3,
-					maxLength: 32,
-					description:
-						'After trimming and lowercasing: starts with a letter or digit; remaining characters are letters, digits, underscores, or hyphens.'
+			RegisterRequest: object(
+				{
+					username: {
+						type: 'string',
+						minLength: 3,
+						maxLength: 32,
+						description:
+							'After trimming and lowercasing: starts with a letter or digit; remaining characters are letters, digits, underscores, or hyphens.'
+					},
+					password: { type: 'string', minLength: 12, maxLength: 128, writeOnly: true },
+					artworkId: {
+						type: 'string',
+						enum: PROFILE_ARTWORK.map((artwork) => artwork.id),
+						default: DEFAULT_ARTWORK_ID,
+						description: 'Optional profile artwork from the local library.'
+					}
 				},
-				password: { type: 'string', minLength: 12, maxLength: 128, writeOnly: true }
-			}),
+				['username', 'password']
+			),
 			AuthSession: object({
-				user: object({ accountId: string, username: string, email: string }),
+				user: object({
+					accountId: string,
+					username: string,
+					email: string,
+					avatarId: { type: 'string', enum: AVATARS.map((avatar) => avatar.id) },
+					artworkId: { type: 'string', enum: PROFILE_ARTWORK.map((artwork) => artwork.id) }
+				}),
 				token: {
 					type: 'string',
 					pattern: '^[A-Za-z0-9_-]{43}$',

@@ -2,9 +2,12 @@
 	import { enhance } from '$app/forms';
 	import AccountLayout from '#lib/components/auth/AccountLayout.svelte';
 	import PasswordInput from '#lib/components/auth/PasswordInput.svelte';
+	import ArtworkPicker from '#lib/components/profile/ArtworkPicker.svelte';
+	import { getProfileArtwork } from '#lib/profile/artwork.ts';
 	import type { PageProps } from './$types';
 	let { data, form }: PageProps = $props();
 	let pending = $state(false);
+	let selectedArtwork = $derived(getProfileArtwork(form?.artworkId).id as string);
 </script>
 
 <svelte:head
@@ -67,6 +70,7 @@
 				Use 12 to 128 characters.
 			</p>
 		</div>
+		<ArtworkPicker bind:selected={selectedArtwork} disabled={pending} compact />
 		<button type="submit" disabled={pending} class="btn btn-primary w-full disabled:opacity-50"
 			>{pending ? 'Please wait...' : 'Create an account'}</button
 		>
