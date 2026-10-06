@@ -71,6 +71,13 @@
 			"when": 1791281673275,
 			"tag": "0009_profile_card",
 			"breakpoints": true
+		},
+		{
+			"idx": 10,
+			"version": "7",
+			"when": 1791307844968,
+			"tag": "0010_inventory_groups",
+			"breakpoints": true
 		}
 	]
 }

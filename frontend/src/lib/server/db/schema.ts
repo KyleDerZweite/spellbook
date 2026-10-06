@@ -132,6 +132,44 @@ export const inventoryCards = pgTable(
 	]
 );
 
+export const inventoryGroups = pgTable(
+	'inventory_groups',
+	{
+		id: uuid('id').primaryKey(),
+		inventoryId: uuid('inventory_id')
+			.notNull()
+			.references(() => inventories.id, { onDelete: 'cascade' }),
+		name: text('name').notNull(),
+		...timestamps
+	},
+	(table) => [
+		check(
+			'inventory_groups_name_check',
+			sql`${table.name} = btrim(${table.name}) and char_length(${table.name}) between 1 and 64`
+		),
+		uniqueIndex('inventory_groups_inventory_name_idx').on(
+			table.inventoryId,
+			sql`lower(${table.name})`
+		)
+	]
+);
+
+export const inventoryGroupMemberships = pgTable(
+	'inventory_group_memberships',
+	{
+		groupId: uuid('group_id')
+			.notNull()
+			.references(() => inventoryGroups.id, { onDelete: 'cascade' }),
+		entryId: uuid('entry_id')
+			.notNull()
+			.references(() => inventoryCards.id, { onDelete: 'cascade' })
+	},
+	(table) => [
+		primaryKey({ columns: [table.groupId, table.entryId] }),
+		index('inventory_group_memberships_entry_idx').on(table.entryId)
+	]
+);
+
 export const decks = pgTable(
 	'decks',
 	{
