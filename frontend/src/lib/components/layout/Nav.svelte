@@ -75,7 +75,7 @@
 				class="brand-link font-display font-normal tracking-tight text-foreground no-underline"
 				aria-label="Spellbook home"
 			>
-				<img src={asset('logo.webp')} alt="" width="28" height="28" class="shrink-0" />
+				<img src={asset('logo.webp')} alt="" width="36" height="36" class="shrink-0" />
 				<span class="brand-name">Spellbook</span>
 			</a>
 		</div>
@@ -89,8 +89,8 @@
 					class="nav-link {isActive(link.href) ? 'nav-link--active' : ''}"
 					><svg
 						aria-hidden="true"
-						width="14"
-						height="14"
+						width={link.href === '/' || link.href === '/mtg/dashboard' ? 18 : 14}
+						height={link.href === '/' || link.href === '/mtg/dashboard' ? 18 : 14}
 						viewBox="0 0 24 24"
 						fill="none"
 						stroke="currentColor"
@@ -288,21 +288,15 @@
 	.brand-link {
 		display: flex;
 		align-items: center;
+		justify-content: center;
+		min-width: 44px;
+		min-height: 44px;
 		gap: 0.5rem;
 		font-size: 1.75rem;
 	}
 	.desktop-links {
 		display: flex;
 		gap: 0.2rem;
-		justify-content: center;
-	}
-	.desktop-links :global(.nav-link) {
-		gap: 0.4rem;
-		min-width: 44px;
-		min-height: 44px;
-		font-size: 0.8rem;
-		font-weight: 500;
-		padding: 0.5rem 0.6rem;
 		justify-content: center;
 	}
 	.desktop-links :global(a:nth-child(1) .nav-icon) {
