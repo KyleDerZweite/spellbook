@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-06
 - Source of Truth: repo config
-- Update Triggers: compose services, images, local launch commands and preview target, environment variables, migrations, storage
+- Update Triggers: compose services and first startup, catalog import and recovery, images, local launch commands and preview target, environment variables, migrations, storage
 - Related Docs: [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md)
 
 The canonical service definitions are [`podman-compose.yml`](../../podman-compose.yml) and the local storage override [`podman-compose.dev.yml`](../../podman-compose.dev.yml). Keep live domains, account details, and secret references in private operator notes.
@@ -24,7 +24,7 @@ Stopping the launcher terminates its own frontend and scan-worker processes. An 
 
 The T3 project uses `./dev.sh` as its Dev server script and `http://localhost:5173/` as its design-review preview URL. The root always shows the public landing, including with a signed-in demo session. Open `/mtg/dashboard` to review the private account summary. The removed `review=landing` override is no longer needed. The preview URL is a local app setting, not deployment configuration.
 
-The Compose base file starts the built stack on port 3000. Its `.dev.yml` override selects a shared local scan-storage volume instead of S3; it does not run Vite or enable Hot Reload.
+The Compose base file starts the built stack on port 3000. Its `podman-compose.dev.yml` override selects a shared local scan-storage volume instead of S3; it does not run Vite or enable Hot Reload.
 
 ## Services and startup
 
@@ -38,6 +38,10 @@ The Compose base file starts the built stack on port 3000. Its `.dev.yml` overri
 | `newt`        | Optional Pangolin tunnel, enabled by the `tunnel` profile         |
 
 `postgres` has a compose health check. `db-migrate` waits for healthy Postgres, and both the frontend and catalog worker wait for successful migration completion. Other dependencies require service startup, not readiness. The catalog worker also retries database schema readiness with backoff. No vector database is required.
+
+On a new deployment, `podman-compose up --build -d` runs migrations and starts the catalog worker. The worker immediately imports the configured Scryfall bulk source into PostgreSQL, then repeats on the configured interval, daily by default. Scryfall does not require an application credential. Operators do not import the shared catalog for individual accounts. The first publication may still be in progress after the frontend starts, so search can be empty until the worker completes. Check the worker logs and active generation as described in [catalog migration and recovery](#catalog-migration-and-recovery). The worker has no HTTP readiness or import-status endpoint.
+
+This automatic import applies to the Compose deployment. The host [development launcher](#local-development) expects an existing migrated database and does not start the catalog worker. The explicit [demo setup](./local-auth.md#demo-mode) seeds only 70 printing records for 69 canonical cards; it does not fetch the full Scryfall catalog. Neither workflow downloads card image files for the catalog.
 
 The frontend binds to host loopback port 3000. Configure a reverse proxy or enable the optional tunnel. Catalog requests use the same application origin.
 
@@ -62,6 +66,7 @@ Use `podman-compose --profile tunnel up --build -d` to include Newt. Set `PANGOL
 | `DATABASE_URL`                                      | Server, catalog worker, or operator PostgreSQL connection; compose constructs its internal connection from `POSTGRES_*` |
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Database and credentials; replace the example password                                                                  |
 | `CATALOG_SOURCE`                                    | Scryfall source: `all_cards` by default, or `default_cards`                                                             |
+| `SCRYFALL_BULK_URL`                                 | Scryfall bulk-data list URL; defaults to `https://api.scryfall.com/bulk-data`                                           |
 | `SYNC_INTERVAL`                                     | `daily`, `weekly`, or `manual`                                                                                          |
 | `WORKER_DATA_DIR`                                   | Persistent worker status directory; compose uses `/app/data`                                                            |
 | `SCAN_WORKER_URL`                                   | Internal scan-worker URL; compose uses `http://scan-worker:8080`                                                        |
@@ -89,13 +94,13 @@ Runtime support was reviewed on 2026-10-03. The workers pin [Python 3.14.8](http
 
 PostgreSQL 18 uses the new named volume at `/var/lib/postgresql`, with database files under `/var/lib/postgresql/18/docker`. The [database upgrade procedure](./postgres-upgrade.md) owns migration, verification, and rollback for existing PostgreSQL 17 installations.
 
-For local scan artifacts, run:
+For local scan artifacts in Compose, run:
 
 ```sh
 podman-compose -f podman-compose.yml -f podman-compose.dev.yml up --build -d
 ```
 
-The override shares the `scan_artifacts` volume at `/app/storage/scans` between the frontend and scan-worker. For S3 storage, provision the bucket separately and configure its lifecycle policy. Uploads remain outside Postgres. Recognition and normalized-image generation are not implemented.
+The override shares the `scan_artifacts` volume at `/app/storage/scans` between the frontend and scan-worker. For S3 storage, provision the bucket separately and configure its lifecycle policy. Scan upload bytes remain outside Postgres; PostgreSQL stores their account and review metadata. These user-uploaded images are separate from catalog card image URLs and tracked landing-page images. Recognition and normalized-image generation are not implemented.
 
 `worker_data` persists `state.json` across container recreation. See [worker operations and limits](../architecture/worker.md).
 
@@ -105,9 +110,9 @@ The [verification workflow](./github-automation.md#ci-coverage) owns CI coverage
 
 ## Catalog migration and recovery
 
-Migration `0006` creates the catalog tables and `pg_trgm` extension. The migration database role must be allowed to create that extension, or an administrator must provision it first. The worker then rebuilds the catalog directly from the configured Scryfall source. No MeiliSearch export is required. Existing account data, decks, and inventory stay in their application tables.
+Migration `0006` creates the catalog tables and `pg_trgm` extension. The migration database role must be allowed to create that extension, or an administrator must provision it first. After migration, the worker imports the configured Scryfall source automatically. A new deployment needs no manual catalog import or MeiliSearch export. Existing account data, decks, and inventory stay in their application tables.
 
-Stop the existing MeiliSearch container using the previous compose configuration or its observed container name. The new compose stack no longer manages that service, so an already-running container may remain until stopped. Its old physical volume is not deleted automatically. Preserve that volume until the new catalog is verified; it is not used by PostgreSQL. Do not remove database volumes when rebuilding catalog data.
+When upgrading from a deployment that still runs the former MeiliSearch service, stop that old container using its previous compose configuration or observed container name. The current stack does not manage it, so it may remain running after the upgrade. Its volume is not used by PostgreSQL. Keep it until the PostgreSQL catalog is verified. Do not remove database volumes when rebuilding catalog data.
 
 After migration, inspect the active catalog through the existing protected database connection:
 
@@ -118,7 +123,7 @@ JOIN catalog_generations g ON g.id = s.active_generation
 WHERE s.id = 1;
 ```
 
-A published row with a positive document count indicates catalog publication. The frontend can start before first publication and return empty search results. Inspect worker logs and test public browser search and authenticated mutations before opening a fresh deployment to users.
+A published row with a positive document count indicates catalog publication. The frontend can start before first publication and return empty search results. The worker writes its last attempt to `worker_data/state.json`, but that file is not a health endpoint or the publication authority. Inspect worker logs and the active generation to verify the catalog. Test public browser search and authenticated mutations before opening a fresh deployment to users.
 
 Use `daily` or `weekly` for the persistent compose worker. Reserve `manual` for the one-shot command below; the service restart policy would otherwise restart the completed process. To rerun synchronization once, stop the scheduled worker and run:
 

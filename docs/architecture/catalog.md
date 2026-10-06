@@ -3,8 +3,8 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-06
 - Source of Truth: code
-- Update Triggers: catalog schema, publication, search ranking, filters, facets, browser pagination and cache bounds, import resolution, printing selection
-- Related Docs: [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [ADR-0010](../decisions/0010-postgres-catalog.md)
+- Update Triggers: catalog source and schema, publication, bundled samples and display assets, search ranking, filters, facets, browser pagination and cache bounds, import resolution, printing selection
+- Related Docs: [Domain glossary](../../GLOSSARY.md), [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [Local authentication and demo setup](../operations/local-auth.md), [ADR-0010](../decisions/0010-postgres-catalog.md)
 
 PostgreSQL stores the public Scryfall catalog alongside account-owned application data. SvelteKit provides public read-only browser search and printing lookup through `/api/catalog/search` and `/api/catalog/cards/{oracleId}/printings`. The existing versioned integration routes retain authentication. Both use shared request validation and catalog handlers. Browsers use the application API; they receive no database credential or search-service key. The catalog contains card metadata, not ownership quantities.
 
@@ -14,9 +14,17 @@ Migration `0006_postgres_catalog.sql` enables `pg_trgm` and adds three tables. `
 
 The [Python worker](./worker.md) streams a complete snapshot into a new generation using PostgreSQL COPY. One transaction holds the publisher advisory lock, inserts printings, updates generation metadata, changes the active pointer, and deletes generations older than the previous one. The foreign key removes their printing rows. A malformed or empty snapshot rolls back the transaction and preserves the last published catalog.
 
+The repository does not contain the full Scryfall catalog. The worker downloads the selected bulk snapshot at runtime. By default, that source is `all_cards`. Each catalog document stores card metadata and Scryfall image URLs. Spellbook does not copy these images into PostgreSQL or proxy them through the application.
+
+The tracked [demo seed data](../../frontend/scripts/demo/cards.json) contains 70 printing records for 69 canonical cards. The seed writes this bounded sample into a `demo` catalog generation and creates a demo account, deck, and inventory. It is not a replacement for the full catalog. Its card images remain remote Scryfall URLs. The [demo setup instructions](../operations/local-auth.md#demo-mode) own the command and disposable-database requirements.
+
+Tracked image files under `frontend/static/showcase/` support the public landing page. The [MTG manifest](../../frontend/src/lib/showcase/cards.json) lists 12 cards, the [other TCG manifest](../../frontend/src/lib/showcase/other-tcg-cards.json) lists eight cards, and the [pack manifest](../../frontend/src/lib/showcase/packs.json) lists four packs. The [Commander preview manifest](../../frontend/src/lib/showcase/commander-deck.json) uses eight local card images from that directory. These are display assets, not catalog records. The directory also contains `sol-ring-art.webp`, a separate landing asset. The Scryfall image URLs recorded in the manifests are provenance references; the landing page loads the tracked local WebP files. Other catalog cards still use their remote image URLs.
+
+The separate `frontend/static/profile/` assets provide card frames and profile artwork. They are not Scryfall catalog images. Scan uploads also use separate storage: PostgreSQL records artifact metadata, while local storage or S3 holds the uploaded bytes. See [scan storage](../operations/deployment.md#storage-and-upgrades).
+
 Search hits, totals, facets, and `generationId` come from one SQL statement and therefore one publication snapshot. Readers keep seeing a complete committed generation during publication. Separate paginated requests may observe different generations; the API does not pin a browsing session to an old snapshot. Browser search restarts pagination when the generation changes, and card details reject printing pages from mixed generations. Before the first successful publication, search returns an empty result with `generationId: null`.
 
-The [schema](../../frontend/src/lib/server/db/schema.ts), [migration](../../frontend/drizzle/0006_postgres_catalog.sql), and [document type](../../frontend/src/lib/search/types.ts) own field definitions. Catalog refreshes do not rewrite inventory or deck entries.
+The [schema](../../frontend/src/lib/server/db/schema.ts), [migration](../../frontend/drizzle/0006_postgres_catalog.sql), and [document type](../../frontend/src/lib/search/types.ts) own field definitions. Catalog refreshes do not rewrite inventory or deck entries. A Scryfall catalog refresh updates shared reference data; a deck text import resolves user-submitted lines against that data and changes a deck only after review and commit. Inventory changes use their own account-scoped operations. Neither user import process downloads or updates the shared catalog.
 
 ## Search behavior
 
@@ -34,7 +42,7 @@ Authenticated `GET /api/mobile/v1/mtg/search` supports the existing query and pa
 
 ## Browser result window
 
-The browser grid represents the full result total with absolute card indexes. [CatalogWindow](../../frontend/src/lib/search/catalogWindow.ts) loads 50-result pages for the visible range and adjacent ranges, with up to three requests in flight and a planning window of 12 pages. It retains at most four search contexts and 20 pages across them. Evicted ranges load again when needed; scrolling does not accumulate the whole catalog in memory.
+The browser grid represents the full result total with absolute card indexes. [CatalogWindow](../../frontend/src/lib/search/catalogWindow.ts) loads 50-result pages for the visible range and adjacent ranges, with up to three requests in flight and a planning window of 12 pages. It retains at most four search contexts and 20 pages across them in memory. Evicted ranges load again when needed; scrolling does not accumulate the whole catalog in memory. This cache holds API result pages, not image files. The app has no service worker or offline image cache, so card images require access to their source URLs.
 
 Each context includes the game, query, filters and request options. Activation cancels old requests and validates page zero before further pagination. Pausing cancels requests without discarding cached pages. Resuming revalidates page zero before loading other ranges and retains the result position unless the generation changes. A changed `generationId` clears cached contexts, resets the grid and reloads page zero so totals, facets and displayed pages remain coherent. Range failures remain retryable with the query and filters preserved. These client limits do not change the public or authenticated API. Full-catalog browser performance still requires representative production-scale verification.
 
