@@ -5,6 +5,9 @@
 	import CardDetail from '#lib/components/cards/CardDetail.svelte';
 	import Select from '#lib/components/ui/select/Select.svelte';
 	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
+	import FilterPopover from '#lib/components/ui/popover/FilterPopover.svelte';
+	import ConfirmationDialog from '#lib/components/ui/dialog/ConfirmationDialog.svelte';
+	import ScrollArea from '#lib/components/ui/scroll-area/ScrollArea.svelte';
 	import {
 		describeInventoryOrder,
 		filterInventory,
@@ -23,7 +26,14 @@
 	let { data, form }: PageProps = $props();
 	let order = $state<InventoryOrder>({ base: 'name', direction: 'asc', variant: null });
 	let query = $state('');
-	let selectedSet = $state('all');
+	let selectedSets = $state<string[]>([]);
+	let filterOpen = $state(false);
+	let setQuery = $state('');
+	let filterField = $state<'set' | 'finish' | 'condition'>('set');
+	let filterReturnTarget = $state<HTMLElement | null>(null);
+	let setSearchInput = $state<HTMLInputElement | null>(null);
+	let finishTrigger = $state<HTMLButtonElement | null>(null);
+	let conditionTrigger = $state<HTMLButtonElement | null>(null);
 	let selectedFinish = $state('all');
 	let selectedCondition = $state('all');
 	let inspectedId = $state<string | null>(null);
@@ -37,7 +47,7 @@
 	let asOf = $derived(viewedAt ?? data.viewedAt);
 	let searchInput = $state<HTMLInputElement | null>(null);
 	let emptyAction = $state<HTMLAnchorElement | null>(null);
-	let removeCancel = $state<HTMLButtonElement | null>(null);
+	let removalReturnTarget = $state<HTMLElement | null>(null);
 	let rowMenuRefs = $state<Record<string, HTMLButtonElement | null>>({});
 	const addedDate = new Intl.DateTimeFormat('en', { dateStyle: 'medium', timeZone: 'UTC' });
 	const columns: Array<{ column: Exclude<InventoryColumn, 'newest'>; label: string }> = [
@@ -48,38 +58,44 @@
 		{ column: 'quantity', label: 'Quantity' }
 	];
 	const conditionOptions = [
-		{ value: 'all', label: 'Any condition' },
+		{ value: 'all', label: 'All' },
 		...inventoryConditions.map((value) => ({ value, label: value }))
 	];
 	const finishOptions = [
-		{ value: 'all', label: 'Any finish' },
+		{ value: 'all', label: 'All' },
 		{ value: 'nonfoil', label: 'Nonfoil' },
 		{ value: 'foil', label: 'Foil' }
 	];
 	let inventoryCards = $derived(data.cards);
 	let inspected = $derived(inventoryCards.find((card) => card.id === inspectedId));
-	let setOptions = $derived([
-		{ value: 'all', label: 'All sets' },
-		...[
-			...new Set([
-				...inventoryCards.map((card) => card.setCode),
-				...(selectedSet === 'all' ? [] : [selectedSet])
-			])
-		]
-			.sort()
-			.map((value) => ({ value, label: value.toUpperCase() }))
-	]);
+	let removing = $derived(inventoryCards.find((card) => card.id === removeId));
+	const normalizeSet = (code: string) => code.toLowerCase();
+	const setName = (code: string) => data.setNames[normalizeSet(code)] ?? code.toUpperCase();
+	let setOptions = $derived(
+		[...new Set([...inventoryCards.map((card) => normalizeSet(card.setCode)), ...selectedSets])]
+			.map((value) => ({ value, label: setName(value) }))
+			.sort((a, b) => a.label.localeCompare(b.label) || a.value.localeCompare(b.value))
+	);
+	let visibleSets = $derived(
+		setOptions.filter((option) =>
+			`${option.label} ${option.value}`.toLowerCase().includes(setQuery.trim().toLowerCase())
+		)
+	);
+	let singleSet = $derived(selectedSets.length === 1 ? selectedSets[0] : null);
 	let hasFilters = $derived(
 		query.trim() !== '' ||
-			selectedSet !== 'all' ||
+			selectedSets.length > 0 ||
 			selectedFinish !== 'all' ||
 			selectedCondition !== 'all'
+	);
+	let hasColumnFilters = $derived(
+		selectedSets.length > 0 || selectedFinish !== 'all' || selectedCondition !== 'all'
 	);
 	let listCards = $derived(
 		orderInventory(
 			filterInventory(inventoryCards, {
 				query,
-				set: selectedSet,
+				sets: selectedSets,
 				finish: selectedFinish,
 				condition: selectedCondition
 			}),
@@ -96,15 +112,54 @@
 		}, 60_000);
 		return () => clearInterval(timer);
 	});
-	async function cancelRemoval(id: string) {
-		removeId = null;
-		await tick();
-		rowMenuRefs[id]?.focus();
+	function openRemoval(id: string) {
+		mutationError = '';
+		removalReturnTarget = rowMenuRefs[id] ?? searchInput;
+		removeId = id;
 	}
-	function focusRemoval(event: Event, id: string) {
-		if (removeId !== id) return;
+	function cancelRemoval() {
+		removeId = null;
+		mutationError = '';
+	}
+	function returnFromRemoval(event: Event) {
 		event.preventDefault();
-		void tick().then(() => (removeCancel ?? rowMenuRefs[id])?.focus());
+		if (removalReturnTarget?.isConnected) removalReturnTarget.focus({ preventScroll: true });
+	}
+	function editFilter(field: 'set' | 'finish' | 'condition', event: MouseEvent) {
+		filterField = field;
+		filterReturnTarget = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+		filterOpen = true;
+	}
+	function focusFilter(event: Event) {
+		event.preventDefault();
+		void tick().then(() => {
+			if (!filterOpen) return;
+			const target =
+				filterField === 'finish'
+					? finishTrigger
+					: filterField === 'condition'
+						? conditionTrigger
+						: setSearchInput;
+			target?.focus();
+		});
+	}
+	function closeFilter(event: Event) {
+		if (filterOpen) {
+			event.preventDefault();
+			return;
+		}
+		if (filterReturnTarget?.isConnected) {
+			event.preventDefault();
+			filterReturnTarget.focus({ preventScroll: true });
+		}
+		filterReturnTarget = null;
+		filterField = 'set';
+		setQuery = '';
+	}
+	function toggleSet(code: string) {
+		selectedSets = selectedSets.includes(code)
+			? selectedSets.filter((value) => value !== code)
+			: [...selectedSets, code];
 	}
 	function columnDirection(column: InventoryColumn) {
 		return order.base === column
@@ -113,26 +168,21 @@
 				? order.variant.direction
 				: null;
 	}
-	function setColumnFilter(column: InventoryColumn, value: string) {
-		if (column === 'set') selectedSet = value;
-		if (column === 'finish') selectedFinish = value;
-		if (column === 'condition') selectedCondition = value;
-	}
 	let matchingQuantity = $derived(listCards.reduce((total, card) => total + card.quantity, 0));
 	let ownedInSet = $derived(
 		new Set(
 			inventoryCards
-				.filter((card) => card.setCode === selectedSet)
+				.filter((card) => normalizeSet(card.setCode) === singleSet)
 				.map((card) => card.canonicalCardId)
 		).size
 	);
 
 	$effect(() => {
-		const setCode = selectedSet;
+		const setCode = singleSet;
 		const game = activeGameState.current;
 		setCatalogTotal = null;
-		setProgressLoading = setCode !== 'all';
-		if (setCode === 'all') return;
+		setProgressLoading = setCode !== null;
+		if (setCode === null) return;
 		let cancelled = false;
 		getSetCatalogSize(setCode, game)
 			.then((total) => {
@@ -150,7 +200,7 @@
 	});
 	function clearFilters() {
 		query = '';
-		selectedSet = 'all';
+		selectedSets = [];
 		selectedFinish = 'all';
 		selectedCondition = 'all';
 	}
@@ -171,10 +221,10 @@
 					const index = listCards.findIndex((entry) => entry.id === id);
 					const neighbor = listCards[index + 1] ?? listCards[index - 1];
 					await update({ reset: false });
-					removeId = null;
 					if (removing) {
 						await tick();
-						(rowMenuRefs[neighbor?.id ?? ''] ?? searchInput ?? emptyAction)?.focus();
+						removalReturnTarget = rowMenuRefs[neighbor?.id ?? ''] ?? searchInput ?? emptyAction;
+						removeId = null;
 					}
 					status = removing
 						? `${card?.name ?? 'Entry'} removed.`
@@ -217,7 +267,7 @@
 			>
 		</div>
 	</div>
-	{#if mutationError || form?.message}<p class="mutation-error" role="alert">
+	{#if !removeId && (mutationError || form?.message)}<p class="mutation-error" role="alert">
 			{mutationError || form?.message}
 		</p>{/if}
 	{#if inventoryCards.length === 0}
@@ -247,46 +297,173 @@
 					class="input"
 				/>
 			</div>
+			<FilterPopover
+				bind:open={filterOpen}
+				active={hasColumnFilters}
+				onOpenAutoFocus={focusFilter}
+				onCloseAutoFocus={closeFilter}
+			>
+				<div class="filter-fields">
+					<div class="set-filter-heading">
+						<label class="label" for="inventory-set-search">Sets</label><button
+							type="button"
+							class="filter-reset"
+							disabled={selectedSets.length === 0}
+							onclick={() => (selectedSets = [])}>Clear</button
+						>
+					</div>
+					<input
+						bind:this={setSearchInput}
+						bind:value={setQuery}
+						id="inventory-set-search"
+						type="search"
+						class="input"
+						placeholder="Find a set by name or code"
+					/>
+					<ScrollArea class="set-options" viewportLabel="Choose sets">
+						{#each visibleSets as option (option.value)}
+							<label class="set-option"
+								><input
+									type="checkbox"
+									checked={selectedSets.includes(option.value)}
+									onchange={() => toggleSet(option.value)}
+								/><span>{option.label}</span><small>{option.value.toUpperCase()}</small></label
+							>
+						{:else}<p class="no-sets">No sets match this search.</p>{/each}
+					</ScrollArea>
+					<div class="variant-filters">
+						<div>
+							<label class="label" for="inventory-finish-filter">Finish</label><Select
+								id="inventory-finish-filter"
+								label="Filter by finish"
+								bind:triggerRef={finishTrigger}
+								bind:value={selectedFinish}
+								options={finishOptions}
+							/>
+						</div>
+						<div>
+							<label class="label" for="inventory-condition-filter">Condition</label><Select
+								id="inventory-condition-filter"
+								label="Filter by condition"
+								bind:triggerRef={conditionTrigger}
+								bind:value={selectedCondition}
+								options={conditionOptions}
+							/>
+						</div>
+					</div>
+				</div>
+			</FilterPopover>
+			<ActionMenu
+				label="Sort inventory"
+				class="inventory-sort-menu btn-ghost"
+				items={[
+					{
+						label: 'Card name: A to Z',
+						onSelect: () => (order = nextInventoryOrder(order, 'name', 'asc'))
+					},
+					{
+						label: 'Card name: Z to A',
+						onSelect: () => (order = nextInventoryOrder(order, 'name', 'desc'))
+					},
+					{
+						label: 'Set: A to Z',
+						onSelect: () => (order = nextInventoryOrder(order, 'set', 'asc'))
+					},
+					{
+						label: 'Set: Z to A',
+						onSelect: () => (order = nextInventoryOrder(order, 'set', 'desc'))
+					},
+					{ label: 'Newest first', onSelect: () => (order = nextInventoryOrder(order, 'newest')) },
+					{
+						label:
+							columnDirection('finish') === 'asc' ? 'Finish: foil first' : 'Finish: nonfoil first',
+						onSelect: () => (order = nextInventoryOrder(order, 'finish'))
+					},
+					{
+						label:
+							columnDirection('condition') === 'asc'
+								? 'Condition: worst first'
+								: 'Condition: best first',
+						onSelect: () => (order = nextInventoryOrder(order, 'condition'))
+					},
+					{
+						label:
+							columnDirection('quantity') === 'asc'
+								? 'Quantity: most first'
+								: 'Quantity: fewest first',
+						onSelect: () => (order = nextInventoryOrder(order, 'quantity'))
+					}
+				]}
+			>
+				{#snippet trigger()}<svg
+						aria-hidden="true"
+						width="14"
+						height="14"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.6"
+						stroke-linecap="round"><path d="M8 4v16m-4-4 4 4 4-4M16 20V4m-4 4 4-4 4 4" /></svg
+					>Sort{/snippet}
+			</ActionMenu>
 			<p class="inventory-result-count">
 				{listCards.length}
 				{listCards.length === 1 ? 'entry' : 'entries'} <span>·</span>
 				{matchingQuantity} cards
 			</p>
 		</div>
-		<div class="inventory-context">
+		{#if hasFilters}
 			<div class="active-filters">
-				{#if selectedSet !== 'all'}<button
-						type="button"
-						class="active-filter"
-						aria-label={`Clear set filter ${selectedSet.toUpperCase()}`}
-						onclick={() => (selectedSet = 'all')}
-						>Set: {selectedSet.toUpperCase()} <span aria-hidden="true">×</span></button
-					>{/if}
-				{#if selectedFinish !== 'all'}<button
-						type="button"
-						class="active-filter"
-						aria-label={`Clear finish filter ${selectedFinish}`}
-						onclick={() => (selectedFinish = 'all')}
-						>{selectedFinish === 'foil' ? 'Foil' : 'Nonfoil'}
-						<span aria-hidden="true">×</span></button
-					>{/if}
-				{#if selectedCondition !== 'all'}<button
-						type="button"
-						class="active-filter"
-						aria-label={`Clear condition filter ${selectedCondition}`}
-						onclick={() => (selectedCondition = 'all')}
-						>{selectedCondition} <span aria-hidden="true">×</span></button
-					>{/if}
-				{#if hasFilters}<button type="button" class="clear-filters" onclick={clearFilters}
-						>Clear filters</button
-					>{/if}
+				{#each selectedSets as code (code)}
+					<div class="filter-chip">
+						<button
+							type="button"
+							class="filter-chip-edit"
+							onclick={(event) => editFilter('set', event)}
+							aria-label={`Edit set filter ${setName(code)}`}>Set: {setName(code)}</button
+						><button
+							type="button"
+							class="filter-chip-remove"
+							aria-label={`Clear set filter ${setName(code)}`}
+							onclick={() => (selectedSets = selectedSets.filter((value) => value !== code))}
+							>×</button
+						>
+					</div>
+				{/each}
+				{#if selectedFinish !== 'all'}<div class="filter-chip">
+						<button
+							type="button"
+							class="filter-chip-edit"
+							onclick={(event) => editFilter('finish', event)}
+							>Finish: {selectedFinish === 'foil' ? 'Foil' : 'Nonfoil'}</button
+						><button
+							type="button"
+							class="filter-chip-remove"
+							aria-label={`Clear finish filter ${selectedFinish}`}
+							onclick={() => (selectedFinish = 'all')}>×</button
+						>
+					</div>{/if}
+				{#if selectedCondition !== 'all'}<div class="filter-chip">
+						<button
+							type="button"
+							class="filter-chip-edit"
+							onclick={(event) => editFilter('condition', event)}
+							>Condition: {selectedCondition}</button
+						><button
+							type="button"
+							class="filter-chip-remove"
+							aria-label={`Clear condition filter ${selectedCondition}`}
+							onclick={() => (selectedCondition = 'all')}>×</button
+						>
+					</div>{/if}
+				<button type="button" class="clear-filters" onclick={clearFilters}>Clear filters</button>
 			</div>
-			<span class="save-status" role="status">{status}</span>
-		</div>
-		{#if selectedSet !== 'all'}
+		{/if}
+		<span class="sr-only" role="status">{status}</span>
+		{#if singleSet}
 			<div class="set-progress">
 				<p>
-					{selectedSet.toUpperCase()} <span>·</span>
+					{setName(singleSet)} <span>·</span>
 					{setCatalogTotal !== null && setCatalogTotal > 0
 						? `${ownedInSet} of ${setCatalogTotal} card names owned`
 						: `${ownedInSet} card names owned`}
@@ -297,7 +474,7 @@
 				{#if setCatalogTotal !== null && setCatalogTotal > 0}<progress
 						value={Math.min(ownedInSet, setCatalogTotal)}
 						max={setCatalogTotal}
-						aria-label={`${selectedSet.toUpperCase()} set completion`}
+						aria-label={`${setName(singleSet)} set completion`}
 					></progress>{/if}
 			</div>
 		{/if}
@@ -305,7 +482,7 @@
 		<div
 			class="inventory-columns"
 			role="group"
-			aria-label="Inventory sorting and filters"
+			aria-label="Inventory column sorting"
 			aria-describedby="inventory-order"
 		>
 			{#each columns as { column, label }}
@@ -324,38 +501,6 @@
 							aria-hidden="true">{columnDirection(column) === 'asc' ? '↑' : '↓'}</span
 						></button
 					>
-					{#if column === 'name'}
-						<ActionMenu
-							label="Card ordering"
-							iconOnly
-							class="card-order-menu"
-							items={[
-								{
-									label: 'Newest first',
-									onSelect: () => (order = nextInventoryOrder(order, 'newest'))
-								}
-							]}
-						>
-							{#snippet trigger()}{@render menuDots()}{/snippet}
-						</ActionMenu>
-					{:else if column === 'set' || column === 'finish' || column === 'condition'}
-						<Select
-							iconOnly
-							class="inventory-filter"
-							label={`Filter by ${column}`}
-							value={column === 'set'
-								? selectedSet
-								: column === 'finish'
-									? selectedFinish
-									: selectedCondition}
-							options={column === 'set'
-								? setOptions
-								: column === 'finish'
-									? finishOptions
-									: conditionOptions}
-							onchange={(value) => setColumnFilter(column, value)}
-						/>
-					{/if}
 				</div>
 			{/each}
 			<span></span>
@@ -432,45 +577,45 @@
 							bind:triggerRef={
 								() => rowMenuRefs[card.id] ?? null, (ref) => (rowMenuRefs[card.id] = ref)
 							}
-							onCloseAutoFocus={(event) => focusRemoval(event, card.id)}
+							onCloseAutoFocus={(event) => {
+								if (removeId === card.id) event.preventDefault();
+							}}
 							items={[
 								{
 									label: 'Remove',
 									destructive: true,
 									disabled: pendingId !== null,
-									onSelect: () => (removeId = card.id)
+									onSelect: () => openRemoval(card.id)
 								}
 							]}
 						>
 							{#snippet trigger()}{@render menuDots()}{/snippet}
 						</ActionMenu>
-						{#if removeId === card.id}<div class="remove-confirmation">
-								<p>
-									Remove {card.quantity > 1 ? 'all ' : ''}{card.quantity}
-									{card.quantity === 1 ? 'copy' : 'copies'} of {card.name}?
-								</p>
-								<div>
-									<button
-										bind:this={removeCancel}
-										class="btn btn-ghost btn-sm"
-										disabled={pendingId !== null}
-										onclick={() => cancelRemoval(card.id)}>Cancel</button
-									>
-									<form method="POST" action="?/remove" use:enhance={saveEntry}>
-										<input type="hidden" name="entryId" value={card.id} /><button
-											class="btn btn-destructive btn-sm"
-											type="submit"
-											disabled={pendingId !== null}>Remove</button
-										>
-									</form>
-								</div>
-							</div>{/if}
 					</li>
 				{/each}
 			</ul>
 		{/if}
 	{/if}
 </div>
+
+<ConfirmationDialog
+	open={removeId !== null}
+	title="Remove this entry?"
+	description={removing
+		? `This removes ${removing.quantity > 1 ? 'all ' : ''}${removing.quantity} ${removing.quantity === 1 ? 'copy' : 'copies'} of ${removing.name} (${removing.setCode.toUpperCase()}, ${removing.finish === 'foil' ? 'Foil' : 'Nonfoil'}, ${removing.condition}) from your inventory. It cannot be undone.`
+		: ''}
+	pending={pendingId !== null}
+	error={mutationError}
+	onCancel={cancelRemoval}
+	onCloseAutoFocus={returnFromRemoval}
+>
+	<form method="POST" action="?/remove" use:enhance={saveEntry}>
+		<input type="hidden" name="entryId" value={removeId ?? ''} />
+		<button class="btn btn-destructive" type="submit" disabled={pendingId !== null || !removing}
+			>{pendingId === removeId ? 'Removing…' : 'Remove'}</button
+		>
+	</form>
+</ConfirmationDialog>
 
 {#snippet menuDots()}
 	<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"
@@ -559,15 +704,128 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
+		gap: 0.375rem;
+		margin-top: 0.375rem;
+		font-size: 0.75rem;
+	}
+	.filter-chip {
+		display: inline-flex;
+		align-items: center;
+		min-width: 0;
+		max-width: 100%;
+		border-radius: 0.375rem;
+		background: var(--color-muted);
+		color: var(--color-text-secondary);
+	}
+	.filter-chip-edit {
+		min-height: 36px;
+		min-width: 0;
+		padding-left: 0.625rem;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		cursor: pointer;
+		text-align: left;
+	}
+	.filter-chip-edit:hover {
+		color: var(--color-text-primary);
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+	.filter-chip-remove {
+		width: 36px;
+		min-height: 36px;
+		flex-shrink: 0;
+		cursor: pointer;
+		border-radius: 0.375rem;
+		color: var(--color-text-muted);
+		font-size: 1rem;
+	}
+	.filter-chip-remove:hover {
+		background: var(--color-surface);
+		color: var(--color-text-primary);
+	}
+	.filter-fields {
+		display: flex;
+		flex-direction: column;
 		gap: 0.5rem;
 	}
-	.active-filter {
+	.set-filter-heading {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+	.filter-fields .label {
+		margin: 0;
+		font-size: 0.75rem;
+	}
+	.filter-reset {
+		min-height: 32px;
 		color: var(--color-text-secondary);
 		cursor: pointer;
-		min-height: 44px;
+		font-size: 0.75rem;
 	}
-	.active-filter span {
-		margin-left: 0.25rem;
+	.filter-reset:disabled {
+		opacity: 0.4;
+		cursor: default;
+	}
+	:global(.set-options) {
+		height: 16rem;
+		margin-bottom: 0.5rem;
+	}
+	.set-option {
+		display: flex;
+		align-items: center;
+		gap: 0.625rem;
+		min-height: 44px;
+		padding: 0.375rem 0.5rem;
+		border-radius: 0.375rem;
+		cursor: pointer;
+		font-size: 0.75rem;
+		line-height: 1.5;
+	}
+	.set-option:hover,
+	.set-option:focus-within {
+		background: var(--color-muted);
+	}
+	.set-option input {
+		width: 14px;
+		height: 14px;
+		flex-shrink: 0;
+		accent-color: var(--color-primary);
+	}
+	.set-option > span {
+		min-width: 0;
+		flex: 1;
+		overflow-wrap: anywhere;
+	}
+	.set-option small {
+		color: var(--color-text-muted);
+		flex-shrink: 0;
+		font-size: 0.6875rem;
+	}
+	.no-sets {
+		padding: 1rem 0.5rem;
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+	}
+	.variant-filters {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.625rem;
+	}
+	.variant-filters > div {
+		min-width: 0;
+	}
+	.variant-filters .label {
+		display: block;
+		margin-bottom: 0.375rem;
+	}
+	:global(.inventory-sort-menu) {
+		padding-inline: 0.625rem;
+		font-size: 0.75rem;
+		border: 0;
+		background: transparent;
 	}
 	.column-header {
 		display: flex;
@@ -602,17 +860,6 @@
 	.has-direction .sort-direction {
 		visibility: visible;
 	}
-	.column-header :global(.inventory-filter),
-	.column-header :global(.card-order-menu) {
-		width: 44px;
-		height: 44px;
-		min-height: 44px;
-		padding: 0;
-		border: 0;
-		border-radius: 0;
-		background: transparent;
-		flex-shrink: 0;
-	}
 	.card-name {
 		display: flex;
 		align-items: center;
@@ -620,7 +867,8 @@
 		gap: 0.375rem;
 	}
 	.new-entry {
-		border: 1px solid color-mix(in srgb, var(--color-info) 65%, transparent);
+		border: 1px solid transparent;
+		background: color-mix(in srgb, var(--color-info) 15%, transparent);
 		border-radius: 0.25rem;
 		padding: 0.125rem 0.375rem;
 		color: var(--color-text-secondary);
@@ -631,7 +879,8 @@
 		--metadata-color: var(--color-text-muted);
 		display: inline-flex;
 		align-items: center;
-		border: 1px solid color-mix(in srgb, var(--metadata-color) 65%, transparent);
+		border: 1px solid color-mix(in srgb, var(--metadata-color) 12%, transparent);
+		background: color-mix(in srgb, var(--metadata-color) 16%, transparent);
 		border-radius: 0.25rem;
 		padding: 0.125rem 0.375rem;
 		color: var(--color-text-secondary);
@@ -684,7 +933,8 @@
 	}
 	.inventory-toolbar {
 		display: grid;
-		grid-template-columns: minmax(180px, 1fr) auto;
+		grid-template-columns: minmax(180px, 1fr) auto auto auto;
+		margin-bottom: 0.25rem;
 		align-items: center;
 		gap: 0.625rem;
 	}
@@ -704,17 +954,6 @@
 		width: 100%;
 		padding-left: 2.4rem;
 	}
-	.inventory-context {
-		min-height: 3rem;
-		display: flex;
-		align-items: center;
-		flex-wrap: wrap;
-		column-gap: 0.75rem;
-		row-gap: 0.25rem;
-		font-size: 0.75rem;
-		color: var(--color-text-muted);
-		padding: 0.125rem 0;
-	}
 	.clear-filters {
 		min-height: 44px;
 		text-decoration: underline;
@@ -722,16 +961,12 @@
 		cursor: pointer;
 		color: var(--color-text-secondary);
 	}
-	.save-status {
-		min-height: 1.25rem;
-		margin-left: auto;
-	}
 	.set-progress {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 1rem;
-		padding-bottom: 1.25rem;
+		padding-block: 0.75rem;
 		color: var(--color-text-secondary);
 		font-size: 0.8125rem;
 	}
@@ -758,7 +993,7 @@
 		align-items: center;
 	}
 	.inventory-columns {
-		padding: 0 0.625rem 0.625rem;
+		padding: 0 0.625rem;
 		font-size: 0.75rem;
 		color: var(--color-text-muted);
 	}
@@ -863,19 +1098,6 @@
 		color: var(--color-text-muted);
 		justify-self: center;
 	}
-	.remove-confirmation {
-		grid-column: 1 / -1;
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		gap: 1rem;
-		padding: 0.75rem 0 0.25rem;
-		font-size: 0.8125rem;
-	}
-	.remove-confirmation > div {
-		display: flex;
-		gap: 0.5rem;
-	}
 	.empty-state {
 		display: flex;
 		flex-direction: column;
@@ -952,11 +1174,24 @@
 			font-size: 0.75rem;
 		}
 		.inventory-toolbar {
-			grid-template-columns: minmax(0, 1fr);
-			gap: 0.5rem;
+			grid-template-columns: auto auto minmax(0, 1fr);
+			gap: 0.25rem;
+		}
+		.inventory-search {
+			grid-column: 1 / -1;
+		}
+		.filter-chip-edit,
+		.filter-chip-remove {
+			min-height: 44px;
+		}
+		.filter-chip-remove {
+			width: 44px;
 		}
 		.inventory-result-count {
 			justify-self: end;
+			white-space: normal;
+			text-align: right;
+			font-size: 0.6875rem;
 		}
 		.inventory-row {
 			grid-template-columns: minmax(0, 1fr) 112px;
@@ -986,12 +1221,6 @@
 		}
 		:global(.entry-menu) {
 			grid-column: 2;
-		}
-		.remove-confirmation {
-			flex-wrap: wrap;
-		}
-		.remove-confirmation > div {
-			margin-left: auto;
 		}
 		.set-progress {
 			align-items: flex-start;

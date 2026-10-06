@@ -1,7 +1,7 @@
 # Spellbook documentation
 
 - Status: Canonical
-- Last Reviewed: 2026-10-05
+- Last Reviewed: 2026-10-06
 - Source of Truth: mixed
 - Update Triggers: document ownership, product contracts, section changes, documentation health review
 - Related Docs: [Product](./product/README.md), [Architecture](./architecture/README.md), [Operations](./operations/README.md), [Integrations](./integrations/README.md), [Decisions](./decisions/README.md), [Reference](./reference/README.md), [Issue labels](./ISSUE_LABELS.md)
@@ -9,8 +9,6 @@
 Start with the [product specification](./product/specification.md) for current behavior, requirements, and known limits. Use the [domain glossary](../GLOSSARY.md) for precise MTG and ownership terms. The code, tests, and configuration resolve implementation questions.
 
 Use the [issue label rules](./ISSUE_LABELS.md) for repository triage and the [contribution policy](../CONTRIBUTING.md) for proposals, pull requests, and AI assistance disclosure.
-
-The tracked [PR #169 handoff](../.scratch/handoffs/20261003T231314Z-spellbook-modernization.md) records continuation state and links to the canonical owners.
 
 | Section                                  | Owns                                                                             |
 | ---------------------------------------- | -------------------------------------------------------------------------------- |

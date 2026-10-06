@@ -1,9 +1,12 @@
 <script lang="ts">
 	import { Dialog } from 'bits-ui';
+	import { onNavigate } from '$app/navigation';
 	import SearchBar from '#lib/components/search/SearchBar.svelte';
 	import SearchFilters from '#lib/components/search/SearchFilters.svelte';
 	import SearchResults from '#lib/components/search/SearchResults.svelte';
 	import CardInspector from '#lib/components/cards/CardInspector.svelte';
+	import ScrollArea from '#lib/components/ui/scroll-area/ScrollArea.svelte';
+	import { cancelWheelScroll } from '#lib/components/ui/scroll-area/wheel.ts';
 	import { cardAt, type CatalogRange } from '#lib/search/catalogWindow.ts';
 	import { getSearchSession } from '#lib/search/session.svelte.ts';
 	import { onDestroy, tick, untrack, type Snippet } from 'svelte';
@@ -14,12 +17,16 @@
 	const session = getSearchSession();
 	const filters = session.filters;
 	const catalog = session.catalog;
+	// Capture before the new viewport can emit its initial zero scroll position.
+	const initialResultsScrollTop = untrack(() => session.scrollTop);
+	const initialResultsReset = untrack(() => session.snapshot.reset);
 	const query = $derived(session.query);
 	const snapshot = $derived(session.snapshot);
 	const selectedCard = $derived(session.selectedCard);
 	let backButton: HTMLButtonElement | null = $state(null);
 	let searchInput: HTMLInputElement | null = $state(null);
 	let resultsElement: HTMLDivElement | null = $state(null);
+	let preservingPosition = false;
 	let resultTrigger: HTMLElement | null = null;
 	let filtersOpen = $state(false);
 	let range: CatalogRange = $state(session.range);
@@ -29,6 +36,15 @@
 	const facets = $derived(snapshot.facets);
 	const loading = $derived(snapshot.loading);
 	const error = $derived(snapshot.error);
+	onNavigate(({ shallow }) => {
+		if (shallow || !resultsElement) return;
+		cancelWheelScroll(resultsElement);
+		session.scrollTop = resultsElement.scrollTop;
+		preservingPosition = true;
+		return () => {
+			preservingPosition = false;
+		};
+	});
 
 	function resetFocus() {
 		if (selectedCard) backButton?.focus();
@@ -152,15 +168,19 @@
 
 	<div class="relative flex min-h-0 flex-1">
 		<div class="flex min-h-0 flex-1 gap-0" style:visibility={selectedCard ? 'hidden' : undefined}>
-			<div class="search-sidebar hidden shrink-0 overflow-y-auto md:block">
+			<ScrollArea
+				class="search-sidebar hidden shrink-0 md:block"
+				viewportClass="search-sidebar-content"
+				viewportLabel="Search filters"
+			>
 				<SearchFilters {filters} {facets} />
-			</div>
+			</ScrollArea>
 
 			<Dialog.Root bind:open={filtersOpen}>
 				<Dialog.Portal>
 					<Dialog.Overlay class="filter-overlay fixed inset-0 z-[80]" />
 					<Dialog.Content
-						class="fixed inset-x-0 bottom-0 z-[90] max-h-[85dvh] overflow-y-auto rounded-t-xl border border-border bg-stone p-5"
+						class="fixed inset-x-0 bottom-0 z-[90] flex h-[min(85dvh,44rem)] flex-col rounded-t-xl border border-border bg-stone p-5"
 					>
 						<div class="mb-3 flex items-center justify-between">
 							<Dialog.Title class="text-lg font-semibold">Filter cards</Dialog.Title>
@@ -169,7 +189,9 @@
 						<Dialog.Description class="sr-only"
 							>Narrow the catalog by color, rarity, card type, or legality.</Dialog.Description
 						>
-						<SearchFilters {filters} {facets} />
+						<ScrollArea class="min-h-0 flex-1" viewportLabel="Search filters">
+							<SearchFilters {filters} {facets} />
+						</ScrollArea>
 					</Dialog.Content>
 				</Dialog.Portal>
 			</Dialog.Root>
@@ -191,18 +213,21 @@
 						<span class="text-text-muted">Loading…</span>
 					{/if}
 				</div>
-				<div
-					bind:this={resultsElement}
-					class="search-results-pane min-h-0 min-w-0 flex-1 overflow-y-auto px-3 pb-3 sm:px-4 sm:pb-4"
-					aria-label="Card results"
+				<ScrollArea
+					bind:viewportRef={resultsElement}
+					class="search-results-pane min-h-0 min-w-0 flex-1"
+					viewportClass="px-3 pb-3 sm:px-4 sm:pb-4"
+					viewportLabel="Card results"
 				>
 					<SearchResults
 						totalCount={snapshot.total}
 						getCard={(index) => cardAt(snapshot, index)}
 						onRangeChange={handleRange}
 						resetKey={snapshot.reset}
-						initialScrollTop={session.scrollTop}
-						onScrollPositionChange={(top) => (session.scrollTop = top)}
+						initialScrollTop={snapshot.reset === initialResultsReset ? initialResultsScrollTop : 0}
+						onScrollPositionChange={(top) => {
+							if (!preservingPosition) session.scrollTop = top;
+						}}
 						onFocusReset={resetFocus}
 						{loading}
 						{error}
@@ -214,7 +239,7 @@
 						selectedId={selectedCard?.id}
 						onSelect={handleSelect}
 					/>
-				</div>
+				</ScrollArea>
 			</div>
 		</div>
 		{#if selectedCard}
@@ -226,14 +251,12 @@
 </div>
 
 <style>
-	.search-sidebar {
+	:global(.search-sidebar) {
 		width: 288px;
-		padding: 12px 16px;
 		border-right: 1px solid var(--color-border);
-		scrollbar-gutter: stable;
 	}
-	.search-results-pane {
-		scrollbar-gutter: stable;
+	:global(.search-sidebar-content) {
+		padding: 12px 16px;
 	}
 	.search-status {
 		display: flex;

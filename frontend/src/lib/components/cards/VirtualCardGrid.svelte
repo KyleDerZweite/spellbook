@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { cancelWheelScroll } from '#lib/components/ui/scroll-area/wheel.ts';
 	import { untrack } from 'svelte';
 	import type { CardDocument } from '#lib/search/types.ts';
 	import type { CatalogRange } from '#lib/search/catalogWindow.ts';
@@ -109,6 +110,7 @@
 			firstReset = false;
 			const parent = getScrollParent(wrapper);
 			const frame = requestAnimationFrame(() => {
+				cancelWheelScroll(parent);
 				parent.scrollTop = top;
 			});
 			visibleTop = 0;

@@ -12,7 +12,7 @@
 	.full-search {
 		display: flex;
 		flex-direction: column;
-		height: calc(100dvh - var(--app-header-height));
+		flex: 1;
 		min-height: 32rem;
 	}
 </style>

@@ -11,7 +11,7 @@ import {
 } from '../../src/lib/mtg/inventory-view.ts';
 
 const initial: InventoryOrder = { base: 'name', direction: 'asc', variant: null };
-const all: InventoryFilters = { query: '', set: 'all', finish: 'all', condition: 'all' };
+const all: InventoryFilters = { query: '', sets: [], finish: 'all', condition: 'all' };
 function entry(
 	id: string,
 	overrides: Partial<{
@@ -50,6 +50,16 @@ const cards = [
 const ids = (order: InventoryOrder) => orderInventory(cards, order).map((card) => card.id);
 
 describe('inventory column ordering', () => {
+	it('accepts an explicit toolbar direction using the same partition rules as headers', () => {
+		const sets = nextInventoryOrder(initial, 'set', 'desc');
+		expect(nextInventoryOrder(sets, 'finish', 'desc')).toEqual({
+			base: 'set',
+			direction: 'desc',
+			variant: { column: 'finish', direction: 'desc' }
+		});
+		expect(nextInventoryOrder(sets, 'set', 'desc')).toEqual(sets);
+		expect(nextInventoryOrder(sets, 'name', 'asc')).toEqual(initial);
+	});
 	it('starts by name and reverses card names on the next Card click', () => {
 		expect(ids(initial)).toEqual(['a-foil', 'a-nonfoil', 'b-other', 'z-foil', 'z-nonfoil']);
 		expect(ids(nextInventoryOrder(initial, 'name'))).toEqual([
@@ -175,10 +185,17 @@ describe('inventory column ordering', () => {
 
 describe('inventory filters', () => {
 	it('combines search, set, finish and condition with AND and accepts no matches', () => {
-		const filters = { query: ' ALPHA ', set: 'a', finish: 'foil', condition: 'DMG' };
+		const filters = { query: ' ALPHA ', sets: ['a'], finish: 'foil', condition: 'DMG' };
 		expect(filterInventory(cards, filters).map((card) => card.id)).toEqual(['a-foil']);
 		expect(filterInventory(cards, { ...filters, condition: 'NM' })).toEqual([]);
 		expect(filterInventory(cards, all)).toEqual(cards);
+	});
+	it('combines selected sets with OR and other filters with AND, ignoring code casing', () => {
+		expect(filterInventory(cards, { ...all, sets: ['A', 'b'] })).toEqual(cards);
+		expect(
+			filterInventory(cards, { ...all, sets: ['A', 'b'], condition: 'MP' }).map((card) => card.id)
+		).toEqual(['b-other']);
+		expect(filterInventory(cards, { ...all, sets: ['missing'] })).toEqual([]);
 	});
 	it('preserves search coverage for names, set codes, conditions and notes', () => {
 		const noted = [

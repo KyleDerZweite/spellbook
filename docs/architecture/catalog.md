@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-06
 - Source of Truth: code
-- Update Triggers: catalog source and schema, publication, bundled samples and display assets, search ranking, filters, facets, browser pagination and cache bounds, import resolution, printing selection
+- Update Triggers: catalog source and schema, publication, bundled samples and display assets, search ranking, filters, facets, browser pagination and cache bounds, import resolution, printing selection, inventory set-name lookup
 - Related Docs: [Domain glossary](../../GLOSSARY.md), [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [Local authentication and demo setup](../operations/local-auth.md), [ADR-0010](../decisions/0010-postgres-catalog.md)
 
 PostgreSQL stores the public Scryfall catalog alongside account-owned application data. SvelteKit provides public read-only browser search and printing lookup through `/api/catalog/search` and `/api/catalog/cards/{oracleId}/printings`. The existing versioned integration routes retain authentication. Both use shared request validation and catalog handlers. Browsers use the application API; they receive no database credential or search-service key. The catalog contains card metadata, not ownership quantities.
@@ -49,6 +49,8 @@ Each context includes the game, query, filters and request options. Activation c
 ## Printing and import identity
 
 `GET /api/mobile/v1/mtg/cards/{oracleId}/printings` returns every matching printing in the active generation, ordered by set, collector number, language, and printing ID. It does not group by oracle ID. Card details paginate this route and display up to 1,000 printings.
+
+Inventory load resolves its represented set codes to full names with `getCatalogSetNames` in [`search.ts`](../../frontend/src/lib/server/catalog/search.ts). One batched query reads nonblank set names from the active generation; missing names fall back to the set code in the UI. This metadata belongs to Inventory page data. It does not change the inventory snapshot or versioned mobile response.
 
 Import resolution accepts exact normalized canonical names and individual canonical face names. It also accepts exact case-insensitive printed names and localized face names, splitting face aliases on `//` surrounded by spaces. Whole names remain supported; prefix and fuzzy matches do not resolve imports. Set and collector-number hints narrow printing candidates. Name-only resolution groups candidates by oracle ID; hinted resolution keeps printing identities distinct. The import workflow retains ambiguous and unresolved lines for review. Scan candidate enrichment resolves authoritative metadata by printing ID through the same catalog.
 

@@ -10,7 +10,7 @@ export interface InventoryOrder {
 }
 export interface InventoryFilters {
 	query: string;
-	set: string;
+	sets: readonly string[];
 	finish: string;
 	condition: string;
 }
@@ -32,12 +32,16 @@ const reverse = (direction: InventoryDirection): InventoryDirection =>
 	direction === 'asc' ? 'desc' : 'asc';
 const sign = (direction: InventoryDirection) => (direction === 'asc' ? 1 : -1);
 
-export function nextInventoryOrder(order: InventoryOrder, column: InventoryColumn): InventoryOrder {
+export function nextInventoryOrder(
+	order: InventoryOrder,
+	column: InventoryColumn,
+	direction?: InventoryDirection
+): InventoryOrder {
 	if (column === 'newest') return { base: 'newest', direction: 'desc', variant: null };
 	if (column === 'name' || column === 'set') {
 		return {
 			base: column,
-			direction: order.base === column ? reverse(order.direction) : 'asc',
+			direction: direction ?? (order.base === column ? reverse(order.direction) : 'asc'),
 			variant: null
 		};
 	}
@@ -46,7 +50,8 @@ export function nextInventoryOrder(order: InventoryOrder, column: InventoryColum
 		direction: order.base === 'newest' ? 'asc' : order.direction,
 		variant: {
 			column,
-			direction: order.variant?.column === column ? reverse(order.variant.direction) : 'asc'
+			direction:
+				direction ?? (order.variant?.column === column ? reverse(order.variant.direction) : 'asc')
 		}
 	};
 }
@@ -56,9 +61,10 @@ export function filterInventory<T extends InventoryViewEntry>(
 	filters: InventoryFilters
 ): T[] {
 	const query = filters.query.trim().toLowerCase();
+	const sets = new Set(filters.sets.map((code) => code.toLowerCase()));
 	return cards.filter(
 		(card) =>
-			(filters.set === 'all' || card.setCode === filters.set) &&
+			(sets.size === 0 || sets.has(card.setCode.toLowerCase())) &&
 			(filters.finish === 'all' || card.finish === filters.finish) &&
 			(filters.condition === 'all' || card.condition === filters.condition) &&
 			(!query ||

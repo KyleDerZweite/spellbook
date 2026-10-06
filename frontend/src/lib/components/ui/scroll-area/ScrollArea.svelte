@@ -67,6 +67,7 @@
 	}
 	:global(.scroll-area-viewport > [data-scroll-area-content]) {
 		min-width: 0;
+		flex-shrink: 0;
 	}
 	:global(.scroll-area-scrollbar) {
 		top: var(--scroll-area-inset-top, 0px) !important;

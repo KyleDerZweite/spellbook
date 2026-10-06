@@ -62,7 +62,15 @@
 </div>
 
 <style>
+	:global(.app-main-viewport > [data-scroll-area-content]:has(> .app-content > .full-search)) {
+		height: 100%;
+	}
+	.app-content:has(> :global(.full-search)) {
+		flex: 1 0 0;
+		min-height: calc(32rem + var(--app-header-height));
+	}
 	.app-content:has(> :global(.public-home)),
+	.app-content:has(> :global(.full-search)),
 	.app-content:has(> :global(.account-layout)) {
 		display: flex;
 		flex-direction: column;

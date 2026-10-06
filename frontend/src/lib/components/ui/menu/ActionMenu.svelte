@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { DropdownMenu } from 'bits-ui';
 	import type { Snippet } from 'svelte';
+	import ScrollArea from '#lib/components/ui/scroll-area/ScrollArea.svelte';
 
 	let {
 		label,
@@ -52,33 +53,45 @@
 	</DropdownMenu.Trigger>
 	<DropdownMenu.Portal>
 		<DropdownMenu.Content
-			class="surface-menu z-[100] min-w-48 max-w-[min(20rem,calc(100vw-1.5rem))] max-h-[var(--bits-dropdown-menu-content-available-height)] overflow-y-auto rounded-lg p-1 outline-none"
+			class="surface-menu z-[120] min-w-48 max-w-[min(20rem,calc(100vw-1.5rem))] rounded-lg outline-none"
 			sideOffset={5}
 			collisionPadding={12}
 			align="end"
 			{onCloseAutoFocus}
 		>
-			{#if header}<div class="px-3 py-2">{@render header()}</div>{/if}
-			{#each items as item (item.label)}
-				<DropdownMenu.Item
-					class={['menu-item rounded-md outline-none', item.destructive && 'text-error']}
-					disabled={item.disabled}
-					textValue={item.label}
-					onSelect={item.onSelect}
-				>
-					{#snippet child({ props })}
-						{#if item.href}
-							<a
-								{...props}
-								href={item.disabled ? undefined : item.href}
-								download={item.download || undefined}>{item.label}</a
-							>
-						{:else}
-							<div {...props}>{item.label}</div>
-						{/if}
-					{/snippet}
-				</DropdownMenu.Item>
-			{/each}
+			<ScrollArea
+				viewportClass="menu-scroll-viewport p-1"
+				viewportTabindex={-1}
+				smoothWheel={false}
+			>
+				{#if header}<div class="px-3 py-2">{@render header()}</div>{/if}
+				{#each items as item (item.label)}
+					<DropdownMenu.Item
+						class={['menu-item rounded-md outline-none', item.destructive && 'text-error']}
+						disabled={item.disabled}
+						textValue={item.label}
+						onSelect={item.onSelect}
+					>
+						{#snippet child({ props })}
+							{#if item.href}
+								<a
+									{...props}
+									href={item.disabled ? undefined : item.href}
+									download={item.download || undefined}>{item.label}</a
+								>
+							{:else}
+								<div {...props}>{item.label}</div>
+							{/if}
+						{/snippet}
+					</DropdownMenu.Item>
+				{/each}
+			</ScrollArea>
 		</DropdownMenu.Content>
 	</DropdownMenu.Portal>
 </DropdownMenu.Root>
+
+<style>
+	:global(.menu-scroll-viewport) {
+		max-height: calc(var(--bits-dropdown-menu-content-available-height) - 2px);
+	}
+</style>
