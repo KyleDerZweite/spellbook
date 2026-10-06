@@ -46,31 +46,7 @@ export interface InventoryCard {
 	notes: string;
 	spellbookPosition: number;
 }
-export interface Deck {
-	accountId: string;
-	name: string;
-	id: string;
-	createdAt: Date;
-	updatedAt: Date;
-	game: string;
-	description: string;
-	format: string;
-}
-export interface DeckCard {
-	accountId: string;
-	name: string;
-	id: string;
-	createdAt: Date;
-	updatedAt: Date;
-	game: string;
-	catalogCardId: string;
-	canonicalCardId: string;
-	setCode: string;
-	imageUri: string;
-	quantity: number;
-	deckId: string;
-	role: string;
-}
+export type { Deck, DeckCard } from '@spellbook/contracts/decks.ts';
 export interface DeckMutationRequest {
 	accountId: string;
 	createdAt: Date;
@@ -154,12 +130,7 @@ export interface HomeSummary {
 	stats: InventoryStats;
 	recentAdditions: CardDocument[];
 }
-export interface DeckSnapshot {
-	decks: Deck[];
-	deckCards: DeckCard[];
-	inventoryCards: InventoryCard[];
-	mutationRequests?: DeckMutationRequest[];
-}
+export type { DeckSnapshot } from '@spellbook/contracts/decks.ts';
 export interface InventoryBatchItem {
 	catalogCardId: string;
 	canonicalCardId: string;

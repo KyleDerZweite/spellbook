@@ -7,6 +7,13 @@ declare global {
 			searchFullView?: { background: string };
 		}
 
+		interface Error {
+			message: string;
+			kind?: import('@spellbook/contracts/decks.ts').DeckFailure['kind'];
+			description?: string;
+			descriptionRevision?: string;
+		}
+
 		interface Locals {
 			user: AuthUser | null;
 			mobileBearerUser: AuthUser | null;

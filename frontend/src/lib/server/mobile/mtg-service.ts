@@ -20,7 +20,6 @@ import {
 import {
 	DECK_SOURCES,
 	INVENTORY_SOURCES,
-	assertDeckOperation,
 	assertInventoryOperation,
 	assertRequestId,
 	normalizeSource
@@ -86,15 +85,15 @@ export async function removeInventoryEntry(auth: MobileAuthContext, entryId: str
 	return { ok: true };
 }
 
-export async function getDeckSnapshotEntry(auth: MobileAuthContext) {
-	return getDeckSnapshot(auth.user.accountId, 'mtg');
+export async function getDeckSnapshotEntry(auth: MobileAuthContext, deckId: string | null = null) {
+	return getDeckSnapshot(auth.user, 'mtg', deckId);
 }
 
 export async function createDeckEntry(
 	auth: MobileAuthContext,
 	input: { name: string; description: string; format: string }
 ) {
-	return createDeck(auth.user.accountId, {
+	return createDeck(auth.user, {
 		game: 'mtg',
 		name: input.name,
 		description: input.description,
@@ -104,13 +103,13 @@ export async function createDeckEntry(
 
 export async function updateDeckEntry(
 	auth: MobileAuthContext,
-	input: { deckId: string; name: string; description: string; format: string }
+	input: import('@spellbook/contracts/decks.ts').DeckPatch
 ) {
-	return updateDeck(auth.user.accountId, input);
+	return updateDeck(auth.user, input);
 }
 
 export async function deleteDeckEntry(auth: MobileAuthContext, deckId: string) {
-	await deleteDeck(auth.user.accountId, deckId);
+	await deleteDeck(auth.user, deckId);
 	return { ok: true };
 }
 
@@ -125,9 +124,10 @@ export async function addDeckCardEntry(
 		imageUri: string;
 		quantity: number;
 		role: string;
+		requestId: string;
 	}
 ) {
-	return addDeckCard(auth.user.accountId, input);
+	return addDeckCard(auth.user, input);
 }
 
 export async function bulkMutateDeckCards(
@@ -140,31 +140,36 @@ export async function bulkMutateDeckCards(
 	}
 ) {
 	const operations = Array.isArray(input.operations) ? input.operations : [];
-	return bulkMutateDeckCardsData(auth.user.accountId, {
+	return bulkMutateDeckCardsData(auth.user, {
 		deckId: input.deckId,
 		requestId: assertRequestId(input.requestId),
 		source: normalizeSource(input.source, DECK_SOURCES, 'mobile'),
 		game: 'mtg',
-		operations: operations.map(assertDeckOperation)
+		operations: operations as import('@spellbook/contracts/decks.ts').DeckOperation[]
 	});
 }
 
 export async function getDeckCardsEntry(auth: MobileAuthContext, deckId: string) {
-	return getDeckCardsForDeck(auth.user.accountId, deckId);
+	return getDeckCardsForDeck(auth.user, deckId);
 }
 
 export async function updateDeckCardEntry(
 	auth: MobileAuthContext,
 	entryId: string,
-	quantity: number,
-	role?: string
+	quantity: number | undefined,
+	role: string | undefined,
+	requestId: string,
+	delta?: number
 ) {
-	return updateDeckCard(auth.user.accountId, entryId, quantity, role);
+	return updateDeckCard(auth.user, entryId, quantity, role, requestId, delta, 'mobile');
 }
 
-export async function removeDeckCardEntry(auth: MobileAuthContext, entryId: string) {
-	await removeDeckCard(auth.user.accountId, entryId);
-	return { ok: true };
+export async function removeDeckCardEntry(
+	auth: MobileAuthContext,
+	entryId: string,
+	requestId: string
+) {
+	return removeDeckCard(auth.user, entryId, requestId, 'mobile');
 }
 
 export async function createScanSessionEntry(

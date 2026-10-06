@@ -1,3 +1,4 @@
+import type { AuthUser } from '@spellbook/contracts/auth.ts';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 const run = process.env.TEST_DATABASE_URL ? describe : describe.skip;
@@ -5,18 +6,21 @@ const run = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 run('MTG repository bulk operations', () => {
 	let modules: Awaited<ReturnType<typeof loadModules>>;
 	let accountId: string;
+	let actor: AuthUser;
 
 	beforeAll(async () => {
 		modules = await loadModules();
 	});
 
 	beforeEach(async () => {
-		accountId = `test-${crypto.randomUUID()}`;
-		await modules.db.insert(modules.userProfiles).values({
-			accountId,
-			username: accountId,
-			email: `${accountId}@example.test`
-		});
+		const account = await modules.application.auth.authenticate(
+			'register',
+			`deck_${crypto.randomUUID().slice(0, 8)}`,
+			'deck-integration-fixture-password'
+		);
+		if (!account) throw new Error('Fixture registration failed');
+		actor = account.user;
+		accountId = actor.accountId;
 	});
 
 	afterAll(async () => {
@@ -73,14 +77,14 @@ run('MTG repository bulk operations', () => {
 	});
 
 	it('deck bulk add merges same card and role', async () => {
-		const [deck] = await modules.createDeck(accountId, {
+		const [deck] = await modules.createDeck(actor, {
 			game: 'mtg',
 			name: 'Test Deck',
 			description: '',
 			format: 'Standard'
 		});
 
-		const cards = await modules.bulkMutateDeckCards(accountId, {
+		const cards = await modules.bulkMutateDeckCards(actor, {
 			requestId: crypto.randomUUID(),
 			source: 'mobile',
 			game: 'mtg',
@@ -88,37 +92,42 @@ run('MTG repository bulk operations', () => {
 			operations: [deckAddOperation('card-3', 2), deckAddOperation('card-3', 3)]
 		});
 
-		expect(cards).toHaveLength(1);
-		expect(cards[0].quantity).toBe(5);
+		expect(await modules.getDeckCardsForDeck(actor, deck.id)).toMatchObject([{ quantity: 5 }]);
 	});
 
 	it('deck bulk set and remove are scoped to the authenticated account', async () => {
-		const [deck] = await modules.createDeck(accountId, {
+		const [deck] = await modules.createDeck(actor, {
 			game: 'mtg',
 			name: 'Scoped Deck',
 			description: '',
 			format: 'Standard'
 		});
-		const cards = await modules.bulkMutateDeckCards(accountId, {
+		const cards = await modules.bulkMutateDeckCards(actor, {
 			requestId: crypto.randomUUID(),
 			source: 'mobile',
 			game: 'mtg',
 			deckId: deck.id,
 			operations: [deckAddOperation('card-4', 2)]
 		});
-		const entryId = cards[0].id;
+		const entryId = cards.changes[0].entryId;
 
-		await modules.bulkMutateDeckCards(accountId, {
+		await modules.bulkMutateDeckCards(actor, {
 			requestId: crypto.randomUUID(),
 			source: 'mobile',
 			game: 'mtg',
 			deckId: deck.id,
 			operations: [{ op: 'set', target: { entryId }, quantity: 1 }]
 		});
-		expect((await modules.getDeckCardsForDeck(accountId, deck.id))[0].quantity).toBe(1);
+		expect((await modules.getDeckCardsForDeck(actor, deck.id))[0].quantity).toBe(1);
 
-		await modules.removeDeckCard(`other-${accountId}`, entryId);
-		expect(await modules.getDeckCardsForDeck(accountId, deck.id)).toHaveLength(1);
+		await expect(
+			modules.removeDeckCard(
+				{ ...actor, accountId: `other-${accountId}` },
+				entryId,
+				crypto.randomUUID()
+			)
+		).rejects.toMatchObject({ kind: 'Unauthenticated' });
+		expect(await modules.getDeckCardsForDeck(actor, deck.id)).toHaveLength(1);
 	});
 });
 
@@ -129,7 +138,8 @@ async function loadModules() {
 		import('../../src/lib/server/data/inventory'),
 		import('../../src/lib/server/data/decks')
 	]);
-	return { db, pool, ...schema, ...inventory, ...decks };
+	const { application } = await import('../../src/lib/server/composition.ts');
+	return { db, pool, application, ...schema, ...inventory, ...decks };
 }
 
 function inventoryAddOperation(cardId: string, quantity: number) {

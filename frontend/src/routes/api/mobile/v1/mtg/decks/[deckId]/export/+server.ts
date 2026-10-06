@@ -1,8 +1,8 @@
 import type { RequestHandler } from './$types';
 import { requireUuid } from '#lib/server/http/request.ts';
+import { badRequestIfValidation } from '#lib/server/mobile/route-errors.ts';
 import { error } from '@sveltejs/kit';
 import { requireMobileAuth } from '#lib/server/mobile/auth.ts';
-import { getDeckCardsEntry } from '#lib/server/mobile/mtg-service.ts';
 import { exportDecklist } from '#lib/server/mtg/deck-builder.ts';
 
 export const GET: RequestHandler = async (event) => {
@@ -13,9 +13,13 @@ export const GET: RequestHandler = async (event) => {
 		throw error(400, 'Only arena export is supported');
 	}
 
-	return new Response(await exportDecklist(await getDeckCardsEntry(auth, deckId)), {
-		headers: {
-			'content-type': 'text/plain; charset=utf-8'
-		}
-	});
+	try {
+		return new Response(await exportDecklist(auth.user, deckId), {
+			headers: {
+				'content-type': 'text/plain; charset=utf-8'
+			}
+		});
+	} catch (cause) {
+		badRequestIfValidation(cause);
+	}
 };

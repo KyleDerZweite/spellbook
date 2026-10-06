@@ -24,7 +24,8 @@ export const POST: RequestHandler = async (event) => {
 				setCode: readString(body.setCode, 'setCode', ''),
 				imageUri: readString(body.imageUri, 'imageUri', ''),
 				quantity: normalizeQuantity(readNumber(body.quantity, 'quantity', 1)),
-				role: readString(body.role, 'role', 'main')
+				role: readString(body.role, 'role', 'main'),
+				requestId: readString(body.requestId, 'requestId', '')
 			})
 		);
 	} catch (cause) {

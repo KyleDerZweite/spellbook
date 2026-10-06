@@ -2,7 +2,6 @@
 	import CardDetail from '#lib/components/cards/CardDetail.svelte';
 	import { storedCardDocument } from '#lib/mtg/stored-card.ts';
 	import type { CardDocument } from '#lib/search/types.ts';
-	import { searchCards } from '#lib/search/catalog.ts';
 	import { Dialog } from 'bits-ui';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
@@ -12,7 +11,6 @@
 	import Select from '#lib/components/ui/select/Select.svelte';
 	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
 	import ManaCost from '#lib/components/cards/ManaCost.svelte';
-	import { allocateDeckAvailability } from '#lib/mtg/deck-availability.ts';
 	import type { ImportPreview } from '#lib/types/import-preview.ts';
 
 	const formats = [
@@ -35,12 +33,30 @@
 	let { data, form }: PageProps = $props();
 	let createOpen = $state(false);
 	let editOpen = $state(false);
+	let descriptionDraft = $state('');
+	let descriptionBaseRevision = $state('');
+	let editingDeckId = $state('');
+	let nameBase = $state('');
+	let formatBase = $state('');
+	let descriptionBase = $state('');
+	$effect(() => {
+		if (editOpen && selectedDeck && editingDeckId !== selectedDeck.id) {
+			editingDeckId = selectedDeck.id;
+			descriptionDraft = selectedDeck.description;
+			descriptionBase = selectedDeck.description;
+			nameBase = selectedDeck.name;
+			formatBase = selectedDeck.format;
+			descriptionBaseRevision = selectedDeck.descriptionRevision;
+		}
+		if (!editOpen) editingDeckId = '';
+	});
 	let importOpen = $state(false);
 	let deleteOpen = $state(false);
 	let actionsTrigger = $state<HTMLButtonElement | null>(null);
 	let busy = $state(false);
 	let importText = $state('');
 	let importRequestId = $state('');
+	const pendingRequests = new Map<string, string>();
 	let addRole = $state('main');
 	let addQuantity = $state(1);
 	let listQuery = $state('');
@@ -56,6 +72,11 @@
 	let inspectorRole = $state('main');
 	let query = $state('');
 	let results = $state<CardDocument[]>([]);
+	let searchOwned = $state<Record<string, number>>({});
+	let inspectorOwned = $state<typeof data.ownedPrintings>([]);
+	let ownershipLoading = $state(false);
+	let ownershipError = $state('');
+	let ownershipController: AbortController | undefined;
 	let searching = $state(false);
 	let searchError = $state('');
 	let searchController: AbortController | undefined;
@@ -70,11 +91,32 @@
 			initializedSearch = true;
 		}
 	});
-	function inspect(card: CardDocument, entry?: (typeof data.deckCards)[number]) {
+	async function inspect(card: CardDocument, entry?: (typeof data.deckCards)[number]) {
 		inspected = card;
 		inspectedEntryId = entry?.id ?? null;
 		inspectorQuantity = entry?.quantity ?? addQuantity;
 		inspectorRole = entry?.role ?? addRole;
+		ownershipController?.abort();
+		const controller = new AbortController();
+		ownershipController = controller;
+		inspectorOwned = [];
+		ownershipLoading = true;
+		ownershipError = '';
+		try {
+			const response = await fetch(
+				`/api/mobile/v1/mtg/decks/ownership?canonicalCardId=${encodeURIComponent(card.oracle_id)}`,
+				{ signal: controller.signal }
+			);
+			if (!response.ok) throw new Error('Owned quantities are unavailable.');
+			const owned = await response.json();
+			if (!controller.signal.aborted) inspectorOwned = owned;
+		} catch (cause) {
+			if (!controller.signal.aborted)
+				ownershipError =
+					cause instanceof Error ? cause.message : 'Owned quantities are unavailable.';
+		} finally {
+			if (!controller.signal.aborted) ownershipLoading = false;
+		}
 	}
 	async function findCards(event: SubmitEvent) {
 		event.preventDefault();
@@ -84,7 +126,13 @@
 		searching = true;
 		searchError = '';
 		try {
-			const result = await searchCards(query, { signal: controller.signal });
+			const response = await fetch(
+				`/api/mobile/v1/mtg/decks/search?q=${encodeURIComponent(query)}`,
+				{ signal: controller.signal }
+			);
+			if (!response.ok) throw new Error('Search failed.');
+			const result = await response.json();
+			if (!controller.signal.aborted) searchOwned = result.ownedByCanonical;
 			if (!controller.signal.aborted) results = result.hits;
 		} catch (cause) {
 			if (!controller.signal.aborted)
@@ -96,17 +144,14 @@
 
 	const selectedDeck = $derived(data.decks.find((deck) => deck.id === data.selectedDeckId));
 	const deckCards = $derived(data.deckCards.filter((card) => card.deckId === data.selectedDeckId));
-	const availability = $derived(allocateDeckAvailability(deckCards, data.inventoryCards));
+	const availability = $derived(data.availability);
 	const total = $derived(deckCards.reduce((sum, card) => sum + card.quantity, 0));
 	const missing = $derived(
 		Object.values(availability).reduce((sum, entry) => sum + entry.missing, 0)
 	);
-	const ownedByCanonical = $derived.by(() => {
-		const counts = new Map<string, number>();
-		for (const card of data.inventoryCards)
-			counts.set(card.canonicalCardId, (counts.get(card.canonicalCardId) ?? 0) + card.quantity);
-		return counts;
-	});
+	const ownedByCanonical = $derived(
+		new Map(Object.entries({ ...data.ownedByCanonical, ...searchOwned }))
+	);
 	const visibleCards = $derived(
 		deckCards
 			.filter(
@@ -175,12 +220,27 @@
 		if (target.searchParams.has('/commitImport')) {
 			if (!importRequestId) importRequestId = crypto.randomUUID();
 			formData.set('requestId', importRequestId);
-		} else formData.set('requestId', crypto.randomUUID());
+		} else {
+			const payload =
+				target.pathname +
+				target.search +
+				JSON.stringify([...formData.entries()].filter(([name]) => name !== 'requestId'));
+			let requestId = pendingRequests.get(payload);
+			if (!requestId) {
+				requestId = crypto.randomUUID();
+				pendingRequests.set(payload, requestId);
+			}
+			formData.set('requestId', requestId);
+		}
+		const savedRequestId = String(formData.get('requestId') || '');
+
 		return async ({ result, update }) => {
 			try {
 				await update({ reset: false });
 				if (result.type === 'success' || result.type === 'redirect') {
 					saveStatus = 'Saved';
+					for (const [payload, id] of pendingRequests)
+						if (id === savedRequestId) pendingRequests.delete(payload);
 					if (removedCard) {
 						removed = removedCard;
 						inspected = null;
@@ -269,6 +329,7 @@
 				bind:open={createOpen}
 			>
 				<form method="POST" action={action('createDeck')} use:enhance={save} class="form-stack">
+					<input type="hidden" name="requestId" value={data.requestId} />
 					<label class="label" for="new-name">Deck name</label><input
 						id="new-name"
 						name="name"
@@ -315,8 +376,17 @@
 							use:enhance={save}
 							class="form-stack"
 						>
+							<input type="hidden" name="requestId" value={data.requestId} />
 							<input type="hidden" name="deckId" value={selectedDeck.id} />
-							<label class="label" for="edit-name">Deck name</label><input
+							<input type="hidden" name="descriptionRevision" value={descriptionBaseRevision} />
+							<input type="hidden" name="nameBase" value={nameBase} /><input
+								type="hidden"
+								name="formatBase"
+								value={formatBase}
+							/><input type="hidden" name="descriptionBase" value={descriptionBase} /><label
+								class="label"
+								for="edit-name">Deck name</label
+							><input
 								id="edit-name"
 								class="input"
 								name="name"
@@ -336,8 +406,18 @@
 								class="input"
 								name="description"
 								rows="3"
-								maxlength="4000">{selectedDeck.description}</textarea
-							>
+								maxlength="4000"
+								bind:value={descriptionDraft}></textarea>
+							{#if form?.conflict}<div role="alert">
+									<p>{form.conflict.description}</p>
+									<button
+										type="button"
+										class="btn btn-secondary"
+										onclick={() => {
+											descriptionBaseRevision = form!.conflict!.descriptionRevision;
+										}}>Use latest revision and keep my draft</button
+									>
+								</div>{/if}
 							{#if form?.message}<p role="status" class="muted">{form.message}</p>{/if}<button
 								class="btn btn-primary"
 								disabled={busy}>Save details</button
@@ -356,6 +436,7 @@
 						use:enhance={save}
 						class="form-stack"
 					>
+						<input type="hidden" name="requestId" value={data.requestId} />
 						<input type="hidden" name="deckId" value={selectedDeck.id} /><label
 							class="label"
 							for="import-text">Decklist</label
@@ -409,6 +490,7 @@
 									</ul>
 								</details>{/if}
 							<form method="POST" action={action('commitImport')} use:enhance={save}>
+								<input type="hidden" name="requestId" value={data.requestId} />
 								<input type="hidden" name="deckId" value={selectedDeck.id} /><input
 									type="hidden"
 									name="text"
@@ -427,6 +509,7 @@
 					bind:open={deleteOpen}
 					destructive
 					><form method="POST" action={action('deleteDeck')} use:enhance={save}>
+						<input type="hidden" name="requestId" value={data.requestId} />
 						<input type="hidden" name="deckId" value={selectedDeck.id} /><button
 							class="btn btn-secondary destructive"
 							disabled={busy}>Delete this deck</button
@@ -452,6 +535,7 @@
 		</div>
 		{#if removed && removed.deckId === selectedDeck.id}
 			<form method="POST" action={action('addCard')} use:enhance={save} class="undo-row">
+				<input type="hidden" name="requestId" value={data.requestId} />
 				<span>Removed {removed.name}.</span>
 				<input type="hidden" name="deckId" value={selectedDeck.id} />
 				<input type="hidden" name="catalogCardId" value={removed.catalogCardId} />
@@ -538,6 +622,8 @@
 											{#each [-1, 1] as delta}
 												{#if delta === 1}<span>{card.quantity}</span>{/if}
 												<form method="POST" action={action('updateCard')} use:enhance={save}>
+													<input type="hidden" name="requestId" value={data.requestId} />
+													<input type="hidden" name="delta" value={delta} />
 													<input type="hidden" name="entryId" value={card.id} /><input
 														type="hidden"
 														name="quantity"
@@ -611,9 +697,7 @@
 	{:else if data.decks.length}
 		<div class="deck-library">
 			{#each data.decks as deck}
-				{@const cover =
-					data.deckCards.find((card) => card.deckId === deck.id && card.role === 'commander') ??
-					data.deckCards.find((card) => card.deckId === deck.id)}
+				{@const cover = data.deckCovers[deck.id]}
 				<a class="library-card" href={`/mtg/decks?deck=${deck.id}`}>
 					{#if cover?.imageUri}<img src={cover.imageUri} alt="" />{:else}<div
 							class="library-placeholder"
@@ -633,9 +717,7 @@
 							>
 						</div>{/if}
 					<strong>{deck.name}</strong><span
-						>{deck.format} · {data.deckCards
-							.filter((card) => card.deckId === deck.id)
-							.reduce((sum, card) => sum + card.quantity, 0)} cards</span
+						>{deck.format} · {data.deckTotals[deck.id] || 0} cards</span
 					>
 					<small>Edited {new Date(deck.updatedAt).toLocaleDateString('en-GB')}</small>
 				</a>
@@ -709,6 +791,7 @@
 						) ?? 0} owned
 					</p>
 					<form method="POST" action={action('addCard')} use:enhance={save}>
+						<input type="hidden" name="requestId" value={data.requestId} />
 						<input type="hidden" name="deckId" value={selectedDeck?.id} /><input
 							type="hidden"
 							name="catalogCardId"
@@ -760,16 +843,15 @@
 {#if inspected}
 	<CardDetail card={inspected} onClose={() => (inspected = null)}>
 		{#snippet actions(printing)}
-			{@const owned = data.inventoryCards.filter(
-				(card) => card.canonicalCardId === printing.oracle_id
-			)}
+			{@const owned = inspectorOwned.filter((card) => card.canonicalCardId === printing.oracle_id)}
 			<div class="inspector-form">
 				<p class="muted">
-					{owned
-						.filter((card) => card.catalogCardId === printing.id)
-						.reduce((sum, card) => sum + card.quantity, 0)} exact · {owned
-						.filter((card) => card.catalogCardId !== printing.id)
-						.reduce((sum, card) => sum + card.quantity, 0)} other printings owned
+					{#if ownershipLoading}Loading owned quantities…{:else if ownershipError}{ownershipError}{:else}
+						{owned
+							.filter((card) => card.catalogCardId === printing.id)
+							.reduce((sum, card) => sum + card.quantity, 0)} exact · {owned
+							.filter((card) => card.catalogCardId !== printing.id)
+							.reduce((sum, card) => sum + card.quantity, 0)} other printings owned{/if}
 				</p>
 				{#if inspectedEntry}<p class="muted">
 						This deck: {availability[inspectedEntry.id]?.missing ?? 0} missing. Inventory is not reserved.
@@ -780,6 +862,7 @@
 					use:enhance={save}
 					class="form-stack"
 				>
+					<input type="hidden" name="requestId" value={data.requestId} />
 					<input type="hidden" name="deckId" value={selectedDeck?.id} /><input
 						type="hidden"
 						name="entryId"
@@ -809,6 +892,7 @@
 				</form>
 				{#if inspectedEntry}
 					<form method="POST" action={action('removeCard')} use:enhance={save}>
+						<input type="hidden" name="requestId" value={data.requestId} />
 						<input type="hidden" name="entryId" value={inspectedEntry.id} /><button
 							class="btn btn-ghost destructive"
 							disabled={busy}>Remove card</button

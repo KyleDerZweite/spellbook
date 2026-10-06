@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import type { ProfileCardDefinition } from '@spellbook/contracts/profile.ts';
 import {
+	bigint,
 	check,
 	customType,
 	doublePrecision,
@@ -196,6 +197,12 @@ export const decks = pgTable(
 		game: text('game').notNull(),
 		name: text('name').notNull(),
 		description: text('description').notNull().default(''),
+		descriptionRevision: bigint('description_revision', { mode: 'bigint' })
+			.notNull()
+			.default(sql`0`),
+		compositionRevision: bigint('composition_revision', { mode: 'bigint' })
+			.notNull()
+			.default(sql`0`),
 		format: text('format').notNull().default('Commander'),
 		...timestamps
 	},
@@ -243,12 +250,14 @@ export const deckCards = pgTable(
 export const deckMutationRequests = pgTable(
 	'deck_mutation_requests',
 	{
-		accountId: text('account_id').notNull(),
+		accountId: text('account_id')
+			.notNull()
+			.references(() => userProfiles.accountId, { onDelete: 'cascade' }),
 		requestId: text('request_id').notNull(),
 		requestHash: text('request_hash'),
-		deckId: uuid('deck_id')
-			.notNull()
-			.references(() => decks.id, { onDelete: 'cascade' }),
+		deckId: uuid('deck_id').notNull(),
+		acknowledgement:
+			jsonb('acknowledgement').$type<import('@spellbook/contracts/decks.ts').DeckAcknowledgement>(),
 		source: text('source').notNull(),
 		status: text('status').notNull(),
 		...timestamps

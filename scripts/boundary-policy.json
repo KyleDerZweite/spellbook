@@ -40,21 +40,33 @@
 		{
 			"file": "frontend/src/lib/server/data/inventory-window.ts",
 			"specifier": "@spellbook/backend/inventory/query.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/data/decks.ts",
+			"specifier": "@spellbook/backend/decks/application.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/data/request-fingerprint.ts",
+			"specifier": "@spellbook/backend/decks/request-fingerprint.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/mtg/import.ts",
+			"specifier": "@spellbook/backend/decks/import.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/mtg/catalog-resolver.ts",
+			"specifier": "@spellbook/backend/decks/catalog-resolver.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/mtg/decklist.ts",
+			"specifier": "@spellbook/backend/decks/decklist.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/mtg/legality.ts",
+			"specifier": "@spellbook/backend/decks/legality.ts"
 		}
 	],
 	"legacy": [
-		{
-			"file": "frontend/src/lib/server/data/decks.ts",
-			"specifier": "drizzle-orm"
-		},
-		{
-			"file": "frontend/src/lib/server/data/decks.ts",
-			"specifier": "#lib/server/db/client.ts"
-		},
-		{
-			"file": "frontend/src/lib/server/data/decks.ts",
-			"specifier": "#lib/server/db/schema.ts"
-		},
 		{
 			"file": "frontend/src/lib/server/data/inventory-groups.ts",
 			"specifier": "drizzle-orm"
