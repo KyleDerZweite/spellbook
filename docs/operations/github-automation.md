@@ -33,7 +33,7 @@ APP_ORIGIN=http://127.0.0.1:5191 pnpm build
 pnpm test:http
 ```
 
-The HTTP suite starts the built Node application and verifies public Catalog DTOs and browser/API local-authentication journeys against the same disposable database. The default origin is `http://127.0.0.1:5191`; when setting `TEST_HTTP_PORT`, rebuild with matching `APP_ORIGIN`. The suite fails without matching `DATABASE_URL` and `TEST_DATABASE_URL`. It temporarily publishes a catalog fixture, so do not run it against a shared database or concurrent catalog publisher.
+The HTTP suite starts the built Node application and verifies public Catalog DTOs and browser/API local-authentication journeys against the same disposable database. The default origin is `http://127.0.0.1:5191`; when setting `TEST_HTTP_PORT`, rebuild with matching `APP_ORIGIN`. The suite rejects a configured origin/port mismatch and an occupied port before publishing fixtures. It requires listening confirmation from its own child process before sending requests. The suite also fails without matching `DATABASE_URL` and `TEST_DATABASE_URL`. It temporarily publishes a catalog fixture, so do not run it against a shared database or concurrent catalog publisher.
 
 The database role needs schema and extension creation privileges. Integration cases write fixtures and remove test data or schemas. Without `TEST_DATABASE_URL`, database suites skip; a successful process with skipped suites is not a database verification result.
 

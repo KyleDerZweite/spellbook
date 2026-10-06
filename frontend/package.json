@@ -19,7 +19,7 @@
 		"check:ts": "node node_modules/typescript-native/bin/tsc --noEmit",
 		"demo:seed": "node scripts/demo/seed.mjs",
 		"dev:demo": "pnpm demo:seed && DEMO_MODE=true vite dev",
-		"test:http": "node --test tests/http-application.test.ts"
+		"test:http": "node --test tests/http-runtime.test.ts tests/http-application.test.ts"
 	},
 	"dependencies": {
 		"@aws-sdk/client-s3": "^3.1146.0",

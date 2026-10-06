@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { spawn, type ChildProcess } from 'node:child_process';
+import type { ChildProcess } from 'node:child_process';
+import { httpTestOrigin, startHttpApplication, stopHttpApplication } from './http-runtime.ts';
 import type { CardDocument } from '@spellbook/contracts/catalog.ts';
 import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
@@ -12,7 +13,7 @@ if (!databaseUrl || databaseUrl !== process.env.DATABASE_URL) {
 		'HTTP tests require DATABASE_URL and TEST_DATABASE_URL to reference the same disposable database.'
 	);
 }
-const origin = `http://127.0.0.1:${process.env.TEST_HTTP_PORT || '5191'}`;
+const origin = httpTestOrigin();
 const username = `http_${randomUUID().slice(0, 8)}`;
 const password = 'real-http-test-password';
 const pool = new pg.Pool({ connectionString: databaseUrl });
@@ -20,6 +21,7 @@ const generation = randomUUID();
 const accounts: string[] = [];
 let child: ChildProcess | undefined;
 let previous: { active_generation: string | null; previous_generation: string | null } | undefined;
+let fixtureStarted = false;
 
 async function request(path: string, body?: unknown, headers: Record<string, string> = {}) {
 	return fetch(`${origin}${path}`, {
@@ -74,27 +76,9 @@ async function catalogFixture() {
 
 test('built HTTP application preserves public Catalog and local account journeys', async (t) => {
 	try {
+		child = await startHttpApplication(origin, new URL('../', import.meta.url));
+		fixtureStarted = true;
 		const card = await catalogFixture();
-		child = spawn(process.execPath, ['build/index.js'], {
-			cwd: new URL('../', import.meta.url),
-			env: { ...process.env, HOST: '127.0.0.1', PORT: new URL(origin).port },
-			stdio: ['ignore', 'ignore', 'pipe']
-		});
-		let startupFailed = false;
-		child.on('exit', () => {
-			startupFailed = true;
-		});
-		child.stderr?.resume();
-		let ready = false;
-		for (let i = 0; i < 100; i++) {
-			if (startupFailed) throw new Error('Built server exited before readiness.');
-			try {
-				ready = (await request('/auth/login')).status === 200;
-			} catch {}
-			if (ready) break;
-			await new Promise((resolve) => setTimeout(resolve, 100));
-		}
-		assert.equal(ready, true, 'built server becomes available');
 		await t.test('public Search and bounded printing reads use safe DTOs', async () => {
 			const response = await request('/api/catalog/search', {
 				query: 'Sol Ring',
@@ -208,18 +192,16 @@ test('built HTTP application preserves public Catalog and local account journeys
 			}
 		);
 	} finally {
-		if (child && child.exitCode === null) {
-			child.kill('SIGTERM');
-			const running = child;
-			await new Promise((resolve) => running.once('exit', resolve));
-		}
-		if (previous)
+		if (child) await stopHttpApplication(child);
+		if (fixtureStarted && previous)
 			await pool.query(
 				'UPDATE catalog_state SET active_generation=$1,previous_generation=$2 WHERE id=1',
 				[previous.active_generation, previous.previous_generation]
 			);
-		else await pool.query('DELETE FROM catalog_state WHERE active_generation=$1', [generation]);
-		await pool.query('DELETE FROM catalog_generations WHERE id=$1', [generation]);
+		else if (fixtureStarted)
+			await pool.query('DELETE FROM catalog_state WHERE active_generation=$1', [generation]);
+		if (fixtureStarted)
+			await pool.query('DELETE FROM catalog_generations WHERE id=$1', [generation]);
 		if (accounts.length)
 			await pool.query('DELETE FROM user_profiles WHERE account_id=ANY($1::text[])', [accounts]);
 		await pool.end();
