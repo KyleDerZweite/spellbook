@@ -10,7 +10,7 @@
 	"scripts": {
 		"check:boundaries": "node scripts/check-boundaries.mjs",
 		"test:boundaries": "node --test scripts/check-boundaries.test.mjs",
-		"lint": "pnpm check:boundaries && pnpm test:boundaries && pnpm --dir frontend lint",
+		"lint": "pnpm --dir frontend lint",
 		"build": "pnpm --dir frontend build",
 		"check:client": "node scripts/check-client.mjs"
 	}

@@ -101,3 +101,39 @@ test('built client check detects backend code and rejects absent output', async 
 		assert.throws(() => checkClient(join(root, 'absent')), /Build client output/);
 	});
 });
+
+test('public server composition rejects raw database access for a new caller', async () => {
+	const { default: ts } = await import('../frontend/node_modules/typescript/lib/typescript.js');
+	const composition = new URL('../frontend/src/lib/server/composition.ts', import.meta.url)
+		.pathname;
+	fixture(
+		{
+			'new-server.ts': `import { application } from '${composition}';\napplication.db;\napplication.pool;\napplication.catalog;\napplication.auth;`
+		},
+		(root) => {
+			const caller = join(root, 'new-server.ts');
+			const program = ts.createProgram([caller], {
+				moduleResolution: ts.ModuleResolutionKind.Bundler,
+				module: ts.ModuleKind.ESNext,
+				target: ts.ScriptTarget.ESNext,
+				allowImportingTsExtensions: true,
+				noEmit: true,
+				skipLibCheck: true,
+				strict: true
+			});
+			const failures = program.getSemanticDiagnostics(program.getSourceFile(caller));
+			assert.deepEqual(
+				failures.map((failure) => failure.code),
+				[2339, 2339]
+			);
+			assert.match(
+				ts.flattenDiagnosticMessageText(failures[0].messageText, '\n'),
+				/^Property 'db' does not exist/
+			);
+			assert.match(
+				ts.flattenDiagnosticMessageText(failures[1].messageText, '\n'),
+				/^Property 'pool' does not exist/
+			);
+		}
+	);
+});

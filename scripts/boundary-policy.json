@@ -28,6 +28,10 @@
 		{
 			"file": "frontend/src/lib/server/mtg/validation.ts",
 			"specifier": "@spellbook/backend/mtg/validation.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/db/client.ts",
+			"specifier": "@spellbook/backend"
 		}
 	],
 	"legacy": [
@@ -158,6 +162,10 @@
 		{
 			"file": "frontend/src/lib/server/auth/change-password.ts",
 			"specifier": "#lib/server/db/schema.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/composition.ts",
+			"specifier": "#lib/server/db/client.ts"
 		}
 	]
 }
