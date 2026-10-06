@@ -1,7 +1,7 @@
 # Repository verification and GitHub automation
 
 - Status: Canonical
-- Last Reviewed: 2026-10-05
+- Last Reviewed: 2026-10-06
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
 - Update Triggers: test commands, workflow coverage, runtime pins, browser verification, PR policy, Dependabot policy
 - Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance)
@@ -11,6 +11,8 @@ This document owns repository check commands, CI coverage, and verification evid
 ## Local checks
 
 Use the Node version in [`frontend/.node-version`](../../frontend/.node-version) and the package manager in [`frontend/package.json`](../../frontend/package.json). Before building for browser review, set `APP_ORIGIN` to the origin the browser will use. [Deployment configuration](./deployment.md#configuration) owns the build-time origin and rebuild procedure. From `frontend/`, run:
+
+Lint, builds and Vitest regenerate SvelteKit files, including environment configuration. Run them in an isolated worktree or stop that checkout's dev server first. Restart the shared preview with `./dev.sh` from the repository root after the checks, so test configuration cannot enter the running app through HMR.
 
 ```sh
 pnpm install --frozen-lockfile
