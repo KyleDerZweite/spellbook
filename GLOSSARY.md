@@ -2,9 +2,9 @@
 
 - Status: Canonical domain glossary
 - Last Reviewed: 2026-10-06
-- Source of Truth: product specification, schema, catalog and account repositories
-- Update Triggers: card identity, inventory grouping, deck roles, categories and availability, scan review, physical-card terminology, profile cards and metric placeholders
-- Related Docs: [Product specification](docs/product/specification.md), [Catalog](docs/architecture/catalog.md), [Postgres](docs/architecture/postgres.md), [Card scanner and sorter](docs/integrations/card-robot.md)
+- Source of Truth: product specification, accepted domain requirements, schema, catalog and account repositories
+- Update Triggers: card identity, inventory grouping, deck roles, categories and availability, reference prices and acquisition costs, scan review, physical-card terminology, profile cards and metric placeholders
+- Related Docs: [Product specification](docs/product/specification.md), [Value tracking](docs/product/value-tracking.md), [Catalog](docs/architecture/catalog.md), [Postgres](docs/architecture/postgres.md), [Card scanner and sorter](docs/integrations/card-robot.md)
 
 Spellbook describes MTG catalog identities, owned cards, deck requirements, and scan review in one context. This glossary owns terminology; the linked documents own behavior and proposed capabilities.
 
@@ -49,6 +49,22 @@ _Avoid_: Deck entry, copy allocation, physical reservation
 **Inventory entry**:
 A quantity of one printing with one finish and condition in an account's inventory. It represents interchangeable copies rather than individually identified physical cards.
 _Avoid_: Printing, physical copy
+
+**Reference price**:
+A source's dated market measure for a printing and finish in a stated currency. It is an estimate reference, not the owner's purchase cost or a guaranteed sale amount.
+_Avoid_: Acquisition cost, sale proceeds, exact condition price
+
+**Acquisition cost**:
+The known amount an owner spent to acquire a quantity of cards, including the purchase fees assigned to it. An unknown acquisition cost is different from a known zero cost.
+_Avoid_: Reference price, current market value
+
+**Cost batch**:
+An acquisition amount associated with specified card quantities from a pack, bulk or other shared acquisition. It is separate from the quantities currently held in inventory.
+_Avoid_: Inventory group, sale, market value
+
+**Acquisition lot**:
+A quantity acquired together with a shared cost status and acquisition date when known. It distinguishes remaining and removed quantities without identifying individual physical copies.
+_Avoid_: Inventory group, physical location, physical-copy identifier
 
 **Physical copy**:
 One physical MTG card, potentially sharing its printing, finish, and condition with other copies. Individual copy identifiers are not part of the current inventory model.

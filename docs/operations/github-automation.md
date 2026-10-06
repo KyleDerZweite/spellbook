@@ -49,7 +49,7 @@ Set `WORKER_TEST_DATABASE_URL` to a disposable PostgreSQL 18 database when check
 For Markdown changes, install frontend dependencies and run from the repository root:
 
 ```sh
-frontend/node_modules/.bin/prettier --check README.md GLOSSARY.md AGENTS.md CONTRIBUTING.md docs .scratch/handoffs
+frontend/node_modules/.bin/prettier --check README.md GLOSSARY.md AGENTS.md CONTRIBUTING.md docs
 ```
 
 Follow [documentation maintenance](../README.md#maintenance) for links, ownership, metadata, and stale claims. Documentation-only changes do not need application tests unless they also change executable behavior.

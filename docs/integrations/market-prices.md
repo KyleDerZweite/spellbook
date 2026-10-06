@@ -4,11 +4,11 @@
 - Last Reviewed: 2026-10-06
 - Source of Truth: linked provider documentation, public data responses, and repository code
 - Update Triggers: provider access or terms, price fields and freshness, printing identity, inventory cost basis, accepted pricing or trading scope
-- Related Docs: [Integrations](./README.md), [Domain glossary](../../GLOSSARY.md), [Product specification](../product/specification.md#dashboard), [Catalog](../architecture/catalog.md), [Worker](../architecture/worker.md), [Postgres](../architecture/postgres.md)
+- Related Docs: [Integrations](./README.md), [Value tracking](../product/value-tracking.md), [Domain glossary](../../GLOSSARY.md), [Product specification](../product/specification.md#dashboard), [Catalog](../architecture/catalog.md), [Worker](../architecture/worker.md), [Postgres](../architecture/postgres.md)
 
 A daily shared price import from Scryfall is enough for an initial dashboard estimate. The existing bulk data already includes prices. Cardmarket offers public downloads for a specifically named Cardmarket trend price. Direct marketplace APIs are not a reliable basis for a new integration at present because both providers restrict new access. This recommendation is a proposal. Prices and trading are not implemented.
 
-On 2026-10-06, the maintainer included price/trading features in the next implementation pass. Trading starts with external product links. The maintainer wants daily price and tracking updates and accepts variation within a day. Valuation, transaction capture, cost basis and historical persistence still need a reviewed contract. The proposal below is not a complete accepted implementation contract.
+The maintainer selected Scryfall as the baseline and optional Cardmarket Price Guide and MTGJSON imports in this pass. Optional API-key configuration is acceptable. The [value-tracking contract](../product/value-tracking.md) owns daily value history, cost batches, coverage and freshness requirements. Sales and a trading ledger are deferred. The implementation suggestions below remain proposals until the provider and module contracts are reviewed.
 
 ## Current state in Spellbook
 
@@ -53,11 +53,19 @@ The [Getting Started page](https://docs.tcgplayer.com/docs/getting-started) requ
 
 The [Market Price](https://help.tcgplayer.com/hc/en-us/articles/213588017-TCGplayer-Market-Price) is based on recent completed sales. It is not a personal purchase price. The [API terms](https://help.tcgplayer.com/hc/en-us/articles/360061115874-TCGplayer-API-Terms-Conditions) restrict use to approved purposes and require attribution with a product link when showing prices. A new direct integration or its price was not verified. It is not required for the initial EUR estimate.
 
-## Proposal for a later implementation
+### MTGJSON
+
+MTGJSON publishes public price files without a bulk-download API key. `AllPricesToday` contains the current day's observations and `AllPrices` retains the past 90 days, keyed by MTGJSON printing UUID. The price model separates provider, currency, paper/MTGO, retail/buylist and normal/foil/etched series. Match through verified printing identifiers rather than card names. Its GraphQL service is a separate access model and is not needed for these downloads. See [file definitions](https://mtgjson.com/downloads/all-files/), [price formats](https://mtgjson.com/data-models/price/price-formats/), [price lists](https://mtgjson.com/data-models/price/price-list/) and [FAQ](https://mtgjson.com/faq/).
+
+The published model includes Cardmarket and TCGplayer alongside other providers. Repeated upstream references are not independent market confirmation. Retail and buylist are different measures and must not be substituted silently. Only matching EUR references qualify for the selected EUR totals. Source history alone does not establish historical account holdings. There is no condition dimension in the checked price model.
+
+The v5.3 [changelog](https://mtgjson.com/changelogs/mtgjson-v5/) adds Manapool, while the checked Price Formats type does not list it. Validate actual payloads before depending on that provider. MTGJSON's project [MIT license](https://github.com/mtgjson/mtgjson/blob/master/LICENSE.txt) does not establish separately verified rights for every upstream dataset. No integration or full-catalog mapping benchmark was performed in this research.
+
+## Provider implementation proposal under review
 
 The smallest useful contract is a shared price reference per exact printing, finish, provider, price measure, and currency. It includes an optional amount, the original provider identity and field provenance, the source snapshot time, and the import time. Amounts need a decimal or integer money representation. Missing values remain unknown. An import time must not appear to be the time of an individual market sale.
 
-The Worker can import the existing Scryfall prices once daily for all accounts. The first implementation needs no generic plugin framework and no user queries to marketplaces. A shared server side lookup function keeps provider details out of the dashboard calculation. A later Cardmarket adapter could meet the same contract with an explicitly chosen `trend` or `avg7`. Catalog identity remains with the Catalog, ownership remains with Inventory, and valuation remains with the account specific summary. Publication and error behavior must follow the existing [Catalog contract](../architecture/catalog.md#storage-and-publication).
+The Worker can import the existing Scryfall prices once daily for all accounts. The implementation needs no generic plugin framework or per-account queries to marketplaces. A shared server-side lookup keeps provider details out of the Dashboard calculation. Optional Cardmarket and MTGJSON imports are under review for this same pass. Catalog identity remains with the Catalog, ownership remains with Inventory, and valuation remains with the account-specific summary. Publication and error behavior must follow the existing [Catalog contract](../architecture/catalog.md#storage-and-publication).
 
 The first lookup rules should use only exact printing and finish. `null`, missing provider IDs, unresolved treatments, and stale sources do not count as zero. The current inventory distinguishes only `nonfoil` and `foil`, while the transformation combines `etched` as an available foil variant. A general switch to Etched prices would therefore lack a domain basis. Language substitutions or blanket condition discounts would be additional product decisions. Any later fallback must visibly state its different language or valuation method.
 
