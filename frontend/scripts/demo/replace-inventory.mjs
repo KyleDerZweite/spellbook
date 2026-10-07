@@ -101,7 +101,10 @@ export async function replaceDemoInventory(client, { apply = false } = {}) {
 			'SELECT * FROM inventory_cards WHERE inventory_id=$1 ORDER BY spellbook_position',
 			[inventory]
 		);
-		if (String(inventories[0].revision) !== '1' || !matchesLegacy(actual, await legacyInventory()))
+		if (
+			!['0', '1'].includes(String(inventories[0].revision)) ||
+			!matchesLegacy(actual, await legacyInventory())
+		)
 			throw new Error(
 				'Inventory differs from the original 43-entry, 72-copy starter. Replacement refused.'
 			);
