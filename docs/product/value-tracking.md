@@ -20,7 +20,7 @@ For EUR totals, prefer eligible fresh references before stale fallbacks. Within 
 
 References are fresh through 24 hours from source time, then eligible as stale through seven days. Reimporting unchanged data does not reset that age. Within each source, prefer exact printing before the eligible English fallback. Thus a fresh higher-priority English fallback can precede a fresh lower-priority exact printing. For MTGJSON EUR totals, only the validated paper/Cardmarket/retail series with matching normal or foil finish is eligible; its measure remains retail reference rather than Cardmarket trend. Absent or ambiguous series remain unknown. Q56 accepted this ordering and eligibility.
 
-When a daily refresh fails, the last valid reference remains eligible for current totals for up to seven days, visibly marked stale. Show its source date and stale coverage. After that limit it is unknown for current totals. A successful source response with a missing or null reference does not preserve an older price as its current result. Check eligible configured fallbacks, then report unknown.
+When a daily refresh fails, expose the failed refresh status and retain the last valid reference with its original source date. Its age still determines freshness: a reference within 24 hours remains fresh, then it is eligible as stale through seven days. Show its source date and stale coverage. After that limit it is unknown for current totals. A successful source response with a missing or null reference does not preserve an older price as its current result. Check eligible configured fallbacks, then report unknown.
 
 ## Current implementation
 
