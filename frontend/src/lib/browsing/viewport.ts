@@ -26,14 +26,35 @@ export function scrollBrowseViewport(host: Pick<BrowseViewport, 'scrollTo'>, top
 	host.scrollTo({ top, behavior: 'instant' });
 }
 
-/** Explicit route feedback takes precedence over result anchors during restoration. */
+type RestorationViewport =
+	| Pick<Window, 'scrollTo'>
+	| {
+			scrollTo: HTMLElement['scrollTo'];
+			scrollTop: number;
+			clientTop: number;
+			getBoundingClientRect(): Pick<DOMRect, 'top'>;
+	  };
+type RestorationTarget = {
+	scrollIntoView: HTMLElement['scrollIntoView'];
+	getBoundingClientRect(): Pick<DOMRect, 'top'>;
+};
+
+/** Restore only the explicit host; scrollIntoView would also move a modal's background. */
 export function restoreBrowsePosition(
-	host: Pick<BrowseViewport, 'scrollTo'>,
+	host: RestorationViewport,
 	top: number,
-	results: Pick<HTMLElement, 'scrollIntoView'> | null,
-	feedback: Pick<HTMLElement, 'scrollIntoView'> | null
+	results: RestorationTarget | null,
+	feedback: RestorationTarget | null
 ): void {
-	if (feedback) feedback.scrollIntoView({ block: 'start', behavior: 'instant' });
-	else if (top) scrollBrowseViewport(host, top);
-	else results?.scrollIntoView({ block: 'start', behavior: 'instant' });
+	const target = feedback ?? (top ? null : results);
+	if (target) {
+		if ('scrollTop' in host) {
+			const offset =
+				host.scrollTop +
+				target.getBoundingClientRect().top -
+				host.getBoundingClientRect().top -
+				host.clientTop;
+			scrollBrowseViewport(host, Math.max(0, offset));
+		} else target.scrollIntoView({ block: 'start', behavior: 'instant' });
+	} else if (top) scrollBrowseViewport(host, top);
 }

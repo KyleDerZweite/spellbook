@@ -41,8 +41,8 @@ describe('retained native Search context', () => {
 describe('native feedback restoration precedence', () => {
 	it('shows native selected/error/receipt feedback instead of numeric or Lazy anchors', () => {
 		const host = { scrollTo: vi.fn() };
-		const result = { scrollIntoView: vi.fn() },
-			feedback = { scrollIntoView: vi.fn() };
+		const result = { scrollIntoView: vi.fn(), getBoundingClientRect: () => ({ top: 0 }) },
+			feedback = { scrollIntoView: vi.fn(), getBoundingClientRect: () => ({ top: 0 }) };
 		for (const top of [0, 10000]) restoreBrowsePosition(host, top, result, feedback);
 		expect(feedback.scrollIntoView).toHaveBeenCalledTimes(2);
 		expect(host.scrollTo).not.toHaveBeenCalled();
@@ -50,7 +50,7 @@ describe('native feedback restoration precedence', () => {
 	});
 	it('restores normal numeric heading and saved numeric/Lazy/modal positions after context closes', () => {
 		const host = { scrollTo: vi.fn() },
-			result = { scrollIntoView: vi.fn() };
+			result = { scrollIntoView: vi.fn(), getBoundingClientRect: () => ({ top: 0 }) };
 		restoreBrowsePosition(host, 0, result, null);
 		restoreBrowsePosition(host, 12345, result, null);
 		expect(result.scrollIntoView).toHaveBeenCalledOnce();
