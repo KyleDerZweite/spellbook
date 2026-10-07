@@ -10,7 +10,7 @@
 
 ## Context
 
-Slice 8 implements the SavedState transport and Profile consumer. Inventory/Deck/Scan workspace consumers remain slice 9. Implementation does not establish completed browser acceptance or deployed proxy behavior.
+Slice 8 implements the SavedState transport and Profile consumer. Inventory/Deck/Scan workspace consumers remain slice 9. Its [acceptance record](https://github.com/KyleDerZweite/spellbook/issues/181) includes real two-process HTTP/PostgreSQL and rendered Profile journeys. Deployed proxy verification remains separate.
 
 Opened clients need prompt visibility of saved account changes while retaining unsaved drafts. PostgreSQL remains authoritative. A hosted sync service or database migration adds dependencies and account/auth integration work.
 

@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: repo config
-- Update Triggers: compose services and first startup, catalog import and recovery, images, local launch commands and preview target, environment variables, migrations, storage, workspace ownership and compatibility adapters, Inventory ICU preflight and collation recovery, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
+- Update Triggers: compose services and first startup, catalog import and recovery, images, local launch commands and preview target, environment variables, migrations, storage, workspace ownership and compatibility adapters, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
 - Related Docs: [Postgres](../architecture/postgres.md), [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Classifier research](../integrations/card-categorization.md)
 
 The canonical service definitions are [`podman-compose.yml`](../../podman-compose.yml) and the local storage override [`podman-compose.dev.yml`](../../podman-compose.dev.yml). Keep live domains, account details, and secret references in private operator notes.
@@ -123,6 +123,8 @@ The [verification workflow](./github-automation.md#ci-coverage) owns CI coverage
 [Migration 0011](../../frontend/drizzle/0011_inventory_windows.sql) requires PostgreSQL ICU support, creates deterministic root-locale `inventory_root`, verifies the accepted ordering examples and records the actual ICU version. Migration failure leaves this capability unavailable; use an ICU-enabled PostgreSQL installation and rerun the existing migrator before starting bounded Inventory reads. Demo initialization uses the same revision-aware writers and preserves the tracked sample.
 
 After a PostgreSQL or ICU upgrade, compare the stored `pg_collation.collversion` with `pg_collation_actual_version(oid)` for `inventory_root`. If they differ, rebuild every index dependent on that collation, including `inventory_cards_window_name_idx`, before `ALTER COLLATION inventory_root REFRESH VERSION`. Coordinate writes and application restart during this operator maintenance, then verify page/location ordering against the same revision. Refreshing the version alone does not rebuild indexes. Catalog set-code equality retains its existing default collation as described in [Catalog](../architecture/catalog.md#printing-and-import-identity).
+
+Apply [migration 0014](../../frontend/drizzle/0014_inventory_contracts.sql) with the existing migrator before starting the updated Inventory mutation application. The integrated journal applies it after 0013 SavedState, following 0011 Inventory windows and 0012 Deck contracts. It adds nullable JSONB original acknowledgements to Inventory mutation requests without fabricating or backfilling old receipts. [Postgres](../architecture/postgres.md) owns the legacy policy.
 
 ## Saved-state streaming
 
