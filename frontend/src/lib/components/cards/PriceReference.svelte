@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Select from '#lib/components/ui/select/Select.svelte';
 	import type {
 		PriceReference,
 		PriceResponse,
@@ -77,11 +78,18 @@
 <section class="mt-3 rounded border border-border p-3 text-sm" aria-label="Reference price">
 	<div class="flex flex-wrap items-center justify-between gap-2">
 		<h3 class="font-medium">Reference price</h3>
-		{#if !entryId}<label class="flex items-center gap-2"
-				>Finish <select bind:value={finish} class="rounded border border-border bg-stone px-2 py-1"
-					><option value="nonfoil">Nonfoil</option><option value="foil">Foil</option></select
-				></label
-			>{/if}
+		{#if !entryId}<Select
+				label="Reference price finish"
+				value={finish}
+				options={[
+					{ value: 'nonfoil', label: 'Nonfoil' },
+					{ value: 'foil', label: 'Foil' }
+				]}
+				onchange={(value) => {
+					if (value === 'nonfoil' || value === 'foil') finish = value;
+				}}
+				class="max-w-40"
+			/>{/if}
 	</div>
 	{#if loading}<p role="status">Loading reference…</p>
 	{:else if readError}<p role="alert">{readError}</p>
