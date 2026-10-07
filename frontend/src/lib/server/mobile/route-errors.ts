@@ -1,11 +1,9 @@
+import { DescriptionConflictError, DeckNotFoundError } from '#lib/server/data/decks.ts';
 import { error } from '@sveltejs/kit';
 import { RequestConflictError } from '#lib/server/data/request-fingerprint.ts';
 import { ValidationError } from '#lib/server/mtg/validation.ts';
 
-/**
- * Convert a thrown ValidationError into a 400 response, but let every other
- * error bubble so infrastructure failures surface as 500s.
- */
+/** Map domain failures to HTTP status codes and preserve infrastructure failures. */
 export function badRequestIfValidation(cause: unknown, fallback = 'Invalid request'): never {
 	if (
 		cause &&
@@ -16,8 +14,12 @@ export function badRequestIfValidation(cause: unknown, fallback = 'Invalid reque
 		throw error(500, 'Inventory totals cannot be represented exactly.');
 	if (cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'Unauthenticated')
 		throw error(401, 'Authentication required');
+	if (cause instanceof DescriptionConflictError)
+		throw error(409, { kind: 'DescriptionConflict', message: cause.message, ...cause.latest });
+	if (cause instanceof DeckNotFoundError)
+		throw error(404, { kind: 'NotFound', message: cause.message });
 	if (cause instanceof RequestConflictError) {
-		throw error(409, cause.message);
+		throw error(409, { kind: 'RequestConflict', message: cause.message });
 	}
 	if (cause instanceof ValidationError) {
 		throw error(400, cause.message);

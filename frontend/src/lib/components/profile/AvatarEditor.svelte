@@ -1,12 +1,18 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { Dialog } from 'bits-ui';
-	import { tick } from 'svelte';
+	import { tick, untrack } from 'svelte';
 	import AvatarPicker from './AvatarPicker.svelte';
 	import { getAvatar } from '#lib/profile/avatars.ts';
 	let { avatarId }: { avatarId?: string } = $props();
 	let open = $state(false);
 	let selected = $state('wizard');
+	let lastSavedAvatar = $state(untrack(() => getAvatar(avatarId).id));
+	$effect(() => {
+		const next = getAvatar(avatarId).id;
+		if (open && selected === lastSavedAvatar) selected = next;
+		lastSavedAvatar = next;
+	});
 	let pending = $state(false);
 	let message = $state('');
 	let content = $state<HTMLDivElement | null>(null);

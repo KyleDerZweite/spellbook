@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: code, proposed recognition design, primary documentation
-- Update Triggers: public reference exception and private price reads, manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, device runtime selection
+- Update Triggers: public reference exception/private price reads, manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, Deck wire contracts and revisions, device runtime selection
 - Related Docs: [Application contract](./application-contract.md), [Frontend](./frontend.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../../GLOSSARY.md), [Deployment](../operations/deployment.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md)
 
 Spellbook has one web client. Its manifest in `frontend/static/manifest.webmanifest` provides install metadata; `frontend/src/app.html` links it. A service worker and offline caching are not implemented. The `/mtg/scan` workspace supports image upload, candidate review, manual printing selection, and explicit inventory commit. Direct browser camera capture remains planned.
@@ -23,6 +23,16 @@ POST/PATCH/DELETE, bulk, import and Scan mutation responses retain their legacy 
 The `/api/mobile/v1/mtg/...` API exposes search, inventory, decks, import/export, and scan orchestration. The account routes expose Profile read/patch, Dashboard summaries, password rotation and session inspection through the same backend use cases as Settings/Dashboard. [Authentication](./auth.md#account-http-contract) owns their exact contract; [route inventory](../product/routing-and-games.md) lists their paths. External clients authenticate with local session bearer tokens; the `/mtg/scan` workspace uses its browser cookie with origin protection on mutations. See [authentication](./auth.md) for acquisition and revocation.
 
 Authenticated clients can read `GET /api/mobile/v1/mtg/decks/{deckId}/availability`. The route checks deck ownership and reuses the shared allocation function to compare that deck with current aggregate inventory. Its response contains entry counts and totals for required, exact, alternate, and missing copies. It makes no inventory changes or cross-deck reservations. See the [product specification](../product/specification.md#deck-availability) for allocation semantics and [OpenAPI](../../frontend/src/routes/openapi.json/+server.ts) for the wire schema.
+
+## Deck HTTP contract
+
+Experimental v1 Deck responses now use explicit [Deck DTOs](../../contracts/src/decks.ts), ISO timestamps and decimal revision strings. `GET /api/mobile/v1/mtg/decks` returns library metadata, totals and covers; optional `deck=UUID` loads one owned composition and its relevant ownership aggregates. It removes the previous full `inventoryCards` and `mutationRequests` fields. `GET /decks/{deckId}` adds legality warnings and resolved safe documents. Existing paths, authentication and text export formats remain.
+
+`GET /decks/search?q=...` returns Catalog hits with account-owned aggregates. `GET /decks/ownership` accepts repeated `canonicalCardId` values, at most 100, and returns owned-printing quantities. Relative paths use `/api/mobile/v1/mtg`. These reads never transfer full Inventory. Availability keeps its existing exact-before-alternate calculation.
+
+Metadata PATCH changes supplied fields. Sending Description requires `descriptionRevision`; a stale save returns 409 with `kind: DescriptionConflict`, saved `description` and `descriptionRevision`. Card add/PATCH/DELETE, bulk and import commit return compact acknowledgements containing `requestId`, `deckId`, `revision`, `changes` and `removedEntryIds`. Each change identifies the entry, printing and role, with resulting quantity and applied delta. Add/PATCH require a caller-stable request ID; card DELETE supplies it in the query. PATCH supports atomic signed delta or the retained absolute quantity/role path. Ordinary negative deltas floor at one; explicit removal and bulk decrement can delete.
+
+Clients of the former snapshot mutations must retain the request ID for a failed intent, consume the original acknowledgement and fetch current state separately. Changed-payload reuse returns 409 `RequestConflict`; Description conflict requires deliberate review/rebase. [The application contract](./application-contract.md#implemented-deck-application-boundary) owns replay and semantic replacement; [OpenAPI](../../frontend/src/routes/openapi.json/+server.ts) owns exact schemas and validation. Deck aggregate results outside the safe JSON integer range fail explicitly rather than return rounded quantities.
 
 ## Request validation
 

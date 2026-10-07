@@ -6,7 +6,10 @@ const mocks = vi.hoisted(() => ({
 	legality: vi.fn(),
 	add: vi.fn()
 }));
-vi.mock('../../src/lib/server/data/decks', () => ({
+vi.mock('../../src/lib/server/data/decks', async () => ({
+	...(await vi.importActual<typeof import('../../src/lib/server/data/decks')>(
+		'@spellbook/backend/decks/application.ts'
+	)),
 	getDeckSnapshot: mocks.snapshot,
 	createDeckRecord: vi.fn(),
 	deleteDeck: vi.fn(),
@@ -23,6 +26,9 @@ vi.mock('../../src/lib/server/mtg/deck-builder', () => ({
 }));
 vi.mock('../../src/lib/server/catalog/search', () => ({ getPrintings: vi.fn() }));
 vi.mock('../../src/lib/server/mtg/import', () => ({ previewMtgImport: vi.fn() }));
+vi.mock('../../src/lib/server/composition.ts', () => ({
+	application: { decks: { search: mocks.search, ownership: vi.fn().mockResolvedValue([]) } }
+}));
 import { actions, load } from '../../src/routes/mtg/decks/+page.server';
 
 function event(url = 'http://localhost/mtg/decks', fields: Record<string, string> = {}) {
@@ -40,7 +46,7 @@ beforeEach(() => {
 		deckCards: [],
 		inventoryCards: []
 	});
-	mocks.legality.mockResolvedValue([]);
+	mocks.legality.mockResolvedValue({ warnings: [], deckDocuments: {} });
 });
 
 describe('web deck boundaries', () => {
@@ -65,7 +71,11 @@ describe('web deck boundaries', () => {
 		await expect(
 			load(event('http://localhost/mtg/decks?deck=someone-elses') as Parameters<typeof load>[0])
 		).rejects.toMatchObject({ status: 404 });
-		expect(mocks.snapshot).toHaveBeenCalledWith('owner', 'mtg');
+		expect(mocks.snapshot).toHaveBeenCalledWith(
+			{ accountId: 'owner', username: 'Owner', email: 'owner@example.test' },
+			'mtg',
+			'someone-elses'
+		);
 	});
 	it('preserves editable deck data when catalog search and legality checks fail', async () => {
 		mocks.search.mockRejectedValue(new Error('offline'));
@@ -93,12 +103,15 @@ describe('web deck boundaries', () => {
 				requestId: 'retry'
 			})
 		);
-		expect(mocks.add).toHaveBeenCalledWith('owner', {
-			deckId: 'owned',
-			catalogCardId: 'printing',
-			quantity: 2,
-			role: 'main',
-			requestId: 'retry'
-		});
+		expect(mocks.add).toHaveBeenCalledWith(
+			{ accountId: 'owner', username: 'Owner', email: 'owner@example.test' },
+			{
+				deckId: 'owned',
+				catalogCardId: 'printing',
+				quantity: 2,
+				role: 'main',
+				requestId: 'retry'
+			}
+		);
 	});
 });

@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: code
-- Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership and compatibility adapters, Inventory revisions, bounded reads and ICU ordering
+- Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership and compatibility adapters, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers
 - Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md), [Application contract](./application-contract.md)
 
 PostgreSQL stores account-owned application state and the public Scryfall catalog.
@@ -49,7 +49,7 @@ The backend [schema](../../backend/src/db/schema.ts) owns table definitions, and
 
 ## Current Access Pattern
 
-- backend Catalog, Auth, Profile, Dashboard and Inventory reads use Drizzle ORM and `pg` through frontend server composition; remaining SvelteKit feature repositories use explicit compatibility adapters
+- backend Catalog, Auth, Profile, Dashboard, Inventory reads and Deck use Drizzle ORM and `pg` through frontend server composition; remaining SvelteKit feature repositories use explicit compatibility adapters
 - browser pages load user data through server load functions and route actions
 - optional mobile API endpoints call the same repository functions as web routes
 - repository functions enforce ownership by internal Spellbook `accountId`
@@ -73,6 +73,20 @@ The DTO contains complete summary distributions and deck availability totals, pl
 
 SQL keeps quantity sums as exact numeric aggregates rather than narrowing account or deck totals to signed 32-bit integers. The backend [integer decoder](../../backend/src/db/numbers.ts) converts results to JSON numbers only within the safe integer range; summary counts must also be nonnegative. Larger reporting totals fail explicitly instead of rounding. This does not change stored quantities or their per-entry limits. [Authentication](./auth.md#account-http-contract) owns the HTTP failure and Profile fallback responses.
 
+## Deck persistence and reads
+
+[Migration 0012](../../frontend/drizzle/0012_deck_contracts.sql) adds independent `description_revision` and `composition_revision` bigint columns to Decks and a JSONB acknowledgement to Deck mutation requests. It replaces the request record's Deck foreign key with an account foreign key: records survive Deck deletion and cascade with account deletion.
+
+The backend [Deck application](../../backend/src/decks/application.ts) reads library totals/covers, selected composition and relevant owned-printing aggregates in a repeatable-read, read-only transaction. SQL restricts Inventory aggregation to the selected canonical identities. Search/inspector ownership accepts at most 100 canonical identities. Exact SQL sums pass through the shared integer decoder with a nonnegative check; unsupported JSON integer ranges fail instead of rounding. The backend [canonical quantity helper](../../backend/src/decks/availability.ts) sums across printings with bigint and validates the safe JSON range before returning ownership DTOs to printing selectors, selected Decks or search. Per-entry limits remain unchanged. Dashboard retains its separate backend summary owner.
+
+Writes lock the account profile and revalidate the session inside the transaction, then serialize the Deck operation and request identity. Catalog resolution precedes the write transaction. Semantic entry changes advance composition revision; Description changes advance only their independent field revision. [The application contract](./application-contract.md#implemented-deck-application-boundary) owns delta, merge and draft semantics.
+
+## Saved-state notifications
+
+[Migration 0013](../../frontend/drizzle/0013_saved_state.sql) adds the notification function and AFTER row triggers without changing table columns or existing rows. It requires no new Drizzle schema snapshot. Triggers cover Profile changes, sessions/credentials, Inventory entries/groups/memberships, Decks/cards and Scan sessions/artifacts/review items. Profile updates limited to `last_seen_at` emit nothing. Group ownership derives from the Inventory parent.
+
+PostgreSQL delivers notifications after commit; rollback emits nothing. The payload contains account identity and a coarse topic. Auth is transport control and never becomes a protected browser topic. [The application contract](./application-contract.md#saved-state-synchronization) owns the listener, session barrier and bounded queues. [Deployment](../operations/deployment.md#saved-state-streaming) owns migrator and connection capacity requirements.
+
 ## Current Mutation Surface
 
 - patch supplied account email/avatar/artwork fields and merge validated card fields under the account lock, preserving omitted values
@@ -92,4 +106,4 @@ Migration `0005_mutation_request_fingerprints.sql` adds nullable `request_hash` 
 
 An identical retry has one write effect. Reusing an existing request ID with a different stored fingerprint returns HTTP 409 without applying the changed mutation. Existing rows with a null hash retain their earlier duplicate-suppression behavior because their original payload cannot be reconstructed. The migration does not invent or backfill those hashes.
 
-These records prevent duplicate effects; they do not store a historical response snapshot or provide general editor version checking. Scan candidate-result replacement is separate from inventory mutation replay and has no event fingerprint. See [mobile and scan](./mobile-and-scan.md) for that contract.
+Inventory request records still suppress duplicate effects without storing original responses. Deck requests now store compact original acknowledgements in the mutation transaction. Identical replay returns that acknowledgement after later changes or Deck deletion; changed-payload reuse fails with 409. Legacy Deck records without acknowledgements retain no-repeat behavior and return empty changes for the surviving Deck, rather than reconstructed historical results. Description revision checks are separate from request replay. Scan candidate-result replacement is separate from inventory mutation replay and has no event fingerprint. See [mobile and scan](./mobile-and-scan.md) for that contract.

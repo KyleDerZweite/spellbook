@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { savedProfile } from '#lib/saved-state/profile.svelte.ts';
 	import { enhance } from '$app/forms';
 	import { untrack, tick } from 'svelte';
 	import Avatar from '#lib/components/profile/Avatar.svelte';
@@ -7,6 +8,12 @@
 	import { getAvatar } from '#lib/profile/avatars.ts';
 	import type { PageProps } from './$types';
 	let { data, form }: PageProps = $props();
+	$effect(() => {
+		savedProfile.seed(data);
+	});
+	let saved = $derived(
+		savedProfile.profile?.user.accountId === data.user.accountId ? savedProfile.profile : data
+	);
 	let email = $state(
 		untrack(() => (form?.intent === 'email' && 'email' in form ? form.email : data.user.email))
 	);
@@ -15,9 +22,9 @@
 	let profileForm: HTMLFormElement;
 	let lastSavedEmail = $state(untrack(() => data.user.email));
 	$effect(() => {
-		if (data.user.email !== lastSavedEmail) {
-			email = data.user.email;
-			lastSavedEmail = data.user.email;
+		if (saved.user.email !== lastSavedEmail) {
+			if (email === lastSavedEmail) email = saved.user.email;
+			lastSavedEmail = saved.user.email;
 		}
 	});
 	let emailError = $derived(
@@ -29,6 +36,12 @@
 	><title>Profile | Spellbook</title><meta name="robots" content="noindex, nofollow" /></svelte:head
 >
 <div class="profile-page">
+	{#if savedProfile.status !== 'live' && savedProfile.status !== 'idle'}<p
+			role="status"
+			class="text-sm text-text-secondary"
+		>
+			Saved changes synchronization is {savedProfile.status}.
+		</p>{/if}
 	<div class="page-title"><h1>Profile</h1></div>
 	<div class="profile-settings">
 		<div class="profile-fields">
@@ -36,7 +49,7 @@
 				<label for="profile-username" class="label">Username</label><input
 					id="profile-username"
 					class="input"
-					value={data.user.username}
+					value={saved.user.username}
 					readonly
 					autocomplete="username"
 				/>
@@ -97,24 +110,24 @@
 				<div
 					class="avatar-image"
 					role="img"
-					aria-label={`${getAvatar(data.user.avatarId).label} avatar`}
+					aria-label={`${getAvatar(saved.user.avatarId).label} avatar`}
 				>
-					<Avatar id={data.user.avatarId} size={88} />
+					<Avatar id={saved.user.avatarId} size={88} />
 				</div>
-				<AvatarEditor avatarId={data.user.avatarId} />
+				<AvatarEditor avatarId={saved.user.avatarId} />
 			</div>
 		</div>
 		<div class="profile-card-summary">
 			<ProfileCard
-				username={data.user.username}
-				avatarId={data.user.avatarId}
-				artworkId={data.user.artworkId}
-				totals={data.totals}
-				definition={data.card}
+				username={saved.user.username}
+				avatarId={saved.user.avatarId}
+				artworkId={saved.user.artworkId}
+				totals={saved.totals}
+				definition={saved.card}
 			/>
 			<a href="/settings/profile-card" class="btn btn-secondary">Edit Card</a>
-			{#if data.statsError}<p role="status" class="text-sm text-text-secondary">
-					{data.statsError}
+			{#if saved.statsError}<p role="status" class="text-sm text-text-secondary">
+					{saved.statsError}
 				</p>{/if}
 		</div>
 	</div>

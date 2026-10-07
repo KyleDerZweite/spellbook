@@ -85,6 +85,20 @@
 			"when": 1791327225584,
 			"tag": "0011_inventory_windows",
 			"breakpoints": true
+		},
+		{
+			"idx": 12,
+			"version": "7",
+			"when": 1791327225585,
+			"tag": "0012_deck_contracts",
+			"breakpoints": true
+		},
+		{
+			"idx": 13,
+			"version": "7",
+			"when": 1791335000000,
+			"tag": "0013_saved_state",
+			"breakpoints": true
 		}
 	]
 }

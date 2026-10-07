@@ -7,7 +7,11 @@ import { createDeckEntry, getDeckSnapshotEntry } from '#lib/server/mobile/mtg-se
 
 export const GET: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
-	return json(await getDeckSnapshotEntry(auth));
+	try {
+		return json(await getDeckSnapshotEntry(auth, event.url.searchParams.get('deck')));
+	} catch (cause) {
+		badRequestIfValidation(cause);
+	}
 };
 
 export const POST: RequestHandler = async (event) => {

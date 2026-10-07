@@ -16,8 +16,12 @@ export const PATCH: RequestHandler = async (event) => {
 			await updateDeckCardEntry(
 				auth,
 				entryId,
-				normalizeQuantity(readNumber(body.quantity, 'quantity', 1)),
-				body?.role === undefined ? undefined : readString(body.role, 'role')
+				body.quantity === undefined
+					? undefined
+					: normalizeQuantity(readNumber(body.quantity, 'quantity')),
+				body?.role === undefined ? undefined : readString(body.role, 'role'),
+				readString(body.requestId, 'requestId', ''),
+				body.delta === undefined ? undefined : readNumber(body.delta, 'delta')
 			)
 		);
 	} catch (cause) {
@@ -29,5 +33,10 @@ export const DELETE: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
 	const entryId = requireUuid(event.params.entryId, 'entryId');
 
-	return json(await removeDeckCardEntry(auth, entryId));
+	const requestId = event.url.searchParams.get('requestId') ?? '';
+	try {
+		return json(await removeDeckCardEntry(auth, entryId, requestId));
+	} catch (cause) {
+		badRequestIfValidation(cause);
+	}
 };

@@ -257,7 +257,7 @@ describe('OpenAPI contract', () => {
 		const schema = (await GET().json()) as Document;
 		for (const [prefix, accepted] of [
 			['Inventory', INVENTORY_OPERATION_TYPES],
-			['Deck', DECK_OPERATION_TYPES]
+			['Deck', [...DECK_OPERATION_TYPES, 'increment', 'replace']]
 		] as const) {
 			const kinds: string[] = [];
 			for (const name of [`${prefix}AddOperation`, `${prefix}TargetOperation`]) {
@@ -271,7 +271,7 @@ describe('OpenAPI contract', () => {
 		}
 		expect(schema.components.schemas.DeckCardUpdateRequest).toMatchObject({
 			properties: { role: { enum: [...DECK_ROLES] } },
-			required: []
+			required: ['requestId']
 		});
 		visit(schema as unknown as Json, (value) => {
 			if (!Array.isArray(value.required) || !value.properties) return;

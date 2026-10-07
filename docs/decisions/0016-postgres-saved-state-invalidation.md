@@ -2,15 +2,15 @@
 
 - Status: Accepted
 - Date: 2026-10-06
-- Last Reviewed: 2026-10-06
+- Last Reviewed: 2026-10-07
 - Owners: Kyle
-- Source of Truth: Kyle's Q56 acceptance of the reviewed implementation contract
+- Source of Truth: Kyle's Q56 acceptance and implemented SavedState transport/Profile consumer
 - Update Triggers: saved-state transport, session expiry/revocation, replica recovery and stream evidence
 - Related Docs: [Application contract](../architecture/application-contract.md#saved-state-synchronization), [Auth](../architecture/auth.md), [Realtime research](../integrations/realtime-backends.md), [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md), [Decisions](./README.md)
 
 ## Context
 
-This is accepted design for the next pass, not an implemented capability.
+Slice 8 implements the SavedState transport and Profile consumer. Inventory/Deck/Scan workspace consumers remain slice 9. Implementation does not establish completed browser acceptance or deployed proxy behavior.
 
 Opened clients need prompt visibility of saved account changes while retaining unsaved drafts. PostgreSQL remains authoritative. A hosted sync service or database migration adds dependencies and account/auth integration work.
 

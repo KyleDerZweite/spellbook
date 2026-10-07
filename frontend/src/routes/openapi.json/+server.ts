@@ -199,6 +199,24 @@ const SCHEMA = {
 				}
 			}
 		},
+		'/api/account/events': {
+			get: {
+				summary:
+					'Stream account-scoped saved-state invalidations; reconnect refetches current state',
+				security: authenticated,
+				responses: {
+					200: {
+						description:
+							'SSE reset/recovering/auth-expired events have empty data; invalidate data contains only coarse profile/inventory/decks/scan topics. Heartbeats every 15 seconds; no replay or event IDs.',
+						content: { 'text/event-stream': { schema: { type: 'string' } } }
+					},
+					401: response('Authentication required', ref('ErrorResponse')),
+					403: response('Foreign or null Origin rejected', ref('ErrorResponse')),
+					400: response('Query parameters unsupported', ref('ErrorResponse')),
+					503: response('Saved state temporarily unavailable', ref('ErrorResponse'))
+				}
+			}
+		},
 		'/api/account/profile': {
 			get: operation(
 				'Read authenticated account profile and aggregate totals',
@@ -480,7 +498,10 @@ const SCHEMA = {
 			)
 		},
 		'/api/mobile/v1/mtg/decks': {
-			get: operation('Read decks, deck cards, and owned inventory', ref('DeckSnapshot')),
+			get: {
+				...operation('Read Deck library summaries and optional selected Deck', ref('DeckSnapshot')),
+				parameters: [{ name: 'deck', in: 'query', schema: string }]
+			},
 			post: operation(
 				'Create a deck and return the account deck list',
 				array('Deck'),
@@ -489,8 +510,38 @@ const SCHEMA = {
 		},
 		'/api/mobile/v1/mtg/decks/{deckId}': {
 			parameters: [pathParameter('deckId')],
-			patch: operation('Update deck metadata', nullable('Deck'), ref('DeckWriteRequest')),
+			get: operation('Read one owned Deck, bounded availability and legality', ref('DeckDetail')),
+			patch: {
+				...operation('Patch only supplied metadata fields', ref('Deck'), ref('DeckPatchRequest')),
+				responses: {
+					200: response('Saved Deck', ref('Deck')),
+					...errors,
+					...jsonBodyErrors,
+					404: response('Deck not found', ref('ErrorResponse')),
+					409: response('Stale Description revision; retain draft', ref('DescriptionConflict'))
+				}
+			},
 			delete: operation('Delete a deck', ref('OkResponse'))
+		},
+		'/api/mobile/v1/mtg/decks/search': {
+			get: {
+				...operation('Search Catalog with account-owned aggregates for hits', ref('DeckSearch')),
+				parameters: [{ name: 'q', in: 'query', schema: string }]
+			}
+		},
+		'/api/mobile/v1/mtg/decks/ownership': {
+			get: {
+				...operation('Read bounded account-owned printing quantities', array('OwnedPrinting')),
+				parameters: [
+					{
+						name: 'canonicalCardId',
+						in: 'query',
+						schema: { type: 'array', maxItems: 100, items: string },
+						style: 'form',
+						explode: true
+					}
+				]
+			}
 		},
 		'/api/mobile/v1/mtg/decks/{deckId}/availability': {
 			parameters: [pathParameter('deckId')],
@@ -508,25 +559,35 @@ const SCHEMA = {
 		'/api/mobile/v1/mtg/decks/{deckId}/cards': {
 			parameters: [pathParameter('deckId')],
 			post: operation(
-				'Add a printing to a deck role and return its cards',
-				array('DeckCard'),
-				ref('DeckCardAddRequest')
+				'Add a Catalog printing and return the original saved acknowledgement',
+				ref('DeckAcknowledgement'),
+				ref('DeckCardAddRequest'),
+				true
 			)
 		},
 		'/api/mobile/v1/mtg/deck-cards/{entryId}': {
 			parameters: [pathParameter('entryId')],
 			patch: operation(
-				'Set deck entry quantity and optional role; nonpositive quantity removes it',
-				nullable('DeckCard'),
-				ref('DeckCardUpdateRequest')
+				'Apply quantity, atomic delta or role change; nonpositive quantity removes it',
+				ref('DeckAcknowledgement'),
+				ref('DeckCardUpdateRequest'),
+				true
 			),
-			delete: operation('Remove a deck card entry', ref('OkResponse'))
+			delete: {
+				...operation('Remove a Deck entry idempotently', ref('DeckAcknowledgement')),
+				parameters: [{ name: 'requestId', in: 'query', required: true, schema: string }],
+				responses: {
+					200: response('Original acknowledgement', ref('DeckAcknowledgement')),
+					...errors,
+					409: requestConflict
+				}
+			}
 		},
 		'/api/mobile/v1/mtg/decks/{deckId}/cards/bulk': {
 			parameters: [pathParameter('deckId')],
 			post: operation(
-				'Apply idempotent deck card operations',
-				array('DeckCard'),
+				'Apply idempotent Deck card operations and replay original acknowledgement',
+				ref('DeckAcknowledgement'),
 				ref('DeckCardBulkRequest'),
 				true
 			)
@@ -541,7 +602,7 @@ const SCHEMA = {
 		'/api/mobile/v1/mtg/decks/import/commit': {
 			post: operation(
 				'Create a deck from resolved import lines',
-				ref('DeckImportCommitResponse'),
+				ref('DeckAcknowledgement'),
 				ref('DeckImportCommitRequest'),
 				true
 			)
@@ -1006,8 +1067,18 @@ const SCHEMA = {
 				},
 				['name']
 			),
+			DeckPatchRequest: object(
+				{
+					name: string,
+					format: string,
+					description: string,
+					descriptionRevision: { type: 'string', pattern: '^[0-9]+$' }
+				},
+				[]
+			),
 			DeckCardAddRequest: object(
 				{
+					requestId: string,
 					catalogCardId: string,
 					canonicalCardId: string,
 					name: string,
@@ -1016,9 +1087,21 @@ const SCHEMA = {
 					quantity: { type: 'integer', minimum: 1, default: 1 },
 					role: { ...role, default: 'main' }
 				},
-				['catalogCardId', 'canonicalCardId', 'name']
+				['requestId', 'catalogCardId', 'canonicalCardId', 'name']
 			),
-			DeckCardUpdateRequest: object({ quantity: { type: 'integer', default: 1 }, role }, []),
+			DeckCardUpdateRequest: object(
+				{
+					requestId: string,
+					quantity: integer,
+					delta: {
+						...integer,
+						description:
+							'Nonzero signed quantity delta. Ordinary decreases stop at one copy; use DELETE to remove the entry.'
+					},
+					role
+				},
+				['requestId']
+			),
 			ScanCandidate: {
 				allOf: [
 					object({
@@ -1453,7 +1536,18 @@ const SCHEMA = {
 			},
 			Deck: {
 				type: 'object',
-				required: ['id', 'accountId', 'game', 'name', 'description', 'format'],
+				required: [
+					'id',
+					'accountId',
+					'game',
+					'name',
+					'description',
+					'format',
+					'descriptionRevision',
+					'compositionRevision',
+					'createdAt',
+					'updatedAt'
+				],
 				properties: {
 					id: { type: 'string', format: 'uuid' },
 					accountId: { type: 'string' },
@@ -1461,6 +1555,8 @@ const SCHEMA = {
 					name: { type: 'string' },
 					description: { type: 'string' },
 					format: { type: 'string' },
+					descriptionRevision: { type: 'string', pattern: '^[0-9]+$' },
+					compositionRevision: { type: 'string', pattern: '^[0-9]+$' },
 					createdAt: { type: 'string', format: 'date-time' },
 					updatedAt: { type: 'string', format: 'date-time' }
 				}
@@ -1496,19 +1592,58 @@ const SCHEMA = {
 					updatedAt: { type: 'string', format: 'date-time' }
 				}
 			},
-			DeckSnapshot: {
-				type: 'object',
-				required: ['decks', 'deckCards', 'inventoryCards'],
-				properties: {
-					decks: { type: 'array', items: { $ref: '#/components/schemas/Deck' } },
-					deckCards: { type: 'array', items: { $ref: '#/components/schemas/DeckCard' } },
-					inventoryCards: { type: 'array', items: { $ref: '#/components/schemas/InventoryCard' } },
-					mutationRequests: {
-						type: 'array',
-						items: { $ref: '#/components/schemas/MutationRequestRecord' }
-					}
-				}
+			OwnedPrinting: object({ catalogCardId: string, canonicalCardId: string, quantity: integer }),
+			AvailabilityCount: object({ exact: integer, alternate: integer, missing: integer }),
+			DeckSnapshot: object({
+				decks: array('Deck'),
+				deckCards: array('DeckCard'),
+				deckTotals: { type: 'object', additionalProperties: integer },
+				deckCovers: { type: 'object', additionalProperties: object({ imageUri: string }) },
+				availability: { type: 'object', additionalProperties: ref('AvailabilityCount') },
+				ownedByCanonical: { type: 'object', additionalProperties: integer },
+				ownedPrintings: array('OwnedPrinting')
+			}),
+			DeckDetail: {
+				allOf: [
+					ref('DeckSnapshot'),
+					object({
+						warnings: { type: 'array', items: { type: 'object' } },
+						deckDocuments: { type: 'object', additionalProperties: ref('CardDocument') }
+					})
+				]
 			},
+			DeckSearch: {
+				allOf: [
+					ref('SearchResponse'),
+					object({
+						ownedPrintings: array('OwnedPrinting'),
+						ownedByCanonical: { type: 'object', additionalProperties: integer }
+					})
+				]
+			},
+			DescriptionConflict: object({
+				status: { const: 409 },
+				kind: { const: 'DescriptionConflict' },
+				message: string,
+				description: string,
+				descriptionRevision: string
+			}),
+			DeckAcknowledgement: object({
+				requestId: string,
+				deckId: string,
+				revision: { type: 'string', pattern: '^[0-9]+$' },
+				changes: {
+					type: 'array',
+					items: object({
+						entryId: string,
+						catalogCardId: string,
+						role,
+						quantity: integer,
+						delta: integer
+					})
+				},
+				removedEntryIds: { type: 'array', items: string }
+			}),
 			InventoryAddOperation: {
 				type: 'object',
 				required: ['op', 'card', 'finish', 'condition', 'quantity'],
@@ -1578,6 +1713,14 @@ const SCHEMA = {
 						'target',
 						'quantity'
 					]),
+					object({ op: { const: 'increment' }, target: ref('EntryTarget'), quantity }),
+					object({
+						op: { const: 'replace' },
+						target: ref('EntryTarget'),
+						catalogCardId: string,
+						quantity,
+						role
+					}),
 					object({ op: { const: 'move' }, target: ref('EntryTarget'), role }),
 					object({ op: { const: 'remove' }, target: ref('EntryTarget') }, ['op', 'target'])
 				]
@@ -1729,26 +1872,6 @@ const SCHEMA = {
 					description: { type: 'string' },
 					format: { type: 'string' },
 					text: { type: 'string' }
-				}
-			},
-			DeckImportCommitResponse: {
-				type: 'object',
-				required: ['deck', 'deckCards', 'unresolved', 'ambiguous', 'warnings'],
-				properties: {
-					deck: { $ref: '#/components/schemas/Deck' },
-					deckCards: { type: 'array', items: { $ref: '#/components/schemas/DeckCard' } },
-					unresolved: {
-						type: 'array',
-						items: { $ref: '#/components/schemas/UnresolvedImportLine' }
-					},
-					ambiguous: {
-						type: 'array',
-						items: { $ref: '#/components/schemas/AmbiguousImportLine' }
-					},
-					warnings: {
-						type: 'array',
-						items: { $ref: '#/components/schemas/ImportPreviewWarning' }
-					}
 				}
 			}
 		}

@@ -1,3 +1,4 @@
+import { fixtureAuthRequest } from './fixtures/http-auth.ts';
 import type { DashboardSummary } from '@spellbook/contracts/dashboard.ts';
 import { seedWideSummary } from './fixtures/wide-summary.ts';
 import { seedAccountScaleInventory } from './fixtures/account-scale.ts';
@@ -8,7 +9,8 @@ import { httpTestOrigin, startHttpApplication, stopHttpApplication } from './htt
 import type { InventoryPage } from '@spellbook/contracts/inventory.ts';
 import type { CardDocument } from '@spellbook/contracts/catalog.ts';
 import { randomUUID } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
+import { cpus, totalmem } from 'node:os';
 import pg from 'pg';
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
@@ -26,8 +28,11 @@ const accounts: string[] = [];
 let child: ChildProcess | undefined;
 let previous: { active_generation: string | null; previous_generation: string | null } | undefined;
 let fixtureStarted = false;
+let keepFixture = false;
 
 async function request(path: string, body?: unknown, headers: Record<string, string> = {}) {
+	if (path === '/api/auth/login' || path === '/api/auth/register')
+		return fixtureAuthRequest(origin, path, body, headers);
 	return fetch(`${origin}${path}`, {
 		method: body === undefined ? 'GET' : 'POST',
 		headers: { ...(body === undefined ? {} : { 'content-type': 'application/json' }), ...headers },
@@ -262,7 +267,9 @@ test('built HTTP application preserves public Catalog and local account journeys
 		await t.test(
 			'Inventory windows stay bounded and coherent under concurrent writes',
 			async () => {
-				const login = await (await request('/api/auth/login', { username, password })).json();
+				const loginResponse = await request('/api/auth/login', { username, password });
+				assert.equal(loginResponse.status, 200);
+				const login = await loginResponse.json();
 				const headers = { authorization: `Bearer ${login.token}` };
 				const path = '/api/mobile/v1/mtg/inventory';
 				const operations = Array.from({ length: 120 }, (_, i) => ({
@@ -457,9 +464,9 @@ test('built HTTP application preserves public Catalog and local account journeys
 				).json();
 				assert.equal(other.user.email, '');
 				assert.notEqual(other.card.name, 'HTTP Collector');
-				const second = await (
-					await request('/api/auth/login', { username: name, password })
-				).json();
+				const secondResponse = await request('/api/auth/login', { username: name, password });
+				assert.equal(secondResponse.status, 200);
+				const second = await secondResponse.json();
 				assert.equal(
 					(
 						await request(
@@ -870,16 +877,947 @@ test('built HTTP application preserves public Catalog and local account journeys
 				assert.equal((await settings.json()).totals.total, 4294967294);
 			}
 		);
+		// Deck domain fixtures do not share Inventory state or session lifecycle with Account journeys.
+		const deckRegistration = await request('/api/auth/register', {
+			username: `deck_http_${randomUUID().slice(0, 8)}`,
+			password
+		});
+		assert.equal(deckRegistration.status, 201);
+		const deckSession = await deckRegistration.json();
+		accounts.push(deckSession.user.accountId);
+		await t.test(
+			'Deck API returns original compact acknowledgements after later mutations',
+			async () => {
+				const authorization = `Bearer ${deckSession.token}`;
+				const created = await request(
+					'/api/mobile/v1/mtg/decks',
+					{ name: 'Retry deck', format: 'Modern' },
+					{ authorization }
+				);
+				assert.equal(created.status, 200);
+				const createdBody = await created.json();
+				const deck = Array.isArray(createdBody) ? createdBody[0] : createdBody;
+				const input = {
+					requestId: randomUUID(),
+					operations: [
+						{
+							op: 'add',
+							card: {
+								catalogCardId: card.id,
+								canonicalCardId: card.oracle_id,
+								name: card.name,
+								setCode: card.set_code,
+								imageUri: card.image_uri
+							},
+							quantity: 2,
+							role: 'main'
+						}
+					]
+				};
+				const path = `/api/mobile/v1/mtg/decks/${deck.id}/cards/bulk`;
+				const first = await request(path, input, { authorization });
+				assert.equal(first.status, 200);
+				const acknowledgement = await first.json();
+				assert.equal(acknowledgement.requestId, input.requestId);
+				assert.equal(acknowledgement.changes[0].quantity, 2);
+				assert.equal(acknowledgement.changes[0].delta, 2);
+				const entryId = acknowledgement.changes[0].entryId;
+				const removal = await request(
+					path,
+					{ requestId: randomUUID(), operations: [{ op: 'remove', target: { entryId } }] },
+					{ authorization }
+				);
+				assert.equal(removal.status, 200);
+				assert.deepEqual(
+					await (await request(path, input, { authorization })).json(),
+					acknowledgement
+				);
+			}
+		);
+		await t.test(
+			'single-entry atomic deltas retain caller intent after later edits and deletion',
+			async () => {
+				const authorization = `Bearer ${deckSession.token}`;
+				const deck = (
+					await (
+						await request(
+							'/api/mobile/v1/mtg/decks',
+							{ name: 'Atomic deltas', format: 'Modern' },
+							{ authorization }
+						)
+					).json()
+				).at(-1);
+				const add = {
+					requestId: randomUUID(),
+					catalogCardId: card.id,
+					canonicalCardId: card.oracle_id,
+					name: 'Untrusted label',
+					quantity: 2,
+					role: 'main'
+				};
+				const added = await request(`/api/mobile/v1/mtg/decks/${deck.id}/cards`, add, {
+					authorization
+				});
+				assert.equal(added.status, 200);
+				const ack = await added.json();
+				const entryId = ack.changes[0].entryId;
+				const patch = async (body: unknown) =>
+					fetch(`${origin}/api/mobile/v1/mtg/deck-cards/${entryId}`, {
+						method: 'PATCH',
+						headers: { authorization, 'content-type': 'application/json' },
+						body: JSON.stringify(body)
+					});
+				const input = { requestId: randomUUID(), delta: 1 };
+				const first = await patch(input);
+				assert.equal(first.status, 200);
+				const original = await first.json();
+				assert.equal(original.changes[0].quantity, 3);
+				assert.equal(original.changes[0].delta, 1);
+				const parallel = await Promise.all(
+					Array.from({ length: 8 }, () => patch({ requestId: randomUUID(), delta: 1 }))
+				);
+				assert.ok(parallel.every((response) => response.status === 200));
+				assert.deepEqual(await (await patch(input)).json(), original);
+				const snapshot = await (
+					await request(`/api/mobile/v1/mtg/decks?deck=${deck.id}`, undefined, { authorization })
+				).json();
+				assert.equal(snapshot.deckCards[0].quantity, 11);
+				assert.equal(snapshot.deckCards[0].name, card.name);
+				const removalId = randomUUID();
+				const removed = await fetch(
+					`${origin}/api/mobile/v1/mtg/deck-cards/${entryId}?requestId=${removalId}`,
+					{ method: 'DELETE', headers: { authorization } }
+				);
+				assert.equal(removed.status, 200);
+				const removalAck = await removed.json();
+				const recreated = await request(
+					`/api/mobile/v1/mtg/decks/${deck.id}/cards`,
+					{ ...add, requestId: randomUUID() },
+					{ authorization }
+				);
+				assert.equal(recreated.status, 200);
+				assert.notEqual((await recreated.json()).changes[0].entryId, entryId);
+				assert.deepEqual(await (await patch(input)).json(), original);
+				assert.deepEqual(
+					await (
+						await fetch(
+							`${origin}/api/mobile/v1/mtg/deck-cards/${entryId}?requestId=${removalId}`,
+							{ method: 'DELETE', headers: { authorization } }
+						)
+					).json(),
+					removalAck
+				);
+				assert.equal((await patch({ ...input, delta: 2 })).status, 409);
+			}
+		);
+		await t.test(
+			'Deck Description conflicts preserve independent metadata saves and expose latest saved text',
+			async () => {
+				const authorization = `Bearer ${deckSession.token}`;
+				const list = await (
+					await request(
+						'/api/mobile/v1/mtg/decks',
+						{ name: 'Concurrent', description: 'Original', format: 'Modern' },
+						{ authorization }
+					)
+				).json();
+				const deck = list.at(-1);
+				const path = `/api/mobile/v1/mtg/decks/${deck.id}`;
+				const patch = (body: unknown, token = authorization) =>
+					fetch(origin + path, {
+						method: 'PATCH',
+						headers: { 'content-type': 'application/json', authorization: token },
+						body: JSON.stringify(body)
+					});
+				assert.equal((await patch({ name: 'Renamed' })).status, 200);
+				const described = await patch({
+					description: 'Saved remotely',
+					descriptionRevision: deck.descriptionRevision
+				});
+				assert.equal(described.status, 200);
+				const saved = await described.json();
+				assert.equal(saved.name, 'Renamed');
+				assert.equal(saved.descriptionRevision, '1');
+				assert.equal((await patch({ format: 'Legacy' })).status, 200);
+				const conflict = await patch({
+					description: 'My unsaved draft',
+					descriptionRevision: deck.descriptionRevision
+				});
+				assert.equal(conflict.status, 409);
+				assert.deepEqual(await conflict.json(), {
+					status: 409,
+					kind: 'DescriptionConflict',
+					message:
+						'Description changed. Your draft has been retained. Review the latest saved description before retrying.',
+					description: 'Saved remotely',
+					descriptionRevision: '1'
+				});
+				const unrelated = `other_${randomUUID().slice(0, 8)}`;
+				const other = await request('/api/auth/register', { username: unrelated, password });
+				assert.equal(other.status, 201);
+				const otherSession = await other.json();
+				accounts.push(otherSession.user.accountId);
+				assert.equal((await patch({ name: 'stolen' }, `Bearer ${otherSession.token}`)).status, 404);
+				const snapshot = await (
+					await request(`/api/mobile/v1/mtg/decks?deck=${deck.id}`, undefined, { authorization })
+				).json();
+				assert.equal(snapshot.decks.find((d: { id: string }) => d.id === deck.id).format, 'Legacy');
+				assert.equal('inventoryCards' in snapshot, false);
+				assert.equal('mutationRequests' in snapshot, false);
+			}
+		);
+		await t.test(
+			'native metadata conflicts and validation retain an accessible draft and explicit rebase',
+			async () => {
+				const session = deckSession;
+				const authorization = `Bearer ${session.token}`;
+				const deck = (
+					await (
+						await request(
+							'/api/mobile/v1/mtg/decks',
+							{ name: 'Original name', format: 'Modern' },
+							{ authorization }
+						)
+					).json()
+				).at(-1);
+				const changed = await fetch(`${origin}/api/mobile/v1/mtg/decks/${deck.id}`, {
+					method: 'PATCH',
+					headers: { authorization, 'content-type': 'application/json' },
+					body: JSON.stringify({
+						name: 'Remote name',
+						description: 'Remote description',
+						descriptionRevision: '0'
+					})
+				});
+				assert.equal(changed.status, 200);
+				const draft = 'Local <draft> & retained notes';
+				const fields = {
+					deckId: deck.id,
+					name: 'Original name',
+					nameBase: 'Original name',
+					format: 'Modern',
+					formatBase: 'Modern',
+					description: draft,
+					descriptionBase: '',
+					descriptionRevision: '0'
+				};
+				const post = async (body: Record<string, string>) =>
+					fetch(`${origin}/mtg/decks?/updateDeck&deck=${deck.id}`, {
+						method: 'POST',
+						headers: {
+							origin,
+							accept: 'text/html',
+							'content-type': 'application/x-www-form-urlencoded',
+							cookie: `spellbook_session=${session.token}`
+						},
+						body: new URLSearchParams(body),
+						redirect: 'manual'
+					});
+				const conflict = await post(fields);
+				assert.equal(conflict.status, 409);
+				const html = await conflict.text();
+				const recovery = html.match(
+					/<section[^>]*data-deck-draft-recovery[^>]*>[\s\S]*?<\/section>/
+				)?.[0];
+				assert.ok(
+					recovery,
+					'Native conflict must render an accessible recovery section without hydration'
+				);
+				assert.match(
+					recovery,
+					/<textarea[^>]*name="description"[^>]*>Local &lt;draft(?:&gt;|>) &amp; retained notes<\/textarea>/
+				);
+				assert.match(recovery, /name="nameBase" value="Original name"/);
+				assert.match(recovery, /name="descriptionRevision" value="0"/);
+				assert.match(recovery, /name="rebaseDescription" value="1"/);
+				const invalid = await post({ ...fields, name: '', descriptionRevision: '1' });
+				assert.equal(invalid.status, 400);
+				assert.match(await invalid.text(), /data-deck-draft-recovery/);
+				const stillStale = await post({ ...fields, rebaseDescription: '0' });
+				assert.equal(
+					stillStale.status,
+					409,
+					'Explicit rebase must still check the submitted revision'
+				);
+				assert.match(await stillStale.text(), /data-deck-draft-recovery/);
+				const rebased = await post({ ...fields, rebaseDescription: '1' });
+				assert.equal(rebased.status, 200);
+				assert.doesNotMatch(await rebased.text(), /data-deck-draft-recovery/);
+				const saved = await (
+					await request(`/api/mobile/v1/mtg/decks?deck=${deck.id}`, undefined, { authorization })
+				).json();
+				assert.equal(
+					saved.decks.find((entry: { id: string }) => entry.id === deck.id).name,
+					'Remote name'
+				);
+				assert.equal(
+					saved.decks.find((entry: { id: string }) => entry.id === deck.id).description,
+					draft
+				);
+			}
+		);
+
+		await t.test(
+			'Deck retries survive entry recreation and deck deletion, with changed payload rejection',
+			async () => {
+				const authorization = `Bearer ${deckSession.token}`;
+				const list = await (
+					await request(
+						'/api/mobile/v1/mtg/decks',
+						{ name: 'Removed subject', format: 'Modern' },
+						{ authorization }
+					)
+				).json();
+				const deck = list.at(-1);
+				const path = `/api/mobile/v1/mtg/decks/${deck.id}/cards/bulk`;
+				const input = {
+					requestId: randomUUID(),
+					operations: [
+						{
+							op: 'add',
+							card: {
+								catalogCardId: card.id,
+								canonicalCardId: card.oracle_id,
+								name: card.name,
+								setCode: card.set_code,
+								imageUri: card.image_uri
+							},
+							quantity: 2,
+							role: 'main'
+						}
+					]
+				};
+				const ack = await (await request(path, input, { authorization })).json();
+				assert.equal(
+					(
+						await request(
+							path,
+							{ ...input, operations: [{ ...input.operations[0], quantity: 3 }] },
+							{ authorization }
+						)
+					).status,
+					409
+				);
+				const entryId = ack.changes[0].entryId;
+				assert.equal(
+					(
+						await request(
+							path,
+							{ requestId: randomUUID(), operations: [{ op: 'remove', target: { entryId } }] },
+							{ authorization }
+						)
+					).status,
+					200
+				);
+				const recreated = await (
+					await request(path, { ...input, requestId: randomUUID() }, { authorization })
+				).json();
+				assert.notEqual(recreated.changes[0].entryId, entryId);
+				assert.deepEqual(await (await request(path, input, { authorization })).json(), ack);
+				assert.equal(
+					(
+						await fetch(`${origin}/api/mobile/v1/mtg/decks/${deck.id}`, {
+							method: 'DELETE',
+							headers: { authorization }
+						})
+					).status,
+					200
+				);
+				assert.deepEqual(await (await request(path, input, { authorization })).json(), ack);
+			}
+		);
+		await t.test(
+			'Deck import preview, atomic commit and web/API exports share the current Deck interface',
+			async () => {
+				const session = deckSession;
+				const authorization = `Bearer ${session.token}`;
+				const body = {
+					requestId: randomUUID(),
+					name: 'Imported',
+					format: 'Modern',
+					text: 'Deck\n2 Sol Ring\n1 Unknown Card\nMaybeboard\n1 Sol Ring'
+				};
+				const preview = await request('/api/mobile/v1/mtg/decks/import/preview', body, {
+					authorization
+				});
+				assert.equal(preview.status, 200);
+				assert.equal((await preview.json()).unresolved.length, 1);
+				const commit = await request('/api/mobile/v1/mtg/decks/import/commit', body, {
+					authorization
+				});
+				assert.equal(commit.status, 200);
+				const ack = await commit.json();
+				assert.equal(ack.changes[0].quantity, 2);
+				assert.deepEqual(
+					await (
+						await request('/api/mobile/v1/mtg/decks/import/commit', body, { authorization })
+					).json(),
+					ack
+				);
+				const exported = await request(`/api/mobile/v1/mtg/decks/${ack.deckId}/export`, undefined, {
+					authorization
+				});
+				assert.equal(exported.status, 200);
+				assert.match(await exported.text(), /^Deck\n2 Sol Ring/);
+				const web = await request(`/mtg/decks/${ack.deckId}/export`, undefined, {
+					cookie: `spellbook_session=${session.token}`
+				});
+				assert.equal(web.status, 200);
+				assert.match(await web.text(), /^Deck\n2 Sol Ring/);
+				const invalid = {
+					...body,
+					requestId: randomUUID(),
+					text: 'Deck\n2147483647 Sol Ring\n2147483647 Sol Ring'
+				};
+				const before = await (
+					await request('/api/mobile/v1/mtg/decks', undefined, { authorization })
+				).json();
+				assert.equal(
+					(await request('/api/mobile/v1/mtg/decks/import/commit', invalid, { authorization }))
+						.status,
+					400
+				);
+				const after = await (
+					await request('/api/mobile/v1/mtg/decks', undefined, { authorization })
+				).json();
+				assert.equal(after.decks.length, before.decks.length);
+			}
+		);
+		await t.test(
+			'semantic printing replacement preserves source identity and destination provenance',
+			async (context) => {
+				const fixturePath = process.env.DECK_SCALE_FIXTURE;
+				if (!fixturePath) {
+					context.skip(
+						'Real-printing fixture unavailable; semantic replacement evidence is unexecuted.'
+					);
+					return;
+				}
+				const fixtures: { document: CardDocument; supportedInventoryFinishes: string[] }[] = (
+					await readFile(fixturePath, 'utf8')
+				)
+					.trim()
+					.split('\n')
+					.map((line) => JSON.parse(line));
+
+				for (let offset = 0; offset < fixtures.length; offset += 500) {
+					const documents = fixtures.slice(offset, offset + 500).map((row) => row.document);
+					await pool.query(
+						"INSERT INTO catalog_printings(generation_id,id,oracle_id,name,normalized_name,printed_name,lang,set_code,collector_number,rarity,cmc,colors,card_types,legalities,search_name,search_text,document) SELECT $1,(d->>'id')::uuid,(d->>'oracle_id')::uuid,d->>'name',d->>'normalized_name',COALESCE(d->>'printed_name',''),d->>'lang',d->>'set_code',d->>'collector_number',d->>'rarity',(d->>'cmc')::double precision,ARRAY(SELECT jsonb_array_elements_text(d->'colors')),ARRAY(SELECT jsonb_array_elements_text(d->'card_types')),d->'legalities',lower(d->>'name'),concat(d->>'name',' ',d->>'oracle_text'),d FROM jsonb_array_elements($2::jsonb) d ON CONFLICT DO NOTHING",
+						[generation, JSON.stringify(documents)]
+					);
+				}
+				await pool.query(
+					'UPDATE catalog_generations SET document_count=(SELECT count(*) FROM catalog_printings WHERE generation_id=$1) WHERE id=$1',
+					[generation]
+				);
+				const byCanonical = new Map<string, CardDocument[]>();
+				for (const { document } of fixtures.slice(0, 200)) {
+					const rows = byCanonical.get(document.oracle_id) || [];
+					rows.push(document);
+					byCanonical.set(document.oracle_id, rows);
+				}
+				const pair = [...byCanonical.values()].find((rows) => rows.length > 1);
+				assert.ok(pair);
+				const [source, destination] = pair;
+				for (const document of pair.slice(0, 2))
+					await pool.query(
+						'INSERT INTO catalog_printings(generation_id,id,oracle_id,name,normalized_name,printed_name,lang,set_code,collector_number,rarity,cmc,colors,card_types,legalities,search_name,search_text,document) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) ON CONFLICT DO NOTHING',
+						[
+							generation,
+							document.id,
+							document.oracle_id,
+							document.name,
+							document.normalized_name,
+							document.printed_name || '',
+							document.lang,
+							document.set_code,
+							document.collector_number,
+							document.rarity,
+							document.cmc,
+							document.colors,
+							document.card_types,
+							JSON.stringify(document.legalities),
+							document.name.toLowerCase(),
+							document.name + ' ' + document.oracle_text,
+							JSON.stringify(document)
+						]
+					);
+				const authorization = `Bearer ${deckSession.token}`;
+				const deck = (
+					await (
+						await request(
+							'/api/mobile/v1/mtg/decks',
+							{ name: 'Printing provenance', format: 'Modern' },
+							{ authorization }
+						)
+					).json()
+				).at(-1);
+				const path = `/api/mobile/v1/mtg/decks/${deck.id}/cards/bulk`;
+				const add = (document: CardDocument, quantity: number, role = 'main') => ({
+					op: 'add',
+					card: {
+						catalogCardId: document.id,
+						canonicalCardId: document.oracle_id,
+						name: document.name,
+						setCode: document.set_code,
+						imageUri: document.image_uri
+					},
+					quantity,
+					role
+				});
+				const initial = await (
+					await request(
+						path,
+						{ requestId: randomUUID(), operations: [add(source, 2)] },
+						{ authorization }
+					)
+				).json();
+				const entryId = initial.changes[0].entryId;
+				const before = (
+					await (
+						await request(`/api/mobile/v1/mtg/decks?deck=${deck.id}`, undefined, { authorization })
+					).json()
+				).deckCards[0];
+				const replace = {
+					requestId: randomUUID(),
+					operations: [
+						{
+							op: 'replace',
+							target: { entryId },
+							catalogCardId: destination.id,
+							quantity: 2,
+							role: 'main'
+						}
+					]
+				};
+				const changed = await request(path, replace, { authorization });
+				assert.equal(changed.status, 200);
+				const after = (
+					await (
+						await request(`/api/mobile/v1/mtg/decks?deck=${deck.id}`, undefined, { authorization })
+					).json()
+				).deckCards[0];
+				assert.equal(after.id, before.id);
+				assert.equal(after.createdAt, before.createdAt);
+				assert.equal(after.catalogCardId, destination.id);
+				const added = await (
+					await request(
+						path,
+						{ requestId: randomUUID(), operations: [add(source, 3, 'sideboard')] },
+						{ authorization }
+					)
+				).json();
+				const mergingId = added.changes[0].entryId;
+				const merged = await (
+					await request(
+						path,
+						{
+							requestId: randomUUID(),
+							operations: [
+								{
+									op: 'replace',
+									target: { entryId: mergingId },
+									catalogCardId: destination.id,
+									quantity: 3,
+									role: 'main'
+								}
+							]
+						},
+						{ authorization }
+					)
+				).json();
+				assert.deepEqual(merged.removedEntryIds, [mergingId]);
+				assert.equal(merged.changes[0].entryId, entryId);
+				assert.equal(merged.changes[0].quantity, 5);
+				const final = (
+					await (
+						await request(`/api/mobile/v1/mtg/decks?deck=${deck.id}`, undefined, { authorization })
+					).json()
+				).deckCards;
+				assert.equal(final.length, 1);
+				assert.equal(final[0].createdAt, before.createdAt);
+				const bad = await request(
+					path,
+					{
+						requestId: randomUUID(),
+						operations: [
+							{
+								op: 'replace',
+								target: { entryId },
+								catalogCardId: card.id,
+								quantity: 9,
+								role: 'main'
+							}
+						]
+					},
+					{ authorization }
+				);
+				assert.equal(bad.status, 400);
+			}
+		);
+		await t.test(
+			'aggregate quantities exceed int32 without overflowing supported entries',
+			async () => {
+				const response = await request('/api/auth/register', {
+					username: `aggregate_${randomUUID().slice(0, 8)}`,
+					password
+				});
+				assert.equal(response.status, 201);
+				const session = await response.json();
+				accounts.push(session.user.accountId);
+				const authorization = `Bearer ${session.token}`;
+				const inventoryId = randomUUID();
+				await pool.query("INSERT INTO inventories(id,account_id,game) VALUES($1,$2,'mtg')", [
+					inventoryId,
+					session.user.accountId
+				]);
+				for (const [index, condition] of ['NM', 'LP'].entries())
+					await pool.query(
+						"INSERT INTO inventory_cards(id,inventory_id,account_id,game,catalog_card_id,canonical_card_id,name,set_code,image_uri,finish,condition,quantity,spellbook_position) VALUES($1,$2,$3,'mtg',$4,$5,$6,$7,$8,'nonfoil',$9,2147483647,$10)",
+						[
+							randomUUID(),
+							inventoryId,
+							session.user.accountId,
+							card.id,
+							card.oracle_id,
+							card.name,
+							card.set_code,
+							card.image_uri,
+							condition,
+							index
+						]
+					);
+				const deck = (
+					await (
+						await request(
+							'/api/mobile/v1/mtg/decks',
+							{ name: 'Large aggregate', format: 'Modern' },
+							{ authorization }
+						)
+					).json()
+				).at(-1);
+				const operations = ['main', 'sideboard'].map((role) => ({
+					op: 'add',
+					card: {
+						catalogCardId: card.id,
+						canonicalCardId: card.oracle_id,
+						name: card.name,
+						setCode: card.set_code,
+						imageUri: card.image_uri
+					},
+					quantity: 2147483647,
+					role
+				}));
+				assert.equal(
+					(
+						await request(
+							`/api/mobile/v1/mtg/decks/${deck.id}/cards/bulk`,
+							{ requestId: randomUUID(), operations },
+							{ authorization }
+						)
+					).status,
+					200
+				);
+				const read = await request(`/api/mobile/v1/mtg/decks?deck=${deck.id}`, undefined, {
+					authorization
+				});
+				assert.equal(read.status, 200);
+				const snapshot = await read.json();
+				assert.equal(snapshot.deckTotals[deck.id], 4294967294);
+				assert.equal(snapshot.ownedByCanonical[card.oracle_id], 4294967294);
+				const availability = await request(
+					`/api/mobile/v1/mtg/decks/${deck.id}/availability`,
+					undefined,
+					{ authorization }
+				);
+				assert.equal(availability.status, 200);
+				assert.deepEqual((await availability.json()).totals, {
+					required: 4294967294,
+					exact: 4294967294,
+					alternate: 0,
+					missing: 0
+				});
+			}
+		);
+		await t.test(
+			'selected Deck reads remain bounded with 1k, 10k and 50k real Inventory positions',
+			async (context) => {
+				const fixturePath = process.env.DECK_SCALE_FIXTURE;
+				if (!fixturePath) {
+					context.skip('Real-printing scale evidence is unexecuted; set DECK_SCALE_FIXTURE.');
+					return;
+				}
+				const fixtures: { document: CardDocument; supportedInventoryFinishes: string[] }[] = (
+					await readFile(fixturePath, 'utf8')
+				)
+					.trim()
+					.split('\n')
+					.map((line) => JSON.parse(line));
+				assert.equal(fixtures.length, 10000);
+				const results: unknown[] = [];
+				for (const size of [1000, 10000, 50000]) {
+					const fixtureUser = `scale_${size}_${randomUUID().slice(0, 8)}`;
+					const response = await request('/api/auth/register', { username: fixtureUser, password });
+					assert.equal(response.status, 201);
+					const session = await response.json();
+					accounts.push(session.user.accountId);
+					const authorization = `Bearer ${session.token}`;
+					const inventoryId = randomUUID();
+					await pool.query("INSERT INTO inventories(id,account_id,game) VALUES($1,$2,'mtg')", [
+						inventoryId,
+						session.user.accountId
+					]);
+					const rows = fixtures
+						.slice(0, size / 5)
+						.flatMap(({ document, supportedInventoryFinishes }) =>
+							['NM', 'LP', 'MP', 'HP', 'DMG'].map((condition) => ({
+								id: randomUUID(),
+								catalog_card_id: document.id,
+								canonical_card_id: document.oracle_id,
+								name: document.name,
+								set_code: document.set_code,
+								image_uri: document.image_uri,
+								finish: supportedInventoryFinishes[0],
+								condition
+							}))
+						);
+					for (let offset = 0; offset < rows.length; offset += 1000)
+						await pool.query(
+							"INSERT INTO inventory_cards(id,inventory_id,account_id,game,catalog_card_id,canonical_card_id,name,set_code,image_uri,finish,condition,quantity,spellbook_position) SELECT r.id,$1,$2,'mtg',r.catalog_card_id,r.canonical_card_id,r.name,r.set_code,r.image_uri,r.finish,r.condition,1,r.spellbook_position FROM jsonb_to_recordset($3::jsonb) AS r(id uuid,catalog_card_id text,canonical_card_id text,name text,set_code text,image_uri text,finish text,condition text,spellbook_position integer)",
+							[
+								inventoryId,
+								session.user.accountId,
+								JSON.stringify(
+									rows
+										.slice(offset, offset + 1000)
+										.map((row, index) => ({ ...row, spellbook_position: offset + index }))
+								)
+							]
+						);
+					const document = fixtures[0].document;
+					const deck = (
+						await (
+							await request(
+								'/api/mobile/v1/mtg/decks',
+								{ name: `Scale ${size}`, format: 'Modern' },
+								{ authorization }
+							)
+						).json()
+					).at(-1);
+					const input = {
+						requestId: randomUUID(),
+						operations: [
+							{
+								op: 'add',
+								card: {
+									catalogCardId: document.id,
+									canonicalCardId: document.oracle_id,
+									name: document.name,
+									setCode: document.set_code,
+									imageUri: document.image_uri
+								},
+								quantity: 3,
+								role: 'main'
+							},
+							{
+								op: 'add',
+								card: {
+									catalogCardId: document.id,
+									canonicalCardId: document.oracle_id,
+									name: document.name,
+									setCode: document.set_code,
+									imageUri: document.image_uri
+								},
+								quantity: 4,
+								role: 'sideboard'
+							}
+						]
+					};
+					assert.equal(
+						(
+							await request(`/api/mobile/v1/mtg/decks/${deck.id}/cards/bulk`, input, {
+								authorization
+							})
+						).status,
+						200
+					);
+					const samples = [];
+					let bytes = 0;
+					for (let repetition = 0; repetition < 5; repetition++) {
+						const start = performance.now();
+						const read = await request(
+							`/api/mobile/v1/mtg/decks/${deck.id}/availability`,
+							undefined,
+							{ authorization }
+						);
+						const raw = await read.text();
+						assert.equal(read.status, 200);
+						const body = JSON.parse(raw);
+						assert.deepEqual(body.totals, {
+							required: 7,
+							exact: 5,
+							alternate: Math.min(
+								2,
+								rows.filter(
+									(row) =>
+										row.canonical_card_id === document.oracle_id &&
+										row.catalog_card_id !== document.id
+								).length
+							),
+							missing: Math.max(
+								0,
+								2 -
+									rows.filter(
+										(row) =>
+											row.canonical_card_id === document.oracle_id &&
+											row.catalog_card_id !== document.id
+									).length
+							)
+						});
+						bytes = Buffer.byteLength(raw);
+						samples.push(Number((performance.now() - start).toFixed(2)));
+					}
+					const snapshotResponse = await request(
+						`/api/mobile/v1/mtg/decks?deck=${deck.id}`,
+						undefined,
+						{ authorization }
+					);
+					const raw = await snapshotResponse.text();
+					const snapshot = JSON.parse(raw);
+					assert.equal(snapshot.deckCards.length, 2);
+					assert.equal('inventoryCards' in snapshot, false);
+					assert.equal('mutationRequests' in snapshot, false);
+					assert.ok(Buffer.byteLength(raw) < 100000);
+
+					const plan = await pool.query(
+						"EXPLAIN (ANALYZE,BUFFERS,FORMAT JSON) SELECT catalog_card_id,canonical_card_id,sum(quantity)::text FROM inventory_cards WHERE account_id=$1 AND game='mtg' AND canonical_card_id=$2 GROUP BY catalog_card_id,canonical_card_id",
+						[session.user.accountId, document.oracle_id]
+					);
+					results.push({
+						positions: size,
+						copies: size,
+						availabilityBytes: bytes,
+						selectedDeckBytes: Buffer.byteLength(raw),
+						samplesMs: samples,
+						ownedPrintingGroups: snapshot.ownedPrintings.length,
+						queryPlan: plan.rows[0]['QUERY PLAN']
+					});
+					if (size === 50000 && process.env.DECK_BROWSER_FIXTURE) {
+						await writeFile(
+							process.env.DECK_BROWSER_FIXTURE,
+							JSON.stringify(
+								{
+									username: fixtureUser,
+									password,
+									accountId: session.user.accountId,
+									deckId: deck.id,
+									generation,
+									origin,
+									worktree: new URL('../..', import.meta.url).pathname
+								},
+								null,
+								2
+							),
+							{ mode: 0o600 }
+						);
+						accounts.splice(accounts.indexOf(session.user.accountId), 1);
+						keepFixture = true;
+					}
+				}
+				await writeFile(
+					process.env.DECK_SCALE_REPORT || '/tmp/spellbook-deck-scale-evidence-20261007.json',
+					JSON.stringify(
+						{
+							fixture: fixturePath,
+							cpu: cpus()[0]?.model,
+							logicalCpus: cpus().length,
+							memoryBytes: totalmem(),
+							results
+						},
+						null,
+						2
+					)
+				);
+			}
+		);
+		await t.test(
+			'bulk additions use authoritative printing identity and replay without Catalog refetch',
+			async () => {
+				const authorization = `Bearer ${deckSession.token}`;
+				const deck = (
+					await (
+						await request(
+							'/api/mobile/v1/mtg/decks',
+							{ name: 'Trusted printing identity', format: 'Modern' },
+							{ authorization }
+						)
+					).json()
+				).at(-1);
+				const input = {
+					requestId: randomUUID(),
+					operations: [
+						{
+							op: 'add',
+							card: {
+								catalogCardId: card.id,
+								canonicalCardId: randomUUID(),
+								name: 'Forged name',
+								setCode: 'fake',
+								imageUri: 'https://invalid.example/forged.png'
+							},
+							quantity: 2,
+							role: 'main'
+						}
+					]
+				};
+				const path = `/api/mobile/v1/mtg/decks/${deck.id}/cards/bulk`;
+				const added = await request(path, input, { authorization });
+				assert.equal(added.status, 200);
+				const ack = await added.json();
+				const snapshot = await (
+					await request(`/api/mobile/v1/mtg/decks?deck=${deck.id}`, undefined, { authorization })
+				).json();
+				assert.deepEqual(
+					{
+						catalogCardId: snapshot.deckCards[0].catalogCardId,
+						canonicalCardId: snapshot.deckCards[0].canonicalCardId,
+						name: snapshot.deckCards[0].name,
+						setCode: snapshot.deckCards[0].setCode,
+						imageUri: snapshot.deckCards[0].imageUri
+					},
+					{
+						catalogCardId: card.id,
+						canonicalCardId: card.oracle_id,
+						name: card.name,
+						setCode: card.set_code,
+						imageUri: card.image_uri
+					}
+				);
+				await pool.query(
+					'UPDATE catalog_state SET active_generation=NULL WHERE id=1 AND active_generation=$1',
+					[generation]
+				);
+				try {
+					assert.deepEqual(await (await request(path, input, { authorization })).json(), ack);
+				} finally {
+					await pool.query(
+						'UPDATE catalog_state SET active_generation=$1 WHERE id=1 AND active_generation IS NULL',
+						[generation]
+					);
+				}
+			}
+		);
 	} finally {
 		if (child) await stopHttpApplication(child);
-		if (fixtureStarted && previous)
+		if (fixtureStarted && !keepFixture && previous)
 			await pool.query(
 				'UPDATE catalog_state SET active_generation=$1,previous_generation=$2 WHERE id=1',
 				[previous.active_generation, previous.previous_generation]
 			);
-		else if (fixtureStarted)
+		else if (fixtureStarted && !keepFixture)
 			await pool.query('DELETE FROM catalog_state WHERE active_generation=$1', [generation]);
-		if (fixtureStarted)
+		if (fixtureStarted && !keepFixture)
 			await pool.query('DELETE FROM catalog_generations WHERE id=$1', [generation]);
 		if (accounts.length)
 			await pool.query('DELETE FROM user_profiles WHERE account_id=ANY($1::text[])', [accounts]);
