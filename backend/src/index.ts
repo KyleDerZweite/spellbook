@@ -5,3 +5,4 @@ export { createProfile } from './profile/profile.ts';
 export { createDashboard } from './profile/dashboard.ts';
 export { createInventory } from './inventory/read.ts';
 export { createDecks } from './decks/application.ts';
+export { createSavedState } from './saved-state/application.ts';

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { savedProfile } from '#lib/saved-state/profile.svelte.ts';
 	import { enhance } from '$app/forms';
 	import { onMount, untrack, tick } from 'svelte';
 	import ProfileCard from '#lib/components/profile/ProfileCard.svelte';
@@ -12,7 +13,13 @@
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
-	let selectedArtwork = $derived(
+	$effect(() => {
+		savedProfile.seed(data);
+	});
+	let saved = $derived(
+		savedProfile.profile?.user.accountId === data.user.accountId ? savedProfile.profile : data
+	);
+	let initialArtwork = $derived(
 		getProfileArtwork(form && 'artworkId' in form ? form.artworkId : data.user.artworkId)
 			.id as string
 	);
@@ -39,8 +46,38 @@
 			: {})
 	});
 	let card = $state(untrack(() => incomingCard));
+	let selectedArtwork = $state(untrack(() => initialArtwork));
+	let baselineCard = $state(untrack(() => ({ ...data.card })));
+	let baselineArtwork = $state(untrack(() => data.user.artworkId));
+	let previousIncoming = untrack(() => incomingCard);
 	$effect(() => {
-		card = { ...incomingCard };
+		const incoming = incomingCard;
+		if (incoming !== previousIncoming) {
+			card = { ...incoming };
+			selectedArtwork = initialArtwork;
+			baselineCard = { ...data.card };
+			baselineArtwork = data.user.artworkId;
+			previousIncoming = incoming;
+		}
+	});
+	$effect(() => {
+		const next = saved;
+		untrack(() => {
+			const merged = { ...card };
+			const baseline = { ...baselineCard };
+			for (const field of Object.keys(next.card) as (keyof typeof card)[]) {
+				if (card[field] === baselineCard[field]) {
+					Object.assign(merged, { [field]: next.card[field] });
+					Object.assign(baseline, { [field]: next.card[field] });
+				}
+			}
+			card = merged;
+			baselineCard = baseline;
+			if (selectedArtwork === baselineArtwork) {
+				selectedArtwork = getProfileArtwork(next.user.artworkId).id;
+				baselineArtwork = next.user.artworkId;
+			}
+		});
 	});
 	let errors: ProfileCardErrors = $derived(
 		form && 'errors' in form
@@ -60,7 +97,7 @@
 	let viewportHeight = $state(0);
 	let canStick = $derived(previewHeight > 0 && previewHeight < viewportHeight - 140);
 	let isSaved = $derived(
-		selectedArtwork === data.user.artworkId && JSON.stringify(card) === JSON.stringify(data.card)
+		selectedArtwork === saved.user.artworkId && JSON.stringify(card) === JSON.stringify(saved.card)
 	);
 
 	onMount(() => {
@@ -87,19 +124,25 @@
 >
 
 <div class="settings-page">
+	{#if savedProfile.status !== 'live' && savedProfile.status !== 'idle'}<p
+			role="status"
+			class="text-sm text-text-secondary"
+		>
+			Saved changes synchronization is {savedProfile.status}.
+		</p>{/if}
 	<div class="page-title"><h1>Profile Card</h1></div>
 	<div class="settings-profile">
 		<div bind:this={preview} class="settings-preview" class:sticky-preview={canStick}>
 			<ProfileCard
-				username={data.user.username}
-				avatarId={data.user.avatarId}
+				username={saved.user.username}
+				avatarId={saved.user.avatarId}
 				artworkId={selectedArtwork}
-				totals={data.totals}
+				totals={saved.totals}
 				definition={card}
 			/>
 			<p class="preview-status">Private profile card · {isSaved ? 'Saved' : 'Unsaved changes'}</p>
-			{#if data.statsError}<p role="status" class="text-sm text-text-secondary">
-					{data.statsError}
+			{#if saved.statsError}<p role="status" class="text-sm text-text-secondary">
+					{saved.statsError}
 				</p>{/if}
 		</div>
 		<form
@@ -109,10 +152,10 @@
 			use:enhance={({ formData }) => {
 				formData.set('partial', 'true');
 				for (const field of Object.keys(data.card) as (keyof typeof data.card)[]) {
-					if (card[field] === data.card[field]) formData.delete(field);
+					if (card[field] === baselineCard[field]) formData.delete(field);
 					else if (field === 'legendary') formData.set(field, card.legendary ? 'on' : 'off');
 				}
-				if (selectedArtwork === data.user.artworkId) formData.delete('artworkId');
+				if (selectedArtwork === baselineArtwork) formData.delete('artworkId');
 				pending = true;
 				saveError = '';
 				return async ({ result, update }) => {
@@ -134,14 +177,14 @@
 				};
 			}}
 		>
-			<input type="hidden" name="baselineCard" value={JSON.stringify(data.card)} />
-			<input type="hidden" name="baselineArtworkId" value={data.user.artworkId} />
+			<input type="hidden" name="baselineCard" value={JSON.stringify(baselineCard)} />
+			<input type="hidden" name="baselineArtworkId" value={baselineArtwork} />
 			<ProfileCardEditor
 				bind:card
 				bind:artworkId={selectedArtwork}
 				disabled={pending}
 				{errors}
-				totals={data.totals}
+				totals={saved.totals}
 			/>
 			<div class="settings-save">
 				<button class="btn btn-primary" disabled={pending}

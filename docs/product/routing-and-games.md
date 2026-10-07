@@ -33,6 +33,7 @@ The [route source](../../frontend/src/routes/) owns implemented handlers. The [s
 | `/api/account/profile`        | Authenticated GET profile read and PATCH supplied preference/card fields    |
 | `/api/account/dashboard`      | Authenticated GET account aggregates and deck availability summaries        |
 | `/api/account/password`       | Authenticated POST password rotation and replacement session                |
+| `/api/account/events`         | Authenticated GET SavedState event stream                                   |
 | `/api/auth/session`           | Authenticated GET selected-session inspection                               |
 | `/api/auth/logout`            | POST revokes the presented bearer session                                   |
 | `/openapi.json`               | API description                                                             |
