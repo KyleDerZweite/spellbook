@@ -5,6 +5,8 @@
 	import LandingCommander from './LandingCommander.svelte';
 	import SearchBar from '#lib/components/search/SearchBar.svelte';
 
+	let { seed }: { seed: number } = $props();
+
 	const search = getSearchSession();
 	let query = $state('');
 	snapshot({
@@ -15,7 +17,7 @@
 </script>
 
 <div class="public-landing backdrop-family">
-	<LandingBackdrop action={searchAction} notice={supportNotice} deck={deckCard} />
+	<LandingBackdrop {seed} action={searchAction} notice={supportNotice} deck={deckCard} />
 </div>
 
 {#snippet deckCard()}

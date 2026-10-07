@@ -2,6 +2,7 @@
 	import PublicLanding from '#lib/components/showcase/PublicLanding.svelte';
 	import { page } from '$app/state';
 	import { SITE_NAME, pageMetadata } from '#lib/seo/site.ts';
+	let { data } = $props();
 	const meta = $derived(
 		pageMetadata({
 			origin: page.url.origin,
@@ -23,7 +24,7 @@
 	<meta name="twitter:description" content={meta.description} />
 </svelte:head>
 
-<div class="public-home"><PublicLanding /></div>
+<div class="public-home"><PublicLanding seed={data.landingSeed} /></div>
 
 <style>
 	.public-home {

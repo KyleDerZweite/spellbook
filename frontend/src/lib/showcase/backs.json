@@ -1,0 +1,13 @@
+[
+	{
+		"slug": "magic-back",
+		"game": "Magic: The Gathering",
+		"source": "https://scryfall.com/card/vma/4/black-lotus?utm_source=api",
+		"metadataSource": "https://api.scryfall.com/cards/bd8fa327-dd41-4737-8f19-2cf5eb1f7cdd",
+		"imageSource": "https://backs.scryfall.io/large/0/a/0aeebaf5-8c7d-4636-9e82-8c27447861f7.jpg",
+		"copyright": "Wizards of the Coast",
+		"width": 560,
+		"height": 780,
+		"refreshedOn": "2026-10-07"
+	}
+]

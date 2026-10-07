@@ -1,74 +1,31 @@
 <script lang="ts">
 	import { showcaseAsset } from '#lib/showcase/assets.ts';
 	import type { Snippet } from 'svelte';
-	import { otherTCGCards, showcaseCards, showcasePacks } from '#lib/showcase/cards.ts';
+	import { createLandingWall } from '#lib/showcase/landing-wall.ts';
 
 	let {
 		action,
 		notice,
-		deck
+		deck,
+		seed
 	}: {
 		action: Snippet;
 		notice: Snippet;
 		deck?: Snippet;
+		seed: number;
 	} = $props();
 
-	const cardTile = (card: { slug: string; width: number; height: number }) => ({
-		filename: `${card.slug}.webp`,
-		width: card.width,
-		height: card.height,
-		pack: false
-	});
-	const wallCards = showcaseCards.map(cardTile);
-	const otherCards = otherTCGCards.map(cardTile);
-	const [magicPack, pokemonPack, yugiohPack, digimonPack] = showcasePacks.map((pack) => ({
-		...cardTile(pack),
-		pack: true
-	}));
-	const wallTiles = [
-		wallCards[4],
-		otherCards[0],
-		magicPack,
-		wallCards[2],
-		otherCards[3],
-		wallCards[1],
-		otherCards[6],
-		otherCards[4],
-		wallCards[0],
-		pokemonPack,
-		wallCards[6],
-		yugiohPack,
-		wallCards[5],
-		otherCards[2],
-		digimonPack,
-		wallCards[8],
-		otherCards[7],
-		wallCards[3],
-		otherCards[5],
-		magicPack,
-		otherCards[0],
-		wallCards[9],
-		pokemonPack,
-		wallCards[7],
-		wallCards[10],
-		otherCards[6],
-		wallCards[11],
-		otherCards[1],
-		yugiohPack,
-		wallCards[1],
-		digimonPack,
-		otherCards[3],
-		wallCards[0],
-		otherCards[2],
-		magicPack,
-		wallCards[6]
-	];
+	let wall = $derived(createLandingWall(seed));
 </script>
 
 <section class="landing-backdrop" aria-labelledby="backdrop-heading">
 	<div class="artwork" aria-hidden="true">
-		<div class="card-wall">
-			{#each wallTiles as card, index (index)}
+		<div
+			class="card-wall"
+			style:--wall-angle={`${wall.rotation}deg`}
+			style:--mobile-wall-angle={`${wall.rotation - 2}deg`}
+		>
+			{#each wall.tiles as card, index (index)}
 				<img
 					src={showcaseAsset(card.filename)}
 					alt=""
@@ -77,6 +34,7 @@
 					class="wall-card"
 					class:wall-pack={card.pack}
 					style:--card-order={index}
+					style:--tile-angle={`${card.angle}deg`}
 					fetchpriority={index === 1 ? 'high' : 'auto'}
 				/>
 			{/each}
@@ -135,7 +93,7 @@
 		display: grid;
 		grid-template-columns: repeat(6, var(--tile-width));
 		gap: clamp(10px, 1.25vw, 20px);
-		transform: translateY(-50%) rotate(14deg);
+		transform: translateY(-50%) rotate(var(--wall-angle));
 		transform-origin: 50% 50%;
 	}
 	.wall-card {
@@ -144,6 +102,7 @@
 		height: calc(var(--tile-width) * 614 / 440);
 		aspect-ratio: 440 / 614;
 		object-fit: contain;
+		rotate: var(--tile-angle);
 		border-radius: 0.75rem;
 		box-shadow: 0 14px 28px #0003;
 		animation: card-reveal 700ms ease both;
@@ -243,7 +202,7 @@
 			top: 50%;
 			right: -14%;
 			gap: 0.5rem;
-			transform: translateY(-50%) rotate(12deg);
+			transform: translateY(-50%) rotate(var(--mobile-wall-angle));
 		}
 		.wall-card {
 			border-radius: 0.375rem;
