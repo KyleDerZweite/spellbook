@@ -3,8 +3,8 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: code
-- Update Triggers: single root environment and demo launch configuration, registration policy, credential recovery command, migration, reverse proxy origin, demo mode and seed data
-- Related Docs: [Authentication architecture](../architecture/auth.md), [Deployment](./deployment.md), [Postgres](../architecture/postgres.md), [ADR-0009](../decisions/0009-local-authentication.md)
+- Update Triggers: single root environment and demo launch configuration, registration policy, credential recovery command, migration, reverse proxy origin, demo mode, versioned English Catalog publication and private starter preservation
+- Related Docs: [Authentication architecture](../architecture/auth.md), [Deployment](./deployment.md), [Postgres](../architecture/postgres.md), [ADR-0009](../decisions/0009-local-authentication.md), [Catalog](../architecture/catalog.md), [Manual Demo Catalog updates](./deployment.md#manual-demo-catalog-update)
 
 New users register at `/auth/register` and sign in at `/auth/login`. Registration is public. The [authentication contract](../architecture/auth.md) defines credential rules, sessions, and JSON API login.
 
@@ -53,7 +53,7 @@ pnpm db:migrate
 pnpm dev:demo --host 0.0.0.0
 ```
 
-`dev:demo` seeds the database and starts Vite with `DEMO_MODE=true`. Sign in with username `demo` and password `demo`. The seed contains a limited real-card catalog, a 100-card Commander deck, an empty deck, and inventory with exact, alternate, and missing copies. Card records come from Scryfall; images retain their source URLs. This is a shared editable account. Changes persist across server restarts.
+`dev:demo` seeds the database and starts Vite with `DEMO_MODE=true`. Sign in with username `demo` and password `demo`. Public Search uses the versioned English Catalog bundle described by [Catalog](../architecture/catalog.md#storage-and-publication). The unchanged 70-Printing starter fixture creates a 100-card Commander Deck, an empty Deck and Inventory with 43 entries and 72 copies, including exact, alternate and missing copies. Public Catalog and private starters have separate responsibilities. Card images retain Scryfall source URLs. This is a shared editable account; changes persist across server restarts.
 
 The seed refuses databases with other usernames. To explicitly delete all accounts and their related data in the selected disposable database and recreate the demo:
 
@@ -61,6 +61,6 @@ The seed refuses databases with other usernames. To explicitly delete all accoun
 pnpm demo:seed --reset-users
 ```
 
-Reset also replaces the active sample catalog and revokes existing sessions through account deletion. Ordinary `pnpm demo:seed` preserves an existing demo account and edits. The seed transaction rolls back on failure. No external card API is needed to seed; image display still requires network access.
+Ordinary `pnpm demo:seed` refreshes the versioned public Catalog before returning for an existing Demo account, preserving credentials, Decks, Inventory, revisions, Notes and other private edits. Only explicit `--reset-users` deletes private users and revokes their sessions through account deletion. A complete already-active bundle is a Catalog pointer/timestamp no-op. The existing seed transaction rolls back Catalog and private changes together on failure. No external card API is needed to seed; images still require network access. Demo publication does not publish Price state or establish provider freshness. The source is implemented; guarded Demo import acceptance remains pending.
 
 For a built demo server, seed before starting and set `DEMO_MODE=true` in its runtime environment. Normal deployments leave it unset. Demo mode does not replace ordinary authentication with an automatic session.

@@ -3,8 +3,8 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: repo config
-- Update Triggers: Catalog set-directory index migration, price publication/pair and optional recovery, source opt-ins and ingestion limits, compose services and first startup, catalog import and recovery, images, local launch commands and preview target, single root environment and local/build origins, migrations, storage, workspace ownership and compatibility adapters, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
-- Related Docs: [Postgres](../architecture/postgres.md), [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Classifier research](../integrations/card-categorization.md)
+- Update Triggers: Catalog set-directory index migration, price publication/pair and optional recovery, source opt-ins and ingestion limits, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and preview target, single root environment and local/build origins, migrations, storage, workspace ownership and compatibility adapters, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
+- Related Docs: [Postgres](../architecture/postgres.md), [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Classifier research](../integrations/card-categorization.md), [Catalog](../architecture/catalog.md)
 
 The canonical service definitions are [`podman-compose.yml`](../../podman-compose.yml) and the local storage override [`podman-compose.dev.yml`](../../podman-compose.dev.yml). Keep live domains, account details, and secret references in private operator notes.
 
@@ -25,6 +25,21 @@ Stopping the launcher terminates its own frontend and scan-worker processes. An 
 The T3 project uses `./dev.sh` as its Dev server script and `http://localhost:5173/` as its design-review preview URL. The root always shows the public landing, including with a signed-in demo session. Open `/mtg/dashboard` to review the private account summary. The removed `review=landing` override is no longer needed. The preview URL is a local app setting, not deployment configuration.
 
 The Compose base file starts the built stack on port 3000. Its `podman-compose.dev.yml` override selects a shared local scan-storage volume instead of S3; it does not run Vite or enable Hot Reload.
+
+## Manual Demo Catalog update
+
+Update the versioned English Demo baseline manually when selecting a new source bundle. It is not a daily provider refresh. The implemented publisher retains old Catalog generations and all Price pointers; guarded Demo import acceptance remains pending. [Catalog](../architecture/catalog.md#storage-and-publication) owns bundle identity, counts and freshness semantics. [Demo setup](./local-auth.md#demo-mode) owns disposable database and private reset requirements.
+
+1. From the repository root, build from the selected local default bulk export with the native Worker transform:
+
+   ```sh
+   python3 frontend/scripts/demo/build-catalog.py data/<default-export>.jsonl frontend/scripts/demo/catalog-default-en-<date>.jsonl.gz --version <explicit-UTC-bundle-version>
+   ```
+
+2. Review source hash, native transform version, count/exclusion provenance, all starter identities and artifact integrity tests. Update the manifest filename selected by `frontend/scripts/demo/catalog-bundle.mjs` and the pinned baseline test counts deliberately. Format the manifest with the existing frontend Prettier. Keep the compressed bundle and its manifest together.
+3. Verify the protected target is the intended migrated disposable Demo database. From `frontend/`, run the existing `pnpm demo:seed` without `--reset-users` to publish while preserving private edits. Inspect the active Catalog generation and verify Search, starter identity coverage and preserved private state.
+
+The importer rejects a compressed hash mismatch before publication. Decoding, payload integrity or SQL failure rolls back the entire seed transaction under the existing publisher lock. A valid already-active bundle leaves its pointer and timestamp unchanged. The explicit bundle version and local export filename do not establish Scryfall or Price freshness.
 
 ## Workspace image ownership
 
@@ -47,7 +62,7 @@ The [frontend Dockerfile](../../frontend/Dockerfile) copies workspace manifests 
 
 On a new deployment, `podman-compose up --build -d` runs migrations and starts the catalog worker. The worker immediately imports the configured Scryfall bulk source into PostgreSQL, then repeats on the configured interval, daily by default. Scryfall does not require an application credential. Operators do not import the shared catalog for individual accounts. The first publication may still be in progress after the frontend starts, so search can be empty until the worker completes. Check the worker logs and active generation as described in [catalog migration and recovery](#catalog-migration-and-recovery). The worker has no HTTP readiness or import-status endpoint.
 
-This automatic import applies to the Compose deployment. The host [development launcher](#local-development) expects an existing migrated database and does not start the catalog worker. The explicit [demo setup](./local-auth.md#demo-mode) seeds only 70 printing records for 69 canonical cards; it does not fetch the full Scryfall catalog. Neither workflow downloads card image files for the catalog.
+This automatic import applies to Compose deployment. The host [development launcher](#local-development) expects an existing migrated database and does not start the Catalog Worker or seed automatically. Explicit [Demo setup](./local-auth.md#demo-mode) publishes the versioned searchable English bundle without a Scryfall download. Its unchanged 70-Printing private starter fixture remains separate. Neither workflow downloads Catalog card image files.
 
 The frontend binds to host loopback port 3000. Configure a reverse proxy or enable the optional tunnel. Catalog requests use the same application origin.
 
