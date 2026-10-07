@@ -31,9 +31,9 @@ def publisher():
         try:
             with psycopg.connect(scoped) as conn:
                 conn.execute(
-                    (
-                        Path(__file__).parents[2] / "frontend/drizzle/0015_scryfall_prices.sql"
-                    ).read_text()
+                    (Path(__file__).parents[2] / "frontend/drizzle/0015_scryfall_prices.sql")
+                    .read_text()
+                    .replace('"public".', f'"{schema}".')
                 )
                 conn.execute(migration.read_text().replace('"public".', f'"{schema}".'))
             yield CatalogPublisher(scoped)
