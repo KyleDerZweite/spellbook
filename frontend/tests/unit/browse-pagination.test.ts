@@ -28,40 +28,55 @@ describe('browser pagination', () => {
 		expect(page.pageSize).toBe(size === 'lazy' ? size : Number(size));
 	});
 	it.each(['0', '-1', '1.5', '1e3', '+2', ' 2', '', '9007199254740992', '9'.repeat(400)])(
-		'rejects invalid or inexact page %s',
+		'normalizes invalid or inexact page %s without replacing a valid size',
 		(page) => {
-			expect(() => parseBrowsePagination(new URLSearchParams({ page }))).toThrow(RangeError);
+			const state = parseBrowsePagination(new URLSearchParams({ page, pageSize: '500' }));
+			expect(state.page).toBe(1);
+			expect(state.offset).toBe(0);
+			expect(state.pageSize).toBe(500);
 		}
 	);
 	it('accepts decimal leading zeros without accepting other numeric syntax', () => {
 		expect(parseBrowsePagination(new URLSearchParams('page=002')).page).toBe(2);
 	});
-	it.each(['50', '201', 'Lazy', '', '100.0'])('rejects unsupported page size %s', (pageSize) => {
-		expect(() => parseBrowsePagination(new URLSearchParams({ pageSize }))).toThrow(RangeError);
-	});
-	it('rejects repeated authority parameters but permits unrelated repeated filters', () => {
-		for (const query of ['page=1&page=2', 'pageSize=100&pageSize=500'])
-			expect(() => parseBrowsePagination(new URLSearchParams(query))).toThrow(RangeError);
+	it.each(['50', '201', 'Lazy', '', '100.0'])(
+		'normalizes unsupported size %s without resetting a valid page',
+		(pageSize) => {
+			const state = parseBrowsePagination(new URLSearchParams({ pageSize, page: '3' }));
+			expect(state.pageSize).toBe(200);
+			expect(state.page).toBe(3);
+			expect(state.offset).toBe(400);
+		}
+	);
+	it('normalizes only repeated pagination fields and permits unrelated repeated filters', () => {
+		const repeatedPage = parseBrowsePagination(new URLSearchParams('page=1&page=2&pageSize=lazy'));
+		expect(repeatedPage.page).toBe(1);
+		expect(repeatedPage.pageSize).toBe('lazy');
+		const repeatedSize = parseBrowsePagination(
+			new URLSearchParams('page=3&pageSize=100&pageSize=500')
+		);
+		expect(repeatedSize.pageSize).toBe(200);
+		expect(repeatedSize.page).toBe(3);
+		expect(parseBrowsePagination(new URLSearchParams('page=0&pageSize=nope')).page).toBe(1);
 		expect(parseBrowsePagination(new URLSearchParams('color=R&color=G')).page).toBe(1);
 	});
 	it('checks arithmetic overflow before returning an offset', () => {
-		expect(() => parseBrowsePagination(new URLSearchParams('page=9007199254740991'))).toThrow(
-			RangeError
-		);
+		expect(parseBrowsePagination(new URLSearchParams('page=9007199254740991')).page).toBe(1);
 		const page = Math.floor(Number.MAX_SAFE_INTEGER / 200) + 1;
 		expect(parseBrowsePagination(new URLSearchParams({ page: String(page) })).offset).toBe(
 			(page - 1) * 200
 		);
-		expect(() => parseBrowsePagination(new URLSearchParams({ page: String(page + 1) }))).toThrow(
-			RangeError
-		);
+		expect(parseBrowsePagination(new URLSearchParams({ page: String(page + 1) })).page).toBe(1);
 	});
 	it('respects Search and safe-integer Inventory offset bounds', () => {
 		const state = parseBrowsePagination(new URLSearchParams('page=5001'), 1_000_000);
 		expect(state.offset).toBe(1_000_000);
-		expect(() => parseBrowsePagination(new URLSearchParams('page=5002'), 1_000_000)).toThrow(
-			RangeError
+		const normalized = parseBrowsePagination(
+			new URLSearchParams('page=5002&pageSize=200'),
+			1_000_000
 		);
+		expect(normalized.page).toBe(1);
+		expect(normalized.pageSize).toBe(200);
 		expect(() =>
 			browsePaginationHref(new URL('https://example.test/search'), state, { page: 5002 })
 		).toThrow(RangeError);

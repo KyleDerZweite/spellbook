@@ -18,22 +18,23 @@ function pagination(pageSize: BrowsePageSize, page: number, maxOffset: number): 
 	return Object.freeze({ pageSize, page, limit, offset: Number(offset), maxOffset });
 }
 
-/** Browser preferences only. Routes translate failures and retain their API defaults. */
+/** Normalize browser preferences independently. Backend API validation is unchanged. */
 export function parseBrowsePagination(
 	query: URLSearchParams,
 	maxOffset = Number.MAX_SAFE_INTEGER
 ): BrowsePagination {
-	if (query.getAll('page').length > 1 || query.getAll('pageSize').length > 1)
-		throw new RangeError('Repeated pagination parameter.');
-	const size = query.get('pageSize') ?? '200';
-	const page = query.get('page') ?? '1';
-	if (!['100', '200', '500', 'lazy'].includes(size)) throw new RangeError('Invalid page size.');
-	if (!/^[0-9]+$/.test(page)) throw new RangeError('Invalid page.');
-	return pagination(
-		size === 'lazy' ? size : (Number(size) as 100 | 200 | 500),
-		Number(page),
-		maxOffset
-	);
+	if (!Number.isSafeInteger(maxOffset) || maxOffset < 0)
+		throw new RangeError('Invalid offset bound.');
+	const sizes = query.getAll('pageSize');
+	const size = sizes.length === 1 ? sizes[0] : '200';
+	const pageSize = size === '100' ? 100 : size === '500' ? 500 : size === 'lazy' ? size : 200;
+	const pages = query.getAll('page');
+	const rawPage = pages.length === 1 ? pages[0] : '1';
+	const page = /^[0-9]+$/.test(rawPage) ? Number(rawPage) : 1;
+	const limit = pageSize === 'lazy' ? 200 : pageSize;
+	const validPage =
+		Number.isSafeInteger(page) && page > 0 && BigInt(page - 1) * BigInt(limit) <= BigInt(maxOffset);
+	return pagination(pageSize, validPage ? page : 1, maxOffset);
 }
 
 export function browsePageCount(total: number, limit: BrowsePagination['limit']): number {
