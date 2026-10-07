@@ -7,6 +7,7 @@ import {
 	createInventoryMutations,
 	createScan,
 	createDecks,
+	createValuation,
 	createSavedState
 } from '@spellbook/backend';
 import { privateEnv } from '#lib/env/private.ts';
@@ -34,6 +35,7 @@ export const application = {
 		s3ForcePathStyle: privateEnv.S3_FORCE_PATH_STYLE
 	}),
 	inventory: { ...createInventory(pool, auth), ...createInventoryMutations(db, catalog, auth) },
+	valuation: createValuation(pool, auth),
 	profile: createProfile(db, auth, { demoMode: process.env.DEMO_MODE === 'true' }),
 	decks: createDecks(db, catalog, auth)
 };

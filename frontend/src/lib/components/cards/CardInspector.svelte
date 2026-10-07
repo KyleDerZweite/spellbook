@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PriceReference from './PriceReference.svelte';
 	import Select from '#lib/components/ui/select/Select.svelte';
 	import type { Snippet } from 'svelte';
 	import { page } from '$app/state';
@@ -11,11 +12,14 @@
 
 	interface Props {
 		card: CardDocument;
+		inventoryEntryId?: string;
+		inventoryPriceRefreshKey?: string;
 		onPendingChange?: (pending: boolean) => void;
 		actions?: Snippet<[CardDocument]>;
 	}
 
-	let { card, onPendingChange, actions }: Props = $props();
+	let { card, onPendingChange, actions, inventoryEntryId, inventoryPriceRefreshKey }: Props =
+		$props();
 
 	let printings: CardDocument[] = $state([]);
 	let selectedPrinting: CardDocument | null = $state(null);
@@ -396,6 +400,11 @@
 			<div class="border-t border-border" aria-hidden="true"></div>
 
 			<!-- Inventory add -->
+			<PriceReference
+				printingId={activeCard.id}
+				entryId={activeCard.id === card.id ? inventoryEntryId : undefined}
+				{inventoryPriceRefreshKey}
+			/>
 			{#if actions}{@render actions(activeCard)}
 			{:else if page.data.user}<CardQuickAdd
 					card={activeCard}

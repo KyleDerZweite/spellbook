@@ -172,6 +172,52 @@ const SCHEMA = {
 	},
 	servers: [{ url: privateEnv.APP_ORIGIN }],
 	paths: {
+		'/api/mobile/v1/mtg/prices': {
+			get: {
+				summary: 'Read a public exact-finish EUR reference and supplied product links',
+				security: [],
+				parameters: [
+					{
+						name: 'printingId',
+						in: 'query',
+						required: true,
+						schema: { type: 'string', format: 'uuid' }
+					},
+					{ name: 'finish', in: 'query', required: true, schema: finish }
+				],
+				responses: {
+					200: response('Known or evaluated Unknown market reference', ref('PriceResponse')),
+					400: response('Invalid or extra query fields', ref('ErrorResponse')),
+					503: response('Operational reference read unavailable', ref('ErrorResponse'))
+				}
+			}
+		},
+		'/api/mobile/v1/mtg/inventory/prices': {
+			post: {
+				...operation(
+					'Read references and exact quantity coverage for requested owned entries',
+					ref('InventoryPriceResponse'),
+					{
+						...object({
+							entryIds: {
+								type: 'array',
+								minItems: 1,
+								maxItems: 100,
+								uniqueItems: true,
+								items: { type: 'string', format: 'uuid' }
+							}
+						}),
+						additionalProperties: false
+					}
+				),
+				responses: {
+					...operation('', ref('InventoryPriceResponse')).responses,
+					...jsonBodyErrors,
+					404: response('A requested entry is missing or not owned', ref('ErrorResponse')),
+					503: response('Operational reference read unavailable', ref('ErrorResponse'))
+				}
+			}
+		},
 		'/api/account/events': {
 			get: {
 				summary:
@@ -1413,6 +1459,98 @@ const SCHEMA = {
 				required: ['entryId'],
 				properties: { entryId: { type: 'string', format: 'uuid' } }
 			},
+			PricePublication: object({
+				id: { type: 'string', format: 'uuid' },
+				source: { const: 'Scryfall' },
+				bulkType: string,
+				sourceTime: { type: 'string', format: 'date-time' },
+				timePrecision: { const: 'Instant' },
+				payloadDigest: string,
+				extractorVersion: integer,
+				mappingVersion: integer,
+				ingestedAt: { type: 'string', format: 'date-time' }
+			}),
+			ProductLink: object({
+				provider: { enum: ['Cardmarket', 'TCGplayer', 'Cardhoarder'] },
+				url: { type: 'string', format: 'uri' },
+				printingId: { type: 'string', format: 'uuid' },
+				provenance: { enum: ['Exact', 'EnglishFallback'] }
+			}),
+			PriceReference: {
+				oneOf: [
+					object({
+						kind: { const: 'Known' },
+						printingId: { type: 'string', format: 'uuid' },
+						finish,
+						links: array('ProductLink'),
+						amount: {
+							type: 'string',
+							maxLength: 128,
+							pattern: '^(0|[1-9][0-9]*)(\\.[0-9]{1,18})?$'
+						},
+						currency: { const: 'EUR' },
+						source: { const: 'Scryfall' },
+						measure: { enum: ['prices.eur', 'prices.eur_foil'] },
+						sourceTime: { type: 'string', format: 'date-time' },
+						timePrecision: { const: 'Instant' },
+						freshness: { enum: ['Fresh', 'Stale'] },
+						publicationId: { type: 'string', format: 'uuid' },
+						observationId: string,
+						matchedPrintingId: { type: 'string', format: 'uuid' },
+						matchedFinish: finish,
+						provenance: { enum: ['Exact', 'EnglishFallback'] }
+					}),
+					object({
+						kind: { const: 'Unknown' },
+						printingId: { type: 'string', format: 'uuid' },
+						finish,
+						links: array('ProductLink'),
+						reason: {
+							enum: [
+								'SourceUnavailable',
+								'PrintingMissing',
+								'AmountMissing',
+								'ReferenceExpired',
+								'UnsupportedFinish',
+								'AmbiguousLanguageMapping',
+								'MissingVariantEvidence'
+							]
+						}
+					})
+				]
+			},
+			PriceRefreshStatus: object(
+				{
+					kind: { enum: ['NeverAttempted', 'Succeeded', 'Failed'] },
+					attemptedAt: { type: 'string', format: 'date-time' }
+				},
+				['kind']
+			),
+			PriceResponse: object({
+				evaluatedAt: { type: 'string', format: 'date-time' },
+				publications: array('PricePublication'),
+				refreshStatus: ref('PriceRefreshStatus'),
+				results: { ...array('PriceReference'), maxItems: 100 }
+			}),
+			InventoryPriceResponse: object({
+				evaluatedAt: { type: 'string', format: 'date-time' },
+				publications: array('PricePublication'),
+				refreshStatus: ref('PriceRefreshStatus'),
+				results: {
+					type: 'array',
+					maxItems: 100,
+					items: object({
+						entryId: { type: 'string', format: 'uuid' },
+						quantity,
+						reference: ref('PriceReference')
+					})
+				},
+				coverage: object({
+					coveredQuantity: { type: 'integer', minimum: 0, maximum: Number.MAX_SAFE_INTEGER },
+					staleQuantity: { type: 'integer', minimum: 0, maximum: Number.MAX_SAFE_INTEGER },
+					unknownQuantity: { type: 'integer', minimum: 0, maximum: Number.MAX_SAFE_INTEGER }
+				})
+			}),
 			InventoryStats: {
 				type: 'object',
 				required: ['total', 'unique', 'foils', 'sets', 'completedSets'],

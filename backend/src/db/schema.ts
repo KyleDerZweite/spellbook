@@ -4,10 +4,12 @@ import type { ProfileCardDefinition } from '@spellbook/contracts/profile.ts';
 import {
 	bigint,
 	check,
+	boolean,
 	customType,
 	doublePrecision,
 	index,
 	integer,
+	numeric,
 	jsonb,
 	pgTable,
 	primaryKey,
@@ -464,4 +466,78 @@ export const catalogPrintings = pgTable(
 		index('catalog_printings_card_types_idx').using('gin', table.cardTypes),
 		index('catalog_printings_legalities_idx').using('gin', table.legalities)
 	]
+);
+
+export const pricePublications = pgTable('price_publications', {
+	id: uuid('id').primaryKey(),
+	catalogGenerationId: uuid('catalog_generation_id').notNull(),
+	descriptor: jsonb('descriptor').notNull(),
+	sourceType: text('source_type').notNull(),
+	sourceUpdatedAt: timestamp('source_updated_at', {
+		withTimezone: true
+	}).notNull(),
+	payloadDigest: text('payload_digest').notNull(),
+	extractorVersion: integer('extractor_version').notNull(),
+	mappingVersion: integer('mapping_version').notNull(),
+	ingestedAt: timestamp('ingested_at', { withTimezone: true }).notNull().defaultNow()
+});
+export const pricePrintings = pgTable(
+	'price_printings',
+	{
+		publicationId: uuid('publication_id')
+			.notNull()
+			.references(() => pricePublications.id, { onDelete: 'cascade' }),
+		id: uuid('id').notNull(),
+		oracleId: uuid('oracle_id').notNull(),
+		setId: uuid('set_id').notNull(),
+		setCode: text('set_code').notNull(),
+		collectorNumber: text('collector_number').notNull(),
+		lang: text('lang').notNull(),
+		finishes: text('finishes').array().notNull(),
+		variantKey: text('variant_key'),
+		identity: jsonb('identity').notNull(),
+		links: jsonb('links').notNull()
+	},
+	(t) => [
+		primaryKey({ columns: [t.publicationId, t.id] }),
+		index('price_printings_variant_idx').on(t.publicationId, t.variantKey, t.lang)
+	]
+);
+export const priceObservations = pgTable(
+	'price_observations',
+	{
+		publicationId: uuid('publication_id')
+			.notNull()
+			.references(() => pricePublications.id, { onDelete: 'cascade' }),
+		printingId: uuid('printing_id').notNull(),
+		finish: text('finish').notNull(),
+		measure: text('measure').notNull(),
+		amount: numeric('amount'),
+		rawValue: text('raw_value'),
+		supported: boolean('supported').notNull(),
+		englishPrintingId: uuid('english_printing_id'),
+		mappingReason: text('mapping_reason')
+	},
+	(t) => [
+		primaryKey({
+			columns: [t.publicationId, t.printingId, t.finish, t.measure]
+		}),
+		check('price_observations_finish_check', sql`${t.finish} in ('nonfoil','foil')`),
+		check(
+			'price_observations_amount_check',
+			sql`${t.amount} >= 0 AND ${t.amount} != 'NaN'::numeric AND ${t.amount} != 'Infinity'::numeric`
+		)
+	]
+);
+export const priceState = pgTable(
+	'price_state',
+	{
+		id: integer('id').primaryKey(),
+		activePublication: uuid('active_publication').references(() => pricePublications.id),
+		previousPublication: uuid('previous_publication').references(() => pricePublications.id),
+		refreshStatus: jsonb('refresh_status')
+			.notNull()
+			.default(sql`'{"kind":"NeverAttempted"}'::jsonb`)
+	},
+	(t) => [check('price_state_id_check', sql`${t.id}=1`)]
 );

@@ -1,7 +1,7 @@
 # Value tracking
 
-- Status: Accepted design on 2026-10-06, not implemented
-- Last Reviewed: 2026-10-06
+- Status: Scryfall reference prices and product links implemented; account value history and costs planned
+- Last Reviewed: 2026-10-07
 - Source of Truth: accepted maintainer requirements and Q56 design, existing Inventory behavior
 - Update Triggers: price providers and fallback policy, daily history, reporting currency and timezone, cost batches, allocation and correction rules, tracking rollout and demo assumptions, valuation UI and API contracts
 - Related Docs: [Product index](./README.md), [Specification](./specification.md), [Domain glossary](../../GLOSSARY.md), [Market price research](../integrations/market-prices.md), [Postgres](../architecture/postgres.md), [Worker](../architecture/worker.md), [System overview](../architecture/system-overview.md), [Design direction](./ui-design-direction.md), [Value and cost persistence](../architecture/value-and-costs.md), [Application contract](../architecture/application-contract.md)
@@ -20,7 +20,7 @@ For EUR totals, prefer eligible fresh references before stale fallbacks. Within 
 
 References are fresh through 24 hours from source time, then eligible as stale through seven days. Reimporting unchanged data does not reset that age. Within each source, prefer exact printing before the eligible English fallback. Thus a fresh higher-priority English fallback can precede a fresh lower-priority exact printing. For MTGJSON EUR totals, only the validated paper/Cardmarket/retail series with matching normal or foil finish is eligible; its measure remains retail reference rather than Cardmarket trend. Absent or ambiguous series remain unknown. Q56 accepted this ordering and eligibility.
 
-When a daily refresh fails, the last valid reference remains eligible for current totals for up to seven days, visibly marked stale. Show its source date and stale coverage. After that limit it is unknown for current totals. A successful source response with a missing or null reference does not preserve an older price as its current result. Check eligible configured fallbacks, then report unknown.
+When a daily refresh fails, expose the failed refresh status and retain the last valid reference with its original source date. Its age still determines freshness: a reference within 24 hours remains fresh, then it is eligible as stale through seven days. Show its source date and stale coverage. After that limit it is unknown for current totals. A successful source response with a missing or null reference does not preserve an older price as its current result. Check eligible configured fallbacks, then report unknown.
 
 ## Current implementation
 
@@ -58,12 +58,18 @@ The current quantity state remains separate from daily history. Daily history be
 
 Retain personal daily holdings history and the historical references needed for that history without automatic expiry. The complete unused catalog needs current prices, not indefinite daily price history for every printing. Missing observations must not be synthesized from today's values.
 
-Dashboard summarizes current values, coverage and daily history. Inventory and Card Details show relevant price references and entry points to cost assignment. A private Costs/History workspace provides batch capture and corrections, reachable from Dashboard and Inventory. Its implementation must provide the accepted preview, frozen-reference commitment and correction behavior; no route or completed UI is claimed here. Public Home retains its accepted design.
+Planned reporting adds Dashboard summaries of current values, coverage and daily history, plus cost-assignment entry points in Inventory and Card Details. A planned private Costs/History workspace provides batch capture and corrections, reachable from Dashboard and Inventory. Its implementation must provide the accepted preview, frozen-reference commitment and correction behavior; no route or completed UI is claimed here. Public Home retains its accepted design.
 
-Decks also show the estimated reference value of all required cards and of their missing quantities. These are market estimates, separate from the owner's acquisition costs. Deck entries do not currently specify a finish, so this calculation uses nonfoil references and exposes unknown quantities and coverage. Availability does not reserve owned copies.
+Planned Deck reporting shows the estimated reference value of all required cards and of their missing quantities. These are market estimates, separate from the owner's acquisition costs. Deck entries do not currently specify a finish, so the planned calculation uses nonfoil references and exposes unknown quantities and coverage. Availability does not reserve owned copies.
 
 ## Accepted implementation contract
 
 Kyle accepted the lot-portion, exact-cent, correction and capture mechanisms in Q56 on 2026-10-06. [Value and cost persistence](../architecture/value-and-costs.md) owns stable quantity intervals, compressed cent allocations, frozen observations, revision checks, PostgreSQL lease capture and atomic historical restatement. [The application contract](../architecture/application-contract.md) owns authorization, shared use cases, locking and replay acknowledgements.
 
 Corrections preserve original batch membership, method and reference weights, including retired portions. Acquisition-date edits are descriptive and neither backdate holdings nor reorder FIFO. The default configurable daily capture tolerance is five minutes around day close. Missed captures remain gaps; restart never invents an uncaptured day from current holdings. These accepted mechanisms are unimplemented and still require their real-database/source/browser evidence.
+
+## Current reference presentation
+
+Card Details and the Inventory inspector show exact-finish Scryfall EUR references, source date/measure, freshness and marked English fallback. Owned-entry reads derive quantities from the authenticated account and show covered/unknown quantity; stale is a subset of covered. Missing references remain Unknown, including when product links exist. Safe supplied marketplace links render independently of EUR availability or optional adapters. They do not establish finish/condition stock or a guaranteed sale amount. [Value persistence](../architecture/value-and-costs.md#implemented-scryfall-references) owns implementation; full-account values, costs and personal daily history remain planned.
+
+An open Inventory Inspector reloads its private reference after a confirmed write acknowledgement, Inventory revision or saved entry snapshot changes. A successful write invalidates the old private estimate even if the subsequent Inventory-window refresh fails. Unsaved quantity drafts never change the estimate or enter the price request. Account/opening/request guards discard late responses before and after JSON parsing. A removed selected entry clears its old quantity/reference and reports that the entry is unavailable.

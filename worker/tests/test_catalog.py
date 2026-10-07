@@ -2,8 +2,9 @@ import json
 import os
 import threading
 from concurrent.futures import ThreadPoolExecutor
+from decimal import Decimal
 from pathlib import Path
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import psycopg
 import pytest
@@ -29,6 +30,11 @@ def publisher():
         scoped = make_conninfo(url, options=f"-csearch_path={schema},public")
         try:
             with psycopg.connect(scoped) as conn:
+                conn.execute(
+                    (Path(__file__).parents[2] / "frontend/drizzle/0015_scryfall_prices.sql")
+                    .read_text()
+                    .replace('"public".', f'"{schema}".')
+                )
                 conn.execute(migration.read_text().replace('"public".', f'"{schema}".'))
             yield CatalogPublisher(scoped)
         finally:
@@ -196,3 +202,137 @@ def test_concurrent_publishers_serialize_and_newest_snapshot_wins(publisher, tmp
     newest = state(publisher)
     publisher.publish(*old)
     assert state(publisher) == newest
+
+
+def test_successful_null_replaces_amount_and_pair_recovery(publisher, tmp_path):
+    card = json.loads((FIXTURES / "normal_card.json").read_text())
+    card["prices"] = {"eur": "0.005", "eur_foil": "0"}
+    publisher.publish(*snapshot(tmp_path, cards=[card]))
+    with publisher._connect() as conn:
+        original = conn.execute("SELECT active_publication FROM price_state").fetchone()[0]
+        assert (
+            str(
+                conn.execute(
+                    "SELECT amount FROM price_observations WHERE finish='nonfoil'"
+                ).fetchone()[0]
+            )
+            == "0.005"
+        )
+    card["prices"] = {"eur": None}
+    publisher.publish(*snapshot(tmp_path, version=2, cards=[card]))
+    with publisher._connect() as conn:
+        assert (
+            conn.execute(
+                "SELECT amount FROM price_observations WHERE "
+                "publication_id=(SELECT active_publication FROM price_state) "
+                "AND finish='nonfoil'"
+            ).fetchone()[0]
+            is None
+        )
+    publisher.restore_previous()
+    with publisher._connect() as conn:
+        assert conn.execute("SELECT active_publication FROM price_state").fetchone()[0] == original
+        assert conn.execute(
+            "SELECT g.id=p.catalog_generation_id FROM catalog_state s "
+            "JOIN catalog_generations g ON g.id=s.active_generation "
+            "JOIN price_state ps ON ps.id=1 "
+            "JOIN price_publications p ON p.id=ps.active_publication"
+        ).fetchone()[0]
+
+
+def test_foil_and_etched_publication_preserves_typed_foil_amount(publisher, tmp_path):
+    card = json.loads((FIXTURES / "normal_card.json").read_text())
+    card["finishes"] = ["foil", "etched"]
+    card["prices"] = {"eur_foil": "0.005"}
+    publisher.publish(*snapshot(tmp_path, cards=[card]))
+    with publisher._connect() as conn:
+        assert conn.execute(
+            "SELECT supported,amount,raw_value FROM price_observations WHERE finish='foil'"
+        ).fetchone() == (True, Decimal("0.005"), "0.005")
+    card["finishes"] = ["etched"]
+    publisher.publish(*snapshot(tmp_path, version=2, cards=[card]))
+    with publisher._connect() as conn:
+        assert conn.execute(
+            "SELECT supported FROM price_observations WHERE finish='foil' "
+            "AND publication_id=(SELECT active_publication FROM price_state)"
+        ).fetchone() == (False,)
+
+
+def test_repeated_publication_maps_new_rows_with_existing_source_statistics(
+    publisher, tmp_path, monkeypatch
+):
+    base = json.loads((FIXTURES / "normal_card.json").read_text())
+    cards = [dict(base, id=str(uuid4()), collector_number=str(i)) for i in range(2000)]
+    publisher.publish(*snapshot(tmp_path, cards=cards))
+    with publisher._connect() as conn:
+        conn.execute("ANALYZE price_printings")
+        conn.execute("ANALYZE price_observations")
+    connect = publisher._connect
+
+    def bounded_connect():
+        conn = connect()
+        conn.execute("SET statement_timeout='5s'")
+        return conn
+
+    monkeypatch.setattr(publisher, "_connect", bounded_connect)
+    assert publisher.publish(*snapshot(tmp_path, version=2, cards=cards)) == len(cards)
+
+
+def test_exactly_one_english_identity_includes_null_priced_candidates(publisher, tmp_path):
+    fixture = json.loads((FIXTURES / "price_variants.json").read_text())
+    base = json.loads((FIXTURES / "normal_card.json").read_text())
+    cards = [
+        dict(base, **r["present_fields"])
+        for r in fixture["requests"]
+        if r.get("http_status") == 200
+        and r["present_fields"].get("set") == "cmm"
+        and r["present_fields"]["collector_number"] == "703"
+        and r["present_fields"]["lang"] in ("en", "de")
+    ]
+    english = next(c for c in cards if c["lang"] == "en")
+    english["prices"] = {"eur": "1.234"}
+    publisher.publish(*snapshot(tmp_path, cards=cards))
+    with publisher._connect() as conn:
+        assert conn.execute(
+            "SELECT english_printing_id FROM price_observations o "
+            "JOIN price_printings p ON p.id=o.printing_id "
+            "AND p.publication_id=o.publication_id WHERE p.lang='de' "
+            "AND finish='nonfoil'"
+        ).fetchone()[0] == UUID(english["id"])
+    cards.append(dict(english, id=str(uuid4()), prices={"eur": None}))
+    publisher.publish(*snapshot(tmp_path, version=2, cards=cards))
+    with publisher._connect() as conn:
+        assert conn.execute(
+            "SELECT o.english_printing_id,o.mapping_reason "
+            "FROM price_observations o JOIN price_printings p "
+            "ON p.id=o.printing_id AND p.publication_id=o.publication_id "
+            "WHERE p.lang='de' AND finish='nonfoil' AND "
+            "o.publication_id=(SELECT active_publication FROM price_state)"
+        ).fetchone() == (None, "AmbiguousLanguageMapping")
+
+
+def test_price_version_rebuild_and_failed_decimal_keep_original_source(publisher, tmp_path):
+    path, info = snapshot(tmp_path)
+    publisher.publish(path, info)
+    with publisher._connect() as conn:
+        first = conn.execute("SELECT active_publication FROM price_state").fetchone()[0]
+        conn.execute("UPDATE price_publications SET extractor_version=0 WHERE id=%s", (first,))
+    assert not publisher.is_current(info)
+    publisher.publish(path, info)
+    with publisher._connect() as conn:
+        active = conn.execute("SELECT active_publication FROM price_state").fetchone()[0]
+        assert active != first
+    card = json.loads((FIXTURES / "normal_card.json").read_text())
+    card["prices"] = {"eur": "-1"}
+    with pytest.raises(ValueError):
+        publisher.publish(*snapshot(tmp_path, version=2, cards=[card]))
+    with publisher._connect() as conn:
+        row = conn.execute("SELECT active_publication,refresh_status FROM price_state").fetchone()
+        assert row[0] == active
+        assert row[1]["kind"] == "Failed"
+        assert (
+            conn.execute("SELECT source_updated_at FROM price_publications WHERE id=%s", (active,))
+            .fetchone()[0]
+            .day
+            == 1
+        )

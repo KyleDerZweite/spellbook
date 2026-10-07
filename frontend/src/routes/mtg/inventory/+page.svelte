@@ -111,6 +111,7 @@
 	let hydrated = $state(false),
 		windowVersion = $state(0),
 		virtualList = $state<ReturnType<typeof VirtualInventoryList> | null>(null);
+	let confirmedInventoryWrite = $state(0);
 	let anchorRestoreActive = false,
 		anchorController: AbortController | null = null;
 	let revisionAnchor: { id: string | null; index: number; intra: number } | null = null;
@@ -640,6 +641,8 @@
 			try {
 				if (result.type === 'success') {
 					pendingRequests.delete(payload);
+					if (hydrated && submittedAccount === (page.data.user?.accountId ?? 'session'))
+						confirmedInventoryWrite++;
 					if (!currentAttempt()) return;
 					if (currentEditor() && result.data?.acknowledgement) {
 						const bases = confirmedInventoryBases(
@@ -1347,6 +1350,8 @@
 {#if inspection}
 	<CardDetail
 		card={inspection.card}
+		inventoryEntryId={inspection.entryId}
+		inventoryPriceRefreshKey={`${confirmedInventoryWrite}:${currentWindow.revision}:${inspected?.updatedAt.toISOString() ?? 'missing'}:${targetGone}`}
 		returnFocus={inspection.returnFocus}
 		actions={inspection.mode === 'edit' ? editEntryActions : undefined}
 		onClose={() => {

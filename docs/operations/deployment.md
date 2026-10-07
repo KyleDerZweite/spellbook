@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: repo config
-- Update Triggers: compose services and first startup, catalog import and recovery, images, local launch commands and preview target, environment variables, migrations, storage, workspace ownership and compatibility adapters, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
+- Update Triggers: price publication/pair recovery, compose services and first startup, catalog import and recovery, images, local launch commands and preview target, environment variables, migrations, storage, workspace ownership and compatibility adapters, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
 - Related Docs: [Postgres](../architecture/postgres.md), [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Classifier research](../integrations/card-categorization.md)
 
 The canonical service definitions are [`podman-compose.yml`](../../podman-compose.yml) and the local storage override [`podman-compose.dev.yml`](../../podman-compose.dev.yml). Keep live domains, account details, and secret references in private operator notes.
@@ -169,17 +169,16 @@ COMMIT;
 
 This invalidates the publication marker without removing the readable generation. A failed rebuild leaves that catalog available. Confirm the new publication and restart the scheduled worker with `podman-compose up -d worker`.
 
-To restore the previous retained catalog, stop the worker and run:
+To restore the previous retained Catalog/Price pair, stop the Worker and run:
 
-```sql
-BEGIN;
-SELECT pg_advisory_xact_lock(1936747619, 1);
-UPDATE catalog_state
-SET active_generation = previous_generation,
-    previous_generation = active_generation,
-    updated_at = now()
-WHERE id = 1 AND previous_generation IS NOT NULL;
-COMMIT;
+```sh
+podman-compose run --rm --entrypoint python worker -c 'import os; from worker.catalog import CatalogPublisher; CatalogPublisher(os.environ["DATABASE_URL"]).restore_previous()'
 ```
 
-Confirm that the update affected one row and verify the active generation. Zero rows means no previous generation is available. Keep the worker stopped until the source or transformation problem is corrected; another sync can otherwise publish the newer snapshot again. Only one previous generation is retained. [Catalog architecture](../architecture/catalog.md) owns transaction and reader guarantees.
+The command verifies a retained recorded pair and swaps both pointers under the publisher lock in one transaction. Missing recovery data fails without changes. Verify Catalog search and reference reads. Keep the Worker stopped until the source or transformation problem is corrected; another sync can otherwise publish the newer snapshot again. Only current/previous public views are retained. [Catalog architecture](../architecture/catalog.md) owns reader guarantees.
+
+## Scryfall price upgrade
+
+Stop the scheduled Worker, then use the existing migrator to apply the coherent journal in order: 0014 Inventory acknowledgements, then 0015 public price references. Both migrations preserve existing account rows. Start the upgraded Worker and reference reads only after 0015 completes. A matching Catalog timestamp alone no longer skips initial price activation: successful paired publication and extraction/mapping versions are required. Existing daily/manual import commands remain unchanged. Inspect price_state joined to price_publications for source time, digest/version, active/previous IDs and safe refresh health. All-null amounts can be a successful publication.
+
+Restore Catalog and Price together using the paired command above. Stop the scheduled Worker and invoke CatalogPublisher.restore_previous through the existing protected DATABASE_URL. This locks publication, verifies the retained pair exists and swaps both pointers atomically; no recoverable pair raises an error without changes. Verify public reference reads and Catalog search before resuming synchronization. Never infer source dates from downloaded filenames or attach today's descriptor to an older saved payload. Current/previous public views are bounded; later personal snapshots preserve trusted evidence independently.

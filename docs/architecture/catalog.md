@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: code
-- Update Triggers: catalog source and schema, publication, bundled samples and display assets, search ranking, filters, facets, browser pagination and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters
+- Update Triggers: paired reference publication and recovery, catalog source and schema, publication, bundled samples and display assets, search ranking, filters, facets, browser pagination and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters
 - Related Docs: [Domain glossary](../../GLOSSARY.md), [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [Local authentication and demo setup](../operations/local-auth.md), [ADR-0010](../decisions/0010-postgres-catalog.md), [Application contract](./application-contract.md)
 
 PostgreSQL stores the public Scryfall catalog alongside account-owned application data. SvelteKit provides public read-only browser search and printing lookup through `/api/catalog/search` and `/api/catalog/cards/{oracleId}/printings`. The existing versioned integration routes retain authentication. Both call the backend Catalog application interface through the frontend server composition. Backend owns shared request validation and SQL reads; frontend adapters retain HTTP parsing and errors. Browsers use the application API; they receive no database credential or search-service key. The catalog contains card metadata, not ownership quantities.
@@ -55,3 +55,7 @@ The [Inventory reader](../../backend/src/inventory/read.ts) resolves complete ow
 Import resolution accepts exact normalized canonical names and individual canonical face names. It also accepts exact case-insensitive printed names and localized face names, splitting face aliases on `//` surrounded by spaces. Whole names remain supported; prefix and fuzzy matches do not resolve imports. Set and collector-number hints narrow printing candidates. Name-only resolution groups candidates by oracle ID; hinted resolution keeps printing identities distinct. The import workflow retains ambiguous and unresolved lines for review. Scan candidate enrichment resolves authoritative metadata by printing ID through the same catalog.
 
 The [domain glossary](../../GLOSSARY.md) owns the distinction between canonical cards, printings, inventory entries, and deck entries. [Deployment](../operations/deployment.md#catalog-migration-and-recovery) owns catalog migration and recovery.
+
+## Baseline price correspondence
+
+Scryfall refresh now publishes Catalog metadata and its reference-price view atomically. The recorded pair supports coherent operator recovery. Independent immutable price publications do not cascade with disposable Catalog generations. Catalog DTOs stay explicit; callers obtain prices/product links from the bounded [Valuation contract](./value-and-costs.md#implemented-scryfall-references). Demo Catalog publication alone establishes no price view.

@@ -6,12 +6,22 @@
 
 	interface Props {
 		card: CardDocument;
+		inventoryEntryId?: string;
+		inventoryPriceRefreshKey?: string;
 		onClose: () => void;
 		actions?: Snippet<[CardDocument]>;
 		returnFocus?: HTMLElement | null;
 		callerPending?: boolean;
 	}
-	let { card, onClose, actions, returnFocus, callerPending = false }: Props = $props();
+	let {
+		card,
+		onClose,
+		actions,
+		returnFocus,
+		callerPending = false,
+		inventoryEntryId,
+		inventoryPriceRefreshKey
+	}: Props = $props();
 	let detailOpen = $state(false);
 	let quickAddPending = $state(false);
 	let pending = $derived(callerPending || quickAddPending);
@@ -50,7 +60,13 @@
 				<Dialog.Description class="sr-only"
 					>Card information and printing selection.</Dialog.Description
 				>
-				<CardInspector {card} {actions} onPendingChange={(value) => (quickAddPending = value)} />
+				<CardInspector
+					{card}
+					{actions}
+					{inventoryEntryId}
+					{inventoryPriceRefreshKey}
+					onPendingChange={(value) => (quickAddPending = value)}
+				/>
 				<Dialog.Close
 					disabled={pending}
 					class="btn btn-ghost btn-icon absolute right-2 top-2 z-10"
