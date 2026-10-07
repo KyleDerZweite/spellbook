@@ -213,6 +213,9 @@ importers:
 
   backend:
     dependencies:
+      '@aws-sdk/client-s3':
+        specifier: ^3.1146.0
+        version: 3.1146.0
       '@spellbook/contracts':
         specifier: workspace:*
         version: link:../contracts
@@ -234,9 +237,6 @@ importers:
 
   frontend:
     dependencies:
-      '@aws-sdk/client-s3':
-        specifier: ^3.1146.0
-        version: 3.1146.0
       '@spellbook/backend':
         specifier: workspace:*
         version: link:../backend

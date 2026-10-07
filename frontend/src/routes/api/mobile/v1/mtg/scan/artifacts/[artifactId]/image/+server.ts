@@ -1,16 +1,16 @@
 import type { RequestHandler } from './$types';
 import { requireUuid } from '#lib/server/http/request.ts';
-import { error } from '@sveltejs/kit';
+import { application } from '#lib/server/composition.ts';
 import { requireMobileAuth } from '#lib/server/mobile/auth.ts';
-import { getOwnedScanArtifact, ScanAccessError } from '#lib/server/data/scan.ts';
-import { readScanImage, ScanImageError } from '#lib/server/mobile/storage.ts';
-
+import { scanHttpError } from '#lib/server/mobile/scan.ts';
 export const GET: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
-	const artifactId = requireUuid(event.params.artifactId, 'artifactId');
 	try {
-		const { artifact } = await getOwnedScanArtifact(auth.user.accountId, artifactId);
-		const { bytes, contentType } = await readScanImage(artifact.originalObjectKey);
+		const { bytes, contentType } = await application.scan.readImage(
+			auth.user,
+			requireUuid(event.params.artifactId, 'artifactId'),
+			event.request.signal
+		);
 		return new Response(new Uint8Array(bytes), {
 			headers: {
 				'Content-Type': contentType,
@@ -20,8 +20,6 @@ export const GET: RequestHandler = async (event) => {
 			}
 		});
 	} catch (cause) {
-		if (cause instanceof ScanAccessError || cause instanceof ScanImageError)
-			error(cause.status, cause.message);
-		throw cause;
+		scanHttpError(cause);
 	}
 };

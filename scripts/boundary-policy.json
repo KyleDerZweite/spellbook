@@ -68,28 +68,12 @@
 	],
 	"legacy": [
 		{
-			"file": "frontend/src/lib/server/data/scan.ts",
-			"specifier": "drizzle-orm"
-		},
-		{
-			"file": "frontend/src/lib/server/data/scan.ts",
-			"specifier": "#lib/server/db/client.ts"
-		},
-		{
-			"file": "frontend/src/lib/server/data/scan.ts",
-			"specifier": "#lib/server/db/schema.ts"
-		},
-		{
 			"file": "frontend/src/lib/server/data/types.ts",
 			"specifier": "drizzle-orm"
 		},
 		{
 			"file": "frontend/src/lib/server/data/types.ts",
 			"specifier": "#lib/server/db/schema.ts"
-		},
-		{
-			"file": "frontend/src/lib/server/mobile/storage.ts",
-			"specifier": "@aws-sdk/client-s3"
 		},
 		{
 			"file": "frontend/scripts/demo/seed.mjs",

@@ -1,21 +1,27 @@
 import type { RequestHandler } from './$types';
-import { listScanSessions } from '#lib/server/data/scan.ts';
 import { json } from '@sveltejs/kit';
+import { application } from '#lib/server/composition.ts';
 import { requireMobileAuth } from '#lib/server/mobile/auth.ts';
-import { createScanSessionEntry } from '#lib/server/mobile/mtg-service.ts';
-
+import { scanHttpError } from '#lib/server/mobile/scan.ts';
 export const POST: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
-	const sessionId = crypto.randomUUID();
-	return json({
-		session: await createScanSessionEntry(auth, sessionId)
-	});
+	try {
+		return json(
+			{ session: await application.scan.createSession(auth.user) },
+			{ headers: { 'Cache-Control': 'no-store' } }
+		);
+	} catch (cause) {
+		scanHttpError(cause);
+	}
 };
-
 export const GET: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
-	return json(
-		{ sessions: await listScanSessions(auth.user.accountId) },
-		{ headers: { 'Cache-Control': 'no-store' } }
-	);
+	try {
+		return json(
+			{ sessions: await application.scan.listSessions(auth.user) },
+			{ headers: { 'Cache-Control': 'no-store' } }
+		);
+	} catch (cause) {
+		scanHttpError(cause);
+	}
 };

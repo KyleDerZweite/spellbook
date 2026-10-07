@@ -2,9 +2,9 @@
 
 - Status: Accepted
 - Date: 2026-04-25
-- Last Reviewed: 2026-10-03
+- Last Reviewed: 2026-10-07
 - Source of Truth: recorded decision
-- Update Triggers: decision applicability, supersession, related document changes
+- Update Triggers: application module ownership, decision applicability, supersession, related document changes
 - Owners: project
 - Related Docs: [System Overview](../architecture/system-overview.md), [Postgres](../architecture/postgres.md), [Product specification](../product/specification.md), [Deployment](../operations/deployment.md)
 
@@ -18,7 +18,7 @@ Keeping realtime game-session infrastructure in the base app creates product and
 
 Spellbook base app uses Postgres for durable user data.
 
-SpacetimeDB is removed from the base app. User profiles, inventory, decks, scan sessions, scan artifacts, scan review items, and idempotency records live in Postgres and are accessed through the SvelteKit server repository layer.
+SpacetimeDB is removed from the base app. User profiles, inventory, decks, scan sessions, scan artifacts, scan review items, and idempotency records live in Postgres and are accessed through authorized framework-free backend modules. SvelteKit adapts the shared contracts and transport; the [application contract](../architecture/application-contract.md) owns this current boundary.
 
 Play is removed from the Spellbook base app scope. A future play experience must be a separate application or module. That application may use Spellbook as the source for catalog and deck data and may choose its own realtime/game-session infrastructure independently.
 

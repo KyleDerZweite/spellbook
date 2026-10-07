@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
-- Update Triggers: test commands, workflow coverage, runtime pins, browser verification, PR policy, Dependabot policy, engineering skill tracker and domain layout, optional account-summary and Inventory scale fixtures, integration file serialization and range fixtures, SavedState two-process HTTP and Python socket prerequisites
+- Update Triggers: test commands, workflow coverage, runtime pins, browser verification, PR policy, Dependabot policy, engineering skill tracker and domain layout, optional account-summary and Inventory scale fixtures, integration file serialization and range fixtures, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures
 - Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance), [Application boundaries](../architecture/application-contract.md#implementation-status)
 
 This document owns repository check commands, CI coverage, and verification evidence. Product and integration documents own behavior and acceptance criteria. Run checks appropriate to the changed behavior; do not treat a passing command as proof of requirements it does not exercise.
@@ -79,7 +79,7 @@ Follow [documentation maintenance](../README.md#maintenance) for links, ownershi
 
 ## CI coverage
 
-[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs on pull requests and pushes to `main`. Its jobs use the root package-manager pin and cache lockfile, then run the application commands above with frozen workspace installs. The frontend integration job builds and runs `test:http` and `test:sync` after migration and repository integration tests. Frontend and catalog-worker integration jobs provision separate PostgreSQL services. The workflow is the source of truth for job names, environment variables, and tool versions.
+[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs on pull requests and pushes to `main`. Its jobs use the root package-manager pin and cache lockfile, then run the application commands above with frozen workspace installs. The frontend integration job starts the actual locked Python Scan scaffold, then builds and runs `test:http`, `test:scan` and `test:sync` after migration and repository integration tests. `test:scan` uses the actual built application, PostgreSQL and configured local storage; [Mobile and Scan](../architecture/mobile-and-scan.md#scan-uploads) owns its evidence limits. Frontend and catalog-worker integration jobs provision separate PostgreSQL services. The workflow is the source of truth for job names, environment variables, and tool versions.
 
 CI does not run the root Markdown command, browser workflows, container builds, image publication, or deployment. These remain explicit checks when relevant. [Deployment](./deployment.md) owns container startup and operator verification; [database upgrades](./postgres-upgrade.md) owns restore rehearsal and rollback checks.
 

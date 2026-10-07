@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: code, proposed recognition design, primary documentation
-- Update Triggers: manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, Deck wire contracts and revisions, device runtime selection
+- Update Triggers: manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, Scan contracts and legacy replay, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, Deck wire contracts and revisions, device runtime selection
 - Related Docs: [Application contract](./application-contract.md), [Frontend](./frontend.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../../GLOSSARY.md), [Deployment](../operations/deployment.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md)
 
 Spellbook has one web client. Its manifest in `frontend/static/manifest.webmanifest` provides install metadata; `frontend/src/app.html` links it. A service worker and offline caching are not implemented. The `/mtg/scan` workspace supports image upload, candidate review, manual printing selection, and explicit inventory commit. Direct browser camera capture remains planned.
@@ -16,9 +16,9 @@ The accepted experimental v1 migration replaces `GET /api/mobile/v1/mtg/inventor
 
 If Inventory counts or a location index cannot be represented as a nonnegative safe JSON integer, API reads and native page loading return HTTP 500 with `Inventory totals cannot be represented exactly.` They never return rounded counts. [Postgres](./postgres.md#inventory-read-and-write-consistency) owns decoding and SQL aggregate rules.
 
-Inventory POST/batch-add, PATCH/DELETE, bulk, import commit and Scan review commit now return `InventoryAcknowledgement`, replacing snapshots, nullable current entries and `{ ok: true }` removals in experimental v1. Every mutation requires a caller-retained request ID. PATCH supplies quantity or signed delta and/or Notes; omitted fields remain unchanged. Notes requires `notesRevision`. Ordinary delta reductions floor at one. Reviewed DELETE additionally requires `expectedQuantity` in its JSON body. Import commits return compact resolved/unresolved/ambiguous counts; preview retains review diagnostics.
+Inventory POST/batch-add, PATCH/DELETE, bulk and import commit now return `InventoryAcknowledgement`, replacing snapshots, nullable current entries and `{ ok: true }` removals in experimental v1. Scan review wraps that original acknowledgement in its explicit committed/legacy union below. Every mutation requires a caller-retained request ID. PATCH supplies quantity or signed delta and/or Notes; omitted fields remain unchanged. Notes requires `notesRevision`. Ordinary delta reductions floor at one. Reviewed DELETE additionally requires `expectedQuantity` in its JSON body. Import commits return compact resolved/unresolved/ambiguous counts; preview retains review diagnostics.
 
-New account-scoped Group routes are `GET/POST /inventory/groups`, `PATCH/DELETE /inventory/groups/{groupId}` and `PUT /inventory/{entryId}/groups`; the latter replaces complete whole-entry membership. Explicit `PATCH /inventory/{entryId}/position` reorders entries. All relative paths use `/api/mobile/v1/mtg`. Unsupported Sources, enums and quantities fail with controlled 400 before SQL. Missing owned subjects return 404; changed request intent, stale Notes and reviewed-quantity drift return 409. Successful retries consume the original receipt and refetch current bounded page/detail state separately. The [application contract](./application-contract.md#inventory-query-contract) owns legacy receipt limitations, atomic lock order and exact replay semantics; [OpenAPI](../../frontend/src/routes/openapi.json/+server.ts) owns requests/responses. Complete Scan repository migration remains slice 7.
+New account-scoped Group routes are `GET/POST /inventory/groups`, `PATCH/DELETE /inventory/groups/{groupId}` and `PUT /inventory/{entryId}/groups`; the latter replaces complete whole-entry membership. Explicit `PATCH /inventory/{entryId}/position` reorders entries. All relative paths use `/api/mobile/v1/mtg`. Unsupported Sources, enums and quantities fail with controlled 400 before SQL. Missing owned subjects return 404; changed request intent, stale Notes and reviewed-quantity drift return 409. Successful retries consume the original receipt and refetch current bounded page/detail state separately. The [application contract](./application-contract.md#inventory-query-contract) owns legacy receipt limitations, atomic lock order and exact replay semantics; [OpenAPI](../../frontend/src/routes/openapi.json/+server.ts) owns requests/responses. Scan uses the backend-owned module and compact response union described below.
 
 ## Implemented API boundary
 
@@ -57,15 +57,19 @@ The adapter's [deployment limit](../operations/deployment.md#configuration) allo
 Scan API processing follows this order:
 
 1. A client creates a scan session and uploads an image.
-2. SvelteKit stores the original image in configured local or S3-compatible storage.
-3. SvelteKit passes artifact metadata to `scan-worker`.
+2. Backend Scan stores the original image in configured local or S3-compatible storage.
+3. Backend Scan passes artifact metadata to `scan-worker`.
 4. The worker returns `no_match`, zero quality, empty OCR tokens, and no candidates.
-5. SvelteKit records artifact metadata and review state in Postgres.
-6. Explicit review commits use the idempotent inventory repository.
+5. Backend Scan records artifact metadata and review state in Postgres.
+6. Explicit review commits compose the private Inventory writer in one authorized transaction.
 
 The worker reports the original object key as its normalized object key because it has not created a normalized image. Its `stub-v1` model versions identify the scaffold. It does not read images, recognize cards, run OCR, generate embeddings, or call a vector database.
 
-Storage and worker processing finish before recording the artifact. The worker request times out after 30 seconds. A failed upload, worker call, or database recording attempts to delete the newly created original object. Storage deletion can also fail; cleanup is best effort, and the failure is logged. Without a database commit or another concurrent change, the session remains open for retry. Processing failures return a generic HTTP 502; validation and ownership failures keep their specific responses.
+Storage and worker processing finish outside the short recording transaction. Backend validates at most 1 MiB of worker JSON, 20 distinct candidates, 100 OCR tokens, bounded model names and integer scores. Only the exact original object key is accepted from the current worker. Public DTOs omit storage keys and account IDs; candidate display identity is resolved from authoritative Catalog. The worker request times out after 30 seconds.
+
+Recording locks Profile/account, revalidates the session-produced actor, then locks the owned ScanSession. Upload requires `open`; result replacement and review commit accept `open` or `pending_review`. A successful attachment moves to `pending_review`; review commit moves to `committed`. Closed sessions return 409, foreign or absent subjects return 404. Storage failure, worker failure or confirmed rollback attempts deletion of only the newly generated object. Cancellation before commit dispatch rolls back before cleanup. After an uncertain COMMIT, Backend destroys the original connection and checks under the same ordered account/session locks. A committed attachment or an indeterminate recovery retains its object. Cleanup failures log a safe message without keys or credentials. Generic processing failures return 502; infrastructure reads/writes return sanitized 503.
+
+The local acceptance seam uses the actual Python scaffold, real PostgreSQL and filesystem storage, including a loopback TCP proxy that drops a server-completed COMMIT response. It does not establish real S3-compatible storage integration or recognition quality. Production S3 configuration remains supported; verification against an operator-owned bucket is separate evidence.
 
 ## External scanner results
 
@@ -84,6 +88,16 @@ A recognition submission includes `status`, `modelVersion`, and up to 20 distinc
 Session creation and frame upload have no caller-supplied idempotency key. Review commits use the existing `requestId` boundary. These are separate guarantees; commit idempotency does not make the entire capture pipeline replay-safe.
 
 This endpoint accepts results from an external recognizer, but Spellbook's own worker remains a scaffold. Device jobs, tray routing, physical copies, locations, and deck assignments remain proposed in the [card robot integration](../integrations/card-robot.md).
+
+## Selected reads and compact review commits
+
+Selected session reads use a repeatable-read snapshot with independent artifact/review UUID cursors, default 50 and maximum 100 rows per collection. Complete owned counts and the latest result are included even when its artifact is outside the current page. Lists return at most 100 owned sessions. All timestamps are ISO strings. Images require current authority before storage access and again before delivery, with checked JPEG/PNG/WebP bytes, `no-store` and `nosniff`.
+
+Experimental v1 changes in place: old database-shaped Scan rows and raw worker results become explicit JSON-safe session, artifact, result and review DTOs. Review requests now send `{requestId,sessionId,items:[{id?,scanArtifactId,catalogCardId,finish,condition,quantity}]}`. Display metadata, scores and identity supplied by clients are not write authority. Manual Catalog selection remains valid after `no_match`. The frontend retains an immutable attempted body and request ID for network retry, preserves failure drafts and refetches only current bounded selected state after success. Workspace synchronization remains slice 9; native no-JavaScript Scan entry is not implemented.
+
+New receipts use the `scan-intent-v3` fingerprint and return `{kind:'Committed',sessionId,acknowledgement}` containing the original compact Inventory acknowledgement. Scan persists selections, Inventory effects/revision, receipt and committed state atomically with lock order Profile/account, ScanSession, Inventory parent, sorted entries, then sorted groups. No full Inventory snapshot or unrelated position reflow occurs.
+
+Historical v1 and `scan-v2` hashes/acknowledgements remain unchanged. To retry a non-null legacy hash, provide bounded `legacyVerification` with its exact original version and original submitted items; this evidence verifies the old hash and never authorizes new Inventory effects or re-resolves old metadata. Missing evidence returns 409 `LegacyReplayEvidenceRequired`; changed evidence returns the existing request conflict. A verified original acknowledgement returns `Committed` with the verified session and unchanged acknowledgement. If the original acknowledgement is null, the retry returns `{kind:'LegacyNoRepeat',requestId,binding:'VerifiedLegacyHash',acknowledgement}`. Null legacy hashes return the same union with `UnverifiedLegacyHash`: they prevent another quantity effect but cannot establish payload/session equality. A null original acknowledgement retains the parent's exact compact legacy no-repeat acknowledgement. This response does not claim the requested session became committed. Replay always follows account locking and current authority revalidation, including after Catalog pruning or later Inventory changes.
 
 ## Data boundaries
 
