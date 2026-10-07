@@ -100,12 +100,14 @@
 
 	$effect(() => {
 		if (!positioned || containerWidth <= 0 || endRow < startRow) return;
-		onRangeChange?.({
+		const range: CatalogRange = {
 			start: startRow * cols,
 			anchor: Math.floor(visibleTop / rowHeight) * cols,
 			end: Math.min(itemCount, (endRow + 1) * cols, startRow * cols + 199),
 			direction
-		});
+		};
+		// The caller publishes reactive Window state. Subscribe only to geometry here.
+		untrack(() => onRangeChange?.(range));
 	});
 
 	const measured = $derived(containerWidth > 0 && viewportHeight > 0);
