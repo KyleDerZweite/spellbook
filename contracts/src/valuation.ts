@@ -1,4 +1,6 @@
 import type { AuthUser } from './auth.ts';
+// Foil selects Scryfall eur_foil with an explicit foil finish, even alongside etched.
+// Etched-only printings are unsupported; this API does not accept an etched request.
 export type PriceFinish = 'nonfoil' | 'foil';
 export type PriceRequest = { printingId: string; finish: PriceFinish };
 export type PriceUnknownReason =

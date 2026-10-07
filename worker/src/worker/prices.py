@@ -9,7 +9,7 @@ from decimal import Decimal
 from urllib.parse import urlsplit
 from uuid import UUID
 
-EXTRACTOR_VERSION = 1
+EXTRACTOR_VERSION = 2
 MAPPING_VERSION = 1
 LAYOUTS = {"normal", "transform", "modal_dfc", "split", "adventure", "flip"}
 LINK_HOSTS = {
@@ -164,7 +164,7 @@ def project_printing(raw: dict) -> dict:
     amounts = {"nonfoil": decimal(prices.get("eur")), "foil": decimal(prices.get("eur_foil"))}
     supported = {
         "nonfoil": "nonfoil" in finishes,
-        "foil": "foil" in finishes and "etched" not in finishes,
+        "foil": "foil" in finishes,
     }
     return {
         "id": identity["id"],

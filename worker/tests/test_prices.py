@@ -57,6 +57,15 @@ def test_explicit_empty_finishes_are_valid_unknown_availability():
     assert result["variant_key"] is None
 
 
+def test_explicit_foil_with_etched_uses_typed_foil_price_without_changing_identity():
+    card = dict(sample(), finishes=["nonfoil", "foil", "etched"], prices={"eur_foil": "0.005"})
+    result = project_printing(card)
+    assert result["supported"]["foil"] is True
+    assert result["amounts"]["foil"] == "0.005"
+    assert result["identity"]["finishes"] == ["nonfoil", "foil", "etched"]
+    assert project_printing(dict(card, finishes=["etched"]))["supported"]["foil"] is False
+
+
 @pytest.mark.parametrize(
     "change",
     [
