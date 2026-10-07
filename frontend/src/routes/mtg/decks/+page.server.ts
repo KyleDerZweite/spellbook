@@ -190,7 +190,7 @@ export const actions = {
 		try {
 			const deck = await updateDeck(locals.user!, patch);
 			if (!deck) return fail(404, { message: 'Deck not found.' });
-			return { success: true, message: 'Deck details saved.' };
+			return { success: true, message: 'Deck details saved.', savedDetails: deck };
 		} catch (cause) {
 			if (cause instanceof DescriptionConflictError)
 				return fail(409, { message: cause.message, conflict: cause.latest, detailsDraft });

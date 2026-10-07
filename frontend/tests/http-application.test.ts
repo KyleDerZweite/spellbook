@@ -843,6 +843,41 @@ test('built HTTP application preserves public Catalog and local account journeys
 				const searchHtml = await nativeSearch.text();
 				assert.match(searchHtml, /aria-label="Add Sol Ring"/);
 				assert.match(searchHtml, /<select[^>]*name="role"/);
+				const saveDescription = (text: string, revision: string, base: string) =>
+					fetch(`${origin}/mtg/decks?/updateDeck&deck=${deckId}&flow=edit`, {
+						method: 'POST',
+						redirect: 'manual',
+						headers: {
+							cookie,
+							origin,
+							accept: 'application/json',
+							'x-sveltekit-action': 'true',
+							'content-type': 'application/x-www-form-urlencoded'
+						},
+						body: new URLSearchParams({
+							deckId,
+							name: 'Native UI deck',
+							format: 'Modern',
+							description: text,
+							nameBase: 'Native UI deck',
+							formatBase: 'Modern',
+							descriptionBase: base,
+							descriptionRevision: revision
+						})
+					});
+				const firstDetails = await saveDescription('Committed A', '0', 'Native saved description');
+				assert.equal(firstDetails.status, 200);
+				const firstResult = await firstDetails.json();
+				const values = JSON.parse(firstResult.data);
+				const originalSaved = values[values[0].savedDetails];
+				assert.equal(values[originalSaved.id], deckId);
+				assert.equal(values[originalSaved.description], 'Committed A');
+				assert.equal(values[originalSaved.descriptionRevision], '1');
+				assert.equal((await saveDescription('Newer B', '1', 'Committed A')).status, 200);
+				assert.equal((await saveDescription('Intervening remote C', '2', 'Newer B')).status, 200);
+				assert.equal((await saveDescription('Local D keeps own base', '2', 'Newer B')).status, 409);
+				// Later changes must not alter the authoritative acknowledgement for Save A.
+				assert.equal(values[originalSaved.descriptionRevision], '1');
 				const requestId = randomUUID();
 				const invalidText = 'X'.repeat(100001);
 				const importFailure = await post(`/mtg/decks?/previewImport&deck=${deckId}&flow=import`, {

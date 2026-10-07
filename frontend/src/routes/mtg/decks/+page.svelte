@@ -3,6 +3,11 @@
 	import { storedCardDocument } from '#lib/mtg/stored-card.ts';
 	import type { CardDocument } from '#lib/search/types.ts';
 	import { untrack, onDestroy } from 'svelte';
+	import {
+		DeckSaveLifecycle,
+		type DeckEditor,
+		type DeckSubmission
+	} from '#lib/decks/save-lifecycle.ts';
 	import Button from '#lib/components/ui/button/Button.svelte';
 	import WorkspaceHeader from '#lib/components/layout/WorkspaceHeader.svelte';
 	import DeckEntries from '#lib/components/decks/DeckEntries.svelte';
@@ -37,6 +42,29 @@
 		{ value: 'companion', label: 'Companion' }
 	];
 	let { data, form }: PageProps = $props();
+	const saveLifecycle = untrack(
+		() => new DeckSaveLifecycle(data.user?.accountId ?? '', data.selectedDeckId, data.flow)
+	);
+	function nativeEditor(flow: string): DeckEditor | undefined {
+		return flow === 'create'
+			? 'create'
+			: flow === 'edit'
+				? 'details'
+				: flow === 'import'
+					? 'import'
+					: flow === 'delete'
+						? 'delete'
+						: undefined;
+	}
+	const initialNativeEditor = untrack(() => nativeEditor(data.flow));
+	if (initialNativeEditor) saveLifecycle.open(initialNativeEditor);
+	function openEditor(editor: Exclude<DeckEditor, 'inspector'>) {
+		saveLifecycle.open(editor);
+		if (editor === 'create') createOpen = true;
+		if (editor === 'details') editOpen = true;
+		if (editor === 'import') importOpen = true;
+		if (editor === 'delete') deleteOpen = true;
+	}
 	let createOpen = $state(false);
 	let createTrigger = $state<HTMLElement | null>(null);
 	let searchTrigger = $state<HTMLElement | null>(null);
@@ -150,6 +178,7 @@
 	let removed = $state<(typeof data.deckCards)[number] | null>(null);
 	const inspectedEntry = $derived(data.deckCards.find((card) => card.id === inspectedEntryId));
 	async function inspect(card: CardDocument, entry?: (typeof data.deckCards)[number]) {
+		saveLifecycle.open('inspector', entry?.id ?? card.id);
 		inspected = card;
 		inspectedEntryId = entry?.id ?? null;
 		inspectorQuantity = entry?.quantity ?? addQuantity;
@@ -279,9 +308,38 @@
 	function openCreate(event: MouseEvent) {
 		event.preventDefault();
 		createTrigger = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
-		createOpen = true;
+		openEditor('create');
 	}
+	let saveAccount = untrack(() => data.user?.accountId ?? '');
+	$effect(() => {
+		const accountId = data.user?.accountId ?? '';
+		if (saveAccount !== accountId) {
+			pendingRequests.clear();
+			importRequestId = '';
+			saveAccount = accountId;
+		}
+		if (saveLifecycle.setScope(data.user?.accountId ?? '', data.selectedDeckId, data.flow)) {
+			busy = false;
+			saveError = '';
+			saveStatus = '';
+			createOpen = false;
+			editOpen = false;
+			importOpen = false;
+			deleteOpen = false;
+			inspected = null;
+			const editor = nativeEditor(data.flow);
+			if (editor) saveLifecycle.open(editor);
+		}
+	});
+	$effect(() => {
+		if (!createOpen && data.flow !== 'create') saveLifecycle.close('create');
+		if (!editOpen && data.flow !== 'edit') saveLifecycle.close('details');
+		if (!importOpen && data.flow !== 'import') saveLifecycle.close('import');
+		if (!deleteOpen && data.flow !== 'delete') saveLifecycle.close('delete');
+		if (!inspected) saveLifecycle.close('inspector');
+	});
 	onDestroy(() => {
+		saveLifecycle.destroy();
 		searchController?.abort();
 		ownershipController?.abort();
 	});
@@ -290,11 +348,27 @@
 		saveStatus = 'Could not confirm the save. Try again.';
 	}
 
-	const save: SubmitFunction = ({ formData, action: target, cancel }) => {
+	function isCurrentSave(submission: DeckSubmission): boolean {
+		return (
+			saveLifecycle.isCurrent(submission) &&
+			data.user?.accountId === submission.scope.accountId &&
+			data.selectedDeckId === submission.scope.deckId &&
+			data.flow === submission.scope.flow
+		);
+	}
+
+	const save: SubmitFunction = ({ formData, formElement, action: target, cancel }) => {
 		if (busy) {
 			cancel();
 			return;
 		}
+		const operation =
+			[...target.searchParams.keys()].find((key) => key.startsWith('/'))?.slice(1) ?? '';
+		const submission = saveLifecycle.capture(
+			operation,
+			String(formData.get('entryId') || formData.get('catalogCardId') || ''),
+			formElement === inspectorForm
+		);
 		busy = true;
 		saveError = '';
 		saveStatus = 'Saving…';
@@ -337,20 +411,27 @@
 
 		return async ({ result, update }) => {
 			try {
+				if (!isCurrentSave(submission)) return;
 				if (result.type === 'error') {
 					reportUnconfirmedSave();
 					return;
 				}
-				await update({ reset: false });
+				const savedDetails = result.type === 'success' ? result.data?.savedDetails : undefined;
+				if (
+					!(await saveLifecycle.refresh(submission, () => update({ reset: false }))) ||
+					!isCurrentSave(submission)
+				)
+					return;
 				if (result.type === 'success' || result.type === 'redirect') {
 					saveStatus = 'Saved';
 					for (const [payload, id] of pendingRequests)
 						if (id === savedRequestId) pendingRequests.delete(payload);
 					if (removedCard) {
 						removed = removedCard;
-						inspected = null;
+						if (saveLifecycle.canClose(submission, 'inspector')) inspected = null;
 					}
 					if (
+						saveLifecycle.canClose(submission, 'inspector') &&
 						submittedInspector &&
 						inspectedEntryId === submittedInspector.id &&
 						inspectorQuantity === submittedInspector.quantity &&
@@ -360,24 +441,39 @@
 					)
 						inspected = null;
 					if (target.searchParams.has('/addCard') && formData.get('undo')) removed = null;
-					createOpen = false;
-					if (
-						!submittedDetails ||
-						(nameDraft === submittedDetails.name &&
-							formatDraft === submittedDetails.format &&
-							descriptionDraft === submittedDetails.description)
-					)
+					if (saveLifecycle.canClose(submission, 'create')) createOpen = false;
+					const unchangedDetails =
+						submittedDetails &&
+						nameDraft === submittedDetails.name &&
+						formatDraft === submittedDetails.format &&
+						descriptionDraft === submittedDetails.description;
+					const savedBase = saveLifecycle.savedDetails(submission, savedDetails);
+					if (savedBase && submittedDetails) {
+						nameBase = savedBase.name;
+						formatBase = savedBase.format;
+						descriptionBase = savedBase.description;
+						descriptionBaseRevision = savedBase.descriptionRevision;
+						if (nameDraft === submittedDetails.name) nameDraft = savedBase.name;
+						if (formatDraft === submittedDetails.format) formatDraft = savedBase.format;
+						if (descriptionDraft === submittedDetails.description)
+							descriptionDraft = savedBase.description;
+					}
+					if (savedBase && saveLifecycle.canClose(submission, 'details') && unchangedDetails)
 						editOpen = false;
-					deleteOpen = false;
-					if (target.searchParams.has('/commitImport') && importText.trim() === importRequestText) {
+					if (saveLifecycle.canClose(submission, 'delete')) deleteOpen = false;
+					if (
+						saveLifecycle.canClose(submission, 'import') &&
+						importText.trim() === importRequestText
+					) {
 						importOpen = false;
 						importText = '';
 						importRequestId = '';
 					}
 				}
 			} catch {
-				reportUnconfirmedSave();
+				if (isCurrentSave(submission)) reportUnconfirmedSave();
 			} finally {
+				if (!isCurrentSave(submission)) return;
 				if (result.type === 'failure') saveStatus = 'Could not save. Try again.';
 				busy = false;
 			}
@@ -407,15 +503,15 @@
 						iconOnly
 						bind:triggerRef={actionsTrigger}
 						items={[
-							{ label: 'New deck', onSelect: () => (createOpen = true) },
-							{ label: 'Edit details', onSelect: () => (editOpen = true) },
-							{ label: 'Import decklist', onSelect: () => (importOpen = true) },
+							{ label: 'New deck', onSelect: () => openEditor('create') },
+							{ label: 'Edit details', onSelect: () => openEditor('details') },
+							{ label: 'Import decklist', onSelect: () => openEditor('import') },
 							{
 								label: 'Export Arena',
 								href: `/mtg/decks/${selectedDeck.id}/export`,
 								download: true
 							},
-							{ label: 'Delete deck', destructive: true, onSelect: () => (deleteOpen = true) }
+							{ label: 'Delete deck', destructive: true, onSelect: () => openEditor('delete') }
 						]}
 						onCloseAutoFocus={(event) => {
 							if (createOpen || editOpen || importOpen || deleteOpen) event.preventDefault();
