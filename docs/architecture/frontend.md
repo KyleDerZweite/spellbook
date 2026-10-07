@@ -66,7 +66,7 @@ Settings email, card fields/artwork and an open avatar selection update only whe
 
 ## Inventory bounded loading
 
-Inventory now loads revisioned backend pages instead of a full read snapshot. Filtering, ordering, matching counts and group metadata cover the complete owned dataset. Native GET filters and one-based Previous/Next links provide bounded no-JavaScript navigation; enhanced rendering loads visible and adjacent ranges in the existing ScrollArea viewport. The [query contract](./application-contract.md#inventory-query-contract) owns ordering and consistency, and the [state contract](./application-contract.md#frontend-state-and-shared-controls) owns cache, drafts and focus. Browser acceptance and representative scale evidence must be tied to the final implementation before claiming scalability. Saved-state SSE and compact mutation responses remain planned.
+Inventory now loads revisioned backend pages instead of a full read snapshot. Filtering, ordering, matching counts and group metadata cover the complete owned dataset. Native GET filters and one-based Previous/Next links provide bounded no-JavaScript navigation; enhanced rendering loads visible and adjacent ranges in the existing ScrollArea viewport. The [query contract](./application-contract.md#inventory-query-contract) owns ordering and consistency, and the [state contract](./application-contract.md#frontend-state-and-shared-controls) owns cache, drafts and focus. Browser acceptance and representative scale evidence must be tied to the final implementation before claiming scalability. Inventory workspace synchronization and compact mutation responses remain planned.
 
 ## Runtime compatibility
 
