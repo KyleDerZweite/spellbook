@@ -421,11 +421,6 @@ button:disabled {
 		animation: foil-shimmer 1.5s ease-in-out infinite;
 	}
 
-	.workspace-header {
-		background: var(--color-surface);
-		box-shadow: 0 1px 0 #ffffff03;
-	}
-
 	.filter-overlay {
 		background: #080c12b3;
 		backdrop-filter: blur(2px);
