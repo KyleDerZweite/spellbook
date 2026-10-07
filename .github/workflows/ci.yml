@@ -95,7 +95,6 @@ jobs:
       TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/spellbook_test
       SCAN_WORKER_URL: http://127.0.0.1:5227
       SCAN_STORAGE_DRIVER: local
-      SCAN_LOCAL_STORAGE_DIR: ${{ runner.temp }}/scan-artifacts
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -115,6 +114,7 @@ jobs:
       - run: uv sync --project ../scan-worker --frozen --extra dev --python 3.14.8
       - name: Start the actual Scan worker scaffold
         run: |
+          printf 'SCAN_LOCAL_STORAGE_DIR=%s/scan-artifacts\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
           uv run --project ../scan-worker --no-sync uvicorn scan_worker.main:app --host 127.0.0.1 --port 5227 > ../.scan-worker-test.log 2>&1 &
           echo "$!" > ../.scan-worker-test.pid
           for attempt in {1..50}; do
