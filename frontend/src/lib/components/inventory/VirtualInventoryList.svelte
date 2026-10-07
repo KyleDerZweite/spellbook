@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { tick, untrack } from 'svelte';
+	import { restoreInitialBrowsePosition } from '#lib/browsing/viewport.ts';
 	import type { InventoryEntry } from '@spellbook/contracts/inventory.ts';
 	import { inventoryRowSlots, type InventoryRowSlot } from '#lib/inventory/rows.ts';
 	let {
@@ -142,7 +143,15 @@
 			focusedSnapshot = null;
 			measurementVersion++;
 			scrollTop = initialIndex * estimate;
-			void scrollToIndex(initialIndex);
+			if (initialIndex > 0) void scrollToIndex(initialIndex);
+			else {
+				const owner = queryKey;
+				void tick().then(() => {
+					if (!viewport || queryKey !== owner) return;
+					restoreInitialBrowsePosition(window, 0, 0, 0);
+					readGeometry();
+				});
+			}
 		});
 	});
 	$effect(() => {

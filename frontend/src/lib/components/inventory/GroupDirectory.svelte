@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack, tick } from 'svelte';
+	import { restoreInitialBrowsePosition } from '#lib/browsing/viewport.ts';
 	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
 	import type { InventoryGroup } from '#lib/types/legacy.ts';
 	import { groupDirectoryIndexes } from '#lib/inventory/groupRows.ts';
@@ -113,7 +114,14 @@
 		window.addEventListener('scroll', geometry, { passive: true });
 		window.addEventListener('resize', geometry, { passive: true });
 		element.addEventListener('focusin', focus);
-		void scrollToIndex(untrack(() => initialIndex));
+		const index = untrack(() => initialIndex);
+		if (index > 0) void scrollToIndex(index);
+		else
+			void tick().then(() => {
+				if (!mounted || list !== element) return;
+				restoreInitialBrowsePosition(window, 0, 0, 0);
+				geometry();
+			});
 		return () => {
 			window.removeEventListener('scroll', geometry);
 			window.removeEventListener('resize', geometry);

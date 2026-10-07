@@ -7,6 +7,7 @@
 	import WorkspaceHeader from '#lib/components/layout/WorkspaceHeader.svelte';
 	import Button from '#lib/components/ui/button/Button.svelte';
 	import NativeRangeNavigation from '#lib/components/ui/pagination/NativeRangeNavigation.svelte';
+	import { restoreInitialBrowsePosition } from '#lib/browsing/viewport.ts';
 	import {
 		parseLazyBrowsePagination as parseBrowsePagination,
 		browsePaginationHref,
@@ -466,7 +467,8 @@
 		// The hydrated child is created in this flush; reading its binding before tick loses the native offset.
 		await tick();
 		if (!isCurrent()) return;
-		if (groupDirectory) await groupList?.scrollToIndex(offset, 0, isCurrent);
+		if (offset === 0) restoreInitialBrowsePosition(globalThis.window, 0, 0, 0);
+		else if (groupDirectory) await groupList?.scrollToIndex(offset, 0, isCurrent);
 		else await virtualList?.scrollToIndex(offset, 0, isCurrent);
 	}
 

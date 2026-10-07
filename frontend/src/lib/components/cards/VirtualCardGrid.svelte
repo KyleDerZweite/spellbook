@@ -1,7 +1,7 @@
 <script lang="ts">
 	import {
 		measureBrowseViewport,
-		restoreBrowsePosition,
+		restoreInitialBrowsePosition,
 		browseScrollTop,
 		type BrowseViewport
 	} from '#lib/browsing/viewport.ts';
@@ -127,9 +127,9 @@
 				browseScrollTop(host) +
 				wrapper.getBoundingClientRect().top -
 				(host === window ? 0 : (host as HTMLElement).getBoundingClientRect().top);
-			const top = initialScrollTop || wrapperTop + Math.floor(anchorIndex / cols) * rowHeight;
+			const anchorTop = wrapperTop + Math.floor(anchorIndex / cols) * rowHeight;
 			const frame = requestAnimationFrame(() => {
-				restoreBrowsePosition(host, top, null, feedback);
+				restoreInitialBrowsePosition(host, initialScrollTop, anchorIndex, anchorTop, feedback);
 				const geometry = measureBrowseViewport(host, wrapper);
 				visibleTop = geometry.visibleTop;
 				positioned = true;

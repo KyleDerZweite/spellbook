@@ -58,3 +58,15 @@ export function restoreBrowsePosition(
 		} else target.scrollIntoView({ block: 'start', behavior: 'instant' });
 	} else if (top) scrollBrowseViewport(host, top);
 }
+
+/** Initial range zero keeps the workspace context visible; explicit entry reanchors remain separate. */
+export function restoreInitialBrowsePosition(
+	host: RestorationViewport,
+	savedTop: number,
+	anchorIndex: number,
+	anchorTop: number,
+	feedback: RestorationTarget | null = null
+): void {
+	if (feedback) restoreBrowsePosition(host, savedTop, null, feedback);
+	else scrollBrowseViewport(host, savedTop || (anchorIndex > 0 ? anchorTop : 0));
+}
