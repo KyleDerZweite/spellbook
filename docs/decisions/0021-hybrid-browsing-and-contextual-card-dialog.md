@@ -16,7 +16,7 @@ Current Inventory and Search use bounded virtual windows with 50-entry pages, re
 
 Select 100/200/500/Lazy for both workspaces, default 200, URL-addressed pagination and continuous Lazy loading. Select one native browser page scrollbar outside modals, with bounded internal Lazy rendering. Active modals retain installed Bits standard body locking and focus trapping, with one native overflow viewport for long content. SearchOverlay retains its modal/background history and uses that viewport; full Search uses the window. No nested Inspector-column, results or list scrollers are added. Select one context-aware Card dialog for Details, Inventory Edit and Add another printing. Inventory table quantity becomes read-only. Browsing Add to deck is Primary, Add to Inventory Secondary and visually smaller with touch access; Scan review's Accept to Inventory remains Primary. Deck quantity editing remains unchanged.
 
-The product owner defines interactions; Frontend defines module interfaces, request ownership and acceptance. Select a backward-compatible Inventory/Catalog search limit expansion to 500 while preserving legacy omitted-limit defaults. This is planned work, requiring real integration and scale checks. No new printing endpoint, mutation command, dependency or framework is selected.
+The product owner defines interactions; Frontend defines module interfaces, request ownership and acceptance. The backward-compatible Inventory/Catalog search limit expansion to 500 is implemented with legacy omitted-limit defaults preserved. Browser adoption and representative scale checks remain separate work. No new printing endpoint, mutation command, dependency or framework is selected.
 
 ## Partial supersession
 

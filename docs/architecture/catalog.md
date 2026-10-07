@@ -42,7 +42,7 @@ Authenticated `GET /api/mobile/v1/mtg/search` supports the existing query and pa
 
 ## Browser result window
 
-This section describes the current 50-result virtual window. The [selected Frontend replacement](./frontend.md#selected-hybrid-browsing-contract) adds 100/200/500/Lazy browser modes and native window scrolling. Its planned search maximum of 500 preserves the legacy API default and needs GET/POST/OpenAPI, generation and full-catalog verification. Current APIs remain capped at 100 until implemented.
+This section describes the current 50-result virtual window. The [selected Frontend replacement](./frontend.md#selected-hybrid-browsing-contract) adds 100/200/500/Lazy browser modes and native window scrolling. The API maximum of 500 is implemented with the legacy default preserved. Browser adoption and full-catalog rendered verification remain separate work.
 
 The browser grid represents the full result total with absolute card indexes. [CatalogWindow](../../frontend/src/lib/search/catalogWindow.ts) loads 50-result pages for the visible range and adjacent ranges, with up to three requests in flight and a planning window of 12 pages. It retains at most four search contexts and 20 pages across them in memory. Evicted ranges load again when needed; scrolling does not accumulate the whole catalog in memory. This cache holds API result pages, not image files. The app has no service worker or offline image cache, so card images require access to their source URLs.
 
