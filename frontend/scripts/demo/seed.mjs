@@ -1,8 +1,8 @@
-import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { verifyBundle, bundleBatches } from './catalog-bundle.mjs';
 import pg from 'pg';
+import { insertPrecon } from './precon.mjs';
 import { hashPassword } from '../../src/lib/server/auth/password.ts';
 
 /** Caller owns BEGIN/COMMIT: Catalog and any fresh starter data publish atomically. */
@@ -68,15 +68,19 @@ export async function publishDemoCatalog(client, bundle) {
 	);
 }
 
-export async function seedDemo() {
-	const url = process.env.DATABASE_URL;
+export function createDemoPool(url) {
 	if (!url || !/_(demo|design)$/.test(new URL(url).pathname))
 		throw new Error(
 			'Demo seed requires DATABASE_URL with a database name ending in _demo or _design.'
 		);
+	return new pg.Pool({ connectionString: url });
+}
+
+export async function seedDemo() {
+	const url = process.env.DATABASE_URL;
 	const reset = process.argv.includes('--reset-users');
+	const pool = createDemoPool(url);
 	const bundle = await verifyBundle();
-	const pool = new pg.Pool({ connectionString: url });
 	const client = await pool.connect();
 	try {
 		await client.query('BEGIN');
@@ -94,7 +98,6 @@ export async function seedDemo() {
 			process.exitCode = 0;
 		}
 		if (reset || !users.some((user) => user.username === 'demo')) {
-			const cards = JSON.parse(await readFile(new URL('./cards.json', import.meta.url), 'utf8'));
 			const account = randomUUID();
 			await client.query("INSERT INTO user_profiles(account_id,username) VALUES($1,'demo')", [
 				account
@@ -103,38 +106,6 @@ export async function seedDemo() {
 				"INSERT INTO local_credentials(account_id,username,password_hash) VALUES($1,'demo',$2)",
 				[account, await hashPassword('demo')]
 			);
-			const deck = randomUUID();
-			await client.query(
-				"INSERT INTO decks(id,account_id,game,name,format,description) VALUES($1,$2,'mtg','Elven council','Commander','Demo deck')",
-				[deck, account]
-			);
-			const commander = cards.find((card) => card.name === 'Lathril, Blade of the Elves');
-			const forest = cards.find((card) => card.name === 'Forest');
-			const solRing = cards.find((card) => card.name === 'Sol Ring');
-			const alternate = cards.find((card) => card.name === 'Sol Ring' && card.id !== solRing.id);
-			const spells = [
-				...cards
-					.filter((card) => card !== commander && card !== forest && card.name !== 'Sol Ring')
-					.slice(0, 63),
-				solRing
-			];
-			for (const d of [commander, ...spells, forest]) {
-				await client.query(
-					"INSERT INTO deck_cards(id,deck_id,account_id,game,catalog_card_id,canonical_card_id,name,set_code,image_uri,quantity,role) VALUES($1,$2,$3,'mtg',$4,$5,$6,$7,$8,$9,$10)",
-					[
-						randomUUID(),
-						deck,
-						account,
-						d.id,
-						d.oracle_id,
-						d.name,
-						d.set_code,
-						d.image_uri,
-						d === forest ? 35 : 1,
-						d === commander ? 'commander' : 'main'
-					]
-				);
-			}
 			await client.query(
 				"INSERT INTO decks(id,account_id,game,name,format) VALUES($1,$2,'mtg','Next brew','Commander')",
 				[randomUUID(), account]
@@ -145,24 +116,7 @@ export async function seedDemo() {
 				account
 			]);
 			await client.query('SELECT id FROM inventories WHERE id=$1 FOR UPDATE', [inventory]);
-			for (const [i, d] of [commander, ...spells.slice(0, 40), alternate, forest].entries()) {
-				await client.query(
-					"INSERT INTO inventory_cards(id,inventory_id,account_id,game,catalog_card_id,canonical_card_id,name,set_code,image_uri,quantity,finish,condition,spellbook_position,notes) VALUES($1,$2,$3,'mtg',$4,$5,$6,$7,$8,$9,'nonfoil','NM',$10,'')",
-					[
-						randomUUID(),
-						inventory,
-						account,
-						d.id,
-						d.oracle_id,
-						d.name,
-						d.set_code,
-						d.image_uri,
-						d === forest ? 30 : 1,
-						i
-					]
-				);
-			}
-			await client.query('UPDATE inventories SET revision=revision+1 WHERE id=$1', [inventory]);
+			await insertPrecon(client, account, inventory);
 			await client.query('COMMIT');
 			console.log('Demo ready. Username: demo. Password: demo.');
 		}

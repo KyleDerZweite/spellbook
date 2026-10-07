@@ -39,7 +39,11 @@
 		href={commanderDeck.sourceURL}
 		target="_blank"
 		rel="noreferrer"
-		aria-label={'View ' + commanderDeck.name + ' on Archidekt (opens in a new tab)'}
+		aria-label={'View ' +
+			commanderDeck.name +
+			' on ' +
+			commanderDeck.source +
+			' (opens in a new tab)'}
 	>
 		{commanderDeck.name}
 	</a>
@@ -144,7 +148,7 @@
 		<div class="deck-credit">
 			<span class="credit">{commanderDeck.creator}</span>
 			<a class="source" href={commanderDeck.sourceURL} target="_blank" rel="noreferrer"
-				>Archidekt <span aria-hidden="true">↗</span></a
+				>{commanderDeck.source} <span aria-hidden="true">↗</span></a
 			>
 		</div>
 	</div>
