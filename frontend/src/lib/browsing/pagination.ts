@@ -21,13 +21,23 @@ function pagination(pageSize: BrowsePageSize, page: number, maxOffset: number): 
 /** Normalize browser preferences independently. Backend API validation is unchanged. */
 export function parseBrowsePagination(
 	query: URLSearchParams,
-	maxOffset = Number.MAX_SAFE_INTEGER
+	maxOffset = Number.MAX_SAFE_INTEGER,
+	defaultPageSize: BrowsePageSize = 200
 ): BrowsePagination {
 	if (!Number.isSafeInteger(maxOffset) || maxOffset < 0)
 		throw new RangeError('Invalid offset bound.');
 	const sizes = query.getAll('pageSize');
-	const size = sizes.length === 1 ? sizes[0] : '200';
-	const pageSize = size === '100' ? 100 : size === '500' ? 500 : size === 'lazy' ? size : 200;
+	const size = sizes.length === 1 ? sizes[0] : String(defaultPageSize);
+	const pageSize =
+		size === '100'
+			? 100
+			: size === '200'
+				? 200
+				: size === '500'
+					? 500
+					: size === 'lazy'
+						? size
+						: defaultPageSize;
 	const pages = query.getAll('page');
 	const rawPage = pages.length === 1 ? pages[0] : '1';
 	const page = /^[0-9]+$/.test(rawPage) ? Number(rawPage) : 1;

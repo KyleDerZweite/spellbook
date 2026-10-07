@@ -52,7 +52,7 @@ describe('Search navigation', () => {
 			legalities: ['legacy']
 		});
 		expect(searchHref(parsed)).toBe(
-			'/mtg/search?q=elf&color=G&rarity=rare&type=Creature&legal=legacy&pageSize=200&page=1'
+			'/mtg/search?q=elf&color=G&rarity=rare&type=Creature&legal=legacy&pageSize=lazy&page=1'
 		);
 		expect(searchHref({ query: '', filters: {} })).toBe('/mtg/search');
 	});

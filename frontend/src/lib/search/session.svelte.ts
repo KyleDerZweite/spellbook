@@ -3,11 +3,11 @@ import { CatalogWindow, type CatalogWindowSnapshot, type CatalogRange } from './
 import { SearchFilterState } from './filters.svelte.ts';
 import { buildSearchContextKey, type SearchContextInput } from './requestContext.ts';
 import { searchHref, SEARCH_MAX_OFFSET, searchPagination, type SearchInput } from './navigation.ts';
-import { parseBrowsePagination, type BrowsePagination } from '#lib/browsing/pagination.ts';
+import type { BrowsePagination } from '#lib/browsing/pagination.ts';
 import type { CardDocument, SearchResult } from './types.ts';
 
 const SEARCH_SESSION = Symbol('search-session');
-const initialPagination = () => parseBrowsePagination(new URLSearchParams(), SEARCH_MAX_OFFSET);
+const initialPagination = () => searchPagination();
 export type SearchHistoryIntent = 'replace' | 'push';
 
 /** One browser/layout instance owns Search, never a server-global mutable singleton. */

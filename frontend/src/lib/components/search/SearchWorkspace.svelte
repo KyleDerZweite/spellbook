@@ -85,7 +85,7 @@
 	let windowViewport: Window | null = $state(null);
 	const host = $derived(viewport ?? windowViewport);
 	const input = $derived(!mounted && serverInput ? serverInput : session.input);
-	const paging = $derived(input.pagination ?? searchPagination(200, 1));
+	const paging = $derived(input.pagination ?? searchPagination());
 	const snapshot = $derived(session.snapshot);
 	const total = $derived(!mounted ? (serverResult?.estimatedTotalHits ?? 0) : snapshot.total);
 	const facets = $derived(!mounted ? (serverResult?.facets ?? null) : snapshot.facets);

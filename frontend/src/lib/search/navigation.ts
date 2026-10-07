@@ -2,6 +2,7 @@ import { MANA_COLORS, RARITIES, CARD_TYPES, LEGALITY_FORMATS } from './filter-op
 import type { CatalogFilters } from './types.ts';
 import { parseBrowsePagination, type BrowsePagination } from '#lib/browsing/pagination.ts';
 
+export const SEARCH_DEFAULT_PAGE_SIZE = 'lazy';
 export const SEARCH_MAX_OFFSET = 1_000_000;
 
 export interface SearchInput {
@@ -31,7 +32,8 @@ export function parseSearchUrl(url: {
 					url.searchParams.getAll(key).map((value) => [key, value])
 				)
 			),
-			SEARCH_MAX_OFFSET
+			SEARCH_MAX_OFFSET,
+			SEARCH_DEFAULT_PAGE_SIZE
 		),
 		filters: {
 			colorIdentity: values(url.searchParams, 'color', MANA_COLORS),
@@ -65,11 +67,12 @@ export function isPrimaryClick(event: MouseEvent): boolean {
 }
 
 export function searchPagination(
-	pageSize: BrowsePagination['pageSize'],
-	page: number
+	pageSize: BrowsePagination['pageSize'] = SEARCH_DEFAULT_PAGE_SIZE,
+	page = 1
 ): BrowsePagination {
 	return parseBrowsePagination(
 		new URLSearchParams({ pageSize: String(pageSize), page: String(page) }),
-		SEARCH_MAX_OFFSET
+		SEARCH_MAX_OFFSET,
+		SEARCH_DEFAULT_PAGE_SIZE
 	);
 }
