@@ -10,7 +10,7 @@
 
 ## Context
 
-Slice 3 implements revisioned bounded reads, parent-lock participation, ICU ordering and browser window/list mechanisms. Slice 4 implements compact original mutation receipts and independent Notes protection; Deck Description protection is implemented in slice 5. Slice 4 rendered acceptance remains separately pending owner verification. The declared local browser and representative-scale acceptance is recorded with [slice 3](https://github.com/KyleDerZweite/spellbook/issues/176), separately from this accepted decision.
+Slice 3 implements revisioned bounded reads, parent-lock participation, ICU ordering and browser window/list mechanisms. Slice 4 implements compact original mutation receipts and independent Notes protection; Deck Description protection is implemented in slice 5. [Slice 4](https://github.com/KyleDerZweite/spellbook/issues/177) records completed current-head mutation, rendered native/enhanced and representative-scale acceptance. The declared local browser and representative-scale acceptance is recorded with [slice 3](https://github.com/KyleDerZweite/spellbook/issues/176), separately from this accepted decision. These local measurements establish no cross-hardware latency guarantee.
 
 Full account snapshots, client-only filtering and unrelated position scans make large Inventory expensive. Paging without revision coherence can mix states. Retry deduplication alone does not return the original operation result after subsequent changes.
 
