@@ -10,7 +10,7 @@ This document owns source and classifier research. [Card grouping](../product/ca
 
 ## Existing application and comparable tools
 
-The current Worker publishes types, keywords and Oracle text, but not strategy classifications or Oracle Tags. Catalog-time inference could supply generic card traits. It cannot know the intended use in a later deck or a new account's custom category definition. Deck-specific primary selection needs a separate policy and may need deck context.
+The Worker now publishes Catalog types, keywords and Oracle text plus an independent complete Oracle Tags publication. [Category rules](../architecture/category-rules.md#implemented-starter-entry-decisions) owns the implemented deterministic starter primary selection. The source facts do not establish a deck's strategy or a later account's custom category meaning. Account rules, whole-deck categories and local combos remain later work. Jev remains a recorded prototype without production inference integration.
 
 [Archidekt's announcement](https://archidekt.com/news/4958603) describes automatic defaults derived from common user assignments within an allowlisted vocabulary. It does not publish its algorithm or dataset. Moxfield's [public repository](https://github.com/moxfield/moxfield-public) and first-party [tag feedback](https://moxfield.nolt.io/617) do not establish a public automatic strategy classifier. These sources do not establish a reproducible classifier for Spellbook.
 
