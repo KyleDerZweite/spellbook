@@ -83,6 +83,7 @@ def test_periodic_sync_never_substitutes_default_cards(tmp_path):
     with (
         patch("worker.main.load_config", return_value=config),
         patch("worker.main.CatalogPublisher"),
+        patch("worker.main.OptionalPricePublisher"),
         patch("worker.main.ScryfallClient"),
         patch("worker.main.wait_for_database"),
         patch("worker.main.sync_catalog") as sync,
@@ -101,6 +102,7 @@ def test_manual_failure_exits_unsuccessfully(tmp_path):
     with (
         patch("worker.main.load_config", return_value=config),
         patch("worker.main.CatalogPublisher"),
+        patch("worker.main.OptionalPricePublisher"),
         patch("worker.main.ScryfallClient"),
         patch("worker.main.wait_for_database"),
         patch("worker.main.sync_catalog", side_effect=ValueError("private")),
@@ -108,3 +110,22 @@ def test_manual_failure_exits_unsuccessfully(tmp_path):
     ):
         main()
     assert exc.value.code == 1
+
+
+def test_scryfall_failure_still_attempts_optional_sources_before_manual_exit(tmp_path):
+    config = WorkerConfig(
+        "postgresql://localhost/test", "all_cards", "manual", "fixture://api", tmp_path, True, True
+    )
+    with (
+        patch("worker.main.load_config", return_value=config),
+        patch("worker.main.CatalogPublisher"),
+        patch("worker.main.OptionalPricePublisher"),
+        patch("worker.main.ScryfallClient"),
+        patch("worker.main.wait_for_database"),
+        patch("worker.main.sync_catalog", side_effect=ValueError("private")),
+        patch("worker.main.sync_optional_sources", return_value=True) as optional,
+        pytest.raises(SystemExit) as failure,
+    ):
+        main()
+    assert failure.value.code == 1
+    optional.assert_called_once()

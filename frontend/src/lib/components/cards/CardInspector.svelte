@@ -404,6 +404,7 @@
 				printingId={activeCard.id}
 				entryId={activeCard.id === card.id ? inventoryEntryId : undefined}
 				{inventoryPriceRefreshKey}
+				historyEnabled={inventoryEntryId === undefined}
 			/>
 			{#if actions}{@render actions(activeCard)}
 			{:else if page.data.user}<CardQuickAdd

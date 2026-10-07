@@ -11,6 +11,7 @@ import psycopg
 from psycopg.types.json import Jsonb
 
 from worker.bulk import _iter_bulk_cards
+from worker.price_history import record_scryfall_history
 from worker.prices import EXTRACTOR_VERSION, MAPPING_VERSION, project_printing
 from worker.scryfall import BulkDataInfo
 from worker.transform import transform_card
@@ -58,7 +59,11 @@ class CatalogPublisher:
 
     def is_current(self, info: BulkDataInfo) -> bool:
         with self._connect() as conn:
-            return self._current_count(conn, info) is not None
+            current = self._current_count(conn, info) is not None
+            if current:
+                conn.execute("SELECT pg_advisory_xact_lock(%s, %s)", PUBLISH_LOCK)
+                record_scryfall_history(conn)
+            return current
 
     def record_failure(self, source: str, cause: Exception) -> None:
         # This transaction intentionally follows the failed publication rollback.
@@ -112,6 +117,7 @@ class CatalogPublisher:
             conn.execute("SELECT pg_advisory_xact_lock(%s, %s)", PUBLISH_LOCK)
             current = self._current_count(conn, info)
             if current is not None:
+                record_scryfall_history(conn)
                 return current
             generation, publication = uuid4(), uuid4()
             with path.open("rb") as payload:
@@ -188,6 +194,7 @@ class CatalogPublisher:
                     ),
                 ),
             )
+            record_scryfall_history(conn)
             conn.execute(
                 "DELETE FROM price_publications WHERE id NOT IN "
                 "(SELECT active_publication FROM price_state UNION "

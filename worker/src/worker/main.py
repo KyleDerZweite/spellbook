@@ -8,6 +8,8 @@ from pathlib import Path
 
 from worker.catalog import CatalogPublisher
 from worker.config import load_config
+from worker.optional_publication import OptionalPricePublisher
+from worker.optional_sync import sync_optional_sources
 from worker.scryfall import ScryfallClient
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -104,14 +106,20 @@ def main() -> None:
         log.error("Worker startup failed (%s)", type(exc).__name__)
         raise SystemExit(1) from None
     interval = sync_interval_seconds(config.sync_interval)
+    optional_publisher = OptionalPricePublisher(config.database_url)
     while True:
+        successful = True
         try:
             sync_catalog(scryfall, publisher, config.catalog_source, config.data_dir)
         except Exception as exc:
             log.error("Catalog synchronization failed (%s)", type(exc).__name__)
-            if interval is None:
-                raise SystemExit(1) from None
+            successful = False
+        # Always attempt enabled providers, even after a failed Scryfall refresh.
+        if not sync_optional_sources(config, optional_publisher):
+            successful = False
         if interval is None:
+            if not successful:
+                raise SystemExit(1) from None
             return
         time.sleep(interval)
 

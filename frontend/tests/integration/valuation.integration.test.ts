@@ -92,7 +92,10 @@ run('published exact references and private quantity coverage', () => {
 			matchedIdentity: { lang: 'en' }
 		});
 		const saved = structuredClone(frozen.evidence[0]);
-		frozen.response.publications[0].sourceTime = 'relabelled';
+		const responsePublication = frozen.response.publications[0];
+		if (responsePublication.timePrecision === 'Instant')
+			responsePublication.sourceTime = 'relabelled';
+		else responsePublication.sourceDate = 'relabelled';
 		frozen.response.results[0].links[0].url = 'https://evil.example';
 		if (frozen.response.results[0].kind === 'Known') frozen.response.results[0].amount = '99';
 		expect(frozen.evidence[0]).toEqual(saved);

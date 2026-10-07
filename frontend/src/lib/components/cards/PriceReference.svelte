@@ -1,24 +1,30 @@
 <script lang="ts">
+	import PriceHistory from './PriceHistory.svelte';
 	import Select from '#lib/components/ui/select/Select.svelte';
 	import { page } from '$app/state';
 	import { loadReferencePrice } from '#lib/valuation/read.ts';
 	import type {
 		PriceReference,
 		PriceFinish,
-		PricePublication
+		PriceSourceStatus
 	} from '@spellbook/contracts/valuation.ts';
 	import { formatReferenceEUR } from '#lib/valuation/money.ts';
 	let {
 		printingId,
 		entryId,
-		inventoryPriceRefreshKey
-	}: { printingId: string; entryId?: string; inventoryPriceRefreshKey?: string } = $props();
+		inventoryPriceRefreshKey,
+		historyEnabled = false
+	}: {
+		printingId: string;
+		entryId?: string;
+		inventoryPriceRefreshKey?: string;
+		historyEnabled?: boolean;
+	} = $props();
 	let requestGeneration = 0;
-	let publication: PricePublication | null = $state(null);
 	let finish: PriceFinish = $state('nonfoil'),
 		reference: PriceReference | null = $state(null),
 		quantity = $state(1),
-		health = $state(''),
+		health: PriceSourceStatus[] = $state([]),
 		loading = $state(false),
 		readError = $state(''),
 		retry = $state(0);
@@ -30,7 +36,8 @@
 		ReferenceExpired: 'The reference is more than seven days old.',
 		UnsupportedFinish: 'No exact reference for this finish.',
 		AmbiguousLanguageMapping: 'An English printing cannot be matched uniquely.',
-		MissingVariantEvidence: 'There is not enough variant evidence for an English reference.'
+		MissingVariantEvidence: 'There is not enough variant evidence for an English reference.',
+		AmbiguousSourceMapping: 'The provider identity cannot be matched uniquely.'
 	};
 	$effect(() => {
 		const selectedPrinting = printingId,
@@ -48,8 +55,7 @@
 		reference = null;
 		readError = '';
 		loading = true;
-		health = '';
-		publication = null;
+		health = [];
 		quantity = 1;
 		loadReferencePrice(
 			{ printingId: selectedPrinting, entryId: selectedEntry, finish: selectedFinish },
@@ -63,8 +69,7 @@
 					reference = first.reference;
 					quantity = first.quantity;
 				} else reference = first ?? null;
-				health = result.refreshStatus.kind;
-				publication = result.publications[0] ?? null;
+				health = result.sourceStatuses;
 			})
 			.catch((cause) => {
 				if (current())
@@ -110,10 +115,11 @@
 		</p>
 		{#if reference.kind === 'Known'}
 			<p class="text-text-muted">
-				{reference.measure === 'prices.eur_foil' ? 'Scryfall EUR foil' : 'Scryfall EUR'} · {reference.freshness ===
-				'Stale'
+				{reference.source} EUR · {reference.measure} · {reference.freshness === 'Stale'
 					? 'Stale reference'
-					: 'Fresh reference'} · Source {new Date(reference.sourceTime).toLocaleString()}
+					: 'Fresh reference'} · Source {reference.timePrecision === 'Instant'
+					? new Date(reference.sourceTime).toLocaleString()
+					: `${reference.sourceDate} (day precision)`}
 			</p>
 			{#if reference.provenance === 'EnglishFallback'}<p>
 					English printing reference · Same edition, collector number and variant
@@ -127,14 +133,28 @@
 					{copyLabel}{reference.freshness === 'Stale' ? ' (stale)' : ''}
 				</p>{/if}
 		{:else}<p class="text-text-muted">{reasons[reference.reason]}</p>
-			{#if publication}<p class="text-text-muted">
-					Scryfall EUR{reference.finish === 'foil' ? ' foil' : ''} source · {new Date(
-						publication.sourceTime
-					).toLocaleString()}
-				</p>{/if}
+
 			{#if entryId}<p class="text-text-muted">Coverage: 0 of {quantity} {copyLabel}</p>{/if}{/if}
-		{#if health === 'Failed'}<p class="text-text-muted">
-				Latest source refresh failed. Existing references keep their original source date.
+		{#each health as status}<p class="text-text-muted text-xs">
+				{status.source}: {status.kind === 'Failed'
+					? 'Latest refresh failed; original source age applies.'
+					: status.kind === 'Disabled'
+						? 'Disabled'
+						: status.kind === 'NeverAttempted'
+							? 'No successful publication'
+							: 'Published'}
+			</p>{/each}
+		{#if reference.kind === 'Known' && reference.timePrecision === 'Day'}<p
+				class="text-text-muted text-xs"
+			>
+				Freshness uses a conservative UTC day bound, evaluated {new Date(
+					reference.asOf
+				).toLocaleString()}.
+			</p>{/if}
+		{#if reference.kind === 'Known' && reference.source === 'MTGJSON'}<p
+				class="text-text-muted text-xs"
+			>
+				Upstream: Cardmarket. These sources are not independent confirmations.
 			</p>{/if}
 		{#if reference.links.length}<nav
 				class="mt-2 flex flex-wrap gap-3"
@@ -152,4 +172,5 @@
 			Market reference estimate. No condition discount or guaranteed sale amount.
 		</p>
 	{/if}
+	{#if historyEnabled}<PriceHistory {printingId} {finish} />{/if}
 </section>

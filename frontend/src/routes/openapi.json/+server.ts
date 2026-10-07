@@ -24,6 +24,45 @@ const quantity: Schema = { type: 'integer', minimum: 1 };
 const role: Schema = { enum: ['main', 'sideboard', 'commander', 'companion'] };
 const finish: Schema = { enum: ['nonfoil', 'foil'] };
 const condition: Schema = { enum: ['NM', 'LP', 'MP', 'HP', 'DMG'] };
+const priceSource: Schema = { enum: ['Scryfall', 'Cardmarket', 'MTGJSON'] };
+const priceAmount: Schema = {
+	type: 'string',
+	maxLength: 128,
+	pattern: '^(0|[1-9][0-9]*)(\\.[0-9]{1,18})?$'
+};
+const priceOrigins: Record<string, Schema>[] = [
+	{ source: { const: 'Scryfall' }, measure: { enum: ['prices.eur', 'prices.eur_foil'] } },
+	{
+		source: { const: 'Cardmarket' },
+		measure: { enum: ['trend', 'trend-foil'] },
+		providerId: string,
+		upstream: { const: 'Cardmarket' }
+	},
+	{
+		source: { const: 'MTGJSON' },
+		measure: { enum: ['paper.cardmarket.retail.normal', 'paper.cardmarket.retail.foil'] },
+		providerId: string,
+		upstream: { const: 'Cardmarket' }
+	}
+];
+const priceTime = (day: boolean): Record<string, Schema> =>
+	day
+		? { timePrecision: { const: 'Day' }, sourceDate: { type: 'string', format: 'date' } }
+		: { timePrecision: { const: 'Instant' }, sourceTime: { type: 'string', format: 'date-time' } };
+const knownPriceFields = {
+	kind: { const: 'Known' },
+	printingId: { type: 'string', format: 'uuid' },
+	finish,
+	links: array('ProductLink'),
+	amount: priceAmount,
+	currency: { const: 'EUR' },
+	freshness: { enum: ['Fresh', 'Stale'] },
+	publicationId: { type: 'string', format: 'uuid' },
+	observationId: string,
+	matchedPrintingId: { type: 'string', format: 'uuid' },
+	matchedFinish: finish,
+	provenance: { enum: ['Exact', 'EnglishFallback'] }
+};
 const timestamps = {
 	createdAt: { type: 'string', format: 'date-time' },
 	updatedAt: { type: 'string', format: 'date-time' }
@@ -170,6 +209,47 @@ const SCHEMA = {
 					200: response('Known or evaluated Unknown market reference', ref('PriceResponse')),
 					400: response('Invalid or extra query fields', ref('ErrorResponse')),
 					503: response('Operational reference read unavailable', ref('ErrorResponse'))
+				}
+			}
+		},
+		'/api/mobile/v1/mtg/prices/history': {
+			get: {
+				summary: 'Read bounded public source history, never historical holdings',
+				security: [],
+				parameters: [
+					{
+						name: 'printingId',
+						in: 'query',
+						required: true,
+						schema: { type: 'string', format: 'uuid' }
+					},
+					{ name: 'finish', in: 'query', required: true, schema: finish },
+					{
+						name: 'days',
+						in: 'query',
+						schema: { type: 'integer', minimum: 1, maximum: 90, default: 30 }
+					},
+					{
+						name: 'source',
+						in: 'query',
+						style: 'form',
+						explode: true,
+						schema: {
+							type: 'array',
+							minItems: 1,
+							maxItems: 3,
+							uniqueItems: true,
+							items: priceSource
+						}
+					}
+				],
+				responses: {
+					200: response(
+						'Dated points with gaps, at most one per enabled source per UTC day',
+						ref('PriceHistoryResponse')
+					),
+					400: response('Invalid or extra query fields', ref('ErrorResponse')),
+					503: response('Operational source history unavailable', ref('ErrorResponse'))
 				}
 			}
 		},
@@ -1388,17 +1468,20 @@ const SCHEMA = {
 				required: ['entryId'],
 				properties: { entryId: { type: 'string', format: 'uuid' } }
 			},
-			PricePublication: object({
-				id: { type: 'string', format: 'uuid' },
-				source: { const: 'Scryfall' },
-				bulkType: string,
-				sourceTime: { type: 'string', format: 'date-time' },
-				timePrecision: { const: 'Instant' },
-				payloadDigest: string,
-				extractorVersion: integer,
-				mappingVersion: integer,
-				ingestedAt: { type: 'string', format: 'date-time' }
-			}),
+			PricePublication: {
+				oneOf: ['Scryfall', 'Cardmarket', 'MTGJSON'].map((source) =>
+					object({
+						id: { type: 'string', format: 'uuid' },
+						source: { const: source },
+						bulkType: string,
+						...priceTime(source === 'MTGJSON'),
+						payloadDigest: string,
+						extractorVersion: integer,
+						mappingVersion: integer,
+						ingestedAt: { type: 'string', format: 'date-time' }
+					})
+				)
+			},
 			ProductLink: object({
 				provider: { enum: ['Cardmarket', 'TCGplayer', 'Cardhoarder'] },
 				url: { type: 'string', format: 'uri' },
@@ -1407,28 +1490,19 @@ const SCHEMA = {
 			}),
 			PriceReference: {
 				oneOf: [
-					object({
-						kind: { const: 'Known' },
-						printingId: { type: 'string', format: 'uuid' },
-						finish,
-						links: array('ProductLink'),
-						amount: {
-							type: 'string',
-							maxLength: 128,
-							pattern: '^(0|[1-9][0-9]*)(\\.[0-9]{1,18})?$'
-						},
-						currency: { const: 'EUR' },
-						source: { const: 'Scryfall' },
-						measure: { enum: ['prices.eur', 'prices.eur_foil'] },
-						sourceTime: { type: 'string', format: 'date-time' },
-						timePrecision: { const: 'Instant' },
-						freshness: { enum: ['Fresh', 'Stale'] },
-						publicationId: { type: 'string', format: 'uuid' },
-						observationId: string,
-						matchedPrintingId: { type: 'string', format: 'uuid' },
-						matchedFinish: finish,
-						provenance: { enum: ['Exact', 'EnglishFallback'] }
-					}),
+					...priceOrigins.map((origin, index) =>
+						object({
+							...knownPriceFields,
+							...origin,
+							...priceTime(index === 2),
+							...(index === 2
+								? {
+										asOf: { type: 'string', format: 'date-time' },
+										freshnessPolicy: { const: 'day-upper-bound-utc-start-v1' }
+									}
+								: {})
+						})
+					),
 					object({
 						kind: { const: 'Unknown' },
 						printingId: { type: 'string', format: 'uuid' },
@@ -1442,12 +1516,57 @@ const SCHEMA = {
 								'ReferenceExpired',
 								'UnsupportedFinish',
 								'AmbiguousLanguageMapping',
-								'MissingVariantEvidence'
+								'MissingVariantEvidence',
+								'AmbiguousSourceMapping'
 							]
 						}
 					})
 				]
 			},
+			PriceSourceStatus: object(
+				{
+					source: priceSource,
+					enabled: { type: 'boolean' },
+					kind: { enum: ['Disabled', 'NeverAttempted', 'Succeeded', 'Failed'] },
+					attemptedAt: { type: 'string', format: 'date-time' },
+					lastSuccessfulPublicationId: { type: 'string', format: 'uuid' }
+				},
+				['source', 'enabled', 'kind']
+			),
+			PriceHistoryPoint: {
+				oneOf: priceOrigins.map((origin, index) =>
+					object({
+						...origin,
+						...priceTime(index === 2),
+						printingId: { type: 'string', format: 'uuid' },
+						finish,
+						day: { type: 'string', format: 'date' },
+						amount: priceAmount,
+						currency: { const: 'EUR' },
+						publicationId: { type: 'string', format: 'uuid' },
+						observationId: string,
+						matchedPrintingId: { type: 'string', format: 'uuid' },
+						matchedFinish: finish,
+						provenance: { enum: ['Exact', 'EnglishFallback'] },
+						mappingVersion: integer,
+						pointArtifact: {
+							const: index === 0 ? 'ScryfallBulk' : index === 1 ? 'CardmarketGuide' : 'AllPrices'
+						},
+						pointPayloadDigest: string
+					})
+				)
+			},
+			PriceHistoryResponse: object({
+				asOf: { type: 'string', format: 'date-time' },
+				window: object({
+					from: { type: 'string', format: 'date' },
+					to: { type: 'string', format: 'date' },
+					days: { type: 'integer', minimum: 1, maximum: 90 }
+				}),
+				sourceStatuses: { ...array('PriceSourceStatus'), maxItems: 3 },
+				publications: array('PricePublication'),
+				points: { ...array('PriceHistoryPoint'), maxItems: 270 }
+			}),
 			PriceRefreshStatus: object(
 				{
 					kind: { enum: ['NeverAttempted', 'Succeeded', 'Failed'] },
@@ -1459,12 +1578,14 @@ const SCHEMA = {
 				evaluatedAt: { type: 'string', format: 'date-time' },
 				publications: array('PricePublication'),
 				refreshStatus: ref('PriceRefreshStatus'),
+				sourceStatuses: { ...array('PriceSourceStatus'), maxItems: 3 },
 				results: { ...array('PriceReference'), maxItems: 100 }
 			}),
 			InventoryPriceResponse: object({
 				evaluatedAt: { type: 'string', format: 'date-time' },
 				publications: array('PricePublication'),
 				refreshStatus: ref('PriceRefreshStatus'),
+				sourceStatuses: { ...array('PriceSourceStatus'), maxItems: 3 },
 				results: {
 					type: 'array',
 					maxItems: 100,

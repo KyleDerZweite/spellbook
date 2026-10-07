@@ -120,6 +120,9 @@ test('built HTTP application preserves public Catalog and local account journeys
 					ownedEntry = randomUUID(),
 					inventory = randomUUID();
 				const prior = (await pool.query('SELECT * FROM price_state WHERE id=1')).rows[0];
+				const optionalPrior = (await pool.query('SELECT source,enabled FROM optional_price_state'))
+					.rows;
+				await pool.query('UPDATE optional_price_state SET enabled=false');
 				try {
 					await pool.query(
 						`INSERT INTO price_publications(id,catalog_generation_id,descriptor,source_type,source_updated_at,payload_digest,extractor_version,mapping_version) VALUES($1,$2,'{}','all_cards',now(),'http-fixture',1,1)`,
@@ -137,6 +140,56 @@ test('built HTTP application preserves public Catalog and local account journeys
 						`UPDATE price_state SET active_publication=$1,previous_publication=NULL,refresh_status='{"kind":"Succeeded"}' WHERE id=1`,
 						[publication]
 					);
+
+					const fixtureInstant = new Date().toISOString(),
+						fixtureDay = fixtureInstant.slice(0, 10);
+					await pool.query("INSERT INTO price_history_publications VALUES($1,'Scryfall',$2)", [
+						publication,
+						{
+							source: 'Scryfall',
+							publicationId: publication,
+							descriptor: { bulkType: 'all_cards', sourceTime: fixtureInstant },
+							payloadDigest: 'http-fixture',
+							extractorVersion: 1,
+							mappingVersion: 1,
+							ingestedAt: fixtureInstant,
+							pointArtifact: 'ScryfallBulk',
+							pointPayloadDigest: 'http-fixture'
+						}
+					]);
+					await pool.query('INSERT INTO price_history_printings VALUES($1,$2,$3,NULL)', [
+						publication,
+						card.id,
+						{ lang: 'en' }
+					]);
+					await pool.query(
+						`INSERT INTO price_source_history(source,printing_id,finish,day,time_precision,source_instant,amount,measure,publication_id,evidence) VALUES('Scryfall',$1,'nonfoil',$2,'Instant',$3,0,'prices.eur',$4,'{}')`,
+						[card.id, fixtureDay, fixtureInstant, publication]
+					);
+					const historyPath = `/api/mobile/v1/mtg/prices/history?printingId=${card.id}&finish=nonfoil`;
+					const historyResponse = await request(historyPath);
+					assert.equal(historyResponse.status, 200);
+					const history = await historyResponse.json();
+					assert.equal(history.points.length, 1);
+					assert.equal(history.points[0].amount, '0');
+					assert.equal(history.points[0].sourceTime, fixtureInstant);
+					assert.equal(history.points[0].quantity, undefined);
+					for (const extra of [
+						'&accountId=forged',
+						'&days=0',
+						'&days=91',
+						'&days=1&days=2',
+						'&source=invalid',
+						'&source=Scryfall&source=Scryfall',
+						'&extra=1'
+					])
+						assert.equal((await request(historyPath + extra)).status, 400);
+					await pool.query('ALTER TABLE price_source_history RENAME TO http_unavailable_history');
+					try {
+						assert.equal((await request(historyPath)).status, 503);
+					} finally {
+						await pool.query('ALTER TABLE http_unavailable_history RENAME TO price_source_history');
+					}
 					const path = `/api/mobile/v1/mtg/prices?printingId=${card.id}&finish=nonfoil`;
 					const publicResponse = await request(path);
 					assert.equal(publicResponse.status, 200);
@@ -248,6 +301,18 @@ test('built HTTP application preserves public Catalog and local account journeys
 						'UPDATE price_state SET active_publication=$1,previous_publication=$2,refresh_status=$3 WHERE id=1',
 						[prior.active_publication, prior.previous_publication, prior.refresh_status]
 					);
+
+					await pool.query('DELETE FROM price_source_history WHERE publication_id=$1', [
+						publication
+					]);
+					await pool.query('DELETE FROM price_history_publications WHERE publication_id=$1', [
+						publication
+					]);
+					for (const state of optionalPrior)
+						await pool.query('UPDATE optional_price_state SET enabled=$1 WHERE source=$2', [
+							state.enabled,
+							state.source
+						]);
 					await pool.query('DELETE FROM price_publications WHERE id=$1', [publication]);
 				}
 			}

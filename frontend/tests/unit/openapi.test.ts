@@ -150,7 +150,10 @@ describe('OpenAPI contract', () => {
 			for (const method of methods) {
 				const operation = item[method];
 				if (!operation) continue;
-				if (path === '/api/mobile/v1/mtg/prices' && method === 'get') {
+				if (
+					['/api/mobile/v1/mtg/prices', '/api/mobile/v1/mtg/prices/history'].includes(path) &&
+					method === 'get'
+				) {
 					expect(operation.security).toEqual([]);
 					for (const status of ['200', '400', '503'])
 						expect(operation.responses[status]?.content).toBeDefined();
@@ -367,5 +370,19 @@ describe('OpenAPI contract', () => {
 		expect(schema.components.schemas.MutationRequestRecord).toMatchObject({
 			properties: { requestHash: { type: ['string', 'null'] } }
 		});
+	});
+	it('keeps provider Day precision and bounded public history explicit', async () => {
+		const document = await GET().json();
+		const schemas = document.components.schemas;
+		const day = schemas.PriceReference.oneOf.find(
+			(schema: { properties: { source: { const: string } } }) =>
+				schema.properties.source?.const === 'MTGJSON'
+		).properties;
+		expect(day.timePrecision.const).toBe('Day');
+		expect(day.sourceDate.format).toBe('date');
+		expect(day.sourceTime).toBeUndefined();
+		expect(day.freshnessPolicy.const).toBe('day-upper-bound-utc-start-v1');
+		expect(schemas.PriceHistoryResponse.properties.points.maxItems).toBe(270);
+		expect(document.paths['/api/mobile/v1/mtg/prices/history'].get.security).toEqual([]);
 	});
 });

@@ -5,6 +5,9 @@ import { isReferenceDecimal } from '@spellbook/contracts/valuation.ts';
 import type {
 	InventoryPriceResponse,
 	PriceFinish,
+	PriceHistoryResponse,
+	PriceHistoryPoint,
+	PriceSource,
 	PricePublication,
 	PriceReference,
 	PriceRequest,
@@ -15,6 +18,7 @@ import type {
 } from '@spellbook/contracts/valuation.ts';
 import { ValidationError } from '../mtg/validation.ts';
 import { databaseInteger } from '../db/numbers.ts';
+import { readOptionalReferences } from './optional.ts';
 export class PriceReadUnavailable extends Error {
 	readonly kind = 'PriceReadUnavailable';
 	constructor() {
@@ -69,6 +73,28 @@ function decimal(value: string) {
 	const fraction = raw.replace(/0+$/, '');
 	return (whole.replace(/^0+(?=\d)/, '') || '0') + (fraction ? '.' + fraction : '');
 }
+export interface ReferenceExecutor {
+	query<Row extends Record<string, unknown> = Record<string, unknown>>(
+		text: string,
+		values?: unknown[]
+	): Promise<{ rows: Row[] }>;
+}
+export type FrozenSourceSelection = {
+	source: PriceSource;
+	enabled: boolean;
+	publication: PricePublication | null;
+	descriptor: Record<string, unknown> | null;
+	selection: Record<string, unknown> | null;
+};
+export type FrozenReferenceOutcome = {
+	reference: PriceReference;
+	evaluatedAt: string;
+	publication: PricePublication | null;
+	descriptor: Record<string, unknown> | null;
+	selection: Row | null;
+	known: FrozenReferenceEvidence | null;
+	sourceSelections: FrozenSourceSelection[];
+};
 export type FrozenReferenceEvidence = {
 	reference: Extract<PriceReference, { kind: 'Known' }>;
 	publication: PricePublication;
@@ -127,6 +153,8 @@ function choose(
 		reason
 	});
 	if (!publication) return unknown('SourceUnavailable');
+	if (publication.timePrecision !== 'Instant' || publication.source !== 'Scryfall')
+		throw new PriceReadUnavailable();
 	if (!row?.printing_id) return unknown('PrintingMissing');
 	if (!row.supported) return unknown('UnsupportedFinish');
 	const age = Math.max(0, now.getTime() - Date.parse(publication.sourceTime));
@@ -169,6 +197,11 @@ export function createValuation(
 	freezePrintingReferences(
 		input: unknown
 	): Promise<{ response: PriceResponse; evidence: FrozenReferenceEvidence[] }>;
+	freezeInTransaction(
+		executor: ReferenceExecutor,
+		input: unknown,
+		asOf: Date
+	): Promise<{ response: PriceResponse; evidence: FrozenReferenceOutcome[] }>;
 } {
 	async function snapshot<T>(operation: (client: PoolClient) => Promise<T>): Promise<T> {
 		let client: PoolClient | undefined;
@@ -187,12 +220,24 @@ export function createValuation(
 		}
 	}
 	async function read(
-		client: PoolClient,
+		client: ReferenceExecutor,
 		pairs: PriceRequest[],
-		frozen?: FrozenReferenceEvidence[]
+		frozen?: FrozenReferenceEvidence[],
+		evaluation?: Date,
+		outcomes?: FrozenReferenceOutcome[]
 	): Promise<PriceResponse> {
-		const now = clock();
-		const state = await client.query(
+		const now = evaluation ?? clock();
+		const state = await client.query<{
+			publication_id: string | null;
+			descriptor: Record<string, unknown>;
+			source_type: string;
+			source_updated_at: Date;
+			payload_digest: string;
+			extractor_version: number;
+			mapping_version: number;
+			ingested_at: Date;
+			refresh_status: { kind?: string; attemptedAt?: string } | null;
+		}>(
 			`SELECT s.refresh_status,p.*,p.id AS publication_id FROM price_state s LEFT JOIN price_publications p ON p.id=s.active_publication WHERE s.id=1`
 		);
 		const raw = state.rows[0];
@@ -223,30 +268,106 @@ export function createValuation(
 				(row.english_amount !== null && !isReferenceDecimal(row.english_amount))
 			)
 				throw new PriceReadUnavailable();
-		const results = pairs.map((request, index) => choose(request, rows[index], publication, now));
-		if (frozen && publication)
-			results.forEach((reference, index) => {
+		const baseline = pairs.map((request, index) => choose(request, rows[index], publication, now));
+		const evidence = new Map<number, FrozenReferenceEvidence>();
+		if (publication)
+			baseline.forEach((reference, index) => {
 				if (reference.kind !== 'Known') return;
 				const row = rows[index];
-				frozen.push(
-					freezeReferenceEvidence({
+				evidence.set(index, {
+					reference,
+					publication,
+					descriptor: raw.descriptor,
+					requestedIdentity: row.identity!,
+					matchedIdentity: reference.provenance === 'Exact' ? row.identity! : row.english_identity!,
+					mappingVersion: publication.mappingVersion,
+					rawValue: reference.provenance === 'Exact' ? row.raw_value : row.english_raw_value
+				});
+			});
+		const optional = await readOptionalReferences(client, pairs, now, baseline);
+		const priority = { Cardmarket: 0, Scryfall: 1, MTGJSON: 2 };
+		const results = baseline.map((reference, index) => {
+			const candidates = [
+				{ reference, evidence: evidence.get(index) },
+				...optional.candidates[index]
+			];
+			const known = candidates.filter((candidate) => candidate.reference.kind === 'Known');
+			known.sort((a, b) => {
+				if (a.reference.kind !== 'Known' || b.reference.kind !== 'Known') return 0;
+				return (
+					Number(a.reference.freshness === 'Stale') - Number(b.reference.freshness === 'Stale') ||
+					priority[a.reference.source] - priority[b.reference.source]
+				);
+			});
+			const selected = known[0];
+			if (selected?.evidence && frozen) frozen.push(freezeReferenceEvidence(selected.evidence));
+			if (selected) return selected.reference;
+			// Prefer an evaluated printing-specific reason over absent sources.
+			return (
+				candidates.find(
+					(candidate) =>
+						candidate.reference.kind === 'Unknown' &&
+						candidate.reference.reason !== 'SourceUnavailable' &&
+						candidate.reference.reason !== 'PrintingMissing'
+				)?.reference ?? reference
+			);
+		});
+		if (outcomes)
+			results.forEach((reference, index) => {
+				const known =
+					frozen?.find(
+						(e) =>
+							e.reference.printingId === reference.printingId &&
+							e.reference.finish === reference.finish
+					) ?? null;
+				outcomes.push(
+					structuredClone({
 						reference,
-						publication,
-						descriptor: raw.descriptor,
-						requestedIdentity: row.identity!,
-						matchedIdentity:
-							reference.provenance === 'Exact' ? row.identity! : row.english_identity!,
-						mappingVersion: publication.mappingVersion,
-						rawValue: reference.provenance === 'Exact' ? row.raw_value : row.english_raw_value
+						evaluatedAt: now.toISOString(),
+						publication: known?.publication ?? publication ?? null,
+						descriptor: known?.descriptor ?? raw?.descriptor ?? null,
+						selection: rows[index] ?? null,
+						known,
+						sourceSelections: [
+							{
+								source: 'Scryfall',
+								enabled: true,
+								publication: publication ?? null,
+								descriptor: raw?.descriptor ?? null,
+								selection: rows[index] ?? null
+							},
+							...optional.selections[index]
+						]
 					})
 				);
 			});
+
 		const status = raw?.refresh_status;
 		return {
 			evaluatedAt: now.toISOString(),
-			publications: publication ? [publication] : [],
+			publications: [...(publication ? [publication] : []), ...optional.publications],
+			sourceStatuses: [
+				{
+					source: 'Scryfall',
+					enabled: true,
+					kind:
+						status?.kind === 'Failed'
+							? 'Failed'
+							: status?.kind === 'Succeeded'
+								? 'Succeeded'
+								: 'NeverAttempted',
+					...(typeof status?.attemptedAt === 'string' ? { attemptedAt: status.attemptedAt } : {}),
+					...(publication ? { lastSuccessfulPublicationId: publication.id } : {})
+				},
+				...optional.statuses
+			],
 			refreshStatus: {
-				kind: ['Succeeded', 'Failed'].includes(status?.kind) ? status.kind : 'NeverAttempted',
+				kind:
+					status?.kind === 'Succeeded'
+						? 'Succeeded'
+						: status?.kind === 'Failed'
+							? 'Failed'
+							: 'NeverAttempted',
 				...(typeof status?.attemptedAt === 'string' ? { attemptedAt: status.attemptedAt } : {})
 			},
 			results
@@ -255,6 +376,161 @@ export function createValuation(
 	async function printingReferences(input: unknown) {
 		const pairs = requests(input);
 		return snapshot((client) => read(client, pairs));
+	}
+	async function printingHistory(input: unknown): Promise<PriceHistoryResponse> {
+		const value = object(input, ['printingId', 'finish', 'days', 'sources']);
+		const pair = requests([{ printingId: value.printingId, finish: value.finish }])[0];
+		const days = value.days === undefined ? 30 : value.days;
+		if (typeof days !== 'number' || !Number.isInteger(days) || days < 1 || days > 90)
+			throw new ValidationError('History days must be 1 to 90');
+		const selected = value.sources;
+		if (
+			selected !== undefined &&
+			(!Array.isArray(selected) ||
+				selected.length < 1 ||
+				selected.length > 3 ||
+				selected.some((source) => !['Scryfall', 'Cardmarket', 'MTGJSON'].includes(source)) ||
+				new Set(selected).size !== selected.length)
+		)
+			throw new ValidationError('Supply 1 to 3 distinct history sources');
+		return snapshot(async (client) => {
+			const now = clock(),
+				to = now.toISOString().slice(0, 10),
+				from = new Date(Date.parse(to + 'T00:00:00Z') - (days - 1) * 86400000)
+					.toISOString()
+					.slice(0, 10);
+			const current = await read(client, [pair], undefined, now);
+			const sources = current.sourceStatuses
+				.filter(
+					(status) => status.enabled && (selected === undefined || selected.includes(status.source))
+				)
+				.map((status) => status.source);
+			const match = (
+				await client.query(
+					`SELECT o.english_printing_id,e.variant_key FROM price_state s JOIN price_observations o ON o.publication_id=s.active_publication AND o.printing_id=$1 AND o.finish=$2 LEFT JOIN price_printings e ON e.publication_id=o.publication_id AND e.id=o.english_printing_id WHERE s.id=1`,
+					[pair.printingId, pair.finish]
+				)
+			).rows[0];
+			const ids = [
+				pair.printingId,
+				...(match?.english_printing_id ? [match.english_printing_id] : [])
+			];
+			const rows = (
+				await client.query(
+					`SELECT DISTINCT ON (h.source,h.day) h.source,h.printing_id,h.finish,h.day::text,h.time_precision,h.source_instant,h.amount::text,h.measure,h.provider_id,h.publication_id,jsonb_build_object('publication',hp.evidence,'identity',hi.identity,'variantKey',hi.variant_key) AS evidence FROM price_source_history h LEFT JOIN price_history_publications hp ON hp.publication_id=h.publication_id AND hp.source=h.source LEFT JOIN price_history_printings hi ON hi.publication_id=h.publication_id AND hi.printing_id=h.printing_id WHERE h.printing_id=ANY($1::uuid[]) AND h.finish=$2 AND h.day BETWEEN $3::date AND $4::date AND h.source=ANY($5::text[]) AND (h.printing_id=$6 OR hi.variant_key=$7) ORDER BY h.source,h.day,(h.printing_id=$6) DESC`,
+					[ids, pair.finish, from, to, sources, pair.printingId, match?.variant_key ?? null]
+				)
+			).rows;
+			if (rows.length > days * sources.length || rows.length > 270)
+				throw new PriceReadUnavailable();
+			const publications = new Map<string, PricePublication>();
+			const points: PriceHistoryPoint[] = rows.map((row) => {
+				const source = row.source as PriceSource,
+					saved = row.evidence?.publication;
+				if (!saved || !sources.includes(source) || !isReferenceDecimal(row.amount))
+					throw new PriceReadUnavailable();
+				const time =
+					row.time_precision === 'Instant'
+						? {
+								timePrecision: 'Instant' as const,
+								sourceTime: row.source_instant.toISOString()
+							}
+						: row.time_precision === 'Day'
+							? { timePrecision: 'Day' as const, sourceDate: row.day }
+							: undefined;
+				if (!time) throw new PriceReadUnavailable();
+				const origin =
+					source === 'Scryfall'
+						? {
+								source: 'Scryfall' as const,
+								measure:
+									pair.finish === 'nonfoil' ? ('prices.eur' as const) : ('prices.eur_foil' as const)
+							}
+						: source === 'Cardmarket'
+							? {
+									source: 'Cardmarket' as const,
+									measure: pair.finish === 'nonfoil' ? ('trend' as const) : ('trend-foil' as const),
+									providerId: row.provider_id,
+									upstream: 'Cardmarket' as const
+								}
+							: {
+									source: 'MTGJSON' as const,
+									measure:
+										pair.finish === 'nonfoil'
+											? ('paper.cardmarket.retail.normal' as const)
+											: ('paper.cardmarket.retail.foil' as const),
+									providerId: row.provider_id,
+									upstream: 'Cardmarket' as const
+								};
+				if (row.measure !== origin.measure) throw new PriceReadUnavailable();
+				const artifact =
+					saved.pointArtifact ??
+					(source === 'Scryfall'
+						? 'ScryfallBulk'
+						: source === 'Cardmarket'
+							? 'CardmarketGuide'
+							: 'AllPrices');
+				const pointDigest =
+					saved.pointPayloadDigest ??
+					(source === 'MTGJSON' ? saved.descriptor?.history?.digest : saved.payloadDigest);
+				if (
+					!['ScryfallBulk', 'CardmarketGuide', 'AllPrices'].includes(artifact) ||
+					typeof pointDigest !== 'string'
+				)
+					throw new PriceReadUnavailable();
+				publications.set(row.publication_id, {
+					id: row.publication_id,
+					source,
+					bulkType:
+						source === 'Scryfall'
+							? saved.descriptor.bulkType
+							: source === 'Cardmarket'
+								? 'public-price-guide'
+								: 'AllPricesToday',
+					payloadDigest: saved.payloadDigest,
+					extractorVersion: saved.extractorVersion,
+					mappingVersion: saved.mappingVersion,
+					ingestedAt: saved.ingestedAt,
+					...(source === 'MTGJSON'
+						? { timePrecision: 'Day', sourceDate: saved.descriptor.sourceDate }
+						: {
+								timePrecision: 'Instant',
+								sourceTime:
+									time.timePrecision === 'Instant' ? time.sourceTime : saved.descriptor.sourceTime
+							})
+				});
+				return {
+					...pair,
+					...origin,
+					...time,
+					day: row.day,
+					amount: decimal(row.amount),
+					currency: 'EUR',
+					publicationId: row.publication_id,
+					observationId: [
+						row.publication_id,
+						row.printing_id,
+						pair.finish,
+						row.measure,
+						row.day
+					].join(':'),
+					matchedPrintingId: row.printing_id,
+					matchedFinish: pair.finish,
+					provenance: row.printing_id === pair.printingId ? 'Exact' : 'EnglishFallback',
+					mappingVersion: saved.mappingVersion,
+					pointArtifact: artifact,
+					pointPayloadDigest: pointDigest
+				};
+			});
+			points.sort((a, b) => a.day.localeCompare(b.day) || a.source.localeCompare(b.source));
+			return {
+				asOf: now.toISOString(),
+				window: { from, to, days },
+				sourceStatuses: current.sourceStatuses,
+				publications: [...publications.values()],
+				points
+			};
+		});
 	}
 	async function inventoryReferences(
 		actor: AuthUser,
@@ -324,5 +600,26 @@ export function createValuation(
 			return { response, evidence };
 		});
 	}
-	return { printingReferences, inventoryReferences, freezePrintingReferences };
+	async function freezeInTransaction(executor: ReferenceExecutor, input: unknown, asOf: Date) {
+		const pairs = requests(input),
+			known: FrozenReferenceEvidence[] = [],
+			evidence: FrozenReferenceOutcome[] = [];
+		if (!(asOf instanceof Date) || !Number.isFinite(asOf.getTime()))
+			throw new ValidationError('Invalid reference evaluation instant');
+		try {
+			const response = await read(executor, pairs, known, asOf, evidence);
+			return { response, evidence };
+		} catch (cause) {
+			if (cause instanceof ValidationError) throw cause;
+			throw new PriceReadUnavailable();
+		}
+	}
+
+	return {
+		printingReferences,
+		printingHistory,
+		inventoryReferences,
+		freezePrintingReferences,
+		freezeInTransaction
+	};
 }

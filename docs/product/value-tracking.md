@@ -1,6 +1,6 @@
 # Value tracking
 
-- Status: Scryfall reference prices and product links implemented; account value history and costs planned
+- Status: Scryfall and optional references, public source history and product links implemented; account value history and costs planned
 - Last Reviewed: 2026-10-07
 - Source of Truth: accepted maintainer requirements and Q56 design, existing Inventory behavior
 - Update Triggers: price providers and fallback policy, daily history, reporting currency and timezone, cost batches, allocation and correction rules, tracking rollout and demo assumptions, valuation UI and API contracts
@@ -70,6 +70,8 @@ Corrections preserve original batch membership, method and reference weights, in
 
 ## Current reference presentation
 
-Card Details and the Inventory inspector show exact-finish Scryfall EUR references, source date/measure, freshness and marked English fallback. Owned-entry reads derive quantities from the authenticated account and show covered/unknown quantity; stale is a subset of covered. Missing references remain Unknown, including when product links exist. Safe supplied marketplace links render independently of EUR availability or optional adapters. They do not establish finish/condition stock or a guaranteed sale amount. [Value persistence](../architecture/value-and-costs.md#implemented-scryfall-references) owns implementation; full-account values, costs and personal daily history remain planned.
+Card Details and the Inventory inspector show selected exact-finish EUR references, source date/measure, freshness and marked English fallback. Owned-entry reads derive quantities from the authenticated account and show covered/unknown quantity; stale is a subset of covered. Missing references remain Unknown, including when product links exist. Safe supplied marketplace links render independently of EUR availability or optional adapters. They do not establish finish/condition stock or a guaranteed sale amount. [Value persistence](../architecture/value-and-costs.md#implemented-scryfall-references) owns implementation; full-account values, costs and personal daily history remain planned.
 
 An open Inventory Inspector reloads its private reference after a confirmed write acknowledgement, Inventory revision or saved entry snapshot changes. A successful write invalidates the old private estimate even if the subsequent Inventory-window refresh fails. Unsaved quantity drafts never change the estimate or enter the price request. Account/opening/request guards discard late responses before and after JSON parsing. A removed selected entry clears its old quantity/reference and reports that the entry is unavailable.
+
+Card Details also shows bounded public source history, with actual Instant/Day source precision, upstream attribution and explicit gaps. This is market history, not personal holdings history. [Value persistence](../architecture/value-and-costs.md#optional-references-and-public-source-history) owns the UTC day freshness policy and source-history retention. Dashboard/Deck values, costs and personal daily captures remain planned.

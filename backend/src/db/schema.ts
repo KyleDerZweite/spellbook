@@ -3,6 +3,7 @@ import type { InventoryAcknowledgement } from '@spellbook/contracts/inventory.ts
 import type { ProfileCardDefinition } from '@spellbook/contracts/profile.ts';
 import {
 	bigint,
+	date,
 	check,
 	boolean,
 	customType,
@@ -540,4 +541,167 @@ export const priceState = pgTable(
 			.default(sql`'{"kind":"NeverAttempted"}'::jsonb`)
 	},
 	(t) => [check('price_state_id_check', sql`${t.id}=1`)]
+);
+
+export const optionalPricePublications = pgTable(
+	'optional_price_publications',
+	{
+		id: uuid('id').primaryKey(),
+		source: text('source').notNull(),
+		timePrecision: text('time_precision').notNull(),
+		sourceInstant: timestamp('source_instant', { withTimezone: true }),
+		sourceDate: date('source_date'),
+		descriptor: jsonb('descriptor').notNull(),
+		payloadDigest: text('payload_digest').notNull(),
+		extractorVersion: integer('extractor_version').notNull(),
+		mappingVersion: integer('mapping_version').notNull(),
+		ingestedAt: timestamp('ingested_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(t) => [
+		check('optional_price_publications_source_check', sql`${t.source} in ('Cardmarket','MTGJSON')`),
+		check(
+			'optional_price_publications_time_precision_check',
+			sql`${t.timePrecision} in ('Instant','Day')`
+		),
+		check(
+			'optional_price_publications_time_check',
+			sql`(${t.timePrecision}='Instant' AND ${t.sourceInstant} IS NOT NULL AND ${t.sourceDate} IS NULL) OR (${t.timePrecision}='Day' AND ${t.sourceDate} IS NOT NULL AND ${t.sourceInstant} IS NULL)`
+		)
+	]
+);
+export const optionalPriceState = pgTable(
+	'optional_price_state',
+	{
+		source: text('source').primaryKey(),
+		enabled: boolean('enabled').notNull().default(false),
+		activePublication: uuid('active_publication').references(() => optionalPricePublications.id),
+		previousPublication: uuid('previous_publication').references(
+			() => optionalPricePublications.id
+		),
+		refreshStatus: jsonb('refresh_status')
+			.notNull()
+			.default(sql`'{"kind":"NeverAttempted"}'::jsonb`)
+	},
+	(t) => [check('optional_price_state_source_check', sql`${t.source} in ('Cardmarket','MTGJSON')`)]
+);
+export const optionalPricePrintings = pgTable(
+	'optional_price_printings',
+	{
+		publicationId: uuid('publication_id')
+			.notNull()
+			.references(() => optionalPricePublications.id, { onDelete: 'cascade' }),
+		printingId: uuid('printing_id').notNull(),
+		identity: jsonb('identity').notNull(),
+		finishes: text('finishes').array().notNull(),
+		variantKey: text('variant_key')
+	},
+	(t) => [primaryKey({ columns: [t.publicationId, t.printingId] })]
+);
+export const optionalPriceObservations = pgTable(
+	'optional_price_observations',
+	{
+		publicationId: uuid('publication_id')
+			.notNull()
+			.references(() => optionalPricePublications.id, { onDelete: 'cascade' }),
+		printingId: uuid('printing_id').notNull(),
+		finish: text('finish').notNull(),
+		measure: text('measure').notNull(),
+		amount: numeric('amount'),
+		rawValue: text('raw_value'),
+		supported: boolean('supported').notNull(),
+		providerId: text('provider_id'),
+		englishPrintingId: uuid('english_printing_id'),
+		mappingReason: text('mapping_reason')
+	},
+	(t) => [
+		primaryKey({ columns: [t.publicationId, t.printingId, t.finish] }),
+		check('optional_price_observations_finish_check', sql`${t.finish} in ('nonfoil','foil')`),
+		check(
+			'optional_price_observations_amount_check',
+			sql`${t.amount} >= 0 AND ${t.amount} NOT IN ('NaN'::numeric,'Infinity'::numeric)`
+		)
+	]
+);
+export const priceHistoryDays = pgTable(
+	'price_history_days',
+	{
+		source: text('source').notNull(),
+		day: date('day').notNull(),
+		sourceInstant: timestamp('source_instant', { withTimezone: true }),
+		publicationId: uuid('publication_id').notNull(),
+		ingestedAt: timestamp('ingested_at', { withTimezone: true }).notNull()
+	},
+	(t) => [
+		primaryKey({ columns: [t.source, t.day] }),
+		check(
+			'price_history_days_source_check',
+			sql`${t.source} in ('Scryfall','Cardmarket','MTGJSON')`
+		)
+	]
+);
+export const priceSourceHistory = pgTable(
+	'price_source_history',
+	{
+		source: text('source').notNull(),
+		printingId: uuid('printing_id').notNull(),
+		finish: text('finish').notNull(),
+		day: date('day').notNull(),
+		timePrecision: text('time_precision').notNull(),
+		sourceInstant: timestamp('source_instant', { withTimezone: true }),
+		amount: numeric('amount').notNull(),
+		measure: text('measure').notNull(),
+		rawValue: text('raw_value'),
+		providerId: text('provider_id'),
+		publicationId: uuid('publication_id').notNull(),
+		evidence: jsonb('evidence').notNull()
+	},
+	(t) => [
+		primaryKey({ columns: [t.source, t.printingId, t.finish, t.day] }),
+		index('price_source_history_window').on(t.printingId, t.finish, t.day, t.source),
+		index('price_source_history_publication').on(t.source, t.publicationId),
+		check(
+			'price_source_history_source_check',
+			sql`${t.source} in ('Scryfall','Cardmarket','MTGJSON')`
+		),
+		check('price_source_history_finish_check', sql`${t.finish} in ('nonfoil','foil')`),
+		check(
+			'price_source_history_time_precision_check',
+			sql`${t.timePrecision} in ('Instant','Day')`
+		),
+		check(
+			'price_source_history_amount_check',
+			sql`${t.amount} >= 0 AND ${t.amount} NOT IN ('NaN'::numeric,'Infinity'::numeric)`
+		),
+		check(
+			'price_source_history_time_check',
+			sql`(${t.timePrecision}='Instant' AND ${t.sourceInstant} IS NOT NULL) OR (${t.timePrecision}='Day' AND ${t.sourceInstant} IS NULL)`
+		)
+	]
+);
+
+export const priceHistoryPublications = pgTable(
+	'price_history_publications',
+	{
+		publicationId: uuid('publication_id').primaryKey(),
+		source: text('source').notNull(),
+		evidence: jsonb('evidence').notNull()
+	},
+	(t) => [
+		check(
+			'price_history_publications_source_check',
+			sql`${t.source} in ('Scryfall','Cardmarket','MTGJSON')`
+		)
+	]
+);
+export const priceHistoryPrintings = pgTable(
+	'price_history_printings',
+	{
+		publicationId: uuid('publication_id')
+			.notNull()
+			.references(() => priceHistoryPublications.publicationId, { onDelete: 'cascade' }),
+		printingId: uuid('printing_id').notNull(),
+		identity: jsonb('identity').notNull(),
+		variantKey: text('variant_key')
+	},
+	(t) => [primaryKey({ columns: [t.publicationId, t.printingId] })]
 );
