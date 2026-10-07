@@ -166,7 +166,8 @@ test('built HTTP application preserves public Catalog and local account journeys
 						`INSERT INTO price_source_history(source,printing_id,finish,day,time_precision,source_instant,amount,measure,publication_id,evidence) VALUES('Scryfall',$1,'nonfoil',$2,'Instant',$3,0,'prices.eur',$4,'{}')`,
 						[card.id, fixtureDay, fixtureInstant, publication]
 					);
-					const historyPath = `/api/mobile/v1/mtg/prices/history?printingId=${card.id}&finish=nonfoil`;
+					// The full native source may already have this printing on earlier days.
+					const historyPath = `/api/mobile/v1/mtg/prices/history?printingId=${card.id}&finish=nonfoil&days=1&source=Scryfall`;
 					const historyResponse = await request(historyPath);
 					assert.equal(historyResponse.status, 200);
 					const history = await historyResponse.json();
