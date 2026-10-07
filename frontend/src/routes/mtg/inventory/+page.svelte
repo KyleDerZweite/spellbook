@@ -212,15 +212,18 @@
 	$effect(() => {
 		if (!hydrated) return;
 		const input = requestQuery();
-		const same =
-			JSON.stringify({ ...input, offset: 0 }) ===
-			JSON.stringify({ ...currentWindow.query, offset: 0 });
+		const account = page.data.user?.accountId ?? 'session';
+		const same = untrack(
+			() =>
+				JSON.stringify({ ...input, offset: 0 }) ===
+				JSON.stringify({ ...currentWindow.query, offset: 0 })
+		);
 		if (same) return;
 		const controller = new AbortController();
 		const timer = setTimeout(() => {
 			void (async () => {
 				try {
-					await window.open(page.data.user?.accountId ?? 'session', input, controller.signal);
+					await window.open(account, input, controller.signal);
 					if (controller.signal.aborted) return;
 					await goto(nativeUrl(input), { replace: true, reset: false, shallow: true });
 				} catch (cause) {
