@@ -148,6 +148,13 @@ run('PostgreSQL catalog snapshots and search', () => {
 
 	const search = (body: unknown) => modules.searchCatalogRequest(parseCatalogSearchRequest(body));
 
+	it('keeps direct printing reads at 1 through 100 after search expands to 500', async () => {
+		const application = modules;
+		expect((await application.getPrintings(oracle(1))).hits).toHaveLength(3);
+		expect((await application.getPrintings(oracle(1), 100)).hits).toHaveLength(3);
+		for (const limit of [0, 101, 500, 501])
+			await expect(application.getPrintings(oracle(1), limit)).rejects.toThrow();
+	});
 	it('searches exact, prefix, typo, oracle text, and localized substrings', async () => {
 		for (const query of ['Llanowar Elves', 'Llanow', 'Llanowr', 'ラノワール', 'エルフ']) {
 			const result = await search({ query });

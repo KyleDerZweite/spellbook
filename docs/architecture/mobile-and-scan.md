@@ -10,7 +10,7 @@ Spellbook has one web client. Its manifest in `frontend/static/manifest.webmanif
 
 ## Bounded Inventory HTTP reads
 
-The accepted experimental v1 migration replaces `GET /api/mobile/v1/mtg/inventory` snapshot reads with an InventoryPage DTO. It accepts normalized filters/order/group plus offset and limit, defaulting to 50 with a maximum of 100. Supplying `revision` pins the request; drift returns HTTP 409 with `{ kind: 'RevisionChanged', revision }`. Entries, loaded memberships, query identity and complete counts/set/group metadata share one snapshot. Timestamps are ISO strings and revisions are decimal strings.
+The accepted experimental v1 migration replaces `GET /api/mobile/v1/mtg/inventory` snapshot reads with an InventoryPage DTO. It accepts normalized filters/order/group plus offset and limit, defaulting to 50 with a maximum of 500. Supplying `revision` pins the request; drift returns HTTP 409 with `{ kind: 'RevisionChanged', revision }`. Entries, loaded memberships, query identity and complete counts/set/group metadata share one snapshot. Timestamps are ISO strings and revisions are decimal strings.
 
 `GET /inventory/{entryId}` returns an owned entry, memberships and revision, or 404. `GET /inventory/{entryId}/location` requires the expected revision and returns the matching absolute index or null; drift returns the same 409 shape. All relative paths use the versioned MTG prefix. Invalid queries return 400; invalid selected groups return 400 in the API and 404 in native page loading. [The application contract](./application-contract.md#inventory-query-contract) owns normalization and ordering; [OpenAPI](../../frontend/src/routes/openapi.json/+server.ts) owns exact wire schemas.
 
@@ -42,9 +42,7 @@ JSON handlers use the shared [request reader](../../frontend/src/lib/server/http
 
 Supplied scalar values keep their declared types. Strings are not coerced into numbers, and numeric values must be finite. Route and domain validation enforce UUID identifiers, supported roles and finishes, quantities, and ownership. Omitted or null optional values use only the handler's documented defaults.
 
-The [selected hybrid UI contract](./frontend.md#selected-hybrid-browsing-contract) plans an Inventory/Catalog search maximum of 500, with existing omitted-limit defaults preserved. This expansion is not implemented. Printing pagination and Scan review authority remain unchanged.
-
-Search and printing pagination accept decimal integer query strings, not negative values, fractions, exponent notation, or nonfinite values. Search `limit` defaults to 20 and accepts 0 through 100. Printing `limit` defaults to 100 and accepts 1 through 100. Both offsets default to zero and accept integers through 1,000,000. Invalid pagination returns HTTP 400.
+Search and printing pagination accept decimal integer query strings, not negative values, fractions, exponent notation, or nonfinite values. Search `limit` defaults to 20 and accepts 0 through 500. Printing `limit` defaults to 100 and accepts 1 through 100. Both offsets default to zero and accept integers through 1,000,000. Invalid pagination returns HTTP 400.
 
 [Postgres](./postgres.md#mutation-replay) owns request fingerprint storage and HTTP 409 replay conflicts. The [OpenAPI route](../../frontend/src/routes/openapi.json/+server.ts) owns endpoint-specific fields and responses.
 

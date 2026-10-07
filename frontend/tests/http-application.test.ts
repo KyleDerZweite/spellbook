@@ -85,6 +85,18 @@ async function catalogFixture() {
 			JSON.stringify({ ...d, privateFixtureField: 'must-not-escape' })
 		]
 	);
+	// Controlled reader-limit identities belong only to this disposable HTTP generation.
+	await pool.query(
+		`WITH fixture AS MATERIALIZED (
+		SELECT gen_random_uuid() AS id,gen_random_uuid() AS oracle_id,'Limit fixture '||lpad(n::text,4,'0') AS name
+		FROM generate_series(1,600) n)
+		INSERT INTO catalog_printings(generation_id,id,oracle_id,name,normalized_name,printed_name,lang,set_code,collector_number,rarity,cmc,colors,card_types,legalities,search_name,search_text,document)
+		SELECT p.generation_id,f.id,f.oracle_id,f.name,lower(f.name),'',p.lang,p.set_code,p.collector_number,p.rarity,p.cmc,p.colors,p.card_types,p.legalities,lower(f.name),lower(f.name),
+		p.document||jsonb_build_object('id',f.id,'oracle_id',f.oracle_id,'name',f.name,'normalized_name',lower(f.name))
+		FROM catalog_printings p CROSS JOIN fixture f WHERE p.generation_id=$1 AND p.id=$2`,
+		[generation, d.id]
+	);
+	await pool.query('UPDATE catalog_generations SET document_count=601 WHERE id=$1', [generation]);
 	await pool.query(
 		'INSERT INTO catalog_state(id,active_generation) VALUES(1,$1) ON CONFLICT(id) DO UPDATE SET active_generation=excluded.active_generation',
 		[generation]
@@ -116,10 +128,71 @@ test('built HTTP application preserves public Catalog and local account journeys
 			assert.equal(page.status, 200);
 			assert.match(await page.text(), /Search/);
 			assert.equal(
-				(await request('/api/catalog/search', { query: 'Sol Ring', limit: 101 })).status,
+				(await request('/api/catalog/search', { query: 'Sol Ring', limit: 501 })).status,
 				400
 			);
 		});
+		await t.test(
+			'public GET and POST search accept 0 through 500 with coherent counts and generation',
+			async () => {
+				for (const limit of [0, 20, 50, 100, 500, 501])
+					for (const method of ['GET', 'POST']) {
+						const response =
+							method === 'GET'
+								? await request(`/api/catalog/search?q=Limit%20fixture&limit=${limit}`)
+								: await request('/api/catalog/search', { query: 'Limit fixture', limit });
+						assert.equal(response.status, limit === 501 ? 400 : 200);
+						if (limit === 501)
+							t.diagnostic(
+								JSON.stringify({
+									boundary:
+										method === 'GET' && response.url.includes('/api/catalog/')
+											? 'public-search'
+											: 'search',
+									method,
+									limit,
+									status: response.status
+								})
+							);
+						if (limit <= 500) {
+							const result = await response.json();
+							assert.equal(result.hits.length, limit);
+							assert.equal(result.estimatedTotalHits, 600);
+							assert.equal(result.generationId, generation);
+							t.diagnostic(
+								JSON.stringify({
+									boundary: 'public-search',
+									method,
+									limit,
+									status: response.status,
+									hits: result.hits.length,
+									total: result.estimatedTotalHits,
+									generation: result.generationId
+								})
+							);
+						}
+					}
+				const defaults = await (await request('/api/catalog/search?q=Limit%20fixture')).json();
+				assert.equal(defaults.hits.length, 20);
+				const deep = await (
+					await request('/api/catalog/search?q=Limit%20fixture&limit=500&offset=500')
+				).json();
+				assert.equal(deep.hits.length, 100);
+				assert.equal(deep.estimatedTotalHits, 600);
+				assert.equal(deep.generationId, generation);
+				assert.equal((await request('/api/mobile/v1/mtg/search?limit=500')).status, 401);
+				assert.equal((await request('/api/mobile/v1/mtg/search', { limit: 500 })).status, 401);
+				for (const limit of [0, 101, 500, 501])
+					assert.equal(
+						(await request(`/api/catalog/cards/${card.oracle_id}/printings?limit=${limit}`)).status,
+						400
+					);
+				assert.equal(
+					(await request(`/api/catalog/cards/${card.oracle_id}/printings?limit=100`)).status,
+					200
+				);
+			}
+		);
 		await t.test(
 			'public EUR references and private owned batches preserve exact values and safe failures',
 			async () => {
@@ -363,6 +436,51 @@ test('built HTTP application preserves public Catalog and local account journeys
 						.status,
 					200
 				);
+				for (const limit of [0, 20, 50, 100, 500, 501])
+					for (const method of ['GET', 'POST']) {
+						const response =
+							method === 'GET'
+								? await request(
+										`/api/mobile/v1/mtg/search?q=Limit%20fixture&limit=${limit}`,
+										undefined,
+										{ authorization }
+									)
+								: await request(
+										'/api/mobile/v1/mtg/search',
+										{ query: 'Limit fixture', limit },
+										{ authorization }
+									);
+						assert.equal(response.status, limit === 501 ? 400 : 200);
+						if (limit === 501)
+							t.diagnostic(
+								JSON.stringify({
+									boundary:
+										method === 'GET' && response.url.includes('/api/catalog/')
+											? 'public-search'
+											: 'search',
+									method,
+									limit,
+									status: response.status
+								})
+							);
+						if (limit <= 500) {
+							const result = await response.json();
+							assert.equal(result.hits.length, limit);
+							assert.equal(result.estimatedTotalHits, 600);
+							assert.equal(result.generationId, generation);
+							t.diagnostic(
+								JSON.stringify({
+									boundary: 'authenticated-search',
+									method,
+									limit,
+									status: response.status,
+									hits: result.hits.length,
+									total: result.estimatedTotalHits,
+									generation: result.generationId
+								})
+							);
+						}
+					}
 				assert.equal((await request('/api/auth/logout', {}, { authorization })).status, 204);
 				assert.equal(
 					(await request('/api/mobile/v1/mtg/search?q=Sol%20Ring', undefined, { authorization }))
@@ -388,18 +506,25 @@ test('built HTTP application preserves public Catalog and local account journeys
 					inventoryId,
 					login.user.accountId
 				]);
-				const rows = publicCards.slice(0, 24).flatMap((document) =>
-					['NM', 'LP', 'MP', 'HP', 'DMG'].map((condition) => ({
-						id: randomUUID(),
-						catalogCardId: document.id,
-						canonicalCardId: document.oracle_id,
-						name: document.name,
-						setCode: document.set_code,
-						imageUri: document.image_uri,
-						finish: document.is_nonfoil_available ? 'nonfoil' : 'foil',
-						condition
-					}))
+				const rows = publicCards.flatMap((document) =>
+					(['nonfoil', 'foil'] as const)
+						.filter((finish) =>
+							finish === 'nonfoil' ? document.is_nonfoil_available : document.is_foil_available
+						)
+						.flatMap((finish) =>
+							['NM', 'LP', 'MP', 'HP', 'DMG'].map((condition) => ({
+								id: randomUUID(),
+								catalogCardId: document.id,
+								canonicalCardId: document.oracle_id,
+								name: document.name,
+								setCode: document.set_code,
+								imageUri: document.image_uri,
+								finish,
+								condition
+							}))
+						)
 				);
+				assert.ok(rows.length > 500);
 				for (let position = 0; position < rows.length; position++) {
 					const row = rows[position];
 					await pool.query(
@@ -422,8 +547,36 @@ test('built HTTP application preserves public Catalog and local account journeys
 				}
 				const first: InventoryPage = await (await request(path, undefined, headers)).json();
 				assert.equal(first.entries.length, 50);
-				assert.equal(first.totals.entryCount, 120);
-				assert.equal(first.totals.copyCount, 240);
+				assert.equal(first.totals.entryCount, rows.length);
+				assert.equal(first.totals.copyCount, rows.length * 2);
+				for (const limit of [0, 20, 50, 100, 500, 501]) {
+					const response = await request(
+						path + `?limit=${limit}&revision=${first.revision}`,
+						undefined,
+						headers
+					);
+					assert.equal(response.status, limit === 0 || limit === 501 ? 400 : 200);
+					if (limit === 0 || limit === 501)
+						t.diagnostic(JSON.stringify({ boundary: 'inventory', limit, status: response.status }));
+					if (limit > 0 && limit <= 500) {
+						const result = await response.json();
+						assert.equal(result.entries.length, limit);
+						assert.equal(result.totals.entryCount, rows.length);
+						assert.equal(result.revision, first.revision);
+						assert.equal(result.query.limit, limit);
+						t.diagnostic(
+							JSON.stringify({
+								boundary: 'inventory',
+								limit,
+								status: response.status,
+								entries: result.entries.length,
+								total: result.totals.entryCount,
+								revision: result.revision
+							})
+						);
+					}
+				}
+				assert.equal((await request(path + '?limit=500')).status, 401);
 				const next: InventoryPage = await (
 					await request(path + `?page=2&revision=${first.revision}`, undefined, headers)
 				).json();
@@ -471,7 +624,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 					).status,
 					409
 				);
-				assert.equal((await request(path + '?limit=101', undefined, headers)).status, 400);
+				assert.equal((await request(path + '?limit=501', undefined, headers)).status, 400);
 				const other = await (
 					await request('/api/auth/register', {
 						username: `other_${randomUUID().slice(0, 8)}`,
@@ -488,7 +641,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 					404
 				);
 				const own = await (await request(path, undefined, headers)).json();
-				assert.equal(own.totals.copyCount, 241);
+				assert.equal(own.totals.copyCount, rows.length * 2 + 1);
 				const native = await request('/mtg/inventory?page=2&sort=name&dir=desc', undefined, {
 					cookie: `spellbook_session=${login.token}`
 				});

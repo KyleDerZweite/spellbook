@@ -64,8 +64,8 @@ export function normalizeInventoryQuery(value: unknown): InventoryQuery {
 		limit = input.limit ?? 50;
 	if (typeof offset !== 'number' || !Number.isSafeInteger(offset) || offset < 0)
 		throw new ValidationError('offset must be a nonnegative integer');
-	if (typeof limit !== 'number' || !Number.isInteger(limit) || limit < 1 || limit > 100)
-		throw new ValidationError('limit must be between 1 and 100');
+	if (typeof limit !== 'number' || !Number.isInteger(limit) || limit < 1 || limit > 500)
+		throw new ValidationError('limit must be between 1 and 500');
 	const group = input.group ?? null;
 	if (
 		group !== null &&

@@ -9,7 +9,7 @@ export const searchGet: RequestHandler = async (event) => {
 	try {
 		const input = parseCatalogSearchRequest({
 			query: event.url.searchParams.get('q') ?? '',
-			limit: readQueryInteger(event.url.searchParams.get('limit'), 'limit', 20, 100),
+			limit: readQueryInteger(event.url.searchParams.get('limit'), 'limit', 20, 500),
 			offset: readQueryInteger(event.url.searchParams.get('offset'), 'offset', 0, 1000000)
 		});
 		return json(await searchCatalogRequest(input), { headers: { 'cache-control': 'no-store' } });

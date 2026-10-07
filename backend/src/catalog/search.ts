@@ -168,6 +168,8 @@ export function createCatalog(pool: Pool) {
 	async function getPrintings(oracleId: string, limit = 100, offset = 0): Promise<SearchResult> {
 		const started = performance.now();
 		uuid(oracleId);
+		if (!Number.isInteger(limit) || limit < 1 || limit > 100)
+			throw new ValidationError('Printing limit must be an integer between 1 and 100');
 		parseCatalogSearchRequest({ limit, offset });
 		const result = await pool.query<SearchRow>(
 			`

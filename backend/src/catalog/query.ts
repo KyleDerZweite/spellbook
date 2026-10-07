@@ -62,8 +62,8 @@ export function parseCatalogSearchRequest(value: unknown): CatalogSearchInput {
 	}
 	const limit = body.limit === undefined ? 20 : body.limit;
 	const offset = body.offset === undefined ? 0 : body.offset;
-	if (typeof limit !== 'number' || !Number.isInteger(limit) || limit < 0 || limit > 100)
-		throw new ValidationError('limit must be an integer between 0 and 100');
+	if (typeof limit !== 'number' || !Number.isInteger(limit) || limit < 0 || limit > 500)
+		throw new ValidationError('limit must be an integer between 0 and 500');
 	if (typeof offset !== 'number' || !Number.isInteger(offset) || offset < 0 || offset > 1000000)
 		throw new ValidationError('offset must be an integer between 0 and 1000000');
 	if (body.sort !== undefined && body.sort !== 'name:asc' && body.sort !== 'name:desc')

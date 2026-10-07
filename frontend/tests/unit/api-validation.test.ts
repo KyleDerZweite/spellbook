@@ -167,7 +167,7 @@ describe('mobile route validation', () => {
 		await expect(handler(request as never)).rejects.toMatchObject({ status: 400 });
 	});
 
-	it.each(['wat', '-1', '1.5', '1e2', '', '101', '9007199254740992'])(
+	it.each(['wat', '-1', '1.5', '1e2', '', '501', '9007199254740992'])(
 		'rejects invalid search limit %s',
 		async (limit) => {
 			const request = event();
@@ -177,6 +177,18 @@ describe('mobile route validation', () => {
 		}
 	);
 
+	it.each([0, 20, 50, 100, 101, 200, 500])(
+		'passes expanded search GET limit %i unchanged',
+		async (limit) => {
+			search.searchCatalogRequest.mockResolvedValue({ hits: [] });
+			const request = event();
+			request.url.search = `?q=Opt&limit=${limit}&offset=20`;
+			await searchCards(request as never);
+			expect(search.searchCatalogRequest).toHaveBeenCalledWith(
+				expect.objectContaining({ limit, offset: 20, query: 'Opt' })
+			);
+		}
+	);
 	it('passes valid bounded search pagination to the catalog', async () => {
 		search.searchCatalogRequest.mockResolvedValue({ hits: [] });
 		const request = event();
@@ -418,6 +430,19 @@ describe('catalog search request validation', () => {
 		});
 	});
 
+	it.each([0, 20, 50, 100, 101, 200, 500])(
+		'accepts expanded structured Catalog limit %i',
+		(limit) => {
+			expect(
+				parseCatalogSearchRequest({
+					query: 'Opt',
+					limit,
+					offset: 1_000_000,
+					filters: { sets: ['DOM'] }
+				})
+			).toMatchObject({ limit, offset: 1_000_000, filters: { sets: ['dom'] } });
+		}
+	);
 	it.each([
 		null,
 		[],
@@ -427,7 +452,7 @@ describe('catalog search request validation', () => {
 		{ query: 'x'.repeat(301) },
 		{ limit: null },
 		{ limit: '20' },
-		{ limit: 101 },
+		{ limit: 501 },
 		{ limit: -1 },
 		{ limit: 0.5 },
 		{ offset: null },

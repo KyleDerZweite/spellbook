@@ -231,6 +231,27 @@ describe('OpenAPI contract', () => {
 		});
 	});
 
+	it('documents expanded Inventory pages while keeping printing pagination bounded to 100', async () => {
+		const schema = (await GET().json()) as Document;
+		expect(schema.components.schemas.InventoryWindowQuery).toMatchObject({
+			properties: { limit: { minimum: 1, maximum: 500, default: 50 } }
+		});
+		expect(schema.components.schemas.InventoryPage).toMatchObject({
+			properties: { entries: { maxItems: 500 }, groupPage: { maxItems: 500 } }
+		});
+		expect(schema.paths['/api/mobile/v1/mtg/search'].get!.parameters).toContainEqual({
+			name: 'limit',
+			in: 'query',
+			schema: { type: 'integer', default: 20, minimum: 0, maximum: 500 }
+		});
+		expect(
+			schema.paths['/api/mobile/v1/mtg/cards/{oracleId}/printings'].get!.parameters
+		).toContainEqual({
+			name: 'limit',
+			in: 'query',
+			schema: { type: 'integer', default: 100, minimum: 1, maximum: 100 }
+		});
+	});
 	it('documents bounded catalog filtering and generation-aware search responses', async () => {
 		const schema = (await GET().json()) as Document;
 		const search = schema.paths['/api/mobile/v1/mtg/search']!;
@@ -242,7 +263,7 @@ describe('OpenAPI contract', () => {
 		expect(schema.components.schemas.CatalogSearchRequest).toMatchObject({
 			properties: {
 				query: { type: 'string', maxLength: 300 },
-				limit: { type: 'integer', minimum: 0, maximum: 100 },
+				limit: { type: 'integer', minimum: 0, maximum: 500 },
 				offset: { type: 'integer', minimum: 0, maximum: 1_000_000 },
 				facets: { type: 'boolean', default: false },
 				sort: { enum: ['name:asc', 'name:desc'] }

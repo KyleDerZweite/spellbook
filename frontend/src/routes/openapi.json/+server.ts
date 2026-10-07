@@ -95,7 +95,7 @@ const inventoryQueryProperties: Record<string, Schema> = {
 	view: { enum: ['cards', 'groups'], default: 'cards' },
 	group: { anyOf: [{ type: 'string', format: 'uuid' }, { type: 'null' }] },
 	offset: { type: 'integer', minimum: 0 },
-	limit: { type: 'integer', minimum: 1, maximum: 100, default: 50 }
+	limit: { type: 'integer', minimum: 1, maximum: 500, default: 50 }
 };
 const inventoryParameters = Object.entries(inventoryQueryProperties)
 	.filter(([key]) => key !== 'sets')
@@ -485,7 +485,7 @@ const SCHEMA = {
 					{
 						name: 'limit',
 						in: 'query',
-						schema: { type: 'integer', default: 20, minimum: 0, maximum: 100 }
+						schema: { type: 'integer', default: 20, minimum: 0, maximum: 500 }
 					},
 					{
 						name: 'offset',
@@ -1260,7 +1260,7 @@ const SCHEMA = {
 					{
 						query: { type: 'string', maxLength: 300, default: '' },
 						filters: ref('CatalogFilters'),
-						limit: { type: 'integer', minimum: 0, maximum: 100, default: 20 },
+						limit: { type: 'integer', minimum: 0, maximum: 500, default: 20 },
 						offset: { type: 'integer', minimum: 0, maximum: 1_000_000, default: 0 },
 						sort: { enum: ['name:asc', 'name:desc'] },
 						facets: { type: 'boolean', default: false }
@@ -1800,7 +1800,7 @@ const SCHEMA = {
 				query: ref('InventoryWindowQuery'),
 				queryKey: string,
 				revision: inventoryRevision,
-				entries: { ...array('InventoryWindowEntry'), maxItems: 100 },
+				entries: { ...array('InventoryWindowEntry'), maxItems: 500 },
 				memberships: {
 					type: 'array',
 					items: object({
@@ -1809,7 +1809,7 @@ const SCHEMA = {
 					})
 				},
 				groups: array('InventoryGroupCount'),
-				groupPage: { ...array('InventoryGroupCount'), maxItems: 100 },
+				groupPage: { ...array('InventoryGroupCount'), maxItems: 500 },
 				groupCount: { type: 'integer', minimum: 0 },
 				matching: ref('InventoryCounts'),
 				totals: ref('InventoryTotals'),
