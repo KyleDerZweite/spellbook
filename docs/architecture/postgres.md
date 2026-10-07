@@ -74,7 +74,7 @@ Additive migration [0016](../../frontend/drizzle/0016_deck_entry_categories.sql)
 
 ## Public price persistence
 
-[Migration 0015](../../frontend/drizzle/0015_scryfall_prices.sql) adds four public price tables and initializes the singleton pointer row. It preserves existing account and Catalog tables. [Value persistence](./value-and-costs.md#implemented-scryfall-references) owns paired publication, exact observations, independent retention and trusted frozen-reference evidence. Worker ingestion never reads or writes private holdings.
+[Migration 0015](../../frontend/drizzle/0015_scryfall_prices.sql) adds four public price tables and initializes the singleton pointer row. It preserves existing account and Catalog tables. [Value persistence](./value-and-costs.md#implemented-market-references) owns paired publication, exact observations, independent retention and trusted frozen-reference evidence. Worker ingestion never reads or writes private holdings.
 
 ## Inventory read and write consistency
 

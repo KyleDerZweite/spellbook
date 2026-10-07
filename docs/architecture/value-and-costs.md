@@ -44,7 +44,7 @@ Assignment and correction restate affected cost/difference statistics through in
 
 Verify exact total preservation, equal/weighted fallback, known free versus unknown, FIFO partial reductions, disjoint portion assignments, request replay and stale previews. Corrections must cover retired portions and historical intersections without changing quantities, prices or missing days. Capture evidence covers duplicate runners, restart, outages, pruning, midnight and daylight saving. Source priority/null/failure/age/finish/language cases use actual imported fixtures and optional configurations. Substitute data does not establish a real provider integration. Keep evidence with the relevant implementation slice and refresh it after affected changes.
 
-## Implemented Scryfall references
+## Implemented market references
 
 Migration 0015 adds independent immutable price publications, projected printing facts, nullable exact observations and active/previous pointers. Worker publishes the baseline Catalog/Price pair atomically under the existing publisher lock. Currentness checks require both extraction and mapping versions. Source descriptor time and payload digest identify the imported input; import time never resets freshness. Failed attempts retain the active publication and store safe health separately after rollback. A successful complete null/missing view replaces the older same-source amount.
 
