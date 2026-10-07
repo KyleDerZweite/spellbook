@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: code
-- Update Triggers: catalog source and schema, publication, bundled samples and display assets, search ranking, filters, facets, browser pagination and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters, internal canonical/type fact provenance, paired reference publication and recovery
+- Update Triggers: catalog source and schema, publication, bundled samples and display assets, search ranking, filters, facets, browser pagination and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters, internal canonical/type fact provenance, paired reference publication and recovery, hybrid browsing/dialog contract and selected versus implemented read limits
 - Related Docs: [Domain glossary](../../GLOSSARY.md), [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [Local authentication and demo setup](../operations/local-auth.md), [ADR-0010](../decisions/0010-postgres-catalog.md), [Application contract](./application-contract.md), [Category rules](./category-rules.md)
 
 PostgreSQL stores the public Scryfall catalog alongside account-owned application data. SvelteKit provides public read-only browser search and printing lookup through `/api/catalog/search` and `/api/catalog/cards/{oracleId}/printings`. The existing versioned integration routes retain authentication. Both call the backend Catalog application interface through the frontend server composition. Backend owns shared request validation and SQL reads; frontend adapters retain HTTP parsing and errors. Browsers use the application API; they receive no database credential or search-service key. The catalog contains card metadata, not ownership quantities.
@@ -41,6 +41,8 @@ Color facets retain printed-color buckets even when a color-identity palette is 
 Authenticated `GET /api/mobile/v1/mtg/search` supports the existing query and pagination contract. `POST` on that route accepts structured filters and optional facets and name sorting. [OpenAPI](../../frontend/src/routes/openapi.json/+server.ts) owns exact field names, accepted values, defaults, and limits. Raw search-engine expressions are not accepted.
 
 ## Browser result window
+
+This section describes the current 50-result virtual window. The [selected Frontend replacement](./frontend.md#selected-hybrid-browsing-contract) adds 100/200/500/Lazy browser modes and native window scrolling. Its planned search maximum of 500 preserves the legacy API default and needs GET/POST/OpenAPI, generation and full-catalog verification. Current APIs remain capped at 100 until implemented.
 
 The browser grid represents the full result total with absolute card indexes. [CatalogWindow](../../frontend/src/lib/search/catalogWindow.ts) loads 50-result pages for the visible range and adjacent ranges, with up to three requests in flight and a planning window of 12 pages. It retains at most four search contexts and 20 pages across them in memory. Evicted ranges load again when needed; scrolling does not accumulate the whole catalog in memory. This cache holds API result pages, not image files. The app has no service worker or offline image cache, so card images require access to their source URLs.
 

@@ -5,8 +5,11 @@
 - Last Reviewed: 2026-10-07
 - Owners: Kyle
 - Source of Truth: Kyle's Q56 acceptance of the reviewed implementation contract
-- Update Triggers: Inventory query addressing, revisions, ordering/collation, writer locking, compact receipts and scale evidence
+- Update Triggers: Inventory query addressing, revisions, ordering/collation, writer locking, compact receipts and scale evidence, partial UI/read-limit supersession
+- Supersession: [ADR-0021](./0021-hybrid-browsing-and-contextual-card-dialog.md) partially replaces Inventory browser paging/mode, viewport, table quantity actions and the affected read maximum; remaining decisions stay accepted
 - Related Docs: [Application contract](../architecture/application-contract.md), [Frontend](../architecture/frontend.md), [Postgres](../architecture/postgres.md), [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md), [Decisions](./README.md)
+
+[ADR-0021](./0021-hybrid-browsing-and-contextual-card-dialog.md) selects the replacement UI contract. It is not implemented; prior implementation evidence remains tied to its original revision. Affected replacement readiness is withdrawn pending coherent reviewed contracts and acceptance checks.
 
 ## Context
 
