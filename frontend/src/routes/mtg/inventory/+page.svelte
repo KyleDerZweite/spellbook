@@ -6,9 +6,9 @@
 	import { goto } from '$app/navigation';
 	import WorkspaceHeader from '#lib/components/layout/WorkspaceHeader.svelte';
 	import Button from '#lib/components/ui/button/Button.svelte';
-	import Pagination from '#lib/components/ui/pagination/Pagination.svelte';
+	import NativeRangeNavigation from '#lib/components/ui/pagination/NativeRangeNavigation.svelte';
 	import {
-		parseBrowsePagination,
+		parseLazyBrowsePagination as parseBrowsePagination,
 		browsePaginationHref,
 		clampBrowsePagination
 	} from '#lib/browsing/pagination.ts';
@@ -198,7 +198,7 @@
 				}));
 	});
 	let inventoryCards = $derived(loadedEntries.map((row) => asLegacy(row.entry)));
-	let discreteCards = $derived(
+	let nativeCards = $derived(
 		loadedEntries
 			.filter(
 				({ index }) =>
@@ -224,13 +224,7 @@
 		hydrated = true;
 		windowAccount = page.data.user?.accountId ?? 'session';
 		window.pinServerPage(data.window);
-		window.seed(
-			windowAccount,
-			data.window,
-			() => true,
-			false,
-			browse.pageSize === 'lazy' ? 'lazy' : 'numeric'
-		);
+		window.seed(windowAccount, data.window, () => true, false, 'lazy');
 		inventorySubscription = workspaceSavedState.subscribe({
 			topics: ['inventory'],
 			refresh: (lease) => refreshInventory(windowAccount, lease),
@@ -285,7 +279,7 @@
 				window.current?.queryKey === initial.queryKey &&
 				window.current?.query.offset === initial.query.offset &&
 				window.current?.query.limit === initial.query.limit &&
-				window.browseMode === (data.pagination.pageSize === 'lazy' ? 'lazy' : 'numeric');
+				window.browseMode === 'lazy';
 			if (!samePage) {
 				browse = data.pagination;
 				query = initial.query.q;
@@ -343,21 +337,12 @@
 		lastBrowseSearch = new URL(href, page.url.href).search;
 		try {
 			await goto(href, { replace, reset: false, shallow: true });
-			await window.open(
-				windowAccount,
-				input,
-				controller.signal,
-				next.pageSize === 'lazy' ? 'lazy' : 'numeric'
-			);
+			await window.open(windowAccount, input, controller.signal, 'lazy');
 			if (controller.signal.aborted || pageController !== controller) return;
 			requestedServerQuery = null;
 			await tick();
 			if (controller.signal.aborted) return;
-			if (next.pageSize === 'lazy') await restoreNativeOffset(next.offset);
-			else {
-				resultsHeading?.scrollIntoView({ block: 'start' });
-				resultsHeading?.focus({ preventScroll: true });
-			}
+			await restoreNativeOffset(next.offset);
 		} catch (cause) {
 			if (!controller.signal.aborted)
 				mutationError = cause instanceof Error ? cause.message : 'Could not load this page.';
@@ -419,12 +404,7 @@
 			void (async () => {
 				try {
 					const typing = input.q !== currentWindow.query.q;
-					await window.open(
-						account,
-						input,
-						controller.signal,
-						browse.pageSize === 'lazy' ? 'lazy' : 'numeric'
-					);
+					await window.open(account, input, controller.signal, 'lazy');
 					if (controller.signal.aborted) return;
 					browse = parseBrowsePagination(
 						new URLSearchParams({ pageSize: String(browse.pageSize) })
@@ -524,7 +504,7 @@
 				serverQuery ??
 					matchingNativeInventoryQuery(window.current?.query ?? null, controlQuery) ??
 					controlQuery,
-				browse.pageSize === 'lazy' ? 'lazy' : 'numeric'
+				'lazy'
 			);
 			if (
 				!currentLease() ||
@@ -608,11 +588,6 @@
 				const href = browsePaginationHref(new URL(effectiveInventoryUrl(page).href), browse);
 				lastBrowseSearch = new URL(href, page.url.href).search;
 				await goto(href, { replace: true, reset: false, shallow: true });
-			}
-			if (browse.pageSize !== 'lazy') {
-				await tick();
-				if (controller.signal.aborted || window.identity !== location.identity) return false;
-				resultsHeading?.scrollIntoView({ block: 'start' });
 			}
 			return !controller.signal.aborted && window.identity === location.identity;
 		} catch (cause) {
@@ -1210,14 +1185,14 @@
 		{#if groupDirectory}
 			{#key window.queryIdentity}<GroupDirectory
 					bind:this={groupList}
-					groups={hydrated && browse.pageSize === 'lazy'
+					groups={hydrated
 						? currentWindow.groups.filter(
 								(group) =>
 									!currentWindow.query.q ||
 									group.name.toLowerCase().includes(currentWindow.query.q.toLowerCase())
 							)
 						: currentWindow.groupPage}
-					lazy={hydrated && browse.pageSize === 'lazy'}
+					lazy={hydrated}
 					initialIndex={currentWindow.query.offset}
 					onRange={(index) => lazyRange(index, index + 1, true)}
 					canonicalURL={new URL(effectiveInventoryUrl(page).href)}
@@ -1568,7 +1543,7 @@
 							]}
 						/>
 					</div>{/snippet}
-				{#if hydrated && browse.pageSize === 'lazy'}<VirtualInventoryList
+				{#if hydrated}<VirtualInventoryList
 						bind:this={virtualList}
 						total={currentWindow.matching.entryCount}
 						queryKey={window.queryIdentity}
@@ -1581,21 +1556,18 @@
 					>
 						{#snippet row(entry: InventoryEntry)}{@render entryRow(asLegacy(entry))}{/snippet}
 					</VirtualInventoryList>{:else}<ul class="inventory-list" aria-label="Inventory entries">
-						{#each discreteCards as card (card.id)}<li>
+						{#each nativeCards as card (card.id)}<li>
 								{@render entryRow(card)}
 							</li>{/each}
 					</ul>{/if}
 			{/if}
 		{/if}
 		{#if requestedServerQuery}<p role="status">Loading the selected inventory page.</p>{/if}
-		<Pagination
+		<NativeRangeNavigation
 			state={browse}
 			total={groupDirectory ? currentWindow.groupCount : currentWindow.matching.entryCount}
 			canonicalURL={new URL(effectiveInventoryUrl(page).href)}
-			onNavigate={(href) => {
-				void navigatePage(href);
-			}}
-			lazyLoading={true}
+			native={!hydrated}
 		/>
 		<div
 			hidden

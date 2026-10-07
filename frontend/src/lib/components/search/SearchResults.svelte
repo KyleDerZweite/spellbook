@@ -2,13 +2,11 @@
 	import { untrack } from 'svelte';
 	import type { CatalogRange } from '#lib/search/catalogWindow.ts';
 	import type { CardDocument } from '#lib/search/types.ts';
-	import CardGrid from '#lib/components/cards/CardGrid.svelte';
 	import type { BrowseViewport } from '#lib/browsing/viewport.ts';
 	import VirtualCardGrid from '#lib/components/cards/VirtualCardGrid.svelte';
 
 	interface Props {
 		totalCount: number;
-		mode?: 'numeric' | 'lazy';
 		cards?: CardDocument[];
 		viewport?: BrowseViewport | null;
 		anchorIndex?: number;
@@ -35,7 +33,6 @@
 
 	let {
 		totalCount,
-		mode = 'lazy',
 		cards = [],
 		viewport = null,
 		anchorIndex = 0,
@@ -122,8 +119,6 @@
 					</a>
 				{/each}
 			</div>
-		{:else if mode === 'numeric'}
-			<CardGrid {cards} {selectedId} {onSelect} />
 		{:else}
 			<VirtualCardGrid
 				{viewport}

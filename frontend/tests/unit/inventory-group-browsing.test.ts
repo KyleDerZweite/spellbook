@@ -13,18 +13,18 @@ const groups: InventoryGroup[] = Array.from({ length: 10000 }, (_, index) => ({
 	createdAt: new Date(),
 	updatedAt: new Date()
 }));
-it('renders the full selected numeric page and retains browser/filter identity in group links', async () => {
+it('renders the bounded native range and retains browser/filter identity in group links', async () => {
 	const { body } = await render(GroupDirectory, {
 		props: {
-			groups: groups.slice(500, 1000),
-			canonicalURL: new URL('http://local/mtg/inventory?pageSize=500&page=2&set=dom'),
+			groups: groups.slice(400, 600),
+			canonicalURL: new URL('http://local/mtg/inventory?pageSize=lazy&page=3&set=dom'),
 			dialogOpen: false,
 			onRename() {},
 			onRemove() {}
 		}
 	});
-	expect((body.match(/data-group-index=/g) ?? []).length).toBe(500);
-	expect(body).toContain('pageSize=500');
+	expect((body.match(/data-group-index=/g) ?? []).length).toBe(200);
+	expect(body).toContain('pageSize=lazy');
 	expect(body).toContain('page=1');
 	expect(body).toContain('set=dom');
 	expect(body).not.toContain('overflow-y');

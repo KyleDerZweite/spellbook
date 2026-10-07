@@ -11,20 +11,11 @@
 		createDeckAdditionDraft,
 		createInventoryAdditionDraft
 	} from '#lib/cards/addition-drafts.ts';
-	import Pagination from '#lib/components/ui/pagination/Pagination.svelte';
+	import NativeRangeNavigation from '#lib/components/ui/pagination/NativeRangeNavigation.svelte';
 	import { cardAt, type CatalogRange } from '#lib/search/catalogWindow.ts';
 	import { getSearchSession } from '#lib/search/session.svelte.ts';
-	import {
-		parseSearchUrl,
-		searchHref,
-		searchPagination,
-		type SearchInput
-	} from '#lib/search/navigation.ts';
-	import {
-		browseScrollTop,
-		restoreBrowsePosition,
-		type BrowseViewport
-	} from '#lib/browsing/viewport.ts';
+	import { searchHref, searchPagination, type SearchInput } from '#lib/search/navigation.ts';
+	import { browseScrollTop, type BrowseViewport } from '#lib/browsing/viewport.ts';
 	import { onMount, onDestroy, tick, untrack, type Snippet } from 'svelte';
 	import { nativeFeedbackRange } from '#lib/search/native-panel.ts';
 	import {
@@ -106,8 +97,6 @@
 	let range: CatalogRange = $state(session.range);
 	const warmedImages = new Set<string>();
 	const initialPublicationReset = untrack(() => session.snapshot.publicationReset ?? 0);
-	let restoredReset = -1;
-	let restoredTarget: HTMLElement | null = null;
 	let retainedServerPage: SearchResult | null = null;
 	let serverPageVersion = $state(0);
 	let consumedServerVersion = 0;
@@ -137,10 +126,7 @@
 	const activationAddress = $derived(
 		searchHref({
 			...session.input,
-			pagination: searchPagination(
-				session.pagination.pageSize,
-				session.pagination.pageSize === 'lazy' ? 1 : session.pagination.page
-			)
+			pagination: searchPagination(session.pagination.pageSize, 1)
 		})
 	);
 	$effect(() => {
@@ -184,27 +170,6 @@
 		return () => clearTimeout(timer);
 	});
 	$effect(() => {
-		if (
-			!mounted ||
-			!host ||
-			paging.pageSize === 'lazy' ||
-			!snapshot.validated ||
-			(restoredReset === snapshot.reset && restoredTarget === restorationTarget)
-		)
-			return;
-		restoredReset = snapshot.reset;
-		restoredTarget = restorationTarget;
-		const targetHost = host;
-		const feedback = restorationTarget;
-		const top =
-			snapshot.publicationReset && snapshot.publicationReset !== initialPublicationReset
-				? 0
-				: restoreTop;
-		void tick().then(() => {
-			restoreBrowsePosition(targetHost, top, resultsHeading, feedback);
-		});
-	});
-	$effect(() => {
 		if (!mounted || !host) return;
 		const targetHost = host;
 		const update = () => {
@@ -225,11 +190,6 @@
 	function handleRange(next: CatalogRange) {
 		range = next;
 		session.setRange(nativeFeedbackRange(next, session.pagination.offset, !!restorationTarget));
-	}
-	function navigate(nextHref: string) {
-		if (session.pending) return;
-		session.navigate(parseSearchUrl(new URL(nextHref, window.location.origin)));
-		if (paging.pageSize === 'lazy') session.activate();
 	}
 	$effect(() => {
 		if (!mounted || session.selectedCard) return;
@@ -357,7 +317,6 @@
 				totalCount={total}
 				getCard={(index) => cardAt(snapshot, index, paging.limit)}
 				cards={pageCards}
-				mode={paging.pageSize === 'lazy' ? 'lazy' : 'numeric'}
 				viewport={host}
 				anchorIndex={snapshot.anchor ?? anchorIndex}
 				native={!mounted}
@@ -380,13 +339,7 @@
 				selectedId={session.selectedCard?.id}
 				onSelect={handleSelect}
 			/>
-			<Pagination
-				state={paging}
-				{total}
-				{canonicalURL}
-				onNavigate={mounted ? navigate : undefined}
-				lazyLoading={mounted && paging.pageSize === 'lazy'}
-			/>
+			<NativeRangeNavigation state={paging} {total} {canonicalURL} native={!mounted} />
 		</div>
 	</div>
 </div>

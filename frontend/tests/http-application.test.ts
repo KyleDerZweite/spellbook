@@ -197,9 +197,9 @@ test('built HTTP application preserves public Catalog and local account journeys
 			'native Search pages normalize browser pagination and retain independent printing selection',
 			async () => {
 				for (const [size, pageNumber, expected] of [
-					[100, 2, 100],
+					[100, 2, 200],
 					[200, 2, 200],
-					[500, 2, 100],
+					[500, 2, 200],
 					['lazy', 2, 200]
 				] as const) {
 					const response = await request(
@@ -209,7 +209,8 @@ test('built HTTP application preserves public Catalog and local account journeys
 					const html = await response.text();
 					assert.equal((html.match(/<a class="min-w-0" href=/g) ?? []).length, expected);
 					assert.match(html, /600 cards/);
-					assert.match(html, /aria-label="Pagination"/);
+					assert.match(html, /aria-label="More results"/);
+					assert.doesNotMatch(html, /Entries per page|<select[^>]*name="pageSize"/);
 					assert.match(html, /name="pageSize"/);
 					assert.match(html, /printing=/);
 				}
@@ -225,13 +226,13 @@ test('built HTTP application preserves public Catalog and local account journeys
 				assert.ok(clampedLocation);
 				const clampedUrl = new URL(clampedLocation, origin);
 				assert.equal(clampedUrl.searchParams.get('q'), 'Limit fixture');
-				assert.equal(clampedUrl.searchParams.get('pageSize'), '500');
-				assert.equal(clampedUrl.searchParams.get('page'), '2');
+				assert.equal(clampedUrl.searchParams.get('pageSize'), 'lazy');
+				assert.equal(clampedUrl.searchParams.get('page'), '3');
 				assert.equal(clampedUrl.searchParams.get('printing'), card.id);
 				const clampedFollow = await request(clampedLocation);
 				assert.equal(clampedFollow.status, 200);
 				const clamped = await clampedFollow.text();
-				assert.equal((clamped.match(/<a class="min-w-0" href=/g) ?? []).length, 100);
+				assert.equal((clamped.match(/<a class="min-w-0" href=/g) ?? []).length, 200);
 				const filteredClamp = await request(
 					'/mtg/search?q=Sol%20Ring&type=Artifact&rarity=uncommon&pageSize=100&page=999'
 				);
@@ -273,7 +274,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 					assert.equal(action.headers.get('location'), null);
 					const html = await action.text();
 					assert.match(html, /acknowledgement/);
-					assert.equal((html.match(/<a class="min-w-0" href=/g) ?? []).length, 100);
+					assert.equal((html.match(/<a class="min-w-0" href=/g) ?? []).length, 200);
 				}
 				assert.equal(
 					(

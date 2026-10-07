@@ -47,6 +47,17 @@ export function parseBrowsePagination(
 	return pagination(pageSize, validPage ? page : 1, maxOffset);
 }
 
+/** All browser surfaces use fixed 200-result continuous ranges. Legacy URLs retain their containing range. */
+export function normalizeLazyBrowsePagination(state: BrowsePagination): BrowsePagination {
+	return pagination('lazy', Math.floor(state.offset / 200) + 1, state.maxOffset);
+}
+export function parseLazyBrowsePagination(
+	query: URLSearchParams,
+	maxOffset = Number.MAX_SAFE_INTEGER
+): BrowsePagination {
+	return normalizeLazyBrowsePagination(parseBrowsePagination(query, maxOffset, 'lazy'));
+}
+
 export function browsePageCount(total: number, limit: BrowsePagination['limit']): number {
 	if (!Number.isSafeInteger(total) || total < 0) throw new RangeError('Invalid total.');
 	return Math.max(1, Math.ceil(total / limit));

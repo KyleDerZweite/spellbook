@@ -82,9 +82,10 @@ test('Inventory hybrid native routes and real HTTP over genuine 1k/10k/50k accou
 					assert.equal(response.status, 200);
 					const html = await response.text(),
 						rows = (html.match(/data-inventory-row=/g) ?? []).length;
-					assert.equal(rows, Math.min(limit, size - (page - 1) * limit));
+					const rangeOffset = Math.floor(((page - 1) * limit) / 200) * 200;
+					assert.equal(rows, Math.min(200, size - rangeOffset));
 					assert.ok(!html.includes('name="delta"'), 'Table quantity has no mutation form.');
-					assert.match(html, /Entries per page/);
+					assert.doesNotMatch(html, /Entries per page|<select[^>]*name="pageSize"/);
 					samples.push({
 						size,
 						pageSize,
@@ -99,9 +100,9 @@ test('Inventory hybrid native routes and real HTTP over genuine 1k/10k/50k accou
 					);
 					assert.equal(api.status, 200);
 					const data: InventoryPage = await api.json();
-					assert.equal(data.entries.length, rows);
+					assert.equal(data.entries.length, Math.min(limit, size - (page - 1) * limit));
 					assert.equal(data.matching.entryCount, size);
-					assert.equal(new Set(data.entries.map((entry) => entry.id)).size, rows);
+					assert.equal(new Set(data.entries.map((entry) => entry.id)).size, data.entries.length);
 				}
 			}
 			await t.test(`normalization/clamp/native Details/Groups at ${size}`, async () => {
@@ -117,7 +118,7 @@ test('Inventory hybrid native routes and real HTTP over genuine 1k/10k/50k accou
 				assert.equal(clamp.status, 307);
 				assert.equal(
 					new URL(clamp.headers.get('location')!, origin).searchParams.get('page'),
-					String(Math.ceil(size / 500))
+					String(Math.ceil(size / 200))
 				);
 				const groups = await fetch(`${origin}/mtg/inventory?view=groups&pageSize=500`, { headers });
 				assert.equal(groups.status, 200);

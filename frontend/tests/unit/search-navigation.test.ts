@@ -123,7 +123,7 @@ describe('Search hybrid URL and history state', () => {
 		session.onEdit = (intent) => intents.push(intent);
 		session.hydrate(parseSearchUrl(new URL('/mtg/search?pageSize=500&page=3', origin)));
 		session.setQuery('elf');
-		expect(session.pagination).toMatchObject({ pageSize: 500, page: 1 });
+		expect(session.pagination).toMatchObject({ pageSize: 'lazy', page: 1 });
 		session.submit();
 		session.filters.toggleColor('G');
 		session.navigate(parseSearchUrl(new URL('/mtg/search?q=elf&pageSize=lazy&page=4', origin)));
@@ -209,7 +209,7 @@ describe('Search hybrid URL and history state', () => {
 		session.scrollTop = 5678;
 		session.hydrate(first);
 		expect(session.scrollTop).toBe(1234);
-		expect(session.pagination).toMatchObject({ pageSize: 100, page: 2 });
+		expect(session.pagination).toMatchObject({ pageSize: 'lazy', page: 1 });
 		session.hydrate(second);
 		expect(session.scrollTop).toBe(5678);
 		expect(session.pagination).toMatchObject({ pageSize: 'lazy', page: 8 });

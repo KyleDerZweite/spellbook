@@ -3,7 +3,7 @@ import { CatalogWindow, type CatalogWindowSnapshot, type CatalogRange } from './
 import { SearchFilterState } from './filters.svelte.ts';
 import { buildSearchContextKey, type SearchContextInput } from './requestContext.ts';
 import { searchHref, SEARCH_MAX_OFFSET, searchPagination, type SearchInput } from './navigation.ts';
-import type { BrowsePagination } from '#lib/browsing/pagination.ts';
+import { normalizeLazyBrowsePagination, type BrowsePagination } from '#lib/browsing/pagination.ts';
 import type { CardDocument, SearchResult } from './types.ts';
 
 const SEARCH_SESSION = Symbol('search-session');
@@ -76,7 +76,12 @@ export class SearchSession {
 		while (this.positions.size > 40) this.positions.delete(this.positions.keys().next().value!);
 	}
 	hydrate(input: SearchInput): void {
-		input = { ...input, pagination: input.pagination ?? initialPagination() };
+		input = {
+			...input,
+			pagination: input.pagination
+				? normalizeLazyBrowsePagination(input.pagination)
+				: initialPagination()
+		};
 		const address = searchHref(input);
 		if (address === searchHref(this.input)) {
 			this.address = address;
@@ -100,13 +105,15 @@ export class SearchSession {
 		this.address = address;
 	}
 	private catalogInput(input: SearchInput): SearchContextInput {
-		const pagination = input.pagination ?? initialPagination();
+		const pagination = input.pagination
+			? normalizeLazyBrowsePagination(input.pagination)
+			: initialPagination();
 		return {
 			game: 'mtg',
 			...input,
 			limit: pagination.limit,
 			offset: pagination.offset,
-			browsingMode: pagination.pageSize === 'lazy' ? 'lazy' : 'numeric'
+			browsingMode: 'lazy'
 		};
 	}
 	retainServerPage(input: SearchInput, result: SearchResult | null): void {
@@ -137,7 +144,7 @@ export class SearchSession {
 				this.contextKey = key;
 				this.selectedCard = null;
 				this.catalog.activate(input);
-			} else if (this.needsAnchor || this.pagination.pageSize !== 'lazy') {
+			} else if (this.needsAnchor) {
 				this.catalog.dispose();
 				this.catalog.setAnchor(this.pagination.offset);
 			}

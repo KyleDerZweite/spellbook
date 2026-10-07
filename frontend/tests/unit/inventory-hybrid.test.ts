@@ -55,10 +55,10 @@ function result(input: InventoryQuery, notes = ''): InventoryPage {
 describe('Inventory hybrid browser addressing', () => {
 	it.each([
 		['', 200, 0],
-		['page=3&pageSize=100', 100, 200],
-		['page=10&pageSize=500', 500, 4500],
+		['page=3&pageSize=100', 200, 200],
+		['page=10&pageSize=500', 200, 4400],
 		['page=125&pageSize=lazy', 200, 24800],
-		['page=bad&pageSize=500', 500, 0],
+		['page=bad&pageSize=500', 200, 0],
 		['page=4&pageSize=bad', 200, 600]
 	])('translates %s independently before the legacy parser', (params, limit, offset) => {
 		const { query, pagination } = inventoryBrowseQuery(

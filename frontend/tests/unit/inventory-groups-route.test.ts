@@ -134,12 +134,12 @@ describe('Inventory group route boundaries', () => {
 			load(event('https://spellbook.test/mtg/inventory?page=999&pageSize=500&finish=foil') as never)
 		).rejects.toMatchObject({
 			status: 307,
-			location: '/mtg/inventory?page=3&pageSize=500&finish=foil'
+			location: '/mtg/inventory?page=6&pageSize=lazy&finish=foil'
 		});
 		expect(mocks.page).toHaveBeenCalledOnce();
 		expect(mocks.page.mock.calls[0][1]).toMatchObject({
 			offset: 499000,
-			limit: 500,
+			limit: 200,
 			finish: 'foil'
 		});
 	});
@@ -220,8 +220,8 @@ describe('Inventory group route boundaries', () => {
 	});
 });
 
-it('retains exactly one 500-entry SSR array instead of an unused legacy projection', async () => {
-	const entries = Array.from({ length: 500 }, (_, index) => ({
+it('retains exactly one 200-entry SSR array instead of an unused legacy projection', async () => {
+	const entries = Array.from({ length: 200 }, (_, index) => ({
 		id: String(index),
 		createdAt: '2026-10-07T00:00:00Z',
 		updatedAt: '2026-10-07T00:00:00Z'
@@ -229,7 +229,7 @@ it('retains exactly one 500-entry SSR array instead of an unused legacy projecti
 	const page = {
 		...(await mocks.page('owner', { view: 'cards' })),
 		entries,
-		matching: { entryCount: 500, copyCount: 500 }
+		matching: { entryCount: 200, copyCount: 200 }
 	};
 	mocks.page.mockResolvedValue(page);
 	const result = await load(event('https://spellbook.test/mtg/inventory?pageSize=500') as never);
