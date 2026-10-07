@@ -1228,9 +1228,10 @@
 	}
 	@media (max-width: 640px) {
 		.list-controls {
-			grid-template-columns: repeat(3, minmax(0, 1fr));
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 		.view-controls {
+			grid-column: 1/-1;
 			gap: 0.75rem;
 			align-items: center;
 		}
@@ -1238,7 +1239,5 @@
 			grid-column: 1/-1;
 			order: -1;
 		}
-	}
-	@media (max-width: 420px) {
 	}
 </style>
