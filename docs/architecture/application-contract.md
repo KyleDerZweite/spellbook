@@ -76,7 +76,7 @@ Ordinary signed negative quantity deltas stop at one inside the transaction. A f
 
 ## Inventory query contract
 
-The read maximum of 500 is implemented. The [selected hybrid replacement](./frontend.md#selected-hybrid-browsing-contract) retains the browser 100/200/500/Lazy requirements; Inventory adopts its browser adapter and bounded window; Search adoption remains a separate slice.
+The read maximum of 500 is implemented. The [selected hybrid replacement](./frontend.md#selected-hybrid-browsing-contract) retains the browser 100/200/500/Lazy requirements; Inventory and Search implement their browser adapters and bounded result windows. Composed scale and rendered acceptance remain delivery gates.
 
 Backend accepts normalized filters, the existing composite order, optional group, offset and bounded limit. The backend defaults to 50 entries and permits 1 through 500 per request. Inventory browser routes use default 200 and the shared page-size control; legacy API omitted-limit behavior remains 50. Preserve name/set/newest and variant-order transitions with stable printing/finish/condition/entry-ID ties. PostgreSQL ICU root collation makes name/set ordering canonical; UUID ties are byte-stable. [Migration 0011](../../frontend/drizzle/0011_inventory_windows.sql) creates `inventory_root`, validates the accepted ordering examples and checks the actual ICU version, failing when the required collation is unavailable. It adds the Inventory name/set ordering index and Inventory/Notes revision columns. [Deployment](../operations/deployment.md#inventory-collation-and-recovery) owns version-change recovery.
 
