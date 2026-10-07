@@ -4,7 +4,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"dev": "vite dev",
+		"dev": "node --env-file-if-exists=../.env node_modules/vite/bin/vite.js dev",
 		"dev:local": "node --env-file-if-exists=../.env scripts/dev.mjs",
 		"build": "vite build && node ../scripts/check-client.mjs",
 		"preview": "vite preview",
@@ -18,7 +18,7 @@
 		"db:check": "node --env-file-if-exists=../.env node_modules/drizzle-kit/bin.cjs check",
 		"check:ts": "node node_modules/typescript-native/bin/tsc --noEmit",
 		"demo:seed": "node --env-file-if-exists=../.env scripts/demo/seed.mjs",
-		"dev:demo": "pnpm demo:seed && DEMO_MODE=true vite dev",
+		"dev:demo": "pnpm demo:seed && DEMO_MODE=true pnpm dev",
 		"test:http": "node --test --test-concurrency=1 tests/http-runtime.test.ts tests/http-application.test.ts tests/categories-http.test.ts",
 		"test:sync": "node --test tests/saved-state-http.test.ts",
 		"test:scan": "node --test tests/scan-http.test.ts"

@@ -59,6 +59,37 @@ setTimeout(() => process.exit(0), 150);
 }
 
 describe('configured local launcher', () => {
+	it('loads root demo configuration for direct Vite development too', async () => {
+		const root = await mkdtemp(join(tmpdir(), 'spellbook-direct-env-'));
+		try {
+			const app = join(root, 'frontend');
+			await mkdir(join(app, 'node_modules/vite/bin'), { recursive: true });
+			await writeFile(
+				join(root, '.env'),
+				'DATABASE_URL=postgres://fixture:fixture@localhost/fixture_design\nDEMO_MODE=true\n'
+			);
+			await writeFile(
+				join(app, 'node_modules/vite/bin/vite.js'),
+				'console.log(JSON.stringify({demo: process.env.DEMO_MODE, database: process.env.DATABASE_URL, args: process.argv.slice(2)}));'
+			);
+			const manifest = JSON.parse(await readFile(new URL('package.json', frontend), 'utf8'));
+			const [command, ...args] = manifest.scripts.dev.split(' ');
+			expect(command).toBe('node');
+			const { stdout } = await execute(process.execPath, args, {
+				cwd: app,
+				env: {},
+				timeout: 5000
+			});
+			expect(JSON.parse(stdout)).toEqual({
+				demo: 'true',
+				database: 'postgres://fixture:fixture@localhost/fixture_design',
+				args: ['dev']
+			});
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
 	it('loads the single root env and keeps the deployment origin out of local forms', async () => {
 		const { children, storage, app, scan } = await launch();
 		expect(children).toHaveLength(2);
