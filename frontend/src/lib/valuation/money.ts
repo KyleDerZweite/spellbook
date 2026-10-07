@@ -1,10 +1,8 @@
+import { isReferenceDecimal } from '@spellbook/contracts/valuation.ts';
+
 /** Exact multiplication and half-up rounding happen before locale presentation. */
 export function formatReferenceEUR(amount: string, quantity = 1): string {
-	if (
-		!/^(0|[1-9][0-9]*)(?:\.[0-9]+)?$/.test(amount) ||
-		!Number.isSafeInteger(quantity) ||
-		quantity < 0
-	)
+	if (!isReferenceDecimal(amount) || !Number.isSafeInteger(quantity) || quantity < 0)
 		throw new Error('Invalid reference amount or quantity');
 	const [whole, fraction = ''] = amount.split('.');
 	const scale = 10n ** BigInt(fraction.length),

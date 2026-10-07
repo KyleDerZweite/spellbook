@@ -9,7 +9,7 @@ from decimal import Decimal
 from urllib.parse import urlsplit
 from uuid import UUID
 
-EXTRACTOR_VERSION = 2
+EXTRACTOR_VERSION = 3
 MAPPING_VERSION = 1
 LAYOUTS = {"normal", "transform", "modal_dfc", "split", "adventure", "flip"}
 LINK_HOSTS = {
@@ -55,7 +55,11 @@ def uuid(value: object) -> str:
 def decimal(value: object) -> str | None:
     if value is None:
         return None
-    if not isinstance(value, str) or not re.fullmatch(r"[0-9]+(?:\.[0-9]+)?", value):
+    if (
+        not isinstance(value, str)
+        or len(value) > 128
+        or not re.fullmatch(r"[0-9]+(?:\.[0-9]{1,18})?", value)
+    ):
         raise ValueError("Invalid EUR decimal")
     # Formatting Decimal, without arithmetic or context rounding, preserves source precision.
     result = format(Decimal(value), "f")

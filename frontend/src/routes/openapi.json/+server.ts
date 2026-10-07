@@ -1280,7 +1280,11 @@ const SCHEMA = {
 						printingId: { type: 'string', format: 'uuid' },
 						finish,
 						links: array('ProductLink'),
-						amount: { type: 'string', pattern: '^(0|[1-9][0-9]*)(\\.[0-9]+)?$' },
+						amount: {
+							type: 'string',
+							maxLength: 128,
+							pattern: '^(0|[1-9][0-9]*)(\\.[0-9]{1,18})?$'
+						},
 						currency: { const: 'EUR' },
 						source: { const: 'Scryfall' },
 						measure: { enum: ['prices.eur', 'prices.eur_foil'] },

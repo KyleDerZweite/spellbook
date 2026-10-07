@@ -1,6 +1,7 @@
 import type { Pool, PoolClient } from 'pg';
 import type { createLocalAuth } from '../auth/local.ts';
 import type { AuthUser } from '@spellbook/contracts/auth.ts';
+import { isReferenceDecimal } from '@spellbook/contracts/valuation.ts';
 import type {
 	InventoryPriceResponse,
 	PriceFinish,
@@ -63,7 +64,7 @@ function entryIds(input: unknown): string[] {
 	return ids;
 }
 function decimal(value: string) {
-	if (!/^[0-9]+(?:\.[0-9]+)?$/.test(value)) throw new PriceReadUnavailable();
+	if (!isReferenceDecimal(value)) throw new PriceReadUnavailable();
 	const [whole, raw = ''] = value.split('.');
 	const fraction = raw.replace(/0+$/, '');
 	return (whole.replace(/^0+(?=\d)/, '') || '0') + (fraction ? '.' + fraction : '');
@@ -211,6 +212,12 @@ export function createValuation(
 					)
 				).rows
 			: [];
+		for (const row of rows)
+			if (
+				(row.amount !== null && !isReferenceDecimal(row.amount)) ||
+				(row.english_amount !== null && !isReferenceDecimal(row.english_amount))
+			)
+				throw new PriceReadUnavailable();
 		const results = pairs.map((request, index) => choose(request, rows[index], publication, now));
 		if (frozen && publication)
 			results.forEach((reference, index) => {

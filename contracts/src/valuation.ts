@@ -1,4 +1,10 @@
 import type { AuthUser } from './auth.ts';
+/** Bounded ordinary decimals are checked before Decimal/BigInt parsing. */
+export function isReferenceDecimal(value: unknown): value is string {
+	return (
+		typeof value === 'string' && value.length <= 128 && /^[0-9]+(?:\.[0-9]{1,18})?$/.test(value)
+	);
+}
 // Foil selects Scryfall eur_foil with an explicit foil finish, even alongside etched.
 // Etched-only printings are unsupported; this API does not accept an etched request.
 export type PriceFinish = 'nonfoil' | 'foil';

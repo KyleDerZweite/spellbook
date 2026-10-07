@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+from worker import prices
 from worker.prices import project_printing
 
 FIXTURE = Path(__file__).parent / "fixtures" / "price_variants.json"
@@ -44,10 +45,22 @@ def test_exact_decimal_zero_and_supplied_links_are_independent():
     assert project_printing(dict(card, prices={}))["links"] == result["links"]
 
 
-@pytest.mark.parametrize("amount", ["-1", "NaN", "Infinity", "1e3", 1.5, True, ""])
+@pytest.mark.parametrize(
+    "amount", ["-1", "NaN", "Infinity", "1e3", 1.5, True, "", "1" * 129, "0." + "1" * 19]
+)
 def test_malformed_selected_decimal_rejects_publication(amount):
     with pytest.raises(ValueError):
         project_printing(dict(sample(), prices={"eur": amount}))
+
+
+def test_oversized_source_literals_are_rejected_before_decimal_parse(monkeypatch):
+    def unexpected_parse(_):
+        pytest.fail("Rejected input reached Decimal parsing")
+
+    monkeypatch.setattr(prices, "Decimal", unexpected_parse)
+    for amount in ("1" * 1_000_000, "0." + "1" * 19):
+        with pytest.raises(ValueError, match="Invalid EUR decimal"):
+            project_printing(dict(sample(), prices={"eur": amount}))
 
 
 def test_explicit_empty_finishes_are_valid_unknown_availability():

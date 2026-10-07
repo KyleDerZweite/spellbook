@@ -120,6 +120,26 @@ run('published exact references and private quantity coverage', () => {
 			valuation.inventoryReferences(actor, { entryIds: [randomUUID()] })
 		).rejects.toMatchObject({ kind: 'InventoryPriceNotFound' });
 	});
+	it('treats corrupt oversized stored amounts as read failure even when expired', async () => {
+		try {
+			clock = new Date('2026-10-15T00:00:00Z');
+			for (const amount of ['1'.repeat(129), '0.' + '1'.repeat(19)]) {
+				await database.pool.query(
+					"UPDATE price_observations SET amount=$1 WHERE publication_id=$2 AND printing_id=$3 AND finish='nonfoil'",
+					[amount, publication, english]
+				);
+				await expect(
+					valuation.printingReferences([{ printingId: printing, finish: 'nonfoil' }])
+				).rejects.toMatchObject({ kind: 'PriceReadUnavailable' });
+			}
+		} finally {
+			clock = new Date('2026-10-07T00:00:00Z');
+			await database.pool.query(
+				"UPDATE price_observations SET amount=0.005 WHERE publication_id=$1 AND printing_id=$2 AND finish='nonfoil'",
+				[publication, english]
+			);
+		}
+	});
 	it('does not resurrect a same-source amount after successful null; links survive', async () => {
 		await database.pool.query(
 			'INSERT INTO price_publications SELECT $1,catalog_generation_id,descriptor,source_type,source_updated_at,payload_digest,extractor_version,mapping_version,ingested_at FROM price_publications WHERE id=$2',

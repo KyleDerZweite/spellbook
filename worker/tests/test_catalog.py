@@ -2,6 +2,7 @@ import json
 import os
 import threading
 from concurrent.futures import ThreadPoolExecutor
+from decimal import Decimal
 from pathlib import Path
 from uuid import UUID, uuid4
 
@@ -237,6 +238,44 @@ def test_successful_null_replaces_amount_and_pair_recovery(publisher, tmp_path):
             "JOIN price_state ps ON ps.id=1 "
             "JOIN price_publications p ON p.id=ps.active_publication"
         ).fetchone()[0]
+
+
+def test_foil_and_etched_publication_preserves_typed_foil_amount(publisher, tmp_path):
+    card = json.loads((FIXTURES / "normal_card.json").read_text())
+    card["finishes"] = ["foil", "etched"]
+    card["prices"] = {"eur_foil": "0.005"}
+    publisher.publish(*snapshot(tmp_path, cards=[card]))
+    with publisher._connect() as conn:
+        assert conn.execute(
+            "SELECT supported,amount,raw_value FROM price_observations WHERE finish='foil'"
+        ).fetchone() == (True, Decimal("0.005"), "0.005")
+    card["finishes"] = ["etched"]
+    publisher.publish(*snapshot(tmp_path, version=2, cards=[card]))
+    with publisher._connect() as conn:
+        assert conn.execute(
+            "SELECT supported FROM price_observations WHERE finish='foil' "
+            "AND publication_id=(SELECT active_publication FROM price_state)"
+        ).fetchone() == (False,)
+
+
+def test_repeated_publication_maps_new_rows_with_existing_source_statistics(
+    publisher, tmp_path, monkeypatch
+):
+    base = json.loads((FIXTURES / "normal_card.json").read_text())
+    cards = [dict(base, id=str(uuid4()), collector_number=str(i)) for i in range(2000)]
+    publisher.publish(*snapshot(tmp_path, cards=cards))
+    with publisher._connect() as conn:
+        conn.execute("ANALYZE price_printings")
+        conn.execute("ANALYZE price_observations")
+    connect = publisher._connect
+
+    def bounded_connect():
+        conn = connect()
+        conn.execute("SET statement_timeout='5s'")
+        return conn
+
+    monkeypatch.setattr(publisher, "_connect", bounded_connect)
+    assert publisher.publish(*snapshot(tmp_path, version=2, cards=cards)) == len(cards)
 
 
 def test_exactly_one_english_identity_includes_null_priced_candidates(publisher, tmp_path):

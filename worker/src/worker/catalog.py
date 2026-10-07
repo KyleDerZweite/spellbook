@@ -256,6 +256,10 @@ class CatalogPublisher:
                             p["supported"][finish],
                         )
                     )
+        # COPY adds an unseen publication to existing statistics. Refresh before the
+        # mapping join so PostgreSQL does not plan million-row inputs as one row.
+        conn.execute("ANALYZE price_printings")
+        conn.execute("ANALYZE price_observations")
         if conn.execute(
             "SELECT 1 FROM price_printings WHERE publication_id=%s "
             "GROUP BY set_id HAVING count(DISTINCT set_code)>1 LIMIT 1",
