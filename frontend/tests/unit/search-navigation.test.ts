@@ -131,6 +131,16 @@ describe('Search hybrid URL and history state', () => {
 		expect(session.pagination.page).toBe(5);
 		expect(intents).toEqual(['replace', 'push', 'push', 'push', 'replace']);
 	});
+	it('uses the visible Lazy anchor rather than its overscan range for the URL', () => {
+		const session = new SearchSession();
+		const intents: string[] = [];
+		session.onEdit = (intent) => intents.push(intent);
+		session.hydrate(parseSearchUrl(new URL('/mtg/search?pageSize=lazy', origin)));
+		session.setRange({ start: 190, end: 260, anchor: 205, direction: 1 });
+		expect(session.pagination.page).toBe(2);
+		session.setRange({ start: 195, end: 265, anchor: 210, direction: 1 });
+		expect(intents).toEqual(['replace']);
+	});
 	it('restores mode, page and saved host position on Back and Forward hydration', () => {
 		const session = new SearchSession();
 		const first = parseSearchUrl(new URL('/mtg/search?q=elf&pageSize=100&page=2', origin));

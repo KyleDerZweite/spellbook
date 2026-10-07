@@ -107,10 +107,17 @@
 	$effect(() => {
 		if (!mounted) return;
 		const address = activationAddress;
-		if (untrack(() => activatedAddress === address)) return;
+		const replacedServerPage = serverResult !== consumedSeed;
+		const freshSeed =
+			replacedServerPage &&
+			serverInput &&
+			searchHref(serverInput) === untrack(() => searchHref(session.input));
+		if (untrack(() => activatedAddress === address) && !freshSeed) return;
 		const timer = setTimeout(
 			() =>
 				untrack(() => {
+					// Kit replaced the retained page, including an unavailable read with no hits.
+					if (replacedServerPage) catalog.releaseSeed();
 					restoreTop = session.scrollTop;
 					anchorIndex = session.pagination.offset;
 					session.activate(

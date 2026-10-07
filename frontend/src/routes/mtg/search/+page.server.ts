@@ -9,10 +9,11 @@ import { getCatalogPrinting, searchCatalogRequest } from '#lib/server/catalog/se
 import type { PageServerLoad } from './$types';
 import type { CardDocument, SearchResult } from '#lib/search/types.ts';
 
-export const load: PageServerLoad = async ({ url }) => {
+export const load: PageServerLoad = async ({ url, request }) => {
 	let searchInput = parseSearchUrl(url);
 	let catalogResult: SearchResult | null = null;
 	let catalogReadError: string | null = null;
+	let clampedPage = false;
 	try {
 		const read = () =>
 			searchCatalogRequest(
@@ -32,7 +33,9 @@ export const load: PageServerLoad = async ({ url }) => {
 		);
 		if (clamped.page !== searchInput.pagination!.page) {
 			searchInput = { ...searchInput, pagination: clamped };
-			catalogResult = await read();
+			clampedPage = true;
+			// A native GET follows one canonical redirect. POST retains its committed action result.
+			if (request.method !== 'GET') catalogResult = await read();
 		}
 	} catch {
 		catalogReadError = 'Catalog search is unavailable. Retry this search.';
@@ -59,6 +62,8 @@ export const load: PageServerLoad = async ({ url }) => {
 	}
 	const canonical = new URL(searchHref(searchInput), url);
 	if (selectedPrinting) canonical.searchParams.set('printing', selectedPrinting.id);
+	if (clampedPage && request.method === 'GET' && !catalogReadError)
+		redirect(303, canonical.pathname + canonical.search);
 	return {
 		requestId: crypto.randomUUID(),
 		searchInput,

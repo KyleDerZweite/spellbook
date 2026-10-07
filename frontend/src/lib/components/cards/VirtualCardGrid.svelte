@@ -102,6 +102,7 @@
 		if (!positioned || containerWidth <= 0 || endRow < startRow) return;
 		onRangeChange?.({
 			start: startRow * cols,
+			anchor: Math.floor(visibleTop / rowHeight) * cols,
 			end: Math.min(itemCount, (endRow + 1) * cols, startRow * cols + 199),
 			direction
 		});

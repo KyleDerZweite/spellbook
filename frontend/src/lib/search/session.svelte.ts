@@ -123,7 +123,7 @@ export class SearchSession {
 		if (this.pagination.pageSize === 'lazy') {
 			const page = Math.min(
 				Math.floor(SEARCH_MAX_OFFSET / 200) + 1,
-				Math.floor(range.start / 200) + 1
+				Math.floor((range.anchor ?? range.start) / 200) + 1
 			);
 			if (page !== this.pagination.page) {
 				this.pagination = searchPagination('lazy', page);

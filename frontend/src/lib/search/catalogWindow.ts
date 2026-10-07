@@ -14,6 +14,7 @@ export interface CatalogRange {
 	start: number;
 	end: number;
 	direction: 1 | -1;
+	anchor?: number;
 }
 export interface CatalogWindowSnapshot {
 	pages: ReadonlyMap<number, CardDocument[]>;
@@ -212,7 +213,7 @@ export class CatalogWindow {
 		if (range.start !== this.range.start || range.end !== this.range.end) this.suppressed.clear();
 		this.range = { ...range, end: Math.min(range.end, range.start + 200) };
 		if (this.active?.input.browsingMode === 'lazy' && this.validated)
-			this.anchor = this.checkedOffset(range.start, this.active.input.limit!);
+			this.anchor = this.checkedOffset(range.anchor ?? range.start, this.active.input.limit!);
 		if (!this.started || !this.validated || !this.active) return;
 		const wanted = new Set(this.planned());
 		for (const flight of this.flights)

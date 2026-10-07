@@ -217,10 +217,81 @@ test('built HTTP application preserves public Catalog and local account journeys
 					await request('/mtg/search?q=Limit%20fixture&pageSize=501&page=9007199254740992')
 				).text();
 				assert.equal((invalid.match(/<a class="min-w-0" href=/g) ?? []).length, 200);
-				const clamped = await (
-					await request('/mtg/search?q=Limit%20fixture&pageSize=500&page=2001')
-				).text();
+				const clampedResponse = await request(
+					`/mtg/search?q=Limit%20fixture&pageSize=500&page=2001&printing=${card.id}`
+				);
+				assert.equal(clampedResponse.status, 303);
+				const clampedLocation = clampedResponse.headers.get('location');
+				assert.ok(clampedLocation);
+				const clampedUrl = new URL(clampedLocation, origin);
+				assert.equal(clampedUrl.searchParams.get('q'), 'Limit fixture');
+				assert.equal(clampedUrl.searchParams.get('pageSize'), '500');
+				assert.equal(clampedUrl.searchParams.get('page'), '2');
+				assert.equal(clampedUrl.searchParams.get('printing'), card.id);
+				const clampedFollow = await request(clampedLocation);
+				assert.equal(clampedFollow.status, 200);
+				const clamped = await clampedFollow.text();
 				assert.equal((clamped.match(/<a class="min-w-0" href=/g) ?? []).length, 100);
+				const filteredClamp = await request(
+					'/mtg/search?q=Sol%20Ring&type=Artifact&rarity=uncommon&pageSize=100&page=999'
+				);
+				assert.equal(filteredClamp.status, 303);
+				const filteredLocation = new URL(filteredClamp.headers.get('location')!, origin);
+				assert.equal(filteredLocation.searchParams.get('type'), 'Artifact');
+				assert.equal(filteredLocation.searchParams.get('rarity'), 'uncommon');
+				assert.equal(filteredLocation.searchParams.get('page'), '1');
+				const registered = await request('/api/auth/register', {
+					username: `native_clamp_${randomUUID().slice(0, 8)}`,
+					password
+				});
+				assert.equal(registered.status, 201);
+				const actor = await registered.json();
+				accounts.push(actor.user.accountId);
+				const requestId = randomUUID();
+				for (let replay = 0; replay < 2; replay++) {
+					const action = await fetch(
+						`${origin}/mtg/search?q=Limit%20fixture&pageSize=500&page=2001&printing=${card.id}&/addToInventory`,
+						{
+							method: 'POST',
+							redirect: 'manual',
+							headers: {
+								origin,
+								cookie: `${SESSION_COOKIE}=${actor.token}`,
+								'content-type': 'application/x-www-form-urlencoded'
+							},
+							body: new URLSearchParams({
+								requestId,
+								catalogCardId: card.id,
+								finish: 'nonfoil',
+								condition: 'NM',
+								quantity: '1'
+							})
+						}
+					);
+					assert.equal(action.status, 200);
+					assert.equal(action.headers.get('location'), null);
+					const html = await action.text();
+					assert.match(html, /acknowledgement/);
+					assert.equal((html.match(/<a class="min-w-0" href=/g) ?? []).length, 100);
+				}
+				assert.equal(
+					(
+						await pool.query(
+							'SELECT count(*)::int AS count FROM inventory_mutation_requests WHERE account_id=$1 AND request_id=$2',
+							[actor.user.accountId, requestId]
+						)
+					).rows[0].count,
+					1
+				);
+				assert.equal(
+					(
+						await pool.query(
+							'SELECT sum(c.quantity)::int AS quantity FROM inventory_cards c JOIN inventories i ON i.id=c.inventory_id WHERE i.account_id=$1',
+							[actor.user.accountId]
+						)
+					).rows[0].quantity,
+					1
+				);
 				const filtered = await (
 					await request('/mtg/search?q=Sol%20Ring&type=Artifact&type=invalid&rarity=uncommon')
 				).text();

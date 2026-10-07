@@ -5,7 +5,7 @@
 </script>
 
 <svelte:head><title>Search | Spellbook</title></svelte:head>
-<div class="workspace-container full-search">
+<div class="workspace-container search-page">
 	<h1 class="sr-only">Search cards</h1>
 	<SearchWorkspace
 		serverInput={data.searchInput}
@@ -21,10 +21,7 @@
 </div>
 
 <style>
-	.full-search {
-		display: flex;
-		flex-direction: column;
-		flex: 1;
+	.search-page {
 		min-height: 32rem;
 	}
 </style>
