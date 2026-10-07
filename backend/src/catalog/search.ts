@@ -61,7 +61,16 @@ function printingDto(document: CardDocument): CardDocument {
 	};
 }
 
+function copyFacets(facets: FacetResponse): FacetResponse {
+	return {
+		colors: { ...facets.colors },
+		rarity: { ...facets.rarity },
+		set_code: { ...facets.set_code }
+	};
+}
+
 export function createCatalog(pool: Pool) {
+	let unfilteredFacets: { generationId: string; facets: FacetResponse } | undefined;
 	async function searchCatalogRequest(request: CatalogSearchInput): Promise<SearchResult> {
 		const input = parseCatalogSearchRequest(request);
 		const started = performance.now();
@@ -110,22 +119,27 @@ export function createCatalog(pool: Pool) {
 				: input.sort === 'name:asc' || !query
 					? 'name ASC, oracle_id'
 					: 'relevance DESC, name ASC, oracle_id';
+		const memoEligible =
+			input.facets && !query && !Object.values(filters).some((values) => values.length);
+		const observedMemo = unfilteredFacets;
+		const memo = memoEligible ? observedMemo : undefined;
 		const limit = bind(input.limit);
 		const offset = bind(input.offset);
-		const facets = input.facets
-			? `jsonb_build_object(
-		'colors', (SELECT COALESCE(jsonb_object_agg(value, n), '{}'::jsonb) FROM (SELECT color AS value, count(DISTINCT oracle_id)::int AS n FROM matched CROSS JOIN LATERAL unnest(CASE WHEN cardinality(colors)=0 THEN ARRAY['C']::text[] ELSE colors END) AS color GROUP BY color) f),
-		'rarity', (SELECT COALESCE(jsonb_object_agg(value, n), '{}'::jsonb) FROM (SELECT rarity AS value, count(DISTINCT oracle_id)::int AS n FROM matched GROUP BY rarity) f),
-		'set_code', (SELECT COALESCE(jsonb_object_agg(value, n), '{}'::jsonb) FROM (SELECT set_code AS value, count(DISTINCT oracle_id)::int AS n FROM matched GROUP BY set_code) f)
+		async function execute(includeFacets: boolean) {
+			const facets = includeFacets
+				? `jsonb_build_object(
+		'colors', (SELECT COALESCE(jsonb_object_agg(value, n), '{}'::jsonb) FROM (SELECT value,count(*)::int AS n FROM (SELECT DISTINCT oracle_id,color AS value FROM (SELECT DISTINCT oracle_id,colors FROM matched) color_cards CROSS JOIN LATERAL unnest(CASE WHEN cardinality(colors)=0 THEN ARRAY['C']::text[] ELSE colors END) AS color) pairs GROUP BY value) f),
+		'rarity', (SELECT COALESCE(jsonb_object_agg(value, n), '{}'::jsonb) FROM (SELECT value,count(*)::int AS n FROM (SELECT DISTINCT oracle_id,rarity AS value FROM matched) pairs GROUP BY value) f),
+		'set_code', (SELECT COALESCE(jsonb_object_agg(value, n), '{}'::jsonb) FROM (SELECT value,count(*)::int AS n FROM (SELECT DISTINCT oracle_id,set_code AS value FROM matched) pairs GROUP BY value) f)
 	)`
-			: `'{}'::jsonb`;
-		// Resolve dates only for page candidates and differing names within an oracle.
-		const result = await pool.query<SearchRow>(
-			`
+				: `'{}'::jsonb`;
+			// Deduplicate facet pairs before counting; resolve dates only for page candidates and mixed names.
+			const result = await pool.query<SearchRow>(
+				`
 		WITH active AS MATERIALIZED (SELECT active_generation AS id FROM catalog_state WHERE id=1),
-		matched AS MATERIALIZED (SELECT p.generation_id,p.id,p.oracle_id,p.name,p.lang${input.facets ? ',p.colors,p.rarity,p.set_code' : ''},${relevance} AS relevance FROM catalog_printings p JOIN active a ON a.id=p.generation_id ${where.length ? `WHERE ${where.join(' AND ')}` : ''}),
+		matched AS MATERIALIZED (SELECT p.generation_id,p.id,p.oracle_id,p.name,p.lang${includeFacets ? ',p.colors,p.rarity,p.set_code' : ''},${relevance} AS relevance FROM catalog_printings p JOIN active a ON a.id=p.generation_id ${where.length ? `WHERE ${where.join(' AND ')}` : ''}),
 		preferences AS (SELECT oracle_id,max(relevance*2+(lang='en')::int) AS preference FROM matched GROUP BY oracle_id),
-		preferred AS MATERIALIZED (SELECT m.* FROM matched m JOIN preferences pref USING(oracle_id) WHERE m.relevance*2+(m.lang='en')::int=pref.preference),
+		preferred AS MATERIALIZED (SELECT m.generation_id,m.id,m.oracle_id,m.name,m.relevance FROM matched m JOIN preferences pref USING(oracle_id) WHERE m.relevance*2+(m.lang='en')::int=pref.preference),
 		names AS MATERIALIZED (SELECT oracle_id,min(name) AS name,max(name) AS max_name,max(relevance) AS relevance FROM preferred GROUP BY oracle_id),
 		mixed AS (SELECT m.oracle_id,m.name,row_number() OVER(PARTITION BY m.oracle_id ORDER BY p.document->>'released_at' DESC,m.id) AS choice FROM preferred m JOIN names n ON n.oracle_id=m.oracle_id AND n.name<>n.max_name JOIN catalog_printings p ON p.generation_id=m.generation_id AND p.id=m.id),
 		cards AS (SELECT n.oracle_id,COALESCE(m.name,n.name) AS name,n.relevance FROM names n LEFT JOIN mixed m ON m.oracle_id=n.oracle_id AND m.choice=1),
@@ -134,16 +148,27 @@ export function createCatalog(pool: Pool) {
 		SELECT COALESCE((SELECT jsonb_agg(p.document ORDER BY page.position) FROM page_candidates page JOIN catalog_printings p ON p.generation_id=page.generation_id AND p.id=page.id WHERE page.choice=1), '[]'::jsonb) AS hits,
 		(SELECT count(*)::int FROM names) AS total, (SELECT id FROM active) AS generation_id,
 		${facets} AS facets`,
-			values
-		);
-		const row = result.rows[0];
+				values
+			);
+			return result.rows[0];
+		}
+		let row = await execute(Boolean(input.facets && !memo));
+		const memoMatches = memo && row.generation_id === memo.generationId && row.total > 0;
+		if (memo && !memoMatches) row = await execute(true);
+		const resultFacets = memoMatches ? memo.facets : row.facets;
+		if (memoEligible && !memoMatches && unfilteredFacets === observedMemo) {
+			unfilteredFacets =
+				row.generation_id && row.total > 0
+					? { generationId: row.generation_id, facets: copyFacets(resultFacets) }
+					: undefined;
+		}
 		return {
 			hits: row.hits.map(printingDto),
 			query: input.query,
 			processingTimeMs: Math.round(performance.now() - started),
 			estimatedTotalHits: row.total,
 			generationId: row.generation_id,
-			...(input.facets ? { facets: row.facets } : {})
+			...(input.facets ? { facets: copyFacets(resultFacets) } : {})
 		};
 	}
 

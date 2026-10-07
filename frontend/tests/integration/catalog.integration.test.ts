@@ -1,4 +1,5 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createCatalog } from '@spellbook/backend/catalog/search.ts';
 import type { CardDocument } from '../../src/lib/search/types';
 import { parseCatalogSearchRequest } from '../../src/lib/server/catalog/query';
 import { parseArenaDecklist } from '../../src/lib/server/mtg/decklist';
@@ -134,6 +135,8 @@ run('PostgreSQL catalog snapshots and search', () => {
 			generation
 		]);
 	});
+	// Tests publish mutable fixture rows; each case gets a fresh process-local Catalog owner.
+	beforeEach(() => Object.assign(modules, createCatalog(modules.pool)));
 	afterAll(async () => {
 		try {
 			if (modules) await modules.pool.query(`DROP SCHEMA ${schema} CASCADE`);
@@ -184,6 +187,184 @@ run('PostgreSQL catalog snapshots and search', () => {
 		expect(subset.estimatedTotalHits).toBe(1);
 		expect(subset.hits[0].id).toBe(id(3));
 		expect(subset.facets?.set_code).toEqual({ lea: 1 });
+	});
+	it('counts each Oracle once per bucket across duplicate colors and differing printing facets', async () => {
+		const cards = [
+			document(50, 50, { colors: ['G', 'G'], rarity: 'rare', set_code: 'fca' }),
+			document(51, 50, { colors: ['G', 'R'], rarity: 'mythic', set_code: 'fcb' }),
+			document(52, 50, { colors: [], rarity: 'rare', set_code: 'fca' }),
+			document(53, 51, { colors: ['R'], rarity: 'rare', set_code: 'fcb' })
+		];
+		try {
+			for (const card of cards) await insertDocument(card);
+			for (const pagination of [{ limit: 0 }, { limit: 1, offset: 1 }]) {
+				const result = await search({
+					...pagination,
+					filters: { sets: ['fca', 'fcb'] },
+					facets: true
+				});
+				expect(result).toMatchObject({
+					estimatedTotalHits: 2,
+					generationId: generation,
+					facets: {
+						colors: { G: 1, R: 2, C: 1 },
+						rarity: { rare: 2, mythic: 1 },
+						set_code: { fca: 1, fcb: 2 }
+					}
+				});
+			}
+			expect((await search({ filters: { sets: ['fca'] }, facets: true })).facets).toEqual({
+				colors: { G: 1, C: 1 },
+				rarity: { rare: 1 },
+				set_code: { fca: 1 }
+			});
+		} finally {
+			await modules.pool.query('DELETE FROM catalog_printings WHERE id=ANY($1::uuid[])', [
+				cards.map((card) => card.id)
+			]);
+		}
+	});
+	it('reuses only complete unfiltered facets and isolates returned DTO mutation', async () => {
+		const reads = vi.spyOn(modules.pool, 'query');
+		try {
+			const first = await search({ facets: true, limit: 1 });
+			first.facets!.colors.G = 999;
+			const warm = await search({ facets: true, limit: 0, filters: { sets: [] } });
+			expect(warm.facets?.colors.G).toBe(1);
+			expect((await search({ facets: true, offset: 1, limit: 1 })).facets).toEqual(warm.facets);
+			const facetReads = () =>
+				reads.mock.calls.filter(([sql]) => typeof sql === 'string' && sql.includes("'colors',"))
+					.length;
+			expect(facetReads()).toBe(1);
+			await search({ query: 'Llanowar', facets: true });
+			await search({ filters: { sets: ['lea'] }, facets: true });
+			expect(facetReads()).toBe(3);
+		} finally {
+			reads.mockRestore();
+		}
+	});
+	it('replaces memoized facets on publication and never reuses empty or unpublished generations', async () => {
+		await search({ facets: true });
+		await insertDocument(
+			document(60, 60, { colors: ['B'], set_code: 'stg', rarity: 'rare' }),
+			staged
+		);
+		try {
+			await modules.pool.query('UPDATE catalog_state SET active_generation=$1 WHERE id=1', [
+				staged
+			]);
+			expect(await search({ facets: true })).toMatchObject({
+				generationId: staged,
+				estimatedTotalHits: 1,
+				facets: { colors: { B: 1 }, rarity: { rare: 1 }, set_code: { stg: 1 } }
+			});
+			await modules.pool.query('UPDATE catalog_state SET active_generation=NULL WHERE id=1');
+			expect(await search({ facets: true })).toMatchObject({
+				generationId: null,
+				estimatedTotalHits: 0,
+				facets: { colors: {}, rarity: {}, set_code: {} }
+			});
+			await modules.pool.query('DELETE FROM catalog_printings WHERE generation_id=$1', [staged]);
+			await modules.pool.query('UPDATE catalog_state SET active_generation=$1 WHERE id=1', [
+				staged
+			]);
+			expect(await search({ facets: true })).toMatchObject({
+				generationId: staged,
+				estimatedTotalHits: 0,
+				facets: { colors: {}, rarity: {}, set_code: {} }
+			});
+			await insertDocument(
+				document(60, 60, { colors: ['B'], set_code: 'stg', rarity: 'rare' }),
+				staged
+			);
+			expect((await search({ facets: true })).facets?.colors).toEqual({ B: 1 });
+		} finally {
+			await modules.pool.query('UPDATE catalog_state SET active_generation=$1 WHERE id=1', [
+				generation
+			]);
+			await modules.pool.query('DELETE FROM catalog_printings WHERE generation_id=$1', [staged]);
+		}
+	});
+	it('keeps a held old publication coherent without replacing a newer facet memo', async () => {
+		await insertDocument(document(61, 61, { colors: ['B'], set_code: 'stg' }), staged);
+		let captured!: () => void;
+		let release!: () => void;
+		const arrived = new Promise<void>((resolve) => {
+			captured = resolve;
+		});
+		const held = new Promise<void>((resolve) => {
+			release = resolve;
+		});
+		const query = modules.pool.query.bind(modules.pool);
+		const reads = vi.spyOn(modules.pool, 'query').mockImplementationOnce(async (sql, values) => {
+			if (typeof sql !== 'string' || !Array.isArray(values)) throw Error('Expected Catalog SQL');
+			const result = await query(sql, values);
+			captured();
+			await held;
+			return result;
+		});
+		try {
+			const oldRead = search({ facets: true });
+			await arrived;
+			await modules.pool.query('UPDATE catalog_state SET active_generation=$1 WHERE id=1', [
+				staged
+			]);
+			const current = await search({ facets: true });
+			expect(current).toMatchObject({
+				generationId: staged,
+				estimatedTotalHits: 1,
+				facets: { colors: { B: 1 } }
+			});
+			release();
+			expect(await oldRead).toMatchObject({
+				generationId: generation,
+				estimatedTotalHits: 4,
+				facets: { colors: { G: 1, U: 1, R: 1, C: 1, W: 1 } }
+			});
+			expect((await search({ facets: true, limit: 0 })).facets).toEqual(current.facets);
+			expect(
+				reads.mock.calls.filter(([sql]) => typeof sql === 'string' && sql.includes("'colors',"))
+			).toHaveLength(2);
+			const nextArrived = new Promise<void>((resolve) => {
+				captured = resolve;
+			});
+			const nextHeld = new Promise<void>((resolve) => {
+				release = resolve;
+			});
+			reads.mockImplementationOnce(async (sql, values) => {
+				if (typeof sql !== 'string' || !Array.isArray(values)) throw Error('Expected Catalog SQL');
+				const result = await query(sql, values);
+				captured();
+				await nextHeld;
+				return result;
+			});
+			const warmRead = search({ facets: true });
+			await nextArrived;
+			await modules.pool.query('UPDATE catalog_state SET active_generation=$1 WHERE id=1', [
+				generation
+			]);
+			release();
+			expect(await warmRead).toMatchObject({
+				generationId: staged,
+				estimatedTotalHits: 1,
+				facets: current.facets
+			});
+			expect(await search({ facets: true })).toMatchObject({
+				generationId: generation,
+				estimatedTotalHits: 4,
+				facets: { colors: { G: 1, U: 1, R: 1, C: 1, W: 1 } }
+			});
+			expect(
+				reads.mock.calls.filter(([sql]) => typeof sql === 'string' && sql.includes("'colors',"))
+			).toHaveLength(3);
+		} finally {
+			release();
+			reads.mockRestore();
+			await modules.pool.query('UPDATE catalog_state SET active_generation=$1 WHERE id=1', [
+				generation
+			]);
+			await modules.pool.query('DELETE FROM catalog_printings WHERE generation_id=$1', [staged]);
+		}
 	});
 	it('implements color subsets and OR within filter groups with AND between groups', async () => {
 		expect((await search({ filters: { colors: ['U'] } })).estimatedTotalHits).toBe(0);
