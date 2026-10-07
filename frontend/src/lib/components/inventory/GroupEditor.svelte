@@ -1,20 +1,26 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { inventoryAction } from '#lib/mtg/inventory-action.ts';
+	import { inventoryAction, effectiveInventoryUrl } from '#lib/mtg/inventory-action.ts';
 	import { enhance } from '$app/forms';
 	import { GroupMutation } from '#lib/mtg/groupMutation.svelte.ts';
 	import FormDialog from '#lib/components/ui/dialog/FormDialog.svelte';
 	let {
 		group = null,
 		onClose,
+		refresh,
 		onCloseAutoFocus
 	}: {
 		group?: { id: string; name: string } | null;
 		onClose: () => void;
+		refresh: () => Promise<void>;
 		onCloseAutoFocus: (event: Event) => void;
 	} = $props();
 	let name = $state('');
-	const mutation = new GroupMutation(() => onClose());
+	const mutation = new GroupMutation(
+		() => onClose(),
+		() => refresh(),
+		() => page.data.user?.accountId ?? 'session'
+	);
 	const id = $props.id();
 	$effect(() => {
 		name = group?.name ?? '';
@@ -30,7 +36,7 @@
 >
 	<form
 		method="POST"
-		action={inventoryAction(group ? 'renameGroup' : 'createGroup', page.url)}
+		action={inventoryAction(group ? 'renameGroup' : 'createGroup', effectiveInventoryUrl(page))}
 		use:enhance={mutation.submit}
 		aria-busy={mutation.pending}
 		class="group-form"

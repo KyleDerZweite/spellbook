@@ -577,3 +577,35 @@ it('changes placeholder identity without mixing query contexts', () => {
 	expect(first.entry).toBeUndefined();
 	expect(second.entry).toBeUndefined();
 });
+
+it('refreshes the active native page without resetting its offset or accepting another account', async () => {
+	const transport = vi.fn(async (q: InventoryQuery) => page(q.offset, q.q, '2'));
+	const window = new InventoryWindow(transport, () => {});
+	window.seed('owner', page(200, 'current'));
+	expect(await window.refresh('other', new AbortController().signal)).toBeUndefined();
+	expect(transport).not.toHaveBeenCalled();
+	await window.refresh('owner', new AbortController().signal);
+	expect(transport.mock.calls[0][0]).toMatchObject({ offset: 200, q: 'current' });
+	expect(window.current?.query.offset).toBe(200);
+	expect(window.current?.revision).toBe('2');
+});
+
+it('discards a pending refresh when a newer filter query supersedes it', async () => {
+	let resolveRefresh!: (page: InventoryPage) => void;
+	const transport = vi.fn((q: InventoryQuery) =>
+		q.q === 'current'
+			? new Promise<InventoryPage>((resolve) => {
+					resolveRefresh = resolve;
+				})
+			: Promise.resolve(page(q.offset, q.q))
+	);
+	const window = new InventoryWindow(transport, () => {});
+	window.seed('owner', page(200, 'current'));
+	const refresh = window.refresh('owner', new AbortController().signal);
+	await vi.waitFor(() => expect(transport).toHaveBeenCalledTimes(1));
+	const replacement = window.open('owner', { ...query, q: 'new' }, new AbortController().signal);
+	resolveRefresh(page(200, 'current', '2'));
+	expect(await refresh).toBeUndefined();
+	await replacement;
+	expect(window.current?.query).toMatchObject({ offset: 0, q: 'new' });
+});
