@@ -15,9 +15,13 @@
 		method="POST"
 		action={data.returnTo + (data.returnTo.includes('?') ? '&' : '?') + '/updateQuantity'}
 	>
-		<input type="hidden" name="requestId" value={data.requestId} />
+		<input type="hidden" name="requestId" value={data.requestIds.notes} />
 		<input type="hidden" name="entryId" value={data.detail.entry.id} />
-		<input type="hidden" name="notesRevision" value={data.detail.entry.notesRevision} />
+		<input type="hidden" name="notesRevision" value={data.detail.entry.notesRevision} /><input
+			type="hidden"
+			name="notesOriginal"
+			value={data.detail.entry.notes}
+		/><input type="hidden" name="quantityBase" value={data.detail.entry.quantity} />
 		<label for="entry-quantity">Owned quantity</label><input
 			class="input"
 			id="entry-quantity"
@@ -41,7 +45,7 @@
 		method="POST"
 		action={data.returnTo + (data.returnTo.includes('?') ? '&' : '?') + '/assignGroups'}
 	>
-		<input type="hidden" name="requestId" value={data.requestId} /><input
+		<input type="hidden" name="requestId" value={data.requestIds.groups} /><input
 			type="hidden"
 			name="entryId"
 			value={data.detail.entry.id}
@@ -65,7 +69,7 @@
 		method="POST"
 		action={data.returnTo + (data.returnTo.includes('?') ? '&' : '?') + '/remove'}
 	>
-		<input type="hidden" name="requestId" value={data.requestId} /><input
+		<input type="hidden" name="requestId" value={data.requestIds.remove} /><input
 			type="hidden"
 			name="entryId"
 			value={data.detail.entry.id}

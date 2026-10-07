@@ -1,4 +1,4 @@
-import type { MobileAuthContext, MobileInventoryBatchItem } from './types';
+import type { MobileAuthContext } from './types';
 import { application } from '#lib/server/composition.ts';
 import {
 	addDeckCard,
@@ -28,7 +28,16 @@ import type { ScanCandidate } from '#lib/server/data/types.ts';
 
 export async function batchAddInventory(
 	auth: MobileAuthContext,
-	input: { requestId: string; source: string; items: MobileInventoryBatchItem[] }
+	input: {
+		requestId: string;
+		source: string;
+		items: Array<
+			Pick<
+				import('@spellbook/contracts/inventory.ts').InventoryAdd,
+				'catalogCardId' | 'finish' | 'condition' | 'quantity' | 'notes' | 'notesRevision'
+			>
+		>;
+	}
 ) {
 	return application.inventory.bulk(auth.user, {
 		requestId: input.requestId,

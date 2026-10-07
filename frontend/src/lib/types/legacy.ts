@@ -44,6 +44,7 @@ export interface InventoryCard {
 	finish: string;
 	condition: string;
 	notes: string;
+	notesRevision: string;
 	spellbookPosition: number;
 }
 export type { Deck, DeckCard } from '@spellbook/contracts/decks.ts';

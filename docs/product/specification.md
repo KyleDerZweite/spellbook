@@ -79,7 +79,7 @@ The [domain model](../../GLOSSARY.md) distinguishes the card's canonical identit
 
 Search must show a recognizable card name and image and provide useful MTG filters. The printing chooser must expose enough information to distinguish the available set, collector number, and printing. Adding an owned card or deck entry records the selected printing and its canonical identity together.
 
-The web Search form reports the local result of adding an owned card. While a request is pending, it prevents repeat submissions, printing changes and inspector dismissal. Completion or failure preserves the selected printing, quantity, finish and condition for review or another explicit action. This form does not provide automatic retry or request-level idempotency.
+The web Search form reports the local result of adding an owned card. While a request is pending, it prevents repeat submissions, printing changes and inspector dismissal. Completion or failure preserves the selected printing, quantity, finish and condition for review or another explicit action. It retains an unconfirmed request ID for an explicit unchanged retry, including a response lost after commit. A confirmed subsequent Add is a new intent; there is no automatic retry.
 
 Matching by display name alone is insufficient for availability. Two printings of one canonical card can be interchangeable for a deck while remaining distinct inventory entries. Two different canonical cards with similar names must remain distinct.
 
@@ -91,7 +91,7 @@ Each account has one MTG inventory. Entries group by inventory, printing, finish
 
 Supported finishes are `nonfoil` and `foil`. Supported conditions are `NM`, `LP`, `MP`, `HP`, and `DMG`. These are the persisted choices even when the source catalog describes additional finish types.
 
-The canonical bulk mutation path accepts add, set, decrement, and remove operations. Positive owned quantities remain stored; setting or decrementing to zero or less removes the entry. Invalid operations, finishes, conditions, and nonfinite quantities must fail validation. An error must not leave a partially applied bulk request.
+The canonical bulk mutation path accepts add, set, decrement, and remove operations. Positive owned quantities remain stored; setting or decrementing to zero or less removes the entry. Invalid operations, Sources, finishes, conditions and quantities outside the per-entry signed 32-bit range fail validation. Omitted Notes remain unchanged; editing Notes requires its independent revision and stale edits retain the draft for explicit rebase. An error must not leave a partially applied bulk request.
 
 Users can inspect inventory as a compact list. The toolbar contains Search, Filter and Sort, with a count of matching entries and their total copies. Search matches card names, set codes, conditions and notes. Filter opens a shared popover with searchable set names and codes from the owned inventory, plus finish and condition selectors. Set choices combine with OR; search, sets, finish and condition combine with AND. Active set, finish and condition chips open the relevant filter control for editing; their separate clear buttons remove only that value. Clear filters preserves the selected ordering.
 

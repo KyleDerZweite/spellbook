@@ -9,7 +9,8 @@ import { httpTestOrigin, startHttpApplication, stopHttpApplication } from './htt
 import type { InventoryPage } from '@spellbook/contracts/inventory.ts';
 import type { CardDocument } from '@spellbook/contracts/catalog.ts';
 import { randomUUID } from 'node:crypto';
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname } from 'node:path';
 import { cpus, totalmem } from 'node:os';
 import pg from 'pg';
 
@@ -165,29 +166,47 @@ test('built HTTP application preserves public Catalog and local account journeys
 				const login = await loginResponse.json();
 				const headers = { authorization: `Bearer ${login.token}` };
 				const path = '/api/mobile/v1/mtg/inventory';
-				const operations = Array.from({ length: 120 }, (_, i) => ({
-					op: 'add',
-					card: {
-						catalogCardId: randomUUID(),
-						canonicalCardId: card.oracle_id,
-						name: `Window ${String(i).padStart(3, '0')}`,
-						setCode: card.set_code,
-						imageUri: card.image_uri
-					},
-					finish: 'nonfoil',
-					condition: 'NM',
-					quantity: 2,
-					notes: i === 7 ? 'Literal %_ Notes' : ''
-				}));
-				const id = randomUUID();
-				const responses = await Promise.all([
-					request(path + '/bulk', { requestId: id, operations }, headers),
-					request(path + '/bulk', { requestId: id, operations }, headers)
-				]);
-				assert.deepEqual(
-					responses.map((r) => r.status),
-					[200, 200]
+				// Real public printings seed this reader-only pagination fixture. Mutation contracts are exercised below.
+				const publicCards: CardDocument[] = JSON.parse(
+					await readFile(new URL('../scripts/demo/cards.json', import.meta.url), 'utf8')
 				);
+				const inventoryId = randomUUID();
+				await pool.query("INSERT INTO inventories(id,account_id,game)VALUES($1,$2,'mtg')", [
+					inventoryId,
+					login.user.accountId
+				]);
+				const rows = publicCards.slice(0, 24).flatMap((document) =>
+					['NM', 'LP', 'MP', 'HP', 'DMG'].map((condition) => ({
+						id: randomUUID(),
+						catalogCardId: document.id,
+						canonicalCardId: document.oracle_id,
+						name: document.name,
+						setCode: document.set_code,
+						imageUri: document.image_uri,
+						finish: document.is_nonfoil_available ? 'nonfoil' : 'foil',
+						condition
+					}))
+				);
+				for (let position = 0; position < rows.length; position++) {
+					const row = rows[position];
+					await pool.query(
+						"INSERT INTO inventory_cards(id,inventory_id,account_id,game,catalog_card_id,canonical_card_id,name,set_code,image_uri,finish,condition,quantity,notes,spellbook_position)VALUES($1,$2,$3,'mtg',$4,$5,$6,$7,$8,$9,$10,2,$11,$12)",
+						[
+							row.id,
+							inventoryId,
+							login.user.accountId,
+							row.catalogCardId,
+							row.canonicalCardId,
+							row.name,
+							row.setCode,
+							row.imageUri,
+							row.finish,
+							row.condition,
+							position === 7 ? 'Literal %_ Notes' : '',
+							position
+						]
+					);
+				}
 				const first: InventoryPage = await (await request(path, undefined, headers)).json();
 				assert.equal(first.entries.length, 50);
 				assert.equal(first.totals.entryCount, 120);
@@ -214,7 +233,15 @@ test('built HTTP application preserves public Catalog and local account journeys
 				assert.equal(typeof detail.entry.notesRevision, 'string');
 				const write = {
 					requestId: randomUUID(),
-					operations: [{ op: 'set', target: { entryId: target.id }, quantity: 3, notes: 'changed' }]
+					operations: [
+						{
+							op: 'set',
+							target: { entryId: target.id },
+							quantity: 3,
+							notes: 'changed',
+							notesRevision: target.notesRevision
+						}
+					]
 				};
 				assert.equal((await request(path + '/bulk', write, headers)).status, 200);
 				assert.equal(
@@ -249,16 +276,275 @@ test('built HTTP application preserves public Catalog and local account journeys
 				);
 				const own = await (await request(path, undefined, headers)).json();
 				assert.equal(own.totals.copyCount, 241);
-				const native = await request(
-					'/mtg/inventory?q=Window&page=2&sort=name&dir=desc',
-					undefined,
-					{ cookie: `spellbook_session=${login.token}` }
-				);
+				const native = await request('/mtg/inventory?page=2&sort=name&dir=desc', undefined, {
+					cookie: `spellbook_session=${login.token}`
+				});
 				assert.equal(native.status, 200);
 				const html = await native.text();
 				assert.match(html, /page=1/);
 				assert.match(html, /name="sort"/);
 				assert.equal((html.match(/data-inventory-row/g) || []).length, 50);
+			}
+		);
+
+		await t.test(
+			'Inventory receipts, Notes, Groups and native recovery share authorized retry-safe writes',
+			async () => {
+				const register = await request('/api/auth/register', {
+					username: `inventory_${randomUUID().slice(0, 8)}`,
+					password
+				});
+				assert.equal(register.status, 201);
+				const actor = await register.json();
+				accounts.push(actor.user.accountId);
+				const headers = { authorization: `Bearer ${actor.token}` };
+				const cookie = `spellbook_session=${actor.token}`;
+				const path = '/api/mobile/v1/mtg/inventory';
+				const change = async (
+					url: string,
+					method: string,
+					body: unknown,
+					authorization = headers
+				) =>
+					fetch(origin + url, {
+						method,
+						headers: { 'content-type': 'application/json', ...authorization },
+						body: JSON.stringify(body),
+						redirect: 'manual'
+					});
+				const initial = {
+					requestId: randomUUID(),
+					source: 'mobile',
+					items: [
+						{
+							catalogCardId: card.id,
+							finish: 'nonfoil',
+							condition: 'NM',
+							quantity: 2,
+							notes: 'Original'
+						}
+					]
+				};
+				const addedResponse = await request(path, initial, headers);
+				assert.equal(addedResponse.status, 200);
+				const added = await addedResponse.json();
+				assert.equal('cards' in added, false);
+				assert.equal('mutationRequests' in added, false);
+				const entryId = added.changes[0].entryId;
+				const deltas = [
+					{ requestId: randomUUID(), delta: -1 },
+					{ requestId: randomUUID(), delta: -1 }
+				];
+				const responses = await Promise.all(
+					deltas.map((input) => change(`${path}/${entryId}`, 'PATCH', input))
+				);
+				assert.deepEqual(
+					responses.map((r) => r.status),
+					[200, 200]
+				);
+				const receipts = await Promise.all(responses.map((r) => r.json()));
+				assert.deepEqual(receipts.map((r) => r.changes[0].delta).sort(), [-1, 0]);
+				assert.equal(receipts[0].revision, receipts[1].revision);
+				assert.ok(receipts.every((r) => r.removedEntryIds.length === 0));
+				assert.equal(
+					(
+						await change(`${path}/${entryId}`, 'PATCH', {
+							requestId: randomUUID(),
+							notes: 'Saved elsewhere',
+							notesRevision: '0'
+						})
+					).status,
+					200
+				);
+				assert.equal(
+					(await change(`${path}/${entryId}`, 'PATCH', { requestId: randomUUID(), delta: 1 }))
+						.status,
+					200
+				);
+				for (let i = 0; i < deltas.length; i++)
+					assert.deepEqual(
+						await (await change(`${path}/${entryId}`, 'PATCH', deltas[i])).json(),
+						receipts[i]
+					);
+				const detail = await (await request(`${path}/${entryId}`, undefined, headers)).json();
+				assert.equal(detail.entry.quantity, 2);
+				assert.equal(detail.entry.notesRevision, '1');
+				const native = await request(
+					`/mtg/inventory/${entryId}?page=2&sort=name&dir=desc`,
+					undefined,
+					{ cookie }
+				);
+				assert.equal(native.status, 200);
+				const nativeHtml = await native.text();
+				assert.match(nativeHtml, /entry-notes/);
+				assert.match(nativeHtml, /name="notesRevision"/);
+				assert.match(nativeHtml, /page=2/);
+				const nativeBody = new URLSearchParams({
+					requestId: randomUUID(),
+					entryId,
+					quantity: '2',
+					quantityBase: '2',
+					notes: 'Retained native draft',
+					notesOriginal: 'Original',
+					notesRevision: '0'
+				});
+				const conflict = await fetch(
+					`${origin}/mtg/inventory?page=2&sort=name&dir=desc&/updateQuantity`,
+					{
+						method: 'POST',
+						headers: {
+							origin,
+							cookie,
+							accept: 'text/html',
+							'content-type': 'application/x-www-form-urlencoded'
+						},
+						body: nativeBody,
+						redirect: 'manual'
+					}
+				);
+				assert.equal(conflict.status, 409);
+				const conflictHtml = await conflict.text();
+				assert.match(conflictHtml, /Retained native draft/);
+				assert.match(conflictHtml, /Saved elsewhere/);
+				assert.match(conflictHtml, /Save my draft against the latest revision/);
+				assert.match(conflictHtml, /page=2/);
+				assert.equal(
+					(await change(`${path}/${entryId}`, 'PATCH', { requestId: randomUUID(), delta: 1 }))
+						.status,
+					200
+				);
+				nativeBody.set('rebaseNotesRevision', '1');
+				const recovered = await fetch(
+					`${origin}/mtg/inventory?page=2&sort=name&dir=desc&/updateQuantity`,
+					{
+						method: 'POST',
+						headers: {
+							origin,
+							cookie,
+							accept: 'text/html',
+							'content-type': 'application/x-www-form-urlencoded'
+						},
+						body: nativeBody,
+						redirect: 'manual'
+					}
+				);
+				assert.equal(recovered.status, 200);
+				const saved = await (await request(`${path}/${entryId}`, undefined, headers)).json();
+				assert.equal(saved.entry.notes, 'Retained native draft');
+				assert.equal(saved.entry.quantity, 3);
+				const groupInput = { requestId: randomUUID(), name: 'Binder' };
+				const group = await (await request(path + '/groups', groupInput, headers)).json();
+				const groupId = group.groups[0].groupId;
+				assert.equal(
+					(
+						await change(`${path}/${entryId}/groups`, 'PUT', {
+							requestId: randomUUID(),
+							groupIds: [groupId]
+						})
+					).status,
+					200
+				);
+				const unchanged = await (await request(`${path}/${entryId}`, undefined, headers)).json();
+				assert.equal(unchanged.entry.notesRevision, '2');
+				const beforeQuantity = unchanged.entry.quantity;
+				const mixed = {
+					requestId: randomUUID(),
+					operations: [
+						{ op: 'set', target: { entryId }, quantity: 9 },
+						{ op: 'set', target: { entryId: randomUUID() }, quantity: 1 }
+					]
+				};
+				assert.equal((await request(path + '/bulk', mixed, headers)).status, 404);
+				assert.equal(
+					(await (await request(`${path}/${entryId}`, undefined, headers)).json()).entry.quantity,
+					beforeQuantity
+				);
+				assert.equal(
+					(
+						await request(
+							path,
+							{ ...initial, requestId: randomUUID(), source: 'browser-qa' },
+							headers
+						)
+					).status,
+					400
+				);
+				assert.equal(
+					(await change(`${path}/groups/${groupId}`, 'DELETE', { requestId: randomUUID() })).status,
+					200
+				);
+				assert.deepEqual(
+					await (await request(path + '/groups', groupInput, headers)).json(),
+					group
+				);
+				const importInput = {
+					requestId: randomUUID(),
+					text: '1 Sol Ring',
+					defaultFinish: 'nonfoil',
+					defaultCondition: 'NM'
+				};
+				const importedResponse = await request(path + '/import/commit', importInput, headers);
+				assert.equal(importedResponse.status, 200);
+				const imported = await importedResponse.json();
+				assert.equal(imported.import.resolvedCount, 1);
+				assert.equal(
+					(await (await request(`${path}/${entryId}`, undefined, headers)).json()).entry.notes,
+					'Retained native draft'
+				);
+				const removedInput = { requestId: randomUUID(), expectedQuantity: 4 };
+				const removedResponse = await change(`${path}/${entryId}`, 'DELETE', removedInput);
+				assert.equal(removedResponse.status, 200);
+				const removed = await removedResponse.json();
+				const recreate = await request(
+					path,
+					{ ...initial, requestId: randomUUID(), items: [{ ...initial.items[0], quantity: 7 }] },
+					headers
+				);
+				assert.equal(recreate.status, 200);
+				await pool.query('UPDATE catalog_state SET active_generation=NULL WHERE id=1');
+				try {
+					assert.deepEqual(await (await request(path, initial, headers)).json(), added);
+					assert.deepEqual(
+						await (await request(path + '/import/commit', importInput, headers)).json(),
+						imported
+					);
+					assert.deepEqual(
+						await (await change(`${path}/${entryId}`, 'DELETE', removedInput)).json(),
+						removed
+					);
+					assert.equal(
+						(
+							await request(
+								path,
+								{ ...initial, items: [{ ...initial.items[0], quantity: 4 }] },
+								headers
+							)
+						).status,
+						409
+					);
+				} finally {
+					await pool.query('UPDATE catalog_state SET active_generation=$1 WHERE id=1', [
+						generation
+					]);
+				}
+				const foreignResponse = await request('/api/auth/register', {
+					username: `inventory_other_${randomUUID().slice(0, 8)}`,
+					password
+				});
+				assert.equal(foreignResponse.status, 201);
+				const foreign = await foreignResponse.json();
+				accounts.push(foreign.user.accountId);
+				assert.equal(
+					(
+						await change(
+							`${path}/${entryId}`,
+							'PATCH',
+							{ requestId: randomUUID(), delta: 1 },
+							{ authorization: `Bearer ${foreign.token}` }
+						)
+					).status,
+					404
+				);
 			}
 		);
 
@@ -1587,8 +1873,61 @@ test('built HTTP application preserves public Catalog and local account journeys
 						"EXPLAIN (ANALYZE,BUFFERS,FORMAT JSON) SELECT catalog_card_id,canonical_card_id,sum(quantity)::text FROM inventory_cards WHERE account_id=$1 AND game='mtg' AND canonical_card_id=$2 GROUP BY catalog_card_id,canonical_card_id",
 						[session.user.accountId, document.oracle_id]
 					);
+					const inventoryMutations = [];
+					for (const index of [0, Math.floor(size / 2), size - 1]) {
+						const target = rows[index];
+						const patch = { requestId: randomUUID(), delta: 1 };
+						let started = performance.now();
+						const response = await fetch(`${origin}/api/mobile/v1/mtg/inventory/${target.id}`, {
+							method: 'PATCH',
+							headers: { authorization, 'content-type': 'application/json' },
+							body: JSON.stringify(patch)
+						});
+						const quantityRaw = await response.text();
+						assert.equal(response.status, 200);
+						const acknowledgement = JSON.parse(quantityRaw);
+						assert.equal(acknowledgement.changes[0].quantity, 2);
+						const quantityMs = performance.now() - started;
+						const removal = { requestId: randomUUID(), expectedQuantity: 2 };
+						started = performance.now();
+						const removedResponse = await fetch(
+							`${origin}/api/mobile/v1/mtg/inventory/${target.id}`,
+							{
+								method: 'DELETE',
+								headers: { authorization, 'content-type': 'application/json' },
+								body: JSON.stringify(removal)
+							}
+						);
+						const removeRaw = await removedResponse.text();
+						assert.equal(removedResponse.status, 200);
+						assert.deepEqual(JSON.parse(removeRaw).removedEntryIds, [target.id]);
+						const removeMs = performance.now() - started;
+						const replay = await fetch(`${origin}/api/mobile/v1/mtg/inventory/${target.id}`, {
+							method: 'PATCH',
+							headers: { authorization, 'content-type': 'application/json' },
+							body: JSON.stringify(patch)
+						});
+						assert.equal(replay.status, 200);
+						assert.deepEqual(await replay.json(), acknowledgement);
+						assert.ok(Buffer.byteLength(quantityRaw) < 1500);
+						assert.ok(Buffer.byteLength(removeRaw) < 1500);
+						inventoryMutations.push({
+							index,
+							quantityMs,
+							removeMs,
+							quantityBytes: Buffer.byteLength(quantityRaw),
+							removeBytes: Buffer.byteLength(removeRaw)
+						});
+					}
+					const survivors = await pool.query(
+						'SELECT count(*)::int AS count,count(*) FILTER(WHERE quantity<>1)::int AS wrong_quantity FROM inventory_cards WHERE inventory_id=$1',
+						[inventoryId]
+					);
+					assert.deepEqual(survivors.rows[0], { count: size - 3, wrong_quantity: 0 });
+
 					results.push({
 						positions: size,
+						inventoryMutations,
 						copies: size,
 						availabilityBytes: bytes,
 						selectedDeckBytes: Buffer.byteLength(raw),
@@ -1597,6 +1936,10 @@ test('built HTTP application preserves public Catalog and local account journeys
 						queryPlan: plan.rows[0]['QUERY PLAN']
 					});
 					if (size === 50000 && process.env.DECK_BROWSER_FIXTURE) {
+						await mkdir(dirname(process.env.DECK_BROWSER_FIXTURE), {
+							recursive: true,
+							mode: 0o700
+						});
 						await writeFile(
 							process.env.DECK_BROWSER_FIXTURE,
 							JSON.stringify(
@@ -1605,6 +1948,8 @@ test('built HTTP application preserves public Catalog and local account journeys
 									password,
 									accountId: session.user.accountId,
 									deckId: deck.id,
+									inventoryEntryId: rows[5].id,
+									inventoryEntries: size - 3,
 									generation,
 									origin,
 									worktree: new URL('../..', import.meta.url).pathname

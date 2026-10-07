@@ -1,4 +1,4 @@
-import { error, fail, redirect } from '@sveltejs/kit';
+import { error, fail, redirect, type ActionFailure } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import {
 	InventoryQuantityChangedError,
@@ -68,16 +68,24 @@ export const load: PageServerLoad = async ({ locals, parent, url }) => {
 	}
 };
 
+interface NotesRecovery {
+	entryId: string;
+	notes: string;
+	notesRevision: string;
+	quantity: number;
+	requestId: string;
+	quantityBase: number;
+	notesOriginal: string;
+}
+interface InventoryFormFailure {
+	message: string;
+	notesRecovery?: NotesRecovery;
+	latestNotes?: { entryId: string; notes: string; notesRevision: string };
+}
 function mutationFailure(
 	cause: unknown,
-	draft?: {
-		entryId: string;
-		notes: string;
-		notesRevision: string;
-		quantity: number;
-		requestId: string;
-	}
-) {
+	draft?: NotesRecovery
+): ActionFailure<InventoryFormFailure> {
 	if (cause instanceof NotesConflictError)
 		return fail(409, { message: cause.message, notesRecovery: draft, latestNotes: cause.latest });
 	if (cause instanceof InventoryQuantityChangedError || cause instanceof RequestConflictError)
@@ -88,7 +96,7 @@ function mutationFailure(
 		return fail(400, { message: cause.message, notesRecovery: draft });
 	throw cause;
 }
-export const actions: Actions = {
+export const actions = {
 	createGroup: async ({ request, locals }) => {
 		if (!locals.user) redirect(303, '/auth/login?returnTo=/mtg/inventory');
 		const form = await request.formData();
@@ -124,7 +132,16 @@ export const actions: Actions = {
 				requestId: String(form.get('requestId') ?? ''),
 				groupId: String(form.get('groupId') ?? '')
 			});
-			if(url.searchParams.get('group')?.toLowerCase() === String(form.get('groupId')??'').toLowerCase()) { const next = new URL(url); next.searchParams.delete('group'); next.searchParams.delete('/deleteGroup'); next.searchParams.set('view','groups'); redirect(303,next.pathname+next.search); }
+			if (
+				url.searchParams.get('group')?.toLowerCase() ===
+				String(form.get('groupId') ?? '').toLowerCase()
+			) {
+				const next = new URL(url);
+				next.searchParams.delete('group');
+				next.searchParams.delete('/deleteGroup');
+				next.searchParams.set('view', 'groups');
+				redirect(303, next.pathname + next.search);
+			}
 			return { success: true, acknowledgement };
 		} catch (cause) {
 			return mutationFailure(cause);
@@ -147,6 +164,15 @@ export const actions: Actions = {
 	updateQuantity: async ({ request, locals }) => {
 		if (!locals.user) redirect(303, '/auth/login?returnTo=/mtg/inventory');
 		const form = await request.formData();
+		const quantityChanged =
+			form.has('quantity') &&
+			(!form.has('quantityBase') ||
+				Number(form.get('quantity')) !== Number(form.get('quantityBase')));
+		const notesChanged =
+			form.has('notes') &&
+			(!form.has('notesOriginal') ||
+				String(form.get('notes')) !== String(form.get('notesOriginal')) ||
+				form.has('rebaseNotesRevision'));
 		const input: import('@spellbook/contracts/inventory.ts').InventoryPatch = {
 			requestId: form.has('rebaseNotesRevision')
 				? crypto.randomUUID()
@@ -154,10 +180,10 @@ export const actions: Actions = {
 			entryId: String(form.get('entryId') ?? ''),
 			...(form.has('delta')
 				? { delta: Number(form.get('delta')) }
-				: form.has('quantity')
+				: quantityChanged
 					? { quantity: Number(form.get('quantity')) }
 					: {}),
-			...(form.has('notes')
+			...(notesChanged || (form.has('notes') && !quantityChanged && !form.has('delta'))
 				? {
 						notes: String(form.get('notes') ?? ''),
 						notesRevision: String(
@@ -176,8 +202,10 @@ export const actions: Actions = {
 					? {
 							entryId: input.entryId,
 							requestId: input.requestId,
-							quantity: input.quantity ?? 1,
-							notes: input.notes ?? '',
+							quantity: Number(form.get('quantity') ?? 1),
+							quantityBase: Number(form.get('quantityBase') ?? form.get('quantity') ?? 1),
+							notesOriginal: String(form.get('notesOriginal') ?? ''),
+							notes: String(form.get('notes') ?? ''),
 							notesRevision: input.notesRevision ?? ''
 						}
 					: undefined
@@ -198,4 +226,4 @@ export const actions: Actions = {
 			return mutationFailure(cause);
 		}
 	}
-};
+} satisfies Actions;

@@ -12,11 +12,17 @@ run('Inventory concurrent mutations', () => {
 	let printing: Awaited<ReturnType<typeof ensureDeckCatalogFixture>>;
 	beforeAll(async () => {
 		modules = await loadModules();
-		printing=await ensureDeckCatalogFixture(modules.pool);
+		printing = await ensureDeckCatalogFixture(modules.pool);
 	});
 	beforeEach(async () => {
-		const session=await modules.application.auth.authenticate('register',`concurrency_${crypto.randomUUID().slice(0,8)}`,'inventory-concurrency-password');
-		if(!session)throw new Error('Concurrency fixture registration failed');actor=session.user;accountId=actor.accountId;
+		const session = await modules.application.auth.authenticate(
+			'register',
+			`concurrency_${crypto.randomUUID().slice(0, 8)}`,
+			'inventory-concurrency-password'
+		);
+		if (!session) throw new Error('Concurrency fixture registration failed');
+		actor = session.user;
+		accountId = actor.accountId;
 	});
 	afterEach(async () => {
 		await modules.db
@@ -37,9 +43,7 @@ run('Inventory concurrent mutations', () => {
 			game: 'mtg' as const,
 			operations: [add('retry', 3)]
 		};
-		await Promise.all(
-			Array.from({ length: 12 }, () => modules.bulkMutateInventory(actor, input))
-		);
+		await Promise.all(Array.from({ length: 12 }, () => modules.bulkMutateInventory(actor, input)));
 		const snapshot = await modules.getInventorySnapshot(accountId);
 		expect(snapshot.cards).toHaveLength(1);
 		expect(snapshot.cards[0].quantity).toBe(3);
@@ -78,21 +82,43 @@ run('Inventory concurrent mutations', () => {
 	it('keeps unique ordered positions when explicit reorder overlaps additions and sparse removals', async () => {
 		const initial = await mutate([add('one', 1), add('two', 1), add('three', 1)]);
 		await Promise.all([
-			modules.reorderInventoryCard(actor, { requestId:crypto.randomUUID(), entryId:initial.changes[2].entryId, position:0 }),
+			modules.reorderInventoryCard(actor, {
+				requestId: crypto.randomUUID(),
+				entryId: initial.changes[2].entryId,
+				position: 0
+			}),
 			mutate([{ op: 'remove', target: { entryId: initial.changes[0].entryId } }]),
 			...Array.from({ length: 7 }, (_, index) => mutate([add(`new-${index}`, 1)]))
 		]);
 		const snapshot = await modules.getInventorySnapshot(accountId);
 		expect(snapshot.cards).toHaveLength(9);
-		const positions=snapshot.cards.map(card=>card.spellbookPosition);
+		const positions = snapshot.cards.map((card) => card.spellbookPosition);
 		expect(new Set(positions).size).toBe(positions.length);
-		expect(positions).toEqual([...positions].sort((a,b)=>a-b));
+		expect(positions).toEqual([...positions].sort((a, b) => a - b));
 	});
 
- function add(alias:string,quantity:number) {
- const index = alias==='one'?0:alias==='two'?1:alias==='three'?2:alias.startsWith('new-')?Number(alias.slice(4))+3:0;
- return {op:'add' as const,card:{...printing,catalogCardId:index>=5?printing.alternateCatalogCardId:printing.catalogCardId},quantity,finish:'nonfoil',condition:['NM','LP','MP','HP','DMG'][index%5]};
- }
+	function add(alias: string, quantity: number) {
+		const index =
+			alias === 'one'
+				? 0
+				: alias === 'two'
+					? 1
+					: alias === 'three'
+						? 2
+						: alias.startsWith('new-')
+							? Number(alias.slice(4)) + 3
+							: 0;
+		return {
+			op: 'add' as const,
+			card: {
+				...printing,
+				catalogCardId: index >= 5 ? printing.alternateCatalogCardId : printing.catalogCardId
+			},
+			quantity,
+			finish: 'nonfoil',
+			condition: ['NM', 'LP', 'MP', 'HP', 'DMG'][index % 5]
+		};
+	}
 
 	async function mutate(
 		operations: Parameters<typeof modules.bulkMutateInventory>[1]['operations']
@@ -112,5 +138,11 @@ async function loadModules() {
 		import('../../src/lib/server/db/schema'),
 		import('../../src/lib/server/data/inventory')
 	]);
-	return { ...client, ...schema, ...inventory, application:(await import('../../src/lib/server/composition.ts')).application };
+	return {
+		...client,
+		...schema,
+		...inventory,
+		...(await import('../fixtures/inventory-state.ts')),
+		application: (await import('../../src/lib/server/composition.ts')).application
+	};
 }

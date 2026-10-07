@@ -668,7 +668,7 @@ export function createInventoryMutations(
 			await auth.requireActor(actor);
 			return previewMtgImport(catalog, text(input, 'text', 200000));
 		},
-		commitImport: (actor, input) =>
+		commitImport: async (actor, input) =>
 			mutate(actor, {
 				...intent({ requestId: input.requestId, source: input.source ?? 'import' }, []),
 				import: {
@@ -677,7 +677,7 @@ export function createInventoryMutations(
 					condition: assertCondition(input.defaultCondition ?? 'NM')
 				}
 			}),
-		commitScanReview: (actor, input) => {
+		commitScanReview: async (actor, input) => {
 			const sessionId = id(input.sessionId, 'sessionId');
 			if (!Array.isArray(input.items) || !input.items.length || input.items.length > 100)
 				throw new ValidationError('Supply 1 to 100 Scan review items');
@@ -711,9 +711,10 @@ export function createInventoryMutations(
 				scan: { sessionId, items }
 			});
 		},
-		add: (actor, input) => mutate(actor, intent(input, [addOperation(record(input))])),
-		patchEntry: (actor, input) => mutate(actor, intent(input, [patchOperation(record(input), 1)])),
-		remove: (actor, input) =>
+		add: async (actor, input) => mutate(actor, intent(input, [addOperation(record(input))])),
+		patchEntry: async (actor, input) =>
+			mutate(actor, intent(input, [patchOperation(record(input), 1)])),
+		remove: async (actor, input) =>
 			mutate(
 				actor,
 				intent(input, [
@@ -724,7 +725,7 @@ export function createInventoryMutations(
 					}
 				])
 			),
-		bulk: (actor, input) => {
+		bulk: async (actor, input) => {
 			if (
 				!Array.isArray(input.operations) ||
 				!input.operations.length ||
@@ -733,18 +734,18 @@ export function createInventoryMutations(
 				throw new ValidationError('Supply 1 to 1000 Inventory operations');
 			return mutate(actor, intent(input, input.operations.map(bulkOperation)));
 		},
-		createGroup: (actor, input) =>
+		createGroup: async (actor, input) =>
 			mutate(actor, intent(input, [{ op: 'group-create', name: groupName(input.name) }])),
-		renameGroup: (actor, input) =>
+		renameGroup: async (actor, input) =>
 			mutate(
 				actor,
 				intent(input, [
 					{ op: 'group-rename', groupId: id(input.groupId, 'groupId'), name: groupName(input.name) }
 				])
 			),
-		deleteGroup: (actor, input) =>
+		deleteGroup: async (actor, input) =>
 			mutate(actor, intent(input, [{ op: 'group-delete', groupId: id(input.groupId, 'groupId') }])),
-		replaceMemberships: (actor, input) => {
+		replaceMemberships: async (actor, input) => {
 			if (!Array.isArray(input.groupIds) || input.groupIds.length > 1000)
 				throw new ValidationError('Invalid groupIds');
 			return mutate(
@@ -758,7 +759,7 @@ export function createInventoryMutations(
 				])
 			);
 		},
-		reorder: (actor, input) => {
+		reorder: async (actor, input) => {
 			const position = normalizeQuantity(input.position);
 			if (position < 0) throw new ValidationError('Invalid display position');
 			return mutate(

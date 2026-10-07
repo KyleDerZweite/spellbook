@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { page } from '$app/state';
+	import { untrack } from 'svelte';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { refreshAll } from '$app/navigation';
 	import Select from '#lib/components/ui/select/Select.svelte';
@@ -19,7 +21,9 @@
 	let pending = $state(false);
 	let error = $state('');
 	let message = $state('');
-	let requestId = $state(crypto.randomUUID());
+	let requestId = $state(
+		untrack(() => (page.data.requestId ? `${page.data.requestId}:${card.id}` : crypto.randomUUID()))
+	);
 	const pendingRequests = new Map<string, string>();
 	const hasAvailableFinish = $derived(card.is_nonfoil_available || card.is_foil_available);
 
@@ -28,9 +32,13 @@
 			cancel();
 			return;
 		}
-		const payload = JSON.stringify(
-			[...formData.entries()].filter(([name]) => name !== 'requestId')
-		);
+		const payload = JSON.stringify([
+			page.data.user?.accountId,
+			...['game', 'catalogCardId', 'finish', 'condition', 'quantity'].map((name) => [
+				name,
+				formData.get(name)
+			])
+		]);
 		const intentId = pendingRequests.get(payload) ?? crypto.randomUUID();
 		pendingRequests.set(payload, intentId);
 		formData.set('requestId', intentId);

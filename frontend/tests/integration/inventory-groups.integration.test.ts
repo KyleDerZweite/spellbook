@@ -17,10 +17,21 @@ run('Inventory groups persistence and ownership', () => {
 		printing = await ensureDeckCatalogFixture(modules.pool);
 	});
 	beforeEach(async () => {
-		const first = await modules.application.auth.authenticate('register', `groups_${crypto.randomUUID().slice(0,8)}`, 'groups-fixture-password');
-		const second = await modules.application.auth.authenticate('register', `groups_${crypto.randomUUID().slice(0,8)}`, 'groups-fixture-password');
-		if(!first || !second) throw new Error('Groups fixture registration failed');
-		actor = first.user; otherActor = second.user; accountId = actor.accountId; otherAccountId = otherActor.accountId;
+		const first = await modules.application.auth.authenticate(
+			'register',
+			`groups_${crypto.randomUUID().slice(0, 8)}`,
+			'groups-fixture-password'
+		);
+		const second = await modules.application.auth.authenticate(
+			'register',
+			`groups_${crypto.randomUUID().slice(0, 8)}`,
+			'groups-fixture-password'
+		);
+		if (!first || !second) throw new Error('Groups fixture registration failed');
+		actor = first.user;
+		otherActor = second.user;
+		accountId = actor.accountId;
+		otherAccountId = otherActor.accountId;
 	});
 	afterEach(async () => {
 		await modules.db
@@ -55,9 +66,7 @@ run('Inventory groups persistence and ownership', () => {
 		}
 		await createInventoryGroup(accountId, '😀'.repeat(64));
 		const group = await createInventoryGroup(accountId, 'Trade');
-		await expect(createInventoryGroup(accountId, ' trade ')).rejects.toThrow(
-			'already exists'
-		);
+		await expect(createInventoryGroup(accountId, ' trade ')).rejects.toThrow('already exists');
 		const other = await createInventoryGroup(accountId, 'Other');
 		await expect(renameInventoryGroup(accountId, other.id, 'TRADE')).rejects.toThrow(
 			'already exists'
@@ -138,12 +147,10 @@ run('Inventory groups persistence and ownership', () => {
 		await expect(renameInventoryGroup(otherAccountId, group.id, 'Changed')).rejects.toThrow(
 			'not found'
 		);
-		await expect(deleteInventoryGroup(otherAccountId, group.id)).rejects.toThrow(
-			'not found'
+		await expect(deleteInventoryGroup(otherAccountId, group.id)).rejects.toThrow('not found');
+		await expect(replaceInventoryGroupMemberships(otherAccountId, entry.id, [])).rejects.toThrow(
+			'Inventory entry not found'
 		);
-		await expect(
-			replaceInventoryGroupMemberships(otherAccountId, entry.id, [])
-		).rejects.toThrow('Inventory entry not found');
 		expect(await getInventoryGroups(otherAccountId)).toEqual({
 			groups: [],
 			memberships: []
@@ -158,17 +165,17 @@ run('Inventory groups persistence and ownership', () => {
 			.update(modules.inventoryCards)
 			.set({ game: 'other' })
 			.where(eq(modules.inventoryCards.id, entry.id));
-		await expect(
-			replaceInventoryGroupMemberships(accountId, entry.id, [group.id])
-		).rejects.toThrow('Inventory entry not found');
+		await expect(replaceInventoryGroupMemberships(accountId, entry.id, [group.id])).rejects.toThrow(
+			'Inventory entry not found'
+		);
 		const foreignInventory = await modules.ensureInventory(otherAccountId, 'mtg');
 		await modules.db
 			.update(modules.inventoryCards)
 			.set({ game: 'mtg', inventoryId: foreignInventory.id })
 			.where(eq(modules.inventoryCards.id, entry.id));
-		await expect(
-			replaceInventoryGroupMemberships(accountId, entry.id, [group.id])
-		).rejects.toThrow('Inventory entry not found');
+		await expect(replaceInventoryGroupMemberships(accountId, entry.id, [group.id])).rejects.toThrow(
+			'Inventory entry not found'
+		);
 	});
 
 	it('deletes groups without removing cards and cascades entry deletion to memberships', async () => {
@@ -207,15 +214,55 @@ run('Inventory groups persistence and ownership', () => {
 		expect(selections.map((selection) => [...selection].sort())).toContainEqual(assigned);
 	});
 
- const ownerActor = (owner:string) => owner===accountId ? actor : otherActor;
- async function createInventoryGroup(owner:string,name:string) { const ack=await modules.application.inventory.createGroup(ownerActor(owner),{requestId:crypto.randomUUID(),name});return {id:ack.groups[0].groupId,inventoryId:ack.inventoryId!}; }
- const renameInventoryGroup = (owner:string,groupId:string,name:string) => modules.application.inventory.renameGroup(ownerActor(owner),{requestId:crypto.randomUUID(),groupId,name});
- const deleteInventoryGroup = (owner:string,groupId:string) => modules.application.inventory.deleteGroup(ownerActor(owner),{requestId:crypto.randomUUID(),groupId});
- const replaceInventoryGroupMemberships = (owner:string,entryId:string,groupIds:string[]) => modules.application.inventory.replaceMemberships(ownerActor(owner),{requestId:crypto.randomUUID(),entryId,groupIds});
- const updateInventoryCard = (owner:string,entryId:string,quantity:number) => modules.application.inventory.patchEntry(ownerActor(owner),{requestId:crypto.randomUUID(),entryId,quantity});
- async function removeInventoryCard(owner:string,entryId:string) { const detail=await modules.application.inventory.getEntry(ownerActor(owner),entryId); if(!detail)throw new Error('Missing fixture entry'); return modules.application.inventory.remove(ownerActor(owner),{requestId:crypto.randomUUID(),entryId,expectedQuantity:detail.entry.quantity}); }
- const bulkMutateInventory = (owner:string,input:import('@spellbook/contracts/inventory.ts').InventoryBulkInput) => modules.application.inventory.bulk(ownerActor(owner),input);
- async function getInventoryGroups(owner:string) { const page=await modules.application.inventory.page(ownerActor(owner),{limit:200});if(page.kind!=='Page')throw new Error('Expected current Groups fixture'); return {groups:page.groups,memberships:page.memberships}; }
+	const ownerActor = (owner: string) => (owner === accountId ? actor : otherActor);
+	async function createInventoryGroup(owner: string, name: string) {
+		const ack = await modules.application.inventory.createGroup(ownerActor(owner), {
+			requestId: crypto.randomUUID(),
+			name
+		});
+		return { id: ack.groups[0].groupId, inventoryId: ack.inventoryId! };
+	}
+	const renameInventoryGroup = (owner: string, groupId: string, name: string) =>
+		modules.application.inventory.renameGroup(ownerActor(owner), {
+			requestId: crypto.randomUUID(),
+			groupId,
+			name
+		});
+	const deleteInventoryGroup = (owner: string, groupId: string) =>
+		modules.application.inventory.deleteGroup(ownerActor(owner), {
+			requestId: crypto.randomUUID(),
+			groupId
+		});
+	const replaceInventoryGroupMemberships = (owner: string, entryId: string, groupIds: string[]) =>
+		modules.application.inventory.replaceMemberships(ownerActor(owner), {
+			requestId: crypto.randomUUID(),
+			entryId,
+			groupIds
+		});
+	const updateInventoryCard = (owner: string, entryId: string, quantity: number) =>
+		modules.application.inventory.patchEntry(ownerActor(owner), {
+			requestId: crypto.randomUUID(),
+			entryId,
+			quantity
+		});
+	async function removeInventoryCard(owner: string, entryId: string) {
+		const detail = await modules.application.inventory.getEntry(ownerActor(owner), entryId);
+		if (!detail) throw new Error('Missing fixture entry');
+		return modules.application.inventory.remove(ownerActor(owner), {
+			requestId: crypto.randomUUID(),
+			entryId,
+			expectedQuantity: detail.entry.quantity
+		});
+	}
+	const bulkMutateInventory = (
+		owner: string,
+		input: import('@spellbook/contracts/inventory.ts').InventoryBulkInput
+	) => modules.application.inventory.bulk(ownerActor(owner), input);
+	async function getInventoryGroups(owner: string) {
+		const page = await modules.application.inventory.page(ownerActor(owner), { limit: 100 });
+		if (page.kind !== 'Page') throw new Error('Expected current Groups fixture');
+		return { groups: page.groups, memberships: page.memberships };
+	}
 
 	async function addEntries(owner: string) {
 		await bulkMutateInventory(owner, {
@@ -230,8 +277,11 @@ run('Inventory groups persistence and ownership', () => {
 				quantity: index + 3
 			}))
 		});
-		const page = await modules.application.inventory.page(owner===accountId?actor:otherActor,{});
-		if(page.kind!=='Page') throw new Error('Expected current Groups fixture');
+		const page = await modules.application.inventory.page(
+			owner === accountId ? actor : otherActor,
+			{}
+		);
+		if (page.kind !== 'Page') throw new Error('Expected current Groups fixture');
 		return page.entries;
 	}
 });
@@ -243,5 +293,12 @@ async function loadModules() {
 		import('../../src/lib/server/data/inventory'),
 		import('../../src/lib/server/data/inventory-groups')
 	]);
-	return { ...client, ...schema, ...inventory, ...groups, application:(await import('../../src/lib/server/composition.ts')).application };
+	return {
+		...client,
+		...schema,
+		...inventory,
+		...(await import('../fixtures/inventory-state.ts')),
+		...groups,
+		application: (await import('../../src/lib/server/composition.ts')).application
+	};
 }

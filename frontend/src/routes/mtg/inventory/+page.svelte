@@ -47,6 +47,8 @@
 	import type { CardDocument } from '#lib/search/types.ts';
 
 	let { data, form }: PageProps = $props();
+	let notesRecovery = $derived(form && 'notesRecovery' in form ? form.notesRecovery : undefined);
+	let latestNotes = $derived(form && 'latestNotes' in form ? form.latestNotes : undefined);
 	const search = getSearchSession();
 	const initialQuery = untrack(() => data.window.query);
 	let order = $state<InventoryOrder>({
@@ -362,6 +364,8 @@
 	let targetEntries = $state<Record<string, InventoryCard>>({}),
 		notesDraft = $state(''),
 		notesBase = $state('0'),
+		notesOriginal = $state(''),
+		quantityBase = $state(1),
 		notesConflict = $state<{ notes: string; notesRevision: string } | null>(null),
 		quantityDraft = $state(1),
 		draftDirty = $state(false),
@@ -392,6 +396,8 @@
 			if (id === inspection?.entryId && !draftDirty) {
 				notesDraft = entry.notes;
 				notesBase = entry.notesRevision;
+				notesOriginal = entry.notes;
+				quantityBase = entry.quantity;
 				quantityDraft = entry.quantity;
 			}
 		}
@@ -513,6 +519,8 @@
 		targetEntries[id] = card;
 		notesDraft = card.notes;
 		notesBase = card.notesRevision;
+		notesOriginal = card.notes;
+		quantityBase = card.quantity;
 		notesConflict = null;
 		quantityDraft = card.quantity;
 		draftDirty = false;
@@ -671,34 +679,79 @@
 <svelte:head><title>Inventory | Spellbook</title></svelte:head>
 
 <div class="inventory-page workspace-container">
-	{#if form?.notesRecovery}
+	{#if notesRecovery}
 		<section aria-labelledby="notes-recovery-title" class="inspector-form">
 			<h2 id="notes-recovery-title">Your unsaved Notes</h2>
-			<p role="alert">{form.message}</p>
-			{#if form.latestNotes}<p>Latest saved Notes: {form.latestNotes.notes || '(empty)'}</p>{/if}
+			<p role="alert">{form?.message}</p>
+			{#if latestNotes}<p>
+					Latest saved Notes: {latestNotes.notes || '(empty)'}
+				</p>{/if}
 			<form method="POST" action={inventoryAction('updateQuantity', effectiveInventoryUrl(page))}>
-				<input type="hidden" name="entryId" value={form.notesRecovery.entryId} />
-				<input type="hidden" name="requestId" value={form.notesRecovery.requestId} />
-				<input type="hidden" name="notesRevision" value={form.notesRecovery.notesRevision} />
+				<input type="hidden" name="entryId" value={notesRecovery.entryId} />
+				<input type="hidden" name="requestId" value={notesRecovery.requestId} />
+				<input type="hidden" name="notesRevision" value={notesRecovery.notesRevision} /><input
+					type="hidden"
+					name="notesOriginal"
+					value={notesRecovery.notesOriginal}
+				/><input type="hidden" name="quantityBase" value={notesRecovery.quantityBase} />
 				<label for="recovered-quantity">Owned quantity</label><input
 					id="recovered-quantity"
 					name="quantity"
 					type="number"
 					min="1"
 					step="1"
-					value={form.notesRecovery.quantity}
+					value={notesRecovery.quantity}
 				/>
 				<label for="recovered-notes">Notes draft</label><textarea id="recovered-notes" name="notes"
-					>{form.notesRecovery.notes}</textarea
+					>{notesRecovery.notes}</textarea
 				>
-				{#if form.latestNotes}<button
+				{#if latestNotes}<button
 						class="btn btn-primary"
 						name="rebaseNotesRevision"
-						value={form.latestNotes.notesRevision}>Save my draft against the latest revision</button
+						value={latestNotes.notesRevision}>Save my draft against the latest revision</button
 					>{:else}<button class="btn btn-primary">Retry Save</button>{/if}
 			</form>
 		</section>
 	{/if}
+
+	{#if currentWindow.query.view === 'groups'}<noscript
+			><section aria-labelledby="native-groups-title">
+				<h2 id="native-groups-title">Manage Groups</h2>
+				<form method="POST" action={inventoryAction('createGroup', effectiveInventoryUrl(page))}>
+					<input type="hidden" name="requestId" value={data.requestId} /><label
+						for="native-group-name">New group name</label
+					><input id="native-group-name" name="name" required maxlength="128" /><button
+						class="btn btn-primary">Create group</button
+					>
+				</form>
+				{#each currentWindow.groupPage as group}<form
+						method="POST"
+						action={inventoryAction('renameGroup', effectiveInventoryUrl(page))}
+					>
+						<input type="hidden" name="requestId" value={data.requestId} /><input
+							type="hidden"
+							name="groupId"
+							value={group.id}
+						/><label for={`native-group-${group.id}`}>Rename {group.name}</label><input
+							id={`native-group-${group.id}`}
+							name="name"
+							value={group.name}
+							required
+							maxlength="128"
+						/><button class="btn btn-secondary">Save name</button>
+					</form>
+					<form method="POST" action={inventoryAction('deleteGroup', effectiveInventoryUrl(page))}>
+						<input type="hidden" name="requestId" value={data.requestId} /><input
+							type="hidden"
+							name="groupId"
+							value={group.id}
+						/><label
+							><input type="checkbox" name="confirmDeleteGroup" value="yes" required /> Delete {group.name}
+							and its memberships, keeping every owned card.</label
+						><button class="btn btn-secondary">Delete group</button>
+					</form>{/each}
+			</section></noscript
+		>{/if}
 
 	<WorkspaceHeader title="Inventory">
 		{#snippet metadata()}<p class="inventory-totals">
@@ -1292,6 +1345,11 @@
 			>
 				<input type="hidden" name="requestId" value={data.requestId} />
 				<input type="hidden" name="notesRevision" value={notesBase} />
+				<input type="hidden" name="notesOriginal" value={notesOriginal} /><input
+					type="hidden"
+					name="quantityBase"
+					value={quantityBase}
+				/>
 				<input type="hidden" name="entryId" value={inspected.id} />
 				<p>
 					{inspected.setCode.toUpperCase()} · {inspected.finish === 'foil' ? 'Foil' : 'Nonfoil'} · {inspected.condition}

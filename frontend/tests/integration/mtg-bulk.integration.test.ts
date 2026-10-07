@@ -57,9 +57,14 @@ run('MTG repository bulk operations', () => {
 			requestId: crypto.randomUUID(),
 			source: 'mobile' as const,
 			game: 'mtg' as const,
-			operations: [{ op: 'set', target: { entryId }, quantity: 3, notes: 'binder 1', notesRevision: '0' }]
+			operations: [
+				{ op: 'set', target: { entryId }, quantity: 3, notes: 'binder 1', notesRevision: '0' }
+			]
 		});
-		expect(snapshot.cards[0]).toMatchObject({ quantity: 3, notes: 'binder 1', notesRevision: '0' });
+		expect(snapshot.changes[0]).toMatchObject({ quantity: 3, notesRevision: '1' });
+		expect((await modules.application.inventory.getEntry(actor, entryId))?.entry.notes).toBe(
+			'binder 1'
+		);
 
 		snapshot = await modules.bulkMutateInventory(actor, {
 			requestId: crypto.randomUUID(),
@@ -69,7 +74,13 @@ run('MTG repository bulk operations', () => {
 		});
 		expect(snapshot.removedEntryIds).toEqual([entryId]);
 
-		await expect(modules.bulkMutateInventory(actor, {requestId:crypto.randomUUID(),source:'mobile',operations:[{op:'remove',target:{entryId}}]})).rejects.toThrow('not found');
+		await expect(
+			modules.bulkMutateInventory(actor, {
+				requestId: crypto.randomUUID(),
+				source: 'mobile',
+				operations: [{ op: 'remove', target: { entryId } }]
+			})
+		).rejects.toThrow('not found');
 	});
 
 	it('deck bulk add merges same card and role', async () => {
