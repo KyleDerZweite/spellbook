@@ -16,7 +16,8 @@
 	import {
 		inventoryAction,
 		effectiveInventoryUrl,
-		submittedDraftMatches
+		submittedDraftMatches,
+		confirmedInventoryBases
 	} from '#lib/mtg/inventory-action.ts';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { tick, onMount, untrack } from 'svelte';
@@ -620,6 +621,17 @@
 			quantity: Number(formData.get('quantity'))
 		};
 		const submittedAccount = page.data.user?.accountId ?? 'session';
+		const submittedOpening = inspection;
+		const submittedQuery = effectiveInventoryUrl(page).search;
+		const currentAttempt = () =>
+			hydrated &&
+			submittedAccount === (page.data.user?.accountId ?? 'session') &&
+			submittedQuery === effectiveInventoryUrl(page).search;
+		const currentEditor = () =>
+			currentAttempt() &&
+			inspection === submittedOpening &&
+			inspection?.entryId === id &&
+			formData.has('notes');
 		const removing = action.searchParams.has('/remove');
 		pendingId = id;
 		status = 'Saving…';
@@ -628,15 +640,28 @@
 			try {
 				if (result.type === 'success') {
 					pendingRequests.delete(payload);
+					if (!currentAttempt()) return;
+					if (currentEditor() && result.data?.acknowledgement) {
+						const bases = confirmedInventoryBases(
+							formData,
+							result.data
+								.acknowledgement as import('@spellbook/contracts/inventory.ts').InventoryAcknowledgement,
+							{ notesOriginal, notesBase, quantityBase }
+						);
+						notesOriginal = bases.notesOriginal;
+						notesBase = bases.notesBase;
+						quantityBase = bases.quantityBase;
+					}
 					const index = listCards.findIndex((entry) => entry.id === id);
 					const neighbor = listCards[index + 1] ?? listCards[index - 1];
 					const focus = document.activeElement;
 					await update({ reset: false, refreshAll: false, navigate: false });
 					if (focus instanceof HTMLElement && focus.isConnected)
 						focus.focus({ preventScroll: true });
-					if (!hydrated || submittedAccount !== (page.data.user?.accountId ?? 'session')) return;
+					if (!currentAttempt()) return;
 					if (
 						!removing &&
+						currentEditor() &&
 						submittedDraftMatches(submitted, {
 							id: inspection?.entryId,
 							notes: notesDraft,
@@ -645,6 +670,7 @@
 					)
 						draftDirty = false;
 					await refreshInventory(submittedAccount);
+					if (!currentAttempt()) return;
 					if (removing) {
 						if (neighbor) await restoreAnchor(neighbor.id);
 						await tick();
@@ -657,7 +683,8 @@
 				} else if (result.type === 'redirect') {
 					await update();
 				} else {
-					if (result.type === 'failure' && result.data?.latestNotes)
+					if (!currentAttempt()) return;
+					if (currentEditor() && result.type === 'failure' && result.data?.latestNotes)
 						notesConflict = result.data.latestNotes as { notes: string; notesRevision: string };
 					mutationError =
 						result.type === 'failure' && typeof result.data?.message === 'string'
@@ -667,6 +694,7 @@
 					if (removing) await refreshTargets();
 				}
 			} catch {
+				if (!currentAttempt()) return;
 				mutationError = 'Could not refresh inventory. Reload before trying again.';
 				status = '';
 			} finally {
