@@ -131,7 +131,11 @@ def test_actual_postgres_failure_status_query_is_bounded_and_rolls_back():
             admin.execute(sql.SQL("DROP SCHEMA {} CASCADE").format(sql.Identifier(schema)))
 
 
-def test_hostname_setup_deadline_terminates_its_owned_resolution_process(monkeypatch):
+@pytest.mark.parametrize(
+    "url",
+    ["host=localhost dbname=fixture", "host=localhost,backup hostaddr=,127.0.0.1 dbname=fixture"],
+)
+def test_hostname_setup_deadline_terminates_its_owned_resolution_process(monkeypatch, url):
     import subprocess
 
     processes = []
@@ -151,7 +155,7 @@ def test_hostname_setup_deadline_terminates_its_owned_resolution_process(monkeyp
     monkeypatch.setattr("worker.price_connections.generators.connect", unexpected_connection)
     started = time.monotonic()
     with pytest.raises(psycopg.OperationalError, match="resolution"):
-        connect("host=localhost dbname=fixture", started + 0.1, 10)
+        connect(url, started + 0.1, 10)
     assert time.monotonic() - started < 0.7
     assert len(processes) == 1 and processes[0].poll() is not None
 
@@ -212,3 +216,89 @@ def test_publication_setup_error_survives_unavailable_failure_status(monkeypatch
         with pytest.raises(psycopg.OperationalError):
             publisher.publish_cardmarket(adapter)
         assert closed.wait(0.5)
+
+
+@pytest.mark.parametrize("from_environment", [False, True])
+def test_partial_address_list_resolves_only_missing_positions(monkeypatch, from_environment):
+    from psycopg.conninfo import conninfo_to_dict
+
+    from worker.price_connections import _resolved_conninfo
+
+    calls = []
+
+    def resolve(host, deadline):
+        calls.append((host, deadline))
+        return ["127.0.0.2", "::1"]
+
+    monkeypatch.setattr("worker.price_connections._resolve_host", resolve)
+    url = "host=postgres,backup port=5432,5433 dbname=fixture"
+    if from_environment:
+        monkeypatch.setenv("PGHOSTADDR", ",127.0.0.1")
+    else:
+        url += " hostaddr=,127.0.0.1"
+    deadline = time.monotonic() + 5
+    options = conninfo_to_dict(_resolved_conninfo(url, deadline))
+    assert calls == [("postgres", deadline)]
+    assert options["host"] == "postgres,postgres,backup"
+    assert options["hostaddr"] == "127.0.0.2,::1,127.0.0.1"
+    assert options["port"] == "5432,5432,5433"
+
+
+def test_abstract_unix_socket_does_not_enter_dns(monkeypatch):
+    from psycopg.conninfo import conninfo_to_dict
+
+    from worker.price_connections import _resolved_conninfo
+
+    def unexpected(*_args):
+        pytest.fail("Abstract Unix socket must not enter DNS")
+
+    monkeypatch.setattr("worker.price_connections._resolve_host", unexpected)
+    options = conninfo_to_dict(
+        _resolved_conninfo("host=@optional-fixture dbname=fixture", time.monotonic() + 5)
+    )
+    assert options["host"] == "@optional-fixture"
+    assert options.get("hostaddr", "") == ""
+
+
+def test_actual_postgres_failed_hostname_preserves_numeric_fallback(monkeypatch):
+    import os
+
+    from psycopg.conninfo import conninfo_to_dict, make_conninfo
+
+    url = os.environ.get("WORKER_TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("Set WORKER_TEST_DATABASE_URL for actual multihost PostgreSQL setup")
+    options = conninfo_to_dict(url)
+    if options.get("host") not in ("localhost", "127.0.0.1", "::1"):
+        pytest.skip("Own multihost PostgreSQL fixture needs loopback")
+
+    def failed(host, _deadline):
+        assert host == "missing.invalid"
+        raise psycopg.OperationalError("Optional hostname resolution failed")
+
+    monkeypatch.setattr("worker.price_connections._resolve_host", failed)
+    with connect(
+        make_conninfo(url, host="missing.invalid,127.0.0.1", hostaddr=""),
+        time.monotonic() + 5,
+        5,
+    ) as conn:
+        assert conn.info.host == "127.0.0.1"
+        assert conn.execute("SELECT current_database()").fetchone() == (options["dbname"],)
+
+
+def test_address_only_multihost_list_preserves_numeric_candidates(monkeypatch):
+    from psycopg.conninfo import conninfo_to_dict
+
+    from worker.price_connections import _resolved_conninfo
+
+    def unexpected(*_args):
+        pytest.fail("Explicit numeric addresses must not enter DNS")
+
+    monkeypatch.setattr("worker.price_connections._resolve_host", unexpected)
+    options = conninfo_to_dict(
+        _resolved_conninfo(
+            "hostaddr=127.0.0.1,::1 port=5432,5433 dbname=fixture", time.monotonic() + 5
+        )
+    )
+    assert options["hostaddr"] == "127.0.0.1,::1"
+    assert options["port"] == "5432,5433"

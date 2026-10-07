@@ -49,27 +49,45 @@ def _resolve_host(host, deadline):
 
 def _resolved_conninfo(database_url, deadline):
     options = conninfo_to_dict(database_url)
-    if options.get("hostaddr") or os.environ.get("PGHOSTADDR"):
-        return database_url
-    hosts = options.get("host", os.environ.get("PGHOST", "")).split(",")
-    ports = options.get("port", os.environ.get("PGPORT", "")).split(",")
-    if len(ports) not in (1, len(hosts)):
+    host_value = options.get("host") or os.environ.get("PGHOST", "")
+    address_value = options.get("hostaddr") or os.environ.get("PGHOSTADDR", "")
+    hosts = host_value.split(",")
+    supplied_addresses = address_value.split(",") if address_value else [""] * len(hosts)
+    if not host_value:
+        hosts = [""] * len(supplied_addresses)
+    ports = (options.get("port") or os.environ.get("PGPORT", "")).split(",")
+    if len(supplied_addresses) != len(hosts) or len(ports) not in (1, len(hosts)):
         raise psycopg.OperationalError("Invalid optional database host/port configuration")
     resolved_hosts, addresses, resolved_ports = [], [], []
     for index, host in enumerate(hosts):
         port = ports[0] if len(ports) == 1 else ports[index]
-        if not host or host.startswith("/"):
+        address = supplied_addresses[index]
+        if address:
+            try:
+                ipaddress.ip_address(address)
+            except ValueError:
+                raise psycopg.OperationalError("Invalid optional database host address") from None
+            candidates = [address]
+        elif not host or host.startswith(("/", "@")):
             candidates = [""]
         else:
             try:
                 ipaddress.ip_address(host)
                 candidates = [host]
             except ValueError:
-                candidates = _resolve_host(host, deadline)
+                try:
+                    candidates = _resolve_host(host, deadline)
+                except psycopg.OperationalError:
+                    if time.monotonic() >= deadline:
+                        raise
+                    # libpq tries later hosts after a failed lookup, but never retries DNS here.
+                    continue
         for address in candidates:
             resolved_hosts.append(host)
             addresses.append(address)
             resolved_ports.append(port)
+    if not resolved_hosts:
+        raise psycopg.OperationalError("Optional hostname resolution failed")
     return make_conninfo(
         database_url,
         host=",".join(resolved_hosts),
