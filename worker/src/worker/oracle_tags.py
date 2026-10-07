@@ -9,6 +9,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from urllib.parse import urlsplit
 from uuid import UUID, uuid4
 
 import psycopg
@@ -151,6 +152,13 @@ class OracleTagsPublisher:
             or descriptor.get("type") != "oracle_tags"
         ):
             raise ValueError("Invalid Oracle Tags descriptor")
+        location = urlsplit(descriptor.get("download_uri", ""))
+        if (
+            location.scheme != "https"
+            or location.hostname != "data.scryfall.io"
+            or location.username
+        ):
+            raise ValueError("Invalid Oracle Tags download identity")
         instant = datetime.fromisoformat(descriptor["updated_at"])
         if instant.tzinfo is None or instant > datetime.now(UTC) + timedelta(minutes=5):
             raise ValueError("Invalid Oracle Tags timestamp")
@@ -170,6 +178,10 @@ class OracleTagsPublisher:
                 (digest, PARSER_VERSION, MAPPING_VERSION),
             ).fetchone()
             if old:
+                conn.execute(
+                    "UPDATE oracle_tag_state SET refresh_status=%s WHERE id=1",
+                    (Jsonb({"kind": "Succeeded", "attemptedAt": datetime.now(UTC).isoformat()}),),
+                )
                 return {
                     "publicationId": str(old[0]),
                     "tagCount": len(taxonomy.tags),
@@ -214,6 +226,9 @@ class OracleTagsPublisher:
                             )
                             seen.add(oracle_id)
                             count += 1
+            with path.open("rb") as source:
+                if hashlib.file_digest(source, "sha256").hexdigest() != digest:
+                    raise ValueError("Oracle Tags payload changed during publication")
             conn.execute("ANALYZE oracle_tag_memberships")
             conn.execute("ANALYZE oracle_tag_closure")
             conn.execute(

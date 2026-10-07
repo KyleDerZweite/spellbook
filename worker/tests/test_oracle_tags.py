@@ -48,3 +48,139 @@ def test_cycle_and_missing_graph_endpoint_are_rejected(tmp_path):
     ):
         with pytest.raises(ValueError):
             read_taxonomy(write_tags(tmp_path, records))
+
+
+@pytest.fixture
+def publisher():
+    import os
+    from pathlib import Path
+    from uuid import uuid4
+
+    import psycopg
+    from psycopg import sql
+    from psycopg.conninfo import make_conninfo
+
+    from worker.oracle_tags import OracleTagsPublisher
+
+    url = os.environ.get("WORKER_TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("Set WORKER_TEST_DATABASE_URL for real Oracle Tags publication")
+    schema = "oracle_test_" + uuid4().hex
+    with psycopg.connect(url, autocommit=True) as admin:
+        admin.execute(sql.SQL("CREATE SCHEMA {}").format(sql.Identifier(schema)))
+        scoped = make_conninfo(url, options=f"-csearch_path={schema},public")
+        try:
+            migration = (
+                (Path(__file__).parents[2] / "frontend/drizzle/0016_deck_entry_categories.sql")
+                .read_text()
+                .split("CREATE TABLE catalog_oracle_facts")[0]
+            )
+            with psycopg.connect(scoped) as conn:
+                conn.execute(migration)
+            yield OracleTagsPublisher(scoped)
+        finally:
+            admin.execute(sql.SQL("DROP SCHEMA {} CASCADE").format(sql.Identifier(schema)))
+
+
+def complete_tags(tmp_path, version=1):
+    from worker.oracle_tags import ROOTS
+
+    records = [
+        tag(root, oracle_ids=[CARD] if key == "ramp" else []) for key, root in ROOTS.items()
+    ]
+    records[0]["label"] = f"Renamable label {version}"
+    return write_tags(tmp_path, records)
+
+
+def descriptor():
+    return {
+        "id": "bd8df61e-5d0a-47a2-9086-40137a645b98",
+        "type": "oracle_tags",
+        "updated_at": "2026-10-06T09:00:32.767Z",
+        "download_uri": "https://data.scryfall.io/oracle-tags/fixture.jsonl.gz",
+    }
+
+
+def test_failed_refresh_retains_complete_publication_and_successful_retry_recovers(
+    publisher, tmp_path
+):
+    import psycopg
+
+    path = complete_tags(tmp_path)
+    first = publisher.publish(path, descriptor())
+    path.write_text(path.read_text() + "\n{truncated")
+    with pytest.raises(ValueError):
+        publisher.publish(path, descriptor())
+    with psycopg.connect(publisher.database_url) as conn:
+        active, status = conn.execute(
+            "SELECT active_publication,refresh_status->>'kind' FROM oracle_tag_state"
+        ).fetchone()
+        assert str(active) == first["publicationId"]
+        assert status == "Failed"
+        assert conn.execute("SELECT count(*) FROM oracle_tag_publications").fetchone()[0] == 1
+    path = complete_tags(tmp_path)
+    assert publisher.publish(path, descriptor())["unchanged"] is True
+    with psycopg.connect(publisher.database_url) as conn:
+        assert (
+            conn.execute("SELECT refresh_status->>'kind' FROM oracle_tag_state").fetchone()[0]
+            == "Succeeded"
+        )
+
+
+def test_source_identity_missing_root_and_truncated_gzip_cannot_activate(publisher, tmp_path):
+    import gzip
+
+    path = complete_tags(tmp_path)
+    first = publisher.publish(path, descriptor())
+    for wrong in (
+        {**descriptor(), "id": CARD},
+        {**descriptor(), "updated_at": "2026-10-06"},
+        {**descriptor(), "download_uri": "http://data.scryfall.io/file"},
+    ):
+        with pytest.raises(ValueError):
+            publisher.publish(path, wrong)
+    path = write_tags(tmp_path, [tag(ROOT)])
+    with pytest.raises(ValueError, match="Missing starter"):
+        publisher.publish(path, descriptor())
+    path = complete_tags(tmp_path)
+    path.write_bytes(gzip.compress(path.read_bytes())[:-7])
+    with pytest.raises((ValueError, EOFError)):
+        publisher.publish(path, descriptor())
+    import psycopg
+
+    with psycopg.connect(publisher.database_url) as conn:
+        assert (
+            str(conn.execute("SELECT active_publication FROM oracle_tag_state").fetchone()[0])
+            == first["publicationId"]
+        )
+
+
+def test_concurrent_publishers_and_pruning_keep_only_current_previous(publisher, tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+
+    import psycopg
+
+    path = complete_tags(tmp_path)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(lambda _: publisher.publish(path, descriptor()), range(2)))
+    assert len({result["publicationId"] for result in results}) == 1
+    second = publisher.publish(complete_tags(tmp_path, 2), descriptor())
+    third = publisher.publish(complete_tags(tmp_path, 3), descriptor())
+    with psycopg.connect(publisher.database_url) as conn:
+        active, previous = conn.execute(
+            "SELECT active_publication,previous_publication FROM oracle_tag_state"
+        ).fetchone()
+        assert str(active) == third["publicationId"]
+        assert str(previous) == second["publicationId"]
+        assert conn.execute("SELECT count(*) FROM oracle_tag_publications").fetchone()[0] == 2
+
+
+def test_mapping_version_rebuilds_unchanged_payload(publisher, tmp_path, monkeypatch):
+    import worker.oracle_tags as source
+
+    path = complete_tags(tmp_path)
+    first = publisher.publish(path, descriptor())
+    monkeypatch.setattr(source, "MAPPING_VERSION", 2)
+    second = publisher.publish(path, descriptor())
+    assert second["publicationId"] != first["publicationId"]
+    assert second["unchanged"] is False
