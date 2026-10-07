@@ -1,8 +1,8 @@
 # Accepted application contract
 
-- Status: Accepted design; workspace, trusted Auth, Account/Profile, Dashboard, bounded Inventory reads and mutation contracts, Deck application contracts and shared Deck UI, SavedState transport and Profile consumer and Scryfall references implemented; later feature slices planned
+- Status: Accepted design; workspace, trusted Auth, Account/Profile, Dashboard, bounded Inventory reads and mutation contracts, Deck application contracts and shared Deck UI, Scan upload/read/result/review contracts, SavedState transport and Profile consumer and Scryfall references implemented; later feature slices planned
 - Last Reviewed: 2026-10-07
-- Source of Truth: workspace/Catalog/Auth/Profile/Dashboard/Inventory/Deck/SavedState/Valuation code, Worker price publication code and Kyle's Q56 acceptance of later contracts
+- Source of Truth: workspace/Catalog/Auth/Profile/Dashboard/Inventory/Deck/Scan/SavedState/Valuation code, Worker price publication code and Kyle's Q56 acceptance of later contracts
 - Update Triggers: workspace ownership, use-case interfaces, experimental API migration, mutation receipts and revisions, Inventory queries and cache limits, shared UI interfaces and native Deck task entry, synchronization, reference publication and acceptance evidence
 - Related Docs: [Architecture](./README.md), [System overview](./system-overview.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Authentication](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Product specification](../product/specification.md), [UI direction](../product/ui-design-direction.md), [Value and costs](./value-and-costs.md), [Category rules](./category-rules.md), [Verification](../operations/github-automation.md), [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md), [ADR-0016](../decisions/0016-postgres-saved-state-invalidation.md), [ADR-0017](../decisions/0017-revisioned-inventory-windows-and-mutation-receipts.md)
 

@@ -29,6 +29,7 @@
 	let sessionInput = $state(untrack(() => initialResult?.session?.id ?? ''));
 	let searchGeneration = 0;
 	let pendingCommit: { key: string; body: string } | null = null;
+	const api = '/api/mobile/v1/mtg';
 	let readFailure = $state('');
 	let mounted = true;
 	let readGeneration = 0;
