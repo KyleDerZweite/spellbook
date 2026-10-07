@@ -1,14 +1,19 @@
 <script lang="ts">
 	import Select from '#lib/components/ui/select/Select.svelte';
+	import { page } from '$app/state';
+	import { loadReferencePrice } from '#lib/valuation/read.ts';
 	import type {
 		PriceReference,
-		PriceResponse,
-		InventoryPriceResponse,
 		PriceFinish,
 		PricePublication
 	} from '@spellbook/contracts/valuation.ts';
 	import { formatReferenceEUR } from '#lib/valuation/money.ts';
-	let { printingId, entryId }: { printingId: string; entryId?: string } = $props();
+	let {
+		printingId,
+		entryId,
+		inventoryPriceRefreshKey
+	}: { printingId: string; entryId?: string; inventoryPriceRefreshKey?: string } = $props();
+	let requestGeneration = 0;
 	let publication: PricePublication | null = $state(null);
 	let finish: PriceFinish = $state('nonfoil'),
 		reference: PriceReference | null = $state(null),
@@ -29,32 +34,29 @@
 	$effect(() => {
 		const selectedPrinting = printingId,
 			selectedEntry = entryId,
-			selectedFinish = finish;
+			selectedFinish = finish,
+			selectedAccount = page.data.user?.accountId;
+		if (selectedEntry) void inventoryPriceRefreshKey;
 		void retry;
 		const controller = new AbortController();
+		const generation = ++requestGeneration;
+		const current = () =>
+			!controller.signal.aborted &&
+			generation === requestGeneration &&
+			selectedAccount === page.data.user?.accountId;
 		reference = null;
 		readError = '';
 		loading = true;
 		health = '';
 		publication = null;
 		quantity = 1;
-		const path = selectedEntry
-			? '/api/mobile/v1/mtg/inventory/prices'
-			: `/api/mobile/v1/mtg/prices?${new URLSearchParams({ printingId: selectedPrinting, finish: selectedFinish })}`;
-		fetch(path, {
-			signal: controller.signal,
-			...(selectedEntry
-				? {
-						method: 'POST',
-						headers: { 'content-type': 'application/json' },
-						body: JSON.stringify({ entryIds: [selectedEntry] })
-					}
-				: {})
-		})
-			.then(async (response) => {
-				if (!response.ok) throw new Error('Reference prices could not be loaded.');
-				const result: PriceResponse | InventoryPriceResponse = await response.json();
-				if (controller.signal.aborted) return;
+		loadReferencePrice(
+			{ printingId: selectedPrinting, entryId: selectedEntry, finish: selectedFinish },
+			controller.signal,
+			current
+		)
+			.then((result) => {
+				if (!result || !current()) return;
 				const first = result.results[0];
 				if (first && 'reference' in first) {
 					reference = first.reference;
@@ -64,14 +66,17 @@
 				publication = result.publications[0] ?? null;
 			})
 			.catch((cause) => {
-				if (!controller.signal.aborted)
+				if (current())
 					readError =
 						cause instanceof Error ? cause.message : 'Reference prices could not be loaded.';
 			})
 			.finally(() => {
-				if (!controller.signal.aborted) loading = false;
+				if (current()) loading = false;
 			});
-		return () => controller.abort();
+		return () => {
+			controller.abort();
+			requestGeneration++;
+		};
 	});
 </script>
 

@@ -1214,6 +1214,7 @@
 	<CardDetail
 		card={inspection.card}
 		inventoryEntryId={inspection.entryId}
+		inventoryPriceRefreshKey={`${currentWindow.revision}:${inspected?.updatedAt.toISOString() ?? 'missing'}:${targetGone}`}
 		returnFocus={inspection.returnFocus}
 		actions={inspection.mode === 'edit' ? editEntryActions : undefined}
 		onClose={() => {

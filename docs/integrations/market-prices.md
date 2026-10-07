@@ -1,6 +1,6 @@
 # Market prices for the dashboard and trading
 
-- Status: Research with accepted source/publication design, not implemented
+- Status: Scryfall EUR references and supplied links implemented; optional Cardmarket/MTGJSON adapters planned with source research
 - Last Reviewed: 2026-10-07
 - Source of Truth: linked provider documentation, public data responses, and repository code
 - Update Triggers: provider access or terms, price fields and freshness, printing identity, inventory cost basis, accepted pricing or trading scope
@@ -81,4 +81,4 @@ On 2026-10-06, the [Bulk index](https://api.scryfall.com/bulk-data), the first r
 
 The [English Sol Ring printing CMM 410](https://api.scryfall.com/cards/cmm/410/en) had EUR and foil prices, as well as a Cardmarket ID. The [German printing from the same set and collector number](https://api.scryfall.com/cards/cmm/410/de) had `null` for those fields. This shows a real coverage gap, but not a general rate for German cards. The values are only a dated format sample.
 
-The [value-tracking contract](../product/value-tracking.md) owns the selected freshness/source priority and language fallback. Q56 accepted publication/mapping responsibilities in [value and cost persistence](../architecture/value-and-costs.md#ownership-and-source-publication); actual adapter fields and source samples still require implementation evidence. A limited data check should cover German printings, foil, Etched, alternate treatments, and missing references. Acceptance evidence needs a failed refresh that preserves an eligible old reference, a successful null that does not reactivate it, visibly stale data, and traceable owned-entry quantity coverage; Dashboard values remain later work. No marketplace accounts were connected, and no real listings or transactions were checked.
+The [value-tracking contract](../product/value-tracking.md) owns the selected freshness/source priority and language fallback. Q56 accepted publication/mapping responsibilities in [value and cost persistence](../architecture/value-and-costs.md#ownership-and-source-publication); Scryfall extraction, publication and backend/UI reference reads are implemented; optional Cardmarket/MTGJSON adapters remain later work. Dated format samples do not establish German-card or finish coverage rates. A limited data check should cover German printings, foil, Etched, alternate treatments, and missing references. Acceptance evidence needs a failed refresh that preserves an eligible old reference, a successful null that does not reactivate it, visibly stale data, and traceable owned-entry quantity coverage; Dashboard values remain later work. No marketplace accounts were connected, and no real listings or transactions were checked.

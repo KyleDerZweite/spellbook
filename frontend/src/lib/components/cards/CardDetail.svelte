@@ -7,11 +7,13 @@
 	interface Props {
 		card: CardDocument;
 		inventoryEntryId?: string;
+		inventoryPriceRefreshKey?: string;
 		onClose: () => void;
 		actions?: Snippet<[CardDocument]>;
 		returnFocus?: HTMLElement | null;
 	}
-	let { card, onClose, actions, returnFocus, inventoryEntryId }: Props = $props();
+	let { card, onClose, actions, returnFocus, inventoryEntryId, inventoryPriceRefreshKey }: Props =
+		$props();
 	let detailOpen = $state(false);
 	let pending = $state(false);
 	let initialFocus: HTMLElement | null = null;
@@ -53,6 +55,7 @@
 					{card}
 					{actions}
 					{inventoryEntryId}
+					{inventoryPriceRefreshKey}
 					onPendingChange={(value) => (pending = value)}
 				/>
 				<Dialog.Close

@@ -41,7 +41,22 @@ def test_failed_download_cannot_publish_or_leak_error_contents(tmp_path, clients
     with pytest.raises(ValueError):
         sync_catalog(scryfall, publisher, "all_cards", tmp_path)
     publisher.publish.assert_not_called()
+    publisher.record_failure.assert_called_once()
     assert load_state(tmp_path) == {"source": "all_cards", "lastError": "ValueError"}
+
+
+def test_publication_failure_is_not_recorded_again_by_sync(tmp_path, clients):
+    scryfall, publisher = clients
+    failure = ValueError("Invalid public source")
+
+    def failed_publish(*_):
+        publisher.record_failure("all_cards", failure)
+        raise failure
+
+    publisher.publish.side_effect = failed_publish
+    with pytest.raises(ValueError):
+        sync_catalog(scryfall, publisher, "all_cards", tmp_path)
+    publisher.record_failure.assert_called_once_with("all_cards", failure)
 
 
 def test_missing_source_fails(tmp_path, clients):

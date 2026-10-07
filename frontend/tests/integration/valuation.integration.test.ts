@@ -91,6 +91,11 @@ run('published exact references and private quantity coverage', () => {
 			requestedIdentity: { lang: 'de' },
 			matchedIdentity: { lang: 'en' }
 		});
+		const saved = structuredClone(frozen.evidence[0]);
+		frozen.response.publications[0].sourceTime = 'relabelled';
+		frozen.response.results[0].links[0].url = 'https://evil.example';
+		if (frozen.response.results[0].kind === 'Known') frozen.response.results[0].amount = '99';
+		expect(frozen.evidence[0]).toEqual(saved);
 	});
 	it('evaluates every freshness boundary without changing original source time', async () => {
 		for (const [instant, state] of [
@@ -119,6 +124,25 @@ run('published exact references and private quantity coverage', () => {
 		await expect(
 			valuation.inventoryReferences(actor, { entryIds: [randomUUID()] })
 		).rejects.toMatchObject({ kind: 'InventoryPriceNotFound' });
+	});
+	it('separates invalid stored printing identity from invalid request validation', async () => {
+		try {
+			await database.pool.query('UPDATE inventory_cards SET catalog_card_id=$1 WHERE id=$2', [
+				'corrupt-storage',
+				entry
+			]);
+			await expect(
+				valuation.inventoryReferences(actor, { entryIds: [entry] })
+			).rejects.toMatchObject({ kind: 'PriceReadUnavailable' });
+			await expect(
+				valuation.inventoryReferences(actor, { entryIds: ['invalid-request'] })
+			).rejects.toMatchObject({ kind: 'ValidationFailed' });
+		} finally {
+			await database.pool.query('UPDATE inventory_cards SET catalog_card_id=$1 WHERE id=$2', [
+				printing,
+				entry
+			]);
+		}
 	});
 	it('treats corrupt oversized stored amounts as read failure even when expired', async () => {
 		try {

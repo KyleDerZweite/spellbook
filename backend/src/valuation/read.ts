@@ -78,6 +78,11 @@ export type FrozenReferenceEvidence = {
 	mappingVersion: number;
 	rawValue: string | null;
 };
+export function freezeReferenceEvidence(
+	evidence: FrozenReferenceEvidence
+): FrozenReferenceEvidence {
+	return structuredClone(evidence);
+}
 type Row = {
 	printing_id: string | null;
 	identity: Record<string, unknown> | null;
@@ -223,15 +228,18 @@ export function createValuation(
 			results.forEach((reference, index) => {
 				if (reference.kind !== 'Known') return;
 				const row = rows[index];
-				frozen.push({
-					reference,
-					publication,
-					descriptor: raw.descriptor,
-					requestedIdentity: row.identity!,
-					matchedIdentity: reference.provenance === 'Exact' ? row.identity! : row.english_identity!,
-					mappingVersion: publication.mappingVersion,
-					rawValue: reference.provenance === 'Exact' ? row.raw_value : row.english_raw_value
-				});
+				frozen.push(
+					freezeReferenceEvidence({
+						reference,
+						publication,
+						descriptor: raw.descriptor,
+						requestedIdentity: row.identity!,
+						matchedIdentity:
+							reference.provenance === 'Exact' ? row.identity! : row.english_identity!,
+						mappingVersion: publication.mappingVersion,
+						rawValue: reference.provenance === 'Exact' ? row.raw_value : row.english_raw_value
+					})
+				);
 			});
 		const status = raw?.refresh_status;
 		return {
@@ -273,10 +281,14 @@ export function createValuation(
 			);
 			if (rows.length !== ids.length) throw new InventoryPriceNotFound();
 			const ordered = ids.map((id) => rows.find((row) => row.id === id)!);
-			const pairs = ordered.map((row) => ({
-				printingId: uuid(row.catalog_card_id),
-				finish: row.finish
-			}));
+			const pairs = ordered.map((row) => {
+				try {
+					if (row.finish !== 'nonfoil' && row.finish !== 'foil') throw new PriceReadUnavailable();
+					return { printingId: uuid(row.catalog_card_id), finish: row.finish };
+				} catch {
+					throw new PriceReadUnavailable();
+				}
+			});
 			const response = await read(client, pairs);
 			const coverage = {
 				coveredQuantity: 0,

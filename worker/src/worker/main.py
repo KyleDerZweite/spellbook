@@ -54,6 +54,7 @@ def sync_catalog(
     data_dir: Path = DEFAULT_DATA_DIR,
 ) -> None:
     """Synchronize exactly one configured source, retaining the last good catalog."""
+    publication_started = False
     try:
         info = scryfall.get_download_info(source)
         if info is None:
@@ -65,13 +66,15 @@ def sync_catalog(
         with tempfile.TemporaryDirectory(prefix="catalog-", dir=data_dir) as download_dir:
             dest = Path(download_dir) / "cards.json"
             scryfall.download_bulk_file(info, dest)
+            publication_started = True
             count = publisher.publish(dest, info)
     except Exception as exc:
         # Database and HTTP exceptions can contain credentials or document data.
-        try:
-            publisher.record_failure(source, exc)
-        except Exception:
-            log.warning("Could not persist refresh status")
+        if not publication_started:
+            try:
+                publisher.record_failure(source, exc)
+            except Exception:
+                log.warning("Could not persist refresh status")
         save_state({"source": source, "lastError": type(exc).__name__}, data_dir)
         raise
     save_state(
