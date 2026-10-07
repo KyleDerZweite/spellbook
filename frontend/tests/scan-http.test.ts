@@ -1,3 +1,4 @@
+import { createScanSave } from '../src/lib/scan/save.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
@@ -188,6 +189,76 @@ test('built Scan HTTP with actual Python worker and isolated PostgreSQL', async 
 					assert.ok(!JSON.stringify(result).includes(`"${key}"`));
 			}
 		);
+		await t.test(
+			'confirmed frontend save survives discarded bounded read and recovers without another mutation',
+			async () => {
+				const s = await session(a.authorization),
+					upload = await request(
+						`${api}/sessions/${s.id}/frames`,
+						'POST',
+						{ authorization: a.authorization },
+						frame()
+					);
+				assert.equal(upload.status, 200);
+				const photo = await upload.json();
+				const input = {
+					requestId: randomUUID(),
+					sessionId: s.id,
+					items: [
+						{
+							scanArtifactId: photo.artifact.id,
+							catalogCardId: card.catalogCardId,
+							quantity: 2,
+							finish: 'nonfoil',
+							condition: 'LP'
+						}
+					]
+				};
+				let mutations = 0,
+					reads = 0;
+				const saved = createScanSave({
+					commit: async (body) => {
+						mutations++;
+						const response = await request(
+							`${api}/review/commit`,
+							'POST',
+							{ authorization: a.authorization, 'content-type': 'application/json' },
+							body
+						);
+						assert.equal(response.status, 200);
+						return response.json();
+					},
+					read: async (id) => {
+						reads++;
+						const response = await request(`${api}/sessions/${id}/result`, 'GET', {
+							authorization: a.authorization
+						});
+						assert.equal(response.status, 200);
+						if (reads === 1) {
+							await response.body?.cancel();
+							throw Error('Intentionally discarded physical current-read response');
+						}
+						return response.json();
+					}
+				});
+				const original = await saved.commit(JSON.stringify(input));
+				assert.equal(original.kind, 'Committed');
+				await assert.rejects(saved.read(), /discarded/);
+				assert.deepEqual(saved.acknowledgement, original);
+				assert.deepEqual(
+					await saved.commit(JSON.stringify({ ...input, requestId: randomUUID() })),
+					original
+				);
+				const current = await saved.read();
+				assert.equal(current.session.status, 'committed');
+				assert.equal(current.reviewCount, 1);
+				assert.equal(current.reviewItems[0].quantity, 2);
+				assert.equal(current.reviewItems[0].condition, 'LP');
+				assert.equal(mutations, 1);
+				assert.equal(reads, 2);
+			}
+		);
+
 		await t.test(
 			'bodyless session and exact multipart Origin/bearer/cookie matrix retains guard ordering',
 			async () => {

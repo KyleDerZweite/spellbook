@@ -58,6 +58,8 @@ run('real-printing compact Scan commit scale', () => {
 						)
 					]
 				);
+			// Direct bulk fixture insertion needs current planner statistics before measured operations.
+			await f.pool.query('ANALYZE inventory_cards');
 			const digest = async () =>
 				(
 					await f.pool.query(
@@ -104,6 +106,19 @@ run('real-printing compact Scan commit scale', () => {
 							'QUERY PLAN'
 						]
 					);
+				const checkPlan = (value: unknown): void => {
+					if (Array.isArray(value)) {
+						for (const child of value) checkPlan(child);
+					} else if (value && typeof value === 'object') {
+						const node = value as Record<string, unknown>;
+						if ('Node Type' in node) {
+							expect(Number(node['Rows Removed by Filter'] ?? 0)).toBeLessThanOrEqual(2);
+							expect(Number(node['Actual Rows'] ?? 0)).toBeLessThanOrEqual(2);
+						}
+						for (const child of Object.values(node)) checkPlan(child);
+					}
+				};
+				checkPlan(plans);
 				evidence.push({
 					entryCount: size,
 					elapsedMs,
