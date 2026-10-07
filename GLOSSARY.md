@@ -39,8 +39,12 @@ An account's ledger of owned physical MTG cards, represented by grouped inventor
 _Avoid_: Collection as a separate domain object, deck
 
 **Inventory group**:
-A named selection of inventory entries within one inventory. An entry can belong to multiple groups, and all its copies share that membership.
+A named selection of inventory entries within one inventory, presented as a Box in the interface. An entry can belong to multiple groups, and all its copies share that membership.
 _Avoid_: Deck, physical location, scan batch, owned quantity
+
+**Box**:
+The interface name for an Inventory group. It selects whole entries and does not allocate physical copies to a storage location.
+_Avoid_: Physical box allocation, copy location, separate ownership
 
 **Group membership**:
 An association between an inventory entry and an inventory group, without changing ownership.

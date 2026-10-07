@@ -1042,12 +1042,12 @@
 
 		{#if currentWindow.query.view === 'groups'}<noscript
 				><section aria-labelledby="native-groups-title">
-					<h2 id="native-groups-title">Manage Groups</h2>
+					<h2 id="native-groups-title">Manage Boxes</h2>
 					<form method="POST" action={inventoryAction('createGroup', effectiveInventoryUrl(page))}>
 						<input type="hidden" name="requestId" value={data.requestId} /><label
-							for="native-group-name">New group name</label
+							for="native-group-name">New box name</label
 						><input id="native-group-name" name="name" required maxlength="128" /><button
-							class="btn btn-primary">Create group</button
+							class="btn btn-primary">Create box</button
 						>
 					</form>
 					{#each currentWindow.groupPage as group}<form
@@ -1077,7 +1077,7 @@
 							/><label
 								><input type="checkbox" name="confirmDeleteGroup" value="yes" required /> Delete {group.name}
 								and its memberships, keeping every owned card.</label
-							><button class="btn btn-secondary">Delete group</button>
+							><button class="btn btn-secondary">Delete box</button>
 						</form>{/each}
 				</section></noscript
 			>{/if}
@@ -1089,7 +1089,7 @@
 					card names <span>·</span> <strong>{currentWindow.totals.setCount}</strong> sets
 				</p>{/snippet}
 			{#snippet actions()}{#if groupDirectory}<Button
-						onclick={(event) => editGroup(null, event.currentTarget)}>New group</Button
+						onclick={(event) => editGroup(null, event.currentTarget)}>New box</Button
 					>{:else if selectedGroup}<Button variant="secondary" href={viewHref('cards')}
 						>Assign cards</Button
 					>{:else}<Button variant="ghost" href="/mtg/scan">Scan</Button><Button
@@ -1175,11 +1175,11 @@
 				bind:this={groupLink}
 				href={viewHref('groups')}
 				class:active={currentWindow.query.view === 'groups'}
-				aria-current={currentWindow.query.view === 'groups' ? 'page' : undefined}>Groups</a
+				aria-current={currentWindow.query.view === 'groups' ? 'page' : undefined}>Boxes</a
 			>
 		</nav>
 		{#if selectedGroup}<div class="selected-group">
-				<a href={viewHref('groups')}>All groups</a><span aria-hidden="true">/</span><strong
+				<a href={viewHref('groups')}>All boxes</a><span aria-hidden="true">/</span><strong
 					>{selectedGroup.name}</strong
 				>
 			</div>{/if}
@@ -1453,7 +1453,7 @@
 			{#if currentWindow.matching.entryCount === 0}<div class="empty-state">
 					<p>
 						{data.selectedGroupId && !hasFilters
-							? 'No cards in this group yet. Assign cards from their row menu in Cards.'
+							? 'No cards in this box yet. Assign cards from their row menu in Cards.'
 							: 'No cards match these filters.'}
 					</p>
 					{#if hasFilters}<button class="btn btn-secondary" onclick={clearFilters}
@@ -1534,7 +1534,7 @@
 										openInspection(card.id, 'add', rowMenuRefs[card.id] ?? searchInput)
 								},
 								{
-									label: 'Groups',
+									label: 'Boxes',
 									disabled: pendingId !== null,
 									onSelect: () => assignGroups(card.id)
 								},
@@ -1615,8 +1615,8 @@
 		/>{/if}
 	<ConfirmationDialog
 		open={deletingGroup !== null}
-		title="Delete this group?"
-		description={`Delete ${deletingGroup?.name ?? ''}? Your cards stay in inventory; only this group's assignments are removed.`}
+		title="Delete this box?"
+		description={`Delete ${deletingGroup?.name ?? ''}? Your cards stay in inventory; only this box's assignments are removed.`}
 		pending={groupDeletion.pending}
 		error={groupDeletion.error}
 		onCancel={() => (deletingGroup = null)}
@@ -1631,7 +1631,7 @@
 			<input type="hidden" name="groupId" value={deletingGroup?.id ?? ''} /><button
 				class="btn btn-destructive"
 				disabled={groupDeletion.pending}
-				type="submit">{groupDeletion.pending ? 'Deleting...' : 'Delete group'}</button
+				type="submit">{groupDeletion.pending ? 'Deleting...' : 'Delete box'}</button
 			>
 		</form>
 	</ConfirmationDialog>

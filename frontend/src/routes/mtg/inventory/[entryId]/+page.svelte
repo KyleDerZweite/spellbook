@@ -40,7 +40,7 @@
 		>
 		<button class="btn btn-primary">Save</button>
 	</form>
-	<h2>Groups</h2>
+	<h2>Boxes</h2>
 	<form
 		method="POST"
 		action={data.returnTo + (data.returnTo.includes('?') ? '&' : '?') + '/assignGroups'}
@@ -58,7 +58,7 @@
 					checked={data.detail.memberships.includes(group.id)}
 				/>{group.name}</label
 			>{/each}
-		<button class="btn btn-primary">Save groups</button>
+		<button class="btn btn-primary">Save boxes</button>
 	</form>
 	<h2>Remove this entry</h2>
 	<p>

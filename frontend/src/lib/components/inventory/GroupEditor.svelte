@@ -28,8 +28,8 @@
 </script>
 
 <FormDialog
-	title={group ? 'Rename group' : 'New group'}
-	description="Groups organize your existing inventory."
+	title={group ? 'Rename box' : 'New box'}
+	description="Boxes organize your existing inventory."
 	pending={mutation.pending}
 	onCancel={onClose}
 	{onCloseAutoFocus}
@@ -65,7 +65,7 @@
 			<button type="button" class="btn btn-secondary" disabled={mutation.pending} onclick={onClose}
 				>Cancel</button
 			><button type="submit" class="btn btn-primary" disabled={mutation.pending}
-				>{mutation.pending ? 'Saving...' : group ? 'Save' : 'Create group'}</button
+				>{mutation.pending ? 'Saving...' : group ? 'Save' : 'Create box'}</button
 			>
 		</div>
 	</form>

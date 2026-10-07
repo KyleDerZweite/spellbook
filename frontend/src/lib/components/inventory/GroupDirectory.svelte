@@ -189,14 +189,14 @@
 
 {#if groups.length === 0}
 	<div class="empty-state">
-		<p>No groups yet. Create one, then assign cards from their row menu.</p>
+		<p>No boxes yet. Create one, then assign cards from their row menu.</p>
 	</div>
 {:else}
 	<ul
 		bind:this={list}
 		class="group-directory"
 		class:lazy
-		aria-label="Inventory groups"
+		aria-label="Inventory boxes"
 		style:height={lazy ? `${offset(groups.length)}px` : undefined}
 		data-group-rendered={indexes.length}
 	>
@@ -229,7 +229,7 @@
 					>
 				</a>
 				<ActionMenu
-					label={`Actions for group ${group.name}`}
+					label={`Actions for box ${group.name}`}
 					iconOnly
 					bind:triggerRef={() => triggers[group.id] ?? null, (ref) => (triggers[group.id] = ref)}
 					onCloseAutoFocus={(event) => {
@@ -238,7 +238,7 @@
 					items={[
 						{ label: 'Rename', onSelect: () => onRename(group, triggers[group.id] ?? null) },
 						{
-							label: 'Delete group',
+							label: 'Delete box',
 							destructive: true,
 							onSelect: () => onRemove(group, triggers[group.id] ?? null)
 						}

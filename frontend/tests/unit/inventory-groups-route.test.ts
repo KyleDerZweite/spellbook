@@ -299,12 +299,12 @@ describe('Inventory group route boundaries', () => {
 		mocks.create.mockRejectedValue(new ValidationError('A group with this name already exists'));
 		expect(await actions.createGroup(event() as never)).toMatchObject({
 			status: 400,
-			data: { message: 'A group with this name already exists' }
+			data: { message: 'A box with this name already exists' }
 		});
 		mocks.assign.mockRejectedValue(new InventoryNotFoundError('Inventory group not found'));
 		expect(await actions.assignGroups(event() as never)).toMatchObject({
 			status: 404,
-			data: { message: 'Inventory group not found' }
+			data: { message: 'Inventory box not found' }
 		});
 	});
 

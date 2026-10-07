@@ -24,6 +24,15 @@ import {
 } from '#lib/server/data/inventory-browsing.ts';
 import { browsePaginationHref } from '#lib/browsing/pagination.ts';
 
+function inventoryDisplayMessage(message: string): string {
+	if (message === 'Inventory group not found') return 'Inventory box not found';
+	if (message === 'A group with this name already exists')
+		return 'A box with this name already exists';
+	if (message === 'Group name must contain 1 to 64 characters')
+		return 'Box name must contain 1 to 64 characters';
+	return message;
+}
+
 export const load: PageServerLoad = async ({ locals, parent, url, request }) => {
 	if (!locals.user) {
 		throw redirect(303, '/auth/login?returnTo=/mtg/inventory');
@@ -86,8 +95,9 @@ export const load: PageServerLoad = async ({ locals, parent, url, request }) => 
 		if (cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'Unauthenticated')
 			error(401, 'Authentication required');
 		if (cause instanceof ValidationError) {
-			if (cause.message === 'Inventory group not found') error(404, cause.message);
-			error(400, cause.message);
+			if (cause.message === 'Inventory group not found')
+				error(404, inventoryDisplayMessage(cause.message));
+			error(400, inventoryDisplayMessage(cause.message));
 		}
 		throw cause;
 	}
@@ -112,13 +122,17 @@ function mutationFailure(
 	draft?: NotesRecovery
 ): ActionFailure<InventoryFormFailure> {
 	if (cause instanceof NotesConflictError)
-		return fail(409, { message: cause.message, notesRecovery: draft, latestNotes: cause.latest });
+		return fail(409, {
+			message: inventoryDisplayMessage(cause.message),
+			notesRecovery: draft,
+			latestNotes: cause.latest
+		});
 	if (cause instanceof InventoryQuantityChangedError || cause instanceof RequestConflictError)
-		return fail(409, { message: cause.message });
+		return fail(409, { message: inventoryDisplayMessage(cause.message) });
 	if (cause instanceof InventoryNotFoundError)
-		return fail(404, { message: cause.message, notesRecovery: draft });
+		return fail(404, { message: inventoryDisplayMessage(cause.message), notesRecovery: draft });
 	if (cause instanceof ValidationError)
-		return fail(400, { message: cause.message, notesRecovery: draft });
+		return fail(400, { message: inventoryDisplayMessage(cause.message), notesRecovery: draft });
 	throw cause;
 }
 export const actions = {

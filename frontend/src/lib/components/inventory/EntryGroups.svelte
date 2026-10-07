@@ -42,8 +42,8 @@
 </script>
 
 <FormDialog
-	title="Groups"
-	description={`Groups include all ${entry.quantity} ${entry.quantity === 1 ? 'copy' : 'copies'} of ${entry.name} (${entry.setCode.toUpperCase()}, ${entry.finish === 'foil' ? 'Foil' : 'Nonfoil'}, ${entry.condition}).`}
+	title="Boxes"
+	description={`Boxes include all ${entry.quantity} ${entry.quantity === 1 ? 'copy' : 'copies'} of ${entry.name} (${entry.setCode.toUpperCase()}, ${entry.finish === 'foil' ? 'Foil' : 'Nonfoil'}, ${entry.condition}).`}
 	pending={mutation.pending}
 	onCancel={onClose}
 	{onCloseAutoFocus}
@@ -57,7 +57,7 @@
 		<input type="hidden" name="requestId" value={page.data.requestId} />
 		<input type="hidden" name="entryId" value={entry.id} />
 		{#if groups.length === 0}<p class="text-sm text-text-secondary">
-				Create a group in the Groups view first.
+				Create a box in the Boxes view first.
 			</p>{:else}
 			<div class="membership-list">
 				{#each groups as group (group.id)}<label
@@ -80,7 +80,7 @@
 				type="submit"
 				class="btn btn-primary"
 				disabled={mutation.pending || groups.length === 0}
-				>{mutation.pending ? 'Saving...' : 'Save groups'}</button
+				>{mutation.pending ? 'Saving...' : 'Save boxes'}</button
 			>
 		</div>
 	</form>
