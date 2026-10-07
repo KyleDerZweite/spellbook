@@ -58,6 +58,13 @@ function selected(html: string) {
 	assert.ok(option);
 	return attr(option[1], 'value');
 }
+function assertNativePanelFirst(html: string) {
+	const panel = /<section\b[^>]*aria-label="Selected card"/.exec(html);
+	const results = /<div\b[^>]*class="[^"]*\bsearch-content\b/.exec(html);
+	assert.ok(panel);
+	assert.ok(results);
+	assert.ok(panel.index < results.index, 'Native selection/receipt precedes the result grid');
+}
 const accounts: string[] = [];
 test('production native Search HTML forms preserve explicit targets, receipt and original replay', async (t) => {
 	assert.equal(
@@ -129,6 +136,7 @@ test('production native Search HTML forms preserve explicit targets, receipt and
 			async () => {
 				const initial = await get();
 				assert.equal(initial.response.status, 200);
+				assertNativePanelFirst(initial.html);
 				assert.equal(selected(initial.html), '');
 				assert.ok(initial.html.includes('Sol Ring'));
 				assert.ok(!initial.html.includes('Retry original Deck addition'));
@@ -291,6 +299,7 @@ test('production native Search HTML forms preserve explicit targets, receipt and
 					assert.equal(r.status, 200);
 					const html = await r.text();
 					assert.match(html, /Deck addition confirmed/);
+					assertNativePanelFirst(html);
 					assert.match(html, /Deck choices are unavailable/);
 					assert.equal(r.headers.get('location'), null);
 					assert.equal(
@@ -322,6 +331,7 @@ test('production native Search HTML forms preserve explicit targets, receipt and
 				assert.equal(r.status, 200);
 				const html = await r.text();
 				assert.match(html, /Deck addition confirmed/);
+				assertNativePanelFirst(html);
 				assert.match(html, /printing is unavailable/);
 				const retained = new URLSearchParams({
 					printing: randomUUID(),

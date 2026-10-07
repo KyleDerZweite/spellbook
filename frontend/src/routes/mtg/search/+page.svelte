@@ -8,12 +8,6 @@
 <svelte:head><title>Search | Spellbook</title></svelte:head>
 <div class="workspace-container search-page">
 	<h1 class="sr-only">Search cards</h1>
-	<SearchWorkspace
-		serverInput={data.searchInput}
-		serverResult={data.catalogResult}
-		serverError={data.catalogReadError}
-		canonicalHref={data.canonicalSearchHref}
-	/>
 	{#if data.nativeCardContext || form}
 		<section aria-label="Selected card" class="native-card-panel">
 			{#if data.selectedPrinting}
@@ -47,6 +41,12 @@
 			/>
 		</section>
 	{/if}
+	<SearchWorkspace
+		serverInput={data.searchInput}
+		serverResult={data.catalogResult}
+		serverError={data.catalogReadError}
+		canonicalHref={data.canonicalSearchHref}
+	/>
 </div>
 
 <style>
