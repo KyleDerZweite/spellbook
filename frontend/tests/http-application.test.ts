@@ -950,6 +950,98 @@ test('built HTTP application preserves public Catalog and local account journeys
 			}
 		);
 		await t.test(
+			'native metadata conflicts and validation retain an accessible draft and explicit rebase',
+			async () => {
+				const login = await request('/api/auth/login', { username, password });
+				const session = await login.json();
+				const authorization = `Bearer ${session.token}`;
+				const deck = (
+					await (
+						await request(
+							'/api/mobile/v1/mtg/decks',
+							{ name: 'Original name', format: 'Modern' },
+							{ authorization }
+						)
+					).json()
+				).at(-1);
+				const changed = await fetch(`${origin}/api/mobile/v1/mtg/decks/${deck.id}`, {
+					method: 'PATCH',
+					headers: { authorization, 'content-type': 'application/json' },
+					body: JSON.stringify({
+						name: 'Remote name',
+						description: 'Remote description',
+						descriptionRevision: '0'
+					})
+				});
+				assert.equal(changed.status, 200);
+				const draft = 'Local <draft> & retained notes';
+				const fields = {
+					deckId: deck.id,
+					name: 'Original name',
+					nameBase: 'Original name',
+					format: 'Modern',
+					formatBase: 'Modern',
+					description: draft,
+					descriptionBase: '',
+					descriptionRevision: '0'
+				};
+				const post = async (body: Record<string, string>) =>
+					fetch(`${origin}/mtg/decks?/updateDeck&deck=${deck.id}`, {
+						method: 'POST',
+						headers: {
+							origin,
+							accept: 'text/html',
+							'content-type': 'application/x-www-form-urlencoded',
+							cookie: `spellbook_session=${session.token}`
+						},
+						body: new URLSearchParams(body),
+						redirect: 'manual'
+					});
+				const conflict = await post(fields);
+				assert.equal(conflict.status, 409);
+				const html = await conflict.text();
+				const recovery = html.match(
+					/<section[^>]*data-deck-draft-recovery[^>]*>[\s\S]*?<\/section>/
+				)?.[0];
+				assert.ok(
+					recovery,
+					'Native conflict must render an accessible recovery section without hydration'
+				);
+				assert.match(
+					recovery,
+					/<textarea[^>]*name="description"[^>]*>Local &lt;draft(?:&gt;|>) &amp; retained notes<\/textarea>/
+				);
+				assert.match(recovery, /name="nameBase" value="Original name"/);
+				assert.match(recovery, /name="descriptionRevision" value="0"/);
+				assert.match(recovery, /name="rebaseDescription" value="1"/);
+				const invalid = await post({ ...fields, name: '', descriptionRevision: '1' });
+				assert.equal(invalid.status, 400);
+				assert.match(await invalid.text(), /data-deck-draft-recovery/);
+				const stillStale = await post({ ...fields, rebaseDescription: '0' });
+				assert.equal(
+					stillStale.status,
+					409,
+					'Explicit rebase must still check the submitted revision'
+				);
+				assert.match(await stillStale.text(), /data-deck-draft-recovery/);
+				const rebased = await post({ ...fields, rebaseDescription: '1' });
+				assert.equal(rebased.status, 200);
+				assert.doesNotMatch(await rebased.text(), /data-deck-draft-recovery/);
+				const saved = await (
+					await request(`/api/mobile/v1/mtg/decks?deck=${deck.id}`, undefined, { authorization })
+				).json();
+				assert.equal(
+					saved.decks.find((entry: { id: string }) => entry.id === deck.id).name,
+					'Remote name'
+				);
+				assert.equal(
+					saved.decks.find((entry: { id: string }) => entry.id === deck.id).description,
+					draft
+				);
+			}
+		);
+
+		await t.test(
 			'Deck retries survive entry recreation and deck deletion, with changed payload rejection',
 			async () => {
 				const login = await request('/api/auth/login', { username, password });

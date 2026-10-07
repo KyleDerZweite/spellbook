@@ -150,14 +150,41 @@ export const actions = {
 			patch.format = field(form, 'format');
 		if (
 			!form.has('descriptionBase') ||
-			field(form, 'description') !== field(form, 'descriptionBase')
+			field(form, 'description') !== field(form, 'descriptionBase') ||
+			form.has('rebaseDescription')
 		) {
 			patch.description = field(form, 'description');
-			patch.descriptionRevision = field(form, 'descriptionRevision');
+			patch.descriptionRevision = field(
+				form,
+				form.has('rebaseDescription') ? 'rebaseDescription' : 'descriptionRevision'
+			);
 		}
-		const deck = await updateDeck(locals.user!, patch);
-		if (!deck) return fail(404, { message: 'Deck not found.' });
-		return { success: true, message: 'Deck details saved.' };
+		// Keep the submitted text and original bases for a native failed POST as well as enhancement.
+		const detailsDraft = {
+			deckId: patch.deckId,
+			name: String(form.get('name') ?? ''),
+			format: String(form.get('format') ?? ''),
+			description: String(form.get('description') ?? ''),
+			descriptionRevision: patch.descriptionRevision ?? field(form, 'descriptionRevision'),
+			nameBase: form.has('nameBase') ? String(form.get('nameBase')) : undefined,
+			formatBase: form.has('formatBase') ? String(form.get('formatBase')) : undefined,
+			descriptionBase: form.has('descriptionBase') ? String(form.get('descriptionBase')) : undefined
+		};
+		try {
+			const deck = await updateDeck(locals.user!, patch);
+			if (!deck) return fail(404, { message: 'Deck not found.' });
+			return { success: true, message: 'Deck details saved.' };
+		} catch (cause) {
+			if (cause instanceof DescriptionConflictError)
+				return fail(409, { message: cause.message, conflict: cause.latest, detailsDraft });
+			if (
+				cause instanceof ValidationError &&
+				!(cause instanceof DeckNotFoundError) &&
+				!(cause instanceof RequestConflictError)
+			)
+				return fail(400, { message: cause.message, detailsDraft });
+			throw cause;
+		}
 	}),
 	deleteDeck: guarded(async ({ request, locals }) => {
 		const form = await request.formData();

@@ -1,3 +1,5 @@
+import { canonicalQuantities } from '../../../backend/src/decks/availability.ts';
+import { DatabaseIntegerRangeError } from '../../../backend/src/db/numbers.ts';
 import { describe, expect, it } from 'vitest';
 import { allocateDeckAvailability } from '../../src/lib/mtg/deck-availability';
 
@@ -52,5 +54,30 @@ describe('deck availability', () => {
 				]
 			)
 		).toEqual({ entry: { exact: 2, alternate: 1, missing: 1 } });
+	});
+});
+
+// Arithmetic aggregate boundaries, not fixtures claiming out-of-range production row quantities.
+describe('canonical ownership totals', () => {
+	it('keeps the exact safe boundary and totals above int32', () => {
+		expect(
+			canonicalQuantities([card('a', 'a', Number.MAX_SAFE_INTEGER - 1), card('b', 'b', 1)])
+		).toEqual({ oracle: Number.MAX_SAFE_INTEGER });
+		expect(canonicalQuantities([card('a', 'a', 2147483647), card('b', 'b', 2147483647)])).toEqual({
+			oracle: 4294967294
+		});
+	});
+	it('rejects individually safe printing aggregates whose canonical sum is unsafe', () => {
+		expect(() =>
+			canonicalQuantities([card('a', 'a', Number.MAX_SAFE_INTEGER - 1), card('b', 'b', 2)])
+		).toThrow(DatabaseIntegerRangeError);
+	});
+	it('does not combine distinct canonical cards', () => {
+		expect(
+			canonicalQuantities([
+				card('a', 'a', Number.MAX_SAFE_INTEGER),
+				card('b', 'b', Number.MAX_SAFE_INTEGER, 'other')
+			])
+		).toEqual({ oracle: Number.MAX_SAFE_INTEGER, other: Number.MAX_SAFE_INTEGER });
 	});
 });

@@ -30,7 +30,7 @@ import {
 	ValidationError
 } from '../mtg/validation.ts';
 import { mutationFingerprint, RequestConflictError } from './request-fingerprint.ts';
-import { allocateDeckAvailability } from './availability.ts';
+import { allocateDeckAvailability, canonicalQuantities } from './availability.ts';
 import { previewMtgImport, isCommittedDeckRole, toCardIdentity } from './import.ts';
 import { generateLegalityWarnings } from './legality.ts';
 import { formatArenaDecklist } from './decklist.ts';
@@ -191,7 +191,10 @@ export function createDecks(
 				)
 			)
 			.groupBy(inventoryCards.catalogCardId, inventoryCards.canonicalCardId);
-		return rows.map((row) => ({ ...row, quantity: aggregateQuantity(row.quantity) }));
+		return rows.map((row) => ({
+			...row,
+			quantity: aggregateQuantity(row.quantity)
+		}));
 	}
 	async function getDeckSnapshot(
 		accountId: string,
@@ -238,11 +241,7 @@ export function createDecks(
 					[...new Set(cards.map((c) => c.canonicalCardId))],
 					tx
 				);
-				const ownedByCanonical: Record<string, number> = {};
-				for (const c of ownedPrintings)
-					ownedByCanonical[c.canonicalCardId] = aggregateQuantity(
-						(ownedByCanonical[c.canonicalCardId] || 0) + c.quantity
-					);
+				const ownedByCanonical = canonicalQuantities(ownedPrintings);
 				return {
 					decks: userDecks.map(deckDto),
 					deckTotals,
@@ -338,7 +337,12 @@ export function createDecks(
 		now: Date,
 		resolvedPrintings: Map<string, CardDocument>,
 		decrementFloor: 0 | 1
-	): Promise<DeckAcknowledgement['changes'][number] & { removed?: string; changed: boolean }> {
+	): Promise<
+		DeckAcknowledgement['changes'][number] & {
+			removed?: string;
+			changed: boolean;
+		}
+	> {
 		if (operation.op === 'add') {
 			const printing = resolvedPrintings.get(operation.card.catalogCardId);
 			if (!printing) throw new ValidationError('Printing not found');
@@ -685,7 +689,13 @@ export function createDecks(
 								}
 							]),
 					...(role
-						? [{ op: 'move' as const, target: { entryId }, role: assertDeckRole(role) }]
+						? [
+								{
+									op: 'move' as const,
+									target: { entryId },
+									role: assertDeckRole(role)
+								}
+							]
 						: [])
 				]
 			},
@@ -958,18 +968,16 @@ export function createDecks(
 			canonicalIds.some((id) => typeof id !== 'string' || id.length > 100)
 		)
 			throw new ValidationError('Invalid canonical IDs');
-		return owned(accountId, canonicalIds);
+		const printings = await owned(accountId, canonicalIds);
+		canonicalQuantities(printings);
+		return printings;
 	}
 	async function search(accountId: string, query: string) {
 		const result = await catalog.searchCatalog(query);
 		const ownedPrintings = await ownership(accountId, [
 			...new Set(result.hits.map((card) => card.oracle_id))
 		]);
-		const ownedByCanonical: Record<string, number> = {};
-		for (const entry of ownedPrintings)
-			ownedByCanonical[entry.canonicalCardId] = aggregateQuantity(
-				(ownedByCanonical[entry.canonicalCardId] || 0) + entry.quantity
-			);
+		const ownedByCanonical = canonicalQuantities(ownedPrintings);
 		return { ...result, ownedPrintings, ownedByCanonical };
 	}
 	return {

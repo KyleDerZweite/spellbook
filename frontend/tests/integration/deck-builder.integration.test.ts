@@ -74,6 +74,37 @@ run('deck builder transactions', () => {
 		await expect(GET(request)).rejects.toMatchObject({ status: 401 });
 	});
 
+	it('returns exact canonical ownership across real printings with valid int32 quantities', async () => {
+		const printings = (await modules.application.catalog.getPrintings(card.canonicalCardId)).hits;
+		expect(printings.length).toBeGreaterThanOrEqual(2);
+		await modules.bulkMutateInventory(accountId, {
+			requestId: crypto.randomUUID(),
+			source: 'web',
+			game: 'mtg',
+			operations: printings.slice(0, 2).map((printing) => ({
+				op: 'add' as const,
+				quantity: 2147483647,
+				finish: 'nonfoil',
+				condition: 'NM',
+				card: {
+					catalogCardId: printing.id,
+					canonicalCardId: printing.oracle_id,
+					name: printing.name,
+					setCode: printing.set_code,
+					imageUri: printing.image_uri
+				}
+			}))
+		});
+		const ownership = await modules.application.decks.ownership(actor, [card.canonicalCardId]);
+		expect(ownership).toHaveLength(2);
+		expect(ownership.map((printing) => printing.quantity)).toEqual([2147483647, 2147483647]);
+		expect(
+			(await modules.application.decks.search(actor, 'Sol Ring')).ownedByCanonical[
+				card.canonicalCardId
+			]
+		).toBe(4294967294);
+	});
+
 	it('rejects changed bulk payloads without changing the deck', async () => {
 		const deck = await modules.createDeckRecord(actor, deckInput);
 		const input = {

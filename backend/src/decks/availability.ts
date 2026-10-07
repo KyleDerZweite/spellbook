@@ -1,3 +1,4 @@
+import { databaseInteger, DatabaseIntegerRangeError } from '../db/numbers.ts';
 import type { DeckAvailability } from '@spellbook/contracts/decks.ts';
 export type { DeckAvailability, DeckAvailabilityResponse } from '@spellbook/contracts/decks.ts';
 
@@ -5,6 +6,17 @@ interface CardQuantity {
 	catalogCardId: string;
 	canonicalCardId: string;
 	quantity: number;
+}
+
+/** All callers receive canonical totals that remain exact JSON numbers. */
+export function canonicalQuantities(cards: readonly CardQuantity[]): Record<string, number> {
+	const totals = new Map<string, bigint>();
+	for (const card of cards) {
+		const quantity = databaseInteger(card.quantity);
+		if (quantity < 0) throw new DatabaseIntegerRangeError();
+		totals.set(card.canonicalCardId, (totals.get(card.canonicalCardId) ?? 0n) + BigInt(quantity));
+	}
+	return Object.fromEntries([...totals].map(([id, quantity]) => [id, databaseInteger(quantity)]));
 }
 
 export function allocateDeckAvailability(

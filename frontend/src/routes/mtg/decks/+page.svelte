@@ -42,11 +42,12 @@
 	$effect(() => {
 		if (editOpen && selectedDeck && editingDeckId !== selectedDeck.id) {
 			editingDeckId = selectedDeck.id;
-			descriptionDraft = selectedDeck.description;
-			descriptionBase = selectedDeck.description;
-			nameBase = selectedDeck.name;
-			formatBase = selectedDeck.format;
-			descriptionBaseRevision = selectedDeck.descriptionRevision;
+			descriptionDraft = detailsDraft?.description ?? selectedDeck.description;
+			descriptionBase = detailsDraft?.descriptionBase ?? selectedDeck.description;
+			nameBase = detailsDraft?.nameBase ?? selectedDeck.name;
+			formatBase = detailsDraft?.formatBase ?? selectedDeck.format;
+			descriptionBaseRevision =
+				detailsDraft?.descriptionRevision ?? selectedDeck.descriptionRevision;
 		}
 		if (!editOpen) editingDeckId = '';
 	});
@@ -144,6 +145,9 @@
 	}
 
 	const selectedDeck = $derived(data.decks.find((deck) => deck.id === data.selectedDeckId));
+	const detailsDraft = $derived(
+		form?.detailsDraft?.deckId === selectedDeck?.id ? form?.detailsDraft : undefined
+	);
 	const deckCards = $derived(data.deckCards.filter((card) => card.deckId === data.selectedDeckId));
 	const availability = $derived(data.availability);
 	const total = $derived(deckCards.reduce((sum, card) => sum + card.quantity, 0));
@@ -378,6 +382,70 @@
 	{#if !saveError && form?.message && !form?.success}<p class="notice" role="alert">
 			{form.message}
 		</p>{/if}
+	{#if selectedDeck && detailsDraft && !editOpen}
+		<section data-deck-draft-recovery aria-labelledby="draft-recovery-title" class="form-stack">
+			<h2 id="draft-recovery-title">Recover your unsaved deck details</h2>
+			<p>Your draft is below. Review it before saving again.</p>
+			{#if form?.conflict}<p>Latest saved Description: {form.conflict.description}</p>{/if}
+			<form method="POST" action={action('updateDeck')} use:enhance={save} class="form-stack">
+				<input type="hidden" name="deckId" value={detailsDraft.deckId} />
+				<input type="hidden" name="descriptionRevision" value={detailsDraft.descriptionRevision} />
+				{#if detailsDraft.nameBase !== undefined}<input
+						type="hidden"
+						name="nameBase"
+						value={detailsDraft.nameBase}
+					/>{/if}
+				{#if detailsDraft.formatBase !== undefined}<input
+						type="hidden"
+						name="formatBase"
+						value={detailsDraft.formatBase}
+					/>{/if}
+				{#if detailsDraft.descriptionBase !== undefined}<input
+						type="hidden"
+						name="descriptionBase"
+						value={detailsDraft.descriptionBase}
+					/>{/if}
+				<label for="recovery-name">Deck name</label><input
+					id="recovery-name"
+					class="input"
+					name="name"
+					value={detailsDraft.name}
+					required
+					maxlength="200"
+				/>
+				<label for="recovery-format">Format</label><select
+					id="recovery-format"
+					class="input"
+					name="format"
+				>
+					{#if !formats.some((format) => format.value === detailsDraft.format)}<option
+							selected
+							value={detailsDraft.format}>{detailsDraft.format}</option
+						>{/if}
+					{#each formats as format}<option
+							value={format.value}
+							selected={format.value === detailsDraft.format}>{format.label}</option
+						>{/each}
+				</select>
+				<label for="recovery-description">Description</label><textarea
+					id="recovery-description"
+					class="input"
+					name="description"
+					rows="4"
+					maxlength="4000">{detailsDraft.description}</textarea
+				>
+				{@render retryError()}
+				<button class="btn btn-primary" disabled={busy}>Save draft</button>
+				{#if form?.conflict}<button
+						type="submit"
+						class="btn btn-secondary"
+						name="rebaseDescription"
+						value={form.conflict.descriptionRevision}
+						disabled={busy}>Use latest revision and save my draft</button
+					>{/if}
+			</form>
+		</section>
+	{/if}
 	{#if selectedDeck}
 		<section class="deck-overview" aria-label="Deck overview">
 			{#if selectedDeck.description}<p class="deck-description muted">
@@ -410,7 +478,7 @@
 								id="edit-name"
 								class="input"
 								name="name"
-								value={selectedDeck.name}
+								value={detailsDraft?.name ?? selectedDeck.name}
 								required
 								maxlength="200"
 							/>
@@ -418,7 +486,7 @@
 								id="edit-format"
 								name="format"
 								label="Deck format"
-								value={selectedDeck.format}
+								value={detailsDraft?.format ?? selectedDeck.format}
 								options={formats}
 							/>
 							<label class="label" for="edit-description">Description</label><textarea
