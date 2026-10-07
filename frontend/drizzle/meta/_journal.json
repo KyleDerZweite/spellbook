@@ -134,6 +134,13 @@
 			"when": 1791391948815,
 			"tag": "0018_inventory_set_directory",
 			"breakpoints": true
+		},
+		{
+			"idx": 19,
+			"version": "7",
+			"when": 1791405224225,
+			"tag": "0019_catalog_color_identity",
+			"breakpoints": true
 		}
 	]
 }

@@ -14,6 +14,7 @@ import {
 	jsonb,
 	pgTable,
 	primaryKey,
+	smallint,
 	text,
 	timestamp,
 	uniqueIndex,
@@ -447,6 +448,15 @@ export const catalogPrintings = pgTable(
 		searchName: text('search_name').notNull(),
 		searchText: text('search_text').notNull(),
 		document: jsonb('document').notNull(),
+		colorIdentityMask: smallint('color_identity_mask').generatedAlwaysAs(
+			sql`CASE WHEN document->'color_identity' <@ '["W","U","B","R","G"]'::jsonb THEN
+				CASE WHEN document->'color_identity' @> '"W"'::jsonb THEN 1 ELSE 0 END +
+				CASE WHEN document->'color_identity' @> '"U"'::jsonb THEN 2 ELSE 0 END +
+				CASE WHEN document->'color_identity' @> '"B"'::jsonb THEN 4 ELSE 0 END +
+				CASE WHEN document->'color_identity' @> '"R"'::jsonb THEN 8 ELSE 0 END +
+				CASE WHEN document->'color_identity' @> '"G"'::jsonb THEN 16 ELSE 0 END
+				ELSE NULL END`
+		),
 		searchVector: tsvector('search_vector').generatedAlwaysAs(
 			sql`to_tsvector('simple', search_text)`
 		)
@@ -465,6 +475,7 @@ export const catalogPrintings = pgTable(
 		index('catalog_printings_search_name_idx').using('gin', sql`${table.searchName} gin_trgm_ops`),
 		index('catalog_printings_search_vector_idx').using('gin', table.searchVector),
 		index('catalog_printings_colors_idx').using('gin', table.colors),
+		index('catalog_printings_color_identity_idx').on(table.generationId, table.colorIdentityMask),
 		index('catalog_printings_card_types_idx').using('gin', table.cardTypes),
 		index('catalog_printings_legalities_idx').using('gin', table.legalities)
 	]

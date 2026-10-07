@@ -504,6 +504,101 @@ run('PostgreSQL catalog snapshots and search', () => {
 		}
 	});
 
+	it('projects every MTG identity subset without accepting unknown or missing identities', async () => {
+		const colors = ['W', 'U', 'B', 'R', 'G'];
+		const palette = (mask: number) => colors.filter((_, index) => mask & (1 << index));
+		const identities: unknown[] = [
+			...Array.from({ length: 32 }, (_, mask) => palette(mask)),
+			['R', 'R'],
+			['X'],
+			['R', 'X'],
+			'G',
+			{},
+			null,
+			42
+		];
+		const cards = [...identities, undefined].map((identity, index) => {
+			const card: Record<string, unknown> = {
+				...document(8000 + index, 8000 + index, { set_code: 'masktest' })
+			};
+			if (identity === undefined) delete card.color_identity;
+			else card.color_identity = identity;
+			return card;
+		});
+		await modules.pool.query(
+			`INSERT INTO catalog_printings(generation_id,id,oracle_id,name,normalized_name,printed_name,lang,set_code,collector_number,rarity,cmc,colors,card_types,legalities,search_name,search_text,document)
+			SELECT $1,(d->>'id')::uuid,(d->>'oracle_id')::uuid,d->>'name',d->>'normalized_name','',d->>'lang',d->>'set_code',d->>'collector_number',d->>'rarity',(d->>'cmc')::float8,ARRAY['G'],ARRAY['Creature'],d->'legalities',lower(d->>'name'),lower(d->>'name'),d
+			FROM jsonb_array_elements($2::jsonb) AS d`,
+			[generation, JSON.stringify(cards)]
+		);
+		try {
+			const masks = await modules.pool.query<{ id: string; color_identity_mask: number | null }>(
+				"SELECT id,color_identity_mask FROM catalog_printings WHERE set_code='masktest' ORDER BY id"
+			);
+			expect(masks.rows.map((row) => row.color_identity_mask)).toEqual([
+				...Array.from({ length: 32 }, (_, mask) => mask),
+				8,
+				null,
+				null,
+				16,
+				null,
+				null,
+				null,
+				null
+			]);
+			for (let mask = 0; mask < 32; mask++) {
+				const selected = palette(mask);
+				const expected = await modules.pool.query<{ id: string }>(
+					"SELECT id FROM catalog_printings WHERE set_code='masktest' AND document->'color_identity' <@ $1::jsonb ORDER BY id",
+					[JSON.stringify(selected)]
+				);
+				const result = await search({
+					filters: { sets: ['masktest'], colorIdentity: selected.length ? selected : ['C'] },
+					limit: 100,
+					facets: true
+				});
+				expect(result.hits.map((card) => card.id).sort()).toEqual(
+					expected.rows.map((row) => row.id)
+				);
+				expect(result.estimatedTotalHits).toBe(expected.rows.length);
+				expect(result.facets?.set_code.masktest ?? 0).toBe(expected.rows.length);
+			}
+		} finally {
+			await modules.pool.query("DELETE FROM catalog_printings WHERE set_code='masktest'");
+		}
+	});
+	it('derives identity masks for a new publication without changing its printing writer', async () => {
+		const card = document(9000, 9000, { name: 'Published Identity', color_identity: ['R', 'G'] });
+		await insertDocument(card, staged);
+		try {
+			expect(
+				(
+					await modules.pool.query(
+						'SELECT color_identity_mask FROM catalog_printings WHERE generation_id=$1 AND id=$2',
+						[staged, card.id]
+					)
+				).rows[0].color_identity_mask
+			).toBe(24);
+			await modules.pool.query('UPDATE catalog_state SET active_generation=$1 WHERE id=1', [
+				staged
+			]);
+			expect(await search({ filters: { colorIdentity: ['R', 'G'] }, facets: true })).toMatchObject({
+				generationId: staged,
+				estimatedTotalHits: 1,
+				hits: [card],
+				facets: { colors: { G: 1 } }
+			});
+			expect((await search({ filters: { colorIdentity: ['R'] } })).estimatedTotalHits).toBe(0);
+		} finally {
+			await modules.pool.query('UPDATE catalog_state SET active_generation=$1 WHERE id=1', [
+				generation
+			]);
+			await modules.pool.query('DELETE FROM catalog_printings WHERE generation_id=$1 AND id=$2', [
+				staged,
+				card.id
+			]);
+		}
+	});
 	it('does not repeatedly scan all canonical names for a broad identity filter', async () => {
 		const count = 1200;
 		await modules.pool.query(

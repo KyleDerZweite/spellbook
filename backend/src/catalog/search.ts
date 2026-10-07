@@ -103,8 +103,12 @@ export function createCatalog(pool: Pool) {
 			);
 		}
 		if (filters.colorIdentity?.length) {
-			const palette = filters.colorIdentity.filter((color) => color !== 'C');
-			where.push(`p.document->'color_identity' <@ ${bind(JSON.stringify(palette))}::jsonb`);
+			const bits = { W: 1, U: 2, B: 4, R: 8, G: 16, C: 0 };
+			const mask = filters.colorIdentity.reduce((value, color) => value | bits[color], 0);
+			const subsets = Array.from({ length: 32 }, (_, value) => value).filter(
+				(value) => (value & mask) === value
+			);
+			where.push(`p.color_identity_mask = ANY(${bind(subsets)}::smallint[])`);
 		}
 		if (filters.rarities?.length) where.push(`p.rarity = ANY(${bind(filters.rarities)}::text[])`);
 		if (filters.types?.length) where.push(`p.card_types && ${bind(filters.types)}::text[]`);
