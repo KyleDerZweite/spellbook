@@ -24,7 +24,7 @@ import {
 } from '#lib/server/data/inventory-browsing.ts';
 import { browsePaginationHref } from '#lib/browsing/pagination.ts';
 
-export const load: PageServerLoad = async ({ locals, parent, url }) => {
+export const load: PageServerLoad = async ({ locals, parent, url, request }) => {
 	if (!locals.user) {
 		throw redirect(303, '/auth/login?returnTo=/mtg/inventory');
 	}
@@ -33,14 +33,31 @@ export const load: PageServerLoad = async ({ locals, parent, url }) => {
 	const game = activeGame ?? DEFAULT_GAME;
 	try {
 		const { query, pagination } = inventoryBrowseQuery(url);
-		const window = await inventoryApplication.page(locals.user, query);
+		let window = await inventoryApplication.page(locals.user, query);
 		if (window.kind !== 'Page') throw new Error('Initial window must be current');
 		const total =
 			query.view === 'groups' && !query.group ? window.groupCount : window.matching.entryCount;
-		const clamped = clampBrowsePagination(pagination, total);
-		if (clamped.page !== pagination.page) redirect(307, browsePaginationHref(url, clamped));
+		let clamped = clampBrowsePagination(pagination, total);
+		if (clamped.page !== pagination.page) {
+			if (request.method !== 'POST') redirect(307, browsePaginationHref(url, clamped));
+			// Native action results must survive range correction without replaying the POST.
+			window = await inventoryApplication.page(
+				locals.user,
+				{ ...query, offset: clamped.offset, limit: clamped.limit },
+				window.revision
+			);
+			if (window.kind === 'RevisionChanged') {
+				clamped = clampBrowsePagination(pagination, 0);
+				window = await inventoryApplication.page(locals.user, {
+					...query,
+					offset: clamped.offset,
+					limit: clamped.limit
+				});
+			}
+			if (window.kind !== 'Page') throw new Error('Initial window must be current');
+		}
 		return {
-			pagination,
+			pagination: clamped,
 			requestId: crypto.randomUUID(),
 			window,
 

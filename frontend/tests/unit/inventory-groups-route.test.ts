@@ -64,6 +64,7 @@ beforeEach(() => {
 		return {
 			kind: 'Page',
 			query,
+			revision: '7',
 			matching: { entryCount: 0, copyCount: 0 },
 			groupCount: 1,
 			entries: [],
@@ -131,7 +132,10 @@ describe('Inventory group route boundaries', () => {
 			groupCount: 1
 		}));
 		await expect(
-			load(event('https://spellbook.test/mtg/inventory?page=999&pageSize=500&finish=foil') as never)
+			load({
+				...event('https://spellbook.test/mtg/inventory?page=999&pageSize=500&finish=foil'),
+				request: new Request('https://spellbook.test/mtg/inventory')
+			} as never)
 		).rejects.toMatchObject({
 			status: 307,
 			location: '/mtg/inventory?page=6&pageSize=lazy&finish=foil'
@@ -144,6 +148,106 @@ describe('Inventory group route boundaries', () => {
 		});
 	});
 
+	it.each([
+		['cards', ''],
+		['groups', ''],
+		['groups', `&group=${groupId}`]
+	])(
+		'renders a clamped native POST %s range without redirect or lost action context %s',
+		async (view, group) => {
+			const url = `https://spellbook.test/mtg/inventory?page=2&sort=name&dir=desc&set=DOM&finish=foil&condition=LP&view=${view}${group}&/updateQuantity`;
+			const input = event(url);
+			const initial = await mocks.page('owner', { view, group: group ? groupId : null });
+			mocks.page.mockClear();
+			mocks.page.mockImplementation(async (_actor, query) => ({
+				...initial,
+				query,
+				matching: { entryCount: 1, copyCount: 3 },
+				groupCount: 1,
+				entries: query.offset ? [] : [{ id: entryId }],
+				totals: { copyCount: 3, canonicalCardCount: 1, foilEntryCount: 1, setCount: 1 }
+			}));
+			const result = await load(input as never);
+			expect(result).toMatchObject({
+				pagination: { page: 1, offset: 0, limit: 200 },
+				window: { revision: '7', query: { offset: 0, limit: 200 }, entries: [{ id: entryId }] },
+				stats: { total: 3, unique: 1 }
+			});
+			expect(mocks.page).toHaveBeenCalledTimes(2);
+			const originalQuery = mocks.page.mock.calls[0][1];
+			expect(originalQuery).toMatchObject({
+				offset: 200,
+				sets: ['dom'],
+				finish: 'foil',
+				condition: 'LP',
+				dir: 'desc',
+				view
+			});
+			expect(mocks.page.mock.calls[1]).toEqual([
+				input.locals.user,
+				{ ...originalQuery, offset: 0, limit: 200 },
+				'7'
+			]);
+			expect(input.url.href).toBe(url);
+		}
+	);
+	it('resets once to a whole current page after revision drift without losing the POST context', async () => {
+		const initial = await mocks.page('owner', { view: 'cards' });
+		const fresh = {
+			...initial,
+			revision: '8',
+			entries: [{ id: entryId }],
+			matching: { entryCount: 501, copyCount: 900 },
+			groups: [],
+			memberships: [],
+			sets: [{ code: 'new', name: 'Current set' }],
+			totals: { copyCount: 900, canonicalCardCount: 501, foilEntryCount: 7, setCount: 1 }
+		};
+		mocks.page.mockClear();
+		mocks.page
+			.mockResolvedValueOnce({ ...initial, matching: { entryCount: 401, copyCount: 401 } })
+			.mockResolvedValueOnce({ kind: 'RevisionChanged', revision: '8' })
+			.mockImplementationOnce(async (_actor, query) => {
+				fresh.query = query;
+				return fresh;
+			});
+		const input = event(
+			'https://spellbook.test/mtg/inventory?page=10&sort=name&dir=desc&/updateQuantity'
+		);
+		const result = await load(input as never);
+		expect(result?.window).toBe(fresh);
+		expect(result).toMatchObject({
+			pagination: { page: 1, offset: 0, limit: 200 },
+			stats: { total: 900, unique: 501, foils: 7 },
+			setNames: { new: 'Current set' }
+		});
+		expect(mocks.page).toHaveBeenCalledTimes(3);
+		const originalQuery = mocks.page.mock.calls[0][1];
+		expect(mocks.page.mock.calls[1]).toEqual([
+			input.locals.user,
+			{ ...originalQuery, offset: 400, limit: 200 },
+			'7'
+		]);
+		expect(mocks.page.mock.calls[2]).toEqual([
+			input.locals.user,
+			{ ...originalQuery, offset: 0, limit: 200 }
+		]);
+		expect(input.url.search).toBe('?page=10&sort=name&dir=desc&/updateQuantity');
+	});
+	it('returns a coherent empty page for an out-of-range native POST', async () => {
+		const result = await load(
+			event('https://spellbook.test/mtg/inventory?page=2&/updateQuantity') as never
+		);
+		expect(result).toMatchObject({
+			pagination: { page: 1, offset: 0 },
+			window: { entries: [], matching: { entryCount: 0 } }
+		});
+		expect(mocks.page).toHaveBeenCalledTimes(2);
+	});
+	it('does not reread a current native POST range', async () => {
+		await load(event('https://spellbook.test/mtg/inventory?page=1&/updateQuantity') as never);
+		expect(mocks.page).toHaveBeenCalledOnce();
+	});
 	it('takes the account and game from the server for CRUD', async () => {
 		const fields: [string, string][] = [
 			['accountId', 'forged'],
