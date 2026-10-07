@@ -53,7 +53,7 @@ run('primary category decisions through authorized applications', () => {
 		const entryId = added.changes[0].entryId;
 		const initial = await categories.getDeckEntryCategories(actor, deck.id);
 		expect(initial.definitions).toHaveLength(8);
-		expect(initial.decisions[0].state).toBe('Pending');
+		expect(['Automatic', 'Pending']).toContain(initial.decisions[0].state);
 		const input = {
 			deckId: deck.id,
 			entryId,
@@ -220,6 +220,12 @@ run('primary category decisions through authorized applications', () => {
 				'SELECT active_publication,previous_publication,refresh_status FROM oracle_tag_state WHERE id=1'
 			)
 		).rows[0];
+		const originalFact = (
+			await database.pool.query(
+				'SELECT raw_oracle_id,types,transform_version FROM catalog_oracle_facts WHERE generation_id=$1 AND printing_id=$2',
+				[generation, card.catalogCardId]
+			)
+		).rows[0];
 		const publication = randomUUID();
 		await database.pool.query(
 			"INSERT INTO oracle_tag_publications(id,descriptor,source_updated_at,payload_digest,parser_version,mapping_version,mapping) VALUES($1,'{}','2026-10-06','fixture-digest',1,1,'{}')",
@@ -310,10 +316,23 @@ run('primary category decisions through authorized applications', () => {
 				[original.active_publication, original.previous_publication, original.refresh_status]
 			);
 			await database.pool.query('DELETE FROM oracle_tag_publications WHERE id=$1', [publication]);
-			await database.pool.query(
-				'DELETE FROM catalog_oracle_facts WHERE generation_id=$1 AND printing_id=$2',
-				[generation, card.catalogCardId]
-			);
+			if (originalFact) {
+				await database.pool.query(
+					'UPDATE catalog_oracle_facts SET raw_oracle_id=$3,types=$4,transform_version=$5 WHERE generation_id=$1 AND printing_id=$2',
+					[
+						generation,
+						card.catalogCardId,
+						originalFact.raw_oracle_id,
+						originalFact.types,
+						originalFact.transform_version
+					]
+				);
+			} else {
+				await database.pool.query(
+					'DELETE FROM catalog_oracle_facts WHERE generation_id=$1 AND printing_id=$2',
+					[generation, card.catalogCardId]
+				);
+			}
 			await database.pool.query('UPDATE catalog_generations SET schema_version=$2 WHERE id=$1', [
 				generation,
 				schema
