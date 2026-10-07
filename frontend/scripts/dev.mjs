@@ -5,6 +5,9 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const storage = resolve(root, process.env.SCAN_LOCAL_STORAGE_DIR || '.local/scans');
+const args = process.argv.slice(2);
+if (args.some((arg) => arg !== '--scan')) throw new Error('Usage: ./dev.sh [--scan]');
+const scan = args.includes('--scan');
 
 if (Number(process.versions.node.split('.')[0]) !== 26) {
 	throw new Error('Use the Node version in frontend/.node-version, or run ./dev.sh.');
@@ -13,7 +16,7 @@ if (!process.env.DATABASE_URL) {
 	throw new Error('Set DATABASE_URL in the root .env. See .env.example.');
 }
 
-await mkdir(storage, { recursive: true });
+if (scan) await mkdir(storage, { recursive: true });
 
 const env = {
 	...process.env,
@@ -68,9 +71,19 @@ function start(command, args, cwd) {
 process.on('SIGINT', () => stop(0));
 process.on('SIGTERM', () => stop(0));
 
-start(
-	'uv',
-	['run', '--no-sync', 'uvicorn', 'scan_worker.main:app', '--host', '127.0.0.1', '--port', '8087'],
-	`${root}scan-worker`
-);
+if (scan)
+	start(
+		'uv',
+		[
+			'run',
+			'--no-sync',
+			'uvicorn',
+			'scan_worker.main:app',
+			'--host',
+			'127.0.0.1',
+			'--port',
+			'8087'
+		],
+		`${root}scan-worker`
+	);
 start('pnpm', ['dev', '--host', '0.0.0.0', '--port', '5173', '--strictPort'], `${root}frontend`);

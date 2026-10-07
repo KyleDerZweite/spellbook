@@ -5,7 +5,7 @@
 - Last Reviewed: 2026-10-07
 - Owners: Kyle
 - Source of Truth: Kyle's confirmed continuous Lazy, native-scroll and card-action requirements
-- Update Triggers: continuous Lazy policy, legacy range normalization, URL/history behavior, viewport ownership, Card dialog responsibilities, API limit compatibility, scale and rendered acceptance
+- Update Triggers: continuous Lazy policy, loaded-range page extent, legacy range normalization, URL/history behavior, viewport ownership, Card dialog responsibilities, API limit compatibility, scale and rendered acceptance
 - Related Docs: [Design direction](../product/ui-design-direction.md#selected-hybrid-browsing-and-card-dialog), [Frontend contract](../architecture/frontend.md#selected-hybrid-browsing-contract), [Application contract](../architecture/application-contract.md), [Catalog](../architecture/catalog.md), [ADR-0014](./0014-public-landing-and-private-workspace.md), [ADR-0017](./0017-revisioned-inventory-windows-and-mutation-receipts.md), [Decisions](./README.md)
 
 ## Context
@@ -17,6 +17,12 @@ When this decision was selected, Inventory and Search used bounded virtual windo
 Select continuous Lazy loading throughout Search and Inventory, including the full Search route, Search overlay and Inventory Groups. Enhanced browsing exposes neither numeric pagination nor a page-size selector. Logical 200-entry range addresses support deep links, reload and Back/Forward without fetching earlier ranges. `pageSize=lazy` records this policy; legacy numeric addresses normalize to the containing 200-entry range. Native no-JavaScript use alone retains 200-entry Previous/Next fallback links. Select one native browser page scrollbar outside modals, with bounded internal Lazy rendering. Active modals retain installed Bits standard body locking and focus trapping, with one native overflow viewport for long content. SearchOverlay retains its modal/background history and uses that viewport; full Search uses the window. No nested Inspector-column, results or list scrollers are added. Select one context-aware Card dialog for Details, Inventory Edit and Add another printing. Inventory table quantity becomes read-only. Browsing Add to deck is Primary, Add to Inventory Secondary and visually smaller with touch access; Scan review's Accept to Inventory remains Primary. Deck quantity editing remains unchanged.
 
 The product owner defines interactions; Frontend defines module interfaces, request ownership and acceptance. The backward-compatible Inventory/Catalog search limit expansion to 500 is implemented with legacy omitted-limit defaults preserved. Uniform Lazy adoption is implemented. Representative composed scale checks remain a delivery gate. No new printing endpoint, mutation command, dependency or framework is selected.
+
+## Loaded-range refinement on 2026-10-07
+
+Kyle subsequently selected a short page that grows as Search and Inventory load further ranges. Complete matching totals remain metadata; they do not size the page. The same policy covers the full Search route, overlay and Boxes directory. Cached adjacent prefetch does not itself enlarge the page. Only a successful requested reveal extends the visited segment. Result-window owners retain visited bounds separately from bounded resident pages. Renderers map absolute indices into that segment and continue to cap mounted rows/cards.
+
+A direct deep URL starts at its addressed range without reserving or fetching its earlier prefix. A deliberate Load earlier action reveals the preceding range and preserves the visible anchor. Noncontiguous authorized reanchors start a new segment. Generation/revision resets, request admission, original retries, drafts, focus and native history retain their existing authority. The implementation contract is reviewed; affected browser acceptance must be refreshed for this replacement. Earlier full-height browser evidence applies only to its recorded revision.
 
 ## Partial supersession
 

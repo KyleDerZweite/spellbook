@@ -1092,10 +1092,7 @@
 						onclick={(event) => editGroup(null, event.currentTarget)}>New box</Button
 					>{:else if selectedGroup}<Button variant="secondary" href={viewHref('cards')}
 						>Assign cards</Button
-					>{:else}<Button variant="ghost" href="/mtg/scan">Scan</Button><Button
-						href="/mtg/search"
-						onclick={openSearch}>Add cards</Button
-					>{/if}{/snippet}
+					>{:else}<Button href="/mtg/search" onclick={openSearch}>Add cards</Button>{/if}{/snippet}
 		</WorkspaceHeader>
 		<noscript
 			><form method="GET" class="native-inventory-filters" aria-label="Inventory filters">

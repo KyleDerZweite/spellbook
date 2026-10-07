@@ -74,7 +74,10 @@ letsencrypt/
 
 # Data directories
 /.local/
-/data/
+/data/*
+!/data/phone-scan-examples/
+/data/phone-scan-examples/*
+!/data/phone-scan-examples/README.md
 /uploads/
 /backups/
 scryfall/

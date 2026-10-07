@@ -63,10 +63,7 @@
 	<header class="dashboard-header">
 		<div class="page-title"><h1>Dashboard</h1></div>
 		<div class="dashboard-actions">
-			<a href="/mtg/search" class="btn btn-primary btn-sm">Add cards</a><a
-				href="/mtg/scan"
-				class="btn btn-secondary btn-sm">Upload photo</a
-			>
+			<a href="/mtg/search" class="btn btn-primary btn-sm">Add cards</a>
 		</div>
 	</header>
 	{#if loadError}
@@ -88,23 +85,9 @@
 					<dt>{stat.label}</dt>
 				</div>{/each}
 		</dl>
-		{#if dashboard.pendingScanReviews === null}
-			<div class="scan-summary unavailable">
-				<span>Review count unavailable.</span><a href="/mtg/scan"
-					>Open Scan to review your sessions</a
-				>
-			</div>
-		{:else if dashboard.pendingScanReviews > 0}
-			<div class="scan-summary pending">
-				<span
-					>{dashboard.pendingScanReviews.toLocaleString()}
-					{dashboard.pendingScanReviews === 1 ? 'session' : 'sessions'} pending review</span
-				><a href="/mtg/scan">Review scans</a>
-			</div>
-		{/if}
 		{#if dashboard.totals.total === 0}
 			<div class="dashboard-empty">
-				<p>Your inventory is empty. Add cards from Search or upload a photo for review.</p>
+				<p>Your inventory is empty. Add cards from Search.</p>
 				<a href="/mtg/search" class="btn btn-primary btn-sm">Add cards</a>
 			</div>
 		{/if}
@@ -264,9 +247,6 @@
 					</li>{:else}<li class="dashboard-note">No inventory entries yet.</li>{/each}
 			</ul>
 		</section>
-		{#if dashboard.pendingScanReviews === 0}<div class="scan-summary">
-				<a href="/mtg/scan">Scan review</a><span>0 sessions pending review</span>
-			</div>{/if}
 	{/if}
 </div>
 
@@ -306,8 +286,7 @@
 	.unit-label,
 	small,
 	.deck-required,
-	.deck-heading span,
-	.scan-summary {
+	.deck-heading span {
 		color: var(--color-text-secondary);
 		font-size: 0.75rem;
 	}
@@ -564,20 +543,6 @@
 		margin-left: auto;
 		font-size: 0.8rem;
 		flex-shrink: 0;
-	}
-	.scan-summary {
-		display: flex;
-		align-items: baseline;
-		flex-wrap: wrap;
-		gap: 0.5rem 1rem;
-		margin-top: 2rem;
-	}
-	.scan-summary.pending,
-	.scan-summary.unavailable {
-		margin: -0.5rem 0 1.5rem;
-	}
-	.scan-summary.pending span {
-		color: var(--color-warning);
 	}
 	.dashboard-empty {
 		padding: 1rem 0 2rem;

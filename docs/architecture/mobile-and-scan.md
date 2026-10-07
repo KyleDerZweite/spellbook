@@ -3,10 +3,14 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: code, proposed recognition design, primary documentation
-- Update Triggers: bounded Deck choice reads, public reference/history exception/private price reads and source precision, manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, Scan contracts and legacy replay, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, Deck wire contracts and revisions, device runtime selection, category initialization/manual decisions/merge previews, hybrid browsing/dialog contract and selected versus implemented read limits
+- Update Triggers: paused Scan presentation, phone-image evaluation fixtures, bounded Deck choice reads, public reference/history exception/private price reads and source precision, manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, Scan contracts and legacy replay, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, Deck wire contracts and revisions, device runtime selection, category initialization/manual decisions/merge previews, hybrid browsing/dialog contract and selected versus implemented read limits
 - Related Docs: [Application contract](./application-contract.md), [Frontend](./frontend.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../../GLOSSARY.md), [Deployment](../operations/deployment.md), [Category rules](./category-rules.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md)
 
 Spellbook has one web client. Its manifest in `frontend/static/manifest.webmanifest` provides install metadata; `frontend/src/app.html` links it. A service worker and offline caching are not implemented. The `/mtg/scan` workspace supports image upload, candidate review, manual printing selection, and explicit inventory commit. Direct browser camera capture remains planned.
+
+Scan UI development is paused by the product owner on 2026-10-07. Navigation, Inventory and Dashboard no longer expose Scan entrypoints. The existing authenticated route, sessions, backend contracts and API remain available to preserve prior work. The normal native development launcher starts only the web application; `./dev.sh --scan` explicitly starts the retained Python scaffold. Worker relocation and recognition changes are deferred.
+
+Original phone images for later evaluation belong in [`data/phone-scan-examples/`](../../data/phone-scan-examples/README.md). Its README defines filenames and optional local ground truth. Git ignores images and annotations. This directory is not an upload endpoint, Inventory import or active recognition pipeline; no accuracy result exists yet.
 
 ## Bounded Inventory HTTP reads
 

@@ -1,10 +1,12 @@
-# Routes and supported game
+# Routes and supported game, paused Scan entrypoints
 
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: route handlers and server hooks
-- Update Triggers: route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game
+- Update Triggers: route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game, paused Scan entrypoints
 - Related Docs: [Product specification](./specification.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Frontend architecture](../architecture/frontend.md), [Catalog](../architecture/catalog.md), [Product index](./README.md)
+
+Scan presentation is paused. The existing `/mtg/scan` route and versioned Scan API are retained, but Navigation, Inventory and Dashboard do not link to Scan. [Mobile and scan](../architecture/mobile-and-scan.md) owns retained capabilities and the later recognition scope.
 
 Spellbook supports MTG. Game-specific pages use the `/mtg/` prefix. Public home, authentication, account settings, and legal pages remain shared; versioned integration endpoints keep their existing paths. The header game icon sits immediately before the theme control. It identifies Magic with the Mana Font planeswalker symbol and a tooltip. Cycling is inactive while MTG is the only available game. The `/mtg/` layout owns workspace game identity; the cookie retains the selection for shared pages. Unsupported cookie values reset to MTG. Additional games require their own catalog and workflow implementation before becoming selectable.
 

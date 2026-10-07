@@ -38,11 +38,6 @@
 			href: '/mtg/decks',
 			label: 'Decks',
 			icon: 'm12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5'
-		},
-		{
-			href: '/mtg/scan',
-			label: 'Scan',
-			icon: 'M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5M7 12h10'
 		}
 	]);
 
