@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { access, mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 const execute = promisify(execFile);
 const frontend = new URL('../../', import.meta.url);
 
-async function launch(caller: Record<string, string> = {}, devOrigin?: string) {
+async function launch(caller: Record<string, string> = {}, devOrigin?: string, scan = false) {
 	const root = await mkdtemp(join(tmpdir(), 'spellbook-dev-env-'));
 	try {
 		const app = join(root, 'frontend');
@@ -43,7 +43,7 @@ setTimeout(() => process.exit(0), 150);
 		const manifest = JSON.parse(await readFile(new URL('package.json', frontend), 'utf8'));
 		const [command, ...args] = manifest.scripts['dev:local'].split(' ');
 		expect(command).toBe('node');
-		await execute(process.execPath, args, {
+		await execute(process.execPath, [...args, ...(scan ? ['--scan'] : [])], {
 			cwd: app,
 			env: { PATH: `${bin}:${process.env.PATH}`, DEV_TEST_LOG: log, ...caller },
 			timeout: 5000
@@ -52,7 +52,11 @@ setTimeout(() => process.exit(0), 150);
 			.trim()
 			.split('\n')
 			.map((line) => JSON.parse(line));
-		return { children, storage, app, scan: join(root, 'scan-worker') };
+		const storageCreated = await access(storage).then(
+			() => true,
+			() => false
+		);
+		return { children, storage, storageCreated, app, scan: join(root, 'scan-worker') };
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}
@@ -91,9 +95,10 @@ describe('configured local launcher', () => {
 	});
 
 	it('loads the single root env and keeps the deployment origin out of local forms', async () => {
-		const { children, storage, app, scan } = await launch();
-		expect(children).toHaveLength(2);
-		expect(children.map((child) => child.cwd).sort()).toEqual([app, scan].sort());
+		const { children, storage, storageCreated, app } = await launch();
+		expect(children).toHaveLength(1);
+		expect(children[0].cwd).toBe(app);
+		expect(storageCreated).toBe(false);
 		for (const child of children) {
 			expect(child.env).toEqual({
 				DATABASE_URL: 'postgres://fixture:fixture@localhost/fixture_design',
@@ -105,10 +110,16 @@ describe('configured local launcher', () => {
 		}
 	});
 
+	it('starts Scan and creates its storage only with the explicit opt-in', async () => {
+		const { children, storageCreated, app, scan } = await launch({}, undefined, true);
+		expect(children).toHaveLength(2);
+		expect(children.map((child) => child.cwd).sort()).toEqual([app, scan].sort());
+		expect(storageCreated).toBe(true);
+	});
+
 	it('honors the configured dev origin and caller overrides without another env file', async () => {
 		const configured = await launch({}, 'http://127.0.0.1:5173');
 		expect(configured.children.map((child) => child.env.APP_ORIGIN)).toEqual([
-			'http://127.0.0.1:5173',
 			'http://127.0.0.1:5173'
 		]);
 		const overridden = await launch(
