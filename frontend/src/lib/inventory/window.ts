@@ -322,8 +322,8 @@ export class InventoryWindow {
 			job.resolve();
 			return false;
 		});
-		for (const active of this.active.values())
-			if (active.planned && !wanted.has(active.offset)) active.controller.abort();
+		// Finish active reads: fetch abort can settle before network/server work stops.
+		// Only queued plans are replaced when scrolling within the same query.
 		for (let index = first; index <= last; index++) void this.request(index * 50, true);
 	}
 	at(index: number): InventoryEntry | undefined {
