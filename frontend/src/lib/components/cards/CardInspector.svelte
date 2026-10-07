@@ -186,7 +186,7 @@
 </div>
 
 <!-- Body: stacked on mobile, side-by-side on lg+ -->
-<div class="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
+<div class="flex shrink-0 flex-col lg:flex-row">
 	<!-- Card image -->
 	{#if activeCard.image_uri || activeCard.image_uri_small}
 		<div class="inspector-media">
@@ -211,8 +211,8 @@
 		</div>
 	{/if}
 
-	<!-- Tab content (scrollable on desktop) -->
-	<div class="flex min-w-0 flex-1 flex-col gap-4 p-4 sm:p-5 lg:overflow-y-auto">
+	<!-- Tab content -->
+	<div class="flex min-w-0 flex-1 flex-col gap-4 p-4 sm:p-5">
 		{#if printingsError}<p role="alert" class="text-sm text-text-secondary">
 				{printingsError}
 			</p>{/if}
@@ -571,7 +571,6 @@
 		.inspector-media {
 			display: block;
 			padding: 1.25rem;
-			overflow-y: auto;
 		}
 		.inspector-art {
 			width: 280px;

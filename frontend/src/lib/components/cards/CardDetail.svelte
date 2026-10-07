@@ -53,7 +53,7 @@
 						target.focus({ preventScroll: true });
 					}
 				}}
-				class="modal-content relative z-50 flex w-full flex-col rounded-t-xl border border-border bg-stone shadow-xl sm:max-w-5xl sm:rounded-lg"
+				class="modal-content relative z-50 flex w-full flex-col overflow-y-auto overscroll-contain rounded-t-xl border border-border bg-stone shadow-xl sm:max-w-5xl sm:rounded-lg"
 				style="max-height: 92dvh;"
 			>
 				<Dialog.Title class="sr-only">{card.name}</Dialog.Title>

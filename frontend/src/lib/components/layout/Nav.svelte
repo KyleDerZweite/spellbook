@@ -14,8 +14,6 @@
 	import ThemeToggle from './ThemeToggle.svelte';
 	import GameSwitcher from './GameSwitcher.svelte';
 
-	let { scrollViewport }: { scrollViewport: HTMLElement | null } = $props();
-
 	const search = getSearchSession();
 	const user = $derived(
 		workspaceSavedState.getState() === 'expired'
@@ -50,15 +48,14 @@
 
 	let collapsed = $state(false);
 	$effect(() => {
-		const main = scrollViewport;
 		const update = () => {
-			const top = main?.scrollTop ?? 0;
+			const top = window.scrollY;
 			if (top > 160) collapsed = true;
 			else if (top < 80) collapsed = false;
 		};
-		main?.addEventListener('scroll', update, { passive: true });
+		window.addEventListener('scroll', update, { passive: true });
 		update();
-		return () => main?.removeEventListener('scroll', update);
+		return () => window.removeEventListener('scroll', update);
 	});
 	let mobileMenuOpen = $state(false);
 	let logoutForm: HTMLFormElement | undefined = $state();
@@ -276,7 +273,8 @@
 
 	.primary-nav {
 		flex-shrink: 0;
-		position: relative;
+		position: sticky;
+		top: 0;
 		z-index: 20;
 		background: color-mix(in srgb, var(--color-background) 88%, transparent);
 		backdrop-filter: blur(12px);
@@ -295,9 +293,6 @@
 	}
 	.primary-nav + :global(.app-main) {
 		margin-top: calc(-1 * var(--app-header-height));
-	}
-	.primary-nav + :global(.app-main .app-main-viewport) {
-		scroll-padding-top: calc(var(--app-header-height) + 18px);
 	}
 	.primary-nav + :global(.app-main .app-content) {
 		padding-top: var(--app-header-height);

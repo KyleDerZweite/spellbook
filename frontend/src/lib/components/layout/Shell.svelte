@@ -1,70 +1,39 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { afterNavigate, beforeNavigate, snapshot } from '$app/navigation';
+	import { afterNavigate, snapshot } from '$app/navigation';
 	import Nav from './Nav.svelte';
 	import Footer from './Footer.svelte';
 	import SearchOverlay from '#lib/components/search/SearchOverlay.svelte';
-	import ScrollArea from '#lib/components/ui/scroll-area/ScrollArea.svelte';
-	import { cancelWheelScroll } from '#lib/components/ui/scroll-area/wheel.ts';
 
 	interface Props {
 		children: Snippet;
 	}
 
 	let { children }: Props = $props();
-	let main = $state<HTMLDivElement | null>(null);
-
-	beforeNavigate(() => cancelWheelScroll(main));
-
 	snapshot({
 		id: 'workspace-scroll',
-		capture: () => main?.scrollTop ?? 0,
-		restore: (top) => {
-			cancelWheelScroll(main);
-			if (main) main.scrollTop = top;
-		}
+		capture: () => ({ x: window.scrollX, y: window.scrollY }),
+		restore: (position) => window.scrollTo(position.x, position.y)
 	});
 	afterNavigate(({ from, to, type, shallow }) => {
-		if (
-			main &&
-			from &&
-			to &&
-			!shallow &&
-			type !== 'popstate' &&
-			from.url.pathname !== to.url.pathname
-		) {
-			cancelWheelScroll(main);
-			main.scrollTop = 0;
-		}
+		if (!from || !to || shallow || type === 'popstate' || to.url.hash) return;
+		if (from.url.pathname !== to.url.pathname) window.scrollTo(0, 0);
+		else if (from.scroll) window.scrollTo(from.scroll.x, from.scroll.y);
 	});
 </script>
 
 <div class="app-shell bg-background">
 	<SearchOverlay />
-	<Nav scrollViewport={main} />
-	<ScrollArea
-		tag="main"
-		bind:viewportRef={main}
-		id="main-content"
-		tabindex={-1}
-		class="app-main"
-		viewportClass="app-main-viewport"
-		viewportLabel="Main content"
-		onfocus={(event) => {
-			if (event.target === event.currentTarget) main?.focus({ preventScroll: true });
-		}}
-	>
+	<Nav />
+	<main id="main-content" tabindex="-1" class="app-main">
 		<div class="app-content">
 			{@render children()}
 		</div>
 		<Footer />
-	</ScrollArea>
+	</main>
 </div>
 
 <style>
-	:global(.app-main-viewport > [data-scroll-area-content]:has(> .app-content > .full-search)) {
-		height: 100%;
-	}
 	.app-content:has(> :global(.full-search)) {
 		flex: 1 0 0;
 		min-height: calc(32rem + var(--app-header-height));
@@ -74,13 +43,5 @@
 	.app-content:has(> :global(.account-layout)) {
 		display: flex;
 		flex-direction: column;
-	}
-	.app-shell {
-		--app-header-height: 72px;
-	}
-	@media (max-width: 1023px) {
-		.app-shell {
-			--app-header-height: 64px;
-		}
 	}
 </style>
