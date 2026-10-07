@@ -32,11 +32,16 @@ export class SearchSession {
 	private address = '';
 	private needsAnchor = false;
 	private contextKey = '';
+	private configuringWindow = false;
 	catalog = new CatalogWindow((next) => {
 		if (next.publicationReset !== this.snapshot.publicationReset && next.publicationReset) {
 			this.scrollTop = 0;
 			if (!this.pending) this.selectedCard = null;
 		}
+		if (!this.configuringWindow) this.reconcileAnchor(next);
+		this.snapshot = next;
+	});
+	private reconcileAnchor(next: CatalogWindowSnapshot): void {
 		if (next.anchor !== undefined && next.anchor !== this.pagination.offset) {
 			this.pagination = searchPagination(
 				this.pagination.pageSize,
@@ -44,8 +49,7 @@ export class SearchSession {
 			);
 			this.onEdit('replace');
 		}
-		this.snapshot = next;
-	});
+	}
 	onEdit: (intent: SearchHistoryIntent) => void = () => {};
 	open: (query?: string, trigger?: HTMLElement) => void = () => {};
 	focus: () => void = () => {};
@@ -96,27 +100,34 @@ export class SearchSession {
 		this.address = address;
 	}
 	activate(seed?: SearchResult): void {
-		const input = {
-			game: 'mtg' as const,
-			...this.input,
-			limit: this.pagination.limit,
-			offset: this.pagination.offset,
-			browsingMode: this.pagination.pageSize === 'lazy' ? ('lazy' as const) : ('numeric' as const)
-		};
-		const key = buildSearchContextKey(input);
-		if (key !== this.contextKey) {
-			this.contextKey = key;
-			this.selectedCard = null;
-			this.catalog.activate(input);
-		} else if (this.needsAnchor || this.pagination.pageSize !== 'lazy') {
-			this.catalog.dispose();
-			this.catalog.setAnchor(this.pagination.offset);
+		// Disposal and seed admission publish intermediate anchors synchronously.
+		this.configuringWindow = true;
+		try {
+			const input = {
+				game: 'mtg' as const,
+				...this.input,
+				limit: this.pagination.limit,
+				offset: this.pagination.offset,
+				browsingMode: this.pagination.pageSize === 'lazy' ? ('lazy' as const) : ('numeric' as const)
+			};
+			const key = buildSearchContextKey(input);
+			if (key !== this.contextKey) {
+				this.contextKey = key;
+				this.selectedCard = null;
+				this.catalog.activate(input);
+			} else if (this.needsAnchor || this.pagination.pageSize !== 'lazy') {
+				this.catalog.dispose();
+				this.catalog.setAnchor(this.pagination.offset);
+			}
+			const seeded = seed ? this.catalog.seed(seed) : false;
+			this.needsAnchor = false;
+			this.catalog.setRange(this.range);
+			if (seeded) this.catalog.start();
+			else this.catalog.resume();
+		} finally {
+			this.configuringWindow = false;
+			this.reconcileAnchor(this.snapshot);
 		}
-		const seeded = seed ? this.catalog.seed(seed) : false;
-		this.needsAnchor = false;
-		this.catalog.setRange(this.range);
-		if (seeded) this.catalog.start();
-		else this.catalog.resume();
 	}
 	setRange(range: CatalogRange): void {
 		this.range = range;
