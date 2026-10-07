@@ -9,10 +9,12 @@
 		onClose: () => void;
 		actions?: Snippet<[CardDocument]>;
 		returnFocus?: HTMLElement | null;
+		callerPending?: boolean;
 	}
-	let { card, onClose, actions, returnFocus }: Props = $props();
+	let { card, onClose, actions, returnFocus, callerPending = false }: Props = $props();
 	let detailOpen = $state(false);
-	let pending = $state(false);
+	let quickAddPending = $state(false);
+	let pending = $derived(callerPending || quickAddPending);
 	let initialFocus: HTMLElement | null = null;
 	$effect(() => {
 		initialFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -48,7 +50,7 @@
 				<Dialog.Description class="sr-only"
 					>Card information and printing selection.</Dialog.Description
 				>
-				<CardInspector {card} {actions} onPendingChange={(value) => (pending = value)} />
+				<CardInspector {card} {actions} onPendingChange={(value) => (quickAddPending = value)} />
 				<Dialog.Close
 					disabled={pending}
 					class="btn btn-ghost btn-icon absolute right-2 top-2 z-10"

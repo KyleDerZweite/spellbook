@@ -1,47 +1,69 @@
 <script lang="ts">
-	import { Dialog } from 'bits-ui';
 	import type { Snippet } from 'svelte';
+	import FormDialog from '#lib/components/ui/dialog/FormDialog.svelte';
+	import Button from '#lib/components/ui/button/Button.svelte';
 	let {
 		title,
 		description,
-		trigger,
 		open = $bindable(false),
+		pending = false,
+		native = false,
+		cancelHref = '/mtg/decks',
+		variant = 'default',
 		children,
-		returnFocus,
-		destructive = false
+		returnFocus
 	}: {
 		title: string;
 		description: string;
-		trigger?: string;
 		open?: boolean;
+		pending?: boolean;
+		native?: boolean;
+		cancelHref?: string;
+		variant?: 'default' | 'import';
 		children: Snippet;
 		returnFocus?: HTMLElement | null;
-		destructive?: boolean;
 	} = $props();
+	const id = $props.id();
 </script>
 
-<Dialog.Root bind:open>
-	{#if trigger}<Dialog.Trigger class={`btn btn-secondary ${destructive ? 'destructive' : ''}`}
-			>{trigger}</Dialog.Trigger
-		>{/if}
-	<Dialog.Portal>
-		<Dialog.Overlay class="fixed inset-0 z-50 bg-black/70" />
-		<Dialog.Content
-			onCloseAutoFocus={(event) => {
-				if (returnFocus?.isConnected) {
-					event.preventDefault();
-					returnFocus.focus();
-				}
-			}}
-			class="deck-dialog fixed left-1/2 top-1/2 z-50 max-h-[85dvh] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-mist bg-crypt p-6 text-text-primary shadow-2xl"
-		>
-			<div class="mb-2 flex items-start justify-between gap-4">
-				<Dialog.Title class="text-xl font-semibold">{title}</Dialog.Title>
-				<Dialog.Close class="btn btn-ghost" aria-label="Close dialog">Close</Dialog.Close>
-			</div>
-			<Dialog.Description class="mb-5 text-sm text-text-secondary">{description}</Dialog.Description
-			>
-			{@render children()}
-		</Dialog.Content>
-	</Dialog.Portal>
-</Dialog.Root>
+{#if native}
+	<section class="native-deck-form form-stack" aria-labelledby={`${id}-title`}>
+		<h2 id={`${id}-title`} class="font-display text-2xl">{title}</h2>
+		<p class="muted">{description}</p>
+		{@render children()}
+		<Button href={cancelHref} variant="secondary" disabled={pending}>Cancel</Button>
+	</section>
+{:else if open}
+	<FormDialog
+		{title}
+		{description}
+		{pending}
+		{variant}
+		onCancel={() => {
+			if (!pending) open = false;
+		}}
+		onCloseAutoFocus={(event) => {
+			if (returnFocus?.isConnected) {
+				event.preventDefault();
+				returnFocus.focus({ preventScroll: true });
+			}
+		}}
+	>
+		{@render children()}
+		<div class="deck-dialog-cancel">
+			<Button variant="secondary" disabled={pending} onclick={() => (open = false)}>Cancel</Button>
+		</div>
+	</FormDialog>
+{/if}
+
+<style>
+	.native-deck-form {
+		max-width: 42rem;
+		margin-block: 1rem 1.5rem;
+	}
+	.deck-dialog-cancel {
+		display: flex;
+		justify-content: flex-end;
+		margin-top: 0.75rem;
+	}
+</style>
