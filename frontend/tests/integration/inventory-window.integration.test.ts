@@ -257,6 +257,21 @@ run('consistent authorized Inventory windows', () => {
 			});
 			if (sorted.kind !== 'Page') throw Error('Expected Page');
 			expect(sorted.entries.every((e) => e.setCode === 'xyz')).toBe(true);
+			await database.pool.query(
+				`UPDATE catalog_printings SET document=jsonb_set(document,'{set_name}','"First UUID wins"'::jsonb) WHERE generation_id=$1 AND id='00000000-0000-4000-8000-000000000001'`,
+				[generation]
+			);
+			const named = await inventory.page(actor, {});
+			if (named.kind !== 'Page') throw Error('Expected Page');
+			expect(named.sets.find((set) => set.code === 'abc')?.name).toBe('First UUID wins');
+			await database.pool.query('UPDATE catalog_state SET active_generation=NULL WHERE id=1');
+			const absent = await inventory.page(actor, {});
+			if (absent.kind !== 'Page') throw Error('Expected Page');
+			expect(absent.sets).toEqual([
+				{ code: 'abc', name: 'ABC' },
+				{ code: 'missing', name: 'MISSING' },
+				{ code: 'xyz', name: 'XYZ' }
+			]);
 		} finally {
 			await database.pool.query('UPDATE catalog_state SET active_generation=$1 WHERE id=1', [
 				prior ?? null

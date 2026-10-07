@@ -460,6 +460,7 @@ export const catalogPrintings = pgTable(
 			table.setCode,
 			table.collectorNumber
 		),
+		index('catalog_printings_set_id_idx').on(table.generationId, table.setCode, table.id),
 		index('catalog_printings_order_idx').on(table.generationId, table.name, table.id),
 		index('catalog_printings_search_name_idx').using('gin', sql`${table.searchName} gin_trgm_ops`),
 		index('catalog_printings_search_vector_idx').using('gin', table.searchVector),

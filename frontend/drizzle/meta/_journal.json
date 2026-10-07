@@ -127,6 +127,13 @@
 			"when": 1791349630333,
 			"tag": "0017_optional_prices",
 			"breakpoints": true
+		},
+		{
+			"idx": 18,
+			"version": "7",
+			"when": 1791391948815,
+			"tag": "0018_inventory_set_directory",
+			"breakpoints": true
 		}
 	]
 }

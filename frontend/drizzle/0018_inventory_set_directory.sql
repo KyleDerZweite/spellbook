@@ -1,0 +1,1 @@
+CREATE INDEX "catalog_printings_set_id_idx" ON "catalog_printings" USING btree ("generation_id","set_code","id");
