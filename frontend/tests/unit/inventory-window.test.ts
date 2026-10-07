@@ -1,4 +1,5 @@
-import { it, expect } from 'vitest';
+import { it, expect, vi } from 'vitest';
+import { createServer } from 'node:http';
 import { InventoryWindow } from '#lib/inventory/window.ts';
 import { inventoryRowSlots } from '#lib/inventory/rows.ts';
 import type { InventoryPage, InventoryQuery } from '@spellbook/contracts/inventory.ts';
@@ -81,9 +82,85 @@ it('keeps rapid-jump request planning bounded', async () => {
 	for (let index = 0; index < 100; index++) window.plan(index * 500, index * 500 + 100);
 	expect(window.metrics().requests).toBeLessThanOrEqual(3);
 	expect(window.metrics().queued).toBeLessThanOrEqual(12);
-	expect(requests.slice(0, 3).every((r) => r.signal.aborted)).toBe(true);
+	expect(requests.slice(0, 3).every((r) => !r.signal.aborted)).toBe(true);
 	window.clear();
+	expect(requests.slice(0, 3).every((r) => r.signal.aborted)).toBe(true);
 	for (const request of requests) request.resolve(page());
+});
+
+it('keeps HTTP work bounded through rapid plans until a response completes', async () => {
+	const started: number[] = [];
+	const pending = new Map<number, () => void>();
+	let serverPeak = 0,
+		abortRejections = 0;
+	const server = createServer((request, response) => {
+		const url = new URL(request.url!, 'http://local');
+		if (url.pathname === '/barrier') {
+			response.end('ready');
+			return;
+		}
+		const offset = Number(url.searchParams.get('offset'));
+		started.push(offset);
+		pending.set(offset, () => {
+			pending.delete(offset);
+			response.setHeader('content-type', 'application/json');
+			response.end(JSON.stringify(page(offset)));
+		});
+		serverPeak = Math.max(serverPeak, pending.size);
+	});
+	await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+	const address = server.address();
+	if (!address || typeof address === 'string') throw Error('Expected isolated HTTP port');
+	const origin = `http://127.0.0.1:${address.port}`;
+	const transportStarts: number[] = [];
+	const window = new InventoryWindow(
+		async (q, _revision, signal) => {
+			transportStarts.push(q.offset);
+			try {
+				const response = await fetch(`${origin}/page?offset=${q.offset}`, { signal });
+				return await response.json();
+			} catch (cause) {
+				if (signal.aborted) abortRejections++;
+				throw cause;
+			}
+		},
+		() => {}
+	);
+	const barrier = async () => {
+		const response = await fetch(`${origin}/barrier`);
+		await response.text();
+	};
+	try {
+		window.seed('owner', page());
+		window.plan(500, 600);
+		await vi.waitFor(() => expect(pending.size).toBe(3));
+		window.plan(2000, 2100);
+		window.plan(4000, 4100);
+		await barrier();
+		await vi.waitFor(() => expect(started).toHaveLength(transportStarts.length));
+		expect.soft(pending.size).toBe(3);
+		expect.soft(abortRejections).toBe(0);
+		expect(transportStarts).toEqual([450, 500, 550]);
+		pending.get(450)!();
+		await vi.waitFor(() => expect(started).toHaveLength(4));
+		expect(started[3]).toBe(3950);
+		expect(pending.size).toBe(3);
+		for (let i = 0; i < 10 && (window.metrics().requests || window.metrics().queued); i++) {
+			for (const finish of [...pending.values()]) finish();
+			await barrier();
+		}
+		await vi.waitFor(() => expect(window.metrics().requests).toBe(0));
+		expect(transportStarts).toEqual([450, 500, 550, 3950, 4000, 4050, 4100, 4150]);
+		expect(started.toSorted((a, b) => a - b)).toEqual(transportStarts);
+		expect(serverPeak).toBe(3);
+		expect(window.metrics()).toMatchObject({ contexts: 1, pages: 9, queued: 0 });
+	} finally {
+		window.clear();
+		for (const finish of [...pending.values()]) finish();
+		const closed = new Promise<void>((resolve) => server.close(() => resolve()));
+		server.closeAllConnections();
+		await closed;
+	}
 });
 
 it('cancels old pages before a filter replacement and bounds its transport slot', async () => {
