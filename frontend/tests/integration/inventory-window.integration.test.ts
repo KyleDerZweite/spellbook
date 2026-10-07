@@ -174,10 +174,30 @@ run('consistent authorized Inventory windows', () => {
 		);
 	});
 	it('keeps full set names and progress independent of relevant entry filters', async () => {
+		await seedReaderEntries(account, {
+			requestId: randomUUID(),
+			game: 'mtg',
+			source: 'web',
+			operations: [
+				{
+					card: {
+						catalogCardId: randomUUID(),
+						canonicalCardId: randomUUID(),
+						name: 'Missing Catalog set',
+						setCode: 'missing',
+						imageUri: ''
+					},
+					quantity: 1,
+					finish: 'nonfoil',
+					condition: 'NM'
+				}
+			]
+		});
 		const prior = (
 			await database.pool.query('SELECT active_generation FROM catalog_state WHERE id=1')
 		).rows[0]?.active_generation;
-		const generation = randomUUID();
+		const generation = randomUUID(),
+			inactiveGeneration = randomUUID();
 		const docs: CardDocument[] = JSON.parse(
 			await readFile(new URL('../../scripts/demo/cards.json', import.meta.url), 'utf8')
 		);
@@ -186,17 +206,26 @@ run('consistent authorized Inventory windows', () => {
 				"INSERT INTO catalog_generations(id,source_type,source_updated_at,document_count,published_at)VALUES($1,'query-contract-test',now(),4,now())",
 				[generation]
 			);
+			await database.pool.query(
+				"INSERT INTO catalog_generations(id,source_type,source_updated_at,document_count,published_at)VALUES($1,'inactive-query-contract-test',now(),1,now())",
+				[inactiveGeneration]
+			);
 			for (let i = 0; i < 4; i++) {
 				const d = {
 					...docs[i],
 					id: `00000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`,
 					set_code: i === 3 ? 'xyz' : 'abc',
-					set_name: ['', 'Later by name, first by UUID', 'Alphabetically first', ''][i]
+					set_name: ['   ', 'Later by name, first by UUID', 'Alphabetically first', '   '][i]
 				};
 				await database.pool.query(
 					`INSERT INTO catalog_printings(generation_id,id,oracle_id,name,normalized_name,printed_name,lang,set_code,collector_number,rarity,cmc,colors,card_types,legalities,search_name,search_text,document)VALUES($1,$2,$3,$4,$4,'','en',$5,'1','common',0,'{}','{}','{}',$4,$4,$6)`,
 					[generation, d.id, d.oracle_id, d.name, d.set_code, JSON.stringify(d)]
 				);
+				if (i === 0)
+					await database.pool.query(
+						`INSERT INTO catalog_printings(generation_id,id,oracle_id,name,normalized_name,printed_name,lang,set_code,collector_number,rarity,cmc,colors,card_types,legalities,search_name,search_text,document) SELECT $1::uuid, id, oracle_id, name, normalized_name, printed_name, lang, set_code, collector_number, rarity, cmc, colors, card_types, legalities, search_name, search_text, jsonb_set(document,'{set_name}','"Inactive generation name"'::jsonb) FROM catalog_printings WHERE generation_id=$2 AND id=$3`,
+						[inactiveGeneration, generation, d.id]
+					);
 			}
 			await database.pool.query(
 				'INSERT INTO catalog_state(id,active_generation)VALUES(1,$1)ON CONFLICT(id)DO UPDATE SET active_generation=excluded.active_generation',
@@ -212,6 +241,7 @@ run('consistent authorized Inventory windows', () => {
 			expect(result.entries).toHaveLength(0);
 			expect(result.sets).toEqual([
 				{ code: 'abc', name: 'Later by name, first by UUID' },
+				{ code: 'missing', name: 'MISSING' },
 				{ code: 'xyz', name: 'XYZ' }
 			]);
 			expect(result.setProgress).toMatchObject({
@@ -231,7 +261,9 @@ run('consistent authorized Inventory windows', () => {
 			await database.pool.query('UPDATE catalog_state SET active_generation=$1 WHERE id=1', [
 				prior ?? null
 			]);
-			await database.pool.query('DELETE FROM catalog_generations WHERE id=$1', [generation]);
+			await database.pool.query('DELETE FROM catalog_generations WHERE id=ANY($1::uuid[])', [
+				[generation, inactiveGeneration]
+			]);
 		}
 	});
 	it('preserves large copy sums across matching global and overlapping group totals', async () => {
