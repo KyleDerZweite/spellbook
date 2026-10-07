@@ -305,7 +305,7 @@ describe('Inventory route intent through fresh authentication', () => {
 			);
 			window.seed('owner', seed, () => true, false, 'lazy');
 			let requested: InventoryQuery | null = seed.query;
-			let rangeOffset = seedOffset;
+			let rangeOffset: number = seedOffset;
 			let clears = 0;
 			workspace.subscribe({
 				topics: ['inventory'],
