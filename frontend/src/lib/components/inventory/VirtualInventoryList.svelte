@@ -29,7 +29,8 @@
 		scrollTop = $state(untrack(() => initialIndex * 96)),
 		height = $state(650),
 		measurementVersion = $state(0),
-		focused = $state<number | null>(null);
+		focused = $state<number | null>(null),
+		positioned = $state(false);
 	let focusedSnapshot = $state<{ queryKey: string; index: number; entry: InventoryEntry } | null>(
 		null
 	);
@@ -143,13 +144,18 @@
 			focusedSnapshot = null;
 			measurementVersion++;
 			scrollTop = initialIndex * estimate;
-			if (initialIndex > 0) void scrollToIndex(initialIndex);
-			else {
-				const owner = queryKey;
+			positioned = false;
+			const owner = queryKey;
+			if (initialIndex > 0) {
+				void scrollToIndex(initialIndex, 0, () => queryKey === owner).then(() => {
+					if (viewport && queryKey === owner) positioned = true;
+				});
+			} else {
 				void tick().then(() => {
 					if (!viewport || queryKey !== owner) return;
 					restoreInitialBrowsePosition(window, 0, 0, 0);
 					readGeometry();
+					positioned = true;
 				});
 			}
 		});
@@ -225,7 +231,7 @@
 		height = Math.max(0, window.innerHeight - headerHeight());
 	}
 	$effect(() => {
-		onRange(start, end);
+		if (positioned) onRange(start, end);
 	});
 </script>
 

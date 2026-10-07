@@ -32,6 +32,7 @@
 	const heights = new Map<number, { id: string; height: number }>();
 	let snapshot: { id: string | null; index: number; intra: number } | null = null;
 	let mounted = true;
+	let positioned = $state(false);
 	function offset(index: number) {
 		measurements;
 		let value = index * 112;
@@ -107,6 +108,7 @@
 	$effect(() => {
 		if (!lazy || !list) return;
 		const element = list;
+		positioned = false;
 		const focus = (event: FocusEvent) => {
 			const row = (event.target as HTMLElement).closest<HTMLElement>('[data-group-index]');
 			focused = row ? (groups[Number(row.dataset.groupIndex)]?.id ?? null) : null;
@@ -115,12 +117,16 @@
 		window.addEventListener('resize', geometry, { passive: true });
 		element.addEventListener('focusin', focus);
 		const index = untrack(() => initialIndex);
-		if (index > 0) void scrollToIndex(index);
+		if (index > 0)
+			void scrollToIndex(index, 0, () => list === element).then(() => {
+				if (mounted && list === element) positioned = true;
+			});
 		else
 			void tick().then(() => {
 				if (!mounted || list !== element) return;
 				restoreInitialBrowsePosition(window, 0, 0, 0);
 				geometry();
+				positioned = true;
 			});
 		return () => {
 			window.removeEventListener('scroll', geometry);
@@ -156,7 +162,7 @@
 		});
 	});
 	$effect(() => {
-		if (lazy) onRange?.(indexAt(top));
+		if (lazy && positioned) onRange?.(indexAt(top));
 	});
 	$effect(() => {
 		return () => {

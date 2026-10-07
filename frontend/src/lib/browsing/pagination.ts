@@ -91,3 +91,11 @@ export function browsePaginationHref(
 	url.searchParams.set('page', String(next.page));
 	return url.pathname + url.search + url.hash;
 }
+
+/** Explicit deep collection ranges own their initial geometry after full route navigation. */
+export function hasDeepBrowseAnchor(url: Pick<URL, 'pathname' | 'searchParams'>): boolean {
+	return (
+		(url.pathname === '/mtg/search' || url.pathname === '/mtg/inventory') &&
+		parseLazyBrowsePagination(url.searchParams, 1_000_000).offset > 0
+	);
+}
