@@ -8,3 +8,6 @@ export { createDecks } from './decks/application.ts';
 export { createSavedState } from './saved-state/application.ts';
 
 export { createCategories } from './categories/application.ts';
+
+export { CategoryNotFound, CategoryConflict } from './categories/application.ts';
+export { CategoryMergeConflict } from './categories/merge.ts';

@@ -8,25 +8,16 @@ import type {
 import type { AuthUser } from '@spellbook/contracts/auth.ts';
 import type { Database, Transaction } from '../db/client.ts';
 import type { createLocalAuth } from '../auth/local.ts';
-import { ValidationError } from '../mtg/validation.ts';
+import { ValidationError, assertDeckRole, normalizeQuantity } from '../mtg/validation.ts';
+import { readCategoryMergePreview } from './merge.ts';
 import { mutationFingerprint, RequestConflictError } from '../decks/request-fingerprint.ts';
 import {
 	adoptedDefinitions,
 	ensureEntryCategoryInitialization,
 	readDecisions
 } from './persistence.ts';
-export class CategoryNotFound extends Error {
-	readonly kind = 'NotFound';
-	constructor() {
-		super('Deck, entry or category not found');
-	}
-}
-export class CategoryConflict extends Error {
-	readonly kind = 'CategoryConflict';
-	constructor(readonly latest: DeckEntryCategories) {
-		super('Category decision changed. Review the latest saved decision.');
-	}
-}
+import { CategoryNotFound, CategoryConflict } from './errors.ts';
+export { CategoryNotFound, CategoryConflict } from './errors.ts';
 const pattern = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 function uuid(value: unknown): string {
 	if (typeof value !== 'string' || !pattern.test(value))
@@ -168,6 +159,26 @@ export function createCategories(
 		});
 	}
 	return {
+		previewEntryMerge: async (actor, value) => {
+			const input = strict(value, ['deckId', 'entryId', 'catalogCardId', 'role', 'quantity']);
+			const normalized = {
+				deckId: uuid(input.deckId),
+				entryId: uuid(input.entryId),
+				catalogCardId: uuid(input.catalogCardId),
+				role: assertDeckRole(input.role),
+				quantity: normalizeQuantity(input.quantity)
+			};
+			if (normalized.quantity < 1) throw new ValidationError('Quantity must be positive');
+			const { accountId } = await auth.requireActor(actor);
+			return db.transaction(
+				async (tx) => {
+					await auth.requireActor(actor, tx);
+					await owned(tx, accountId, normalized.deckId);
+					return readCategoryMergePreview(tx, normalized);
+				},
+				{ isolationLevel: 'repeatable read', accessMode: 'read only' }
+			);
+		},
 		getDeckEntryCategories,
 		initializeDeckCategories: (actor, input) =>
 			mutate(actor, strict(input, ['deckId', 'requestId']), false),

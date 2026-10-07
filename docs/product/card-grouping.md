@@ -1,6 +1,6 @@
 # Card grouping
 
-- Status: Canonical, Inventory groups implemented; source/rule categories selected for the next pass
+- Status: Canonical, Inventory groups and starter primary Deck Entry Categories implemented; account rules and whole-deck categories planned
 - Last Reviewed: 2026-10-07
 - Source of Truth: maintainer grouping decision, inventory and deck implementations
 - Update Triggers: inventory groups, memberships, scan targets, deck entry and whole-deck categories, automatic classification, account category definitions and manual overrides, accepted design contracts and implementation evidence
@@ -34,19 +34,19 @@ Groups represent whole entries, not scan batches or physical locations. If a sca
 
 Verify CRUD and reload persistence, empty groups, multiple memberships without duplicated Inventory totals, Cancel and failed save retention, group deletion without lost cards, quantity changes, entry-deletion cascades and account isolation. Invalid mixed membership requests must roll back completely. Check keyboard focus, pending guards, desktop/mobile rendering and existing Card Details and Search overlay behavior. Existing scan and deck behavior must remain independent.
 
-## Deck categories, accepted design
+## Deck categories
 
-The maintainer selected both Deck entry categories inside the editor and Deck categories for whole decks in the Library. These are separate concepts in the [glossary](../../GLOSSARY.md). Full automatic default categorization, editable custom meanings and manual override are required. No category feature is implemented by the Inventory group slice.
+The maintainer selected both Deck entry categories inside the editor and Deck categories for whole decks in the Library. These are separate concepts in the [glossary](../../GLOSSARY.md). Full automatic default categorization, editable custom meanings and manual override are required. Starter primary categories are implemented separately from Inventory groups. Account customization and whole-deck categories remain planned.
 
-Scryfall Oracle Tags remains a selected source for card traits. On 2026-10-06, the maintainer selected automatic categorization from sources, card types and explicit rules. Free-text-only meanings and a stronger or hybrid semantic classifier are outside this pass. Jev remains the recorded prototype. Q56 accepted the optional local Commander Spellbook bulk adapter for documented ingredients/outcomes. [Integration research](../integrations/card-categorization.md) owns dated source evidence; [category rules](../architecture/category-rules.md) owns the accepted adapter constraints and evaluation mechanisms. No category integration is implemented.
+Scryfall Oracle Tags remains a selected source for card traits. On 2026-10-06, the maintainer selected automatic categorization from sources, card types and explicit rules. Free-text-only meanings and a stronger or hybrid semantic classifier are outside this pass. Jev remains the recorded prototype. Q56 accepted the optional local Commander Spellbook bulk adapter for documented ingredients/outcomes. [Integration research](../integrations/card-categorization.md) owns dated source evidence; [category rules](../architecture/category-rules.md) owns the accepted adapter constraints and evaluation mechanisms. The Oracle Tags importer and starter primary assignment lifecycle are implemented; the optional combo adapter remains planned.
 
-### Deck entry categories
+### Implemented starter Deck entry categories
 
-One primary category belongs to each deck entry, separate from its role. The Category view groups Main deck; Commander, Sideboard and Companion retain their sections. Current Decks groups by card type or section and sorts by name or quantity.
+One primary category belongs to each deck entry, separate from its role. The Category view groups Main deck; Commander, Sideboard and Companion retain their sections. Decks groups by card type, section or primary category and sorts by name or quantity.
 
-The selected contract gives each deck entry one optional primary category. All copies of that entry share the assignment. This keeps every entry in one visible group and makes the group totals add up. A card that draws a card and counters a spell can belong to Counterspells in one deck and Draw in another. Multiple secondary tags would be a separate filter, rather than changing the primary grouping.
+The implemented starter contract gives each Main entry one optional primary category. All copies of that entry share the assignment. This keeps every entry in one visible group and makes the group totals add up. A card that draws a card and counters a spell can belong to Counterspells in one deck and Draw in another. Multiple secondary tags would be a separate filter, rather than changing the primary grouping.
 
-Deck entry categories belong to one deck. They do not change Inventory groups or the public catalog. Reusable definitions belong to an account library with separate scopes for Deck entries and whole Decks. Names, meaning and explicit rules are edited together when creating a new meaning. The definition is then available automatically to new decks. Existing decks retain their names and assignments until explicit Review/Reset; the starter Draw meaning remains available as a fallback. The maintainer confirmed this ownership on 2026-10-06.
+Deck entry categories belong to one deck. They do not change Inventory groups or the public catalog. Deck creation adopts the complete ordered starter bundle. Existing Decks initialize through an explicit POST; enhanced opening submits it once and native forms expose the same command. Reads never mutate. Pending source evidence is visibly distinct from Manual Uncategorized. The [category owner](../architecture/category-rules.md#implemented-starter-entry-decisions) records the implementation. The following account-library operations remain planned. Reusable definitions belong to an account library with separate scopes for Deck entries and whole Decks. Names, meaning and explicit rules are edited together when creating a new meaning. The definition is then available automatically to new decks. Existing decks retain their names and assignments until explicit Review/Reset; the starter Draw meaning remains available as a fallback. The maintainer confirmed this ownership on 2026-10-06.
 
 Identify categories by stable IDs with editable names and ordering. Use an optional category reference on the entry, with Uncategorized as the fallback rather than a required setup step. Reject blank names and duplicate names within the same owner, ignoring case and surrounding whitespace. Assignment mutations must verify both the entry owner and category owner.
 
@@ -54,13 +54,13 @@ Rename changes the label without moving entries. Removing a category offers a re
 
 The accepted first-match starter order is Lands, Board wipes, Counterspells, Removal, Ramp, Draw, Protection, Recursion. Custom-rule priority precedes starters and is independent of display-group ordering. Only populated suggestions need to appear. Custom names such as Token makers or Sacrifice outlets describe the user's deck plan without requiring a predefined taxonomy.
 
-The current catalog supplies types, keywords and Oracle text, but does not ingest the selected Oracle Tags source yet. Producing mana does not by itself make a land Ramp. Broad text matching does not establish a deck's strategy. The accepted [rule interface](../architecture/category-rules.md#bounded-rule-interface) supports explicit catalog traits, versioned source tags and bounded predicates. Missing source evidence remains unknown, including under negation. A broad Token-makers starter is excluded because the inspected narrow subtree does not support it. The interface must not present source/rule mapping as AI analysis.
+The current catalog supplies types, keywords and Oracle text. An independent public Oracle Tags publication supplies starter traits. Producing mana does not by itself make a land Ramp. Broad text matching does not establish a deck's strategy. The accepted [rule interface](../architecture/category-rules.md#bounded-rule-interface) supports explicit catalog traits, versioned source tags and bounded predicates. Missing source evidence remains unknown, including under negation. A broad Token-makers starter is excluded because the inspected narrow subtree does not support it. The interface must not present source/rule mapping as AI analysis.
 
 Track whether an assignment is automatic or manual when suggestions are persisted. Apply automatic categorization once to existing Main-deck entries and to new entries. Manual choices always win, including a deliberate Uncategorized choice. Quantity changes, import additions and daily source refreshes must not silently reorganize existing assignments. Only an explicit Review/Reset re-evaluates automatic assignments. The maintainer confirmed this lifecycle on 2026-10-06.
 
 Renamed entry categories keep stable identifiers; deleted suggestions must not immediately recreate a category the user removed. Changing Draw into a new meaning such as Infinite Counter updates explicit classification criteria and its reusable account definition, rather than inferring meaning from a label alone. The selected pass uses rules, not free-text semantic inference.
 
-### Deck categories
+### Later whole-Deck categories
 
 Deck categories group whole decks in the Library. The maintainer selected automatic reuse of custom meanings, including an Infinite Counter example, for new decks. This classification may need the deck's full composition. Card-level traits alone do not establish an infinite combo or an archetype.
 

@@ -26,3 +26,5 @@ export const application = {
 	profile: createProfile(db, auth, { demoMode: process.env.DEMO_MODE === 'true' }),
 	decks: createDecks(db, catalog, auth)
 };
+
+export { CategoryNotFound, CategoryConflict, CategoryMergeConflict } from '@spellbook/backend';

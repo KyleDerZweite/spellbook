@@ -181,3 +181,9 @@ COMMIT;
 ```
 
 Confirm that the update affected one row and verify the active generation. Zero rows means no previous generation is available. Keep the worker stopped until the source or transformation problem is corrected; another sync can otherwise publish the newer snapshot again. Only one previous generation is retained. [Catalog architecture](../architecture/catalog.md) owns transaction and reader guarantees.
+
+## Oracle Tags and category rollout
+
+Apply the sequenced category migration before the frontend or worker that uses category tables. Migration 0016 follows the reserved Inventory and price migrations 0014/0015; a staged SQL file without journal metadata is not a deployable migration history. Do not start an incomplete migration sequence. Catalog transform changes require a fresh publication that includes internal raw Oracle/type facts. Until that publication exists, primary tag predicates remain Unknown; saved decisions remain readable and Manual choices work.
+
+Worker sync imports the exact trusted Oracle Tags descriptor and payload, then atomically activates complete facts/mapping. Inspect `oracle_tag_state` active/previous publication and safe refresh status together with immutable publication source time/digest/parser/mapping versions. A failed refresh preserves prior valid facts. Recovery retries the same source; filenames or new metadata must not redatestamp an old offline export. [Worker](../architecture/worker.md#oracle-tags-publication) owns import mechanics and [category rules](../architecture/category-rules.md#implemented-starter-entry-decisions) owns account assignment behavior. Public recovery never triggers existing automatic reassignment.

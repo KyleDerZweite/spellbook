@@ -8,6 +8,7 @@ import {
 	createCategories
 } from '@spellbook/backend';
 import type { AuthUser } from '@spellbook/contracts/auth.ts';
+import { starterDefinitions } from '@spellbook/backend/categories/rules.ts';
 import { ensureDeckCatalogFixture } from '../deck-catalog-fixture.ts';
 const run = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 run('primary category decisions through authorized applications', () => {
@@ -75,5 +76,281 @@ run('primary category decisions through authorized applications', () => {
 		await expect(
 			categories.setEntryCategory(actor, { ...input, requestId: randomUUID() })
 		).rejects.toMatchObject({ kind: 'CategoryConflict' });
+	});
+	it('requires a current consequence preview and retains complete destination Manual Uncategorized on merge', async () => {
+		const deck = await decks.createDeckRecord(actor, {
+			game: 'mtg',
+			name: 'Merge',
+			description: '',
+			format: 'Modern'
+		});
+		const added = await decks.bulkMutateDeckCards(actor, {
+			deckId: deck.id,
+			requestId: randomUUID(),
+			source: 'web',
+			game: 'mtg',
+			operations: [
+				{ op: 'add', card, quantity: 2, role: 'main' },
+				{ op: 'add', card, quantity: 3, role: 'sideboard' }
+			]
+		});
+		const mainId = added.changes[0].entryId,
+			sideId = added.changes[1].entryId;
+		let state = await categories.getDeckEntryCategories(actor, deck.id);
+		await categories.setEntryCategory(actor, {
+			deckId: deck.id,
+			entryId: sideId,
+			categoryId: null,
+			expectedDecisionRevision: state.decisionRevision,
+			requestId: randomUUID()
+		});
+		const op = { op: 'move' as const, target: { entryId: mainId }, role: 'sideboard' as const };
+		await expect(
+			decks.bulkMutateDeckCards(actor, {
+				deckId: deck.id,
+				requestId: randomUUID(),
+				source: 'web',
+				game: 'mtg',
+				operations: [op]
+			})
+		).rejects.toMatchObject({ kind: 'CategoryMergeConflict' });
+		const preview = await categories.previewEntryMerge(actor, {
+			deckId: deck.id,
+			entryId: mainId,
+			catalogCardId: card.catalogCardId,
+			role: 'sideboard',
+			quantity: 2
+		});
+		expect(preview).toMatchObject({
+			required: true,
+			resultingQuantity: 5,
+			destination: { entryId: sideId, state: 'Manual', categoryId: null }
+		});
+		await expect(
+			decks.bulkMutateDeckCards(actor, {
+				deckId: deck.id,
+				requestId: randomUUID(),
+				source: 'web',
+				game: 'mtg',
+				operations: [{ ...op, categoryPreview: 'null' }]
+			})
+		).rejects.toMatchObject({ kind: 'CategoryMergeConflict' });
+		const input = {
+			deckId: deck.id,
+			requestId: randomUUID(),
+			source: 'web',
+			game: 'mtg',
+			operations: [{ ...op, categoryPreview: preview.token }]
+		};
+		const ack = await decks.bulkMutateDeckCards(actor, input);
+		expect(ack.removedEntryIds).toEqual([mainId]);
+		state = await categories.getDeckEntryCategories(actor, deck.id);
+		expect(state.decisions).toHaveLength(1);
+		expect(state.decisions[0]).toMatchObject({
+			entryId: sideId,
+			state: 'Manual',
+			categoryId: null
+		});
+		expect((await decks.getDeckCardsForDeck(actor, deck.id))[0].quantity).toBe(5);
+		expect(await decks.bulkMutateDeckCards(actor, input)).toEqual(ack);
+	});
+	it('keeps existing-deck reads pure and initializes only through the authorized idempotent command', async () => {
+		const deckId = randomUUID();
+		await database.pool.query(
+			"INSERT INTO decks(id,account_id,game,name,format) VALUES($1,$2,'mtg','Legacy','Modern')",
+			[deckId, actor.accountId]
+		);
+		expect((await categories.getDeckEntryCategories(actor, deckId)).initialized).toBe(false);
+		await decks.getDeckSnapshot(actor, 'mtg', deckId);
+		expect((await categories.getDeckEntryCategories(actor, deckId)).initialized).toBe(false);
+		const input = { deckId, requestId: randomUUID() };
+		const [a, b] = await Promise.all([
+			categories.initializeDeckCategories(actor, input),
+			categories.initializeDeckCategories(actor, input)
+		]);
+		expect(a).toEqual(b);
+		const state = await categories.getDeckEntryCategories(actor, deckId);
+		expect(state.initialized).toBe(true);
+		expect(state.definitions).toHaveLength(8);
+		expect(
+			await categories.initializeDeckCategories(actor, { deckId, requestId: randomUUID() })
+		).toMatchObject({ decisionRevision: state.decisionRevision, entryIds: [] });
+		await expect(categories.getDeckEntryCategories(actor, randomUUID())).rejects.toMatchObject({
+			kind: 'NotFound'
+		});
+		const foreign = await auth.authenticate(
+			'register',
+			'foreign_' + randomUUID().slice(0, 8),
+			'category-integration-password'
+		);
+		if (!foreign) throw Error('Foreign fixture registration');
+		try {
+			await expect(
+				categories.initializeDeckCategories(foreign.user, { deckId, requestId: randomUUID() })
+			).rejects.toMatchObject({ kind: 'NotFound' });
+		} finally {
+			await database.pool.query('DELETE FROM user_profiles WHERE account_id=$1', [
+				foreign.user.accountId
+			]);
+		}
+	});
+	it('classifies proven raw source facts once, preserves evidence after pruning, and treats missing canonical provenance as Unknown', async () => {
+		const generation = (
+			await database.pool.query('SELECT active_generation FROM catalog_state WHERE id=1')
+		).rows[0].active_generation;
+		const schema = (
+			await database.pool.query('SELECT schema_version FROM catalog_generations WHERE id=$1', [
+				generation
+			])
+		).rows[0].schema_version;
+		const original = (
+			await database.pool.query(
+				'SELECT active_publication,previous_publication,refresh_status FROM oracle_tag_state WHERE id=1'
+			)
+		).rows[0];
+		const publication = randomUUID();
+		await database.pool.query(
+			"INSERT INTO oracle_tag_publications(id,descriptor,source_updated_at,payload_digest,parser_version,mapping_version,mapping) VALUES($1,'{}','2026-10-06','fixture-digest',1,1,'{}')",
+			[publication]
+		);
+		const roots = starterDefinitions.flatMap((d) => (d.rootId ? [d.rootId] : []));
+		for (const root of roots) {
+			await database.pool.query(
+				'INSERT INTO oracle_tags(publication_id,id,label) VALUES($1,$2,$3)',
+				[publication, root, 'mutable source label']
+			);
+			await database.pool.query('INSERT INTO oracle_tag_closure VALUES($1,$2,$2)', [
+				publication,
+				root
+			]);
+		}
+		await database.pool.query(
+			'UPDATE oracle_tag_state SET active_publication=$1,previous_publication=NULL,refresh_status=$2 WHERE id=1',
+			[publication, { kind: 'Succeeded' }]
+		);
+		await database.pool.query('UPDATE catalog_generations SET schema_version=2 WHERE id=$1', [
+			generation
+		]);
+		await database.pool.query(
+			"INSERT INTO catalog_oracle_facts VALUES($1,$2,$3,ARRAY['Artifact'],2) ON CONFLICT(generation_id,printing_id) DO UPDATE SET raw_oracle_id=excluded.raw_oracle_id,types=excluded.types,transform_version=2",
+			[generation, card.catalogCardId, card.canonicalCardId]
+		);
+		const ramp = starterDefinitions.find((d) => d.origin === 'ramp')!.rootId;
+		const draw = starterDefinitions.find((d) => d.origin === 'draw')!.rootId;
+		for (const root of [ramp, draw])
+			await database.pool.query("INSERT INTO oracle_tag_memberships VALUES($1,$2,$3,'low')", [
+				publication,
+				root,
+				card.canonicalCardId
+			]);
+		const make = async () => {
+			const deck = await decks.createDeckRecord(actor, {
+				game: 'mtg',
+				name: 'Facts',
+				description: '',
+				format: 'Modern'
+			});
+			await decks.addCatalogCardToDeck(actor, {
+				deckId: deck.id,
+				catalogCardId: card.catalogCardId,
+				quantity: 1,
+				role: 'main',
+				requestId: randomUUID()
+			});
+			return deck;
+		};
+		try {
+			const deck = await make();
+			let state = await categories.getDeckEntryCategories(actor, deck.id);
+			const saved = state.decisions[0];
+			expect(state.definitions.find((d) => d.id === saved.categoryId)?.origin).toBe('ramp');
+			expect(saved.evidence).toMatchObject({
+				oraclePublicationId: publication,
+				payloadDigest: 'fixture-digest',
+				rawOracleId: card.canonicalCardId
+			});
+			await database.pool.query(
+				'UPDATE catalog_oracle_facts SET raw_oracle_id=NULL WHERE generation_id=$1 AND printing_id=$2',
+				[generation, card.catalogCardId]
+			);
+			const unknown = await make();
+			expect((await categories.getDeckEntryCategories(actor, unknown.id)).decisions[0].state).toBe(
+				'Pending'
+			);
+			await database.pool.query(
+				'UPDATE catalog_oracle_facts SET raw_oracle_id=$3 WHERE generation_id=$1 AND printing_id=$2',
+				[generation, card.catalogCardId, card.catalogCardId]
+			);
+			const equal = await make();
+			state = await categories.getDeckEntryCategories(actor, equal.id);
+			expect(state.decisions[0]).toMatchObject({ state: 'Automatic', categoryId: null });
+			await database.pool.query('UPDATE oracle_tag_state SET active_publication=NULL WHERE id=1');
+			await database.pool.query('DELETE FROM oracle_tag_publications WHERE id=$1', [publication]);
+			expect((await categories.getDeckEntryCategories(actor, deck.id)).decisions[0]).toEqual(saved);
+			expect((await categories.getDeckEntryCategories(actor, deck.id)).definitions).toHaveLength(8);
+			const missing = await make();
+			expect((await categories.getDeckEntryCategories(actor, missing.id)).decisions[0].state).toBe(
+				'Pending'
+			);
+		} finally {
+			await database.pool.query(
+				'UPDATE oracle_tag_state SET active_publication=$1,previous_publication=$2,refresh_status=$3 WHERE id=1',
+				[original.active_publication, original.previous_publication, original.refresh_status]
+			);
+			await database.pool.query('DELETE FROM oracle_tag_publications WHERE id=$1', [publication]);
+			await database.pool.query(
+				'DELETE FROM catalog_oracle_facts WHERE generation_id=$1 AND printing_id=$2',
+				[generation, card.catalogCardId]
+			);
+			await database.pool.query('UPDATE catalog_generations SET schema_version=$2 WHERE id=$1', [
+				generation,
+				schema
+			]);
+		}
+	});
+	it('preserves complete hidden decisions through non-merging role and printing changes', async () => {
+		const deck = await decks.createDeckRecord(actor, {
+			game: 'mtg',
+			name: 'Preservation',
+			description: '',
+			format: 'Modern'
+		});
+		const added = await decks.addCatalogCardToDeck(actor, {
+			deckId: deck.id,
+			catalogCardId: card.catalogCardId,
+			quantity: 2,
+			role: 'main',
+			requestId: randomUUID()
+		});
+		const entryId = added.changes[0].entryId;
+		let state = await categories.getDeckEntryCategories(actor, deck.id);
+		await categories.setEntryCategory(actor, {
+			deckId: deck.id,
+			entryId,
+			categoryId: null,
+			expectedDecisionRevision: state.decisionRevision,
+			requestId: randomUUID()
+		});
+		state = await categories.getDeckEntryCategories(actor, deck.id);
+		const saved = state.decisions[0];
+		await decks.updateDeckCard(actor, entryId, 2, 'sideboard', randomUUID());
+		expect((await categories.getDeckEntryCategories(actor, deck.id)).decisions[0]).toEqual(saved);
+		const printing = (
+			await createCatalog(database.pool).getPrintings(card.canonicalCardId)
+		).hits.find((d) => d.id !== card.catalogCardId);
+		expect(printing).toBeDefined();
+		await decks.changeDeckPrinting(actor, {
+			entryId,
+			catalogCardId: printing!.id,
+			quantity: 2,
+			role: 'main',
+			requestId: randomUUID()
+		});
+		expect((await categories.getDeckEntryCategories(actor, deck.id)).decisions[0]).toEqual(saved);
+		expect((await decks.getDeckCardsForDeck(actor, deck.id))[0]).toMatchObject({
+			id: entryId,
+			catalogCardId: printing!.id,
+			role: 'main'
+		});
 	});
 });

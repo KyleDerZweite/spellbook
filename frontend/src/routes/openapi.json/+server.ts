@@ -130,6 +130,26 @@ const operation = (summary: string, result: Schema, input?: Schema, idempotent =
 	}
 });
 
+const categoryOperation = (summary: string, result: Schema, input?: Schema) => ({
+	...operation(summary, result, input),
+	...(input
+		? {
+				requestBody: {
+					...requestBody(input),
+					description: 'A JSON object, at most 16 KiB. Unsupported fields return400.'
+				}
+			}
+		: {}),
+	responses: {
+		...operation(summary, result, input).responses,
+		404: response('Owned Deck, entry or category not found', ref('ErrorResponse')),
+		409: response(
+			'Stale decision or merge preview, or changed request intent',
+			ref('CategoryConflictResponse')
+		),
+		...(input ? { 413: response('JSON body exceeds16 KiB', ref('ErrorResponse')) } : {})
+	}
+});
 const profileCardProperties = {
 	template: { const: 'mtg' },
 	name: string,
@@ -509,6 +529,57 @@ const SCHEMA = {
 					404: response('Deck not found in this account', ref('ErrorResponse'))
 				}
 			}
+		},
+
+		'/api/mobile/v1/mtg/decks/{deckId}/categories': {
+			parameters: [pathParameter('deckId')],
+			get: categoryOperation(
+				'Read immutable adopted entry categories without initializing',
+				ref('DeckEntryCategories')
+			)
+		},
+		'/api/mobile/v1/mtg/decks/{deckId}/categories/initialize': {
+			parameters: [pathParameter('deckId')],
+			post: categoryOperation(
+				'Initialize existing Main entries once and replay the original acknowledgement',
+				ref('CategoryAcknowledgement'),
+				{
+					...object({ requestId: { type: 'string', format: 'uuid' } }),
+					additionalProperties: false
+				}
+			)
+		},
+		'/api/mobile/v1/mtg/decks/{deckId}/categories/merge-preview': {
+			parameters: [pathParameter('deckId')],
+			post: categoryOperation(
+				'Review complete destination decision before a conflicting merge',
+				ref('CategoryMergePreview'),
+				{
+					...object({
+						entryId: string,
+						catalogCardId: string,
+						role,
+						quantity: { ...quantity, maximum: 2147483647 }
+					}),
+					additionalProperties: false
+				}
+			)
+		},
+		'/api/mobile/v1/mtg/deck-cards/{entryId}/category': {
+			parameters: [pathParameter('entryId')],
+			patch: categoryOperation(
+				'Save a Manual primary category, including deliberate Uncategorized',
+				ref('CategoryAcknowledgement'),
+				{
+					...object({
+						deckId: string,
+						categoryId: { anyOf: [string, { type: 'null' }] },
+						expectedDecisionRevision: inventoryRevision,
+						requestId: string
+					}),
+					additionalProperties: false
+				}
+			)
 		},
 		'/api/mobile/v1/mtg/decks/{deckId}/cards': {
 			parameters: [pathParameter('deckId')],
@@ -1052,7 +1123,8 @@ const SCHEMA = {
 						description:
 							'Nonzero signed quantity delta. Ordinary decreases stop at one copy; use DELETE to remove the entry.'
 					},
-					role
+					role,
+					categoryPreview: { type: 'string', maxLength: 12000 }
 				},
 				['requestId']
 			),
@@ -1494,22 +1566,124 @@ const SCHEMA = {
 				description: string,
 				descriptionRevision: string
 			}),
-			DeckAcknowledgement: object({
+
+			EntryDefinition: object({
+				id: string,
+				origin: {
+					enum: [
+						'lands',
+						'board-wipes',
+						'counterspells',
+						'removal',
+						'ramp',
+						'draw',
+						'protection',
+						'recursion'
+					]
+				},
+				name: string,
+				version: integer,
+				policyVersion: integer,
+				mappingVersion: integer,
+				priority: integer,
+				displayOrder: integer,
+				rootId: { anyOf: [string, { type: 'null' }] },
+				descendants: { type: 'boolean' },
+				excludeLand: { type: 'boolean' }
+			}),
+			CategoryPredicateEvidence: object({
+				origin: string,
+				result: { enum: ['True', 'False', 'Unknown'] },
+				matchedTagIds: { type: 'array', items: string }
+			}),
+			CategoryEvidence: object({
+				predicates: array('CategoryPredicateEvidence'),
+				catalogGenerationId: { anyOf: [string, { type: 'null' }] },
+				oraclePublicationId: { anyOf: [string, { type: 'null' }] },
+				sourceTime: { anyOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }] },
+				payloadDigest: { anyOf: [string, { type: 'null' }] },
+				parserVersion: { anyOf: [integer, { type: 'null' }] },
+				printingId: string,
+				rawOracleId: { anyOf: [string, { type: 'null' }] },
+				types: { anyOf: [{ type: 'array', items: string }, { type: 'null' }] },
+				transformVersion: { anyOf: [integer, { type: 'null' }] }
+			}),
+			EntryCategoryDecision: object({
+				entryId: string,
+				categoryId: { anyOf: [string, { type: 'null' }] },
+				state: { enum: ['Automatic', 'Manual', 'Pending'] },
+				revision: inventoryRevision,
+				evidence: nullable('CategoryEvidence')
+			}),
+			DeckEntryCategories: object({
+				deckId: string,
+				initialized: { type: 'boolean' },
+				decisionRevision: inventoryRevision,
+				definitions: array('EntryDefinition'),
+				decisions: array('EntryCategoryDecision'),
+				sourceStatus: object({
+					kind: { enum: ['NeverAttempted', 'Succeeded', 'Failed'] },
+					sourceTime: { anyOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }] }
+				})
+			}),
+			CategoryAcknowledgement: object({
 				requestId: string,
 				deckId: string,
-				revision: { type: 'string', pattern: '^[0-9]+$' },
-				changes: {
-					type: 'array',
-					items: object({
-						entryId: string,
-						catalogCardId: string,
-						role,
-						quantity: integer,
-						delta: integer
-					})
-				},
-				removedEntryIds: { type: 'array', items: string }
+				decisionRevision: inventoryRevision,
+				entryIds: { type: 'array', items: string }
 			}),
+			CategorySourceTokens: object({
+				catalogGenerationId: { anyOf: [string, { type: 'null' }] },
+				oraclePublicationId: { anyOf: [string, { type: 'null' }] },
+				policy: string
+			}),
+			CategoryMergePreview: object({
+				required: { type: 'boolean' },
+				token: string,
+				source: nullable('EntryCategoryDecision'),
+				destination: nullable('EntryCategoryDecision'),
+				destinationEntryId: { anyOf: [string, { type: 'null' }] },
+				resultingQuantity: quantity,
+				compositionRevision: inventoryRevision,
+				decisionRevision: inventoryRevision,
+				sourceTokens: ref('CategorySourceTokens')
+			}),
+			CategoryConflictResponse: {
+				oneOf: [
+					object({
+						kind: { const: 'CategoryConflict' },
+						message: string,
+						latest: ref('DeckEntryCategories')
+					}),
+					object({
+						kind: { const: 'CategoryMergeConflict' },
+						message: string,
+						preview: ref('CategoryMergePreview')
+					}),
+					ref('ErrorResponse')
+				]
+			},
+			DeckAcknowledgement: object(
+				{
+					requestId: string,
+					deckId: string,
+					revision: { type: 'string', pattern: '^[0-9]+$' },
+					changes: {
+						type: 'array',
+						items: object({
+							entryId: string,
+							catalogCardId: string,
+							role,
+							quantity: integer,
+							delta: integer
+						})
+					},
+					removedEntryIds: { type: 'array', items: string },
+					categoryDecisionRevision: inventoryRevision,
+					categoryEntryIds: { type: 'array', items: string }
+				},
+				['requestId', 'deckId', 'revision', 'changes', 'removedEntryIds']
+			),
 			InventoryAddOperation: {
 				type: 'object',
 				required: ['op', 'card', 'finish', 'condition', 'quantity'],
@@ -1580,14 +1754,21 @@ const SCHEMA = {
 						'quantity'
 					]),
 					object({ op: { const: 'increment' }, target: ref('EntryTarget'), quantity }),
-					object({
-						op: { const: 'replace' },
-						target: ref('EntryTarget'),
-						catalogCardId: string,
-						quantity,
-						role
-					}),
-					object({ op: { const: 'move' }, target: ref('EntryTarget'), role }),
+					object(
+						{
+							op: { const: 'replace' },
+							target: ref('EntryTarget'),
+							catalogCardId: string,
+							quantity,
+							role,
+							categoryPreview: string
+						},
+						['op', 'target', 'catalogCardId', 'quantity', 'role']
+					),
+					object(
+						{ op: { const: 'move' }, target: ref('EntryTarget'), role, categoryPreview: string },
+						['op', 'target', 'role']
+					),
 					object({ op: { const: 'remove' }, target: ref('EntryTarget') }, ['op', 'target'])
 				]
 			},

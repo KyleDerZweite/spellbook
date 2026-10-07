@@ -1,3 +1,8 @@
+import {
+	CategoryNotFound,
+	CategoryConflict,
+	CategoryMergeConflict
+} from '#lib/server/composition.ts';
 import { DescriptionConflictError, DeckNotFoundError } from '#lib/server/data/decks.ts';
 import { error } from '@sveltejs/kit';
 import { RequestConflictError } from '#lib/server/data/request-fingerprint.ts';
@@ -14,6 +19,12 @@ export function badRequestIfValidation(cause: unknown, fallback = 'Invalid reque
 		throw error(500, 'Inventory totals cannot be represented exactly.');
 	if (cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'Unauthenticated')
 		throw error(401, 'Authentication required');
+	if (cause instanceof CategoryNotFound)
+		throw error(404, { kind: 'NotFound', message: cause.message });
+	if (cause instanceof CategoryConflict)
+		throw error(409, { kind: cause.kind, message: cause.message, latest: cause.latest });
+	if (cause instanceof CategoryMergeConflict)
+		throw error(409, { kind: cause.kind, message: cause.message, preview: cause.preview });
 	if (cause instanceof DescriptionConflictError)
 		throw error(409, { kind: 'DescriptionConflict', message: cause.message, ...cause.latest });
 	if (cause instanceof DeckNotFoundError)

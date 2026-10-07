@@ -19,7 +19,7 @@
 		"check:ts": "node node_modules/typescript-native/bin/tsc --noEmit",
 		"demo:seed": "node scripts/demo/seed.mjs",
 		"dev:demo": "pnpm demo:seed && DEMO_MODE=true vite dev",
-		"test:http": "node --test tests/http-runtime.test.ts tests/http-application.test.ts",
+		"test:http": "node --test --test-concurrency=1 tests/http-runtime.test.ts tests/http-application.test.ts tests/categories-http.test.ts",
 		"test:sync": "node --test tests/saved-state-http.test.ts"
 	},
 	"dependencies": {

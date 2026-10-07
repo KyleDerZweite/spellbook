@@ -63,6 +63,8 @@ export interface DeckAcknowledgement {
 		role: string;
 	}[];
 	removedEntryIds: string[];
+	categoryDecisionRevision?: string;
+	categoryEntryIds?: string[];
 }
 export type DeckFailure =
 	| {
@@ -95,13 +97,14 @@ export type DeckOperation =
 			quantity: number;
 	  }
 	| { op: 'remove'; target: { entryId: string } }
-	| { op: 'move'; target: { entryId: string }; role: DeckRole }
+	| { op: 'move'; target: { entryId: string }; role: DeckRole; categoryPreview?: string }
 	| {
 			op: 'replace';
 			target: { entryId: string };
 			catalogCardId: string;
 			quantity: number;
 			role: DeckRole;
+			categoryPreview?: string;
 	  };
 export interface DeckBulkInput {
 	deckId: string;
@@ -198,6 +201,7 @@ export interface DecksApplication {
 			quantity: number;
 			role: string;
 			requestId: string;
+			categoryPreview?: string;
 		}
 	): Promise<DeckAcknowledgement>;
 	importIntoDeck(
@@ -223,7 +227,8 @@ export interface DecksApplication {
 		role: string | undefined,
 		requestId: string,
 		delta?: number,
-		source?: string
+		source?: string,
+		categoryPreview?: string
 	): Promise<DeckAcknowledgement>;
 	removeDeckCard(
 		actor: AuthUser,

@@ -62,7 +62,30 @@ export type CategoryAcknowledgement = {
 	decisionRevision: string;
 	entryIds: string[];
 };
+export type CategoryMergeInput = {
+	deckId: string;
+	entryId: string;
+	catalogCardId: string;
+	role: 'main' | 'sideboard' | 'commander' | 'companion';
+	quantity: number;
+};
+export type CategoryMergePreview = {
+	required: boolean;
+	token: string;
+	source: EntryCategoryDecision | null;
+	destination: EntryCategoryDecision | null;
+	destinationEntryId: string | null;
+	resultingQuantity: number;
+	compositionRevision: string;
+	decisionRevision: string;
+	sourceTokens: {
+		catalogGenerationId: string | null;
+		oraclePublicationId: string | null;
+		policy: string;
+	};
+};
 export interface CategoriesApplication {
+	previewEntryMerge(actor: AuthUser, input: CategoryMergeInput): Promise<CategoryMergePreview>;
 	getDeckEntryCategories(actor: AuthUser, deckId: string): Promise<DeckEntryCategories>;
 	initializeDeckCategories(
 		actor: AuthUser,

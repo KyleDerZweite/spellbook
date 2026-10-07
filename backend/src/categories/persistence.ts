@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import type { Transaction } from '../db/client.ts';
 import type {
@@ -25,16 +26,34 @@ type Fact = {
 	parser_version: number | null;
 	roots: Record<string, string[] | null>;
 };
-type CanonicalIdentity = { kind: 'Known'; oracleId: string } | { kind: 'Unknown' };
-function canonicalIdentity(fact: Fact): CanonicalIdentity {
-	return fact.raw_oracle_id &&
-		uuid.test(fact.raw_oracle_id) &&
+type CanonicalIdentity =
+	| {
+			kind: 'Known';
+			oracleId: string;
+			printingId: string;
+			transformVersion: number;
+			catalogGenerationId: string;
+	  }
+	| { kind: 'Unknown'; reason: 'MissingRawOracle' | 'UnprovenCatalogPublication' };
+function provenTransform(fact: Fact) {
+	return (
+		fact.catalog_generation_id !== null &&
 		fact.transform_version !== null &&
 		fact.transform_version >= 2 &&
-		fact.transform_version === fact.schema_version &&
-		fact.catalog_generation_id !== null
-		? { kind: 'Known', oracleId: fact.raw_oracle_id }
-		: { kind: 'Unknown' };
+		fact.transform_version === fact.schema_version
+	);
+}
+function canonicalIdentity(fact: Fact): CanonicalIdentity {
+	if (!provenTransform(fact)) return { kind: 'Unknown', reason: 'UnprovenCatalogPublication' };
+	if (!fact.raw_oracle_id || !uuid.test(fact.raw_oracle_id))
+		return { kind: 'Unknown', reason: 'MissingRawOracle' };
+	return {
+		kind: 'Known',
+		oracleId: fact.raw_oracle_id,
+		printingId: fact.printing_id,
+		transformVersion: fact.transform_version!,
+		catalogGenerationId: fact.catalog_generation_id!
+	};
 }
 export async function readEntryCategoryFacts(
 	tx: Transaction,
@@ -59,14 +78,18 @@ export async function readEntryCategoryFacts(
 	const facts = new Map(
 		(result.rows as Fact[]).map((row) => [
 			row.printing_id,
-			{ ...row, canonicalIdentity: canonicalIdentity(row) }
+			{
+				...row,
+				types: provenTransform(row) ? row.types : null,
+				canonicalIdentity: canonicalIdentity(row)
+			}
 		])
 	);
 	const first = facts.values().next().value;
 	const tokens: CategorySourceTokens = {
 		catalogGenerationId: first?.catalog_generation_id ?? null,
 		oraclePublicationId: first?.oracle_publication_id ?? null,
-		policy: JSON.stringify(definitions)
+		policy: createHash('sha256').update(JSON.stringify(definitions)).digest('hex')
 	};
 	return { facts, tokens };
 }
