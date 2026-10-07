@@ -129,3 +129,67 @@ def test_actual_postgres_failure_status_query_is_bounded_and_rolls_back():
                 ).fetchone() == ("Succeeded",)
         finally:
             admin.execute(sql.SQL("DROP SCHEMA {} CASCADE").format(sql.Identifier(schema)))
+
+
+def test_hostname_setup_deadline_terminates_its_owned_resolution_process(monkeypatch):
+    import subprocess
+
+    processes = []
+    native_popen = subprocess.Popen
+
+    def stalled_resolver(args, **kwargs):
+        # Only the read-only resolver child is stalled; no database writer is started.
+        args = [*args[:-1], "import time; time.sleep(2)"]
+        process = native_popen(args, **kwargs)
+        processes.append(process)
+        return process
+
+    def unexpected_connection(_url):
+        pytest.fail("Expired hostname setup must not start PostgreSQL connection")
+
+    monkeypatch.setattr(subprocess, "Popen", stalled_resolver)
+    monkeypatch.setattr("worker.price_connections.generators.connect", unexpected_connection)
+    started = time.monotonic()
+    with pytest.raises(psycopg.OperationalError, match="resolution"):
+        connect("host=localhost dbname=fixture", started + 0.1, 10)
+    assert time.monotonic() - started < 0.7
+    assert len(processes) == 1 and processes[0].poll() is not None
+
+
+def test_actual_postgres_hostname_connection_preserves_host_and_uses_resolved_addresses():
+    import os
+
+    from psycopg.conninfo import conninfo_to_dict, make_conninfo
+
+    url = os.environ.get("WORKER_TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("Set WORKER_TEST_DATABASE_URL for hostname PostgreSQL setup")
+    options = conninfo_to_dict(url)
+    if options.get("host") not in ("localhost", "127.0.0.1", "::1"):
+        pytest.skip("Own PostgreSQL hostname fixture needs loopback")
+    with connect(
+        make_conninfo(url, host="localhost", hostaddr=""), time.monotonic() + 5, 5
+    ) as conn:
+        assert conn.info.host == "localhost"
+        assert conn.info.hostaddr in ("127.0.0.1", "::1")
+        assert conn.execute("SELECT current_database()").fetchone() == (options["dbname"],)
+
+
+def test_hostname_resolution_and_stalled_handshake_share_one_setup_budget(monkeypatch):
+    import subprocess
+
+    from psycopg.conninfo import make_conninfo
+
+    native_popen = subprocess.Popen
+
+    def delayed_resolver(args, **kwargs):
+        args = [*args[:-1], "import time; time.sleep(0.1); " + args[-1]]
+        return native_popen(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "Popen", delayed_resolver)
+    with stalled_handshake() as (url, closed):
+        started = time.monotonic()
+        with pytest.raises(psycopg.OperationalError):
+            connect(make_conninfo(url, host="localhost"), started + 10, 0.2)
+        assert time.monotonic() - started < 0.6
+        assert closed.wait(0.5)

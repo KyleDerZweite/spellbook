@@ -224,7 +224,7 @@ class OptionalPricePublisher:
                         date) ON COMMIT DROP"""
                 )
                 with conn.cursor().copy("COPY incoming_prices FROM STDIN") as incoming:
-                    for row in adapter.current_points():
+                    for row in adapter.current_points(deadline=deadline):
                         bounded()
                         incoming.write_row(
                             (
@@ -275,7 +275,15 @@ class OptionalPricePublisher:
                 bounded()
                 record_scryfall_history(conn)
                 self._history(
-                    conn, source, adapter, publication, instant, ingested, descriptor, bounded
+                    conn,
+                    source,
+                    adapter,
+                    publication,
+                    instant,
+                    ingested,
+                    descriptor,
+                    bounded,
+                    deadline,
                 )
                 conn.execute(
                     (
@@ -307,7 +315,9 @@ class OptionalPricePublisher:
             raise
 
     @staticmethod
-    def _history(conn, source, adapter, publication, instant, ingested, descriptor, bounded):
+    def _history(
+        conn, source, adapter, publication, instant, ingested, descriptor, bounded, deadline
+    ):
         evidence = {
             "source": source,
             "descriptor": descriptor,
@@ -352,7 +362,7 @@ class OptionalPricePublisher:
                 DROP"""
         )
         with conn.cursor().copy("COPY incoming_history FROM STDIN") as incoming:
-            for row in adapter.history_points():
+            for row in adapter.history_points(deadline=deadline):
                 bounded()
                 incoming.write_row(
                     (

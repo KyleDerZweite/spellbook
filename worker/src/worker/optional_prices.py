@@ -26,6 +26,11 @@ def source_instant(value: str) -> str:
     return date.astimezone(UTC).isoformat()
 
 
+def stage_deadline(db, deadline):
+    # SQLite can join or sort before yielding a row to the publication loop.
+    db.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
+
+
 class CardmarketAdapter:
     def __init__(
         self,
@@ -53,6 +58,7 @@ class CardmarketAdapter:
             self.import_deadline = time.monotonic() + self.limits.import_seconds
         self._bounded()
         self.db = sqlite3.connect(self.staging)
+        stage_deadline(self.db, self.import_deadline)
         try:
             self.db.executescript(
                 "CREATE TABLE products(id TEXT PRIMARY KEY); "
@@ -105,7 +111,11 @@ class CardmarketAdapter:
             self.db.close()
             raise
 
-    def current_points(self):
+    def current_points(self, *, deadline=None):
+        stage_deadline(
+            self.db,
+            self.import_deadline if deadline is None else min(self.import_deadline, deadline),
+        )
         for product, finish, measure, amount, raw in self.db.execute(
             "SELECT p.id,p.finish,p.measure,p.amount,p.raw FROM points p "
             "JOIN products c ON c.id=p.id ORDER BY CAST(p.id AS INTEGER),"
@@ -190,6 +200,7 @@ class MTGJSONAdapter:
             self.import_deadline = time.monotonic() + self.limits.import_seconds
         self._bounded()
         self.db = sqlite3.connect(self.staging)
+        stage_deadline(self.db, self.import_deadline)
         try:
             self.db.executescript(
                 "PRAGMA cache_size=-4096; PRAGMA temp_store=FILE;"
@@ -254,7 +265,11 @@ class MTGJSONAdapter:
             self.db.close()
             raise
 
-    def _points(self, kind):
+    def _points(self, kind, deadline):
+        stage_deadline(
+            self.db,
+            self.import_deadline if deadline is None else min(self.import_deadline, deadline),
+        )
         query = (
             "SELECT p.id,i.printing,p.finish,p.day,p.amount,p.raw FROM points p "
             "JOIN identifiers i ON i.id=p.id WHERE p.kind=? AND i.printing IS NOT NULL "
@@ -277,11 +292,11 @@ class MTGJSONAdapter:
                 "sourceDate": day,
             }
 
-    def current_points(self):
-        return self._points("current")
+    def current_points(self, *, deadline=None):
+        return self._points("current", deadline)
 
-    def history_points(self):
-        return self._points("history")
+    def history_points(self, *, deadline=None):
+        return self._points("history", deadline)
 
     def __exit__(self, *_exc):
         self.db.close()
