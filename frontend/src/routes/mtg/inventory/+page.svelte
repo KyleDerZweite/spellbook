@@ -689,6 +689,7 @@
 			<form method="POST" action={inventoryAction('updateQuantity', effectiveInventoryUrl(page))}>
 				<input type="hidden" name="entryId" value={notesRecovery.entryId} />
 				<input type="hidden" name="requestId" value={notesRecovery.requestId} />
+				<input type="hidden" name="rebaseRequestId" value={data.requestId} />
 				<input type="hidden" name="notesRevision" value={notesRecovery.notesRevision} /><input
 					type="hidden"
 					name="notesOriginal"

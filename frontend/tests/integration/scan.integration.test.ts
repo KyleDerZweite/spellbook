@@ -100,39 +100,45 @@ run('Scan repository and uploads', () => {
 		expect((await modules.getInventorySnapshot(accountId)).cards).toHaveLength(0);
 	});
 
-	it('rolls back review, session, Inventory and receipt together when final persistence fails', async () => {
-		const scan = await setup(accountId);
-		const requestId = crypto.randomUUID();
-		const name = 'scan_receipt_fail_' + crypto.randomUUID().replaceAll('-', '');
-		await modules.pool.query(
-			`CREATE FUNCTION ${name}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.account_id = '${accountId}' THEN RAISE EXCEPTION 'fixture final receipt failure'; END IF; RETURN NEW; END $$`
-		);
-		await modules.pool.query(
-			`CREATE TRIGGER ${name} BEFORE INSERT ON inventory_mutation_requests FOR EACH ROW EXECUTE FUNCTION ${name}()`
-		);
-		try {
-			await expect(
-				modules.commitScanReview(actor, requestId, scan.sessionId, [
-					review(scan.sessionId, scan.id)
-				])
-			).rejects.toThrow();
-			const result = await modules.getScanSessionResult(accountId, scan.sessionId);
-			expect(result.reviewItems).toHaveLength(0);
-			expect(result.session?.status).toBe('pending_review');
-			expect((await modules.getInventorySnapshot(accountId)).cards).toHaveLength(0);
-			expect(
-				(
-					await modules.pool.query(
-						'SELECT request_id FROM inventory_mutation_requests WHERE account_id=$1 AND request_id=$2',
-						[accountId, requestId]
-					)
-				).rowCount
-			).toBe(0);
-		} finally {
-			await modules.pool.query(`DROP TRIGGER ${name} ON inventory_mutation_requests`);
-			await modules.pool.query(`DROP FUNCTION ${name}()`);
+	it.each([
+		{ table: 'inventory_mutation_requests', operation: 'INSERT' },
+		{ table: 'scan_sessions', operation: 'UPDATE' }
+	])(
+		'rolls back review, session, Inventory and receipt when final $table persistence fails',
+		async ({ table, operation }) => {
+			const scan = await setup(accountId);
+			const requestId = crypto.randomUUID();
+			const name = 'scan_receipt_fail_' + crypto.randomUUID().replaceAll('-', '');
+			await modules.pool.query(
+				`CREATE FUNCTION ${name}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.account_id = '${accountId}' THEN RAISE EXCEPTION 'fixture final receipt failure'; END IF; RETURN NEW; END $$`
+			);
+			await modules.pool.query(
+				`CREATE TRIGGER ${name} BEFORE ${operation} ON ${table} FOR EACH ROW EXECUTE FUNCTION ${name}()`
+			);
+			try {
+				await expect(
+					modules.commitScanReview(actor, requestId, scan.sessionId, [
+						review(scan.sessionId, scan.id)
+					])
+				).rejects.toThrow();
+				const result = await modules.getScanSessionResult(accountId, scan.sessionId);
+				expect(result.reviewItems).toHaveLength(0);
+				expect(result.session?.status).toBe('pending_review');
+				expect((await modules.getInventorySnapshot(accountId)).cards).toHaveLength(0);
+				expect(
+					(
+						await modules.pool.query(
+							'SELECT request_id FROM inventory_mutation_requests WHERE account_id=$1 AND request_id=$2',
+							[accountId, requestId]
+						)
+					).rowCount
+				).toBe(0);
+			} finally {
+				await modules.pool.query(`DROP TRIGGER ${name} ON ${table}`);
+				await modules.pool.query(`DROP FUNCTION ${name}()`);
+			}
 		}
-	});
+	);
 	it('serializes Scan commit with ordinary quantity and membership writes without losing either', async () => {
 		const added = await modules.application.inventory.add(actor, {
 			requestId: crypto.randomUUID(),

@@ -5,6 +5,7 @@ import {
 	createDashboard,
 	createInventory,
 	createInventoryMutations,
+	createScanCommit,
 	createDecks,
 	createSavedState
 } from '@spellbook/backend';
@@ -21,6 +22,7 @@ export const application = {
 		auth
 	),
 	dashboard: createDashboard(pool, auth),
+	scanCommit: createScanCommit(db, catalog, auth),
 	inventory: { ...createInventory(pool, auth), ...createInventoryMutations(db, catalog, auth) },
 	profile: createProfile(db, auth, { demoMode: process.env.DEMO_MODE === 'true' }),
 	decks: createDecks(db, catalog, auth)

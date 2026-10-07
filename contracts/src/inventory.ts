@@ -113,7 +113,11 @@ export interface InventoryAcknowledgement {
 	groups: Array<{ groupId: string; name?: string }>;
 	removedGroupIds: string[];
 	memberships: Array<{ entryId: string; groupIds: string[] }>;
-	import?: { resolvedCount: number; unresolvedCount: number; ambiguousCount: number };
+	import?: {
+		resolvedCount: number;
+		unresolvedCount: number;
+		ambiguousCount: number;
+	};
 	legacy?: true;
 }
 export interface InventoryAdd {
@@ -147,25 +151,6 @@ export interface InventoryBulkInput {
 	game?: 'mtg';
 	operations: unknown[];
 }
-export interface InventoryScanReviewInput {
-	id?: string;
-	sessionId: string;
-	scanArtifactId: string;
-	catalogCardId: string;
-	canonicalCardId?: string;
-	oracleId?: string;
-	name?: string;
-	setCode?: string;
-	collectorNumber?: string;
-	imageUri?: string;
-	similarityScore: number;
-	ocrScore: number;
-	finalScore: number;
-	matchReason: string;
-	finish: string;
-	condition: string;
-	quantity: number;
-}
 export interface InventoryMutationApplication {
 	previewImport(actor: AuthUser, text: string): Promise<ImportPreview>;
 	commitImport(
@@ -177,10 +162,6 @@ export interface InventoryMutationApplication {
 			defaultCondition?: string;
 			source?: InventorySource;
 		}
-	): Promise<InventoryAcknowledgement>;
-	commitScanReview(
-		actor: AuthUser,
-		input: { requestId: string; sessionId: string; items: InventoryScanReviewInput[] }
 	): Promise<InventoryAcknowledgement>;
 
 	add(actor: AuthUser, input: InventoryAdd): Promise<InventoryAcknowledgement>;

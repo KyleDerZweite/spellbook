@@ -328,3 +328,20 @@ function assertCardIdentity(card: unknown): CardIdentityInput {
 		imageUri: assertString(card.imageUri, 'card.imageUri').trim()
 	};
 }
+
+export function assertBoundedText(value: unknown, field: string, limit: number): string {
+	if (typeof value !== 'string' || value.length > limit)
+		throw new ValidationError(`${field} must be a string of at most ${limit} characters`);
+	return value;
+}
+export function assertUuid(value: unknown, field: string): string {
+	const result = assertBoundedText(value, field, 36).toLowerCase();
+	if (!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/.test(result))
+		throw new ValidationError(`${field} must be a UUID`);
+	return result;
+}
+export function positiveQuantity(value: unknown): number {
+	const result = normalizeQuantity(value);
+	if (result <= 0) throw new ValidationError('Quantity must be greater than zero');
+	return result;
+}

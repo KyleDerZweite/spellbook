@@ -175,7 +175,7 @@ export const actions = {
 				form.has('rebaseNotesRevision'));
 		const input: import('@spellbook/contracts/inventory.ts').InventoryPatch = {
 			requestId: form.has('rebaseNotesRevision')
-				? crypto.randomUUID()
+				? String(form.get('rebaseRequestId') ?? '')
 				: String(form.get('requestId') ?? ''),
 			entryId: String(form.get('entryId') ?? ''),
 			...(form.has('delta')

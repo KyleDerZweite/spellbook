@@ -227,9 +227,9 @@ export async function commitScanReview(
 	actor: import('@spellbook/contracts/auth.ts').AuthUser,
 	requestId: string,
 	sessionId: string,
-	items: import('@spellbook/contracts/inventory.ts').InventoryScanReviewInput[]
+	items: import('@spellbook/contracts/scan.ts').ScanReviewCommitItem[]
 ) {
-	return application.inventory.commitScanReview(actor, { requestId, sessionId, items });
+	return application.scanCommit.commitReview(actor, { requestId, sessionId, items });
 }
 
 export async function updateScanSessionStatus(

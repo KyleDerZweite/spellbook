@@ -414,6 +414,13 @@ test('built HTTP application preserves public Catalog and local account journeys
 					200
 				);
 				nativeBody.set('rebaseNotesRevision', '1');
+				const renderedRebase = conflictHtml.match(/name="rebaseRequestId"[^>]*value="([^"]+)"/);
+				assert.ok(
+					renderedRebase,
+					'Native recovery renders a stable reviewed request ID before submit'
+				);
+				const rebaseRequestId = renderedRebase[1];
+				nativeBody.set('rebaseRequestId', rebaseRequestId);
 				const recovered = await fetch(
 					`${origin}/mtg/inventory?page=2&sort=name&dir=desc&/updateQuantity`,
 					{
@@ -429,6 +436,44 @@ test('built HTTP application preserves public Catalog and local account journeys
 					}
 				);
 				assert.equal(recovered.status, 200);
+				const recordedRebase = await pool.query(
+					'SELECT acknowledgement FROM inventory_mutation_requests WHERE account_id=$1 AND request_id=$2',
+					[actor.user.accountId, rebaseRequestId]
+				);
+				const retryRebase = await fetch(
+					`${origin}/mtg/inventory?page=2&sort=name&dir=desc&/updateQuantity`,
+					{
+						method: 'POST',
+						headers: {
+							origin,
+							cookie,
+							accept: 'application/json',
+							'content-type': 'application/x-www-form-urlencoded'
+						},
+						body: nativeBody,
+						redirect: 'manual'
+					}
+				);
+				assert.equal(
+					retryRebase.status,
+					200,
+					'Unchanged committed native rebase must replay instead of reporting stale Notes'
+				);
+				assert.equal(recordedRebase.rowCount, 1);
+				const values = JSON.parse((await retryRebase.json()).data);
+				const readValue = (index: number): unknown => {
+					const value = values[index];
+					if (Array.isArray(value)) return value.map(readValue);
+					if (value && typeof value === 'object')
+						return Object.fromEntries(
+							Object.entries(value).map(([key, ref]) => [key, readValue(Number(ref))])
+						);
+					return value;
+				};
+				assert.deepEqual(
+					readValue(values[0].acknowledgement),
+					recordedRebase.rows[0].acknowledgement
+				);
 				const saved = await (await request(`${path}/${entryId}`, undefined, headers)).json();
 				assert.equal(saved.entry.notes, 'Retained native draft');
 				assert.equal(saved.entry.quantity, 3);
