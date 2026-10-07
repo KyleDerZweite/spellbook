@@ -77,7 +77,17 @@ export class WorkspaceSavedState {
 			(this.accountId === accountId && this.activation === activation)
 		)
 			return;
-		this.stop();
+		if (this.generation) this.stop();
+		else {
+			// Child mounts can register fresh SSR state before the layout's first effect.
+			// Establish ownership without treating initial activation as account replacement.
+			this.generation++;
+			this.epoch++;
+			for (const resource of this.resources) {
+				resource.generation = this.generation;
+				resource.writes = 0;
+			}
+		}
 		this.activation = activation;
 		this.accountId = accountId;
 		if (!accountId) return;

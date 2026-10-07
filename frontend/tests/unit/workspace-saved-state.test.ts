@@ -247,3 +247,106 @@ it('guards deferred body publication, registration disposal and pre-write reads 
 	expect(applied).toEqual([]);
 	workspace.stop();
 });
+
+it('retains a freshly hydrated selected Scan context when its subscription mounts before layout activation', async () => {
+	const listeners = new Map<string, (event: { data: string }) => void>();
+	const workspace = new WorkspaceSavedState({
+		source: () => ({
+			readyState: 1,
+			close() {},
+			addEventListener(name, listener) {
+				listeners.set(name, listener);
+			},
+			onerror: null
+		}),
+		session: async () => 200,
+		visible: () => true,
+		listen: () => () => {},
+		changed() {}
+	});
+	let selectedSession: string | null = 'fresh-owned-session';
+	let recentSessions = ['fresh-owned-session'];
+	const readTargets: Array<string | null> = [];
+	const subscription = workspace.subscribe({
+		topics: ['scan'],
+		clear() {
+			selectedSession = null;
+			recentSessions = [];
+		},
+		async refresh(lease) {
+			const id = selectedSession;
+			readTargets.push(id);
+			await Promise.resolve();
+			if (lease.current()) recentSessions = ['fresh-owned-session'];
+		}
+	});
+	subscription.invalidate();
+	workspace.start({ accountId: 'account', activation: 'initial' });
+	listeners.get('reset')!({ data: '{}' });
+	await new Promise((resolve) => setTimeout(resolve, 0));
+	expect(selectedSession).toBe('fresh-owned-session');
+	expect(readTargets).toEqual(['fresh-owned-session']);
+	expect(recentSessions).toEqual(['fresh-owned-session']);
+	workspace.expire();
+	expect(selectedSession).toBeNull();
+	workspace.start({ accountId: 'account', activation: 'initial' });
+	expect(workspace.getState()).toBe('expired');
+	expect(selectedSession).toBeNull();
+});
+
+it.each(['profile', 'inventory', 'decks', 'scan'] as const)(
+	'preserves a fresh pre-start %s subscriber through reset, but clears it on account replacement',
+	async (topic) => {
+		const sources: Array<Map<string, (event: { data: string }) => void>> = [];
+		const workspace = new WorkspaceSavedState({
+			source: () => {
+				const listeners = new Map<string, (event: { data: string }) => void>();
+				sources.push(listeners);
+				return {
+					readyState: 1,
+					close() {},
+					addEventListener(name, listener) {
+						listeners.set(name, listener);
+					},
+					onerror: null
+				};
+			},
+			session: async () => 200,
+			visible: () => true,
+			listen: () => () => {},
+			changed() {}
+		});
+		let saved: string | null = 'fresh owned data',
+			clears = 0;
+		let release!: () => void;
+		const contexts: Array<string | null> = [];
+		const resource = workspace.subscribe({
+			topics: [topic],
+			clear() {
+				saved = null;
+				clears++;
+			},
+			async refresh(lease) {
+				contexts.push(saved);
+				await new Promise<void>((resolve) => {
+					release = resolve;
+				});
+				if (lease.current()) saved = 'late first-account data';
+			}
+		});
+		const prematureWrite = resource.beginWrite();
+		workspace.start({ accountId: 'first', activation: 'initial' });
+		expect(prematureWrite.current()).toBe(false);
+		sources[0].get('reset')!({ data: '{}' });
+		expect(contexts).toEqual(['fresh owned data']);
+		expect(clears).toBe(0);
+		workspace.start({ accountId: 'second', activation: 'next' });
+		expect(clears).toBe(1);
+		expect(saved).toBeNull();
+		prematureWrite.complete();
+		release();
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(saved).toBeNull();
+		workspace.stop();
+	}
+);
