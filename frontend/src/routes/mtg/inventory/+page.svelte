@@ -2,6 +2,10 @@
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import type { ResourceSubscription, ReadLease } from '#lib/saved-state/workspace.ts';
+	import {
+		inventoryMetadataHref,
+		type InventoryMetadataKind
+	} from '#lib/inventory/filter-shortcuts.ts';
 	import { InventoryTargetReads } from '#lib/inventory/targets.ts';
 	import { goto } from '$app/navigation';
 	import WorkspaceHeader from '#lib/components/layout/WorkspaceHeader.svelte';
@@ -331,6 +335,28 @@
 		const url = new URL('/mtg/inventory', effectiveInventoryUrl(page).href);
 		url.search = inventoryUrl(input).toString();
 		return browsePaginationHref(url, browse, { page: pageNumber });
+	}
+	function metadataHref(kind: InventoryMetadataKind, value: string) {
+		return inventoryMetadataHref(new URL(nativeUrl(requestQuery()), page.url.href), kind, value);
+	}
+	function filterMetadata(event: MouseEvent, kind: InventoryMetadataKind, value: string) {
+		if (!isPrimaryClick(event)) return;
+		event.preventDefault();
+		const href = metadataHref(kind, value);
+		const params = new URL(href, page.url.href).searchParams;
+		selectedSets = params.getAll('set');
+		selectedFinish = params.get('finish') ?? 'all';
+		selectedCondition = params.get('condition') ?? 'all';
+		const trigger = event.currentTarget;
+		void navigatePage(href).then(() => {
+			if (
+				trigger instanceof HTMLElement &&
+				!trigger.isConnected &&
+				document.activeElement === document.body
+			) {
+				searchInput?.focus({ preventScroll: true });
+			}
+		});
 	}
 	async function navigatePage(href: string, replace = false) {
 		pageController?.abort();
@@ -1468,38 +1494,43 @@
 						data-inventory-row={card.id}
 						class:saving={pendingId === card.id}
 					>
-						<button
-							class="card-identity"
-							onclick={(event) => openInspection(card.id, 'details', event.currentTarget)}
-							aria-label={`Inspect ${card.name}, ${card.setCode.toUpperCase()}, ${card.finish}, ${card.condition}`}
-							aria-describedby={isNewInventoryEntry(card.createdAt, asOf)
-								? `inventory-new-${card.id}`
-								: undefined}
-							><img src={card.imageUri} alt="" width="40" height="56" loading="lazy" /><span
-								><span class="card-name"
-									><strong>{card.name}</strong>{#if isNewInventoryEntry(card.createdAt, asOf)}<span
-											class="new-entry"
-											id={`inventory-new-${card.id}`}
-											title={`Added ${addedDate.format(card.createdAt)} UTC. New for 7 days.`}
-											>New<span class="sr-only"
-												>, entry added {addedDate.format(card.createdAt)} UTC, marked new for 7 days</span
-											></span
-										>{/if}</span
-								><span class="mobile-metadata"
-									>{@render metadata('set', card.setCode)}{@render metadata(
-										'finish',
-										card.finish
-									)}{@render metadata('condition', card.condition)}</span
-								>{#if entryGroupNames(card.id)}<span
-										class="entry-groups"
-										title={entryGroupNames(card.id)}>{entryGroupNames(card.id)}</span
-									>{/if}{#if card.notes}<span class="entry-notes">{card.notes}</span>{/if}</span
-							></button
-						>
-						<noscript
-							><a href={`/mtg/inventory/${card.id}${effectiveInventoryUrl(page).search}`}>Details</a
-							></noscript
-						>
+						<div class="card-cell">
+							<button
+								class="card-identity"
+								onclick={(event) => openInspection(card.id, 'details', event.currentTarget)}
+								aria-label={`Inspect ${card.name}, ${card.setCode.toUpperCase()}, ${card.finish}, ${card.condition}`}
+								aria-describedby={isNewInventoryEntry(card.createdAt, asOf)
+									? `inventory-new-${card.id}`
+									: undefined}
+								><img src={card.imageUri} alt="" width="40" height="56" loading="lazy" /><span
+									><span class="card-name"
+										><strong>{card.name}</strong
+										>{#if isNewInventoryEntry(card.createdAt, asOf)}<span
+												class="new-entry"
+												id={`inventory-new-${card.id}`}
+												title={`Added ${addedDate.format(card.createdAt)} UTC. New for 7 days.`}
+												>New<span class="sr-only"
+													>, entry added {addedDate.format(card.createdAt)} UTC, marked new for 7 days</span
+												></span
+											>{/if}</span
+									>{#if entryGroupNames(card.id)}<span
+											class="entry-groups"
+											title={entryGroupNames(card.id)}>{entryGroupNames(card.id)}</span
+										>{/if}{#if card.notes}<span class="entry-notes">{card.notes}</span>{/if}</span
+								></button
+							>
+							<span class="mobile-metadata"
+								>{@render metadata('set', card.setCode)}{@render metadata(
+									'finish',
+									card.finish
+								)}{@render metadata('condition', card.condition)}</span
+							>
+							<noscript
+								><a href={`/mtg/inventory/${card.id}${effectiveInventoryUrl(page).search}`}
+									>Details</a
+								></noscript
+							>
+						</div>
 						<span class="row-metadata">{@render metadata('set', card.setCode)}</span><span
 							class="row-metadata">{@render metadata('finish', card.finish)}</span
 						><span class="row-metadata">{@render metadata('condition', card.condition)}</span>
@@ -1811,20 +1842,27 @@
 	{/if}
 {/if}
 
-{#snippet metadata(kind: 'set' | 'finish' | 'condition', value: string)}
-	<span
-		class="metadata-frame"
-		data-finish={kind === 'finish' ? value : undefined}
-		data-condition={kind === 'condition' ? value : undefined}
-		style={kind === 'set' ? `--metadata-color: ${inventorySetColor(value)}` : undefined}
-		>{kind === 'set'
-			? value.toUpperCase()
-			: kind === 'finish'
-				? value === 'foil'
-					? 'Foil'
-					: 'Nonfoil'
-				: value}</span
+{#snippet metadata(kind: InventoryMetadataKind, value: string)}
+	<a
+		class="metadata-link"
+		href={metadataHref(kind, value)}
+		onclick={(event) => filterMetadata(event, kind, value)}
+		aria-label={`Filter by ${kind} ${value}`}
 	>
+		<span
+			class="metadata-frame"
+			data-finish={kind === 'finish' ? value : undefined}
+			data-condition={kind === 'condition' ? value : undefined}
+			style={kind === 'set' ? `--metadata-color: ${inventorySetColor(value)}` : undefined}
+			>{kind === 'set'
+				? value.toUpperCase()
+				: kind === 'finish'
+					? value === 'foil'
+						? 'Foil'
+						: 'Nonfoil'
+					: value}</span
+		>
+	</a>
 {/snippet}
 
 <style>
@@ -1834,7 +1872,9 @@
 		gap: 0.5rem;
 	}
 	.owned-quantity {
-		text-align: center;
+		text-align: right;
+		font-size: 0.75rem;
+		white-space: nowrap;
 		font-variant-numeric: tabular-nums;
 	}
 	.native-inventory-filters {
@@ -2075,6 +2115,22 @@
 		font-size: 0.625rem;
 		line-height: 1.3;
 	}
+	.metadata-link {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 44px;
+		min-height: 44px;
+		border-radius: 0.25rem;
+	}
+	.metadata-link:hover .metadata-frame {
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+	.metadata-link:focus-visible {
+		outline: 2px solid var(--color-text-secondary);
+		outline-offset: 2px;
+	}
 	.metadata-frame {
 		--metadata-color: var(--color-text-muted);
 		display: inline-flex;
@@ -2176,8 +2232,8 @@
 	.inventory-columns,
 	.inventory-row {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) 115px 140px 160px 115px 44px;
-		gap: 1rem;
+		grid-template-columns: minmax(0, 1fr) 96px 112px 96px 84px 44px;
+		gap: 0.75rem;
 		align-items: center;
 	}
 	.inventory-columns {
@@ -2186,7 +2242,7 @@
 		color: var(--color-text-muted);
 	}
 	.inventory-columns > .column-header:nth-child(5) {
-		justify-content: center;
+		justify-content: flex-end;
 	}
 	.inventory-list {
 		margin: 0;
@@ -2205,8 +2261,12 @@
 	.inventory-row.saving {
 		opacity: 0.65;
 	}
+	.card-cell {
+		min-width: 0;
+	}
 	.card-identity {
 		display: flex;
+		width: 100%;
 		align-items: center;
 		gap: 0.875rem;
 		text-align: left;
@@ -2286,7 +2346,7 @@
 	}
 	@media (max-width: 1100px) {
 		.inventory-row {
-			grid-template-columns: minmax(0, 1fr) 108px 55px;
+			grid-template-columns: minmax(0, 1fr) 84px 44px;
 			gap: 0.5rem;
 		}
 		.inventory-columns {
@@ -2308,6 +2368,7 @@
 			color: var(--color-text-muted);
 			font-size: 0.75rem;
 			margin-top: 0.25rem;
+			padding-left: calc(40px + 0.875rem);
 		}
 	}
 	@media (max-width: 560px) {
@@ -2338,13 +2399,15 @@
 			font-size: 0.6875rem;
 		}
 		.inventory-row {
-			grid-template-columns: minmax(0, 1fr) 112px;
+			grid-template-columns: minmax(0, 1fr) 84px;
 			padding: 0.375rem 0;
 			gap: 0 0.5rem;
 		}
-		.card-identity {
+		.card-cell {
 			grid-column: 1;
 			grid-row: 1 / 3;
+		}
+		.card-identity {
 			gap: 0.625rem;
 		}
 		.card-identity strong {
@@ -2352,12 +2415,16 @@
 		}
 		.mobile-metadata {
 			font-size: 0.75rem;
+			padding-left: calc(40px + 0.625rem);
 		}
-		:global(.quantity-control) {
+		.owned-quantity {
 			grid-column: 2;
+			grid-row: 1;
 		}
 		:global(.entry-menu) {
 			grid-column: 2;
+			grid-row: 2;
+			justify-self: end;
 		}
 		.set-progress {
 			align-items: flex-start;
