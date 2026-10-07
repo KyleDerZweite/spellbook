@@ -64,6 +64,7 @@
 			: null
 	);
 	let options = $derived(deckChoiceOptions(choices));
+	let selectedId = $derived(submitted?.deckId ?? choices?.selected?.id ?? '');
 	let retry = $derived(!!submitted && !receipt && (!!result?.message || !!deckDraft));
 </script>
 
@@ -83,11 +84,7 @@
 						{value}
 					/>{/if}{/each}
 			<input type="hidden" name="printing" value={selectedPrinting.id} />
-			{#if submitted?.deckId}<input
-					type="hidden"
-					name="selectedDeckId"
-					value={submitted.deckId}
-				/>{/if}
+			{#if selectedId}<input type="hidden" name="selectedDeckId" value={selectedId} />{/if}
 			{#if submitted && !receipt}{#each ['requestId', 'catalogCardId', 'deckId', 'role', 'quantity'] as key}<input
 						type="hidden"
 						name={'deckRetry' + key[0].toUpperCase() + key.slice(1)}
@@ -145,7 +142,7 @@
 				id={`${id}-deck`}
 				name="deckId"
 				label="Deck"
-				value={submitted?.deckId ?? ''}
+				value={selectedId}
 				{options}
 				required
 				disabled={!!choiceReadError || !choices}

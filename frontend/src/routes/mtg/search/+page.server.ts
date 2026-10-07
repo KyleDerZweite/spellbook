@@ -1,7 +1,8 @@
-import { fail, redirect, type Actions } from '@sveltejs/kit';
-import { addToInventory } from '#lib/server/data/inventory.ts';
+import { redirect, type Actions } from '@sveltejs/kit';
+import { application } from '#lib/server/composition.ts';
+import { addToDeck, addBrowsingToInventory } from '#lib/server/card-browsing-actions.ts';
+import { nativeSearchContext } from './native.ts';
 import { ValidationError } from '#lib/server/mtg/validation.ts';
-import { RequestConflictError } from '#lib/server/data/request-fingerprint.ts';
 import { parseSearchUrl, searchHref } from '#lib/search/navigation.ts';
 import { clampBrowsePagination } from '#lib/browsing/pagination.ts';
 import { parseCatalogSearchRequest } from '#lib/server/catalog/query.ts';
@@ -9,7 +10,13 @@ import { getCatalogPrinting, searchCatalogRequest } from '#lib/server/catalog/se
 import type { PageServerLoad } from './$types';
 import type { CardDocument, SearchResult } from '#lib/search/types.ts';
 
-export const load: PageServerLoad = async ({ url, request }) => {
+export const load: PageServerLoad = async ({ url, request, locals }) => {
+	const native = nativeSearchContext(url.searchParams);
+	const nativeParseError = !!(
+		native.printingReadError ||
+		native.choiceReadError ||
+		native.draftReadError
+	);
 	let searchInput = parseSearchUrl(url);
 	let catalogResult: SearchResult | null = null;
 	let catalogReadError: string | null = null;
@@ -35,34 +42,40 @@ export const load: PageServerLoad = async ({ url, request }) => {
 			searchInput = { ...searchInput, pagination: clamped };
 			clampedPage = true;
 			// A native GET follows one canonical redirect. POST retains its committed action result.
-			if (request.method !== 'GET') catalogResult = await read();
+			if (request.method !== 'GET' || nativeParseError) catalogResult = await read();
 		}
 	} catch {
 		catalogReadError = 'Catalog search is unavailable. Retry this search.';
 	}
 	let selectedPrinting: CardDocument | null = null;
-	let printingReadError: string | null = null;
-	const selections = url.searchParams.getAll('printing');
-	if (selections.length) {
-		if (
-			selections.length !== 1 ||
-			!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(selections[0])
-		) {
-			printingReadError = 'Invalid printing selection. Choose a card from the results.';
-		} else {
-			try {
-				selectedPrinting = await getCatalogPrinting(selections[0]);
-			} catch (cause) {
-				printingReadError =
-					cause instanceof ValidationError
-						? 'This printing is unavailable. Choose another card.'
-						: 'Printing details are unavailable. Retry this selection.';
-			}
+	let printingReadError = native.printingReadError;
+	if (native.printingId) {
+		try {
+			selectedPrinting = await getCatalogPrinting(native.printingId);
+		} catch (cause) {
+			printingReadError =
+				cause instanceof ValidationError
+					? 'This printing is unavailable. Choose another card.'
+					: 'Printing details are unavailable. Retry this selection.';
+		}
+	}
+	let choices: Awaited<ReturnType<typeof application.decks.getDeckChoices>> | null = null;
+	let choiceReadError = native.choiceReadError;
+	if (locals.user && selectedPrinting && !choiceReadError) {
+		try {
+			choices = await application.decks.getDeckChoices(locals.user, {
+				query: native.choiceQuery,
+				offset: native.choiceOffset,
+				limit: 20,
+				selectedDeckId: native.selectedDeckId
+			});
+		} catch {
+			choiceReadError = 'Deck choices are unavailable. Retry this selection.';
 		}
 	}
 	const canonical = new URL(searchHref(searchInput), url);
-	if (selectedPrinting) canonical.searchParams.set('printing', selectedPrinting.id);
-	if (clampedPage && request.method === 'GET' && !catalogReadError)
+	for (const [key, value] of native.context) canonical.searchParams.append(key, value);
+	if (clampedPage && request.method === 'GET' && !catalogReadError && !nativeParseError)
 		redirect(303, canonical.pathname + canonical.search);
 	return {
 		requestId: crypto.randomUUID(),
@@ -71,30 +84,25 @@ export const load: PageServerLoad = async ({ url, request }) => {
 		catalogResult,
 		catalogReadError,
 		selectedPrinting,
-		printingReadError
+		printingReadError,
+		choices,
+		choiceReadError,
+		choiceQuery: native.choiceQuery,
+		choiceOffset: native.choiceOffset,
+		deckDraft: native.deckDraft,
+		inventoryDraft: native.inventoryDraft,
+		draftReadError: native.draftReadError,
+		nativeCardContext:
+			!!native.printingId ||
+			!!printingReadError ||
+			!!native.deckDraft ||
+			!!native.inventoryDraft ||
+			!!native.choiceReadError ||
+			!!native.draftReadError
 	};
 };
 
 export const actions: Actions = {
-	addToInventory: async ({ request, locals }) => {
-		if (!locals.user) redirect(303, '/auth/login?returnTo=/mtg/search');
-		const form = await request.formData();
-		if (!form.get('catalogCardId') || !form.get('requestId'))
-			return fail(400, { message: 'catalogCardId and requestId are required' });
-		try {
-			const acknowledgement = await addToInventory(locals.user, {
-				requestId: String(form.get('requestId') ?? ''),
-				catalogCardId: String(form.get('catalogCardId') ?? ''),
-				finish: String(form.get('finish') ?? 'nonfoil'),
-				condition: String(form.get('condition') ?? 'NM'),
-				quantity: Number(form.get('quantity') ?? 1),
-				source: 'web'
-			});
-			return { success: true, acknowledgement };
-		} catch (cause) {
-			if (cause instanceof RequestConflictError) return fail(409, { message: cause.message });
-			if (cause instanceof ValidationError) return fail(400, { message: cause.message });
-			throw cause;
-		}
-	}
+	addToDeck,
+	addToInventory: addBrowsingToInventory
 };
