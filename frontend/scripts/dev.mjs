@@ -10,14 +10,14 @@ if (Number(process.versions.node.split('.')[0]) !== 26) {
 	throw new Error('Use the Node version in frontend/.node-version, or run ./dev.sh.');
 }
 if (!process.env.DATABASE_URL) {
-	throw new Error('Set DATABASE_URL in the root .env.local. See .env.local.example.');
+	throw new Error('Set DATABASE_URL in the root .env. See .env.example.');
 }
 
 await mkdir(storage, { recursive: true });
 
 const env = {
 	...process.env,
-	APP_ORIGIN: process.env.APP_ORIGIN || 'http://localhost:5173',
+	APP_ORIGIN: process.env.DEV_APP_ORIGIN?.trim() || 'http://localhost:5173',
 	SCAN_STORAGE_DRIVER: 'local',
 	SCAN_LOCAL_STORAGE_DIR: storage,
 	SCAN_WORKER_URL: 'http://127.0.0.1:8087'

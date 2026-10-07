@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: repo config
-- Update Triggers: price publication/pair and optional recovery, source opt-ins and ingestion limits, compose services and first startup, catalog import and recovery, images, local launch commands and preview target, environment variables, migrations, storage, workspace ownership and compatibility adapters, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
+- Update Triggers: price publication/pair and optional recovery, source opt-ins and ingestion limits, compose services and first startup, catalog import and recovery, images, local launch commands and preview target, single root environment and local/build origins, migrations, storage, workspace ownership and compatibility adapters, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
 - Related Docs: [Postgres](../architecture/postgres.md), [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Classifier research](../integrations/card-categorization.md)
 
 The canonical service definitions are [`podman-compose.yml`](../../podman-compose.yml) and the local storage override [`podman-compose.dev.yml`](../../podman-compose.dev.yml). Keep live domains, account details, and secret references in private operator notes.
@@ -12,13 +12,13 @@ The canonical service definitions are [`podman-compose.yml`](../../podman-compos
 
 [`dev.sh`](../../dev.sh) starts the host development environment. It uses the pinned Node version through `fnm` when available; otherwise activate that version before launching. Install the root workspace dependencies with `pnpm install --frozen-lockfile` from the repository root and prepare the scan-worker environment with `uv sync --project scan-worker --frozen`. An existing PostgreSQL database with migrations applied is required. [Demo setup](./local-auth.md#demo-mode) owns the explicit initial migration and seed commands.
 
-Copy [`.env.local.example`](../../.env.local.example) to the ignored root `.env.local` and set its database connection. Enable `DEMO_MODE` only for the prepared disposable demo. The launcher reads `.env.local`, not the deployment `.env`; environment variables already supplied by the caller take precedence. Run from the repository root:
+Copy [`.env.example`](../../.env.example) to the ignored root `.env` and set `DATABASE_URL` to an existing local database. This is the single environment file for native development, operator commands and Compose configuration. Enable `DEMO_MODE` only for the prepared disposable demo. The launcher, database commands and explicit demo seed read `.env`; variables already supplied by the caller take precedence. Vite also reads it through the root environment directory. The old `.env.local` is no longer part of setup. Run from the repository root:
 
 ```sh
 ./dev.sh
 ```
 
-The equivalent frontend command is `pnpm --dir frontend dev:local`. The launcher starts Vite with Hot Reload on port 5173 and the scan-worker on loopback port 8087. Both use local scan storage, defaulting to the ignored `.local/scans` directory. Set `SCAN_LOCAL_STORAGE_DIR` in `.env.local` to retain an existing artifact directory. `APP_ORIGIN` defaults to `http://localhost:5173`; override it only to match the browser origin used for form submissions.
+The equivalent frontend command is `pnpm --dir frontend dev:local`. The launcher starts Vite with Hot Reload on port 5173 and the scan-worker on loopback port 8087. Both use local scan storage, defaulting to the ignored `.local/scans` directory. Set `SCAN_LOCAL_STORAGE_DIR` in `.env` to retain an existing artifact directory. `DEV_APP_ORIGIN` defaults to `http://localhost:5173`; change it only to match the local browser origin used for form submissions. Both the launcher and direct Vite development use this value. Keep `APP_ORIGIN` for origin-matched production builds; a configured deployment origin does not change local form origins.
 
 Stopping the launcher terminates its own frontend and scan-worker processes. An error or occupied port shuts down the other child process too. Existing services and the database are not stopped. Startup does not apply migrations, seed or reset accounts, synchronize the catalog, build containers or start a tunnel. The scan-worker still returns no matches; manual review remains available.
 
@@ -65,6 +65,7 @@ Use `podman-compose --profile tunnel up --build -d` to include Newt. Set `PANGOL
 
 | Variable                                            | Meaning                                                                                                                 |
 | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `DEV_APP_ORIGIN`                                    | Local Vite form origin; defaults to `http://localhost:5173`, independently of the production build origin               |
 | `APP_ORIGIN`                                        | Public application origin compiled into the frontend; compose passes it as a build argument                             |
 | `ADDRESS_HEADER`, `XFF_DEPTH`                       | Optional trusted-proxy client address configuration; leave the header empty until proxy trust is configured             |
 | `BODY_SIZE_LIMIT`                                   | Adapter request limit; compose defaults to `12M` to allow multipart overhead around a 10 MiB scan image                 |
@@ -81,6 +82,8 @@ Use `podman-compose --profile tunnel up --build -d` to include Newt. Set `PANGOL
 | `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`             | Existing S3-compatible storage endpoint, region, and bucket                                                             |
 | `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`          | S3-compatible credentials                                                                                               |
 | `S3_FORCE_PATH_STYLE`                               | Defaults to `true` for S3-compatible services                                                                           |
+
+Native Python commands do not implicitly load `.env`. From `worker/` or `scan-worker/`, use `uv run --env-file ../.env` before the existing command when its configuration should come from that file. Compose injects its selected service variables and constructs internal database URLs from `POSTGRES_*`; it does not pass native `DEMO_MODE` or `DEV_APP_ORIGIN` into the deployed frontend.
 
 Set `APP_ORIGIN` before building the frontend or migration image. Changing it requires `podman-compose build frontend db-migrate` and recreation of the frontend. Updating runtime environment variables alone does not change SvelteKit 3's compiled origin.
 

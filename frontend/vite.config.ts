@@ -7,7 +7,7 @@ import { defineConfig } from 'vitest/config';
 
 const mockPath = (relativePath: string) => new URL(relativePath, import.meta.url).pathname;
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode, command }) => ({
 	envDir: '..',
 	plugins: [
 		tailwindcss(),
@@ -17,7 +17,12 @@ export default defineConfig(({ mode }) => ({
 			// The first server hook checks form origins and permits native bearer scan uploads.
 			csrf: { trustedOrigins: ['*'] },
 			env: { dir: '..' },
-			paths: { origin: loadEnv(mode, '..', '').APP_ORIGIN?.trim() || undefined }
+			paths: {
+				origin:
+					command === 'serve'
+						? loadEnv(mode, '..', '').DEV_APP_ORIGIN?.trim() || 'http://localhost:5173'
+						: loadEnv(mode, '..', '').APP_ORIGIN?.trim() || undefined
+			}
 		})
 	],
 	resolve: {

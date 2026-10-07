@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-05
 - Source of Truth: code
-- Update Triggers: registration policy, credential recovery command, migration, reverse proxy origin, demo mode and seed data
+- Update Triggers: single root environment and demo launch configuration, registration policy, credential recovery command, migration, reverse proxy origin, demo mode and seed data
 - Related Docs: [Authentication architecture](../architecture/auth.md), [Deployment](./deployment.md), [Postgres](../architecture/postgres.md), [ADR-0009](../decisions/0009-local-authentication.md)
 
 New users register at `/auth/register` and sign in at `/auth/login`. Registration is public. The [authentication contract](../architecture/auth.md) defines credential rules, sessions, and JSON API login.
@@ -46,7 +46,7 @@ For multiple frontend replicas, configure a shared rate limit at the reverse pro
 
 ## Demo mode
 
-Use a disposable PostgreSQL database whose name ends in `_demo` or `_design`. Set `DATABASE_URL` and `APP_ORIGIN`, then run from `frontend/` with the pinned Node version:
+Use a disposable PostgreSQL database whose name ends in `_demo` or `_design`. Set `DATABASE_URL` in the ignored root `.env` and set `DEV_APP_ORIGIN` if the local browser origin differs from `http://localhost:5173`, then run from `frontend/` with the pinned Node version:
 
 ```sh
 pnpm db:migrate
