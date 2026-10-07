@@ -14,7 +14,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock('#lib/server/data/inventory.ts', () => ({
 	getInventorySnapshot: mocks.snapshot,
 	removeInventoryCard: vi.fn(),
-	updateInventoryCard: vi.fn()
+	updateInventoryCard: vi.fn(),
+	InventoryQuantityChangedError: class InventoryQuantityChangedError extends Error {},
+	InventoryNotFoundError: class InventoryNotFoundError extends Error {},
+	NotesConflictError: class NotesConflictError extends Error {}
 }));
 vi.mock('#lib/server/data/inventory-groups.ts', () => ({
 	getInventoryGroups: mocks.groups,
@@ -29,7 +32,7 @@ vi.mock('#lib/server/data/inventory-window.ts', async () => {
 	return { inventoryQueryFromUrl, inventoryApplication: { page: mocks.page } };
 });
 vi.mock('#lib/server/catalog/search.ts', () => ({ getCatalogSetNames: mocks.setNames }));
-import { InventoryGroupNotFoundError } from '../../src/lib/server/data/inventory-groups';
+import { InventoryNotFoundError } from '../../src/lib/server/data/inventory';
 import { actions, load } from '../../src/routes/mtg/inventory/+page.server';
 
 const groupId = '1d61bd72-10b8-4f30-b76e-af51c6875557';
@@ -70,7 +73,7 @@ beforeEach(() => {
 		};
 	});
 	mocks.setNames.mockResolvedValue({});
-	mocks.create.mockResolvedValue({ id: groupId });
+	mocks.create.mockResolvedValue({ groups: [{ groupId }] });
 });
 
 describe('Inventory group route boundaries', () => {
@@ -127,13 +130,23 @@ describe('Inventory group route boundaries', () => {
 		];
 		expect(await actions.createGroup(event(undefined, fields) as never)).toEqual({
 			success: true,
-			groupId
+			groupId,
+			acknowledgement: { groups: [{ groupId }] }
 		});
 		await actions.renameGroup(event(undefined, fields) as never);
 		await actions.deleteGroup(event(undefined, fields) as never);
-		expect(mocks.create).toHaveBeenCalledWith('owner', 'Draft name', 'mtg');
-		expect(mocks.rename).toHaveBeenCalledWith('owner', groupId, 'Draft name', 'mtg');
-		expect(mocks.removeGroup).toHaveBeenCalledWith('owner', groupId, 'mtg');
+		expect(mocks.create).toHaveBeenCalledWith(
+			{ accountId: 'owner' },
+			{ requestId: '', name: 'Draft name' }
+		);
+		expect(mocks.rename).toHaveBeenCalledWith(
+			{ accountId: 'owner' },
+			{ requestId: '', groupId, name: 'Draft name' }
+		);
+		expect(mocks.removeGroup).toHaveBeenCalledWith(
+			{ accountId: 'owner' },
+			{ requestId: '', groupId }
+		);
 	});
 
 	it('passes repeated selections and empty selections as full replacements', async () => {
@@ -144,9 +157,15 @@ describe('Inventory group route boundaries', () => {
 				['groupId', 'second']
 			]) as never
 		);
-		expect(mocks.assign).toHaveBeenLastCalledWith('owner', entryId, [groupId, 'second'], 'mtg');
+		expect(mocks.assign).toHaveBeenLastCalledWith(
+			{ accountId: 'owner' },
+			{ requestId: '', entryId, groupIds: [groupId, 'second'] }
+		);
 		await actions.assignGroups(event(undefined, [['entryId', entryId]]) as never);
-		expect(mocks.assign).toHaveBeenLastCalledWith('owner', entryId, [], 'mtg');
+		expect(mocks.assign).toHaveBeenLastCalledWith(
+			{ accountId: 'owner' },
+			{ requestId: '', entryId, groupIds: [] }
+		);
 	});
 
 	it('returns validation and ownership failures as form failures', async () => {
@@ -155,7 +174,7 @@ describe('Inventory group route boundaries', () => {
 			status: 400,
 			data: { message: 'A group with this name already exists' }
 		});
-		mocks.assign.mockRejectedValue(new InventoryGroupNotFoundError('Inventory group not found'));
+		mocks.assign.mockRejectedValue(new InventoryNotFoundError('Inventory group not found'));
 		expect(await actions.assignGroups(event() as never)).toMatchObject({
 			status: 404,
 			data: { message: 'Inventory group not found' }

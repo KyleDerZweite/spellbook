@@ -4,10 +4,13 @@ export { createLocalAuth } from './auth/local.ts';
 export { createProfile } from './profile/profile.ts';
 export { createDashboard } from './profile/dashboard.ts';
 export { createInventory } from './inventory/read.ts';
+export { createValuation } from './valuation/read.ts';
 export { createDecks } from './decks/application.ts';
+export { createInventoryMutations } from './inventory/mutations.ts';
 export { createSavedState } from './saved-state/application.ts';
 
 export { createCategories } from './categories/application.ts';
 
 export { CategoryNotFound, CategoryConflict } from './categories/application.ts';
 export { CategoryMergeConflict } from './categories/merge.ts';
+export { createScanCommit } from './scan/commit.ts';

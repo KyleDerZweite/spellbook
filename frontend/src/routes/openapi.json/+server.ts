@@ -173,6 +173,52 @@ const SCHEMA = {
 	},
 	servers: [{ url: privateEnv.APP_ORIGIN }],
 	paths: {
+		'/api/mobile/v1/mtg/prices': {
+			get: {
+				summary: 'Read a public exact-finish EUR reference and supplied product links',
+				security: [],
+				parameters: [
+					{
+						name: 'printingId',
+						in: 'query',
+						required: true,
+						schema: { type: 'string', format: 'uuid' }
+					},
+					{ name: 'finish', in: 'query', required: true, schema: finish }
+				],
+				responses: {
+					200: response('Known or evaluated Unknown market reference', ref('PriceResponse')),
+					400: response('Invalid or extra query fields', ref('ErrorResponse')),
+					503: response('Operational reference read unavailable', ref('ErrorResponse'))
+				}
+			}
+		},
+		'/api/mobile/v1/mtg/inventory/prices': {
+			post: {
+				...operation(
+					'Read references and exact quantity coverage for requested owned entries',
+					ref('InventoryPriceResponse'),
+					{
+						...object({
+							entryIds: {
+								type: 'array',
+								minItems: 1,
+								maxItems: 100,
+								uniqueItems: true,
+								items: { type: 'string', format: 'uuid' }
+							}
+						}),
+						additionalProperties: false
+					}
+				),
+				responses: {
+					...operation('', ref('InventoryPriceResponse')).responses,
+					...jsonBodyErrors,
+					404: response('A requested entry is missing or not owned', ref('ErrorResponse')),
+					503: response('Operational reference read unavailable', ref('ErrorResponse'))
+				}
+			}
+		},
 		'/api/account/events': {
 			get: {
 				summary:
@@ -395,7 +441,7 @@ const SCHEMA = {
 			},
 			post: operation(
 				'Add an idempotent inventory batch',
-				ref('InventorySnapshot'),
+				ref('InventoryAcknowledgement'),
 				ref('InventoryBatchRequest'),
 				true
 			)
@@ -403,7 +449,7 @@ const SCHEMA = {
 		'/api/mobile/v1/mtg/inventory/batch-add': {
 			post: operation(
 				'Add an idempotent inventory batch',
-				ref('InventorySnapshot'),
+				ref('InventoryAcknowledgement'),
 				ref('InventoryBatchRequest'),
 				true
 			)
@@ -419,11 +465,17 @@ const SCHEMA = {
 				}
 			},
 			patch: operation(
-				'Set quantity and notes; nonpositive quantity removes the entry',
-				nullable('InventoryCard'),
-				ref('InventoryEntryUpdate')
+				'Patch independent fields; signed delta floors at one, absolute nonpositive quantity removes',
+				ref('InventoryAcknowledgement'),
+				ref('InventoryEntryUpdate'),
+				true
 			),
-			delete: operation('Remove an inventory entry', ref('OkResponse'))
+			delete: operation(
+				'Remove reviewed quantity with stable original receipt',
+				ref('InventoryAcknowledgement'),
+				ref('InventoryRemoveRequest'),
+				true
+			)
 		},
 		'/api/mobile/v1/mtg/inventory/{entryId}/location': {
 			parameters: [pathParameter('entryId')],
@@ -448,10 +500,72 @@ const SCHEMA = {
 				}
 			}
 		},
+		'/api/mobile/v1/mtg/inventory/groups': {
+			get: {
+				...operation(
+					'Read bounded account Groups',
+					object({
+						revision: inventoryRevision,
+						groups: array('InventoryGroupCount'),
+						count: integer
+					})
+				),
+				parameters: [
+					{ name: 'offset', in: 'query', schema: { type: 'integer', minimum: 0 } },
+					{ name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100 } }
+				]
+			},
+			post: operation(
+				'Create an account Group with an original receipt',
+				ref('InventoryAcknowledgement'),
+				ref('InventoryGroupCreateRequest'),
+				true
+			)
+		},
+		'/api/mobile/v1/mtg/inventory/groups/{groupId}': {
+			parameters: [pathParameter('groupId')],
+			patch: operation(
+				'Rename one owned Group',
+				ref('InventoryAcknowledgement'),
+				ref('InventoryGroupCreateRequest'),
+				true
+			),
+			delete: operation(
+				'Delete one owned Group without removing entries',
+				ref('InventoryAcknowledgement'),
+				object({ requestId: string }),
+				true
+			)
+		},
+		'/api/mobile/v1/mtg/inventory/{entryId}/groups': {
+			parameters: [pathParameter('entryId')],
+			put: operation(
+				'Replace whole-entry Group memberships',
+				ref('InventoryAcknowledgement'),
+				object({
+					requestId: string,
+					groupIds: { type: 'array', maxItems: 1000, items: { type: 'string', format: 'uuid' } }
+				}),
+				true
+			)
+		},
+		'/api/mobile/v1/mtg/inventory/{entryId}/position': {
+			parameters: [pathParameter('entryId')],
+			patch: operation(
+				'Explicitly reorder an owned entry; ordinary mutations preserve sparse positions',
+				ref('InventoryAcknowledgement'),
+				object({
+					requestId: string,
+					position: { type: 'integer', minimum: 0, maximum: 2147483647 }
+				}),
+				true
+			)
+		},
+
 		'/api/mobile/v1/mtg/inventory/bulk': {
 			post: operation(
 				'Apply idempotent inventory operations',
-				ref('InventorySnapshot'),
+				ref('InventoryAcknowledgement'),
 				ref('InventoryBulkRequest'),
 				true
 			)
@@ -754,7 +868,7 @@ const SCHEMA = {
 		'/api/mobile/v1/mtg/scan/review/commit': {
 			post: operation(
 				'Commit reviewed scan candidates to inventory',
-				ref('InventorySnapshot'),
+				ref('InventoryAcknowledgement'),
 				ref('ScanReviewCommitRequest'),
 				true
 			)
@@ -1059,31 +1173,95 @@ const SCHEMA = {
 				},
 				['query', 'hits', 'estimatedTotalHits', 'processingTimeMs', 'generationId']
 			),
+
+			InventoryAcknowledgement: object(
+				{
+					requestId: string,
+					inventoryId: { type: ['string', 'null'] },
+					revision: inventoryRevision,
+					changes: {
+						type: 'array',
+						maxItems: 1000,
+						items: object({
+							entryId: string,
+							catalogCardId: string,
+							finish,
+							condition,
+							quantity: { type: 'integer', minimum: 0, maximum: 2147483647 },
+							delta: integer,
+							notesRevision: inventoryRevision
+						})
+					},
+					removedEntryIds: { type: 'array', items: string },
+					groups: { type: 'array', items: object({ groupId: string, name: string }, ['groupId']) },
+					removedGroupIds: { type: 'array', items: string },
+					memberships: {
+						type: 'array',
+						items: object({ entryId: string, groupIds: { type: 'array', items: string } })
+					},
+					legacy: {
+						const: true,
+						description:
+							'Historical request without a stored original acknowledgement: no current state is substituted.'
+					},
+					import: object({
+						resolvedCount: integer,
+						unresolvedCount: integer,
+						ambiguousCount: integer
+					})
+				},
+				[
+					'requestId',
+					'inventoryId',
+					'revision',
+					'changes',
+					'removedEntryIds',
+					'groups',
+					'removedGroupIds',
+					'memberships'
+				]
+			),
+			InventoryGroupCreateRequest: object({
+				requestId: string,
+				name: { type: 'string', minLength: 1, maxLength: 256 }
+			}),
+			InventoryRemoveRequest: object({
+				requestId: string,
+				expectedQuantity: { type: 'integer', minimum: 1, maximum: 2147483647 }
+			}),
 			InventoryBatchItem: object(
 				{
-					catalogCardId: string,
-					canonicalCardId: string,
-					name: string,
-					setCode: string,
-					imageUri: string,
+					catalogCardId: { type: 'string', format: 'uuid' },
 					finish,
 					condition,
-					quantity
+					quantity: { type: 'integer', minimum: 1, maximum: 2147483647 },
+					notes: { type: 'string', maxLength: 4000 },
+					notesRevision: inventoryRevision
 				},
-				['catalogCardId', 'canonicalCardId', 'name', 'finish', 'condition', 'quantity']
+				['catalogCardId', 'quantity']
 			),
 			InventoryBatchRequest: object(
 				{
 					requestId: { type: 'string', minLength: 1 },
-					source: { type: 'string', default: 'mobile' },
-					items: { type: 'array', minItems: 1, items: ref('InventoryBatchItem') }
+					source: { enum: ['mobile', 'web', 'import', 'scan', 'scan_review'], default: 'mobile' },
+					items: { type: 'array', minItems: 1, maxItems: 1000, items: ref('InventoryBatchItem') }
 				},
 				['requestId', 'items']
 			),
-			InventoryEntryUpdate: object(
-				{ quantity: { type: 'integer', default: 1 }, notes: { type: 'string', default: '' } },
-				[]
-			),
+			InventoryEntryUpdate: {
+				...object(
+					{
+						requestId: string,
+						quantity: { type: 'integer', minimum: -2147483647, maximum: 2147483647 },
+						delta: { type: 'integer', minimum: -2147483647, maximum: 2147483647 },
+						notes: { type: 'string', maxLength: 4000 },
+						notesRevision: inventoryRevision
+					},
+					['requestId']
+				),
+				description:
+					'Supply quantity or delta, not both. Omitted fields remain unchanged. Notes requires notesRevision. Zero delta is invalid. At least one field is required.'
+			},
 			DeckWriteRequest: object(
 				{
 					name: string,
@@ -1282,6 +1460,98 @@ const SCHEMA = {
 				required: ['entryId'],
 				properties: { entryId: { type: 'string', format: 'uuid' } }
 			},
+			PricePublication: object({
+				id: { type: 'string', format: 'uuid' },
+				source: { const: 'Scryfall' },
+				bulkType: string,
+				sourceTime: { type: 'string', format: 'date-time' },
+				timePrecision: { const: 'Instant' },
+				payloadDigest: string,
+				extractorVersion: integer,
+				mappingVersion: integer,
+				ingestedAt: { type: 'string', format: 'date-time' }
+			}),
+			ProductLink: object({
+				provider: { enum: ['Cardmarket', 'TCGplayer', 'Cardhoarder'] },
+				url: { type: 'string', format: 'uri' },
+				printingId: { type: 'string', format: 'uuid' },
+				provenance: { enum: ['Exact', 'EnglishFallback'] }
+			}),
+			PriceReference: {
+				oneOf: [
+					object({
+						kind: { const: 'Known' },
+						printingId: { type: 'string', format: 'uuid' },
+						finish,
+						links: array('ProductLink'),
+						amount: {
+							type: 'string',
+							maxLength: 128,
+							pattern: '^(0|[1-9][0-9]*)(\\.[0-9]{1,18})?$'
+						},
+						currency: { const: 'EUR' },
+						source: { const: 'Scryfall' },
+						measure: { enum: ['prices.eur', 'prices.eur_foil'] },
+						sourceTime: { type: 'string', format: 'date-time' },
+						timePrecision: { const: 'Instant' },
+						freshness: { enum: ['Fresh', 'Stale'] },
+						publicationId: { type: 'string', format: 'uuid' },
+						observationId: string,
+						matchedPrintingId: { type: 'string', format: 'uuid' },
+						matchedFinish: finish,
+						provenance: { enum: ['Exact', 'EnglishFallback'] }
+					}),
+					object({
+						kind: { const: 'Unknown' },
+						printingId: { type: 'string', format: 'uuid' },
+						finish,
+						links: array('ProductLink'),
+						reason: {
+							enum: [
+								'SourceUnavailable',
+								'PrintingMissing',
+								'AmountMissing',
+								'ReferenceExpired',
+								'UnsupportedFinish',
+								'AmbiguousLanguageMapping',
+								'MissingVariantEvidence'
+							]
+						}
+					})
+				]
+			},
+			PriceRefreshStatus: object(
+				{
+					kind: { enum: ['NeverAttempted', 'Succeeded', 'Failed'] },
+					attemptedAt: { type: 'string', format: 'date-time' }
+				},
+				['kind']
+			),
+			PriceResponse: object({
+				evaluatedAt: { type: 'string', format: 'date-time' },
+				publications: array('PricePublication'),
+				refreshStatus: ref('PriceRefreshStatus'),
+				results: { ...array('PriceReference'), maxItems: 100 }
+			}),
+			InventoryPriceResponse: object({
+				evaluatedAt: { type: 'string', format: 'date-time' },
+				publications: array('PricePublication'),
+				refreshStatus: ref('PriceRefreshStatus'),
+				results: {
+					type: 'array',
+					maxItems: 100,
+					items: object({
+						entryId: { type: 'string', format: 'uuid' },
+						quantity,
+						reference: ref('PriceReference')
+					})
+				},
+				coverage: object({
+					coveredQuantity: { type: 'integer', minimum: 0, maximum: Number.MAX_SAFE_INTEGER },
+					staleQuantity: { type: 'integer', minimum: 0, maximum: Number.MAX_SAFE_INTEGER },
+					unknownQuantity: { type: 'integer', minimum: 0, maximum: Number.MAX_SAFE_INTEGER }
+				})
+			}),
 			InventoryStats: {
 				type: 'object',
 				required: ['total', 'unique', 'foils', 'sets', 'completedSets'],
@@ -1686,24 +1956,42 @@ const SCHEMA = {
 			),
 			InventoryAddOperation: {
 				type: 'object',
-				required: ['op', 'card', 'finish', 'condition', 'quantity'],
+				required: ['op', 'finish', 'condition', 'quantity'],
+				anyOf: [{ required: ['catalogCardId'] }, { required: ['card'] }],
 				properties: {
 					op: { const: 'add' },
-					card: { $ref: '#/components/schemas/CardIdentity' },
+					catalogCardId: { type: 'string', format: 'uuid' },
+					card: object({ catalogCardId: { type: 'string', format: 'uuid' } }),
 					finish: { enum: ['nonfoil', 'foil'] },
 					condition: { enum: ['NM', 'LP', 'MP', 'HP', 'DMG'] },
 					quantity: { type: 'integer', minimum: 1 },
-					notes: { type: 'string' }
+					notes: { type: 'string', maxLength: 4000 },
+					notesRevision: inventoryRevision
 				}
 			},
 			InventoryTargetOperation: {
 				oneOf: [
+					{
+						...object(
+							{
+								op: { const: 'set' },
+								target: ref('EntryTarget'),
+								quantity: integer,
+								notes: string,
+								notesRevision: inventoryRevision
+							},
+							['op', 'target']
+						),
+						anyOf: [{ required: ['quantity'] }, { required: ['notes'] }]
+					},
 					object(
-						{ op: { const: 'set' }, target: ref('EntryTarget'), quantity: integer, notes: string },
-						['op', 'target', 'quantity']
-					),
-					object(
-						{ op: { const: 'decrement' }, target: ref('EntryTarget'), quantity, notes: string },
+						{
+							op: { const: 'decrement' },
+							target: ref('EntryTarget'),
+							quantity,
+							notes: string,
+							notesRevision: inventoryRevision
+						},
 						['op', 'target', 'quantity']
 					),
 					object({ op: { const: 'remove' }, target: ref('EntryTarget'), notes: string }, [
@@ -1878,32 +2166,7 @@ const SCHEMA = {
 					defaultCondition: { enum: ['NM', 'LP', 'MP', 'HP', 'DMG'] }
 				}
 			},
-			InventoryImportCommitResponse: {
-				type: 'object',
-				required: ['snapshot', 'import'],
-				properties: {
-					snapshot: { $ref: '#/components/schemas/InventorySnapshot' },
-					import: {
-						type: 'object',
-						required: ['resolvedCount', 'unresolved', 'ambiguous', 'warnings'],
-						properties: {
-							resolvedCount: { type: 'integer' },
-							unresolved: {
-								type: 'array',
-								items: { $ref: '#/components/schemas/UnresolvedImportLine' }
-							},
-							ambiguous: {
-								type: 'array',
-								items: { $ref: '#/components/schemas/AmbiguousImportLine' }
-							},
-							warnings: {
-								type: 'array',
-								items: { $ref: '#/components/schemas/ImportPreviewWarning' }
-							}
-						}
-					}
-				}
-			},
+			InventoryImportCommitResponse: ref('InventoryAcknowledgement'),
 			DeckImportPreviewRequest: {
 				type: 'object',
 				required: ['text'],

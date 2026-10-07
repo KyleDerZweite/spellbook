@@ -12,9 +12,26 @@ declare global {
 			kind?:
 				| import('@spellbook/contracts/decks.ts').DeckFailure['kind']
 				| 'CategoryConflict'
-				| 'CategoryMergeConflict';
+				| 'CategoryMergeConflict'
+				| import('@spellbook/contracts/inventory.ts').InventoryFailure['kind'];
 			latest?: import('@spellbook/contracts/categories.ts').DeckEntryCategories;
 			preview?: import('@spellbook/contracts/categories.ts').CategoryMergePreview;
+			entryId?: Extract<
+				import('@spellbook/contracts/inventory.ts').InventoryFailure,
+				{ kind: 'NotesConflict' }
+			>['entryId'];
+			notes?: Extract<
+				import('@spellbook/contracts/inventory.ts').InventoryFailure,
+				{ kind: 'NotesConflict' }
+			>['notes'];
+			notesRevision?: Extract<
+				import('@spellbook/contracts/inventory.ts').InventoryFailure,
+				{ kind: 'NotesConflict' }
+			>['notesRevision'];
+			latestQuantity?: Extract<
+				import('@spellbook/contracts/inventory.ts').InventoryFailure,
+				{ kind: 'QuantityChanged' }
+			>['latestQuantity'];
 			description?: string;
 			descriptionRevision?: string;
 		}

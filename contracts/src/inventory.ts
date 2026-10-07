@@ -1,4 +1,5 @@
 import type { AuthUser } from './auth.ts';
+import type { ImportPreview } from './decks.ts';
 export interface InventoryQuery {
 	q: string;
 	sets: string[];
@@ -79,7 +80,7 @@ export interface InventoryLocation {
 	revision: string;
 	index: number | null;
 }
-export interface InventoryApplication {
+export interface InventoryReadApplication {
 	page(
 		actor: AuthUser,
 		input: unknown,
@@ -93,3 +94,145 @@ export interface InventoryApplication {
 		expectedRevision: string
 	): Promise<InventoryLocation | RevisionChanged>;
 }
+
+export type InventorySource = 'mobile' | 'web' | 'import' | 'scan' | 'scan_review';
+export interface InventoryAcknowledgement {
+	requestId: string;
+	inventoryId: string | null;
+	revision: string;
+	changes: Array<{
+		entryId: string;
+		catalogCardId: string;
+		finish: string;
+		condition: string;
+		quantity: number;
+		delta: number;
+		notesRevision: string;
+	}>;
+	removedEntryIds: string[];
+	groups: Array<{ groupId: string; name?: string }>;
+	removedGroupIds: string[];
+	memberships: Array<{ entryId: string; groupIds: string[] }>;
+	import?: {
+		resolvedCount: number;
+		unresolvedCount: number;
+		ambiguousCount: number;
+	};
+	legacy?: true;
+}
+export interface InventoryAdd {
+	requestId: string;
+	catalogCardId: string;
+	finish: string;
+	condition: string;
+	quantity: number;
+	source?: InventorySource;
+	notes?: string;
+	notesRevision?: string;
+}
+export interface InventoryPatch {
+	requestId: string;
+	entryId: string;
+	quantity?: number;
+	delta?: number;
+	notes?: string;
+	notesRevision?: string;
+	source?: InventorySource;
+}
+export interface InventoryRemove {
+	requestId: string;
+	entryId: string;
+	expectedQuantity: number;
+	source?: InventorySource;
+}
+interface InventoryBulkPrinting {
+	catalogCardId: string;
+	canonicalCardId?: string;
+	name?: string;
+	setCode?: string;
+	imageUri?: string;
+}
+export type InventoryBulkOperation =
+	| ({
+			op: 'add';
+			finish: string;
+			condition: string;
+			quantity: number;
+			notes?: string;
+			notesRevision?: string;
+	  } & (
+			| { catalogCardId: string; card?: InventoryBulkPrinting }
+			| { catalogCardId?: string; card: InventoryBulkPrinting }
+	  ))
+	| {
+			op: 'set';
+			target: { entryId: string };
+			quantity?: number;
+			notes?: string;
+			notesRevision?: string;
+	  }
+	| {
+			op: 'decrement';
+			target: { entryId: string };
+			quantity: number;
+			notes?: string;
+			notesRevision?: string;
+	  }
+	| { op: 'remove'; target: { entryId: string }; notes?: string };
+export interface InventoryBulkInput {
+	requestId: string;
+	source?: InventorySource;
+	game?: 'mtg';
+	operations: InventoryBulkOperation[];
+}
+export type InventoryFailure =
+	| {
+			kind: 'NotesConflict';
+			message: string;
+			entryId: string;
+			notes: string;
+			notesRevision: string;
+	  }
+	| { kind: 'QuantityChanged'; message: string; latestQuantity: number | null }
+	| { kind: 'NotFound'; message: string }
+	| { kind: 'RequestConflict'; message: string };
+export interface InventoryMutationApplication {
+	previewImport(actor: AuthUser, text: string): Promise<ImportPreview>;
+	commitImport(
+		actor: AuthUser,
+		input: {
+			requestId: string;
+			text: string;
+			defaultFinish?: string;
+			defaultCondition?: string;
+			source?: InventorySource;
+		}
+	): Promise<InventoryAcknowledgement>;
+
+	add(actor: AuthUser, input: InventoryAdd): Promise<InventoryAcknowledgement>;
+	patchEntry(actor: AuthUser, input: InventoryPatch): Promise<InventoryAcknowledgement>;
+	remove(actor: AuthUser, input: InventoryRemove): Promise<InventoryAcknowledgement>;
+	bulk(actor: AuthUser, input: InventoryBulkInput): Promise<InventoryAcknowledgement>;
+	createGroup(
+		actor: AuthUser,
+		input: { requestId: string; name: string }
+	): Promise<InventoryAcknowledgement>;
+	renameGroup(
+		actor: AuthUser,
+		input: { requestId: string; groupId: string; name: string }
+	): Promise<InventoryAcknowledgement>;
+	deleteGroup(
+		actor: AuthUser,
+		input: { requestId: string; groupId: string }
+	): Promise<InventoryAcknowledgement>;
+	replaceMemberships(
+		actor: AuthUser,
+		input: { requestId: string; entryId: string; groupIds: string[] }
+	): Promise<InventoryAcknowledgement>;
+	reorder(
+		actor: AuthUser,
+		input: { requestId: string; entryId: string; position: number }
+	): Promise<InventoryAcknowledgement>;
+}
+export interface InventoryApplication
+	extends InventoryReadApplication, InventoryMutationApplication {}

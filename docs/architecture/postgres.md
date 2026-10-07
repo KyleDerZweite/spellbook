@@ -3,10 +3,10 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: code
-- Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership and compatibility adapters, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers
-- Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md), [Application contract](./application-contract.md)
+- Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership and compatibility adapters, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers, public price publication and retention
+- Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md), [Application contract](./application-contract.md), [Value and costs](./value-and-costs.md)
 
-PostgreSQL stores account-owned application state and the public Scryfall catalog.
+PostgreSQL stores account-owned application state, the public Scryfall catalog and public price references.
 
 The backend [schema](../../backend/src/db/schema.ts) owns table definitions, and [database construction](../../backend/src/db/client.ts) owns Drizzle/pg setup. The named [frontend database compatibility adapter](../../frontend/src/lib/server/db/client.ts) injects database/build-analysis configuration and constructs one backend database resource. Frontend composition privately consumes that resource and exports only feature use cases. Raw `db`/`pool` exports stay in the database adapter for exact allowed compatibility consumers. Frontend schema/client modules are compatibility adapters for untouched repositories; the existing [Drizzle migration history](../../frontend/drizzle/) and migration commands remain unchanged.
 
@@ -30,6 +30,10 @@ The backend [schema](../../backend/src/db/schema.ts) owns table definitions, and
 - `catalog_generations`
 - `catalog_state`
 - `catalog_printings`
+- `price_publications`
+- `price_printings`
+- `price_observations`
+- `price_state`
 
 ## Current Model Notes
 
@@ -49,7 +53,7 @@ The backend [schema](../../backend/src/db/schema.ts) owns table definitions, and
 
 ## Current Access Pattern
 
-- backend Catalog, Auth, Profile, Dashboard, Inventory reads and Deck use Drizzle ORM and `pg` through frontend server composition; remaining SvelteKit feature repositories use explicit compatibility adapters
+- backend Catalog, Auth, Profile, Dashboard, Inventory, Deck and Valuation use Drizzle ORM and `pg` through frontend server composition; remaining SvelteKit feature repositories use explicit compatibility adapters
 - browser pages load user data through server load functions and route actions
 - optional mobile API endpoints call the same repository functions as web routes
 - repository functions enforce ownership by internal Spellbook `accountId`
@@ -57,13 +61,17 @@ The backend [schema](../../backend/src/db/schema.ts) owns table definitions, and
 - profile totals count owned quantities, distinct canonical card IDs, distinct printing IDs, distinct set codes, foil quantities, and decks; a totals read failure leaves profile customization available
 - the backend Profile use case reads the saved card independently of totals and validates it against the shared definition; [authentication](./auth.md) owns Settings validation, default handling and atomic preference updates
 
+## Public price persistence
+
+[Migration 0015](../../frontend/drizzle/0015_scryfall_prices.sql) adds four public price tables and initializes the singleton pointer row. It preserves existing account and Catalog tables. [Value persistence](./value-and-costs.md#implemented-scryfall-references) owns paired publication, exact observations, independent retention and trusted frozen-reference evidence. Worker ingestion never reads or writes private holdings.
+
 ## Inventory read and write consistency
 
 [Migration 0011](../../frontend/drizzle/0011_inventory_windows.sql) adds bigint Inventory and Notes revisions, ICU root ordering and a name/set window index. The [application contract](./application-contract.md#inventory-query-contract) owns page ordering, metadata and revision resets. Backend page/detail/location reads use one repeatable-read, read-only snapshot scoped to the trusted actor and MTG, including counts, memberships and catalog-derived set metadata. An absent Inventory returns empty data without creating a parent.
 
 Inventory SQL counts, copy sums, group totals, set progress and location indexes remain exact text until the shared [integer decoder](../../backend/src/db/numbers.ts) validates a nonnegative safe JSON integer. Unsupported ranges fail explicitly instead of narrowing to signed 32-bit values or rounding through floating-point SQL casts. [The HTTP contract](./mobile-and-scan.md#bounded-inventory-http-reads) owns the controlled failure response. Per-entry quantity limits are unchanged.
 
-Existing writers use the shared [Inventory helper](../../backend/src/inventory/write.ts) to lock the parent before entries and groups and advance its revision in the write transaction. Scan retains session-before-Inventory ordering. Notes has an independent stored revision; stale-text rejection and original mutation receipts remain planned. Legacy mutation responses still expose their prior snapshot shapes. [Deployment](../operations/deployment.md#inventory-collation-and-recovery) owns ICU preflight and recovery.
+The backend [mutation owner](../../backend/src/inventory/mutations.ts) uses the shared [Inventory helper](../../backend/src/inventory/write.ts) after Profile/account locking and session revalidation. Scan locks its session before Inventory; sorted target entries precede Groups. Catalog resolution uses no nested connection under those locks. Semantic changes advance the Inventory revision once per transaction; no-ops and receipt replays do not. Notes has an independent stored revision and stale-text guard. Ordinary entry changes keep sparse positions; only explicit reorder may scan/rewrite their ordering. [Migration 0014](../../frontend/drizzle/0014_inventory_contracts.sql) adds nullable JSONB original acknowledgements without backfilling fabricated history. [The application contract](./application-contract.md#inventory-query-contract) owns replay, legacy receipt treatment and lock order. [Deployment](../operations/deployment.md#inventory-collation-and-recovery) owns ICU preflight and recovery.
 
 ## Dashboard summary reads
 
@@ -106,4 +114,4 @@ Migration `0005_mutation_request_fingerprints.sql` adds nullable `request_hash` 
 
 An identical retry has one write effect. Reusing an existing request ID with a different stored fingerprint returns HTTP 409 without applying the changed mutation. Existing rows with a null hash retain their earlier duplicate-suppression behavior because their original payload cannot be reconstructed. The migration does not invent or backfill those hashes.
 
-Inventory request records still suppress duplicate effects without storing original responses. Deck requests now store compact original acknowledgements in the mutation transaction. Identical replay returns that acknowledgement after later changes or Deck deletion; changed-payload reuse fails with 409. Legacy Deck records without acknowledgements retain no-repeat behavior and return empty changes for the surviving Deck, rather than reconstructed historical results. Description revision checks are separate from request replay. Scan candidate-result replacement is separate from inventory mutation replay and has no event fingerprint. See [mobile and scan](./mobile-and-scan.md) for that contract.
+Inventory and Deck requests store compact original acknowledgements in their mutation transaction. Identical replay returns the stored acknowledgement after later subject changes or deletion; changed normalized intent fails with 409. Legacy Inventory records without acknowledgements return explicit unavailable-history receipts, retaining their stored fingerprint/no-repeat protection. Legacy Deck records retain their documented empty-change behavior. Notes/Description revision checks are separate from request replay. Scan candidate-result replacement is separate from Inventory mutation replay and has no event fingerprint. See [mobile and scan](./mobile-and-scan.md) for wire migration.

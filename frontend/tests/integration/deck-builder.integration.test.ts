@@ -50,7 +50,7 @@ run('deck builder transactions', () => {
 			deckId: deck.id,
 			operations: [operation(), operation(1, 'sideboard')]
 		});
-		await modules.bulkMutateInventory(accountId, {
+		await modules.bulkMutateInventory(actor, {
 			requestId: crypto.randomUUID(),
 			source: 'web',
 			game: 'mtg',
@@ -77,7 +77,7 @@ run('deck builder transactions', () => {
 	it('returns exact canonical ownership across real printings with valid int32 quantities', async () => {
 		const printings = (await modules.application.catalog.getPrintings(card.canonicalCardId)).hits;
 		expect(printings.length).toBeGreaterThanOrEqual(2);
-		await modules.bulkMutateInventory(accountId, {
+		await modules.bulkMutateInventory(actor, {
 			requestId: crypto.randomUUID(),
 			source: 'web',
 			game: 'mtg',
@@ -486,5 +486,13 @@ async function loadModules() {
 		import('../../src/lib/server/data/inventory')
 	]);
 	const { application } = await import('../../src/lib/server/composition.ts');
-	return { db, pool, application, ...schema, ...decks, ...inventory };
+	return {
+		db,
+		pool,
+		application,
+		...schema,
+		...decks,
+		...inventory,
+		...(await import('../fixtures/inventory-state.ts'))
+	};
 }

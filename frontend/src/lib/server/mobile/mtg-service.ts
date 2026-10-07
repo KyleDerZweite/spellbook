@@ -1,11 +1,5 @@
-import type { MobileAuthContext, MobileInventoryBatchItem } from './types';
-import {
-	bulkMutateInventory as bulkMutateInventoryData,
-	batchAddInventory as batchAddInventoryData,
-	getInventorySnapshot,
-	removeInventoryCard,
-	updateInventoryCard
-} from '#lib/server/data/inventory.ts';
+import type { MobileAuthContext } from './types';
+import { application } from '#lib/server/composition.ts';
 import {
 	addDeckCard,
 	bulkMutateDeckCards as bulkMutateDeckCardsData,
@@ -20,7 +14,6 @@ import {
 import {
 	DECK_SOURCES,
 	INVENTORY_SOURCES,
-	assertInventoryOperation,
 	assertRequestId,
 	normalizeSource
 } from '#lib/server/mtg/validation.ts';
@@ -33,57 +26,43 @@ import {
 } from '#lib/server/data/scan.ts';
 import type { ScanCandidate } from '#lib/server/data/types.ts';
 
-export async function getInventorySnapshotEntry(auth: MobileAuthContext) {
-	return getInventorySnapshot(auth.user.accountId, 'mtg');
-}
-
 export async function batchAddInventory(
 	auth: MobileAuthContext,
 	input: {
 		requestId: string;
 		source: string;
-		items: MobileInventoryBatchItem[];
+		items: Array<
+			Pick<
+				import('@spellbook/contracts/inventory.ts').InventoryAdd,
+				'catalogCardId' | 'finish' | 'condition' | 'quantity' | 'notes' | 'notesRevision'
+			>
+		>;
 	}
 ) {
-	return batchAddInventoryData(
-		auth.user.accountId,
-		input.requestId,
-		input.source,
-		'mtg',
-		input.items
-	);
-}
-
-export async function bulkMutateInventory(
-	auth: MobileAuthContext,
-	input: {
-		requestId: string;
-		source: string;
-		operations: unknown;
-	}
-) {
-	const operations = Array.isArray(input.operations) ? input.operations : [];
-	return bulkMutateInventoryData(auth.user.accountId, {
-		requestId: assertRequestId(input.requestId),
+	return application.inventory.bulk(auth.user, {
+		requestId: input.requestId,
 		source: normalizeSource(input.source, INVENTORY_SOURCES, 'mobile'),
-		game: 'mtg',
-		operations: operations.map(assertInventoryOperation)
+		operations: input.items.map((item) => ({ op: 'add', ...item }))
 	});
 }
-
-export async function updateInventoryEntry(
+export async function bulkMutateInventory(
 	auth: MobileAuthContext,
-	entryId: string,
-	quantity: number,
-	notes = ''
+	input: { requestId: string; source: string; operations: unknown }
 ) {
-	return updateInventoryCard(auth.user.accountId, entryId, quantity, notes);
+	return application.inventory.bulk(auth.user, {
+		requestId: input.requestId,
+		source: normalizeSource(input.source, INVENTORY_SOURCES, 'mobile'),
+		operations: Array.isArray(input.operations) ? input.operations : []
+	});
 }
-
-export async function removeInventoryEntry(auth: MobileAuthContext, entryId: string) {
-	await removeInventoryCard(auth.user.accountId, entryId);
-	return { ok: true };
-}
+export const updateInventoryEntry = (
+	auth: MobileAuthContext,
+	input: import('@spellbook/contracts/inventory.ts').InventoryPatch
+) => application.inventory.patchEntry(auth.user, input);
+export const removeInventoryEntry = (
+	auth: MobileAuthContext,
+	input: import('@spellbook/contracts/inventory.ts').InventoryRemove
+) => application.inventory.remove(auth.user, input);
 
 export async function getDeckSnapshotEntry(auth: MobileAuthContext, deckId: string | null = null) {
 	return getDeckSnapshot(auth.user, 'mtg', deckId);

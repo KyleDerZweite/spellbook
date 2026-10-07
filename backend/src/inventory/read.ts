@@ -2,7 +2,7 @@ import type { AuthUser } from '@spellbook/contracts/auth.ts';
 import type { createLocalAuth } from '../auth/local.ts';
 import type { Pool, PoolClient } from 'pg';
 import type {
-	InventoryApplication,
+	InventoryReadApplication,
 	InventoryEntry,
 	InventoryGroupCount,
 	InventoryPage,
@@ -97,7 +97,7 @@ function selection(query: InventoryQuery, inventoryId: string | null, accountId:
 export function createInventory(
 	pool: Pool,
 	auth: Pick<ReturnType<typeof createLocalAuth>, 'requireActor'>
-): InventoryApplication {
+): InventoryReadApplication {
 	async function snapshot<T>(
 		accountId: string,
 		operation: (

@@ -5,17 +5,11 @@ import { createInventory } from '@spellbook/backend/inventory/read.ts';
 import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import {
-	bulkMutateInventory,
-	reorderInventoryCard,
-	removeInventoryCard,
+	createInventoryMutations,
 	InventoryQuantityChangedError
-} from '#lib/server/data/inventory.ts';
-import {
-	createInventoryGroup,
-	renameInventoryGroup,
-	replaceInventoryGroupMemberships,
-	deleteInventoryGroup
-} from '#lib/server/data/inventory-groups.ts';
+} from '@spellbook/backend/inventory/mutations.ts';
+import { createCatalog } from '@spellbook/backend/catalog/search.ts';
+import { ensureInventory } from '@spellbook/backend/inventory/write.ts';
 const run = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 run('consistent authorized Inventory windows', () => {
 	let account: string = randomUUID(),
@@ -23,10 +17,12 @@ run('consistent authorized Inventory windows', () => {
 	let actor: import('@spellbook/contracts/auth.ts').AuthUser,
 		foreignActor: import('@spellbook/contracts/auth.ts').AuthUser;
 	let database: ReturnType<typeof createDatabase>, inventory: ReturnType<typeof createInventory>;
+	let mutations: ReturnType<typeof createInventoryMutations>;
 	beforeAll(async () => {
 		database = createDatabase(process.env.TEST_DATABASE_URL!);
 		const auth = createLocalAuth(database.db, { demoMode: false });
 		inventory = createInventory(database.pool, auth);
+		mutations = createInventoryMutations(database.db, createCatalog(database.pool), auth);
 		const first = await auth.authenticate(
 			'register',
 			'iw_' + account.slice(0, 8),
@@ -49,13 +45,72 @@ run('consistent authorized Inventory windows', () => {
 		]);
 		await database.pool.end();
 	});
+	const ownerActor = (owner: string) => (owner === account ? actor : foreignActor);
+	async function createInventoryGroup(owner: string, name: string) {
+		const ack = await mutations.createGroup(ownerActor(owner), { requestId: randomUUID(), name });
+		return { id: ack.groups[0].groupId };
+	}
+	const renameInventoryGroup = (owner: string, groupId: string, name: string) =>
+		mutations.renameGroup(ownerActor(owner), { requestId: randomUUID(), groupId, name });
+	const deleteInventoryGroup = (owner: string, groupId: string) =>
+		mutations.deleteGroup(ownerActor(owner), { requestId: randomUUID(), groupId });
+	const replaceInventoryGroupMemberships = (owner: string, entryId: string, groupIds: string[]) =>
+		mutations.replaceMemberships(ownerActor(owner), { requestId: randomUUID(), entryId, groupIds });
+	const reorderInventoryCard = (owner: string, entryId: string, position: number) =>
+		mutations.reorder(ownerActor(owner), { requestId: randomUUID(), entryId, position });
+	const removeInventoryCard = (owner: string, entryId: string, expectedQuantity: number) =>
+		mutations.remove(ownerActor(owner), { requestId: randomUUID(), entryId, expectedQuantity });
+	// Deliberately synthetic reader fixtures exercise literal search and aggregate math, independently of Catalog mutation validation.
+	async function seedReaderEntries(
+		owner: string,
+		input: {
+			operations: Array<{
+				card: {
+					catalogCardId: string;
+					canonicalCardId: string;
+					name: string;
+					setCode: string;
+					imageUri: string;
+				};
+				quantity: number;
+				finish: string;
+				condition: string;
+			}>;
+			requestId: string;
+			game: string;
+			source: string;
+		}
+	) {
+		const parent = await ensureInventory(database.db, owner, 'mtg');
+		for (let position = 0; position < input.operations.length; position++) {
+			const op = input.operations[position];
+			await database.pool.query(
+				'INSERT INTO inventory_cards(id,account_id,inventory_id,game,catalog_card_id,canonical_card_id,name,set_code,image_uri,quantity,finish,condition,spellbook_position)VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)',
+				[
+					randomUUID(),
+					owner,
+					parent.id,
+					'mtg',
+					op.card.catalogCardId,
+					op.card.canonicalCardId,
+					op.card.name,
+					op.card.setCode,
+					op.card.imageUri,
+					op.quantity,
+					op.finish,
+					op.condition,
+					position
+				]
+			);
+		}
+	}
+
 	it('returns bounded entries, complete metrics and literal search, rejects mixed revisions', async () => {
-		await bulkMutateInventory(account, {
+		await seedReaderEntries(account, {
 			requestId: randomUUID(),
 			game: 'mtg',
 			source: 'web',
 			operations: Array.from({ length: 120 }, (_, i) => ({
-				op: 'add',
 				card: {
 					catalogCardId: `card-${i}`,
 					canonicalCardId: `oracle-${i % 60}`,
@@ -180,12 +235,11 @@ run('consistent authorized Inventory windows', () => {
 		}
 	});
 	it('preserves large copy sums across matching global and overlapping group totals', async () => {
-		await bulkMutateInventory(foreign, {
+		await seedReaderEntries(foreign, {
 			requestId: randomUUID(),
 			game: 'mtg',
 			source: 'web',
 			operations: [0, 1].map((i) => ({
-				op: 'add' as const,
 				card: {
 					catalogCardId: randomUUID(),
 					canonicalCardId: randomUUID(),

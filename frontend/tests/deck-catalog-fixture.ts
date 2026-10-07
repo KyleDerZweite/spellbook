@@ -65,6 +65,7 @@ export async function ensureDeckCatalogFixture(pool: Pool) {
 	}
 	return {
 		catalogCardId: card.id,
+		alternateCatalogCardId: printings[1]?.id ?? card.id,
 		canonicalCardId: card.oracle_id,
 		name: card.name,
 		setCode: card.set_code,

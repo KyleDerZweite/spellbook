@@ -17,6 +17,7 @@ The [route source](../../frontend/src/routes/) owns implemented handlers. The [s
 | `/`                           | Public landing for signed-out and signed-in users                                 |
 | `/mtg/dashboard`              | Authenticated account summaries and per-deck availability                         |
 | `/mtg/search`                 | Public catalog search and printing details                                        |
+| `/mtg/inventory/[entryId]`    | Authenticated SSR owned-entry Notes/Groups/reviewed Remove forms                  |
 | `/mtg/inventory`              | Authenticated bounded Inventory pages, GET filters and form actions               |
 | `/mtg/scan`                   | Authenticated image upload, candidate review, and explicit inventory commit       |
 | `/mtg/decks`                  | Authenticated deck library; `deck=ID` selects the editor; native tasks use `flow` |

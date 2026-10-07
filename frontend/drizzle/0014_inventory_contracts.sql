@@ -1,0 +1,1 @@
+ALTER TABLE "inventory_mutation_requests" ADD COLUMN "acknowledgement" jsonb;

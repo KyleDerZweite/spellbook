@@ -54,6 +54,7 @@
 		use:enhance={mutation.submit}
 		aria-busy={mutation.pending}
 	>
+		<input type="hidden" name="requestId" value={page.data.requestId} />
 		<input type="hidden" name="entryId" value={entry.id} />
 		{#if groups.length === 0}<p class="text-sm text-text-secondary">
 				Create a group in the Groups view first.

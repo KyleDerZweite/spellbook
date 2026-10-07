@@ -5,7 +5,6 @@ import { error, json } from '@sveltejs/kit';
 import { requireMobileAuth } from '#lib/server/mobile/auth.ts';
 import { batchAddInventory } from '#lib/server/mobile/mtg-service.ts';
 import { badRequestIfValidation } from '#lib/server/mobile/route-errors.ts';
-import { assertInventoryOperation } from '#lib/server/mtg/validation.ts';
 
 export const GET: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
@@ -33,19 +32,19 @@ export const POST: RequestHandler = async (event) => {
 			if (!item || typeof item !== 'object' || Array.isArray(item))
 				error(400, 'Each inventory item must be an object');
 			const input = item as Record<string, unknown>;
-			const operation = assertInventoryOperation({
-				op: 'add',
-				card: input,
-				finish: input.finish,
-				condition: input.condition,
-				quantity: readNumber(input.quantity, 'quantity', 1)
-			});
-			if (operation.op !== 'add') error(400, 'Expected an inventory add');
 			return {
-				...operation.card,
-				finish: operation.finish,
-				condition: operation.condition,
-				quantity: operation.quantity
+				catalogCardId: readString(input.catalogCardId, 'catalogCardId'),
+				finish: readString(input.finish, 'finish', 'nonfoil'),
+				condition: readString(input.condition, 'condition', 'NM'),
+				quantity: readNumber(input.quantity, 'quantity', 1),
+				...(Object.hasOwn(input, 'notes')
+					? {
+							notes: readString(input.notes, 'notes'),
+							...(Object.hasOwn(input, 'notesRevision')
+								? { notesRevision: readString(input.notesRevision, 'notesRevision') }
+								: {})
+						}
+					: {})
 			};
 		});
 		return json(

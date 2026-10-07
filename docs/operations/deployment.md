@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: repo config
-- Update Triggers: compose services and first startup, catalog import and recovery, images, local launch commands and preview target, environment variables, migrations, storage, workspace ownership and compatibility adapters, Inventory ICU preflight and collation recovery, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
+- Update Triggers: price publication/pair recovery, compose services and first startup, catalog import and recovery, images, local launch commands and preview target, environment variables, migrations, storage, workspace ownership and compatibility adapters, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
 - Related Docs: [Postgres](../architecture/postgres.md), [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Classifier research](../integrations/card-categorization.md)
 
 The canonical service definitions are [`podman-compose.yml`](../../podman-compose.yml) and the local storage override [`podman-compose.dev.yml`](../../podman-compose.dev.yml). Keep live domains, account details, and secret references in private operator notes.
@@ -124,6 +124,8 @@ The [verification workflow](./github-automation.md#ci-coverage) owns CI coverage
 
 After a PostgreSQL or ICU upgrade, compare the stored `pg_collation.collversion` with `pg_collation_actual_version(oid)` for `inventory_root`. If they differ, rebuild every index dependent on that collation, including `inventory_cards_window_name_idx`, before `ALTER COLLATION inventory_root REFRESH VERSION`. Coordinate writes and application restart during this operator maintenance, then verify page/location ordering against the same revision. Refreshing the version alone does not rebuild indexes. Catalog set-code equality retains its existing default collation as described in [Catalog](../architecture/catalog.md#printing-and-import-identity).
 
+Apply [migration 0014](../../frontend/drizzle/0014_inventory_contracts.sql) with the existing migrator before starting the updated Inventory mutation application. The integrated journal applies it after 0013 SavedState, following 0011 Inventory windows and 0012 Deck contracts. It adds nullable JSONB original acknowledgements to Inventory mutation requests without fabricating or backfilling old receipts. [Postgres](../architecture/postgres.md) owns the legacy policy.
+
 ## Saved-state streaming
 
 Apply [migration 0013](../../frontend/drizzle/0013_saved_state.sql) with the existing migrator before starting SSE-capable replicas. The integrated migration journal applies it after 0011 Inventory windows and 0012 Deck contracts. It adds commit notification triggers, not table columns. Reserve one additional PostgreSQL listener connection per application process beyond request pools. No new runtime variable, package or sticky-session configuration is required.
@@ -167,23 +169,22 @@ COMMIT;
 
 This invalidates the publication marker without removing the readable generation. A failed rebuild leaves that catalog available. Confirm the new publication and restart the scheduled worker with `podman-compose up -d worker`.
 
-To restore the previous retained catalog, stop the worker and run:
+To restore the previous retained Catalog/Price pair, stop the Worker and run:
 
-```sql
-BEGIN;
-SELECT pg_advisory_xact_lock(1936747619, 1);
-UPDATE catalog_state
-SET active_generation = previous_generation,
-    previous_generation = active_generation,
-    updated_at = now()
-WHERE id = 1 AND previous_generation IS NOT NULL;
-COMMIT;
+```sh
+podman-compose run --rm --entrypoint python worker -c 'import os; from worker.catalog import CatalogPublisher; CatalogPublisher(os.environ["DATABASE_URL"]).restore_previous()'
 ```
 
-Confirm that the update affected one row and verify the active generation. Zero rows means no previous generation is available. Keep the worker stopped until the source or transformation problem is corrected; another sync can otherwise publish the newer snapshot again. Only one previous generation is retained. [Catalog architecture](../architecture/catalog.md) owns transaction and reader guarantees.
+The command verifies a retained recorded pair and swaps both pointers under the publisher lock in one transaction. Missing recovery data fails without changes. Verify Catalog search and reference reads. Keep the Worker stopped until the source or transformation problem is corrected; another sync can otherwise publish the newer snapshot again. Only current/previous public views are retained. [Catalog architecture](../architecture/catalog.md) owns reader guarantees.
+
+## Scryfall price upgrade
+
+Stop the scheduled Worker, then use the existing migrator to apply the coherent journal in order: 0014 Inventory acknowledgements, then 0015 public price references. Both migrations preserve existing account rows. Start the upgraded Worker and reference reads only after 0015 completes. A matching Catalog timestamp alone no longer skips initial price activation: successful paired publication and extraction/mapping versions are required. Existing daily/manual import commands remain unchanged. Inspect price_state joined to price_publications for source time, digest/version, active/previous IDs and safe refresh health. All-null amounts can be a successful publication.
+
+Restore Catalog and Price together using the paired command above. Stop the scheduled Worker and invoke CatalogPublisher.restore_previous through the existing protected DATABASE_URL. This locks publication, verifies the retained pair exists and swaps both pointers atomically; no recoverable pair raises an error without changes. Verify public reference reads and Catalog search before resuming synchronization. Never infer source dates from downloaded filenames or attach today's descriptor to an older saved payload. Current/previous public views are bounded; later personal snapshots preserve trusted evidence independently.
 
 ## Oracle Tags and category rollout
 
-Apply the sequenced category migration before the frontend or worker that uses category tables. Migration 0016 follows the reserved Inventory and price migrations 0014/0015; a staged SQL file without journal metadata is not a deployable migration history. Do not start an incomplete migration sequence. Catalog transform changes require a fresh publication that includes internal raw Oracle/type facts. Until that publication exists, primary tag predicates remain Unknown; saved decisions remain readable and Manual choices work.
+Apply the sequenced category migration before the frontend or worker that uses category tables. Migration 0016 follows the Inventory and price migrations 0014/0015 in the coherent journal. Apply migrations in sequence before starting the upgraded application. Catalog transform changes require a fresh publication that includes internal raw Oracle/type facts. Until that publication exists, primary tag predicates remain Unknown; saved decisions remain readable and Manual choices work.
 
 Worker sync imports the exact trusted Oracle Tags descriptor and payload, then atomically activates complete facts/mapping. Inspect `oracle_tag_state` active/previous publication and safe refresh status together with immutable publication source time/digest/parser/mapping versions. A failed refresh preserves prior valid facts. Recovery retries the same source; filenames or new metadata must not redatestamp an old offline export. [Worker](../architecture/worker.md#oracle-tags-publication) owns import mechanics and [category rules](../architecture/category-rules.md#implemented-starter-entry-decisions) owns account assignment behavior. Public recovery never triggers existing automatic reassignment.

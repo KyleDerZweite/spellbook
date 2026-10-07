@@ -293,16 +293,25 @@ describe('mobile route validation', () => {
 		expect(service.updateInventoryEntry).not.toHaveBeenCalled();
 	});
 
-	it('preserves inventory defaults for omitted fields', async () => {
+	it('omits untouched Inventory quantity and Notes fields instead of resetting them', async () => {
 		service.updateInventoryEntry.mockResolvedValue(null);
 		await updateInventory(event('{}') as never);
-		expect(service.updateInventoryEntry).toHaveBeenLastCalledWith(expect.anything(), uuid, 1, '');
+		expect(service.updateInventoryEntry).toHaveBeenLastCalledWith(expect.anything(), {
+			requestId: '',
+			entryId: uuid,
+			source: 'mobile'
+		});
 	});
 
 	it('preserves the zero quantity removal contract', async () => {
 		service.updateInventoryEntry.mockResolvedValue(null);
 		await updateInventory(event('{"quantity":0}') as never);
-		expect(service.updateInventoryEntry).toHaveBeenCalledWith(expect.anything(), uuid, 0, '');
+		expect(service.updateInventoryEntry).toHaveBeenCalledWith(expect.anything(), {
+			requestId: '',
+			entryId: uuid,
+			quantity: 0,
+			source: 'mobile'
+		});
 	});
 
 	it.each([createDeck, updateDeck, updateInventory, addDeckCard])(

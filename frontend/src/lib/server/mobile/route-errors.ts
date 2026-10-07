@@ -4,6 +4,11 @@ import {
 	CategoryMergeConflict
 } from '#lib/server/composition.ts';
 import { DescriptionConflictError, DeckNotFoundError } from '#lib/server/data/decks.ts';
+import {
+	InventoryNotFoundError,
+	InventoryQuantityChangedError,
+	NotesConflictError
+} from '#lib/server/data/inventory.ts';
 import { error } from '@sveltejs/kit';
 import { RequestConflictError } from '#lib/server/data/request-fingerprint.ts';
 import { ValidationError } from '#lib/server/mtg/validation.ts';
@@ -25,6 +30,16 @@ export function badRequestIfValidation(cause: unknown, fallback = 'Invalid reque
 		throw error(409, { kind: cause.kind, message: cause.message, latest: cause.latest });
 	if (cause instanceof CategoryMergeConflict)
 		throw error(409, { kind: cause.kind, message: cause.message, preview: cause.preview });
+	if (cause instanceof NotesConflictError)
+		throw error(409, { kind: 'NotesConflict', message: cause.message, ...cause.latest });
+	if (cause instanceof InventoryQuantityChangedError)
+		throw error(409, {
+			kind: 'QuantityChanged',
+			message: cause.message,
+			latestQuantity: cause.latestQuantity
+		});
+	if (cause instanceof InventoryNotFoundError)
+		throw error(404, { kind: 'NotFound', message: cause.message });
 	if (cause instanceof DescriptionConflictError)
 		throw error(409, { kind: 'DescriptionConflict', message: cause.message, ...cause.latest });
 	if (cause instanceof DeckNotFoundError)

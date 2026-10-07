@@ -66,6 +66,15 @@ function visit(value: Json, visitor: (value: Record<string, Json>) => void): voi
 }
 
 describe('OpenAPI contract', () => {
+	it('documents bounded reference decimals with a literal decimal point', async () => {
+		const schema = await GET().json();
+		const amount = schema.components.schemas.PriceReference.oneOf[0].properties.amount;
+		const pattern = new RegExp(amount.pattern);
+		expect(amount.maxLength).toBe(128);
+		expect(pattern.test('0.005')).toBe(true);
+		expect(pattern.test('0x005')).toBe(false);
+		expect(pattern.test('0.' + '1'.repeat(19))).toBe(false);
+	});
 	it('includes the status and message returned by SvelteKit errors', async () => {
 		const schema = (await GET().json()) as Document;
 		let body: unknown;
@@ -141,6 +150,12 @@ describe('OpenAPI contract', () => {
 			for (const method of methods) {
 				const operation = item[method];
 				if (!operation) continue;
+				if (path === '/api/mobile/v1/mtg/prices' && method === 'get') {
+					expect(operation.security).toEqual([]);
+					for (const status of ['200', '400', '503'])
+						expect(operation.responses[status]?.content).toBeDefined();
+					continue;
+				}
 				expect(operation.security, `${method} ${path}`).toEqual([
 					{ sessionCookie: [] },
 					{ bearerToken: [] }

@@ -1,0 +1,278 @@
+{
+  "retrieved_on": "2026-10-07",
+  "source": "Public Scryfall Card Objects. Field presence is preserved for nine exact-object projections. Prices and image URIs omitted; face records are projected to identity/artwork fields. Three initial search responses are not included. Total research requests: eight initial, four bounded follow-up lookups.",
+  "requests": [
+    {
+      "request_url": "https://api.scryfall.com/cards/cmm/410/en",
+      "http_status": 200,
+      "present_fields": {
+        "id": "46ca0b66-a000-4483-b916-f5b89e710244",
+        "name": "Sol Ring",
+        "lang": "en",
+        "set": "cmm",
+        "set_id": "cd05036f-2698-43e6-a48e-5c8d82f0a551",
+        "collector_number": "410",
+        "oracle_id": "6ad8011d-3471-4369-9d68-b264cc027487",
+        "finishes": [
+          "nonfoil",
+          "foil"
+        ],
+        "variation": false,
+        "illustration_id": "146aaae4-93f4-409a-be32-010e86d137da",
+        "frame": "2015",
+        "promo": false,
+        "border_color": "black",
+        "full_art": false,
+        "textless": false,
+        "oversized": false,
+        "layout": "normal"
+      },
+      "absent_fields": [
+        "variant",
+        "variation_of",
+        "illustration_ids",
+        "frame_effects",
+        "promo_types",
+        "card_faces"
+      ]
+    },
+    {
+      "request_url": "https://api.scryfall.com/cards/cmm/410/de",
+      "http_status": 200,
+      "present_fields": {
+        "id": "05cc1c76-8e74-42d7-9d75-780b36e7eb88",
+        "name": "Sol Ring",
+        "lang": "de",
+        "set": "cmm",
+        "set_id": "cd05036f-2698-43e6-a48e-5c8d82f0a551",
+        "collector_number": "410",
+        "oracle_id": "6ad8011d-3471-4369-9d68-b264cc027487",
+        "finishes": [
+          "nonfoil",
+          "foil"
+        ],
+        "variation": false,
+        "illustration_id": "146aaae4-93f4-409a-be32-010e86d137da",
+        "frame": "2015",
+        "promo": false,
+        "border_color": "black",
+        "full_art": false,
+        "textless": false,
+        "oversized": false,
+        "layout": "normal"
+      },
+      "absent_fields": [
+        "variant",
+        "variation_of",
+        "illustration_ids",
+        "frame_effects",
+        "promo_types",
+        "card_faces"
+      ]
+    },
+    {
+      "request_url": "https://api.scryfall.com/cards/cmm/703/en",
+      "http_status": 200,
+      "present_fields": {
+        "id": "7454e0cc-98c2-48a1-b2c9-49908d2aedcc",
+        "name": "Sol Ring",
+        "lang": "en",
+        "set": "cmm",
+        "set_id": "cd05036f-2698-43e6-a48e-5c8d82f0a551",
+        "collector_number": "703",
+        "oracle_id": "6ad8011d-3471-4369-9d68-b264cc027487",
+        "finishes": [
+          "nonfoil",
+          "foil"
+        ],
+        "variation": false,
+        "illustration_id": "ecc93b09-f924-4627-bc5e-0daf32881abb",
+        "frame": "2015",
+        "frame_effects": [
+          "inverted"
+        ],
+        "promo": false,
+        "promo_types": [
+          "boosterfun"
+        ],
+        "border_color": "borderless",
+        "full_art": true,
+        "textless": false,
+        "oversized": false,
+        "layout": "normal"
+      },
+      "absent_fields": [
+        "variant",
+        "variation_of",
+        "illustration_ids",
+        "card_faces"
+      ]
+    },
+    {
+      "request_url": "https://api.scryfall.com/cards/sld/1074/en",
+      "http_status": 200,
+      "present_fields": {
+        "id": "27ea0aa3-30c0-4eb4-b262-ce70781277ce",
+        "name": "Sol Ring",
+        "lang": "en",
+        "set": "sld",
+        "set_id": "4d92a8a7-ccb0-437d-abdc-9d70fc5ed672",
+        "collector_number": "1074",
+        "oracle_id": "6ad8011d-3471-4369-9d68-b264cc027487",
+        "finishes": [
+          "etched"
+        ],
+        "variation": false,
+        "illustration_id": "7926a488-c2a0-4867-a26b-344b65ed98b7",
+        "frame": "1997",
+        "promo": false,
+        "border_color": "black",
+        "full_art": false,
+        "textless": false,
+        "oversized": false,
+        "layout": "normal"
+      },
+      "absent_fields": [
+        "variant",
+        "variation_of",
+        "illustration_ids",
+        "frame_effects",
+        "promo_types",
+        "card_faces"
+      ]
+    },
+    {
+      "request_url": "https://api.scryfall.com/cards/isd/51/en",
+      "http_status": 200,
+      "present_fields": {
+        "id": "11bf83bb-c95b-4b4f-9a56-ce7a1816307a",
+        "name": "Delver of Secrets // Insectile Aberration",
+        "lang": "en",
+        "set": "isd",
+        "set_id": "d1026945-2969-42b9-be53-f941405a58cb",
+        "collector_number": "51",
+        "oracle_id": "edd531b9-f615-4399-8c8c-1c5e18c4acbf",
+        "finishes": [
+          "nonfoil",
+          "foil"
+        ],
+        "variation": false,
+        "frame": "2003",
+        "frame_effects": [
+          "sunmoondfc"
+        ],
+        "promo": false,
+        "border_color": "black",
+        "full_art": false,
+        "textless": false,
+        "oversized": false,
+        "layout": "transform",
+        "card_faces": [
+          {
+            "name": "Delver of Secrets",
+            "illustration_id": "1c2fee9b-89ea-4ab1-a751-451c3cd65a88",
+            "type_line": "Creature — Human Wizard"
+          },
+          {
+            "name": "Insectile Aberration",
+            "illustration_id": "c2b5f731-771b-4949-90f3-0ad40d676100",
+            "type_line": "Creature — Human Insect"
+          }
+        ]
+      },
+      "absent_fields": [
+        "variant",
+        "variation_of",
+        "illustration_id",
+        "illustration_ids",
+        "promo_types"
+      ]
+    },
+    {
+      "request_url": "https://api.scryfall.com/cards/cmm/703/de",
+      "http_status": 200,
+      "present_fields": {
+        "id": "511edf9b-1e35-4ffe-9212-bbc8f6b1d406",
+        "name": "Sol Ring",
+        "lang": "de",
+        "set": "cmm",
+        "set_id": "cd05036f-2698-43e6-a48e-5c8d82f0a551",
+        "collector_number": "703",
+        "oracle_id": "6ad8011d-3471-4369-9d68-b264cc027487",
+        "finishes": ["nonfoil", "foil"],
+        "layout": "normal",
+        "variation": false,
+        "illustration_id": "ecc93b09-f924-4627-bc5e-0daf32881abb",
+        "frame": "2015",
+        "frame_effects": ["inverted"],
+        "promo": false,
+        "promo_types": ["boosterfun"],
+        "border_color": "borderless",
+        "full_art": true,
+        "textless": false,
+        "oversized": false
+      },
+      "absent_fields": ["variation_of", "card_faces"]
+    },
+    {
+      "request_url": "https://api.scryfall.com/cards/cmm/703/fr",
+      "http_status": 200,
+      "present_fields": {
+        "id": "eaf6c495-5f50-4c27-8281-8026a0bc5612",
+        "name": "Sol Ring",
+        "lang": "fr",
+        "set": "cmm",
+        "set_id": "cd05036f-2698-43e6-a48e-5c8d82f0a551",
+        "collector_number": "703",
+        "oracle_id": "6ad8011d-3471-4369-9d68-b264cc027487",
+        "finishes": ["nonfoil", "foil"],
+        "layout": "normal",
+        "variation": false,
+        "illustration_id": "ecc93b09-f924-4627-bc5e-0daf32881abb",
+        "frame": "2015",
+        "frame_effects": ["inverted"],
+        "promo": false,
+        "promo_types": ["boosterfun"],
+        "border_color": "borderless",
+        "full_art": true,
+        "textless": false,
+        "oversized": false
+      },
+      "absent_fields": ["variation_of", "card_faces"]
+    },
+    {
+      "request_url": "https://api.scryfall.com/cards/cmm/703/ja",
+      "http_status": 200,
+      "present_fields": {
+        "id": "e52f2962-2768-4f5a-93db-0b501418a922",
+        "name": "Sol Ring",
+        "lang": "ja",
+        "set": "cmm",
+        "set_id": "cd05036f-2698-43e6-a48e-5c8d82f0a551",
+        "collector_number": "703",
+        "oracle_id": "6ad8011d-3471-4369-9d68-b264cc027487",
+        "finishes": ["nonfoil", "foil"],
+        "layout": "normal",
+        "variation": false,
+        "illustration_id": "ecc93b09-f924-4627-bc5e-0daf32881abb",
+        "frame": "2015",
+        "frame_effects": ["inverted"],
+        "promo": false,
+        "promo_types": ["boosterfun"],
+        "border_color": "borderless",
+        "full_art": true,
+        "textless": false,
+        "oversized": false
+      },
+      "absent_fields": ["variation_of", "card_faces"]
+    },
+    {
+      "request_url": "https://api.scryfall.com/cards/cmm/703/it",
+      "http_status": 404,
+      "error": {
+        "code": "not_found",
+        "details": "No card found with the given ID or set code and collector number."
+      }
+    }
+  ]
+}
