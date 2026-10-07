@@ -26,7 +26,7 @@
 		}
 		void goto(searchHref(session.input), {
 			shallow: true,
-			state: { ...page.state, searchOverlay: { background: page.url.href } }
+			state: { ...page.state, searchOverlay: { background: (page.shallow?.url ?? page.url).href } }
 		});
 	}
 
@@ -48,7 +48,9 @@
 			state: {
 				...page.state,
 				searchOverlay: undefined,
-				searchFullView: { background: page.state.searchOverlay?.background ?? page.url.href }
+				searchFullView: {
+					background: page.state.searchOverlay?.background ?? (page.shallow?.url ?? page.url).href
+				}
 			}
 		});
 	}

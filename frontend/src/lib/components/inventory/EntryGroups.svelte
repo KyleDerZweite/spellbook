@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { inventoryAction } from '#lib/mtg/inventory-action.ts';
+	import { inventoryAction, effectiveInventoryUrl } from '#lib/mtg/inventory-action.ts';
 	import { enhance } from '$app/forms';
 	import { GroupMutation } from '#lib/mtg/groupMutation.svelte.ts';
 	import { untrack } from 'svelte';
@@ -10,6 +10,7 @@
 		groups,
 		groupIds,
 		onClose,
+		refresh,
 		onCloseAutoFocus
 	}: {
 		entry: {
@@ -23,10 +24,15 @@
 		groups: { id: string; name: string }[];
 		groupIds: string[];
 		onClose: () => void;
+		refresh: () => Promise<void>;
 		onCloseAutoFocus: (event: Event) => void;
 	} = $props();
 	let selected = $state(new Set(untrack(() => groupIds)));
-	const mutation = new GroupMutation(() => onClose());
+	const mutation = new GroupMutation(
+		() => onClose(),
+		() => refresh(),
+		() => page.data.user?.accountId ?? 'session'
+	);
 
 	function toggle(id: string) {
 		const next = new Set(selected);
@@ -44,7 +50,7 @@
 >
 	<form
 		method="POST"
-		action={inventoryAction('assignGroups', page.url)}
+		action={inventoryAction('assignGroups', effectiveInventoryUrl(page))}
 		use:enhance={mutation.submit}
 		aria-busy={mutation.pending}
 	>
