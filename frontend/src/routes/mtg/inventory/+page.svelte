@@ -13,6 +13,11 @@
 		clampBrowsePagination
 	} from '#lib/browsing/pagination.ts';
 	import CardQuickAdd from '#lib/components/cards/CardQuickAdd.svelte';
+	import CardBrowsingActions from '#lib/components/cards/CardBrowsingActions.svelte';
+	import {
+		createDeckAdditionDraft,
+		createInventoryAdditionDraft
+	} from '#lib/cards/addition-drafts.ts';
 	import VirtualInventoryList from '#lib/components/inventory/VirtualInventoryList.svelte';
 	import {
 		InventoryWindow,
@@ -68,6 +73,22 @@
 	let resultsHeading = $state<HTMLHeadingElement | null>(null);
 	let pageController: AbortController | null = null;
 	let addingPending = $state(false);
+	let deckAdditionDraft = $state(createDeckAdditionDraft());
+	let inventoryAdditionDraft = $state(createInventoryAdditionDraft());
+	let additionAccount = untrack(() => page.data.user?.accountId ?? null);
+	function clearAdditionDrafts() {
+		Object.assign(deckAdditionDraft, createDeckAdditionDraft());
+		Object.assign(inventoryAdditionDraft, createInventoryAdditionDraft());
+		addingPending = false;
+	}
+	$effect(() => {
+		const account = page.data.user?.accountId ?? null;
+		const state = workspaceSavedState.getState();
+		untrack(() => {
+			if (account !== additionAccount || !account || state === 'expired') clearAdditionDrafts();
+			additionAccount = account;
+		});
+	});
 	let privateCleared = $state(false);
 	let lastBrowseSearch = untrack(() => effectiveInventoryUrl(page).search);
 	let order = $state<InventoryOrder>({
@@ -219,6 +240,7 @@
 				window.clear();
 				targetEntries = {};
 				inspection = null;
+				clearAdditionDrafts();
 				removeId = null;
 				assigningEntryId = null;
 				pendingId = null;
@@ -232,6 +254,7 @@
 		});
 		return () => {
 			hydrated = false;
+			clearAdditionDrafts();
 			inventorySubscription?.dispose();
 			refreshController?.abort();
 			pageController?.abort();
@@ -797,6 +820,7 @@
 	) {
 		const card = inventoryCards.find((entry) => entry.id === id);
 		if (!card) return;
+		clearAdditionDrafts();
 		targetEntries[id] = card;
 		notesDraft = card.notes;
 		notesBase = card.notesRevision;
@@ -1666,12 +1690,14 @@
 			card={inspection.card}
 			inventoryEntryId={inspection.mode === 'add' ? undefined : inspection.entryId}
 			callerPending={pendingId !== null || addingPending}
+			onPendingChange={(value) => (addingPending = value)}
 			inventoryPriceRefreshKey={`${confirmedInventoryWrite}:${currentWindow.revision}:${inspected?.updatedAt.toISOString() ?? 'missing'}:${targetGone}`}
 			returnFocus={inspection.returnFocus}
 			actions={inspectionActions}
 			onClose={() => {
 				const id = inspection?.entryId;
 				inspection = null;
+				clearAdditionDrafts();
 				if (id)
 					void restoreAnchor(id).then((restored) => {
 						if (!restored) return;
@@ -1703,9 +1729,22 @@
 					}}>Add another printing</Button
 				>
 			</nav>
-			<div hidden={inspection?.mode !== 'add'}>
-				<CardQuickAdd card={activeCard} onPendingChange={(value) => (addingPending = value)} />
-			</div>
+			{#if inspection?.mode === 'add'}
+				<CardQuickAdd
+					card={activeCard}
+					draft={inventoryAdditionDraft}
+					actionRole="primary"
+					callerPending={pendingId !== null}
+					onPendingChange={(value) => (addingPending = value)}
+				/>
+			{:else if inspection?.mode === 'details'}
+				<CardBrowsingActions
+					card={activeCard}
+					deckDraft={deckAdditionDraft}
+					inventoryDraft={inventoryAdditionDraft}
+					onPendingChange={(value) => (addingPending = value)}
+				/>
+			{/if}
 			{#if inspection?.mode === 'edit'}{@render editEntryActions(activeCard)}
 			{:else if inspection?.mode === 'details'}<p>
 					{inspected?.quantity ?? quantityBase} owned copies · {inspected?.finish ?? ''} · {inspected?.condition ??
