@@ -1,9 +1,16 @@
 <script lang="ts">
 	import { onNavigate } from '$app/navigation';
+	import { page } from '$app/state';
 	import SearchBar from './SearchBar.svelte';
 	import SearchFilters from './SearchFilters.svelte';
 	import SearchResults from './SearchResults.svelte';
 	import CardDetail from '#lib/components/cards/CardDetail.svelte';
+	import CardBrowsingActions from '#lib/components/cards/CardBrowsingActions.svelte';
+	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
+	import {
+		createDeckAdditionDraft,
+		createInventoryAdditionDraft
+	} from '#lib/cards/addition-drafts.ts';
 	import Pagination from '#lib/components/ui/pagination/Pagination.svelte';
 	import { cardAt, type CatalogRange } from '#lib/search/catalogWindow.ts';
 	import { getSearchSession } from '#lib/search/session.svelte.ts';
@@ -46,6 +53,31 @@
 	const session = getSearchSession();
 	const filters = session.filters;
 	const catalog = session.catalog;
+	let deckDraft = $state(createDeckAdditionDraft());
+	let inventoryDraft = $state(createInventoryAdditionDraft());
+	let additionAccount = untrack(() => page.data.user?.accountId ?? null);
+	let additionPending = false;
+	let inspectorPending = false;
+	function clearAdditionDrafts() {
+		Object.assign(deckDraft, createDeckAdditionDraft());
+		Object.assign(inventoryDraft, createInventoryAdditionDraft());
+		additionPending = inspectorPending = false;
+		session.pending = false;
+	}
+	function changePending(kind: 'addition' | 'inspector', pending: boolean) {
+		if (kind === 'addition') additionPending = pending;
+		else inspectorPending = pending;
+		session.pending = additionPending || inspectorPending;
+	}
+	$effect(() => {
+		const account = page.data.user?.accountId ?? null;
+		const expired = workspaceSavedState.getState() === 'expired';
+		const selected = session.selectedCard;
+		untrack(() => {
+			if (!selected || !account || account !== additionAccount || expired) clearAdditionDrafts();
+			additionAccount = account;
+		});
+	});
 	let mounted = $state(false);
 	let windowViewport: Window | null = $state(null);
 	const host = $derived(viewport ?? windowViewport);
@@ -180,6 +212,7 @@
 		session.focus = resetFocus;
 	});
 	onDestroy(() => {
+		clearAdditionDrafts();
 		session.pause();
 		if (serverInput) catalog.releaseSeed();
 		if (session.focus === resetFocus) session.focus = () => {};
@@ -219,6 +252,7 @@
 	});
 	function handleSelect(card: CardDocument) {
 		if (!snapshot.validated || session.pending) return;
+		clearAdditionDrafts();
 		resultTrigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 		session.selectedCard = card;
 	}
@@ -226,6 +260,7 @@
 		if (session.pending) return;
 		const id = session.selectedCard?.id;
 		session.selectedCard = null;
+		clearAdditionDrafts();
 		void tick().then(() => {
 			const target = id
 				? resultsElement?.querySelector<HTMLElement>(`[data-card-id="${CSS.escape(id)}"]`)
@@ -355,7 +390,17 @@
 		onClose={handleCloseDetail}
 		returnFocus={resultTrigger ?? resultsHeading}
 		callerPending={session.pending}
-	/>
+		onPendingChange={(value) => changePending('inspector', value)}
+	>
+		{#snippet actions(card: CardDocument)}
+			<CardBrowsingActions
+				{card}
+				{deckDraft}
+				{inventoryDraft}
+				onPendingChange={(value) => changePending('addition', value)}
+			/>
+		{/snippet}
+	</CardDetail>
 {/if}
 
 <style>
