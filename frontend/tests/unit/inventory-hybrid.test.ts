@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { InventoryWindow } from '#lib/inventory/window.ts';
+import { InventoryWindow, matchingNativeInventoryQuery } from '#lib/inventory/window.ts';
+import { WorkspaceSavedState } from '#lib/saved-state/workspace.ts';
 import { inventoryQueryFromUrl, inventoryQueryKey } from '@spellbook/backend/inventory/query.ts';
 import type {
 	InventoryEntry,
@@ -266,4 +267,84 @@ it('remembers a large evicted neighbor admission cost instead of repeatedly fetc
 	expect(transport.mock.calls.length).toBe(calls);
 	expect(window.at(0)?.id).toBe('0');
 	window.clear(true);
+});
+
+describe('Inventory route intent through fresh authentication', () => {
+	it.each([
+		['cards', 7800, 7800],
+		['groups', 7800, 7800],
+		['cards', 7800, 8800]
+	] as const)(
+		'clears private %s records and reacquires current range %i to %i',
+		async (view, seedOffset, currentOffset) => {
+			const listeners = new Map<string, (event: { data: string }) => void>();
+			const workspace = new WorkspaceSavedState({
+				source: () => ({
+					readyState: 1,
+					close() {},
+					addEventListener(name, listener) {
+						listeners.set(name, listener);
+					},
+					onerror: null
+				}),
+				session: async () => 200,
+				visible: () => true,
+				listen: () => () => {},
+				changed() {}
+			});
+			workspace.start({ accountId: null, activation: 'initial' });
+			const controls = { ...query, view, offset: 0, limit: 200 as const };
+			const seed = result({ ...controls, offset: seedOffset }, 'private SSR notes');
+			const reads: InventoryQuery[] = [];
+			const window = new InventoryWindow(
+				async (input) => {
+					reads.push(input);
+					return result(input, 'leased fresh notes');
+				},
+				() => {}
+			);
+			window.seed('owner', seed, () => true, false, 'lazy');
+			let requested: InventoryQuery | null = seed.query;
+			let rangeOffset = seedOffset;
+			let clears = 0;
+			workspace.subscribe({
+				topics: ['inventory'],
+				clear() {
+					requested = { ...controls, offset: rangeOffset };
+					window.clear();
+					clears++;
+				},
+				async refresh(lease) {
+					const pending = matchingNativeInventoryQuery(requested, controls);
+					const native = pending ? { ...pending, offset: rangeOffset } : null;
+					await window.refresh(
+						'owner',
+						lease.signal,
+						lease.current,
+						native ??
+							matchingNativeInventoryQuery(window.current?.query ?? null, controls) ??
+							controls,
+						'lazy'
+					);
+					if (lease.current() && requested === pending) requested = null;
+				}
+			});
+			workspace.start({ accountId: 'owner', activation: 'initial' });
+			expect(clears).toBe(1);
+			expect(window.current).toBeUndefined();
+			expect(window.at(seedOffset)).toBeUndefined();
+			// A genuine scroll can move the checked range after privacy clear, before the first leased read.
+			rangeOffset = currentOffset;
+			listeners.get('reset')!({ data: '{}' });
+			await new Promise((resolve) => setTimeout(resolve, 0));
+			expect(reads.map((input) => input.offset)).toEqual([currentOffset]);
+			expect(window.current?.query.offset).toBe(currentOffset);
+			expect(requested).toBeNull();
+			workspace.stop();
+		}
+	);
+	it('drops pending native intent when filters change', () => {
+		const native = { ...query, offset: 7800, limit: 200 as const };
+		expect(matchingNativeInventoryQuery(native, { ...native, q: 'changed', offset: 0 })).toBeNull();
+	});
 });

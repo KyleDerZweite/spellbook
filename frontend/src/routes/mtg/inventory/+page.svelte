@@ -220,7 +220,7 @@
 	);
 	let windowAccount = '';
 	let lastServerWindow = untrack(() => data.window);
-	let requestedServerQuery: InventoryQuery | null = $state(null);
+	let requestedServerQuery: InventoryQuery | null = $state(untrack(() => data.window.query));
 	onMount(() => {
 		hydrated = true;
 		windowAccount = page.data.user?.accountId ?? 'session';
@@ -231,7 +231,8 @@
 			refresh: (lease) => refreshInventory(windowAccount, lease),
 			clear: () => {
 				privateCleared = true;
-				requestedServerQuery = null;
+				// Privacy clear discards records, not the checked current route range to reacquire.
+				requestedServerQuery = { ...requestQuery(), offset: browse.offset };
 				window.clear();
 				targetEntries = {};
 				inspection = null;
@@ -493,7 +494,8 @@
 		const controller = new AbortController();
 		refreshController = controller;
 		const account = expectedAccount;
-		const serverQuery = matchingNativeInventoryQuery(requestedServerQuery, controlQuery);
+		const pendingQuery = matchingNativeInventoryQuery(requestedServerQuery, controlQuery);
+		const serverQuery = pendingQuery ? { ...pendingQuery, offset: browse.offset } : null;
 		const anchor = serverQuery ? null : virtualList?.anchor();
 		anchorController?.abort();
 		anchorController = null;
@@ -517,7 +519,7 @@
 			)
 				return;
 			privateCleared = false;
-			if (serverQuery && requestedServerQuery === serverQuery) requestedServerQuery = null;
+			if (serverQuery && requestedServerQuery === pendingQuery) requestedServerQuery = null;
 			await refreshTargets(currentLease);
 			if (!currentLease()) return;
 			if (anchor?.id) await restoreAnchor(anchor.id, anchor.intra, anchor.index, currentLease);
