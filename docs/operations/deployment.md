@@ -28,7 +28,7 @@ The Compose base file starts the built stack on port 3000. Its `podman-compose.d
 
 ## Manual Demo Catalog update
 
-Update the versioned English Demo baseline manually when selecting a new source bundle. It is not a daily provider refresh. The implemented publisher retains old Catalog generations and all Price pointers; guarded Demo import acceptance remains pending. [Catalog](../architecture/catalog.md#storage-and-publication) owns bundle identity, counts and freshness semantics. [Demo setup](./local-auth.md#demo-mode) owns disposable database and private reset requirements.
+Update the versioned English Demo baseline manually when selecting a new source bundle. It is not a daily provider refresh. The implemented publisher retains old Catalog generations and all Price pointers; guarded local Demo import and private-state preservation are verified with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192). [Catalog](../architecture/catalog.md#storage-and-publication) owns bundle identity, counts and freshness semantics. [Demo setup](./local-auth.md#demo-mode) owns disposable database and private reset requirements.
 
 1. From the repository root, build from the selected local default bulk export with the native Worker transform:
 

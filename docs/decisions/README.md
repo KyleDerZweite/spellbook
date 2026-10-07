@@ -59,4 +59,4 @@ Rules:
 
 - [ADR-0020: Value-only Inventory history](./0020-value-only-inventory-history.md), accepted scope; personal capture design and implementation pending
 
-- [ADR-0021: Hybrid browsing and contextual Card dialog](./0021-hybrid-browsing-and-contextual-card-dialog.md), API, Shell, result-window foundations and contextual Card actions implemented; uniform continuous Lazy source implemented; current-head composed verification pending; partially supersedes ADR-0014 and ADR-0017 for affected browser UI and read limits
+- [ADR-0021: Hybrid browsing and contextual Card dialog](./0021-hybrid-browsing-and-contextual-card-dialog.md), API, Shell, result-window foundations and contextual Card actions implemented; uniform continuous Lazy source implemented; local composed verification recorded with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192); partially supersedes ADR-0014 and ADR-0017 for affected browser UI and read limits
