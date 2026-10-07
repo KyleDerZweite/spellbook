@@ -1,6 +1,13 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import {
+		initialCategoryDraft,
+		editCategoryDraft,
+		acknowledgeCategoryDraft,
+		reconcileCategoryDraft
+	} from '#lib/decks/category-save.ts';
 	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 	import type { SubmitFunction } from '$app/forms';
 	import type { DeckEntryCategories } from '@spellbook/contracts/categories.ts';
 	import Button from '#lib/components/ui/button/Button.svelte';
@@ -26,28 +33,41 @@
 	const name = $derived(
 		categories.definitions.find((d) => d.id === decision?.categoryId)?.name ?? 'Uncategorized'
 	);
-	let value = $state(
-		untrack(() => (recovery ? (recovery.categoryId ?? '') : (decision?.categoryId ?? '')))
-	);
-	let dirty = $state(untrack(() => !!recovery));
-	let revision = $state(
-		untrack(() => recovery?.expectedDecisionRevision ?? categories.decisionRevision)
+	let draft = $state(
+		untrack(() => initialCategoryDraft(decision, categories.decisionRevision, recovery))
 	);
 	$effect(() => {
-		if (!dirty) {
-			value = decision?.categoryId ?? '';
-			revision = categories.decisionRevision;
-		}
+		const next = reconcileCategoryDraft(draft, categories, entryId);
+		if (next !== draft) draft = next;
 	});
+	let refreshing = $state(false);
+	let readError = $state('');
+	async function refreshSaved() {
+		if (refreshing || busy) return;
+		refreshing = true;
+		readError = '';
+		try {
+			await invalidateAll();
+		} catch {
+			readError = 'Could not read the saved category. Your choice is retained.';
+		} finally {
+			refreshing = false;
+		}
+	}
 	const categorySubmit: SubmitFunction = async (args) => {
-		const submitted = value;
-		dirty = true;
+		const submitted = draft.value;
+		draft = editCategoryDraft(draft, submitted);
 		const after = await submit(args);
 		return async (response) => {
 			if (typeof after === 'function') await after(response);
-			if (response.result.type === 'success' && value === submitted) {
-				dirty = false;
-				revision = categories.decisionRevision;
+			if (response.result.type === 'success') {
+				const acknowledgement = response.result.data?.acknowledgement;
+				if (
+					acknowledgement?.deckId === categories.deckId &&
+					typeof acknowledgement.decisionRevision === 'string' &&
+					/^\d+$/.test(acknowledgement.decisionRevision)
+				)
+					draft = acknowledgeCategoryDraft(draft, submitted, acknowledgement);
 			}
 		};
 	};
@@ -70,6 +90,13 @@
 						: ''}
 				</p>{/each}
 		</details>{/if}
+	{#if draft.confirmation}<p role="status" class="notice">
+			Your Manual choice is saved. Waiting for a current read.
+		</p>
+		<Button type="button" variant="outline" disabled={busy || refreshing} onclick={refreshSaved}
+			>Refresh saved category</Button
+		>{/if}
+	{#if readError}<p role="alert" class="notice">{readError}</p>{/if}
 	<form method="POST" {action} use:enhance={categorySubmit} class="form-stack">
 		<input type="hidden" name="deckId" value={categories.deckId} /><input
 			type="hidden"
@@ -78,15 +105,15 @@
 		/><input type="hidden" name="requestId" value={recovery?.requestId ?? requestId} /><input
 			type="hidden"
 			name="expectedDecisionRevision"
-			value={revision}
+			value={draft.revision}
 		/>
 		<label for={inputId} class="label">Primary category</label>
 		<select
 			id={inputId}
 			name="categoryId"
 			class="input"
-			bind:value
-			onchange={() => (dirty = true)}
+			bind:value={draft.value}
+			onchange={() => (draft = editCategoryDraft(draft, draft.value))}
 			disabled={busy}
 		>
 			<option value="">Uncategorized</option>
@@ -94,7 +121,10 @@
 					value={definition.id}>{definition.name}</option
 				>{/each}
 		</select>
-		{#if revision !== categories.decisionRevision}<p role="alert" class="notice">
+		{#if BigInt(categories.decisionRevision) > BigInt(draft.revision)}<p
+				role="alert"
+				class="notice"
+			>
 				The saved category revision changed. Review the current decision above before applying your
 				retained choice.
 			</p>

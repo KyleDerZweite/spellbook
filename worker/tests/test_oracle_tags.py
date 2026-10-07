@@ -184,3 +184,51 @@ def test_mapping_version_rebuilds_unchanged_payload(publisher, tmp_path, monkeyp
     second = publisher.publish(path, descriptor())
     assert second["publicationId"] != first["publicationId"]
     assert second["unchanged"] is False
+
+
+def test_sync_records_publication_failure_once_and_download_failure_once(publisher, tmp_path):
+    import psycopg
+
+    from worker.main import sync_oracle_tags
+    from worker.scryfall import BulkDataInfo
+
+    class Source:
+        fail_download = False
+
+        def get_download_info(self, bulk_type):
+            assert bulk_type == "oracle_tags"
+            return BulkDataInfo(
+                "oracle_tags",
+                descriptor()["download_uri"],
+                descriptor()["updated_at"],
+                1,
+                descriptor()["id"],
+            )
+
+        def download_bulk_file(self, info, path):
+            if self.fail_download:
+                raise ValueError("source download unavailable")
+            path.write_text('{"truncated":')
+
+    with psycopg.connect(publisher.database_url) as conn:
+        conn.execute("CREATE TABLE status_attempts(kind text)")
+        conn.execute(
+            "CREATE FUNCTION audit_status() RETURNS trigger LANGUAGE plpgsql AS "
+            "$$ BEGIN INSERT INTO status_attempts VALUES(NEW.refresh_status->>'kind'); "
+            "RETURN NEW; END $$"
+        )
+        conn.execute(
+            "CREATE TRIGGER audit_status AFTER UPDATE ON oracle_tag_state "
+            "FOR EACH ROW EXECUTE FUNCTION audit_status()"
+        )
+    source = Source()
+    with pytest.raises(ValueError):
+        sync_oracle_tags(source, publisher, tmp_path)
+    source.fail_download = True
+    with pytest.raises(ValueError):
+        sync_oracle_tags(source, publisher, tmp_path)
+    with psycopg.connect(publisher.database_url) as conn:
+        assert (
+            conn.execute("SELECT count(*) FROM status_attempts WHERE kind='Failed'").fetchone()[0]
+            == 2
+        )

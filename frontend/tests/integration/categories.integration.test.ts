@@ -135,6 +135,18 @@ run('primary category decisions through authorized applications', () => {
 				operations: [{ ...op, categoryPreview: 'null' }]
 			})
 		).rejects.toMatchObject({ kind: 'CategoryMergeConflict' });
+		const beforeNoop = await categories.getDeckEntryCategories(actor, deck.id);
+		const noopInput = {
+			deckId: deck.id,
+			entryId: sideId,
+			categoryId: null,
+			expectedDecisionRevision: beforeNoop.decisionRevision,
+			requestId: randomUUID()
+		};
+		const noop = await categories.setEntryCategory(actor, noopInput);
+		expect(noop).toMatchObject({ entryIds: [], decisionRevision: beforeNoop.decisionRevision });
+		expect(await categories.getDeckEntryCategories(actor, deck.id)).toEqual(beforeNoop);
+		expect(await categories.setEntryCategory(actor, noopInput)).toEqual(noop);
 		const input = {
 			deckId: deck.id,
 			requestId: randomUUID(),

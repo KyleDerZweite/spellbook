@@ -226,6 +226,71 @@ test('built category HTTP and native forms share authorized commands and reviewe
 			}
 		);
 		await t.test(
+			'confirmed category acknowledgement survives a failed current page read and later recovery',
+			async () => {
+				const before = await state();
+				const draw = before.definitions.find((d) => d.origin === 'draw');
+				assert.ok(draw);
+				const requestId = randomUUID();
+				const input = {
+					deckId,
+					entryId: main,
+					categoryId: draw.id,
+					expectedDecisionRevision: before.decisionRevision,
+					requestId
+				};
+				const action = await fetch(`${origin}/mtg/decks?/setCategory&deck=${deckId}`, {
+					method: 'POST',
+					headers: {
+						cookie,
+						origin,
+						accept: 'application/json',
+						'x-sveltekit-action': 'true',
+						'content-type': 'application/x-www-form-urlencoded'
+					},
+					body: new URLSearchParams(input),
+					redirect: 'manual'
+				});
+				assert.equal(action.status, 200);
+				const result = await action.json();
+				assert.equal(result.type, 'success');
+				assert.match(result.data, /acknowledgement/);
+				const originalReceipt = await (
+					await request(`/api/mobile/v1/mtg/deck-cards/${main}/category`, 'PATCH', {
+						deckId,
+						categoryId: draw.id,
+						expectedDecisionRevision: before.decisionRevision,
+						requestId
+					})
+				).json();
+				await pool.query('ALTER TABLE oracle_tag_state RENAME TO category_http_source_hold');
+				try {
+					const unavailable = await request(`/mtg/decks?deck=${deckId}`, 'GET', undefined, {
+						cookie
+					});
+					assert.equal(unavailable.status, 500);
+				} finally {
+					await pool.query('ALTER TABLE category_http_source_hold RENAME TO oracle_tag_state');
+				}
+				const recovered = await state();
+				assert.equal(recovered.decisions.find((d) => d.entryId === main)?.categoryId, draw.id);
+				assert.equal(recovered.decisions.find((d) => d.entryId === main)?.state, 'Manual');
+				const retry = await request(`/api/mobile/v1/mtg/deck-cards/${main}/category`, 'PATCH', {
+					deckId,
+					categoryId: draw.id,
+					expectedDecisionRevision: before.decisionRevision,
+					requestId
+				});
+				assert.deepEqual(await retry.json(), originalReceipt);
+				await request(`/api/mobile/v1/mtg/deck-cards/${main}/category`, 'PATCH', {
+					deckId,
+					categoryId: null,
+					expectedDecisionRevision: recovered.decisionRevision,
+					requestId: randomUUID()
+				});
+			}
+		);
+		await t.test(
 			'a stale conflicting merge returns a new preview and native confirmation retains destination provenance',
 			async () => {
 				const before = await state();

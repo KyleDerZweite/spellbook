@@ -135,13 +135,20 @@ export function createCategories(
 				const latest = await read(tx, deckId);
 				if (latest.decisionRevision !== input.expectedDecisionRevision)
 					throw new CategoryConflict(latest);
-				await tx.execute(
-					sql`INSERT INTO deck_entry_category_decisions(entry_id,deck_id,category_id,state,evidence) VALUES(${entryId}::uuid,${deckId}::uuid,${categoryId}::uuid,'Manual',NULL) ON CONFLICT(entry_id) DO UPDATE SET category_id=EXCLUDED.category_id,state='Manual',revision=deck_entry_category_decisions.revision+1,evidence=NULL`
-				);
-				await tx.execute(
-					sql`UPDATE deck_category_bundles SET decision_revision=decision_revision+1 WHERE deck_id=${deckId}::uuid`
-				);
-				entryIds = [entryId!];
+				const existing = latest.decisions.find((decision) => decision.entryId === entryId);
+				if (
+					existing?.state !== 'Manual' ||
+					existing.categoryId !== categoryId ||
+					existing.evidence !== null
+				) {
+					await tx.execute(
+						sql`INSERT INTO deck_entry_category_decisions(entry_id,deck_id,category_id,state,evidence) VALUES(${entryId}::uuid,${deckId}::uuid,${categoryId}::uuid,'Manual',NULL) ON CONFLICT(entry_id) DO UPDATE SET category_id=EXCLUDED.category_id,state='Manual',revision=deck_entry_category_decisions.revision+1,evidence=NULL`
+					);
+					await tx.execute(
+						sql`UPDATE deck_category_bundles SET decision_revision=decision_revision+1 WHERE deck_id=${deckId}::uuid`
+					);
+					entryIds = [entryId!];
+				}
 			}
 			const revision = await tx.execute(
 				sql`SELECT decision_revision::text FROM deck_category_bundles WHERE deck_id=${deckId}::uuid`

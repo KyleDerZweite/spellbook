@@ -4,7 +4,8 @@ const mocks = vi.hoisted(() => ({
 	snapshot: vi.fn(),
 	search: vi.fn(),
 	legality: vi.fn(),
-	add: vi.fn()
+	add: vi.fn(),
+	categories: vi.fn()
 }));
 vi.mock('../../src/lib/server/data/decks', async () => ({
 	...(await vi.importActual<typeof import('../../src/lib/server/data/decks')>(
@@ -26,9 +27,19 @@ vi.mock('../../src/lib/server/mtg/deck-builder', () => ({
 }));
 vi.mock('../../src/lib/server/catalog/search', () => ({ getPrintings: vi.fn() }));
 vi.mock('../../src/lib/server/mtg/import', () => ({ previewMtgImport: vi.fn() }));
-vi.mock('../../src/lib/server/composition.ts', () => ({
-	application: { decks: { search: mocks.search, ownership: vi.fn().mockResolvedValue([]) } }
-}));
+vi.mock('../../src/lib/server/composition.ts', async () => {
+	const { CategoryNotFound, CategoryConflict, CategoryMergeConflict } =
+		await vi.importActual<typeof import('@spellbook/backend')>('@spellbook/backend');
+	return {
+		CategoryNotFound,
+		CategoryConflict,
+		CategoryMergeConflict,
+		application: {
+			decks: { search: mocks.search, ownership: vi.fn().mockResolvedValue([]) },
+			categories: { getDeckEntryCategories: mocks.categories }
+		}
+	};
+});
 import { actions, load } from '../../src/routes/mtg/decks/+page.server';
 
 function event(url = 'http://localhost/mtg/decks', fields: Record<string, string> = {}) {
@@ -47,6 +58,14 @@ beforeEach(() => {
 		inventoryCards: []
 	});
 	mocks.legality.mockResolvedValue({ warnings: [], deckDocuments: {} });
+	mocks.categories.mockResolvedValue({
+		deckId: 'owned',
+		initialized: false,
+		decisionRevision: '0',
+		definitions: [],
+		decisions: [],
+		sourceStatus: { kind: 'NeverAttempted', sourceTime: null }
+	});
 });
 
 describe('web deck boundaries', () => {

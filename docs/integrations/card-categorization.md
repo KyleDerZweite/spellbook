@@ -1,12 +1,12 @@
 # Card and deck categorization
 
-- Status: Source/rule design accepted; optional local Commander Spellbook adapter selected, no category integration implemented
-- Last Reviewed: 2026-10-06
+- Status: Oracle Tags publication and starter entry categories implemented; optional local Commander Spellbook adapter selected and planned
+- Last Reviewed: 2026-10-07
 - Source of Truth: linked primary documentation, local public Scryfall snapshots, recorded Jev HTTP experiment and read-only repository inspection
 - Update Triggers: classifier access, model versions and prices, taxonomy coverage, category quality, custom criteria, deck context and selected provider
 - Related Docs: [Integrations](./README.md), [Card grouping](../product/card-grouping.md), [Domain glossary](../../GLOSSARY.md), [Catalog](../architecture/catalog.md), [Worker](../architecture/worker.md), [System overview](../architecture/system-overview.md), [Category rules](../architecture/category-rules.md)
 
-This document owns source and classifier research. [Card grouping](../product/card-grouping.md#deck-categories-accepted-design) owns the requested Deck entry and whole-deck category behavior. After the authenticated Jev experiment, the maintainer selected sources and explicit rules for this pass. Jev stays a prototype. Free-text meanings and stronger or hybrid semantic classification are deferred; no production inference provider is selected.
+This document owns source and classifier research. [Card grouping](../product/card-grouping.md#deck-categories) owns the requested Deck entry and whole-deck category behavior. After the authenticated Jev experiment, the maintainer selected sources and explicit rules for this pass. Jev stays a prototype. Free-text meanings and stronger or hybrid semantic classification are deferred; no production inference provider is selected.
 
 ## Existing application and comparable tools
 

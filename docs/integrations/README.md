@@ -1,7 +1,7 @@
 # Integrations
 
 - Status: Canonical
-- Last Reviewed: 2026-10-06
+- Last Reviewed: 2026-10-07
 - Source of Truth: mixed
 - Update Triggers: external system contracts, integration scope and provider evaluations
 - Related Docs: [Market price research](./market-prices.md), [Card and deck categorization](./card-categorization.md), [Realtime backend evaluation](./realtime-backends.md), [Proposed card robot](./card-robot.md), [Worker](../architecture/worker.md), [Catalog](../architecture/catalog.md), [Docs index](../README.md), [Application contract](../architecture/application-contract.md), [Category rules](../architecture/category-rules.md)
@@ -12,6 +12,6 @@ Scryfall ingestion belongs to the [worker architecture](../architecture/worker.m
 
 [Market price research](./market-prices.md) compares sources for the selected value-tracking pass. [Value tracking](../product/value-tracking.md) owns the planned cost-batch and daily-history behavior. Prices, cost allocation and trading connections are not implemented.
 
-[Card and deck categorization](./card-categorization.md) records Oracle Tags coverage and the Jev/local-model evaluation. [Card grouping](../product/card-grouping.md) owns accepted category behavior. The optional local Commander Spellbook adapter is selected and unbuilt; [category rules](../architecture/category-rules.md) owns its planned mechanisms.
+[Card and deck categorization](./card-categorization.md) records Oracle Tags coverage and the Jev/local-model evaluation. [Card grouping](../product/card-grouping.md) owns implemented starter entry categories and later category behavior. The optional local Commander Spellbook adapter is selected and unbuilt; [category rules](../architecture/category-rules.md) owns implemented public facts and starter decisions alongside its later planned mechanisms.
 
 [Realtime backend evaluation](./realtime-backends.md) records dated Convex pricing, client and auth coupling, and the choice to retain PostgreSQL for the current pass. Q56 accepted PostgreSQL LISTEN/NOTIFY with account-scoped SSE; [application contract](../architecture/application-contract.md#saved-state-synchronization) owns the planned mechanism. Synchronization remains unimplemented.

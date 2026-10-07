@@ -86,6 +86,7 @@ def sync_catalog(
 def sync_oracle_tags(
     scryfall: ScryfallClient, publisher: OracleTagsPublisher, data_dir: Path
 ) -> None:
+    publication_started = False
     try:
         info = scryfall.get_download_info("oracle_tags")
         if info is None:
@@ -94,6 +95,7 @@ def sync_oracle_tags(
         with tempfile.TemporaryDirectory(prefix="oracle-tags-", dir=data_dir) as download_dir:
             path = Path(download_dir) / "tags.jsonl"
             scryfall.download_bulk_file(info, path)
+            publication_started = True
             publisher.publish(
                 path,
                 {
@@ -104,7 +106,8 @@ def sync_oracle_tags(
                 },
             )
     except Exception as cause:
-        publisher.record_failure(cause)
+        if not publication_started:
+            publisher.record_failure(cause)
         raise
 
 
