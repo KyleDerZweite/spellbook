@@ -167,10 +167,14 @@
 
 {#snippet overlayControls()}
 	<div class="ml-auto flex shrink-0 items-center gap-1">
-		<button class="btn btn-ghost shrink-0" onclick={fullView} disabled={session.pending}
-			>Full view</button
+		<button
+			type="button"
+			class="btn btn-ghost shrink-0"
+			onclick={fullView}
+			disabled={session.pending}>Full view</button
 		>
 		<button
+			type="button"
 			class="btn btn-ghost btn-icon shrink-0"
 			onclick={closeSearch}
 			disabled={session.pending}
