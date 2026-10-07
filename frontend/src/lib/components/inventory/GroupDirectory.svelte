@@ -148,7 +148,7 @@
 		});
 	});
 	$effect(() => {
-		if (lazy) onRange?.(start);
+		if (lazy) onRange?.(indexAt(top));
 	});
 	$effect(() => {
 		return () => {

@@ -368,7 +368,10 @@
 	function lazyRange(start: number, end: number, directory = false) {
 		if (!directory) window.plan(start, end);
 		if (!hydrated || pageController || anchorRestoreActive) return;
-		const anchorPage = Math.floor(start / browse.limit) + 1;
+		const anchorIndex = directory
+			? start
+			: untrack(() => virtualList?.anchor().index ?? browse.offset);
+		const anchorPage = Math.floor(anchorIndex / browse.limit) + 1;
 		if (anchorPage === browse.page) return;
 		browse = parseBrowsePagination(
 			new URLSearchParams({ pageSize: 'lazy', page: String(anchorPage) })
