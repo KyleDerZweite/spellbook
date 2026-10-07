@@ -30,6 +30,12 @@ def publisher():
         try:
             with psycopg.connect(scoped) as conn:
                 conn.execute(migration.read_text().replace('"public".', f'"{schema}".'))
+                conn.execute(
+                    "CREATE TABLE catalog_oracle_facts(generation_id uuid REFERENCES "
+                    "catalog_generations(id) ON DELETE CASCADE,printing_id uuid,raw_oracle_id "
+                    "uuid,types text[],transform_version integer,PRIMARY "
+                    "KEY(generation_id,printing_id))"
+                )
             yield CatalogPublisher(scoped)
         finally:
             admin.execute(sql.SQL("DROP SCHEMA {} CASCADE").format(sql.Identifier(schema)))

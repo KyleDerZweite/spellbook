@@ -1,3 +1,4 @@
+import { ensureEntryCategoryInitialization } from '../categories/persistence.ts';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { AuthUser } from '@spellbook/contracts/auth.ts';
 import { ActorError, type createLocalAuth } from '../auth/local.ts';
@@ -295,6 +296,7 @@ export function createDecks(
 					format: text(input.format, 'format', 100, 'Commander')
 				})
 				.returning();
+			await ensureEntryCategoryInitialization(tx, deck.id);
 			return deckDto(deck);
 		});
 	}
@@ -602,6 +604,7 @@ export function createDecks(
 				changes.push(dto);
 				if (removed) removedEntryIds.push(removed);
 			}
+			await ensureEntryCategoryInitialization(tx, deck.id);
 			const revision = deck.compositionRevision + (semanticChange ? 1n : 0n);
 			if (semanticChange)
 				await tx

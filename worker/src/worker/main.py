@@ -8,6 +8,7 @@ from pathlib import Path
 
 from worker.catalog import CatalogPublisher
 from worker.config import load_config
+from worker.oracle_tags import OracleTagsPublisher
 from worker.scryfall import ScryfallClient
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -82,6 +83,31 @@ def sync_catalog(
     log.info("Published %d catalog printings from %s", count, source)
 
 
+def sync_oracle_tags(
+    scryfall: ScryfallClient, publisher: OracleTagsPublisher, data_dir: Path
+) -> None:
+    try:
+        info = scryfall.get_download_info("oracle_tags")
+        if info is None:
+            raise ValueError("Oracle Tags bulk source was not found")
+        data_dir.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="oracle-tags-", dir=data_dir) as download_dir:
+            path = Path(download_dir) / "tags.jsonl"
+            scryfall.download_bulk_file(info, path)
+            publisher.publish(
+                path,
+                {
+                    "id": info.descriptor_id,
+                    "type": info.type,
+                    "updated_at": info.updated_at,
+                    "download_uri": info.download_uri,
+                },
+            )
+    except Exception as cause:
+        publisher.record_failure(cause)
+        raise
+
+
 def sync_interval_seconds(interval: str) -> int | None:
     return {"daily": 86400, "weekly": 604800, "manual": None}[interval]
 
@@ -96,12 +122,19 @@ def main() -> None:
     except Exception as exc:
         log.error("Worker startup failed (%s)", type(exc).__name__)
         raise SystemExit(1) from None
+    tags_publisher = OracleTagsPublisher(config.database_url)
     interval = sync_interval_seconds(config.sync_interval)
     while True:
         try:
             sync_catalog(scryfall, publisher, config.catalog_source, config.data_dir)
         except Exception as exc:
             log.error("Catalog synchronization failed (%s)", type(exc).__name__)
+            if interval is None:
+                raise SystemExit(1) from None
+        try:
+            sync_oracle_tags(scryfall, tags_publisher, config.data_dir)
+        except Exception as exc:
+            log.error("Oracle Tags synchronization failed (%s)", type(exc).__name__)
             if interval is None:
                 raise SystemExit(1) from None
         if interval is None:

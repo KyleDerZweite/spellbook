@@ -5,7 +5,8 @@ import {
 	createDashboard,
 	createInventory,
 	createDecks,
-	createSavedState
+	createSavedState,
+	createCategories
 } from '@spellbook/backend';
 import { privateEnv } from '#lib/env/private.ts';
 import { db, pool } from '#lib/server/db/client.ts';
@@ -15,6 +16,7 @@ const auth = createLocalAuth(db, { demoMode: process.env.DEMO_MODE === 'true' })
 export const application = {
 	catalog,
 	auth,
+	categories: createCategories(db, auth),
 	savedState: createSavedState(
 		privateEnv.DATABASE_URL || 'postgres://spellbook:spellbook@localhost:5432/spellbook',
 		auth
