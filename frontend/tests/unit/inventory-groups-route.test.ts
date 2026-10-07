@@ -94,7 +94,7 @@ describe('Inventory group route boundaries', () => {
 	it('loads Cards by default and exposes the group snapshot in a batch', async () => {
 		const result = await load(event() as never);
 		expect(result).toMatchObject({ groupsView: false, selectedGroupId: null, memberships: [] });
-		expect(result).toMatchObject({ cards: [], window: { kind: 'Page' } });
+		expect(result).toMatchObject({ window: { kind: 'Page' } });
 	});
 
 	it('opens the groups directory and an owned UUID detail', async () => {
@@ -218,4 +218,23 @@ describe('Inventory group route boundaries', () => {
 		mocks.assign.mockRejectedValue(new Error('Database unavailable'));
 		await expect(actions.assignGroups(event() as never)).rejects.toThrow('Database unavailable');
 	});
+});
+
+it('retains exactly one 500-entry SSR array instead of an unused legacy projection', async () => {
+	const entries = Array.from({ length: 500 }, (_, index) => ({
+		id: String(index),
+		createdAt: '2026-10-07T00:00:00Z',
+		updatedAt: '2026-10-07T00:00:00Z'
+	}));
+	const page = {
+		...(await mocks.page('owner', { view: 'cards' })),
+		entries,
+		matching: { entryCount: 500, copyCount: 500 }
+	};
+	mocks.page.mockResolvedValue(page);
+	const result = await load(event('https://spellbook.test/mtg/inventory?pageSize=500') as never);
+	if (!result) throw new Error('Expected Inventory server data.');
+	expect(result.window).toBe(page);
+	expect(result.window.entries).toBe(entries);
+	expect(result).not.toHaveProperty('cards');
 });

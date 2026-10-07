@@ -1703,12 +1703,11 @@
 					}}>Add another printing</Button
 				>
 			</nav>
-			{#if inspection?.mode === 'add'}<CardQuickAdd
-					card={activeCard}
-					onPendingChange={(value) => (addingPending = value)}
-				/>
-			{:else if inspection?.mode === 'edit'}{@render editEntryActions(activeCard)}
-			{:else}<p>
+			<div hidden={inspection?.mode !== 'add'}>
+				<CardQuickAdd card={activeCard} onPendingChange={(value) => (addingPending = value)} />
+			</div>
+			{#if inspection?.mode === 'edit'}{@render editEntryActions(activeCard)}
+			{:else if inspection?.mode === 'details'}<p>
 					{inspected?.quantity ?? quantityBase} owned copies · {inspected?.finish ?? ''} · {inspected?.condition ??
 						''}
 				</p>

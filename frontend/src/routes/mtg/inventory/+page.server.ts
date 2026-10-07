@@ -43,11 +43,7 @@ export const load: PageServerLoad = async ({ locals, parent, url }) => {
 			pagination,
 			requestId: crypto.randomUUID(),
 			window,
-			cards: window.entries.map((entry) => ({
-				...entry,
-				createdAt: new Date(entry.createdAt),
-				updatedAt: new Date(entry.updatedAt)
-			})),
+
 			groups: window.groups,
 			memberships: window.memberships,
 			groupsView: window.query.view === 'groups',

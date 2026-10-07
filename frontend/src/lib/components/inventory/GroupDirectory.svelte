@@ -2,6 +2,7 @@
 	import { untrack, tick } from 'svelte';
 	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
 	import type { InventoryGroup } from '#lib/types/legacy.ts';
+	import { groupDirectoryIndexes } from '#lib/inventory/groupRows.ts';
 	let {
 		groups,
 		canonicalURL,
@@ -26,7 +27,7 @@
 	let top = $state(untrack(() => initialIndex * 112));
 	let viewportHeight = $state(650);
 	let measurements = $state(0);
-	let focused = $state<number | null>(null);
+	let focused = $state<string | null>(null);
 	const heights = new Map<number, { id: string; height: number }>();
 	let snapshot: { id: string | null; index: number; intra: number } | null = null;
 	let mounted = true;
@@ -50,16 +51,7 @@
 	const end = $derived(
 		lazy ? Math.min(groups.length, indexAt(top + viewportHeight) + 5, start + 199) : groups.length
 	);
-	const indexes = $derived(
-		[
-			...new Set([
-				...Array.from({ length: end - start }, (_, i) => start + i),
-				...(lazy && focused !== null ? [focused] : [])
-			])
-		]
-			.slice(0, lazy ? 200 : 500)
-			.sort((a, b) => a - b)
-	);
+	const indexes = $derived(groupDirectoryIndexes(groups, start, end, lazy, focused));
 	function headerHeight() {
 		return (
 			parseFloat(
@@ -116,7 +108,7 @@
 		const element = list;
 		const focus = (event: FocusEvent) => {
 			const row = (event.target as HTMLElement).closest<HTMLElement>('[data-group-index]');
-			focused = row ? Number(row.dataset.groupIndex) : null;
+			focused = row ? (groups[Number(row.dataset.groupIndex)]?.id ?? null) : null;
 		};
 		window.addEventListener('scroll', geometry, { passive: true });
 		window.addEventListener('resize', geometry, { passive: true });
@@ -131,6 +123,7 @@
 	$effect(() => {
 		const next = groups;
 		untrack(() => {
+			if (focused && !next.some((group) => group.id === focused)) focused = null;
 			if (!lazy || !snapshot) return;
 			const anchor = snapshot;
 			const index = anchor.id ? next.findIndex((group) => group.id === anchor.id) : -1;
