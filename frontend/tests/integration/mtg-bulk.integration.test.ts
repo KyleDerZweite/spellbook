@@ -32,55 +32,49 @@ run('MTG repository bulk operations', () => {
 	it('inventory bulk add is idempotent by requestId', async () => {
 		const input = {
 			requestId: crypto.randomUUID(),
-			source: 'mobile',
-			game: 'mtg',
+			source: 'mobile' as const,
+			game: 'mtg' as const,
 			operations: [inventoryAddOperation('card-1', 2)]
 		};
 
-		await modules.bulkMutateInventory(accountId, input);
-		const snapshot = await modules.bulkMutateInventory(accountId, input);
+		await modules.bulkMutateInventory(actor, input);
+		const snapshot = await modules.bulkMutateInventory(actor, input);
 
-		expect(snapshot.cards).toHaveLength(1);
-		expect(snapshot.cards[0].quantity).toBe(2);
+		expect(snapshot.changes).toHaveLength(1);
+		expect(snapshot.changes[0].quantity).toBe(2);
 	});
 
 	it('inventory bulk set, decrement, and remove update safely', async () => {
-		const added = await modules.bulkMutateInventory(accountId, {
+		const added = await modules.bulkMutateInventory(actor, {
 			requestId: crypto.randomUUID(),
-			source: 'mobile',
-			game: 'mtg',
+			source: 'mobile' as const,
+			game: 'mtg' as const,
 			operations: [inventoryAddOperation('card-2', 4)]
 		});
-		const entryId = added.cards[0].id;
+		const entryId = added.changes[0].entryId;
 
-		let snapshot = await modules.bulkMutateInventory(accountId, {
+		let snapshot = await modules.bulkMutateInventory(actor, {
 			requestId: crypto.randomUUID(),
-			source: 'mobile',
-			game: 'mtg',
-			operations: [{ op: 'set', target: { entryId }, quantity: 3, notes: 'binder 1' }]
+			source: 'mobile' as const,
+			game: 'mtg' as const,
+			operations: [{ op: 'set', target: { entryId }, quantity: 3, notes: 'binder 1', notesRevision: '0' }]
 		});
-		expect(snapshot.cards[0]).toMatchObject({ quantity: 3, notes: 'binder 1' });
+		expect(snapshot.cards[0]).toMatchObject({ quantity: 3, notes: 'binder 1', notesRevision: '0' });
 
-		snapshot = await modules.bulkMutateInventory(accountId, {
+		snapshot = await modules.bulkMutateInventory(actor, {
 			requestId: crypto.randomUUID(),
-			source: 'mobile',
-			game: 'mtg',
+			source: 'mobile' as const,
+			game: 'mtg' as const,
 			operations: [{ op: 'decrement', target: { entryId }, quantity: 3 }]
 		});
-		expect(snapshot.cards).toHaveLength(0);
+		expect(snapshot.removedEntryIds).toEqual([entryId]);
 
-		snapshot = await modules.bulkMutateInventory(accountId, {
-			requestId: crypto.randomUUID(),
-			source: 'mobile',
-			game: 'mtg',
-			operations: [{ op: 'remove', target: { entryId } }]
-		});
-		expect(snapshot.cards).toHaveLength(0);
+		await expect(modules.bulkMutateInventory(actor, {requestId:crypto.randomUUID(),source:'mobile',operations:[{op:'remove',target:{entryId}}]})).rejects.toThrow('not found');
 	});
 
 	it('deck bulk add merges same card and role', async () => {
 		const [deck] = await modules.createDeck(actor, {
-			game: 'mtg',
+			game: 'mtg' as const,
 			name: 'Test Deck',
 			description: '',
 			format: 'Standard'
@@ -88,8 +82,8 @@ run('MTG repository bulk operations', () => {
 
 		const cards = await modules.bulkMutateDeckCards(actor, {
 			requestId: crypto.randomUUID(),
-			source: 'mobile',
-			game: 'mtg',
+			source: 'mobile' as const,
+			game: 'mtg' as const,
 			deckId: deck.id,
 			operations: [deckAddOperation(2), deckAddOperation(3)]
 		});
@@ -99,15 +93,15 @@ run('MTG repository bulk operations', () => {
 
 	it('deck bulk set and remove are scoped to the authenticated account', async () => {
 		const [deck] = await modules.createDeck(actor, {
-			game: 'mtg',
+			game: 'mtg' as const,
 			name: 'Scoped Deck',
 			description: '',
 			format: 'Standard'
 		});
 		const cards = await modules.bulkMutateDeckCards(actor, {
 			requestId: crypto.randomUUID(),
-			source: 'mobile',
-			game: 'mtg',
+			source: 'mobile' as const,
+			game: 'mtg' as const,
 			deckId: deck.id,
 			operations: [deckAddOperation(2)]
 		});
@@ -115,8 +109,8 @@ run('MTG repository bulk operations', () => {
 
 		await modules.bulkMutateDeckCards(actor, {
 			requestId: crypto.randomUUID(),
-			source: 'mobile',
-			game: 'mtg',
+			source: 'mobile' as const,
+			game: 'mtg' as const,
 			deckId: deck.id,
 			operations: [{ op: 'set', target: { entryId }, quantity: 1 }]
 		});
@@ -147,7 +141,7 @@ async function loadModules() {
 function inventoryAddOperation(cardId: string, quantity: number) {
 	return {
 		op: 'add' as const,
-		card: cardIdentity(cardId),
+		card: deckFixture,
 		finish: 'nonfoil',
 		condition: 'NM',
 		quantity

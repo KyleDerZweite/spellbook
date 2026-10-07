@@ -126,11 +126,11 @@ export const POST: RequestHandler = async (event) => {
 	try {
 		return json(
 			await commitScanReview(
-				auth.user.accountId,
+				auth.user,
 				body.requestId,
 				body.sessionId,
 				body.items.map((item) => ({
-					id: item.id ?? crypto.randomUUID(),
+					id: item.id,
 					sessionId: body.sessionId,
 					scanArtifactId: item.scanArtifactId,
 					catalogCardId: item.selectedCandidate.catalogCardId,

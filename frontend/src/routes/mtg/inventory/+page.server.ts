@@ -2,16 +2,18 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import {
 	InventoryQuantityChangedError,
+	InventoryNotFoundError,
+	NotesConflictError,
 	removeInventoryCard,
 	updateInventoryCard
 } from '#lib/server/data/inventory.ts';
 import {
 	createInventoryGroup,
 	deleteInventoryGroup,
-	InventoryGroupNotFoundError,
 	renameInventoryGroup,
 	replaceInventoryGroupMemberships
 } from '#lib/server/data/inventory-groups.ts';
+import { RequestConflictError } from '#lib/server/data/request-fingerprint.ts';
 import { ValidationError } from '#lib/server/mtg/validation.ts';
 import { DEFAULT_GAME } from '#lib/state/activeGame.svelte.ts';
 import { inventoryApplication, inventoryQueryFromUrl } from '#lib/server/data/inventory-window.ts';
@@ -27,6 +29,7 @@ export const load: PageServerLoad = async ({ locals, parent, url }) => {
 		const window = await inventoryApplication.page(locals.user, inventoryQueryFromUrl(url));
 		if (window.kind !== 'Page') throw new Error('Initial window must be current');
 		return {
+			requestId: crypto.randomUUID(),
 			window,
 			cards: window.entries.map((entry) => ({
 				...entry,
@@ -65,114 +68,134 @@ export const load: PageServerLoad = async ({ locals, parent, url }) => {
 	}
 };
 
-function groupFailure(cause: unknown) {
-	if (cause instanceof ValidationError) return fail(400, { message: cause.message });
-	if (cause instanceof InventoryGroupNotFoundError) return fail(404, { message: cause.message });
+function mutationFailure(
+	cause: unknown,
+	draft?: {
+		entryId: string;
+		notes: string;
+		notesRevision: string;
+		quantity: number;
+		requestId: string;
+	}
+) {
+	if (cause instanceof NotesConflictError)
+		return fail(409, { message: cause.message, notesRecovery: draft, latestNotes: cause.latest });
+	if (cause instanceof InventoryQuantityChangedError || cause instanceof RequestConflictError)
+		return fail(409, { message: cause.message });
+	if (cause instanceof InventoryNotFoundError)
+		return fail(404, { message: cause.message, notesRecovery: draft });
+	if (cause instanceof ValidationError)
+		return fail(400, { message: cause.message, notesRecovery: draft });
 	throw cause;
 }
-
 export const actions: Actions = {
 	createGroup: async ({ request, locals }) => {
-		if (!locals.user) throw redirect(303, '/auth/login?returnTo=/mtg/inventory');
+		if (!locals.user) redirect(303, '/auth/login?returnTo=/mtg/inventory');
 		const form = await request.formData();
 		try {
-			const group = await createInventoryGroup(
-				locals.user.accountId,
-				String(form.get('name') ?? ''),
-				DEFAULT_GAME
-			);
-			return { success: true, groupId: group.id };
+			const acknowledgement = await createInventoryGroup(locals.user, {
+				requestId: String(form.get('requestId') ?? ''),
+				name: String(form.get('name') ?? '')
+			});
+			return { success: true, acknowledgement, groupId: acknowledgement.groups[0]?.groupId };
 		} catch (cause) {
-			return groupFailure(cause);
+			return mutationFailure(cause);
 		}
 	},
 	renameGroup: async ({ request, locals }) => {
-		if (!locals.user) throw redirect(303, '/auth/login?returnTo=/mtg/inventory');
+		if (!locals.user) redirect(303, '/auth/login?returnTo=/mtg/inventory');
 		const form = await request.formData();
 		try {
-			await renameInventoryGroup(
-				locals.user.accountId,
-				String(form.get('groupId') ?? ''),
-				String(form.get('name') ?? ''),
-				DEFAULT_GAME
-			);
-			return { success: true };
+			const acknowledgement = await renameInventoryGroup(locals.user, {
+				requestId: String(form.get('requestId') ?? ''),
+				groupId: String(form.get('groupId') ?? ''),
+				name: String(form.get('name') ?? '')
+			});
+			return { success: true, acknowledgement };
 		} catch (cause) {
-			return groupFailure(cause);
+			return mutationFailure(cause);
 		}
 	},
 	deleteGroup: async ({ request, locals, url }) => {
-		if (!locals.user) throw redirect(303, '/auth/login?returnTo=/mtg/inventory');
+		if (!locals.user) redirect(303, '/auth/login?returnTo=/mtg/inventory');
 		const form = await request.formData();
-		const groupId = String(form.get('groupId') ?? '');
 		try {
-			await deleteInventoryGroup(locals.user.accountId, groupId, DEFAULT_GAME);
+			const acknowledgement = await deleteInventoryGroup(locals.user, {
+				requestId: String(form.get('requestId') ?? ''),
+				groupId: String(form.get('groupId') ?? '')
+			});
+			if(url.searchParams.get('group')?.toLowerCase() === String(form.get('groupId')??'').toLowerCase()) { const next = new URL(url); next.searchParams.delete('group'); next.searchParams.delete('/deleteGroup'); next.searchParams.set('view','groups'); redirect(303,next.pathname+next.search); }
+			return { success: true, acknowledgement };
 		} catch (cause) {
-			return groupFailure(cause);
+			return mutationFailure(cause);
 		}
-		if (url.searchParams.get('group')?.toLowerCase() === groupId.toLowerCase()) {
-			throw redirect(303, '/mtg/inventory?view=groups');
-		}
-		return { success: true };
 	},
 	assignGroups: async ({ request, locals }) => {
-		if (!locals.user) throw redirect(303, '/auth/login?returnTo=/mtg/inventory');
+		if (!locals.user) redirect(303, '/auth/login?returnTo=/mtg/inventory');
 		const form = await request.formData();
 		try {
-			await replaceInventoryGroupMemberships(
-				locals.user.accountId,
-				String(form.get('entryId') ?? ''),
-				form.getAll('groupId').map(String),
-				DEFAULT_GAME
-			);
-			return { success: true };
+			const acknowledgement = await replaceInventoryGroupMemberships(locals.user, {
+				requestId: String(form.get('requestId') ?? ''),
+				entryId: String(form.get('entryId') ?? ''),
+				groupIds: form.getAll('groupId').map(String)
+			});
+			return { success: true, acknowledgement };
 		} catch (cause) {
-			return groupFailure(cause);
+			return mutationFailure(cause);
 		}
 	},
 	updateQuantity: async ({ request, locals }) => {
-		if (!locals.user) {
-			throw redirect(303, '/auth/login?returnTo=/mtg/inventory');
-		}
-
+		if (!locals.user) redirect(303, '/auth/login?returnTo=/mtg/inventory');
 		const form = await request.formData();
-		const entryId = String(form.get('entryId') ?? '');
-		const quantity = Number(form.get('quantity') ?? 1);
-		const notes = String(form.get('notes') ?? '');
-
-		if (!entryId) {
-			return fail(400, { message: 'entryId is required' });
+		const input: import('@spellbook/contracts/inventory.ts').InventoryPatch = {
+			requestId: form.has('rebaseNotesRevision')
+				? crypto.randomUUID()
+				: String(form.get('requestId') ?? ''),
+			entryId: String(form.get('entryId') ?? ''),
+			...(form.has('delta')
+				? { delta: Number(form.get('delta')) }
+				: form.has('quantity')
+					? { quantity: Number(form.get('quantity')) }
+					: {}),
+			...(form.has('notes')
+				? {
+						notes: String(form.get('notes') ?? ''),
+						notesRevision: String(
+							form.get('rebaseNotesRevision') ?? form.get('notesRevision') ?? ''
+						)
+					}
+				: {})
+		};
+		try {
+			const acknowledgement = await updateInventoryCard(locals.user, input);
+			return { success: true, acknowledgement };
+		} catch (cause) {
+			return mutationFailure(
+				cause,
+				form.has('notes')
+					? {
+							entryId: input.entryId,
+							requestId: input.requestId,
+							quantity: input.quantity ?? 1,
+							notes: input.notes ?? '',
+							notesRevision: input.notesRevision ?? ''
+						}
+					: undefined
+			);
 		}
-
-		if (quantity <= 0) {
-			await removeInventoryCard(locals.user.accountId, entryId);
-			return { success: true };
-		}
-
-		await updateInventoryCard(locals.user.accountId, entryId, quantity, notes);
-		return { success: true };
 	},
 	remove: async ({ request, locals }) => {
-		if (!locals.user) {
-			throw redirect(303, '/auth/login?returnTo=/mtg/inventory');
-		}
-
+		if (!locals.user) redirect(303, '/auth/login?returnTo=/mtg/inventory');
 		const form = await request.formData();
-		const entryId = String(form.get('entryId') ?? '');
-		if (!entryId) {
-			return fail(400, { message: 'entryId is required' });
-		}
-
-		const expectedQuantity = Number(form.get('expectedQuantity'));
-		if (!Number.isSafeInteger(expectedQuantity) || expectedQuantity < 1)
-			return fail(400, { message: 'Review the entry quantity before removing it.' });
 		try {
-			await removeInventoryCard(locals.user.accountId, entryId, expectedQuantity);
+			const acknowledgement = await removeInventoryCard(locals.user, {
+				requestId: String(form.get('requestId') ?? ''),
+				entryId: String(form.get('entryId') ?? ''),
+				expectedQuantity: Number(form.get('expectedQuantity'))
+			});
+			return { success: true, acknowledgement };
 		} catch (cause) {
-			if (cause instanceof InventoryQuantityChangedError)
-				return fail(409, { message: cause.message });
-			throw cause;
+			return mutationFailure(cause);
 		}
-		return { success: true };
 	}
 };

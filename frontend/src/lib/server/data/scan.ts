@@ -1,14 +1,7 @@
 import { and, count, desc, eq } from 'drizzle-orm';
-import { mutationFingerprint, RequestConflictError } from './request-fingerprint';
 import { db } from '#lib/server/db/client.ts';
-import {
-	inventories,
-	inventoryMutationRequests,
-	scanArtifacts,
-	scanReviewItems,
-	scanSessions
-} from '#lib/server/db/schema.ts';
-import { applyInventoryMutation, ensureInventory, getInventorySnapshot } from './inventory';
+import { scanArtifacts, scanReviewItems, scanSessions } from '#lib/server/db/schema.ts';
+import { application } from '#lib/server/composition.ts';
 import {
 	assertCondition,
 	assertFinish,
@@ -231,65 +224,12 @@ export async function upsertScanReviewItem(accountId: string, input: ScanReviewI
 }
 
 export async function commitScanReview(
-	accountId: string,
+	actor: import('@spellbook/contracts/auth.ts').AuthUser,
 	requestId: string,
 	sessionId: string,
-	items: ScanReviewInput[]
+	items: import('@spellbook/contracts/inventory.ts').InventoryScanReviewInput[]
 ) {
-	requestId = assertRequestId(requestId);
-	if (items.length === 0) throw new ValidationError('Scan review requires at least one item');
-	const operations = items.map(reviewAddOperation);
-	const requestHash = mutationFingerprint({
-		kind: 'scan_review',
-		sessionId,
-		artifacts: items.map((item) => item.scanArtifactId),
-		operations
-	});
-	await db.transaction(async (tx) => {
-		const session = await lockSession(tx, accountId, sessionId);
-		const inventory = await ensureInventory(accountId, session.game, tx);
-		await tx
-			.select({ id: inventories.id })
-			.from(inventories)
-			.where(eq(inventories.id, inventory.id))
-			.for('update');
-		const [existing] = await tx
-			.select()
-			.from(inventoryMutationRequests)
-			.where(
-				and(
-					eq(inventoryMutationRequests.accountId, accountId),
-					eq(inventoryMutationRequests.requestId, requestId)
-				)
-			)
-			.limit(1);
-		if (existing) {
-			if (existing.requestHash && existing.requestHash !== requestHash)
-				throw new RequestConflictError();
-			return;
-		}
-		assertReviewable(session);
-		for (const item of items) {
-			if (item.sessionId !== sessionId) throw new ValidationError('Scan review session mismatch');
-			await saveReviewItem(tx, accountId, item);
-		}
-		await applyInventoryMutation(
-			tx,
-			accountId,
-			{
-				requestId,
-				game: session.game,
-				source: 'scan_review',
-				operations
-			},
-			requestHash
-		);
-		await tx
-			.update(scanSessions)
-			.set({ status: 'committed', updatedAt: new Date() })
-			.where(eq(scanSessions.id, session.id));
-	});
-	return getInventorySnapshot(accountId, 'mtg');
+	return application.inventory.commitScanReview(actor, { requestId, sessionId, items });
 }
 
 export async function updateScanSessionStatus(

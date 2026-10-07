@@ -1,21 +1,33 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
+import type { AuthUser } from '@spellbook/contracts/auth.ts';
+import { ensureDeckCatalogFixture } from '../deck-catalog-fixture.ts';
 
 const run = process.env.TEST_DATABASE_URL ? describe : describe.skip;
+let fixturePrintingId: string;
 
 run('Scan repository and uploads', () => {
 	let modules: Awaited<ReturnType<typeof loadModules>>;
 	let accountId: string;
+	let actor: AuthUser;
 	let otherAccountId: string;
 	beforeAll(async () => {
 		modules = await loadModules();
+		fixturePrintingId = (await ensureDeckCatalogFixture(modules.pool)).catalogCardId;
 	});
 	beforeEach(async () => {
-		accountId = `scan-${crypto.randomUUID()}`;
+		const session = await modules.application.auth.authenticate(
+			'register',
+			`scan_${crypto.randomUUID().slice(0, 8)}`,
+			'scan-contract-fixture-password'
+		);
+		if (!session) throw new Error('Scan fixture registration failed');
+		actor = session.user;
+		accountId = actor.accountId;
 		otherAccountId = `other-${accountId}`;
 		await modules.db
 			.insert(modules.userProfiles)
-			.values([accountId, otherAccountId].map((accountId) => ({ accountId, username: accountId })));
+			.values({ accountId: otherAccountId, username: otherAccountId });
 	});
 	afterEach(async () => {
 		vi.restoreAllMocks();
@@ -77,7 +89,7 @@ run('Scan repository and uploads', () => {
 		const scan = await setup(accountId);
 		const valid = review(scan.sessionId, scan.id);
 		await expect(
-			modules.commitScanReview(accountId, crypto.randomUUID(), scan.sessionId, [
+			modules.commitScanReview(actor, crypto.randomUUID(), scan.sessionId, [
 				valid,
 				{ ...valid, id: crypto.randomUUID(), scanArtifactId: crypto.randomUUID() }
 			])
@@ -91,11 +103,10 @@ run('Scan repository and uploads', () => {
 	it('commits review and inventory once during simultaneous retries', async () => {
 		const scan = await setup(accountId);
 		const requestId = crypto.randomUUID();
+		const item = review(scan.sessionId, scan.id);
 		await Promise.all(
 			Array.from({ length: 5 }, () =>
-				modules.commitScanReview(accountId, requestId, scan.sessionId, [
-					review(scan.sessionId, scan.id)
-				])
+				modules.commitScanReview(actor, requestId, scan.sessionId, [item])
 			)
 		);
 		const result = await modules.getScanSessionResult(accountId, scan.sessionId);
@@ -103,7 +114,7 @@ run('Scan repository and uploads', () => {
 		expect(result.reviewItems).toHaveLength(1);
 		expect((await modules.getInventorySnapshot(accountId)).cards[0].quantity).toBe(2);
 		await expect(
-			modules.commitScanReview(accountId, crypto.randomUUID(), scan.sessionId, [
+			modules.commitScanReview(actor, crypto.randomUUID(), scan.sessionId, [
 				review(scan.sessionId, scan.id)
 			])
 		).rejects.toThrow('not open for review');
@@ -114,14 +125,12 @@ run('Scan repository and uploads', () => {
 		const second = await setup(accountId);
 		const requestId = crypto.randomUUID();
 		const firstItem = review(first.sessionId, first.id);
-		await modules.commitScanReview(accountId, requestId, first.sessionId, [firstItem]);
+		await modules.commitScanReview(actor, requestId, first.sessionId, [firstItem]);
 		await expect(
-			modules.commitScanReview(accountId, requestId, first.sessionId, [
-				{ ...firstItem, quantity: 3 }
-			])
+			modules.commitScanReview(actor, requestId, first.sessionId, [{ ...firstItem, quantity: 3 }])
 		).rejects.toThrow('different mutation');
 		await expect(
-			modules.commitScanReview(accountId, requestId, second.sessionId, [
+			modules.commitScanReview(actor, requestId, second.sessionId, [
 				review(second.sessionId, second.id)
 			])
 		).rejects.toThrow('different mutation');
@@ -136,7 +145,7 @@ run('Scan repository and uploads', () => {
 		const item = review(scan.sessionId, scan.id);
 		const event = {
 			url: new URL('http://localhost/scan'),
-			locals: { user: { accountId } },
+			locals: { user: actor },
 			request: new Request('http://localhost/scan', {
 				method: 'POST',
 				headers: { origin: 'http://localhost', 'content-type': 'application/json' },
@@ -249,7 +258,7 @@ run('Scan repository and uploads', () => {
 		for (const body of bodies) {
 			const event = {
 				url: new URL('http://localhost/scan'),
-				locals: { user: { accountId } },
+				locals: { user: actor },
 				request: new Request('http://localhost/scan', {
 					method: 'POST',
 					headers: { origin: 'http://localhost', 'content-type': 'application/json' },
@@ -267,7 +276,7 @@ run('Scan repository and uploads', () => {
 	it('returns 400 for malformed review JSON and invalid result session UUID', async () => {
 		const event = {
 			url: new URL('http://localhost/scan'),
-			locals: { user: { accountId } },
+			locals: { user: actor },
 			request: new Request('http://localhost/scan', {
 				method: 'POST',
 				headers: { origin: 'http://localhost', 'content-type': 'application/json' },
@@ -340,7 +349,7 @@ run('Scan repository and uploads', () => {
 		return {
 			url: new URL('http://localhost/scan'),
 			params: { sessionId },
-			locals: { user: { accountId } },
+			locals: { user: actor },
 			request: new Request('http://localhost/scan', {
 				method: 'POST',
 				headers: { origin: 'http://localhost' },
@@ -380,7 +389,7 @@ function review(sessionId: string, scanArtifactId: string) {
 		id: crypto.randomUUID(),
 		sessionId,
 		scanArtifactId,
-		catalogCardId: 'card',
+		catalogCardId: fixturePrintingId,
 		canonicalCardId: 'oracle',
 		oracleId: 'oracle',
 		name: 'Card',
@@ -412,6 +421,7 @@ async function loadModules() {
 		]);
 	return {
 		...client,
+		application: (await import('../../src/lib/server/composition.ts')).application,
 		...schema,
 		...scan,
 		...inventory,

@@ -14,12 +14,23 @@ export const PATCH: RequestHandler = async (event) => {
 
 	try {
 		return json(
-			await updateInventoryEntry(
-				auth,
+			await updateInventoryEntry(auth, {
+				requestId: readString(body.requestId, 'requestId'),
 				entryId,
-				normalizeQuantity(readNumber(body.quantity, 'quantity', 1)),
-				readString(body.notes, 'notes', '')
-			)
+				...(Object.hasOwn(body, 'quantity')
+					? { quantity: normalizeQuantity(readNumber(body.quantity, 'quantity')) }
+					: {}),
+				...(Object.hasOwn(body, 'delta')
+					? { delta: normalizeQuantity(readNumber(body.delta, 'delta')) }
+					: {}),
+				...(Object.hasOwn(body, 'notes')
+					? {
+							notes: readString(body.notes, 'notes'),
+							notesRevision: readString(body.notesRevision, 'notesRevision')
+						}
+					: {}),
+				source: 'mobile'
+			})
 		);
 	} catch (cause) {
 		badRequestIfValidation(cause);
@@ -30,7 +41,19 @@ export const DELETE: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
 	const entryId = requireUuid(event.params.entryId, 'entryId');
 
-	return json(await removeInventoryEntry(auth, entryId));
+	const body = await readJsonObject(event.request);
+	try {
+		return json(
+			await removeInventoryEntry(auth, {
+				entryId,
+				requestId: readString(body.requestId, 'requestId'),
+				expectedQuantity: readNumber(body.expectedQuantity, 'expectedQuantity'),
+				source: 'mobile'
+			})
+		);
+	} catch (cause) {
+		badRequestIfValidation(cause);
+	}
 };
 
 export const GET: RequestHandler = async (event) => {

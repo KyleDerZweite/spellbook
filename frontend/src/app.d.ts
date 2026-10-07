@@ -9,7 +9,10 @@ declare global {
 
 		interface Error {
 			message: string;
-			kind?: import('@spellbook/contracts/decks.ts').DeckFailure['kind'];
+			kind?: import('@spellbook/contracts/decks.ts').DeckFailure['kind'] | 'NotesConflict' | 'QuantityChanged';
+			notes?: string;
+			notesRevision?: string;
+			latestQuantity?: number | null;
 			description?: string;
 			descriptionRevision?: string;
 		}

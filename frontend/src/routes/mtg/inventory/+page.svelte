@@ -361,6 +361,8 @@
 	});
 	let targetEntries = $state<Record<string, InventoryCard>>({}),
 		notesDraft = $state(''),
+		notesBase = $state('0'),
+		notesConflict = $state<{ notes: string; notesRevision: string } | null>(null),
 		quantityDraft = $state(1),
 		draftDirty = $state(false),
 		targetGone = $state(false);
@@ -389,6 +391,7 @@
 			targetEntries[id] = asLegacy(entry);
 			if (id === inspection?.entryId && !draftDirty) {
 				notesDraft = entry.notes;
+				notesBase = entry.notesRevision;
 				quantityDraft = entry.quantity;
 			}
 		}
@@ -509,6 +512,8 @@
 		if (!card) return;
 		targetEntries[id] = card;
 		notesDraft = card.notes;
+		notesBase = card.notesRevision;
+		notesConflict = null;
 		quantityDraft = card.quantity;
 		draftDirty = false;
 		targetGone = false;
@@ -585,11 +590,20 @@
 		selectedFinish = 'all';
 		selectedCondition = 'all';
 	}
+	const pendingRequests = new Map<string, string>();
 	const saveEntry: SubmitFunction = ({ formData, action, cancel }) => {
 		if (pendingId) {
 			cancel();
 			return;
 		}
+		const payload =
+			(page.data.user?.accountId ?? 'session') +
+			action.pathname +
+			action.search +
+			JSON.stringify([...formData.entries()].filter(([name]) => name !== 'requestId'));
+		const requestId = pendingRequests.get(payload) ?? crypto.randomUUID();
+		pendingRequests.set(payload, requestId);
+		formData.set('requestId', requestId);
 		const id = String(formData.get('entryId'));
 		const card = inventoryCards.find((entry) => entry.id === id);
 		const submitted = {
@@ -605,6 +619,7 @@
 		return async ({ result, update }) => {
 			try {
 				if (result.type === 'success') {
+					pendingRequests.delete(payload);
 					const index = listCards.findIndex((entry) => entry.id === id);
 					const neighbor = listCards[index + 1] ?? listCards[index - 1];
 					const focus = document.activeElement;
@@ -634,6 +649,8 @@
 				} else if (result.type === 'redirect') {
 					await update();
 				} else {
+					if (result.type === 'failure' && result.data?.latestNotes)
+						notesConflict = result.data.latestNotes as { notes: string; notesRevision: string };
 					mutationError =
 						result.type === 'failure' && typeof result.data?.message === 'string'
 							? result.data.message
@@ -654,6 +671,35 @@
 <svelte:head><title>Inventory | Spellbook</title></svelte:head>
 
 <div class="inventory-page workspace-container">
+	{#if form?.notesRecovery}
+		<section aria-labelledby="notes-recovery-title" class="inspector-form">
+			<h2 id="notes-recovery-title">Your unsaved Notes</h2>
+			<p role="alert">{form.message}</p>
+			{#if form.latestNotes}<p>Latest saved Notes: {form.latestNotes.notes || '(empty)'}</p>{/if}
+			<form method="POST" action={inventoryAction('updateQuantity', effectiveInventoryUrl(page))}>
+				<input type="hidden" name="entryId" value={form.notesRecovery.entryId} />
+				<input type="hidden" name="requestId" value={form.notesRecovery.requestId} />
+				<input type="hidden" name="notesRevision" value={form.notesRecovery.notesRevision} />
+				<label for="recovered-quantity">Owned quantity</label><input
+					id="recovered-quantity"
+					name="quantity"
+					type="number"
+					min="1"
+					step="1"
+					value={form.notesRecovery.quantity}
+				/>
+				<label for="recovered-notes">Notes draft</label><textarea id="recovered-notes" name="notes"
+					>{form.notesRecovery.notes}</textarea
+				>
+				{#if form.latestNotes}<button
+						class="btn btn-primary"
+						name="rebaseNotesRevision"
+						value={form.latestNotes.notesRevision}>Save my draft against the latest revision</button
+					>{:else}<button class="btn btn-primary">Retry Save</button>{/if}
+			</form>
+		</section>
+	{/if}
+
 	<WorkspaceHeader title="Inventory">
 		{#snippet metadata()}<p class="inventory-totals">
 				<strong>{currentWindow.totals.copyCount.toLocaleString()}</strong> cards <span>·</span>
@@ -1039,6 +1085,10 @@
 								>{/if}{#if card.notes}<span class="entry-notes">{card.notes}</span>{/if}</span
 						></button
 					>
+					<noscript
+						><a href={`/mtg/inventory/${card.id}${effectiveInventoryUrl(page).search}`}>Details</a
+						></noscript
+					>
 					<span class="row-metadata">{@render metadata('set', card.setCode)}</span><span
 						class="row-metadata">{@render metadata('finish', card.finish)}</span
 					><span class="row-metadata">{@render metadata('condition', card.condition)}</span>
@@ -1051,9 +1101,9 @@
 					>
 						{#snippet fields(delta)}<input type="hidden" name="entryId" value={card.id} /><input
 								type="hidden"
-								name="quantity"
-								value={card.quantity + delta}
-							/><input type="hidden" name="notes" value={card.notes} />{/snippet}
+								name="delta"
+								value={delta}
+							/><input type="hidden" name="requestId" value={data.requestId} />{/snippet}
 					</QuantityControl>
 					<ActionMenu
 						label={`Actions for ${card.name}, ${card.setCode.toUpperCase()}, ${card.finish}, ${card.condition}`}
@@ -1175,6 +1225,7 @@
 		action={inventoryAction('deleteGroup', effectiveInventoryUrl(page))}
 		use:enhance={groupDeletion.submit}
 	>
+		<input type="hidden" name="requestId" value={data.requestId} />
 		<input type="hidden" name="groupId" value={deletingGroup?.id ?? ''} /><button
 			class="btn btn-destructive"
 			disabled={groupDeletion.pending}
@@ -1199,6 +1250,7 @@
 		action={inventoryAction('remove', effectiveInventoryUrl(page))}
 		use:enhance={saveEntry}
 	>
+		<input type="hidden" name="requestId" value={data.requestId} />
 		<input type="hidden" name="entryId" value={removeId ?? ''} /><input
 			type="hidden"
 			name="expectedQuantity"
@@ -1238,10 +1290,23 @@
 				use:enhance={saveEntry}
 				class="inspector-form"
 			>
+				<input type="hidden" name="requestId" value={data.requestId} />
+				<input type="hidden" name="notesRevision" value={notesBase} />
 				<input type="hidden" name="entryId" value={inspected.id} />
 				<p>
 					{inspected.setCode.toUpperCase()} · {inspected.finish === 'foil' ? 'Foil' : 'Nonfoil'} · {inspected.condition}
 				</p>
+				{#if notesConflict}<p role="alert">
+						Latest saved Notes: {notesConflict.notes || '(empty)'}
+					</p>
+					<button
+						type="button"
+						class="btn btn-secondary"
+						onclick={() => {
+							notesBase = notesConflict!.notesRevision;
+							notesConflict = null;
+						}}>Use latest revision with my draft</button
+					>{/if}
 				<label class="label" for="inventory-quantity">Owned quantity</label><input
 					class="input"
 					id="inventory-quantity"

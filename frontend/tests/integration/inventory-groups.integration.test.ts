@@ -1,4 +1,6 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { ensureDeckCatalogFixture } from '../deck-catalog-fixture.ts';
+import type { AuthUser } from '@spellbook/contracts/auth.ts';
 import { eq, inArray } from 'drizzle-orm';
 
 const run = process.env.TEST_DATABASE_URL ? describe : describe.skip;
@@ -7,17 +9,18 @@ run('Inventory groups persistence and ownership', () => {
 	let modules: Awaited<ReturnType<typeof loadModules>>;
 	let accountId: string;
 	let otherAccountId: string;
+	let actor: AuthUser, otherActor: AuthUser;
+	let printing: Awaited<ReturnType<typeof ensureDeckCatalogFixture>>;
 
 	beforeAll(async () => {
 		modules = await loadModules();
+		printing = await ensureDeckCatalogFixture(modules.pool);
 	});
 	beforeEach(async () => {
-		accountId = `groups-${crypto.randomUUID()}`;
-		otherAccountId = `groups-other-${crypto.randomUUID()}`;
-		await modules.db.insert(modules.userProfiles).values([
-			{ accountId, username: accountId },
-			{ accountId: otherAccountId, username: otherAccountId }
-		]);
+		const first = await modules.application.auth.authenticate('register', `groups_${crypto.randomUUID().slice(0,8)}`, 'groups-fixture-password');
+		const second = await modules.application.auth.authenticate('register', `groups_${crypto.randomUUID().slice(0,8)}`, 'groups-fixture-password');
+		if(!first || !second) throw new Error('Groups fixture registration failed');
+		actor = first.user; otherActor = second.user; accountId = actor.accountId; otherAccountId = otherActor.accountId;
 	});
 	afterEach(async () => {
 		await modules.db
@@ -32,31 +35,31 @@ run('Inventory groups persistence and ownership', () => {
 	});
 
 	it('persists trimmed names, renames stable IDs, and lists empty groups', async () => {
-		const group = await modules.createInventoryGroup(accountId, '  Trade cards  ');
-		expect(await modules.getInventoryGroups(accountId)).toEqual({
+		const group = await createInventoryGroup(accountId, '  Trade cards  ');
+		expect(await getInventoryGroups(accountId)).toEqual({
 			groups: [{ id: group.id, name: 'Trade cards', entryCount: 0, quantity: 0 }],
 			memberships: []
 		});
-		await modules.renameInventoryGroup(accountId, group.id, '  Binder  ');
-		expect((await modules.getInventoryGroups(accountId)).groups[0]).toMatchObject({
+		await renameInventoryGroup(accountId, group.id, '  Binder  ');
+		expect((await getInventoryGroups(accountId)).groups[0]).toMatchObject({
 			id: group.id,
 			name: 'Binder'
 		});
-		await modules.deleteInventoryGroup(accountId, group.id);
-		expect((await modules.getInventoryGroups(accountId)).groups).toEqual([]);
+		await deleteInventoryGroup(accountId, group.id);
+		expect((await getInventoryGroups(accountId)).groups).toEqual([]);
 	});
 
 	it('validates name length and enforces case-insensitive uniqueness in PostgreSQL', async () => {
 		for (const name of ['', ' \t\n ', 'x'.repeat(65)]) {
-			await expect(modules.createInventoryGroup(accountId, name)).rejects.toThrow('1 to 64');
+			await expect(createInventoryGroup(accountId, name)).rejects.toThrow('1 to 64');
 		}
-		await modules.createInventoryGroup(accountId, '😀'.repeat(64));
-		const group = await modules.createInventoryGroup(accountId, 'Trade');
-		await expect(modules.createInventoryGroup(accountId, ' trade ')).rejects.toThrow(
+		await createInventoryGroup(accountId, '😀'.repeat(64));
+		const group = await createInventoryGroup(accountId, 'Trade');
+		await expect(createInventoryGroup(accountId, ' trade ')).rejects.toThrow(
 			'already exists'
 		);
-		const other = await modules.createInventoryGroup(accountId, 'Other');
-		await expect(modules.renameInventoryGroup(accountId, other.id, 'TRADE')).rejects.toThrow(
+		const other = await createInventoryGroup(accountId, 'Other');
+		await expect(renameInventoryGroup(accountId, other.id, 'TRADE')).rejects.toThrow(
 			'already exists'
 		);
 		await expect(
@@ -66,27 +69,27 @@ run('Inventory groups persistence and ownership', () => {
 				name: 'tRaDe'
 			})
 		).rejects.toThrow();
-		await modules.createInventoryGroup(otherAccountId, 'Trade');
+		await createInventoryGroup(otherAccountId, 'Trade');
 	});
 
 	it('handles simultaneous duplicate names through the unique index', async () => {
 		const results = await Promise.allSettled([
-			modules.createInventoryGroup(accountId, 'Binder'),
-			modules.createInventoryGroup(accountId, 'binder')
+			createInventoryGroup(accountId, 'Binder'),
+			createInventoryGroup(accountId, 'binder')
 		]);
 		expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
 		const rejected = results.find((result) => result.status === 'rejected');
 		expect(rejected).toMatchObject({ reason: { name: 'ValidationError' } });
-		expect((await modules.getInventoryGroups(accountId)).groups).toHaveLength(1);
+		expect((await getInventoryGroups(accountId)).groups).toHaveLength(1);
 	});
 
 	it('counts whole entries in overlapping groups without duplicating inventory totals', async () => {
 		const entries = await addEntries(accountId);
-		const first = await modules.createInventoryGroup(accountId, 'First');
-		const second = await modules.createInventoryGroup(accountId, 'Second');
-		await modules.replaceInventoryGroupMemberships(accountId, entries[0].id, [first.id, second.id]);
-		await modules.replaceInventoryGroupMemberships(accountId, entries[1].id, [first.id]);
-		const snapshot = await modules.getInventoryGroups(accountId);
+		const first = await createInventoryGroup(accountId, 'First');
+		const second = await createInventoryGroup(accountId, 'Second');
+		await replaceInventoryGroupMemberships(accountId, entries[0].id, [first.id, second.id]);
+		await replaceInventoryGroupMemberships(accountId, entries[1].id, [first.id]);
+		const snapshot = await getInventoryGroups(accountId);
 		expect(snapshot.groups).toEqual([
 			{ id: first.id, name: 'First', entryCount: 2, quantity: 7 },
 			{ id: second.id, name: 'Second', entryCount: 1, quantity: 3 }
@@ -94,36 +97,36 @@ run('Inventory groups persistence and ownership', () => {
 		expect(snapshot.memberships).toHaveLength(3);
 		expect((await modules.getInventorySnapshot(accountId)).stats.total).toBe(7);
 
-		await modules.updateInventoryCard(accountId, entries[0].id, 9);
-		const updated = await modules.getInventoryGroups(accountId);
+		await updateInventoryCard(accountId, entries[0].id, 9);
+		const updated = await getInventoryGroups(accountId);
 		expect(updated.groups.map((group) => group.quantity)).toEqual([13, 9]);
 		expect(updated.memberships).toEqual(snapshot.memberships);
 	});
 
 	it('replaces the full selection, deduplicates IDs, and removes all assignments on empty save', async () => {
 		const [entry] = await addEntries(accountId);
-		const first = await modules.createInventoryGroup(accountId, 'First');
-		const second = await modules.createInventoryGroup(accountId, 'Second');
-		await modules.replaceInventoryGroupMemberships(accountId, entry.id, [first.id]);
-		await modules.replaceInventoryGroupMemberships(accountId, entry.id, [second.id, second.id]);
-		expect((await modules.getInventoryGroups(accountId)).memberships).toEqual([
+		const first = await createInventoryGroup(accountId, 'First');
+		const second = await createInventoryGroup(accountId, 'Second');
+		await replaceInventoryGroupMemberships(accountId, entry.id, [first.id]);
+		await replaceInventoryGroupMemberships(accountId, entry.id, [second.id, second.id]);
+		expect((await getInventoryGroups(accountId)).memberships).toEqual([
 			{ groupId: second.id, entryId: entry.id }
 		]);
-		await modules.replaceInventoryGroupMemberships(accountId, entry.id, []);
-		expect((await modules.getInventoryGroups(accountId)).memberships).toEqual([]);
+		await replaceInventoryGroupMemberships(accountId, entry.id, []);
+		expect((await getInventoryGroups(accountId)).memberships).toEqual([]);
 		expect((await modules.getInventorySnapshot(accountId)).stats.total).toBe(7);
 	});
 
 	it('rejects foreign and missing groups without changing existing memberships', async () => {
 		const [entry] = await addEntries(accountId);
-		const owned = await modules.createInventoryGroup(accountId, 'Owned');
-		const foreign = await modules.createInventoryGroup(otherAccountId, 'Foreign');
-		await modules.replaceInventoryGroupMemberships(accountId, entry.id, [owned.id]);
+		const owned = await createInventoryGroup(accountId, 'Owned');
+		const foreign = await createInventoryGroup(otherAccountId, 'Foreign');
+		await replaceInventoryGroupMemberships(accountId, entry.id, [owned.id]);
 		for (const invalidId of [foreign.id, crypto.randomUUID()]) {
 			await expect(
-				modules.replaceInventoryGroupMemberships(accountId, entry.id, [owned.id, invalidId])
+				replaceInventoryGroupMemberships(accountId, entry.id, [owned.id, invalidId])
 			).rejects.toThrow('Inventory group not found');
-			expect((await modules.getInventoryGroups(accountId)).memberships).toEqual([
+			expect((await getInventoryGroups(accountId)).memberships).toEqual([
 				{ groupId: owned.id, entryId: entry.id }
 			]);
 		}
@@ -131,32 +134,32 @@ run('Inventory groups persistence and ownership', () => {
 
 	it('isolates account reads, renames, deletes, and entry assignment', async () => {
 		const [entry] = await addEntries(accountId);
-		const group = await modules.createInventoryGroup(accountId, 'Private');
-		await expect(modules.renameInventoryGroup(otherAccountId, group.id, 'Changed')).rejects.toThrow(
+		const group = await createInventoryGroup(accountId, 'Private');
+		await expect(renameInventoryGroup(otherAccountId, group.id, 'Changed')).rejects.toThrow(
 			'not found'
 		);
-		await expect(modules.deleteInventoryGroup(otherAccountId, group.id)).rejects.toThrow(
+		await expect(deleteInventoryGroup(otherAccountId, group.id)).rejects.toThrow(
 			'not found'
 		);
 		await expect(
-			modules.replaceInventoryGroupMemberships(otherAccountId, entry.id, [])
+			replaceInventoryGroupMemberships(otherAccountId, entry.id, [])
 		).rejects.toThrow('Inventory entry not found');
-		expect(await modules.getInventoryGroups(otherAccountId)).toEqual({
+		expect(await getInventoryGroups(otherAccountId)).toEqual({
 			groups: [],
 			memberships: []
 		});
-		expect((await modules.getInventoryGroups(accountId)).groups[0].name).toBe('Private');
+		expect((await getInventoryGroups(accountId)).groups[0].name).toBe('Private');
 	});
 
 	it('rejects entries whose stored game or inventory owner differs from the session', async () => {
 		const [entry] = await addEntries(accountId);
-		const group = await modules.createInventoryGroup(accountId, 'Owned');
+		const group = await createInventoryGroup(accountId, 'Owned');
 		await modules.db
 			.update(modules.inventoryCards)
 			.set({ game: 'other' })
 			.where(eq(modules.inventoryCards.id, entry.id));
 		await expect(
-			modules.replaceInventoryGroupMemberships(accountId, entry.id, [group.id])
+			replaceInventoryGroupMemberships(accountId, entry.id, [group.id])
 		).rejects.toThrow('Inventory entry not found');
 		const foreignInventory = await modules.ensureInventory(otherAccountId, 'mtg');
 		await modules.db
@@ -164,22 +167,22 @@ run('Inventory groups persistence and ownership', () => {
 			.set({ game: 'mtg', inventoryId: foreignInventory.id })
 			.where(eq(modules.inventoryCards.id, entry.id));
 		await expect(
-			modules.replaceInventoryGroupMemberships(accountId, entry.id, [group.id])
+			replaceInventoryGroupMemberships(accountId, entry.id, [group.id])
 		).rejects.toThrow('Inventory entry not found');
 	});
 
 	it('deletes groups without removing cards and cascades entry deletion to memberships', async () => {
 		const [entry] = await addEntries(accountId);
-		const first = await modules.createInventoryGroup(accountId, 'First');
-		const second = await modules.createInventoryGroup(accountId, 'Second');
-		await modules.replaceInventoryGroupMemberships(accountId, entry.id, [first.id, second.id]);
-		await modules.deleteInventoryGroup(accountId, first.id);
+		const first = await createInventoryGroup(accountId, 'First');
+		const second = await createInventoryGroup(accountId, 'Second');
+		await replaceInventoryGroupMemberships(accountId, entry.id, [first.id, second.id]);
+		await deleteInventoryGroup(accountId, first.id);
 		expect((await modules.getInventorySnapshot(accountId)).stats.total).toBe(7);
-		expect((await modules.getInventoryGroups(accountId)).memberships).toEqual([
+		expect((await getInventoryGroups(accountId)).memberships).toEqual([
 			{ groupId: second.id, entryId: entry.id }
 		]);
-		await modules.removeInventoryCard(accountId, entry.id);
-		expect(await modules.getInventoryGroups(accountId)).toEqual({
+		await removeInventoryCard(accountId, entry.id);
+		expect(await getInventoryGroups(accountId)).toEqual({
 			groups: [{ id: second.id, name: 'Second', entryCount: 0, quantity: 0 }],
 			memberships: []
 		});
@@ -188,7 +191,7 @@ run('Inventory groups persistence and ownership', () => {
 	it('serializes simultaneous full replacements into one complete selection', async () => {
 		const [entry] = await addEntries(accountId);
 		const groups = await Promise.all(
-			['A', 'B', 'C', 'D'].map((name) => modules.createInventoryGroup(accountId, name))
+			['A', 'B', 'C', 'D'].map((name) => createInventoryGroup(accountId, name))
 		);
 		const selections = [
 			groups.slice(0, 2).map((group) => group.id),
@@ -196,34 +199,40 @@ run('Inventory groups persistence and ownership', () => {
 		];
 		await Promise.all(
 			Array.from({ length: 12 }, (_, index) =>
-				modules.replaceInventoryGroupMemberships(accountId, entry.id, selections[index % 2])
+				replaceInventoryGroupMemberships(accountId, entry.id, selections[index % 2])
 			)
 		);
-		const memberships = (await modules.getInventoryGroups(accountId)).memberships;
+		const memberships = (await getInventoryGroups(accountId)).memberships;
 		const assigned = memberships.map((membership) => membership.groupId).sort();
 		expect(selections.map((selection) => [...selection].sort())).toContainEqual(assigned);
 	});
 
+ const ownerActor = (owner:string) => owner===accountId ? actor : otherActor;
+ async function createInventoryGroup(owner:string,name:string) { const ack=await modules.application.inventory.createGroup(ownerActor(owner),{requestId:crypto.randomUUID(),name});return {id:ack.groups[0].groupId,inventoryId:ack.inventoryId!}; }
+ const renameInventoryGroup = (owner:string,groupId:string,name:string) => modules.application.inventory.renameGroup(ownerActor(owner),{requestId:crypto.randomUUID(),groupId,name});
+ const deleteInventoryGroup = (owner:string,groupId:string) => modules.application.inventory.deleteGroup(ownerActor(owner),{requestId:crypto.randomUUID(),groupId});
+ const replaceInventoryGroupMemberships = (owner:string,entryId:string,groupIds:string[]) => modules.application.inventory.replaceMemberships(ownerActor(owner),{requestId:crypto.randomUUID(),entryId,groupIds});
+ const updateInventoryCard = (owner:string,entryId:string,quantity:number) => modules.application.inventory.patchEntry(ownerActor(owner),{requestId:crypto.randomUUID(),entryId,quantity});
+ async function removeInventoryCard(owner:string,entryId:string) { const detail=await modules.application.inventory.getEntry(ownerActor(owner),entryId); if(!detail)throw new Error('Missing fixture entry'); return modules.application.inventory.remove(ownerActor(owner),{requestId:crypto.randomUUID(),entryId,expectedQuantity:detail.entry.quantity}); }
+ const bulkMutateInventory = (owner:string,input:import('@spellbook/contracts/inventory.ts').InventoryBulkInput) => modules.application.inventory.bulk(ownerActor(owner),input);
+ async function getInventoryGroups(owner:string) { const page=await modules.application.inventory.page(ownerActor(owner),{limit:200});if(page.kind!=='Page')throw new Error('Expected current Groups fixture'); return {groups:page.groups,memberships:page.memberships}; }
+
 	async function addEntries(owner: string) {
-		const snapshot = await modules.bulkMutateInventory(owner, {
+		await bulkMutateInventory(owner, {
 			requestId: crypto.randomUUID(),
 			source: 'web',
 			game: 'mtg',
-			operations: ['one', 'two'].map((id, index) => ({
+			operations: ['NM', 'LP'].map((condition, index) => ({
 				op: 'add' as const,
-				card: {
-					catalogCardId: id,
-					canonicalCardId: `oracle-${id}`,
-					name: id,
-					setCode: 'tst',
-					imageUri: ''
-				},
+				card: printing,
 				finish: 'nonfoil',
-				condition: 'NM',
+				condition,
 				quantity: index + 3
 			}))
 		});
-		return snapshot.cards;
+		const page = await modules.application.inventory.page(owner===accountId?actor:otherActor,{});
+		if(page.kind!=='Page') throw new Error('Expected current Groups fixture');
+		return page.entries;
 	}
 });
 
@@ -234,5 +243,5 @@ async function loadModules() {
 		import('../../src/lib/server/data/inventory'),
 		import('../../src/lib/server/data/inventory-groups')
 	]);
-	return { ...client, ...schema, ...inventory, ...groups };
+	return { ...client, ...schema, ...inventory, ...groups, application:(await import('../../src/lib/server/composition.ts')).application };
 }
