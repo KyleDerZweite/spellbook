@@ -60,7 +60,7 @@ If totals exceed the exact JSON-number reporting range, Dashboard returns HTTP 5
 
 A missing Origin is accepted. A supplied Origin must match the compiled application origin; foreign and literal `null` Origins return 403. Missing/invalid sessions return 401 instead of a login redirect. Listener startup failures return 503 with `Saved state temporarily unavailable`. Responses use `Content-Type: text/event-stream`, `Cache-Control: no-store` and `X-Accel-Buffering: no`. [OpenAPI](../../frontend/src/routes/openapi.json/+server.ts) owns the additive route and status contract. Existing versioned MTG paths remain unchanged.
 
-Backend Auth `actorSession` derives the bound account and expiry from its private trusted-actor binding and returns a safe session DTO without token/hash. Frontend-supplied identity or expiry confers no stream authority. [The application contract](./application-contract.md#saved-state-synchronization) owns delivery revalidation, expiry, queues and listener recovery.
+Backend Auth `actorSession` derives the bound account and expiry from its private trusted-actor binding and returns a safe session DTO without token/hash. Frontend-supplied identity or expiry confers no stream authority. The server stream adapter frames only backend-authorized delivery; reserved events receive a fresh session check at actual delivery. Request cancellation reaches subscription setup before attachment and prevents a late setup completion from attaching it. [The application contract](./application-contract.md#saved-state-synchronization) owns delivery revalidation, expiry, queues and listener recovery.
 
 ## Entry points
 
