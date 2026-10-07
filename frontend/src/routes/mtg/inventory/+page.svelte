@@ -370,9 +370,13 @@
 			generation: window.identity,
 			active: hydrated,
 			targets: [
-				...(inspection ? [{ id: inspection.entryId, lifetime: inspection }] : []),
-				...(removeId ? [{ id: removeId, lifetime: removeLifetime }] : []),
-				...(assigningEntryId ? [{ id: assigningEntryId, lifetime: assigningLifetime }] : [])
+				...(inspection
+					? [{ id: inspection.entryId, role: 'inspector', lifetime: inspection }]
+					: []),
+				...(removeId ? [{ id: removeId, role: 'remove', lifetime: removeLifetime }] : []),
+				...(assigningEntryId
+					? [{ id: assigningEntryId, role: 'groups', lifetime: assigningLifetime }]
+					: [])
 			]
 		}),
 		(id) => fetch(`/api/mobile/v1/mtg/inventory/${id}`),

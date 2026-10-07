@@ -13,7 +13,7 @@ function fixture() {
 		account: 'owner',
 		generation: 1,
 		active: true,
-		targets: [{ id: 'a', lifetime: {} }]
+		targets: [{ id: 'a', role: 'inspector', lifetime: {} }]
 	};
 	const applied = vi.fn();
 	const requests: ReturnType<
@@ -61,7 +61,7 @@ it('a response for a closed then reopened entry cannot populate the new lifetime
 	const f = fixture();
 	const old = f.reads.refresh();
 	f.context = { ...f.context, targets: [] };
-	f.context = { ...f.context, targets: [{ id: 'a', lifetime: {} }] };
+	f.context = { ...f.context, targets: [{ id: 'a', role: 'inspector', lifetime: {} }] };
 	f.requests[0].resolve(f.response('old lifetime'));
 	await old;
 	expect(f.applied).not.toHaveBeenCalled();
@@ -100,3 +100,25 @@ it('rejects account changes and unmount after transport completion', async () =>
 	await unmounted;
 	expect(f.applied).not.toHaveBeenCalled();
 });
+
+it.each(['entry', 'missing'])(
+	'rejects a deferred Remove %s after Assign opens with the same numeric lifetime',
+	async (result) => {
+		const f = fixture();
+		f.context = { ...f.context, targets: [{ id: 'a', role: 'remove', lifetime: 1 }] };
+		const removal = f.reads.refresh();
+		f.context = { ...f.context, targets: [] };
+		f.context = { ...f.context, targets: [{ id: 'a', role: 'groups', lifetime: 1 }] };
+		f.requests[0].resolve(
+			result === 'missing'
+				? { status: 404, ok: false, json: async () => ({ entry: '' }) }
+				: f.response('old Remove snapshot')
+		);
+		await removal;
+		expect(f.applied).not.toHaveBeenCalled();
+		const groups = f.reads.refresh();
+		f.requests[1].resolve(f.response('current Assign snapshot'));
+		await groups;
+		expect(f.applied).toHaveBeenCalledExactlyOnceWith('a', 'current Assign snapshot');
+	}
+);

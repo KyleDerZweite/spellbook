@@ -2,7 +2,7 @@ type TargetContext = {
 	account: string | undefined;
 	generation: number;
 	active: boolean;
-	targets: readonly { id: string; lifetime: unknown }[];
+	targets: readonly { id: string; role: string; lifetime: unknown }[];
 };
 type DetailResponse<T> = {
 	status: number;
@@ -33,7 +33,10 @@ export class InventoryTargetReads<T> {
 		return (
 			active.length === started.length &&
 			active.length > 0 &&
-			started.every((target, index) => target.lifetime === active[index].lifetime)
+			started.every(
+				(target, index) =>
+					target.role === active[index].role && target.lifetime === active[index].lifetime
+			)
 		);
 	}
 
