@@ -712,7 +712,7 @@
 					>
 						<h2 id="native-delete-title">Delete deck</h2>
 						<p>Delete {selectedDeck.name} and its card list? Your inventory stays unchanged.</p>
-						<Button href={flowHref()} variant="secondary">Cancel</Button>
+						<Button href={flowHref()} variant="secondary" disabled={busy}>Cancel</Button>
 						<form method="POST" action={action('deleteDeck')} use:enhance={save}>
 							<input type="hidden" name="deckId" value={selectedDeck.id} /><Button
 								type="submit"
