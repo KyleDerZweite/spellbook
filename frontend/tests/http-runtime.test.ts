@@ -1,4 +1,6 @@
 import { test } from 'node:test';
+import pg from 'pg';
+import { ensureDeckCatalogFixture } from './deck-catalog-fixture.ts';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { mkdtemp, writeFile, access, rm } from 'node:fs/promises';
@@ -98,3 +100,142 @@ test('owned application must listen before readiness and can be stopped', async 
 		await rm(folder, { recursive: true, force: true });
 	}
 });
+
+test(
+	'SavedState listener closes and built Node exits naturally after SSE shutdown',
+	{
+		skip: !process.env.TEST_DATABASE_URL
+	},
+	async (t) => {
+		const databaseUrl = process.env.TEST_DATABASE_URL;
+		assert.ok(
+			databaseUrl && databaseUrl === process.env.DATABASE_URL,
+			'Shutdown regression requires matching disposable database URLs'
+		);
+		const origin = httpTestOrigin();
+		const pool = new pg.Pool({ connectionString: databaseUrl });
+		const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+		try {
+			await ensureDeckCatalogFixture(pool);
+			for (const keepOpen of [false, true]) {
+				await t.test(keepOpen ? 'active SSE' : 'closed SSE', async () => {
+					let child: Awaited<ReturnType<typeof startHttpApplication>> | undefined;
+					let accountId: string | undefined;
+					let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+					const controller = new AbortController();
+					try {
+						child = await startHttpApplication(origin, new URL('../', import.meta.url));
+						const response = await fetch(origin + '/api/auth/register', {
+							method: 'POST',
+							headers: { 'content-type': 'application/json' },
+							body: JSON.stringify({
+								username: 'shutdown_' + crypto.randomUUID().slice(0, 8),
+								password: 'owned-shutdown-test-password'
+							})
+						});
+						assert.equal(response.status, 201);
+						const auth = await response.json();
+						accountId = auth.user.accountId;
+						const stream = await fetch(origin + '/api/account/events', {
+							headers: { authorization: 'Bearer ' + auth.token },
+							signal: controller.signal
+						});
+						assert.equal(stream.status, 200);
+						assert.ok(stream.body);
+						reader = stream.body.getReader();
+						let frames = '';
+						while (!frames.includes('event: reset')) {
+							const chunk: ReadableStreamReadResult<Uint8Array> = await reader.read();
+							assert.equal(chunk.done, false);
+							frames += new TextDecoder().decode(chunk.value);
+						}
+						const listenerName = 'spellbook_saved_state:' + child.pid;
+						assert.equal(
+							(
+								await pool.query(
+									'SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname=current_database() AND application_name=$1',
+									[listenerName]
+								)
+							).rows[0].n,
+							1
+						);
+						if (!keepOpen) {
+							controller.abort();
+							await reader.cancel().catch(() => {});
+							reader = undefined;
+							const logout = await fetch(origin + '/api/auth/logout', {
+								method: 'POST',
+								headers: {
+									authorization: 'Bearer ' + auth.token,
+									'content-type': 'application/json'
+								},
+								body: '{}'
+							});
+							assert.equal(logout.status, 204);
+							await delay(100);
+						}
+						const started = performance.now();
+						const exited = new Promise<boolean>((resolve) => {
+							const timer = setTimeout(() => resolve(false), 15000);
+							child!.once('exit', () => {
+								clearTimeout(timer);
+								resolve(true);
+							});
+						});
+						child.kill('SIGTERM');
+						const naturalExit = await exited;
+						const listenerRows = (
+							await pool.query(
+								`SELECT pid,state,CASE WHEN query='LISTEN spellbook_saved_state' THEN query ELSE 'other' END AS query_kind FROM pg_stat_activity WHERE datname=current_database() AND application_name=$1`,
+								[listenerName]
+							)
+						).rows;
+						t.diagnostic(
+							JSON.stringify({
+								pid: child.pid,
+								keepOpen,
+								naturalExit,
+								exitAfterTermMs: Math.round(performance.now() - started),
+								exitCode: child.exitCode,
+								listenerRows
+							})
+						);
+						await assert.rejects(
+							fetch(origin, { signal: AbortSignal.timeout(1000) }),
+							'Owned HTTP listener must be closed'
+						);
+						assert.equal(naturalExit, true, 'Owned Node process must exit naturally within15s');
+						assert.equal(child.exitCode, 0, 'Forced cleanup or signal termination is not success');
+						assert.equal(child.signalCode, null);
+						assert.equal(
+							(
+								await pool.query(
+									'SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname=current_database() AND application_name=$1',
+									[listenerName]
+								)
+							).rows[0].n,
+							0
+						);
+						t.diagnostic(
+							JSON.stringify({
+								pid: child.pid,
+								keepOpen,
+								exitAfterTermMs: Math.round(performance.now() - started),
+								exitCode: child.exitCode,
+								listenerConnections: 0
+							})
+						);
+					} finally {
+						controller.abort();
+						await reader?.cancel().catch(() => {});
+						if (child) await stopHttpApplication(child);
+						if (accountId)
+							await pool.query('DELETE FROM user_profiles WHERE account_id=$1', [accountId]);
+					}
+				});
+			}
+		} finally {
+			await pool.end();
+		}
+	}
+);

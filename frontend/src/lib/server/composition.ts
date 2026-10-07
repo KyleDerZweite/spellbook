@@ -1,3 +1,4 @@
+import { building, dev } from '$app/env';
 import {
 	createCatalog,
 	createLocalAuth,
@@ -41,5 +42,17 @@ export const application = {
 	profile: createProfile(db, auth, { demoMode: process.env.DEMO_MODE === 'true' }),
 	decks: createDecks(db, catalog, auth)
 };
+
+function closeSavedState() {
+	return application.savedState.close().catch(() => {
+		console.error('SavedState shutdown failed');
+	});
+}
+
+if (!building) {
+	if (!dev) process.once('sveltekit:shutdown', closeSavedState);
+	import.meta.hot?.dispose(closeSavedState);
+	import.meta.hot?.on('vite:beforeFullReload', closeSavedState);
+}
 
 export { CategoryNotFound, CategoryConflict, CategoryMergeConflict } from '@spellbook/backend';
