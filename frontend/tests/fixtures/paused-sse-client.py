@@ -28,6 +28,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client:
     total = 0
     buffer = header.partition(b"\r\n\r\n")[2]
     terminal = False
+    protected_after_terminal = False
+    post_revocation_topic = False
     while True:
         while b"\r\n" not in buffer:
             part = client.recv(65536)
@@ -45,6 +47,8 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client:
             buffer += part
         body = buffer[:size]
         total += size
+        protected_after_terminal = protected_after_terminal or (terminal and (b"event: invalidate" in body or b"event: reset" in body))
+        post_revocation_topic = post_revocation_topic or b'"scan"' in body
         terminal = terminal or b"auth-expired" in body
         buffer = buffer[size + 2:]
-    print(json.dumps({"bytes": total, "authExpired": terminal}), flush=True)
+    print(json.dumps({"bytes": total, "authExpired": terminal, "protectedAfterTerminal": protected_after_terminal, "postRevocationTopic": post_revocation_topic}), flush=True)

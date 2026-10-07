@@ -5,7 +5,8 @@ import {
 	type SavedStateEvent,
 	type SavedStateApplication,
 	type SavedStateSubscription,
-	type SavedStateTopic
+	type SavedStateTopic,
+	type SavedStateCancellation
 } from '@spellbook/contracts/saved-state.ts';
 import { ActorError } from '../auth/local.ts';
 import type { createLocalAuth } from '../auth/local.ts';
@@ -13,6 +14,28 @@ import type { createLocalAuth } from '../auth/local.ts';
 export const SAVED_STATE_CHANNEL = 'spellbook_saved_state';
 export const SAVED_STATE_REVALIDATE_MS = 10000;
 export const SAVED_STATE_SLOW_MS = 30000;
+export const SAVED_STATE_SETUP_MS = 5000;
+function bounded<T>(operation: Promise<T>, cancellation?: SavedStateCancellation): Promise<T> {
+	return new Promise((resolve, reject) => {
+		const timer = setTimeout(
+			() => finish(() => reject(Error('Saved state temporarily unavailable'))),
+			SAVED_STATE_SETUP_MS
+		);
+		let remove = () => {};
+		const finish = (complete: () => void) => {
+			clearTimeout(timer);
+			remove();
+			complete();
+		};
+		const abort = () => finish(() => reject(Error('Saved state subscription cancelled')));
+		remove = cancellation?.onAbort(abort) ?? remove;
+		if (cancellation?.aborted) abort();
+		operation.then(
+			(value) => finish(() => resolve(value)),
+			(cause) => finish(() => reject(cause))
+		);
+	});
+}
 type SavedStateRuntime = SavedStateApplication & {
 	diagnostics(): { subscribers: number; ready: boolean; queuedEvents: number };
 };
@@ -42,6 +65,13 @@ export function createSavedState(databaseUrl: string, auth: Auth): SavedStateRun
 		}
 		private waiting: ((event: SavedStateEvent | null) => void) | undefined;
 		private stopped = false;
+		private issued = new WeakMap<SavedStateEvent, number>();
+		private validation: ReturnType<Auth['actorSession']> | undefined;
+		private removeAbort: (() => void) | undefined;
+		bindCancellation(cancellation?: SavedStateCancellation) {
+			this.removeAbort = cancellation?.onAbort(() => this.close());
+			if (cancellation?.aborted) this.close();
+		}
 		constructor(actor: AuthUser, accountId: string, expiresAt: string) {
 			this.actor = actor;
 			this.accountId = accountId;
@@ -60,10 +90,23 @@ export function createSavedState(databaseUrl: string, auth: Auth): SavedStateRun
 			);
 		}
 
-		async validate() {
+		async validate(fresh = false) {
 			if (this.stopped) return false;
 			try {
-				const session = await auth.actorSession(this.actor);
+				if (!fresh && !this.validation) {
+					const request = auth.actorSession(this.actor);
+					const validation = bounded(request);
+					this.validation = validation;
+					// Retain a timed-out read until its underlying query settles; recovery cannot pile up reads.
+					const settled = () => {
+						if (this.validation === validation) this.validation = undefined;
+					};
+					void request.then(settled, settled);
+				}
+				// Actual writes start a fresh read even when fanout or a periodic read is already pending.
+				const session = fresh
+					? await bounded(auth.actorSession(this.actor))
+					: await this.validation!;
 				if (this.stopped) return false;
 				if (session.user.accountId !== this.accountId) {
 					this.expire();
@@ -130,9 +173,25 @@ export function createSavedState(databaseUrl: string, auth: Auth): SavedStateRun
 					lost();
 					continue;
 				}
-				if (ready && deliveryEpoch === epoch && !this.stopped) return event;
+				if (ready && deliveryEpoch === epoch && !this.stopped) {
+					this.issued.set(event, deliveryEpoch);
+					return event;
+				}
 			}
 		}
+		async deliver(event: SavedStateEvent): Promise<SavedStateEvent | null> {
+			if (event.event === 'auth-expired' || event.event === 'recovering') return event;
+			const reservedEpoch = this.issued.get(event);
+			this.issued.delete(event);
+			try {
+				if (!(await this.validate(true))) return this.queue.shift() ?? null;
+			} catch {
+				lost();
+			}
+			if (ready && reservedEpoch === epoch && !this.stopped) return event;
+			return this.queue.shift() ?? null;
+		}
+
 		expire() {
 			if (this.stopped) return;
 			this.queue = [];
@@ -142,6 +201,9 @@ export function createSavedState(databaseUrl: string, auth: Auth): SavedStateRun
 		}
 		private dispose() {
 			this.stopped = true;
+			this.issued = new WeakMap();
+			this.removeAbort?.();
+			this.removeAbort = undefined;
 			subscribers.delete(this);
 			clearTimeout(this.expiry);
 			clearInterval(this.periodic);
@@ -214,7 +276,9 @@ export function createSavedState(databaseUrl: string, auth: Auth): SavedStateRun
 		connecting = (async () => {
 			const client = new pg.Client({
 				connectionString: databaseUrl,
-				application_name: `spellbook_saved_state:${process.pid}`
+				application_name: `spellbook_saved_state:${process.pid}`,
+				connectionTimeoutMillis: SAVED_STATE_SETUP_MS,
+				query_timeout: SAVED_STATE_SETUP_MS
 			});
 			listener = client;
 			const failed = () => {
@@ -240,16 +304,20 @@ export function createSavedState(databaseUrl: string, auth: Auth): SavedStateRun
 				await client.query(`LISTEN ${SAVED_STATE_CHANNEL}`);
 				// Recovery barrier includes every attached session, including subscriptions added while validating.
 				const checked = new Set<Subscription>();
-				for (;;) {
-					const remaining = [...subscribers].filter((sub) => !checked.has(sub));
-					if (!remaining.length) break;
-					await Promise.all(
-						remaining.map(async (sub) => {
-							await sub.validate();
-							checked.add(sub);
-						})
-					);
-				}
+				await bounded(
+					(async () => {
+						for (;;) {
+							const remaining = [...subscribers].filter((sub) => !checked.has(sub));
+							if (!remaining.length) break;
+							await Promise.all(
+								remaining.map(async (sub) => {
+									await sub.validate();
+									checked.add(sub);
+								})
+							);
+						}
+					})()
+				);
 				if (listener !== client || closed) return;
 				ready = true;
 				for (const sub of subscribers) sub.offer({ event: 'reset', data: {} });
@@ -266,14 +334,20 @@ export function createSavedState(databaseUrl: string, auth: Auth): SavedStateRun
 		}
 	}
 	return {
-		async subscribe(actor: AuthUser): Promise<SavedStateSubscription> {
-			const session = await auth.actorSession(actor);
+		async subscribe(
+			actor: AuthUser,
+			cancellation?: SavedStateCancellation
+		): Promise<SavedStateSubscription> {
+			if (closed || cancellation?.aborted) throw Error('Saved state subscription cancelled');
+			const session = await bounded(auth.actorSession(actor), cancellation);
+			if (closed || cancellation?.aborted) throw Error('Saved state subscription cancelled');
 			const sub = new Subscription(actor, session.user.accountId, session.expiresAt);
 			subscribers.add(sub);
+			sub.bindCancellation(cancellation);
 			try {
-				await connect();
+				await bounded(connect(), cancellation);
 				if (!ready) throw Error('Saved state temporarily unavailable');
-				if (!(await sub.validate())) throw new ActorError();
+				if (!(await bounded(sub.validate(), cancellation))) throw new ActorError();
 				sub.offer({ event: 'reset', data: {} });
 				return sub;
 			} catch (cause) {

@@ -7,6 +7,7 @@ class SavedProfile {
 	profile: ProfileSettings | null = $state(null);
 	status: 'idle' | 'connecting' | 'live' | 'recovering' | 'offline' | 'expired' = $state('idle');
 	private accountId: string | null = null;
+	private transportLive = false;
 	private source: EventSource | undefined;
 	private controller: AbortController | undefined;
 	private generation = 0;
@@ -41,11 +42,15 @@ class SavedProfile {
 		this.source = source;
 		source.addEventListener('reset', () => {
 			if (generation !== this.generation) return;
+			this.transportLive = true;
 			this.status = 'live';
 			this.refresh();
 		});
 		source.addEventListener('recovering', () => {
-			if (generation === this.generation) this.status = 'recovering';
+			if (generation === this.generation) {
+				this.transportLive = false;
+				this.status = 'recovering';
+			}
 		});
 		source.addEventListener('invalidate', (event) => {
 			if (generation !== this.generation) return;
@@ -61,6 +66,7 @@ class SavedProfile {
 		});
 		source.onerror = () => {
 			if (generation !== this.generation) return;
+			this.transportLive = false;
 			this.status = 'offline';
 			void fetch('/api/auth/session', { cache: 'no-store' })
 				.then((response) => {
@@ -111,14 +117,17 @@ class SavedProfile {
 						return;
 					}
 					this.profile = profile;
+					if (this.transportLive && this.source?.readyState === EventSource.OPEN)
+						this.status = 'live';
 					authState.user = profile.user;
 				} while (this.again && generation === this.generation);
 			} catch {
-				if (generation === this.generation) this.status = 'offline';
+				if (generation === this.generation && this.status !== 'recovering') this.status = 'offline';
 			} finally {
 				if (generation === this.generation) {
 					this.refreshing = false;
 					this.controller = undefined;
+					if (this.again) this.refresh();
 				}
 			}
 		})();
@@ -130,6 +139,7 @@ class SavedProfile {
 	}
 	stop() {
 		this.generation++;
+		this.transportLive = false;
 		this.source?.close();
 		this.source = undefined;
 		this.controller?.abort();

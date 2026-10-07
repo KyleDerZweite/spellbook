@@ -366,6 +366,10 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 						hashSessionToken(credentials.token)
 					]);
 
+					await pool.query('SELECT pg_notify($1,$2)', [
+						'spellbook_saved_state',
+						JSON.stringify({ accountId: a.user.accountId, topic: 'scan' })
+					]);
 					const closed = new Promise<void>((resolve, reject) =>
 						probe.once('exit', (code) =>
 							code === 0 ? resolve() : reject(Error('Paused TCP probe failed'))
@@ -386,7 +390,10 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 					} finally {
 						clearTimeout(timeout);
 					}
-					assert.equal(JSON.parse(lines[1]).authExpired, true);
+					const terminal = JSON.parse(lines[1]);
+					assert.equal(terminal.authExpired, true);
+					assert.equal(terminal.protectedAfterTerminal, false);
+					assert.equal(terminal.postRevocationTopic, false);
 
 					assert.equal(
 						(await request(primary, '/api/account/events', credentials.token)).status,
