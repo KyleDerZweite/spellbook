@@ -284,8 +284,9 @@ export const actions = {
 			role: field(form, 'role'),
 			requestId: field(form, 'requestId')
 		};
+		let acknowledgement;
 		try {
-			await changeDeckPrinting(locals.user!, {
+			acknowledgement = await changeDeckPrinting(locals.user!, {
 				...mergeDraft,
 				categoryPreview: form.has('categoryPreview') ? field(form, 'categoryPreview') : undefined
 			});
@@ -299,7 +300,7 @@ export const actions = {
 				});
 			throw cause;
 		}
-		return { success: true, message: 'Card saved.' };
+		return { success: true, message: 'Card saved.', acknowledgement };
 	}),
 
 	updateCard: guarded(async ({ request, locals }) => {

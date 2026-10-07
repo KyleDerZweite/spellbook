@@ -207,7 +207,8 @@ run('local accounts and persisted sessions', () => {
 		};
 		expect(await submitCard(cardRequest(card, other!.user.accountId), user!.user)).toEqual({
 			success: true,
-			message: 'Profile card saved.'
+			message: 'Profile card saved.',
+			savedCard: { card, artworkId: 'astral' }
 		});
 		expect(await loadCard({ locals: { user: user!.user } } as never)).toMatchObject({ card });
 		expect(await validateSession(user!.session.token)).toMatchObject({
@@ -239,7 +240,8 @@ run('local accounts and persisted sessions', () => {
 		const standard = { ...card, legendary: false, power: '', toughness: '' };
 		expect(await submitCard(cardRequest(standard), user!.user)).toEqual({
 			success: true,
-			message: 'Profile card saved.'
+			message: 'Profile card saved.',
+			savedCard: { card: standard, artworkId: 'astral' }
 		});
 		expect(await profileData.getProfileCard(user!.user)).toEqual(standard);
 	});

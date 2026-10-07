@@ -1,11 +1,18 @@
 <script lang="ts">
+	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
+	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
+	import type { ResourceSubscription, ReadLease } from '#lib/saved-state/workspace.ts';
 	import { InventoryTargetReads } from '#lib/inventory/targets.ts';
 	import { goto } from '$app/navigation';
 	import WorkspaceHeader from '#lib/components/layout/WorkspaceHeader.svelte';
 	import Button from '#lib/components/ui/button/Button.svelte';
 	import QuantityControl from '#lib/components/ui/QuantityControl.svelte';
 	import VirtualInventoryList from '#lib/components/inventory/VirtualInventoryList.svelte';
-	import { InventoryWindow, inventoryUrl } from '#lib/inventory/window.ts';
+	import {
+		InventoryWindow,
+		inventoryUrl,
+		matchingNativeInventoryQuery
+	} from '#lib/inventory/window.ts';
 	import type {
 		InventoryEntry,
 		InventoryQuery,
@@ -115,15 +122,17 @@
 	let anchorRestoreActive = false,
 		anchorController: AbortController | null = null;
 	let revisionAnchor: { id: string | null; index: number; intra: number } | null = null;
+	let inventorySubscription: ResourceSubscription | undefined = $state();
 	const window = new InventoryWindow(
 		async (input, revision, signal) => {
+			const publication = inventorySubscription?.publication() ?? (() => hydrated);
+			const account = page.data.user?.accountId;
 			const response = await fetch(
 				`/api/mobile/v1/mtg/inventory?${inventoryUrl(input, revision)}`,
 				{ signal }
 			);
 			if (response.status === 401) {
-				window.clear();
-				void goto('/auth/login?returnTo=/mtg/inventory');
+				if (publication() && account === page.data.user?.accountId) workspaceSavedState.expire();
 				throw new Error('Sign in again to load inventory.');
 			}
 			const result = await response.json();
@@ -134,7 +143,8 @@
 		() => windowVersion++,
 		() => {
 			if (!anchorRestoreActive) revisionAnchor = virtualList?.anchor() ?? null;
-		}
+		},
+		() => inventorySubscription?.publication() ?? (() => hydrated)
 	);
 	const asLegacy = (entry: InventoryEntry): InventoryCard => ({
 		...entry,
@@ -166,12 +176,34 @@
 		})
 	);
 	let windowAccount = '';
+	let lastServerWindow = untrack(() => data.window);
+	let requestedServerQuery: InventoryQuery | null = $state(null);
 	onMount(() => {
 		hydrated = true;
 		windowAccount = page.data.user?.accountId ?? 'session';
 		window.seed(windowAccount, data.window);
+		inventorySubscription = workspaceSavedState.subscribe({
+			topics: ['inventory'],
+			refresh: (lease) => refreshInventory(windowAccount, lease),
+			clear: () => {
+				requestedServerQuery = null;
+				window.clear();
+				targetEntries = {};
+				inspection = null;
+				removeId = null;
+				assigningEntryId = null;
+				pendingId = null;
+				notesDraft = '';
+				notesOriginal = '';
+				notesBase = '0';
+				quantityBase = 1;
+				quantityDraft = 1;
+				pendingRequests.clear();
+			}
+		});
 		return () => {
 			hydrated = false;
+			inventorySubscription?.dispose();
 			refreshController?.abort();
 			anchorController?.abort();
 			window.clear();
@@ -181,37 +213,41 @@
 		if (!hydrated) return;
 		const initial = data.window;
 		untrack(() => {
-			// refreshAll from Search reloads the rendered URL, which can precede the active shallow view.
+			if (initial === lastServerWindow) return;
+			lastServerWindow = initial;
+			const account = page.data.user?.accountId ?? 'session';
+			if (!workspaceSavedState.isActive(account)) return;
+			// Later SSR completion requests a current leased read, never overwrites synchronized state.
 			if (
 				effectiveInventoryUrl(page).search !== page.url.search &&
 				window.current &&
-				windowAccount === (page.data.user?.accountId ?? 'session')
+				windowAccount === account
 			) {
-				void refreshInventory();
+				inventorySubscription?.invalidate();
 				return;
 			}
-			query = initial.query.q;
-			selectedSets = initial.query.sets;
-			selectedFinish = initial.query.finish;
-			selectedCondition = initial.query.condition;
-			order = {
-				base: initial.query.sort,
-				direction: initial.query.dir,
-				variant: initial.query.variant
-					? { column: initial.query.variant, direction: initial.query.variantDir }
-					: null
-			};
 			const samePage =
 				window.current?.queryKey === initial.queryKey &&
 				window.current?.query.offset === initial.query.offset;
-			const anchor = samePage ? virtualList?.anchor() : null;
-			windowAccount = page.data.user?.accountId ?? 'session';
-			window.seed(windowAccount, initial);
-			if (anchor?.id) void restoreAnchor(anchor.id, anchor.intra, anchor.index);
-			else void restoreNativeOffset(initial.query.offset);
-			void refreshTargets();
+			if (!samePage) {
+				query = initial.query.q;
+				selectedSets = initial.query.sets;
+				selectedFinish = initial.query.finish;
+				selectedCondition = initial.query.condition;
+				order = {
+					base: initial.query.sort,
+					direction: initial.query.dir,
+					variant: initial.query.variant
+						? { column: initial.query.variant, direction: initial.query.variantDir }
+						: null
+				};
+				requestedServerQuery = initial.query;
+			}
+			windowAccount = account;
+			inventorySubscription?.invalidate();
 		});
 	});
+
 	function requestQuery(): InventoryQuery {
 		return {
 			...data.window.query,
@@ -237,6 +273,13 @@
 	$effect(() => {
 		if (!hydrated) return;
 		const input = requestQuery();
+		if (requestedServerQuery) {
+			if (matchingNativeInventoryQuery(requestedServerQuery, input)) return;
+			untrack(() => {
+				requestedServerQuery = null;
+				inventorySubscription?.invalidate();
+			});
+		}
 		const account = page.data.user?.accountId ?? 'session';
 		const same = untrack(
 			() =>
@@ -263,11 +306,17 @@
 		};
 	});
 
-	async function restoreNativeOffset(offset: number) {
+	async function restoreNativeOffset(
+		offset: number,
+		leaseCurrent: () => boolean = inventorySubscription?.publication() ?? (() => true)
+	) {
 		const identity = window.identity;
 		const account = page.data.user?.accountId;
 		const isCurrent = () =>
-			hydrated && window.identity === identity && page.data.user?.accountId === account;
+			leaseCurrent() &&
+			hydrated &&
+			window.identity === identity &&
+			page.data.user?.accountId === account;
 		if (!isCurrent()) return;
 		// The hydrated child is created in this flush; reading its binding before tick loses the native offset.
 		await tick();
@@ -276,28 +325,53 @@
 	}
 
 	let refreshController: AbortController | null = null;
-	async function refreshInventory(expectedAccount = page.data.user?.accountId ?? 'session') {
+	async function refreshInventory(
+		expectedAccount = page.data.user?.accountId ?? 'session',
+		lease?: ReadLease
+	) {
+		if (!lease) {
+			inventorySubscription?.invalidate();
+			return;
+		}
+		const queryLifetime = effectiveInventoryUrl(page).search;
+		const controlQuery = requestQuery();
+		const currentLease = () =>
+			lease.current() &&
+			hydrated &&
+			queryLifetime === effectiveInventoryUrl(page).search &&
+			matchingNativeInventoryQuery(controlQuery, requestQuery()) !== null;
+		if (!currentLease()) return;
 		if (!hydrated || expectedAccount !== (page.data.user?.accountId ?? 'session')) return;
-		refreshController?.abort();
 		const controller = new AbortController();
 		refreshController = controller;
 		const account = expectedAccount;
-		const anchor = virtualList?.anchor();
+		const serverQuery = matchingNativeInventoryQuery(requestedServerQuery, controlQuery);
+		const anchor = serverQuery ? null : virtualList?.anchor();
 		anchorController?.abort();
 		anchorController = null;
 		anchorRestoreActive = true;
 		try {
-			const identity = await window.refresh(account, controller.signal);
+			const identity = await window.refresh(
+				account,
+				lease.signal,
+				currentLease,
+				serverQuery ??
+					matchingNativeInventoryQuery(window.current?.query ?? null, controlQuery) ??
+					controlQuery
+			);
 			if (
+				!currentLease() ||
 				!identity ||
 				controller.signal.aborted ||
 				window.identity !== identity ||
 				account !== (page.data.user?.accountId ?? 'session')
 			)
 				return;
-			if (anchor?.id) await restoreAnchor(anchor.id, anchor.intra, anchor.index);
-			else await restoreNativeOffset(window.current?.query.offset ?? 0);
-			await refreshTargets();
+			if (serverQuery && requestedServerQuery === serverQuery) requestedServerQuery = null;
+			if (anchor?.id) await restoreAnchor(anchor.id, anchor.intra, anchor.index, currentLease);
+			else await restoreNativeOffset(window.current?.query.offset ?? 0, currentLease);
+			if (!currentLease()) return;
+			await refreshTargets(currentLease);
 		} finally {
 			if (refreshController === controller) {
 				refreshController = null;
@@ -306,7 +380,13 @@
 		}
 	}
 
-	async function restoreAnchor(id: string, intra = 0, fallbackIndex = 0) {
+	async function restoreAnchor(
+		id: string,
+		intra = 0,
+		fallbackIndex = 0,
+		leaseCurrent: () => boolean = inventorySubscription?.publication() ?? (() => true)
+	) {
+		if (!leaseCurrent()) return false;
 		anchorController?.abort();
 		const controller = new AbortController();
 		anchorController = controller;
@@ -319,14 +399,24 @@
 						`/api/mobile/v1/mtg/inventory/${entryId}/location?${inventoryUrl(query, revision)}`,
 						{ signal }
 					);
+					if (response.status === 401 && leaseCurrent()) {
+						workspaceSavedState.expire();
+						throw Error('Authentication required.');
+					}
 					const result = await response.json();
 					if (!response.ok && result.kind !== 'RevisionChanged')
 						throw Error('Could not restore the inventory position.');
 					return result;
 				},
-				controller.signal
+				controller.signal,
+				leaseCurrent
 			);
-			if (!location || controller.signal.aborted || window.identity !== location.identity)
+			if (
+				!leaseCurrent() ||
+				!location ||
+				controller.signal.aborted ||
+				window.identity !== location.identity
+			)
 				return false;
 			const index =
 				location.index ??
@@ -334,9 +424,9 @@
 			await virtualList?.scrollToIndex(
 				index,
 				location.index === null ? 0 : intra,
-				() => !controller.signal.aborted && window.identity === location.identity
+				() => leaseCurrent() && !controller.signal.aborted && window.identity === location.identity
 			);
-			return !controller.signal.aborted && window.identity === location.identity;
+			return leaseCurrent() && !controller.signal.aborted && window.identity === location.identity;
 		} catch (cause) {
 			if (!controller.signal.aborted)
 				mutationError =
@@ -356,11 +446,16 @@
 		const revision = currentWindow.revision;
 		if (!hydrated || revision === observedRevision) return;
 		observedRevision = revision;
+		if (anchorRestoreActive) return;
 		untrack(() => {
 			const anchor = anchorRestoreActive ? null : (revisionAnchor ?? virtualList?.anchor());
 			revisionAnchor = null;
 			if (anchor?.id) void restoreAnchor(anchor.id, anchor.intra, anchor.index);
-			void refreshTargets();
+			void refreshTargets().catch((cause) => {
+				if (workspaceSavedState.isActive(windowAccount))
+					mutationError =
+						cause instanceof Error ? cause.message : 'Saved entry details are unavailable.';
+			});
 		});
 	});
 	let targetEntries = $state<Record<string, InventoryCard>>({}),
@@ -387,7 +482,10 @@
 					: [])
 			]
 		}),
-		(id) => fetch(`/api/mobile/v1/mtg/inventory/${id}`),
+		async (id) => {
+			const response = await fetch(`/api/mobile/v1/mtg/inventory/${id}`);
+			return response;
+		},
 		(id, entry) => {
 			if (!entry) {
 				if (id === inspection?.entryId) targetGone = true;
@@ -395,17 +493,25 @@
 				return;
 			}
 			targetEntries[id] = asLegacy(entry);
-			if (id === inspection?.entryId && !draftDirty) {
-				notesDraft = entry.notes;
-				notesBase = entry.notesRevision;
-				notesOriginal = entry.notes;
-				quantityBase = entry.quantity;
-				quantityDraft = entry.quantity;
+			if (id === inspection?.entryId) {
+				targetGone = false;
+				if (notesDraft === notesOriginal) {
+					notesDraft = entry.notes;
+					notesBase = entry.notesRevision;
+					notesOriginal = entry.notes;
+				}
+				if (quantityDraft === quantityBase) {
+					quantityBase = entry.quantity;
+					quantityDraft = entry.quantity;
+				}
 			}
-		}
+		},
+		() => workspaceSavedState.expire()
 	);
-	function refreshTargets() {
-		return targetReads.refresh();
+	function refreshTargets(
+		current: () => boolean = inventorySubscription?.publication() ?? (() => true)
+	) {
+		return targetReads.refresh(current);
 	}
 
 	$effect(() => {
@@ -614,6 +720,7 @@
 		const requestId = pendingRequests.get(payload) ?? crypto.randomUUID();
 		pendingRequests.set(payload, requestId);
 		formData.set('requestId', requestId);
+		const write = inventorySubscription?.beginWrite();
 		const id = String(formData.get('entryId'));
 		const card = inventoryCards.find((entry) => entry.id === id);
 		const submitted = {
@@ -625,6 +732,7 @@
 		const submittedOpening = inspection;
 		const submittedQuery = effectiveInventoryUrl(page).search;
 		const currentAttempt = () =>
+			(write?.current() ?? true) &&
 			hydrated &&
 			submittedAccount === (page.data.user?.accountId ?? 'session') &&
 			submittedQuery === effectiveInventoryUrl(page).search;
@@ -701,6 +809,7 @@
 				mutationError = 'Could not refresh inventory. Reload before trying again.';
 				status = '';
 			} finally {
+				write?.complete();
 				pendingId = null;
 			}
 		};
@@ -710,6 +819,7 @@
 <svelte:head><title>Inventory | Spellbook</title></svelte:head>
 
 <div class="inventory-page workspace-container">
+	<SavedStateStatus resource={inventorySubscription} />
 	{#if notesRecovery}
 		<section aria-labelledby="notes-recovery-title" class="inspector-form">
 			<h2 id="notes-recovery-title">Your unsaved Notes</h2>

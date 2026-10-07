@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import { enhance } from '$app/forms';
 	import { tick } from 'svelte';
 	import PasswordInput from '#lib/components/auth/PasswordInput.svelte';
@@ -27,20 +28,25 @@
 	method="POST"
 	aria-busy={pending}
 	use:enhance={() => {
+		const write = workspaceSavedState.beginWrite(['profile']);
 		pending = true;
 		saveError = '';
 		return async ({ result, update }) => {
 			try {
+				if (!write.current()) return;
 				if (result.type === 'error') saveError = 'Could not change your password. Try again.';
 				else {
-					await update({ reset: false });
+					await update({ reset: false, refreshAll: false, navigate: false });
+					if (!write.current()) return;
 					if (result.type === 'success') passwordForm.reset();
 				}
 			} finally {
-				pending = false;
+				write.complete();
+				if (write.current()) pending = false;
 			}
 			if (result.type === 'failure') {
 				await tick();
+				if (!write.current()) return;
 				passwordForm.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
 			}
 		};

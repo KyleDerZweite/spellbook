@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { untrack } from 'svelte';
+	import { untrack, onDestroy } from 'svelte';
 	import { enhance, type SubmitFunction } from '$app/forms';
-	import { refreshAll } from '$app/navigation';
+	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import Select from '#lib/components/ui/select/Select.svelte';
 	import type { CardDocument } from '#lib/search/types.ts';
 	import { activeGameState } from '#lib/state/activeGame.svelte.ts';
@@ -25,6 +25,11 @@
 		untrack(() => (page.data.requestId ? `${page.data.requestId}:${card.id}` : crypto.randomUUID()))
 	);
 	const pendingRequests = new Map<string, string>();
+	let mounted = true;
+	onDestroy(() => {
+		mounted = false;
+		onPendingChange?.(false);
+	});
 	const hasAvailableFinish = $derived(card.is_nonfoil_available || card.is_foil_available);
 
 	const add: SubmitFunction = ({ formData, cancel }) => {
@@ -39,9 +44,11 @@
 				formData.get(name)
 			])
 		]);
+		const account = page.data.user?.accountId;
 		const intentId = pendingRequests.get(payload) ?? crypto.randomUUID();
 		pendingRequests.set(payload, intentId);
 		formData.set('requestId', intentId);
+		const write = workspaceSavedState.beginWrite(['inventory']);
 		const addedName = String(formData.get('name'));
 		const addedQuantity = Number(formData.get('quantity'));
 		pending = true;
@@ -50,12 +57,13 @@
 		message = '';
 		return async ({ result, update }) => {
 			try {
+				if (!mounted || (!write.current() && (account || result.type !== 'redirect'))) return;
 				if (result.type === 'success' && result.data?.success) {
 					pendingRequests.delete(payload);
 					requestId = crypto.randomUUID();
 					message = `Added ${addedQuantity} ${addedQuantity === 1 ? 'copy' : 'copies'} of ${addedName} to inventory.`;
 					try {
-						await refreshAll();
+						workspaceSavedState.invalidate(['inventory']);
 					} catch {
 						message += ' Refresh the page to update inventory and deck counts.';
 					}
@@ -72,8 +80,9 @@
 					error = 'Could not confirm this addition. Retry unchanged to confirm it safely.';
 				}
 			} finally {
+				write.complete();
 				pending = false;
-				onPendingChange?.(false);
+				if (mounted && (write.current() || !account)) onPendingChange?.(false);
 			}
 		};
 	};

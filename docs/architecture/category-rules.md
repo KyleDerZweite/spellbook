@@ -3,7 +3,7 @@
 - Status: Starter primary Deck Entry Categories and Oracle Tags publication implemented; account rules, Review/Reset, whole-deck categories and combos planned
 - Last Reviewed: 2026-10-07
 - Source of Truth: Kyle's Q56 acceptance of versioned definitions, rule evaluation and optional local combo import
-- Update Triggers: definition versions, deck-local bundles, rule vocabulary and priority, source publications, composition jobs, Review/Reset, combo constraints and category acceptance evidence
+- Update Triggers: definition versions, deck-local bundles, rule vocabulary and priority, source publications, composition jobs, Review/Reset, combo constraints, commit-scoped saved-state invalidation and category acceptance evidence
 - Related Docs: [Architecture](./README.md), [Card grouping](../product/card-grouping.md), [Domain glossary](../../GLOSSARY.md), [Classifier research](../integrations/card-categorization.md), [Application contract](./application-contract.md), [Catalog](./catalog.md), [Worker](./worker.md), [ADR-0019](../decisions/0019-versioned-categories-and-local-source-rules.md)
 
 [Card grouping](../product/card-grouping.md) owns category behavior and manual choices. This document owns accepted storage, rule interfaces and evaluation lifecycle. Starter entry categories and Oracle Tags ingestion are implemented. Account customization, Review/Reset, whole-deck evaluation and the Commander Spellbook matcher remain later slices.
@@ -23,6 +23,8 @@ Assignments store Automatic, Pending or Manual provenance, including Manual Unca
 Non-merging printing/role changes retain entry identity and its complete decision, including hidden non-Main decisions. Merging retains the destination's entire decision and deletes the source. A conflicting merge first returns a 409 consequence preview with both decisions, resulting quantity, composition/decision revisions and source tokens. Confirmation binds that consequence, and changed revisions/quantities require renewed review. Public source changes alone do not alter immutable existing decisions or permit reassignment. Already-Manual same-choice saves retain revisions and persist an original no-op acknowledgement. Automatic/Pending-to-Manual remains a semantic decision change. Decision revisions advance independently; Deck acknowledgements retain compact affected/removed category identities and original revision on replay.
 
 Category view groups Main entries once by adopted display order, with Pending visible inside Uncategorized. Commander, Sideboard and Companion retain sections. Inspector and native Main-entry forms show provenance and save Manual choices through the same command. Read failures remain infrastructure failures, never evaluated Unknown. No account editor, rule editor, Review/Reset button, whole-deck jobs or combo matcher is exposed by this slice.
+
+Category-only writes publish the existing commit-scoped `decks` invalidation inside the same transaction as the decision and original receipt. First initialization of an empty legacy Deck is a semantic change. Receipt replay, fresh initialization no-op and an unchanged Manual decision publish nothing. Rollback publishes nothing; Deck timestamps and composition revisions are unchanged. The [workspace consumer](./frontend.md#profile-saved-state-consumer) refetches the selected Deck categories through its leased read pipeline and retains dirty Manual choices.
 
 ## Later account definitions and whole-deck ownership
 

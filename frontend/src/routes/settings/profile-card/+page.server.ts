@@ -113,13 +113,14 @@ export const actions: Actions = {
 		);
 		const artworkChanged =
 			form.has('artworkId') && (!baseline || artworkId !== form.get('baselineArtworkId'));
+		let savedCard;
 		try {
-			locals.user = (
-				await application.profile.patch(locals.user, {
-					...(artworkChanged ? { artworkId } : {}),
-					...(Object.keys(profileCard).length ? { profileCard } : {})
-				})
-			).user;
+			const saved = await application.profile.patch(locals.user, {
+				...(artworkChanged ? { artworkId } : {}),
+				...(Object.keys(profileCard).length ? { profileCard } : {})
+			});
+			locals.user = saved.user;
+			savedCard = { card: saved.card, artworkId: saved.user.artworkId };
 		} catch (cause) {
 			if (cause && typeof cause === 'object' && 'kind' in cause) {
 				if (cause.kind === 'Unauthenticated') error(401, 'Authentication required');
@@ -146,6 +147,6 @@ export const actions: Actions = {
 			throw cause;
 		}
 
-		return { success: true, message: 'Profile card saved.' };
+		return { success: true, message: 'Profile card saved.', savedCard };
 	}
 };

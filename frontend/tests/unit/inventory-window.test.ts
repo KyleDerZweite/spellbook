@@ -1,6 +1,6 @@
 import { it, expect, vi } from 'vitest';
 import { createServer } from 'node:http';
-import { InventoryWindow } from '#lib/inventory/window.ts';
+import { InventoryWindow, matchingNativeInventoryQuery } from '#lib/inventory/window.ts';
 import { inventoryRowSlots } from '#lib/inventory/rows.ts';
 import type { InventoryPage, InventoryQuery } from '@spellbook/contracts/inventory.ts';
 const query: InventoryQuery = {
@@ -608,4 +608,243 @@ it('discards a pending refresh when a newer filter query supersedes it', async (
 	expect(await refresh).toBeUndefined();
 	await replacement;
 	expect(window.current?.query).toMatchObject({ offset: 0, q: 'new' });
+});
+
+it('drains actual HTTP pages during ordinary freshness changes without exceeding three physical requests', async () => {
+	let desired = 0;
+	const pending: Array<() => void> = [];
+	let active = 0,
+		peak = 0,
+		starts = 0;
+	const server = createServer((request, response) => {
+		if (request.url === '/barrier') {
+			response.end('ready');
+			return;
+		}
+		active++;
+		starts++;
+		peak = Math.max(peak, active);
+		pending.push(() => {
+			active--;
+			response.setHeader('content-type', 'application/json');
+			response.end(
+				JSON.stringify(
+					page(
+						Number(new URL(request.url!, 'http://local').searchParams.get('offset')),
+						'',
+						String(desired)
+					)
+				)
+			);
+		});
+	});
+	await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+	const address = server.address();
+	if (!address || typeof address === 'string') throw Error('Expected isolated port');
+	const origin = `http://127.0.0.1:${address.port}`;
+	const publication = () => {
+		const version = desired;
+		return () => version === desired;
+	};
+	const window = new InventoryWindow(
+		async (query, _revision, signal) => {
+			const response = await fetch(`${origin}/page?offset=${query.offset}`, { signal });
+			return response.json();
+		},
+		() => {},
+		() => {},
+		publication
+	);
+	const controller = new AbortController();
+	try {
+		window.seed('owner', page());
+		window.plan(500, 600);
+		await vi.waitFor(() => expect(active).toBe(3));
+		desired++;
+		const lease = publication();
+		const refreshing = window.refresh('owner', controller.signal, lease);
+		for (let i = 0; i < 100; i++) window.plan(i * 500, i * 500 + 100);
+		await (await fetch(origin + '/barrier')).text();
+		expect(starts).toBe(3);
+		expect(window.metrics().queued).toBe(0);
+		pending.shift()!();
+		await vi.waitFor(() => expect(starts).toBe(4));
+		expect(active).toBe(3);
+		// Old ordinary pages have lost publication authority even though their HTTP requests drain.
+		expect(window.metrics().pages).toBe(1);
+		for (const finish of pending.splice(0)) finish();
+		await refreshing;
+		await vi.waitFor(() => expect(active).toBe(0));
+		expect(peak).toBe(3);
+		expect(window.current?.revision).toBe('1');
+		expect(window.metrics().pages).toBe(1);
+	} finally {
+		window.clear();
+		for (const finish of pending.splice(0)) finish();
+		const closed = new Promise<void>((resolve) => server.close(() => resolve()));
+		server.closeAllConnections();
+		await closed;
+	}
+});
+
+it('rejects obsolete normal-page and RevisionChanged reset bodies before protected cache mutation', async () => {
+	let desired = 0,
+		finish!: (result: InventoryPage | { kind: 'RevisionChanged'; revision: string }) => void;
+	let calls = 0;
+	const window = new InventoryWindow(
+		() => {
+			calls++;
+			return new Promise((resolve) => {
+				finish = resolve;
+			});
+		},
+		() => {},
+		() => {},
+		() => {
+			const version = desired;
+			return () => version === desired;
+		}
+	);
+	window.seed('owner', page());
+	const normal = window.request(50);
+	desired++;
+	finish(page(50));
+	await normal;
+	expect(window.metrics().pages).toBe(1);
+	const changed = window.request(100);
+	desired++;
+	finish({ kind: 'RevisionChanged', revision: '2' });
+	await changed;
+	expect(calls).toBe(2);
+	expect(window.current?.revision).toBe('1');
+	window.clear();
+});
+
+it('refetches a later server-load context at its native offset instead of applying its old snapshot', async () => {
+	let release!: () => void, arrived!: () => void;
+	const held = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	const received = new Promise<void>((resolve) => {
+		arrived = resolve;
+	});
+	const server = createServer(async (request, response) => {
+		const url = new URL(request.url!, 'http://127.0.0.1');
+		arrived();
+		await held;
+		response.setHeader('content-type', 'application/json');
+		response.end(
+			JSON.stringify(page(Number(url.searchParams.get('offset')), url.searchParams.get('q')!, '4'))
+		);
+	});
+	await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+	const address = server.address();
+	if (!address || typeof address === 'string') throw Error('Missing test listener');
+	const window = new InventoryWindow(
+		async (requested, _revision, signal) =>
+			(
+				await fetch(
+					`http://127.0.0.1:${address.port}/?q=${requested.q}&offset=${requested.offset}`,
+					{ signal }
+				)
+			).json(),
+		() => {}
+	);
+	window.seed('actor', page(0, 'current', '3'));
+	const delayedServerPage = page(150, 'next-native-page', '1');
+	try {
+		const refreshing = window.refresh(
+			'actor',
+			new AbortController().signal,
+			() => true,
+			delayedServerPage.query
+		);
+		await received;
+		expect(window.current?.revision).toBe('3');
+		release();
+		await refreshing;
+		expect(window.current?.query).toMatchObject({ q: 'next-native-page', offset: 150 });
+		expect(window.current?.revision).toBe('4');
+	} finally {
+		release();
+		window.clear();
+		await new Promise<void>((resolve) => server.close(() => resolve()));
+	}
+});
+
+it('supersedes a failed native refresh with changed controls and rejects its held retry body', async () => {
+	let release!: () => void, decoding!: () => void;
+	const held = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	const started = new Promise<void>((resolve) => {
+		decoding = resolve;
+	});
+	const requests: Array<{ q: string; offset: number }> = [];
+	let failed = false;
+	const server = createServer(async (request, response) => {
+		const url = new URL(request.url!, 'http://127.0.0.1');
+		const q = url.searchParams.get('q')!,
+			offset = Number(url.searchParams.get('offset'));
+		requests.push({ q, offset });
+		if (!failed) {
+			failed = true;
+			response.writeHead(503);
+			response.end();
+			return;
+		}
+		response.writeHead(200, { 'content-type': 'application/json' });
+		if (q === 'native') {
+			response.write('{"kind":"Page",');
+			decoding();
+			await held;
+			response.end(JSON.stringify(page(offset, q, '2')).slice(1));
+		} else response.end(JSON.stringify(page(offset, q, '3')));
+	});
+	await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+	const address = server.address();
+	if (!address || typeof address === 'string') throw Error('Missing test listener');
+	const window = new InventoryWindow(
+		async (input, _revision, signal) => {
+			const response = await fetch(
+				`http://127.0.0.1:${address.port}/?q=${input.q}&offset=${input.offset}`,
+				{ signal }
+			);
+			if (!response.ok) throw Error('Saved changes unavailable');
+			return response.json();
+		},
+		() => {}
+	);
+	window.seed('actor', page());
+	const native = { ...query, q: 'native', offset: 150 };
+	let controls = { ...native, offset: 0 };
+	try {
+		expect(matchingNativeInventoryQuery(native, controls)).toBe(native);
+		await expect(
+			window.refresh('actor', new AbortController().signal, () => true, native)
+		).rejects.toThrow('unavailable');
+		const retry = window.refresh(
+			'actor',
+			new AbortController().signal,
+			() => matchingNativeInventoryQuery(native, controls) !== null,
+			native
+		);
+		await started;
+		controls = { ...controls, q: 'changed', condition: 'LP' };
+		expect(matchingNativeInventoryQuery(native, controls)).toBeNull();
+		release();
+		await retry;
+		expect(window.current?.query.q).toBe('');
+		await window.refresh('actor', new AbortController().signal, () => true, controls);
+		expect(window.current?.query).toMatchObject({ q: 'changed', offset: 0 });
+		expect(requests).toEqual([
+			{ q: 'native', offset: 150 },
+			{ q: 'native', offset: 150 },
+			{ q: 'changed', offset: 0 }
+		]);
+	} finally {
+		release();
+		window.clear();
+		await new Promise<void>((resolve) => server.close(() => resolve()));
+	}
 });

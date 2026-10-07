@@ -1,11 +1,13 @@
 <script lang="ts">
+	import { reconcileProfileCardDraft } from '#lib/profile/saved.ts';
 	import { savedProfile } from '#lib/saved-state/profile.svelte.ts';
 	import { enhance } from '$app/forms';
 	import { onMount, untrack, tick } from 'svelte';
 	import ProfileCard from '#lib/components/profile/ProfileCard.svelte';
 	import ProfileCardEditor from '#lib/components/profile/ProfileCardEditor.svelte';
-	import { getProfileArtwork } from '#lib/profile/artwork.ts';
+	import { isProfileArtworkId, getProfileArtwork } from '#lib/profile/artwork.ts';
 	import {
+		validateProfileCard,
 		PROFILE_CARD_FRAMES,
 		PROFILE_CARD_RARITIES,
 		type ProfileCardErrors
@@ -49,30 +51,25 @@
 	let selectedArtwork = $state(untrack(() => initialArtwork));
 	let baselineCard = $state(untrack(() => ({ ...data.card })));
 	let baselineArtwork = $state(untrack(() => data.user.artworkId));
-	let previousIncoming = untrack(() => incomingCard);
+	let editingAccount = untrack(() => data.user.accountId);
 	$effect(() => {
-		const incoming = incomingCard;
-		if (incoming !== previousIncoming) {
-			card = { ...incoming };
+		const accountId = data.user.accountId;
+		untrack(() => {
+			if (editingAccount === accountId) return;
+			editingAccount = accountId;
+			card = { ...incomingCard };
 			selectedArtwork = initialArtwork;
 			baselineCard = { ...data.card };
 			baselineArtwork = data.user.artworkId;
-			previousIncoming = incoming;
-		}
+		});
 	});
 	$effect(() => {
 		const next = saved;
 		untrack(() => {
-			const merged = { ...card };
-			const baseline = { ...baselineCard };
-			for (const field of Object.keys(next.card) as (keyof typeof card)[]) {
-				if (card[field] === baselineCard[field]) {
-					Object.assign(merged, { [field]: next.card[field] });
-					Object.assign(baseline, { [field]: next.card[field] });
-				}
-			}
-			card = merged;
-			baselineCard = baseline;
+			if (next.user.accountId !== editingAccount) return;
+			const merged = reconcileProfileCardDraft(card, baselineCard, next.card);
+			card = merged.card;
+			baselineCard = merged.baseline;
 			if (selectedArtwork === baselineArtwork) {
 				selectedArtwork = getProfileArtwork(next.user.artworkId).id;
 				baselineArtwork = next.user.artworkId;
@@ -156,22 +153,49 @@
 					else if (field === 'legendary') formData.set(field, card.legendary ? 'on' : 'off');
 				}
 				if (selectedArtwork === baselineArtwork) formData.delete('artworkId');
+				const submittedCard = { ...card };
+				const submittedArtwork = selectedArtwork;
+				const submittedFields = new Set(formData.keys());
+				const write = savedProfile.beginWrite();
 				pending = true;
 				saveError = '';
 				return async ({ result, update }) => {
 					try {
+						if (write && !write.current()) return;
 						if (result.type === 'error') saveError = 'Could not save your card. Try again.';
 						else {
-							await update({ reset: false });
+							await update({ reset: false, refreshAll: false, navigate: false });
+							if (write && !write.current()) return;
+							if (result.type === 'success' && result.data?.savedCard) {
+								const value = result.data.savedCard;
+								if (typeof value !== 'object' || !('card' in value) || !('artworkId' in value))
+									return;
+								const validated = validateProfileCard(value.card);
+								if (!validated.success || !isProfileArtworkId(value.artworkId)) return;
+								const acknowledged = { card: validated.value, artworkId: value.artworkId };
+								for (const field of Object.keys(acknowledged.card) as (keyof typeof card)[]) {
+									if (!submittedFields.has(field)) continue;
+									Object.assign(baselineCard, { [field]: acknowledged.card[field] });
+									if (card[field] === submittedCard[field])
+										Object.assign(card, { [field]: acknowledged.card[field] });
+								}
+								if (submittedFields.has('artworkId')) {
+									baselineArtwork = acknowledged.artworkId;
+									if (selectedArtwork === submittedArtwork)
+										selectedArtwork = acknowledged.artworkId;
+								}
+							}
 							if (result.type === 'failure') {
 								pending = false;
 								await tick();
+								if (write && !write.current()) return;
 								document
 									.querySelector<HTMLElement>('.settings-page [aria-invalid="true"]')
 									?.focus();
 							}
 						}
 					} finally {
+						write?.complete();
 						pending = false;
 					}
 				};

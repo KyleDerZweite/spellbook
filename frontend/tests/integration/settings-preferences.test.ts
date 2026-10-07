@@ -70,7 +70,13 @@ run('independent account preferences', () => {
 						name: 'Ignored card'
 					})
 				)
-			).toEqual({ intent: 'email', success: true, message: 'Email saved.', errors: {} });
+			).toEqual({
+				intent: 'email',
+				success: true,
+				message: 'Email saved.',
+				savedEmail: storedEmail,
+				errors: {}
+			});
 			const [stored] = await db
 				.select()
 				.from(userProfiles)
@@ -165,7 +171,8 @@ run('independent account preferences', () => {
 		}
 		expect(await submit(user.user, body, 'https://spellbook.test', true)).toEqual({
 			success: true,
-			message: 'Profile card saved.'
+			message: 'Profile card saved.',
+			savedCard: { card, artworkId: 'astral' }
 		});
 		const [stored] = await db
 			.select()

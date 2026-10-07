@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { authState } from '#lib/auth/state.svelte.ts';
+	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import { tick } from 'svelte';
 	import { getSearchSession } from '#lib/search/session.svelte.ts';
 	import { isPrimaryClick } from '#lib/search/navigation.ts';
@@ -15,7 +17,13 @@
 	let { scrollViewport }: { scrollViewport: HTMLElement | null } = $props();
 
 	const search = getSearchSession();
-	const user = $derived(page.data.user);
+	const user = $derived(
+		workspaceSavedState.getState() === 'expired'
+			? null
+			: authState.user?.accountId === page.data.user?.accountId
+				? authState.user
+				: page.data.user
+	);
 	const NAV_LINKS = $derived([
 		{
 			href: user ? '/mtg/dashboard' : '/',

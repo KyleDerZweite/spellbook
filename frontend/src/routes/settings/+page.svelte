@@ -20,8 +20,14 @@
 	let pending = $state(false);
 	let saveError = $state('');
 	let profileForm: HTMLFormElement;
+	let editingAccount = untrack(() => data.user.accountId);
 	let lastSavedEmail = $state(untrack(() => data.user.email));
 	$effect(() => {
+		if (saved.user.accountId !== editingAccount) {
+			editingAccount = saved.user.accountId;
+			email = saved.user.email;
+			lastSavedEmail = saved.user.email;
+		}
 		if (saved.user.email !== lastSavedEmail) {
 			if (email === lastSavedEmail) email = saved.user.email;
 			lastSavedEmail = saved.user.email;
@@ -58,18 +64,31 @@
 				bind:this={profileForm}
 				method="POST"
 				aria-busy={pending}
-				use:enhance={() => {
+				use:enhance={({ formData }) => {
+					const submitted = String(formData.get('email') ?? '');
+					const write = savedProfile.beginWrite();
 					pending = true;
 					saveError = '';
 					return async ({ result, update }) => {
 						try {
+							if (write && !write.current()) return;
 							if (result.type === 'error') saveError = 'Could not save your email. Try again.';
-							else await update({ reset: false });
+							else {
+								await update({ reset: false, refreshAll: false, navigate: false });
+								if (write && !write.current()) return;
+								if (result.type === 'success' && result.data && 'savedEmail' in result.data) {
+									const next = String(result.data.savedEmail);
+									lastSavedEmail = next;
+									if (email === submitted) email = next;
+								}
+							}
 						} finally {
+							write?.complete();
 							pending = false;
 						}
 						if (result.type === 'failure') {
 							await tick();
+							if (write && !write.current()) return;
 							profileForm.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
 						}
 					};
@@ -114,7 +133,7 @@
 				>
 					<Avatar id={saved.user.avatarId} size={88} />
 				</div>
-				<AvatarEditor avatarId={saved.user.avatarId} />
+				{#key saved.user.accountId}<AvatarEditor avatarId={saved.user.avatarId} />{/key}
 			</div>
 		</div>
 		<div class="profile-card-summary">
