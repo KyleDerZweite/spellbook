@@ -1213,6 +1213,7 @@
 {#if inspection}
 	<CardDetail
 		card={inspection.card}
+		inventoryEntryId={inspection.entryId}
 		returnFocus={inspection.returnFocus}
 		actions={inspection.mode === 'edit' ? editEntryActions : undefined}
 		onClose={() => {

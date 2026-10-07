@@ -1,6 +1,6 @@
 # Accepted application contract
 
-- Status: Accepted design; workspace, trusted Auth, Account/Profile, Dashboard and bounded Inventory reads implemented; later feature slices planned
+- Status: Accepted design; workspace, trusted Auth, Account/Profile, Dashboard and bounded Inventory reads implemented; Scryfall reference reads implemented; later feature slices planned
 - Last Reviewed: 2026-10-07
 - Source of Truth: workspace/Catalog/Auth/Profile/Dashboard/Inventory code and Kyle's Q56 acceptance of later contracts
 - Update Triggers: workspace ownership, use-case interfaces, experimental API migration, mutation receipts and revisions, Inventory queries and cache limits, synchronization and acceptance evidence
@@ -101,3 +101,7 @@ Rendered browser journeys cover retained drafts, failure states, virtualized foc
 Use disposable accounts with 1,000, 10,000 and 50,000 distinct valid Inventory entries from real catalog printings and allowed finish/condition combinations. Report copies separately. Include overlapping/empty groups, repeated canonical cards and selective filters; preserve existing demo accounts. Record machine resources, source generation, revisions and fixtures. Measure first/deep windows, orders/filters, counts, groups and set progress with query plans, cold/warm latency and payload size. Measure scrolling, jumps, resize, long tasks, DOM/cache/request bounds and pending rows. Start/middle/end quantity/removal measurements must prove no unrelated scans or snapshot responses. Revise offset addressing if deep positions fail the declared target; no hardware-independent latency promise is selected.
 
 Run relevant current-head type, lint, unit/integration, build, import/workspace, container and docs checks under the [verification workflow](../operations/github-automation.md). Later value/category integration refreshes affected scale/sync evidence. Record missing browser/proxy/provider evidence and its consequence. Design acceptance, passed checks, owner UI acceptance and deployment remain separate states.
+
+## Implemented reference boundary
+
+Worker publishes public Scryfall observations and conservative language mappings; backend Valuation selects exact EUR references for public printing reads and bounded owned-entry batches. Frontend renders source/measure/date, freshness, Unknown coverage and supplied safe product links. [Value persistence](./value-and-costs.md#implemented-scryfall-references) owns immutable evidence and pruning; [HTTP ownership](./mobile-and-scan.md#reference-price-http-contract) owns the public exception/private routes. Optional providers, acquisition costs and personal daily history remain planned.

@@ -141,6 +141,12 @@ describe('OpenAPI contract', () => {
 			for (const method of methods) {
 				const operation = item[method];
 				if (!operation) continue;
+				if (path === '/api/mobile/v1/mtg/prices' && method === 'get') {
+					expect(operation.security).toEqual([]);
+					for (const status of ['200', '400', '503'])
+						expect(operation.responses[status]?.content).toBeDefined();
+					continue;
+				}
 				expect(operation.security, `${method} ${path}`).toEqual([
 					{ sessionCookie: [] },
 					{ bearerToken: [] }

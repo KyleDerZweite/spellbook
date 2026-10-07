@@ -3,7 +3,8 @@ import {
 	createLocalAuth,
 	createProfile,
 	createDashboard,
-	createInventory
+	createInventory,
+	createValuation
 } from '@spellbook/backend';
 import { db, pool } from '#lib/server/db/client.ts';
 
@@ -13,5 +14,6 @@ export const application = {
 	auth,
 	dashboard: createDashboard(pool, auth),
 	inventory: createInventory(pool, auth),
+	valuation: createValuation(pool, auth),
 	profile: createProfile(db, auth, { demoMode: process.env.DEMO_MODE === 'true' })
 };

@@ -107,6 +107,113 @@ test('built HTTP application preserves public Catalog and local account journeys
 			);
 		});
 		await t.test(
+			'public EUR references and private owned batches preserve exact values and safe failures',
+			async () => {
+				const publication = randomUUID(),
+					ownedEntry = randomUUID(),
+					inventory = randomUUID();
+				const prior = (await pool.query('SELECT * FROM price_state WHERE id=1')).rows[0];
+				try {
+					await pool.query(
+						`INSERT INTO price_publications(id,catalog_generation_id,descriptor,source_type,source_updated_at,payload_digest,extractor_version,mapping_version) VALUES($1,$2,'{}','all_cards',now(),'http-fixture',1,1)`,
+						[publication, generation]
+					);
+					await pool.query(
+						`INSERT INTO price_printings(publication_id,id,oracle_id,set_id,set_code,collector_number,lang,finishes,identity,links) VALUES($1,$2,$3,$4,'cmm','703','en',ARRAY['nonfoil','foil'],'{"lang":"en"}','[{"provider":"Cardmarket","url":"https://www.cardmarket.com/en/Magic/Products"}]')`,
+						[publication, card.id, card.oracle_id, randomUUID()]
+					);
+					await pool.query(
+						`INSERT INTO price_observations(publication_id,printing_id,finish,measure,amount,supported) VALUES($1,$2,'nonfoil','prices.eur',0.005,true),($1,$2,'foil','prices.eur_foil',NULL,true)`,
+						[publication, card.id]
+					);
+					await pool.query(
+						`UPDATE price_state SET active_publication=$1,previous_publication=NULL,refresh_status='{"kind":"Succeeded"}' WHERE id=1`,
+						[publication]
+					);
+					const path = `/api/mobile/v1/mtg/prices?printingId=${card.id}&finish=nonfoil`;
+					const publicResponse = await request(path);
+					assert.equal(publicResponse.status, 200);
+					assert.equal(publicResponse.headers.get('cache-control'), 'no-store');
+					const price = await publicResponse.json();
+					assert.equal(price.results[0].amount, '0.005');
+					assert.equal(price.results[0].provenance, 'Exact');
+					assert.equal(price.publications[0].id, publication);
+					const unknown = await request(
+						`/api/mobile/v1/mtg/prices?printingId=${card.id}&finish=foil`
+					);
+					assert.equal(unknown.status, 200);
+					const unavailable = await unknown.json();
+					assert.equal(unavailable.results[0].kind, 'Unknown');
+					assert.equal(unavailable.results[0].reason, 'AmountMissing');
+					assert.equal(unavailable.results[0].links.length, 1);
+					for (const query of ['&accountId=forged', '&printingId=' + card.id, '&extra=1'])
+						assert.equal((await request(path + query)).status, 400);
+					assert.equal(
+						(await request(`/api/mobile/v1/mtg/prices?printingId=invalid&finish=foil`)).status,
+						400
+					);
+					const registered = await request('/api/auth/register', {
+						username: `prices_${randomUUID().slice(0, 8)}`,
+						password
+					});
+					assert.equal(registered.status, 201);
+					const account = await registered.json();
+					accounts.push(account.user.accountId);
+					const headers = { authorization: `Bearer ${account.token}` };
+					await pool.query(`INSERT INTO inventories(id,account_id,game) VALUES($1,$2,'mtg')`, [
+						inventory,
+						account.user.accountId
+					]);
+					await pool.query(
+						`INSERT INTO inventory_cards(id,inventory_id,account_id,game,catalog_card_id,canonical_card_id,name,set_code,image_uri,quantity,finish,condition,notes,spellbook_position) VALUES($1,$2,$3,'mtg',$4,$5,'Sol Ring','cmm','',3,'nonfoil','NM','',0)`,
+						[ownedEntry, inventory, account.user.accountId, card.id, card.oracle_id]
+					);
+					const ownedPath = '/api/mobile/v1/mtg/inventory/prices';
+					assert.equal((await request(ownedPath, { entryIds: [ownedEntry] })).status, 401);
+					const owned = await request(ownedPath, { entryIds: [ownedEntry] }, headers);
+					assert.equal(owned.status, 200);
+					const result = await owned.json();
+					assert.deepEqual(result.coverage, {
+						coveredQuantity: 3,
+						staleQuantity: 0,
+						unknownQuantity: 0
+					});
+					assert.equal(result.results[0].quantity, 3);
+					assert.equal(result.results[0].reference.amount, '0.005');
+					assert.equal(
+						(await request(ownedPath, { entryIds: [randomUUID()] }, headers)).status,
+						404
+					);
+					assert.equal(
+						(await request(ownedPath, { entryIds: [ownedEntry], quantity: 999 }, headers)).status,
+						400
+					);
+					assert.equal(
+						(
+							await request(
+								ownedPath,
+								{ entryIds: Array.from({ length: 101 }, () => randomUUID()) },
+								headers
+							)
+						).status,
+						400
+					);
+					await pool.query('ALTER TABLE price_state RENAME TO http_missing_price_state');
+					try {
+						assert.equal((await request(path)).status, 503);
+					} finally {
+						await pool.query('ALTER TABLE http_missing_price_state RENAME TO price_state');
+					}
+				} finally {
+					await pool.query(
+						'UPDATE price_state SET active_publication=$1,previous_publication=$2,refresh_status=$3 WHERE id=1',
+						[prior.active_publication, prior.previous_publication, prior.refresh_status]
+					);
+					await pool.query('DELETE FROM price_publications WHERE id=$1', [publication]);
+				}
+			}
+		);
+		await t.test(
 			'API registration, bearer validation, wrong credentials and revocation',
 			async () => {
 				const registration = await request('/api/auth/register', { username, password });

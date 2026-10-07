@@ -68,6 +68,10 @@ def sync_catalog(
             count = publisher.publish(dest, info)
     except Exception as exc:
         # Database and HTTP exceptions can contain credentials or document data.
+        try:
+            publisher.record_failure(source, exc)
+        except Exception:
+            log.warning("Could not persist refresh status")
         save_state({"source": source, "lastError": type(exc).__name__}, data_dir)
         raise
     save_state(

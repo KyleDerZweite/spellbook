@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: code, proposed recognition design, primary documentation
-- Update Triggers: manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, device runtime selection
+- Update Triggers: public reference exception and private price reads, manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, device runtime selection
 - Related Docs: [Application contract](./application-contract.md), [Frontend](./frontend.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../../GLOSSARY.md), [Deployment](../operations/deployment.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md)
 
 Spellbook has one web client. Its manifest in `frontend/static/manifest.webmanifest` provides install metadata; `frontend/src/app.html` links it. A service worker and offline caching are not implemented. The `/mtg/scan` workspace supports image upload, candidate review, manual printing selection, and explicit inventory commit. Direct browser camera capture remains planned.
@@ -130,3 +130,9 @@ A Jetson remains an optional capture or recognition host. [NVIDIA's Jetson PyTor
 The [card robot proposal](../integrations/card-robot.md) owns physical jobs, movement events, and recovery. Recognition can select candidates only for the stack actually fed into the device. Sorting already owned cards must not import them again, and repeated images of one held card must not count as additional copies. Inventory elsewhere does not establish physical access. Tray placement, copy tracking, and deck assignment require their own confirmed device outcomes and future persistence.
 
 External recognition sources above were reviewed on 2026-10-03. No OCR accuracy, embedding advantage, Jetson compatibility, or robot throughput has been measured for Spellbook.
+
+## Reference price HTTP contract
+
+Public `GET /api/mobile/v1/mtg/prices` requires one UUID `printingId` and `finish=nonfoil|foil`. This is an explicit public read exception under the otherwise authenticated integration prefix. No public POST batch exists without a caller need. Authenticated `POST /api/mobile/v1/mtg/inventory/prices` accepts only `entryIds`, 1 to 100 distinct UUIDs. Backend derives printing/finish/quantity from owned entries. Any missing/foreign entry produces a sanitized 404; invalid or extra fields, duplicate IDs and over-limit input produce 400. Cookie POST keeps the existing same-origin check; bearer authority remains session-produced.
+
+Reads return 200 for evaluated Known/Unknown market results and 503 for operational read failures. Response-level evaluatedAt/publications are consistent across the batch. Coverage counts only requested owned quantities; stale is a subset of covered. [OpenAPI](../../frontend/src/routes/openapi.json/+server.ts) owns exact schemas and [value persistence](./value-and-costs.md#implemented-scryfall-references) owns observation eligibility. All responses are JSON-safe and no-store. This does not expose account totals, optional providers or personal history.

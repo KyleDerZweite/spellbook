@@ -1,7 +1,7 @@
 # Value tracking
 
-- Status: Accepted design on 2026-10-06, not implemented
-- Last Reviewed: 2026-10-06
+- Status: Scryfall reference prices and product links implemented; account value history and costs planned
+- Last Reviewed: 2026-10-07
 - Source of Truth: accepted maintainer requirements and Q56 design, existing Inventory behavior
 - Update Triggers: price providers and fallback policy, daily history, reporting currency and timezone, cost batches, allocation and correction rules, tracking rollout and demo assumptions, valuation UI and API contracts
 - Related Docs: [Product index](./README.md), [Specification](./specification.md), [Domain glossary](../../GLOSSARY.md), [Market price research](../integrations/market-prices.md), [Postgres](../architecture/postgres.md), [Worker](../architecture/worker.md), [System overview](../architecture/system-overview.md), [Design direction](./ui-design-direction.md), [Value and cost persistence](../architecture/value-and-costs.md), [Application contract](../architecture/application-contract.md)
@@ -67,3 +67,7 @@ Decks also show the estimated reference value of all required cards and of their
 Kyle accepted the lot-portion, exact-cent, correction and capture mechanisms in Q56 on 2026-10-06. [Value and cost persistence](../architecture/value-and-costs.md) owns stable quantity intervals, compressed cent allocations, frozen observations, revision checks, PostgreSQL lease capture and atomic historical restatement. [The application contract](../architecture/application-contract.md) owns authorization, shared use cases, locking and replay acknowledgements.
 
 Corrections preserve original batch membership, method and reference weights, including retired portions. Acquisition-date edits are descriptive and neither backdate holdings nor reorder FIFO. The default configurable daily capture tolerance is five minutes around day close. Missed captures remain gaps; restart never invents an uncaptured day from current holdings. These accepted mechanisms are unimplemented and still require their real-database/source/browser evidence.
+
+## Current reference presentation
+
+Card Details and the Inventory inspector show exact-finish Scryfall EUR references, source date/measure, freshness and marked English fallback. Owned-entry reads derive quantities from the authenticated account and show covered/unknown quantity; stale is a subset of covered. Missing references remain Unknown, including when product links exist. Safe supplied marketplace links render independently of EUR availability or optional adapters. They do not establish finish/condition stock or a guaranteed sale amount. [Value persistence](../architecture/value-and-costs.md#implemented-scryfall-references) owns implementation; full-account values, costs and personal daily history remain planned.

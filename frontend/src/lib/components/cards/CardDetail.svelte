@@ -6,11 +6,12 @@
 
 	interface Props {
 		card: CardDocument;
+		inventoryEntryId?: string;
 		onClose: () => void;
 		actions?: Snippet<[CardDocument]>;
 		returnFocus?: HTMLElement | null;
 	}
-	let { card, onClose, actions, returnFocus }: Props = $props();
+	let { card, onClose, actions, returnFocus, inventoryEntryId }: Props = $props();
 	let detailOpen = $state(false);
 	let pending = $state(false);
 	let initialFocus: HTMLElement | null = null;
@@ -48,7 +49,12 @@
 				<Dialog.Description class="sr-only"
 					>Card information and printing selection.</Dialog.Description
 				>
-				<CardInspector {card} {actions} onPendingChange={(value) => (pending = value)} />
+				<CardInspector
+					{card}
+					{actions}
+					{inventoryEntryId}
+					onPendingChange={(value) => (pending = value)}
+				/>
 				<Dialog.Close
 					disabled={pending}
 					class="btn btn-ghost btn-icon absolute right-2 top-2 z-10"

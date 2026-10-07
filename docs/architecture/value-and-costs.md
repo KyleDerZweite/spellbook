@@ -1,12 +1,12 @@
 # Value and cost persistence
 
-- Status: Accepted design on 2026-10-06, planned and not implemented
-- Last Reviewed: 2026-10-06
+- Status: Scryfall reference publication/reads implemented; acquisition costs and personal history planned
+- Last Reviewed: 2026-10-07
 - Source of Truth: Kyle's Q56 acceptance of reference, lot, correction and capture mechanisms
 - Update Triggers: source publication, mapping, lot intervals, exact allocation, cost revisions, daily capture, retention, historical restatement and acceptance evidence
 - Related Docs: [Architecture](./README.md), [Value tracking](../product/value-tracking.md), [Market price research](../integrations/market-prices.md), [Application contract](./application-contract.md), [Postgres](./postgres.md), [Worker](./worker.md), [ADR-0018](../decisions/0018-acquisition-portions-and-atomic-history-restatement.md)
 
-[Value tracking](../product/value-tracking.md) owns user-facing prices, cost coverage, allocation policy, reporting calendar and estimates. This document owns their accepted persistence and execution mechanisms. No price import, acquisition lot, daily account history or cost correction is implemented by design acceptance.
+[Value tracking](../product/value-tracking.md) owns user-facing prices, cost coverage, allocation policy, reporting calendar and estimates. This document owns their accepted persistence and execution mechanisms. Scryfall publication, bounded reference reads and product links are implemented. Acquisition lots, account history, optional price adapters and cost correction remain planned.
 
 ## Ownership and source publication
 
@@ -43,3 +43,15 @@ Assignment and correction restate affected cost/difference statistics through in
 ## Acceptance evidence
 
 Verify exact total preservation, equal/weighted fallback, known free versus unknown, FIFO partial reductions, disjoint portion assignments, request replay and stale previews. Corrections must cover retired portions and historical intersections without changing quantities, prices or missing days. Capture evidence covers duplicate runners, restart, outages, pruning, midnight and daylight saving. Source priority/null/failure/age/finish/language cases use actual imported fixtures and optional configurations. Substitute data does not establish a real provider integration. Keep evidence with the relevant implementation slice and refresh it after affected changes.
+
+## Implemented Scryfall references
+
+Migration 0015 adds independent immutable price publications, projected printing facts, nullable exact observations and active/previous pointers. Worker publishes the baseline Catalog/Price pair atomically under the existing publisher lock. Currentness checks require both extraction and mapping versions. Source descriptor time and payload digest identify the imported input; import time never resets freshness. Failed attempts retain the active publication and store safe health separately after rollback. A successful complete null/missing view replaces the older same-source amount.
+
+Backend Valuation evaluates bounded requests in one repeatable-read transaction with one clock. It returns exact decimal EUR strings, source/measure/time, publication/observation identities, Fresh/Stale, requested and matched finishes/printings and marked English provenance. References expire after seven days. Zero is known; missing market amount is Unknown. Operational read failure is separate. Exact bigint arithmetic multiplies before half-up two-decimal display rounding. No condition discount or currency conversion is applied.
+
+English mapping v1 requires valid matching Oracle/edition IDs, set code, exact collector number, supported layout, explicit variation false, matching top artwork or ordered multi-face artwork, frame/border/treatment/promo facts and explicit equal unordered frame-effects/promo-types arrays. Missing/null evidence never defaults to equality. Exactly one English identity/finish candidate is required even if its amount is null. Supported layouts are normal, transform, modal_dfc, split, adventure and flip; reversible/unsupported layouts decline fallback. Exact finishes come from the source array; Etched-only or ambiguous Foil/Etched references are unsupported.
+
+Current/previous public price views have no cascading Catalog dependency. Backend's internal frozen-reference evidence includes the exact reference, publication descriptor, raw selected amount and requested/matched identity facts. Later protected preview/history consumers must copy this trusted evidence before public pruning. Ingestion never inspects private holdings. The actual protected persistence mechanism remains later work.
+
+[Contracts](../../contracts/src/valuation.ts), [backend Valuation](../../backend/src/valuation/read.ts) and [Worker extraction](../../worker/src/worker/prices.py) own concrete shapes and rules. [HTTP ownership](./mobile-and-scan.md#reference-price-http-contract) owns routes, limits and errors; [deployment](../operations/deployment.md#catalog-migration-and-recovery) owns paired recovery.
