@@ -193,3 +193,22 @@ def test_hostname_resolution_and_stalled_handshake_share_one_setup_budget(monkey
             connect(make_conninfo(url, host="localhost"), started + 10, 0.2)
         assert time.monotonic() - started < 0.6
         assert closed.wait(0.5)
+
+
+def test_publication_setup_error_survives_unavailable_failure_status(monkeypatch):
+    from types import SimpleNamespace
+
+    from worker.optional_publication import OptionalPricePublisher
+    from worker.price_artifacts import PriceLimits
+
+    with stalled_handshake() as (url, closed):
+        publisher = OptionalPricePublisher(url)
+
+        def unavailable_status(*_args):
+            raise OSError("Owned resolver process setup unavailable")
+
+        monkeypatch.setattr(publisher, "record_failure", unavailable_status)
+        adapter = SimpleNamespace(limits=PriceLimits(), import_deadline=time.monotonic() + 0.1)
+        with pytest.raises(psycopg.OperationalError):
+            publisher.publish_cardmarket(adapter)
+        assert closed.wait(0.5)

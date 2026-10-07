@@ -7,7 +7,6 @@ from contextlib import suppress
 from datetime import UTC, datetime
 from uuid import uuid4
 
-import psycopg
 from psycopg.types.json import Jsonb
 
 from worker.catalog import PUBLISH_LOCK
@@ -310,7 +309,7 @@ class OptionalPricePublisher:
                 bounded()
                 return publication
         except Exception as cause:
-            with suppress(psycopg.Error, ValueError):
+            with suppress(Exception):
                 self.record_failure(source, cause)
             raise
 
