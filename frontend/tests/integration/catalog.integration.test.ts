@@ -323,6 +323,60 @@ run('PostgreSQL catalog snapshots and search', () => {
 		}
 	});
 
+	it('orders by the chosen printing even when one oracle has different matching names', async () => {
+		const cards = [
+			document(40, 40, { name: 'Alpha', released_at: '2020-01-01', set_code: 'old' }),
+			document(41, 40, { name: 'Zulu', released_at: '2024-01-01', set_code: 'new' }),
+			document(42, 40, {
+				name: 'Aardvark',
+				lang: 'ja',
+				released_at: '2026-01-01',
+				set_code: 'foreign'
+			}),
+			document(43, 41, { name: 'Equal Release', released_at: '2024-01-01' }),
+			document(44, 41, { name: 'Equal Release', released_at: '2024-01-01' })
+		];
+		try {
+			for (const card of cards) await insertDocument(card);
+			const descending = await search({ limit: 1, sort: 'name:desc', facets: true });
+			expect(descending.hits.map((card) => card.id)).toEqual([id(41)]);
+			expect(descending.estimatedTotalHits).toBe(6);
+			expect(descending.facets?.set_code).toMatchObject({ old: 1, new: 1, foreign: 1 });
+			expect((await search({ limit: 1, offset: 5 })).hits.map((card) => card.id)).toEqual([id(41)]);
+			expect((await search({ query: 'Equal Release' })).hits[0].id).toBe(id(43));
+			expect((await search({ filters: { sets: ['old'] } })).hits[0].id).toBe(id(40));
+			expect((await search({ filters: { sets: ['foreign'] } })).hits[0].id).toBe(id(42));
+			expect(await search({ limit: 0, facets: true })).toMatchObject({
+				hits: [],
+				estimatedTotalHits: 6,
+				facets: { set_code: { old: 1, new: 1, foreign: 1 } }
+			});
+		} finally {
+			await modules.pool.query('DELETE FROM catalog_printings WHERE id=ANY($1::uuid[])', [
+				cards.map((card) => card.id)
+			]);
+		}
+	});
+	it('keeps exact localized relevance ahead of English preference and newer dates', async () => {
+		const cards = [
+			document(45, 42, { name: 'Exact Alias Variant', released_at: '2026-01-01' }),
+			document(46, 42, {
+				name: 'Localized Alias',
+				printed_name: 'Exact Alias',
+				lang: 'ja',
+				released_at: '2020-01-01'
+			})
+		];
+		try {
+			for (const card of cards) await insertDocument(card);
+			expect((await search({ query: 'Exact Alias' })).hits[0].id).toBe(id(46));
+			expect((await search({ query: 'Exact Alias', sort: 'name:desc' })).hits[0].id).toBe(id(46));
+		} finally {
+			await modules.pool.query('DELETE FROM catalog_printings WHERE id=ANY($1::uuid[])', [
+				cards.map((card) => card.id)
+			]);
+		}
+	});
 	it('returns stable pagination, complete counts, and query-scoped facets', async () => {
 		expect((await search({ limit: 1, offset: 1 })).hits[0].name).toBe('Llanowar Elves');
 		expect((await search({ limit: 1, sort: 'name:desc' })).hits[0].name).toBe(

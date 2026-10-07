@@ -119,15 +119,20 @@ export function createCatalog(pool: Pool) {
 		'set_code', (SELECT COALESCE(jsonb_object_agg(value, n), '{}'::jsonb) FROM (SELECT set_code AS value, count(DISTINCT oracle_id)::int AS n FROM matched GROUP BY set_code) f)
 	)`
 			: `'{}'::jsonb`;
+		// Resolve dates only for page candidates and differing names within an oracle.
 		const result = await pool.query<SearchRow>(
 			`
 		WITH active AS MATERIALIZED (SELECT active_generation AS id FROM catalog_state WHERE id=1),
-		matched AS MATERIALIZED (SELECT p.generation_id,p.id,p.oracle_id,p.name,p.lang,p.document->>'released_at' AS released_at,p.colors,p.rarity,p.set_code,${relevance} AS relevance FROM catalog_printings p JOIN active a ON a.id=p.generation_id ${where.length ? `WHERE ${where.join(' AND ')}` : ''}),
-		chosen AS (SELECT *, row_number() OVER(PARTITION BY oracle_id ORDER BY relevance DESC, (lang='en') DESC, released_at DESC, id) AS choice FROM matched),
-		cards AS MATERIALIZED (SELECT * FROM chosen WHERE choice=1),
-		page AS (SELECT generation_id,id,row_number() OVER(ORDER BY ${order}) AS position FROM cards ORDER BY ${order} LIMIT ${limit} OFFSET ${offset})
-		SELECT COALESCE((SELECT jsonb_agg(p.document ORDER BY page.position) FROM page JOIN catalog_printings p ON p.generation_id=page.generation_id AND p.id=page.id), '[]'::jsonb) AS hits,
-		(SELECT count(*)::int FROM cards) AS total, (SELECT id FROM active) AS generation_id,
+		matched AS MATERIALIZED (SELECT p.generation_id,p.id,p.oracle_id,p.name,p.lang${input.facets ? ',p.colors,p.rarity,p.set_code' : ''},${relevance} AS relevance FROM catalog_printings p JOIN active a ON a.id=p.generation_id ${where.length ? `WHERE ${where.join(' AND ')}` : ''}),
+		preferences AS (SELECT oracle_id,max(relevance*2+(lang='en')::int) AS preference FROM matched GROUP BY oracle_id),
+		preferred AS MATERIALIZED (SELECT m.* FROM matched m JOIN preferences pref USING(oracle_id) WHERE m.relevance*2+(m.lang='en')::int=pref.preference),
+		names AS MATERIALIZED (SELECT oracle_id,min(name) AS name,max(name) AS max_name,max(relevance) AS relevance FROM preferred GROUP BY oracle_id),
+		mixed AS (SELECT m.oracle_id,m.name,row_number() OVER(PARTITION BY m.oracle_id ORDER BY p.document->>'released_at' DESC,m.id) AS choice FROM preferred m JOIN names n ON n.oracle_id=m.oracle_id AND n.name<>n.max_name JOIN catalog_printings p ON p.generation_id=m.generation_id AND p.id=m.id),
+		cards AS (SELECT n.oracle_id,COALESCE(m.name,n.name) AS name,n.relevance FROM names n LEFT JOIN mixed m ON m.oracle_id=n.oracle_id AND m.choice=1),
+		page AS (SELECT oracle_id,row_number() OVER(ORDER BY ${order}) AS position FROM cards ORDER BY ${order} LIMIT ${limit} OFFSET ${offset}),
+		page_candidates AS (SELECT m.generation_id,m.id,page.position,row_number() OVER(PARTITION BY m.oracle_id ORDER BY p.document->>'released_at' DESC,m.id) AS choice FROM page JOIN preferred m USING(oracle_id) JOIN catalog_printings p ON p.generation_id=m.generation_id AND p.id=m.id)
+		SELECT COALESCE((SELECT jsonb_agg(p.document ORDER BY page.position) FROM page_candidates page JOIN catalog_printings p ON p.generation_id=page.generation_id AND p.id=page.id WHERE page.choice=1), '[]'::jsonb) AS hits,
+		(SELECT count(*)::int FROM names) AS total, (SELECT id FROM active) AS generation_id,
 		${facets} AS facets`,
 			values
 		);
