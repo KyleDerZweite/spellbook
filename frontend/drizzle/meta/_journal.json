@@ -120,6 +120,13 @@
 			"when": 1791345162135,
 			"tag": "0016_deck_entry_categories",
 			"breakpoints": true
+		},
+		{
+			"idx": 17,
+			"version": "7",
+			"when": 1791349630333,
+			"tag": "0017_optional_prices",
+			"breakpoints": true
 		}
 	]
 }

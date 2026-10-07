@@ -5,6 +5,7 @@ import {
 	bigint,
 	check,
 	boolean,
+	date,
 	customType,
 	doublePrecision,
 	index,
