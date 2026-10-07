@@ -3,7 +3,7 @@
 	import { storedCardDocument } from '#lib/mtg/stored-card.ts';
 	import type { CardDocument } from '#lib/search/types.ts';
 	import { untrack, onDestroy, onMount } from 'svelte';
-	import { readCategorySnapshot } from '#lib/decks/category-save.ts';
+	import { readCategorySnapshot, selectCategorySnapshot } from '#lib/decks/category-save.ts';
 	import type { DeckEntryCategories } from '@spellbook/contracts/categories.ts';
 	import EntryCategoryEditor from '#lib/components/decks/EntryCategoryEditor.svelte';
 	import {
@@ -57,10 +57,7 @@
 			form?.categoryConflict?.deckId === data.selectedDeckId
 				? form.categoryConflict
 				: data.entryCategories;
-		return current &&
-			(!server || BigInt(current.decisionRevision) > BigInt(server.decisionRevision))
-			? current
-			: server;
+		return selectCategorySnapshot(server, current);
 	});
 	let categoryReadController: AbortController | undefined;
 	async function refreshCategories(deckId: string, signal: AbortSignal): Promise<void> {

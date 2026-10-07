@@ -79,3 +79,12 @@ export async function readCategorySnapshot(
 		throw new Error('Could not read the saved category. Your choice is retained.');
 	return read;
 }
+
+export function selectCategorySnapshot(
+	server: DeckEntryCategories | null | undefined,
+	current: DeckEntryCategories | null
+): DeckEntryCategories | null | undefined {
+	return current && (!server || BigInt(current.decisionRevision) >= BigInt(server.decisionRevision))
+		? current
+		: server;
+}

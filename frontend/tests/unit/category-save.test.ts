@@ -84,3 +84,18 @@ it('reads the bounded category endpoint without navigating, rejects an unavailab
 	);
 	expect(current).toEqual(saved);
 });
+
+it('publishes recovered source health from a successful equal-revision read without changing saved decisions', async () => {
+	const { selectCategorySnapshot } = await import('../../src/lib/decks/category-save.ts');
+	const failed: DeckEntryCategories = {
+		...saved,
+		sourceStatus: { kind: 'Failed', sourceTime: null }
+	};
+	const recovered: DeckEntryCategories = {
+		...saved,
+		sourceStatus: { kind: 'Succeeded', sourceTime: '2026-10-06' }
+	};
+	expect(selectCategorySnapshot(failed, recovered)).toBe(recovered);
+	expect(selectCategorySnapshot(failed, recovered)?.decisions).toBe(saved.decisions);
+	expect(selectCategorySnapshot(failed, { ...recovered, decisionRevision: '3' })).toBe(failed);
+});
