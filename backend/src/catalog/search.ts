@@ -133,6 +133,7 @@ export function createCatalog(pool: Pool) {
 		'set_code', (SELECT COALESCE(jsonb_object_agg(value, n), '{}'::jsonb) FROM (SELECT value,count(*)::int AS n FROM (SELECT DISTINCT oracle_id,set_code AS value FROM matched) pairs GROUP BY value) f)
 	)`
 				: `'{}'::jsonb`;
+			// Materialize mixed-name identities before joining; selective filters can underestimate broad matches.
 			// Deduplicate facet pairs before counting; resolve dates only for page candidates and mixed names.
 			const result = await pool.query<SearchRow>(
 				`
@@ -141,7 +142,8 @@ export function createCatalog(pool: Pool) {
 		preferences AS (SELECT oracle_id,max(relevance*2+(lang='en')::int) AS preference FROM matched GROUP BY oracle_id),
 		preferred AS MATERIALIZED (SELECT m.generation_id,m.id,m.oracle_id,m.name,m.relevance FROM matched m JOIN preferences pref USING(oracle_id) WHERE m.relevance*2+(m.lang='en')::int=pref.preference),
 		names AS MATERIALIZED (SELECT oracle_id,min(name) AS name,max(name) AS max_name,max(relevance) AS relevance FROM preferred GROUP BY oracle_id),
-		mixed AS (SELECT m.oracle_id,m.name,row_number() OVER(PARTITION BY m.oracle_id ORDER BY p.document->>'released_at' DESC,m.id) AS choice FROM preferred m JOIN names n ON n.oracle_id=m.oracle_id AND n.name<>n.max_name JOIN catalog_printings p ON p.generation_id=m.generation_id AND p.id=m.id),
+		mixed_names AS MATERIALIZED (SELECT oracle_id FROM names WHERE name<>max_name),
+		mixed AS MATERIALIZED (SELECT m.oracle_id,m.name,row_number() OVER(PARTITION BY m.oracle_id ORDER BY p.document->>'released_at' DESC,m.id) AS choice FROM preferred m JOIN mixed_names n ON n.oracle_id=m.oracle_id JOIN catalog_printings p ON p.generation_id=m.generation_id AND p.id=m.id),
 		cards AS (SELECT n.oracle_id,COALESCE(m.name,n.name) AS name,n.relevance FROM names n LEFT JOIN mixed m ON m.oracle_id=n.oracle_id AND m.choice=1),
 		page AS (SELECT oracle_id,row_number() OVER(ORDER BY ${order}) AS position FROM cards ORDER BY ${order} LIMIT ${limit} OFFSET ${offset}),
 		page_candidates AS (SELECT m.generation_id,m.id,page.position,row_number() OVER(PARTITION BY m.oracle_id ORDER BY p.document->>'released_at' DESC,m.id) AS choice FROM page JOIN preferred m USING(oracle_id) JOIN catalog_printings p ON p.generation_id=m.generation_id AND p.id=m.id)

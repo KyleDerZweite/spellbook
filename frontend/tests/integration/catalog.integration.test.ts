@@ -504,6 +504,39 @@ run('PostgreSQL catalog snapshots and search', () => {
 		}
 	});
 
+	it('does not repeatedly scan all canonical names for a broad identity filter', async () => {
+		const count = 1200;
+		await modules.pool.query(
+			`INSERT INTO catalog_printings(generation_id,id,oracle_id,name,normalized_name,printed_name,lang,set_code,collector_number,rarity,cmc,colors,card_types,legalities,search_name,search_text,document)
+			SELECT generation_id,md5('broad-printing-' || n)::uuid,md5('broad-oracle-' || n)::uuid,
+			'Broad ' || n,'broad ' || n,'',lang,'broad',n::text,rarity,cmc,colors,card_types,legalities,'broad ' || n,'broad ' || n,
+			document || jsonb_build_object('id',md5('broad-printing-' || n)::uuid,'oracle_id',md5('broad-oracle-' || n)::uuid,'name','Broad ' || n,'set_code','broad')
+			FROM catalog_printings CROSS JOIN generate_series(1,$2::int) AS n WHERE id=$1::uuid`,
+			[id(1), count]
+		);
+		const reads = vi.spyOn(modules.pool, 'query');
+		try {
+			const result = await search({ filters: { colorIdentity: ['G'] }, limit: 20 });
+			expect(result.estimatedTotalHits).toBe(count + 2);
+			const [statement, parameters] = reads.mock.calls[0];
+			reads.mockRestore();
+			const plan = await modules.pool.query(
+				'EXPLAIN (ANALYZE, FORMAT JSON) ' + statement,
+				parameters
+			);
+			type Plan = { 'CTE Name'?: string; 'Actual Loops': number; Plans?: Plan[] };
+			const visits = (node: Plan): Plan[] => [node, ...(node.Plans ?? []).flatMap(visits)];
+			const names = visits(plan.rows[0]['QUERY PLAN'][0].Plan).filter(
+				(node) => node['CTE Name'] === 'names'
+			);
+			expect(names.length).toBeGreaterThan(0);
+			// Bound repeated work rather than wall-clock time on different CI machines.
+			expect(names.every((node) => node['Actual Loops'] <= 1)).toBe(true);
+		} finally {
+			reads.mockRestore();
+			await modules.pool.query("DELETE FROM catalog_printings WHERE set_code='broad'");
+		}
+	});
 	it('orders by the chosen printing even when one oracle has different matching names', async () => {
 		const cards = [
 			document(40, 40, { name: 'Alpha', released_at: '2020-01-01', set_code: 'old' }),
