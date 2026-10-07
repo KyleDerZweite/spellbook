@@ -72,7 +72,9 @@
 	const warmedImages = new Set<string>();
 	const initialPublicationReset = untrack(() => session.snapshot.publicationReset ?? 0);
 	let restoredReset = -1;
-	let consumedSeed: SearchResult | null = null;
+	let retainedServerPage: SearchResult | null = null;
+	let serverPageVersion = $state(0);
+	let consumedServerVersion = 0;
 	let activatedAddress: string | null = null;
 	let restoreTop = $state(0);
 	let anchorIndex = $state(0);
@@ -83,7 +85,8 @@
 		restoreTop = session.scrollTop;
 		anchorIndex = session.pagination.offset;
 		session.activate(serverInput ? (serverResult ?? undefined) : undefined);
-		consumedSeed = serverResult;
+		retainedServerPage = serverResult;
+		serverPageVersion = consumedServerVersion = 1;
 		activatedAddress = activationAddress;
 		mounted = true;
 	});
@@ -105,37 +108,44 @@
 		})
 	);
 	$effect(() => {
+		if (!mounted || !serverInput || serverResult === retainedServerPage) return;
+		const nextInput = serverInput,
+			nextResult = serverResult;
+		untrack(() => {
+			session.retainServerPage(nextInput, nextResult);
+			retainedServerPage = nextResult;
+			serverPageVersion++;
+		});
+	});
+	$effect(() => {
 		if (!mounted) return;
 		const address = activationAddress;
-		const replacedServerPage = serverResult !== consumedSeed;
+		const replacedServerPage = serverPageVersion !== consumedServerVersion;
 		const freshSeed =
 			replacedServerPage &&
 			serverInput &&
 			searchHref(serverInput) === untrack(() => searchHref(session.input));
 		if (untrack(() => activatedAddress === address) && !freshSeed) return;
+		untrack(() => session.pause());
 		const timer = setTimeout(
 			() =>
 				untrack(() => {
-					// Kit replaced the retained page, including an unavailable read with no hits.
-					if (replacedServerPage) catalog.releaseSeed();
 					restoreTop = session.scrollTop;
 					anchorIndex = session.pagination.offset;
 					session.activate(
-						serverResult !== consumedSeed &&
+						serverPageVersion !== consumedServerVersion &&
 							serverInput &&
 							searchHref(serverInput) === searchHref(session.input)
 							? (serverResult ?? undefined)
 							: undefined
 					);
-					consumedSeed = serverResult;
+					if (serverInput && searchHref(serverInput) === searchHref(session.input))
+						consumedServerVersion = serverPageVersion;
 					activatedAddress = address;
 				}),
 			150
 		);
-		return () => {
-			clearTimeout(timer);
-			catalog.dispose();
-		};
+		return () => clearTimeout(timer);
 	});
 	$effect(() => {
 		if (
@@ -170,7 +180,7 @@
 		session.focus = resetFocus;
 	});
 	onDestroy(() => {
-		catalog.dispose();
+		session.pause();
 		if (serverInput) catalog.releaseSeed();
 		if (session.focus === resetFocus) session.focus = () => {};
 	});

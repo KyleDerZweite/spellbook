@@ -334,4 +334,92 @@ describe('catalog global cache admission', () => {
 		expect(h.snapshot.resources!.retainedSeedRecords).toBe(500);
 		expect(cardAt(h.snapshot, 0, 500)?.id).toBe('second-0');
 	});
+	it('replaces an unmatched retained SSR500 page while preserving the active Lazy anchor and budgets', async () => {
+		const h = harness();
+		h.window.activate({
+			game: 'mtg',
+			filters: {},
+			query: 'native',
+			limit: 500,
+			offset: 500,
+			browsingMode: 'numeric'
+		});
+		h.window.seed(page(500, 'first', 5000, 500));
+		h.window.activate({
+			game: 'mtg',
+			filters: {},
+			query: 'shallow',
+			limit: 200,
+			offset: 1000,
+			browsingMode: 'lazy'
+		});
+		h.window.start();
+		h.requests[0].resolve(page(1000));
+		await flush();
+		for (const request of h.requests.slice(1)) request.resolve(page(request.offset));
+		await flush();
+		const active = h.snapshot.pages.get(1000);
+		h.window.retainServerPage(
+			{
+				game: 'mtg',
+				filters: {},
+				query: 'later native',
+				limit: 500,
+				offset: 1500,
+				browsingMode: 'numeric'
+			},
+			page(1500, 'second', 5000, 500)
+		);
+		expect(h.snapshot.anchor).toBe(1000);
+		expect(h.snapshot.generation).toBe('first');
+		expect(h.snapshot.pages.get(1000)).toBe(active);
+		expect(h.snapshot.resources!.retainedSeedRecords).toBe(500);
+		expect(h.snapshot.resources!.records).toBe(900);
+		expect(h.snapshot.resources!.pages).toBeLessThanOrEqual(20);
+		h.window.retainServerPage(
+			{ game: 'mtg', filters: {}, query: 'native small', limit: 100, browsingMode: 'numeric' },
+			page(0, 'third', 5000, 100)
+		);
+		expect(h.snapshot.resources!.retainedSeedRecords).toBe(100);
+		expect(h.snapshot.resources!.records).toBe(500);
+		expect(h.snapshot.pages.get(1000)).toBe(active);
+		h.window.retainServerPage(
+			{ game: 'mtg', filters: {}, query: 'native unavailable', limit: 500 },
+			null
+		);
+		expect(h.snapshot.resources!.retainedSeedRecords).toBe(0);
+		expect(h.snapshot.resources!.records).toBe(400);
+		expect(h.snapshot.generation).toBe('first');
+		h.window.dispose();
+	});
+	it('counts unmatched retained source metadata within four contexts and preserves the current numeric page', () => {
+		const h = harness();
+		for (let context = 0; context < 4; context++) {
+			h.window.activate({
+				game: 'mtg',
+				filters: {},
+				query: 'cached ' + context,
+				limit: 200,
+				browsingMode: 'numeric'
+			});
+			h.window.seed(page(0));
+		}
+		const active = h.snapshot.pages.get(0);
+		h.window.retainServerPage(
+			{
+				game: 'mtg',
+				filters: {},
+				query: 'unmatched native',
+				limit: 500,
+				offset: 500,
+				browsingMode: 'numeric'
+			},
+			page(500, 'second', 5000, 500)
+		);
+		expect(h.snapshot.resources!.contexts).toBe(4);
+		expect(h.snapshot.resources!.records).toBe(900);
+		expect(h.snapshot.pages.get(0)).toBe(active);
+		expect(h.snapshot.generation).toBe('first');
+		h.window.dispose();
+	});
 });

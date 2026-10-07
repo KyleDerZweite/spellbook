@@ -175,6 +175,30 @@ describe('Search hybrid URL and history state', () => {
 			vi.unstubAllGlobals();
 		}
 	});
+	it('retains unmatched Kit replacements without changing the shallow query or its anchor', () => {
+		const session = new SearchSession();
+		const intents: string[] = [];
+		session.onEdit = (intent) => intents.push(intent);
+		session.hydrate(parseSearchUrl(new URL('/mtg/search?q=current&pageSize=lazy&page=4', origin)));
+		const seed = {
+			hits: [],
+			query: 'native',
+			estimatedTotalHits: 913,
+			processingTimeMs: 1,
+			generationId: 'first'
+		};
+		session.retainServerPage(
+			parseSearchUrl(new URL('/mtg/search?q=native&pageSize=500&page=2', origin)),
+			seed
+		);
+		expect(session.input.query).toBe('current');
+		expect(session.pagination).toMatchObject({ pageSize: 'lazy', page: 4 });
+		expect(intents).toEqual([]);
+		session.pause();
+		expect(session.pagination.page).toBe(4);
+		expect(intents).toEqual([]);
+		session.catalog.releaseSeed();
+	});
 	it('restores mode, page and saved host position on Back and Forward hydration', () => {
 		const session = new SearchSession();
 		const first = parseSearchUrl(new URL('/mtg/search?q=elf&pageSize=100&page=2', origin));

@@ -151,7 +151,7 @@
 					: document.querySelector<HTMLElement>('[aria-label="Open navigation menu"]');
 				const target =
 					returnFocus?.isConnected && returnFocus.getClientRects().length ? returnFocus : fallback;
-				target?.focus();
+				target?.focus({ preventScroll: true });
 			}}
 		>
 			<Dialog.Title class="sr-only">Search cards</Dialog.Title>

@@ -1,7 +1,7 @@
 import { getContext, setContext } from 'svelte';
 import { CatalogWindow, type CatalogWindowSnapshot, type CatalogRange } from './catalogWindow.ts';
 import { SearchFilterState } from './filters.svelte.ts';
-import { buildSearchContextKey } from './requestContext.ts';
+import { buildSearchContextKey, type SearchContextInput } from './requestContext.ts';
 import { searchHref, SEARCH_MAX_OFFSET, searchPagination, type SearchInput } from './navigation.ts';
 import { parseBrowsePagination, type BrowsePagination } from '#lib/browsing/pagination.ts';
 import type { CardDocument, SearchResult } from './types.ts';
@@ -99,17 +99,39 @@ export class SearchSession {
 		this.needsAnchor = true;
 		this.address = address;
 	}
+	private catalogInput(input: SearchInput): SearchContextInput {
+		const pagination = input.pagination ?? initialPagination();
+		return {
+			game: 'mtg',
+			...input,
+			limit: pagination.limit,
+			offset: pagination.offset,
+			browsingMode: pagination.pageSize === 'lazy' ? 'lazy' : 'numeric'
+		};
+	}
+	retainServerPage(input: SearchInput, result: SearchResult | null): void {
+		const configuring = this.configuringWindow;
+		this.configuringWindow = true;
+		try {
+			this.catalog.retainServerPage(this.catalogInput(input), result);
+		} finally {
+			this.configuringWindow = configuring;
+		}
+	}
+	pause(): void {
+		const configuring = this.configuringWindow;
+		this.configuringWindow = true;
+		try {
+			this.catalog.dispose();
+		} finally {
+			this.configuringWindow = configuring;
+		}
+	}
 	activate(seed?: SearchResult): void {
 		// Disposal and seed admission publish intermediate anchors synchronously.
 		this.configuringWindow = true;
 		try {
-			const input = {
-				game: 'mtg' as const,
-				...this.input,
-				limit: this.pagination.limit,
-				offset: this.pagination.offset,
-				browsingMode: this.pagination.pageSize === 'lazy' ? ('lazy' as const) : ('numeric' as const)
-			};
+			const input = this.catalogInput(this.input);
 			const key = buildSearchContextKey(input);
 			if (key !== this.contextKey) {
 				this.contextKey = key;

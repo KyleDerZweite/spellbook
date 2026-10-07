@@ -139,9 +139,9 @@ export class CatalogWindow {
 		this.contexts.delete(key);
 		this.contexts.set(key, context);
 		this.active = context;
-		while (this.contexts.size > MAX_CONTEXTS) {
+		while (this.contextCount() > MAX_CONTEXTS) {
 			const oldest = [...this.contexts.values()].find(
-				(c) => c !== this.pinned?.context && c !== this.active
+				(c) => c.key !== this.pinned?.context.key && c !== this.active
 			)!;
 			this.contexts.delete(oldest.key);
 			this.dropPages(oldest);
@@ -162,6 +162,56 @@ export class CatalogWindow {
 		this.error = null;
 		this.reset++;
 		this.pump();
+	}
+	/** Kit retains this page even when shallow navigation has selected another context. */
+	retainServerPage(input: SearchContextInput, result: SearchResult | null): void {
+		if (!result) {
+			this.releaseSeed();
+			return;
+		}
+		input = {
+			...input,
+			limit: Math.min(500, Math.max(1, Math.floor(input.limit ?? CATALOG_PAGE_SIZE)))
+		};
+		const key = buildSearchContextKey(input);
+		const context: CachedContext = {
+			key,
+			input,
+			pages: new Map(),
+			total: result.estimatedTotalHits,
+			generation: result.generationId,
+			facets: result.facets ?? null
+		};
+		this.pinned = {
+			context,
+			offset: this.checkedOffset(input.offset ?? 0, input.limit!),
+			hits: result.hits,
+			bytes: new TextEncoder().encode(JSON.stringify(result.hits)).length
+		};
+		while (this.contextCount() > MAX_CONTEXTS) {
+			const oldest = [...this.contexts.values()].find((c) => c !== this.active && c.key !== key)!;
+			this.contexts.delete(oldest.key);
+			this.dropPages(oldest);
+		}
+		for (const [oldKey, old] of this.recency) {
+			const total = this.totals();
+			if (total.records <= MAX_RECORDS && total.pages <= MAX_PAGES && total.bytes <= TARGET_BYTES)
+				break;
+			if (
+				(old.context === this.active && this.protectedOffset(old.offset)) ||
+				old.context.pages.get(old.offset) === this.pinned.hits
+			)
+				continue;
+			old.context.pages.delete(old.offset);
+			this.recency.delete(oldKey);
+		}
+		this.suppressed.clear();
+		this.publish();
+	}
+	private contextCount(): number {
+		return (
+			this.contexts.size + (this.pinned && !this.contexts.has(this.pinned.context.key) ? 1 : 0)
+		);
 	}
 	/** Adopt the current native page without a duplicate initial read. */
 	seed(result: SearchResult): boolean {
@@ -274,7 +324,12 @@ export class CatalogWindow {
 		let records = 0,
 			bytes = new TextEncoder().encode(
 				JSON.stringify(
-					[...this.contexts.values()].map((context) => ({
+					[
+						...this.contexts.values(),
+						...(this.pinned && ![...this.contexts.values()].includes(this.pinned.context)
+							? [this.pinned.context]
+							: [])
+					].map((context) => ({
 						total: context.total,
 						generation: context.generation,
 						facets: context.facets
@@ -447,7 +502,7 @@ export class CatalogWindow {
 				records,
 				bytes,
 				pages,
-				contexts: this.contexts.size,
+				contexts: this.contextCount(),
 				physicalRequests: this.flights.size,
 				byteOverflow: Math.max(0, bytes - TARGET_BYTES),
 				retainedSeedRecords: this.pinned?.hits.length ?? 0
