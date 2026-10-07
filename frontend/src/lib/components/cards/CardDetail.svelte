@@ -12,6 +12,7 @@
 		actions?: Snippet<[CardDocument]>;
 		returnFocus?: HTMLElement | null;
 		callerPending?: boolean;
+		onPendingChange?: (pending: boolean) => void;
 	}
 	let {
 		card,
@@ -19,6 +20,7 @@
 		actions,
 		returnFocus,
 		callerPending = false,
+		onPendingChange,
 		inventoryEntryId,
 		inventoryPriceRefreshKey
 	}: Props = $props();
@@ -40,7 +42,7 @@
 <Dialog.Root open={detailOpen} onOpenChange={changeOpen}>
 	<Dialog.Portal>
 		<Dialog.Overlay
-			class="fixed inset-0 z-40 flex items-end justify-center sm:items-center sm:p-4 lg:p-8"
+			class="fixed inset-0 z-[110] flex items-end justify-center sm:items-center sm:p-4 lg:p-8"
 			style="background: rgba(8, 11, 13, 0.85); backdrop-filter: blur(4px);"
 		>
 			<Dialog.Content
@@ -53,7 +55,7 @@
 						target.focus({ preventScroll: true });
 					}
 				}}
-				class="modal-content relative z-50 flex w-full flex-col overflow-y-auto overscroll-contain rounded-t-xl border border-border bg-stone shadow-xl sm:max-w-5xl sm:rounded-lg"
+				class="modal-content relative z-[111] flex w-full flex-col overflow-y-auto overscroll-contain rounded-t-xl border border-border bg-stone shadow-xl sm:max-w-5xl sm:rounded-lg"
 				style="max-height: 92dvh;"
 			>
 				<Dialog.Title class="sr-only">{card.name}</Dialog.Title>
@@ -63,9 +65,13 @@
 				<CardInspector
 					{card}
 					{actions}
+					{callerPending}
 					{inventoryEntryId}
 					{inventoryPriceRefreshKey}
-					onPendingChange={(value) => (quickAddPending = value)}
+					onPendingChange={(value) => {
+						quickAddPending = value;
+						onPendingChange?.(value);
+					}}
 				/>
 				<Dialog.Close
 					disabled={pending}

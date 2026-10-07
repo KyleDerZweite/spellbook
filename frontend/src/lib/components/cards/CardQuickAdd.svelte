@@ -5,88 +5,136 @@
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import Select from '#lib/components/ui/select/Select.svelte';
 	import type { CardDocument } from '#lib/search/types.ts';
+	import {
+		createInventoryAdditionDraft,
+		captureAddition,
+		retainAddition,
+		type InventoryAdditionDraft,
+		type InventoryAdditionIntent
+	} from '#lib/cards/addition-drafts.ts';
 	import { activeGameState } from '#lib/state/activeGame.svelte.ts';
 
 	interface Props {
 		card: CardDocument;
 		onPendingChange?: (pending: boolean) => void;
+		callerPending?: boolean;
+		actionRole?: 'primary' | 'secondary';
+		draft?: InventoryAdditionDraft;
 	}
 
-	let { card, onPendingChange }: Props = $props();
+	let {
+		card,
+		onPendingChange,
+		callerPending = false,
+		actionRole = 'primary',
+		draft: retained
+	}: Props = $props();
+	let local = $state(createInventoryAdditionDraft());
+	let draft = $derived(retained ?? local);
 	const id = $props.id();
-
-	let finish = $state('nonfoil');
-	let condition = $state('NM');
-	let quantity = $state(1);
-	let pending = $state(false);
-	let error = $state('');
-	let message = $state('');
-	let requestId = $state(
-		untrack(() => (page.data.requestId ? `${page.data.requestId}:${card.id}` : crypto.randomUUID()))
+	const nativeRequestId = untrack(() =>
+		page.data.requestId ? `${page.data.requestId}:inventory:${card.id}` : crypto.randomUUID()
 	);
-	const pendingRequests = new Map<string, string>();
+
+	let pending = $state(false);
 	let mounted = true;
+	let account = $derived(page.data.user?.accountId ?? null);
+	let authorized = $derived(
+		!!account &&
+			workspaceSavedState.getState() !== 'expired' &&
+			workspaceSavedState.isActive(account)
+	);
+	let blocked = $derived(pending || callerPending || !authorized);
+	const resource = workspaceSavedState.subscribe({
+		topics: ['inventory'],
+		refresh: async () => {},
+		clear: () => {
+			if (mounted) {
+				Object.assign(draft, createInventoryAdditionDraft());
+				pending = false;
+				onPendingChange?.(false);
+			}
+		}
+	});
+	$effect(() => {
+		const next = account;
+		const status = workspaceSavedState.getState();
+		untrack(() => {
+			if (!next || status === 'expired') Object.assign(draft, createInventoryAdditionDraft());
+			else if (workspaceSavedState.isActive(next) && draft.accountId !== next)
+				Object.assign(draft, createInventoryAdditionDraft(), { accountId: next });
+		});
+	});
 	onDestroy(() => {
 		mounted = false;
+		resource.dispose();
 		onPendingChange?.(false);
 	});
 	const hasAvailableFinish = $derived(card.is_nonfoil_available || card.is_foil_available);
-
-	const add: SubmitFunction = ({ formData, cancel }) => {
-		if (pending || !hasAvailableFinish) {
+	const add: SubmitFunction = ({ formData, submitter, cancel }) => {
+		const retry = submitter?.getAttribute('name') === 'retryOriginal';
+		if (blocked || (!retry && !hasAvailableFinish)) {
 			cancel();
 			return;
 		}
-		const payload = JSON.stringify([
-			page.data.user?.accountId,
-			...['game', 'catalogCardId', 'finish', 'condition', 'quantity'].map((name) => [
-				name,
-				formData.get(name)
-			])
-		]);
-		const account = page.data.user?.accountId;
-		const intentId = pendingRequests.get(payload) ?? crypto.randomUUID();
-		pendingRequests.set(payload, intentId);
-		formData.set('requestId', intentId);
+		const entered: InventoryAdditionIntent = {
+			requestId: '',
+			printingName: card.name,
+			catalogCardId: card.id,
+			finish: String(formData.get('finish')),
+			condition: String(formData.get('condition')),
+			quantity: String(formData.get('quantity'))
+		};
+		const retryId = retry ? (submitter?.getAttribute('value') ?? null) : null;
+		const intent = captureAddition(entered, draft.uncertain, retryId, () => crypto.randomUUID());
+		draft.uncertain = retainAddition(draft.uncertain, intent);
+		for (const [key, value] of Object.entries(intent)) formData.set(key, value);
+		const owner = account;
+		const submittedDraft = draft;
+		const submittedPrinting = card.id;
 		const write = workspaceSavedState.beginWrite(['inventory']);
-		const addedName = String(formData.get('name'));
-		const addedQuantity = Number(formData.get('quantity'));
 		pending = true;
 		onPendingChange?.(true);
-		error = '';
-		message = '';
+		draft.error = '';
 		return async ({ result, update }) => {
 			try {
-				if (!mounted || (!write.current() && (account || result.type !== 'redirect'))) return;
-				if (result.type === 'success' && result.data?.success) {
-					pendingRequests.delete(payload);
-					requestId = crypto.randomUUID();
-					message = `Added ${addedQuantity} ${addedQuantity === 1 ? 'copy' : 'copies'} of ${addedName} to inventory.`;
-					try {
-						workspaceSavedState.invalidate(['inventory']);
-					} catch {
-						message += ' Refresh the page to update inventory and deck counts.';
-					}
+				if (
+					!mounted ||
+					account !== owner ||
+					submittedDraft !== draft ||
+					card.id !== submittedPrinting ||
+					(!write.current() && (owner || result.type !== 'redirect'))
+				)
+					return;
+				if (
+					result.type === 'success' &&
+					result.data?.success &&
+					result.data.acknowledgement &&
+					result.data.acknowledgement.requestId === intent.requestId
+				) {
+					draft.uncertain = draft.uncertain.filter((item) => item.requestId !== intent.requestId);
+					draft.requestId = crypto.randomUUID();
+					draft.message = `Added ${intent.quantity} of ${intent.printingName ?? intent.catalogCardId} to inventory.`;
 				} else if (result.type === 'redirect') {
-					pending = false;
-					onPendingChange?.(false);
 					await update({ reset: false });
-				} else if (result.type === 'failure') {
-					error =
-						typeof result.data?.message === 'string'
-							? result.data.message
-							: 'Could not add this card. Check the details and try again.';
 				} else {
-					error = 'Could not confirm this addition. Retry unchanged to confirm it safely.';
+					if (result.type !== 'failure' || result.status >= 500)
+						draft.uncertain = retainAddition(draft.uncertain, intent);
+					else
+						draft.uncertain = draft.uncertain.filter((item) => item.requestId !== intent.requestId);
+					draft.error =
+						result.type === 'failure' && typeof result.data?.message === 'string'
+							? result.data.message
+							: 'Could not confirm this addition. Retry the original request.';
+					if (result.type === 'failure' && result.status === 401) workspaceSavedState.expire();
 				}
 			} finally {
 				write.complete();
 				pending = false;
-				if (mounted && (write.current() || !account)) onPendingChange?.(false);
+				if (mounted && account === owner) onPendingChange?.(false);
 			}
 		};
 	};
-
 	const CONDITIONS = [
 		{ value: 'NM', label: 'Near Mint' },
 		{ value: 'LP', label: 'Lightly Played' },
@@ -102,9 +150,9 @@
 
 	$effect(() => {
 		if (!card.is_nonfoil_available && card.is_foil_available) {
-			finish = 'foil';
+			draft.finish = 'foil';
 		} else if (!card.is_foil_available) {
-			finish = 'nonfoil';
+			draft.finish = 'nonfoil';
 		}
 	});
 </script>
@@ -115,9 +163,9 @@
 	use:enhance={add}
 	class="quick-add"
 	aria-busy={pending}
-	aria-describedby={error ? `${id}-error` : undefined}
+	aria-describedby={draft.error ? `${id}-error` : undefined}
 >
-	<input type="hidden" name="requestId" value={requestId} />
+	<input type="hidden" name="requestId" value={draft.requestId || nativeRequestId} />
 	<input type="hidden" name="game" value={activeGameState.current} />
 	<input type="hidden" name="catalogCardId" value={card.id} />
 	<input type="hidden" name="canonicalCardId" value={card.oracle_id} />
@@ -130,9 +178,9 @@
 		<div class="flex items-center gap-2">
 			<button
 				type="button"
-				onclick={() => (quantity = Math.max(1, (quantity || 1) - 1))}
+				onclick={() => (draft.quantity = Math.max(1, (draft.quantity || 1) - 1))}
 				aria-label="Decrease quantity"
-				disabled={pending || quantity <= 1}
+				disabled={blocked || draft.quantity <= 1}
 				class="btn btn-secondary btn-icon quantity-step"
 			>
 				-
@@ -141,8 +189,8 @@
 				id={`${id}-quantity`}
 				type="number"
 				name="quantity"
-				bind:value={quantity}
-				disabled={pending}
+				bind:value={draft.quantity}
+				disabled={blocked}
 				min="1"
 				max="99"
 				step="1"
@@ -151,9 +199,9 @@
 			/>
 			<button
 				type="button"
-				onclick={() => (quantity = Math.min(99, (quantity || 1) + 1))}
+				onclick={() => (draft.quantity = Math.min(99, (draft.quantity || 1) + 1))}
 				aria-label="Increase quantity"
-				disabled={pending || quantity >= 99}
+				disabled={blocked || draft.quantity >= 99}
 				class="btn btn-secondary btn-icon quantity-step"
 			>
 				+
@@ -168,8 +216,8 @@
 				id={`${id}-finish`}
 				name="finish"
 				label="Finish"
-				bind:value={finish}
-				disabled={pending}
+				bind:value={draft.finish}
+				disabled={blocked}
 				options={FINISHES}
 			/>
 		</div>
@@ -180,25 +228,52 @@
 				id={`${id}-condition`}
 				name="condition"
 				label="Condition"
-				bind:value={condition}
-				disabled={pending}
+				bind:value={draft.condition}
+				disabled={blocked}
 				options={CONDITIONS}
 			/>
 		</div>
 	</div>
-	<button type="submit" disabled={pending || !hasAvailableFinish} class="btn btn-primary w-full">
+	<button
+		type="submit"
+		disabled={blocked || !hasAvailableFinish}
+		class={['btn w-full', actionRole === 'secondary' ? 'btn-secondary text-sm' : 'btn-primary']}
+	>
 		{pending ? 'Adding...' : 'Add to inventory'}
 	</button>
+	{#each draft.uncertain as original (original.requestId)}<p class="text-sm text-text-secondary">
+			Original unconfirmed addition: {original.quantity} of {original.printingName ??
+				original.catalogCardId}, {original.finish}, {original.condition}.
+		</p>
+		<button
+			class="btn btn-secondary"
+			type="submit"
+			name="retryOriginal"
+			value={original.requestId}
+			formnovalidate
+			disabled={blocked}>Retry original Inventory addition</button
+		>{/each}
 	{#if !hasAvailableFinish}<p class="text-sm text-text-secondary">
 			Choose a printing with an available Nonfoil or Foil finish.
 		</p>{/if}
-	{#if error}<p id={`${id}-error`} role="alert" class="text-sm text-error">{error}</p>{/if}
-	<p role="status" aria-live="polite" class:sr-only={!message} class="text-sm text-text-secondary">
-		{message}
+	{#if draft.error}<p id={`${id}-error`} role="alert" class="text-sm text-error">
+			{draft.error}
+		</p>{/if}
+	<p
+		role="status"
+		aria-live="polite"
+		class:sr-only={!draft.message}
+		class="text-sm text-text-secondary"
+	>
+		{draft.message}
 	</p>
 </form>
 
 <style>
+	.quick-add :global(button),
+	.quick-add :global(input) {
+		min-height: 44px;
+	}
 	.quick-add {
 		display: flex;
 		flex-direction: column;

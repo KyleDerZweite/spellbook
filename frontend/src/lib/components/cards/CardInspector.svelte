@@ -17,10 +17,17 @@
 		inventoryPriceRefreshKey?: string;
 		onPendingChange?: (pending: boolean) => void;
 		actions?: Snippet<[CardDocument]>;
+		callerPending?: boolean;
 	}
 
-	let { card, onPendingChange, actions, inventoryEntryId, inventoryPriceRefreshKey }: Props =
-		$props();
+	let {
+		card,
+		onPendingChange,
+		callerPending = false,
+		actions,
+		inventoryEntryId,
+		inventoryPriceRefreshKey
+	}: Props = $props();
 
 	let printings: CardDocument[] = $state([]);
 	let selectedPrinting: CardDocument | null = $state(null);
@@ -30,6 +37,7 @@
 	let allPrintingsView = $state(false);
 	let foilFilter: 'all' | 'foil' | 'nonfoil' = $state('all');
 	let quickAddPending = $state(false);
+	let pending = $derived(callerPending || quickAddPending);
 
 	type TabId = 'printings' | 'info';
 	let activeTab: TabId = $state('printings');
@@ -110,7 +118,7 @@
 	});
 
 	function selectPrinting(printing: CardDocument) {
-		if (quickAddPending) return;
+		if (pending) return;
 		selectedPrinting = printing;
 		allPrintingsView = false;
 	}
@@ -167,7 +175,7 @@
 					allPrintingsView = false;
 				}}
 				aria-pressed={activeTab === tab.id}
-				disabled={quickAddPending}
+				disabled={pending}
 				class="relative min-h-11 cursor-pointer border-none bg-transparent pb-2 font-body text-sm transition-colors disabled:opacity-50"
 				style="color: {activeTab === tab.id
 					? 'var(--color-gold-bright)'
@@ -222,7 +230,7 @@
 				<div class="mb-3 flex items-center justify-between">
 					<h3 class="sr-only">Select a printing</h3>
 					<button
-						disabled={quickAddPending}
+						disabled={pending}
 						onclick={() => (allPrintingsView = false)}
 						class="min-h-11 cursor-pointer rounded border-none bg-transparent px-2 py-1 font-body text-sm text-text-muted transition-colors hover:text-gold-bright"
 					>
@@ -248,7 +256,7 @@
 						<div class="mb-3 flex flex-wrap gap-1">
 							{#each availableLanguages as lang (lang)}
 								<button
-									disabled={quickAddPending}
+									disabled={pending}
 									onclick={() => (selectedLang = lang)}
 									class="min-h-11 min-w-11 cursor-pointer rounded px-2 py-1 text-sm leading-none transition-all duration-150"
 									style="
@@ -275,7 +283,7 @@
 								selectedPrinting?.id === printing.id ||
 								(!selectedPrinting && printing.id === card.id)}
 							<button
-								disabled={quickAddPending}
+								disabled={pending}
 								onclick={() => selectPrinting(printing)}
 								class="cursor-pointer overflow-hidden rounded-lg p-0 text-left transition-all duration-150"
 								style="
@@ -337,7 +345,7 @@
 			{:else}
 				<Select
 					label="Select card printing"
-					disabled={quickAddPending}
+					disabled={pending}
 					value={activeCard.id}
 					displayValue={`${activeCard.set_name} (${activeCard.set_code.toUpperCase()}) #${activeCard.collector_number}`}
 					options={filteredPrintings.map((printing) => ({
@@ -354,10 +362,10 @@
 					<button
 						type="button"
 						onclick={() => (allPrintingsView = true)}
-						disabled={quickAddPending}
+						disabled={pending}
 						class="btn btn-secondary font-body text-xs">All printings</button
 					>
-					<fieldset class="printing-availability" disabled={quickAddPending}>
+					<fieldset class="printing-availability" disabled={pending}>
 						<legend>Printing availability</legend>
 						<div>
 							{#each ['nonfoil', 'foil'] as finish}
@@ -379,7 +387,7 @@
 					<div class="flex flex-wrap gap-1">
 						{#each availableLanguages as lang (lang)}
 							<button
-								disabled={quickAddPending}
+								disabled={pending}
 								onclick={() => (selectedLang = lang)}
 								class="min-h-11 min-w-11 cursor-pointer rounded px-2 py-1 text-sm leading-none transition-all duration-150"
 								style="
@@ -410,6 +418,7 @@
 			{#if actions}{@render actions(activeCard)}
 			{:else if page.data.user && workspaceSavedState.getState() !== 'expired'}<CardQuickAdd
 					card={activeCard}
+					{callerPending}
 					onPendingChange={(pending) => {
 						quickAddPending = pending;
 						onPendingChange?.(pending);
