@@ -8,7 +8,7 @@
 - Supersession: [ADR-0021](./0021-hybrid-browsing-and-contextual-card-dialog.md) partially replaces Search browser loading/navigation, scroll/inspection presentation and the affected request maximum; remaining decisions stay accepted
 - Related Docs: [Specification](../product/specification.md#dashboard), [Routes](../product/routing-and-games.md), [Auth](../architecture/auth.md), [Frontend](../architecture/frontend.md), [Catalog](../architecture/catalog.md#browser-result-window), [Design direction](../product/ui-design-direction.md)
 
-[ADR-0021](./0021-hybrid-browsing-and-contextual-card-dialog.md) selects the replacement UI contract. It is not implemented; prior implementation evidence remains tied to its original revision. Affected replacement readiness is withdrawn pending coherent reviewed contracts and acceptance checks.
+[ADR-0021](./0021-hybrid-browsing-and-contextual-card-dialog.md) selects the implemented replacement UI contract. Prior implementation evidence remains tied to its recorded revision. Current composed verification is recorded separately with the replacement.
 
 `/` shows the same public landing page for every session. The private dashboard lives at `/mtg/dashboard`. Sign-in and registration lead to Inventory unless a safe, explicit `returnTo` was supplied. Public presentation, inventory work and private summaries remain separate tasks. An explicit return to `/` or a deck is preserved. A development override for the landing page is unnecessary.
 
