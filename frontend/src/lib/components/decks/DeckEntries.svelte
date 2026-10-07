@@ -14,7 +14,8 @@
 		updateAction,
 		requestId,
 		submit,
-		onInspect
+		onInspect,
+		categories
 	}: {
 		groups: [string, DeckCard[]][];
 		view: 'list' | 'stacks';
@@ -25,6 +26,7 @@
 		requestId: string;
 		submit: SubmitFunction;
 		onInspect: (card: CardDocument, entry: DeckCard) => void;
+		categories?: import('@spellbook/contracts/categories.ts').DeckEntryCategories | null;
 	} = $props();
 </script>
 
@@ -40,6 +42,7 @@
 				</div>
 				{#each cards as card (card.id)}
 					{@const owned = availability[card.id]}
+					{@const decision = categories?.decisions.find((d) => d.entryId === card.id)}
 					<div
 						class="deck-row"
 						class:stack-card={view === 'stacks'}
@@ -85,7 +88,11 @@
 							class="card-name"
 							onclick={() =>
 								onInspect(documents[card.catalogCardId] ?? storedCardDocument(card), card)}
-							>{card.name}{#if documents[card.catalogCardId]?.mana_cost}<span class="row-mana"
+							>{card.name}{#if card.role === 'main' && decision?.state === 'Pending'}<span
+									class="muted"
+								>
+									(category pending)</span
+								>{/if}{#if documents[card.catalogCardId]?.mana_cost}<span class="row-mana"
 									><ManaCost cost={documents[card.catalogCardId].mana_cost} /></span
 								>{/if}</button
 						>

@@ -242,7 +242,23 @@ run('deck builder transactions', () => {
 			operations: [operation(2), operation(3, 'sideboard')]
 		});
 		const main = cards.changes.find((card) => card.role === 'main')!;
-		await modules.updateDeckCard(actor, main.entryId, 4, 'sideboard', crypto.randomUUID());
+		const preview = await modules.application.categories.previewEntryMerge(actor, {
+			deckId: deck.id,
+			entryId: main.entryId,
+			catalogCardId: card.catalogCardId,
+			quantity: 4,
+			role: 'sideboard'
+		});
+		await modules.updateDeckCard(
+			actor,
+			main.entryId,
+			4,
+			'sideboard',
+			crypto.randomUUID(),
+			undefined,
+			'web',
+			preview.token
+		);
 		expect(await modules.getDeckCardsForDeck(actor, deck.id)).toMatchObject([
 			{ quantity: 7, role: 'sideboard' }
 		]);

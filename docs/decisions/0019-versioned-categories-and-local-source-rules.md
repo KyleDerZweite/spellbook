@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-06
-- Last Reviewed: 2026-10-06
+- Last Reviewed: 2026-10-07
 - Owners: Kyle
 - Source of Truth: Kyle's Q56 acceptance of the reviewed implementation contract
 - Update Triggers: definition versions, rule vocabulary, evaluation priority, source facts, Review/Reset and combo support
@@ -10,7 +10,7 @@
 
 ## Context
 
-This is accepted design for the next pass, not an implemented capability.
+The starter entry-category and Oracle Tags portion is implemented. Account customization, Review/Reset, whole-deck categories and local combos remain accepted later work. [Category rules](../architecture/category-rules.md#implemented-starter-entry-decisions) owns current component responsibilities and evidence.
 
 Reusable meanings must not silently reorganize older decks or erase manual choices. The Jev prototype did not establish dependable combo recognition or arbitrary custom semantics. Generic traits cannot alone establish a whole deck strategy.
 

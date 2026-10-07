@@ -1,16 +1,16 @@
 # Card and deck categorization
 
-- Status: Source/rule design accepted; optional local Commander Spellbook adapter selected, no category integration implemented
-- Last Reviewed: 2026-10-06
+- Status: Oracle Tags publication and starter entry categories implemented; optional local Commander Spellbook adapter selected and planned
+- Last Reviewed: 2026-10-07
 - Source of Truth: linked primary documentation, local public Scryfall snapshots, recorded Jev HTTP experiment and read-only repository inspection
 - Update Triggers: classifier access, model versions and prices, taxonomy coverage, category quality, custom criteria, deck context and selected provider
 - Related Docs: [Integrations](./README.md), [Card grouping](../product/card-grouping.md), [Domain glossary](../../GLOSSARY.md), [Catalog](../architecture/catalog.md), [Worker](../architecture/worker.md), [System overview](../architecture/system-overview.md), [Category rules](../architecture/category-rules.md)
 
-This document owns source and classifier research. [Card grouping](../product/card-grouping.md#deck-categories-accepted-design) owns the requested Deck entry and whole-deck category behavior. After the authenticated Jev experiment, the maintainer selected sources and explicit rules for this pass. Jev stays a prototype. Free-text meanings and stronger or hybrid semantic classification are deferred; no production inference provider is selected.
+This document owns source and classifier research. [Card grouping](../product/card-grouping.md#deck-categories) owns the requested Deck entry and whole-deck category behavior. After the authenticated Jev experiment, the maintainer selected sources and explicit rules for this pass. Jev stays a prototype. Free-text meanings and stronger or hybrid semantic classification are deferred; no production inference provider is selected.
 
 ## Existing application and comparable tools
 
-The current Worker publishes types, keywords and Oracle text, but not strategy classifications or Oracle Tags. Catalog-time inference could supply generic card traits. It cannot know the intended use in a later deck or a new account's custom category definition. Deck-specific primary selection needs a separate policy and may need deck context.
+The Worker now publishes Catalog types, keywords and Oracle text plus an independent complete Oracle Tags publication. [Category rules](../architecture/category-rules.md#implemented-starter-entry-decisions) owns the implemented deterministic starter primary selection. The source facts do not establish a deck's strategy or a later account's custom category meaning. Account rules, whole-deck categories and local combos remain later work. Jev remains a recorded prototype without production inference integration.
 
 [Archidekt's announcement](https://archidekt.com/news/4958603) describes automatic defaults derived from common user assignments within an allowlisted vocabulary. It does not publish its algorithm or dataset. Moxfield's [public repository](https://github.com/moxfield/moxfield-public) and first-party [tag feedback](https://moxfield.nolt.io/617) do not establish a public automatic strategy classifier. These sources do not establish a reproducible classifier for Spellbook.
 

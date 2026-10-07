@@ -3,8 +3,8 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: code
-- Update Triggers: paired reference publication and recovery, catalog source and schema, publication, bundled samples and display assets, search ranking, filters, facets, browser pagination and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters
-- Related Docs: [Domain glossary](../../GLOSSARY.md), [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [Local authentication and demo setup](../operations/local-auth.md), [ADR-0010](../decisions/0010-postgres-catalog.md), [Application contract](./application-contract.md)
+- Update Triggers: catalog source and schema, publication, bundled samples and display assets, search ranking, filters, facets, browser pagination and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters, internal canonical/type fact provenance, paired reference publication and recovery
+- Related Docs: [Domain glossary](../../GLOSSARY.md), [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [Local authentication and demo setup](../operations/local-auth.md), [ADR-0010](../decisions/0010-postgres-catalog.md), [Application contract](./application-contract.md), [Category rules](./category-rules.md)
 
 PostgreSQL stores the public Scryfall catalog alongside account-owned application data. SvelteKit provides public read-only browser search and printing lookup through `/api/catalog/search` and `/api/catalog/cards/{oracleId}/printings`. The existing versioned integration routes retain authentication. Both call the backend Catalog application interface through the frontend server composition. Backend owns shared request validation and SQL reads; frontend adapters retain HTTP parsing and errors. Browsers use the application API; they receive no database credential or search-service key. The catalog contains card metadata, not ownership quantities.
 
@@ -12,7 +12,7 @@ PostgreSQL stores the public Scryfall catalog alongside account-owned applicatio
 
 Migration `0006_postgres_catalog.sql` enables `pg_trgm` and adds three tables. `catalog_generations` records each source snapshot and transformation schema version. `catalog_printings` stores one document per printing per generation, with indexed identity, search, and filter columns. The singleton `catalog_state` points to the active and previous generations.
 
-The [Python worker](./worker.md) streams a complete snapshot into a new generation using PostgreSQL COPY. One transaction holds the publisher advisory lock, inserts printings, updates generation metadata, changes the active pointer, and deletes generations older than the previous one. The foreign key removes their printing rows. A malformed or empty snapshot rolls back the transaction and preserves the last published catalog.
+The [Python worker](./worker.md) streams a complete snapshot into a new generation using PostgreSQL COPY. One transaction holds the publisher advisory lock, inserts printings, updates generation metadata, changes the active pointer, and deletes generations older than the previous one. The foreign key removes their printing rows and internal raw Oracle/type facts. A malformed or empty snapshot rolls back the transaction and preserves the last published catalog.
 
 The repository does not contain the full Scryfall catalog. The worker downloads the selected bulk snapshot at runtime. By default, that source is `all_cards`. Each catalog document stores card metadata and Scryfall image URLs. Spellbook does not copy these images into PostgreSQL or proxy them through the application.
 
@@ -55,6 +55,10 @@ The [Inventory reader](../../backend/src/inventory/read.ts) resolves complete ow
 Import resolution accepts exact normalized canonical names and individual canonical face names. It also accepts exact case-insensitive printed names and localized face names, splitting face aliases on `//` surrounded by spaces. Whole names remain supported; prefix and fuzzy matches do not resolve imports. Set and collector-number hints narrow printing candidates. Name-only resolution groups candidates by oracle ID; hinted resolution keeps printing identities distinct. The import workflow retains ambiguous and unresolved lines for review. Scan candidate enrichment resolves authoritative metadata by printing ID through the same catalog.
 
 The [domain glossary](../../GLOSSARY.md) owns the distinction between canonical cards, printings, inventory entries, and deck entries. [Deployment](../operations/deployment.md#catalog-migration-and-recovery) owns catalog migration and recovery.
+
+## Internal category facts
+
+Catalog publication stores original validated `oracle_id`, printing UUID, available combined-face types and the Catalog transform version in `catalog_oracle_facts` within the same generation transaction. These rows prove internal source provenance for category evaluation. They add no authority flag to public CardDocument. Compatibility printing-ID fallback and old generations without proven extraction cannot establish a false Oracle Tag predicate. [Category rules](./category-rules.md#implemented-starter-entry-decisions) owns the batched fact reader and missing-fact policy. Oracle Tags has an independent current/previous publication lifecycle and no disposable Catalog foreign key.
 
 ## Baseline price correspondence
 

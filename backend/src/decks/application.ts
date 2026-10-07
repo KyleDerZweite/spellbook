@@ -1,3 +1,5 @@
+import { ensureEntryCategoryInitialization } from '../categories/persistence.ts';
+import { requireCategoryMergePreview } from '../categories/merge.ts';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import type { AuthUser } from '@spellbook/contracts/auth.ts';
 import { ActorError, type createLocalAuth } from '../auth/local.ts';
@@ -97,6 +99,12 @@ function text(value: unknown, label: string, limit: number, fallback?: string): 
 function game(value: string) {
 	if (value !== 'mtg') throw new ValidationError('Only MTG is supported');
 }
+function categoryPreview(value: unknown): string | undefined {
+	if (value === undefined) return undefined;
+	if (typeof value !== 'string' || value.length > 12000)
+		throw new ValidationError('Invalid category preview');
+	return value;
+}
 function operations(input: unknown): DeckOperation[] {
 	if (!Array.isArray(input) || !input.length)
 		throw new ValidationError('operations must contain at least one operation');
@@ -115,10 +123,17 @@ function operations(input: unknown): DeckOperation[] {
 				...normalized,
 				op: 'replace',
 				catalogCardId: text(v.catalogCardId, 'catalogCardId', 100),
-				role: assertDeckRole(v.role)
+				role: assertDeckRole(v.role),
+				categoryPreview: categoryPreview(v.categoryPreview)
 			};
 		}
-		return assertDeckOperation(op);
+		const normalized = assertDeckOperation(op);
+		return normalized.op === 'move'
+			? {
+					...normalized,
+					categoryPreview: categoryPreview((op as Record<string, unknown>).categoryPreview)
+				}
+			: normalized;
 	});
 }
 export function createDecks(
@@ -295,6 +310,7 @@ export function createDecks(
 					format: text(input.format, 'format', 100, 'Commander')
 				})
 				.returning();
+			await ensureEntryCategoryInitialization(tx, deck.id);
 			return deckDto(deck);
 		});
 	}
@@ -341,6 +357,7 @@ export function createDecks(
 		DeckAcknowledgement['changes'][number] & {
 			removed?: string;
 			changed: boolean;
+			initialize?: boolean;
 		}
 	> {
 		if (operation.op === 'add') {
@@ -387,6 +404,7 @@ export function createDecks(
 				role: saved.role,
 				quantity: saved.quantity,
 				changed: true,
+				initialize: !before && saved.role === 'main',
 				delta: saved.quantity - (before?.quantity || 0)
 			};
 		}
@@ -430,7 +448,19 @@ export function createDecks(
 				)
 				.limit(1);
 			if (destination && destination.id !== entry.id) {
-				// Destination identity/provenance wins. Future category decisions must follow this same merge.
+				await requireCategoryMergePreview(
+					tx,
+					{
+						deckId,
+						entryId: entry.id,
+						catalogCardId: identity.catalogCardId,
+						role: operation.role,
+						quantity
+					},
+					operation.categoryPreview
+				);
+				// The retained destination row owns its complete category decision.
+
 				normalizeQuantity(destination.quantity + quantity);
 				const [saved] = await tx
 					.update(deckCards)
@@ -462,6 +492,7 @@ export function createDecks(
 					saved.quantity !== entry.quantity ||
 					saved.catalogCardId !== entry.catalogCardId ||
 					saved.role !== entry.role,
+				initialize: entry.role !== 'main' && saved.role === 'main',
 				delta: saved.quantity - entry.quantity
 			};
 		}
@@ -587,6 +618,10 @@ export function createDecks(
 			const removedEntryIds: string[] = [];
 			const now = new Date();
 			let semanticChange = false;
+			let initializeCategories = !!create;
+			const categoryBefore = await tx.execute(
+				sql`SELECT entry_id::text FROM deck_entry_category_decisions WHERE deck_id=${deck.id}::uuid`
+			);
 			for (const operation of normalized) {
 				const change = await apply(
 					tx,
@@ -597,11 +632,25 @@ export function createDecks(
 					resolvedPrintings,
 					decrementFloor
 				);
-				const { removed, changed, ...dto } = change;
+				const { removed, changed, initialize, ...dto } = change;
+				initializeCategories ||= !!initialize;
 				semanticChange ||= changed;
 				changes.push(dto);
 				if (removed) removedEntryIds.push(removed);
 			}
+			const categoryEntryIds = initializeCategories
+				? await ensureEntryCategoryInitialization(tx, deck.id)
+				: [];
+			const removedCategoryIds = categoryBefore.rows
+				.map((row) => String(row.entry_id))
+				.filter((id) => removedEntryIds.includes(id));
+			if (removedCategoryIds.length)
+				await tx.execute(
+					sql`UPDATE deck_category_bundles SET decision_revision=decision_revision+1 WHERE deck_id=${deck.id}::uuid`
+				);
+			const categoryRevision = await tx.execute(
+				sql`SELECT decision_revision::text FROM deck_category_bundles WHERE deck_id=${deck.id}::uuid`
+			);
 			const revision = deck.compositionRevision + (semanticChange ? 1n : 0n);
 			if (semanticChange)
 				await tx
@@ -613,7 +662,13 @@ export function createDecks(
 				deckId: deck.id,
 				revision: String(revision),
 				changes,
-				removedEntryIds
+				removedEntryIds,
+				...(categoryRevision.rows.length
+					? {
+							categoryDecisionRevision: String(categoryRevision.rows[0].decision_revision),
+							categoryEntryIds: [...categoryEntryIds, ...removedCategoryIds]
+						}
+					: {})
 			};
 			await tx.insert(deckMutationRequests).values({
 				accountId,
@@ -662,7 +717,8 @@ export function createDecks(
 		requestId: string,
 		delta?: number,
 		actor?: AuthUser,
-		source = 'web'
+		source = 'web',
+		preview?: string
 	) {
 		const deckId =
 			(await retryEntry(accountId, requestId)) || (await entryDeck(accountId, entryId));
@@ -693,7 +749,8 @@ export function createDecks(
 								{
 									op: 'move' as const,
 									target: { entryId },
-									role: assertDeckRole(role)
+									role: assertDeckRole(role),
+									categoryPreview: preview
 								}
 							]
 						: [])
@@ -816,7 +873,8 @@ export function createDecks(
 						target: { entryId: input.entryId },
 						catalogCardId: input.catalogCardId,
 						quantity: input.quantity,
-						role: assertDeckRole(input.role)
+						role: assertDeckRole(input.role),
+						categoryPreview: input.categoryPreview
 					}
 				]
 			},
@@ -1001,7 +1059,8 @@ export function createDecks(
 			role: string | undefined,
 			requestId: string,
 			delta?: number,
-			source?: string
+			source?: string,
+			preview?: string
 		) =>
 			updateDeckCard(
 				await actorAccount(actor),
@@ -1011,7 +1070,8 @@ export function createDecks(
 				requestId,
 				delta,
 				actor,
-				source
+				source,
+				preview
 			),
 		removeDeckCard: async (actor: AuthUser, entryId: string, requestId: string, source?: string) =>
 			removeDeckCard(await actorAccount(actor), entryId, requestId, actor, source),

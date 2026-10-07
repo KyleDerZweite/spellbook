@@ -541,3 +541,128 @@ export const priceState = pgTable(
 	},
 	(t) => [check('price_state_id_check', sql`${t.id}=1`)]
 );
+
+export const oracleTagPublications = pgTable('oracle_tag_publications', {
+	id: uuid('id').primaryKey(),
+	descriptor: jsonb('descriptor').notNull(),
+	sourceUpdatedAt: timestamp('source_updated_at', {
+		withTimezone: true
+	}).notNull(),
+	payloadDigest: text('payload_digest').notNull(),
+	parserVersion: integer('parser_version').notNull(),
+	mappingVersion: integer('mapping_version').notNull(),
+	mapping: jsonb('mapping').notNull(),
+	ingestedAt: timestamp('ingested_at', { withTimezone: true }).notNull().defaultNow()
+});
+export const oracleTags = pgTable(
+	'oracle_tags',
+	{
+		publicationId: uuid('publication_id')
+			.notNull()
+			.references(() => oracleTagPublications.id, { onDelete: 'cascade' }),
+		id: uuid('id').notNull(),
+		label: text('label').notNull()
+	},
+	(t) => [primaryKey({ columns: [t.publicationId, t.id] })]
+);
+export const oracleTagClosure = pgTable(
+	'oracle_tag_closure',
+	{
+		publicationId: uuid('publication_id')
+			.notNull()
+			.references(() => oracleTagPublications.id, { onDelete: 'cascade' }),
+		ancestorId: uuid('ancestor_id').notNull(),
+		descendantId: uuid('descendant_id').notNull()
+	},
+	(t) => [primaryKey({ columns: [t.publicationId, t.ancestorId, t.descendantId] })]
+);
+export const oracleTagMemberships = pgTable(
+	'oracle_tag_memberships',
+	{
+		publicationId: uuid('publication_id')
+			.notNull()
+			.references(() => oracleTagPublications.id, { onDelete: 'cascade' }),
+		tagId: uuid('tag_id').notNull(),
+		oracleId: uuid('oracle_id').notNull(),
+		weight: text('weight').notNull()
+	},
+	(t) => [
+		primaryKey({ columns: [t.publicationId, t.tagId, t.oracleId] }),
+		index('oracle_tag_memberships_card_idx').on(t.publicationId, t.oracleId, t.tagId)
+	]
+);
+export const oracleTagState = pgTable(
+	'oracle_tag_state',
+	{
+		id: integer('id').primaryKey(),
+		activePublication: uuid('active_publication').references(() => oracleTagPublications.id),
+		previousPublication: uuid('previous_publication').references(() => oracleTagPublications.id),
+		refreshStatus: jsonb('refresh_status')
+			.notNull()
+			.default(sql`'{"kind":"NeverAttempted"}'::jsonb`)
+	},
+	(t) => [check('oracle_tag_state_id_check', sql`${t.id}=1`)]
+);
+export const catalogOracleFacts = pgTable(
+	'catalog_oracle_facts',
+	{
+		generationId: uuid('generation_id')
+			.notNull()
+			.references(() => catalogGenerations.id, { onDelete: 'cascade' }),
+		printingId: uuid('printing_id').notNull(),
+		rawOracleId: uuid('raw_oracle_id'),
+		types: text('types').array(),
+		transformVersion: integer('transform_version').notNull()
+	},
+	(t) => [primaryKey({ columns: [t.generationId, t.printingId] })]
+);
+export const deckCategoryBundles = pgTable(
+	'deck_category_bundles',
+	{
+		deckId: uuid('deck_id')
+			.primaryKey()
+			.references(() => decks.id, { onDelete: 'cascade' }),
+		definitions: jsonb('definitions').notNull(),
+		decisionRevision: bigint('decision_revision', { mode: 'bigint' })
+			.notNull()
+			.default(sql`0`)
+	},
+	(t) => [check('deck_category_bundles_revision_check', sql`${t.decisionRevision}>=0`)]
+);
+export const deckEntryCategoryDecisions = pgTable(
+	'deck_entry_category_decisions',
+	{
+		entryId: uuid('entry_id')
+			.primaryKey()
+			.references(() => deckCards.id, { onDelete: 'cascade' }),
+		deckId: uuid('deck_id')
+			.notNull()
+			.references(() => decks.id, { onDelete: 'cascade' }),
+		categoryId: uuid('category_id'),
+		state: text('state').notNull(),
+		revision: bigint('revision', { mode: 'bigint' })
+			.notNull()
+			.default(sql`1`),
+		evidence: jsonb('evidence')
+	},
+	(t) => [
+		index('deck_entry_category_decisions_deck_idx').on(t.deckId),
+		check(
+			'deck_entry_category_decisions_state_check',
+			sql`${t.state} in ('Automatic','Manual','Pending')`
+		),
+		check('deck_entry_category_decisions_revision_check', sql`${t.revision}>0`)
+	]
+);
+export const categoryMutationRequests = pgTable(
+	'category_mutation_requests',
+	{
+		accountId: text('account_id')
+			.notNull()
+			.references(() => userProfiles.accountId, { onDelete: 'cascade' }),
+		requestId: uuid('request_id').notNull(),
+		requestHash: text('request_hash').notNull(),
+		acknowledgement: jsonb('acknowledgement').notNull()
+	},
+	(t) => [primaryKey({ columns: [t.accountId, t.requestId] })]
+);

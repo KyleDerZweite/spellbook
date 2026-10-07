@@ -3,8 +3,8 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: code
-- Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership and compatibility adapters, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers, public price publication and retention
-- Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md), [Application contract](./application-contract.md), [Value and costs](./value-and-costs.md)
+- Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership and compatibility adapters, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers, public price publication and retention, Oracle Tags publications and raw facts, entry category bundles/decisions and receipts
+- Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md), [Application contract](./application-contract.md), [Value and costs](./value-and-costs.md), [Category rules](./category-rules.md)
 
 PostgreSQL stores account-owned application state, the public Scryfall catalog and public price references.
 
@@ -34,6 +34,17 @@ The backend [schema](../../backend/src/db/schema.ts) owns table definitions, and
 - `price_printings`
 - `price_observations`
 - `price_state`
+- `catalog_oracle_facts`
+- `category_mutation_requests`
+- `deck_category_bundles`
+- `deck_entry_category_decisions`
+- `oracle_tag_closure`
+- `oracle_tag_memberships`
+- `oracle_tag_publications`
+- `oracle_tag_state`
+- `oracle_tags`
+
+Additive migration [0016](../../frontend/drizzle/0016_deck_entry_categories.sql) adds the category/source tables. [Category rules](./category-rules.md) owns their publication, adopted-bundle and immutable decision semantics.
 
 ## Current Model Notes
 

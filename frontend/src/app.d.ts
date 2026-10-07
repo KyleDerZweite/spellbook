@@ -11,8 +11,12 @@ declare global {
 			message: string;
 			kind?:
 				| import('@spellbook/contracts/decks.ts').DeckFailure['kind']
+				| 'CategoryConflict'
+				| 'CategoryMergeConflict'
 				| import('@spellbook/contracts/inventory.ts').InventoryFailure['kind']
 				| import('@spellbook/contracts/scan.ts').ScanFailure['kind'];
+			latest?: import('@spellbook/contracts/categories.ts').DeckEntryCategories;
+			preview?: import('@spellbook/contracts/categories.ts').CategoryMergePreview;
 			entryId?: Extract<
 				import('@spellbook/contracts/inventory.ts').InventoryFailure,
 				{ kind: 'NotesConflict' }

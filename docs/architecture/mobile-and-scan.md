@@ -3,8 +3,8 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: code, proposed recognition design, primary documentation
-- Update Triggers: public reference exception/private price reads, manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, Scan contracts and legacy replay, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, Deck wire contracts and revisions, device runtime selection
-- Related Docs: [Application contract](./application-contract.md), [Frontend](./frontend.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../../GLOSSARY.md), [Deployment](../operations/deployment.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md)
+- Update Triggers: public reference exception/private price reads, manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, Scan contracts and legacy replay, category initialization/manual decisions/merge previews, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, Deck wire contracts and revisions, device runtime selection
+- Related Docs: [Application contract](./application-contract.md), [Frontend](./frontend.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../../GLOSSARY.md), [Deployment](../operations/deployment.md), [Category rules](./category-rules.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md)
 
 Spellbook has one web client. Its manifest in `frontend/static/manifest.webmanifest` provides install metadata; `frontend/src/app.html` links it. A service worker and offline caching are not implemented. The `/mtg/scan` workspace supports image upload, candidate review, manual printing selection, and explicit inventory commit. Direct browser camera capture remains planned.
 
@@ -156,6 +156,12 @@ A Jetson remains an optional capture or recognition host. [NVIDIA's Jetson PyTor
 The [card robot proposal](../integrations/card-robot.md) owns physical jobs, movement events, and recovery. Recognition can select candidates only for the stack actually fed into the device. Sorting already owned cards must not import them again, and repeated images of one held card must not count as additional copies. Inventory elsewhere does not establish physical access. Tray placement, copy tracking, and deck assignment require their own confirmed device outcomes and future persistence.
 
 External recognition sources above were reviewed on 2026-10-03. No OCR accuracy, embedding advantage, Jetson compatibility, or robot throughput has been measured for Spellbook.
+
+## Primary Deck entry category HTTP contract
+
+Authenticated `GET /api/mobile/v1/mtg/decks/{deckId}/categories` reads the JSON-safe adopted bundle, decisions and safe source status without mutation. `POST /decks/{deckId}/categories/initialize` accepts only `{requestId}` and returns the original compact initialization acknowledgement. `PATCH /deck-cards/{entryId}/category` accepts only `{deckId, categoryId: UUID|null, expectedDecisionRevision, requestId}` and records Manual provenance. Ownership comes from the trusted actor; missing/foreign Deck, entry and definition identities return the same 404. Unknown fields fail 400, stale decisions return 409 with current saved state and conflicting request intent returns 409.
+
+`POST /decks/{deckId}/categories/merge-preview` accepts `{entryId, catalogCardId, role, quantity}` and returns destination/source decision consequences and a revision-bound token. Existing move/replace operations and scalar entry PATCH accept optional `categoryPreview`. A conflicting merge without a current token returns 409 with a fresh preview. Confirmation keeps the destination's complete decision; original Deck acknowledgements include compact category decision revisions/affected IDs. Category JSON bodies are bounded to 16 KiB; tokens are bounded to 12,000 characters. Cookie mutations preserve existing Origin validation and bearer behavior. Web initialization, native/enhanced Manual save and merge-confirmation forms call these same backend commands. [Category rules](./category-rules.md#implemented-starter-entry-decisions) owns source/evaluation lifecycle. Account editing, Review/Reset, whole-deck and combo operations remain planned.
 
 ## Reference price HTTP contract
 

@@ -46,6 +46,7 @@ class BulkDataInfo:
     download_uri: str
     updated_at: str
     size: int
+    descriptor_id: str | None = None
 
 
 class ScryfallClient:
@@ -63,6 +64,7 @@ class ScryfallClient:
 
         return [
             BulkDataInfo(
+                descriptor_id=item.get("id"),
                 type=item["type"],
                 download_uri=item.get("jsonl_download_uri") or item["download_uri"],
                 updated_at=item["updated_at"],

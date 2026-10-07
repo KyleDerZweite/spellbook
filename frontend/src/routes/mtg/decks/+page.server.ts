@@ -14,7 +14,12 @@ import {
 	getDeckLegality,
 	importIntoDeck
 } from '#lib/server/mtg/deck-builder.ts';
-import { application } from '#lib/server/composition.ts';
+import {
+	application,
+	CategoryNotFound,
+	CategoryConflict,
+	CategoryMergeConflict
+} from '#lib/server/composition.ts';
 import { getPrintings } from '#lib/server/catalog/search.ts';
 import { ValidationError } from '#lib/server/mtg/validation.ts';
 import { DescriptionConflictError, DeckNotFoundError } from '#lib/server/data/decks.ts';
@@ -92,6 +97,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	]);
 	return {
 		...snapshot,
+		entryCategories: selectedDeck
+			? await application.categories.getDeckEntryCategories(locals.user, selectedDeck.id)
+			: null,
+		grouping: url.searchParams.get('group') === 'category' ? 'category' : 'type',
 		flow: ['create', 'edit', 'import', 'delete', 'search'].includes(
 			url.searchParams.get('flow') ?? ''
 		)
@@ -118,6 +127,11 @@ function guarded(action: Action): Action {
 			if (isRedirect(cause) || isHttpError(cause)) throw cause;
 			if (cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'Unauthenticated')
 				throw redirect(303, '/auth/login?returnTo=/mtg/decks');
+			if (cause instanceof CategoryNotFound) return fail(404, { message: cause.message });
+			if (cause instanceof CategoryConflict)
+				return fail(409, { message: cause.message, categoryConflict: cause.latest });
+			if (cause instanceof CategoryMergeConflict)
+				return fail(409, { message: cause.message, categoryMerge: cause.preview });
 			if (cause instanceof DescriptionConflictError)
 				return fail(409, { message: cause.message, conflict: cause.latest });
 			if (cause instanceof RequestConflictError) return fail(409, { message: cause.message });
@@ -134,6 +148,47 @@ function field(form: FormData, name: string): string {
 }
 
 export const actions = {
+	initializeCategories: guarded(async ({ request, locals }) => {
+		const form = await request.formData();
+		const acknowledgement = await application.categories.initializeDeckCategories(locals.user!, {
+			deckId: field(form, 'deckId'),
+			requestId: field(form, 'requestId')
+		});
+		return { success: true, message: 'Deck categories initialized.', acknowledgement };
+	}),
+
+	setCategory: guarded(async ({ request, locals }) => {
+		const form = await request.formData();
+		const categoryDraft = {
+			deckId: field(form, 'deckId'),
+			entryId: field(form, 'entryId'),
+			categoryId: field(form, 'categoryId') || null,
+			expectedDecisionRevision: field(
+				form,
+				form.has('rebaseCategory') ? 'rebaseCategory' : 'expectedDecisionRevision'
+			),
+			requestId: field(form, 'requestId')
+		};
+		try {
+			const acknowledgement = await application.categories.setEntryCategory(
+				locals.user!,
+				categoryDraft
+			);
+			return { success: true, message: 'Category saved.', acknowledgement };
+		} catch (cause) {
+			if (cause instanceof CategoryConflict)
+				return fail(409, { message: cause.message, categoryConflict: cause.latest, categoryDraft });
+			if (cause instanceof CategoryNotFound)
+				return fail(404, { message: cause.message, categoryDraft });
+			if (cause instanceof RequestConflictError)
+				return fail(409, { message: cause.message, categoryDraft });
+			if (cause instanceof ValidationError)
+				return fail(400, { message: cause.message, categoryDraft });
+			if (cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'Unauthenticated')
+				throw cause;
+			return fail(503, { message: 'The category could not be saved. Try again.', categoryDraft });
+		}
+	}),
 	createDeck: guarded(async ({ request, locals }) => {
 		const form = await request.formData();
 		const createDraft = {
@@ -219,27 +274,65 @@ export const actions = {
 		});
 		return { success: true, message: 'Card added to deck.' };
 	}),
+
 	changePrinting: guarded(async ({ request, locals }) => {
 		const form = await request.formData();
-		const acknowledgement = await changeDeckPrinting(locals.user!, {
+		const mergeDraft = {
 			entryId: field(form, 'entryId'),
 			catalogCardId: field(form, 'catalogCardId'),
 			quantity: Number(form.get('quantity')),
 			role: field(form, 'role'),
 			requestId: field(form, 'requestId')
-		});
+		};
+		let acknowledgement;
+		try {
+			acknowledgement = await changeDeckPrinting(locals.user!, {
+				...mergeDraft,
+				categoryPreview: form.has('categoryPreview') ? field(form, 'categoryPreview') : undefined
+			});
+		} catch (cause) {
+			if (cause instanceof CategoryMergeConflict)
+				return fail(409, {
+					message: cause.message,
+					categoryMerge: cause.preview,
+					mergeDraft,
+					mergeAction: 'changePrinting'
+				});
+			throw cause;
+		}
 		return { success: true, message: 'Card saved.', acknowledgement };
 	}),
+
 	updateCard: guarded(async ({ request, locals }) => {
 		const form = await request.formData();
-		await updateDeckCard(
-			locals.user!,
-			field(form, 'entryId'),
-			Number(form.get('quantity')),
-			field(form, 'role') || undefined,
-			field(form, 'requestId'),
-			form.has('delta') ? Number(form.get('delta')) : undefined
-		);
+		const mergeDraft = {
+			entryId: field(form, 'entryId'),
+			quantity: Number(form.get('quantity')),
+			role: field(form, 'role'),
+			requestId: field(form, 'requestId'),
+			delta: form.has('delta') ? Number(form.get('delta')) : undefined
+		};
+		try {
+			await updateDeckCard(
+				locals.user!,
+				mergeDraft.entryId,
+				mergeDraft.quantity,
+				mergeDraft.role || undefined,
+				mergeDraft.requestId,
+				mergeDraft.delta,
+				'web',
+				form.has('categoryPreview') ? field(form, 'categoryPreview') : undefined
+			);
+		} catch (cause) {
+			if (cause instanceof CategoryMergeConflict)
+				return fail(409, {
+					message: cause.message,
+					categoryMerge: cause.preview,
+					mergeDraft,
+					mergeAction: 'updateCard'
+				});
+			throw cause;
+		}
 		return { success: true, message: 'Card updated.' };
 	}),
 	removeCard: guarded(async ({ request, locals }) => {

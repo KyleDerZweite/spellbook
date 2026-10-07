@@ -3,8 +3,8 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: code
-- Update Triggers: price evidence and paired publication/recovery, Scryfall formats, synchronization schedule and retries, first publication, source selection, status persistence
-- Related Docs: [System overview](./system-overview.md), [Catalog](./catalog.md), [Deployment](../operations/deployment.md), [Value persistence](./value-and-costs.md)
+- Update Triggers: Scryfall formats, synchronization schedule and retries, first publication, source selection, status persistence, Oracle Tags publication and raw canonical fact extraction, price evidence and paired publication/recovery
+- Related Docs: [System overview](./system-overview.md), [Catalog](./catalog.md), [Deployment](../operations/deployment.md), [Category rules](./category-rules.md), [Value persistence](./value-and-costs.md)
 
 The Python worker imports and synchronizes the shared Scryfall catalog in PostgreSQL. It is a service-level import, not a per-account operation. Compose starts it after database migrations. Each process startup attempts a sync. `CATALOG_SOURCE` selects `all_cards` by default or `default_cards`; each run synchronizes that configured source directly. It does not replace a full-language catalog with a recurring default-only refresh. All languages present in the selected snapshot are retained.
 
@@ -25,6 +25,14 @@ PostgreSQL owns source timestamps, transformation schema versions, and publicati
 The worker writes operator status atomically to `state.json` under `WORKER_DATA_DIR`, defaulting to `/tmp/spellbook-worker`. Compose mounts durable storage at `/app/data`. A successful publication records source, completion time, document count, and no error. A failure records the source and exception class without logging credential-bearing exception text. Skipping an unchanged catalog does not update the file, so an earlier error can remain after a successful unchanged-source check. This file is a status report, not the authority for whether a catalog is published. PostgreSQL generation metadata is authoritative and survives loss of this status file.
 
 The worker has no HTTP health, metrics, or catalog-import status endpoint. Its startup check confirms schema access, not a populated catalog. On a fresh database, frontend search can return no results until the first publication completes. Inspect the active generation and worker logs to confirm first-publication readiness. A failed scheduled sync is not retried until the next daily or weekly interval. [Deployment](../operations/deployment.md#catalog-migration-and-recovery) owns operator commands and recovery.
+
+## Oracle Tags publication
+
+Each scheduled run independently attempts the public `oracle_tags` source after Catalog synchronization. Its trusted descriptor supplies source ID/type/time and download URL for that exact payload. Filenames and later live metadata never establish an older export's timestamp. [oracle_tags.py](../../worker/src/worker/oracle_tags.py) validates complete Oracle records, UUIDs, redundant graph endpoints, cycles, membership weights and every starter mapping root. It derives descendant closure, hashes the exact payload and publishes taxonomy/membership/mapping atomically under a dedicated advisory lock. Labels are presentation, UUIDs are identity; weights record prominence and do not rank categories.
+
+Oracle Tags retains current and previous immutable publications independently of Catalog generation pruning. Successful unchanged payload checks preserve original provenance and clear a previous failure status. Parser or mapping changes rebuild the same payload. Failed metadata/download/parse/publication attempts retain the prior view and record safe exception-class status after rollback. The worker never writes account definitions or assignments. [Category rules](./category-rules.md#implemented-starter-entry-decisions) owns evaluation and assignment lifecycle.
+
+Catalog publication additionally COPYs validated raw Oracle UUID/type evidence with its generation and transform version in the same transaction. Older Catalogs without that extraction cannot establish tag absence. This Catalog transform version is independent of a price extractor version. Source and schema changes require the sequenced migration before starting the worker; [deployment recovery](../operations/deployment.md#catalog-migration-and-recovery) owns rollout.
 
 ## Scryfall reference publication
 
