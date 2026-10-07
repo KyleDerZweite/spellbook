@@ -58,9 +58,9 @@ The current quantity state remains separate from daily history. Daily history be
 
 Retain personal daily holdings history and the historical references needed for that history without automatic expiry. The complete unused catalog needs current prices, not indefinite daily price history for every printing. Missing observations must not be synthesized from today's values.
 
-Dashboard summarizes current values, coverage and daily history. Inventory and Card Details show relevant price references and entry points to cost assignment. A private Costs/History workspace provides batch capture and corrections, reachable from Dashboard and Inventory. Its implementation must provide the accepted preview, frozen-reference commitment and correction behavior; no route or completed UI is claimed here. Public Home retains its accepted design.
+Planned reporting adds Dashboard summaries of current values, coverage and daily history, plus cost-assignment entry points in Inventory and Card Details. A planned private Costs/History workspace provides batch capture and corrections, reachable from Dashboard and Inventory. Its implementation must provide the accepted preview, frozen-reference commitment and correction behavior; no route or completed UI is claimed here. Public Home retains its accepted design.
 
-Decks also show the estimated reference value of all required cards and of their missing quantities. These are market estimates, separate from the owner's acquisition costs. Deck entries do not currently specify a finish, so this calculation uses nonfoil references and exposes unknown quantities and coverage. Availability does not reserve owned copies.
+Planned Deck reporting shows the estimated reference value of all required cards and of their missing quantities. These are market estimates, separate from the owner's acquisition costs. Deck entries do not currently specify a finish, so the planned calculation uses nonfoil references and exposes unknown quantities and coverage. Availability does not reserve owned copies.
 
 ## Accepted implementation contract
 
