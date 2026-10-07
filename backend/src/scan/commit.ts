@@ -11,7 +11,6 @@ import {
 	assertBoundedText,
 	assertUuid,
 	positiveQuantity,
-	normalizeQuantity,
 	ValidationError
 } from '../mtg/validation.ts';
 import { mutationFingerprint } from '../decks/request-fingerprint.ts';

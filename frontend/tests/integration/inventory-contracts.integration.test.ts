@@ -209,6 +209,33 @@ run('authorized Inventory mutation contracts', () => {
 		expect(page.kind === 'Page' && page.totals.entryCount).toBe(0);
 	});
 
+	it('same logical reorder preserves sparse positions, timestamps and revision and replays its original receipt', async () => {
+		const added = [];
+		for (const condition of ['NM', 'LP', 'MP'])
+			added.push(await application.inventory.add(actor, { ...addInput(), condition }));
+		await application.inventory.remove(actor, {
+			requestId: crypto.randomUUID(),
+			entryId: added[0].changes[0].entryId,
+			expectedQuantity: 2
+		});
+		const entryId = added[2].changes[0].entryId;
+		const before = await application.inventory.getEntry(actor, entryId);
+		const neighborBefore = await application.inventory.getEntry(actor, added[1].changes[0].entryId);
+		const input = { requestId: crypto.randomUUID(), entryId, position: 1 };
+		const acknowledgement = await application.inventory.reorder(actor, input);
+		expect(acknowledgement.revision).toBe(before?.revision);
+		expect((await application.inventory.getEntry(actor, entryId))?.entry).toEqual(before?.entry);
+		expect(
+			(await application.inventory.getEntry(actor, added[1].changes[0].entryId))?.entry
+		).toEqual(neighborBefore?.entry);
+		await application.inventory.patchEntry(actor, {
+			requestId: crypto.randomUUID(),
+			entryId,
+			notes: 'Later independent save',
+			notesRevision: '0'
+		});
+		expect(await application.inventory.reorder(actor, input)).toEqual(acknowledgement);
+	});
 	it('concurrent ordinary reductions stop at one and replay the original floor acknowledgement', async () => {
 		const added = await application.inventory.add(actor, {
 			requestId: crypto.randomUUID(),

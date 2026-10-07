@@ -1659,16 +1659,19 @@ const SCHEMA = {
 			},
 			InventoryTargetOperation: {
 				oneOf: [
-					object(
-						{
-							op: { const: 'set' },
-							target: ref('EntryTarget'),
-							quantity: integer,
-							notes: string,
-							notesRevision: inventoryRevision
-						},
-						['op', 'target', 'quantity']
-					),
+					{
+						...object(
+							{
+								op: { const: 'set' },
+								target: ref('EntryTarget'),
+								quantity: integer,
+								notes: string,
+								notesRevision: inventoryRevision
+							},
+							['op', 'target']
+						),
+						anyOf: [{ required: ['quantity'] }, { required: ['notes'] }]
+					},
 					object(
 						{
 							op: { const: 'decrement' },

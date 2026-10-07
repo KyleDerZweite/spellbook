@@ -145,12 +145,57 @@ export interface InventoryRemove {
 	expectedQuantity: number;
 	source?: InventorySource;
 }
+interface InventoryBulkPrinting {
+	catalogCardId: string;
+	canonicalCardId?: string;
+	name?: string;
+	setCode?: string;
+	imageUri?: string;
+}
+export type InventoryBulkOperation =
+	| ({
+			op: 'add';
+			finish: string;
+			condition: string;
+			quantity: number;
+			notes?: string;
+			notesRevision?: string;
+	  } & (
+			| { catalogCardId: string; card?: InventoryBulkPrinting }
+			| { catalogCardId?: string; card: InventoryBulkPrinting }
+	  ))
+	| {
+			op: 'set';
+			target: { entryId: string };
+			quantity?: number;
+			notes?: string;
+			notesRevision?: string;
+	  }
+	| {
+			op: 'decrement';
+			target: { entryId: string };
+			quantity: number;
+			notes?: string;
+			notesRevision?: string;
+	  }
+	| { op: 'remove'; target: { entryId: string }; notes?: string };
 export interface InventoryBulkInput {
 	requestId: string;
 	source?: InventorySource;
 	game?: 'mtg';
-	operations: unknown[];
+	operations: InventoryBulkOperation[];
 }
+export type InventoryFailure =
+	| {
+			kind: 'NotesConflict';
+			message: string;
+			entryId: string;
+			notes: string;
+			notesRevision: string;
+	  }
+	| { kind: 'QuantityChanged'; message: string; latestQuantity: number | null }
+	| { kind: 'NotFound'; message: string }
+	| { kind: 'RequestConflict'; message: string };
 export interface InventoryMutationApplication {
 	previewImport(actor: AuthUser, text: string): Promise<ImportPreview>;
 	commitImport(

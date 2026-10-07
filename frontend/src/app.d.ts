@@ -11,11 +11,23 @@ declare global {
 			message: string;
 			kind?:
 				| import('@spellbook/contracts/decks.ts').DeckFailure['kind']
-				| 'NotesConflict'
-				| 'QuantityChanged';
-			notes?: string;
-			notesRevision?: string;
-			latestQuantity?: number | null;
+				| import('@spellbook/contracts/inventory.ts').InventoryFailure['kind'];
+			entryId?: Extract<
+				import('@spellbook/contracts/inventory.ts').InventoryFailure,
+				{ kind: 'NotesConflict' }
+			>['entryId'];
+			notes?: Extract<
+				import('@spellbook/contracts/inventory.ts').InventoryFailure,
+				{ kind: 'NotesConflict' }
+			>['notes'];
+			notesRevision?: Extract<
+				import('@spellbook/contracts/inventory.ts').InventoryFailure,
+				{ kind: 'NotesConflict' }
+			>['notesRevision'];
+			latestQuantity?: Extract<
+				import('@spellbook/contracts/inventory.ts').InventoryFailure,
+				{ kind: 'QuantityChanged' }
+			>['latestQuantity'];
 			description?: string;
 			descriptionRevision?: string;
 		}

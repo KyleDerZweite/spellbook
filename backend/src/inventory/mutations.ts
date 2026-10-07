@@ -4,7 +4,8 @@ import type { CatalogApplication, CardDocument } from '@spellbook/contracts/cata
 import type {
 	InventoryAcknowledgement,
 	InventoryMutationApplication,
-	InventorySource
+	InventorySource,
+	InventoryFailure
 } from '@spellbook/contracts/inventory.ts';
 import type { Database, Transaction } from '../db/client.ts';
 import type { createLocalAuth } from '../auth/local.ts';
@@ -37,13 +38,23 @@ export class InventoryNotFoundError extends ValidationError {
 }
 export class InventoryQuantityChangedError extends ValidationError {
 	readonly kindOfFailure = 'QuantityChanged';
-	constructor(readonly latestQuantity: number | null) {
+	constructor(
+		readonly latestQuantity: Extract<
+			InventoryFailure,
+			{ kind: 'QuantityChanged' }
+		>['latestQuantity']
+	) {
 		super('This entry changed. Review its quantity before removing it.');
 	}
 }
 export class NotesConflictError extends ValidationError {
 	readonly kindOfFailure = 'NotesConflict';
-	constructor(readonly latest: { entryId: string; notes: string; notesRevision: string }) {
+	constructor(
+		readonly latest: Pick<
+			Extract<InventoryFailure, { kind: 'NotesConflict' }>,
+			'entryId' | 'notes' | 'notesRevision'
+		>
+	) {
 		super(
 			'Notes changed. Your draft has been retained. Review the latest saved Notes before retrying.'
 		);
@@ -410,6 +421,10 @@ export function createInventoryWriter(
 				.orderBy(asc(inventoryCards.spellbookPosition), asc(inventoryCards.id));
 			const old = ordered.findIndex((e) => e.id === entry.id);
 			const target = Math.min(operation.position, ordered.length - 1);
+			if (old === target) {
+				ack.changes.push(change(entry, 0));
+				return false;
+			}
 			const [moved] = ordered.splice(old, 1);
 			ordered.splice(target, 0, moved);
 			let changed = false;
