@@ -774,7 +774,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				const html = await native.text();
 				assert.match(html, /page=1/);
 				assert.match(html, /name="sort"/);
-				assert.equal((html.match(/data-inventory-row/g) || []).length, 50);
+				assert.equal((html.match(/data-inventory-row/g) || []).length, 200);
 			}
 		);
 
