@@ -1,8 +1,8 @@
 <script lang="ts">
 	import {
 		measureBrowseViewport,
+		restoreBrowsePosition,
 		browseScrollTop,
-		scrollBrowseViewport,
 		type BrowseViewport
 	} from '#lib/browsing/viewport.ts';
 	import { untrack } from 'svelte';
@@ -18,6 +18,7 @@
 		getCard?: (index: number) => CardDocument | undefined;
 		onRangeChange?: (range: CatalogRange) => void;
 		initialScrollTop?: number;
+		restorationTarget?: HTMLElement | null;
 		onScrollPositionChange?: (top: number) => void;
 		resetKey?: number;
 		onFocusReset?: () => void;
@@ -34,6 +35,7 @@
 		getCard = (index: number) => cards[index],
 		onRangeChange,
 		initialScrollTop = 0,
+		restorationTarget = null,
 		onScrollPositionChange,
 		resetKey = 0,
 		onFocusReset,
@@ -113,6 +115,7 @@
 	const measured = $derived(containerWidth > 0 && viewportHeight > 0);
 	$effect(() => {
 		void resetToken;
+		const feedback = restorationTarget;
 		if (!wrapperEl || !measured || !viewport) return;
 		const wrapper = wrapperEl;
 		return untrack(() => {
@@ -126,7 +129,7 @@
 				(host === window ? 0 : (host as HTMLElement).getBoundingClientRect().top);
 			const top = initialScrollTop || wrapperTop + Math.floor(anchorIndex / cols) * rowHeight;
 			const frame = requestAnimationFrame(() => {
-				scrollBrowseViewport(host, top);
+				restoreBrowsePosition(host, top, null, feedback);
 				const geometry = measureBrowseViewport(host, wrapper);
 				visibleTop = geometry.visibleTop;
 				positioned = true;

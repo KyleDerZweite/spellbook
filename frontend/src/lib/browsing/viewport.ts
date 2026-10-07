@@ -22,6 +22,18 @@ export function measureBrowseViewport(host: BrowseViewport, wrapper: HTMLElement
 export function browseScrollTop(host: BrowseViewport): number {
 	return host === window ? window.scrollY : (host as HTMLElement).scrollTop;
 }
-export function scrollBrowseViewport(host: BrowseViewport, top: number): void {
+export function scrollBrowseViewport(host: Pick<BrowseViewport, 'scrollTo'>, top: number): void {
 	host.scrollTo({ top, behavior: 'instant' });
+}
+
+/** Explicit route feedback takes precedence over result anchors during restoration. */
+export function restoreBrowsePosition(
+	host: Pick<BrowseViewport, 'scrollTo'>,
+	top: number,
+	results: Pick<HTMLElement, 'scrollIntoView'> | null,
+	feedback: Pick<HTMLElement, 'scrollIntoView'> | null
+): void {
+	if (feedback) feedback.scrollIntoView({ block: 'start', behavior: 'instant' });
+	else if (top) scrollBrowseViewport(host, top);
+	else results?.scrollIntoView({ block: 'start', behavior: 'instant' });
 }

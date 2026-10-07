@@ -17,6 +17,7 @@
 		getCard: (index: number) => CardDocument | undefined;
 		onRangeChange: (range: CatalogRange) => void;
 		initialScrollTop?: number;
+		restorationTarget?: HTMLElement | null;
 		onScrollPositionChange?: (top: number) => void;
 		resetKey: number;
 		onFocusReset: () => void;
@@ -43,6 +44,7 @@
 		getCard,
 		onRangeChange,
 		initialScrollTop = 0,
+		restorationTarget = null,
 		onScrollPositionChange,
 		resetKey,
 		onFocusReset,
@@ -131,6 +133,7 @@
 				{onRangeChange}
 				{resetKey}
 				{initialScrollTop}
+				{restorationTarget}
 				{onScrollPositionChange}
 				{onFocusReset}
 				{selectedId}

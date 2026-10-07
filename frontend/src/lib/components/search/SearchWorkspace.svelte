@@ -22,10 +22,11 @@
 	} from '#lib/search/navigation.ts';
 	import {
 		browseScrollTop,
-		scrollBrowseViewport,
+		restoreBrowsePosition,
 		type BrowseViewport
 	} from '#lib/browsing/viewport.ts';
 	import { onMount, onDestroy, tick, untrack, type Snippet } from 'svelte';
+	import { nativeFeedbackRange } from '#lib/search/native-panel.ts';
 	import {
 		getActiveFilters,
 		MANA_COLORS,
@@ -41,7 +42,8 @@
 		serverInput,
 		serverResult = null,
 		serverError = null,
-		canonicalHref
+		canonicalHref,
+		restorationTarget = null
 	}: {
 		controls?: Snippet;
 		viewport?: BrowseViewport | null;
@@ -49,6 +51,7 @@
 		serverResult?: SearchResult | null;
 		serverError?: string | null;
 		canonicalHref?: string;
+		restorationTarget?: HTMLElement | null;
 	} = $props();
 	const session = getSearchSession();
 	const filters = session.filters;
@@ -104,6 +107,7 @@
 	const warmedImages = new Set<string>();
 	const initialPublicationReset = untrack(() => session.snapshot.publicationReset ?? 0);
 	let restoredReset = -1;
+	let restoredTarget: HTMLElement | null = null;
 	let retainedServerPage: SearchResult | null = null;
 	let serverPageVersion = $state(0);
 	let consumedServerVersion = 0;
@@ -185,18 +189,19 @@
 			!host ||
 			paging.pageSize === 'lazy' ||
 			!snapshot.validated ||
-			restoredReset === snapshot.reset
+			(restoredReset === snapshot.reset && restoredTarget === restorationTarget)
 		)
 			return;
 		restoredReset = snapshot.reset;
+		restoredTarget = restorationTarget;
 		const targetHost = host;
+		const feedback = restorationTarget;
 		const top =
 			snapshot.publicationReset && snapshot.publicationReset !== initialPublicationReset
 				? 0
 				: restoreTop;
 		void tick().then(() => {
-			if (top) scrollBrowseViewport(targetHost, top);
-			else resultsHeading?.scrollIntoView({ block: 'start', behavior: 'instant' });
+			restoreBrowsePosition(targetHost, top, resultsHeading, feedback);
 		});
 	});
 	$effect(() => {
@@ -219,7 +224,7 @@
 	});
 	function handleRange(next: CatalogRange) {
 		range = next;
-		session.setRange(next);
+		session.setRange(nativeFeedbackRange(next, session.pagination.offset, !!restorationTarget));
 	}
 	function navigate(nextHref: string) {
 		if (session.pending) return;
@@ -348,6 +353,7 @@
 					>{/if}
 			</h2>
 			<SearchResults
+				{restorationTarget}
 				totalCount={total}
 				getCard={(index) => cardAt(snapshot, index, paging.limit)}
 				cards={pageCards}

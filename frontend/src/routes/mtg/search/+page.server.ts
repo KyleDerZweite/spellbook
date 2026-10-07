@@ -2,6 +2,7 @@ import { redirect, type Actions } from '@sveltejs/kit';
 import { application } from '#lib/server/composition.ts';
 import { addToDeck, addBrowsingToInventory } from '#lib/server/card-browsing-actions.ts';
 import { nativeSearchContext } from './native.ts';
+import { nativeSearchPageKey } from '#lib/search/native-panel.ts';
 import { ValidationError } from '#lib/server/mtg/validation.ts';
 import { parseSearchUrl, searchHref } from '#lib/search/navigation.ts';
 import { clampBrowsePagination } from '#lib/browsing/pagination.ts';
@@ -81,6 +82,7 @@ export const load: PageServerLoad = async ({ url, request, locals }) => {
 		requestId: crypto.randomUUID(),
 		searchInput,
 		canonicalSearchHref: canonical.pathname + canonical.search,
+		nativePageKey: nativeSearchPageKey(url),
 		catalogResult,
 		catalogReadError,
 		selectedPrinting,
