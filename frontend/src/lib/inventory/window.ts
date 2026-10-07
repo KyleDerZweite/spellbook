@@ -42,7 +42,8 @@ export class InventoryWindow {
 	constructor(
 		private transport: InventoryTransport,
 		private changed: () => void,
-		private beforeRevisionReset: () => void = () => {}
+		private beforeRevisionReset: () => void = () => {},
+		private publication: () => () => boolean = () => () => true
 	) {}
 	get identity() {
 		return this.generation;
@@ -112,13 +113,14 @@ export class InventoryWindow {
 			revision: string,
 			signal: AbortSignal
 		) => Promise<InventoryLocation | RevisionChanged>,
-		signal: AbortSignal
+		signal: AbortSignal,
+		currentLease: () => boolean = this.publication()
 	) {
 		const account = this.account;
 		for (let attempt = 0; attempt < 2; attempt++) {
 			const identity = this.identity,
 				current = this.current;
-			if (!current || signal.aborted || account !== this.account) return null;
+			if (!currentLease() || !current || signal.aborted || account !== this.account) return null;
 			let result: InventoryLocation | RevisionChanged | null;
 			try {
 				result = await this.withSlot(
@@ -129,17 +131,23 @@ export class InventoryWindow {
 				if (signal.aborted || identity !== this.identity) return null;
 				throw cause;
 			}
-			if (!result || signal.aborted || identity !== this.identity) return null;
+			if (!currentLease() || !result || signal.aborted || identity !== this.identity) return null;
 			if (result.kind === 'RevisionChanged') {
 				this.beforeRevisionReset();
-				const restored = await this.open(this.account, current.query, signal);
-				if (signal.aborted || restored !== this.identity || account !== this.account) return null;
+				const restored = await this.refresh(this.account, signal, currentLease);
+				if (
+					!currentLease() ||
+					signal.aborted ||
+					restored !== this.identity ||
+					account !== this.account
+				)
+					return null;
 				continue;
 			}
 			if (result.revision !== current.revision) return null;
 			if (result.index !== null) {
 				await this.request(Math.floor(result.index / 50) * 50);
-				if (signal.aborted || account !== this.account) return null;
+				if (!currentLease() || signal.aborted || account !== this.account) return null;
 				if (identity !== this.identity) {
 					if (
 						!this.replacing &&
@@ -150,6 +158,7 @@ export class InventoryWindow {
 					return null;
 				}
 			}
+			if (!currentLease()) return null;
 			return { identity, index: result.index };
 		}
 		return null;
@@ -158,13 +167,22 @@ export class InventoryWindow {
 	get current() {
 		return this.contexts.get(this.key)?.page;
 	}
-	seed(account: string, page: InventoryPage) {
+	seed(
+		account: string,
+		page: InventoryPage,
+		currentLease: () => boolean = () => true,
+		drain = false
+	) {
+		if (!currentLease()) return;
 		if (account !== this.account) {
 			this.clear();
 			this.account = account;
 		}
-		this.cancel();
+		if (!drain) this.cancel();
+		else this.pruneQueue();
 		this.generation++;
+		for (const [key, context] of this.contexts)
+			if (context.page.revision !== page.revision) this.contexts.delete(key);
 		this.key = page.queryKey;
 		this.error = '';
 		this.replacing = false;
@@ -188,11 +206,45 @@ export class InventoryWindow {
 	async open(account: string, query: InventoryQuery, signal: AbortSignal) {
 		return this.replace(account, { ...query, offset: 0 }, signal);
 	}
-	async refresh(account: string, signal: AbortSignal) {
-		if (account !== this.account || !this.current) return;
-		return this.replace(account, this.current.query, signal);
+	async refresh(
+		account: string,
+		signal: AbortSignal,
+		currentLease: () => boolean = this.publication()
+	) {
+		if (account !== this.account || !this.current || !currentLease()) return;
+		this.pruneQueue();
+		const generation = ++this.generation,
+			query = this.current.query;
+		this.replacing = true;
+		try {
+			const page = await this.withSlot(
+				(signal) => this.transport({ ...query, limit: 50 }, undefined, signal),
+				signal
+			);
+			if (
+				page?.kind === 'Page' &&
+				!signal.aborted &&
+				generation === this.generation &&
+				currentLease()
+			) {
+				this.seed(account, page, currentLease, true);
+				return this.identity;
+			}
+		} finally {
+			if (generation === this.generation) this.replacing = false;
+			this.changed();
+			this.pump();
+		}
+	}
+	private pruneQueue() {
+		for (const job of this.queue) {
+			this.listeners.delete(job.key);
+			job.resolve();
+		}
+		this.queue = [];
 	}
 	private async replace(account: string, query: InventoryQuery, signal: AbortSignal) {
+		const currentLease = this.publication();
 		this.cancel();
 		const generation = ++this.generation;
 		this.replacing = true;
@@ -201,8 +253,13 @@ export class InventoryWindow {
 				(transportSignal) => this.transport({ ...query, limit: 50 }, undefined, transportSignal),
 				signal
 			);
-			if (page?.kind === 'Page' && !signal.aborted && generation === this.generation) {
-				this.seed(account, page);
+			if (
+				page?.kind === 'Page' &&
+				!signal.aborted &&
+				generation === this.generation &&
+				currentLease()
+			) {
+				this.seed(account, page, currentLease);
 				return this.identity;
 			}
 		} finally {
@@ -266,6 +323,7 @@ export class InventoryWindow {
 		}
 	}
 	private async execute(job: Job) {
+		const currentLease = this.publication();
 		const generation = this.generation,
 			key = this.key,
 			context = this.contexts.get(key)!;
@@ -283,7 +341,7 @@ export class InventoryWindow {
 				context.page.revision,
 				controller.signal
 			);
-			if (controller.signal.aborted || generation !== this.generation) return;
+			if (!currentLease() || controller.signal.aborted || generation !== this.generation) return;
 			if (result.kind === 'RevisionChanged') {
 				this.beforeRevisionReset();
 				const first = await this.transport(
@@ -291,8 +349,13 @@ export class InventoryWindow {
 					undefined,
 					controller.signal
 				);
-				if (first.kind === 'Page' && !controller.signal.aborted && generation === this.generation)
-					this.seed(this.account, first);
+				if (
+					currentLease() &&
+					first.kind === 'Page' &&
+					!controller.signal.aborted &&
+					generation === this.generation
+				)
+					this.seed(this.account, first, currentLease, true);
 			} else if (result.queryKey === key && result.revision === context.page.revision) {
 				context.pages.set(job.offset, result);
 				context.used = ++this.clock;
@@ -301,7 +364,7 @@ export class InventoryWindow {
 				this.changed();
 			}
 		} catch (cause) {
-			if (!controller.signal.aborted && generation === this.generation) {
+			if (currentLease() && !controller.signal.aborted && generation === this.generation) {
 				this.error =
 					cause instanceof Error ? cause.message : 'Could not load inventory. Try again.';
 				this.changed();

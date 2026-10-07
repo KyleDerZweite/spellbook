@@ -4,13 +4,13 @@
 - Date: 2026-10-06
 - Last Reviewed: 2026-10-07
 - Owners: Kyle
-- Source of Truth: Kyle's Q56 acceptance and implemented SavedState transport/Profile consumer
-- Update Triggers: saved-state transport, session expiry/revocation, replica recovery and stream evidence
+- Source of Truth: Kyle's Q56 acceptance and implemented SavedState transport/workspace consumers
+- Update Triggers: saved-state transport, session expiry/revocation, replica recovery, frontend leases, bounded consumers and stream evidence
 - Related Docs: [Application contract](../architecture/application-contract.md#saved-state-synchronization), [Auth](../architecture/auth.md), [Realtime research](../integrations/realtime-backends.md), [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md), [Decisions](./README.md)
 
 ## Context
 
-Slice 8 implements the SavedState transport and Profile consumer. Inventory/Deck/Scan workspace consumers remain slice 9. Its [acceptance record](https://github.com/KyleDerZweite/spellbook/issues/181) includes real two-process HTTP/PostgreSQL and rendered Profile journeys. Deployed proxy verification remains separate.
+Slice 8 implements the SavedState transport and Profile consumer. Slice 9 implements one layout-owned transport and mounted bounded workspace consumers. Current-head rendered workspace acceptance remains separately recorded. Its [acceptance record](https://github.com/KyleDerZweite/spellbook/issues/181) includes real two-process HTTP/PostgreSQL and rendered Profile journeys. Deployed proxy verification remains separate.
 
 Opened clients need prompt visibility of saved account changes while retaining unsaved drafts. PostgreSQL remains authoritative. A hosted sync service or database migration adds dependencies and account/auth integration work.
 

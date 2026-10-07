@@ -33,7 +33,13 @@ export const actions: Actions = {
 				});
 			}
 			locals.user = (await application.profile.patch(locals.user, { email })).user;
-			return { intent, success: true, message: 'Email saved.', errors };
+			return {
+				intent,
+				success: true,
+				message: 'Email saved.',
+				savedEmail: locals.user.email,
+				errors
+			};
 		}
 		if (intent === 'avatar') {
 			const avatarId = form.get('avatarId');

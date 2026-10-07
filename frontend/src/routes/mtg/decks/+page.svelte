@@ -1,8 +1,13 @@
 <script lang="ts">
+	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
+	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
+	import { readSavedJSON } from '#lib/saved-state/read.ts';
+	import type { ResourceSubscription } from '#lib/saved-state/workspace.ts';
+	import type { DeckSnapshot } from '@spellbook/contracts/decks.ts';
 	import CardDetail from '#lib/components/cards/CardDetail.svelte';
 	import { storedCardDocument } from '#lib/mtg/stored-card.ts';
 	import type { CardDocument } from '#lib/search/types.ts';
-	import { untrack, onDestroy } from 'svelte';
+	import { untrack, onMount, onDestroy } from 'svelte';
 	import {
 		DeckSaveLifecycle,
 		type DeckEditor,
@@ -42,6 +47,132 @@
 		{ value: 'companion', label: 'Companion' }
 	];
 	let { data, form }: PageProps = $props();
+	let savedDecks = $state(untrack(() => data));
+	let deckSubscription: ResourceSubscription | undefined = $state();
+	let deletedTarget = $state(false);
+	$effect(() => {
+		const current = data;
+		untrack(() => {
+			savedDecks = current;
+			deletedTarget = false;
+		});
+	});
+	onMount(() => {
+		deckSubscription = workspaceSavedState.subscribe({
+			topics: ['decks', 'inventory'],
+			clear: () => {
+				savedDecks = {
+					...savedDecks,
+					decks: [],
+					deckCards: [],
+					availability: {},
+					ownedPrintings: [],
+					ownedByCanonical: {},
+					deckDocuments: {},
+					deckTotals: {},
+					deckCovers: {}
+				};
+				nameDraft = '';
+				descriptionDraft = '';
+				descriptionBase = '';
+				formatDraft = '';
+				importText = '';
+				createName = '';
+				createDescription = '';
+				inspected = null;
+				removed = null;
+				results = [];
+				searchOwned = {};
+				inspectorOwned = [];
+				pendingRequests.clear();
+				searchController?.abort();
+				ownershipController?.abort();
+				saveLifecycle.destroy();
+			},
+			refresh: async (lease) => {
+				const selected = data.selectedDeckId,
+					flow = data.flow,
+					account = data.user?.accountId;
+				const current = () =>
+					lease.current() &&
+					data.selectedDeckId === selected &&
+					data.flow === flow &&
+					data.user?.accountId === account;
+				const guarded = { signal: lease.signal, current };
+				try {
+					const snapshot = await readSavedJSON<
+						DeckSnapshot & Pick<typeof data, 'warnings' | 'deckDocuments'>
+					>(
+						selected ? `/api/mobile/v1/mtg/decks/${selected}` : '/api/mobile/v1/mtg/decks',
+						guarded
+					);
+					if (!snapshot || !current()) return;
+					const next = snapshot.decks.find((deck) => deck.id === selected);
+					if (next && (editOpen || flow === 'edit')) {
+						if (nameDraft === nameBase) {
+							nameDraft = next.name;
+							nameBase = next.name;
+						}
+						if (formatDraft === formatBase) {
+							formatDraft = next.format;
+							formatBase = next.format;
+						}
+						if (descriptionDraft === descriptionBase) {
+							descriptionDraft = next.description;
+							descriptionBase = next.description;
+							descriptionBaseRevision = next.descriptionRevision;
+						}
+					}
+					const nextEntry = snapshot.deckCards.find((entry) => entry.id === inspectedEntryId);
+					if (nextEntry) {
+						if (inspectorQuantity === inspectorQuantityBase) {
+							inspectorQuantity = nextEntry.quantity;
+							inspectorQuantityBase = nextEntry.quantity;
+						}
+						if (inspectorRole === inspectorRoleBase) {
+							inspectorRole = nextEntry.role;
+							inspectorRoleBase = nextEntry.role;
+						}
+					}
+					savedDecks = { ...savedDecks, ...snapshot };
+					deletedTarget = false;
+					const inspector = inspected;
+					if (inspector) {
+						const owned = await readSavedJSON<typeof inspectorOwned>(
+							`/api/mobile/v1/mtg/decks/ownership?canonicalCardId=${encodeURIComponent(inspector.oracle_id)}`,
+							guarded
+						);
+						if (owned && current() && inspected === inspector) inspectorOwned = owned;
+					}
+					const searchQuery = query;
+					if (searchQuery.trim().length >= 2) {
+						const search = await readSavedJSON<{
+							hits: CardDocument[];
+							ownedByCanonical: Record<string, number>;
+						}>(`/api/mobile/v1/mtg/decks/search?q=${encodeURIComponent(searchQuery)}`, guarded);
+						if (search && current() && query === searchQuery) {
+							results = search.hits;
+							searchOwned = search.ownedByCanonical;
+						}
+					}
+				} catch (cause) {
+					if (
+						current() &&
+						cause instanceof Error &&
+						cause.message === 'This saved target is no longer available.'
+					)
+						deletedTarget = true;
+					throw cause;
+				}
+			}
+		});
+		return () => deckSubscription?.dispose();
+	});
+	$effect(() => {
+		data.selectedDeckId;
+		data.flow;
+		if (deckSubscription) untrack(() => deckSubscription?.invalidate());
+	});
 	const saveLifecycle = untrack(
 		() => new DeckSaveLifecycle(data.user?.accountId ?? '', data.selectedDeckId, data.flow)
 	);
@@ -74,14 +205,16 @@
 	let nameDraft = $state(
 		untrack(
 			() =>
-				form?.detailsDraft?.name ?? data.decks.find((d) => d.id === data.selectedDeckId)?.name ?? ''
+				form?.detailsDraft?.name ??
+				savedDecks.decks.find((d) => d.id === data.selectedDeckId)?.name ??
+				''
 		)
 	);
 	let formatDraft = $state(
 		untrack(
 			() =>
 				form?.detailsDraft?.format ??
-				data.decks.find((d) => d.id === data.selectedDeckId)?.format ??
+				savedDecks.decks.find((d) => d.id === data.selectedDeckId)?.format ??
 				''
 		)
 	);
@@ -90,7 +223,7 @@
 		untrack(
 			() =>
 				form?.detailsDraft?.description ??
-				data.decks.find((d) => d.id === data.selectedDeckId)?.description ??
+				savedDecks.decks.find((d) => d.id === data.selectedDeckId)?.description ??
 				''
 		)
 	);
@@ -98,7 +231,7 @@
 		untrack(
 			() =>
 				form?.detailsDraft?.descriptionRevision ??
-				data.decks.find((d) => d.id === data.selectedDeckId)?.descriptionRevision ??
+				savedDecks.decks.find((d) => d.id === data.selectedDeckId)?.descriptionRevision ??
 				''
 		)
 	);
@@ -107,7 +240,7 @@
 		untrack(
 			() =>
 				form?.detailsDraft?.nameBase ??
-				data.decks.find((d) => d.id === data.selectedDeckId)?.name ??
+				savedDecks.decks.find((d) => d.id === data.selectedDeckId)?.name ??
 				''
 		)
 	);
@@ -115,7 +248,7 @@
 		untrack(
 			() =>
 				form?.detailsDraft?.formatBase ??
-				data.decks.find((d) => d.id === data.selectedDeckId)?.format ??
+				savedDecks.decks.find((d) => d.id === data.selectedDeckId)?.format ??
 				''
 		)
 	);
@@ -123,7 +256,7 @@
 		untrack(
 			() =>
 				form?.detailsDraft?.descriptionBase ??
-				data.decks.find((d) => d.id === data.selectedDeckId)?.description ??
+				savedDecks.decks.find((d) => d.id === data.selectedDeckId)?.description ??
 				''
 		)
 	);
@@ -163,10 +296,12 @@
 	let inspectedEntryId = $state<string | null>(null);
 	let inspectorQuantity = $state(1);
 	let inspectorRole = $state('main');
+	let inspectorQuantityBase = $state(1);
+	let inspectorRoleBase = $state('main');
 	let query = $state(untrack(() => data.query));
 	let results = $state<CardDocument[]>(untrack(() => data.catalogCards));
 	let searchOwned = $state<Record<string, number>>({});
-	let inspectorOwned = $state<typeof data.ownedPrintings>([]);
+	let inspectorOwned = $state<typeof savedDecks.ownedPrintings>([]);
 	let ownershipLoading = $state(false);
 	let ownershipError = $state('');
 	let ownershipController: AbortController | undefined;
@@ -175,18 +310,25 @@
 	let searchController: AbortController | undefined;
 	let saveStatus = $state('');
 	let saveError = $state('');
-	let removed = $state<(typeof data.deckCards)[number] | null>(null);
-	const inspectedEntry = $derived(data.deckCards.find((card) => card.id === inspectedEntryId));
-	async function inspect(card: CardDocument, entry?: (typeof data.deckCards)[number]) {
+	let removed = $state<(typeof savedDecks.deckCards)[number] | null>(null);
+	const inspectedEntry = $derived(
+		savedDecks.deckCards.find((card) => card.id === inspectedEntryId)
+	);
+	const inspectorGone = $derived(!!inspectedEntryId && !inspectedEntry);
+
+	async function inspect(card: CardDocument, entry?: (typeof savedDecks.deckCards)[number]) {
 		saveLifecycle.open('inspector', entry?.id ?? card.id);
 		inspected = card;
 		inspectedEntryId = entry?.id ?? null;
 		inspectorQuantity = entry?.quantity ?? addQuantity;
 		inspectorRole = entry?.role ?? addRole;
+		inspectorQuantityBase = inspectorQuantity;
+		inspectorRoleBase = inspectorRole;
 		ownershipController?.abort();
 		const controller = new AbortController();
 		ownershipController = controller;
 		inspectorOwned = [];
+		const publication = deckSubscription?.publication() ?? (() => true);
 		ownershipLoading = true;
 		ownershipError = '';
 		try {
@@ -194,11 +336,12 @@
 				`/api/mobile/v1/mtg/decks/ownership?canonicalCardId=${encodeURIComponent(card.oracle_id)}`,
 				{ signal: controller.signal }
 			);
+			if (response.status === 401 && publication()) workspaceSavedState.expire();
 			if (!response.ok) throw new Error('Owned quantities are unavailable.');
 			const owned = await response.json();
-			if (!controller.signal.aborted) inspectorOwned = owned;
+			if (publication() && !controller.signal.aborted) inspectorOwned = owned;
 		} catch (cause) {
-			if (!controller.signal.aborted)
+			if (publication() && !controller.signal.aborted)
 				ownershipError =
 					cause instanceof Error ? cause.message : 'Owned quantities are unavailable.';
 		} finally {
@@ -210,6 +353,7 @@
 		searchController?.abort();
 		const controller = new AbortController();
 		searchController = controller;
+		const publication = deckSubscription?.publication() ?? (() => true);
 		searching = true;
 		searchError = '';
 		try {
@@ -217,30 +361,33 @@
 				`/api/mobile/v1/mtg/decks/search?q=${encodeURIComponent(query)}`,
 				{ signal: controller.signal }
 			);
+			if (response.status === 401 && publication()) workspaceSavedState.expire();
 			if (!response.ok) throw new Error('Search failed.');
 			const result = await response.json();
-			if (!controller.signal.aborted) searchOwned = result.ownedByCanonical;
-			if (!controller.signal.aborted) results = result.hits;
+			if (publication() && !controller.signal.aborted) searchOwned = result.ownedByCanonical;
+			if (publication() && !controller.signal.aborted) results = result.hits;
 		} catch (cause) {
-			if (!controller.signal.aborted)
+			if (publication() && !controller.signal.aborted)
 				searchError = cause instanceof Error ? cause.message : 'Search failed.';
 		} finally {
 			if (!controller.signal.aborted) searching = false;
 		}
 	}
 
-	const selectedDeck = $derived(data.decks.find((deck) => deck.id === data.selectedDeckId));
+	const selectedDeck = $derived(savedDecks.decks.find((deck) => deck.id === data.selectedDeckId));
 	const detailsDraft = $derived(
 		form?.detailsDraft?.deckId === selectedDeck?.id ? form?.detailsDraft : undefined
 	);
-	const deckCards = $derived(data.deckCards.filter((card) => card.deckId === data.selectedDeckId));
-	const availability = $derived(data.availability);
+	const deckCards = $derived(
+		savedDecks.deckCards.filter((card) => card.deckId === data.selectedDeckId)
+	);
+	const availability = $derived(savedDecks.availability);
 	const total = $derived(deckCards.reduce((sum, card) => sum + card.quantity, 0));
 	const missing = $derived(
 		Object.values(availability).reduce((sum, entry) => sum + entry.missing, 0)
 	);
 	const ownedByCanonical = $derived(
-		new Map(Object.entries({ ...data.ownedByCanonical, ...searchOwned }))
+		new Map(Object.entries({ ...savedDecks.ownedByCanonical, ...searchOwned }))
 	);
 	const visibleCards = $derived(
 		deckCards
@@ -258,7 +405,7 @@
 	const groups = $derived.by(() => {
 		const grouped = new Map<string, typeof visibleCards>();
 		for (const card of visibleCards) {
-			const types = data.deckDocuments[card.catalogCardId]?.card_types ?? [];
+			const types = savedDecks.deckDocuments[card.catalogCardId]?.card_types ?? [];
 			const type = [
 				'Land',
 				'Creature',
@@ -350,6 +497,7 @@
 
 	function isCurrentSave(submission: DeckSubmission): boolean {
 		return (
+			workspaceSavedState.isActive(data.user?.accountId) &&
 			saveLifecycle.isCurrent(submission) &&
 			data.user?.accountId === submission.scope.accountId &&
 			data.selectedDeckId === submission.scope.deckId &&
@@ -358,10 +506,15 @@
 	}
 
 	const save: SubmitFunction = ({ formData, formElement, action: target, cancel }) => {
-		if (busy) {
+		if (
+			busy ||
+			deletedTarget ||
+			(inspectedEntryId && !inspectedEntry && target.searchParams.has('/changePrinting'))
+		) {
 			cancel();
 			return;
 		}
+		const write = deckSubscription?.beginWrite();
 		const operation =
 			[...target.searchParams.keys()].find((key) => key.startsWith('/'))?.slice(1) ?? '';
 		const submission = saveLifecycle.capture(
@@ -411,14 +564,18 @@
 
 		return async ({ result, update }) => {
 			try {
-				if (!isCurrentSave(submission)) return;
+				if (!(write?.current() ?? true) || !isCurrentSave(submission)) return;
 				if (result.type === 'error') {
 					reportUnconfirmedSave();
 					return;
 				}
 				const savedDetails = result.type === 'success' ? result.data?.savedDetails : undefined;
 				if (
-					!(await saveLifecycle.refresh(submission, () => update({ reset: false }))) ||
+					!(await saveLifecycle.refresh(submission, () =>
+						result.type === 'redirect'
+							? update({ reset: false })
+							: update({ reset: false, refreshAll: false, navigate: false })
+					)) ||
 					!isCurrentSave(submission)
 				)
 					return;
@@ -440,6 +597,21 @@
 						new FormData(inspectorForm).get('catalogCardId') === submittedInspector.printing
 					)
 						inspected = null;
+					const inspectorBase =
+						result.type === 'success'
+							? saveLifecycle.savedInspector(
+									submission,
+									savedRequestId,
+									result.data?.acknowledgement
+								)
+							: undefined;
+					if (inspectorBase && submittedInspector && inspectedEntryId === submittedInspector.id) {
+						inspectorQuantityBase = inspectorBase.quantity;
+						inspectorRoleBase = inspectorBase.role;
+						if (inspectorQuantity === submittedInspector.quantity)
+							inspectorQuantity = inspectorBase.quantity;
+						if (inspectorRole === submittedInspector.role) inspectorRole = inspectorBase.role;
+					}
 					if (target.searchParams.has('/addCard') && formData.get('undo')) removed = null;
 					if (saveLifecycle.canClose(submission, 'create')) createOpen = false;
 					const unchangedDetails =
@@ -473,7 +645,8 @@
 			} catch {
 				if (isCurrentSave(submission)) reportUnconfirmedSave();
 			} finally {
-				if (!isCurrentSave(submission)) return;
+				write?.complete();
+				if (!(write?.current() ?? true) || !isCurrentSave(submission)) return;
 				if (result.type === 'failure') saveStatus = 'Could not save. Try again.';
 				busy = false;
 			}
@@ -481,6 +654,10 @@
 	};
 </script>
 
+{#if deletedTarget}<p role="alert">
+		This Deck was removed elsewhere. Your draft is retained; it cannot be saved to the removed Deck.
+	</p>{/if}
+<SavedStateStatus resource={deckSubscription} />
 {#snippet retryError()}
 	{#if saveError}<p class="notice" role="alert">{saveError}</p>{/if}
 {/snippet}
@@ -531,8 +708,10 @@
 							>{/snippet}
 					</ActionMenu>
 				{/if}
-				{#if !selectedDeck}<Button href={flowHref('create')} onclick={openCreate} disabled={busy}
-						>New deck</Button
+				{#if !selectedDeck}<Button
+						href={flowHref('create')}
+						onclick={openCreate}
+						disabled={busy || deletedTarget}>New deck</Button
 					>{/if}
 			</div>
 		{/snippet}
@@ -574,7 +753,7 @@
 				bind:value={createDescription}></textarea>
 			{@render retryError()}
 			{#if !saveError && form?.message}<p role="status" class="muted">{form.message}</p>{/if}
-			<Button type="submit" variant="default" disabled={busy}>Create deck</Button>
+			<Button type="submit" variant="default" disabled={busy || deletedTarget}>Create deck</Button>
 		</form>
 	</DeckDialog>
 	{@render retryError()}
@@ -634,13 +813,13 @@
 					maxlength="4000">{detailsDraft.description}</textarea
 				>
 				{@render retryError()}
-				<Button type="submit" variant="default" disabled={busy}>Save draft</Button>
+				<Button type="submit" variant="default" disabled={busy || deletedTarget}>Save draft</Button>
 				{#if form?.conflict}<Button
 						type="submit"
 						variant="secondary"
 						name="rebaseDescription"
 						value={form.conflict.descriptionRevision}
-						disabled={busy}>Use latest revision and save my draft</Button
+						disabled={busy || deletedTarget}>Use latest revision and save my draft</Button
 					>{/if}
 			</form>
 		</section>
@@ -714,7 +893,7 @@
 							{@render retryError()}
 							{#if !saveError && form?.message}<p role="status" class="muted">
 									{form.message}
-								</p>{/if}<Button type="submit" variant="default" disabled={busy}
+								</p>{/if}<Button type="submit" variant="default" disabled={busy || deletedTarget}
 								>Save details</Button
 							>
 						</form>{/key}
@@ -748,7 +927,7 @@
 							required
 							bind:value={importText}
 							placeholder={"Commander\n1 Atraxa, Praetors' Voice\n\nDeck\n1 Sol Ring\n10 Forest"}
-						></textarea><Button type="submit" variant="secondary" disabled={busy}
+						></textarea><Button type="submit" variant="secondary" disabled={busy || deletedTarget}
 							>{busy ? 'Working...' : 'Preview import'}</Button
 						>
 					</form>
@@ -808,12 +987,14 @@
 					>
 						<h2 id="native-delete-title">Delete deck</h2>
 						<p>Delete {selectedDeck.name} and its card list? Your inventory stays unchanged.</p>
-						<Button href={flowHref()} variant="secondary" disabled={busy}>Cancel</Button>
+						<Button href={flowHref()} variant="secondary" disabled={busy || deletedTarget}
+							>Cancel</Button
+						>
 						<form method="POST" action={action('deleteDeck')} use:enhance={save}>
 							<input type="hidden" name="deckId" value={selectedDeck.id} /><Button
 								type="submit"
 								variant="destructive"
-								disabled={busy}>Delete this deck</Button
+								disabled={busy || deletedTarget}>Delete this deck</Button
 							>
 						</form>
 					</section>{:else}<ConfirmationDialog
@@ -831,7 +1012,7 @@
 							<input type="hidden" name="deckId" value={selectedDeck.id} /><Button
 								type="submit"
 								variant="destructive"
-								disabled={busy}>Delete this deck</Button
+								disabled={busy || deletedTarget}>Delete this deck</Button
 							>
 						</form></ConfirmationDialog
 					>{/if}
@@ -852,9 +1033,9 @@
 				onclick={() => (missingOnly = !missingOnly)}>{missing} missing</Button
 			>
 			<a href="#format-checks"
-				>{data.legalityError
+				>{savedDecks.legalityError
 					? 'Format checks unavailable'
-					: `${data.warnings.length} format warnings`}</a
+					: `${savedDecks.warnings.length} format warnings`}</a
 			>
 			<span class="save-status" role="status">{saveStatus}</span>
 			<Button
@@ -880,7 +1061,7 @@
 					name="undo"
 					value="1"
 				/>
-				<Button type="submit" variant="ghost" disabled={busy}>Undo</Button>
+				<Button type="submit" variant="ghost" disabled={busy || deletedTarget}>Undo</Button>
 			</form>
 		{/if}
 		<div class="workspace">
@@ -926,7 +1107,7 @@
 				<DeckEntries
 					{groups}
 					{view}
-					documents={data.deckDocuments}
+					documents={savedDecks.deckDocuments}
 					{availability}
 					{busy}
 					updateAction={action('updateCard')}
@@ -941,14 +1122,18 @@
 				<details
 					id="format-checks"
 					class="legality"
-					open={data.warnings.length > 0 || !!data.legalityError}
+					open={savedDecks.warnings.length > 0 || !!savedDecks.legalityError}
 				>
-					<summary>Format checks {data.warnings.length ? `(${data.warnings.length})` : ''}</summary>
+					<summary
+						>Format checks {savedDecks.warnings.length
+							? `(${savedDecks.warnings.length})`
+							: ''}</summary
+					>
 					<p class="muted">Advisory checks only. Review current format rules before an event.</p>
-					{#if data.legalityError}<p class="warning">
-							{data.legalityError}
-						</p>{:else if data.warnings.length}<ul>
-							{#each data.warnings as warning}<li>{warning.message}</li>{/each}
+					{#if savedDecks.legalityError}<p class="warning">
+							{savedDecks.legalityError}
+						</p>{:else if savedDecks.warnings.length}<ul>
+							{#each savedDecks.warnings as warning}<li>{warning.message}</li>{/each}
 						</ul>{:else}<p>No warnings from the available checks.</p>{/if}
 				</details>
 			</section>
@@ -956,7 +1141,11 @@
 					{@render discovery()}
 				</aside>{/if}
 		</div>
-	{:else}<DeckLibrary decks={data.decks} covers={data.deckCovers} totals={data.deckTotals} />{/if}
+	{:else}<DeckLibrary
+			decks={savedDecks.decks}
+			covers={savedDecks.deckCovers}
+			totals={savedDecks.deckTotals}
+		/>{/if}
 </div>
 
 {#snippet discovery()}<DeckDiscovery
@@ -1004,12 +1193,15 @@
 							.filter((card) => card.catalogCardId !== printing.id)
 							.reduce((sum, card) => sum + card.quantity, 0)} other printings owned{/if}
 				</p>
+				{#if inspectorGone}<p role="alert">
+						This saved Deck entry was removed. Your draft is kept, but cannot be submitted.
+					</p>{/if}
 				{#if inspectedEntry}<p class="muted">
 						This deck: {availability[inspectedEntry.id]?.missing ?? 0} missing. Inventory is not reserved.
 					</p>{/if}
 				<form
 					method="POST"
-					action={action(inspectedEntry ? 'changePrinting' : 'addCard')}
+					action={action(inspectedEntryId ? 'changePrinting' : 'addCard')}
 					bind:this={inspectorForm}
 					use:enhance={save}
 					class="form-stack"
@@ -1018,7 +1210,7 @@
 					<input type="hidden" name="deckId" value={selectedDeck?.id} /><input
 						type="hidden"
 						name="entryId"
-						value={inspectedEntry?.id}
+						value={inspectedEntryId ?? ''}
 					/><input type="hidden" name="catalogCardId" value={printing.id} />
 					<label class="label" for="inspect-quantity">Quantity</label><input
 						class="input"
@@ -1041,8 +1233,8 @@
 					<p role="status" class="muted">
 						{busy ? 'Saving…' : saveError ? '' : (form?.message ?? '')}
 					</p>
-					<Button type="submit" variant="default" disabled={busy}
-						>{inspectedEntry ? 'Save card' : 'Add to deck'}</Button
+					<Button type="submit" variant="default" disabled={busy || deletedTarget || inspectorGone}
+						>{inspectedEntryId ? 'Save card' : 'Add to deck'}</Button
 					>
 				</form>
 				{#if inspectedEntry}
@@ -1051,7 +1243,7 @@
 						<input type="hidden" name="entryId" value={inspectedEntry.id} /><Button
 							type="submit"
 							variant="destructive"
-							disabled={busy}>Remove card</Button
+							disabled={busy || deletedTarget}>Remove card</Button
 						>
 					</form>
 				{/if}

@@ -221,14 +221,14 @@ export const actions = {
 	}),
 	changePrinting: guarded(async ({ request, locals }) => {
 		const form = await request.formData();
-		await changeDeckPrinting(locals.user!, {
+		const acknowledgement = await changeDeckPrinting(locals.user!, {
 			entryId: field(form, 'entryId'),
 			catalogCardId: field(form, 'catalogCardId'),
 			quantity: Number(form.get('quantity')),
 			role: field(form, 'role'),
 			requestId: field(form, 'requestId')
 		});
-		return { success: true, message: 'Card saved.' };
+		return { success: true, message: 'Card saved.', acknowledgement };
 	}),
 	updateCard: guarded(async ({ request, locals }) => {
 		const form = await request.formData();

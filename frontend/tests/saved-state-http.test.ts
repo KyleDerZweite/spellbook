@@ -1,3 +1,5 @@
+import { WorkspaceSavedState } from '../src/lib/saved-state/workspace.ts';
+import { ensureDeckCatalogFixture } from './deck-catalog-fixture.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer, request as httpRequest } from 'node:http';
@@ -41,6 +43,7 @@ class Stream {
 	events: { event: string; data: unknown; at: number }[] = [];
 	ended = false;
 	comments = 0;
+	readonly listeners = new Map<string, Set<(event: { data: string }) => void>>();
 	private waiters = new Set<() => void>();
 	readonly response: Response;
 	constructor(response: Response) {
@@ -64,8 +67,10 @@ class Stream {
 					else {
 						const event = /^event: (.+)$/m.exec(frame)?.[1];
 						const data = /^data: (.+)$/m.exec(frame)?.[1];
-						if (event && data)
+						if (event && data) {
 							this.events.push({ event, data: JSON.parse(data), at: performance.now() });
+							for (const listener of this.listeners.get(event) ?? []) listener({ data });
+						}
 					}
 					for (const wake of this.waiters) wake();
 				}
@@ -278,6 +283,150 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 				assert.equal(saved.user.avatarId, 'dragon');
 				assert.equal(saved.user.artworkId, 'tide');
 				assert.ok(performance.now() - at < 2000);
+			}
+		);
+		await t.test(
+			'workspace resource leases apply cross-replica Inventory and Deck totals with counted write settlement',
+			async () => {
+				const owned = await stream(primary, a.token);
+				const bridge = {
+					readyState: 1,
+					close: () => owned.close(),
+					addEventListener(name: string, listener: (event: { data: string }) => void) {
+						let listeners = owned.listeners.get(name);
+						if (!listeners) {
+							listeners = new Set();
+							owned.listeners.set(name, listeners);
+						}
+						listeners.add(listener);
+					},
+					onerror: null as (() => void) | null
+				};
+				const workspace = new WorkspaceSavedState({
+					source: () => bridge,
+					session: async (signal) =>
+						(
+							await fetch(primary + '/api/auth/session', {
+								headers: { authorization: `Bearer ${a.token}` },
+								signal
+							})
+						).status,
+					visible: () => true,
+					listen: () => () => {},
+					changed() {}
+				});
+				let totals = 0,
+					deckCount = 0,
+					reads = 0;
+				workspace.start({ accountId: a.user.accountId, activation: 'http-owned' });
+				workspace.subscribe({
+					topics: ['inventory', 'decks', 'profile'],
+					clear() {
+						totals = 0;
+						deckCount = 0;
+					},
+					refresh: async (lease) => {
+						reads++;
+						const response = await fetch(primary + '/api/account/profile', {
+							headers: { authorization: `Bearer ${a.token}` },
+							signal: lease.signal
+						});
+						const value = await response.json();
+						if (lease.current()) {
+							totals = value.totals.total;
+							deckCount = value.totals.decks;
+						}
+					}
+				});
+				for (const listener of owned.listeners.get('reset') ?? []) listener({ data: '{}' });
+				const wait = async (check: () => boolean) => {
+					const deadline = performance.now() + 2000;
+					while (!check() && performance.now() < deadline) await delay(10);
+					assert.ok(check(), 'Current saved resource must apply within healthy target');
+				};
+				await wait(() => reads > 0);
+				const card = await ensureDeckCatalogFixture(pool);
+				const inventoryAt = performance.now();
+				const receipt = await request(secondary, '/api/mobile/v1/mtg/inventory', a.token, {
+					requestId: crypto.randomUUID(),
+					source: 'mobile',
+					items: [
+						{ catalogCardId: card.catalogCardId, quantity: 2, finish: 'nonfoil', condition: 'NM' }
+					]
+				});
+				assert.equal(receipt.status, 200);
+				await wait(() => totals === 2);
+				assert.ok(performance.now() - inventoryAt < 2000);
+
+				const deckAt = performance.now();
+				const deck = await request(secondary, '/api/mobile/v1/mtg/decks', a.token, {
+					requestId: crypto.randomUUID(),
+					name: 'Streaming owned deck',
+					format: 'Commander',
+					description: ''
+				});
+				assert.equal(deck.status, 200);
+				await wait(() => deckCount === 1);
+				assert.ok(performance.now() - deckAt < 2000);
+				let scanId: string | undefined,
+					scanCount = 0,
+					scanStatus = '';
+				const scanResource = workspace.subscribe({
+					topics: ['scan'],
+					clear() {
+						scanId = undefined;
+						scanCount = 0;
+						scanStatus = '';
+					},
+					refresh: async (lease) => {
+						const id = scanId;
+						const list = await request(primary, '/api/mobile/v1/mtg/scan/sessions', a.token);
+						assert.equal(list.status, 200);
+						const value = await list.json();
+						if (lease.current()) scanCount = value.sessions.length;
+						if (id) {
+							const response = await request(
+								primary,
+								`/api/mobile/v1/mtg/scan/sessions/${id}/result`,
+								a.token
+							);
+							assert.equal(response.status, 200);
+							const result = await response.json();
+							if (lease.current() && scanId === id) scanStatus = result.lastResult?.status ?? '';
+						}
+					}
+				});
+				const scanAt = performance.now();
+				const created = await request(secondary, '/api/mobile/v1/mtg/scan/sessions', a.token, {});
+				assert.equal(created.status, 200);
+				scanId = (await created.json()).session.id;
+				scanResource.invalidate();
+				await wait(() => scanCount === 1);
+				const image = new FormData();
+				image.set(
+					'file',
+					new Blob([Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10])], { type: 'image/png' }),
+					'workspace.png'
+				);
+				const uploaded = await fetch(
+					secondary + `/api/mobile/v1/mtg/scan/sessions/${scanId}/frames`,
+					{ method: 'POST', headers: { authorization: `Bearer ${a.token}` }, body: image }
+				);
+				assert.equal(uploaded.status, 200);
+				await wait(() => scanStatus === 'no_match');
+				assert.ok(performance.now() - scanAt < 2000);
+				const before = reads;
+				const handle = workspace.beginWrite(['inventory']);
+				owned.clear();
+				for (let i = 0; i < 10; i++) workspace.invalidate(['inventory']);
+				await delay(30);
+				assert.equal(reads, before);
+				handle.complete();
+				await wait(() => reads > before);
+
+				workspace.stop();
+				assert.equal(totals, 0);
+				assert.equal(deckCount, 0);
 			}
 		);
 		await t.test(

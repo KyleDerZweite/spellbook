@@ -1,6 +1,10 @@
 <script lang="ts">
+	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
 	import { goto } from '$app/navigation';
-	import { untrack, onDestroy } from 'svelte';
+	import { untrack, onMount, onDestroy } from 'svelte';
+	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
+	import { readSavedJSON } from '#lib/saved-state/read.ts';
+	import type { ResourceSubscription } from '#lib/saved-state/workspace.ts';
 	import { createScanSave } from '#lib/scan/save.ts';
 	import Select from '#lib/components/ui/select/Select.svelte';
 	import type { CardDocument } from '#lib/search/types.ts';
@@ -8,8 +12,66 @@
 
 	let {
 		sessions,
+		accountId,
 		initialResult
-	}: { sessions: ScanSession[]; initialResult: ScanSessionResult | null } = $props();
+	}: { sessions: ScanSession[]; accountId: string; initialResult: ScanSessionResult | null } =
+		$props();
+	let recentSessions = $state(untrack(() => sessions));
+	let subscription: ResourceSubscription | undefined = $state();
+	let unavailable = $state(false);
+	onMount(() => {
+		subscription = workspaceSavedState.subscribe({
+			topics: ['scan'],
+			clear: () => {
+				result = null;
+				recentSessions = [];
+				selected = null;
+				hits = [];
+				printings = [];
+				files = undefined;
+				pendingCommit = null;
+				confirmed = false;
+				query = '';
+				sessionInput = '';
+				searchGeneration++;
+			},
+			refresh: async (lease) => {
+				const id = session?.id;
+				const current = () =>
+					lease.current() &&
+					mounted &&
+					workspaceSavedState.isActive(accountId) &&
+					session?.id === id;
+				const guarded = { signal: lease.signal, current };
+				const list = await readSavedJSON<{ sessions: ScanSession[] }>(
+					`${api}/scan/sessions`,
+					guarded
+				);
+				if (list && current()) recentSessions = list.sessions;
+				if (!id || !current()) return;
+				try {
+					const saved = await readSavedJSON<ScanSessionResult>(
+						`${api}/scan/sessions/${id}/result`,
+						guarded
+					);
+					if (saved && current()) {
+						result = saved;
+						readFailure = '';
+						unavailable = false;
+					}
+				} catch (cause) {
+					if (current()) {
+						unavailable = true;
+						readFailure =
+							cause instanceof Error ? cause.message : 'Saved scan details are unavailable.';
+					}
+					throw cause;
+				}
+			}
+		});
+		subscription.invalidate();
+		return () => subscription?.dispose();
+	});
 	let result = $state(untrack(() => initialResult));
 	let busy = $state(false);
 	let searching = $state(false);
@@ -24,6 +86,7 @@
 	let quantity = $state(untrack(() => initialResult?.reviewItems[0]?.quantity ?? 1));
 	let finish = $state(untrack(() => initialResult?.reviewItems[0]?.finish ?? 'nonfoil'));
 	let condition = $state(untrack(() => initialResult?.reviewItems[0]?.condition ?? 'NM'));
+	let reviewArtifactId = $state(untrack(() => initialResult?.lastResult?.artifactId));
 	let confirmed = $state(false);
 	let files = $state<FileList>();
 	let sessionInput = $state(untrack(() => initialResult?.session?.id ?? ''));
@@ -32,11 +95,8 @@
 	const api = '/api/mobile/v1/mtg';
 	let readFailure = $state('');
 	let mounted = true;
-	let readGeneration = 0;
-	let committedDraftKey: string | null = null;
 	onDestroy(() => {
 		mounted = false;
-		readGeneration++;
 	});
 	const saved = createScanSave({
 		commit: (body) =>
@@ -56,7 +116,12 @@
 	const session = $derived(result?.session);
 	const artifact = $derived(result?.lastResult ? { id: result.lastResult.artifactId } : undefined);
 	const candidates = $derived(result?.lastResult?.candidates ?? []);
-	const editable = $derived(session?.status === 'open' || session?.status === 'pending_review');
+	const editable = $derived(
+		!unavailable &&
+			(!selected || reviewArtifactId === artifact?.id) &&
+			(session?.status === 'open' || session?.status === 'pending_review')
+	);
+	const changedPhoto = $derived(!!selected && !!artifact && reviewArtifactId !== artifact.id);
 	const selectedPrinting = $derived(printings.find((card) => card.id === selected?.catalogCardId));
 	const validQuantity = $derived(
 		Number.isSafeInteger(quantity) && quantity > 0 && quantity <= 2147483647
@@ -64,6 +129,8 @@
 
 	async function request<T>(path: string, init?: RequestInit): Promise<T> {
 		const response = await fetch(path, init);
+		if (response.status === 401 && mounted && workspaceSavedState.isActive(accountId))
+			workspaceSavedState.expire();
 		if (!response.ok) {
 			const body = await response.json().catch(() => null);
 			throw new Error(body?.message ?? `Request failed (${response.status}). Try again.`);
@@ -89,71 +156,24 @@
 	}
 
 	async function createSession() {
+		const write = workspaceSavedState.beginWrite(['scan']);
 		busy = true;
 		failure = '';
 		try {
 			const created = await request<{ session: ScanSession }>(`${api}/scan/sessions`, {
 				method: 'POST'
 			});
-			await openSession(created.session.id);
+			if (write.current() && mounted) await openSession(created.session.id);
 		} catch (cause) {
-			report(cause);
+			if (write.current() && mounted) report(cause);
 		} finally {
-			busy = false;
+			write.complete();
+			if (write.current() && mounted) busy = false;
 		}
 	}
 
-	function draftKey() {
-		return JSON.stringify({
-			sessionId: session?.id,
-			artifactId: artifact?.id,
-			printingId: selected?.catalogCardId,
-			quantity,
-			finish,
-			condition
-		});
-	}
-	async function readCurrent() {
-		if (!session) return;
-		const id = session.id,
-			generation = ++readGeneration;
-		try {
-			const current =
-				saved.acknowledgement?.kind === 'Committed'
-					? await saved.read()
-					: await request<ScanSessionResult>(`${api}/scan/sessions/${id}/result`);
-			if (!mounted || generation !== readGeneration || session?.id !== id) return;
-			const reconcile = committedDraftKey !== null && draftKey() === committedDraftKey;
-			result = current;
-			readFailure = '';
-			if (reconcile) {
-				const review =
-					current.reviewItems.find((item) => item.scanArtifactId === artifact?.id) ??
-					current.reviewItems[0];
-				if (review) {
-					selected = review;
-					quantity = review.quantity;
-					finish = review.finish;
-					condition = review.condition;
-				}
-			}
-		} catch (cause) {
-			if (mounted && generation === readGeneration && session?.id === id) {
-				if (saved.acknowledgement?.kind === 'Committed')
-					readFailure =
-						'The scan was saved, but its current details could not be loaded. Retry the read.';
-				else report(cause);
-			}
-		}
-	}
 	async function refresh() {
-		busy = true;
-		failure = '';
-		try {
-			await readCurrent();
-		} finally {
-			if (mounted) busy = false;
-		}
+		subscription?.invalidate();
 	}
 
 	async function upload() {
@@ -165,17 +185,20 @@
 			failure = 'Choose a nonempty JPEG, PNG, or WebP photo.';
 			return;
 		}
+		const write = workspaceSavedState.beginWrite(['scan']);
+		const sessionId = session.id;
 		busy = true;
 		try {
 			const form = new FormData();
 			form.set('file', file);
-			await request(`${api}/scan/sessions/${session.id}/frames`, { method: 'POST', body: form });
-			result = await request<ScanSessionResult>(`${api}/scan/sessions/${session.id}/result`);
+			await request(`${api}/scan/sessions/${sessionId}/frames`, { method: 'POST', body: form });
+			if (!write.current() || !mounted || session?.id !== sessionId) return;
 			message = 'Photo uploaded. Review the printing before adding it to inventory.';
 		} catch (cause) {
-			report(cause);
+			if (write.current() && mounted && session?.id === sessionId) report(cause);
 		} finally {
-			busy = false;
+			write.complete();
+			if (write.current() && mounted && session?.id === sessionId) busy = false;
 		}
 	}
 
@@ -189,18 +212,21 @@
 			const response = await request<{ hits: CardDocument[] }>(
 				`${api}/search?q=${encodeURIComponent(query.trim())}&limit=20`
 			);
-			if (generation === searchGeneration) {
+			if (mounted && workspaceSavedState.isActive(accountId) && generation === searchGeneration) {
 				hits = response.hits;
 				searched = true;
 			}
 		} catch (cause) {
-			if (generation === searchGeneration) report(cause);
+			if (mounted && workspaceSavedState.isActive(accountId) && generation === searchGeneration)
+				report(cause);
 		} finally {
-			if (generation === searchGeneration) searching = false;
+			if (mounted && workspaceSavedState.isActive(accountId) && generation === searchGeneration)
+				searching = false;
 		}
 	}
 
 	function choosePrinting(card: CardDocument) {
+		reviewArtifactId = artifact?.id;
 		const candidate = candidates.find((entry) => entry.catalogCardId === card.id);
 		selected = {
 			catalogCardId: card.id,
@@ -230,7 +256,8 @@
 			const response = await request<{ hits: CardDocument[]; estimatedTotalHits: number }>(
 				`${api}/cards/${encodeURIComponent(oracleId)}/printings`
 			);
-			if (generation !== searchGeneration) return;
+			if (!mounted || !workspaceSavedState.isActive(accountId) || generation !== searchGeneration)
+				return;
 			printings = response.hits;
 			printingCount = response.estimatedTotalHits;
 			const choice = printings.find((card) => card.id === preferredId) ?? printings[0];
@@ -242,31 +269,46 @@
 			hits = [];
 			searched = false;
 		} catch (cause) {
-			if (generation === searchGeneration) report(cause);
+			if (mounted && workspaceSavedState.isActive(accountId) && generation === searchGeneration)
+				report(cause);
 		} finally {
-			if (generation === searchGeneration) searching = false;
+			if (mounted && workspaceSavedState.isActive(accountId) && generation === searchGeneration)
+				searching = false;
 		}
 	}
 
 	async function morePrintings() {
 		if (!selected) return;
+		const selectedOracle = selected.oracleId,
+			generation = ++searchGeneration;
 		searching = true;
 		failure = '';
 		try {
 			const response = await request<{ hits: CardDocument[]; estimatedTotalHits: number }>(
 				`${api}/cards/${encodeURIComponent(selected.oracleId)}/printings?limit=100&offset=${printings.length}`
 			);
+			if (
+				!mounted ||
+				!workspaceSavedState.isActive(accountId) ||
+				generation !== searchGeneration ||
+				selected?.oracleId !== selectedOracle
+			)
+				return;
 			printings = [...printings, ...response.hits];
 			printingCount = response.hits.length ? response.estimatedTotalHits : printings.length;
 		} catch (cause) {
-			report(cause);
+			if (mounted && workspaceSavedState.isActive(accountId) && generation === searchGeneration)
+				report(cause);
 		} finally {
-			searching = false;
+			if (mounted && workspaceSavedState.isActive(accountId) && generation === searchGeneration)
+				searching = false;
 		}
 	}
 
 	async function commit() {
 		if (!confirmed || !selected || !session || !artifact || !validQuantity || !editable) return;
+		const write = workspaceSavedState.beginWrite(['scan', 'inventory']);
+		const sessionId = session.id;
 		busy = true;
 		failure = '';
 		message = '';
@@ -289,31 +331,47 @@
 					key,
 					body: JSON.stringify({ requestId: `scan-review:${crypto.randomUUID()}`, ...intent })
 				};
-			const attemptedDraftKey = draftKey(),
-				attemptedQuantity = quantity,
+			const attemptedQuantity = quantity,
 				attemptedName = selected.name;
 			const acknowledged = await saved.commit(pendingCommit.body);
-			if (!mounted) return;
+			if (!mounted || !write.current() || session?.id !== sessionId) return;
 			if (acknowledged.kind !== 'Committed') {
 				message =
 					'This earlier request will not be applied again. Reload its saved session to check the result.';
 				return;
 			}
 			pendingCommit = null;
-			committedDraftKey = attemptedDraftKey;
 			result = { ...result!, session: { ...session, status: 'committed' } };
 			confirmed = false;
 			message = `Added ${attemptedQuantity} ${attemptedQuantity === 1 ? 'copy' : 'copies'} of ${attemptedName} to inventory.`;
-			await readCurrent();
+			subscription?.invalidate();
 		} catch (cause) {
-			if (mounted) report(cause);
+			if (mounted && write.current() && session?.id === sessionId) report(cause);
 		} finally {
-			if (mounted) busy = false;
+			write.complete();
+			if (mounted && write.current() && session?.id === sessionId) busy = false;
 		}
 	}
 </script>
 
 <div class="workspace-container space-y-5 text-sm">
+	<SavedStateStatus resource={subscription} />
+	{#if changedPhoto}<p role="alert">
+			The saved photo changed. Your selection is retained for review.
+		</p>
+		<button
+			class="btn btn-secondary"
+			type="button"
+			disabled={busy}
+			onclick={() => {
+				selected = null;
+				reviewArtifactId = artifact?.id;
+				confirmed = false;
+			}}>Review current photo</button
+		>{/if}
+	{#if unavailable}<p role="alert">
+			This saved scan is unavailable. Your choices are kept, but cannot be submitted.
+		</p>{/if}
 	<div class="flex flex-wrap items-center justify-between gap-3">
 		<div class="page-title">
 			<h1>Scan</h1>
@@ -573,11 +631,11 @@
 			<Select
 				id="scan-session"
 				label="Session"
-				placeholder={sessions.length ? 'Choose a scan' : 'No scans yet'}
+				placeholder={recentSessions.length ? 'Choose a scan' : 'No scans yet'}
 				value={session?.id ?? ''}
 				disabled={busy}
 				onchange={openSession}
-				options={sessions.map((entry) => ({
+				options={recentSessions.map((entry) => ({
 					value: entry.id,
 					label: `${new Date(entry.createdAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })} · ${(entry.id === session?.id ? session.status : entry.status).replaceAll('_', ' ')}`
 				}))}

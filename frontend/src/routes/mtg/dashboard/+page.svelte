@@ -1,9 +1,35 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
+	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
+	import { onMount, untrack } from 'svelte';
+	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
+	import { readSavedJSON } from '#lib/saved-state/read.ts';
+	import type { ResourceSubscription } from '#lib/saved-state/workspace.ts';
 	import type { PageProps } from './$types';
 	let { data }: PageProps = $props();
 	let retrying = $state(false);
-	const dashboard = $derived(data.dashboard);
+	let dashboard = $state(untrack(() => data.dashboard));
+	let loadError = $state(untrack(() => data.loadError));
+	let subscription: ResourceSubscription | undefined = $state();
+	onMount(() => {
+		subscription = workspaceSavedState.subscribe({
+			topics: ['inventory', 'decks', 'scan'],
+			clear: () => {
+				dashboard = null;
+				loadError = '';
+			},
+			refresh: async (lease) => {
+				const current = await readSavedJSON<NonNullable<typeof dashboard>>(
+					'/api/account/dashboard',
+					lease
+				);
+				if (current && lease.current()) {
+					dashboard = current;
+					loadError = '';
+				}
+			}
+		});
+		return () => subscription?.dispose();
+	});
 	const finishLabels: Record<string, string> = { nonfoil: 'Nonfoil', foil: 'Foil' };
 	const conditionLabels: Record<string, string> = {
 		NM: 'Near mint',
@@ -22,7 +48,7 @@
 	async function retry() {
 		retrying = true;
 		try {
-			await invalidateAll();
+			subscription?.invalidate();
 		} finally {
 			retrying = false;
 		}
@@ -33,6 +59,7 @@
 	><title>Dashboard | Spellbook</title><meta name="robots" content="noindex" /></svelte:head
 >
 <div class="workspace-container dashboard-page">
+	<SavedStateStatus resource={subscription} />
 	<header class="dashboard-header">
 		<div class="page-title"><h1>Dashboard</h1></div>
 		<div class="dashboard-actions">
@@ -42,9 +69,9 @@
 			>
 		</div>
 	</header>
-	{#if data.loadError}
+	{#if loadError}
 		<div class="dashboard-empty" role="alert">
-			<p>{data.loadError}</p>
+			<p>{loadError}</p>
 			<button class="btn btn-secondary btn-sm" onclick={retry} disabled={retrying}
 				>{retrying ? 'Loading...' : 'Try again'}</button
 			>

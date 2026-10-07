@@ -16,7 +16,8 @@ export class InventoryTargetReads<T> {
 	constructor(
 		private context: () => TargetContext,
 		private transport: (id: string) => Promise<DetailResponse<T>>,
-		private apply: (id: string, entry: T | null) => void
+		private apply: (id: string, entry: T | null) => void,
+		private unauthenticated: () => void = () => {}
 	) {}
 
 	private isCurrent(id: string, request: number, initial: TargetContext) {
@@ -40,20 +41,24 @@ export class InventoryTargetReads<T> {
 		);
 	}
 
-	async refresh() {
+	async refresh(current: () => boolean = () => true) {
 		const request = ++this.request;
 		const initial = this.context();
 		for (const id of new Set(initial.targets.map((target) => target.id))) {
-			if (!this.isCurrent(id, request, initial)) return;
+			if (!current() || !this.isCurrent(id, request, initial)) return;
 			const response = await this.transport(id);
-			if (!this.isCurrent(id, request, initial)) return;
+			if (!current() || !this.isCurrent(id, request, initial)) return;
+			if (response.status === 401) {
+				this.unauthenticated();
+				return;
+			}
 			if (response.status === 404) {
 				this.apply(id, null);
 				continue;
 			}
-			if (!response.ok) continue;
+			if (!response.ok) throw Error('Saved entry details could not be loaded. Try again.');
 			const detail = await response.json();
-			if (!this.isCurrent(id, request, initial)) return;
+			if (!current() || !this.isCurrent(id, request, initial)) return;
 			this.apply(id, detail.entry);
 		}
 	}

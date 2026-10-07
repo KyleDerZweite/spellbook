@@ -10,5 +10,9 @@
 </svelte:head>
 
 {#key data.result?.session?.id ?? 'new'}
-	<ScanWorkspace sessions={data.sessions} initialResult={data.result} />
+	<ScanWorkspace
+		accountId={data.user?.accountId ?? ''}
+		sessions={data.sessions}
+		initialResult={data.result}
+	/>
 {/key}

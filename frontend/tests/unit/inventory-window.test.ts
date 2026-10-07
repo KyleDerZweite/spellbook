@@ -609,3 +609,113 @@ it('discards a pending refresh when a newer filter query supersedes it', async (
 	await replacement;
 	expect(window.current?.query).toMatchObject({ offset: 0, q: 'new' });
 });
+
+it('drains actual HTTP pages during ordinary freshness changes without exceeding three physical requests', async () => {
+	let desired = 0;
+	const pending: Array<() => void> = [];
+	let active = 0,
+		peak = 0,
+		starts = 0;
+	const server = createServer((request, response) => {
+		if (request.url === '/barrier') {
+			response.end('ready');
+			return;
+		}
+		active++;
+		starts++;
+		peak = Math.max(peak, active);
+		pending.push(() => {
+			active--;
+			response.setHeader('content-type', 'application/json');
+			response.end(
+				JSON.stringify(
+					page(
+						Number(new URL(request.url!, 'http://local').searchParams.get('offset')),
+						'',
+						String(desired)
+					)
+				)
+			);
+		});
+	});
+	await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+	const address = server.address();
+	if (!address || typeof address === 'string') throw Error('Expected isolated port');
+	const origin = `http://127.0.0.1:${address.port}`;
+	const publication = () => {
+		const version = desired;
+		return () => version === desired;
+	};
+	const window = new InventoryWindow(
+		async (query, _revision, signal) => {
+			const response = await fetch(`${origin}/page?offset=${query.offset}`, { signal });
+			return response.json();
+		},
+		() => {},
+		() => {},
+		publication
+	);
+	const controller = new AbortController();
+	try {
+		window.seed('owner', page());
+		window.plan(500, 600);
+		await vi.waitFor(() => expect(active).toBe(3));
+		desired++;
+		const lease = publication();
+		const refreshing = window.refresh('owner', controller.signal, lease);
+		for (let i = 0; i < 100; i++) window.plan(i * 500, i * 500 + 100);
+		await (await fetch(origin + '/barrier')).text();
+		expect(starts).toBe(3);
+		expect(window.metrics().queued).toBe(0);
+		pending.shift()!();
+		await vi.waitFor(() => expect(starts).toBe(4));
+		expect(active).toBe(3);
+		// Old ordinary pages have lost publication authority even though their HTTP requests drain.
+		expect(window.metrics().pages).toBe(1);
+		for (const finish of pending.splice(0)) finish();
+		await refreshing;
+		await vi.waitFor(() => expect(active).toBe(0));
+		expect(peak).toBe(3);
+		expect(window.current?.revision).toBe('1');
+		expect(window.metrics().pages).toBe(1);
+	} finally {
+		window.clear();
+		for (const finish of pending.splice(0)) finish();
+		const closed = new Promise<void>((resolve) => server.close(() => resolve()));
+		server.closeAllConnections();
+		await closed;
+	}
+});
+
+it('rejects obsolete normal-page and RevisionChanged reset bodies before protected cache mutation', async () => {
+	let desired = 0,
+		finish!: (result: InventoryPage | { kind: 'RevisionChanged'; revision: string }) => void;
+	let calls = 0;
+	const window = new InventoryWindow(
+		() => {
+			calls++;
+			return new Promise((resolve) => {
+				finish = resolve;
+			});
+		},
+		() => {},
+		() => {},
+		() => {
+			const version = desired;
+			return () => version === desired;
+		}
+	);
+	window.seed('owner', page());
+	const normal = window.request(50);
+	desired++;
+	finish(page(50));
+	await normal;
+	expect(window.metrics().pages).toBe(1);
+	const changed = window.request(100);
+	desired++;
+	finish({ kind: 'RevisionChanged', revision: '2' });
+	await changed;
+	expect(calls).toBe(2);
+	expect(window.current?.revision).toBe('1');
+	window.clear();
+});

@@ -14,6 +14,13 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { cpus, totalmem } from 'node:os';
 import pg from 'pg';
+import { createRequire } from 'node:module';
+
+// Decode actions with SvelteKit's installed serializer, not its key-order-dependent wire string.
+const kitRequire = createRequire(
+	createRequire(import.meta.url).resolve('@sveltejs/kit/package.json')
+);
+const { parse: parseActionData } = kitRequire('devalue');
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 if (!databaseUrl || databaseUrl !== process.env.DATABASE_URL) {
@@ -1456,12 +1463,47 @@ test('built HTTP application preserves public Catalog and local account journeys
 				assert.equal(acknowledgement.changes[0].quantity, 2);
 				assert.equal(acknowledgement.changes[0].delta, 2);
 				const entryId = acknowledgement.changes[0].entryId;
+				const inspectorIntent = {
+					requestId: randomUUID(),
+					entryId,
+					catalogCardId: card.id,
+					quantity: '3',
+					role: 'main'
+				};
+				const inspectorSave = () =>
+					fetch(`${origin}/mtg/decks?/changePrinting&deck=${deck.id}`, {
+						method: 'POST',
+						headers: {
+							cookie: `spellbook_session=${deckSession.token}`,
+							origin,
+							accept: 'application/json',
+							'x-sveltekit-action': 'true',
+							'content-type': 'application/x-www-form-urlencoded'
+						},
+						body: new URLSearchParams(inspectorIntent),
+						redirect: 'manual'
+					});
+				const inspectorResponse = await inspectorSave();
+				assert.equal(inspectorResponse.status, 200);
+				const inspectorAcknowledged = await inspectorResponse.json();
+				assert.equal(inspectorAcknowledged.type, 'success');
+				assert.match(inspectorAcknowledged.data, /acknowledgement/);
+				assert.match(inspectorAcknowledged.data, new RegExp(inspectorIntent.requestId));
 				const removal = await request(
 					path,
 					{ requestId: randomUUID(), operations: [{ op: 'remove', target: { entryId } }] },
 					{ authorization }
 				);
 				assert.equal(removal.status, 200);
+				const inspectorReplay = await inspectorSave();
+				assert.equal(inspectorReplay.status, 200);
+				const replayedInspector = await inspectorReplay.json();
+				assert.equal(replayedInspector.type, inspectorAcknowledged.type);
+				assert.equal(replayedInspector.status, inspectorAcknowledged.status);
+				assert.deepEqual(
+					parseActionData(replayedInspector.data),
+					parseActionData(inspectorAcknowledged.data)
+				);
 				assert.deepEqual(
 					await (await request(path, input, { authorization })).json(),
 					acknowledgement

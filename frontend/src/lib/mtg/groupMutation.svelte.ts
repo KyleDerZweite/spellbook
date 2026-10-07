@@ -1,3 +1,4 @@
+import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 import type { SubmitFunction } from '$app/forms';
 
 /** Shared lifecycle for group forms; the server owns validation and persistence. */
@@ -26,16 +27,18 @@ export class GroupMutation {
 		const requestId = this.pendingRequests.get(payload) ?? crypto.randomUUID();
 		this.pendingRequests.set(payload, requestId);
 		formData.set('requestId', requestId);
+		const write = workspaceSavedState.beginWrite(['inventory']);
 		this.pending = true;
 		this.error = '';
 		return async ({ result, update }) => {
 			try {
+				if (!write.current()) return;
 				if (result.type === 'success' && result.data?.success) {
 					this.pendingRequests.delete(payload);
 					await update({ reset: false, refreshAll: false, navigate: false });
-					if (account !== this.account()) return;
+					if (!write.current() || account !== this.account()) return;
 					await this.refresh();
-					if (account === this.account()) this.onSuccess();
+					if (write.current() && account === this.account()) this.onSuccess();
 				} else if (result.type === 'redirect') await update({ reset: false });
 				else
 					this.error =
@@ -45,6 +48,7 @@ export class GroupMutation {
 			} catch {
 				this.error = 'Could not refresh inventory. Reload before trying again.';
 			} finally {
+				write.complete();
 				this.pending = false;
 			}
 		};

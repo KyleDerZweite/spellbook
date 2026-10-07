@@ -1,5 +1,9 @@
 <script lang="ts">
 	import '../app.css';
+	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
+	import { afterNavigate } from '$app/navigation';
+	import { confirmAuthenticatedNavigation } from '#lib/saved-state/authentication.ts';
+	import { untrack, onDestroy } from 'svelte';
 	import { savedProfile } from '#lib/saved-state/profile.svelte.ts';
 	import Shell from '#lib/components/layout/Shell.svelte';
 	import { page } from '$app/state';
@@ -24,9 +28,43 @@
 	const search = provideSearchSession();
 	if (page.url.pathname === '/mtg/search') search.hydrate(parseSearchUrl(page.url));
 
+	let activation = $state('initial');
+	let navigation = 0;
+	let mounted = true;
+	let authentication: AbortController | undefined;
+	afterNavigate(({ shallow }) => {
+		if (shallow) return;
+		const currentNavigation = ++navigation;
+		authentication?.abort();
+		const accountId = data.user?.accountId;
+		if (!accountId || workspaceSavedState.getState() !== 'expired') return;
+		const controller = new AbortController();
+		authentication = controller;
+		const current = () =>
+			mounted &&
+			currentNavigation === navigation &&
+			data.user?.accountId === accountId &&
+			workspaceSavedState.getState() === 'expired';
+		void confirmAuthenticatedNavigation(accountId, controller.signal, current).then((confirmed) => {
+			if (confirmed && current()) activation = crypto.randomUUID();
+		});
+	});
 	$effect(() => {
-		savedProfile.start(data.user?.accountId ?? null);
-		authState.user = data.user;
+		const accountId = data.user?.accountId ?? null,
+			user = data.user,
+			currentActivation = activation;
+		untrack(() => {
+			workspaceSavedState.start({ accountId, activation: currentActivation });
+			savedProfile.start();
+			if (workspaceSavedState.getState() !== 'expired') authState.user = user;
+		});
+	});
+	onDestroy(() => {
+		mounted = false;
+		navigation++;
+		authentication?.abort();
+		savedProfile.stop();
+		workspaceSavedState.stop();
 	});
 
 	$effect(() => {
@@ -43,7 +81,7 @@
 </svelte:head>
 
 <Shell>
-	{#if savedProfile.status === 'expired' && data.user}
+	{#if workspaceSavedState.getState() === 'expired' && data.user}
 		<p role="alert">Your session has ended. <a href="/auth/login">Sign in again</a>.</p>
 	{:else}
 		{@render children()}

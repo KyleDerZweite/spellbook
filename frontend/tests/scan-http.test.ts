@@ -94,7 +94,12 @@ test('built Scan HTTP with actual Python worker and isolated PostgreSQL', async 
 		child = await startHttpApplication(origin, new URL('../', import.meta.url));
 		const worker = new URL(process.env.SCAN_WORKER_URL!);
 		assert.equal(worker.hostname, '127.0.0.1');
-		assert.equal(worker.port, '5227');
+		assert.ok(
+			Number.isInteger(Number(worker.port)) &&
+				Number(worker.port) > 0 &&
+				Number(worker.port) <= 65535,
+			'Explicit SCAN_WORKER_URL must name a loopback port'
+		);
 		assert.equal((await fetch(new URL('/health', worker))).status, 200);
 		const card = await ensureDeckCatalogFixture(pool);
 		const a = await account(),

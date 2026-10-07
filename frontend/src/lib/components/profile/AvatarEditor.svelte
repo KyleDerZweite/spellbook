@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { savedProfile } from '#lib/saved-state/profile.svelte.ts';
 	import { enhance } from '$app/forms';
 	import { Dialog } from 'bits-ui';
 	import { tick, untrack } from 'svelte';
@@ -52,20 +53,26 @@
 				action="/settings"
 				aria-busy={pending}
 				use:enhance={() => {
+					const write = savedProfile.beginWrite();
+					const submitted = selected;
 					pending = true;
 					message = '';
 					return async ({ result, update }) => {
 						try {
+							if (write && !write.current()) return;
 							if (result.type === 'success') {
-								await update({ reset: false });
-								open = false;
+								await update({ reset: false, refreshAll: false, navigate: false });
+								if (write && !write.current()) return;
+								lastSavedAvatar = getAvatar(submitted).id;
+								if (selected === submitted) open = false;
 							} else
 								message =
 									result.type === 'failure' && result.data?.message
 										? String(result.data.message)
 										: 'Could not save your avatar. Try again.';
 						} finally {
-							pending = false;
+							write?.complete();
+							if (!write || write.current()) pending = false;
 						}
 					};
 				}}

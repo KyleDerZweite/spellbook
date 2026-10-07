@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import PriceReference from './PriceReference.svelte';
 	import Select from '#lib/components/ui/select/Select.svelte';
 	import type { Snippet } from 'svelte';
@@ -406,7 +407,7 @@
 				{inventoryPriceRefreshKey}
 			/>
 			{#if actions}{@render actions(activeCard)}
-			{:else if page.data.user}<CardQuickAdd
+			{:else if page.data.user && workspaceSavedState.getState() !== 'expired'}<CardQuickAdd
 					card={activeCard}
 					onPendingChange={(pending) => {
 						quickAddPending = pending;

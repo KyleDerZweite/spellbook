@@ -93,3 +93,31 @@ it('only the committed details acknowledgement advances the same opening baselin
 		lifecycle.savedDetails(lifecycle.capture('updateDeck'), { ...committed, id: 'other' })
 	).toBeUndefined();
 });
+
+it('owns original Inspector receipt bases without adopting another opening or a replacement destination', () => {
+	const lifecycle = new DeckSaveLifecycle('owner', 'deck');
+	lifecycle.open('inspector', 'entry');
+	const submitted = lifecycle.capture('changePrinting', 'entry');
+	const receipt = {
+		requestId: 'intent',
+		deckId: 'deck',
+		revision: '4',
+		changes: [{ entryId: 'entry', quantity: 2, role: 'main', catalogCardId: 'printing', delta: 1 }],
+		removedEntryIds: []
+	};
+	expect(lifecycle.savedInspector(submitted, 'intent', receipt)).toEqual({
+		quantity: 2,
+		role: 'main'
+	});
+	expect(lifecycle.savedInspector(submitted, 'different', receipt)).toBeUndefined();
+	expect(
+		lifecycle.savedInspector(submitted, 'intent', {
+			...receipt,
+			changes: [{ ...receipt.changes[0], entryId: 'destination' }],
+			removedEntryIds: ['entry']
+		})
+	).toBeUndefined();
+	lifecycle.close('inspector');
+	lifecycle.open('inspector', 'entry');
+	expect(lifecycle.savedInspector(submitted, 'intent', receipt)).toBeUndefined();
+});

@@ -81,6 +81,44 @@ export class DeckSaveLifecycle {
 		await update();
 		return this.isCurrent(submission);
 	}
+	savedInspector(
+		submission: DeckSubmission,
+		requestId: string,
+		value: unknown
+	): { quantity: number; role: string } | undefined {
+		if (
+			!this.canClose(submission, 'inspector') ||
+			!value ||
+			typeof value !== 'object' ||
+			!('requestId' in value) ||
+			value.requestId !== requestId ||
+			!('deckId' in value) ||
+			value.deckId !== submission.scope.deckId ||
+			!('changes' in value) ||
+			!Array.isArray(value.changes)
+		)
+			return;
+		const change: unknown = value.changes.find(
+			(item) =>
+				item &&
+				typeof item === 'object' &&
+				'entryId' in item &&
+				item.entryId === submission.opening?.targetId
+		);
+		if (
+			!change ||
+			typeof change !== 'object' ||
+			!('quantity' in change) ||
+			typeof change.quantity !== 'number' ||
+			!Number.isSafeInteger(change.quantity) ||
+			change.quantity < 1 ||
+			!('role' in change) ||
+			typeof change.role !== 'string'
+		)
+			return;
+		return { quantity: change.quantity, role: change.role };
+	}
+
 	savedDetails(submission: DeckSubmission, value: unknown): SavedDetails | undefined {
 		if (
 			!this.canClose(submission, 'details') ||
