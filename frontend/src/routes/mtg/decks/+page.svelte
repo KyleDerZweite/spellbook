@@ -540,7 +540,6 @@
 			saveAccount = accountId;
 		}
 		if (saveLifecycle.setScope(data.user?.accountId ?? '', data.selectedDeckId, data.flow)) {
-			categoryReadController?.abort();
 			categoryRead = null;
 			busy = false;
 			saveError = '';
