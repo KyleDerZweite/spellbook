@@ -22,6 +22,7 @@
 		loading = $state(false),
 		readError = $state(''),
 		retry = $state(0);
+	const copyLabel = $derived(quantity === 1 ? 'copy' : 'copies');
 	const reasons: Record<string, string> = {
 		SourceUnavailable: 'No reference source has been published.',
 		PrintingMissing: 'This printing is missing from the reference source.',
@@ -118,15 +119,12 @@
 					English printing reference · Same edition, collector number and variant
 				</p>{/if}
 			{#if entryId}<p>
-					{quantity} copies · Estimated reference total {formatReferenceEUR(
-						reference.amount,
-						quantity
-					)}
+					{quantity}
+					{copyLabel} · Estimated reference total {formatReferenceEUR(reference.amount, quantity)}
 				</p>
 				<p class="text-text-muted">
-					Coverage: {quantity} of {quantity} copies{reference.freshness === 'Stale'
-						? ' (stale)'
-						: ''}
+					Coverage: {quantity} of {quantity}
+					{copyLabel}{reference.freshness === 'Stale' ? ' (stale)' : ''}
 				</p>{/if}
 		{:else}<p class="text-text-muted">{reasons[reference.reason]}</p>
 			{#if publication}<p class="text-text-muted">
@@ -134,7 +132,7 @@
 						publication.sourceTime
 					).toLocaleString()}
 				</p>{/if}
-			{#if entryId}<p class="text-text-muted">Coverage: 0 of {quantity} copies</p>{/if}{/if}
+			{#if entryId}<p class="text-text-muted">Coverage: 0 of {quantity} {copyLabel}</p>{/if}{/if}
 		{#if health === 'Failed'}<p class="text-text-muted">
 				Latest source refresh failed. Existing references keep their original source date.
 			</p>{/if}
