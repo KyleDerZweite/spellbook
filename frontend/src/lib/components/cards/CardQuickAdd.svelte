@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { page } from '$app/state';
+	import { untrack } from 'svelte';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { refreshAll } from '$app/navigation';
 	import Select from '#lib/components/ui/select/Select.svelte';
@@ -19,6 +21,10 @@
 	let pending = $state(false);
 	let error = $state('');
 	let message = $state('');
+	let requestId = $state(
+		untrack(() => (page.data.requestId ? `${page.data.requestId}:${card.id}` : crypto.randomUUID()))
+	);
+	const pendingRequests = new Map<string, string>();
 	const hasAvailableFinish = $derived(card.is_nonfoil_available || card.is_foil_available);
 
 	const add: SubmitFunction = ({ formData, cancel }) => {
@@ -26,6 +32,16 @@
 			cancel();
 			return;
 		}
+		const payload = JSON.stringify([
+			page.data.user?.accountId,
+			...['game', 'catalogCardId', 'finish', 'condition', 'quantity'].map((name) => [
+				name,
+				formData.get(name)
+			])
+		]);
+		const intentId = pendingRequests.get(payload) ?? crypto.randomUUID();
+		pendingRequests.set(payload, intentId);
+		formData.set('requestId', intentId);
 		const addedName = String(formData.get('name'));
 		const addedQuantity = Number(formData.get('quantity'));
 		pending = true;
@@ -35,6 +51,8 @@
 		return async ({ result, update }) => {
 			try {
 				if (result.type === 'success' && result.data?.success) {
+					pendingRequests.delete(payload);
+					requestId = crypto.randomUUID();
 					message = `Added ${addedQuantity} ${addedQuantity === 1 ? 'copy' : 'copies'} of ${addedName} to inventory.`;
 					try {
 						await refreshAll();
@@ -51,7 +69,7 @@
 							? result.data.message
 							: 'Could not add this card. Check the details and try again.';
 				} else {
-					error = 'Could not confirm this addition. Check your inventory before trying again.';
+					error = 'Could not confirm this addition. Retry unchanged to confirm it safely.';
 				}
 			} finally {
 				pending = false;
@@ -90,6 +108,7 @@
 	aria-busy={pending}
 	aria-describedby={error ? `${id}-error` : undefined}
 >
+	<input type="hidden" name="requestId" value={requestId} />
 	<input type="hidden" name="game" value={activeGameState.current} />
 	<input type="hidden" name="catalogCardId" value={card.id} />
 	<input type="hidden" name="canonicalCardId" value={card.oracle_id} />

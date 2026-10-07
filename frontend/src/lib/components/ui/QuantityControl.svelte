@@ -8,7 +8,8 @@
 		action,
 		submit,
 		fields,
-		disabled = false
+		disabled = false,
+		maxQuantity = Infinity
 	}: {
 		quantity: number;
 		label: string;
@@ -16,6 +17,7 @@
 		submit: SubmitFunction;
 		fields: Snippet<[number]>;
 		disabled?: boolean;
+		maxQuantity?: number;
 	} = $props();
 </script>
 
@@ -28,7 +30,9 @@
 				variant="ghost"
 				size="icon"
 				type="submit"
-				disabled={disabled || (delta === -1 && quantity <= 1)}
+				disabled={disabled ||
+					(delta === -1 && quantity <= 1) ||
+					(delta === 1 && quantity >= maxQuantity)}
 				aria-label={`${delta === -1 ? 'Decrease' : 'Increase'} ${label} quantity`}
 				><svg
 					aria-hidden="true"

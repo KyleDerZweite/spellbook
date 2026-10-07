@@ -99,6 +99,13 @@
 			"when": 1791335000000,
 			"tag": "0013_saved_state",
 			"breakpoints": true
+		},
+		{
+			"idx": 14,
+			"version": "7",
+			"when": 1791337754627,
+			"tag": "0014_inventory_contracts",
+			"breakpoints": true
 		}
 	]
 }

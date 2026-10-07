@@ -16,7 +16,8 @@
 	import {
 		inventoryAction,
 		effectiveInventoryUrl,
-		submittedDraftMatches
+		submittedDraftMatches,
+		confirmedInventoryBases
 	} from '#lib/mtg/inventory-action.ts';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { tick, onMount, untrack } from 'svelte';
@@ -47,6 +48,8 @@
 	import type { CardDocument } from '#lib/search/types.ts';
 
 	let { data, form }: PageProps = $props();
+	let notesRecovery = $derived(form && 'notesRecovery' in form ? form.notesRecovery : undefined);
+	let latestNotes = $derived(form && 'latestNotes' in form ? form.latestNotes : undefined);
 	const search = getSearchSession();
 	const initialQuery = untrack(() => data.window.query);
 	let order = $state<InventoryOrder>({
@@ -362,6 +365,10 @@
 	});
 	let targetEntries = $state<Record<string, InventoryCard>>({}),
 		notesDraft = $state(''),
+		notesBase = $state('0'),
+		notesOriginal = $state(''),
+		quantityBase = $state(1),
+		notesConflict = $state<{ notes: string; notesRevision: string } | null>(null),
 		quantityDraft = $state(1),
 		draftDirty = $state(false),
 		targetGone = $state(false);
@@ -390,6 +397,9 @@
 			targetEntries[id] = asLegacy(entry);
 			if (id === inspection?.entryId && !draftDirty) {
 				notesDraft = entry.notes;
+				notesBase = entry.notesRevision;
+				notesOriginal = entry.notes;
+				quantityBase = entry.quantity;
 				quantityDraft = entry.quantity;
 			}
 		}
@@ -510,6 +520,10 @@
 		if (!card) return;
 		targetEntries[id] = card;
 		notesDraft = card.notes;
+		notesBase = card.notesRevision;
+		notesOriginal = card.notes;
+		quantityBase = card.quantity;
+		notesConflict = null;
 		quantityDraft = card.quantity;
 		draftDirty = false;
 		targetGone = false;
@@ -586,11 +600,20 @@
 		selectedFinish = 'all';
 		selectedCondition = 'all';
 	}
+	const pendingRequests = new Map<string, string>();
 	const saveEntry: SubmitFunction = ({ formData, action, cancel }) => {
 		if (pendingId) {
 			cancel();
 			return;
 		}
+		const payload =
+			(page.data.user?.accountId ?? 'session') +
+			action.pathname +
+			action.search +
+			JSON.stringify([...formData.entries()].filter(([name]) => name !== 'requestId'));
+		const requestId = pendingRequests.get(payload) ?? crypto.randomUUID();
+		pendingRequests.set(payload, requestId);
+		formData.set('requestId', requestId);
 		const id = String(formData.get('entryId'));
 		const card = inventoryCards.find((entry) => entry.id === id);
 		const submitted = {
@@ -599,6 +622,17 @@
 			quantity: Number(formData.get('quantity'))
 		};
 		const submittedAccount = page.data.user?.accountId ?? 'session';
+		const submittedOpening = inspection;
+		const submittedQuery = effectiveInventoryUrl(page).search;
+		const currentAttempt = () =>
+			hydrated &&
+			submittedAccount === (page.data.user?.accountId ?? 'session') &&
+			submittedQuery === effectiveInventoryUrl(page).search;
+		const currentEditor = () =>
+			currentAttempt() &&
+			inspection === submittedOpening &&
+			inspection?.entryId === id &&
+			formData.has('notes');
 		const removing = action.searchParams.has('/remove');
 		pendingId = id;
 		status = 'Saving…';
@@ -606,17 +640,31 @@
 		return async ({ result, update }) => {
 			try {
 				if (result.type === 'success') {
+					pendingRequests.delete(payload);
 					if (hydrated && submittedAccount === (page.data.user?.accountId ?? 'session'))
 						confirmedInventoryWrite++;
+					if (!currentAttempt()) return;
+					if (currentEditor() && result.data?.acknowledgement) {
+						const bases = confirmedInventoryBases(
+							formData,
+							result.data
+								.acknowledgement as import('@spellbook/contracts/inventory.ts').InventoryAcknowledgement,
+							{ notesOriginal, notesBase, quantityBase }
+						);
+						notesOriginal = bases.notesOriginal;
+						notesBase = bases.notesBase;
+						quantityBase = bases.quantityBase;
+					}
 					const index = listCards.findIndex((entry) => entry.id === id);
 					const neighbor = listCards[index + 1] ?? listCards[index - 1];
 					const focus = document.activeElement;
 					await update({ reset: false, refreshAll: false, navigate: false });
 					if (focus instanceof HTMLElement && focus.isConnected)
 						focus.focus({ preventScroll: true });
-					if (!hydrated || submittedAccount !== (page.data.user?.accountId ?? 'session')) return;
+					if (!currentAttempt()) return;
 					if (
 						!removing &&
+						currentEditor() &&
 						submittedDraftMatches(submitted, {
 							id: inspection?.entryId,
 							notes: notesDraft,
@@ -625,6 +673,7 @@
 					)
 						draftDirty = false;
 					await refreshInventory(submittedAccount);
+					if (!currentAttempt()) return;
 					if (removing) {
 						if (neighbor) await restoreAnchor(neighbor.id);
 						await tick();
@@ -637,6 +686,9 @@
 				} else if (result.type === 'redirect') {
 					await update();
 				} else {
+					if (!currentAttempt()) return;
+					if (currentEditor() && result.type === 'failure' && result.data?.latestNotes)
+						notesConflict = result.data.latestNotes as { notes: string; notesRevision: string };
 					mutationError =
 						result.type === 'failure' && typeof result.data?.message === 'string'
 							? result.data.message
@@ -645,6 +697,7 @@
 					if (removing) await refreshTargets();
 				}
 			} catch {
+				if (!currentAttempt()) return;
 				mutationError = 'Could not refresh inventory. Reload before trying again.';
 				status = '';
 			} finally {
@@ -657,6 +710,81 @@
 <svelte:head><title>Inventory | Spellbook</title></svelte:head>
 
 <div class="inventory-page workspace-container">
+	{#if notesRecovery}
+		<section aria-labelledby="notes-recovery-title" class="inspector-form">
+			<h2 id="notes-recovery-title">Your unsaved Notes</h2>
+			<p role="alert">{form?.message}</p>
+			{#if latestNotes}<p>
+					Latest saved Notes: {latestNotes.notes || '(empty)'}
+				</p>{/if}
+			<form method="POST" action={inventoryAction('updateQuantity', effectiveInventoryUrl(page))}>
+				<input type="hidden" name="entryId" value={notesRecovery.entryId} />
+				<input type="hidden" name="requestId" value={notesRecovery.requestId} />
+				<input type="hidden" name="rebaseRequestId" value={data.requestId} />
+				<input type="hidden" name="notesRevision" value={notesRecovery.notesRevision} /><input
+					type="hidden"
+					name="notesOriginal"
+					value={notesRecovery.notesOriginal}
+				/><input type="hidden" name="quantityBase" value={notesRecovery.quantityBase} />
+				<label for="recovered-quantity">Owned quantity</label><input
+					id="recovered-quantity"
+					name="quantity"
+					type="number"
+					min="1"
+					step="1"
+					value={notesRecovery.quantity}
+				/>
+				<label for="recovered-notes">Notes draft</label><textarea id="recovered-notes" name="notes"
+					>{notesRecovery.notes}</textarea
+				>
+				{#if latestNotes}<button
+						class="btn btn-primary"
+						name="rebaseNotesRevision"
+						value={latestNotes.notesRevision}>Save my draft against the latest revision</button
+					>{:else}<button class="btn btn-primary">Retry Save</button>{/if}
+			</form>
+		</section>
+	{/if}
+
+	{#if currentWindow.query.view === 'groups'}<noscript
+			><section aria-labelledby="native-groups-title">
+				<h2 id="native-groups-title">Manage Groups</h2>
+				<form method="POST" action={inventoryAction('createGroup', effectiveInventoryUrl(page))}>
+					<input type="hidden" name="requestId" value={data.requestId} /><label
+						for="native-group-name">New group name</label
+					><input id="native-group-name" name="name" required maxlength="128" /><button
+						class="btn btn-primary">Create group</button
+					>
+				</form>
+				{#each currentWindow.groupPage as group}<form
+						method="POST"
+						action={inventoryAction('renameGroup', effectiveInventoryUrl(page))}
+					>
+						<input type="hidden" name="requestId" value={data.requestId} /><input
+							type="hidden"
+							name="groupId"
+							value={group.id}
+						/><label for={`native-group-${group.id}`}>Rename {group.name}</label><input
+							id={`native-group-${group.id}`}
+							name="name"
+							value={group.name}
+							required
+							maxlength="128"
+						/><button class="btn btn-secondary">Save name</button>
+					</form>
+					<form method="POST" action={inventoryAction('deleteGroup', effectiveInventoryUrl(page))}>
+						<input type="hidden" name="requestId" value={data.requestId} /><input
+							type="hidden"
+							name="groupId"
+							value={group.id}
+						/><label
+							><input type="checkbox" name="confirmDeleteGroup" value="yes" required /> Delete {group.name}
+							and its memberships, keeping every owned card.</label
+						><button class="btn btn-secondary">Delete group</button>
+					</form>{/each}
+			</section></noscript
+		>{/if}
+
 	<WorkspaceHeader title="Inventory">
 		{#snippet metadata()}<p class="inventory-totals">
 				<strong>{currentWindow.totals.copyCount.toLocaleString()}</strong> cards <span>·</span>
@@ -1042,6 +1170,10 @@
 								>{/if}{#if card.notes}<span class="entry-notes">{card.notes}</span>{/if}</span
 						></button
 					>
+					<noscript
+						><a href={`/mtg/inventory/${card.id}${effectiveInventoryUrl(page).search}`}>Details</a
+						></noscript
+					>
 					<span class="row-metadata">{@render metadata('set', card.setCode)}</span><span
 						class="row-metadata">{@render metadata('finish', card.finish)}</span
 					><span class="row-metadata">{@render metadata('condition', card.condition)}</span>
@@ -1054,9 +1186,9 @@
 					>
 						{#snippet fields(delta)}<input type="hidden" name="entryId" value={card.id} /><input
 								type="hidden"
-								name="quantity"
-								value={card.quantity + delta}
-							/><input type="hidden" name="notes" value={card.notes} />{/snippet}
+								name="delta"
+								value={delta}
+							/><input type="hidden" name="requestId" value={data.requestId} />{/snippet}
 					</QuantityControl>
 					<ActionMenu
 						label={`Actions for ${card.name}, ${card.setCode.toUpperCase()}, ${card.finish}, ${card.condition}`}
@@ -1178,6 +1310,7 @@
 		action={inventoryAction('deleteGroup', effectiveInventoryUrl(page))}
 		use:enhance={groupDeletion.submit}
 	>
+		<input type="hidden" name="requestId" value={data.requestId} />
 		<input type="hidden" name="groupId" value={deletingGroup?.id ?? ''} /><button
 			class="btn btn-destructive"
 			disabled={groupDeletion.pending}
@@ -1202,6 +1335,7 @@
 		action={inventoryAction('remove', effectiveInventoryUrl(page))}
 		use:enhance={saveEntry}
 	>
+		<input type="hidden" name="requestId" value={data.requestId} />
 		<input type="hidden" name="entryId" value={removeId ?? ''} /><input
 			type="hidden"
 			name="expectedQuantity"
@@ -1243,10 +1377,28 @@
 				use:enhance={saveEntry}
 				class="inspector-form"
 			>
+				<input type="hidden" name="requestId" value={data.requestId} />
+				<input type="hidden" name="notesRevision" value={notesBase} />
+				<input type="hidden" name="notesOriginal" value={notesOriginal} /><input
+					type="hidden"
+					name="quantityBase"
+					value={quantityBase}
+				/>
 				<input type="hidden" name="entryId" value={inspected.id} />
 				<p>
 					{inspected.setCode.toUpperCase()} · {inspected.finish === 'foil' ? 'Foil' : 'Nonfoil'} · {inspected.condition}
 				</p>
+				{#if notesConflict}<p role="alert">
+						Latest saved Notes: {notesConflict.notes || '(empty)'}
+					</p>
+					<button
+						type="button"
+						class="btn btn-secondary"
+						onclick={() => {
+							notesBase = notesConflict!.notesRevision;
+							notesConflict = null;
+						}}>Use latest revision with my draft</button
+					>{/if}
 				<label class="label" for="inventory-quantity">Owned quantity</label><input
 					class="input"
 					id="inventory-quantity"

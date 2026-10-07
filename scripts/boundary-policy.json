@@ -34,10 +34,6 @@
 			"specifier": "@spellbook/backend"
 		},
 		{
-			"file": "frontend/src/lib/server/data/inventory.ts",
-			"specifier": "@spellbook/backend/inventory/write.ts"
-		},
-		{
 			"file": "frontend/src/lib/server/data/inventory-window.ts",
 			"specifier": "@spellbook/backend/inventory/query.ts"
 		},
@@ -64,33 +60,13 @@
 		{
 			"file": "frontend/src/lib/server/mtg/legality.ts",
 			"specifier": "@spellbook/backend/decks/legality.ts"
+		},
+		{
+			"file": "frontend/src/lib/server/data/inventory.ts",
+			"specifier": "@spellbook/backend/inventory/mutations.ts"
 		}
 	],
 	"legacy": [
-		{
-			"file": "frontend/src/lib/server/data/inventory-groups.ts",
-			"specifier": "drizzle-orm"
-		},
-		{
-			"file": "frontend/src/lib/server/data/inventory-groups.ts",
-			"specifier": "#lib/server/db/client.ts"
-		},
-		{
-			"file": "frontend/src/lib/server/data/inventory-groups.ts",
-			"specifier": "#lib/server/db/schema.ts"
-		},
-		{
-			"file": "frontend/src/lib/server/data/inventory.ts",
-			"specifier": "drizzle-orm"
-		},
-		{
-			"file": "frontend/src/lib/server/data/inventory.ts",
-			"specifier": "#lib/server/db/client.ts"
-		},
-		{
-			"file": "frontend/src/lib/server/data/inventory.ts",
-			"specifier": "#lib/server/db/schema.ts"
-		},
 		{
 			"file": "frontend/src/lib/server/data/scan.ts",
 			"specifier": "drizzle-orm"

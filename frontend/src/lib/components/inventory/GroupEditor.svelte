@@ -41,6 +41,7 @@
 		aria-busy={mutation.pending}
 		class="group-form"
 	>
+		<input type="hidden" name="requestId" value={page.data.requestId} />
 		{#if group}<input type="hidden" name="groupId" value={group.id} />{/if}
 		<label class="label" for={`${id}-name`}>Name</label>
 		<input

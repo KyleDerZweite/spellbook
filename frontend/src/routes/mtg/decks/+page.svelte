@@ -2,7 +2,18 @@
 	import CardDetail from '#lib/components/cards/CardDetail.svelte';
 	import { storedCardDocument } from '#lib/mtg/stored-card.ts';
 	import type { CardDocument } from '#lib/search/types.ts';
-	import { Dialog } from 'bits-ui';
+	import { untrack, onDestroy } from 'svelte';
+	import {
+		DeckSaveLifecycle,
+		type DeckEditor,
+		type DeckSubmission
+	} from '#lib/decks/save-lifecycle.ts';
+	import Button from '#lib/components/ui/button/Button.svelte';
+	import WorkspaceHeader from '#lib/components/layout/WorkspaceHeader.svelte';
+	import DeckEntries from '#lib/components/decks/DeckEntries.svelte';
+	import DeckLibrary from '#lib/components/decks/DeckLibrary.svelte';
+	import DeckDiscovery from '#lib/components/decks/DeckDiscovery.svelte';
+	import ConfirmationDialog from '#lib/components/ui/dialog/ConfirmationDialog.svelte';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import type { SubmitFunction } from '$app/forms';
@@ -10,7 +21,7 @@
 	import DeckDialog from '#lib/components/decks/DeckDialog.svelte';
 	import Select from '#lib/components/ui/select/Select.svelte';
 	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
-	import ManaCost from '#lib/components/cards/ManaCost.svelte';
+
 	import type { ImportPreview } from '#lib/types/import-preview.ts';
 
 	const formats = [
@@ -31,17 +42,96 @@
 		{ value: 'companion', label: 'Companion' }
 	];
 	let { data, form }: PageProps = $props();
+	const saveLifecycle = untrack(
+		() => new DeckSaveLifecycle(data.user?.accountId ?? '', data.selectedDeckId, data.flow)
+	);
+	function nativeEditor(flow: string): DeckEditor | undefined {
+		return flow === 'create'
+			? 'create'
+			: flow === 'edit'
+				? 'details'
+				: flow === 'import'
+					? 'import'
+					: flow === 'delete'
+						? 'delete'
+						: undefined;
+	}
+	const initialNativeEditor = untrack(() => nativeEditor(data.flow));
+	if (initialNativeEditor) saveLifecycle.open(initialNativeEditor);
+	function openEditor(editor: Exclude<DeckEditor, 'inspector'>) {
+		saveLifecycle.open(editor);
+		if (editor === 'create') createOpen = true;
+		if (editor === 'details') editOpen = true;
+		if (editor === 'import') importOpen = true;
+		if (editor === 'delete') deleteOpen = true;
+	}
 	let createOpen = $state(false);
+	let createTrigger = $state<HTMLElement | null>(null);
+	let searchTrigger = $state<HTMLElement | null>(null);
+	let createName = $state(untrack(() => form?.createDraft?.name ?? ''));
+	let createFormat = $state(untrack(() => form?.createDraft?.format ?? 'Commander'));
+	let createDescription = $state(untrack(() => form?.createDraft?.description ?? ''));
+	let nameDraft = $state(
+		untrack(
+			() =>
+				form?.detailsDraft?.name ?? data.decks.find((d) => d.id === data.selectedDeckId)?.name ?? ''
+		)
+	);
+	let formatDraft = $state(
+		untrack(
+			() =>
+				form?.detailsDraft?.format ??
+				data.decks.find((d) => d.id === data.selectedDeckId)?.format ??
+				''
+		)
+	);
 	let editOpen = $state(false);
-	let descriptionDraft = $state('');
-	let descriptionBaseRevision = $state('');
+	let descriptionDraft = $state(
+		untrack(
+			() =>
+				form?.detailsDraft?.description ??
+				data.decks.find((d) => d.id === data.selectedDeckId)?.description ??
+				''
+		)
+	);
+	let descriptionBaseRevision = $state(
+		untrack(
+			() =>
+				form?.detailsDraft?.descriptionRevision ??
+				data.decks.find((d) => d.id === data.selectedDeckId)?.descriptionRevision ??
+				''
+		)
+	);
 	let editingDeckId = $state('');
-	let nameBase = $state('');
-	let formatBase = $state('');
-	let descriptionBase = $state('');
+	let nameBase = $state(
+		untrack(
+			() =>
+				form?.detailsDraft?.nameBase ??
+				data.decks.find((d) => d.id === data.selectedDeckId)?.name ??
+				''
+		)
+	);
+	let formatBase = $state(
+		untrack(
+			() =>
+				form?.detailsDraft?.formatBase ??
+				data.decks.find((d) => d.id === data.selectedDeckId)?.format ??
+				''
+		)
+	);
+	let descriptionBase = $state(
+		untrack(
+			() =>
+				form?.detailsDraft?.descriptionBase ??
+				data.decks.find((d) => d.id === data.selectedDeckId)?.description ??
+				''
+		)
+	);
 	$effect(() => {
 		if (editOpen && selectedDeck && editingDeckId !== selectedDeck.id) {
 			editingDeckId = selectedDeck.id;
+			nameDraft = detailsDraft?.name ?? selectedDeck.name;
+			formatDraft = detailsDraft?.format ?? selectedDeck.format;
 			descriptionDraft = detailsDraft?.description ?? selectedDeck.description;
 			descriptionBase = detailsDraft?.descriptionBase ?? selectedDeck.description;
 			nameBase = detailsDraft?.nameBase ?? selectedDeck.name;
@@ -55,8 +145,10 @@
 	let deleteOpen = $state(false);
 	let actionsTrigger = $state<HTMLButtonElement | null>(null);
 	let busy = $state(false);
-	let importText = $state('');
-	let importRequestId = $state('');
+	let importText = $state(untrack(() => form?.importDraft?.text ?? form?.importText ?? ''));
+	let importRequestId = $state(untrack(() => form?.importDraft?.requestId ?? ''));
+	let importRequestText = $state(untrack(() => importText.trim()));
+	let inspectorForm: HTMLFormElement | undefined = $state();
 	const pendingRequests = new Map<string, string>();
 	let addRole = $state('main');
 	let addQuantity = $state(1);
@@ -71,8 +163,8 @@
 	let inspectedEntryId = $state<string | null>(null);
 	let inspectorQuantity = $state(1);
 	let inspectorRole = $state('main');
-	let query = $state('');
-	let results = $state<CardDocument[]>([]);
+	let query = $state(untrack(() => data.query));
+	let results = $state<CardDocument[]>(untrack(() => data.catalogCards));
 	let searchOwned = $state<Record<string, number>>({});
 	let inspectorOwned = $state<typeof data.ownedPrintings>([]);
 	let ownershipLoading = $state(false);
@@ -85,15 +177,8 @@
 	let saveError = $state('');
 	let removed = $state<(typeof data.deckCards)[number] | null>(null);
 	const inspectedEntry = $derived(data.deckCards.find((card) => card.id === inspectedEntryId));
-	let initializedSearch = $state(false);
-	$effect(() => {
-		if (!initializedSearch) {
-			query = data.query;
-			results = data.catalogCards;
-			initializedSearch = true;
-		}
-	});
 	async function inspect(card: CardDocument, entry?: (typeof data.deckCards)[number]) {
+		saveLifecycle.open('inspector', entry?.id ?? card.id);
 		inspected = card;
 		inspectedEntryId = entry?.id ?? null;
 		inspectorQuantity = entry?.quantity ?? addQuantity;
@@ -210,18 +295,80 @@
 		if (data.selectedDeckId) params.set('deck', data.selectedDeckId);
 		if (data.query) params.set('q', data.query);
 		if (data.oracleId) params.set('printing', data.oracleId);
+		if (data.flow) params.set('flow', data.flow);
 		return `?/${name}&${params}`;
 	}
+	function flowHref(flow = '') {
+		const p = new URLSearchParams();
+		if (data.selectedDeckId) p.set('deck', data.selectedDeckId);
+		if (data.query) p.set('q', data.query);
+		if (flow) p.set('flow', flow);
+		return `/mtg/decks?${p}`;
+	}
+	function openCreate(event: MouseEvent) {
+		event.preventDefault();
+		createTrigger = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+		openEditor('create');
+	}
+	let saveAccount = untrack(() => data.user?.accountId ?? '');
+	$effect(() => {
+		const accountId = data.user?.accountId ?? '';
+		if (saveAccount !== accountId) {
+			pendingRequests.clear();
+			importRequestId = '';
+			saveAccount = accountId;
+		}
+		if (saveLifecycle.setScope(data.user?.accountId ?? '', data.selectedDeckId, data.flow)) {
+			busy = false;
+			saveError = '';
+			saveStatus = '';
+			createOpen = false;
+			editOpen = false;
+			importOpen = false;
+			deleteOpen = false;
+			inspected = null;
+			const editor = nativeEditor(data.flow);
+			if (editor) saveLifecycle.open(editor);
+		}
+	});
+	$effect(() => {
+		if (!createOpen && data.flow !== 'create') saveLifecycle.close('create');
+		if (!editOpen && data.flow !== 'edit') saveLifecycle.close('details');
+		if (!importOpen && data.flow !== 'import') saveLifecycle.close('import');
+		if (!deleteOpen && data.flow !== 'delete') saveLifecycle.close('delete');
+		if (!inspected) saveLifecycle.close('inspector');
+	});
+	onDestroy(() => {
+		saveLifecycle.destroy();
+		searchController?.abort();
+		ownershipController?.abort();
+	});
 	function reportUnconfirmedSave() {
 		saveError = 'Could not confirm the save. Your changes are still here. Try again.';
 		saveStatus = 'Could not confirm the save. Try again.';
 	}
 
-	const save: SubmitFunction = ({ formData, action: target, cancel }) => {
+	function isCurrentSave(submission: DeckSubmission): boolean {
+		return (
+			saveLifecycle.isCurrent(submission) &&
+			data.user?.accountId === submission.scope.accountId &&
+			data.selectedDeckId === submission.scope.deckId &&
+			data.flow === submission.scope.flow
+		);
+	}
+
+	const save: SubmitFunction = ({ formData, formElement, action: target, cancel }) => {
 		if (busy) {
 			cancel();
 			return;
 		}
+		const operation =
+			[...target.searchParams.keys()].find((key) => key.startsWith('/'))?.slice(1) ?? '';
+		const submission = saveLifecycle.capture(
+			operation,
+			String(formData.get('entryId') || formData.get('catalogCardId') || ''),
+			formElement === inspectorForm
+		);
 		busy = true;
 		saveError = '';
 		saveStatus = 'Saving…';
@@ -229,7 +376,9 @@
 			? deckCards.find((card) => card.id === formData.get('entryId'))
 			: undefined;
 		if (target.searchParams.has('/commitImport')) {
-			if (!importRequestId) importRequestId = crypto.randomUUID();
+			const text = String(formData.get('text') ?? '').trim();
+			if (!importRequestId || importRequestText !== text) importRequestId = crypto.randomUUID();
+			importRequestText = text;
 			formData.set('requestId', importRequestId);
 		} else {
 			const payload =
@@ -244,36 +393,87 @@
 			formData.set('requestId', requestId);
 		}
 		const savedRequestId = String(formData.get('requestId') || '');
+		const submittedDetails = target.searchParams.has('/updateDeck')
+			? {
+					name: String(formData.get('name')),
+					format: String(formData.get('format')),
+					description: String(formData.get('description'))
+				}
+			: null;
+		const submittedInspector = target.searchParams.has('/changePrinting')
+			? {
+					id: String(formData.get('entryId')),
+					quantity: Number(formData.get('quantity')),
+					role: String(formData.get('role')),
+					printing: String(formData.get('catalogCardId'))
+				}
+			: null;
 
 		return async ({ result, update }) => {
 			try {
+				if (!isCurrentSave(submission)) return;
 				if (result.type === 'error') {
 					reportUnconfirmedSave();
 					return;
 				}
-				await update({ reset: false });
+				const savedDetails = result.type === 'success' ? result.data?.savedDetails : undefined;
+				if (
+					!(await saveLifecycle.refresh(submission, () => update({ reset: false }))) ||
+					!isCurrentSave(submission)
+				)
+					return;
 				if (result.type === 'success' || result.type === 'redirect') {
 					saveStatus = 'Saved';
 					for (const [payload, id] of pendingRequests)
 						if (id === savedRequestId) pendingRequests.delete(payload);
 					if (removedCard) {
 						removed = removedCard;
-						inspected = null;
+						if (saveLifecycle.canClose(submission, 'inspector')) inspected = null;
 					}
-					if (target.searchParams.has('/changePrinting')) inspected = null;
+					if (
+						saveLifecycle.canClose(submission, 'inspector') &&
+						submittedInspector &&
+						inspectedEntryId === submittedInspector.id &&
+						inspectorQuantity === submittedInspector.quantity &&
+						inspectorRole === submittedInspector.role &&
+						inspectorForm &&
+						new FormData(inspectorForm).get('catalogCardId') === submittedInspector.printing
+					)
+						inspected = null;
 					if (target.searchParams.has('/addCard') && formData.get('undo')) removed = null;
-					createOpen = false;
-					editOpen = false;
-					deleteOpen = false;
-					if (target.searchParams.has('/commitImport')) {
+					if (saveLifecycle.canClose(submission, 'create')) createOpen = false;
+					const unchangedDetails =
+						submittedDetails &&
+						nameDraft === submittedDetails.name &&
+						formatDraft === submittedDetails.format &&
+						descriptionDraft === submittedDetails.description;
+					const savedBase = saveLifecycle.savedDetails(submission, savedDetails);
+					if (savedBase && submittedDetails) {
+						nameBase = savedBase.name;
+						formatBase = savedBase.format;
+						descriptionBase = savedBase.description;
+						descriptionBaseRevision = savedBase.descriptionRevision;
+						if (nameDraft === submittedDetails.name) nameDraft = savedBase.name;
+						if (formatDraft === submittedDetails.format) formatDraft = savedBase.format;
+						if (descriptionDraft === submittedDetails.description)
+							descriptionDraft = savedBase.description;
+					}
+					if (savedBase && saveLifecycle.canClose(submission, 'details') && unchangedDetails)
+						editOpen = false;
+					if (saveLifecycle.canClose(submission, 'delete')) deleteOpen = false;
+					if (
+						saveLifecycle.canClose(submission, 'import') &&
+						importText.trim() === importRequestText
+					) {
 						importOpen = false;
 						importText = '';
 						importRequestId = '';
 					}
 				}
 			} catch {
-				reportUnconfirmedSave();
+				if (isCurrentSave(submission)) reportUnconfirmedSave();
 			} finally {
+				if (!isCurrentSave(submission)) return;
 				if (result.type === 'failure') saveStatus = 'Could not save. Try again.';
 				busy = false;
 			}
@@ -290,94 +490,93 @@
 >
 
 <div class="builder workspace-container">
-	<header class="builder-heading">
-		<div>
-			<div class="page-title deck-page-title">
-				{#if selectedDeck}<a href="/mtg/decks" class="btn btn-ghost btn-icon" aria-label="All decks"
-						><svg
-							aria-hidden="true"
-							width="18"
-							height="18"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="1.7"><path d="m14 6-6 6 6 6" /></svg
-						></a
+	<WorkspaceHeader title={selectedDeck?.name ?? 'Decks'}>
+		{#snippet metadata()}
+			{#if selectedDeck}<a href="/mtg/decks">All decks</a>
+				<p class="deck-format">{selectedDeck.format}</p>{/if}
+		{/snippet}
+		{#snippet actions()}
+			<div class="deck-picker">
+				{#if selectedDeck}
+					<ActionMenu
+						label="Deck actions"
+						iconOnly
+						bind:triggerRef={actionsTrigger}
+						items={[
+							{ label: 'New deck', onSelect: () => openEditor('create') },
+							{ label: 'Edit details', onSelect: () => openEditor('details') },
+							{ label: 'Import decklist', onSelect: () => openEditor('import') },
+							{
+								label: 'Export Arena',
+								href: `/mtg/decks/${selectedDeck.id}/export`,
+								download: true
+							},
+							{ label: 'Delete deck', destructive: true, onSelect: () => openEditor('delete') }
+						]}
+						onCloseAutoFocus={(event) => {
+							if (createOpen || editOpen || importOpen || deleteOpen) event.preventDefault();
+						}}
+					>
+						{#snippet trigger()}<svg
+								aria-hidden="true"
+								width="20"
+								height="20"
+								viewBox="0 0 24 24"
+								fill="currentColor"
+								><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle
+									cx="19"
+									cy="12"
+									r="1.8"
+								/></svg
+							>{/snippet}
+					</ActionMenu>
+				{/if}
+				{#if !selectedDeck}<Button href={flowHref('create')} onclick={openCreate} disabled={busy}
+						>New deck</Button
 					>{/if}
-				<div>
-					<h1>{selectedDeck?.name ?? 'Decks'}</h1>
-					{#if selectedDeck}<p class="deck-format">{selectedDeck.format}</p>{/if}
-				</div>
 			</div>
-		</div>
-		<div class="deck-picker">
-			{#if selectedDeck}
-				<ActionMenu
-					label="Deck actions"
-					iconOnly
-					bind:triggerRef={actionsTrigger}
-					items={[
-						{ label: 'New deck', onSelect: () => (createOpen = true) },
-						{ label: 'Edit details', onSelect: () => (editOpen = true) },
-						{ label: 'Import decklist', onSelect: () => (importOpen = true) },
-						{ label: 'Export Arena', href: `/mtg/decks/${selectedDeck.id}/export`, download: true },
-						{ label: 'Delete deck', destructive: true, onSelect: () => (deleteOpen = true) }
-					]}
-					onCloseAutoFocus={(event) => {
-						if (createOpen || editOpen || importOpen || deleteOpen) event.preventDefault();
-					}}
-				>
-					{#snippet trigger()}<svg
-							aria-hidden="true"
-							width="20"
-							height="20"
-							viewBox="0 0 24 24"
-							fill="currentColor"
-							><circle cx="5" cy="12" r="1.8" /><circle cx="12" cy="12" r="1.8" /><circle
-								cx="19"
-								cy="12"
-								r="1.8"
-							/></svg
-						>{/snippet}
-				</ActionMenu>
-			{/if}
-			<DeckDialog
-				title="Create a deck"
-				description="Name the deck and choose its format."
-				trigger={selectedDeck ? undefined : 'New deck'}
-				returnFocus={selectedDeck ? actionsTrigger : undefined}
-				bind:open={createOpen}
-			>
-				<form method="POST" action={action('createDeck')} use:enhance={save} class="form-stack">
-					<input type="hidden" name="requestId" value={data.requestId} />
-					<label class="label" for="new-name">Deck name</label><input
-						id="new-name"
-						name="name"
-						class="input"
-						required
-						maxlength="200"
-						placeholder="My next deck"
-					/>
-					<label class="label" for="new-format">Format</label><Select
-						id="new-format"
-						name="format"
-						label="Deck format"
-						value="Commander"
-						options={formats}
-					/>
-					<label class="label" for="new-description">Description</label><textarea
-						id="new-description"
-						name="description"
-						class="input"
-						rows="3"
-						maxlength="4000"></textarea>
-					{@render retryError()}
-					{#if !saveError && form?.message}<p role="status" class="muted">{form.message}</p>{/if}
-					<button class="btn btn-primary" disabled={busy}>Create deck</button>
-				</form>
-			</DeckDialog>
-		</div>
-	</header>
+		{/snippet}
+	</WorkspaceHeader>
+	<DeckDialog
+		title="Create a deck"
+		description="Name the deck and choose its format."
+		native={data.flow === 'create'}
+		pending={busy}
+		cancelHref={flowHref()}
+		returnFocus={selectedDeck ? actionsTrigger : createTrigger}
+		bind:open={createOpen}
+	>
+		<form method="POST" action={action('createDeck')} use:enhance={save} class="form-stack">
+			<input type="hidden" name="requestId" value={data.requestId} />
+			<label class="label" for="new-name">Deck name</label><input
+				id="new-name"
+				name="name"
+				class="input"
+				required
+				maxlength="200"
+				placeholder="My next deck"
+				bind:value={createName}
+			/>
+			<label class="label" for="new-format">Format</label><Select
+				native={data.flow === 'create'}
+				id="new-format"
+				name="format"
+				label="Deck format"
+				bind:value={createFormat}
+				options={formats}
+			/>
+			<label class="label" for="new-description">Description</label><textarea
+				id="new-description"
+				name="description"
+				class="input"
+				rows="3"
+				maxlength="4000"
+				bind:value={createDescription}></textarea>
+			{@render retryError()}
+			{#if !saveError && form?.message}<p role="status" class="muted">{form.message}</p>{/if}
+			<Button type="submit" variant="default" disabled={busy}>Create deck</Button>
+		</form>
+	</DeckDialog>
 	{@render retryError()}
 	{#if !saveError && form?.message && !form?.success}<p class="notice" role="alert">
 			{form.message}
@@ -435,13 +634,13 @@
 					maxlength="4000">{detailsDraft.description}</textarea
 				>
 				{@render retryError()}
-				<button class="btn btn-primary" disabled={busy}>Save draft</button>
-				{#if form?.conflict}<button
+				<Button type="submit" variant="default" disabled={busy}>Save draft</Button>
+				{#if form?.conflict}<Button
 						type="submit"
-						class="btn btn-secondary"
+						variant="secondary"
 						name="rebaseDescription"
 						value={form.conflict.descriptionRevision}
-						disabled={busy}>Use latest revision and save my draft</button
+						disabled={busy}>Use latest revision and save my draft</Button
 					>{/if}
 			</form>
 		</section>
@@ -454,6 +653,9 @@
 			<div class="deck-actions">
 				<DeckDialog
 					title="Deck details"
+					native={data.flow === 'edit'}
+					pending={busy}
+					cancelHref={flowHref()}
 					description="Update the name, format, or notes for this deck."
 					returnFocus={actionsTrigger}
 					bind:open={editOpen}
@@ -478,15 +680,16 @@
 								id="edit-name"
 								class="input"
 								name="name"
-								value={detailsDraft?.name ?? selectedDeck.name}
+								bind:value={nameDraft}
 								required
 								maxlength="200"
 							/>
 							<label class="label" for="edit-format">Format</label><Select
+								native={data.flow === 'edit'}
 								id="edit-format"
 								name="format"
 								label="Deck format"
-								value={detailsDraft?.format ?? selectedDeck.format}
+								bind:value={formatDraft}
 								options={formats}
 							/>
 							<label class="label" for="edit-description">Description</label><textarea
@@ -498,22 +701,30 @@
 								bind:value={descriptionDraft}></textarea>
 							{#if form?.conflict}<div role="alert">
 									<p>{form.conflict.description}</p>
-									<button
-										type="button"
-										class="btn btn-secondary"
+									<Button
+										type={data.flow === 'edit' ? 'submit' : 'button'}
+										name={data.flow === 'edit' ? 'rebaseDescription' : undefined}
+										value={data.flow === 'edit' ? form.conflict.descriptionRevision : undefined}
+										variant="secondary"
 										onclick={() => {
 											descriptionBaseRevision = form!.conflict!.descriptionRevision;
-										}}>Use latest revision and keep my draft</button
+										}}>Use latest revision and keep my draft</Button
 									>
 								</div>{/if}
 							{@render retryError()}
 							{#if !saveError && form?.message}<p role="status" class="muted">
 									{form.message}
-								</p>{/if}<button class="btn btn-primary" disabled={busy}>Save details</button>
+								</p>{/if}<Button type="submit" variant="default" disabled={busy}
+								>Save details</Button
+							>
 						</form>{/key}
 				</DeckDialog>
 				<DeckDialog
 					title="Import decklist"
+					native={data.flow === 'import'}
+					pending={busy}
+					cancelHref={flowHref()}
+					variant="import"
 					description="Paste an Arena decklist. Preview the matches before adding cards to this deck."
 					returnFocus={actionsTrigger}
 					bind:open={importOpen}
@@ -524,7 +735,7 @@
 						use:enhance={save}
 						class="form-stack"
 					>
-						<input type="hidden" name="requestId" value={data.requestId} />
+						<input type="hidden" name="requestId" value={importRequestId || data.requestId} />
 						<input type="hidden" name="deckId" value={selectedDeck.id} /><label
 							class="label"
 							for="import-text">Decklist</label
@@ -537,8 +748,8 @@
 							required
 							bind:value={importText}
 							placeholder={"Commander\n1 Atraxa, Praetors' Voice\n\nDeck\n1 Sol Ring\n10 Forest"}
-						></textarea><button class="btn btn-secondary" disabled={busy}
-							>{busy ? 'Working...' : 'Preview import'}</button
+						></textarea><Button type="submit" variant="secondary" disabled={busy}
+							>{busy ? 'Working...' : 'Preview import'}</Button
 						>
 					</form>
 					{@render retryError()}
@@ -579,41 +790,66 @@
 									</ul>
 								</details>{/if}
 							<form method="POST" action={action('commitImport')} use:enhance={save}>
-								<input type="hidden" name="requestId" value={data.requestId} />
+								<input type="hidden" name="requestId" value={importRequestId || data.requestId} />
 								<input type="hidden" name="deckId" value={selectedDeck.id} /><input
 									type="hidden"
 									name="text"
 									value={importText}
-								/><button class="btn btn-primary" disabled={busy || !importableCount}
-									>Add {importableCount} matched cards</button
+								/><Button type="submit" variant="default" disabled={busy || !importableCount}
+									>Add {importableCount} matched cards</Button
 								>
 							</form>
 						</div>
 					{/if}
 				</DeckDialog>
-				<DeckDialog
-					title="Delete deck"
-					description={`Delete ${selectedDeck.name} and its card list? Your inventory will stay unchanged.`}
-					returnFocus={actionsTrigger}
-					bind:open={deleteOpen}
-					destructive
-					><form method="POST" action={action('deleteDeck')} use:enhance={save}>
-						<input type="hidden" name="requestId" value={data.requestId} />
-						<input
-							type="hidden"
-							name="deckId"
-							value={selectedDeck.id}
-						/>{@render retryError()}<button class="btn btn-secondary destructive" disabled={busy}
-							>Delete this deck</button
-						>
-					</form></DeckDialog
-				>
+				{#if data.flow === 'delete'}<section
+						class="native-deck-form form-stack"
+						aria-labelledby="native-delete-title"
+					>
+						<h2 id="native-delete-title">Delete deck</h2>
+						<p>Delete {selectedDeck.name} and its card list? Your inventory stays unchanged.</p>
+						<Button href={flowHref()} variant="secondary" disabled={busy}>Cancel</Button>
+						<form method="POST" action={action('deleteDeck')} use:enhance={save}>
+							<input type="hidden" name="deckId" value={selectedDeck.id} /><Button
+								type="submit"
+								variant="destructive"
+								disabled={busy}>Delete this deck</Button
+							>
+						</form>
+					</section>{:else}<ConfirmationDialog
+						open={deleteOpen}
+						title="Delete deck"
+						description={`Delete ${selectedDeck.name} and its card list? Your inventory stays unchanged.`}
+						pending={busy}
+						error={saveError || (form?.success ? '' : (form?.message ?? ''))}
+						onCancel={() => (deleteOpen = false)}
+						onCloseAutoFocus={(event) => {
+							event.preventDefault();
+							actionsTrigger?.focus({ preventScroll: true });
+						}}
+						><form method="POST" action={action('deleteDeck')} use:enhance={save}>
+							<input type="hidden" name="deckId" value={selectedDeck.id} /><Button
+								type="submit"
+								variant="destructive"
+								disabled={busy}>Delete this deck</Button
+							>
+						</form></ConfirmationDialog
+					>{/if}
 			</div>
 		</section>
+		<noscript
+			><nav aria-label="Deck tasks">
+				<a href={flowHref('create')}>New deck</a> · <a href={flowHref('edit')}>Edit details</a> ·
+				<a href={flowHref('import')}>Import decklist</a>
+				· <a href={flowHref('delete')}>Delete deck</a> · <a href={flowHref('search')}>Find cards</a>
+			</nav></noscript
+		>
 		<div class="deck-summary">
 			<span>{total} cards</span>
-			<button aria-pressed={missingOnly} onclick={() => (missingOnly = !missingOnly)}
-				>{missing} missing</button
+			<Button
+				variant="secondary"
+				aria-pressed={missingOnly}
+				onclick={() => (missingOnly = !missingOnly)}>{missing} missing</Button
 			>
 			<a href="#format-checks"
 				>{data.legalityError
@@ -621,8 +857,15 @@
 					: `${data.warnings.length} format warnings`}</a
 			>
 			<span class="save-status" role="status">{saveStatus}</span>
-			<button class="mobile-search btn btn-secondary" onclick={() => (searchOpen = true)}
-				>Find cards</button
+			<Button
+				class="mobile-search"
+				variant="secondary"
+				href={flowHref('search')}
+				onclick={(event) => {
+					event.preventDefault();
+					searchTrigger = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+					searchOpen = true;
+				}}>Find cards</Button
 			>
 		</div>
 		{#if removed && removed.deckId === selectedDeck.id}
@@ -637,16 +880,22 @@
 					name="undo"
 					value="1"
 				/>
-				<button class="btn btn-ghost" disabled={busy}>Undo</button>
+				<Button type="submit" variant="ghost" disabled={busy}>Undo</Button>
 			</form>
 		{/if}
 		<div class="workspace">
 			<section class="panel deck-list" aria-label="Deck cards" aria-busy={busy}>
 				<div class="list-controls">
 					<div class="view-controls" aria-label="Deck view">
-						<button aria-pressed={view === 'list'} onclick={() => (view = 'list')}>List</button>
-						<button aria-pressed={view === 'stacks'} onclick={() => (view = 'stacks')}
-							>Stacks</button
+						<Button
+							variant={view === 'list' ? 'secondary' : 'ghost'}
+							aria-pressed={view === 'list'}
+							onclick={() => (view = 'list')}>List</Button
+						>
+						<Button
+							variant={view === 'stacks' ? 'secondary' : 'ghost'}
+							aria-pressed={view === 'stacks'}
+							onclick={() => (view = 'stacks')}>Stacks</Button
 						>
 					</div>
 					<input
@@ -674,99 +923,18 @@
 				{#if deckCards.length === 0}<div class="empty-state">
 						<p>Search the catalog to add a card, or import an existing decklist.</p>
 					</div>{/if}
-				<div class:stacks={view === 'stacks'}>
-					{#each groups as [group, cards]}
-						{#if cards.length}
-							<div class="card-group">
-								<div
-									class="role-heading"
-									class:commander-role={cards.every((card) => card.role === 'commander')}
-								>
-									<span>{group}</span><span
-										>{cards.reduce((sum, card) => sum + card.quantity, 0)}</span
-									>
-								</div>
-								{#each cards as card (card.id)}
-									{@const owned = availability[card.id]}
-									<div
-										class="deck-row"
-										class:stack-card={view === 'stacks'}
-										class:commander-entry={card.role === 'commander'}
-									>
-										{#if view === 'stacks'}
-											<button
-												class="stack-art"
-												onclick={() =>
-													inspect(
-														data.deckDocuments[card.catalogCardId] ?? storedCardDocument(card),
-														card
-													)}
-												aria-label={`Inspect ${card.name}`}
-											>
-												{#if card.imageUri}<img
-														src={card.imageUri}
-														alt={card.name}
-														loading="lazy"
-													/>{:else}<span>{card.name}</span>{/if}
-											</button>
-										{/if}
-										<div class="quantity-controls">
-											{#each [-1, 1] as delta}
-												{#if delta === 1}<span>{card.quantity}</span>{/if}
-												<form method="POST" action={action('updateCard')} use:enhance={save}>
-													<input type="hidden" name="requestId" value={data.requestId} />
-													<input type="hidden" name="delta" value={delta} />
-													<input type="hidden" name="entryId" value={card.id} /><input
-														type="hidden"
-														name="quantity"
-														value={card.quantity + delta}
-													/><input type="hidden" name="role" value={card.role} />
-													<button
-														disabled={busy ||
-															(delta === -1 && card.quantity === 1) ||
-															(delta === 1 && card.quantity >= 10000)}
-														aria-label={`${delta === 1 ? 'Increase' : 'Decrease'} ${card.name} quantity`}
-														>{delta === 1 ? '+' : '−'}</button
-													>
-												</form>
-											{/each}
-										</div>
-										<button
-											class="card-name"
-											onclick={() =>
-												inspect(
-													data.deckDocuments[card.catalogCardId] ?? storedCardDocument(card),
-													card
-												)}
-											>{card.name}{#if data.deckDocuments[card.catalogCardId]?.mana_cost}<span
-													class="row-mana"
-													><ManaCost
-														cost={data.deckDocuments[card.catalogCardId].mana_cost}
-													/></span
-												>{/if}</button
-										>
-										<button
-											class="ownership"
-											class:warning={owned?.missing > 0}
-											onclick={() =>
-												inspect(
-													data.deckDocuments[card.catalogCardId] ?? storedCardDocument(card),
-													card
-												)}
-											aria-label={`Inspect ownership of ${card.name}`}
-										>
-											{owned?.missing
-												? `${owned.missing} missing`
-												: owned?.alternate
-													? 'Alternate'
-													: 'Owned'}
-										</button>
-									</div>
-								{/each}
-							</div>
-						{/if}
-					{/each}
-				</div>
+				<DeckEntries
+					{groups}
+					{view}
+					documents={data.deckDocuments}
+					{availability}
+					{busy}
+					updateAction={action('updateCard')}
+					requestId={data.requestId}
+					submit={save}
+					onInspect={inspect}
+				/>
+
 				{#if !visibleCards.length && deckCards.length}<p class="empty-state">
 						No deck cards match this filter.
 					</p>{/if}
@@ -784,156 +952,47 @@
 						</ul>{:else}<p>No warnings from the available checks.</p>{/if}
 				</details>
 			</section>
-			<aside class="catalog desktop-search" aria-label="Find cards">{@render discovery()}</aside>
+			{#if data.flow !== 'search'}<aside class="catalog desktop-search" aria-label="Find cards">
+					{@render discovery()}
+				</aside>{/if}
 		</div>
-	{:else if data.decks.length}
-		<div class="deck-library">
-			{#each data.decks as deck}
-				{@const cover = data.deckCovers[deck.id]}
-				<a class="library-card" href={`/mtg/decks?deck=${deck.id}`}>
-					{#if cover?.imageUri}<img src={cover.imageUri} alt="" />{:else}<div
-							class="library-placeholder"
-							aria-hidden="true"
-						>
-							<svg
-								aria-hidden="true"
-								width="40"
-								height="40"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="1.4"
-								><rect x="7" y="3" width="13" height="18" rx="2" /><path
-									d="m4 6-2 1 3 15 11-2"
-								/></svg
-							>
-						</div>{/if}
-					<strong>{deck.name}</strong><span
-						>{deck.format} · {data.deckTotals[deck.id] || 0} cards</span
-					>
-					<small>Edited {new Date(deck.updatedAt).toLocaleDateString('en-GB')}</small>
-				</a>
-			{/each}
-		</div>
-	{:else}<section class="panel empty-state welcome">
-			<p>No decks yet.</p>
-
-			<button class="btn btn-primary" onclick={() => (createOpen = true)}
-				>Create your first deck</button
-			>
-		</section>{/if}
+	{:else}<DeckLibrary decks={data.decks} covers={data.deckCovers} totals={data.deckTotals} />{/if}
 </div>
 
-{#snippet discovery()}
-	<form class="search-form" onsubmit={findCards}>
-		<input
-			class="input"
-			type="search"
-			bind:value={query}
-			aria-label="Search cards"
-			placeholder="Search cards"
-			minlength="2"
-			maxlength="200"
-			required
-		/>
-		<button class="btn btn-primary" disabled={searching}>Search</button>
-	</form>
-	<div class="catalog-options">
-		<label><input type="checkbox" bind:checked={ownedOnly} /> Owned only</label>
-		<span>{searching ? 'Searching…' : `${catalogCards.length} shown`}</span>
-	</div>
-	<div class="add-options">
-		<div class="add-section">
-			<span class="label">Add to</span><Select
-				label="Add to section"
-				bind:value={addRole}
-				options={roles}
-			/>
-		</div>
-		<label
-			>Quantity <input
-				class="input quantity"
-				type="number"
-				min="1"
-				max="10000"
-				bind:value={addQuantity}
-			/></label
-		>
-	</div>
-	<div class="catalog-results" aria-busy={searching}>
-		{#if searchError}<p class="notice" role="alert">{searchError}</p>{/if}
-		{#each catalogCards as card (card.id)}
-			<div class="catalog-row">
-				<button
-					class="catalog-art"
-					onclick={() => inspect(card)}
-					aria-label={`Inspect ${card.name}`}
-					><img
-						src={card.image_uri_small || card.image_uri}
-						alt={card.name}
-						loading="lazy"
-					/></button
-				>
-				<div class="catalog-card-info">
-					<button class="card-name" onclick={() => inspect(card)}>{card.name}</button>
-					<ManaCost cost={card.mana_cost} />
-					<p class="muted">
-						{card.set_code.toUpperCase()} #{card.collector_number} · {ownedByCanonical.get(
-							card.oracle_id
-						) ?? 0} owned
-					</p>
-					<form method="POST" action={action('addCard')} use:enhance={save}>
-						<input type="hidden" name="requestId" value={data.requestId} />
-						<input type="hidden" name="deckId" value={selectedDeck?.id} /><input
-							type="hidden"
-							name="catalogCardId"
-							value={card.id}
-						/>
-						<input type="hidden" name="role" value={addRole} /><input
-							type="hidden"
-							name="quantity"
-							value={addQuantity}
-						/>
-						<button
-							class="btn btn-secondary"
-							disabled={busy ||
-								!Number.isInteger(addQuantity) ||
-								addQuantity < 1 ||
-								addQuantity > 10000}
-							aria-label={`Add ${card.name}`}>Add</button
-						>
-						<button type="button" class="btn btn-ghost" onclick={() => inspect(card)}
-							>Printings</button
-						>
-					</form>
-				</div>
-			</div>
-		{:else}<p class="empty-state">
-				{query
-					? 'No cards found. Try another search or turn off the owned filter.'
-					: 'Find a card to add to your deck.'}
-			</p>{/each}
-	</div>
-{/snippet}
+{#snippet discovery()}<DeckDiscovery
+		deckId={selectedDeck?.id}
+		bind:query
+		bind:ownedOnly
+		bind:addRole
+		bind:addQuantity
+		cards={catalogCards}
+		owned={ownedByCanonical}
+		{roles}
+		{busy}
+		{searching}
+		{searchError}
+		requestId={data.requestId}
+		addAction={action('addCard')}
+		submit={save}
+		onSearch={findCards}
+		onInspect={inspect}
+		native={data.flow === 'search'}
+		printingHref={(id) => `${flowHref('search')}&printing=${encodeURIComponent(id)}`}
+	/>{/snippet}
 
-<Dialog.Root bind:open={searchOpen}>
-	<Dialog.Portal>
-		<Dialog.Overlay class="fixed inset-0 z-40 bg-black/60" />
-		<Dialog.Content
-			class="search-sheet fixed inset-0 z-40 overflow-y-auto bg-crypt p-4 text-text-primary"
-		>
-			<div class="sheet-heading">
-				<Dialog.Title>Find cards</Dialog.Title><Dialog.Close class="btn btn-ghost"
-					>Back to deck</Dialog.Close
-				>
-			</div>
-			{@render discovery()}
-		</Dialog.Content>
-	</Dialog.Portal>
-</Dialog.Root>
+<DeckDialog
+	title="Find cards"
+	description="Search the catalog for this deck."
+	native={data.flow === 'search'}
+	cancelHref={flowHref()}
+	pending={busy}
+	variant="import"
+	bind:open={searchOpen}
+	returnFocus={searchTrigger}>{@render discovery()}</DeckDialog
+>
 
 {#if inspected}
-	<CardDetail card={inspected} onClose={() => (inspected = null)}>
+	<CardDetail callerPending={busy} card={inspected} onClose={() => (inspected = null)}>
 		{#snippet actions(printing)}
 			{@const owned = inspectorOwned.filter((card) => card.canonicalCardId === printing.oracle_id)}
 			<div class="inspector-form">
@@ -951,6 +1010,7 @@
 				<form
 					method="POST"
 					action={action(inspectedEntry ? 'changePrinting' : 'addCard')}
+					bind:this={inspectorForm}
 					use:enhance={save}
 					class="form-stack"
 				>
@@ -981,16 +1041,17 @@
 					<p role="status" class="muted">
 						{busy ? 'Saving…' : saveError ? '' : (form?.message ?? '')}
 					</p>
-					<button class="btn btn-primary" disabled={busy}
-						>{inspectedEntry ? 'Save card' : 'Add to deck'}</button
+					<Button type="submit" variant="default" disabled={busy}
+						>{inspectedEntry ? 'Save card' : 'Add to deck'}</Button
 					>
 				</form>
 				{#if inspectedEntry}
 					<form method="POST" action={action('removeCard')} use:enhance={save}>
 						<input type="hidden" name="requestId" value={data.requestId} />
-						<input type="hidden" name="entryId" value={inspectedEntry.id} /><button
-							class="btn btn-ghost destructive"
-							disabled={busy}>Remove card</button
+						<input type="hidden" name="entryId" value={inspectedEntry.id} /><Button
+							type="submit"
+							variant="destructive"
+							disabled={busy}>Remove card</Button
 						>
 					</form>
 				{/if}
@@ -1000,29 +1061,8 @@
 {/if}
 
 <style>
-	.builder-heading,
 	.deck-picker,
 	.deck-actions,
-	.catalog-options,
-	.sheet-heading {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 1rem;
-		flex-wrap: wrap;
-	}
-	.builder-heading {
-		margin-bottom: 0.75rem;
-	}
-	.deck-page-title {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-	.deck-page-title :global(.btn-icon) {
-		margin-left: -0.5rem;
-		flex-shrink: 0;
-	}
 	.deck-picker {
 		justify-content: flex-end;
 		flex-wrap: nowrap;
@@ -1068,17 +1108,11 @@
 		background: var(--color-background);
 		font-size: 0.8rem;
 	}
-	.deck-summary button,
-	.deck-summary a {
+	.deck-summary > a {
 		display: inline-flex;
 		align-items: center;
 		min-height: 44px;
 		color: var(--color-text-secondary);
-	}
-	.deck-summary button[aria-pressed='true'] {
-		color: var(--color-text-primary);
-		text-decoration: underline;
-		text-underline-offset: 6px;
 	}
 	.save-status {
 		margin-left: auto;
@@ -1102,24 +1136,10 @@
 		min-width: 0;
 		padding-top: 1rem;
 	}
-	.catalog-results {
-		max-height: calc(100dvh - 310px);
-		overflow-y: auto;
-		overscroll-behavior: contain;
-	}
 	.view-controls {
 		display: flex;
 		gap: 1.5rem;
 		padding: 0;
-	}
-	.view-controls button {
-		padding: 0.4rem 0;
-		color: var(--color-text-secondary);
-		border-bottom: 2px solid transparent;
-	}
-	.view-controls button[aria-pressed='true'] {
-		border-color: var(--color-text-primary);
-		color: var(--color-text-primary);
 	}
 	.list-controls {
 		display: grid;
@@ -1130,175 +1150,6 @@
 	.list-controls input {
 		flex: 1;
 		min-width: 0;
-	}
-	.role-heading {
-		display: flex;
-		justify-content: space-between;
-		gap: 1rem;
-		padding: 0.625rem 0 0.375rem;
-		color: var(--role-accent, var(--color-text-secondary));
-		font-size: 0.75rem;
-	}
-	.deck-row {
-		display: grid;
-		grid-template-columns: 90px minmax(0, 1fr) auto;
-		gap: 0.7rem;
-		align-items: center;
-		min-height: 44px;
-	}
-	.deck-row:hover {
-		background: var(--color-stone);
-	}
-	.commander-entry {
-		border-left: 2px solid var(--color-role-commander);
-	}
-	.row-mana {
-		display: inline-flex;
-		margin-left: 0.5rem;
-		vertical-align: middle;
-	}
-	.card-name {
-		text-align: left;
-		font-size: 0.85rem;
-		overflow-wrap: anywhere;
-		font-weight: 500;
-	}
-	.card-name:hover {
-		text-decoration: underline;
-	}
-	.quantity-controls {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		font-variant-numeric: tabular-nums;
-		font-size: 0.8rem;
-	}
-	.quantity-controls button {
-		width: 30px;
-		min-height: 40px;
-		color: var(--color-text-secondary);
-	}
-	button:disabled {
-		opacity: 0.35;
-		cursor: default;
-	}
-	.ownership {
-		font-size: 0.7rem;
-		color: var(--color-text-secondary);
-		padding: 0.4rem;
-	}
-	.warning {
-		color: var(--color-warning);
-	}
-	.stacks {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-		gap: 1.5rem;
-	}
-	.stack-card {
-		position: relative;
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.3rem;
-		padding: 0;
-		background: var(--color-crypt);
-		border-radius: 0.6rem;
-		overflow: hidden;
-		box-shadow: 0 -2px 8px #0003;
-	}
-	.stack-card + .stack-card {
-		margin-top: -300px;
-	}
-	.stack-card:focus-within,
-	.stack-card:hover {
-		z-index: 1;
-	}
-	.stack-art {
-		height: 280px;
-		flex: 0 0 100%;
-		width: 100%;
-		display: block;
-	}
-	.stack-art img {
-		width: 100%;
-		height: 280px;
-		object-fit: contain;
-	}
-	.stack-card .card-name {
-		flex: 1;
-		padding: 0.4rem;
-	}
-	.stack-card .quantity-controls {
-		width: 80px;
-	}
-	.stack-card .ownership {
-		width: 100%;
-		text-align: right;
-	}
-	.search-form {
-		display: flex;
-		gap: 0.5rem;
-	}
-	.search-form input {
-		min-width: 0;
-		flex: 1;
-	}
-	.catalog-options {
-		font-size: 0.75rem;
-		margin: 1rem 0;
-	}
-	.catalog-options label {
-		display: flex;
-		gap: 0.5rem;
-		align-items: center;
-	}
-	.add-options {
-		display: flex;
-		gap: 0.75rem;
-		margin-bottom: 1rem;
-	}
-	.add-options label,
-	.add-section {
-		font-size: 0.7rem;
-		color: var(--color-text-secondary);
-	}
-	.add-section {
-		flex: 1;
-		min-width: 0;
-	}
-	.add-options :global(.input) {
-		margin-top: 0.3rem;
-	}
-	.quantity {
-		width: 4.5rem;
-	}
-	.catalog-row {
-		display: flex;
-		gap: 0.8rem;
-		padding: 1rem 0;
-	}
-	.catalog-art {
-		width: 72px;
-		flex-shrink: 0;
-		align-self: start;
-	}
-	.catalog-art img {
-		width: 100%;
-		border-radius: 5px;
-	}
-	.catalog-card-info {
-		min-width: 0;
-	}
-	.catalog-card-info p {
-		margin: 0.4rem 0;
-	}
-	.catalog-card-info :global(.btn) {
-		font-size: 0.75rem;
-		min-height: 32px;
-		padding: 0.3rem 0.65rem;
-	}
-	.catalog-card-info :global(.card-name) {
-		margin-bottom: 0.4rem;
 	}
 	.legality {
 		padding: 1.5rem 0;
@@ -1339,50 +1190,13 @@
 		margin-top: 1rem;
 		font-size: 0.8rem;
 	}
-	.deck-library {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(0, 180px));
-		gap: 1.5rem;
-	}
-	.library-card {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-		color: var(--color-text-primary);
-		text-decoration: none;
-	}
-	.library-card img,
-	.library-placeholder {
-		width: 100%;
-		aspect-ratio: 488 / 680;
-		object-fit: contain;
-		border-radius: 0.6rem;
-		background: var(--color-stone);
-	}
-	.library-placeholder {
-		display: grid;
-		place-items: center;
-		font-size: 3rem;
-		color: var(--color-text-muted);
-	}
-	.library-card span,
-	.library-card small {
-		color: var(--color-text-secondary);
-		font-size: 0.8rem;
-	}
-	.library-card:hover strong {
-		text-decoration: underline;
-	}
 	.inspector-form {
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
 	}
-	.deck-summary .mobile-search {
+	.deck-summary :global(.mobile-search) {
 		display: none;
-	}
-	:global(.destructive) {
-		color: var(--color-error);
 	}
 	@media (max-width: 1000px) {
 		.workspace {
@@ -1391,7 +1205,7 @@
 		.desktop-search {
 			display: none;
 		}
-		.deck-summary .mobile-search {
+		.deck-summary :global(.mobile-search) {
 			display: inline-flex;
 			margin-left: auto;
 		}
@@ -1400,18 +1214,6 @@
 		}
 		.deck-picker {
 			flex-shrink: 0;
-		}
-		.builder-heading {
-			flex-wrap: nowrap;
-			align-items: flex-start;
-			gap: 0.5rem;
-		}
-		.builder-heading > div:first-child {
-			min-width: 0;
-		}
-		.deck-picker :global(.btn) {
-			font-size: 0.75rem;
-			padding-inline: 0.625rem;
 		}
 		.deck-summary {
 			font-size: 0.75rem;
@@ -1423,56 +1225,19 @@
 		.deck-picker :global([data-select-trigger]) {
 			max-width: none;
 		}
-		.catalog-results {
-			max-height: none;
-		}
 	}
 	@media (max-width: 640px) {
 		.list-controls {
-			grid-template-columns: repeat(3, minmax(0, 1fr));
-		}
-		.list-controls :global(> button) {
-			font-size: 0.75rem;
-			padding-inline: 0.5rem;
-			gap: 0.25rem;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 		.view-controls {
+			grid-column: 1/-1;
 			gap: 0.75rem;
 			align-items: center;
-		}
-		.view-controls button {
-			min-height: 44px;
-			font-size: 0.75rem;
 		}
 		.list-controls input {
 			grid-column: 1/-1;
 			order: -1;
-		}
-	}
-	@media (max-width: 420px) {
-		.deck-library {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-		}
-		.deck-row {
-			grid-template-columns: 76px minmax(0, 1fr);
-			gap: 0.4rem;
-		}
-		.ownership {
-			grid-column: 2;
-			text-align: left;
-			padding: 0 0 0.5rem;
-		}
-		.stacks {
-			grid-template-columns: 1fr;
-		}
-		.stack-art {
-			height: 360px;
-		}
-		.stack-art img {
-			height: 360px;
-		}
-		.stack-card + .stack-card {
-			margin-top: -330px;
 		}
 	}
 </style>

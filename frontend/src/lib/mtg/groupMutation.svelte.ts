@@ -4,6 +4,7 @@ import type { SubmitFunction } from '$app/forms';
 export class GroupMutation {
 	pending = $state(false);
 	error = $state('');
+	private pendingRequests = new Map<string, string>();
 
 	constructor(
 		private onSuccess: () => void,
@@ -11,17 +12,26 @@ export class GroupMutation {
 		private account: () => string
 	) {}
 
-	submit: SubmitFunction = ({ cancel }) => {
+	submit: SubmitFunction = ({ cancel, action, formData }) => {
 		if (this.pending) {
 			cancel();
 			return;
 		}
 		const account = this.account();
+		const payload =
+			account +
+			action.pathname +
+			action.search +
+			JSON.stringify([...formData.entries()].filter(([name]) => name !== 'requestId'));
+		const requestId = this.pendingRequests.get(payload) ?? crypto.randomUUID();
+		this.pendingRequests.set(payload, requestId);
+		formData.set('requestId', requestId);
 		this.pending = true;
 		this.error = '';
 		return async ({ result, update }) => {
 			try {
 				if (result.type === 'success' && result.data?.success) {
+					this.pendingRequests.delete(payload);
 					await update({ reset: false, refreshAll: false, navigate: false });
 					if (account !== this.account()) return;
 					await this.refresh();

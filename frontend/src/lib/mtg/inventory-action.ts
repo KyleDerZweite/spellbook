@@ -38,3 +38,31 @@ export function submittedDraftMatches(
 		submitted.quantity === current.quantity
 	);
 }
+
+/** Confirm only fields sent by this attempt; other saved fields are not edit bases. */
+export function confirmedInventoryBases(
+	form: FormData,
+	acknowledgement: { changes: Array<{ entryId: string; quantity: number; notesRevision: string }> },
+	current: { notesOriginal: string; notesBase: string; quantityBase: number }
+) {
+	const change = acknowledgement.changes.find(
+		(change) => change.entryId === String(form.get('entryId'))
+	);
+	if (!change) return current;
+	const quantityChanged =
+		form.has('quantity') &&
+		(!form.has('quantityBase') ||
+			Number(form.get('quantity')) !== Number(form.get('quantityBase')));
+	const notesChanged =
+		form.has('notes') &&
+		(!form.has('notesOriginal') ||
+			String(form.get('notes')) !== String(form.get('notesOriginal')) ||
+			form.has('rebaseNotesRevision'));
+	const notesSubmitted =
+		notesChanged || (form.has('notes') && !quantityChanged && !form.has('delta'));
+	return {
+		notesOriginal: notesSubmitted ? String(form.get('notes')) : current.notesOriginal,
+		notesBase: notesSubmitted ? change.notesRevision : current.notesBase,
+		quantityBase: quantityChanged ? change.quantity : current.quantityBase
+	};
+}

@@ -49,7 +49,7 @@ The backend [schema](../../backend/src/db/schema.ts) owns table definitions, and
 
 ## Current Access Pattern
 
-- backend Catalog, Auth, Profile, Dashboard, Inventory reads and Deck use Drizzle ORM and `pg` through frontend server composition; remaining SvelteKit feature repositories use explicit compatibility adapters
+- backend Catalog, Auth, Profile, Dashboard, Inventory and Deck use Drizzle ORM and `pg` through frontend server composition; remaining SvelteKit feature repositories use explicit compatibility adapters
 - browser pages load user data through server load functions and route actions
 - optional mobile API endpoints call the same repository functions as web routes
 - repository functions enforce ownership by internal Spellbook `accountId`
@@ -63,7 +63,7 @@ The backend [schema](../../backend/src/db/schema.ts) owns table definitions, and
 
 Inventory SQL counts, copy sums, group totals, set progress and location indexes remain exact text until the shared [integer decoder](../../backend/src/db/numbers.ts) validates a nonnegative safe JSON integer. Unsupported ranges fail explicitly instead of narrowing to signed 32-bit values or rounding through floating-point SQL casts. [The HTTP contract](./mobile-and-scan.md#bounded-inventory-http-reads) owns the controlled failure response. Per-entry quantity limits are unchanged.
 
-Existing writers use the shared [Inventory helper](../../backend/src/inventory/write.ts) to lock the parent before entries and groups and advance its revision in the write transaction. Scan retains session-before-Inventory ordering. Notes has an independent stored revision; stale-text rejection and original mutation receipts remain planned. Legacy mutation responses still expose their prior snapshot shapes. [Deployment](../operations/deployment.md#inventory-collation-and-recovery) owns ICU preflight and recovery.
+The backend [mutation owner](../../backend/src/inventory/mutations.ts) uses the shared [Inventory helper](../../backend/src/inventory/write.ts) after Profile/account locking and session revalidation. Scan locks its session before Inventory; sorted target entries precede Groups. Catalog resolution uses no nested connection under those locks. Semantic changes advance the Inventory revision once per transaction; no-ops and receipt replays do not. Notes has an independent stored revision and stale-text guard. Ordinary entry changes keep sparse positions; only explicit reorder may scan/rewrite their ordering. [Migration 0014](../../frontend/drizzle/0014_inventory_contracts.sql) adds nullable JSONB original acknowledgements without backfilling fabricated history. [The application contract](./application-contract.md#inventory-query-contract) owns replay, legacy receipt treatment and lock order. [Deployment](../operations/deployment.md#inventory-collation-and-recovery) owns ICU preflight and recovery.
 
 ## Dashboard summary reads
 
@@ -106,4 +106,4 @@ Migration `0005_mutation_request_fingerprints.sql` adds nullable `request_hash` 
 
 An identical retry has one write effect. Reusing an existing request ID with a different stored fingerprint returns HTTP 409 without applying the changed mutation. Existing rows with a null hash retain their earlier duplicate-suppression behavior because their original payload cannot be reconstructed. The migration does not invent or backfill those hashes.
 
-Inventory request records still suppress duplicate effects without storing original responses. Deck requests now store compact original acknowledgements in the mutation transaction. Identical replay returns that acknowledgement after later changes or Deck deletion; changed-payload reuse fails with 409. Legacy Deck records without acknowledgements retain no-repeat behavior and return empty changes for the surviving Deck, rather than reconstructed historical results. Description revision checks are separate from request replay. Scan candidate-result replacement is separate from inventory mutation replay and has no event fingerprint. See [mobile and scan](./mobile-and-scan.md) for that contract.
+Inventory and Deck requests store compact original acknowledgements in their mutation transaction. Identical replay returns the stored acknowledgement after later subject changes or deletion; changed normalized intent fails with 409. Legacy Inventory records without acknowledgements return explicit unavailable-history receipts, retaining their stored fingerprint/no-repeat protection. Legacy Deck records retain their documented empty-change behavior. Notes/Description revision checks are separate from request replay. Scan candidate-result replacement is separate from Inventory mutation replay and has no event fingerprint. See [mobile and scan](./mobile-and-scan.md) for wire migration.

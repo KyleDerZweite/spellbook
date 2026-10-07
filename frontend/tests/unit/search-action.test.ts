@@ -36,20 +36,22 @@ describe('Search inventory action', () => {
 			quantity: '3',
 			finish: 'foil',
 			condition: 'LP',
-			game: 'mtg'
+			game: 'mtg',
+			requestId: '11111111-1111-4111-8111-111111111111'
 		};
 		expect(await actions.addToInventory(event('owner', fields) as never)).toEqual({
 			success: true,
-			addedName: 'Opt'
+			acknowledgement: undefined
 		});
 		expect(mocks.add).toHaveBeenCalledWith(
-			'owner',
+			{ accountId: 'owner' },
 			expect.objectContaining({
-				...identity,
+				catalogCardId: identity.catalogCardId,
 				quantity: 3,
 				finish: 'foil',
 				condition: 'LP',
-				game: 'mtg'
+				source: 'web',
+				requestId: '11111111-1111-4111-8111-111111111111'
 			})
 		);
 	});

@@ -9,7 +9,25 @@ declare global {
 
 		interface Error {
 			message: string;
-			kind?: import('@spellbook/contracts/decks.ts').DeckFailure['kind'];
+			kind?:
+				| import('@spellbook/contracts/decks.ts').DeckFailure['kind']
+				| import('@spellbook/contracts/inventory.ts').InventoryFailure['kind'];
+			entryId?: Extract<
+				import('@spellbook/contracts/inventory.ts').InventoryFailure,
+				{ kind: 'NotesConflict' }
+			>['entryId'];
+			notes?: Extract<
+				import('@spellbook/contracts/inventory.ts').InventoryFailure,
+				{ kind: 'NotesConflict' }
+			>['notes'];
+			notesRevision?: Extract<
+				import('@spellbook/contracts/inventory.ts').InventoryFailure,
+				{ kind: 'NotesConflict' }
+			>['notesRevision'];
+			latestQuantity?: Extract<
+				import('@spellbook/contracts/inventory.ts').InventoryFailure,
+				{ kind: 'QuantityChanged' }
+			>['latestQuantity'];
 			description?: string;
 			descriptionRevision?: string;
 		}

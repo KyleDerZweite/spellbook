@@ -6,4 +6,6 @@ export { createDashboard } from './profile/dashboard.ts';
 export { createInventory } from './inventory/read.ts';
 export { createValuation } from './valuation/read.ts';
 export { createDecks } from './decks/application.ts';
+export { createInventoryMutations } from './inventory/mutations.ts';
 export { createSavedState } from './saved-state/application.ts';
+export { createScanCommit } from './scan/commit.ts';

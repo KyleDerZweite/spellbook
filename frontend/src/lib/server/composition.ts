@@ -4,6 +4,8 @@ import {
 	createProfile,
 	createDashboard,
 	createInventory,
+	createInventoryMutations,
+	createScanCommit,
 	createDecks,
 	createValuation,
 	createSavedState
@@ -21,7 +23,8 @@ export const application = {
 		auth
 	),
 	dashboard: createDashboard(pool, auth),
-	inventory: createInventory(pool, auth),
+	scanCommit: createScanCommit(db, catalog, auth),
+	inventory: { ...createInventory(pool, auth), ...createInventoryMutations(db, catalog, auth) },
 	valuation: createValuation(pool, auth),
 	profile: createProfile(db, auth, { demoMode: process.env.DEMO_MODE === 'true' }),
 	decks: createDecks(db, catalog, auth)

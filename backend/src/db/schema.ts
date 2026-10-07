@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm';
+import type { InventoryAcknowledgement } from '@spellbook/contracts/inventory.ts';
 import type { ProfileCardDefinition } from '@spellbook/contracts/profile.ts';
 import {
 	bigint,
@@ -376,6 +377,7 @@ export const inventoryMutationRequests = pgTable(
 		accountId: text('account_id').notNull(),
 		requestId: text('request_id').notNull(),
 		requestHash: text('request_hash'),
+		acknowledgement: jsonb('acknowledgement').$type<InventoryAcknowledgement>(),
 		source: text('source').notNull(),
 		status: text('status').notNull(),
 		...timestamps

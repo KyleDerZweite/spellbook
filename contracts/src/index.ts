@@ -6,3 +6,4 @@ export type * from './inventory.ts';
 export type * from './valuation.ts';
 export type * from './decks.ts';
 export type * from './saved-state.ts';
+export type * from './scan.ts';

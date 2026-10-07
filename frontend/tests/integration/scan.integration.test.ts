@@ -1,21 +1,33 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
+import type { AuthUser } from '@spellbook/contracts/auth.ts';
+import { ensureDeckCatalogFixture } from '../deck-catalog-fixture.ts';
 
 const run = process.env.TEST_DATABASE_URL ? describe : describe.skip;
+let fixturePrintingId: string;
 
 run('Scan repository and uploads', () => {
 	let modules: Awaited<ReturnType<typeof loadModules>>;
 	let accountId: string;
+	let actor: AuthUser;
 	let otherAccountId: string;
 	beforeAll(async () => {
 		modules = await loadModules();
+		fixturePrintingId = (await ensureDeckCatalogFixture(modules.pool)).catalogCardId;
 	});
 	beforeEach(async () => {
-		accountId = `scan-${crypto.randomUUID()}`;
+		const session = await modules.application.auth.authenticate(
+			'register',
+			`scan_${crypto.randomUUID().slice(0, 8)}`,
+			'scan-contract-fixture-password'
+		);
+		if (!session) throw new Error('Scan fixture registration failed');
+		actor = session.user;
+		accountId = actor.accountId;
 		otherAccountId = `other-${accountId}`;
 		await modules.db
 			.insert(modules.userProfiles)
-			.values([accountId, otherAccountId].map((accountId) => ({ accountId, username: accountId })));
+			.values({ accountId: otherAccountId, username: otherAccountId });
 	});
 	afterEach(async () => {
 		vi.restoreAllMocks();
@@ -77,7 +89,7 @@ run('Scan repository and uploads', () => {
 		const scan = await setup(accountId);
 		const valid = review(scan.sessionId, scan.id);
 		await expect(
-			modules.commitScanReview(accountId, crypto.randomUUID(), scan.sessionId, [
+			modules.commitScanReview(actor, crypto.randomUUID(), scan.sessionId, [
 				valid,
 				{ ...valid, id: crypto.randomUUID(), scanArtifactId: crypto.randomUUID() }
 			])
@@ -88,14 +100,89 @@ run('Scan repository and uploads', () => {
 		expect((await modules.getInventorySnapshot(accountId)).cards).toHaveLength(0);
 	});
 
+	it.each([
+		{ table: 'inventory_mutation_requests', operation: 'INSERT' },
+		{ table: 'scan_sessions', operation: 'UPDATE' }
+	])(
+		'rolls back review, session, Inventory and receipt when final $table persistence fails',
+		async ({ table, operation }) => {
+			const scan = await setup(accountId);
+			const requestId = crypto.randomUUID();
+			const name = 'scan_receipt_fail_' + crypto.randomUUID().replaceAll('-', '');
+			await modules.pool.query(
+				`CREATE FUNCTION ${name}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.account_id = '${accountId}' THEN RAISE EXCEPTION 'fixture final receipt failure'; END IF; RETURN NEW; END $$`
+			);
+			await modules.pool.query(
+				`CREATE TRIGGER ${name} BEFORE ${operation} ON ${table} FOR EACH ROW EXECUTE FUNCTION ${name}()`
+			);
+			try {
+				await expect(
+					modules.commitScanReview(actor, requestId, scan.sessionId, [
+						review(scan.sessionId, scan.id)
+					])
+				).rejects.toThrow();
+				const result = await modules.getScanSessionResult(accountId, scan.sessionId);
+				expect(result.reviewItems).toHaveLength(0);
+				expect(result.session?.status).toBe('pending_review');
+				expect((await modules.getInventorySnapshot(accountId)).cards).toHaveLength(0);
+				expect(
+					(
+						await modules.pool.query(
+							'SELECT request_id FROM inventory_mutation_requests WHERE account_id=$1 AND request_id=$2',
+							[accountId, requestId]
+						)
+					).rowCount
+				).toBe(0);
+			} finally {
+				await modules.pool.query(`DROP TRIGGER ${name} ON ${table}`);
+				await modules.pool.query(`DROP FUNCTION ${name}()`);
+			}
+		}
+	);
+	it('serializes Scan commit with ordinary quantity and membership writes without losing either', async () => {
+		const added = await modules.application.inventory.add(actor, {
+			requestId: crypto.randomUUID(),
+			catalogCardId: fixturePrintingId,
+			quantity: 2,
+			finish: 'nonfoil',
+			condition: 'NM'
+		});
+		const entryId = added.changes[0].entryId;
+		const group = await modules.application.inventory.createGroup(actor, {
+			requestId: crypto.randomUUID(),
+			name: 'Concurrent Scan'
+		});
+		const groupId = group.groups[0].groupId;
+		const scan = await setup(accountId);
+		await Promise.all([
+			modules.commitScanReview(actor, crypto.randomUUID(), scan.sessionId, [
+				review(scan.sessionId, scan.id)
+			]),
+			modules.application.inventory.patchEntry(actor, {
+				requestId: crypto.randomUUID(),
+				entryId,
+				delta: 1
+			}),
+			modules.application.inventory.replaceMemberships(actor, {
+				requestId: crypto.randomUUID(),
+				entryId,
+				groupIds: [groupId]
+			})
+		]);
+		const detail = await modules.application.inventory.getEntry(actor, entryId);
+		expect(detail?.entry.quantity).toBe(5);
+		expect(detail?.memberships).toEqual([groupId]);
+		expect((await modules.getScanSessionResult(accountId, scan.sessionId)).session?.status).toBe(
+			'committed'
+		);
+	});
 	it('commits review and inventory once during simultaneous retries', async () => {
 		const scan = await setup(accountId);
 		const requestId = crypto.randomUUID();
+		const item = review(scan.sessionId, scan.id);
 		await Promise.all(
 			Array.from({ length: 5 }, () =>
-				modules.commitScanReview(accountId, requestId, scan.sessionId, [
-					review(scan.sessionId, scan.id)
-				])
+				modules.commitScanReview(actor, requestId, scan.sessionId, [item])
 			)
 		);
 		const result = await modules.getScanSessionResult(accountId, scan.sessionId);
@@ -103,7 +190,7 @@ run('Scan repository and uploads', () => {
 		expect(result.reviewItems).toHaveLength(1);
 		expect((await modules.getInventorySnapshot(accountId)).cards[0].quantity).toBe(2);
 		await expect(
-			modules.commitScanReview(accountId, crypto.randomUUID(), scan.sessionId, [
+			modules.commitScanReview(actor, crypto.randomUUID(), scan.sessionId, [
 				review(scan.sessionId, scan.id)
 			])
 		).rejects.toThrow('not open for review');
@@ -114,14 +201,12 @@ run('Scan repository and uploads', () => {
 		const second = await setup(accountId);
 		const requestId = crypto.randomUUID();
 		const firstItem = review(first.sessionId, first.id);
-		await modules.commitScanReview(accountId, requestId, first.sessionId, [firstItem]);
+		await modules.commitScanReview(actor, requestId, first.sessionId, [firstItem]);
 		await expect(
-			modules.commitScanReview(accountId, requestId, first.sessionId, [
-				{ ...firstItem, quantity: 3 }
-			])
+			modules.commitScanReview(actor, requestId, first.sessionId, [{ ...firstItem, quantity: 3 }])
 		).rejects.toThrow('different mutation');
 		await expect(
-			modules.commitScanReview(accountId, requestId, second.sessionId, [
+			modules.commitScanReview(actor, requestId, second.sessionId, [
 				review(second.sessionId, second.id)
 			])
 		).rejects.toThrow('different mutation');
@@ -136,7 +221,7 @@ run('Scan repository and uploads', () => {
 		const item = review(scan.sessionId, scan.id);
 		const event = {
 			url: new URL('http://localhost/scan'),
-			locals: { user: { accountId } },
+			locals: { user: actor },
 			request: new Request('http://localhost/scan', {
 				method: 'POST',
 				headers: { origin: 'http://localhost', 'content-type': 'application/json' },
@@ -249,7 +334,7 @@ run('Scan repository and uploads', () => {
 		for (const body of bodies) {
 			const event = {
 				url: new URL('http://localhost/scan'),
-				locals: { user: { accountId } },
+				locals: { user: actor },
 				request: new Request('http://localhost/scan', {
 					method: 'POST',
 					headers: { origin: 'http://localhost', 'content-type': 'application/json' },
@@ -267,7 +352,7 @@ run('Scan repository and uploads', () => {
 	it('returns 400 for malformed review JSON and invalid result session UUID', async () => {
 		const event = {
 			url: new URL('http://localhost/scan'),
-			locals: { user: { accountId } },
+			locals: { user: actor },
 			request: new Request('http://localhost/scan', {
 				method: 'POST',
 				headers: { origin: 'http://localhost', 'content-type': 'application/json' },
@@ -340,7 +425,7 @@ run('Scan repository and uploads', () => {
 		return {
 			url: new URL('http://localhost/scan'),
 			params: { sessionId },
-			locals: { user: { accountId } },
+			locals: { user: actor },
 			request: new Request('http://localhost/scan', {
 				method: 'POST',
 				headers: { origin: 'http://localhost' },
@@ -380,7 +465,7 @@ function review(sessionId: string, scanArtifactId: string) {
 		id: crypto.randomUUID(),
 		sessionId,
 		scanArtifactId,
-		catalogCardId: 'card',
+		catalogCardId: fixturePrintingId,
 		canonicalCardId: 'oracle',
 		oracleId: 'oracle',
 		name: 'Card',
@@ -412,9 +497,11 @@ async function loadModules() {
 		]);
 	return {
 		...client,
+		application: (await import('../../src/lib/server/composition.ts')).application,
 		...schema,
 		...scan,
 		...inventory,
+		...(await import('../fixtures/inventory-state.ts')),
 		storage,
 		worker,
 		uploadFrame: route.POST,

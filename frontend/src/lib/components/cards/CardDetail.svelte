@@ -11,11 +11,20 @@
 		onClose: () => void;
 		actions?: Snippet<[CardDocument]>;
 		returnFocus?: HTMLElement | null;
+		callerPending?: boolean;
 	}
-	let { card, onClose, actions, returnFocus, inventoryEntryId, inventoryPriceRefreshKey }: Props =
-		$props();
+	let {
+		card,
+		onClose,
+		actions,
+		returnFocus,
+		callerPending = false,
+		inventoryEntryId,
+		inventoryPriceRefreshKey
+	}: Props = $props();
 	let detailOpen = $state(false);
-	let pending = $state(false);
+	let quickAddPending = $state(false);
+	let pending = $derived(callerPending || quickAddPending);
 	let initialFocus: HTMLElement | null = null;
 	$effect(() => {
 		initialFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -56,7 +65,7 @@
 					{actions}
 					{inventoryEntryId}
 					{inventoryPriceRefreshKey}
-					onPendingChange={(value) => (pending = value)}
+					onPendingChange={(value) => (quickAddPending = value)}
 				/>
 				<Dialog.Close
 					disabled={pending}

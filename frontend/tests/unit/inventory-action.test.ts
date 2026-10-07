@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
 	inventoryAction,
 	effectiveInventoryUrl,
-	submittedDraftMatches
+	submittedDraftMatches,
+	confirmedInventoryBases
 } from '#lib/mtg/inventory-action.ts';
 
 describe('inventory action location', () => {
@@ -59,4 +60,41 @@ it('does not mark a newer or different inspector draft as saved', () => {
 	expect(submittedDraftMatches(submitted, { ...submitted, notes: 'new typing' })).toBe(false);
 	expect(submittedDraftMatches(submitted, { ...submitted, quantity: 3 })).toBe(false);
 	expect(submittedDraftMatches(submitted, { ...submitted, id: 'b' })).toBe(false);
+});
+
+it('advances confirmed Notes bases without replacing a newer draft', () => {
+	const form = new FormData();
+	for (const [key, value] of Object.entries({
+		entryId: 'a',
+		notes: 'A',
+		notesOriginal: '',
+		notesRevision: '0',
+		quantity: '1',
+		quantityBase: '1'
+	}))
+		form.set(key, value);
+	const result = confirmedInventoryBases(
+		form,
+		{ changes: [{ entryId: 'a', quantity: 1, notesRevision: '1' }] },
+		{ notesOriginal: '', notesBase: '0', quantityBase: 1 }
+	);
+	expect(result).toEqual({ notesOriginal: 'A', notesBase: '1', quantityBase: 1 });
+});
+it('advances only a submitted Quantity base so a later Notes save preserves a remote increment', () => {
+	const form = new FormData();
+	for (const [key, value] of Object.entries({
+		entryId: 'a',
+		notes: 'A',
+		notesOriginal: 'A',
+		notesRevision: '1',
+		quantity: '2',
+		quantityBase: '1'
+	}))
+		form.set(key, value);
+	const result = confirmedInventoryBases(
+		form,
+		{ changes: [{ entryId: 'a', quantity: 2, notesRevision: '7' }] },
+		{ notesOriginal: 'A', notesBase: '1', quantityBase: 1 }
+	);
+	expect(result).toEqual({ notesOriginal: 'A', notesBase: '1', quantityBase: 2 });
 });
