@@ -1110,6 +1110,176 @@ test('built HTTP application preserves public Catalog and local account journeys
 		const deckSession = await deckRegistration.json();
 		accounts.push(deckSession.user.accountId);
 		await t.test(
+			'native Deck tasks are reachable and keep failed create/import drafts',
+			async () => {
+				const cookie = `spellbook_session=${deckSession.token}`;
+				const get = async (path: string) =>
+					fetch(`${origin}${path}`, { headers: { cookie }, redirect: 'manual' });
+				const post = async (path: string, fields: Record<string, string>) =>
+					fetch(`${origin}${path}`, {
+						method: 'POST',
+						headers: {
+							cookie,
+							origin,
+							accept: 'text/html',
+							'content-type': 'application/x-www-form-urlencoded'
+						},
+						body: new URLSearchParams(fields),
+						redirect: 'manual'
+					});
+				const library = await (await get('/mtg/decks')).text();
+				assert.match(library, /href="\/mtg\/decks\?flow=create"/);
+				const create = await (await get('/mtg/decks?flow=create')).text();
+				assert.match(create, /<input[^>]*name="name"/);
+				assert.match(create, /<select[^>]*name="format"/);
+				const longName = 'Native draft ' + 'N'.repeat(201);
+				const invalid = await post('/mtg/decks?/createDeck&flow=create', {
+					name: longName,
+					format: 'Modern',
+					description: 'kept native description'
+				});
+				assert.equal(invalid.status, 400);
+				const rejected = await invalid.text();
+				assert.ok(rejected.includes(longName));
+				assert.match(rejected, /kept native description/);
+				const created = await post('/mtg/decks?/createDeck&flow=create', {
+					name: 'Native UI deck',
+					format: 'Modern',
+					description: 'Native saved description'
+				});
+				assert.equal(created.status, 303);
+				const location = created.headers.get('location');
+				assert.ok(location);
+				const deckId = new URL(location, origin).searchParams.get('deck');
+				assert.ok(deckId);
+				for (const flow of ['edit', 'import', 'delete', 'search']) {
+					const response = await get(`/mtg/decks?deck=${deckId}&flow=${flow}`);
+					assert.equal(response.status, 200);
+					const html = await response.text();
+					if (flow === 'edit') {
+						assert.match(html, /<textarea[^>]*name="description"[^>]*>Native saved description/);
+						assert.match(html, /name="descriptionRevision" value="0"/);
+						assert.match(html, /<select[^>]*name="format"/);
+					}
+					if (flow === 'import') assert.match(html, /<textarea[^>]*name="text"/);
+					if (flow === 'delete') {
+						assert.match(html, /Delete this deck/);
+						assert.match(html, />Cancel</);
+					}
+					if (flow === 'search')
+						assert.match(html, /<form[^>]*method="GET"[^>]*action="\/mtg\/decks"/);
+				}
+				const nativeSearch = await get(`/mtg/decks?deck=${deckId}&flow=search&q=Sol%20Ring`);
+				assert.equal(nativeSearch.status, 200);
+				const searchHtml = await nativeSearch.text();
+				assert.match(searchHtml, /aria-label="Add Sol Ring"/);
+				assert.match(searchHtml, /<select[^>]*name="role"/);
+				const saveDescription = (text: string, revision: string, base: string) =>
+					fetch(`${origin}/mtg/decks?/updateDeck&deck=${deckId}&flow=edit`, {
+						method: 'POST',
+						redirect: 'manual',
+						headers: {
+							cookie,
+							origin,
+							accept: 'application/json',
+							'x-sveltekit-action': 'true',
+							'content-type': 'application/x-www-form-urlencoded'
+						},
+						body: new URLSearchParams({
+							deckId,
+							name: 'Native UI deck',
+							format: 'Modern',
+							description: text,
+							nameBase: 'Native UI deck',
+							formatBase: 'Modern',
+							descriptionBase: base,
+							descriptionRevision: revision
+						})
+					});
+				const firstDetails = await saveDescription('Committed A', '0', 'Native saved description');
+				assert.equal(firstDetails.status, 200);
+				const firstResult = await firstDetails.json();
+				const values = JSON.parse(firstResult.data);
+				const originalSaved = values[values[0].savedDetails];
+				assert.equal(values[originalSaved.id], deckId);
+				assert.equal(values[originalSaved.description], 'Committed A');
+				assert.equal(values[originalSaved.descriptionRevision], '1');
+				assert.equal((await saveDescription('Newer B', '1', 'Committed A')).status, 200);
+				assert.equal((await saveDescription('Intervening remote C', '2', 'Newer B')).status, 200);
+				assert.equal((await saveDescription('Local D keeps own base', '2', 'Newer B')).status, 409);
+				// Later changes must not alter the authoritative acknowledgement for Save A.
+				assert.equal(values[originalSaved.descriptionRevision], '1');
+				const requestId = randomUUID();
+				const invalidText = 'X'.repeat(100001);
+				const importFailure = await post(`/mtg/decks?/previewImport&deck=${deckId}&flow=import`, {
+					deckId,
+					text: invalidText,
+					requestId
+				});
+				assert.equal(importFailure.status, 400);
+				const failedImportHtml = await importFailure.text();
+				assert.ok(failedImportHtml.includes(invalidText));
+				assert.ok(failedImportHtml.includes(`name="requestId" value="${requestId}"`));
+				const previewResponse = await post(`/mtg/decks?/previewImport&deck=${deckId}&flow=import`, {
+					deckId,
+					text: 'Deck\n2 Sol Ring',
+					requestId
+				});
+				assert.equal(previewResponse.status, 200);
+				const previewHtml = await previewResponse.text();
+				assert.match(previewHtml, /Add 2 matched cards/);
+				assert.ok(previewHtml.includes(`name="requestId" value="${requestId}"`));
+				const commit = await post(`/mtg/decks?/commitImport&deck=${deckId}&flow=import`, {
+					deckId,
+					text: 'Deck\n2 Sol Ring',
+					requestId
+				});
+				assert.equal(commit.status, 200);
+				const snapshot = await (
+					await request(`/api/mobile/v1/mtg/decks?deck=${deckId}`, undefined, {
+						authorization: `Bearer ${deckSession.token}`
+					})
+				).json();
+				assert.equal(snapshot.deckCards[0].quantity, 2);
+				const entryId = snapshot.deckCards[0].id;
+				const maximum = await post(`/mtg/decks?/updateCard&deck=${deckId}`, {
+					entryId,
+					role: 'main',
+					quantity: '10000',
+					requestId: randomUUID()
+				});
+				assert.equal(maximum.status, 200);
+				const maximumHtml = await maximum.text();
+				const buttons = maximumHtml.match(/<button\b[^>]*>/g) ?? [];
+				const increase = buttons.find((button) =>
+					button.includes('aria-label="Increase Sol Ring quantity"')
+				);
+				const decrease = buttons.find((button) =>
+					button.includes('aria-label="Decrease Sol Ring quantity"')
+				);
+				assert.ok(increase && decrease);
+				assert.match(increase, /\bdisabled(?:[ =]|>)/);
+				assert.doesNotMatch(decrease, /\bdisabled(?:[ =]|>)/);
+				const decremented = await post(`/mtg/decks?/updateCard&deck=${deckId}`, {
+					entryId,
+					role: 'main',
+					delta: '-1',
+					quantity: '9999',
+					requestId: randomUUID()
+				});
+				assert.equal(decremented.status, 200);
+				const afterDecrement = await (
+					await request(`/api/mobile/v1/mtg/decks?deck=${deckId}`, undefined, {
+						authorization: `Bearer ${deckSession.token}`
+					})
+				).json();
+				assert.equal(afterDecrement.deckCards[0].quantity, 9999);
+				const removed = await post(`/mtg/decks?/deleteDeck&deck=${deckId}&flow=delete`, { deckId });
+				assert.equal(removed.status, 303);
+				assert.equal(removed.headers.get('location'), '/mtg/decks');
+			}
+		);
+		await t.test(
 			'Deck API returns original compact acknowledgements after later mutations',
 			async () => {
 				const authorization = `Bearer ${deckSession.token}`;

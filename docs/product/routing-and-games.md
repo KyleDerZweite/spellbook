@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: route handlers and server hooks
-- Update Triggers: route additions or removals, development preview routes, HTTP methods, authentication protection, compatibility redirects, supported game
+- Update Triggers: route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game
 - Related Docs: [Product specification](./specification.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md)
 
 Spellbook supports MTG. Game-specific pages use the `/mtg/` prefix. Public home, authentication, account settings, and legal pages remain shared; versioned integration endpoints keep their existing paths. The header game icon sits immediately before the theme control. It identifies Magic with the Mana Font planeswalker symbol and a tooltip. Cycling is inactive while MTG is the only available game. The `/mtg/` layout owns workspace game identity; the cookie retains the selection for shared pages. Unsupported cookie values reset to MTG. Additional games require their own catalog and workflow implementation before becoming selectable.
@@ -12,39 +12,41 @@ The [route source](../../frontend/src/routes/) owns implemented handlers. The [s
 
 ## Pages and account routes
 
-| Route                         | Access and behavior                                                         |
-| ----------------------------- | --------------------------------------------------------------------------- |
-| `/`                           | Public landing for signed-out and signed-in users                           |
-| `/mtg/dashboard`              | Authenticated account summaries and per-deck availability                   |
-| `/mtg/search`                 | Public catalog search and printing details                                  |
-| `/mtg/inventory/[entryId]`    | Authenticated SSR owned-entry Notes/Groups/reviewed Remove forms            |
-| `/mtg/inventory`              | Authenticated bounded Inventory pages, GET filters and form actions         |
-| `/mtg/scan`                   | Authenticated image upload, candidate review, and explicit inventory commit |
-| `/mtg/decks`                  | Authenticated deck library; `?deck=ID` opens the editor and form actions    |
-| `/mtg/decks/[deckId]/export`  | Authenticated text export of an owned deck                                  |
-| `/settings`                   | Authenticated contact email and Edit avatar dialog; excluded from indexing  |
-| `/settings/profile-card`      | Authenticated private card editor and artwork save; excluded from indexing  |
-| `/settings/password`          | Authenticated current-password-confirmed change; disabled in demo mode      |
-| `/auth/login`                 | Local sign-in page and form action                                          |
-| `/auth/register`              | Local account registration page and form action                             |
-| `/auth/logout`                | POST revokes the browser session and clears its cookie                      |
-| `/privacy`, `/terms`          | Public information pages                                                    |
-| `/api/auth/register`          | POST creates a local account and returns a bearer session                   |
-| `/api/auth/login`             | POST verifies local credentials and returns a bearer session                |
-| `/api/account/profile`        | Authenticated GET profile read and PATCH supplied preference/card fields    |
-| `/api/account/dashboard`      | Authenticated GET account aggregates and deck availability summaries        |
-| `/api/account/password`       | Authenticated POST password rotation and replacement session                |
-| `/api/account/events`         | Authenticated GET SavedState event stream                                   |
-| `/api/auth/session`           | Authenticated GET selected-session inspection                               |
-| `/api/auth/logout`            | POST revokes the presented bearer session                                   |
-| `/openapi.json`               | API description                                                             |
-| `/llms.txt`                   | Public Markdown overview, application links, and agent registration rules   |
-| `/agents.md`                  | Permanent same-origin redirect to `/llms.txt`                               |
-| `/robots.txt`, `/sitemap.xml` | Search-engine metadata                                                      |
+| Route                         | Access and behavior                                                               |
+| ----------------------------- | --------------------------------------------------------------------------------- |
+| `/`                           | Public landing for signed-out and signed-in users                                 |
+| `/mtg/dashboard`              | Authenticated account summaries and per-deck availability                         |
+| `/mtg/search`                 | Public catalog search and printing details                                        |
+| `/mtg/inventory/[entryId]`    | Authenticated SSR owned-entry Notes/Groups/reviewed Remove forms                  |
+| `/mtg/inventory`              | Authenticated bounded Inventory pages, GET filters and form actions               |
+| `/mtg/scan`                   | Authenticated image upload, candidate review, and explicit inventory commit       |
+| `/mtg/decks`                  | Authenticated deck library; `deck=ID` selects the editor; native tasks use `flow` |
+| `/mtg/decks/[deckId]/export`  | Authenticated text export of an owned deck                                        |
+| `/settings`                   | Authenticated contact email and Edit avatar dialog; excluded from indexing        |
+| `/settings/profile-card`      | Authenticated private card editor and artwork save; excluded from indexing        |
+| `/settings/password`          | Authenticated current-password-confirmed change; disabled in demo mode            |
+| `/auth/login`                 | Local sign-in page and form action                                                |
+| `/auth/register`              | Local account registration page and form action                                   |
+| `/auth/logout`                | POST revokes the browser session and clears its cookie                            |
+| `/privacy`, `/terms`          | Public information pages                                                          |
+| `/api/auth/register`          | POST creates a local account and returns a bearer session                         |
+| `/api/auth/login`             | POST verifies local credentials and returns a bearer session                      |
+| `/api/account/profile`        | Authenticated GET profile read and PATCH supplied preference/card fields          |
+| `/api/account/dashboard`      | Authenticated GET account aggregates and deck availability summaries              |
+| `/api/account/password`       | Authenticated POST password rotation and replacement session                      |
+| `/api/account/events`         | Authenticated GET SavedState event stream                                         |
+| `/api/auth/session`           | Authenticated GET selected-session inspection                                     |
+| `/api/auth/logout`            | POST revokes the presented bearer session                                         |
+| `/openapi.json`               | API description                                                                   |
+| `/llms.txt`                   | Public Markdown overview, application links, and agent registration rules         |
+| `/agents.md`                  | Permanent same-origin redirect to `/llms.txt`                                     |
+| `/robots.txt`, `/sitemap.xml` | Search-engine metadata                                                            |
 
 `GET /llms.txt` provides a public Markdown overview and links to the application and API, with instructions for creating a new account through the existing registration API. The shared HTML head links to it with `rel="describedby"`. Demo deployments instead state that registration is disabled. `/agents.md` returns HTTP 308 to `/llms.txt` without duplicating the guide. This guide does not implement the proposed auth.md protocol.
 
 The font comparison and numbered landing prototype routes are removed. The `review=landing` composition override is removed; `/` is the landing review target for any session. The brand links to `/`. Normal primary Search clicks and Ctrl+K or Cmd+K open the shared catalog overlay above the current page. The landing form opens it with the submitted query. Search links retain `/mtg/search` for modified clicks and no-JavaScript navigation. The visible query URL supports direct visits and reloads as a full page; Full view replaces the overlay entry. Close, Escape and Back return to the background page, and Forward reopens Search. [Frontend architecture](../architecture/frontend.md) owns session, history and page composition. The first navigation item is Dashboard for signed-in users and Home for guests.
+
+The Deck page supports `flow=create|edit|import|delete|search` for native task entry. [Frontend](../architecture/frontend.md#shared-deck-ui) owns the form adapters and shared presentation responsibilities. These queries add no API path or method.
 
 Signed-out access to protected pages redirects to `/auth/login` with the local path and query preserved. Login and registration default to `/mtg/inventory` when no safe destination is supplied. An explicit safe `returnTo`, including `/` or `/mtg/decks?deck=ID`, remains authoritative. Versioned MTG endpoints accept a bearer session or the authenticated browser session. An Authorization header takes precedence and an invalid bearer token fails without cookie fallback. Unsafe cookie-authenticated requests require same-origin protection. The [authentication document](../architecture/auth.md) owns credential and session rules.
 

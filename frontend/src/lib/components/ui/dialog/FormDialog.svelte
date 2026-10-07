@@ -6,6 +6,7 @@
 		title,
 		description,
 		pending = false,
+		variant = 'default',
 		onCancel,
 		onCloseAutoFocus,
 		children
@@ -13,6 +14,7 @@
 		title: string;
 		description: string;
 		pending?: boolean;
+		variant?: 'default' | 'import';
 		onCancel: () => void;
 		onCloseAutoFocus?: (event: Event) => void;
 		children: Snippet;
@@ -30,14 +32,18 @@
 		<Dialog.Overlay class="form-dialog-overlay" />
 		<Dialog.Content
 			bind:ref={content}
-			class="surface-menu form-dialog"
+			class={['surface-menu form-dialog', variant === 'import' && 'form-dialog-import']}
 			escapeKeydownBehavior={pending ? 'ignore' : 'close'}
 			interactOutsideBehavior={pending ? 'ignore' : 'close'}
 			{onCloseAutoFocus}
 			onOpenAutoFocus={(event) => {
 				event.preventDefault();
 				void tick().then(() =>
-					content?.querySelector<HTMLElement>('input:not([type=hidden]), button')?.focus()
+					content
+						?.querySelector<HTMLElement>(
+							'input:not([type=hidden]):not(:disabled), textarea:not(:disabled), select:not(:disabled), button:not(:disabled)'
+						)
+						?.focus()
 				);
 			}}
 		>
@@ -75,6 +81,9 @@
 		max-height: calc(100dvh - 2rem);
 		border-radius: 0.75rem;
 		outline: none;
+	}
+	:global(.form-dialog-import) {
+		width: min(42rem, calc(100vw - 2rem));
 	}
 	.form-dialog-heading {
 		flex-shrink: 0;

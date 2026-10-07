@@ -92,6 +92,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	]);
 	return {
 		...snapshot,
+		flow: ['create', 'edit', 'import', 'delete', 'search'].includes(
+			url.searchParams.get('flow') ?? ''
+		)
+			? url.searchParams.get('flow')!
+			: '',
 		requestId: crypto.randomUUID(),
 		selectedDeckId,
 		query,
@@ -131,12 +136,24 @@ function field(form: FormData, name: string): string {
 export const actions = {
 	createDeck: guarded(async ({ request, locals }) => {
 		const form = await request.formData();
-		const deck = await createDeckRecord(locals.user!, {
-			game: 'mtg',
-			name: field(form, 'name'),
-			description: field(form, 'description'),
-			format: field(form, 'format')
-		});
+		const createDraft = {
+			name: String(form.get('name') ?? ''),
+			description: String(form.get('description') ?? ''),
+			format: String(form.get('format') ?? '')
+		};
+		let deck;
+		try {
+			deck = await createDeckRecord(locals.user!, {
+				game: 'mtg',
+				name: field(form, 'name'),
+				description: field(form, 'description'),
+				format: field(form, 'format')
+			});
+		} catch (cause) {
+			if (cause instanceof ValidationError)
+				return fail(400, { message: cause.message, createDraft });
+			throw cause;
+		}
 		throw redirect(303, `/mtg/decks?deck=${encodeURIComponent(deck.id)}`);
 	}),
 	updateDeck: guarded(async ({ request, locals }) => {
@@ -173,7 +190,7 @@ export const actions = {
 		try {
 			const deck = await updateDeck(locals.user!, patch);
 			if (!deck) return fail(404, { message: 'Deck not found.' });
-			return { success: true, message: 'Deck details saved.' };
+			return { success: true, message: 'Deck details saved.', savedDetails: deck };
 		} catch (cause) {
 			if (cause instanceof DescriptionConflictError)
 				return fail(409, { message: cause.message, conflict: cause.latest, detailsDraft });
@@ -237,22 +254,41 @@ export const actions = {
 		if (!deck) return fail(404, { message: 'Deck not found.' });
 		const text = field(form, 'text');
 		if (!text || text.length > 100_000)
-			return fail(400, { message: 'Paste a decklist of up to 100,000 characters.' });
+			return fail(400, {
+				message: 'Paste a decklist of up to 100,000 characters.',
+				importDraft: { text: String(form.get('text') ?? ''), requestId: field(form, 'requestId') }
+			});
 		return {
 			preview: await application.decks.previewMtgImport(locals.user!, text, deck.format),
-			importText: text
+			importText: text,
+			importDraft: { text: String(form.get('text') ?? ''), requestId: field(form, 'requestId') }
 		};
 	}),
 	commitImport: guarded(async ({ request, locals }) => {
 		const form = await request.formData();
 		const text = field(form, 'text');
 		if (!text || text.length > 100_000)
-			return fail(400, { message: 'Paste a decklist of up to 100,000 characters.' });
-		await importIntoDeck(locals.user!, {
-			deckId: field(form, 'deckId'),
-			text,
-			requestId: field(form, 'requestId')
-		});
+			return fail(400, {
+				message: 'Paste a decklist of up to 100,000 characters.',
+				importDraft: { text: String(form.get('text') ?? ''), requestId: field(form, 'requestId') }
+			});
+		try {
+			await importIntoDeck(locals.user!, {
+				deckId: field(form, 'deckId'),
+				text,
+				requestId: field(form, 'requestId')
+			});
+		} catch (cause) {
+			if (
+				cause instanceof RequestConflictError ||
+				(cause instanceof ValidationError && !(cause instanceof DeckNotFoundError))
+			)
+				return fail(cause instanceof RequestConflictError ? 409 : 400, {
+					message: cause.message,
+					importDraft: { text: String(form.get('text') ?? ''), requestId: field(form, 'requestId') }
+				});
+			throw cause;
+		}
 		return { success: true, imported: true, message: 'Resolved cards added to the deck.' };
 	})
 } satisfies Actions;
