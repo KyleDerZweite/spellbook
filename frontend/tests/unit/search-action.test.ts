@@ -1,6 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({ add: vi.fn() }));
-vi.mock('#lib/server/data/inventory.ts', () => ({ addToInventory: mocks.add }));
+vi.mock('#lib/server/composition.ts', () => ({
+	application: {
+		inventory: { add: mocks.add },
+		catalog: {}
+	}
+}));
+vi.mock('#lib/server/data/decks.ts', async () => {
+	const actual = await vi.importActual('@spellbook/backend/decks/application.ts');
+	return { DeckNotFoundError: actual.DeckNotFoundError };
+});
 import { actions } from '../../src/routes/mtg/search/+page.server';
 
 function event(accountId: string | null, fields: Record<string, string> = {}) {
@@ -15,7 +24,7 @@ function event(accountId: string | null, fields: Record<string, string> = {}) {
 const identity = { catalogCardId: 'printing', canonicalCardId: 'canonical', name: 'Opt' };
 describe('Search inventory action', () => {
 	beforeEach(() => {
-		vi.clearAllMocks();
+		vi.resetAllMocks();
 	});
 	it('requires an authenticated account before accessing inventory', async () => {
 		await expect(actions.addToInventory(event(null, identity) as never)).rejects.toMatchObject({
@@ -39,20 +48,30 @@ describe('Search inventory action', () => {
 			game: 'mtg',
 			requestId: '11111111-1111-4111-8111-111111111111'
 		};
+		const acknowledgement = { requestId: fields.requestId, revision: '8', changes: [] };
+		mocks.add.mockResolvedValue(acknowledgement);
 		expect(await actions.addToInventory(event('owner', fields) as never)).toEqual({
+			action: 'addToInventory',
+			inventoryAdditionDraft: {
+				requestId: fields.requestId,
+				catalogCardId: identity.catalogCardId,
+				quantity: '3',
+				finish: 'foil',
+				condition: 'LP'
+			},
 			success: true,
-			acknowledgement: undefined
+			acknowledgement
 		});
-		expect(mocks.add).toHaveBeenCalledWith(
+		expect(mocks.add).toHaveBeenCalledExactlyOnceWith(
 			{ accountId: 'owner' },
-			expect.objectContaining({
+			{
 				catalogCardId: identity.catalogCardId,
 				quantity: 3,
 				finish: 'foil',
 				condition: 'LP',
 				source: 'web',
-				requestId: '11111111-1111-4111-8111-111111111111'
-			})
+				requestId: fields.requestId
+			}
 		);
 	});
 });
