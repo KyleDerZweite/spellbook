@@ -1,7 +1,7 @@
 # Local authentication and account recovery
 
 - Status: Canonical
-- Last Reviewed: 2026-10-05
+- Last Reviewed: 2026-10-07
 - Source of Truth: code
 - Update Triggers: single root environment and demo launch configuration, registration policy, credential recovery command, migration, reverse proxy origin, demo mode and seed data
 - Related Docs: [Authentication architecture](../architecture/auth.md), [Deployment](./deployment.md), [Postgres](../architecture/postgres.md), [ADR-0009](../decisions/0009-local-authentication.md)
