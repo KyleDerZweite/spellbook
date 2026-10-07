@@ -90,3 +90,13 @@ export function browseOriginShift(
 ): number {
 	return scrollTop + clearance >= previousTop ? nextTop - previousTop : 0;
 }
+
+/** Resolve the same captured row against current measured offsets and list origin. */
+export function browseAnchorScrollTop(
+	origin: number,
+	rowOffset: number,
+	intra: number,
+	clearance: number
+): number {
+	return Math.max(0, origin + rowOffset + intra - clearance);
+}

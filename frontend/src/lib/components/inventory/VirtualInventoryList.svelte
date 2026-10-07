@@ -5,7 +5,8 @@
 	import {
 		restoreInitialBrowsePosition,
 		captureBrowseAnchor,
-		browseOriginShift
+		browseOriginShift,
+		browseAnchorScrollTop
 	} from '#lib/browsing/viewport.ts';
 	import type { InventoryEntry } from '@spellbook/contracts/inventory.ts';
 	import { inventoryRowSlots, type InventoryRowSlot } from '#lib/inventory/rows.ts';
@@ -54,22 +55,40 @@
 	const estimate = 96;
 	let resizeObserver: ResizeObserver | undefined;
 	let previousListTop: number | undefined;
+	let prependAnchor:
+		{ index: number; intra: number; owner: string; bounds: LoadedSpan } | undefined;
+	function currentPrepend() {
+		return prependAnchor?.owner === queryKey && prependAnchor.bounds === span
+			? prependAnchor
+			: undefined;
+	}
+	let prependFrame = 0;
+	// Initial row observers settle across layout frames; retain the pre-click row until then.
+	function settlePrepend() {
+		if (prependFrame) cancelAnimationFrame(prependFrame);
+		prependFrame = requestAnimationFrame(() => {
+			prependFrame = requestAnimationFrame(() => {
+				prependFrame = 0;
+				prependAnchor = undefined;
+			});
+		});
+	}
 	function offset(index: number) {
 		measurementVersion;
 		let value = index * estimate;
 		for (const [i, row] of heights) if (i < index) value += row.height - estimate;
 		return value;
 	}
-	function indexAt(top: number) {
-		const absolute = top + offset(span.start);
-		let low = span.start,
-			high = span.end;
+	function indexAt(top: number, bounds = span) {
+		const absolute = top + offset(bounds.start);
+		let low = bounds.start,
+			high = bounds.end;
 		while (low < high) {
 			const middle = Math.floor((low + high) / 2);
 			if (offset(middle + 1) <= absolute) low = middle + 1;
 			else high = middle;
 		}
-		return Math.min(low, Math.max(span.start, span.end - 1));
+		return Math.min(low, Math.max(bounds.start, bounds.end - 1));
 	}
 	let start = $derived.by(() => {
 		measurementVersion;
@@ -123,7 +142,7 @@
 			const top = viewport.getBoundingClientRect().top + window.scrollY;
 			previousListTop = top;
 			window.scrollTo({
-				top: Math.max(0, top + offset(index) - offset(span.start) + intra - headerHeight()),
+				top: browseAnchorScrollTop(top, offset(index) - offset(span.start), intra, headerHeight()),
 				behavior: 'instant'
 			});
 			readGeometry();
@@ -140,7 +159,12 @@
 			if (old?.id === id && Math.abs(old.height - measured) < 0.5) return;
 			const previous = old?.height ?? estimate;
 			heights.set(index, { id, height: measured });
-			if (viewport && index < indexAt(scrollTop)) {
+			const retainedAnchor = currentPrepend();
+			if (retainedAnchor) {
+				const captured = retainedAnchor;
+				void scrollToIndex(captured.index, captured.intra, () => currentPrepend() === captured);
+				settlePrepend();
+			} else if (viewport && index < indexAt(scrollTop)) {
 				window.scrollBy({ top: measured - previous, behavior: 'instant' });
 				readGeometry();
 			}
@@ -158,6 +182,8 @@
 		untrack(() => {
 			heights.clear();
 			previousListTop = undefined;
+			prependAnchor = undefined;
+			if (prependFrame) cancelAnimationFrame(prependFrame);
 			focused = null;
 			focusedSnapshot = null;
 			measurementVersion++;
@@ -186,7 +212,9 @@
 			...(focused === null ? [] : [focused])
 		]);
 		untrack(() => {
-			const captured = anchor();
+			const captured = currentPrepend() ?? anchor();
+			const owner = queryKey;
+			const bounds = span;
 			const anchorIndex = captured.index,
 				intra = captured.intra;
 			let changed = false;
@@ -198,7 +226,7 @@
 			if (changed) {
 				measurementVersion++;
 				if (viewport) {
-					void scrollToIndex(anchorIndex, intra);
+					void scrollToIndex(anchorIndex, intra, () => queryKey === owner && span === bounds);
 				}
 			}
 		});
@@ -251,6 +279,8 @@
 			element.removeEventListener('focusin', focus);
 			resizeObserver?.disconnect();
 			if (layoutFrame) cancelAnimationFrame(layoutFrame);
+			if (prependFrame) cancelAnimationFrame(prependFrame);
+			prependAnchor = undefined;
 		};
 	});
 	function headerHeight() {
@@ -265,22 +295,30 @@
 		scrollTop = Math.max(0, -viewport.getBoundingClientRect().top + headerHeight());
 		height = Math.max(0, window.innerHeight - headerHeight());
 	}
-	let previousStart: number | undefined;
+	let previousSpan: typeof span | undefined;
 	let previousOwner: string | undefined;
 	$effect.pre(() => {
-		const next = span.start;
+		const next = span;
 		const owner = queryKey;
 		untrack(() => {
-			const old = previousOwner === owner ? previousStart : undefined;
+			const old = previousOwner === owner ? previousSpan : undefined;
 			previousOwner = owner;
-			previousStart = next;
-			if (old === undefined || next >= old || !positioned) return;
-			const shift = offset(old) - offset(next);
-			scrollTop += shift;
-			void tick().then(() => {
-				window.scrollBy({ top: shift, behavior: 'instant' });
-				readGeometry();
-			});
+			previousSpan = next;
+			if (!old || next.start >= old.start || !positioned || !viewport) return;
+			const origin = previousListTop ?? viewport.getBoundingClientRect().top + window.scrollY;
+			const captured = captureBrowseAnchor(
+				headerHeight() - origin + window.scrollY,
+				(top) => indexAt(top, old),
+				(index) => offset(index) - offset(old.start)
+			);
+			prependAnchor = { ...captured, owner, bounds: next };
+			const pending = prependAnchor;
+			scrollTop = Math.max(0, offset(captured.index) - offset(next.start) + captured.intra);
+			void scrollToIndex(captured.index, captured.intra, () => currentPrepend() === pending).then(
+				() => {
+					if (currentPrepend() === pending) settlePrepend();
+				}
+			);
 		});
 	});
 	$effect(() => {

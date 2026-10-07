@@ -1,5 +1,9 @@
 import { expect, it } from 'vitest';
-import { captureBrowseAnchor, browseOriginShift } from '../../src/lib/browsing/viewport.ts';
+import {
+	captureBrowseAnchor,
+	browseOriginShift,
+	browseAnchorScrollTop
+} from '../../src/lib/browsing/viewport.ts';
 it('retains toolbar clearance through an Inventory refresh instead of aligning its first row to the header', () => {
 	const listTop = 320.5,
 		header = 80;
@@ -30,4 +34,22 @@ it('compensates the refresh-status row entering and leaving above Inventory with
 	expect(browseOriginShift(356.5, 320.5, 1136, 72)).toBe(-36);
 	expect(browseOriginShift(320.5, 356.5, 0, 72)).toBe(0);
 	expect(browseOriginShift(356.5, 320.5, 0, 72)).toBe(0);
+});
+
+it('keeps the original deep row below the toolbar while preceding measured rows replace estimates', () => {
+	const origin = 364.5,
+		header = 72;
+	const captured = captureBrowseAnchor(
+		header - origin,
+		() => 49800,
+		() => 0
+	);
+	expect(captured).toEqual({ index: 49800, intra: -292.5 });
+	for (const measuredPrefix of [19200, 19152, 19072]) {
+		const scroll = browseAnchorScrollTop(origin, measuredPrefix, captured.intra, header);
+		expect(origin + measuredPrefix - scroll).toBe(364.5);
+	}
+	// Removing Load earlier changes the list origin without changing the captured row position.
+	const finalScroll = browseAnchorScrollTop(320.5, 19072, captured.intra, header);
+	expect(320.5 + 19072 - finalScroll).toBe(364.5);
 });
