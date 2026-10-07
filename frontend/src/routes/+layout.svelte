@@ -1,5 +1,6 @@
 <script lang="ts">
 	import '../app.css';
+	import { savedProfile } from '#lib/saved-state/profile.svelte.ts';
 	import Shell from '#lib/components/layout/Shell.svelte';
 	import { page } from '$app/state';
 	import { parseSearchUrl } from '#lib/search/navigation.ts';
@@ -24,6 +25,7 @@
 	if (page.url.pathname === '/mtg/search') search.hydrate(parseSearchUrl(page.url));
 
 	$effect(() => {
+		savedProfile.start(data.user?.accountId ?? null);
 		authState.user = data.user;
 	});
 
@@ -41,5 +43,9 @@
 </svelte:head>
 
 <Shell>
-	{@render children()}
+	{#if savedProfile.status === 'expired' && data.user}
+		<p role="alert">Your session has ended. <a href="/auth/login">Sign in again</a>.</p>
+	{:else}
+		{@render children()}
+	{/if}
 </Shell>

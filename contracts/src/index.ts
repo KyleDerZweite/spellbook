@@ -4,3 +4,4 @@ export type * from './profile.ts';
 export type * from './errors.ts';
 export type * from './inventory.ts';
 export type * from './decks.ts';
+export type * from './saved-state.ts';

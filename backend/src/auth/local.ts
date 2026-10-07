@@ -40,6 +40,11 @@ export function createLocalAuth(db: Database, config: { demoMode: boolean }) {
 	async function validateSession(token: string | undefined) {
 		return (await inspectSession(token))?.user ?? null;
 	}
+	async function actorSession(actor: AuthUser): Promise<SessionInfo> {
+		const session = await readSession(actors.get(actor));
+		if (!session || Date.parse(session.expiresAt) <= Date.now()) throw new ActorError();
+		return { ...session, user: trust(session.user, actors.get(actor)!) };
+	}
 	async function requireActor(actor: AuthUser, transaction?: Transaction): Promise<AuthUser> {
 		const token = actors.get(actor);
 		const session = await readSession(token, transaction);
@@ -197,7 +202,8 @@ export function createLocalAuth(db: Database, config: { demoMode: boolean }) {
 		withPasswordDerivation,
 		inspectSession,
 		requireActor,
-		changePassword
+		changePassword,
+		actorSession
 	} satisfies LocalAuthApplication & {
 		createSession: typeof createSession;
 		takeAuthAttempt: typeof takeAuthAttempt;
@@ -205,5 +211,6 @@ export function createLocalAuth(db: Database, config: { demoMode: boolean }) {
 		inspectSession: typeof inspectSession;
 		requireActor: typeof requireActor;
 		changePassword: typeof changePassword;
+		actorSession: typeof actorSession;
 	};
 }
