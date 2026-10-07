@@ -122,6 +122,7 @@ export function createCategories(
 				return replay.rows[0].acknowledgement as CategoryAcknowledgement;
 			}
 			await owned(tx, accountId, deckId, true);
+			const previouslyInitialized = manual || !!(await adoptedDefinitions(tx, deckId));
 			let entryIds: string[] = [];
 			if (!manual) entryIds = await ensureEntryCategoryInitialization(tx, deckId);
 			else {
@@ -162,6 +163,11 @@ export function createCategories(
 			await tx.execute(
 				sql`INSERT INTO category_mutation_requests(account_id,request_id,request_hash,acknowledgement) VALUES(${accountId},${requestId}::uuid,${fingerprint},${JSON.stringify(acknowledgement)}::jsonb)`
 			);
+			if (entryIds.length || !previouslyInitialized) {
+				await tx.execute(
+					sql`SELECT pg_notify('spellbook_saved_state',json_build_object('accountId',${accountId}::text,'topic','decks')::text)`
+				);
+			}
 			return acknowledgement;
 		});
 	}

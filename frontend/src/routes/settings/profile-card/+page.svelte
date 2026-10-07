@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { reconcileProfileCardDraft } from '#lib/profile/saved.ts';
 	import { savedProfile } from '#lib/saved-state/profile.svelte.ts';
 	import { enhance } from '$app/forms';
 	import { onMount, untrack, tick } from 'svelte';
@@ -50,30 +51,25 @@
 	let selectedArtwork = $state(untrack(() => initialArtwork));
 	let baselineCard = $state(untrack(() => ({ ...data.card })));
 	let baselineArtwork = $state(untrack(() => data.user.artworkId));
-	let previousIncoming = untrack(() => incomingCard);
+	let editingAccount = untrack(() => data.user.accountId);
 	$effect(() => {
-		const incoming = incomingCard;
-		if (incoming !== previousIncoming) {
-			card = { ...incoming };
+		const accountId = data.user.accountId;
+		untrack(() => {
+			if (editingAccount === accountId) return;
+			editingAccount = accountId;
+			card = { ...incomingCard };
 			selectedArtwork = initialArtwork;
 			baselineCard = { ...data.card };
 			baselineArtwork = data.user.artworkId;
-			previousIncoming = incoming;
-		}
+		});
 	});
 	$effect(() => {
 		const next = saved;
 		untrack(() => {
-			const merged = { ...card };
-			const baseline = { ...baselineCard };
-			for (const field of Object.keys(next.card) as (keyof typeof card)[]) {
-				if (card[field] === baselineCard[field]) {
-					Object.assign(merged, { [field]: next.card[field] });
-					Object.assign(baseline, { [field]: next.card[field] });
-				}
-			}
-			card = merged;
-			baselineCard = baseline;
+			if (next.user.accountId !== editingAccount) return;
+			const merged = reconcileProfileCardDraft(card, baselineCard, next.card);
+			card = merged.card;
+			baselineCard = merged.baseline;
 			if (selectedArtwork === baselineArtwork) {
 				selectedArtwork = getProfileArtwork(next.user.artworkId).id;
 				baselineArtwork = next.user.artworkId;

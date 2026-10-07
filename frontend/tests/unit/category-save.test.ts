@@ -1,10 +1,13 @@
+import type { DeckCard } from '@spellbook/contracts/decks.ts';
 import { describe, it, expect } from 'vitest';
 import type { DeckEntryCategories } from '@spellbook/contracts/categories.ts';
 import {
 	initialCategoryDraft,
 	editCategoryDraft,
 	acknowledgeCategoryDraft,
-	reconcileCategoryDraft
+	reconcileCategoryDraft,
+	categoryEditorEntries,
+	categoryEditorUnavailable
 } from '../../src/lib/decks/category-save.ts';
 const saved: DeckEntryCategories = {
 	deckId: 'deck',
@@ -98,4 +101,30 @@ it('publishes recovered source health from a successful equal-revision read with
 	expect(selectCategorySnapshot(failed, recovered)).toBe(recovered);
 	expect(selectCategorySnapshot(failed, recovered)?.decisions).toBe(saved.decisions);
 	expect(selectCategorySnapshot(failed, { ...recovered, decisionRevision: '3' })).toBe(failed);
+});
+
+it('retains dirty entry-owned category editors across saved role changes and removal without changing Main grouping', () => {
+	const main: Pick<DeckCard, 'id' | 'name' | 'role'> = {
+		id: 'entry',
+		name: 'Sol Ring',
+		role: 'main'
+	};
+	let rows = categoryEditorEntries([], [main], []);
+	const dirty = editCategoryDraft(
+		initialCategoryDraft(saved.decisions[0], saved.decisionRevision),
+		'ramp'
+	);
+	const moved: typeof main = { ...main, role: 'sideboard' };
+	rows = categoryEditorEntries(rows, [moved], ['entry']);
+	expect(rows).toEqual([{ id: 'entry', name: 'Sol Ring' }]);
+	expect(categoryEditorUnavailable('entry', [moved], false)).toMatch(/outside Main/);
+	expect([moved].filter((entry) => entry.role === 'main')).toEqual([]);
+	expect(reconcileCategoryDraft(dirty, { ...saved, decisionRevision: '5' }, 'entry')).toBe(dirty);
+	rows = categoryEditorEntries(rows, [], ['entry']);
+	expect(rows).toHaveLength(1);
+	expect(categoryEditorUnavailable('entry', [], false)).toMatch(/removed/);
+	expect(
+		reconcileCategoryDraft(dirty, { ...saved, decisionRevision: '6', decisions: [] }, 'entry')
+	).toBe(dirty);
+	expect(categoryEditorEntries(rows, [], [])).toEqual([]);
 });

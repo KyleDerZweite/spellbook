@@ -1,6 +1,8 @@
+import { untrack } from 'svelte';
 import type { ProfileSettings } from '@spellbook/contracts/profile.ts';
 import { authState } from '#lib/auth/state.svelte.ts';
 import { workspaceSavedState } from './workspace.svelte.ts';
+import { selectProfileSeed } from '#lib/profile/saved.ts';
 import type { ResourceSubscription } from './workspace.ts';
 /** Shared saved Profile/header resource, without owning another transport. */
 class SavedProfile {
@@ -42,9 +44,11 @@ class SavedProfile {
 	}
 	seed(profile: ProfileSettings) {
 		if (!workspaceSavedState.isActive(profile.user.accountId)) return;
-		this.profile = profile;
-		authState.user = profile.user;
-		this.refresh();
+		untrack(() => {
+			this.profile = selectProfileSeed(this.profile, profile);
+			authState.user = this.profile.user;
+			this.refresh();
+		});
 	}
 	refresh() {
 		this.resource?.invalidate();

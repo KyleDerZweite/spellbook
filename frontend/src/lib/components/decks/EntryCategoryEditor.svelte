@@ -19,7 +19,9 @@
 		busy,
 		submit,
 		refresh,
-		recovery
+		recovery,
+		unavailable = null,
+		onDraftChange
 	}: {
 		categories: DeckEntryCategories;
 		entryId: string;
@@ -28,6 +30,8 @@
 		busy: boolean;
 		submit: SubmitFunction;
 		refresh: (deckId: string, signal: AbortSignal) => Promise<void>;
+		unavailable?: string | null;
+		onDraftChange?: (dirty: boolean) => void;
 		recovery?: { categoryId: string | null; expectedDecisionRevision: string; requestId: string };
 	} = $props();
 	const inputId = $props.id();
@@ -42,6 +46,7 @@
 		const next = reconcileCategoryDraft(draft, categories, entryId);
 		if (next !== draft) draft = next;
 	});
+	$effect(() => onDraftChange?.(draft.dirty));
 	let live = true;
 	let controller: AbortController | undefined;
 	onDestroy(() => {
@@ -65,6 +70,10 @@
 		}
 	}
 	const categorySubmit: SubmitFunction = async (args) => {
+		if (unavailable) {
+			args.cancel();
+			return;
+		}
 		const submitted = draft.value;
 		draft = editCategoryDraft(draft, submitted);
 		const after = await submit(args);
@@ -87,6 +96,7 @@
 </script>
 
 <div data-entry-category={entryId} class="category-editor">
+	{#if unavailable}<p role="alert" class="notice">{unavailable}</p>{/if}
 	<p class="muted" data-category-provenance>
 		{name}: {decision?.state ?? 'Uninitialized'}.
 		{#if decision?.state === 'Pending'}Required source facts were unavailable when this entry was
@@ -134,7 +144,7 @@
 			]}
 			bind:value={draft.value}
 			onchange={(value) => (draft = editCategoryDraft(draft, value))}
-			disabled={busy}
+			disabled={busy || !!unavailable}
 		/>
 		{#if BigInt(categories.decisionRevision) > BigInt(draft.revision)}<p
 				role="alert"
@@ -148,8 +158,10 @@
 				name="rebaseCategory"
 				value={categories.decisionRevision}
 				variant="outline"
-				disabled={busy}>Apply choice to latest revision</Button
-			>{:else}<Button type="submit" variant="outline" disabled={busy}>Save category</Button>{/if}
+				disabled={busy || !!unavailable}>Apply choice to latest revision</Button
+			>{:else}<Button type="submit" variant="outline" disabled={busy || !!unavailable}
+				>Save category</Button
+			>{/if}
 	</form>
 </div>
 

@@ -20,8 +20,14 @@
 	let pending = $state(false);
 	let saveError = $state('');
 	let profileForm: HTMLFormElement;
+	let editingAccount = untrack(() => data.user.accountId);
 	let lastSavedEmail = $state(untrack(() => data.user.email));
 	$effect(() => {
+		if (saved.user.accountId !== editingAccount) {
+			editingAccount = saved.user.accountId;
+			email = saved.user.email;
+			lastSavedEmail = saved.user.email;
+		}
 		if (saved.user.email !== lastSavedEmail) {
 			if (email === lastSavedEmail) email = saved.user.email;
 			lastSavedEmail = saved.user.email;
@@ -127,7 +133,7 @@
 				>
 					<Avatar id={saved.user.avatarId} size={88} />
 				</div>
-				<AvatarEditor avatarId={saved.user.avatarId} />
+				{#key saved.user.accountId}<AvatarEditor avatarId={saved.user.avatarId} />{/key}
 			</div>
 		</div>
 		<div class="profile-card-summary">

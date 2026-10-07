@@ -719,3 +719,55 @@ it('rejects obsolete normal-page and RevisionChanged reset bodies before protect
 	expect(window.current?.revision).toBe('1');
 	window.clear();
 });
+
+it('refetches a later server-load context at its native offset instead of applying its old snapshot', async () => {
+	let release!: () => void, arrived!: () => void;
+	const held = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	const received = new Promise<void>((resolve) => {
+		arrived = resolve;
+	});
+	const server = createServer(async (request, response) => {
+		const url = new URL(request.url!, 'http://127.0.0.1');
+		arrived();
+		await held;
+		response.setHeader('content-type', 'application/json');
+		response.end(
+			JSON.stringify(page(Number(url.searchParams.get('offset')), url.searchParams.get('q')!, '4'))
+		);
+	});
+	await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+	const address = server.address();
+	if (!address || typeof address === 'string') throw Error('Missing test listener');
+	const window = new InventoryWindow(
+		async (requested, _revision, signal) =>
+			(
+				await fetch(
+					`http://127.0.0.1:${address.port}/?q=${requested.q}&offset=${requested.offset}`,
+					{ signal }
+				)
+			).json(),
+		() => {}
+	);
+	window.seed('actor', page(0, 'current', '3'));
+	const delayedServerPage = page(150, 'next-native-page', '1');
+	try {
+		const refreshing = window.refresh(
+			'actor',
+			new AbortController().signal,
+			() => true,
+			delayedServerPage.query
+		);
+		await received;
+		expect(window.current?.revision).toBe('3');
+		release();
+		await refreshing;
+		expect(window.current?.query).toMatchObject({ q: 'next-native-page', offset: 150 });
+		expect(window.current?.revision).toBe('4');
+	} finally {
+		release();
+		window.clear();
+		await new Promise<void>((resolve) => server.close(() => resolve()));
+	}
+});

@@ -8,7 +8,12 @@
 	import { storedCardDocument } from '#lib/mtg/stored-card.ts';
 	import type { CardDocument } from '#lib/search/types.ts';
 	import { untrack, onDestroy, onMount } from 'svelte';
-	import { selectCategorySnapshot } from '#lib/decks/category-save.ts';
+	import {
+		selectCategorySnapshot,
+		categoryEditorEntries,
+		categoryEditorUnavailable,
+		type CategoryEditorEntry
+	} from '#lib/decks/category-save.ts';
 	import type { DeckEntryCategories } from '@spellbook/contracts/categories.ts';
 	import EntryCategoryEditor from '#lib/components/decks/EntryCategoryEditor.svelte';
 	import {
@@ -54,17 +59,18 @@
 	let deckSubscription: ResourceSubscription | undefined = $state();
 	let deletedTarget = $state(false);
 	$effect(() => {
-		const current = data;
-		untrack(() => {
-			savedDecks = current;
-			deletedTarget = false;
-		});
+		data;
+		untrack(() => deckSubscription?.invalidate());
 	});
 	onMount(() => {
 		deckSubscription = workspaceSavedState.subscribe({
 			topics: ['decks', 'inventory'],
 			clear: () => {
 				categoryRead = null;
+				dirtyCategoryEntries = [];
+				nativeCategoriesOpen = false;
+				categoryRows = [];
+				inspectorCategoryEntryId = null;
 				savedDecks = {
 					...savedDecks,
 					decks: [],
@@ -353,6 +359,23 @@
 	let searchOpen = $state(false);
 	let inspected = $state<CardDocument | null>(null);
 	let inspectedEntryId = $state<string | null>(null);
+	let inspectorCategoryEntryId = $state<string | null>(null);
+	let nativeCategoriesOpen = $state(false);
+	let dirtyCategoryEntries = $state<string[]>([]);
+	let categoryRows = $state<CategoryEditorEntry[]>(
+		untrack(() => categoryEditorEntries([], data.deckCards, []))
+	);
+	function categoryDirty(entryId: string, dirty: boolean) {
+		if (dirtyCategoryEntries.includes(entryId) === dirty) return;
+		dirtyCategoryEntries = dirty
+			? [...dirtyCategoryEntries, entryId]
+			: dirtyCategoryEntries.filter((id) => id !== entryId);
+	}
+	$effect(() => {
+		const entries = deckCards,
+			dirty = dirtyCategoryEntries;
+		untrack(() => (categoryRows = categoryEditorEntries(categoryRows, entries, dirty)));
+	});
 	let inspectorQuantity = $state(1);
 	let inspectorRole = $state('main');
 	let inspectorQuantityBase = $state(1);
@@ -379,6 +402,7 @@
 		saveLifecycle.open('inspector', entry?.id ?? card.id);
 		inspected = card;
 		inspectedEntryId = entry?.id ?? null;
+		inspectorCategoryEntryId = entry?.role === 'main' ? entry.id : null;
 		inspectorQuantity = entry?.quantity ?? addQuantity;
 		inspectorRole = entry?.role ?? addRole;
 		inspectorQuantityBase = inspectorQuantity;
@@ -413,23 +437,36 @@
 		const controller = new AbortController();
 		searchController = controller;
 		const publication = deckSubscription?.publication() ?? (() => true);
+		const submittedQuery = query,
+			account = data.user?.accountId,
+			selected = data.selectedDeckId,
+			flow = data.flow;
+		const ownsRequest = () =>
+			searchController === controller &&
+			!controller.signal.aborted &&
+			workspaceSavedState.isActive(account) &&
+			data.user?.accountId === account &&
+			data.selectedDeckId === selected &&
+			data.flow === flow;
+		const current = () => ownsRequest() && publication() && query === submittedQuery;
 		searching = true;
 		searchError = '';
 		try {
-			const response = await fetch(
-				`/api/mobile/v1/mtg/decks/search?q=${encodeURIComponent(query)}`,
-				{ signal: controller.signal }
-			);
-			if (response.status === 401 && publication()) workspaceSavedState.expire();
-			if (!response.ok) throw new Error('Search failed.');
-			const result = await response.json();
-			if (publication() && !controller.signal.aborted) searchOwned = result.ownedByCanonical;
-			if (publication() && !controller.signal.aborted) results = result.hits;
+			const result = await readSavedJSON<{
+				hits: CardDocument[];
+				ownedByCanonical: Record<string, number>;
+			}>(`/api/mobile/v1/mtg/decks/search?q=${encodeURIComponent(submittedQuery)}`, {
+				signal: controller.signal,
+				current
+			});
+			if (result && current()) {
+				searchOwned = result.ownedByCanonical;
+				results = result.hits;
+			}
 		} catch (cause) {
-			if (publication() && !controller.signal.aborted)
-				searchError = cause instanceof Error ? cause.message : 'Search failed.';
+			if (current()) searchError = cause instanceof Error ? cause.message : 'Search failed.';
 		} finally {
-			if (!controller.signal.aborted) searching = false;
+			if (ownsRequest()) searching = false;
 		}
 	}
 
@@ -541,6 +578,9 @@
 		}
 		if (saveLifecycle.setScope(data.user?.accountId ?? '', data.selectedDeckId, data.flow)) {
 			categoryRead = null;
+			dirtyCategoryEntries = [];
+			nativeCategoriesOpen = false;
+			inspectorCategoryEntryId = null;
 			busy = false;
 			saveError = '';
 			saveStatus = '';
@@ -558,7 +598,10 @@
 		if (!editOpen && data.flow !== 'edit') saveLifecycle.close('details');
 		if (!importOpen && data.flow !== 'import') saveLifecycle.close('import');
 		if (!deleteOpen && data.flow !== 'delete') saveLifecycle.close('delete');
-		if (!inspected) saveLifecycle.close('inspector');
+		if (!inspected) {
+			saveLifecycle.close('inspector');
+			inspectorCategoryEntryId = null;
+		}
 	});
 	onDestroy(() => {
 		saveLifecycle.destroy();
@@ -1212,25 +1255,34 @@
 							Oracle Tags refresh failed. Saved decisions and the last valid source remain
 							available.
 						</p>{/if}
-					<details data-native-categories>
+					<details
+						data-native-categories
+						open={nativeCategoriesOpen}
+						ontoggle={(event) => {
+							nativeCategoriesOpen = event.currentTarget.open;
+							if (!nativeCategoriesOpen) dirtyCategoryEntries = [];
+						}}
+					>
 						<summary>Primary category decisions</summary>
-						{#each deckCards.filter((c) => c.role === 'main') as card (card.id)}<section
-								aria-label={`Category for ${card.name}`}
-							>
-								<h3>{card.name}</h3>
-								<EntryCategoryEditor
-									categories={entryCategories}
-									recovery={form?.categoryDraft?.entryId === card.id
-										? form.categoryDraft
-										: undefined}
-									entryId={card.id}
-									action={action('setCategory')}
-									refresh={refreshCategories}
-									requestId={data.requestId}
-									{busy}
-									submit={save}
-								/>
-							</section>{/each}
+						{#if !mounted || nativeCategoriesOpen}{#each categoryRows as card (card.id)}<section
+									aria-label={`Category for ${card.name}`}
+								>
+									<h3>{card.name}</h3>
+									<EntryCategoryEditor
+										categories={entryCategories}
+										recovery={form?.categoryDraft?.entryId === card.id
+											? form.categoryDraft
+											: undefined}
+										entryId={card.id}
+										unavailable={categoryEditorUnavailable(card.id, deckCards, deletedTarget)}
+										onDraftChange={(dirty) => categoryDirty(card.id, dirty)}
+										action={action('setCategory')}
+										refresh={refreshCategories}
+										requestId={data.requestId}
+										{busy}
+										submit={save}
+									/>
+								</section>{/each}{/if}
 					</details>
 				{/if}
 				{#if deckCards.length === 0}<div class="empty-state">
@@ -1371,12 +1423,17 @@
 					>
 				</form>
 				{#if form?.mergeDraft?.entryId === inspectedEntry?.id}{@render mergeReview()}{/if}
-				{#if inspectedEntry?.role === 'main' && entryCategories?.initialized}{#key inspectedEntry.id}<EntryCategoryEditor
+				{#if inspectorCategoryEntryId && entryCategories?.initialized}{#key inspectorCategoryEntryId}<EntryCategoryEditor
 							categories={entryCategories}
-							recovery={form?.categoryDraft?.entryId === inspectedEntry.id
+							recovery={form?.categoryDraft?.entryId === inspectorCategoryEntryId
 								? form.categoryDraft
 								: undefined}
-							entryId={inspectedEntry.id}
+							entryId={inspectorCategoryEntryId}
+							unavailable={categoryEditorUnavailable(
+								inspectorCategoryEntryId,
+								deckCards,
+								deletedTarget
+							)}
 							action={action('setCategory')}
 							refresh={refreshCategories}
 							requestId={data.requestId}

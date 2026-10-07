@@ -172,6 +172,8 @@
 		})
 	);
 	let windowAccount = '';
+	let lastServerWindow = untrack(() => data.window);
+	let requestedServerQuery: InventoryQuery | null = $state(null);
 	onMount(() => {
 		hydrated = true;
 		windowAccount = page.data.user?.accountId ?? 'session';
@@ -180,6 +182,7 @@
 			topics: ['inventory'],
 			refresh: (lease) => refreshInventory(windowAccount, lease),
 			clear: () => {
+				requestedServerQuery = null;
 				window.clear();
 				targetEntries = {};
 				inspection = null;
@@ -206,41 +209,41 @@
 		if (!hydrated) return;
 		const initial = data.window;
 		untrack(() => {
-			// refreshAll from Search reloads the rendered URL, which can precede the active shallow view.
+			if (initial === lastServerWindow) return;
+			lastServerWindow = initial;
+			const account = page.data.user?.accountId ?? 'session';
+			if (!workspaceSavedState.isActive(account)) return;
+			// Later SSR completion requests a current leased read, never overwrites synchronized state.
 			if (
 				effectiveInventoryUrl(page).search !== page.url.search &&
 				window.current &&
-				windowAccount === (page.data.user?.accountId ?? 'session')
+				windowAccount === account
 			) {
-				void refreshInventory();
+				inventorySubscription?.invalidate();
 				return;
 			}
-			query = initial.query.q;
-			selectedSets = initial.query.sets;
-			selectedFinish = initial.query.finish;
-			selectedCondition = initial.query.condition;
-			order = {
-				base: initial.query.sort,
-				direction: initial.query.dir,
-				variant: initial.query.variant
-					? { column: initial.query.variant, direction: initial.query.variantDir }
-					: null
-			};
 			const samePage =
 				window.current?.queryKey === initial.queryKey &&
 				window.current?.query.offset === initial.query.offset;
-			const anchor = samePage ? virtualList?.anchor() : null;
-			windowAccount = page.data.user?.accountId ?? 'session';
-			window.seed(windowAccount, initial);
-			if (anchor?.id) void restoreAnchor(anchor.id, anchor.intra, anchor.index);
-			else void restoreNativeOffset(initial.query.offset);
-			void refreshTargets().catch((cause) => {
-				if (workspaceSavedState.isActive(windowAccount))
-					mutationError =
-						cause instanceof Error ? cause.message : 'Saved entry details are unavailable.';
-			});
+			if (!samePage) {
+				query = initial.query.q;
+				selectedSets = initial.query.sets;
+				selectedFinish = initial.query.finish;
+				selectedCondition = initial.query.condition;
+				order = {
+					base: initial.query.sort,
+					direction: initial.query.dir,
+					variant: initial.query.variant
+						? { column: initial.query.variant, direction: initial.query.variantDir }
+						: null
+				};
+				requestedServerQuery = initial.query;
+			}
+			windowAccount = account;
+			inventorySubscription?.invalidate();
 		});
 	});
+
 	function requestQuery(): InventoryQuery {
 		return {
 			...data.window.query,
@@ -265,6 +268,7 @@
 	}
 	$effect(() => {
 		if (!hydrated) return;
+		if (requestedServerQuery) return;
 		const input = requestQuery();
 		const account = page.data.user?.accountId ?? 'session';
 		const same = untrack(
@@ -327,12 +331,18 @@
 		const controller = new AbortController();
 		refreshController = controller;
 		const account = expectedAccount;
-		const anchor = virtualList?.anchor();
+		const serverQuery = requestedServerQuery;
+		const anchor = serverQuery ? null : virtualList?.anchor();
 		anchorController?.abort();
 		anchorController = null;
 		anchorRestoreActive = true;
 		try {
-			const identity = await window.refresh(account, lease.signal, currentLease);
+			const identity = await window.refresh(
+				account,
+				lease.signal,
+				currentLease,
+				serverQuery ?? window.current?.query ?? data.window.query
+			);
 			if (
 				!currentLease() ||
 				!identity ||
@@ -341,6 +351,7 @@
 				account !== (page.data.user?.accountId ?? 'session')
 			)
 				return;
+			if (serverQuery && requestedServerQuery === serverQuery) requestedServerQuery = null;
 			if (anchor?.id) await restoreAnchor(anchor.id, anchor.intra, anchor.index, currentLease);
 			else await restoreNativeOffset(window.current?.query.offset ?? 0, currentLease);
 			if (!currentLease()) return;

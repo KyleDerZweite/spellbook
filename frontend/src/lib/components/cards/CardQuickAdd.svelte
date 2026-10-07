@@ -25,7 +25,11 @@
 		untrack(() => (page.data.requestId ? `${page.data.requestId}:${card.id}` : crypto.randomUUID()))
 	);
 	const pendingRequests = new Map<string, string>();
-	onDestroy(() => onPendingChange?.(false));
+	let mounted = true;
+	onDestroy(() => {
+		mounted = false;
+		onPendingChange?.(false);
+	});
 	const hasAvailableFinish = $derived(card.is_nonfoil_available || card.is_foil_available);
 
 	const add: SubmitFunction = ({ formData, cancel }) => {
@@ -53,7 +57,7 @@
 		message = '';
 		return async ({ result, update }) => {
 			try {
-				if (!write.current() && (account || result.type !== 'redirect')) return;
+				if (!mounted || (!write.current() && (account || result.type !== 'redirect'))) return;
 				if (result.type === 'success' && result.data?.success) {
 					pendingRequests.delete(payload);
 					requestId = crypto.randomUUID();
@@ -78,7 +82,7 @@
 			} finally {
 				write.complete();
 				pending = false;
-				if (write.current() || !account) onPendingChange?.(false);
+				if (mounted && (write.current() || !account)) onPendingChange?.(false);
 			}
 		};
 	};

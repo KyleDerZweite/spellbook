@@ -209,12 +209,17 @@ export class InventoryWindow {
 	async refresh(
 		account: string,
 		signal: AbortSignal,
-		currentLease: () => boolean = this.publication()
+		currentLease: () => boolean = this.publication(),
+		requestedQuery?: InventoryQuery
 	) {
-		if (account !== this.account || !this.current || !currentLease()) return;
+		const query = requestedQuery ?? this.current?.query;
+		if (!query || !currentLease() || (account !== this.account && this.current)) return;
+		if (account !== this.account) {
+			this.clear();
+			this.account = account;
+		}
 		this.pruneQueue();
-		const generation = ++this.generation,
-			query = this.current.query;
+		const generation = ++this.generation;
 		this.replacing = true;
 		try {
 			const page = await this.withSlot(

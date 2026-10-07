@@ -368,6 +368,101 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 				assert.equal(deck.status, 200);
 				await wait(() => deckCount === 1);
 				assert.ok(performance.now() - deckAt < 2000);
+
+				const createdDecks = await deck.json();
+				const selectedDeck = createdDecks.find(
+					(value: { name: string }) => value.name === 'Streaming owned deck'
+				);
+				assert.ok(selectedDeck);
+				const added = await request(
+					secondary,
+					`/api/mobile/v1/mtg/decks/${selectedDeck.id}/cards/bulk`,
+					a.token,
+					{
+						requestId: crypto.randomUUID(),
+						operations: [
+							{ op: 'add', catalogCardId: card.catalogCardId, quantity: 1, role: 'main' }
+						]
+					}
+				);
+				assert.equal(added.status, 200);
+				const entryId = (await added.json()).changes[0].entryId;
+				let categoryState = '',
+					categoryRevision = '',
+					categoryReads = 0;
+				workspace.subscribe({
+					topics: ['decks'],
+					clear() {
+						categoryState = '';
+						categoryRevision = '';
+					},
+					refresh: async (lease) => {
+						categoryReads++;
+						const response = await request(
+							primary,
+							`/api/mobile/v1/mtg/decks/${selectedDeck.id}/categories`,
+							a.token
+						);
+						assert.equal(response.status, 200);
+						const value = await response.json();
+						if (lease.current()) {
+							categoryState = value.decisions.find(
+								(entry: { entryId: string }) => entry.entryId === entryId
+							).state;
+							categoryRevision = value.decisionRevision;
+						}
+					}
+				});
+				await wait(() => !!categoryRevision);
+				const categoryPath = `/api/mobile/v1/mtg/deck-cards/${entryId}/category`;
+				const categoryIntent = {
+					deckId: selectedDeck.id,
+					categoryId: null,
+					expectedDecisionRevision: categoryRevision,
+					requestId: crypto.randomUUID()
+				};
+				const categoryAt = performance.now();
+				const categorySave = await request(
+					secondary,
+					categoryPath,
+					a.token,
+					categoryIntent,
+					'PATCH'
+				);
+				assert.equal(categorySave.status, 200);
+				const categoryAck = await categorySave.json();
+				await wait(() => categoryState === 'Manual');
+				assert.ok(performance.now() - categoryAt < 2000);
+				await delay(80);
+				const categoryReadsBefore = categoryReads;
+				const categoryReplay = await request(
+					secondary,
+					categoryPath,
+					a.token,
+					categoryIntent,
+					'PATCH'
+				);
+				assert.equal(categoryReplay.status, 200);
+				assert.deepEqual(await categoryReplay.json(), categoryAck);
+				const categoryNoOp = await request(
+					secondary,
+					categoryPath,
+					a.token,
+					{
+						...categoryIntent,
+						expectedDecisionRevision: categoryRevision,
+						requestId: crypto.randomUUID()
+					},
+					'PATCH'
+				);
+				assert.equal(categoryNoOp.status, 200);
+				assert.deepEqual((await categoryNoOp.json()).entryIds, []);
+				await delay(100);
+				assert.equal(
+					categoryReads,
+					categoryReadsBefore,
+					'Replay and semantic no-op do not wake the saved Category resource'
+				);
 				let scanId: string | undefined,
 					scanCount = 0,
 					scanStatus = '';

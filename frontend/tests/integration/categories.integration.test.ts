@@ -384,4 +384,132 @@ run('primary category decisions through authorized applications', () => {
 			role: 'main'
 		});
 	});
+	it('notifies only committed category changes including empty initialization and preserves original replay', async () => {
+		const listener = await database.pool.connect();
+		const events: Array<{ accountId: string; topic: string }> = [];
+		listener.on('notification', ({ payload }) => {
+			if (payload) {
+				const event = JSON.parse(payload);
+				if (event.accountId === actor.accountId) events.push(event);
+			}
+		});
+		const settle = () => new Promise((resolve) => setTimeout(resolve, 80));
+		const notified = async () => {
+			const until = Date.now() + 2000;
+			while (!events.length && Date.now() < until) await settle();
+			expect(events).toEqual([{ accountId: actor.accountId, topic: 'decks' }]);
+			events.length = 0;
+		};
+		const unchanged = async () => {
+			await settle();
+			expect(events).toEqual([]);
+		};
+		const failedId = randomUUID();
+		const faultName = 'category_commit_fault_' + failedId.replaceAll('-', '');
+		let faultCreated = false;
+		try {
+			await listener.query('LISTEN spellbook_saved_state');
+			const deck = await decks.createDeckRecord(actor, {
+				game: 'mtg',
+				name: 'Signal contract',
+				description: '',
+				format: 'Modern'
+			});
+			await notified();
+			// A pre-category empty Deck has no adopted bundle; current creation initializes it.
+			await database.pool.query('DELETE FROM deck_category_bundles WHERE deck_id=$1', [deck.id]);
+			expect((await categories.getDeckEntryCategories(actor, deck.id)).initialized).toBe(false);
+			const initialization = { deckId: deck.id, requestId: randomUUID() };
+			const initialAck = await categories.initializeDeckCategories(actor, initialization);
+			expect(initialAck.entryIds).toEqual([]);
+			await notified();
+			expect(await categories.initializeDeckCategories(actor, initialization)).toEqual(initialAck);
+			await unchanged();
+			await categories.initializeDeckCategories(actor, {
+				...initialization,
+				requestId: randomUUID()
+			});
+			await unchanged();
+			const added = await decks.bulkMutateDeckCards(actor, {
+				deckId: deck.id,
+				requestId: randomUUID(),
+				source: 'web',
+				game: 'mtg',
+				operations: [{ op: 'add', card, quantity: 1, role: 'main' }]
+			});
+			await notified();
+			const entryId = added.changes[0].entryId;
+			const beforeDeck = (
+				await database.pool.query(
+					'SELECT updated_at,composition_revision,description_revision FROM decks WHERE id=$1',
+					[deck.id]
+				)
+			).rows[0];
+			const initial = await categories.getDeckEntryCategories(actor, deck.id);
+			const input = {
+				deckId: deck.id,
+				entryId,
+				categoryId: null,
+				expectedDecisionRevision: initial.decisionRevision,
+				requestId: randomUUID()
+			};
+			const ack = await categories.setEntryCategory(actor, input);
+			await notified();
+			expect(
+				(
+					await database.pool.query(
+						'SELECT updated_at,composition_revision,description_revision FROM decks WHERE id=$1',
+						[deck.id]
+					)
+				).rows[0]
+			).toEqual(beforeDeck);
+			expect(await categories.setEntryCategory(actor, input)).toEqual(ack);
+			await unchanged();
+			const current = await categories.getDeckEntryCategories(actor, deck.id);
+			const noOp = await categories.setEntryCategory(actor, {
+				...input,
+				expectedDecisionRevision: current.decisionRevision,
+				requestId: randomUUID()
+			});
+			expect(noOp.entryIds).toEqual([]);
+			await unchanged();
+			await database.pool.query(
+				`CREATE FUNCTION ${faultName}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'test-owned deferred category commit failure'; END $$`
+			);
+			await database.pool.query(
+				`CREATE CONSTRAINT TRIGGER ${faultName} AFTER INSERT ON category_mutation_requests DEFERRABLE INITIALLY DEFERRED FOR EACH ROW WHEN (NEW.request_id='${failedId}'::uuid) EXECUTE FUNCTION ${faultName}()`
+			);
+			faultCreated = true;
+			await expect(
+				categories.setEntryCategory(actor, {
+					...input,
+					requestId: failedId,
+					categoryId: current.definitions[0].id,
+					expectedDecisionRevision: current.decisionRevision
+				})
+			).rejects.toMatchObject({
+				cause: { message: 'test-owned deferred category commit failure' }
+			});
+			await unchanged();
+			expect(await categories.getDeckEntryCategories(actor, deck.id)).toEqual(current);
+			expect(
+				(
+					await database.pool.query(
+						'SELECT acknowledgement FROM category_mutation_requests WHERE account_id=$1 AND request_id=$2',
+						[actor.accountId, failedId]
+					)
+				).rowCount
+			).toBe(0);
+			await decks.deleteDeck(actor, deck.id);
+			await notified();
+			expect(await categories.setEntryCategory(actor, input)).toEqual(ack);
+			await unchanged();
+		} finally {
+			if (faultCreated)
+				await database.pool.query(`DROP TRIGGER ${faultName} ON category_mutation_requests`);
+			await database.pool.query(`DROP FUNCTION IF EXISTS ${faultName}()`);
+			await listener.query('UNLISTEN spellbook_saved_state');
+			listener.release();
+		}
+	});
 });

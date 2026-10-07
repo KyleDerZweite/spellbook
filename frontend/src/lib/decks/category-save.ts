@@ -1,3 +1,4 @@
+import type { DeckCard } from '@spellbook/contracts/decks.ts';
 import type {
 	CategoryAcknowledgement,
 	DeckEntryCategories,
@@ -87,4 +88,34 @@ export function selectCategorySnapshot(
 	return current && (!server || BigInt(current.decisionRevision) >= BigInt(server.decisionRevision))
 		? current
 		: server;
+}
+
+export type CategoryEditorEntry = Pick<DeckCard, 'id' | 'name'>;
+/** Editor identity is separate from Main-only category grouping. */
+export function categoryEditorEntries(
+	previous: readonly CategoryEditorEntry[],
+	entries: readonly Pick<DeckCard, 'id' | 'name' | 'role'>[],
+	dirtyEntryIds: readonly string[]
+): CategoryEditorEntry[] {
+	const current = entries
+		.filter((entry) => entry.role === 'main')
+		.map(({ id, name }) => ({ id, name }));
+	const ids = new Set(current.map((entry) => entry.id));
+	return [
+		...current,
+		...previous.filter((entry) => dirtyEntryIds.includes(entry.id) && !ids.has(entry.id))
+	];
+}
+export function categoryEditorUnavailable(
+	entryId: string,
+	entries: readonly Pick<DeckCard, 'id' | 'role'>[],
+	deletedDeck: boolean
+): string | null {
+	if (deletedDeck)
+		return 'This Deck was removed. Your category draft is retained and cannot be saved.';
+	const entry = entries.find((value) => value.id === entryId);
+	if (!entry) return 'This entry was removed. Your category draft is retained and cannot be saved.';
+	return entry.role !== 'main'
+		? 'This entry moved outside Main. Your category draft is retained and cannot be saved here.'
+		: null;
 }
