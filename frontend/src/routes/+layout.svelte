@@ -9,7 +9,6 @@
 	import { page } from '$app/state';
 	import { parseSearchUrl } from '#lib/search/navigation.ts';
 	import { provideSearchSession } from '#lib/search/session.svelte.ts';
-	import { authState } from '#lib/auth/state.svelte.ts';
 	import { activeGameState } from '#lib/state/activeGame.svelte.ts';
 	import { SITE_NAME } from '#lib/seo/site.ts';
 	import type { Snippet } from 'svelte';
@@ -56,7 +55,7 @@
 		untrack(() => {
 			workspaceSavedState.start({ accountId, activation: currentActivation });
 			savedProfile.start();
-			if (workspaceSavedState.getState() !== 'expired') authState.user = user;
+			savedProfile.seedUser(user);
 		});
 	});
 	onDestroy(() => {

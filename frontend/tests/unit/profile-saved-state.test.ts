@@ -1,5 +1,9 @@
-import { expect, it } from 'vitest';
-import { selectProfileSeed, reconcileProfileCardDraft } from '#lib/profile/saved.ts';
+import { expect, it, vi } from 'vitest';
+import {
+	selectProfileSeed,
+	reconcileProfileCardDraft,
+	selectAuthSeed
+} from '#lib/profile/saved.ts';
 import { defaultProfileCard } from '@spellbook/contracts/profile-card.ts';
 
 it('keeps the synchronized Profile snapshot when delayed same-account SSR arrives', () => {
@@ -68,6 +72,58 @@ it('retains current Profile data and a newer draft while a real delayed HTTP see
 		);
 	} finally {
 		release();
+		await new Promise<void>((resolve) => server.close(() => resolve()));
+	}
+});
+
+it('keeps the synchronized header avatar when a delayed same-account root body finishes decoding', async () => {
+	const { createServer } = await import('node:http');
+	let release!: () => void, decoding!: () => void;
+	const held = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	const started = new Promise<void>((resolve) => {
+		decoding = resolve;
+	});
+	const initial = {
+		accountId: 'account',
+		username: 'collector',
+		email: 'collector@example.test',
+		avatarId: 'old'
+	};
+	const server = createServer(async (_request, response) => {
+		response.writeHead(200, { 'content-type': 'application/json' });
+		response.write('{"user":');
+		await held;
+		response.end(JSON.stringify(initial) + '}');
+	});
+	await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+	const address = server.address();
+	if (!address || typeof address === 'string') throw Error('Missing test listener');
+	const original = Response.prototype.json;
+	const instrument = vi.spyOn(Response.prototype, 'json').mockImplementation(function (
+		this: Response
+	) {
+		decoding();
+		return original.call(this);
+	});
+	try {
+		const reading = fetch(`http://127.0.0.1:${address.port}/root`).then((response) =>
+			response.json()
+		);
+		await started;
+		const synchronized = { ...initial, avatarId: 'new' };
+		release();
+		const incoming = (await reading).user;
+		expect(selectAuthSeed(synchronized, incoming)).toBe(synchronized);
+		expect(selectAuthSeed(null, incoming)).toEqual(initial);
+		expect(selectAuthSeed(synchronized, { ...incoming, accountId: 'other' })?.accountId).toBe(
+			'other'
+		);
+		expect(selectAuthSeed(synchronized, null)).toBeNull();
+	} finally {
+		release();
+		instrument.mockRestore();
 		await new Promise<void>((resolve) => server.close(() => resolve()));
 	}
 });

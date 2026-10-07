@@ -2,7 +2,7 @@ import { untrack } from 'svelte';
 import type { ProfileSettings } from '@spellbook/contracts/profile.ts';
 import { authState } from '#lib/auth/state.svelte.ts';
 import { workspaceSavedState } from './workspace.svelte.ts';
-import { selectProfileSeed } from '#lib/profile/saved.ts';
+import { selectProfileSeed, selectAuthSeed } from '#lib/profile/saved.ts';
 import type { ResourceSubscription } from './workspace.ts';
 /** Shared saved Profile/header resource, without owning another transport. */
 class SavedProfile {
@@ -41,6 +41,11 @@ class SavedProfile {
 				authState.user = profile.user;
 			}
 		});
+	}
+	seedUser(user: ProfileSettings['user'] | null) {
+		if (workspaceSavedState.getState() === 'expired') return;
+		if (user && !workspaceSavedState.isActive(user.accountId)) return;
+		authState.user = selectAuthSeed(authState.user, user);
 	}
 	seed(profile: ProfileSettings) {
 		if (!workspaceSavedState.isActive(profile.user.accountId)) return;

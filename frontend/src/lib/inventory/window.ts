@@ -447,3 +447,15 @@ export function inventoryUrl(query: InventoryQuery, revision?: string) {
 	if (revision !== undefined) params.set('revision', revision);
 	return params;
 }
+
+/** Native offsets remain selected only while the visible controls retain that query. */
+export function matchingNativeInventoryQuery(
+	native: InventoryQuery | null,
+	controls: InventoryQuery
+): InventoryQuery | null {
+	return native &&
+		inventoryUrl({ ...native, offset: 0 }).toString() ===
+			inventoryUrl({ ...controls, offset: 0 }).toString()
+		? native
+		: null;
+}

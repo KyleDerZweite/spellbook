@@ -1,3 +1,4 @@
+import type { AuthUser } from '@spellbook/contracts/auth.ts';
 import type { ProfileCardDefinition } from '@spellbook/contracts/profile.ts';
 
 /** Only the first account snapshot comes from SSR; later reads own publication. */
@@ -22,4 +23,11 @@ export function reconcileProfileCardDraft(
 		}
 	}
 	return { card: nextCard, baseline: nextBaseline };
+}
+
+export function selectAuthSeed(
+	current: AuthUser | null,
+	incoming: AuthUser | null
+): AuthUser | null {
+	return incoming && current?.accountId === incoming.accountId ? current : incoming;
 }

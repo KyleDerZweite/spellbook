@@ -1,6 +1,6 @@
 import { it, expect, vi } from 'vitest';
 import { createServer } from 'node:http';
-import { InventoryWindow } from '#lib/inventory/window.ts';
+import { InventoryWindow, matchingNativeInventoryQuery } from '#lib/inventory/window.ts';
 import { inventoryRowSlots } from '#lib/inventory/rows.ts';
 import type { InventoryPage, InventoryQuery } from '@spellbook/contracts/inventory.ts';
 const query: InventoryQuery = {
@@ -765,6 +765,83 @@ it('refetches a later server-load context at its native offset instead of applyi
 		await refreshing;
 		expect(window.current?.query).toMatchObject({ q: 'next-native-page', offset: 150 });
 		expect(window.current?.revision).toBe('4');
+	} finally {
+		release();
+		window.clear();
+		await new Promise<void>((resolve) => server.close(() => resolve()));
+	}
+});
+
+it('supersedes a failed native refresh with changed controls and rejects its held retry body', async () => {
+	let release!: () => void, decoding!: () => void;
+	const held = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	const started = new Promise<void>((resolve) => {
+		decoding = resolve;
+	});
+	const requests: Array<{ q: string; offset: number }> = [];
+	let failed = false;
+	const server = createServer(async (request, response) => {
+		const url = new URL(request.url!, 'http://127.0.0.1');
+		const q = url.searchParams.get('q')!,
+			offset = Number(url.searchParams.get('offset'));
+		requests.push({ q, offset });
+		if (!failed) {
+			failed = true;
+			response.writeHead(503);
+			response.end();
+			return;
+		}
+		response.writeHead(200, { 'content-type': 'application/json' });
+		if (q === 'native') {
+			response.write('{"kind":"Page",');
+			decoding();
+			await held;
+			response.end(JSON.stringify(page(offset, q, '2')).slice(1));
+		} else response.end(JSON.stringify(page(offset, q, '3')));
+	});
+	await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+	const address = server.address();
+	if (!address || typeof address === 'string') throw Error('Missing test listener');
+	const window = new InventoryWindow(
+		async (input, _revision, signal) => {
+			const response = await fetch(
+				`http://127.0.0.1:${address.port}/?q=${input.q}&offset=${input.offset}`,
+				{ signal }
+			);
+			if (!response.ok) throw Error('Saved changes unavailable');
+			return response.json();
+		},
+		() => {}
+	);
+	window.seed('actor', page());
+	const native = { ...query, q: 'native', offset: 150 };
+	let controls = { ...native, offset: 0 };
+	try {
+		expect(matchingNativeInventoryQuery(native, controls)).toBe(native);
+		await expect(
+			window.refresh('actor', new AbortController().signal, () => true, native)
+		).rejects.toThrow('unavailable');
+		const retry = window.refresh(
+			'actor',
+			new AbortController().signal,
+			() => matchingNativeInventoryQuery(native, controls) !== null,
+			native
+		);
+		await started;
+		controls = { ...controls, q: 'changed', condition: 'LP' };
+		expect(matchingNativeInventoryQuery(native, controls)).toBeNull();
+		release();
+		await retry;
+		expect(window.current?.query.q).toBe('');
+		await window.refresh('actor', new AbortController().signal, () => true, controls);
+		expect(window.current?.query).toMatchObject({ q: 'changed', offset: 0 });
+		expect(requests).toEqual([
+			{ q: 'native', offset: 150 },
+			{ q: 'native', offset: 150 },
+			{ q: 'changed', offset: 0 }
+		]);
 	} finally {
 		release();
 		window.clear();

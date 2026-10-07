@@ -1,6 +1,6 @@
 # Accepted application contract
 
-- Status: Accepted design; workspace, trusted Auth, Account/Profile, Dashboard, bounded Inventory reads and mutation contracts, Deck application contracts and shared Deck UI, Scan upload/read/result/review contracts, SavedState transport and workspace consumers and Scryfall references and starter entry categories implemented; later feature slices planned
+- Status: Accepted design; workspace, trusted Auth, Account/Profile, Dashboard, bounded Inventory reads and mutation contracts, Deck application contracts and shared Deck UI, Scan upload/read/result/review contracts, SavedState transport, workspace consumers and Scryfall references and starter entry categories implemented; later feature slices planned
 - Last Reviewed: 2026-10-07
 - Source of Truth: workspace/Catalog/Auth/Profile/Dashboard/Inventory/Deck/Scan/Categories/SavedState/Valuation code and contracts, Worker price/Oracle Tags publication code and Kyle's Q56 acceptance of later contracts
 - Update Triggers: workspace ownership, use-case interfaces, experimental API migration, mutation receipts and revisions, Inventory queries and cache limits, shared UI interfaces and native Deck task entry, synchronization, reference publication, Categories interfaces, immutable entry decisions/manual provenance, Oracle source/rule lifecycle and acceptance evidence

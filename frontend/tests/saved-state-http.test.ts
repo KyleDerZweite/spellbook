@@ -380,9 +380,7 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 					a.token,
 					{
 						requestId: crypto.randomUUID(),
-						operations: [
-							{ op: 'add', catalogCardId: card.catalogCardId, quantity: 1, role: 'main' }
-						]
+						operations: [{ op: 'add', card, quantity: 1, role: 'main' }]
 					}
 				);
 				assert.equal(added.status, 200);

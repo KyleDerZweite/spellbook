@@ -8,7 +8,11 @@
 	import Button from '#lib/components/ui/button/Button.svelte';
 	import QuantityControl from '#lib/components/ui/QuantityControl.svelte';
 	import VirtualInventoryList from '#lib/components/inventory/VirtualInventoryList.svelte';
-	import { InventoryWindow, inventoryUrl } from '#lib/inventory/window.ts';
+	import {
+		InventoryWindow,
+		inventoryUrl,
+		matchingNativeInventoryQuery
+	} from '#lib/inventory/window.ts';
 	import type {
 		InventoryEntry,
 		InventoryQuery,
@@ -268,8 +272,14 @@
 	}
 	$effect(() => {
 		if (!hydrated) return;
-		if (requestedServerQuery) return;
 		const input = requestQuery();
+		if (requestedServerQuery) {
+			if (matchingNativeInventoryQuery(requestedServerQuery, input)) return;
+			untrack(() => {
+				requestedServerQuery = null;
+				inventorySubscription?.invalidate();
+			});
+		}
 		const account = page.data.user?.accountId ?? 'session';
 		const same = untrack(
 			() =>
@@ -324,14 +334,18 @@
 			return;
 		}
 		const queryLifetime = effectiveInventoryUrl(page).search;
+		const controlQuery = requestQuery();
 		const currentLease = () =>
-			lease.current() && hydrated && queryLifetime === effectiveInventoryUrl(page).search;
+			lease.current() &&
+			hydrated &&
+			queryLifetime === effectiveInventoryUrl(page).search &&
+			matchingNativeInventoryQuery(controlQuery, requestQuery()) !== null;
 		if (!currentLease()) return;
 		if (!hydrated || expectedAccount !== (page.data.user?.accountId ?? 'session')) return;
 		const controller = new AbortController();
 		refreshController = controller;
 		const account = expectedAccount;
-		const serverQuery = requestedServerQuery;
+		const serverQuery = matchingNativeInventoryQuery(requestedServerQuery, controlQuery);
 		const anchor = serverQuery ? null : virtualList?.anchor();
 		anchorController?.abort();
 		anchorController = null;
@@ -341,7 +355,9 @@
 				account,
 				lease.signal,
 				currentLease,
-				serverQuery ?? window.current?.query ?? data.window.query
+				serverQuery ??
+					matchingNativeInventoryQuery(window.current?.query ?? null, controlQuery) ??
+					controlQuery
 			);
 			if (
 				!currentLease() ||
