@@ -47,7 +47,7 @@ def _resolve_host(host, deadline):
     return json.loads(output)
 
 
-def _resolved_conninfo(database_url, deadline):
+def _resolved_attempts(database_url, deadline):
     options = conninfo_to_dict(database_url)
     host_value = options.get("host") or os.environ.get("PGHOST", "")
     address_value = options.get("hostaddr") or os.environ.get("PGHOSTADDR", "")
@@ -58,7 +58,6 @@ def _resolved_conninfo(database_url, deadline):
     ports = (options.get("port") or os.environ.get("PGPORT", "")).split(",")
     if len(supplied_addresses) != len(hosts) or len(ports) not in (1, len(hosts)):
         raise psycopg.OperationalError("Invalid optional database host/port configuration")
-    resolved_hosts, addresses, resolved_ports = [], [], []
     for index, host in enumerate(hosts):
         port = ports[0] if len(ports) == 1 else ports[index]
         address = supplied_addresses[index]
@@ -82,17 +81,27 @@ def _resolved_conninfo(database_url, deadline):
                         raise
                     # libpq tries later hosts after a failed lookup, but never retries DNS here.
                     continue
-        for address in candidates:
-            resolved_hosts.append(host)
-            addresses.append(address)
-            resolved_ports.append(port)
-    if not resolved_hosts:
-        raise psycopg.OperationalError("Optional hostname resolution failed")
+        yield make_conninfo(
+            database_url,
+            host=",".join([host] * len(candidates)),
+            hostaddr=",".join(candidates),
+            port=",".join([port] * len(candidates)),
+        )
+
+
+# A nonnumeric hostaddr reaches libpq's AI_NUMERICHOST rejection without DNS or I/O.
+# PGconn.host reaches this boundary only when libpq permits trying a later host;
+# authentication/protocol failures stop before it. Native libpq owns that decision.
+_FALLBACK_BOUNDARY = "optional-price-native-fallback-boundary"
+
+
+def _with_fallback_boundary(conninfo):
+    options = conninfo_to_dict(conninfo)
     return make_conninfo(
-        database_url,
-        host=",".join(resolved_hosts),
-        hostaddr=",".join(addresses),
-        port=",".join(resolved_ports),
+        conninfo,
+        host=options.get("host", "") + "," + _FALLBACK_BOUNDARY,
+        hostaddr=options.get("hostaddr", "") + ",invalid",
+        port=options.get("port", "") + ",1",
     )
 
 
@@ -123,17 +132,27 @@ def connect(database_url, deadline, connect_seconds):
     remaining = setup_deadline - time.monotonic()
     if remaining <= 0:
         raise ValueError("Optional database deadline exceeded")
-    database_url = _resolved_conninfo(database_url, setup_deadline)
-    remaining = setup_deadline - time.monotonic()
-    if remaining <= 0:
-        raise ValueError("Optional database deadline exceeded")
-    generator = generators.connect(database_url)
-    try:
-        pgconn = waiting.wait_conn(generator, timeout=remaining)
-    except BaseException:
-        generator.close()
-        raise
-    if time.monotonic() >= deadline:
-        pgconn.finish()
-        raise ValueError("Optional database deadline exceeded")
-    return DeadlineConnection(pgconn, deadline)
+    for attempt in _resolved_attempts(database_url, setup_deadline):
+        remaining = setup_deadline - time.monotonic()
+        if remaining <= 0:
+            raise ValueError("Optional database deadline exceeded")
+        generator = generators.connect(_with_fallback_boundary(attempt))
+        try:
+            pgconn = waiting.wait_conn(generator, timeout=remaining)
+        except psycopg.OperationalError as cause:
+            pgconn = cause.pgconn
+            eligible = pgconn is not None and pgconn.host == _FALLBACK_BOUNDARY.encode()
+            if pgconn is not None:
+                pgconn.finish()
+            generator.close()
+            if not eligible or time.monotonic() >= setup_deadline:
+                raise psycopg.OperationalError("Optional database connection failed") from None
+            continue
+        except BaseException:
+            generator.close()
+            raise
+        if time.monotonic() >= deadline:
+            pgconn.finish()
+            raise ValueError("Optional database deadline exceeded")
+        return DeadlineConnection(pgconn, deadline)
+    raise psycopg.OperationalError("Optional database connection failed")

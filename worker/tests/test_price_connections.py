@@ -222,7 +222,7 @@ def test_publication_setup_error_survives_unavailable_failure_status(monkeypatch
 def test_partial_address_list_resolves_only_missing_positions(monkeypatch, from_environment):
     from psycopg.conninfo import conninfo_to_dict
 
-    from worker.price_connections import _resolved_conninfo
+    from worker.price_connections import _resolved_attempts
 
     calls = []
 
@@ -237,24 +237,24 @@ def test_partial_address_list_resolves_only_missing_positions(monkeypatch, from_
     else:
         url += " hostaddr=,127.0.0.1"
     deadline = time.monotonic() + 5
-    options = conninfo_to_dict(_resolved_conninfo(url, deadline))
+    attempts = [conninfo_to_dict(value) for value in _resolved_attempts(url, deadline)]
     assert calls == [("postgres", deadline)]
-    assert options["host"] == "postgres,postgres,backup"
-    assert options["hostaddr"] == "127.0.0.2,::1,127.0.0.1"
-    assert options["port"] == "5432,5432,5433"
+    assert [p["host"] for p in attempts] == ["postgres,postgres", "backup"]
+    assert [p["hostaddr"] for p in attempts] == ["127.0.0.2,::1", "127.0.0.1"]
+    assert [p["port"] for p in attempts] == ["5432,5432", "5433"]
 
 
 def test_abstract_unix_socket_does_not_enter_dns(monkeypatch):
     from psycopg.conninfo import conninfo_to_dict
 
-    from worker.price_connections import _resolved_conninfo
+    from worker.price_connections import _resolved_attempts
 
     def unexpected(*_args):
         pytest.fail("Abstract Unix socket must not enter DNS")
 
     monkeypatch.setattr("worker.price_connections._resolve_host", unexpected)
     options = conninfo_to_dict(
-        _resolved_conninfo("host=@optional-fixture dbname=fixture", time.monotonic() + 5)
+        next(_resolved_attempts("host=@optional-fixture dbname=fixture", time.monotonic() + 5))
     )
     assert options["host"] == "@optional-fixture"
     assert options.get("hostaddr", "") == ""
@@ -289,16 +289,56 @@ def test_actual_postgres_failed_hostname_preserves_numeric_fallback(monkeypatch)
 def test_address_only_multihost_list_preserves_numeric_candidates(monkeypatch):
     from psycopg.conninfo import conninfo_to_dict
 
-    from worker.price_connections import _resolved_conninfo
+    from worker.price_connections import _resolved_attempts
 
     def unexpected(*_args):
         pytest.fail("Explicit numeric addresses must not enter DNS")
 
     monkeypatch.setattr("worker.price_connections._resolve_host", unexpected)
-    options = conninfo_to_dict(
-        _resolved_conninfo(
+    attempts = [
+        conninfo_to_dict(value)
+        for value in _resolved_attempts(
             "hostaddr=127.0.0.1,::1 port=5432,5433 dbname=fixture", time.monotonic() + 5
         )
+    ]
+    assert [p["hostaddr"] for p in attempts] == ["127.0.0.1", "::1"]
+    assert [p["port"] for p in attempts] == ["5432", "5433"]
+
+
+@pytest.mark.parametrize("primary", ["healthy", "refused", "rejected"])
+def test_actual_postgres_orders_resolution_and_native_auth_fallback(monkeypatch, primary):
+    import os
+
+    from psycopg.conninfo import conninfo_to_dict, make_conninfo
+
+    url = os.environ.get("WORKER_TEST_DATABASE_URL")
+    if not url:
+        pytest.skip("Set WORKER_TEST_DATABASE_URL for ordered native PostgreSQL setup")
+    options = conninfo_to_dict(url)
+    if options.get("host") not in ("localhost", "127.0.0.1", "::1"):
+        pytest.skip("Own ordered PostgreSQL fixture needs loopback")
+    calls = []
+
+    def backup(host, _deadline):
+        calls.append(host)
+        if primary != "refused":
+            pytest.fail("Healthy or rejected primary must never resolve unused backup")
+        assert host == "slow-backup"
+        return ["127.0.0.1"]
+
+    monkeypatch.setattr("worker.price_connections._resolve_host", backup)
+    first_port = "1" if primary == "refused" else options["port"]
+    candidate = make_conninfo(
+        url,
+        host="127.0.0.1,slow-backup",
+        hostaddr="",
+        port=first_port + "," + options["port"],
+        **({"user": "optional11_nonexistent_role"} if primary == "rejected" else {}),
     )
-    assert options["hostaddr"] == "127.0.0.1,::1"
-    assert options["port"] == "5432,5433"
+    if primary == "rejected":
+        with pytest.raises(psycopg.OperationalError, match="Optional database connection failed"):
+            connect(candidate, time.monotonic() + 5, 5)
+    else:
+        with connect(candidate, time.monotonic() + 5, 5) as conn:
+            assert conn.execute("SELECT current_database()").fetchone() == (options["dbname"],)
+    assert calls == (["slow-backup"] if primary == "refused" else [])
