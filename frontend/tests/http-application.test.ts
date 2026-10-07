@@ -256,6 +256,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 							redirect: 'manual',
 							headers: {
 								origin,
+								accept: 'text/html',
 								cookie: `${SESSION_COOKIE}=${actor.token}`,
 								'content-type': 'application/x-www-form-urlencoded'
 							},
