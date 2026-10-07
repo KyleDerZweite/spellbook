@@ -59,4 +59,4 @@ Rules:
 
 - [ADR-0020: Value-only Inventory history](./0020-value-only-inventory-history.md), accepted scope; personal capture design and implementation pending
 
-- [ADR-0021: Hybrid browsing and contextual Card dialog](./0021-hybrid-browsing-and-contextual-card-dialog.md), selected requirements, not implemented; partially supersedes ADR-0014 and ADR-0017 for affected browser UI and read limits
+- [ADR-0021: Hybrid browsing and contextual Card dialog](./0021-hybrid-browsing-and-contextual-card-dialog.md), API/Shell/shared-control prerequisites implemented; route/window and Card-action adoption pending; partially supersedes ADR-0014 and ADR-0017 for affected browser UI and read limits

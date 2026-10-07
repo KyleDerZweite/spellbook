@@ -10,7 +10,7 @@
 
 ## Context
 
-Current Inventory and Search use bounded virtual windows with 50-entry pages, request maxima of 100 and custom scroll viewports. Card inspection is shared internally but Search opens it inline, and Inventory also edits quantity in table rows. Kyle confirmed a replacement interaction on 2026-10-07. Earlier implementation acceptance does not cover this replacement.
+When this decision was selected, Inventory and Search used bounded virtual windows with 50-entry pages, request maxima of 100 and custom scroll viewports. Card inspection was shared internally but Search opened it inline, and Inventory also edited quantity in table rows. Kyle confirmed a replacement interaction on 2026-10-07. Earlier implementation acceptance does not cover this replacement.
 
 ## Decision
 
@@ -26,6 +26,6 @@ It supersedes ADR-0017 only for Inventory browser paging/mode, viewport, table q
 
 ## Consequences and gates
 
-The selected requirements are not implemented at this revision. The [Frontend resource contract](../architecture/frontend.md#selected-hybrid-browsing-contract) settles hard request, context, resident-record, page, render and snapshot bounds, serialized cache-byte targets and local performance objectives. Byte targets preserve valid active pages and do not impose new HTTP or domain limits. Coherent source/interface and implementation-plan review makes window slices Ready; real PostgreSQL, HTTP and rendered evidence remain delivery acceptance gates. Independent API and Shell interfaces are reviewed separately and their work can proceed. Standard modal scroll ownership is settled routine engineering interpretation. All product choices are confirmed; no additional owner permission is required. Source inspection does not finalize unavailable library APIs.
+The API maximum of 500, native Shell window scrolling, shared Pagination control and bounded Deck-choice read are implemented. Inventory/Search route and result-window adoption and contextual Card actions remain pending. The [Frontend resource contract](../architecture/frontend.md#selected-hybrid-browsing-contract) settles hard request, context, resident-record, page, render and snapshot bounds, serialized cache-byte targets and local performance objectives. Byte targets preserve valid active pages and do not impose new HTTP or domain limits. Coherent source/interface and implementation-plan review makes window slices Ready; combined real PostgreSQL, HTTP, scale and rendered evidence remain delivery acceptance gates. Standard modal scroll ownership is settled routine engineering interpretation. All product choices are confirmed; no additional owner permission is required. Source inspection does not finalize unavailable library APIs.
 
 Verify the deliberate limit expansion through actual PostgreSQL and built HTTP, then native/enhanced browser flows at 1k/10k/50k Inventory entries and the full Catalog. Record measured request/cache/DOM bounds, query latency and payloads, plus navigation, focus, draft and failure recovery. Product selection, design review, implementation, owner acceptance and deployment remain separate evidence.
