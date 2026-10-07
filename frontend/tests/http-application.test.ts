@@ -1,3 +1,4 @@
+import { fixtureAuthRequest } from './fixtures/http-auth.ts';
 import type { DashboardSummary } from '@spellbook/contracts/dashboard.ts';
 import { seedWideSummary } from './fixtures/wide-summary.ts';
 import { seedAccountScaleInventory } from './fixtures/account-scale.ts';
@@ -30,6 +31,8 @@ let fixtureStarted = false;
 let keepFixture = false;
 
 async function request(path: string, body?: unknown, headers: Record<string, string> = {}) {
+	if (path === '/api/auth/login' || path === '/api/auth/register')
+		return fixtureAuthRequest(origin, path, body, headers);
 	return fetch(`${origin}${path}`, {
 		method: body === undefined ? 'GET' : 'POST',
 		headers: { ...(body === undefined ? {} : { 'content-type': 'application/json' }), ...headers },
@@ -157,7 +160,9 @@ test('built HTTP application preserves public Catalog and local account journeys
 		await t.test(
 			'Inventory windows stay bounded and coherent under concurrent writes',
 			async () => {
-				const login = await (await request('/api/auth/login', { username, password })).json();
+				const loginResponse = await request('/api/auth/login', { username, password });
+				assert.equal(loginResponse.status, 200);
+				const login = await loginResponse.json();
 				const headers = { authorization: `Bearer ${login.token}` };
 				const path = '/api/mobile/v1/mtg/inventory';
 				const operations = Array.from({ length: 120 }, (_, i) => ({
@@ -352,9 +357,9 @@ test('built HTTP application preserves public Catalog and local account journeys
 				).json();
 				assert.equal(other.user.email, '');
 				assert.notEqual(other.card.name, 'HTTP Collector');
-				const second = await (
-					await request('/api/auth/login', { username: name, password })
-				).json();
+				const secondResponse = await request('/api/auth/login', { username: name, password });
+				assert.equal(secondResponse.status, 200);
+				const second = await secondResponse.json();
 				assert.equal(
 					(
 						await request(
@@ -765,11 +770,18 @@ test('built HTTP application preserves public Catalog and local account journeys
 				assert.equal((await settings.json()).totals.total, 4294967294);
 			}
 		);
+		// Deck domain fixtures do not share Inventory state or session lifecycle with Account journeys.
+		const deckRegistration = await request('/api/auth/register', {
+			username: `deck_http_${randomUUID().slice(0, 8)}`,
+			password
+		});
+		assert.equal(deckRegistration.status, 201);
+		const deckSession = await deckRegistration.json();
+		accounts.push(deckSession.user.accountId);
 		await t.test(
 			'Deck API returns original compact acknowledgements after later mutations',
 			async () => {
-				const login = await request('/api/auth/login', { username, password });
-				const authorization = `Bearer ${(await login.json()).token}`;
+				const authorization = `Bearer ${deckSession.token}`;
 				const created = await request(
 					'/api/mobile/v1/mtg/decks',
 					{ name: 'Retry deck', format: 'Modern' },
@@ -818,8 +830,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 		await t.test(
 			'single-entry atomic deltas retain caller intent after later edits and deletion',
 			async () => {
-				const login = await request('/api/auth/login', { username, password });
-				const authorization = `Bearer ${(await login.json()).token}`;
+				const authorization = `Bearer ${deckSession.token}`;
 				const deck = (
 					await (
 						await request(
@@ -895,8 +906,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 		await t.test(
 			'Deck Description conflicts preserve independent metadata saves and expose latest saved text',
 			async () => {
-				const login = await request('/api/auth/login', { username, password });
-				const authorization = `Bearer ${(await login.json()).token}`;
+				const authorization = `Bearer ${deckSession.token}`;
 				const list = await (
 					await request(
 						'/api/mobile/v1/mtg/decks',
@@ -952,8 +962,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 		await t.test(
 			'native metadata conflicts and validation retain an accessible draft and explicit rebase',
 			async () => {
-				const login = await request('/api/auth/login', { username, password });
-				const session = await login.json();
+				const session = deckSession;
 				const authorization = `Bearer ${session.token}`;
 				const deck = (
 					await (
@@ -1044,8 +1053,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 		await t.test(
 			'Deck retries survive entry recreation and deck deletion, with changed payload rejection',
 			async () => {
-				const login = await request('/api/auth/login', { username, password });
-				const authorization = `Bearer ${(await login.json()).token}`;
+				const authorization = `Bearer ${deckSession.token}`;
 				const list = await (
 					await request(
 						'/api/mobile/v1/mtg/decks',
@@ -1114,8 +1122,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 		await t.test(
 			'Deck import preview, atomic commit and web/API exports share the current Deck interface',
 			async () => {
-				const login = await request('/api/auth/login', { username, password });
-				const session = await login.json();
+				const session = deckSession;
 				const authorization = `Bearer ${session.token}`;
 				const body = {
 					requestId: randomUUID(),
@@ -1229,8 +1236,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 							JSON.stringify(document)
 						]
 					);
-				const login = await request('/api/auth/login', { username, password });
-				const authorization = `Bearer ${(await login.json()).token}`;
+				const authorization = `Bearer ${deckSession.token}`;
 				const deck = (
 					await (
 						await request(
@@ -1631,8 +1637,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 		await t.test(
 			'bulk additions use authoritative printing identity and replay without Catalog refetch',
 			async () => {
-				const login = await request('/api/auth/login', { username, password });
-				const authorization = `Bearer ${(await login.json()).token}`;
+				const authorization = `Bearer ${deckSession.token}`;
 				const deck = (
 					await (
 						await request(
