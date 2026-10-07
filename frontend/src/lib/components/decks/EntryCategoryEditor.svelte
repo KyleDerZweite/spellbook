@@ -11,6 +11,7 @@
 	import type { SubmitFunction } from '$app/forms';
 	import type { DeckEntryCategories } from '@spellbook/contracts/categories.ts';
 	import Button from '#lib/components/ui/button/Button.svelte';
+	import Select from '#lib/components/ui/select/Select.svelte';
 	let {
 		categories,
 		entryId,
@@ -108,19 +109,21 @@
 			value={draft.revision}
 		/>
 		<label for={inputId} class="label">Primary category</label>
-		<select
+		<Select
 			id={inputId}
 			name="categoryId"
-			class="input"
+			label="Primary category"
+			native
+			options={[
+				{ value: '', label: 'Uncategorized' },
+				...categories.definitions
+					.toSorted((a, b) => a.displayOrder - b.displayOrder)
+					.map((definition) => ({ value: definition.id, label: definition.name }))
+			]}
 			bind:value={draft.value}
-			onchange={() => (draft = editCategoryDraft(draft, draft.value))}
+			onchange={(value) => (draft = editCategoryDraft(draft, value))}
 			disabled={busy}
-		>
-			<option value="">Uncategorized</option>
-			{#each categories.definitions.toSorted((a, b) => a.displayOrder - b.displayOrder) as definition}<option
-					value={definition.id}>{definition.name}</option
-				>{/each}
-		</select>
+		/>
 		{#if BigInt(categories.decisionRevision) > BigInt(draft.revision)}<p
 				role="alert"
 				class="notice"
