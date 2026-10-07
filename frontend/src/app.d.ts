@@ -3,8 +3,8 @@ import type { AuthUser } from '#lib/auth/types.ts';
 declare global {
 	namespace App {
 		interface PageState {
-			searchOverlay?: { background: string };
-			searchFullView?: { background: string };
+			searchOverlay?: { background: string; depth?: number };
+			searchFullView?: { background: string; depth?: number };
 		}
 
 		interface Error {

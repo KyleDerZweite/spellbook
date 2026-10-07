@@ -2,10 +2,18 @@
 	import { untrack } from 'svelte';
 	import type { CatalogRange } from '#lib/search/catalogWindow.ts';
 	import type { CardDocument } from '#lib/search/types.ts';
+	import CardGrid from '#lib/components/cards/CardGrid.svelte';
+	import type { BrowseViewport } from '#lib/browsing/viewport.ts';
 	import VirtualCardGrid from '#lib/components/cards/VirtualCardGrid.svelte';
 
 	interface Props {
 		totalCount: number;
+		mode?: 'numeric' | 'lazy';
+		cards?: CardDocument[];
+		viewport?: BrowseViewport | null;
+		anchorIndex?: number;
+		native?: boolean;
+		canonicalHref?: string;
 		getCard: (index: number) => CardDocument | undefined;
 		onRangeChange: (range: CatalogRange) => void;
 		initialScrollTop?: number;
@@ -26,6 +34,12 @@
 
 	let {
 		totalCount,
+		mode = 'lazy',
+		cards = [],
+		viewport = null,
+		anchorIndex = 0,
+		native = false,
+		canonicalHref = '/mtg/search',
 		getCard,
 		onRangeChange,
 		initialScrollTop = 0,
@@ -83,16 +97,45 @@
 			</div>
 		</div>
 	{:else if totalCount > 0 || loading}
-		<VirtualCardGrid
-			totalCount={totalCount || SKELETON_COUNT}
-			{getCard}
-			{onRangeChange}
-			{resetKey}
-			{initialScrollTop}
-			{onScrollPositionChange}
-			{onFocusReset}
-			{selectedId}
-			{onSelect}
-		/>
+		{#if native}
+			<div class="native-card-grid grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+				{#each cards as card (card.id)}
+					<a
+						class="min-w-0"
+						href={canonicalHref +
+							(canonicalHref.includes('?') ? '&' : '?') +
+							'printing=' +
+							encodeURIComponent(card.id)}
+					>
+						<img
+							src={card.image_uri || card.image_uri_small}
+							alt={card.name}
+							loading="lazy"
+							class="w-full rounded-lg"
+						/>
+						<span class="block truncate text-sm">{card.name}</span>
+						<span class="text-xs uppercase text-text-muted"
+							>{card.set_code} {card.collector_number}</span
+						>
+					</a>
+				{/each}
+			</div>
+		{:else if mode === 'numeric'}
+			<CardGrid {cards} {selectedId} {onSelect} />
+		{:else}
+			<VirtualCardGrid
+				{viewport}
+				{anchorIndex}
+				totalCount={totalCount || SKELETON_COUNT}
+				{getCard}
+				{onRangeChange}
+				{resetKey}
+				{initialScrollTop}
+				{onScrollPositionChange}
+				{onFocusReset}
+				{selectedId}
+				{onSelect}
+			/>
+		{/if}
 	{/if}
 </div>

@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { cancelWheelScroll } from '#lib/components/ui/scroll-area/wheel.ts';
+	import {
+		measureBrowseViewport,
+		browseScrollTop,
+		scrollBrowseViewport,
+		type BrowseViewport
+	} from '#lib/browsing/viewport.ts';
 	import { untrack } from 'svelte';
 	import type { CardDocument } from '#lib/search/types.ts';
 	import type { CatalogRange } from '#lib/search/catalogWindow.ts';
@@ -7,6 +12,8 @@
 
 	interface Props {
 		cards?: CardDocument[];
+		viewport?: BrowseViewport | null;
+		anchorIndex?: number;
 		totalCount?: number;
 		getCard?: (index: number) => CardDocument | undefined;
 		onRangeChange?: (range: CatalogRange) => void;
@@ -21,6 +28,8 @@
 
 	let {
 		cards = [],
+		viewport = null,
+		anchorIndex = 0,
 		totalCount = cards.length,
 		getCard = (index: number) => cards[index],
 		onRangeChange,
@@ -46,6 +55,7 @@
 	let viewportHeight = $state(0);
 	let visibleTop = $state(0);
 	let direction: 1 | -1 = $state(1);
+	let positioned = $state(false);
 	let focused: { index: number; card: CardDocument } | null = $state(null);
 
 	const cols = $derived(
@@ -76,7 +86,7 @@
 	const visibleItems = $derived.by(() => {
 		if (containerWidth <= 0) return [];
 		const start = startRow * cols;
-		const end = Math.min(itemCount, (endRow + 1) * cols);
+		const end = Math.min(itemCount, (endRow + 1) * cols, start + 199);
 		const indices = Array.from({ length: Math.max(0, end - start) }, (_, index) => start + index);
 		if (focused && !indices.includes(focused.index)) {
 			indices.push(focused.index);
@@ -89,67 +99,62 @@
 	});
 
 	$effect(() => {
-		if (containerWidth <= 0 || endRow < startRow) return;
+		if (!positioned || containerWidth <= 0 || endRow < startRow) return;
 		onRangeChange?.({
 			start: startRow * cols,
-			end: Math.min(itemCount, (endRow + 1) * cols),
+			end: Math.min(itemCount, (endRow + 1) * cols, startRow * cols + 199),
 			direction
 		});
 	});
 
 	const measured = $derived(containerWidth > 0 && viewportHeight > 0);
-	let firstReset = true;
 	$effect(() => {
 		void resetToken;
-		if (!wrapperEl || !measured) return;
+		if (!wrapperEl || !measured || !viewport) return;
 		const wrapper = wrapperEl;
 		return untrack(() => {
 			if (wrapper.contains(document.activeElement)) onFocusReset?.();
 			focused = null;
-			const top = firstReset ? initialScrollTop : 0;
-			firstReset = false;
-			const parent = getScrollParent(wrapper);
+			positioned = false;
+			const host = viewport!;
+			const wrapperTop =
+				browseScrollTop(host) +
+				wrapper.getBoundingClientRect().top -
+				(host === window ? 0 : (host as HTMLElement).getBoundingClientRect().top);
+			const top = initialScrollTop || wrapperTop + Math.floor(anchorIndex / cols) * rowHeight;
 			const frame = requestAnimationFrame(() => {
-				cancelWheelScroll(parent);
-				parent.scrollTop = top;
+				scrollBrowseViewport(host, top);
+				const geometry = measureBrowseViewport(host, wrapper);
+				visibleTop = geometry.visibleTop;
+				positioned = true;
 			});
 			visibleTop = 0;
 			return () => cancelAnimationFrame(frame);
 		});
 	});
 
-	function getScrollParent(el: HTMLElement): HTMLElement {
-		let parent = el.parentElement;
-		while (parent) {
-			const style = getComputedStyle(parent);
-			if (style.overflowY === 'auto' || style.overflowY === 'scroll') return parent;
-			parent = parent.parentElement;
-		}
-		return document.documentElement;
-	}
-
 	$effect(() => {
-		if (!wrapperEl) return;
+		if (!wrapperEl || !viewport) return;
 		const wrapper = wrapperEl;
-		const scrollParent = getScrollParent(wrapper);
+		const host = viewport;
 
 		function measure() {
-			containerWidth = wrapper.clientWidth;
-			viewportHeight = scrollParent.clientHeight;
-			const wr = wrapper.getBoundingClientRect();
-			const pr = scrollParent.getBoundingClientRect();
-			const nextTop = Math.max(0, pr.top - wr.top);
+			const geometry = measureBrowseViewport(host, wrapper);
+			containerWidth = geometry.width;
+			viewportHeight = geometry.height;
+			const nextTop = geometry.visibleTop;
 			if (nextTop !== visibleTop) direction = nextTop > visibleTop ? 1 : -1;
 			visibleTop = nextTop;
 		}
 
 		const ro = new ResizeObserver(() => measure());
 		ro.observe(wrapper);
-		ro.observe(scrollParent);
+		if (host !== window) ro.observe(host as HTMLElement);
+		window.addEventListener('resize', measure);
 
 		let ticking = false;
 		function onScroll() {
-			onScrollPositionChange?.(scrollParent.scrollTop);
+			onScrollPositionChange?.(browseScrollTop(host));
 			if (!ticking) {
 				requestAnimationFrame(() => {
 					measure();
@@ -159,12 +164,13 @@
 			}
 		}
 
-		scrollParent.addEventListener('scroll', onScroll, { passive: true });
+		host.addEventListener('scroll', onScroll, { passive: true });
 		untrack(measure);
 
 		return () => {
 			ro.disconnect();
-			scrollParent.removeEventListener('scroll', onScroll);
+			window.removeEventListener('resize', measure);
+			host.removeEventListener('scroll', onScroll);
 		};
 	});
 </script>

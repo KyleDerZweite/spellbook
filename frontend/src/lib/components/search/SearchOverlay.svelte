@@ -11,6 +11,7 @@
 	const session = getSearchSession();
 	const fullRoute = $derived(page.route.id === '/mtg/search');
 	const open = $derived(!!page.state.searchOverlay && !!page.shallow && !fullRoute);
+	let viewport: HTMLDivElement | null = $state(null);
 	let returnFocus: HTMLElement | null = null;
 
 	function openSearch(query?: string, trigger?: HTMLElement) {
@@ -26,19 +27,36 @@
 		}
 		void goto(searchHref(session.input), {
 			shallow: true,
-			state: { ...page.state, searchOverlay: { background: (page.shallow?.url ?? page.url).href } }
+			state: {
+				...page.state,
+				searchOverlay: { background: (page.shallow?.url ?? page.url).href, depth: 1 }
+			}
 		});
 	}
 
-	function syncUrl() {
+	function syncUrl(intent: 'push' | 'replace' = 'replace') {
 		if (!open && !fullRoute) return;
-		void goto(searchHref(session.input), { shallow: true, replace: true, state: page.state });
+		void goto(searchHref(session.input), {
+			shallow: true,
+			replace: intent === 'replace',
+			state:
+				open && intent === 'push'
+					? {
+							...page.state,
+							searchOverlay: {
+								...page.state.searchOverlay!,
+								depth: (page.state.searchOverlay?.depth ?? 1) + 1
+							}
+						}
+					: page.state
+		});
 	}
 
 	function closeSearch() {
 		if (session.pending || !open) return;
 		session.selectedCard = null;
-		history.back();
+		session.rememberPosition();
+		history.go(-(page.state.searchOverlay?.depth ?? 1));
 	}
 
 	function fullView() {
@@ -49,7 +67,8 @@
 				...page.state,
 				searchOverlay: undefined,
 				searchFullView: {
-					background: page.state.searchOverlay?.background ?? (page.shallow?.url ?? page.url).href
+					background: page.state.searchOverlay?.background ?? (page.shallow?.url ?? page.url).href,
+					depth: page.state.searchOverlay?.depth ?? 1
 				}
 			}
 		});
@@ -112,7 +131,8 @@
 	<Dialog.Portal>
 		<Dialog.Overlay class="search-backdrop fixed inset-0 z-40" />
 		<Dialog.Content
-			class="search-dialog fixed z-50 flex flex-col border border-border bg-background shadow-xl"
+			bind:ref={viewport}
+			class="search-dialog fixed z-50 overflow-y-auto overscroll-contain border border-border bg-background shadow-xl"
 			escapeKeydownBehavior={session.pending ? 'ignore' : 'close'}
 			interactOutsideBehavior={session.pending ? 'ignore' : 'close'}
 			onOpenAutoFocus={(event) => {
@@ -139,7 +159,7 @@
 				>Search the Magic catalog, inspect printings, and add cards to inventory.</Dialog.Description
 			>
 			{#if open}
-				<SearchWorkspace controls={overlayControls} />
+				<SearchWorkspace {viewport} controls={overlayControls} />
 			{/if}
 		</Dialog.Content>
 	</Dialog.Portal>

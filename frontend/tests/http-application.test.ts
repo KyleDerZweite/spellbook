@@ -194,6 +194,58 @@ test('built HTTP application preserves public Catalog and local account journeys
 			}
 		);
 		await t.test(
+			'native Search pages normalize browser pagination and retain independent printing selection',
+			async () => {
+				for (const [size, pageNumber, expected] of [
+					[100, 2, 100],
+					[200, 2, 200],
+					[500, 2, 100],
+					['lazy', 2, 200]
+				] as const) {
+					const response = await request(
+						`/mtg/search?q=Limit%20fixture&pageSize=${size}&page=${pageNumber}`
+					);
+					assert.equal(response.status, 200);
+					const html = await response.text();
+					assert.equal((html.match(/<a class="min-w-0" href=/g) ?? []).length, expected);
+					assert.match(html, /600 cards/);
+					assert.match(html, /aria-label="Pagination"/);
+					assert.match(html, /name="pageSize"/);
+					assert.match(html, /printing=/);
+				}
+				const invalid = await (
+					await request('/mtg/search?q=Limit%20fixture&pageSize=501&page=9007199254740992')
+				).text();
+				assert.equal((invalid.match(/<a class="min-w-0" href=/g) ?? []).length, 200);
+				const clamped = await (
+					await request('/mtg/search?q=Limit%20fixture&pageSize=500&page=2001')
+				).text();
+				assert.equal((clamped.match(/<a class="min-w-0" href=/g) ?? []).length, 100);
+				const filtered = await (
+					await request('/mtg/search?q=Sol%20Ring&type=Artifact&type=invalid&rarity=uncommon')
+				).text();
+				assert.match(filtered, /1 card/);
+				assert.equal((filtered.match(/<a class="min-w-0" href=/g) ?? []).length, 1);
+				const empty = await (
+					await request('/mtg/search?q=Definitely%20no%20matching%20fixture')
+				).text();
+				assert.match(empty, /No cards found/);
+				assert.doesNotMatch(empty, /Search failed/);
+				const failed = await (await request('/mtg/search?q=' + 'x'.repeat(301))).text();
+				assert.match(failed, /Search failed/);
+				assert.doesNotMatch(failed, /No cards found/);
+				const malformed = await (await request('/mtg/search?printing=not-a-uuid')).text();
+				assert.match(malformed, /Invalid printing selection/);
+				const missing = await (await request('/mtg/search?printing=' + randomUUID())).text();
+				assert.match(missing, /This printing is unavailable/);
+				const selected = await (
+					await request(`/mtg/search?q=Limit%20fixture&pageSize=100&printing=${card.id}`)
+				).text();
+				assert.match(selected, new RegExp(`printing=${card.id}`));
+			}
+		);
+
+		await t.test(
 			'public EUR references and private owned batches preserve exact values and safe failures',
 			async () => {
 				const publication = randomUUID(),

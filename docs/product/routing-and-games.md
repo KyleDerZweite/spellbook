@@ -4,7 +4,7 @@
 - Last Reviewed: 2026-10-07
 - Source of Truth: route handlers and server hooks
 - Update Triggers: route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game
-- Related Docs: [Product specification](./specification.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md)
+- Related Docs: [Product specification](./specification.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Frontend architecture](../architecture/frontend.md), [Catalog](../architecture/catalog.md), [Product index](./README.md)
 
 Spellbook supports MTG. Game-specific pages use the `/mtg/` prefix. Public home, authentication, account settings, and legal pages remain shared; versioned integration endpoints keep their existing paths. The header game icon sits immediately before the theme control. It identifies Magic with the Mana Font planeswalker symbol and a tooltip. Cycling is inactive while MTG is the only available game. The `/mtg/` layout owns workspace game identity; the cookie retains the selection for shared pages. Unsupported cookie values reset to MTG. Additional games require their own catalog and workflow implementation before becoming selectable.
 
@@ -45,6 +45,8 @@ The [route source](../../frontend/src/routes/) owns implemented handlers. The [s
 `GET /llms.txt` provides a public Markdown overview and links to the application and API, with instructions for creating a new account through the existing registration API. The shared HTML head links to it with `rel="describedby"`. Demo deployments instead state that registration is disabled. `/agents.md` returns HTTP 308 to `/llms.txt` without duplicating the guide. This guide does not implement the proposed auth.md protocol.
 
 The font comparison and numbered landing prototype routes are removed. The `review=landing` composition override is removed; `/` is the landing review target for any session. The brand links to `/`. Normal primary Search clicks and Ctrl+K or Cmd+K open the shared catalog overlay above the current page. The landing form opens it with the submitted query. Search links retain `/mtg/search` for modified clicks and no-JavaScript navigation. The visible query URL supports direct visits and reloads as a full page; Full view replaces the overlay entry. Close, Escape and Back return to the background page, and Forward reopens Search. [Frontend architecture](../architecture/frontend.md) owns session, history and page composition. The first navigation item is Dashboard for signed-in users and Home for guests.
+
+Public `/mtg/search` native GET state includes `q`, repeated supported filters, `pageSize`, one-based `page` and independent `printing` selection. Numeric modes and native Lazy links read one bounded selected page. [Catalog](../architecture/catalog.md#browser-result-window) owns limits and publication coherence. The reusable native selected-printing panel remains a coordinated Card-stage integration.
 
 The Deck page supports `flow=create|edit|import|delete|search` for native task entry. [Frontend](../architecture/frontend.md#shared-deck-ui) owns the form adapters and shared presentation responsibilities. These queries add no API path or method.
 

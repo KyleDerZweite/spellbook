@@ -5,6 +5,8 @@ export interface SearchContextInput {
 	query: string;
 	filters: CatalogFilters;
 	limit?: number;
+	browsingMode?: 'numeric' | 'lazy';
+	offset?: number;
 	sort?: CatalogSearchRequest['sort'];
 }
 
@@ -12,7 +14,8 @@ export function buildSearchContextKey({
 	game,
 	query,
 	filters,
-	limit = 50,
+	limit = 200,
+	browsingMode = 'lazy',
 	sort
 }: SearchContextInput): string {
 	const normalizedQuery = query.trim();
@@ -20,6 +23,7 @@ export function buildSearchContextKey({
 	return JSON.stringify({
 		game,
 		limit,
+		browsingMode,
 		sort: sort ?? (mode === 'browse' ? 'name:asc' : null),
 		mode,
 		query: mode === 'browse' ? '' : normalizedQuery.toLowerCase(),
