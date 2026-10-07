@@ -108,6 +108,7 @@
 	let hydrated = $state(false),
 		windowVersion = $state(0),
 		virtualList = $state<ReturnType<typeof VirtualInventoryList> | null>(null);
+	let confirmedInventoryWrite = $state(0);
 	let anchorRestoreActive = false,
 		anchorController: AbortController | null = null;
 	let revisionAnchor: { id: string | null; index: number; intra: number } | null = null;
@@ -605,6 +606,8 @@
 		return async ({ result, update }) => {
 			try {
 				if (result.type === 'success') {
+					if (hydrated && submittedAccount === (page.data.user?.accountId ?? 'session'))
+						confirmedInventoryWrite++;
 					const index = listCards.findIndex((entry) => entry.id === id);
 					const neighbor = listCards[index + 1] ?? listCards[index - 1];
 					const focus = document.activeElement;
@@ -1214,7 +1217,7 @@
 	<CardDetail
 		card={inspection.card}
 		inventoryEntryId={inspection.entryId}
-		inventoryPriceRefreshKey={`${currentWindow.revision}:${inspected?.updatedAt.toISOString() ?? 'missing'}:${targetGone}`}
+		inventoryPriceRefreshKey={`${confirmedInventoryWrite}:${currentWindow.revision}:${inspected?.updatedAt.toISOString() ?? 'missing'}:${targetGone}`}
 		returnFocus={inspection.returnFocus}
 		actions={inspection.mode === 'edit' ? editEntryActions : undefined}
 		onClose={() => {

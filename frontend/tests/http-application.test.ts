@@ -1,4 +1,5 @@
 import { fixtureAuthRequest } from './fixtures/http-auth.ts';
+import { SESSION_COOKIE } from '@spellbook/backend/auth/session.ts';
 import type { DashboardSummary } from '@spellbook/contracts/dashboard.ts';
 import { seedWideSummary } from './fixtures/wide-summary.ts';
 import { seedAccountScaleInventory } from './fixtures/account-scale.ts';
@@ -185,6 +186,33 @@ test('built HTTP application preserves public Catalog and local account journeys
 					});
 					assert.equal(result.results[0].quantity, 3);
 					assert.equal(result.results[0].reference.amount, '0.005');
+					const saved = await fetch(`${origin}/mtg/inventory?/updateQuantity`, {
+						method: 'POST',
+						headers: {
+							cookie: `${SESSION_COOKIE}=${account.token}`,
+							origin,
+							accept: 'application/json',
+							'x-sveltekit-action': 'true'
+						},
+						body: new URLSearchParams({ entryId: ownedEntry, quantity: '5', notes: '' })
+					});
+					assert.equal(saved.status, 200);
+					assert.equal((await saved.json()).type, 'success');
+					await pool.query('ALTER TABLE inventory_groups RENAME TO http_missing_inventory_groups');
+					try {
+						assert.ok(
+							(await request('/api/mobile/v1/mtg/inventory', undefined, headers)).status >= 500
+						);
+						const afterFailedWindow = await request(ownedPath, { entryIds: [ownedEntry] }, headers);
+						assert.equal(afterFailedWindow.status, 200);
+						const currentPrice = await afterFailedWindow.json();
+						assert.equal(currentPrice.results[0].quantity, 5);
+						assert.equal(currentPrice.coverage.coveredQuantity, 5);
+					} finally {
+						await pool.query(
+							'ALTER TABLE http_missing_inventory_groups RENAME TO inventory_groups'
+						);
+					}
 					assert.equal(
 						(await request(ownedPath, { entryIds: [randomUUID()] }, headers)).status,
 						404
