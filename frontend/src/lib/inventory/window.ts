@@ -186,13 +186,19 @@ export class InventoryWindow {
 		this.changed();
 	}
 	async open(account: string, query: InventoryQuery, signal: AbortSignal) {
+		return this.replace(account, { ...query, offset: 0 }, signal);
+	}
+	async refresh(account: string, signal: AbortSignal) {
+		if (account !== this.account || !this.current) return;
+		return this.replace(account, this.current.query, signal);
+	}
+	private async replace(account: string, query: InventoryQuery, signal: AbortSignal) {
 		this.cancel();
 		const generation = ++this.generation;
 		this.replacing = true;
 		try {
 			const page = await this.withSlot(
-				(transportSignal) =>
-					this.transport({ ...query, offset: 0, limit: 50 }, undefined, transportSignal),
+				(transportSignal) => this.transport({ ...query, limit: 50 }, undefined, transportSignal),
 				signal
 			);
 			if (page?.kind === 'Page' && !signal.aborted && generation === this.generation) {

@@ -12,7 +12,11 @@
 	} from '@spellbook/contracts/inventory.ts';
 	import type { InventoryCard } from '#lib/types/legacy.ts';
 	import { page } from '$app/state';
-	import { inventoryAction } from '#lib/mtg/inventory-action.ts';
+	import {
+		inventoryAction,
+		effectiveInventoryUrl,
+		submittedDraftMatches
+	} from '#lib/mtg/inventory-action.ts';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import { tick, onMount, untrack } from 'svelte';
 	import type { PageProps } from './$types';
@@ -154,10 +158,14 @@
 			return entry ? [entry.index] : [];
 		})
 	);
+	let windowAccount = '';
 	onMount(() => {
 		hydrated = true;
-		window.seed(page.data.user?.accountId ?? 'session', data.window);
+		windowAccount = page.data.user?.accountId ?? 'session';
+		window.seed(windowAccount, data.window);
 		return () => {
+			hydrated = false;
+			refreshController?.abort();
 			anchorController?.abort();
 			window.clear();
 		};
@@ -166,6 +174,15 @@
 		if (!hydrated) return;
 		const initial = data.window;
 		untrack(() => {
+			// refreshAll from Search reloads the rendered URL, which can precede the active shallow view.
+			if (
+				effectiveInventoryUrl(page).search !== page.url.search &&
+				window.current &&
+				windowAccount === (page.data.user?.accountId ?? 'session')
+			) {
+				void refreshInventory();
+				return;
+			}
 			query = initial.query.q;
 			selectedSets = initial.query.sets;
 			selectedFinish = initial.query.finish;
@@ -181,7 +198,8 @@
 				window.current?.queryKey === initial.queryKey &&
 				window.current?.query.offset === initial.query.offset;
 			const anchor = samePage ? virtualList?.anchor() : null;
-			window.seed(page.data.user?.accountId ?? 'session', initial);
+			windowAccount = page.data.user?.accountId ?? 'session';
+			window.seed(windowAccount, initial);
 			if (anchor?.id) void restoreAnchor(anchor.id, anchor.intra, anchor.index);
 			else void virtualList?.scrollToIndex(initial.query.offset);
 			void refreshTargets();
@@ -237,6 +255,42 @@
 			controller.abort();
 		};
 	});
+
+	let refreshController: AbortController | null = null;
+	async function refreshInventory(expectedAccount = page.data.user?.accountId ?? 'session') {
+		if (!hydrated || expectedAccount !== (page.data.user?.accountId ?? 'session')) return;
+		refreshController?.abort();
+		const controller = new AbortController();
+		refreshController = controller;
+		const account = expectedAccount;
+		const anchor = virtualList?.anchor();
+		anchorController?.abort();
+		anchorController = null;
+		anchorRestoreActive = true;
+		try {
+			const identity = await window.refresh(account, controller.signal);
+			if (
+				!identity ||
+				controller.signal.aborted ||
+				window.identity !== identity ||
+				account !== (page.data.user?.accountId ?? 'session')
+			)
+				return;
+			if (anchor?.id) await restoreAnchor(anchor.id, anchor.intra, anchor.index);
+			else
+				await virtualList?.scrollToIndex(
+					window.current?.query.offset ?? 0,
+					0,
+					() => !controller.signal.aborted && window.identity === identity
+				);
+			await refreshTargets();
+		} finally {
+			if (refreshController === controller) {
+				refreshController = null;
+				if (!anchorController) anchorRestoreActive = false;
+			}
+		}
+	}
 
 	async function restoreAnchor(id: string, intra = 0, fallbackIndex = 0) {
 		anchorController?.abort();
@@ -301,10 +355,12 @@
 		draftDirty = $state(false),
 		targetGone = $state(false);
 	async function refreshTargets() {
+		const account = page.data.user?.accountId;
 		for (const id of [inspection?.entryId, removeId, assigningEntryId].filter(
 			(id): id is string => !!id
 		)) {
 			const response = await fetch(`/api/mobile/v1/mtg/inventory/${id}`);
+			if (!hydrated || account !== page.data.user?.accountId) return;
 			if (response.status === 404) {
 				if (id === inspection?.entryId) targetGone = true;
 				delete targetEntries[id];
@@ -312,6 +368,7 @@
 			}
 			if (!response.ok) continue;
 			const detail = await response.json();
+			if (!hydrated || account !== page.data.user?.accountId) return;
 			targetEntries[id] = asLegacy(detail.entry);
 			if (id === inspection?.entryId && !draftDirty) {
 				notesDraft = detail.entry.notes;
@@ -351,7 +408,11 @@
 		targetEntries[assigningEntryId ?? ''] ??
 			inventoryCards.find((entry) => entry.id === assigningEntryId)
 	);
-	const groupDeletion = new GroupMutation(() => (deletingGroup = null));
+	const groupDeletion = new GroupMutation(
+		() => (deletingGroup = null),
+		refreshInventory,
+		() => page.data.user?.accountId ?? 'session'
+	);
 	function membershipsFor(entryId: string) {
 		return (hydrated ? window.memberships() : currentWindow.memberships)
 			.filter((membership) => membership.entryId === entryId)
@@ -515,6 +576,12 @@
 		}
 		const id = String(formData.get('entryId'));
 		const card = inventoryCards.find((entry) => entry.id === id);
+		const submitted = {
+			id,
+			notes: String(formData.get('notes') ?? ''),
+			quantity: Number(formData.get('quantity'))
+		};
+		const submittedAccount = page.data.user?.accountId ?? 'session';
 		const removing = action.searchParams.has('/remove');
 		pendingId = id;
 		status = 'Saving…';
@@ -524,9 +591,21 @@
 				if (result.type === 'success') {
 					const index = listCards.findIndex((entry) => entry.id === id);
 					const neighbor = listCards[index + 1] ?? listCards[index - 1];
-					await update({ reset: false });
-					await refreshTargets();
-					if (!removing) draftDirty = false;
+					const focus = document.activeElement;
+					await update({ reset: false, refreshAll: false, navigate: false });
+					if (focus instanceof HTMLElement && focus.isConnected)
+						focus.focus({ preventScroll: true });
+					if (!hydrated || submittedAccount !== (page.data.user?.accountId ?? 'session')) return;
+					if (
+						!removing &&
+						submittedDraftMatches(submitted, {
+							id: inspection?.entryId,
+							notes: notesDraft,
+							quantity: quantityDraft
+						})
+					)
+						draftDirty = false;
+					await refreshInventory(submittedAccount);
 					if (removing) {
 						if (neighbor) await restoreAnchor(neighbor.id);
 						await tick();
@@ -950,7 +1029,7 @@
 					<QuantityControl
 						quantity={card.quantity}
 						label={card.name}
-						action={inventoryAction('updateQuantity', page.url)}
+						action={inventoryAction('updateQuantity', effectiveInventoryUrl(page))}
 						submit={saveEntry}
 						disabled={pendingId !== null}
 					>
@@ -1054,11 +1133,13 @@
 
 {#if editingGroup}<GroupEditor
 		group={editingGroup.group}
+		refresh={refreshInventory}
 		onClose={() => (editingGroup = null)}
 		onCloseAutoFocus={returnFromGroup}
 	/>{/if}
 {#if assigningEntry}<EntryGroups
 		entry={assigningEntry}
+		refresh={refreshInventory}
 		groups={currentWindow.groups}
 		groupIds={membershipsFor(assigningEntry.id)}
 		onClose={() => (assigningEntryId = null)}
@@ -1075,7 +1156,7 @@
 >
 	<form
 		method="POST"
-		action={inventoryAction('deleteGroup', page.url)}
+		action={inventoryAction('deleteGroup', effectiveInventoryUrl(page))}
 		use:enhance={groupDeletion.submit}
 	>
 		<input type="hidden" name="groupId" value={deletingGroup?.id ?? ''} /><button
@@ -1097,7 +1178,11 @@
 	onCancel={cancelRemoval}
 	onCloseAutoFocus={returnFromRemoval}
 >
-	<form method="POST" action={inventoryAction('remove', page.url)} use:enhance={saveEntry}>
+	<form
+		method="POST"
+		action={inventoryAction('remove', effectiveInventoryUrl(page))}
+		use:enhance={saveEntry}
+	>
 		<input type="hidden" name="entryId" value={removeId ?? ''} /><input
 			type="hidden"
 			name="expectedQuantity"
@@ -1133,7 +1218,7 @@
 			></textarea>{:else if inspected && activeCard.id === inspected.catalogCardId}
 			<form
 				method="POST"
-				action={inventoryAction('updateQuantity', page.url)}
+				action={inventoryAction('updateQuantity', effectiveInventoryUrl(page))}
 				use:enhance={saveEntry}
 				class="inspector-form"
 			>
