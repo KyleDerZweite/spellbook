@@ -93,6 +93,8 @@ jobs:
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/spellbook_test
       TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/spellbook_test
+      SCAN_WORKER_URL: http://127.0.0.1:5227
+      SCAN_STORAGE_DRIVER: local
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -105,13 +107,33 @@ jobs:
           cache: true
           cache_dependency_path: pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: '0.12.23'
+          enable-cache: true
+      - run: uv sync --project ../scan-worker --frozen --extra dev --python 3.14.8
+      - name: Start the actual Scan worker scaffold
+        run: |
+          printf 'SCAN_LOCAL_STORAGE_DIR=%s/scan-artifacts\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          uv run --project ../scan-worker --no-sync uvicorn scan_worker.main:app --host 127.0.0.1 --port 5227 > ../.scan-worker-test.log 2>&1 &
+          echo "$!" > ../.scan-worker-test.pid
+          for attempt in {1..50}; do
+            if curl --fail --silent http://127.0.0.1:5227/health > /dev/null; then exit 0; fi
+            sleep 0.2
+          done
+          exit 1
       - run: pnpm db:migrate
       - run: pnpm test:integration
       - run: pnpm build
         env:
           APP_ORIGIN: http://127.0.0.1:5191
       - run: pnpm test:http
+      - run: pnpm test:scan
       - run: pnpm test:sync
+      - name: Stop the owned Scan worker
+        if: always()
+        run: |
+          if test -f ../.scan-worker-test.pid; then kill "$(cat ../.scan-worker-test.pid)"; fi
 
   worker-tests:
     name: Worker Tests

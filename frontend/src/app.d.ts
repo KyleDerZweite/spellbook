@@ -11,7 +11,8 @@ declare global {
 			message: string;
 			kind?:
 				| import('@spellbook/contracts/decks.ts').DeckFailure['kind']
-				| import('@spellbook/contracts/inventory.ts').InventoryFailure['kind'];
+				| import('@spellbook/contracts/inventory.ts').InventoryFailure['kind']
+				| import('@spellbook/contracts/scan.ts').ScanFailure['kind'];
 			entryId?: Extract<
 				import('@spellbook/contracts/inventory.ts').InventoryFailure,
 				{ kind: 'NotesConflict' }

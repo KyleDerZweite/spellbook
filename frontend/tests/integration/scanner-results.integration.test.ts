@@ -1,275 +1,126 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { inArray } from 'drizzle-orm';
-import { createHash, randomBytes } from 'node:crypto';
-import { rm } from 'node:fs/promises';
-import type { CardDocument } from '../../src/lib/search/types';
-
+import { beforeAll, afterAll, describe, it, expect } from 'vitest';
+import { scanFixture } from '../fixtures/scan.ts';
 const run = process.env.TEST_DATABASE_URL ? describe : describe.skip;
-run('External scanner results and owned images', () => {
-	let m: Awaited<ReturnType<typeof loadModules>>;
-	let owner: string;
-	let foreign: string;
-	let sessions: string[];
-	const printingId = '00000000-0000-4000-8000-000000000001';
+run('projected selected Scan results', () => {
+	let f: Awaited<ReturnType<typeof scanFixture>>;
 	beforeAll(async () => {
-		m = await loadModules();
-	});
-	beforeEach(async () => {
-		owner = `scanner-${crypto.randomUUID()}`;
-		foreign = `foreign-${owner}`;
-		sessions = [];
-		await m.db
-			.insert(m.userProfiles)
-			.values([owner, foreign].map((accountId) => ({ accountId, username: accountId })));
-	});
-	afterEach(async () => {
-		vi.restoreAllMocks();
-		await m.db
-			.delete(m.inventoryMutationRequests)
-			.where(inArray(m.inventoryMutationRequests.accountId, [owner, foreign]));
-		await m.db.delete(m.userProfiles).where(inArray(m.userProfiles.accountId, [owner, foreign]));
-		await Promise.all(
-			sessions.map((id) =>
-				rm(`/tmp/spellbook-test-scans/scan-sessions/${id}`, { recursive: true, force: true })
-			)
-		);
+		f = await scanFixture();
 	});
 	afterAll(async () => {
-		await m?.pool.end();
+		await f.close();
 	});
-
-	it('replaces one result safely on duplicate bearer requests without inventory writes', async () => {
-		const artifact = await setup(owner);
-		const token = randomBytes(32).toString('base64url');
-		await m.db.insert(m.authSessions).values({
-			accountId: owner,
-			tokenHash: createHash('sha256').update(token).digest('hex'),
-			expiresAt: new Date(Date.now() + 60_000)
-		});
-		vi.spyOn(m.catalog, 'getCatalogPrinting').mockResolvedValue(card());
+	it('resolves external candidate identity and strips stored extra fields', async () => {
+		const a = await f.account(),
+			s = await f.artifact(a.user);
 		const input = {
-			status: 'matched',
-			modelVersion: 'robot-v1',
-			candidates: [
-				{ catalogCardId: printingId, confidence: 0.976, notes: 'OCR match', name: 'Untrusted name' }
-			]
+			sessionId: s.sessionId,
+			artifactId: s.id,
+			status: 'matched' as const,
+			modelVersion: 'external-v1',
+			candidates: [{ catalogCardId: f.card.catalogCardId, confidence: 0.976, notes: 'OCR match' }]
 		};
-		for (let retry = 0; retry < 2; retry++) {
-			const event = resultEvent(artifact.sessionId, artifact.id, input, null);
-			event.request.headers.set('authorization', `Bearer ${token}`);
-			const response = await m.resultPost(event);
-			expect(response?.status).toBe(200);
-		}
-		const result = await m.getScanSessionResult(owner, artifact.sessionId);
-		expect(result.artifacts).toHaveLength(1);
-		expect(result.reviewItems).toHaveLength(0);
-		expect(result.lastResult?.candidates[0]).toMatchObject({
-			name: 'Trusted card',
-			confidence: 0.976,
+		await f.scan.submitResult(a.user, input);
+		await f.scan.submitResult(a.user, input);
+		const saved = await f.scan.readSession(a.user, { sessionId: s.sessionId });
+		expect(saved.artifacts).toHaveLength(1);
+		expect(saved.lastResult?.candidates[0]).toMatchObject({
+			name: f.card.name,
 			finalScore: 98,
-			canonicalCardId: card().oracle_id
+			confidence: 0.976
 		});
-		expect((await m.getInventorySnapshot(owner)).cards).toHaveLength(0);
+		await f.pool.query('UPDATE scan_artifacts SET candidate_json=$1 WHERE id=$2', [
+			JSON.stringify([{ ...saved.lastResult!.candidates[0], secretField: 'must-not-escape' }]),
+			s.id
+		]);
+		const safe = await f.scan.readSession(a.user, { sessionId: s.sessionId });
+		expect(JSON.stringify(safe)).not.toContain('secretField');
+		expect(JSON.stringify(safe)).not.toContain(s.key);
+		expect(safe.session).not.toHaveProperty('accountId');
+		expect(await f.copyCount(a.user)).toBe(0);
 	});
-
-	it('rejects foreign and mismatched artifacts before catalog lookup', async () => {
-		const own = await setup(owner);
-		const other = await setup(foreign);
-		const lookup = vi.spyOn(m.catalog, 'getCatalogPrinting');
-		for (const [sessionId, artifactId] of [
-			[other.sessionId, other.id],
-			[own.sessionId, other.id],
-			[other.sessionId, own.id]
-		]) {
-			await expect(
-				m.resultPost(resultEvent(sessionId, artifactId, matched()))
-			).rejects.toMatchObject({ status: 404 });
-		}
-		expect(lookup).not.toHaveBeenCalled();
-	});
-
-	it('rejects missing authentication', async () => {
-		const artifact = await setup(owner);
+	it.each(['cancelled', 'committed'])('rejects candidate replacement in %s', async (state) => {
+		const a = await f.account(),
+			s = await f.artifact(a.user, state);
 		await expect(
-			m.resultPost(resultEvent(artifact.sessionId, artifact.id, matched(), null))
-		).rejects.toMatchObject({ status: 401 });
+			f.scan.submitResult(a.user, {
+				sessionId: s.sessionId,
+				artifactId: s.id,
+				status: 'no_match',
+				modelVersion: 'external-v1',
+				candidates: []
+			})
+		).rejects.toMatchObject({ kind: 'ScanClosed' });
 	});
-
-	it.each(['committed', 'cancelled'])(
-		'rejects result changes after session is %s',
-		async (status) => {
-			const artifact = await setup(owner);
-			await m.updateScanSessionStatus(owner, artifact.sessionId, status);
+	it('rejects foreign artifacts, malformed confidence/status/cardinality/models and stale authority', async () => {
+		const a = await f.account(),
+			b = await f.account(),
+			s = await f.artifact(a.user),
+			other = await f.artifact(b.user);
+		const base = {
+			sessionId: s.sessionId,
+			artifactId: s.id,
+			status: 'matched' as const,
+			modelVersion: 'external-v1',
+			candidates: [{ catalogCardId: f.card.catalogCardId, confidence: 0.8 }]
+		};
+		await expect(
+			f.scan.submitResult(a.user, { ...base, artifactId: other.id })
+		).rejects.toMatchObject({ kind: 'ScanNotFound' });
+		for (const confidence of [1.1, -0.1, NaN, Infinity])
 			await expect(
-				m.resultPost(resultEvent(artifact.sessionId, artifact.id, matched()))
-			).rejects.toMatchObject({ status: 409 });
-			expect((await m.getScanSessionResult(owner, artifact.sessionId)).artifacts[0].status).toBe(
-				'no_match'
+				f.scan.submitResult(a.user, {
+					...base,
+					candidates: [{ catalogCardId: f.card.catalogCardId, confidence }]
+				})
+			).rejects.toThrow('confidence');
+		for (const input of [
+			{ ...base, status: 'ambiguous' as const },
+			{ ...base, candidates: [] },
+			{ ...base, modelVersion: 'x'.repeat(129) },
+			{ ...base, candidates: Array.from({ length: 21 }, () => base.candidates[0]) },
+			{ ...base, candidates: [{ ...base.candidates[0], notes: 'x'.repeat(501) }] }
+		])
+			await expect(f.scan.submitResult(a.user, input)).rejects.toMatchObject({
+				kind: 'ValidationFailed'
+			});
+		await f.auth.revokeSession(a.session.token);
+		await expect(f.scan.submitResult(a.user, base)).rejects.toMatchObject({
+			kind: 'Unauthenticated'
+		});
+	});
+	it('pages selected artifacts/reviews and identifies the latest even beyond the requested page', async () => {
+		const a = await f.account(),
+			s = await f.artifact(a.user);
+		let latest = '';
+		for (let i = 0; i < 104; i++) {
+			const id = crypto.randomUUID();
+			latest = id;
+			const key = `scan-sessions/${s.sessionId}/${id}.png`;
+			await f.pool.query(
+				"INSERT INTO scan_artifacts(id,session_id,account_id,original_object_key,normalized_object_key,quality_score,embedding_model_version,ocr_model_version,status,updated_at) VALUES($1,$2,$3,$4,$4,0,'fixture','fixture','no_match',$5)",
+				[id, s.sessionId, a.user.accountId, key, new Date(Date.now() + i * 10)]
 			);
 		}
-	);
-
-	it('rejects out-of-range confidence, too many candidates, and long notes', async () => {
-		const artifact = await setup(owner);
-		const bad = [
-			{ ...matched(), candidates: [{ catalogCardId: printingId, confidence: 1.1 }] },
-			{ ...matched(), candidates: [{ catalogCardId: printingId, confidence: -0.1 }] },
-			{ ...matched(), candidates: [{ catalogCardId: printingId, confidence: '0.5' }] },
-			{
-				...matched(),
-				candidates: Array.from({ length: 21 }, () => ({
-					catalogCardId: printingId,
-					confidence: 0.5
-				}))
-			},
-			{
-				...matched(),
-				candidates: [{ catalogCardId: printingId, confidence: 0.5, notes: 'x'.repeat(501) }]
-			}
-		];
-		for (const input of bad)
-			await expect(
-				m.resultPost(resultEvent(artifact.sessionId, artifact.id, input))
-			).rejects.toMatchObject({ status: 400 });
-		await expect(
-			m.submitScanResult(owner, artifact.sessionId, artifact.id, {
-				...matched(),
-				candidates: [{ catalogCardId: printingId, confidence: NaN }]
-			})
-		).rejects.toThrow('confidence');
-	});
-
-	it('lists only owned sessions and streams only owned image bytes without caching', async () => {
-		const artifact = await setup(owner);
-		const other = await setup(foreign);
-		const png = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10]);
-		await m.storage.uploadScanObject(artifact.originalObjectKey, png, 'image/png');
-		const response = await m.imageGet(getEvent(artifact.id));
-		expect(response.headers.get('content-type')).toBe('image/png');
-		expect(response.headers.get('cache-control')).toBe('no-store');
-		expect(response.headers.get('x-content-type-options')).toBe('nosniff');
-		expect(new Uint8Array(await response.arrayBuffer())).toEqual(png);
-		await expect(m.imageGet(getEvent(other.id))).rejects.toMatchObject({ status: 404 });
-		const list = await m.sessionsGet({
-			...getEvent(artifact.id),
-			route: { id: '/api/mobile/v1/mtg/scan/sessions' },
-			params: {}
-		} as Parameters<typeof m.sessionsGet>[0]);
-		const body = await list.json();
-		expect(body.sessions.map((session: { id: string }) => session.id)).toEqual([
-			artifact.sessionId
-		]);
-	});
-
-	it('rejects oversized, unsafe, and unsupported stored image content', async () => {
-		const artifact = await setup(owner);
-		await m.storage.uploadScanObject(
-			artifact.originalObjectKey,
-			new Uint8Array(10 * 1024 * 1024 + 1),
-			'image/png'
-		);
-		await expect(m.imageGet(getEvent(artifact.id))).rejects.toMatchObject({ status: 413 });
-		await m.storage.uploadScanObject(
-			artifact.originalObjectKey,
-			new TextEncoder().encode('<script>bad</script>'),
-			'image/png'
-		);
-		await expect(m.imageGet(getEvent(artifact.id))).rejects.toMatchObject({ status: 415 });
-		await expect(m.storage.readScanImage('../secret')).rejects.toMatchObject({ status: 404 });
-	});
-
-	async function setup(accountId: string) {
-		const session = await m.createScanSession(accountId);
-		sessions.push(session.id);
-		const artifactId = crypto.randomUUID();
-		const key = `scan-sessions/${session.id}/${artifactId}.png`;
-		return m.recordScanArtifact(accountId, {
-			sessionId: session.id,
-			artifactId,
-			originalObjectKey: key,
-			normalizedObjectKey: key,
-			qualityScore: 0,
-			embeddingModelVersion: 'stub',
-			ocrModelVersion: 'stub',
-			status: 'no_match',
-			candidateJson: []
+		const page = await f.scan.readSession(a.user, { sessionId: s.sessionId });
+		expect(page.artifacts).toHaveLength(50);
+		expect(page.artifactCount).toBe(105);
+		expect(page.lastResult?.artifactId).toBe(latest);
+		expect(page.nextArtifactCursor).not.toBeNull();
+		const next = await f.scan.readSession(a.user, {
+			sessionId: s.sessionId,
+			artifactCursor: page.nextArtifactCursor!
 		});
-	}
-	function matched() {
-		return {
-			status: 'matched',
-			modelVersion: 'robot-v1',
-			candidates: [{ catalogCardId: printingId, confidence: 0.9 }]
-		};
-	}
-	function resultEvent(
-		sessionId: string,
-		artifactId: string,
-		body: unknown,
-		accountId: string | null = owner
-	) {
-		return {
-			url: new URL('http://localhost/scan'),
-			params: { sessionId, artifactId },
-			locals: { user: accountId ? { accountId } : null },
-			request: new Request('http://localhost/scan', {
-				method: 'POST',
-				headers: { origin: 'http://localhost', 'content-type': 'application/json' },
-				body: JSON.stringify(body)
-			})
-		} as Parameters<typeof m.resultPost>[0];
-	}
-	function getEvent(artifactId: string) {
-		return {
-			url: new URL('http://localhost/scan'),
-			params: { artifactId },
-			locals: { user: { accountId: owner } },
-			request: new Request('http://localhost/scan')
-		} as Parameters<typeof m.imageGet>[0];
-	}
-	function card() {
-		return {
-			id: printingId,
-			oracle_id: '00000000-0000-4000-8000-000000000002',
-			name: 'Trusted card',
-			set_code: 'tst',
-			collector_number: '1',
-			image_uri: 'https://example.test/card.jpg'
-		} as CardDocument;
-	}
+		expect(next.artifacts).toHaveLength(50);
+		expect(new Set([...page.artifacts, ...next.artifacts].map((r) => r.id)).size).toBe(100);
+		const end = await f.scan.readSession(a.user, {
+			sessionId: s.sessionId,
+			artifactCursor: next.nextArtifactCursor!
+		});
+		expect(end.artifacts).toHaveLength(5);
+		expect(end.nextArtifactCursor).toBeNull();
+		for (const limit of [0, 101, 1.5])
+			await expect(
+				f.scan.readSession(a.user, { sessionId: s.sessionId, limit })
+			).rejects.toMatchObject({ kind: 'ValidationFailed' });
+	});
 });
-
-async function loadModules() {
-	const [
-		client,
-		schema,
-		scan,
-		inventory,
-		catalog,
-		storage,
-		resultRoute,
-		imageRoute,
-		sessionsRoute
-	] = await Promise.all([
-		import('../../src/lib/server/db/client'),
-		import('../../src/lib/server/db/schema'),
-		import('../../src/lib/server/data/scan'),
-		import('../fixtures/inventory-state.ts'),
-		import('../../src/lib/server/catalog/search'),
-		import('../../src/lib/server/mobile/storage'),
-		import('../../src/routes/api/mobile/v1/mtg/scan/sessions/[sessionId]/artifacts/[artifactId]/result/+server'),
-		import('../../src/routes/api/mobile/v1/mtg/scan/artifacts/[artifactId]/image/+server'),
-		import('../../src/routes/api/mobile/v1/mtg/scan/sessions/+server')
-	]);
-	return {
-		...client,
-		...schema,
-		...scan,
-		...inventory,
-		catalog,
-		storage,
-		resultPost: resultRoute.POST,
-		imageGet: imageRoute.GET,
-		sessionsGet: sessionsRoute.GET
-	};
-}

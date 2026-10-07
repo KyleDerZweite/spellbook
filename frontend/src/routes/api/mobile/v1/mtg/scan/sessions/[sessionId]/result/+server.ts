@@ -1,14 +1,24 @@
 import type { RequestHandler } from './$types';
 import { requireUuid } from '#lib/server/http/request.ts';
-import { error, json } from '@sveltejs/kit';
+import { json, error } from '@sveltejs/kit';
+import { application } from '#lib/server/composition.ts';
 import { requireMobileAuth } from '#lib/server/mobile/auth.ts';
-import { getScanSessionResultEntry } from '#lib/server/mobile/mtg-service.ts';
-
+import { scanHttpError } from '#lib/server/mobile/scan.ts';
 export const GET: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
-	const sessionId = requireUuid(event.params.sessionId, 'sessionId');
-
-	const result = await getScanSessionResultEntry(auth, sessionId);
-	if (!result.session) error(404, 'Scan session not found');
-	return json(result, { headers: { 'Cache-Control': 'no-store' } });
+	const raw = event.url.searchParams.get('limit');
+	if (raw !== null && !/^\d+$/.test(raw)) error(400, 'Invalid Scan page limit');
+	try {
+		return json(
+			await application.scan.readSession(auth.user, {
+				sessionId: requireUuid(event.params.sessionId, 'sessionId'),
+				limit: raw === null ? undefined : Number(raw),
+				artifactCursor: event.url.searchParams.get('artifactCursor') ?? undefined,
+				reviewCursor: event.url.searchParams.get('reviewCursor') ?? undefined
+			}),
+			{ headers: { 'Cache-Control': 'no-store' } }
+		);
+	} catch (cause) {
+		scanHttpError(cause);
+	}
 };

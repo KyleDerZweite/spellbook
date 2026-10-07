@@ -5,7 +5,7 @@ import {
 	createDashboard,
 	createInventory,
 	createInventoryMutations,
-	createScanCommit,
+	createScan,
 	createDecks,
 	createValuation,
 	createSavedState
@@ -23,7 +23,17 @@ export const application = {
 		auth
 	),
 	dashboard: createDashboard(pool, auth),
-	scanCommit: createScanCommit(db, catalog, auth),
+	scan: createScan(db, pool, catalog, auth, {
+		storageDriver: privateEnv.SCAN_STORAGE_DRIVER,
+		localStorageDir: privateEnv.SCAN_LOCAL_STORAGE_DIR,
+		workerUrl: privateEnv.SCAN_WORKER_URL,
+		s3Endpoint: privateEnv.S3_ENDPOINT,
+		s3Region: privateEnv.S3_REGION,
+		s3Bucket: privateEnv.S3_BUCKET,
+		s3AccessKeyId: privateEnv.S3_ACCESS_KEY_ID,
+		s3SecretAccessKey: privateEnv.S3_SECRET_ACCESS_KEY,
+		s3ForcePathStyle: privateEnv.S3_FORCE_PATH_STYLE
+	}),
 	inventory: { ...createInventory(pool, auth), ...createInventoryMutations(db, catalog, auth) },
 	valuation: createValuation(pool, auth),
 	profile: createProfile(db, auth, { demoMode: process.env.DEMO_MODE === 'true' }),

@@ -58,53 +58,6 @@ export interface DeckMutationRequest {
 	source: string;
 	status: string;
 }
-export interface ScanSession {
-	accountId: string;
-	id: string;
-	createdAt: Date;
-	updatedAt: Date;
-	game: string;
-	status: string;
-}
-export interface ScanArtifact {
-	accountId: string;
-	id: string;
-	createdAt: Date;
-	updatedAt: Date;
-	status: string;
-	sessionId: string;
-	originalObjectKey: string;
-	normalizedObjectKey: string;
-	qualityScore: number;
-	embeddingModelVersion: string;
-	ocrModelVersion: string;
-	ocrName: string | null;
-	ocrSetCode: string | null;
-	ocrCollectorNumber: string | null;
-	candidateJson: unknown;
-}
-export interface ScanReviewItem {
-	accountId: string;
-	name: string;
-	id: string;
-	createdAt: Date;
-	updatedAt: Date;
-	catalogCardId: string;
-	canonicalCardId: string;
-	setCode: string;
-	imageUri: string;
-	quantity: number;
-	finish: string;
-	condition: string;
-	sessionId: string;
-	scanArtifactId: string;
-	oracleId: string;
-	collectorNumber: string;
-	similarityScore: number;
-	ocrScore: number;
-	finalScore: number;
-	matchReason: string;
-}
 export interface InventoryMutationRequest {
 	accountId: string;
 	createdAt: Date;
@@ -144,39 +97,6 @@ export interface InventoryBatchItem {
 }
 export interface AddInventoryInput extends InventoryBatchItem {
 	game: string;
-}
-export interface ScanCandidate {
-	catalogCardId: string;
-	canonicalCardId: string;
-	oracleId: string;
-	name: string;
-	setCode: string;
-	collectorNumber: string;
-	imageUri: string;
-	similarityScore: number;
-	ocrScore: number;
-	finalScore: number;
-	confidence?: number;
-	matchReason: string;
-}
-export interface ScanWorkerResult {
-	status: 'matched' | 'ambiguous' | 'no_match' | 'failed';
-	normalizedObjectKey: string;
-	qualityScore: number;
-	embeddingModelVersion: string;
-	ocrModelVersion: string;
-	ocrTokens: {
-		name?: string;
-		setCode?: string;
-		collectorNumber?: string;
-	};
-	candidates: ScanCandidate[];
-}
-export interface ScanSessionResult {
-	session: ScanSession | null;
-	artifacts: ScanArtifact[];
-	reviewItems: ScanReviewItem[];
-	lastResult: ScanWorkerResult | null;
 }
 export interface InventoryGroup {
 	id: string;

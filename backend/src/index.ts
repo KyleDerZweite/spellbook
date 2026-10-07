@@ -8,4 +8,4 @@ export { createValuation } from './valuation/read.ts';
 export { createDecks } from './decks/application.ts';
 export { createInventoryMutations } from './inventory/mutations.ts';
 export { createSavedState } from './saved-state/application.ts';
-export { createScanCommit } from './scan/commit.ts';
+export { createScan } from './scan/application.ts';
