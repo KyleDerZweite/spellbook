@@ -16,7 +16,13 @@ import {
 import { RequestConflictError } from '#lib/server/data/request-fingerprint.ts';
 import { ValidationError } from '#lib/server/mtg/validation.ts';
 import { DEFAULT_GAME } from '#lib/state/activeGame.svelte.ts';
-import { inventoryApplication, inventoryQueryFromUrl } from '#lib/server/data/inventory-window.ts';
+import { inventoryApplication } from '#lib/server/data/inventory-window.ts';
+
+import {
+	inventoryBrowseQuery,
+	clampBrowsePagination
+} from '#lib/server/data/inventory-browsing.ts';
+import { browsePaginationHref } from '#lib/browsing/pagination.ts';
 
 export const load: PageServerLoad = async ({ locals, parent, url }) => {
 	if (!locals.user) {
@@ -26,9 +32,15 @@ export const load: PageServerLoad = async ({ locals, parent, url }) => {
 	const { activeGame } = await parent();
 	const game = activeGame ?? DEFAULT_GAME;
 	try {
-		const window = await inventoryApplication.page(locals.user, inventoryQueryFromUrl(url));
+		const { query, pagination } = inventoryBrowseQuery(url);
+		const window = await inventoryApplication.page(locals.user, query);
 		if (window.kind !== 'Page') throw new Error('Initial window must be current');
+		const total =
+			query.view === 'groups' && !query.group ? window.groupCount : window.matching.entryCount;
+		const clamped = clampBrowsePagination(pagination, total);
+		if (clamped.page !== pagination.page) redirect(307, browsePaginationHref(url, clamped));
 		return {
+			pagination,
 			requestId: crypto.randomUUID(),
 			window,
 			cards: window.entries.map((entry) => ({
@@ -140,6 +152,7 @@ export const actions = {
 				next.searchParams.delete('group');
 				next.searchParams.delete('/deleteGroup');
 				next.searchParams.set('view', 'groups');
+				next.searchParams.set('page', '1');
 				redirect(303, next.pathname + next.search);
 			}
 			return { success: true, acknowledgement };

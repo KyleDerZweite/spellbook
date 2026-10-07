@@ -6,7 +6,13 @@
 	import { goto } from '$app/navigation';
 	import WorkspaceHeader from '#lib/components/layout/WorkspaceHeader.svelte';
 	import Button from '#lib/components/ui/button/Button.svelte';
-	import QuantityControl from '#lib/components/ui/QuantityControl.svelte';
+	import Pagination from '#lib/components/ui/pagination/Pagination.svelte';
+	import {
+		parseBrowsePagination,
+		browsePaginationHref,
+		clampBrowsePagination
+	} from '#lib/browsing/pagination.ts';
+	import CardQuickAdd from '#lib/components/cards/CardQuickAdd.svelte';
 	import VirtualInventoryList from '#lib/components/inventory/VirtualInventoryList.svelte';
 	import {
 		InventoryWindow,
@@ -39,7 +45,6 @@
 	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
 	import FilterPopover from '#lib/components/ui/popover/FilterPopover.svelte';
 	import ConfirmationDialog from '#lib/components/ui/dialog/ConfirmationDialog.svelte';
-	import ScrollArea from '#lib/components/ui/scroll-area/ScrollArea.svelte';
 	import {
 		describeInventoryOrder,
 		inventoryConditions,
@@ -59,6 +64,12 @@
 	let latestNotes = $derived(form && 'latestNotes' in form ? form.latestNotes : undefined);
 	const search = getSearchSession();
 	const initialQuery = untrack(() => data.window.query);
+	let browse = $state(untrack(() => data.pagination));
+	let resultsHeading = $state<HTMLHeadingElement | null>(null);
+	let pageController: AbortController | null = null;
+	let addingPending = $state(false);
+	let privateCleared = $state(false);
+	let lastBrowseSearch = untrack(() => effectiveInventoryUrl(page).search);
 	let order = $state<InventoryOrder>({
 		base: initialQuery.sort,
 		direction: initialQuery.dir,
@@ -79,7 +90,7 @@
 	let selectedCondition = $state(initialQuery.condition as string);
 	let inspection = $state<{
 		entryId: string;
-		mode: 'edit' | 'add';
+		mode: 'details' | 'edit' | 'add';
 		card: CardDocument;
 		returnFocus: HTMLElement | null;
 	} | null>(null);
@@ -117,7 +128,8 @@
 	];
 	let hydrated = $state(false),
 		windowVersion = $state(0),
-		virtualList = $state<ReturnType<typeof VirtualInventoryList> | null>(null);
+		virtualList = $state<ReturnType<typeof VirtualInventoryList> | null>(null),
+		groupList = $state<ReturnType<typeof GroupDirectory> | null>(null);
 	let confirmedInventoryWrite = $state(0);
 	let anchorRestoreActive = false,
 		anchorController: AbortController | null = null;
@@ -165,6 +177,15 @@
 				}));
 	});
 	let inventoryCards = $derived(loadedEntries.map((row) => asLegacy(row.entry)));
+	let discreteCards = $derived(
+		loadedEntries
+			.filter(
+				({ index }) =>
+					index >= currentWindow.query.offset &&
+					index < currentWindow.query.offset + currentWindow.query.limit
+			)
+			.map(({ entry }) => asLegacy(entry))
+	);
 	let metrics = $derived.by(() => {
 		windowVersion;
 		return window.metrics();
@@ -181,11 +202,19 @@
 	onMount(() => {
 		hydrated = true;
 		windowAccount = page.data.user?.accountId ?? 'session';
-		window.seed(windowAccount, data.window);
+		window.pinServerPage(data.window);
+		window.seed(
+			windowAccount,
+			data.window,
+			() => true,
+			false,
+			browse.pageSize === 'lazy' ? 'lazy' : 'numeric'
+		);
 		inventorySubscription = workspaceSavedState.subscribe({
 			topics: ['inventory'],
 			refresh: (lease) => refreshInventory(windowAccount, lease),
 			clear: () => {
+				privateCleared = true;
 				requestedServerQuery = null;
 				window.clear();
 				targetEntries = {};
@@ -205,8 +234,9 @@
 			hydrated = false;
 			inventorySubscription?.dispose();
 			refreshController?.abort();
+			pageController?.abort();
 			anchorController?.abort();
-			window.clear();
+			window.clear(true);
 		};
 	});
 	$effect(() => {
@@ -215,8 +245,10 @@
 		untrack(() => {
 			if (initial === lastServerWindow) return;
 			lastServerWindow = initial;
+			window.pinServerPage(initial);
 			const account = page.data.user?.accountId ?? 'session';
 			if (!workspaceSavedState.isActive(account)) return;
+			privateCleared = false;
 			// Later SSR completion requests a current leased read, never overwrites synchronized state.
 			if (
 				effectiveInventoryUrl(page).search !== page.url.search &&
@@ -228,8 +260,11 @@
 			}
 			const samePage =
 				window.current?.queryKey === initial.queryKey &&
-				window.current?.query.offset === initial.query.offset;
+				window.current?.query.offset === initial.query.offset &&
+				window.current?.query.limit === initial.query.limit &&
+				window.browseMode === (data.pagination.pageSize === 'lazy' ? 'lazy' : 'numeric');
 			if (!samePage) {
+				browse = data.pagination;
 				query = initial.query.q;
 				selectedSets = initial.query.sets;
 				selectedFinish = initial.query.finish;
@@ -251,7 +286,7 @@
 	function requestQuery(): InventoryQuery {
 		return {
 			...data.window.query,
-			q: query,
+			q: query.trim(),
 			sets: selectedSets,
 			finish: selectedFinish as InventoryQuery['finish'],
 			condition: selectedCondition as InventoryQuery['condition'],
@@ -260,16 +295,82 @@
 			variant: order.variant?.column ?? null,
 			variantDir: order.variant?.direction ?? 'asc',
 			offset: 0,
-			limit: 50
+			limit: browse.limit
 		};
 	}
-	function nativeUrl(input: InventoryQuery, pageNumber = 1) {
-		const params = inventoryUrl(input);
-		params.delete('offset');
-		params.delete('limit');
-		params.set('page', String(pageNumber));
-		return `/mtg/inventory?${params}`;
+	function viewHref(view: 'cards' | 'groups') {
+		const url = new URL(effectiveInventoryUrl(page).href);
+		url.searchParams.set('view', view);
+		url.searchParams.delete('group');
+		return browsePaginationHref(url, browse, { page: 1 });
 	}
+	function nativeUrl(input: InventoryQuery, pageNumber = 1) {
+		const url = new URL('/mtg/inventory', effectiveInventoryUrl(page).href);
+		url.search = inventoryUrl(input).toString();
+		return browsePaginationHref(url, browse, { page: pageNumber });
+	}
+	async function navigatePage(href: string, replace = false) {
+		pageController?.abort();
+		const controller = new AbortController();
+		pageController = controller;
+		const next = parseBrowsePagination(new URL(href, page.url.href).searchParams, 1_000_000);
+		const input = { ...requestQuery(), offset: next.offset, limit: next.limit };
+		browse = next;
+		requestedServerQuery = input;
+		lastBrowseSearch = new URL(href, page.url.href).search;
+		try {
+			await goto(href, { replace, reset: false, shallow: true });
+			await window.open(
+				windowAccount,
+				input,
+				controller.signal,
+				next.pageSize === 'lazy' ? 'lazy' : 'numeric'
+			);
+			if (controller.signal.aborted || pageController !== controller) return;
+			requestedServerQuery = null;
+			await tick();
+			if (controller.signal.aborted) return;
+			if (next.pageSize === 'lazy') await restoreNativeOffset(next.offset);
+			else {
+				resultsHeading?.scrollIntoView({ block: 'start' });
+				resultsHeading?.focus({ preventScroll: true });
+			}
+		} catch (cause) {
+			if (!controller.signal.aborted)
+				mutationError = cause instanceof Error ? cause.message : 'Could not load this page.';
+		} finally {
+			if (pageController === controller) pageController = null;
+		}
+	}
+	function lazyRange(start: number, end: number, directory = false) {
+		if (!directory) window.plan(start, end);
+		if (!hydrated || pageController || anchorRestoreActive) return;
+		const anchorPage = Math.floor(start / browse.limit) + 1;
+		if (anchorPage === browse.page) return;
+		browse = parseBrowsePagination(
+			new URLSearchParams({ pageSize: 'lazy', page: String(anchorPage) })
+		);
+		const href = browsePaginationHref(new URL(effectiveInventoryUrl(page).href), browse);
+		lastBrowseSearch = new URL(href, page.url.href).search;
+		void goto(href, {
+			replace: true,
+			reset: false,
+			shallow: true
+		});
+	}
+	$effect(() => {
+		if (!hydrated || requestedServerQuery) return;
+		const total = groupDirectory ? currentWindow.groupCount : currentWindow.matching.entryCount;
+		const clamped = clampBrowsePagination(browse, total);
+		if (clamped.page !== browse.page)
+			untrack(() => {
+				void navigatePage(
+					browsePaginationHref(new URL(effectiveInventoryUrl(page).href), clamped),
+					true
+				);
+			});
+	});
+
 	$effect(() => {
 		if (!hydrated) return;
 		const input = requestQuery();
@@ -291,9 +392,20 @@
 		const timer = setTimeout(() => {
 			void (async () => {
 				try {
-					await window.open(account, input, controller.signal);
+					const typing = input.q !== currentWindow.query.q;
+					await window.open(
+						account,
+						input,
+						controller.signal,
+						browse.pageSize === 'lazy' ? 'lazy' : 'numeric'
+					);
 					if (controller.signal.aborted) return;
-					await goto(nativeUrl(input), { replace: true, reset: false, shallow: true });
+					browse = parseBrowsePagination(
+						new URLSearchParams({ pageSize: String(browse.pageSize) })
+					);
+					const href = nativeUrl(input);
+					lastBrowseSearch = new URL(href, page.url.href).search;
+					await goto(href, { replace: typing, reset: false, shallow: true });
 				} catch (cause) {
 					if (!controller.signal.aborted)
 						mutationError = cause instanceof Error ? cause.message : 'Could not apply filters.';
@@ -304,6 +416,33 @@
 			clearTimeout(timer);
 			controller.abort();
 		};
+	});
+
+	$effect(() => {
+		if (!hydrated) return;
+		const visibleSearch = effectiveInventoryUrl(page).search;
+		untrack(() => {
+			if (visibleSearch === lastBrowseSearch) return;
+			lastBrowseSearch = visibleSearch;
+			const params = new URLSearchParams(visibleSearch);
+			browse = parseBrowsePagination(params, 1_000_000);
+			query = params.get('q') ?? '';
+			selectedSets = [...new Set(params.getAll('set').map((value) => value.toLowerCase()))].sort();
+			selectedFinish = params.get('finish') ?? 'all';
+			selectedCondition = params.get('condition') ?? 'all';
+			const sort = params.get('sort');
+			const variant = params.get('variant');
+			order = {
+				base: sort === 'set' || sort === 'newest' ? sort : 'name',
+				direction: params.get('dir') === 'desc' ? 'desc' : 'asc',
+				variant:
+					variant === 'finish' || variant === 'condition' || variant === 'quantity'
+						? { column: variant, direction: params.get('variantDir') === 'desc' ? 'desc' : 'asc' }
+						: null
+			};
+			requestedServerQuery = { ...requestQuery(), offset: browse.offset };
+			inventorySubscription?.invalidate();
+		});
 	});
 
 	async function restoreNativeOffset(
@@ -321,7 +460,8 @@
 		// The hydrated child is created in this flush; reading its binding before tick loses the native offset.
 		await tick();
 		if (!isCurrent()) return;
-		await virtualList?.scrollToIndex(offset, 0, isCurrent);
+		if (groupDirectory) await groupList?.scrollToIndex(offset, 0, isCurrent);
+		else await virtualList?.scrollToIndex(offset, 0, isCurrent);
 	}
 
 	let refreshController: AbortController | null = null;
@@ -357,7 +497,8 @@
 				currentLease,
 				serverQuery ??
 					matchingNativeInventoryQuery(window.current?.query ?? null, controlQuery) ??
-					controlQuery
+					controlQuery,
+				browse.pageSize === 'lazy' ? 'lazy' : 'numeric'
 			);
 			if (
 				!currentLease() ||
@@ -367,11 +508,12 @@
 				account !== (page.data.user?.accountId ?? 'session')
 			)
 				return;
+			privateCleared = false;
 			if (serverQuery && requestedServerQuery === serverQuery) requestedServerQuery = null;
+			await refreshTargets(currentLease);
+			if (!currentLease()) return;
 			if (anchor?.id) await restoreAnchor(anchor.id, anchor.intra, anchor.index, currentLease);
 			else await restoreNativeOffset(window.current?.query.offset ?? 0, currentLease);
-			if (!currentLease()) return;
-			await refreshTargets(currentLease);
 		} finally {
 			if (refreshController === controller) {
 				refreshController = null;
@@ -426,7 +568,27 @@
 				location.index === null ? 0 : intra,
 				() => leaseCurrent() && !controller.signal.aborted && window.identity === location.identity
 			);
-			return leaseCurrent() && !controller.signal.aborted && window.identity === location.identity;
+			if (!leaseCurrent() || controller.signal.aborted || window.identity !== location.identity)
+				return false;
+			const addressed = parseBrowsePagination(
+				new URLSearchParams({
+					pageSize: String(browse.pageSize),
+					page: String(Math.floor(index / browse.limit) + 1)
+				}),
+				1_000_000
+			);
+			if (addressed.page !== browse.page) {
+				browse = addressed;
+				const href = browsePaginationHref(new URL(effectiveInventoryUrl(page).href), browse);
+				lastBrowseSearch = new URL(href, page.url.href).search;
+				await goto(href, { replace: true, reset: false, shallow: true });
+			}
+			if (browse.pageSize !== 'lazy') {
+				await tick();
+				if (controller.signal.aborted || window.identity !== location.identity) return false;
+				resultsHeading?.scrollIntoView({ block: 'start' });
+			}
+			return !controller.signal.aborted && window.identity === location.identity;
 		} catch (cause) {
 			if (!controller.signal.aborted)
 				mutationError =
@@ -514,13 +676,17 @@
 		return targetReads.refresh(current);
 	}
 
+	function retainTargetEntries() {
+		const ids = new Set([inspection?.entryId, removeId, assigningEntryId, pendingId]);
+		for (const id of Object.keys(targetEntries)) if (!ids.has(id)) delete targetEntries[id];
+	}
 	$effect(() => {
 		if (!hydrated) return;
 		const targetIds = new Set([inspection?.entryId, removeId, assigningEntryId, pendingId]);
 		const retained = new Set([...inventoryCards.map((entry) => entry.id), ...targetIds]);
 		untrack(() => {
 			for (const id of Object.keys(rowMenuRefs)) if (!retained.has(id)) delete rowMenuRefs[id];
-			for (const id of Object.keys(targetEntries)) if (!targetIds.has(id)) delete targetEntries[id];
+			retainTargetEntries();
 		});
 	});
 
@@ -558,11 +724,13 @@
 	}
 	function editGroup(group: InventoryGroup | null, trigger: HTMLElement | null) {
 		groupReturnTarget = trigger;
+		deletingGroup = null;
 		editingGroup = { group };
 	}
 	function removeGroup(group: InventoryGroup, trigger: HTMLElement | null) {
 		groupReturnTarget = trigger;
 		groupDeletion.error = '';
+		editingGroup = null;
 		deletingGroup = group;
 	}
 	function assignGroups(entryId: string) {
@@ -570,6 +738,7 @@
 		targetEntries[entryId] = inventoryCards.find((e) => e.id === entryId)!;
 		assigningLifetime++;
 		assigningEntryId = entryId;
+		retainTargetEntries();
 	}
 	function returnFromGroup(event: Event) {
 		event.preventDefault();
@@ -621,7 +790,11 @@
 			event.currentTarget instanceof HTMLElement ? event.currentTarget : undefined
 		);
 	}
-	function openInspection(id: string, mode: 'edit' | 'add', returnFocus: HTMLElement | null) {
+	function openInspection(
+		id: string,
+		mode: 'details' | 'edit' | 'add',
+		returnFocus: HTMLElement | null
+	) {
 		const card = inventoryCards.find((entry) => entry.id === id);
 		if (!card) return;
 		targetEntries[id] = card;
@@ -634,6 +807,7 @@
 		draftDirty = false;
 		targetGone = false;
 		inspection = { entryId: id, mode, card: storedCardDocument(card), returnFocus };
+		retainTargetEntries();
 	}
 	function openRemoval(id: string) {
 		mutationError = '';
@@ -641,6 +815,7 @@
 		targetEntries[id] = inventoryCards.find((e) => e.id === id)!;
 		removeLifetime++;
 		removeId = id;
+		retainTargetEntries();
 	}
 	function cancelRemoval() {
 		removeId = null;
@@ -730,12 +905,10 @@
 		};
 		const submittedAccount = page.data.user?.accountId ?? 'session';
 		const submittedOpening = inspection;
-		const submittedQuery = effectiveInventoryUrl(page).search;
 		const currentAttempt = () =>
 			(write?.current() ?? true) &&
 			hydrated &&
-			submittedAccount === (page.data.user?.accountId ?? 'session') &&
-			submittedQuery === effectiveInventoryUrl(page).search;
+			submittedAccount === (page.data.user?.accountId ?? 'session');
 		const currentEditor = () =>
 			currentAttempt() &&
 			inspection === submittedOpening &&
@@ -818,730 +991,800 @@
 
 <svelte:head><title>Inventory | Spellbook</title></svelte:head>
 
-<div class="inventory-page workspace-container">
-	<SavedStateStatus resource={inventorySubscription} />
-	{#if notesRecovery}
-		<section aria-labelledby="notes-recovery-title" class="inspector-form">
-			<h2 id="notes-recovery-title">Your unsaved Notes</h2>
-			<p role="alert">{form?.message}</p>
-			{#if latestNotes}<p>
-					Latest saved Notes: {latestNotes.notes || '(empty)'}
-				</p>{/if}
-			<form method="POST" action={inventoryAction('updateQuantity', effectiveInventoryUrl(page))}>
-				<input type="hidden" name="entryId" value={notesRecovery.entryId} />
-				<input type="hidden" name="requestId" value={notesRecovery.requestId} />
-				<input type="hidden" name="rebaseRequestId" value={data.requestId} />
-				<input type="hidden" name="notesRevision" value={notesRecovery.notesRevision} /><input
-					type="hidden"
-					name="notesOriginal"
-					value={notesRecovery.notesOriginal}
-				/><input type="hidden" name="quantityBase" value={notesRecovery.quantityBase} />
-				<label for="recovered-quantity">Owned quantity</label><input
-					id="recovered-quantity"
-					name="quantity"
-					type="number"
-					min="1"
-					step="1"
-					value={notesRecovery.quantity}
-				/>
-				<label for="recovered-notes">Notes draft</label><textarea id="recovered-notes" name="notes"
-					>{notesRecovery.notes}</textarea
-				>
-				{#if latestNotes}<button
-						class="btn btn-primary"
-						name="rebaseNotesRevision"
-						value={latestNotes.notesRevision}>Save my draft against the latest revision</button
-					>{:else}<button class="btn btn-primary">Retry Save</button>{/if}
-			</form>
-		</section>
-	{/if}
-
-	{#if currentWindow.query.view === 'groups'}<noscript
-			><section aria-labelledby="native-groups-title">
-				<h2 id="native-groups-title">Manage Groups</h2>
-				<form method="POST" action={inventoryAction('createGroup', effectiveInventoryUrl(page))}>
-					<input type="hidden" name="requestId" value={data.requestId} /><label
-						for="native-group-name">New group name</label
-					><input id="native-group-name" name="name" required maxlength="128" /><button
-						class="btn btn-primary">Create group</button
-					>
-				</form>
-				{#each currentWindow.groupPage as group}<form
-						method="POST"
-						action={inventoryAction('renameGroup', effectiveInventoryUrl(page))}
-					>
-						<input type="hidden" name="requestId" value={data.requestId} /><input
-							type="hidden"
-							name="groupId"
-							value={group.id}
-						/><label for={`native-group-${group.id}`}>Rename {group.name}</label><input
-							id={`native-group-${group.id}`}
-							name="name"
-							value={group.name}
-							required
-							maxlength="128"
-						/><button class="btn btn-secondary">Save name</button>
-					</form>
-					<form method="POST" action={inventoryAction('deleteGroup', effectiveInventoryUrl(page))}>
-						<input type="hidden" name="requestId" value={data.requestId} /><input
-							type="hidden"
-							name="groupId"
-							value={group.id}
-						/><label
-							><input type="checkbox" name="confirmDeleteGroup" value="yes" required /> Delete {group.name}
-							and its memberships, keeping every owned card.</label
-						><button class="btn btn-secondary">Delete group</button>
-					</form>{/each}
-			</section></noscript
-		>{/if}
-
-	<WorkspaceHeader title="Inventory">
-		{#snippet metadata()}<p class="inventory-totals">
-				<strong>{currentWindow.totals.copyCount.toLocaleString()}</strong> cards <span>·</span>
-				<strong>{currentWindow.totals.canonicalCardCount.toLocaleString()}</strong>
-				card names <span>·</span> <strong>{currentWindow.totals.setCount}</strong> sets
-			</p>{/snippet}
-		{#snippet actions()}{#if groupDirectory}<Button
-					onclick={(event) => editGroup(null, event.currentTarget)}>New group</Button
-				>{:else if selectedGroup}<Button variant="secondary" href="/mtg/inventory"
-					>Assign cards</Button
-				>{:else}<Button variant="ghost" href="/mtg/scan">Scan</Button><Button
-					href="/mtg/search"
-					onclick={openSearch}>Add cards</Button
-				>{/if}{/snippet}
-	</WorkspaceHeader>
-	<noscript
-		><form method="GET" class="native-inventory-filters" aria-label="Inventory filters">
-			<label>Search<input class="input" type="search" name="q" value={data.window.query.q} /></label
-			><label
-				>Sets<select class="input" name="set" multiple
-					>{#each data.window.sets as set}<option
-							value={set.code}
-							selected={data.window.query.sets.includes(set.code)}>{set.name}</option
-						>{/each}</select
-				></label
-			><label
-				>Finish<select class="input" name="finish"
-					>{#each finishOptions as option}<option
-							value={option.value}
-							selected={data.window.query.finish === option.value}>{option.label}</option
-						>{/each}</select
-				></label
-			><label
-				>Condition<select class="input" name="condition"
-					>{#each conditionOptions as option}<option
-							value={option.value}
-							selected={data.window.query.condition === option.value}>{option.label}</option
-						>{/each}</select
-				></label
-			><label
-				>Sort<select class="input" name="sort"
-					>{#each ['name', 'set', 'newest'] as value}<option
-							{value}
-							selected={data.window.query.sort === value}>{value}</option
-						>{/each}</select
-				></label
-			><label
-				>Direction<select class="input" name="dir"
-					><option value="asc" selected={data.window.query.dir === 'asc'}>Ascending</option><option
-						value="desc"
-						selected={data.window.query.dir === 'desc'}>Descending</option
-					></select
-				></label
-			><label
-				>Variant<select class="input" name="variant"
-					><option value="">None</option>{#each ['finish', 'condition', 'quantity'] as value}<option
-							{value}
-							selected={data.window.query.variant === value}>{value}</option
-						>{/each}</select
-				></label
-			><label
-				>Variant direction<select class="input" name="variantDir"
-					><option value="asc" selected={data.window.query.variantDir === 'asc'}>Ascending</option
-					><option value="desc" selected={data.window.query.variantDir === 'desc'}
-						>Descending</option
-					></select
-				></label
-			><input
-				type="hidden"
-				name="view"
-				value={data.window.query.view}
-			/>{#if data.window.query.group}<input
-					type="hidden"
-					name="group"
-					value={data.window.query.group}
-				/>{/if}<Button type="submit">Apply filters</Button>
-		</form></noscript
-	>
-	<nav class="inventory-views" aria-label="Inventory views">
-		<a
-			href="/mtg/inventory"
-			class:active={!(currentWindow.query.view === 'groups')}
-			aria-current={!(currentWindow.query.view === 'groups') ? 'page' : undefined}>Cards</a
-		><a
-			bind:this={groupLink}
-			href="/mtg/inventory?view=groups"
-			class:active={currentWindow.query.view === 'groups'}
-			aria-current={currentWindow.query.view === 'groups' ? 'page' : undefined}>Groups</a
-		>
-	</nav>
-	{#if selectedGroup}<div class="selected-group">
-			<a href="/mtg/inventory?view=groups">All groups</a><span aria-hidden="true">/</span><strong
-				>{selectedGroup.name}</strong
-			>
-		</div>{/if}
-	{#if !removeId && (mutationError || form?.message)}<p class="mutation-error" role="alert">
-			{mutationError || form?.message}
-		</p>{/if}
-	{#if groupDirectory}
-		<GroupDirectory
-			groups={currentWindow.groupPage}
-			dialogOpen={editingGroup !== null || deletingGroup !== null}
-			onRename={editGroup}
-			onRemove={removeGroup}
-		/>
-	{:else if currentWindow.totals.entryCount === 0}
-		<div class="empty-state">
-			<p>No cards yet.</p>
-			<a bind:this={emptyAction} href="/mtg/search" onclick={openSearch} class="btn btn-secondary"
-				>Find your first card</a
-			>
-		</div>
-	{:else}
-		<div class="inventory-toolbar">
-			<div class="inventory-search">
-				<svg
-					aria-hidden="true"
-					width="17"
-					height="17"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="1.5"><circle cx="10" cy="10" r="7" /><path d="m15 15 6 6" /></svg
-				><input
-					type="search"
-					bind:this={searchInput}
-					aria-label="Search inventory"
-					bind:value={query}
-					placeholder="Search inventory"
-					class="input"
-				/>
-			</div>
-			<FilterPopover
-				bind:open={filterOpen}
-				active={hasColumnFilters}
-				onOpenAutoFocus={focusFilter}
-				onCloseAutoFocus={closeFilter}
-			>
-				<div class="filter-fields">
-					<div class="set-filter-heading">
-						<label class="label" for="inventory-set-search">Sets</label><button
-							type="button"
-							class="filter-reset"
-							disabled={selectedSets.length === 0}
-							onclick={() => (selectedSets = [])}>Clear</button
-						>
-					</div>
-					<input
-						bind:this={setSearchInput}
-						bind:value={setQuery}
-						id="inventory-set-search"
-						type="search"
-						class="input"
-						placeholder="Find a set by name or code"
+{#if privateCleared}<div class="workspace-container">
+		<SavedStateStatus resource={inventorySubscription} />
+		<p>Sign in again to load Inventory.</p>
+	</div>{:else}
+	<div class="inventory-page workspace-container">
+		<SavedStateStatus resource={inventorySubscription} />
+		{#if notesRecovery}
+			<section aria-labelledby="notes-recovery-title" class="inspector-form">
+				<h2 id="notes-recovery-title">Your unsaved Notes</h2>
+				<p role="alert">{form?.message}</p>
+				{#if latestNotes}<p>
+						Latest saved Notes: {latestNotes.notes || '(empty)'}
+					</p>{/if}
+				<form method="POST" action={inventoryAction('updateQuantity', effectiveInventoryUrl(page))}>
+					<input type="hidden" name="entryId" value={notesRecovery.entryId} />
+					<input type="hidden" name="requestId" value={notesRecovery.requestId} />
+					<input type="hidden" name="rebaseRequestId" value={data.requestId} />
+					<input type="hidden" name="notesRevision" value={notesRecovery.notesRevision} /><input
+						type="hidden"
+						name="notesOriginal"
+						value={notesRecovery.notesOriginal}
+					/><input type="hidden" name="quantityBase" value={notesRecovery.quantityBase} />
+					<label for="recovered-quantity">Owned quantity</label><input
+						id="recovered-quantity"
+						name="quantity"
+						type="number"
+						min="1"
+						step="1"
+						value={notesRecovery.quantity}
 					/>
-					<ScrollArea class="set-options" viewportLabel="Choose sets">
-						{#each visibleSets as option (option.value)}
-							<label class="set-option"
-								><input
-									type="checkbox"
-									checked={selectedSets.includes(option.value)}
-									onchange={() => toggleSet(option.value)}
-								/><span>{option.label}</span><small>{option.value.toUpperCase()}</small></label
-							>
-						{:else}<p class="no-sets">No sets match this search.</p>{/each}
-					</ScrollArea>
-					<div class="variant-filters">
-						<div>
-							<label class="label" for="inventory-finish-filter">Finish</label><Select
-								id="inventory-finish-filter"
-								label="Filter by finish"
-								bind:triggerRef={finishTrigger}
-								bind:value={selectedFinish}
-								options={finishOptions}
-							/>
-						</div>
-						<div>
-							<label class="label" for="inventory-condition-filter">Condition</label><Select
-								id="inventory-condition-filter"
-								label="Filter by condition"
-								bind:triggerRef={conditionTrigger}
-								bind:value={selectedCondition}
-								options={conditionOptions}
-							/>
-						</div>
-					</div>
-				</div>
-			</FilterPopover>
-			<ActionMenu
-				label="Sort inventory"
-				class="inventory-sort-menu btn-ghost"
-				items={[
-					{
-						label: 'Card name: A to Z',
-						onSelect: () => (order = nextInventoryOrder(order, 'name', 'asc'))
-					},
-					{
-						label: 'Card name: Z to A',
-						onSelect: () => (order = nextInventoryOrder(order, 'name', 'desc'))
-					},
-					{
-						label: 'Set: A to Z',
-						onSelect: () => (order = nextInventoryOrder(order, 'set', 'asc'))
-					},
-					{
-						label: 'Set: Z to A',
-						onSelect: () => (order = nextInventoryOrder(order, 'set', 'desc'))
-					},
-					{ label: 'Newest first', onSelect: () => (order = nextInventoryOrder(order, 'newest')) },
-					{
-						label:
-							columnDirection('finish') === 'asc' ? 'Finish: foil first' : 'Finish: nonfoil first',
-						onSelect: () => (order = nextInventoryOrder(order, 'finish'))
-					},
-					{
-						label:
-							columnDirection('condition') === 'asc'
-								? 'Condition: worst first'
-								: 'Condition: best first',
-						onSelect: () => (order = nextInventoryOrder(order, 'condition'))
-					},
-					{
-						label:
-							columnDirection('quantity') === 'asc'
-								? 'Quantity: most first'
-								: 'Quantity: fewest first',
-						onSelect: () => (order = nextInventoryOrder(order, 'quantity'))
-					}
-				]}
+					<label for="recovered-notes">Notes draft</label><textarea
+						id="recovered-notes"
+						name="notes">{notesRecovery.notes}</textarea
+					>
+					{#if latestNotes}<button
+							class="btn btn-primary"
+							name="rebaseNotesRevision"
+							value={latestNotes.notesRevision}>Save my draft against the latest revision</button
+						>{:else}<button class="btn btn-primary">Retry Save</button>{/if}
+				</form>
+			</section>
+		{/if}
+
+		{#if currentWindow.query.view === 'groups'}<noscript
+				><section aria-labelledby="native-groups-title">
+					<h2 id="native-groups-title">Manage Groups</h2>
+					<form method="POST" action={inventoryAction('createGroup', effectiveInventoryUrl(page))}>
+						<input type="hidden" name="requestId" value={data.requestId} /><label
+							for="native-group-name">New group name</label
+						><input id="native-group-name" name="name" required maxlength="128" /><button
+							class="btn btn-primary">Create group</button
+						>
+					</form>
+					{#each currentWindow.groupPage as group}<form
+							method="POST"
+							action={inventoryAction('renameGroup', effectiveInventoryUrl(page))}
+						>
+							<input type="hidden" name="requestId" value={data.requestId} /><input
+								type="hidden"
+								name="groupId"
+								value={group.id}
+							/><label for={`native-group-${group.id}`}>Rename {group.name}</label><input
+								id={`native-group-${group.id}`}
+								name="name"
+								value={group.name}
+								required
+								maxlength="128"
+							/><button class="btn btn-secondary">Save name</button>
+						</form>
+						<form
+							method="POST"
+							action={inventoryAction('deleteGroup', effectiveInventoryUrl(page))}
+						>
+							<input type="hidden" name="requestId" value={data.requestId} /><input
+								type="hidden"
+								name="groupId"
+								value={group.id}
+							/><label
+								><input type="checkbox" name="confirmDeleteGroup" value="yes" required /> Delete {group.name}
+								and its memberships, keeping every owned card.</label
+							><button class="btn btn-secondary">Delete group</button>
+						</form>{/each}
+				</section></noscript
+			>{/if}
+
+		<WorkspaceHeader title="Inventory">
+			{#snippet metadata()}<p class="inventory-totals">
+					<strong>{currentWindow.totals.copyCount.toLocaleString()}</strong> cards <span>·</span>
+					<strong>{currentWindow.totals.canonicalCardCount.toLocaleString()}</strong>
+					card names <span>·</span> <strong>{currentWindow.totals.setCount}</strong> sets
+				</p>{/snippet}
+			{#snippet actions()}{#if groupDirectory}<Button
+						onclick={(event) => editGroup(null, event.currentTarget)}>New group</Button
+					>{:else if selectedGroup}<Button variant="secondary" href={viewHref('cards')}
+						>Assign cards</Button
+					>{:else}<Button variant="ghost" href="/mtg/scan">Scan</Button><Button
+						href="/mtg/search"
+						onclick={openSearch}>Add cards</Button
+					>{/if}{/snippet}
+		</WorkspaceHeader>
+		<noscript
+			><form method="GET" class="native-inventory-filters" aria-label="Inventory filters">
+				<input type="hidden" name="pageSize" value={String(browse.pageSize)} /><input
+					type="hidden"
+					name="page"
+					value="1"
+				/>
+				<label
+					>Search<input class="input" type="search" name="q" value={data.window.query.q} /></label
+				><label
+					>Sets<select class="input" name="set" multiple
+						>{#each data.window.sets as set}<option
+								value={set.code}
+								selected={data.window.query.sets.includes(set.code)}>{set.name}</option
+							>{/each}</select
+					></label
+				><label
+					>Finish<select class="input" name="finish"
+						>{#each finishOptions as option}<option
+								value={option.value}
+								selected={data.window.query.finish === option.value}>{option.label}</option
+							>{/each}</select
+					></label
+				><label
+					>Condition<select class="input" name="condition"
+						>{#each conditionOptions as option}<option
+								value={option.value}
+								selected={data.window.query.condition === option.value}>{option.label}</option
+							>{/each}</select
+					></label
+				><label
+					>Sort<select class="input" name="sort"
+						>{#each ['name', 'set', 'newest'] as value}<option
+								{value}
+								selected={data.window.query.sort === value}>{value}</option
+							>{/each}</select
+					></label
+				><label
+					>Direction<select class="input" name="dir"
+						><option value="asc" selected={data.window.query.dir === 'asc'}>Ascending</option
+						><option value="desc" selected={data.window.query.dir === 'desc'}>Descending</option
+						></select
+					></label
+				><label
+					>Variant<select class="input" name="variant"
+						><option value="">None</option
+						>{#each ['finish', 'condition', 'quantity'] as value}<option
+								{value}
+								selected={data.window.query.variant === value}>{value}</option
+							>{/each}</select
+					></label
+				><label
+					>Variant direction<select class="input" name="variantDir"
+						><option value="asc" selected={data.window.query.variantDir === 'asc'}>Ascending</option
+						><option value="desc" selected={data.window.query.variantDir === 'desc'}
+							>Descending</option
+						></select
+					></label
+				><input
+					type="hidden"
+					name="view"
+					value={data.window.query.view}
+				/>{#if data.window.query.group}<input
+						type="hidden"
+						name="group"
+						value={data.window.query.group}
+					/>{/if}<Button type="submit">Apply filters</Button>
+			</form></noscript
+		>
+		<nav class="inventory-views" aria-label="Inventory views">
+			<a
+				href={viewHref('cards')}
+				class:active={!(currentWindow.query.view === 'groups')}
+				aria-current={!(currentWindow.query.view === 'groups') ? 'page' : undefined}>Cards</a
+			><a
+				bind:this={groupLink}
+				href={viewHref('groups')}
+				class:active={currentWindow.query.view === 'groups'}
+				aria-current={currentWindow.query.view === 'groups' ? 'page' : undefined}>Groups</a
 			>
-				{#snippet trigger()}<svg
+		</nav>
+		{#if selectedGroup}<div class="selected-group">
+				<a href={viewHref('groups')}>All groups</a><span aria-hidden="true">/</span><strong
+					>{selectedGroup.name}</strong
+				>
+			</div>{/if}
+		{#if !removeId && (mutationError || form?.message)}<p class="mutation-error" role="alert">
+				{mutationError || form?.message}
+			</p>{/if}
+		{#if groupDirectory}
+			{#key window.queryIdentity}<GroupDirectory
+					bind:this={groupList}
+					groups={hydrated && browse.pageSize === 'lazy'
+						? currentWindow.groups.filter(
+								(group) =>
+									!currentWindow.query.q ||
+									group.name.toLowerCase().includes(currentWindow.query.q.toLowerCase())
+							)
+						: currentWindow.groupPage}
+					lazy={hydrated && browse.pageSize === 'lazy'}
+					initialIndex={currentWindow.query.offset}
+					onRange={(index) => lazyRange(index, index + 1, true)}
+					canonicalURL={new URL(effectiveInventoryUrl(page).href)}
+					dialogOpen={editingGroup !== null || deletingGroup !== null}
+					onRename={editGroup}
+					onRemove={removeGroup}
+				/>{/key}
+		{:else if currentWindow.totals.entryCount === 0}
+			<div class="empty-state">
+				<p>No cards yet.</p>
+				<a bind:this={emptyAction} href="/mtg/search" onclick={openSearch} class="btn btn-secondary"
+					>Find your first card</a
+				>
+			</div>
+		{:else}
+			<div class="inventory-toolbar">
+				<div class="inventory-search">
+					<svg
 						aria-hidden="true"
-						width="14"
-						height="14"
+						width="17"
+						height="17"
 						viewBox="0 0 24 24"
 						fill="none"
 						stroke="currentColor"
-						stroke-width="1.6"
-						stroke-linecap="round"><path d="M8 4v16m-4-4 4 4 4-4M16 20V4m-4 4 4-4 4 4" /></svg
-					>Sort{/snippet}
-			</ActionMenu>
-			<p class="inventory-result-count">
-				{currentWindow.matching.entryCount}
-				{currentWindow.matching.entryCount === 1 ? 'entry' : 'entries'} <span>·</span>
-				{matchingQuantity} cards
-			</p>
-		</div>
-		{#if hasFilters}
-			<div class="active-filters">
-				{#each selectedSets as code (code)}
-					<div class="filter-chip">
+						stroke-width="1.5"><circle cx="10" cy="10" r="7" /><path d="m15 15 6 6" /></svg
+					><input
+						type="search"
+						bind:this={searchInput}
+						aria-label="Search inventory"
+						onkeydown={(event) => {
+							if (event.key !== 'Enter') return;
+							event.preventDefault();
+							void navigatePage(nativeUrl(requestQuery()));
+						}}
+						bind:value={query}
+						placeholder="Search inventory"
+						class="input"
+					/>
+				</div>
+				<FilterPopover
+					bind:open={filterOpen}
+					active={hasColumnFilters}
+					onOpenAutoFocus={focusFilter}
+					onCloseAutoFocus={closeFilter}
+				>
+					<div class="filter-fields">
+						<div class="set-filter-heading">
+							<label class="label" for="inventory-set-search">Sets</label><button
+								type="button"
+								class="filter-reset"
+								disabled={selectedSets.length === 0}
+								onclick={() => (selectedSets = [])}>Clear</button
+							>
+						</div>
+						<input
+							bind:this={setSearchInput}
+							bind:value={setQuery}
+							id="inventory-set-search"
+							type="search"
+							class="input"
+							placeholder="Find a set by name or code"
+						/>
+						<div class="set-options">
+							{#each visibleSets as option (option.value)}
+								<label class="set-option"
+									><input
+										type="checkbox"
+										checked={selectedSets.includes(option.value)}
+										onchange={() => toggleSet(option.value)}
+									/><span>{option.label}</span><small>{option.value.toUpperCase()}</small></label
+								>
+							{:else}<p class="no-sets">No sets match this search.</p>{/each}
+						</div>
+						<div class="variant-filters">
+							<div>
+								<label class="label" for="inventory-finish-filter">Finish</label><Select
+									id="inventory-finish-filter"
+									label="Filter by finish"
+									bind:triggerRef={finishTrigger}
+									bind:value={selectedFinish}
+									options={finishOptions}
+								/>
+							</div>
+							<div>
+								<label class="label" for="inventory-condition-filter">Condition</label><Select
+									id="inventory-condition-filter"
+									label="Filter by condition"
+									bind:triggerRef={conditionTrigger}
+									bind:value={selectedCondition}
+									options={conditionOptions}
+								/>
+							</div>
+						</div>
+					</div>
+				</FilterPopover>
+				<ActionMenu
+					label="Sort inventory"
+					class="inventory-sort-menu btn-ghost"
+					items={[
+						{
+							label: 'Card name: A to Z',
+							onSelect: () => (order = nextInventoryOrder(order, 'name', 'asc'))
+						},
+						{
+							label: 'Card name: Z to A',
+							onSelect: () => (order = nextInventoryOrder(order, 'name', 'desc'))
+						},
+						{
+							label: 'Set: A to Z',
+							onSelect: () => (order = nextInventoryOrder(order, 'set', 'asc'))
+						},
+						{
+							label: 'Set: Z to A',
+							onSelect: () => (order = nextInventoryOrder(order, 'set', 'desc'))
+						},
+						{
+							label: 'Newest first',
+							onSelect: () => (order = nextInventoryOrder(order, 'newest'))
+						},
+						{
+							label:
+								columnDirection('finish') === 'asc'
+									? 'Finish: foil first'
+									: 'Finish: nonfoil first',
+							onSelect: () => (order = nextInventoryOrder(order, 'finish'))
+						},
+						{
+							label:
+								columnDirection('condition') === 'asc'
+									? 'Condition: worst first'
+									: 'Condition: best first',
+							onSelect: () => (order = nextInventoryOrder(order, 'condition'))
+						},
+						{
+							label:
+								columnDirection('quantity') === 'asc'
+									? 'Quantity: most first'
+									: 'Quantity: fewest first',
+							onSelect: () => (order = nextInventoryOrder(order, 'quantity'))
+						}
+					]}
+				>
+					{#snippet trigger()}<svg
+							aria-hidden="true"
+							width="14"
+							height="14"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.6"
+							stroke-linecap="round"><path d="M8 4v16m-4-4 4 4 4-4M16 20V4m-4 4 4-4 4 4" /></svg
+						>Sort{/snippet}
+				</ActionMenu>
+				<p class="inventory-result-count">
+					{currentWindow.matching.entryCount}
+					{currentWindow.matching.entryCount === 1 ? 'entry' : 'entries'} <span>·</span>
+					{matchingQuantity} cards
+				</p>
+			</div>
+			{#if hasFilters}
+				<div class="active-filters">
+					{#each selectedSets as code (code)}
+						<div class="filter-chip">
+							<button
+								type="button"
+								class="filter-chip-edit"
+								onclick={(event) => editFilter('set', event)}
+								aria-label={`Edit set filter ${setName(code)}`}>Set: {setName(code)}</button
+							><button
+								type="button"
+								class="filter-chip-remove"
+								aria-label={`Clear set filter ${setName(code)}`}
+								onclick={() => (selectedSets = selectedSets.filter((value) => value !== code))}
+								>×</button
+							>
+						</div>
+					{/each}
+					{#if selectedFinish !== 'all'}<div class="filter-chip">
+							<button
+								type="button"
+								class="filter-chip-edit"
+								onclick={(event) => editFilter('finish', event)}
+								>Finish: {selectedFinish === 'foil' ? 'Foil' : 'Nonfoil'}</button
+							><button
+								type="button"
+								class="filter-chip-remove"
+								aria-label={`Clear finish filter ${selectedFinish}`}
+								onclick={() => (selectedFinish = 'all')}>×</button
+							>
+						</div>{/if}
+					{#if selectedCondition !== 'all'}<div class="filter-chip">
+							<button
+								type="button"
+								class="filter-chip-edit"
+								onclick={(event) => editFilter('condition', event)}
+								>Condition: {selectedCondition}</button
+							><button
+								type="button"
+								class="filter-chip-remove"
+								aria-label={`Clear condition filter ${selectedCondition}`}
+								onclick={() => (selectedCondition = 'all')}>×</button
+							>
+						</div>{/if}
+					<button type="button" class="clear-filters" onclick={clearFilters}>Clear filters</button>
+				</div>
+			{/if}
+			<span class="sr-only" role="status">{status}</span>
+			{#if singleSet}
+				<div class="set-progress">
+					<p>
+						{setName(singleSet)} <span>·</span>
+						{setCatalogTotal !== null && setCatalogTotal > 0
+							? `${ownedInSet} of ${setCatalogTotal} card names owned`
+							: `${ownedInSet} card names owned`}
+						{#if setProgressLoading}<span>·</span> Loading set total…{:else if setCatalogTotal === null || setCatalogTotal === 0}<span
+								>·</span
+							> Set total unavailable{/if}
+					</p>
+					{#if setCatalogTotal !== null && setCatalogTotal > 0}<progress
+							value={Math.min(ownedInSet, setCatalogTotal)}
+							max={setCatalogTotal}
+							aria-label={`${setName(singleSet)} set completion`}
+						></progress>{/if}
+				</div>
+			{/if}
+			<h2 class="sr-only" bind:this={resultsHeading} tabindex="-1">Inventory results</h2>
+			<p class="sr-only" id="inventory-order" role="status">{sortDescription}</p>
+			<div
+				class="inventory-columns"
+				role="group"
+				aria-label="Inventory column sorting"
+				aria-describedby="inventory-order"
+			>
+				{#each columns as { column, label }}
+					<div class="column-header">
 						<button
 							type="button"
-							class="filter-chip-edit"
-							onclick={(event) => editFilter('set', event)}
-							aria-label={`Edit set filter ${setName(code)}`}>Set: {setName(code)}</button
-						><button
-							type="button"
-							class="filter-chip-remove"
-							aria-label={`Clear set filter ${setName(code)}`}
-							onclick={() => (selectedSets = selectedSets.filter((value) => value !== code))}
-							>×</button
+							class="column-sort"
+							class:has-direction={columnDirection(column) !== null ||
+								(column === 'name' && order.base === 'newest')}
+							aria-pressed={columnDirection(column) !== null ||
+								(column === 'name' && order.base === 'newest')}
+							aria-label={`Sort by ${label.toLowerCase()} ${columnDirection(column) === 'asc' ? 'descending' : 'ascending'}`}
+							onclick={() => (order = nextInventoryOrder(order, column))}
+							>{column === 'name' && order.base === 'newest' ? 'Newest' : label}<span
+								class="sort-direction"
+								aria-hidden="true">{columnDirection(column) === 'asc' ? '↑' : '↓'}</span
+							></button
 						>
 					</div>
 				{/each}
-				{#if selectedFinish !== 'all'}<div class="filter-chip">
-						<button
-							type="button"
-							class="filter-chip-edit"
-							onclick={(event) => editFilter('finish', event)}
-							>Finish: {selectedFinish === 'foil' ? 'Foil' : 'Nonfoil'}</button
-						><button
-							type="button"
-							class="filter-chip-remove"
-							aria-label={`Clear finish filter ${selectedFinish}`}
-							onclick={() => (selectedFinish = 'all')}>×</button
-						>
-					</div>{/if}
-				{#if selectedCondition !== 'all'}<div class="filter-chip">
-						<button
-							type="button"
-							class="filter-chip-edit"
-							onclick={(event) => editFilter('condition', event)}
-							>Condition: {selectedCondition}</button
-						><button
-							type="button"
-							class="filter-chip-remove"
-							aria-label={`Clear condition filter ${selectedCondition}`}
-							onclick={() => (selectedCondition = 'all')}>×</button
-						>
-					</div>{/if}
-				<button type="button" class="clear-filters" onclick={clearFilters}>Clear filters</button>
+				<span></span>
 			</div>
-		{/if}
-		<span class="sr-only" role="status">{status}</span>
-		{#if singleSet}
-			<div class="set-progress">
-				<p>
-					{setName(singleSet)} <span>·</span>
-					{setCatalogTotal !== null && setCatalogTotal > 0
-						? `${ownedInSet} of ${setCatalogTotal} card names owned`
-						: `${ownedInSet} card names owned`}
-					{#if setProgressLoading}<span>·</span> Loading set total…{:else if setCatalogTotal === null || setCatalogTotal === 0}<span
-							>·</span
-						> Set total unavailable{/if}
-				</p>
-				{#if setCatalogTotal !== null && setCatalogTotal > 0}<progress
-						value={Math.min(ownedInSet, setCatalogTotal)}
-						max={setCatalogTotal}
-						aria-label={`${setName(singleSet)} set completion`}
-					></progress>{/if}
-			</div>
-		{/if}
-		<p class="sr-only" id="inventory-order" role="status">{sortDescription}</p>
-		<div
-			class="inventory-columns"
-			role="group"
-			aria-label="Inventory column sorting"
-			aria-describedby="inventory-order"
-		>
-			{#each columns as { column, label }}
-				<div class="column-header">
-					<button
-						type="button"
-						class="column-sort"
-						class:has-direction={columnDirection(column) !== null ||
-							(column === 'name' && order.base === 'newest')}
-						aria-pressed={columnDirection(column) !== null ||
-							(column === 'name' && order.base === 'newest')}
-						aria-label={`Sort by ${label.toLowerCase()} ${columnDirection(column) === 'asc' ? 'descending' : 'ascending'}`}
-						onclick={() => (order = nextInventoryOrder(order, column))}
-						>{column === 'name' && order.base === 'newest' ? 'Newest' : label}<span
-							class="sort-direction"
-							aria-hidden="true">{columnDirection(column) === 'asc' ? '↑' : '↓'}</span
-						></button
-					>
-				</div>
-			{/each}
-			<span></span>
-		</div>
-		{#if currentWindow.matching.entryCount === 0}<div class="empty-state">
-				<p>
-					{data.selectedGroupId && !hasFilters
-						? 'No cards in this group yet. Assign cards from their row menu in Cards.'
-						: 'No cards match these filters.'}
-				</p>
-				{#if hasFilters}<button class="btn btn-secondary" onclick={clearFilters}
-						>Clear filters</button
-					>{/if}
-			</div>
-		{:else}
-			{#snippet entryRow(card: InventoryCard)}
-				<div
-					class="inventory-row"
-					data-inventory-row={card.id}
-					class:saving={pendingId === card.id}
-				>
-					<button
-						class="card-identity"
-						onclick={(event) => openInspection(card.id, 'edit', event.currentTarget)}
-						aria-label={`Inspect ${card.name}, ${card.setCode.toUpperCase()}, ${card.finish}, ${card.condition}`}
-						aria-describedby={isNewInventoryEntry(card.createdAt, asOf)
-							? `inventory-new-${card.id}`
-							: undefined}
-						><img src={card.imageUri} alt="" width="40" height="56" loading="lazy" /><span
-							><span class="card-name"
-								><strong>{card.name}</strong>{#if isNewInventoryEntry(card.createdAt, asOf)}<span
-										class="new-entry"
-										id={`inventory-new-${card.id}`}
-										title={`Added ${addedDate.format(card.createdAt)} UTC. New for 7 days.`}
-										>New<span class="sr-only"
-											>, entry added {addedDate.format(card.createdAt)} UTC, marked new for 7 days</span
-										></span
-									>{/if}</span
-							><span class="mobile-metadata"
-								>{@render metadata('set', card.setCode)}{@render metadata(
-									'finish',
-									card.finish
-								)}{@render metadata('condition', card.condition)}</span
-							>{#if entryGroupNames(card.id)}<span
-									class="entry-groups"
-									title={entryGroupNames(card.id)}>{entryGroupNames(card.id)}</span
-								>{/if}{#if card.notes}<span class="entry-notes">{card.notes}</span>{/if}</span
-						></button
-					>
-					<noscript
-						><a href={`/mtg/inventory/${card.id}${effectiveInventoryUrl(page).search}`}>Details</a
-						></noscript
-					>
-					<span class="row-metadata">{@render metadata('set', card.setCode)}</span><span
-						class="row-metadata">{@render metadata('finish', card.finish)}</span
-					><span class="row-metadata">{@render metadata('condition', card.condition)}</span>
-					<QuantityControl
-						quantity={card.quantity}
-						label={card.name}
-						action={inventoryAction('updateQuantity', effectiveInventoryUrl(page))}
-						submit={saveEntry}
-						disabled={pendingId !== null}
-					>
-						{#snippet fields(delta)}<input type="hidden" name="entryId" value={card.id} /><input
-								type="hidden"
-								name="delta"
-								value={delta}
-							/><input type="hidden" name="requestId" value={data.requestId} />{/snippet}
-					</QuantityControl>
-					<ActionMenu
-						label={`Actions for ${card.name}, ${card.setCode.toUpperCase()}, ${card.finish}, ${card.condition}`}
-						iconOnly
-						class="entry-menu"
-						bind:triggerRef={
-							() => rowMenuRefs[card.id] ?? null, (ref) => (rowMenuRefs[card.id] = ref)
-						}
-						onCloseAutoFocus={(event) => {
-							if (
-								removeId === card.id ||
-								inspection?.entryId === card.id ||
-								assigningEntryId === card.id
-							)
-								event.preventDefault();
-						}}
-						items={[
-							{
-								label: 'Add another',
-								disabled: pendingId !== null,
-								onSelect: () => openInspection(card.id, 'add', rowMenuRefs[card.id] ?? searchInput)
-							},
-							{
-								label: 'Groups',
-								disabled: pendingId !== null,
-								onSelect: () => assignGroups(card.id)
-							},
-							{
-								label: 'Remove',
-								destructive: true,
-								disabled: pendingId !== null,
-								onSelect: () => openRemoval(card.id)
-							}
-						]}
-					/>
-				</div>{/snippet}
-			{#if hydrated}<VirtualInventoryList
-					bind:this={virtualList}
-					total={currentWindow.matching.entryCount}
-					queryKey={currentWindow.queryKey}
-					version={windowVersion}
-					loadedIndexes={loadedEntries.map((row) => row.index)}
-					pinnedIndexes={pins}
-					getEntry={(index) => window.at(index)}
-					onRange={(start, end) => window.plan(start, end)}
-				>
-					{#snippet row(entry: InventoryEntry)}{@render entryRow(asLegacy(entry))}{/snippet}
-				</VirtualInventoryList>{:else}<ul class="inventory-list" aria-label="Inventory entries">
-					{#each listCards as card (card.id)}<li>{@render entryRow(card)}</li>{/each}
-				</ul>{/if}
-		{/if}
-	{/if}
-	<nav class="inventory-pagination" aria-label="Inventory pages">
-		{#if currentWindow.query.offset > 0}<Button
-				variant="secondary"
-				href={nativeUrl(
-					currentWindow.query,
-					Math.max(1, Math.floor(currentWindow.query.offset / 50))
-				)}>Previous</Button
-			>{/if}
-		<span
-			>Page {Math.floor(currentWindow.query.offset / 50) + 1} of {Math.max(
-				1,
-				Math.ceil(
-					(groupDirectory ? currentWindow.groupCount : currentWindow.matching.entryCount) / 50
-				)
-			)}</span
-		>
-		{#if currentWindow.query.offset + 50 < (groupDirectory ? currentWindow.groupCount : currentWindow.matching.entryCount)}<Button
-				variant="secondary"
-				href={nativeUrl(currentWindow.query, Math.floor(currentWindow.query.offset / 50) + 2)}
-				>Next</Button
-			>{/if}
-	</nav>
-	<div
-		hidden
-		data-inventory-cache-pages={metrics.pages}
-		data-inventory-cache-entries={metrics.entries}
-		data-inventory-contexts={metrics.contexts}
-		data-inventory-requests={metrics.requests}
-		data-inventory-reference-count={Object.keys(rowMenuRefs).length}
-		data-inventory-target-count={Object.keys(targetEntries).length}
-	></div>
-	{#if hydrated && window.error}<p role="alert">
-			{window.error}<Button
-				variant="secondary"
-				onclick={() =>
-					window.plan(virtualList?.anchor().index ?? 0, (virtualList?.anchor().index ?? 0) + 50)}
-				>Try again</Button
-			>
-		</p>{/if}
-</div>
-
-{#if editingGroup}<GroupEditor
-		group={editingGroup.group}
-		refresh={refreshInventory}
-		onClose={() => (editingGroup = null)}
-		onCloseAutoFocus={returnFromGroup}
-	/>{/if}
-{#if assigningEntry}<EntryGroups
-		entry={assigningEntry}
-		refresh={refreshInventory}
-		groups={currentWindow.groups}
-		groupIds={membershipsFor(assigningEntry.id)}
-		onClose={() => (assigningEntryId = null)}
-		onCloseAutoFocus={returnFromGroup}
-	/>{/if}
-<ConfirmationDialog
-	open={deletingGroup !== null}
-	title="Delete this group?"
-	description={`Delete ${deletingGroup?.name ?? ''}? Your cards stay in inventory; only this group's assignments are removed.`}
-	pending={groupDeletion.pending}
-	error={groupDeletion.error}
-	onCancel={() => (deletingGroup = null)}
-	onCloseAutoFocus={returnFromGroup}
->
-	<form
-		method="POST"
-		action={inventoryAction('deleteGroup', effectiveInventoryUrl(page))}
-		use:enhance={groupDeletion.submit}
-	>
-		<input type="hidden" name="requestId" value={data.requestId} />
-		<input type="hidden" name="groupId" value={deletingGroup?.id ?? ''} /><button
-			class="btn btn-destructive"
-			disabled={groupDeletion.pending}
-			type="submit">{groupDeletion.pending ? 'Deleting...' : 'Delete group'}</button
-		>
-	</form>
-</ConfirmationDialog>
-
-<ConfirmationDialog
-	open={removeId !== null}
-	title="Remove this entry?"
-	description={removing
-		? `This removes ${removing.quantity > 1 ? 'all ' : ''}${removing.quantity} ${removing.quantity === 1 ? 'copy' : 'copies'} of ${removing.name} (${removing.setCode.toUpperCase()}, ${removing.finish === 'foil' ? 'Foil' : 'Nonfoil'}, ${removing.condition}) from your inventory. It cannot be undone.`
-		: ''}
-	pending={pendingId !== null}
-	error={mutationError}
-	onCancel={cancelRemoval}
-	onCloseAutoFocus={returnFromRemoval}
->
-	<form
-		method="POST"
-		action={inventoryAction('remove', effectiveInventoryUrl(page))}
-		use:enhance={saveEntry}
-	>
-		<input type="hidden" name="requestId" value={data.requestId} />
-		<input type="hidden" name="entryId" value={removeId ?? ''} /><input
-			type="hidden"
-			name="expectedQuantity"
-			value={removing?.quantity ?? 0}
-		/>
-		<button class="btn btn-destructive" type="submit" disabled={pendingId !== null || !removing}
-			>{pendingId === removeId ? 'Removing…' : 'Remove'}</button
-		>
-	</form>
-</ConfirmationDialog>
-
-{#if inspection}
-	<CardDetail
-		card={inspection.card}
-		inventoryEntryId={inspection.entryId}
-		inventoryPriceRefreshKey={`${confirmedInventoryWrite}:${currentWindow.revision}:${inspected?.updatedAt.toISOString() ?? 'missing'}:${targetGone}`}
-		returnFocus={inspection.returnFocus}
-		actions={inspection.mode === 'edit' ? editEntryActions : undefined}
-		onClose={() => {
-			const id = inspection?.entryId;
-			inspection = null;
-			if (id)
-				void restoreAnchor(id).then((restored) => {
-					if (!restored) return;
-					(rowMenuRefs[id] ?? searchInput)?.focus({ preventScroll: true });
-				});
-		}}
-	/>
-	{#snippet editEntryActions(activeCard: CardDocument)}
-		{#if targetGone}<p role="alert">This entry was removed. Your unsaved notes are retained.</p>
-			<label class="label" for="removed-notes">Unsaved Notes</label><textarea
-				id="removed-notes"
-				class="input"
-				bind:value={notesDraft}
-			></textarea>{:else if inspected && activeCard.id === inspected.catalogCardId}
-			<form
-				method="POST"
-				action={inventoryAction('updateQuantity', effectiveInventoryUrl(page))}
-				use:enhance={saveEntry}
-				class="inspector-form"
-			>
-				<input type="hidden" name="requestId" value={data.requestId} />
-				<input type="hidden" name="notesRevision" value={notesBase} />
-				<input type="hidden" name="notesOriginal" value={notesOriginal} /><input
-					type="hidden"
-					name="quantityBase"
-					value={quantityBase}
-				/>
-				<input type="hidden" name="entryId" value={inspected.id} />
-				<p>
-					{inspected.setCode.toUpperCase()} · {inspected.finish === 'foil' ? 'Foil' : 'Nonfoil'} · {inspected.condition}
-				</p>
-				{#if notesConflict}<p role="alert">
-						Latest saved Notes: {notesConflict.notes || '(empty)'}
+			{#if currentWindow.matching.entryCount === 0}<div class="empty-state">
+					<p>
+						{data.selectedGroupId && !hasFilters
+							? 'No cards in this group yet. Assign cards from their row menu in Cards.'
+							: 'No cards match these filters.'}
 					</p>
-					<button
-						type="button"
-						class="btn btn-secondary"
-						onclick={() => {
-							notesBase = notesConflict!.notesRevision;
-							notesConflict = null;
-						}}>Use latest revision with my draft</button
-					>{/if}
-				<label class="label" for="inventory-quantity">Owned quantity</label><input
-					class="input"
-					id="inventory-quantity"
-					name="quantity"
-					type="number"
-					min="1"
-					step="1"
-					required
-					bind:value={quantityDraft}
-					oninput={() => (draftDirty = true)}
-				/><label class="label" for="inventory-notes">Notes</label><textarea
-					class="input"
-					id="inventory-notes"
-					name="notes"
-					rows="2"
-					bind:value={notesDraft}
-					oninput={() => (draftDirty = true)}></textarea><button
-					type="submit"
-					class="btn btn-primary"
-					disabled={pendingId !== null || targetGone}
-					>{pendingId === inspected.id ? 'Saving…' : 'Save'}</button
-				>{#if mutationError}<p class="mutation-error" role="alert">{mutationError}</p>{:else}<p
-						class="text-sm text-text-muted"
-						role="status"
+					{#if hasFilters}<button class="btn btn-secondary" onclick={clearFilters}
+							>Clear filters</button
+						>{/if}
+				</div>
+			{:else}
+				{#snippet entryRow(card: InventoryCard)}
+					<div
+						class="inventory-row"
+						data-inventory-row={card.id}
+						class:saving={pendingId === card.id}
 					>
-						{status}
-					</p>{/if}
-			</form>
-		{:else}<a
-				class="btn btn-secondary"
-				href={`/mtg/search?q=${encodeURIComponent(activeCard.name)}`}>Find this card in Search</a
-			>{/if}
-	{/snippet}
+						<button
+							class="card-identity"
+							onclick={(event) => openInspection(card.id, 'details', event.currentTarget)}
+							aria-label={`Inspect ${card.name}, ${card.setCode.toUpperCase()}, ${card.finish}, ${card.condition}`}
+							aria-describedby={isNewInventoryEntry(card.createdAt, asOf)
+								? `inventory-new-${card.id}`
+								: undefined}
+							><img src={card.imageUri} alt="" width="40" height="56" loading="lazy" /><span
+								><span class="card-name"
+									><strong>{card.name}</strong>{#if isNewInventoryEntry(card.createdAt, asOf)}<span
+											class="new-entry"
+											id={`inventory-new-${card.id}`}
+											title={`Added ${addedDate.format(card.createdAt)} UTC. New for 7 days.`}
+											>New<span class="sr-only"
+												>, entry added {addedDate.format(card.createdAt)} UTC, marked new for 7 days</span
+											></span
+										>{/if}</span
+								><span class="mobile-metadata"
+									>{@render metadata('set', card.setCode)}{@render metadata(
+										'finish',
+										card.finish
+									)}{@render metadata('condition', card.condition)}</span
+								>{#if entryGroupNames(card.id)}<span
+										class="entry-groups"
+										title={entryGroupNames(card.id)}>{entryGroupNames(card.id)}</span
+									>{/if}{#if card.notes}<span class="entry-notes">{card.notes}</span>{/if}</span
+							></button
+						>
+						<noscript
+							><a href={`/mtg/inventory/${card.id}${effectiveInventoryUrl(page).search}`}>Details</a
+							></noscript
+						>
+						<span class="row-metadata">{@render metadata('set', card.setCode)}</span><span
+							class="row-metadata">{@render metadata('finish', card.finish)}</span
+						><span class="row-metadata">{@render metadata('condition', card.condition)}</span>
+						<span class="owned-quantity" aria-label={`${card.quantity} owned copies`}
+							>{card.quantity}</span
+						>
+						<ActionMenu
+							label={`Actions for ${card.name}, ${card.setCode.toUpperCase()}, ${card.finish}, ${card.condition}`}
+							iconOnly
+							class="entry-menu"
+							bind:triggerRef={
+								() => rowMenuRefs[card.id] ?? null, (ref) => (rowMenuRefs[card.id] = ref)
+							}
+							onCloseAutoFocus={(event) => {
+								if (
+									removeId === card.id ||
+									inspection?.entryId === card.id ||
+									assigningEntryId === card.id
+								)
+									event.preventDefault();
+							}}
+							items={[
+								{
+									label: 'Edit',
+									disabled: pendingId !== null,
+									onSelect: () =>
+										openInspection(card.id, 'edit', rowMenuRefs[card.id] ?? searchInput)
+								},
+								{
+									label: 'Add another printing',
+									disabled: pendingId !== null,
+									onSelect: () =>
+										openInspection(card.id, 'add', rowMenuRefs[card.id] ?? searchInput)
+								},
+								{
+									label: 'Groups',
+									disabled: pendingId !== null,
+									onSelect: () => assignGroups(card.id)
+								},
+								{
+									label: 'Remove',
+									destructive: true,
+									disabled: pendingId !== null,
+									onSelect: () => openRemoval(card.id)
+								}
+							]}
+						/>
+					</div>{/snippet}
+				{#if hydrated && browse.pageSize === 'lazy'}<VirtualInventoryList
+						bind:this={virtualList}
+						total={currentWindow.matching.entryCount}
+						queryKey={window.queryIdentity}
+						version={windowVersion}
+						initialIndex={currentWindow.query.offset}
+						loadedIndexes={loadedEntries.map((row) => row.index)}
+						pinnedIndexes={pins}
+						getEntry={(index) => window.at(index)}
+						onRange={lazyRange}
+					>
+						{#snippet row(entry: InventoryEntry)}{@render entryRow(asLegacy(entry))}{/snippet}
+					</VirtualInventoryList>{:else}<ul class="inventory-list" aria-label="Inventory entries">
+						{#each discreteCards as card (card.id)}<li>
+								{@render entryRow(card)}
+							</li>{/each}
+					</ul>{/if}
+			{/if}
+		{/if}
+		{#if requestedServerQuery}<p role="status">Loading the selected inventory page.</p>{/if}
+		<Pagination
+			state={browse}
+			total={groupDirectory ? currentWindow.groupCount : currentWindow.matching.entryCount}
+			canonicalURL={new URL(effectiveInventoryUrl(page).href)}
+			onNavigate={(href) => {
+				void navigatePage(href);
+			}}
+			lazyLoading={true}
+		/>
+		<div
+			hidden
+			data-inventory-cache-pages={metrics.pages}
+			data-inventory-cache-entries={metrics.entries}
+			data-inventory-contexts={metrics.contexts}
+			data-inventory-cache-bytes={metrics.serializedBytes}
+			data-inventory-byte-overflow={metrics.byteOverflow}
+			data-inventory-metadata-overflow={metrics.metadataOverflow}
+			data-inventory-requests={metrics.requests}
+			data-inventory-reference-count={Object.keys(rowMenuRefs).length}
+			data-inventory-target-count={Object.keys(targetEntries).length}
+			data-inventory-pinned-ssr-pages={metrics.pinnedSSRPages}
+			data-inventory-pinned-ssr-entries={metrics.pinnedSSREntries}
+		></div>
+		{#if hydrated && window.error}<p role="alert">
+				{window.error}<Button
+					variant="secondary"
+					onclick={() =>
+						window.plan(
+							virtualList?.anchor().index ?? currentWindow.query.offset,
+							(virtualList?.anchor().index ?? currentWindow.query.offset) + browse.limit
+						)}>Try again</Button
+				>
+			</p>{/if}
+	</div>
+
+	{#if editingGroup}<GroupEditor
+			group={editingGroup.group}
+			refresh={refreshInventory}
+			onClose={() => (editingGroup = null)}
+			onCloseAutoFocus={returnFromGroup}
+		/>{/if}
+	{#if assigningEntry}<EntryGroups
+			entry={assigningEntry}
+			refresh={refreshInventory}
+			groups={currentWindow.groups}
+			groupIds={membershipsFor(assigningEntry.id)}
+			onClose={() => (assigningEntryId = null)}
+			onCloseAutoFocus={returnFromGroup}
+		/>{/if}
+	<ConfirmationDialog
+		open={deletingGroup !== null}
+		title="Delete this group?"
+		description={`Delete ${deletingGroup?.name ?? ''}? Your cards stay in inventory; only this group's assignments are removed.`}
+		pending={groupDeletion.pending}
+		error={groupDeletion.error}
+		onCancel={() => (deletingGroup = null)}
+		onCloseAutoFocus={returnFromGroup}
+	>
+		<form
+			method="POST"
+			action={inventoryAction('deleteGroup', effectiveInventoryUrl(page))}
+			use:enhance={groupDeletion.submit}
+		>
+			<input type="hidden" name="requestId" value={data.requestId} />
+			<input type="hidden" name="groupId" value={deletingGroup?.id ?? ''} /><button
+				class="btn btn-destructive"
+				disabled={groupDeletion.pending}
+				type="submit">{groupDeletion.pending ? 'Deleting...' : 'Delete group'}</button
+			>
+		</form>
+	</ConfirmationDialog>
+
+	<ConfirmationDialog
+		open={removeId !== null}
+		title="Remove this entry?"
+		description={removing
+			? `This removes ${removing.quantity > 1 ? 'all ' : ''}${removing.quantity} ${removing.quantity === 1 ? 'copy' : 'copies'} of ${removing.name} (${removing.setCode.toUpperCase()}, ${removing.finish === 'foil' ? 'Foil' : 'Nonfoil'}, ${removing.condition}) from your inventory. It cannot be undone.`
+			: ''}
+		pending={pendingId !== null}
+		error={mutationError}
+		onCancel={cancelRemoval}
+		onCloseAutoFocus={returnFromRemoval}
+	>
+		<form
+			method="POST"
+			action={inventoryAction('remove', effectiveInventoryUrl(page))}
+			use:enhance={saveEntry}
+		>
+			<input type="hidden" name="requestId" value={data.requestId} />
+			<input type="hidden" name="entryId" value={removeId ?? ''} /><input
+				type="hidden"
+				name="expectedQuantity"
+				value={removing?.quantity ?? 0}
+			/>
+			<button class="btn btn-destructive" type="submit" disabled={pendingId !== null || !removing}
+				>{pendingId === removeId ? 'Removing…' : 'Remove'}</button
+			>
+		</form>
+	</ConfirmationDialog>
+
+	{#if inspection}
+		<CardDetail
+			card={inspection.card}
+			inventoryEntryId={inspection.mode === 'add' ? undefined : inspection.entryId}
+			callerPending={pendingId !== null || addingPending}
+			inventoryPriceRefreshKey={`${confirmedInventoryWrite}:${currentWindow.revision}:${inspected?.updatedAt.toISOString() ?? 'missing'}:${targetGone}`}
+			returnFocus={inspection.returnFocus}
+			actions={inspectionActions}
+			onClose={() => {
+				const id = inspection?.entryId;
+				inspection = null;
+				if (id)
+					void restoreAnchor(id).then((restored) => {
+						if (!restored) return;
+						(rowMenuRefs[id] ?? searchInput)?.focus({ preventScroll: true });
+					});
+			}}
+		/>
+		{#snippet inspectionActions(activeCard: CardDocument)}
+			<nav aria-label="Card task" class="inspection-tasks">
+				<Button
+					variant="secondary"
+					disabled={pendingId !== null || addingPending}
+					onclick={() => {
+						if (inspection) inspection.mode = 'details';
+					}}>Details</Button
+				>
+				<Button
+					variant="secondary"
+					disabled={pendingId !== null || addingPending || targetGone}
+					onclick={() => {
+						if (inspection) inspection.mode = 'edit';
+					}}>Edit owned entry</Button
+				>
+				<Button
+					variant="secondary"
+					disabled={pendingId !== null || addingPending}
+					onclick={() => {
+						if (inspection) inspection.mode = 'add';
+					}}>Add another printing</Button
+				>
+			</nav>
+			{#if inspection?.mode === 'add'}<CardQuickAdd
+					card={activeCard}
+					onPendingChange={(value) => (addingPending = value)}
+				/>
+			{:else if inspection?.mode === 'edit'}{@render editEntryActions(activeCard)}
+			{:else}<p>
+					{inspected?.quantity ?? quantityBase} owned copies · {inspected?.finish ?? ''} · {inspected?.condition ??
+						''}
+				</p>
+				{#if notesDraft !== notesOriginal || quantityDraft !== quantityBase}<p>
+						Unsaved entry edits retained.
+					</p>{/if}{#if inspected?.notes}<p>{inspected.notes}</p>{/if}{/if}
+		{/snippet}
+		{#snippet editEntryActions(activeCard: CardDocument)}
+			{#if targetGone}<p role="alert">This entry was removed. Your unsaved notes are retained.</p>
+				<label class="label" for="removed-notes">Unsaved Notes</label><textarea
+					id="removed-notes"
+					class="input"
+					bind:value={notesDraft}
+				></textarea>{:else if inspected && activeCard.id === inspected.catalogCardId}
+				<form
+					method="POST"
+					action={inventoryAction('updateQuantity', effectiveInventoryUrl(page))}
+					use:enhance={saveEntry}
+					class="inspector-form"
+				>
+					<input type="hidden" name="requestId" value={data.requestId} />
+					<input type="hidden" name="notesRevision" value={notesBase} />
+					<input type="hidden" name="notesOriginal" value={notesOriginal} /><input
+						type="hidden"
+						name="quantityBase"
+						value={quantityBase}
+					/>
+					<input type="hidden" name="entryId" value={inspected.id} />
+					<p>
+						{inspected.setCode.toUpperCase()} · {inspected.finish === 'foil' ? 'Foil' : 'Nonfoil'} · {inspected.condition}
+					</p>
+					{#if notesConflict}<p role="alert">
+							Latest saved Notes: {notesConflict.notes || '(empty)'}
+						</p>
+						<button
+							type="button"
+							class="btn btn-secondary"
+							onclick={() => {
+								notesBase = notesConflict!.notesRevision;
+								notesConflict = null;
+							}}>Use latest revision with my draft</button
+						>{/if}
+					<label class="label" for="inventory-quantity">Owned quantity</label><input
+						class="input"
+						id="inventory-quantity"
+						name="quantity"
+						type="number"
+						min="1"
+						step="1"
+						required
+						bind:value={quantityDraft}
+						oninput={() => (draftDirty = true)}
+					/><label class="label" for="inventory-notes">Notes</label><textarea
+						class="input"
+						id="inventory-notes"
+						name="notes"
+						rows="2"
+						bind:value={notesDraft}
+						oninput={() => (draftDirty = true)}></textarea><button
+						type="submit"
+						class="btn btn-primary"
+						disabled={pendingId !== null || targetGone}
+						>{pendingId === inspected.id ? 'Saving…' : 'Save'}</button
+					>{#if mutationError}<p class="mutation-error" role="alert">{mutationError}</p>{:else}<p
+							class="text-sm text-text-muted"
+							role="status"
+						>
+							{status}
+						</p>{/if}
+				</form>
+			{:else}<a
+					class="btn btn-secondary"
+					href={`/mtg/search?q=${encodeURIComponent(activeCard.name)}`}>Find this card in Search</a
+				>{/if}
+		{/snippet}
+	{/if}
 {/if}
 
 {#snippet metadata(kind: 'set' | 'finish' | 'condition', value: string)}
@@ -1561,14 +1804,14 @@
 {/snippet}
 
 <style>
-	.inventory-pagination {
+	.inspection-tasks {
 		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.75rem;
 		flex-wrap: wrap;
-		margin-top: 1rem;
-		font-size: 0.75rem;
+		gap: 0.5rem;
+	}
+	.owned-quantity {
+		text-align: center;
+		font-variant-numeric: tabular-nums;
 	}
 	.native-inventory-filters {
 		display: flex;
@@ -1703,7 +1946,7 @@
 		cursor: default;
 	}
 	:global(.set-options) {
-		height: 16rem;
+		min-height: 0;
 		margin-bottom: 0.5rem;
 	}
 	.set-option {

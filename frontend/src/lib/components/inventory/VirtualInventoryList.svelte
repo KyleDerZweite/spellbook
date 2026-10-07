@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { tick, untrack } from 'svelte';
-	import ScrollArea from '#lib/components/ui/scroll-area/ScrollArea.svelte';
 	import type { InventoryEntry } from '@spellbook/contracts/inventory.ts';
 	import { inventoryRowSlots, type InventoryRowSlot } from '#lib/inventory/rows.ts';
 	let {
@@ -11,6 +10,7 @@
 		version,
 		queryKey,
 		pinnedIndexes = [],
+		initialIndex = 0,
 		row,
 		onRange
 	}: {
@@ -20,11 +20,12 @@
 		version: number;
 		queryKey: string;
 		pinnedIndexes?: number[];
+		initialIndex?: number;
 		row: Snippet<[InventoryEntry, number]>;
 		onRange: (start: number, end: number) => void;
 	} = $props();
-	let viewport = $state<HTMLDivElement | null>(null),
-		scrollTop = $state(0),
+	let viewport = $state<HTMLUListElement | null>(null),
+		scrollTop = $state(untrack(() => initialIndex * 96)),
 		height = $state(650),
 		measurementVersion = $state(0),
 		focused = $state<number | null>(null);
@@ -67,16 +68,17 @@
 	let end = $derived.by(() => {
 		measurementVersion;
 		version;
-		return Math.min(total, indexAt(scrollTop + height) + 5);
+		return Math.min(total, indexAt(scrollTop + height) + 5, start + 195);
 	});
 	let indexes = $derived(
 		[
 			...new Set([
-				...Array.from({ length: Math.max(0, end - start) }, (_, i) => start + i),
 				...pinnedIndexes,
-				...(focused === null ? [] : [focused])
+				...(focused === null ? [] : [focused]),
+				...Array.from({ length: Math.max(0, Math.min(200, end - start)) }, (_, i) => start + i)
 			])
 		]
+			.slice(0, 200)
 			.filter((i) => i >= 0 && i < total)
 			.sort((a, b) => a - b)
 	);
@@ -100,8 +102,12 @@
 	) {
 		await tick();
 		if (viewport && isCurrent()) {
-			viewport.scrollTop = Math.max(0, offset(index) + intra);
-			scrollTop = viewport.scrollTop;
+			const top = viewport.getBoundingClientRect().top + window.scrollY;
+			window.scrollTo({
+				top: Math.max(0, top + offset(index) + intra - headerHeight()),
+				behavior: 'instant'
+			});
+			readGeometry();
 		}
 	}
 	function measure(node: HTMLElement, slot: InventoryRowSlot) {
@@ -115,9 +121,9 @@
 			if (old?.id === id && Math.abs(old.height - measured) < 0.5) return;
 			const previous = old?.height ?? estimate;
 			heights.set(index, { id, height: measured });
-			if (viewport && index < indexAt(viewport.scrollTop)) {
-				viewport.scrollTop += measured - previous;
-				scrollTop = viewport.scrollTop;
+			if (viewport && index < indexAt(scrollTop)) {
+				window.scrollBy({ top: measured - previous, behavior: 'instant' });
+				readGeometry();
 			}
 			measurementVersion++;
 		});
@@ -135,8 +141,8 @@
 			focused = null;
 			focusedSnapshot = null;
 			measurementVersion++;
-			scrollTop = 0;
-			if (viewport) viewport.scrollTop = 0;
+			scrollTop = initialIndex * estimate;
+			void scrollToIndex(initialIndex);
 		});
 	});
 	$effect(() => {
@@ -158,8 +164,7 @@
 			if (changed) {
 				measurementVersion++;
 				if (viewport) {
-					viewport.scrollTop = Math.max(0, offset(anchorIndex) + intra);
-					scrollTop = viewport.scrollTop;
+					void scrollToIndex(anchorIndex, intra);
 				}
 			}
 		});
@@ -167,7 +172,7 @@
 	$effect(() => {
 		if (!viewport) return;
 		const element = viewport;
-		const scroll = () => (scrollTop = element.scrollTop);
+		const scroll = () => readGeometry();
 		const focus = (event: FocusEvent) => {
 			const row = (event.target as HTMLElement).closest<HTMLElement>('[data-inventory-index]');
 			if (!row) {
@@ -186,56 +191,60 @@
 			focused = index;
 			focusedSnapshot = { queryKey, index, entry };
 		};
-		element.addEventListener('scroll', scroll, { passive: true });
+		window.addEventListener('scroll', scroll, { passive: true });
+		window.addEventListener('resize', scroll, { passive: true });
 		element.addEventListener('focusin', focus);
-		resizeObserver = new ResizeObserver(() => (height = element.clientHeight));
+		resizeObserver = new ResizeObserver(readGeometry);
 		resizeObserver.observe(element);
 		return () => {
-			element.removeEventListener('scroll', scroll);
+			window.removeEventListener('scroll', scroll);
+			window.removeEventListener('resize', scroll);
 			element.removeEventListener('focusin', focus);
 			resizeObserver?.disconnect();
 		};
 	});
+	function headerHeight() {
+		return (
+			parseFloat(
+				getComputedStyle(document.documentElement).getPropertyValue('--app-header-height')
+			) || 80
+		);
+	}
+	function readGeometry() {
+		if (!viewport) return;
+		scrollTop = Math.max(0, -viewport.getBoundingClientRect().top + headerHeight());
+		height = Math.max(0, window.innerHeight - headerHeight());
+	}
 	$effect(() => {
 		onRange(start, end);
 	});
 </script>
 
-<ScrollArea
-	class="inventory-scroll"
-	bind:viewportRef={viewport}
-	viewportLabel="Inventory entries"
-	smoothWheel={false}
+<ul
+	bind:this={viewport}
+	class="virtual-inventory"
+	aria-label="Inventory entries"
+	style:height={`${extent}px`}
+	data-measurements={measuredCount}
+	data-inventory-rendered={rows.length}
 >
-	<ul
-		class="virtual-inventory"
-		aria-label="Inventory entries"
-		style:height={`${extent}px`}
-		data-measurements={measuredCount}
-	>
-		{#each rows as slot (slot.key)}<li
-				class="virtual-row"
-				data-inventory-index={slot.index}
-				data-inventory-query={slot.queryKey}
-				data-inventory-entry={slot.entry?.id}
-				style:top={`${offset(slot.index)}px`}
-				use:measure={slot}
-			>
-				{#if slot.entry}{@render row(slot.entry, slot.index)}{:else}<div
-						class="row-placeholder"
-						aria-label="Loading inventory entry"
-						aria-busy="true"
-					></div>{/if}
-			</li>{/each}
-	</ul>
-</ScrollArea>
+	{#each rows as slot (slot.key)}<li
+			class="virtual-row"
+			data-inventory-index={slot.index}
+			data-inventory-query={slot.queryKey}
+			data-inventory-entry={slot.entry?.id}
+			style:top={`${offset(slot.index)}px`}
+			use:measure={slot}
+		>
+			{#if slot.entry}{@render row(slot.entry, slot.index)}{:else}<div
+					class="row-placeholder"
+					aria-label="Loading inventory entry"
+					aria-busy="true"
+				></div>{/if}
+		</li>{/each}
+</ul>
 
 <style>
-	:global(.inventory-scroll) {
-		height: clamp(320px, calc(100dvh - 23rem), 850px);
-		min-height: 320px;
-		margin-top: 0.5rem;
-	}
 	.virtual-inventory {
 		position: relative;
 		margin: 0;
@@ -256,11 +265,5 @@
 		background: var(--color-surface);
 		border-radius: 0.5rem;
 		opacity: 0.45;
-	}
-	@media (max-width: 600px) {
-		:global(.inventory-scroll) {
-			height: calc(100dvh - 22rem);
-			min-height: 320px;
-		}
 	}
 </style>

@@ -64,6 +64,8 @@ beforeEach(() => {
 		return {
 			kind: 'Page',
 			query,
+			matching: { entryCount: 0, copyCount: 0 },
+			groupCount: 1,
 			entries: [],
 			groups: [{ id: groupId, name: 'Binder', entryCount: 0, quantity: 0 }],
 			memberships: [],
@@ -119,6 +121,27 @@ describe('Inventory group route boundaries', () => {
 		await expect(
 			load(event(`https://spellbook.test/mtg/inventory?view=groups&group=${id}`) as never)
 		).rejects.toMatchObject({ status });
+	});
+
+	it('translates browser pagination before read and clamps a deep page once using complete counts', async () => {
+		mocks.page.mockImplementation(async (_actor, query) => ({
+			kind: 'Page',
+			query,
+			matching: { entryCount: 1200, copyCount: 1200 },
+			groupCount: 1
+		}));
+		await expect(
+			load(event('https://spellbook.test/mtg/inventory?page=999&pageSize=500&finish=foil') as never)
+		).rejects.toMatchObject({
+			status: 307,
+			location: '/mtg/inventory?page=3&pageSize=500&finish=foil'
+		});
+		expect(mocks.page).toHaveBeenCalledOnce();
+		expect(mocks.page.mock.calls[0][1]).toMatchObject({
+			offset: 499000,
+			limit: 500,
+			finish: 'foil'
+		});
 	});
 
 	it('takes the account and game from the server for CRUD', async () => {
@@ -188,7 +211,7 @@ describe('Inventory group route boundaries', () => {
 					['groupId', groupId]
 				]) as never
 			)
-		).rejects.toMatchObject({ status: 303, location: '/mtg/inventory?view=groups' });
+		).rejects.toMatchObject({ status: 303, location: '/mtg/inventory?view=groups&page=1' });
 	});
 
 	it('does not report unexpected database errors as validation success', async () => {

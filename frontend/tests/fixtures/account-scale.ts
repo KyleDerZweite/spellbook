@@ -2,7 +2,12 @@ import { readFile } from 'node:fs/promises';
 import type { Pool } from 'pg';
 import type { CardDocument } from '@spellbook/contracts/catalog.ts';
 
-export async function seedAccountScaleInventory(pool: Pool, accountId: string, path: string) {
+export async function seedAccountScaleInventory(
+	pool: Pool,
+	accountId: string,
+	path: string,
+	count: 1000 | 10000 | 50000 = 50000
+) {
 	const source = await readFile(path, 'utf8');
 	const records = source
 		.trim()
@@ -17,19 +22,21 @@ export async function seedAccountScaleInventory(pool: Pool, accountId: string, p
 		inventoryId,
 		accountId
 	]);
-	const entries = records.flatMap(({ document: card, supportedInventoryFinishes }) =>
-		['NM', 'LP', 'MP', 'HP', 'DMG'].map((condition) => ({
-			id: crypto.randomUUID(),
-			catalogCardId: card.id,
-			canonicalCardId: card.oracle_id,
-			name: card.name,
-			setCode: card.set_code,
-			imageUri: card.image_uri,
-			quantity: 1,
-			finish: supportedInventoryFinishes[0],
-			condition
-		}))
-	);
+	const entries = records
+		.flatMap(({ document: card, supportedInventoryFinishes }) =>
+			['NM', 'LP', 'MP', 'HP', 'DMG'].map((condition) => ({
+				id: crypto.randomUUID(),
+				catalogCardId: card.id,
+				canonicalCardId: card.oracle_id,
+				name: card.name,
+				setCode: card.set_code,
+				imageUri: card.image_uri,
+				quantity: 1,
+				finish: supportedInventoryFinishes[0],
+				condition
+			}))
+		)
+		.slice(0, count);
 	for (let offset = 0; offset < entries.length; offset += 1000)
 		await pool.query(
 			`INSERT INTO inventory_cards(id,inventory_id,account_id,game,catalog_card_id,canonical_card_id,name,set_code,image_uri,quantity,finish,condition,spellbook_position) SELECT x.id::uuid,$1::uuid,$2,'mtg',x."catalogCardId",x."canonicalCardId",x.name,x."setCode",x."imageUri",x.quantity,x.finish,x.condition,0 FROM jsonb_to_recordset($3::jsonb) AS x(id text,"catalogCardId" text,"canonicalCardId" text,name text,"setCode" text,"imageUri" text,quantity int,finish text,condition text)`,

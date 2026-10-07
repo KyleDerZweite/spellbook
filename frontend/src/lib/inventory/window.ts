@@ -10,9 +10,11 @@ export type InventoryTransport = (
 	revision: string | undefined,
 	signal: AbortSignal
 ) => Promise<InventoryPage | RevisionChanged>;
+export type InventoryBrowseMode = 'numeric' | 'lazy';
 interface Context {
 	page: InventoryPage;
 	pages: Map<number, InventoryPage>;
+	maxPageBytes: number;
 	used: number;
 }
 interface Job {
@@ -27,6 +29,46 @@ export class InventoryWindow {
 	private account = '';
 	private clock = 0;
 	private key = '';
+	private mode: InventoryBrowseMode = 'lazy';
+	private activeOffset = 0;
+	private serverPage: InventoryPage | null = null;
+	private visibleOffsets = new Set<number>();
+	private pageBytes = new WeakMap<InventoryPage, number>();
+	private readonly byteTarget = 32 * 1024 * 1024;
+	private cacheKey(page: InventoryPage) {
+		return JSON.stringify([page.queryKey, page.query.limit, this.mode]);
+	}
+	private bytes(page: InventoryPage) {
+		let bytes = this.pageBytes.get(page);
+		if (bytes === undefined) {
+			bytes = new TextEncoder().encode(JSON.stringify(page)).byteLength;
+			this.pageBytes.set(page, bytes);
+		}
+		return bytes;
+	}
+	/** Kit retains this exact SSR DTO until replacing page data or disposing the route. */
+	pinServerPage(page: InventoryPage | null) {
+		this.serverPage = page;
+		this.evict();
+		this.changed();
+	}
+	private residentPages() {
+		const pages = new Set(
+			[...this.contexts.values()].flatMap((context) => [...context.pages.values()])
+		);
+		if (this.serverPage) pages.add(this.serverPage);
+		return pages;
+	}
+	private residentRecords() {
+		return [...this.residentPages()].reduce((count, page) => count + page.entries.length, 0);
+	}
+
+	get browseMode() {
+		return this.mode;
+	}
+	get queryIdentity() {
+		return this.key;
+	}
 	private generation = 0;
 	// Delayed aborts keep their permits until the actual transport settles.
 	private active = new Map<
@@ -146,7 +188,9 @@ export class InventoryWindow {
 			}
 			if (result.revision !== current.revision) return null;
 			if (result.index !== null) {
-				await this.request(Math.floor(result.index / 50) * 50);
+				this.activeOffset = Math.floor(result.index / current.query.limit) * current.query.limit;
+				this.visibleOffsets = new Set([this.activeOffset]);
+				await this.request(this.activeOffset);
 				if (!currentLease() || signal.aborted || account !== this.account) return null;
 				if (identity !== this.identity) {
 					if (
@@ -159,19 +203,38 @@ export class InventoryWindow {
 				}
 			}
 			if (!currentLease()) return null;
+			if (result.index !== null) {
+				const context = this.contexts.get(this.key);
+				if (context)
+					context.page = {
+						...context.page,
+						query: {
+							...context.page.query,
+							offset: Math.floor(result.index / current.query.limit) * current.query.limit
+						}
+					};
+				this.changed();
+			}
 			return { identity, index: result.index };
 		}
 		return null;
 	}
 
 	get current() {
-		return this.contexts.get(this.key)?.page;
+		const context = this.contexts.get(this.key);
+		return context
+			? {
+					...context.page,
+					groupPage: context.pages.get(context.page.query.offset)?.groupPage ?? []
+				}
+			: undefined;
 	}
 	seed(
 		account: string,
 		page: InventoryPage,
 		currentLease: () => boolean = () => true,
-		drain = false
+		drain = false,
+		mode: InventoryBrowseMode = this.mode
 	) {
 		if (!currentLease()) return;
 		if (account !== this.account) {
@@ -183,15 +246,19 @@ export class InventoryWindow {
 		this.generation++;
 		for (const [key, context] of this.contexts)
 			if (context.page.revision !== page.revision) this.contexts.delete(key);
-		this.key = page.queryKey;
+		this.mode = mode;
+		this.key = this.cacheKey(page);
+		this.activeOffset = page.query.offset;
+		this.visibleOffsets = new Set([page.query.offset]);
 		this.error = '';
 		this.replacing = false;
-		const metadata = { ...page, entries: [], memberships: [] };
+		const metadata = { ...page, entries: [], memberships: [], groupPage: [] };
 		let context = this.contexts.get(this.key);
 		if (!context || context.page.revision !== page.revision)
-			context = { page: metadata, pages: new Map(), used: ++this.clock };
+			context = { page: metadata, pages: new Map(), maxPageBytes: 0, used: ++this.clock };
 		context.page = metadata;
 		context.pages.set(page.query.offset, page);
+		context.maxPageBytes = Math.max(context.maxPageBytes, this.bytes(page));
 		context.used = ++this.clock;
 		this.contexts.set(this.key, context);
 		while (this.contexts.size > 4) {
@@ -203,14 +270,20 @@ export class InventoryWindow {
 		this.evict();
 		this.changed();
 	}
-	async open(account: string, query: InventoryQuery, signal: AbortSignal) {
-		return this.replace(account, { ...query, offset: 0 }, signal);
+	async open(
+		account: string,
+		query: InventoryQuery,
+		signal: AbortSignal,
+		mode: InventoryBrowseMode = this.mode
+	) {
+		return this.replace(account, query, signal, mode);
 	}
 	async refresh(
 		account: string,
 		signal: AbortSignal,
 		currentLease: () => boolean = this.publication(),
-		requestedQuery?: InventoryQuery
+		requestedQuery?: InventoryQuery,
+		mode: InventoryBrowseMode = this.mode
 	) {
 		const query = requestedQuery ?? this.current?.query;
 		if (!query || !currentLease() || (account !== this.account && this.current)) return;
@@ -223,7 +296,7 @@ export class InventoryWindow {
 		this.replacing = true;
 		try {
 			const page = await this.withSlot(
-				(signal) => this.transport({ ...query, limit: 50 }, undefined, signal),
+				(signal) => this.transport(query, undefined, signal),
 				signal
 			);
 			if (
@@ -232,7 +305,7 @@ export class InventoryWindow {
 				generation === this.generation &&
 				currentLease()
 			) {
-				this.seed(account, page, currentLease, true);
+				this.seed(account, page, currentLease, true, mode);
 				return this.identity;
 			}
 		} finally {
@@ -248,14 +321,19 @@ export class InventoryWindow {
 		}
 		this.queue = [];
 	}
-	private async replace(account: string, query: InventoryQuery, signal: AbortSignal) {
+	private async replace(
+		account: string,
+		query: InventoryQuery,
+		signal: AbortSignal,
+		mode: InventoryBrowseMode
+	) {
 		const currentLease = this.publication();
 		this.cancel();
 		const generation = ++this.generation;
 		this.replacing = true;
 		try {
 			const page = await this.withSlot(
-				(transportSignal) => this.transport({ ...query, limit: 50 }, undefined, transportSignal),
+				(transportSignal) => this.transport(query, undefined, transportSignal),
 				signal
 			);
 			if (
@@ -264,7 +342,7 @@ export class InventoryWindow {
 				generation === this.generation &&
 				currentLease()
 			) {
-				this.seed(account, page, currentLease);
+				this.seed(account, page, currentLease, false, mode);
 				return this.identity;
 			}
 		} finally {
@@ -274,7 +352,9 @@ export class InventoryWindow {
 		}
 	}
 
-	clear() {
+	clear(releaseServerPage = false) {
+		if (releaseServerPage) this.serverPage = null;
+		this.visibleOffsets.clear();
 		this.cancel();
 		this.generation++;
 		this.contexts.clear();
@@ -292,19 +372,33 @@ export class InventoryWindow {
 		this.listeners.clear();
 	}
 	private evict() {
-		while ([...this.contexts.values()].reduce((n, c) => n + c.pages.size, 0) > 20) {
-			const contexts = [...this.contexts.values()].sort((a, b) => a.used - b.used);
-			const candidate =
-				contexts.find((c) => c !== this.contexts.get(this.key) && c.pages.size) ||
-				contexts.find((c) => c.pages.size > 1);
+		const count = () => this.residentRecords();
+		const pages = () => this.residentPages().size;
+		while (count() > 1000 || pages() > 20 || this.serializedBytes() > this.byteTarget) {
+			const contexts = [...this.contexts].sort((a, b) => a[1].used - b[1].used);
+			const candidate = contexts.flatMap(([key, c]) =>
+				[...c.pages.keys()]
+					.filter((offset) => key !== this.key || !this.visibleOffsets.has(offset))
+					.map((offset) => ({ key, c, offset }))
+			)[0];
 			if (!candidate) break;
-			candidate.pages.delete(candidate.pages.keys().next().value!);
+			candidate.c.pages.delete(candidate.offset);
+			if (!candidate.c.pages.size && candidate.key !== this.key)
+				this.contexts.delete(candidate.key);
 		}
 	}
+	private serializedBytes() {
+		return (
+			[...this.contexts.values()].reduce((n, c) => n + this.bytes(c.page), 0) +
+			[...this.residentPages()].reduce((n, page) => n + this.bytes(page), 0)
+		);
+	}
+
 	request(offset: number, planned = false): Promise<void> {
 		const context = this.contexts.get(this.key);
 		if (this.replacing || !context) return Promise.resolve();
-		offset = Math.floor(offset / 50) * 50;
+		const limit = context.page.query.limit;
+		offset = Math.floor(offset / limit) * limit;
 		if (context.pages.has(offset)) {
 			const page = context.pages.get(offset)!;
 			context.pages.delete(offset);
@@ -342,7 +436,7 @@ export class InventoryWindow {
 		this.changed();
 		try {
 			const result = await this.transport(
-				{ ...context.page.query, offset: job.offset, limit: 50 },
+				{ ...context.page.query, offset: job.offset },
 				context.page.revision,
 				controller.signal
 			);
@@ -350,7 +444,7 @@ export class InventoryWindow {
 			if (result.kind === 'RevisionChanged') {
 				this.beforeRevisionReset();
 				const first = await this.transport(
-					{ ...context.page.query, offset: 0, limit: 50 },
+					{ ...context.page.query, offset: context.page.query.offset },
 					undefined,
 					controller.signal
 				);
@@ -361,8 +455,14 @@ export class InventoryWindow {
 					generation === this.generation
 				)
 					this.seed(this.account, first, currentLease, true);
-			} else if (result.queryKey === key && result.revision === context.page.revision) {
+			} else if (
+				result.queryKey === context.page.queryKey &&
+				result.query.limit === context.page.query.limit &&
+				result.query.offset === job.offset &&
+				result.revision === context.page.revision
+			) {
 				context.pages.set(job.offset, result);
+				context.maxPageBytes = Math.max(context.maxPageBytes, this.bytes(result));
 				context.used = ++this.clock;
 				this.evict();
 				this.error = '';
@@ -385,11 +485,67 @@ export class InventoryWindow {
 	plan(start: number, end: number) {
 		if (this.replacing) return;
 		const total = this.current?.matching.entryCount ?? 0;
-		const first = Math.max(0, Math.floor(start / 50) - 1),
-			last = Math.min(Math.ceil(total / 50) - 1, Math.floor(end / 50) + 1, first + 11);
-		const wanted = new Set(
-			Array.from({ length: Math.max(0, last - first + 1) }, (_, i) => (first + i) * 50)
+		const limit = this.current?.query.limit ?? 200;
+		const visible = Math.floor(Math.max(0, start) / limit);
+		this.activeOffset =
+			this.mode === 'numeric' ? (this.current?.query.offset ?? 0) : visible * limit;
+		if (this.mode === 'lazy') {
+			const context = this.contexts.get(this.key);
+			if (context && context.page.query.offset !== this.activeOffset) {
+				context.page = {
+					...context.page,
+					query: { ...context.page.query, offset: this.activeOffset }
+				};
+				this.changed();
+			}
+		}
+		const pinRecords = this.serverPage ? this.serverPage.entries.length : 0;
+		const capacity = Math.max(
+			1,
+			Math.min(20 - (this.serverPage ? 1 : 0), Math.floor((1000 - pinRecords) / limit))
 		);
+		const lastVisible = Math.min(
+			Math.ceil(total / limit) - 1,
+			Math.floor(Math.max(start, end - 1) / limit),
+			visible + capacity - 1
+		);
+		this.visibleOffsets =
+			this.mode === 'numeric'
+				? new Set([this.activeOffset])
+				: new Set(
+						Array.from(
+							{ length: Math.max(0, lastVisible - visible + 1) },
+							(_, i) => (visible + i) * limit
+						)
+					);
+		const context = this.contexts.get(this.key);
+		const largest = context?.maxPageBytes ?? 0;
+		const metadataBytes = [...this.contexts.values()].reduce((n, c) => n + this.bytes(c.page), 0);
+		const pinBytes = this.serverPage ? this.bytes(this.serverPage) : 0;
+		const byteCapacity = largest
+			? Math.max(
+					this.visibleOffsets.size,
+					Math.floor(Math.max(0, this.byteTarget - metadataBytes - pinBytes) / largest)
+				)
+			: capacity;
+		const plannedCapacity = Math.min(capacity, byteCapacity);
+		const extra = Math.max(0, plannedCapacity - this.visibleOffsets.size);
+		const first =
+			this.mode === 'numeric'
+				? Math.floor(this.activeOffset / limit)
+				: Math.max(0, visible - Math.min(1, extra));
+		const last =
+			this.mode === 'numeric'
+				? first
+				: Math.min(
+						Math.ceil(total / limit) - 1,
+						lastVisible + (extra > 1 ? 1 : 0),
+						first + plannedCapacity - 1
+					);
+		const wanted = new Set(
+			Array.from({ length: Math.max(0, last - first + 1) }, (_, i) => (first + i) * limit)
+		);
+		this.evict();
 		this.queue = this.queue.filter((job) => {
 			if (!job.planned || wanted.has(job.offset)) return true;
 			this.listeners.delete(job.key);
@@ -398,11 +554,12 @@ export class InventoryWindow {
 		});
 		// Finish active reads: fetch abort can settle before network/server work stops.
 		// Only queued plans are replaced when scrolling within the same query.
-		for (let index = first; index <= last; index++) void this.request(index * 50, true);
+		for (let index = first; index <= last; index++) void this.request(index * limit, true);
 	}
 	at(index: number): InventoryEntry | undefined {
-		const page = this.contexts.get(this.key)?.pages.get(Math.floor(index / 50) * 50);
-		return page?.entries[index % 50];
+		const limit = this.current?.query.limit ?? 200;
+		const page = this.contexts.get(this.key)?.pages.get(Math.floor(index / limit) * limit);
+		return page?.entries[index % limit];
 	}
 	loaded() {
 		const result: Array<{ index: number; entry: InventoryEntry }> = [];
@@ -419,11 +576,17 @@ export class InventoryWindow {
 	metrics() {
 		return {
 			contexts: this.contexts.size,
-			pages: [...this.contexts.values()].reduce((n, c) => n + c.pages.size, 0),
-			entries: [...this.contexts.values()].reduce(
-				(n, c) => n + [...c.pages.values()].reduce((m, p) => m + p.entries.length, 0),
-				0
+			serializedBytes: this.serializedBytes(),
+			byteTarget: this.byteTarget,
+			byteOverflow: Math.max(0, this.serializedBytes() - this.byteTarget),
+			metadataOverflow: Math.max(
+				0,
+				[...this.contexts.values()].reduce((n, c) => n + this.bytes(c.page), 0) - this.byteTarget
 			),
+			pages: this.residentPages().size,
+			entries: this.residentRecords(),
+			pinnedSSRPages: this.serverPage ? 1 : 0,
+			pinnedSSREntries: this.serverPage?.entries.length ?? 0,
 			requests: this.active.size,
 			queued: this.queue.length
 		};

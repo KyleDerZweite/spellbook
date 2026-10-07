@@ -150,10 +150,10 @@ it('keeps HTTP work bounded through rapid plans until a response completes', asy
 			await barrier();
 		}
 		await vi.waitFor(() => expect(window.metrics().requests).toBe(0));
-		expect(transportStarts).toEqual([450, 500, 550, 3950, 4000, 4050, 4100, 4150]);
+		expect(transportStarts).toEqual([450, 500, 550, 3950, 4000, 4050, 4100]);
 		expect(started.toSorted((a, b) => a - b)).toEqual(transportStarts);
 		expect(serverPeak).toBe(3);
-		expect(window.metrics()).toMatchObject({ contexts: 1, pages: 9, queued: 0 });
+		expect(window.metrics()).toMatchObject({ contexts: 1, pages: 8, queued: 0 });
 	} finally {
 		window.clear();
 		for (const finish of [...pending.values()]) finish();
@@ -262,6 +262,7 @@ it('retains entries only in budgeted cache pages, independently of current metad
 	expect(window.current?.entries).toEqual([]);
 	expect(window.at(0)).toBe(entry);
 	expect(window.metrics().entries).toBe(1);
+	window.plan(1000, 1001);
 	for (let i = 1; i <= 20; i++) await window.request(i * 50);
 	expect(window.at(0)).toBeUndefined();
 	expect(window.current?.entries).toEqual([]);
@@ -551,6 +552,7 @@ it('keeps teardown callbacks on their captured entry after eviction and query re
 		refs[card.id] = null;
 		return card;
 	};
+	window.plan(1000, 1001);
 	for (let i = 1; i <= 20; i++) await window.request(i * 50);
 	expect(window.at(0)).toBeUndefined();
 	window.seed('owner', page(0, 'replacement'));
@@ -657,7 +659,7 @@ it('drains actual HTTP pages during ordinary freshness changes without exceeding
 	);
 	const controller = new AbortController();
 	try {
-		window.seed('owner', page());
+		window.seed('owner', page(0, '', '0'));
 		window.plan(500, 600);
 		await vi.waitFor(() => expect(active).toBe(3));
 		desired++;
