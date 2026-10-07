@@ -87,7 +87,15 @@ def identifier(value) -> str:
 class ArtifactRecords:
     """Stream one root collection while validating the complete artifact."""
 
-    def __init__(self, path: Path, collection: str, mapping: bool, limits=DEFAULT_PRICE_LIMITS):
+    def __init__(
+        self,
+        path: Path,
+        collection: str,
+        mapping: bool,
+        limits=DEFAULT_PRICE_LIMITS,
+        *,
+        import_deadline=None,
+    ):
         self.path, self.collection, self.mapping, self.limits = path, collection, mapping, limits
         self.metadata: dict = {}
         self.decompressed_bytes = 0
@@ -95,7 +103,10 @@ class ArtifactRecords:
         self._decompressed_digest = hashlib.sha256()
         self._buffer = ""
         self._eof = False
-        self._started = time.monotonic()
+        self._deadline = min(
+            time.monotonic() + limits.parse_seconds,
+            import_deadline if import_deadline is not None else float("inf"),
+        )
         self._decoder = json.JSONDecoder(
             parse_float=numeric_token,
             parse_int=numeric_token,
@@ -104,7 +115,7 @@ class ArtifactRecords:
         )
 
     def _fill(self):
-        if time.monotonic() - self._started > self.limits.parse_seconds:
+        if time.monotonic() >= self._deadline:
             raise ValueError("Artifact parse deadline exceeded")
         chunk = self._source.read(65536)
         encoded = chunk.encode("utf-8")
@@ -131,7 +142,7 @@ class ArtifactRecords:
     def _value(self):
         self._ready()
         while True:
-            if time.monotonic() - self._started > self.limits.parse_seconds:
+            if time.monotonic() >= self._deadline:
                 raise ValueError("Artifact parse deadline exceeded")
             try:
                 value, end = self._decoder.raw_decode(self._buffer)
@@ -153,7 +164,12 @@ class ArtifactRecords:
         if self.path.stat().st_size > self.limits.compressed_bytes:
             raise ValueError("Compressed artifact byte limit exceeded")
         with self.path.open("rb") as payload:
-            self.digest = hashlib.file_digest(payload, "sha256").hexdigest()
+            digest = hashlib.sha256()
+            while chunk := payload.read(65536):
+                if time.monotonic() >= self._deadline:
+                    raise ValueError("Artifact parse deadline exceeded")
+                digest.update(chunk)
+            self.digest = digest.hexdigest()
         opener = gzip.open if self.path.suffix == ".gz" else Path.open
         with opener(self.path, "rt", encoding="utf-8", newline="") as self._source:
             self._take("{")

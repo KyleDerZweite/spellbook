@@ -25,10 +25,20 @@ MTGJSON_TODAY = "https://mtgjson.com/api/v5/AllPricesToday.json.gz"
 MTGJSON_HISTORY = "https://mtgjson.com/api/v5/AllPrices.json.gz"
 
 
-def download_artifact(client, url, destination: Path, limits):
+def download_artifact(client, url, destination: Path, limits, *, import_deadline=None):
     started = time.monotonic()
+    deadline = min(
+        started + limits.download_seconds,
+        import_deadline if import_deadline is not None else float("inf"),
+    )
+    if time.monotonic() >= deadline:
+        raise ValueError("Artifact download deadline exceeded")
     digest, total = hashlib.sha256(), 0
-    with client.stream("GET", url) as response:
+    remaining = deadline - time.monotonic()
+    timeout = httpx.Timeout(
+        min(limits.progress_seconds, remaining), connect=min(limits.connect_seconds, remaining)
+    )
+    with client.stream("GET", url, timeout=timeout) as response:
         response.raise_for_status()
         # Automatic Content-Encoding decoding would break the byte-bound digest.
         if response.headers.get("content-encoding", "identity") != "identity":
@@ -40,13 +50,15 @@ def download_artifact(client, url, destination: Path, limits):
             raise ValueError("Artifact compressed byte limit exceeded")
         with destination.open("wb") as output:
             for chunk in response.iter_raw():
-                if time.monotonic() - started > limits.download_seconds:
+                if time.monotonic() >= deadline:
                     raise ValueError("Artifact download deadline exceeded")
                 total += len(chunk)
                 if total > limits.compressed_bytes:
                     raise ValueError("Artifact compressed byte limit exceeded")
                 digest.update(chunk)
                 output.write(chunk)
+        if time.monotonic() >= deadline:
+            raise ValueError("Artifact download deadline exceeded")
         if expected is not None and total != int(expected):
             raise ValueError("Incomplete artifact download")
         return {
@@ -62,6 +74,7 @@ def download_artifact(client, url, destination: Path, limits):
 def _sync(config, publisher, source, artifacts, adapter_type):
     publication_started = False
     started = time.monotonic()
+    deadline = started + config.price_limits.import_seconds
     try:
         config.data_dir.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(
@@ -77,7 +90,9 @@ def _sync(config, publisher, source, artifacts, adapter_type):
             ) as client:
                 for name, url in artifacts:
                     path = directory / name
-                    transfers[name] = download_artifact(client, url, path, config.price_limits)
+                    transfers[name] = download_artifact(
+                        client, url, path, config.price_limits, import_deadline=deadline
+                    )
                     paths.append(path)
                     if (
                         sum(p.stat().st_size for p in directory.iterdir())
@@ -86,7 +101,9 @@ def _sync(config, publisher, source, artifacts, adapter_type):
                         raise ValueError("Price staging byte limit exceeded")
                     if time.monotonic() - started > config.price_limits.import_seconds:
                         raise ValueError("Optional import deadline exceeded")
-            with adapter_type(*paths, directory / "stage.sqlite", config.price_limits) as adapter:
+            with adapter_type(
+                *paths, directory / "stage.sqlite", config.price_limits, import_deadline=deadline
+            ) as adapter:
                 adapter.metadata["artifacts"] = transfers
                 remaining = config.price_limits.import_seconds - (time.monotonic() - started)
                 if remaining <= 0:

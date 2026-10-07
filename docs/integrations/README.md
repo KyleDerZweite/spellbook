@@ -10,7 +10,7 @@ The [card robot proposal](./card-robot.md) defines future scanner and sorter bou
 
 Scryfall ingestion belongs to the [worker architecture](../architecture/worker.md), and PostgreSQL catalog contracts belong to [catalog architecture](../architecture/catalog.md).
 
-[Market price research](./market-prices.md) records implemented Scryfall baseline references and provider evaluation. [Value tracking](../product/value-tracking.md) owns current reference presentation and planned cost-batch/daily-history behavior. Scryfall EUR references and supplied product links are implemented. Optional price adapters, cost allocation and marketplace account connections remain planned; a sales/trading ledger is not implemented.
+[Market price research](./market-prices.md) records implemented Scryfall baseline references and provider evaluation. [Value tracking](../product/value-tracking.md) owns current reference presentation and planned cost-batch/daily-history behavior. Scryfall EUR references and supplied product links are implemented. Optional Cardmarket and MTGJSON adapters and bounded public market history are implemented with explicit opt-ins. Cost allocation and marketplace account connections remain planned; a sales/trading ledger is not implemented.
 
 [Card and deck categorization](./card-categorization.md) records Oracle Tags coverage and the Jev/local-model evaluation. [Card grouping](../product/card-grouping.md) owns accepted category behavior. The optional local Commander Spellbook adapter is selected and unbuilt; [category rules](../architecture/category-rules.md) owns its planned mechanisms.
 

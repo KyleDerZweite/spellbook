@@ -11,7 +11,10 @@ from psycopg.conninfo import make_conninfo
 from worker.catalog import CatalogPublisher
 from worker.optional_prices import CardmarketAdapter, MTGJSONAdapter
 from worker.optional_publication import OptionalPricePublisher
+from worker.price_artifacts import DEFAULT_PRICE_LIMITS, PriceLimits
 from worker.scryfall import BulkDataInfo
+
+pytestmark = pytest.mark.usefixtures("price_evaluation_clock")
 
 
 @pytest.fixture
@@ -69,7 +72,9 @@ def test_optional_complete_null_replaces_current_without_touching_baseline(
             + amount
             + "}]}"
         )
-        with CardmarketAdapter(products, guide, tmp_path / f"stage-{index}.sqlite") as adapter:
+        with CardmarketAdapter(
+            products, guide, tmp_path / f"stage-{index}.sqlite", DEFAULT_PRICE_LIMITS
+        ) as adapter:
             publisher.publish_cardmarket(adapter)
     with psycopg.connect(public_database) as conn:
         assert conn.execute(
@@ -104,13 +109,15 @@ def test_failed_optional_transaction_preserves_current_and_replay_is_idempotent(
         '{"version":1,"createdAt":"2026-10-06T00:00:00Z","products":[{"idProduct":7}]}'
     )
 
-    def publish(amount, index):
+    def publish(amount, index, limits=DEFAULT_PRICE_LIMITS):
         guide.write_text(
             '{"version":1,"createdAt":"2026-10-07T00:00:00Z","priceGuides":[{"idProduct":7,"trend":'
             + amount
             + "}]}"
         )
-        with CardmarketAdapter(products, guide, tmp_path / f"stage-{index}.sqlite") as adapter:
+        with CardmarketAdapter(
+            products, guide, tmp_path / f"stage-{index}.sqlite", limits
+        ) as adapter:
             return publisher.publish_cardmarket(adapter)
 
     original = publish("1.25", 0)
@@ -135,6 +142,19 @@ def test_failed_optional_transaction_preserves_current_and_replay_is_idempotent(
         assert conn.execute(
             "SELECT amount FROM price_source_history WHERE source='Cardmarket'"
         ).fetchone() == (1.25,)
+        conn.execute(
+            "CREATE OR REPLACE FUNCTION reject_fixture_price() RETURNS trigger "
+            "LANGUAGE plpgsql AS $$ "
+            "BEGIN IF NEW.amount=999 THEN PERFORM pg_sleep(2); END IF; RETURN NEW; END $$"
+        )
+    with pytest.raises(psycopg.errors.QueryCanceled):
+        publish("999", 3, PriceLimits(import_seconds=1))
+    with psycopg.connect(public_database) as conn:
+        assert conn.execute(
+            "SELECT active_publication,refresh_status->>'kind' FROM optional_price_state "
+            "WHERE source='Cardmarket'"
+        ).fetchone() == (original, "Failed")
+        assert conn.execute("SELECT count(*) FROM optional_price_publications").fetchone() == (1,)
         conn.execute("DROP TRIGGER reject_fixture_price ON optional_price_observations")
     assert publish("1.25", 2) == original
     with psycopg.connect(public_database) as conn:

@@ -209,6 +209,82 @@ run('configured source priority and explicit Day precision', () => {
 			]);
 		}
 	});
+	it('retains optional English history when the baseline identity is pruned', async () => {
+		clock = new Date('2026-10-07T12:00:00Z');
+		const localized = randomUUID();
+		try {
+			await database.pool.query(
+				`UPDATE optional_price_state SET enabled=true WHERE source='MTGJSON'`
+			);
+			await database.pool.query(
+				`INSERT INTO optional_price_printings(publication_id,printing_id,identity,finishes) VALUES($1,$2,'{"lang":"de"}',ARRAY['nonfoil'])`,
+				[mtgjson, localized]
+			);
+			await database.pool.query(
+				`UPDATE optional_price_printings SET variant_key='approved-fixture' WHERE publication_id=$1 AND printing_id=$2`,
+				[mtgjson, printing]
+			);
+			await database.pool.query(
+				`INSERT INTO optional_price_observations(publication_id,printing_id,finish,measure,supported,english_printing_id) VALUES($1,$2,'nonfoil','paper.cardmarket.retail.normal',true,$3)`,
+				[mtgjson, localized, printing]
+			);
+			await database.pool.query(`INSERT INTO price_history_publications VALUES($1,'MTGJSON',$2)`, [
+				mtgjson,
+				{
+					source: 'MTGJSON',
+					descriptor: {},
+					publicationId: mtgjson,
+					payloadDigest: 'fixture',
+					extractorVersion: 1,
+					mappingVersion: 1,
+					ingestedAt: '2026-10-07T00:00:00Z',
+					sourceDate: '2026-10-06',
+					pointArtifact: 'AllPrices',
+					pointPayloadDigest: 'history-fixture'
+				}
+			]);
+			await database.pool.query(
+				`INSERT INTO price_history_printings VALUES($1,$2,'{"lang":"en"}','approved-fixture')`,
+				[mtgjson, printing]
+			);
+			await database.pool.query(
+				`INSERT INTO price_source_history(source,printing_id,finish,day,time_precision,amount,measure,provider_id,publication_id,evidence) VALUES('MTGJSON',$1,'nonfoil','2026-10-06','Day',0,'paper.cardmarket.retail.normal',$2,$3,'{}')`,
+				[printing, randomUUID(), mtgjson]
+			);
+			await database.pool.query('UPDATE price_state SET active_publication=NULL WHERE id=1');
+			expect(
+				(await valuation.printingReferences([{ printingId: localized, finish: 'nonfoil' }]))
+					.results[0]
+			).toMatchObject({ kind: 'Known', provenance: 'EnglishFallback', amount: '0' });
+			const result = await valuation.printingHistory({
+				printingId: localized,
+				finish: 'nonfoil',
+				sources: ['MTGJSON']
+			});
+			expect(result.points).toHaveLength(1);
+			expect(result.points[0]).toMatchObject({
+				provenance: 'EnglishFallback',
+				printingId: localized,
+				matchedPrintingId: printing,
+				amount: '0',
+				pointPayloadDigest: 'history-fixture'
+			});
+		} finally {
+			await database.pool.query('DELETE FROM price_source_history WHERE printing_id=$1', [
+				printing
+			]);
+			await database.pool.query('DELETE FROM price_history_publications WHERE publication_id=$1', [
+				mtgjson
+			]);
+			await database.pool.query(
+				'DELETE FROM optional_price_printings WHERE publication_id=$1 AND printing_id=$2',
+				[mtgjson, localized]
+			);
+			await database.pool.query('UPDATE price_state SET active_publication=$1 WHERE id=1', [
+				baseline
+			]);
+		}
+	});
 	it('freezes configured Known and Unknown evidence inside the caller transaction and clock', async () => {
 		await database.pool.query(
 			`UPDATE optional_price_state SET enabled=true WHERE source='Cardmarket'`

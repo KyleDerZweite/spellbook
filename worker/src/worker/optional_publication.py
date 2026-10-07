@@ -104,16 +104,15 @@ class OptionalPricePublisher:
 
     def _publish(self, source, adapter):
         started = time.monotonic()
+        deadline = min(started + adapter.limits.publication_seconds, adapter.import_deadline)
 
         def bounded():
-            if time.monotonic() - started > adapter.limits.publication_seconds:
+            if time.monotonic() >= deadline:
                 raise ValueError("Optional publication deadline exceeded")
 
         try:
             with psycopg.connect(self.database_url) as connection:
-                conn = _PublicationConnection(
-                    connection, started + adapter.limits.publication_seconds
-                )
+                conn = _PublicationConnection(connection, deadline)
                 conn.execute("SELECT pg_advisory_xact_lock(%s,%s)", PUBLISH_LOCK)
                 state = conn.execute(
                     (

@@ -27,12 +27,21 @@ def source_instant(value: str) -> str:
 
 
 class CardmarketAdapter:
-    def __init__(self, products: Path, guide: Path, staging: Path, limits=DEFAULT_PRICE_LIMITS):
+    def __init__(
+        self,
+        products: Path,
+        guide: Path,
+        staging: Path,
+        limits=DEFAULT_PRICE_LIMITS,
+        *,
+        import_deadline=None,
+    ):
+        self.import_deadline = import_deadline
         self.products, self.guide, self.staging, self.limits = products, guide, staging, limits
         self.metadata = {}
 
     def _bounded(self):
-        if time.monotonic() - self._started > self.limits.import_seconds:
+        if time.monotonic() >= self.import_deadline:
             raise ValueError("Optional import deadline exceeded")
         total = sum(p.stat().st_size for p in (self.products, self.guide))
         total += sum(p.stat().st_size for p in self.staging.parent.glob(self.staging.name + "*"))
@@ -40,7 +49,9 @@ class CardmarketAdapter:
             raise ValueError("Price staging byte limit exceeded")
 
     def __enter__(self):
-        self._started = time.monotonic()
+        if self.import_deadline is None:
+            self.import_deadline = time.monotonic() + self.limits.import_seconds
+        self._bounded()
         self.db = sqlite3.connect(self.staging)
         try:
             self.db.executescript(
@@ -48,13 +59,17 @@ class CardmarketAdapter:
                 "CREATE TABLE points(id TEXT,finish TEXT,measure TEXT,amount TEXT,raw TEXT,"
                 "PRIMARY KEY(id,finish));"
             )
-            products = ArtifactRecords(self.products, "products", False, self.limits)
+            products = ArtifactRecords(
+                self.products, "products", False, self.limits, import_deadline=self.import_deadline
+            )
             for _, record in products:
                 self.db.execute(
                     "INSERT INTO products VALUES (?)", (identifier(record.get("idProduct")),)
                 )
                 self._bounded()
-            guide = ArtifactRecords(self.guide, "priceGuides", False, self.limits)
+            guide = ArtifactRecords(
+                self.guide, "priceGuides", False, self.limits, import_deadline=self.import_deadline
+            )
             for _, record in guide:
                 product = identifier(record.get("idProduct"))
                 for finish, measure in (("nonfoil", "trend"), ("foil", "trend-foil")):
@@ -134,17 +149,21 @@ class MTGJSONAdapter:
         history: Path,
         staging: Path,
         limits=DEFAULT_PRICE_LIMITS,
+        *,
+        import_deadline=None,
     ):
+        self.import_deadline = import_deadline
         self.identifiers, self.today, self.history = identifiers, today, history
         self.staging, self.limits, self.metadata = staging, limits, {}
 
     def _bounded(self):
-        if time.monotonic() - self._started > self.limits.import_seconds:
+        if time.monotonic() >= self.import_deadline:
             raise ValueError("Optional import deadline exceeded")
         if (
             sum(
                 p.stat().st_size
                 for p in (self.identifiers, self.today, self.history, self.staging)
+                if p.exists()
             )
             > self.limits.staging_bytes
         ):
@@ -167,7 +186,9 @@ class MTGJSONAdapter:
         }
 
     def __enter__(self):
-        self._started = time.monotonic()
+        if self.import_deadline is None:
+            self.import_deadline = time.monotonic() + self.limits.import_seconds
+        self._bounded()
         self.db = sqlite3.connect(self.staging)
         try:
             self.db.executescript(
@@ -178,7 +199,9 @@ class MTGJSONAdapter:
                 "CREATE TABLE points(kind TEXT,id TEXT,finish TEXT,day TEXT,amount TEXT,raw TEXT,"
                 "PRIMARY KEY(kind,id,finish,day));"
             )
-            crosswalk = ArtifactRecords(self.identifiers, "data", True, self.limits)
+            crosswalk = ArtifactRecords(
+                self.identifiers, "data", True, self.limits, import_deadline=self.import_deadline
+            )
             for key, record in crosswalk:
                 key = uuid(key)
                 try:
@@ -193,7 +216,9 @@ class MTGJSONAdapter:
             metadata = {}
             cutoff = (datetime.now(UTC).date() - timedelta(days=89)).isoformat()
             for kind, path in (("current", self.today), ("history", self.history)):
-                artifact = ArtifactRecords(path, "data", True, self.limits)
+                artifact = ArtifactRecords(
+                    path, "data", True, self.limits, import_deadline=self.import_deadline
+                )
                 for key, record in artifact:
                     key = uuid(key)
                     self.db.execute("INSERT INTO seen VALUES (?,?)", (kind, key))

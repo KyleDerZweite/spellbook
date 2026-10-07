@@ -6,6 +6,8 @@ import pytest
 from worker.optional_prices import CardmarketAdapter, MTGJSONAdapter
 from worker.price_artifacts import PriceLimits
 
+pytestmark = pytest.mark.usefixtures("price_evaluation_clock")
+
 
 def test_cardmarket_preserves_exact_numeric_token_and_known_zero(tmp_path: Path):
     products = tmp_path / "products.json"

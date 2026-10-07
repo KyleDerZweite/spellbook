@@ -7,6 +7,8 @@ from worker.config import WorkerConfig, load_config
 from worker.optional_sync import download_artifact, sync_optional_sources
 from worker.price_artifacts import PriceLimits
 
+pytestmark = pytest.mark.usefixtures("price_evaluation_clock")
+
 
 def test_optional_configuration_is_explicit_and_positive(monkeypatch):
     monkeypatch.setenv("DATABASE_URL", "postgresql://localhost/test")
@@ -95,3 +97,55 @@ def test_truncated_transfer_cannot_become_source_evidence(tmp_path):
         download_artifact(
             client, "https://fixture.invalid/feed", tmp_path / "feed.json", PriceLimits()
         )
+
+
+def test_original_import_deadline_stops_later_parse_before_remaining_records(tmp_path):
+    import json
+
+    from worker import optional_prices
+    from worker.optional_sync import sync_cardmarket
+
+    elapsed, calls = [0.0], []
+    config = WorkerConfig(
+        "postgresql://localhost/test",
+        "all_cards",
+        "manual",
+        "fixture://api",
+        tmp_path,
+        price_limits=PriceLimits(import_seconds=10),
+    )
+    publisher = MagicMock()
+    original_money = optional_prices.money
+
+    def download(_client, _url, path, _limits, **_kwargs):
+        elapsed[0] += 4.5
+        if path.name == "products.json":
+            payload = {
+                "version": 1,
+                "createdAt": "2026-10-06T00:00:00Z",
+                "products": [{"idProduct": 7}, {"idProduct": 8}],
+            }
+        else:
+            payload = {
+                "version": 1,
+                "createdAt": "2026-10-07T00:00:00Z",
+                "priceGuides": [{"idProduct": 7, "trend": 1}, {"idProduct": 8, "trend": 2}],
+            }
+        path.write_text(json.dumps(payload))
+        return {}
+
+    def money(value):
+        calls.append(value)
+        elapsed[0] += 0.6
+        return original_money(value)
+
+    with (
+        patch("worker.optional_sync.download_artifact", side_effect=download),
+        patch("worker.optional_prices.money", side_effect=money),
+        patch("time.monotonic", side_effect=lambda: elapsed[0]),
+        pytest.raises(ValueError, match="deadline"),
+    ):
+        sync_cardmarket(config, publisher)
+    assert len(calls) == 2
+    publisher.publish_cardmarket.assert_not_called()
+    publisher.record_failure.assert_called_once()
