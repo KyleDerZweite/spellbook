@@ -137,7 +137,7 @@ test('Inventory hybrid native routes and real HTTP over genuine 1k/10k/50k accou
 				assert.match(html, /pageSize=500/);
 			});
 		}
-		assert.equal((await fetch(origin + '/mtg/inventory', { redirect: 'manual' })).status, 303);
+		assert.equal((await fetch(origin + '/mtg/inventory', { redirect: 'manual' })).status, 302);
 		await writeFile(
 			'/tmp/spellbook-inventory-hybrid-http-evidence-20261007.json',
 			JSON.stringify(
