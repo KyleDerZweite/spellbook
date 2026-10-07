@@ -10,7 +10,7 @@
 
 ## Context
 
-Slice 3 implements revisioned bounded reads, parent-lock participation, ICU ordering and browser window/list mechanisms. Compact original mutation receipts and stale-field protection remain accepted planned work. Implementation does not establish completed browser or scale acceptance.
+Slice 3 implements revisioned bounded reads, parent-lock participation, ICU ordering and browser window/list mechanisms. Compact original mutation receipts and stale-field protection remain accepted planned work. The declared local browser and representative-scale acceptance is recorded with [slice 3](https://github.com/KyleDerZweite/spellbook/issues/176), separately from this accepted decision.
 
 Full account snapshots, client-only filtering and unrelated position scans make large Inventory expensive. Paging without revision coherence can mix states. Retry deduplication alone does not return the original operation result after subsequent changes.
 
