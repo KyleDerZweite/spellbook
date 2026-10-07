@@ -23,6 +23,7 @@ import type {
 	DecksApplication
 } from '@spellbook/contracts/decks.ts';
 import {
+	assertUuid,
 	assertDeckOperation,
 	assertDeckRole,
 	assertRequestId,
@@ -136,6 +137,15 @@ function operations(input: unknown): DeckOperation[] {
 			: normalized;
 	});
 }
+export function nextDeckChoiceOffset(
+	offset: number,
+	limit: number,
+	hasMore: boolean
+): number | null {
+	const next = offset + limit;
+	return hasMore && next <= 1_000_000 ? next : null;
+}
+
 export function createDecks(
 	db: Database,
 	catalog: CatalogApplication,
@@ -1109,6 +1119,56 @@ export function createDecks(
 		},
 		exportDecklist: async (actor: AuthUser, deckId: string) =>
 			exportDecklist(await getDeckCardsForDeck(await actorAccount(actor), deckId)),
+		getDeckChoices: readWithActor(
+			async (accountId: string, input: Parameters<DecksApplication['getDeckChoices']>[1] = {}) => {
+				if (
+					!input ||
+					typeof input !== 'object' ||
+					Array.isArray(input) ||
+					Object.keys(input).some(
+						(key) => !['query', 'offset', 'limit', 'selectedDeckId'].includes(key)
+					)
+				)
+					throw new ValidationError('Invalid Deck choice options');
+				const query = input.query === undefined ? '' : input.query,
+					offset = input.offset === undefined ? 0 : input.offset,
+					limit = input.limit === undefined ? 20 : input.limit;
+				if (typeof query !== 'string' || query.length > 200 || query.includes('\0'))
+					throw new ValidationError('query must be a string of at most 200 characters');
+				if (!Number.isSafeInteger(offset) || offset < 0 || offset > 1_000_000)
+					throw new ValidationError('offset must be an integer between 0 and 1000000');
+				if (!Number.isSafeInteger(limit) || limit < 1 || limit > 50)
+					throw new ValidationError('limit must be an integer between 1 and 50');
+				const selectedDeckId =
+					input.selectedDeckId === undefined
+						? undefined
+						: assertUuid(input.selectedDeckId, 'selectedDeckId');
+				const fields = { id: decks.id, name: decks.name, format: decks.format };
+				const owned = and(eq(decks.accountId, accountId), eq(decks.game, 'mtg'));
+				const pattern = '%' + query.replace(/[\\%_]/g, '\\$&') + '%';
+				const page = await db
+					.select(fields)
+					.from(decks)
+					.where(and(owned, sql`${decks.name} ILIKE ${pattern} ESCAPE ${'\\'}`))
+					.orderBy(sql`${decks.name} COLLATE "inventory_root"`, asc(decks.id))
+					.limit(limit + 1)
+					.offset(offset);
+				const selected = selectedDeckId
+					? ((
+							await db
+								.select(fields)
+								.from(decks)
+								.where(and(owned, eq(decks.id, selectedDeckId)))
+								.limit(1)
+						)[0] ?? null)
+					: null;
+				return {
+					items: page.slice(0, limit),
+					nextOffset: nextDeckChoiceOffset(offset, limit, page.length > limit),
+					selected
+				};
+			}
+		),
 		getRecentDecks: readWithActor(async (accountId: string, requestedGame = 'mtg') => {
 			game(requestedGame);
 			return db

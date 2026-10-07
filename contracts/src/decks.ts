@@ -13,6 +13,12 @@ export interface Deck {
 	createdAt: string;
 	updatedAt: string;
 }
+export type DeckChoice = Pick<Deck, 'id' | 'name' | 'format'>;
+export interface DeckChoicePage {
+	items: DeckChoice[];
+	nextOffset: number | null;
+	selected: DeckChoice | null;
+}
 export interface DeckCard {
 	id: string;
 	deckId: string;
@@ -161,6 +167,16 @@ export interface DecksApplication {
 		}
 	>;
 	ownership(actor: AuthUser, canonicalIds: string[]): Promise<DeckSnapshot['ownedPrintings']>;
+
+	getDeckChoices(
+		actor: AuthUser,
+		input?: {
+			query?: string;
+			offset?: number;
+			limit?: number;
+			selectedDeckId?: string;
+		}
+	): Promise<DeckChoicePage>;
 
 	getDeckSnapshot(
 		actor: AuthUser,

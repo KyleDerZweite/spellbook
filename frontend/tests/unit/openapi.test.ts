@@ -66,6 +66,42 @@ function visit(value: Json, visitor: (value: Record<string, Json>) => void): voi
 }
 
 describe('OpenAPI contract', () => {
+	it('documents metadata-only Deck choices and bounded authenticated query parameters', async () => {
+		const schema = await GET().json();
+		const operation = schema.paths['/api/mobile/v1/mtg/decks/choices'].get;
+		expect(operation.responses['200'].content['application/json'].schema.$ref).toBe(
+			'#/components/schemas/DeckChoicePage'
+		);
+		expect(operation.security).toEqual(schema.paths['/api/mobile/v1/mtg/decks'].get.security);
+		expect(operation.parameters.map((p: { name: string }) => p.name)).toEqual([
+			'query',
+			'offset',
+			'limit',
+			'selectedDeckId'
+		]);
+		expect(operation.parameters[0].schema).toEqual({ type: 'string', maxLength: 200 });
+		expect(operation.parameters[1].schema).toEqual({
+			type: 'integer',
+			minimum: 0,
+			maximum: 1000000,
+			default: 0
+		});
+		expect(operation.parameters[2].schema).toEqual({
+			type: 'integer',
+			minimum: 1,
+			maximum: 50,
+			default: 20
+		});
+		expect(Object.keys(schema.components.schemas.DeckChoice.properties).sort()).toEqual([
+			'format',
+			'id',
+			'name'
+		]);
+		expect(schema.components.schemas.DeckChoice.additionalProperties).toBe(false);
+		expect(schema.components.schemas.DeckChoicePage.properties.items.maxItems).toBe(50);
+		expect(schema.components.schemas.DeckChoicePage.additionalProperties).toBe(false);
+	});
+
 	it('documents bounded reference decimals with a literal decimal point', async () => {
 		const schema = await GET().json();
 		const amount = schema.components.schemas.PriceReference.oneOf[0].properties.amount;

@@ -695,6 +695,27 @@ const SCHEMA = {
 				ref('DeckWriteRequest')
 			)
 		},
+		'/api/mobile/v1/mtg/decks/choices': {
+			get: {
+				...operation('Read bounded owned MTG Deck choices', ref('DeckChoicePage')),
+				description:
+					'Only id, name and format. Literal case-insensitive name substring, ordered by ICU root name then UUID. Unknown or repeated query parameters return400. No implicit selected Deck; missing or foreign selectedDeckId returns selected:null.',
+				parameters: [
+					{ name: 'query', in: 'query', schema: { type: 'string', maxLength: 200 } },
+					{
+						name: 'offset',
+						in: 'query',
+						schema: { type: 'integer', minimum: 0, maximum: 1000000, default: 0 }
+					},
+					{
+						name: 'limit',
+						in: 'query',
+						schema: { type: 'integer', minimum: 1, maximum: 50, default: 20 }
+					},
+					{ name: 'selectedDeckId', in: 'query', schema: { type: 'string', format: 'uuid' } }
+				]
+			}
+		},
 		'/api/mobile/v1/mtg/decks/{deckId}': {
 			parameters: [pathParameter('deckId')],
 			get: operation('Read one owned Deck, bounded availability and legality', ref('DeckDetail')),
@@ -1933,6 +1954,20 @@ const SCHEMA = {
 						items: { $ref: '#/components/schemas/MutationRequestRecord' }
 					}
 				}
+			},
+			DeckChoice: {
+				...object({ id: { type: 'string', format: 'uuid' }, name: string, format: string }),
+				additionalProperties: false
+			},
+			DeckChoicePage: {
+				...object({
+					items: { ...array('DeckChoice'), maxItems: 50 },
+					nextOffset: {
+						anyOf: [{ type: 'integer', minimum: 0, maximum: 1000000 }, { type: 'null' }]
+					},
+					selected: nullable('DeckChoice')
+				}),
+				additionalProperties: false
 			},
 			Deck: {
 				type: 'object',
