@@ -1,12 +1,14 @@
 # Spellbook documentation
 
 - Status: Canonical
-- Last Reviewed: 2026-10-06
+- Last Reviewed: 2026-10-07
 - Source of Truth: mixed
 - Update Triggers: document ownership, product contracts, section changes, documentation health review
 - Related Docs: [Product](./product/README.md), [Architecture](./architecture/README.md), [Operations](./operations/README.md), [Integrations](./integrations/README.md), [Decisions](./decisions/README.md), [Reference](./reference/README.md), [Issue labels](./ISSUE_LABELS.md)
 
 Start with the [product specification](./product/specification.md) for current behavior, requirements, and known limits. Use the [domain glossary](../GLOSSARY.md) for precise MTG and ownership terms. The code, tests, and configuration resolve implementation questions.
+
+[Value tracking](./product/value-tracking.md) owns market value, coverage and planned personal Inventory history. [Valuation](./architecture/valuation.md) owns implemented reference mechanics and public source history. [ADR-0020](./decisions/0020-value-only-inventory-history.md) records the value-only scope and supersedes the cost-dependent history design.
 
 Use the [issue label rules](./ISSUE_LABELS.md) for repository triage and the [contribution policy](../CONTRIBUTING.md) for proposals, pull requests, and AI assistance disclosure.
 

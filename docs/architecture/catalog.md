@@ -62,4 +62,4 @@ Catalog publication stores original validated `oracle_id`, printing UUID, availa
 
 ## Baseline price correspondence
 
-Scryfall refresh now publishes Catalog metadata and its reference-price view atomically. The recorded pair supports coherent operator recovery. Independent immutable price publications do not cascade with disposable Catalog generations. Catalog DTOs stay explicit; callers obtain prices/product links from the bounded [Valuation contract](./value-and-costs.md#implemented-market-references). Demo Catalog publication alone establishes no price view.
+Scryfall refresh now publishes Catalog metadata and its reference-price view atomically. The recorded pair supports coherent operator recovery. Independent immutable price publications do not cascade with disposable Catalog generations. Catalog DTOs stay explicit; callers obtain prices/product links from the bounded [Valuation contract](./valuation.md#implemented-market-references). Demo Catalog publication alone establishes no price view.

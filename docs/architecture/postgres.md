@@ -4,7 +4,7 @@
 - Last Reviewed: 2026-10-07
 - Source of Truth: code
 - Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership and compatibility adapters, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers, public price publication and retention, Oracle Tags publications and raw facts, entry category bundles/decisions and receipts
-- Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md), [Application contract](./application-contract.md), [Value and costs](./value-and-costs.md), [Category rules](./category-rules.md)
+- Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Category rules](./category-rules.md)
 
 PostgreSQL stores account-owned application state, the public Scryfall catalog and public price references.
 
@@ -74,7 +74,7 @@ Additive migration [0016](../../frontend/drizzle/0016_deck_entry_categories.sql)
 
 ## Public price persistence
 
-[Migration 0015](../../frontend/drizzle/0015_scryfall_prices.sql) adds four public price tables and initializes the singleton pointer row. It preserves existing account and Catalog tables. [Value persistence](./value-and-costs.md#implemented-market-references) owns paired publication, exact observations, independent retention and trusted frozen-reference evidence. Worker ingestion never reads or writes private holdings.
+[Migration 0015](../../frontend/drizzle/0015_scryfall_prices.sql) adds four public price tables and initializes the singleton pointer row. It preserves existing account and Catalog tables. [Valuation](./valuation.md#implemented-market-references) owns paired publication, exact observations, independent retention and trusted frozen-reference evidence. Worker ingestion never reads or writes private holdings.
 
 ## Inventory read and write consistency
 
@@ -127,4 +127,4 @@ An identical retry has one write effect. Reusing an existing request ID with a d
 
 Inventory and Deck requests store compact original acknowledgements in their mutation transaction. Identical replay returns the stored acknowledgement after later subject changes or deletion; changed normalized intent fails with 409. Legacy Inventory records without acknowledgements return explicit unavailable-history receipts, retaining their stored fingerprint/no-repeat protection. Legacy Deck records retain their documented empty-change behavior. Notes/Description revision checks are separate from request replay. Scan candidate-result replacement is separate from Inventory mutation replay and has no event fingerprint. See [mobile and scan](./mobile-and-scan.md) for wire migration.
 
-Migration 0017 adds independent optional publication/state/mapping/observation tables and normalized public source-history evidence/daily points. These public tables have no Catalog cascade or private account dependency. [Value persistence](./value-and-costs.md#optional-references-and-public-source-history) owns selection, 90-day retention and trusted evidence. Run it after the coherent 0016 migration prefix.
+Migration 0017 adds independent optional publication/state/mapping/observation tables and normalized public source-history evidence/daily points. These public tables have no Catalog cascade or private account dependency. [Valuation](./valuation.md#optional-references-and-public-source-history) owns selection, 90-day retention and trusted evidence. Run it after the coherent 0016 migration prefix.
