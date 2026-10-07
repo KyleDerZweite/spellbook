@@ -148,3 +148,26 @@ it('sign-in retains public Printing/query but clears private target and retry UR
 	expect(destination.searchParams.has('selectedDeckId')).toBe(false);
 	expect(destination.searchParams.has('deckQuery')).toBe(false);
 });
+
+it('native POST and sign-in roundtrip preserve repeated canonical filters while replacing stale action context', () => {
+	const canonical =
+		'/mtg/search?q=Sol+Ring&color=W&color=U&set=lea&set=2xm&rarity=rare&rarity=mythic&type=artifact&type=creature&legal=commander&legal=modern&printing=old&/addToInventory=&deckRetryRequestId=private';
+	const action = new URL(
+		nativeAdditionAction('/mtg/search?/addToDeck&color=B', canonical, 'current'),
+		'https://spellbook.test'
+	);
+	const login = new URL(cardSignInHref(canonical, 'current'), 'https://spellbook.test');
+	const returned = new URL(login.searchParams.get('returnTo')!, 'https://spellbook.test');
+	for (const url of [action, returned]) {
+		expect(url.searchParams.getAll('color')).toEqual(['W', 'U']);
+		expect(url.searchParams.getAll('set')).toEqual(['lea', '2xm']);
+		expect(url.searchParams.getAll('rarity')).toEqual(['rare', 'mythic']);
+		expect(url.searchParams.getAll('type')).toEqual(['artifact', 'creature']);
+		expect(url.searchParams.getAll('legal')).toEqual(['commander', 'modern']);
+		expect(url.searchParams.getAll('printing')).toEqual(['current']);
+		expect(url.searchParams.has('/addToInventory')).toBe(false);
+		expect(url.searchParams.has('deckRetryRequestId')).toBe(false);
+	}
+	expect(action.searchParams.getAll('/addToDeck')).toEqual(['']);
+	expect(returned.searchParams.has('/addToDeck')).toBe(false);
+});

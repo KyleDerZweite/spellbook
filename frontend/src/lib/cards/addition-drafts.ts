@@ -131,14 +131,20 @@ export function nativeAdditionAction(
 ) {
 	const target = new URL(action, 'https://spellbook.invalid');
 	const context = new URL(canonicalSearchHref, 'https://spellbook.invalid');
+	const copiedKeys = new Set<string>();
 	for (const [key, value] of context.searchParams)
 		if (
 			!key.startsWith('/') &&
 			!key.startsWith('deckRetry') &&
 			!key.startsWith('inventoryRetry') &&
 			key !== 'printing'
-		)
-			target.searchParams.set(key, value);
+		) {
+			if (!copiedKeys.has(key)) {
+				target.searchParams.delete(key);
+				copiedKeys.add(key);
+			}
+			target.searchParams.append(key, value);
+		}
 	target.searchParams.set('printing', printingId);
 	return target.pathname + target.search;
 }
