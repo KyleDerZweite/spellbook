@@ -2,7 +2,10 @@
 	import CardDetail from '#lib/components/cards/CardDetail.svelte';
 	import { storedCardDocument } from '#lib/mtg/stored-card.ts';
 	import type { CardDocument } from '#lib/search/types.ts';
-	import { untrack, onDestroy } from 'svelte';
+	import { untrack, onDestroy, onMount } from 'svelte';
+	import { readCategorySnapshot, selectCategorySnapshot } from '#lib/decks/category-save.ts';
+	import type { DeckEntryCategories } from '@spellbook/contracts/categories.ts';
+	import EntryCategoryEditor from '#lib/components/decks/EntryCategoryEditor.svelte';
 	import {
 		DeckSaveLifecycle,
 		type DeckEditor,
@@ -42,6 +45,47 @@
 		{ value: 'companion', label: 'Companion' }
 	];
 	let { data, form }: PageProps = $props();
+	let categoryRead = $state<{ accountId: string; value: DeckEntryCategories } | null>(null);
+	const entryCategories: DeckEntryCategories | null | undefined = $derived.by(() => {
+		const current =
+			categoryRead &&
+			categoryRead.accountId === data.user?.accountId &&
+			categoryRead.value.deckId === data.selectedDeckId
+				? categoryRead.value
+				: null;
+		const server =
+			form?.categoryConflict?.deckId === data.selectedDeckId
+				? form.categoryConflict
+				: data.entryCategories;
+		return selectCategorySnapshot(server, current);
+	});
+	let categoryReadController: AbortController | undefined;
+	async function refreshCategories(deckId: string, signal: AbortSignal): Promise<void> {
+		const accountId = data.user?.accountId;
+		const flow = data.flow;
+		const reading = saveLifecycle.capture('readCategory', deckId);
+		categoryReadController?.abort();
+		const controller = new AbortController();
+		categoryReadController = controller;
+		const read = await readCategorySnapshot(
+			fetch,
+			deckId,
+			AbortSignal.any([signal, controller.signal])
+		);
+		if (
+			!saveLifecycle.isCurrent(reading) ||
+			controller.signal.aborted ||
+			signal.aborted ||
+			accountId !== data.user?.accountId ||
+			deckId !== data.selectedDeckId ||
+			flow !== data.flow
+		)
+			throw new DOMException('Obsolete category read', 'AbortError');
+		if (entryCategories && BigInt(read.decisionRevision) < BigInt(entryCategories.decisionRevision))
+			throw new Error('The saved category read is older than the current revision.');
+		categoryRead = { accountId: accountId ?? '', value: read };
+	}
+
 	const saveLifecycle = untrack(
 		() => new DeckSaveLifecycle(data.user?.accountId ?? '', data.selectedDeckId, data.flow)
 	);
@@ -156,7 +200,29 @@
 	let ownedOnly = $state(false);
 	let sortBy = $state('name');
 	let view = $state<'list' | 'stacks'>('list');
-	let groupBy = $state('type');
+	let groupBy = $state(untrack(() => data.grouping));
+	let groupingBase = $state(untrack(() => data.grouping));
+	$effect(() => {
+		if (data.grouping !== groupingBase) {
+			groupBy = data.grouping;
+			groupingBase = data.grouping;
+		}
+	});
+	let initializeForm: HTMLFormElement | undefined = $state();
+	let mounted = $state(false);
+	const initializedDecks = new Set<string>();
+	onMount(() => {
+		mounted = true;
+	});
+	$effect(() => {
+		if (mounted && initializeForm && entryCategories && !entryCategories.initialized && !busy) {
+			const key = JSON.stringify([data.user?.accountId, entryCategories.deckId]);
+			if (!initializedDecks.has(key)) {
+				initializedDecks.add(key);
+				initializeForm.requestSubmit();
+			}
+		}
+	});
 	let missingOnly = $state(false);
 	let searchOpen = $state(false);
 	let inspected = $state<CardDocument | null>(null);
@@ -270,13 +336,26 @@
 				'Sorcery'
 			].find((value) => types.includes(value));
 			const label =
-				card.role === 'main' && groupBy === 'type' && type
-					? type
-					: (roles.find((role) => role.value === card.role)?.label ?? card.role);
+				card.role === 'main' && groupBy === 'category'
+					? (entryCategories?.definitions.find(
+							(d) =>
+								d.id === entryCategories?.decisions.find((c) => c.entryId === card.id)?.categoryId
+						)?.name ?? 'Uncategorized')
+					: card.role === 'main' && groupBy === 'type' && type
+						? type
+						: (roles.find((role) => role.value === card.role)?.label ?? card.role);
 			grouped.set(label, [...(grouped.get(label) ?? []), card]);
 		}
 		return [...grouped].sort(([a], [b]) =>
-			a === 'Commander' ? -1 : b === 'Commander' ? 1 : a.localeCompare(b)
+			a === 'Commander'
+				? -1
+				: b === 'Commander'
+					? 1
+					: groupBy === 'category'
+						? (entryCategories?.definitions.find((d) => d.name === a)?.displayOrder ?? 100) -
+								(entryCategories?.definitions.find((d) => d.name === b)?.displayOrder ?? 100) ||
+							a.localeCompare(b)
+						: a.localeCompare(b)
 		);
 	});
 
@@ -296,6 +375,7 @@
 		if (data.query) params.set('q', data.query);
 		if (data.oracleId) params.set('printing', data.oracleId);
 		if (data.flow) params.set('flow', data.flow);
+		if (groupBy === 'category') params.set('group', 'category');
 		return `?/${name}&${params}`;
 	}
 	function flowHref(flow = '') {
@@ -303,6 +383,7 @@
 		if (data.selectedDeckId) p.set('deck', data.selectedDeckId);
 		if (data.query) p.set('q', data.query);
 		if (flow) p.set('flow', flow);
+		if (groupBy === 'category') p.set('group', 'category');
 		return `/mtg/decks?${p}`;
 	}
 	function openCreate(event: MouseEvent) {
@@ -319,6 +400,8 @@
 			saveAccount = accountId;
 		}
 		if (saveLifecycle.setScope(data.user?.accountId ?? '', data.selectedDeckId, data.flow)) {
+			categoryReadController?.abort();
+			categoryRead = null;
 			busy = false;
 			saveError = '';
 			saveStatus = '';
@@ -340,6 +423,7 @@
 	});
 	onDestroy(() => {
 		saveLifecycle.destroy();
+		categoryReadController?.abort();
 		searchController?.abort();
 		ownershipController?.abort();
 	});
@@ -414,6 +498,16 @@
 				if (!isCurrentSave(submission)) return;
 				if (result.type === 'error') {
 					reportUnconfirmedSave();
+					return;
+				}
+				if (operation === 'setCategory') {
+					await update({ reset: false, invalidateAll: false });
+					if (!isCurrentSave(submission)) return;
+					if (result.type === 'success') {
+						saveStatus = 'Saved';
+						for (const [payload, id] of pendingRequests)
+							if (id === savedRequestId) pendingRequests.delete(payload);
+					}
 					return;
 				}
 				const savedDetails = result.type === 'success' ? result.data?.savedDetails : undefined;
@@ -581,6 +675,7 @@
 	{#if !saveError && form?.message && !form?.success}<p class="notice" role="alert">
 			{form.message}
 		</p>{/if}
+	{#if !inspected}{@render mergeReview()}{/if}
 	{#if selectedDeck && detailsDraft && !editOpen}
 		<section data-deck-draft-recovery aria-labelledby="draft-recovery-title" class="form-stack">
 			<h2 id="draft-recovery-title">Recover your unsaved deck details</h2>
@@ -916,15 +1011,62 @@
 						bind:value={groupBy}
 						options={[
 							{ value: 'type', label: 'By type' },
-							{ value: 'role', label: 'By section' }
+							{ value: 'role', label: 'By section' },
+							{ value: 'category', label: 'By category' }
 						]}
 					/>
 				</div>
+				<a href={`/mtg/decks?deck=${encodeURIComponent(selectedDeck.id)}&group=category`}
+					>Category view</a
+				>
+				{#if entryCategories && !entryCategories.initialized}
+					<form
+						method="POST"
+						action={action('initializeCategories')}
+						bind:this={initializeForm}
+						use:enhance={save}
+						data-initialize-categories
+					>
+						<input type="hidden" name="deckId" value={selectedDeck.id} /><input
+							type="hidden"
+							name="requestId"
+							value={data.requestId}
+						/>
+						<p class="muted">Initialize starter categories for this deck.</p>
+						<Button type="submit" disabled={busy}>Initialize categories</Button>
+					</form>
+				{:else if entryCategories}
+					{#if entryCategories.sourceStatus.kind === 'Failed'}<p role="status" class="notice">
+							Oracle Tags refresh failed. Saved decisions and the last valid source remain
+							available.
+						</p>{/if}
+					<details data-native-categories>
+						<summary>Primary category decisions</summary>
+						{#each deckCards.filter((c) => c.role === 'main') as card (card.id)}<section
+								aria-label={`Category for ${card.name}`}
+							>
+								<h3>{card.name}</h3>
+								<EntryCategoryEditor
+									categories={entryCategories}
+									recovery={form?.categoryDraft?.entryId === card.id
+										? form.categoryDraft
+										: undefined}
+									entryId={card.id}
+									action={action('setCategory')}
+									refresh={refreshCategories}
+									requestId={data.requestId}
+									{busy}
+									submit={save}
+								/>
+							</section>{/each}
+					</details>
+				{/if}
 				{#if deckCards.length === 0}<div class="empty-state">
 						<p>Search the catalog to add a card, or import an existing decklist.</p>
 					</div>{/if}
 				<DeckEntries
 					{groups}
+					categories={entryCategories}
 					{view}
 					documents={data.deckDocuments}
 					{availability}
@@ -1045,6 +1187,19 @@
 						>{inspectedEntry ? 'Save card' : 'Add to deck'}</Button
 					>
 				</form>
+				{#if form?.mergeDraft?.entryId === inspectedEntry?.id}{@render mergeReview()}{/if}
+				{#if inspectedEntry?.role === 'main' && entryCategories?.initialized}{#key inspectedEntry.id}<EntryCategoryEditor
+							categories={entryCategories}
+							recovery={form?.categoryDraft?.entryId === inspectedEntry.id
+								? form.categoryDraft
+								: undefined}
+							entryId={inspectedEntry.id}
+							action={action('setCategory')}
+							refresh={refreshCategories}
+							requestId={data.requestId}
+							{busy}
+							submit={save}
+						/>{/key}{/if}
 				{#if inspectedEntry}
 					<form method="POST" action={action('removeCard')} use:enhance={save}>
 						<input type="hidden" name="requestId" value={data.requestId} />
@@ -1059,6 +1214,35 @@
 		{/snippet}
 	</CardDetail>
 {/if}
+
+{#snippet mergeReview()}
+	{#if form?.categoryMerge && form?.mergeDraft}
+		<section data-category-merge-review aria-labelledby="category-merge-title" class="form-stack">
+			<h2 id="category-merge-title">Review category merge</h2>
+			<p>
+				Source: {entryCategories?.definitions.find(
+					(d) => d.id === form.categoryMerge.source?.categoryId
+				)?.name ?? 'Uncategorized'} ({form.categoryMerge.source?.state ?? 'Uninitialized'}).
+			</p>
+			<p>
+				Destination: {entryCategories?.definitions.find(
+					(d) => d.id === form.categoryMerge.destination?.categoryId
+				)?.name ?? 'Uncategorized'} ({form.categoryMerge.destination?.state ?? 'Uninitialized'}).
+				Its complete saved decision is retained. Resulting quantity: {form.categoryMerge
+					.resultingQuantity}.
+			</p>
+			<form method="POST" action={action(form.mergeAction ?? 'changePrinting')} use:enhance={save}>
+				{#each Object.entries(form.mergeDraft) as [key, value]}{#if value !== undefined}<input
+							type="hidden"
+							name={key}
+							{value}
+						/>{/if}{/each}
+				<input type="hidden" name="categoryPreview" value={form.categoryMerge.token} />
+				<Button type="submit" variant="default" disabled={busy}>Confirm merge</Button>
+			</form>
+		</section>
+	{/if}
+{/snippet}
 
 <style>
 	.deck-picker,

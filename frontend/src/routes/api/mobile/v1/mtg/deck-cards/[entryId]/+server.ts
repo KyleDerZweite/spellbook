@@ -21,7 +21,10 @@ export const PATCH: RequestHandler = async (event) => {
 					: normalizeQuantity(readNumber(body.quantity, 'quantity')),
 				body?.role === undefined ? undefined : readString(body.role, 'role'),
 				readString(body.requestId, 'requestId', ''),
-				body.delta === undefined ? undefined : readNumber(body.delta, 'delta')
+				body.delta === undefined ? undefined : readNumber(body.delta, 'delta'),
+				body.categoryPreview === undefined
+					? undefined
+					: readString(body.categoryPreview, 'categoryPreview')
 			)
 		);
 	} catch (cause) {

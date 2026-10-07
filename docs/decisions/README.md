@@ -55,4 +55,4 @@ Rules:
 - [ADR-0016: PostgreSQL saved-state invalidation](./0016-postgres-saved-state-invalidation.md), transport and Profile consumer implemented; workspace consumers planned
 - [ADR-0017: Revisioned Inventory windows and mutation receipts](./0017-revisioned-inventory-windows-and-mutation-receipts.md), bounded reads, original mutation receipts and Notes/Description revision protection implemented
 - [ADR-0018: Acquisition portions and atomic history restatement](./0018-acquisition-portions-and-atomic-history-restatement.md), accepted design; not implemented
-- [ADR-0019: Versioned categories and local source rules](./0019-versioned-categories-and-local-source-rules.md), accepted design; not implemented
+- [ADR-0019: Versioned categories and local source rules](./0019-versioned-categories-and-local-source-rules.md), starter entry categories and Oracle Tags implemented; account rules, Review/Reset, whole-deck categories and combos planned

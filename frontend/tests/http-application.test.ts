@@ -2008,6 +2008,19 @@ test('built HTTP application preserves public Catalog and local account journeys
 					)
 				).json();
 				const mergingId = added.changes[0].entryId;
+				const previewResponse = await request(
+					`/api/mobile/v1/mtg/decks/${deck.id}/categories/merge-preview`,
+					{
+						entryId: mergingId,
+						catalogCardId: destination.id,
+						quantity: 3,
+						role: 'main'
+					},
+					{ authorization }
+				);
+				assert.equal(previewResponse.status, 200);
+				const preview = await previewResponse.json();
+				assert.equal(typeof preview.token, 'string');
 				const merged = await (
 					await request(
 						path,
@@ -2019,7 +2032,8 @@ test('built HTTP application preserves public Catalog and local account journeys
 									target: { entryId: mergingId },
 									catalogCardId: destination.id,
 									quantity: 3,
-									role: 'main'
+									role: 'main',
+									categoryPreview: preview.token
 								}
 							]
 						},

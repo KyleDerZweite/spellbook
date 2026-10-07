@@ -129,9 +129,19 @@ export async function updateDeckCardEntry(
 	quantity: number | undefined,
 	role: string | undefined,
 	requestId: string,
-	delta?: number
+	delta?: number,
+	categoryPreview?: string
 ) {
-	return updateDeckCard(auth.user, entryId, quantity, role, requestId, delta, 'mobile');
+	return updateDeckCard(
+		auth.user,
+		entryId,
+		quantity,
+		role,
+		requestId,
+		delta,
+		'mobile',
+		categoryPreview
+	);
 }
 
 export async function removeDeckCardEntry(

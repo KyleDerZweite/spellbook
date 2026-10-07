@@ -10,6 +10,7 @@ from worker.catalog import CatalogPublisher
 from worker.config import load_config
 from worker.optional_publication import OptionalPricePublisher
 from worker.optional_sync import sync_optional_sources
+from worker.oracle_tags import OracleTagsPublisher
 from worker.scryfall import ScryfallClient
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
@@ -91,6 +92,34 @@ def sync_catalog(
     log.info("Published %d catalog printings from %s", count, source)
 
 
+def sync_oracle_tags(
+    scryfall: ScryfallClient, publisher: OracleTagsPublisher, data_dir: Path
+) -> None:
+    publication_started = False
+    try:
+        info = scryfall.get_download_info("oracle_tags")
+        if info is None:
+            raise ValueError("Oracle Tags bulk source was not found")
+        data_dir.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix="oracle-tags-", dir=data_dir) as download_dir:
+            path = Path(download_dir) / "tags.jsonl"
+            scryfall.download_bulk_file(info, path)
+            publication_started = True
+            publisher.publish(
+                path,
+                {
+                    "id": info.descriptor_id,
+                    "type": info.type,
+                    "updated_at": info.updated_at,
+                    "download_uri": info.download_uri,
+                },
+            )
+    except Exception as cause:
+        if not publication_started:
+            publisher.record_failure(cause)
+        raise
+
+
 def sync_interval_seconds(interval: str) -> int | None:
     return {"daily": 86400, "weekly": 604800, "manual": None}[interval]
 
@@ -105,6 +134,7 @@ def main() -> None:
     except Exception as exc:
         log.error("Worker startup failed (%s)", type(exc).__name__)
         raise SystemExit(1) from None
+    tags_publisher = OracleTagsPublisher(config.database_url)
     interval = sync_interval_seconds(config.sync_interval)
     optional_publisher = OptionalPricePublisher(config.database_url)
     while True:
@@ -114,8 +144,13 @@ def main() -> None:
         except Exception as exc:
             log.error("Catalog synchronization failed (%s)", type(exc).__name__)
             successful = False
-        # Always attempt enabled providers, even after a failed Scryfall refresh.
+        # Independent public sources still attempt their refresh after a baseline failure.
         if not sync_optional_sources(config, optional_publisher):
+            successful = False
+        try:
+            sync_oracle_tags(scryfall, tags_publisher, config.data_dir)
+        except Exception as exc:
+            log.error("Oracle Tags synchronization failed (%s)", type(exc).__name__)
             successful = False
         if interval is None:
             if not successful:
