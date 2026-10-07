@@ -71,7 +71,7 @@ Ordinary seeding preserves existing accounts. For an untouched legacy Demo Inven
 node --env-file=../.env scripts/demo/replace-inventory.mjs
 ```
 
-The command requires a database name ending in `_demo` or `_design`, a sole Demo profile with matching local Demo credentials, one MTG Inventory at its original revision 0 or 1, and the exact old 43-entry, 72-copy fixture. It refuses changed entries, Notes, Notes revisions, Boxes, memberships, mutation receipts or missing active Catalog identities. Preview uses a read-only transaction and writes nothing. Review the account and Inventory IDs in its output and retain a protected backup before applying:
+The command requires a database name ending in `_demo` or `_design`, a sole Demo profile with matching local Demo credentials, one MTG Inventory at its original revision 0 or 1, and the exact old 43-entry, 72-copy fixture. It refuses changed entries, Notes, Notes revisions, Boxes, memberships, receipts with a status other than `applied`, receipts from a source other than `web`, or missing active Catalog identities. Completed web mutation receipts remain untouched; their original acknowledgements stay available for retries. Preview uses a read-only transaction and writes nothing. Review the account and Inventory IDs in its output and retain a protected backup before applying:
 
 ```sh
 node --env-file=../.env scripts/demo/replace-inventory.mjs --apply

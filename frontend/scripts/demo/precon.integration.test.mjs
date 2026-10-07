@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import test from 'node:test';
 import { createDemoPool } from './seed.mjs';
 import { precon, insertPrecon } from './precon.mjs';
@@ -135,6 +135,59 @@ for (const revision of [0, 1])
 					account
 				]);
 				assert.equal(await fingerprint(), before);
+				await client.query(
+					"INSERT INTO inventory_mutation_requests(account_id,request_id,source,status,request_hash,acknowledgement) VALUES($1,'completed-web','web','pending','original-request',$2)",
+					[
+						account,
+						JSON.stringify({ inventoryId: inventory, originalIntent: 'historical acknowledgement' })
+					]
+				);
+				for (let receipt = 1; receipt < 16; receipt++)
+					await client.query(
+						"INSERT INTO inventory_mutation_requests(account_id,request_id,source,status,request_hash,acknowledgement) VALUES($1,$2,'web','applied',$3,$4)",
+						[
+							account,
+							'completed-web-' + receipt,
+							'original-request-' + receipt,
+							JSON.stringify({ inventoryId: inventory, originalIntent: receipt })
+						]
+					);
+				await assert.rejects(replaceDemoInventory(client, { apply: true }), /receipts/);
+				await client.query(
+					"UPDATE inventory_mutation_requests SET status='rejected' WHERE account_id=$1",
+					[account]
+				);
+				await assert.rejects(replaceDemoInventory(client, { apply: true }), /receipts/);
+				await client.query(
+					"UPDATE inventory_mutation_requests SET status='applied' WHERE account_id=$1",
+					[account]
+				);
+				const receiptHash = async () =>
+					createHash('sha256')
+						.update(
+							JSON.stringify(
+								(
+									await client.query(
+										'SELECT * FROM inventory_mutation_requests WHERE account_id=$1 ORDER BY request_id',
+										[account]
+									)
+								).rows
+							)
+						)
+						.digest('hex');
+				const originalReceiptHash = await receiptHash();
+				assert.equal(
+					(
+						await client.query(
+							'SELECT count(*)::int AS count FROM inventory_mutation_requests WHERE account_id=$1',
+							[account]
+						)
+					).rows[0].count,
+					16
+				);
+				assert.equal((await replaceDemoInventory(client)).status, 'preview');
+				assert.equal(await receiptHash(), originalReceiptHash);
+				assert.equal(await fingerprint(), before);
 				await client.query("UPDATE local_credentials SET username='different'");
 				await assert.rejects(replaceDemoInventory(client, { apply: true }), /credential identity/);
 				await client.query("UPDATE local_credentials SET username='demo'");
@@ -152,6 +205,7 @@ for (const revision of [0, 1])
 					/precon test insertion rejected/
 				);
 				assert.equal(await fingerprint(), before);
+				assert.equal(await receiptHash(), originalReceiptHash);
 				await client.query('DROP TRIGGER precon_test_reject ON deck_cards');
 				await client.query('DROP FUNCTION precon_test_reject()');
 				const events = [];
@@ -167,6 +221,7 @@ for (const revision of [0, 1])
 				assert.equal(settled, false, 'Apply waits for the Inventory parent lock');
 				await listener.query('COMMIT');
 				assert.equal((await applying).status, 'applied');
+				assert.equal(await receiptHash(), originalReceiptHash);
 				const {
 					rows: [counts]
 				} = await client.query(
@@ -209,6 +264,7 @@ for (const revision of [0, 1])
 				const after = await fingerprint();
 				assert.equal((await replaceDemoInventory(client, { apply: true })).status, 'preserved');
 				assert.equal(await fingerprint(), after);
+				assert.equal(await receiptHash(), originalReceiptHash);
 				await client.query('DELETE FROM user_profiles WHERE account_id=$1', [account]);
 				await client.query("INSERT INTO user_profiles(account_id,username) VALUES($1,'demo')", [
 					account

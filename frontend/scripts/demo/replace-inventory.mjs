@@ -90,12 +90,12 @@ export async function replaceDemoInventory(client, { apply = false } = {}) {
 			`SELECT
 		 (SELECT count(*)::int FROM inventory_groups WHERE inventory_id=$1) AS groups,
 		 (SELECT count(*)::int FROM inventory_group_memberships m JOIN inventory_cards c ON c.id=m.entry_id WHERE c.inventory_id=$1) AS memberships,
-		 (SELECT count(*)::int FROM inventory_mutation_requests WHERE account_id=$2) AS receipts`,
+		 (SELECT count(*)::int FROM inventory_mutation_requests WHERE account_id=$2 AND (source <> 'web' OR status <> 'applied')) AS receipts`,
 			[inventory, account]
 		);
 		if (dependencies.groups || dependencies.memberships || dependencies.receipts)
 			throw new Error(
-				'Inventory has Boxes, memberships or mutation receipts. Replacement refused.'
+				'Inventory has Boxes, memberships or receipts other than completed web mutations. Replacement refused.'
 			);
 		const { rows: actual } = await client.query(
 			'SELECT * FROM inventory_cards WHERE inventory_id=$1 ORDER BY spellbook_position',
