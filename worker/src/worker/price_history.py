@@ -10,6 +10,10 @@ def prune_history(conn, source, publication=None):
     conn.execute("DELETE FROM price_source_history WHERE source=%s AND day < %s", (source, cutoff))
     conn.execute("DELETE FROM price_history_days WHERE source=%s AND day < %s", (source, cutoff))
     if publication is not None:
+        # The just-copied publication is absent from pre-import planner statistics.
+        # Refresh join keys before pruning so its full history is scanned once.
+        conn.execute("ANALYZE price_source_history (source,publication_id,printing_id)")
+        conn.execute("ANALYZE price_history_printings (publication_id,printing_id)")
         conn.execute(
             "DELETE FROM price_history_printings p WHERE publication_id=%s AND NOT EXISTS "
             "(SELECT 1 FROM price_source_history h WHERE h.source=%s "
@@ -35,7 +39,8 @@ def select_instant_day(conn, source, instant, publication, ingested_at):
         "ingested_at=EXCLUDED.ingested_at WHERE "
         "EXCLUDED.source_instant>price_history_days.source_instant OR "
         "(EXCLUDED.source_instant=price_history_days.source_instant AND "
-        "EXCLUDED.ingested_at>price_history_days.ingested_at) RETURNING day",
+        "EXCLUDED.ingested_at>=price_history_days.ingested_at AND "
+        "EXCLUDED.publication_id<>price_history_days.publication_id) RETURNING day",
         (source, day, instant, publication, ingested_at),
     ).fetchone()
     if not selected:

@@ -153,7 +153,7 @@ def test_failed_optional_transaction_preserves_current_and_replay_is_idempotent(
             "LANGUAGE plpgsql AS $$ "
             "BEGIN IF NEW.amount=999 THEN PERFORM pg_sleep(2); END IF; RETURN NEW; END $$"
         )
-    with pytest.raises(psycopg.errors.QueryCanceled):
+    with pytest.raises(psycopg.OperationalError):
         publish("999", 3, PriceLimits(import_seconds=1))
     with psycopg.connect(public_database) as conn:
         assert conn.execute(

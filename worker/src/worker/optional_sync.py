@@ -124,7 +124,12 @@ def _sync(config, publisher, source, artifacts, adapter_type):
                     publisher.publish_mtgjson(adapter)
     except Exception as cause:
         if not publication_started:
-            publisher.record_failure(source, cause)
+            try:
+                publisher.record_failure(source, cause)
+            except Exception as status_error:
+                log.error(
+                    "%s failure status unavailable (%s)", source, type(status_error).__name__
+                )
         raise
 
 

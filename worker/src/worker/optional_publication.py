@@ -11,6 +11,8 @@ import psycopg
 from psycopg.types.json import Jsonb
 
 from worker.catalog import PUBLISH_LOCK
+from worker.price_artifacts import DEFAULT_PRICE_LIMITS
+from worker.price_connections import connect
 from worker.price_history import prune_history, record_scryfall_history, select_instant_day
 
 OPTIONAL_EXTRACTOR_VERSION = 1
@@ -47,14 +49,19 @@ class _PublicationConnection:
 
 
 class OptionalPricePublisher:
-    def __init__(self, database_url):
-        self.database_url = database_url
+    def __init__(self, database_url, limits=DEFAULT_PRICE_LIMITS):
+        self.database_url, self.limits = database_url, limits
 
     def set_enabled(self, source, enabled):
         provider_source(source)
         if type(enabled) is not bool:
             raise ValueError("Source opt-in must be boolean")
-        with psycopg.connect(self.database_url) as conn:
+        with connect(
+            self.database_url,
+            time.monotonic() + self.limits.connect_seconds,
+            self.limits.connect_seconds,
+        ) as connection:
+            conn = _PublicationConnection(connection, connection.deadline)
             conn.execute(
                 "UPDATE optional_price_state SET enabled=%s WHERE source=%s", (enabled, source)
             )
@@ -62,7 +69,12 @@ class OptionalPricePublisher:
 
     def record_failure(self, source, cause):
         provider_source(source)
-        with psycopg.connect(self.database_url) as conn:
+        with connect(
+            self.database_url,
+            time.monotonic() + self.limits.connect_seconds,
+            self.limits.connect_seconds,
+        ) as connection:
+            conn = _PublicationConnection(connection, connection.deadline)
             conn.execute(
                 "UPDATE optional_price_state SET refresh_status=%s WHERE source=%s",
                 (
@@ -85,7 +97,12 @@ class OptionalPricePublisher:
 
     def restore_previous(self, source):
         provider_source(source)
-        with psycopg.connect(self.database_url) as conn:
+        with connect(
+            self.database_url,
+            time.monotonic() + self.limits.connect_seconds,
+            self.limits.connect_seconds,
+        ) as connection:
+            conn = _PublicationConnection(connection, connection.deadline)
             conn.execute("SELECT pg_advisory_xact_lock(%s,%s)", PUBLISH_LOCK)
             previous = conn.execute(
                 "SELECT previous_publication FROM optional_price_state WHERE source=%s FOR UPDATE",
@@ -111,7 +128,9 @@ class OptionalPricePublisher:
                 raise ValueError("Optional publication deadline exceeded")
 
         try:
-            with psycopg.connect(self.database_url) as connection:
+            with connect(
+                self.database_url, deadline, adapter.limits.connect_seconds
+            ) as connection:
                 conn = _PublicationConnection(connection, deadline)
                 conn.execute("SELECT pg_advisory_xact_lock(%s,%s)", PUBLISH_LOCK)
                 state = conn.execute(
@@ -283,7 +302,7 @@ class OptionalPricePublisher:
                 bounded()
                 return publication
         except Exception as cause:
-            with suppress(psycopg.Error):
+            with suppress(psycopg.Error, ValueError):
                 self.record_failure(source, cause)
             raise
 

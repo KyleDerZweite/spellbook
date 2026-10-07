@@ -136,7 +136,7 @@ def main() -> None:
         raise SystemExit(1) from None
     tags_publisher = OracleTagsPublisher(config.database_url)
     interval = sync_interval_seconds(config.sync_interval)
-    optional_publisher = OptionalPricePublisher(config.database_url)
+    optional_publisher = OptionalPricePublisher(config.database_url, config.price_limits)
     while True:
         successful = True
         try:

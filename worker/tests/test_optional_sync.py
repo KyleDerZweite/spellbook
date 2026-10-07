@@ -149,3 +149,34 @@ def test_original_import_deadline_stops_later_parse_before_remaining_records(tmp
     assert len(calls) == 2
     publisher.publish_cardmarket.assert_not_called()
     publisher.record_failure.assert_called_once()
+
+
+def test_failure_status_timeout_preserves_original_error_and_other_source_attempt(tmp_path):
+    from worker.optional_sync import sync_cardmarket
+
+    config = WorkerConfig(
+        "postgresql://localhost/test",
+        "all_cards",
+        "manual",
+        "fixture://api",
+        tmp_path,
+        True,
+        True,
+    )
+    publisher = MagicMock()
+    publisher.record_failure.side_effect = TimeoutError("Status recording timeout")
+    with (
+        patch(
+            "worker.optional_sync.download_artifact", side_effect=ValueError("Original download")
+        ),
+        pytest.raises(ValueError, match="Original download"),
+    ):
+        sync_cardmarket(config, publisher)
+    with (
+        patch(
+            "worker.optional_sync.download_artifact", side_effect=ValueError("Original download")
+        ),
+        patch("worker.optional_sync.sync_mtgjson") as mtgjson,
+    ):
+        assert sync_optional_sources(config, publisher) is False
+    mtgjson.assert_called_once()
