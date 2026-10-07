@@ -66,7 +66,7 @@ def build(source, output, version):
     digest = payload_hash.hexdigest()
     manifest = {
         'formatVersion': 1, 'bundleVersion': version, 'file': output.name,
-        'generationId': str(uuid.uuid5(uuid.NAMESPACE_URL, 'spellbook-demo-catalog:' + digest)),
+        'generationId': str(uuid.uuid5(uuid.NAMESPACE_URL, f'spellbook-demo-catalog:1:{transform_version}:' + digest)),
         'sourceType': 'demo-bundle', 'providerUpdatedAt': None,
         'sourceFile': source.name, 'sourceBytes': source.stat().st_size,
         'sourceSHA256': source_hash.hexdigest(),

@@ -42,7 +42,11 @@ test('damaged compressed artifact is rejected before publishing; decoded digest 
 		await copyFile(new URL(manifest.file, manifestURL), file);
 		manifest.jsonlSHA256 = '0'.repeat(64);
 		await writeFile(localManifest, JSON.stringify(manifest));
+		await assert.rejects(verifyBundle(localManifest), /Invalid Demo Catalog manifest/);
+		manifest.jsonlSHA256 = JSON.parse(await readFile(manifestURL, 'utf8')).jsonlSHA256;
+		await writeFile(localManifest, JSON.stringify(manifest));
 		const bundle = await verifyBundle(localManifest);
+		bundle.manifest.jsonlSHA256 = '0'.repeat(64);
 		await assert.rejects(async () => {
 			for await (const _ of bundleBatches(bundle)) {
 				/* Consume through the final integrity check. */
