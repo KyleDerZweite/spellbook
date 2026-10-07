@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
-- Update Triggers: test commands, workflow coverage, runtime pins, browser verification, PR policy, Dependabot policy, engineering skill tracker and domain layout, optional account-summary and Inventory scale fixtures
+- Update Triggers: test commands, workflow coverage, runtime pins, browser verification, PR policy, Dependabot policy, engineering skill tracker and domain layout, optional account-summary and Inventory scale fixtures, integration file serialization and range fixtures
 - Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance), [Application boundaries](../architecture/application-contract.md#implementation-status)
 
 This document owns repository check commands, CI coverage, and verification evidence. Product and integration documents own behavior and acceptance criteria. Run checks appropriate to the changed behavior; do not treat a passing command as proof of requirements it does not exercise.
@@ -34,6 +34,8 @@ pnpm test:http
 ```
 
 The HTTP suite starts the built Node application and verifies public Catalog DTOs and browser/API Auth/Profile/Dashboard journeys against the same disposable database. The default origin is `http://127.0.0.1:5191`; when setting `TEST_HTTP_PORT`, rebuild with matching `APP_ORIGIN`. The suite rejects a configured origin/port mismatch and an occupied port before publishing fixtures. It requires listening confirmation from its own child process before sending requests. The suite also fails without matching `DATABASE_URL` and `TEST_DATABASE_URL`. It temporarily publishes a catalog fixture, so do not run it against a shared database or concurrent catalog publisher.
+
+The integration project in [vite.config.ts](../../frontend/vite.config.ts) uses `fileParallelism: false` because its files publish one shared Catalog generation in the disposable database. Explicit concurrent transactions within a test still run through `Promise.all`. Deck range fixtures use genuine Catalog printings and valid signed 32-bit per-entry quantities; the beyond-safe canonical aggregation boundary is covered by [unit cases](../../frontend/tests/unit/deck-availability.test.ts), without an invalid PostgreSQL quantity fixture.
 
 The database role needs schema and extension creation privileges. Integration cases write fixtures and remove test data or schemas. Without `TEST_DATABASE_URL`, database suites skip; a successful process with skipped suites is not a database verification result.
 
