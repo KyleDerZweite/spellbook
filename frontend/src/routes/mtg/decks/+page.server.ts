@@ -260,7 +260,8 @@ export const actions = {
 			});
 		return {
 			preview: await application.decks.previewMtgImport(locals.user!, text, deck.format),
-			importText: text
+			importText: text,
+			importDraft: { text: String(form.get('text') ?? ''), requestId: field(form, 'requestId') }
 		};
 	}),
 	commitImport: guarded(async ({ request, locals }) => {

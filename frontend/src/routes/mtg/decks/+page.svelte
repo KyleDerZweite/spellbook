@@ -119,6 +119,8 @@
 	let busy = $state(false);
 	let importText = $state(untrack(() => form?.importDraft?.text ?? form?.importText ?? ''));
 	let importRequestId = $state(untrack(() => form?.importDraft?.requestId ?? ''));
+	let importRequestText = $state(untrack(() => importText.trim()));
+	let inspectorForm: HTMLFormElement | undefined = $state();
 	const pendingRequests = new Map<string, string>();
 	let addRole = $state('main');
 	let addQuantity = $state(1);
@@ -133,8 +135,8 @@
 	let inspectedEntryId = $state<string | null>(null);
 	let inspectorQuantity = $state(1);
 	let inspectorRole = $state('main');
-	let query = $state('');
-	let results = $state<CardDocument[]>([]);
+	let query = $state(untrack(() => data.query));
+	let results = $state<CardDocument[]>(untrack(() => data.catalogCards));
 	let searchOwned = $state<Record<string, number>>({});
 	let inspectorOwned = $state<typeof data.ownedPrintings>([]);
 	let ownershipLoading = $state(false);
@@ -147,14 +149,6 @@
 	let saveError = $state('');
 	let removed = $state<(typeof data.deckCards)[number] | null>(null);
 	const inspectedEntry = $derived(data.deckCards.find((card) => card.id === inspectedEntryId));
-	let initializedSearch = $state(false);
-	$effect(() => {
-		if (!initializedSearch) {
-			query = data.query;
-			results = data.catalogCards;
-			initializedSearch = true;
-		}
-	});
 	async function inspect(card: CardDocument, entry?: (typeof data.deckCards)[number]) {
 		inspected = card;
 		inspectedEntryId = entry?.id ?? null;
@@ -308,7 +302,9 @@
 			? deckCards.find((card) => card.id === formData.get('entryId'))
 			: undefined;
 		if (target.searchParams.has('/commitImport')) {
-			if (!importRequestId) importRequestId = crypto.randomUUID();
+			const text = String(formData.get('text') ?? '').trim();
+			if (!importRequestId || importRequestText !== text) importRequestId = crypto.randomUUID();
+			importRequestText = text;
 			formData.set('requestId', importRequestId);
 		} else {
 			const payload =
@@ -334,7 +330,8 @@
 			? {
 					id: String(formData.get('entryId')),
 					quantity: Number(formData.get('quantity')),
-					role: String(formData.get('role'))
+					role: String(formData.get('role')),
+					printing: String(formData.get('catalogCardId'))
 				}
 			: null;
 
@@ -357,7 +354,9 @@
 						submittedInspector &&
 						inspectedEntryId === submittedInspector.id &&
 						inspectorQuantity === submittedInspector.quantity &&
-						inspectorRole === submittedInspector.role
+						inspectorRole === submittedInspector.role &&
+						inspectorForm &&
+						new FormData(inspectorForm).get('catalogCardId') === submittedInspector.printing
 					)
 						inspected = null;
 					if (target.searchParams.has('/addCard') && formData.get('undo')) removed = null;
@@ -370,7 +369,7 @@
 					)
 						editOpen = false;
 					deleteOpen = false;
-					if (target.searchParams.has('/commitImport')) {
+					if (target.searchParams.has('/commitImport') && importText.trim() === importRequestText) {
 						importOpen = false;
 						importText = '';
 						importRequestId = '';
@@ -640,7 +639,7 @@
 						use:enhance={save}
 						class="form-stack"
 					>
-						<input type="hidden" name="requestId" value={data.requestId} />
+						<input type="hidden" name="requestId" value={importRequestId || data.requestId} />
 						<input type="hidden" name="deckId" value={selectedDeck.id} /><label
 							class="label"
 							for="import-text">Decklist</label
@@ -695,7 +694,7 @@
 									</ul>
 								</details>{/if}
 							<form method="POST" action={action('commitImport')} use:enhance={save}>
-								<input type="hidden" name="requestId" value={data.requestId} />
+								<input type="hidden" name="requestId" value={importRequestId || data.requestId} />
 								<input type="hidden" name="deckId" value={selectedDeck.id} /><input
 									type="hidden"
 									name="text"
@@ -915,6 +914,7 @@
 				<form
 					method="POST"
 					action={action(inspectedEntry ? 'changePrinting' : 'addCard')}
+					bind:this={inspectorForm}
 					use:enhance={save}
 					class="form-stack"
 				>

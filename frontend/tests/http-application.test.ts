@@ -838,6 +838,11 @@ test('built HTTP application preserves public Catalog and local account journeys
 					if (flow === 'search')
 						assert.match(html, /<form[^>]*method="GET"[^>]*action="\/mtg\/decks"/);
 				}
+				const nativeSearch = await get(`/mtg/decks?deck=${deckId}&flow=search&q=Sol%20Ring`);
+				assert.equal(nativeSearch.status, 200);
+				const searchHtml = await nativeSearch.text();
+				assert.match(searchHtml, /aria-label="Add Sol Ring"/);
+				assert.match(searchHtml, /<select[^>]*name="role"/);
 				const requestId = randomUUID();
 				const invalidText = 'X'.repeat(100001);
 				const importFailure = await post(`/mtg/decks?/previewImport&deck=${deckId}&flow=import`, {
@@ -846,14 +851,18 @@ test('built HTTP application preserves public Catalog and local account journeys
 					requestId
 				});
 				assert.equal(importFailure.status, 400);
-				assert.ok((await importFailure.text()).includes(invalidText));
+				const failedImportHtml = await importFailure.text();
+				assert.ok(failedImportHtml.includes(invalidText));
+				assert.ok(failedImportHtml.includes(`name="requestId" value="${requestId}"`));
 				const previewResponse = await post(`/mtg/decks?/previewImport&deck=${deckId}&flow=import`, {
 					deckId,
 					text: 'Deck\n2 Sol Ring',
 					requestId
 				});
 				assert.equal(previewResponse.status, 200);
-				assert.match(await previewResponse.text(), /Add 2 matched cards/);
+				const previewHtml = await previewResponse.text();
+				assert.match(previewHtml, /Add 2 matched cards/);
+				assert.ok(previewHtml.includes(`name="requestId" value="${requestId}"`));
 				const commit = await post(`/mtg/decks?/commitImport&deck=${deckId}&flow=import`, {
 					deckId,
 					text: 'Deck\n2 Sol Ring',
@@ -866,6 +875,39 @@ test('built HTTP application preserves public Catalog and local account journeys
 					})
 				).json();
 				assert.equal(snapshot.deckCards[0].quantity, 2);
+				const entryId = snapshot.deckCards[0].id;
+				const maximum = await post(`/mtg/decks?/updateCard&deck=${deckId}`, {
+					entryId,
+					role: 'main',
+					quantity: '10000',
+					requestId: randomUUID()
+				});
+				assert.equal(maximum.status, 200);
+				const maximumHtml = await maximum.text();
+				const buttons = maximumHtml.match(/<button\b[^>]*>/g) ?? [];
+				const increase = buttons.find((button) =>
+					button.includes('aria-label="Increase Sol Ring quantity"')
+				);
+				const decrease = buttons.find((button) =>
+					button.includes('aria-label="Decrease Sol Ring quantity"')
+				);
+				assert.ok(increase && decrease);
+				assert.match(increase, /\bdisabled(?:[ =]|>)/);
+				assert.doesNotMatch(decrease, /\bdisabled(?:[ =]|>)/);
+				const decremented = await post(`/mtg/decks?/updateCard&deck=${deckId}`, {
+					entryId,
+					role: 'main',
+					delta: '-1',
+					quantity: '9999',
+					requestId: randomUUID()
+				});
+				assert.equal(decremented.status, 200);
+				const afterDecrement = await (
+					await request(`/api/mobile/v1/mtg/decks?deck=${deckId}`, undefined, {
+						authorization: `Bearer ${deckSession.token}`
+					})
+				).json();
+				assert.equal(afterDecrement.deckCards[0].quantity, 9999);
 				const removed = await post(`/mtg/decks?/deleteDeck&deck=${deckId}&flow=delete`, { deckId });
 				assert.equal(removed.status, 303);
 				assert.equal(removed.headers.get('location'), '/mtg/decks');

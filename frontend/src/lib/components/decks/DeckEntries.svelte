@@ -214,13 +214,13 @@
 			grid-template-columns: 1fr;
 		}
 		.stack-art {
-			height: 340px;
+			height: 360px;
 		}
 		.stack-art img {
-			height: 340px;
+			height: 360px;
 		}
 		.stack-card + .stack-card {
-			margin-top: -350px;
+			margin-top: -330px;
 		}
 	}
 </style>
