@@ -61,3 +61,26 @@ describe('confirmed category saves and independent current reads', () => {
 		});
 	});
 });
+
+it('reads the bounded category endpoint without navigating, rejects an unavailable read, and forwards cancellation', async () => {
+	const { readCategorySnapshot } = await import('../../src/lib/decks/category-save.ts');
+	const controller = new AbortController();
+	let seen = '';
+	let signal: AbortSignal | null | undefined;
+	const fetcher: typeof fetch = async (input, options) => {
+		seen = String(input);
+		signal = options?.signal;
+		return new Response('Unavailable', { status: 500 });
+	};
+	await expect(readCategorySnapshot(fetcher, 'owned-deck', controller.signal)).rejects.toThrow(
+		'Could not read the saved category'
+	);
+	expect(seen).toBe('/api/mobile/v1/mtg/decks/owned-deck/categories');
+	expect(signal).toBe(controller.signal);
+	const current = await readCategorySnapshot(
+		async () => Response.json(saved),
+		'deck',
+		controller.signal
+	);
+	expect(current).toEqual(saved);
+});

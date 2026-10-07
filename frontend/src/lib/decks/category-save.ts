@@ -58,3 +58,24 @@ export function reconcileCategoryDraft(
 		? state
 		: { ...state, value, revision: read.decisionRevision };
 }
+
+/** Read only the owned category snapshot; failures never replace the mounted Deck page. */
+export async function readCategorySnapshot(
+	fetcher: typeof fetch,
+	deckId: string,
+	signal: AbortSignal
+): Promise<DeckEntryCategories> {
+	const response = await fetcher(
+		`/api/mobile/v1/mtg/decks/${encodeURIComponent(deckId)}/categories`,
+		{
+			signal,
+			headers: { accept: 'application/json' },
+			cache: 'no-store'
+		}
+	);
+	if (!response.ok) throw new Error('Could not read the saved category. Your choice is retained.');
+	const read: DeckEntryCategories = await response.json();
+	if (read.deckId !== deckId)
+		throw new Error('Could not read the saved category. Your choice is retained.');
+	return read;
+}

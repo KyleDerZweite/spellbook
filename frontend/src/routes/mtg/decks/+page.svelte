@@ -3,6 +3,8 @@
 	import { storedCardDocument } from '#lib/mtg/stored-card.ts';
 	import type { CardDocument } from '#lib/search/types.ts';
 	import { untrack, onDestroy, onMount } from 'svelte';
+	import { readCategorySnapshot } from '#lib/decks/category-save.ts';
+	import type { DeckEntryCategories } from '@spellbook/contracts/categories.ts';
 	import EntryCategoryEditor from '#lib/components/decks/EntryCategoryEditor.svelte';
 	import {
 		DeckSaveLifecycle,
@@ -43,6 +45,50 @@
 		{ value: 'companion', label: 'Companion' }
 	];
 	let { data, form }: PageProps = $props();
+	let categoryRead = $state<{ accountId: string; value: DeckEntryCategories } | null>(null);
+	const entryCategories: DeckEntryCategories | null | undefined = $derived.by(() => {
+		const current =
+			categoryRead &&
+			categoryRead.accountId === data.user?.accountId &&
+			categoryRead.value.deckId === data.selectedDeckId
+				? categoryRead.value
+				: null;
+		const server =
+			form?.categoryConflict?.deckId === data.selectedDeckId
+				? form.categoryConflict
+				: data.entryCategories;
+		return current &&
+			(!server || BigInt(current.decisionRevision) > BigInt(server.decisionRevision))
+			? current
+			: server;
+	});
+	let categoryReadController: AbortController | undefined;
+	async function refreshCategories(deckId: string, signal: AbortSignal): Promise<void> {
+		const accountId = data.user?.accountId;
+		const flow = data.flow;
+		const reading = saveLifecycle.capture('readCategory', deckId);
+		categoryReadController?.abort();
+		const controller = new AbortController();
+		categoryReadController = controller;
+		const read = await readCategorySnapshot(
+			fetch,
+			deckId,
+			AbortSignal.any([signal, controller.signal])
+		);
+		if (
+			!saveLifecycle.isCurrent(reading) ||
+			controller.signal.aborted ||
+			signal.aborted ||
+			accountId !== data.user?.accountId ||
+			deckId !== data.selectedDeckId ||
+			flow !== data.flow
+		)
+			throw new DOMException('Obsolete category read', 'AbortError');
+		if (entryCategories && BigInt(read.decisionRevision) < BigInt(entryCategories.decisionRevision))
+			throw new Error('The saved category read is older than the current revision.');
+		categoryRead = { accountId: accountId ?? '', value: read };
+	}
+
 	const saveLifecycle = untrack(
 		() => new DeckSaveLifecycle(data.user?.accountId ?? '', data.selectedDeckId, data.flow)
 	);
@@ -172,14 +218,8 @@
 		mounted = true;
 	});
 	$effect(() => {
-		if (
-			mounted &&
-			initializeForm &&
-			data.entryCategories &&
-			!data.entryCategories.initialized &&
-			!busy
-		) {
-			const key = JSON.stringify([data.user?.accountId, data.entryCategories.deckId]);
+		if (mounted && initializeForm && entryCategories && !entryCategories.initialized && !busy) {
+			const key = JSON.stringify([data.user?.accountId, entryCategories.deckId]);
 			if (!initializedDecks.has(key)) {
 				initializedDecks.add(key);
 				initializeForm.requestSubmit();
@@ -300,10 +340,9 @@
 			].find((value) => types.includes(value));
 			const label =
 				card.role === 'main' && groupBy === 'category'
-					? (data.entryCategories?.definitions.find(
+					? (entryCategories?.definitions.find(
 							(d) =>
-								d.id ===
-								data.entryCategories?.decisions.find((c) => c.entryId === card.id)?.categoryId
+								d.id === entryCategories?.decisions.find((c) => c.entryId === card.id)?.categoryId
 						)?.name ?? 'Uncategorized')
 					: card.role === 'main' && groupBy === 'type' && type
 						? type
@@ -316,9 +355,9 @@
 				: b === 'Commander'
 					? 1
 					: groupBy === 'category'
-						? (data.entryCategories?.definitions.find((d) => d.name === a)?.displayOrder ?? 100) -
-								(data.entryCategories?.definitions.find((d) => d.name === b)?.displayOrder ??
-									100) || a.localeCompare(b)
+						? (entryCategories?.definitions.find((d) => d.name === a)?.displayOrder ?? 100) -
+								(entryCategories?.definitions.find((d) => d.name === b)?.displayOrder ?? 100) ||
+							a.localeCompare(b)
 						: a.localeCompare(b)
 		);
 	});
@@ -364,6 +403,8 @@
 			saveAccount = accountId;
 		}
 		if (saveLifecycle.setScope(data.user?.accountId ?? '', data.selectedDeckId, data.flow)) {
+			categoryReadController?.abort();
+			categoryRead = null;
 			busy = false;
 			saveError = '';
 			saveStatus = '';
@@ -385,6 +426,7 @@
 	});
 	onDestroy(() => {
 		saveLifecycle.destroy();
+		categoryReadController?.abort();
 		searchController?.abort();
 		ownershipController?.abort();
 	});
@@ -459,6 +501,16 @@
 				if (!isCurrentSave(submission)) return;
 				if (result.type === 'error') {
 					reportUnconfirmedSave();
+					return;
+				}
+				if (operation === 'setCategory') {
+					await update({ reset: false, invalidateAll: false });
+					if (!isCurrentSave(submission)) return;
+					if (result.type === 'success') {
+						saveStatus = 'Saved';
+						for (const [payload, id] of pendingRequests)
+							if (id === savedRequestId) pendingRequests.delete(payload);
+					}
 					return;
 				}
 				const savedDetails = result.type === 'success' ? result.data?.savedDetails : undefined;
@@ -970,7 +1022,7 @@
 				<a href={`/mtg/decks?deck=${encodeURIComponent(selectedDeck.id)}&group=category`}
 					>Category view</a
 				>
-				{#if data.entryCategories && !data.entryCategories.initialized}
+				{#if entryCategories && !entryCategories.initialized}
 					<form
 						method="POST"
 						action={action('initializeCategories')}
@@ -986,8 +1038,8 @@
 						<p class="muted">Initialize starter categories for this deck.</p>
 						<Button type="submit" disabled={busy}>Initialize categories</Button>
 					</form>
-				{:else if data.entryCategories}
-					{#if data.entryCategories.sourceStatus.kind === 'Failed'}<p role="status" class="notice">
+				{:else if entryCategories}
+					{#if entryCategories.sourceStatus.kind === 'Failed'}<p role="status" class="notice">
 							Oracle Tags refresh failed. Saved decisions and the last valid source remain
 							available.
 						</p>{/if}
@@ -998,12 +1050,13 @@
 							>
 								<h3>{card.name}</h3>
 								<EntryCategoryEditor
-									categories={data.entryCategories}
+									categories={entryCategories}
 									recovery={form?.categoryDraft?.entryId === card.id
 										? form.categoryDraft
 										: undefined}
 									entryId={card.id}
 									action={action('setCategory')}
+									refresh={refreshCategories}
 									requestId={data.requestId}
 									{busy}
 									submit={save}
@@ -1016,7 +1069,7 @@
 					</div>{/if}
 				<DeckEntries
 					{groups}
-					categories={data.entryCategories}
+					categories={entryCategories}
 					{view}
 					documents={data.deckDocuments}
 					{availability}
@@ -1138,13 +1191,14 @@
 					>
 				</form>
 				{#if form?.mergeDraft?.entryId === inspectedEntry?.id}{@render mergeReview()}{/if}
-				{#if inspectedEntry?.role === 'main' && data.entryCategories?.initialized}{#key inspectedEntry.id}<EntryCategoryEditor
-							categories={data.entryCategories}
+				{#if inspectedEntry?.role === 'main' && entryCategories?.initialized}{#key inspectedEntry.id}<EntryCategoryEditor
+							categories={entryCategories}
 							recovery={form?.categoryDraft?.entryId === inspectedEntry.id
 								? form.categoryDraft
 								: undefined}
 							entryId={inspectedEntry.id}
 							action={action('setCategory')}
+							refresh={refreshCategories}
 							requestId={data.requestId}
 							{busy}
 							submit={save}
@@ -1169,12 +1223,12 @@
 		<section data-category-merge-review aria-labelledby="category-merge-title" class="form-stack">
 			<h2 id="category-merge-title">Review category merge</h2>
 			<p>
-				Source: {data.entryCategories?.definitions.find(
+				Source: {entryCategories?.definitions.find(
 					(d) => d.id === form.categoryMerge.source?.categoryId
 				)?.name ?? 'Uncategorized'} ({form.categoryMerge.source?.state ?? 'Uninitialized'}).
 			</p>
 			<p>
-				Destination: {data.entryCategories?.definitions.find(
+				Destination: {entryCategories?.definitions.find(
 					(d) => d.id === form.categoryMerge.destination?.categoryId
 				)?.name ?? 'Uncategorized'} ({form.categoryMerge.destination?.state ?? 'Uninitialized'}).
 				Its complete saved decision is retained. Resulting quantity: {form.categoryMerge

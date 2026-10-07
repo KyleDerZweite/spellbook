@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { untrack, onDestroy } from 'svelte';
 	import {
 		initialCategoryDraft,
 		editCategoryDraft,
@@ -7,7 +7,6 @@
 		reconcileCategoryDraft
 	} from '#lib/decks/category-save.ts';
 	import { enhance } from '$app/forms';
-	import { invalidateAll } from '$app/navigation';
 	import type { SubmitFunction } from '$app/forms';
 	import type { DeckEntryCategories } from '@spellbook/contracts/categories.ts';
 	import Button from '#lib/components/ui/button/Button.svelte';
@@ -19,6 +18,7 @@
 		requestId,
 		busy,
 		submit,
+		refresh,
 		recovery
 	}: {
 		categories: DeckEntryCategories;
@@ -27,6 +27,7 @@
 		requestId: string;
 		busy: boolean;
 		submit: SubmitFunction;
+		refresh: (deckId: string, signal: AbortSignal) => Promise<void>;
 		recovery?: { categoryId: string | null; expectedDecisionRevision: string; requestId: string };
 	} = $props();
 	const inputId = $props.id();
@@ -41,16 +42,24 @@
 		const next = reconcileCategoryDraft(draft, categories, entryId);
 		if (next !== draft) draft = next;
 	});
+	let live = true;
+	let controller: AbortController | undefined;
+	onDestroy(() => {
+		live = false;
+		controller?.abort();
+	});
 	let refreshing = $state(false);
 	let readError = $state('');
 	async function refreshSaved() {
-		if (refreshing || busy) return;
+		if (refreshing || !live) return;
 		refreshing = true;
 		readError = '';
+		controller?.abort();
+		controller = new AbortController();
 		try {
-			await invalidateAll();
+			await refresh(categories.deckId, controller.signal);
 		} catch {
-			readError = 'Could not read the saved category. Your choice is retained.';
+			if (live) readError = 'Could not read the saved category. Your choice is retained.';
 		} finally {
 			refreshing = false;
 		}
@@ -61,14 +70,17 @@
 		const after = await submit(args);
 		return async (response) => {
 			if (typeof after === 'function') await after(response);
+			if (!live) return;
 			if (response.result.type === 'success') {
 				const acknowledgement = response.result.data?.acknowledgement;
 				if (
 					acknowledgement?.deckId === categories.deckId &&
 					typeof acknowledgement.decisionRevision === 'string' &&
 					/^\d+$/.test(acknowledgement.decisionRevision)
-				)
+				) {
 					draft = acknowledgeCategoryDraft(draft, submitted, acknowledgement);
+					await refreshSaved();
+				}
 			}
 		};
 	};

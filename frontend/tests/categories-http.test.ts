@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { fixtureAuthRequest } from './fixtures/http-auth.ts';
 import { httpTestOrigin, startHttpApplication, stopHttpApplication } from './http-runtime.ts';
+import { readCategorySnapshot } from '../src/lib/decks/category-save.ts';
 import { ensureDeckCatalogFixture } from './deck-catalog-fixture.ts';
 import type { DeckEntryCategories, CategoryMergePreview } from '@spellbook/contracts/categories.ts';
 import type { DeckAcknowledgement } from '@spellbook/contracts/decks.ts';
@@ -273,10 +274,22 @@ test('built category HTTP and native forms share authorized commands and reviewe
 						cookie
 					});
 					assert.equal(unavailable.status, 500);
+					await assert.rejects(
+						readCategorySnapshot(
+							(input, options) => fetch(`${origin}${input}`, { ...options, headers: { cookie } }),
+							deckId,
+							new AbortController().signal
+						),
+						/Could not read the saved category/
+					);
 				} finally {
 					await pool.query('ALTER TABLE category_http_source_hold RENAME TO oracle_tag_state');
 				}
-				const recovered = await state();
+				const recovered = await readCategorySnapshot(
+					(input, options) => fetch(`${origin}${input}`, { ...options, headers: { cookie } }),
+					deckId,
+					new AbortController().signal
+				);
 				assert.equal(recovered.decisions.find((d) => d.entryId === main)?.categoryId, draw.id);
 				assert.equal(recovered.decisions.find((d) => d.entryId === main)?.state, 'Manual');
 				const retry = await request(`/api/mobile/v1/mtg/deck-cards/${main}/category`, 'PATCH', {

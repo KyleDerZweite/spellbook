@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-07
 - Source of Truth: code
-- Update Triggers: Scryfall formats, synchronization schedule and retries, first publication, source selection, status persistence, Oracle Tags publication and raw canonical fact extraction, price evidence and paired publication/recovery, Scryfall formats, synchronization schedule and retries, first publication, source selection, status persistence
+- Update Triggers: Scryfall formats, synchronization schedule and retries, first publication, source selection, status persistence, Oracle Tags publication and raw canonical fact extraction, price evidence and paired publication/recovery
 - Related Docs: [System overview](./system-overview.md), [Catalog](./catalog.md), [Deployment](../operations/deployment.md), [Category rules](./category-rules.md), [Value persistence](./value-and-costs.md)
 
 The Python worker imports and synchronizes the shared Scryfall catalog in PostgreSQL. It is a service-level import, not a per-account operation. Compose starts it after database migrations. Each process startup attempts a sync. `CATALOG_SOURCE` selects `all_cards` by default or `default_cards`; each run synchronizes that configured source directly. It does not replace a full-language catalog with a recurring default-only refresh. All languages present in the selected snapshot are retained.
