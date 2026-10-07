@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { InventoryTargetReads } from '#lib/inventory/targets.ts';
 	import { goto } from '$app/navigation';
 	import WorkspaceHeader from '#lib/components/layout/WorkspaceHeader.svelte';
 	import Button from '#lib/components/ui/button/Button.svelte';
@@ -74,6 +75,8 @@
 	} | null>(null);
 	let removeId = $state<string | null>(null);
 	let assigningEntryId = $state<string | null>(null);
+	let removeLifetime = 0,
+		assigningLifetime = 0;
 	let pendingId = $state<string | null>(null);
 	let status = $state('');
 	let mutationError = $state('');
@@ -201,7 +204,7 @@
 			windowAccount = page.data.user?.accountId ?? 'session';
 			window.seed(windowAccount, initial);
 			if (anchor?.id) void restoreAnchor(anchor.id, anchor.intra, anchor.index);
-			else void virtualList?.scrollToIndex(initial.query.offset);
+			else void restoreNativeOffset(initial.query.offset);
 			void refreshTargets();
 		});
 	});
@@ -256,6 +259,18 @@
 		};
 	});
 
+	async function restoreNativeOffset(offset: number) {
+		const identity = window.identity;
+		const account = page.data.user?.accountId;
+		const isCurrent = () =>
+			hydrated && window.identity === identity && page.data.user?.accountId === account;
+		if (!isCurrent()) return;
+		// The hydrated child is created in this flush; reading its binding before tick loses the native offset.
+		await tick();
+		if (!isCurrent()) return;
+		await virtualList?.scrollToIndex(offset, 0, isCurrent);
+	}
+
 	let refreshController: AbortController | null = null;
 	async function refreshInventory(expectedAccount = page.data.user?.accountId ?? 'session') {
 		if (!hydrated || expectedAccount !== (page.data.user?.accountId ?? 'session')) return;
@@ -277,12 +292,7 @@
 			)
 				return;
 			if (anchor?.id) await restoreAnchor(anchor.id, anchor.intra, anchor.index);
-			else
-				await virtualList?.scrollToIndex(
-					window.current?.query.offset ?? 0,
-					0,
-					() => !controller.signal.aborted && window.identity === identity
-				);
+			else await restoreNativeOffset(window.current?.query.offset ?? 0);
 			await refreshTargets();
 		} finally {
 			if (refreshController === controller) {
@@ -354,45 +364,45 @@
 		quantityDraft = $state(1),
 		draftDirty = $state(false),
 		targetGone = $state(false);
-	async function refreshTargets() {
-		const account = page.data.user?.accountId;
-		for (const id of [inspection?.entryId, removeId, assigningEntryId].filter(
-			(id): id is string => !!id
-		)) {
-			const response = await fetch(`/api/mobile/v1/mtg/inventory/${id}`);
-			if (!hydrated || account !== page.data.user?.accountId) return;
-			if (response.status === 404) {
+	const targetReads = new InventoryTargetReads<InventoryEntry>(
+		() => ({
+			account: page.data.user?.accountId,
+			generation: window.identity,
+			active: hydrated,
+			targets: [
+				...(inspection ? [{ id: inspection.entryId, lifetime: inspection }] : []),
+				...(removeId ? [{ id: removeId, lifetime: removeLifetime }] : []),
+				...(assigningEntryId ? [{ id: assigningEntryId, lifetime: assigningLifetime }] : [])
+			]
+		}),
+		(id) => fetch(`/api/mobile/v1/mtg/inventory/${id}`),
+		(id, entry) => {
+			if (!entry) {
 				if (id === inspection?.entryId) targetGone = true;
 				delete targetEntries[id];
-				continue;
+				return;
 			}
-			if (!response.ok) continue;
-			const detail = await response.json();
-			if (!hydrated || account !== page.data.user?.accountId) return;
-			targetEntries[id] = asLegacy(detail.entry);
+			targetEntries[id] = asLegacy(entry);
 			if (id === inspection?.entryId && !draftDirty) {
-				notesDraft = detail.entry.notes;
-				quantityDraft = detail.entry.quantity;
+				notesDraft = entry.notes;
+				quantityDraft = entry.quantity;
 			}
 		}
+	);
+	function refreshTargets() {
+		return targetReads.refresh();
 	}
+
 	$effect(() => {
-		windowVersion;
 		if (!hydrated) return;
+		const targetIds = new Set([inspection?.entryId, removeId, assigningEntryId, pendingId]);
+		const retained = new Set([...inventoryCards.map((entry) => entry.id), ...targetIds]);
 		untrack(() => {
-			const retained = new Set([
-				...inventoryCards.map((e) => e.id),
-				inspection?.entryId,
-				removeId,
-				assigningEntryId,
-				pendingId
-			]);
 			for (const id of Object.keys(rowMenuRefs)) if (!retained.has(id)) delete rowMenuRefs[id];
-			for (const id of Object.keys(targetEntries))
-				if (![inspection?.entryId, removeId, assigningEntryId, pendingId].includes(id))
-					delete targetEntries[id];
+			for (const id of Object.keys(targetEntries)) if (!targetIds.has(id)) delete targetEntries[id];
 		});
 	});
+
 	let groupDirectory = $derived(
 		currentWindow.query.view === 'groups' && !currentWindow.query.group
 	);
@@ -437,6 +447,7 @@
 	function assignGroups(entryId: string) {
 		groupReturnTarget = rowMenuRefs[entryId] ?? searchInput;
 		targetEntries[entryId] = inventoryCards.find((e) => e.id === entryId)!;
+		assigningLifetime++;
 		assigningEntryId = entryId;
 	}
 	function returnFromGroup(event: Event) {
@@ -503,6 +514,7 @@
 		mutationError = '';
 		removalReturnTarget = rowMenuRefs[id] ?? searchInput;
 		targetEntries[id] = inventoryCards.find((e) => e.id === id)!;
+		removeLifetime++;
 		removeId = id;
 	}
 	function cancelRemoval() {
