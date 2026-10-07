@@ -146,7 +146,9 @@
 			</span>
 		</div>
 		<div class="deck-credit">
-			<span class="credit">{commanderDeck.creator}</span>
+			{#if commanderDeck.creator !== commanderDeck.source}
+				<span class="credit">{commanderDeck.creator}</span>
+			{/if}
 			<a class="source" href={commanderDeck.sourceURL} target="_blank" rel="noreferrer"
 				>{commanderDeck.source} <span aria-hidden="true">↗</span></a
 			>
@@ -376,6 +378,23 @@
 		align-items: center;
 		gap: 0.25rem;
 		margin-top: 0.25rem;
+	}
+	.card-selection,
+	.deck-details {
+		position: relative;
+		isolation: isolate;
+		text-shadow: 0 1px 3px var(--color-background);
+	}
+	.card-selection::before,
+	.deck-details::before {
+		content: '';
+		position: absolute;
+		z-index: -1;
+		inset: -0.25rem -0.5rem;
+		border-radius: 1rem;
+		background: color-mix(in srgb, var(--color-background) 65%, transparent);
+		filter: blur(8px);
+		pointer-events: none;
 	}
 	.card-selection :global(.browse-card) {
 		width: 44px;
