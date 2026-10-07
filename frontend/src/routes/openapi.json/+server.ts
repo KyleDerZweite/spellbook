@@ -129,6 +129,25 @@ const operation = (summary: string, result: Schema, input?: Schema, idempotent =
 		...(idempotent ? { 409: requestConflict } : {})
 	}
 });
+const scanOperation = (summary: string, result: Schema, input?: Schema, idempotent = false) => {
+	const value = operation(summary, result, input, idempotent);
+	return {
+		...value,
+		responses: {
+			...value.responses,
+			503: response('Scan temporarily unavailable; no partial write', ref('ErrorResponse')),
+			...(idempotent
+				? {
+						404: response('Owned Scan session/artifact/review not found', ref('ErrorResponse')),
+						409: response(
+							'Closed session, changed request intent or LegacyReplayEvidenceRequired for a non-null historical hash lacking original evidence',
+							ref('ErrorResponse')
+						)
+					}
+				: {})
+		}
+	};
+};
 
 const categoryOperation = (summary: string, result: Schema, input?: Schema) => ({
 	...operation(summary, result, input),
@@ -758,18 +777,18 @@ const SCHEMA = {
 			}
 		},
 		'/api/mobile/v1/mtg/scan/sessions': {
-			get: operation(
+			get: scanOperation(
 				'List the 100 most recently updated scan sessions',
 				object({ sessions: array('ScanSession') })
 			),
-			post: operation('Create a scan session', object({ session: ref('ScanSession') }))
+			post: scanOperation('Create a scan session', object({ session: ref('ScanSession') }))
 		},
 		'/api/mobile/v1/mtg/scan/sessions/{sessionId}/artifacts/{artifactId}/result': {
 			parameters: [pathParameter('sessionId'), pathParameter('artifactId')],
 			post: {
 				...operation(
 					'Replace recognition results for an uploaded scan artifact',
-					object({ artifact: ref('ScanArtifact'), result: ref('ScanWorkerResult') }),
+					object({ artifact: ref('ScanArtifact'), result: ref('ScanResult') }),
 					ref('ExternalScanResultRequest')
 				),
 				description:
@@ -777,9 +796,10 @@ const SCHEMA = {
 				responses: {
 					200: response(
 						'Stored recognition result',
-						object({ artifact: ref('ScanArtifact'), result: ref('ScanWorkerResult') })
+						object({ artifact: ref('ScanArtifact'), result: ref('ScanResult') })
 					),
 					...errors,
+					503: response('Scan temporarily unavailable; no partial write', ref('ErrorResponse')),
 					...jsonBodyErrors,
 					404: response('Session or artifact not found in this account', ref('ErrorResponse')),
 					409: response('Session is already committed or cancelled', ref('ErrorResponse'))
@@ -807,6 +827,7 @@ const SCHEMA = {
 						}
 					},
 					...errors,
+					503: response('Scan temporarily unavailable; no partial write', ref('ErrorResponse')),
 					404: response('Artifact or stored image not found in this account', ref('ErrorResponse')),
 					413: response('Stored image exceeds 10 MiB', ref('ErrorResponse')),
 					415: response('Stored content is not JPEG, PNG, or WebP', ref('ErrorResponse'))
@@ -818,7 +839,7 @@ const SCHEMA = {
 			post: {
 				...operation(
 					'Upload and process a scan frame',
-					object({ artifact: ref('ScanArtifact'), result: ref('ScanWorkerResult') })
+					object({ artifact: ref('ScanArtifact'), result: ref('ScanResult') })
 				),
 				requestBody: requestBody(
 					object({
@@ -834,9 +855,10 @@ const SCHEMA = {
 				responses: {
 					200: response(
 						'Processed scan frame',
-						object({ artifact: ref('ScanArtifact'), result: ref('ScanWorkerResult') })
+						object({ artifact: ref('ScanArtifact'), result: ref('ScanResult') })
 					),
 					...errors,
+					503: response('Scan temporarily unavailable; no partial write', ref('ErrorResponse')),
 					404: response('Scan session not found in this account', ref('ErrorResponse')),
 					409: response('Scan session is not open for uploads', ref('ErrorResponse')),
 					413: response(
@@ -852,7 +874,16 @@ const SCHEMA = {
 			}
 		},
 		'/api/mobile/v1/mtg/scan/sessions/{sessionId}/result': {
-			parameters: [pathParameter('sessionId')],
+			parameters: [
+				pathParameter('sessionId'),
+				{
+					name: 'limit',
+					in: 'query',
+					schema: { type: 'integer', minimum: 1, maximum: 100, default: 50 }
+				},
+				{ name: 'artifactCursor', in: 'query', schema: { type: 'string', format: 'uuid' } },
+				{ name: 'reviewCursor', in: 'query', schema: { type: 'string', format: 'uuid' } }
+			],
 			get: {
 				...operation(
 					'Read scan artifacts, review items, and the latest result',
@@ -861,14 +892,15 @@ const SCHEMA = {
 				responses: {
 					200: response('Owned scan session result', ref('ScanSessionResult')),
 					...errors,
+					503: response('Scan temporarily unavailable; no partial write', ref('ErrorResponse')),
 					404: response('Scan session not found in this account', ref('ErrorResponse'))
 				}
 			}
 		},
 		'/api/mobile/v1/mtg/scan/review/commit': {
-			post: operation(
-				'Commit reviewed scan candidates to inventory',
-				ref('InventoryAcknowledgement'),
+			post: scanOperation(
+				'Commit reviewed printing intent; replay preserves original receipt or explicit legacy no-repeat binding',
+				ref('ScanCommitAcknowledgement'),
 				ref('ScanReviewCommitRequest'),
 				true
 			)
@@ -1309,16 +1341,16 @@ const SCHEMA = {
 			ScanCandidate: {
 				allOf: [
 					object({
-						catalogCardId: string,
-						canonicalCardId: string,
-						oracleId: string,
+						catalogCardId: { type: 'string', format: 'uuid' },
+						canonicalCardId: { type: 'string', format: 'uuid' },
+						oracleId: { type: 'string', format: 'uuid' },
 						name: string,
 						setCode: string,
 						collectorNumber: string,
 						imageUri: string,
-						similarityScore: { type: 'number' },
-						ocrScore: { type: 'number' },
-						finalScore: { type: 'number' },
+						similarityScore: { type: 'integer', minimum: 0, maximum: 2147483647 },
+						ocrScore: { type: 'integer', minimum: 0, maximum: 2147483647 },
+						finalScore: { type: 'integer', minimum: 0, maximum: 2147483647 },
 						matchReason: string
 					}),
 					object({ confidence: { type: 'number', minimum: 0, maximum: 1 } }, [])
@@ -1348,94 +1380,133 @@ const SCHEMA = {
 					{ properties: { status: { enum: ['no_match', 'failed'] }, candidates: { maxItems: 0 } } }
 				]
 			},
-			ScanWorkerResult: object({
+			ScanResult: object({
+				artifactId: { type: 'string', format: 'uuid' },
 				status: { enum: ['matched', 'ambiguous', 'no_match', 'failed'] },
-				normalizedObjectKey: string,
-				qualityScore: { type: 'number' },
-				embeddingModelVersion: string,
-				ocrModelVersion: string,
-				ocrTokens: object({ name: string, setCode: string, collectorNumber: string }, []),
-				candidates: array('ScanCandidate')
+				qualityScore: { type: 'integer', minimum: 0, maximum: 2147483647 },
+				embeddingModelVersion: { type: 'string', minLength: 1, maxLength: 128 },
+				ocrModelVersion: { type: 'string', minLength: 1, maxLength: 128 },
+				ocrTokens: {
+					...object(
+						{
+							name: { type: 'string', maxLength: 5000 },
+							setCode: { type: 'string', maxLength: 5000 },
+							collectorNumber: { type: 'string', maxLength: 5000 }
+						},
+						[]
+					),
+					additionalProperties: false
+				},
+				candidates: { ...array('ScanCandidate'), maxItems: 20 }
 			}),
 			ScanSession: object({
-				id: string,
-				accountId: string,
+				id: { type: 'string', format: 'uuid' },
 				game: { const: 'mtg' },
 				status: { enum: ['open', 'pending_review', 'committed', 'cancelled'] },
 				...timestamps
 			}),
-			ScanArtifact: object({
-				id: string,
-				sessionId: string,
-				accountId: string,
-				originalObjectKey: string,
-				normalizedObjectKey: string,
-				qualityScore: integer,
-				embeddingModelVersion: string,
-				ocrModelVersion: string,
-				status: { enum: ['matched', 'ambiguous', 'no_match', 'failed'] },
-				ocrName: { type: ['string', 'null'] },
-				ocrSetCode: { type: ['string', 'null'] },
-				ocrCollectorNumber: { type: ['string', 'null'] },
-				candidateJson: array('ScanCandidate'),
-				...timestamps
-			}),
+			ScanArtifact: {
+				allOf: [
+					ref('ScanResult'),
+					object({
+						id: { type: 'string', format: 'uuid' },
+						sessionId: { type: 'string', format: 'uuid' },
+						...timestamps
+					})
+				]
+			},
 			ScanReviewItem: {
 				allOf: [
 					ref('ScanCandidate'),
 					object({
-						id: string,
-						sessionId: string,
-						scanArtifactId: string,
-						accountId: string,
+						id: { type: 'string', format: 'uuid' },
+						sessionId: { type: 'string', format: 'uuid' },
+						scanArtifactId: { type: 'string', format: 'uuid' },
 						finish,
 						condition,
-						quantity,
+						quantity: { ...quantity, maximum: 2147483647 },
 						...timestamps
 					})
 				]
 			},
 			ScanSessionResult: object({
 				session: ref('ScanSession'),
-				artifacts: array('ScanArtifact'),
-				reviewItems: array('ScanReviewItem'),
-				lastResult: nullable('ScanWorkerResult')
+				artifacts: { ...array('ScanArtifact'), maxItems: 100 },
+				reviewItems: { ...array('ScanReviewItem'), maxItems: 100 },
+				artifactCount: { type: 'integer', minimum: 0 },
+				reviewCount: { type: 'integer', minimum: 0 },
+				nextArtifactCursor: { type: ['string', 'null'], format: 'uuid' },
+				nextReviewCursor: { type: ['string', 'null'], format: 'uuid' },
+				lastResult: nullable('ScanResult')
 			}),
-			ScanReviewCommitRequest: object({
-				requestId: { type: 'string', minLength: 1 },
-				sessionId: { type: 'string', format: 'uuid' },
-				items: {
-					type: 'array',
-					minItems: 1,
-					maxItems: 100,
-					items: object(
-						{
-							id: { type: 'string', format: 'uuid' },
-							scanArtifactId: { type: 'string', format: 'uuid' },
-							selectedCandidate: object(
-								{
-									catalogCardId: { type: 'string', minLength: 1 },
-									canonicalCardId: { type: 'string', minLength: 1 },
-									name: { type: 'string', minLength: 1 },
-									oracleId: string,
-									setCode: string,
-									collectorNumber: string,
-									imageUri: string,
-									similarityScore: { type: 'integer', minimum: 0, maximum: 100, default: 0 },
-									ocrScore: { type: 'integer', minimum: 0, maximum: 100, default: 0 },
-									finalScore: { type: 'integer', minimum: 0, maximum: 100, default: 0 },
-									matchReason: string
-								},
-								['catalogCardId', 'canonicalCardId', 'name']
-							),
-							finish: { ...finish, default: 'nonfoil' },
-							condition: { ...condition, default: 'NM' },
-							quantity: { ...quantity, maximum: 2147483647, default: 1 }
-						},
-						['scanArtifactId', 'selectedCandidate']
-					)
-				}
-			}),
+			ScanReviewIntent: object(
+				{
+					id: { type: 'string', format: 'uuid' },
+					scanArtifactId: { type: 'string', format: 'uuid' },
+					catalogCardId: { type: 'string', format: 'uuid' },
+					finish,
+					condition,
+					quantity: { ...quantity, maximum: 2147483647 }
+				},
+				['scanArtifactId', 'catalogCardId', 'finish', 'condition', 'quantity']
+			),
+			ScanLegacyVerification: object(
+				{
+					version: { enum: ['scan-v1', 'scan-v2'] },
+					sessionId: { type: 'string', format: 'uuid' },
+					items: {
+						type: 'array',
+						minItems: 1,
+						maxItems: 100,
+						items: {
+							allOf: [
+								ref('ScanReviewIntent'),
+								object(
+									{
+										sessionId: { type: 'string', format: 'uuid' },
+										canonicalCardId: { type: 'string', maxLength: 36 },
+										oracleId: { type: 'string', maxLength: 36 },
+										name: { type: 'string', maxLength: 500 },
+										setCode: { type: 'string', maxLength: 100 },
+										collectorNumber: { type: 'string', maxLength: 100 },
+										imageUri: { type: 'string', maxLength: 2000 },
+										similarityScore: { type: 'integer', minimum: 0, maximum: 100 },
+										ocrScore: { type: 'integer', minimum: 0, maximum: 100 },
+										finalScore: { type: 'integer', minimum: 0, maximum: 100 },
+										matchReason: { type: 'string', maxLength: 500 }
+									},
+									['sessionId', 'similarityScore', 'ocrScore', 'finalScore', 'matchReason']
+								)
+							]
+						}
+					}
+				},
+				['version', 'items']
+			),
+			ScanReviewCommitRequest: object(
+				{
+					requestId: { type: 'string', minLength: 1, maxLength: 256 },
+					sessionId: { type: 'string', format: 'uuid' },
+					items: { ...array('ScanReviewIntent'), minItems: 1, maxItems: 100 },
+					legacyVerification: ref('ScanLegacyVerification')
+				},
+				['requestId', 'sessionId', 'items']
+			),
+			ScanCommitAcknowledgement: {
+				oneOf: [
+					object({
+						kind: { const: 'Committed' },
+						sessionId: { type: 'string', format: 'uuid' },
+						acknowledgement: ref('InventoryAcknowledgement')
+					}),
+					object({
+						kind: { const: 'LegacyNoRepeat' },
+						requestId: string,
+						binding: { enum: ['VerifiedLegacyHash', 'UnverifiedLegacyHash'] },
+						acknowledgement: ref('InventoryAcknowledgement')
+					})
+				]
+			},
 			ErrorResponse: {
 				type: 'object',
 				properties: {

@@ -13,4 +13,4 @@ export { createCategories } from './categories/application.ts';
 
 export { CategoryNotFound, CategoryConflict } from './categories/application.ts';
 export { CategoryMergeConflict } from './categories/merge.ts';
-export { createScanCommit } from './scan/commit.ts';
+export { createScan } from './scan/application.ts';

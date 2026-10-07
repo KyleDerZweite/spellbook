@@ -17,15 +17,6 @@ import {
 	assertRequestId,
 	normalizeSource
 } from '#lib/server/mtg/validation.ts';
-import {
-	createScanSession,
-	getScanSessionResult,
-	recordScanArtifact,
-	updateScanSessionStatus,
-	upsertScanReviewItem
-} from '#lib/server/data/scan.ts';
-import type { ScanCandidate } from '#lib/server/data/types.ts';
-
 export async function batchAddInventory(
 	auth: MobileAuthContext,
 	input: {
@@ -159,76 +150,4 @@ export async function removeDeckCardEntry(
 	requestId: string
 ) {
 	return removeDeckCard(auth.user, entryId, requestId, 'mobile');
-}
-
-export async function createScanSessionEntry(
-	auth: MobileAuthContext,
-	sessionId = crypto.randomUUID()
-) {
-	return createScanSession(auth.user.accountId, 'mtg', sessionId);
-}
-
-export async function recordScanArtifactEntry(
-	auth: MobileAuthContext,
-	input: {
-		artifactId: string;
-		sessionId: string;
-		originalObjectKey: string;
-		normalizedObjectKey: string;
-		qualityScore: number;
-		embeddingModelVersion: string;
-		ocrModelVersion: string;
-		status: string;
-		ocrName?: string;
-		ocrSetCode?: string;
-		ocrCollectorNumber?: string;
-		candidateJson: ScanCandidate[] | string;
-	}
-) {
-	const candidates =
-		typeof input.candidateJson === 'string'
-			? (JSON.parse(input.candidateJson || '[]') as ScanCandidate[])
-			: input.candidateJson;
-
-	return recordScanArtifact(auth.user.accountId, {
-		...input,
-		candidateJson: candidates
-	});
-}
-
-export async function upsertScanReviewItemEntry(
-	auth: MobileAuthContext,
-	input: {
-		id: string;
-		sessionId: string;
-		scanArtifactId: string;
-		catalogCardId: string;
-		canonicalCardId: string;
-		oracleId: string;
-		name: string;
-		setCode: string;
-		collectorNumber: string;
-		imageUri: string;
-		similarityScore: number;
-		ocrScore: number;
-		finalScore: number;
-		matchReason: string;
-		finish: string;
-		condition: string;
-		quantity: number;
-	}
-) {
-	return upsertScanReviewItem(auth.user.accountId, input);
-}
-
-export async function updateScanSessionStatusEntry(
-	auth: MobileAuthContext,
-	sessionId: string,
-	status: string
-) {
-	return updateScanSessionStatus(auth.user.accountId, sessionId, status);
-}
-
-export async function getScanSessionResultEntry(auth: MobileAuthContext, sessionId: string) {
-	return getScanSessionResult(auth.user.accountId, sessionId);
 }

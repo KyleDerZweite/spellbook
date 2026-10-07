@@ -110,7 +110,7 @@ For local scan artifacts in Compose, run:
 podman-compose -f podman-compose.yml -f podman-compose.dev.yml up --build -d
 ```
 
-The override shares the `scan_artifacts` volume at `/app/storage/scans` between the frontend and scan-worker. For S3 storage, provision the bucket separately and configure its lifecycle policy. Scan upload bytes remain outside Postgres; PostgreSQL stores their account and review metadata. These user-uploaded images are separate from catalog card image URLs and tracked landing-page images. Recognition and normalized-image generation are not implemented.
+The override shares the `scan_artifacts` volume at `/app/storage/scans` between the frontend and scan-worker. For S3 storage, provision the bucket separately and configure its lifecycle policy. Scan upload bytes remain outside Postgres; PostgreSQL stores their account and review metadata. The backend Scan application owns storage and worker calls; frontend adapters inject existing configuration. Failed uploads remove only confirmed unattached objects. If COMMIT outcome cannot be established, retain the object for operator inspection rather than risking deletion of a committed artifact. Cleanup logs contain no object keys or credentials. Local filesystem and the actual Python scaffold are covered by local acceptance; real S3-compatible bucket evidence must be obtained separately. These user-uploaded images are separate from catalog card image URLs and tracked landing-page images. Recognition and normalized-image generation are not implemented.
 
 `worker_data` persists `state.json` across container recreation. See [worker operations and limits](../architecture/worker.md).
 

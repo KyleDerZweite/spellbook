@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { untrack } from 'svelte';
+	import { untrack, onDestroy } from 'svelte';
+	import { createScanSave } from '#lib/scan/save.ts';
 	import Select from '#lib/components/ui/select/Select.svelte';
 	import type { CardDocument } from '#lib/search/types.ts';
-	import type { ScanCandidate, ScanSession, ScanSessionResult } from '#lib/types/legacy.ts';
+	import type { ScanCandidate, ScanSession, ScanSessionResult } from '@spellbook/contracts/scan.ts';
 
 	let {
 		sessions,
@@ -27,7 +28,24 @@
 	let files = $state<FileList>();
 	let sessionInput = $state(untrack(() => initialResult?.session?.id ?? ''));
 	let searchGeneration = 0;
+	let pendingCommit: { key: string; body: string } | null = null;
 	const api = '/api/mobile/v1/mtg';
+	let readFailure = $state('');
+	let mounted = true;
+	let readGeneration = 0;
+	let committedDraftKey: string | null = null;
+	onDestroy(() => {
+		mounted = false;
+		readGeneration++;
+	});
+	const saved = createScanSave({
+		commit: (body) =>
+			request<import('@spellbook/contracts/scan.ts').ScanCommitAcknowledgement>(
+				`${api}/scan/review/commit`,
+				{ method: 'POST', headers: { 'Content-Type': 'application/json' }, body }
+			),
+		read: (id) => request<ScanSessionResult>(`${api}/scan/sessions/${id}/result`)
+	});
 	const conditions = [
 		['NM', 'Near mint'],
 		['LP', 'Lightly played'],
@@ -36,8 +54,8 @@
 		['DMG', 'Damaged']
 	];
 	const session = $derived(result?.session);
-	const artifact = $derived(result?.artifacts[0]);
-	const candidates = $derived((artifact?.candidateJson ?? []) as ScanCandidate[]);
+	const artifact = $derived(result?.lastResult ? { id: result.lastResult.artifactId } : undefined);
+	const candidates = $derived(result?.lastResult?.candidates ?? []);
 	const editable = $derived(session?.status === 'open' || session?.status === 'pending_review');
 	const selectedPrinting = $derived(printings.find((card) => card.id === selected?.catalogCardId));
 	const validQuantity = $derived(
@@ -85,16 +103,56 @@
 		}
 	}
 
-	async function refresh() {
+	function draftKey() {
+		return JSON.stringify({
+			sessionId: session?.id,
+			artifactId: artifact?.id,
+			printingId: selected?.catalogCardId,
+			quantity,
+			finish,
+			condition
+		});
+	}
+	async function readCurrent() {
 		if (!session) return;
+		const id = session.id,
+			generation = ++readGeneration;
+		try {
+			const current =
+				saved.acknowledgement?.kind === 'Committed'
+					? await saved.read()
+					: await request<ScanSessionResult>(`${api}/scan/sessions/${id}/result`);
+			if (!mounted || generation !== readGeneration || session?.id !== id) return;
+			const reconcile = committedDraftKey !== null && draftKey() === committedDraftKey;
+			result = current;
+			readFailure = '';
+			if (reconcile) {
+				const review =
+					current.reviewItems.find((item) => item.scanArtifactId === artifact?.id) ??
+					current.reviewItems[0];
+				if (review) {
+					selected = review;
+					quantity = review.quantity;
+					finish = review.finish;
+					condition = review.condition;
+				}
+			}
+		} catch (cause) {
+			if (mounted && generation === readGeneration && session?.id === id) {
+				if (saved.acknowledgement?.kind === 'Committed')
+					readFailure =
+						'The scan was saved, but its current details could not be loaded. Retry the read.';
+				else report(cause);
+			}
+		}
+	}
+	async function refresh() {
 		busy = true;
 		failure = '';
 		try {
-			result = await request<ScanSessionResult>(`${api}/scan/sessions/${session.id}/result`);
-		} catch (cause) {
-			report(cause);
+			await readCurrent();
 		} finally {
-			busy = false;
+			if (mounted) busy = false;
 		}
 	}
 
@@ -213,30 +271,44 @@
 		failure = '';
 		message = '';
 		try {
-			await request(`${api}/scan/review/commit`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					requestId: `scan-review:${session.id}`,
-					sessionId: session.id,
-					items: [
-						{
-							scanArtifactId: artifact.id,
-							selectedCandidate: selected,
-							quantity,
-							finish,
-							condition
-						}
-					]
-				})
-			});
+			const intent = {
+				sessionId: session.id,
+				items: [
+					{
+						scanArtifactId: artifact.id,
+						catalogCardId: selected.catalogCardId,
+						quantity,
+						finish,
+						condition
+					}
+				]
+			};
+			const key = JSON.stringify(intent);
+			if (!pendingCommit || pendingCommit.key !== key)
+				pendingCommit = {
+					key,
+					body: JSON.stringify({ requestId: `scan-review:${crypto.randomUUID()}`, ...intent })
+				};
+			const attemptedDraftKey = draftKey(),
+				attemptedQuantity = quantity,
+				attemptedName = selected.name;
+			const acknowledged = await saved.commit(pendingCommit.body);
+			if (!mounted) return;
+			if (acknowledged.kind !== 'Committed') {
+				message =
+					'This earlier request will not be applied again. Reload its saved session to check the result.';
+				return;
+			}
+			pendingCommit = null;
+			committedDraftKey = attemptedDraftKey;
 			result = { ...result!, session: { ...session, status: 'committed' } };
 			confirmed = false;
-			message = `Added ${quantity} ${quantity === 1 ? 'copy' : 'copies'} of ${selected.name} to inventory.`;
+			message = `Added ${attemptedQuantity} ${attemptedQuantity === 1 ? 'copy' : 'copies'} of ${attemptedName} to inventory.`;
+			await readCurrent();
 		} catch (cause) {
-			report(cause);
+			if (mounted) report(cause);
 		} finally {
-			busy = false;
+			if (mounted) busy = false;
 		}
 	}
 </script>
@@ -253,6 +325,12 @@
 			{failure}
 		</p>{/if}
 	<p role="status" class:sr-only={!message}>{message}</p>
+	{#if readFailure}<div role="alert" class="space-y-2">
+			<p>{readFailure}</p>
+			<button class="btn btn-secondary" disabled={busy} onclick={refresh}
+				>Retry saved scan details</button
+			>
+		</div>{/if}
 	{#if !session}
 		<p class="text-text-secondary">Start a scan to upload and review a card photo.</p>
 	{:else}

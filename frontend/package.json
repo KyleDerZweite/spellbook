@@ -20,10 +20,10 @@
 		"demo:seed": "node scripts/demo/seed.mjs",
 		"dev:demo": "pnpm demo:seed && DEMO_MODE=true vite dev",
 		"test:http": "node --test --test-concurrency=1 tests/http-runtime.test.ts tests/http-application.test.ts tests/categories-http.test.ts",
-		"test:sync": "node --test tests/saved-state-http.test.ts"
+		"test:sync": "node --test tests/saved-state-http.test.ts",
+		"test:scan": "node --test tests/scan-http.test.ts"
 	},
 	"dependencies": {
-		"@aws-sdk/client-s3": "^3.1146.0",
 		"bits-ui": "^2.19.5",
 		"drizzle-orm": "^0.45.3",
 		"mana-font": "^1.18.0",

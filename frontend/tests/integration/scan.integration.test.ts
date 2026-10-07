@@ -1,511 +1,164 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { eq, inArray } from 'drizzle-orm';
-import type { AuthUser } from '@spellbook/contracts/auth.ts';
-import { ensureDeckCatalogFixture } from '../deck-catalog-fixture.ts';
-
+import { beforeAll, afterAll, describe, it, expect } from 'vitest';
+import { scanFixture } from '../fixtures/scan.ts';
 const run = process.env.TEST_DATABASE_URL ? describe : describe.skip;
-let fixturePrintingId: string;
-
-run('Scan repository and uploads', () => {
-	let modules: Awaited<ReturnType<typeof loadModules>>;
-	let accountId: string;
-	let actor: AuthUser;
-	let otherAccountId: string;
+run('atomic authorized Scan review', () => {
+	let f: Awaited<ReturnType<typeof scanFixture>>;
 	beforeAll(async () => {
-		modules = await loadModules();
-		fixturePrintingId = (await ensureDeckCatalogFixture(modules.pool)).catalogCardId;
-	});
-	beforeEach(async () => {
-		const session = await modules.application.auth.authenticate(
-			'register',
-			`scan_${crypto.randomUUID().slice(0, 8)}`,
-			'scan-contract-fixture-password'
-		);
-		if (!session) throw new Error('Scan fixture registration failed');
-		actor = session.user;
-		accountId = actor.accountId;
-		otherAccountId = `other-${accountId}`;
-		await modules.db
-			.insert(modules.userProfiles)
-			.values({ accountId: otherAccountId, username: otherAccountId });
-	});
-	afterEach(async () => {
-		vi.restoreAllMocks();
-		await modules.db
-			.delete(modules.inventoryMutationRequests)
-			.where(inArray(modules.inventoryMutationRequests.accountId, [accountId, otherAccountId]));
-		await modules.db
-			.delete(modules.userProfiles)
-			.where(inArray(modules.userProfiles.accountId, [accountId, otherAccountId]));
+		f = await scanFixture();
 	});
 	afterAll(async () => {
-		await modules?.pool.end();
+		await f.close();
 	});
-
-	it.each(['matched', 'ambiguous', 'no_match', 'failed'])(
-		'records %s artifacts with valid session states',
-		async (status) => {
-			const session = await modules.createScanSession(accountId);
-			expect(session.status).toBe('open');
-			await modules.recordScanArtifact(accountId, artifact(session.id, status));
-			const result = await modules.getScanSessionResult(accountId, session.id);
-			expect(result.session?.status).toBe('pending_review');
-			expect(result.artifacts[0].status).toBe(status);
+	it.each(['open', 'pending_review'])(
+		'allows manual review in %s and uses Catalog identity',
+		async (state) => {
+			const a = await f.account(),
+				s = await f.artifact(a.user, state);
+			const ack = await f.scan.commitReview(a.user, f.intent(s));
+			expect(ack).toMatchObject({
+				kind: 'Committed',
+				acknowledgement: { changes: [{ quantity: 2, delta: 2 }] }
+			});
+			const result = await f.scan.readSession(a.user, { sessionId: s.sessionId });
+			expect(result.reviewItems[0]).toMatchObject({
+				name: f.card.name,
+				canonicalCardId: f.card.canonicalCardId,
+				matchReason: 'manual_review'
+			});
 		}
 	);
-
-	it('rejects review ID collisions across accounts without modifying the original', async () => {
-		const first = await setup(accountId);
-		const second = await setup(otherAccountId);
-		const original = review(first.sessionId, first.id);
-		await modules.upsertScanReviewItem(accountId, original);
-		await expect(
-			modules.upsertScanReviewItem(otherAccountId, {
-				...review(second.sessionId, second.id),
-				id: original.id
-			})
-		).rejects.toThrow('another artifact or session');
-		const [saved] = await modules.db
-			.select()
-			.from(modules.scanReviewItems)
-			.where(eq(modules.scanReviewItems.id, original.id));
-		expect(saved.accountId).toBe(accountId);
-		expect(saved.sessionId).toBe(first.sessionId);
+	it.each(['cancelled', 'committed'])('rejects fresh review in %s', async (state) => {
+		const a = await f.account(),
+			s = await f.artifact(a.user, state);
+		await expect(f.scan.commitReview(a.user, f.intent(s))).rejects.toMatchObject({
+			kind: 'ScanClosed'
+		});
+		expect(await f.copyCount(a.user)).toBe(0);
 	});
-
-	it('rejects artifacts from another session or account', async () => {
-		const first = await setup(accountId);
-		const second = await setup(accountId);
-		const foreign = await setup(otherAccountId);
+	it('rejects foreign/mismatched artifacts and duplicate review identities atomically', async () => {
+		const a = await f.account(),
+			b = await f.account(),
+			own = await f.artifact(a.user),
+			other = await f.artifact(b.user),
+			another = await f.artifact(a.user);
+		for (const bad of [other, another])
+			await expect(
+				f.scan.commitReview(a.user, {
+					...f.intent(own),
+					items: [f.intent(own).items[0], { ...f.intent(bad).items[0] }]
+				})
+			).rejects.toMatchObject({ kind: 'ScanNotFound' });
+		const input = f.intent(own);
 		await expect(
-			modules.upsertScanReviewItem(accountId, review(first.sessionId, second.id))
-		).rejects.toThrow('not found in this session');
-		await expect(
-			modules.upsertScanReviewItem(accountId, review(first.sessionId, foreign.id))
-		).rejects.toThrow('not found in this session');
+			f.scan.commitReview(a.user, { ...input, items: [input.items[0], input.items[0]] })
+		).rejects.toThrow('Duplicate');
+		expect(await f.copyCount(a.user)).toBe(0);
+		expect((await f.scan.readSession(a.user, { sessionId: own.sessionId })).reviewItems).toEqual(
+			[]
+		);
 	});
-
-	it('rolls back all review writes when one item is invalid', async () => {
-		const scan = await setup(accountId);
-		const valid = review(scan.sessionId, scan.id);
+	it('rejects a review ID already owned by another account', async () => {
+		const a = await f.account(),
+			b = await f.account(),
+			own = await f.artifact(a.user),
+			other = await f.artifact(b.user),
+			id = crypto.randomUUID();
+		const first = f.intent(other);
+		first.items[0] = { ...first.items[0], id } as (typeof first.items)[0];
+		await f.scan.commitReview(b.user, first);
 		await expect(
-			modules.commitScanReview(actor, crypto.randomUUID(), scan.sessionId, [
-				valid,
-				{ ...valid, id: crypto.randomUUID(), scanArtifactId: crypto.randomUUID() }
-			])
-		).rejects.toThrow();
-		const result = await modules.getScanSessionResult(accountId, scan.sessionId);
-		expect(result.reviewItems).toHaveLength(0);
-		expect(result.session?.status).toBe('pending_review');
-		expect((await modules.getInventorySnapshot(accountId)).cards).toHaveLength(0);
+			f.scan.commitReview(a.user, { ...f.intent(own), items: [{ ...f.intent(own).items[0], id }] })
+		).rejects.toThrow('another artifact');
+		expect(
+			(await f.scan.readSession(b.user, { sessionId: other.sessionId })).reviewItems[0].id
+		).toBe(id);
 	});
-
-	it.each([
-		{ table: 'inventory_mutation_requests', operation: 'INSERT' },
-		{ table: 'scan_sessions', operation: 'UPDATE' }
-	])(
-		'rolls back review, session, Inventory and receipt when final $table persistence fails',
-		async ({ table, operation }) => {
-			const scan = await setup(accountId);
-			const requestId = crypto.randomUUID();
-			const name = 'scan_receipt_fail_' + crypto.randomUUID().replaceAll('-', '');
-			await modules.pool.query(
-				`CREATE FUNCTION ${name}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.account_id = '${accountId}' THEN RAISE EXCEPTION 'fixture final receipt failure'; END IF; RETURN NEW; END $$`
+	it.each(['scan_sessions', 'inventory_mutation_requests'])(
+		'rolls back staged review and Inventory effects on final %s failure',
+		async (table) => {
+			const a = await f.account(),
+				s = await f.artifact(a.user),
+				name = `scan_fail_${crypto.randomUUID().replaceAll('-', '')}`;
+			const operation = table === 'scan_sessions' ? 'UPDATE' : 'INSERT';
+			await f.pool.query(
+				`CREATE FUNCTION ${name}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.account_id = '${a.user.accountId}' THEN RAISE EXCEPTION 'fixture rollback'; END IF; RETURN NEW; END $$`
 			);
-			await modules.pool.query(
+			await f.pool.query(
 				`CREATE TRIGGER ${name} BEFORE ${operation} ON ${table} FOR EACH ROW EXECUTE FUNCTION ${name}()`
 			);
 			try {
-				await expect(
-					modules.commitScanReview(actor, requestId, scan.sessionId, [
-						review(scan.sessionId, scan.id)
-					])
-				).rejects.toThrow();
-				const result = await modules.getScanSessionResult(accountId, scan.sessionId);
-				expect(result.reviewItems).toHaveLength(0);
-				expect(result.session?.status).toBe('pending_review');
-				expect((await modules.getInventorySnapshot(accountId)).cards).toHaveLength(0);
-				expect(
-					(
-						await modules.pool.query(
-							'SELECT request_id FROM inventory_mutation_requests WHERE account_id=$1 AND request_id=$2',
-							[accountId, requestId]
-						)
-					).rowCount
-				).toBe(0);
+				await expect(f.scan.commitReview(a.user, f.intent(s))).rejects.toThrow();
+				const saved = await f.scan.readSession(a.user, { sessionId: s.sessionId });
+				expect(saved.session.status).toBe('pending_review');
+				expect(saved.reviewItems).toEqual([]);
+				expect(await f.copyCount(a.user)).toBe(0);
 			} finally {
-				await modules.pool.query(`DROP TRIGGER ${name} ON ${table}`);
-				await modules.pool.query(`DROP FUNCTION ${name}()`);
+				await f.pool.query(`DROP TRIGGER ${name} ON ${table}`);
+				await f.pool.query(`DROP FUNCTION ${name}()`);
 			}
 		}
 	);
-	it('serializes Scan commit with ordinary quantity and membership writes without losing either', async () => {
-		const added = await modules.application.inventory.add(actor, {
+	it('replays five concurrent attempts and original receipt after later removal, without Catalog resolution', async () => {
+		const a = await f.account(),
+			s = await f.artifact(a.user),
+			input = f.intent(s);
+		const results = await Promise.all(
+			Array.from({ length: 5 }, () => f.scan.commitReview(a.user, input))
+		);
+		for (const replay of results) expect(replay).toEqual(results[0]);
+		expect(await f.copyCount(a.user)).toBe(2);
+		const first = results[0];
+		if (first.kind !== 'Committed') throw Error('Missing original receipt');
+		await f.inventory.remove(a.user, {
 			requestId: crypto.randomUUID(),
-			catalogCardId: fixturePrintingId,
+			entryId: first.acknowledgement.changes[0].entryId,
+			expectedQuantity: 2
+		});
+		expect(await f.scan.commitReview(a.user, input)).toEqual(first);
+		await expect(
+			f.scan.commitReview(a.user, { ...input, items: [{ ...input.items[0], quantity: 3 }] })
+		).rejects.toThrow('different mutation');
+		const another = await f.artifact(a.user);
+		await expect(
+			f.scan.commitReview(a.user, { ...f.intent(another), requestId: input.requestId })
+		).rejects.toThrow('different mutation');
+	});
+	it('serializes quantity, Notes and group changes with Scan under the parent lock', async () => {
+		const a = await f.account();
+		const added = await f.inventory.add(a.user, {
+			requestId: crypto.randomUUID(),
+			catalogCardId: f.card.catalogCardId,
 			quantity: 2,
 			finish: 'nonfoil',
 			condition: 'NM'
 		});
 		const entryId = added.changes[0].entryId;
-		const group = await modules.application.inventory.createGroup(actor, {
+		const group = await f.inventory.createGroup(a.user, {
 			requestId: crypto.randomUUID(),
-			name: 'Concurrent Scan'
+			name: 'Scan race'
 		});
-		const groupId = group.groups[0].groupId;
-		const scan = await setup(accountId);
+		const s = await f.artifact(a.user);
 		await Promise.all([
-			modules.commitScanReview(actor, crypto.randomUUID(), scan.sessionId, [
-				review(scan.sessionId, scan.id)
-			]),
-			modules.application.inventory.patchEntry(actor, {
+			f.scan.commitReview(a.user, f.intent(s)),
+			f.inventory.patchEntry(a.user, {
 				requestId: crypto.randomUUID(),
 				entryId,
-				delta: 1
+				delta: 1,
+				notes: 'independent Notes',
+				notesRevision: '0'
 			}),
-			modules.application.inventory.replaceMemberships(actor, {
+			f.inventory.replaceMemberships(a.user, {
 				requestId: crypto.randomUUID(),
 				entryId,
-				groupIds: [groupId]
+				groupIds: [group.groups[0].groupId]
 			})
 		]);
-		const detail = await modules.application.inventory.getEntry(actor, entryId);
-		expect(detail?.entry.quantity).toBe(5);
-		expect(detail?.memberships).toEqual([groupId]);
-		expect((await modules.getScanSessionResult(accountId, scan.sessionId)).session?.status).toBe(
-			'committed'
-		);
-	});
-	it('commits review and inventory once during simultaneous retries', async () => {
-		const scan = await setup(accountId);
-		const requestId = crypto.randomUUID();
-		const item = review(scan.sessionId, scan.id);
-		await Promise.all(
-			Array.from({ length: 5 }, () =>
-				modules.commitScanReview(actor, requestId, scan.sessionId, [item])
-			)
-		);
-		const result = await modules.getScanSessionResult(accountId, scan.sessionId);
-		expect(result.session?.status).toBe('committed');
-		expect(result.reviewItems).toHaveLength(1);
-		expect((await modules.getInventorySnapshot(accountId)).cards[0].quantity).toBe(2);
-		await expect(
-			modules.commitScanReview(actor, crypto.randomUUID(), scan.sessionId, [
-				review(scan.sessionId, scan.id)
-			])
-		).rejects.toThrow('not open for review');
-	});
-
-	it('rejects changed review payloads and cross-session request ID reuse', async () => {
-		const first = await setup(accountId);
-		const second = await setup(accountId);
-		const requestId = crypto.randomUUID();
-		const firstItem = review(first.sessionId, first.id);
-		await modules.commitScanReview(actor, requestId, first.sessionId, [firstItem]);
-		await expect(
-			modules.commitScanReview(actor, requestId, first.sessionId, [{ ...firstItem, quantity: 3 }])
-		).rejects.toThrow('different mutation');
-		await expect(
-			modules.commitScanReview(actor, requestId, second.sessionId, [
-				review(second.sessionId, second.id)
-			])
-		).rejects.toThrow('different mutation');
-		expect((await modules.getInventorySnapshot(accountId)).cards[0].quantity).toBe(2);
-		expect((await modules.getScanSessionResult(accountId, second.sessionId)).session?.status).toBe(
-			'pending_review'
-		);
-	});
-
-	it('commits a validated HTTP review request', async () => {
-		const scan = await setup(accountId);
-		const item = review(scan.sessionId, scan.id);
-		const event = {
-			url: new URL('http://localhost/scan'),
-			locals: { user: actor },
-			request: new Request('http://localhost/scan', {
-				method: 'POST',
-				headers: { origin: 'http://localhost', 'content-type': 'application/json' },
-				body: JSON.stringify({
-					requestId: crypto.randomUUID(),
-					sessionId: scan.sessionId,
-					items: [{ id: item.id, scanArtifactId: scan.id, quantity: 2, selectedCandidate: item }]
-				})
-			})
-		} as Parameters<typeof modules.commitReview>[0];
-		const response = await modules.commitReview(event);
-		expect(response?.status).toBe(200);
-		expect((await modules.getInventorySnapshot(accountId)).cards[0].quantity).toBe(2);
-	});
-
-	it('rejects foreign, nonexistent, and closed sessions before reading upload bodies', async () => {
-		const foreign = await modules.createScanSession(otherAccountId);
-		const closed = await modules.createScanSession(accountId);
-		await modules.updateScanSessionStatus(accountId, closed.id, 'cancelled');
-		const upload = vi.spyOn(modules.storage, 'uploadScanObject').mockResolvedValue('unused');
-		const process = vi.spyOn(modules.worker, 'processScanArtifact');
-		for (const [id, status] of [
-			[foreign.id, 404],
-			[crypto.randomUUID(), 404],
-			[closed.id, 409]
-		] as const) {
-			const event = uploadEvent(id, new File(['image'], 'test.png', { type: 'image/png' }));
-			const readBody = vi.spyOn(event.request.body!, 'getReader');
-			await expect(modules.uploadFrame(event)).rejects.toMatchObject({ status });
-			expect(readBody).not.toHaveBeenCalled();
-		}
-		expect(upload).not.toHaveBeenCalled();
-		expect(process).not.toHaveBeenCalled();
-	});
-
-	it.each(['image/jpeg', 'image/png', 'image/webp'])('accepts %s uploads', async (contentType) => {
-		const session = await modules.createScanSession(accountId);
-		const upload = vi.spyOn(modules.storage, 'uploadScanObject').mockResolvedValue('uploaded');
-		vi.spyOn(modules.worker, 'processScanArtifact').mockResolvedValue({
-			status: 'no_match',
-			normalizedObjectKey: 'uploaded',
-			qualityScore: 0,
-			embeddingModelVersion: 'stub',
-			ocrModelVersion: 'stub',
-			ocrTokens: {},
-			candidates: []
+		const current = await f.inventory.getEntry(a.user, entryId);
+		expect(current?.entry).toMatchObject({
+			quantity: 5,
+			notes: 'independent Notes',
+			notesRevision: '1'
 		});
-		const response = await modules.uploadFrame(
-			uploadEvent(
-				session.id,
-				new File([imageBytes(contentType)], 'test.image', { type: contentType })
-			)
-		);
-		expect(response?.status).toBe(200);
-		expect(upload.mock.calls[0][2]).toBe(contentType);
+		expect(current?.memberships).toEqual([group.groups[0].groupId]);
 	});
-
-	it('rejects fake image bytes and malformed upload forms before storage', async () => {
-		const session = await modules.createScanSession(accountId);
-		const upload = vi.spyOn(modules.storage, 'uploadScanObject');
-		await expect(
-			modules.uploadFrame(
-				uploadEvent(session.id, new File(['not an image'], 'fake.png', { type: 'image/png' }))
-			)
-		).rejects.toMatchObject({ status: 415 });
-		for (const [contentType, status] of [
-			['application/json', 415],
-			['multipart/form-data; boundary=broken', 400]
-		] as const) {
-			const event = uploadEvent(
-				session.id,
-				new File(['ignored'], 'fake.png', { type: 'image/png' })
-			);
-			const request = new Request('http://localhost/scan', {
-				method: 'POST',
-				headers: { origin: 'http://localhost', 'content-type': contentType },
-				body: 'broken'
-			});
-			await expect(modules.uploadFrame({ ...event, request })).rejects.toMatchObject({ status });
-		}
-		expect(upload).not.toHaveBeenCalled();
-		expect((await modules.getScanSessionResult(accountId, session.id)).artifacts).toHaveLength(0);
-	});
-
-	it('rejects nested scalar objects, invalid scores, quantities, and oversized review batches with 400', async () => {
-		const scan = await setup(accountId);
-		const candidate = review(scan.sessionId, scan.id);
-		const item = { scanArtifactId: scan.id, selectedCandidate: candidate, quantity: 2 };
-		const valid = { requestId: crypto.randomUUID(), sessionId: scan.sessionId, items: [item] };
-		const bodies = [
-			{ ...valid, requestId: { toString: null } },
-			{ ...valid, items: [{ ...item, quantity: { valueOf: null } }] },
-			{ ...valid, items: [{ ...item, quantity: '2' }] },
-			{ ...valid, items: [{ ...item, quantity: 1.5 }] },
-			{ ...valid, items: [{ ...item, finish: {} }] },
-			{ ...valid, items: [{ ...item, condition: ['NM'] }] },
-			{ ...valid, items: [{ ...item, selectedCandidate: { ...candidate, catalogCardId: 42 } }] },
-			{
-				...valid,
-				items: [{ ...item, selectedCandidate: { ...candidate, name: { toString: null } } }]
-			},
-			{ ...valid, items: [{ ...item, selectedCandidate: { ...candidate, imageUri: {} } }] },
-			{ ...valid, items: [{ ...item, selectedCandidate: { ...candidate, matchReason: {} } }] },
-			{ ...valid, items: [{ ...item, selectedCandidate: { ...candidate, finalScore: 101 } }] },
-			{ ...valid, items: [{ ...item, selectedCandidate: { ...candidate, finalScore: -1 } }] },
-			{ ...valid, items: [{ ...item, selectedCandidate: { ...candidate, finalScore: 0.5 } }] },
-			{ ...valid, items: [{ ...item, selectedCandidate: { ...candidate, ocrScore: '20' } }] },
-			{ ...valid, items: Array.from({ length: 101 }, () => item) }
-		];
-		for (const body of bodies) {
-			const event = {
-				url: new URL('http://localhost/scan'),
-				locals: { user: actor },
-				request: new Request('http://localhost/scan', {
-					method: 'POST',
-					headers: { origin: 'http://localhost', 'content-type': 'application/json' },
-					body: JSON.stringify(body)
-				})
-			} as Parameters<typeof modules.commitReview>[0];
-			await expect(modules.commitReview(event)).rejects.toMatchObject({ status: 400 });
-		}
-		expect(
-			(await modules.getScanSessionResult(accountId, scan.sessionId)).reviewItems
-		).toHaveLength(0);
-		expect((await modules.getInventorySnapshot(accountId)).cards).toHaveLength(0);
-	});
-
-	it('returns 400 for malformed review JSON and invalid result session UUID', async () => {
-		const event = {
-			url: new URL('http://localhost/scan'),
-			locals: { user: actor },
-			request: new Request('http://localhost/scan', {
-				method: 'POST',
-				headers: { origin: 'http://localhost', 'content-type': 'application/json' },
-				body: '{'
-			})
-		} as Parameters<typeof modules.commitReview>[0];
-		await expect(modules.commitReview(event)).rejects.toMatchObject({ status: 400 });
-		await expect(
-			modules.sessionResult({
-				...event,
-				params: { sessionId: 'not-a-uuid' },
-				request: new Request('http://localhost/scan')
-			} as unknown as Parameters<typeof modules.sessionResult>[0])
-		).rejects.toMatchObject({ status: 400 });
-	});
-
-	it('cleans up failed worker uploads and permits a retry without exposing the worker error', async () => {
-		const session = await modules.createScanSession(accountId);
-		const upload = vi.spyOn(modules.storage, 'uploadScanObject');
-		const worker = vi
-			.spyOn(modules.worker, 'processScanArtifact')
-			.mockRejectedValue(new Error('secret upstream details'));
-		const file = new File([imageBytes('image/png')], 'test.png', {
-			type: 'image/png'
-		});
-		await expect(modules.uploadFrame(uploadEvent(session.id, file))).rejects.toMatchObject({
-			status: 502,
-			body: { message: 'Scan processing failed. Retry the upload.' }
-		});
-		await expect(modules.storage.readScanImage(upload.mock.calls[0][0])).rejects.toMatchObject({
-			status: 404
-		});
-		const pending = await modules.getScanSessionResult(accountId, session.id);
-		expect(pending.session?.status).toBe('open');
-		expect(pending.artifacts).toHaveLength(0);
-		worker.mockResolvedValue({
-			status: 'no_match',
-			normalizedObjectKey: 'original',
-			qualityScore: 0,
-			embeddingModelVersion: 'stub',
-			ocrModelVersion: 'stub',
-			ocrTokens: {},
-			candidates: []
-		});
-		expect((await modules.uploadFrame(uploadEvent(session.id, file)))?.status).toBe(200);
-		await modules.storage.deleteScanObject(upload.mock.calls[1][0]);
-	});
-
-	it('rejects unsupported files before storage and worker calls', async () => {
-		const session = await modules.createScanSession(accountId);
-		const upload = vi.spyOn(modules.storage, 'uploadScanObject');
-		const process = vi.spyOn(modules.worker, 'processScanArtifact');
-		await expect(
-			modules.uploadFrame(
-				uploadEvent(session.id, new File(['text'], 'test.txt', { type: 'text/plain' }))
-			)
-		).rejects.toMatchObject({ status: 415 });
-		expect(upload).not.toHaveBeenCalled();
-		expect(process).not.toHaveBeenCalled();
-	});
-
-	async function setup(owner: string) {
-		const session = await modules.createScanSession(owner);
-		return modules.recordScanArtifact(owner, artifact(session.id));
-	}
-
-	function uploadEvent(sessionId: string, file: File) {
-		const form = new FormData();
-		form.append('file', file);
-		return {
-			url: new URL('http://localhost/scan'),
-			params: { sessionId },
-			locals: { user: actor },
-			request: new Request('http://localhost/scan', {
-				method: 'POST',
-				headers: { origin: 'http://localhost' },
-				body: form
-			})
-		} as Parameters<typeof modules.uploadFrame>[0];
-	}
 });
-
-function imageBytes(contentType: string): Uint8Array<ArrayBuffer> {
-	if (contentType === 'image/jpeg') return Uint8Array.from([255, 216, 255, 217]);
-	if (contentType === 'image/webp') return new TextEncoder().encode('RIFF0000WEBP');
-	return new Uint8Array(
-		Buffer.from(
-			'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jf9sAAAAASUVORK5CYII=',
-			'base64'
-		)
-	);
-}
-
-function artifact(sessionId: string, status = 'no_match') {
-	return {
-		artifactId: crypto.randomUUID(),
-		sessionId,
-		status,
-		originalObjectKey: 'original',
-		normalizedObjectKey: 'original',
-		qualityScore: 0,
-		embeddingModelVersion: 'stub',
-		ocrModelVersion: 'stub',
-		candidateJson: []
-	};
-}
-
-function review(sessionId: string, scanArtifactId: string) {
-	return {
-		id: crypto.randomUUID(),
-		sessionId,
-		scanArtifactId,
-		catalogCardId: fixturePrintingId,
-		canonicalCardId: 'oracle',
-		oracleId: 'oracle',
-		name: 'Card',
-		setCode: 'tst',
-		collectorNumber: '1',
-		imageUri: '',
-		similarityScore: 0,
-		ocrScore: 0,
-		finalScore: 0,
-		matchReason: 'manual',
-		finish: 'nonfoil',
-		condition: 'NM',
-		quantity: 2
-	};
-}
-
-async function loadModules() {
-	const [client, schema, scan, inventory, storage, worker, route, commitRoute, resultRoute] =
-		await Promise.all([
-			import('../../src/lib/server/db/client'),
-			import('../../src/lib/server/db/schema'),
-			import('../../src/lib/server/data/scan'),
-			import('../../src/lib/server/data/inventory'),
-			import('../../src/lib/server/mobile/storage'),
-			import('../../src/lib/server/mobile/scan-worker'),
-			import('../../src/routes/api/mobile/v1/mtg/scan/sessions/[sessionId]/frames/+server'),
-			import('../../src/routes/api/mobile/v1/mtg/scan/review/commit/+server'),
-			import('../../src/routes/api/mobile/v1/mtg/scan/sessions/[sessionId]/result/+server')
-		]);
-	return {
-		...client,
-		application: (await import('../../src/lib/server/composition.ts')).application,
-		...schema,
-		...scan,
-		...inventory,
-		...(await import('../fixtures/inventory-state.ts')),
-		storage,
-		worker,
-		uploadFrame: route.POST,
-		commitReview: commitRoute.POST,
-		sessionResult: resultRoute.GET
-	};
-}

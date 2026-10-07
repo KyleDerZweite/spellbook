@@ -4,9 +4,6 @@ import type {
 	inventories,
 	inventoryCards,
 	inventoryMutationRequests,
-	scanArtifacts,
-	scanReviewItems,
-	scanSessions,
 	userProfiles
 } from '#lib/server/db/schema.ts';
 import type { CardDocument } from '#lib/search/types.ts';
@@ -21,9 +18,13 @@ export type {
 	DeckAcknowledgement,
 	DeckSnapshot
 } from '@spellbook/contracts/decks.ts';
-export type ScanSession = InferSelectModel<typeof scanSessions>;
-export type ScanArtifact = InferSelectModel<typeof scanArtifacts>;
-export type ScanReviewItem = InferSelectModel<typeof scanReviewItems>;
+export type {
+	ScanSession,
+	ScanArtifact,
+	ScanReviewItem,
+	ScanCandidate,
+	ScanSessionResult
+} from '@spellbook/contracts/scan.ts';
 export type InventoryMutationRequest = InferSelectModel<typeof inventoryMutationRequests>;
 
 export interface InventoryStats {
@@ -59,40 +60,4 @@ export interface InventoryBatchItem {
 
 export interface AddInventoryInput extends InventoryBatchItem {
 	game: string;
-}
-
-export interface ScanCandidate {
-	catalogCardId: string;
-	canonicalCardId: string;
-	oracleId: string;
-	name: string;
-	setCode: string;
-	collectorNumber: string;
-	imageUri: string;
-	similarityScore: number;
-	ocrScore: number;
-	finalScore: number;
-	confidence?: number;
-	matchReason: string;
-}
-
-export interface ScanWorkerResult {
-	status: 'matched' | 'ambiguous' | 'no_match' | 'failed';
-	normalizedObjectKey: string;
-	qualityScore: number;
-	embeddingModelVersion: string;
-	ocrModelVersion: string;
-	ocrTokens: {
-		name?: string;
-		setCode?: string;
-		collectorNumber?: string;
-	};
-	candidates: ScanCandidate[];
-}
-
-export interface ScanSessionResult {
-	session: ScanSession | null;
-	artifacts: ScanArtifact[];
-	reviewItems: ScanReviewItem[];
-	lastResult: ScanWorkerResult | null;
 }

@@ -1,8 +1,6 @@
 import type { AuthUser } from '#lib/auth/types.ts';
 import type { CardDocument } from '#lib/search/types.ts';
 
-export type { ScanWorkerResult } from '#lib/server/data/types.ts';
-
 export interface MobileAuthContext {
 	user: AuthUser;
 }
