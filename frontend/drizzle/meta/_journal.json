@@ -113,6 +113,13 @@
 			"when": 1791342918165,
 			"tag": "0015_scryfall_prices",
 			"breakpoints": true
+		},
+		{
+			"idx": 16,
+			"version": "7",
+			"when": 1791345162135,
+			"tag": "0016_deck_entry_categories",
+			"breakpoints": true
 		}
 	]
 }

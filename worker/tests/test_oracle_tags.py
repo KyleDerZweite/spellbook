@@ -1,4 +1,5 @@
 import json
+import re
 
 import pytest
 
@@ -71,12 +72,18 @@ def publisher():
         scoped = make_conninfo(url, options=f"-csearch_path={schema},public")
         try:
             migration = (
-                (Path(__file__).parents[2] / "frontend/drizzle/0016_deck_entry_categories.sql")
-                .read_text()
-                .split("CREATE TABLE catalog_oracle_facts")[0]
-            )
+                Path(__file__).parents[2] / "frontend/drizzle/0016_deck_entry_categories.sql"
+            ).read_text()
+            statements = [
+                statement
+                for statement in migration.split("--> statement-breakpoint")
+                if re.match(
+                    r'\s*(?:CREATE TABLE|ALTER TABLE|CREATE INDEX|INSERT INTO) "oracle_',
+                    statement,
+                )
+            ]
             with psycopg.connect(scoped) as conn:
-                conn.execute(migration)
+                conn.execute("\n".join(statements).replace('"public".', f'"{schema}".'))
             yield OracleTagsPublisher(scoped)
         finally:
             admin.execute(sql.SQL("DROP SCHEMA {} CASCADE").format(sql.Identifier(schema)))
