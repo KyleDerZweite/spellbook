@@ -44,6 +44,8 @@ export default defineConfig(({ mode }) => ({
 				extends: true,
 				test: {
 					name: 'integration',
+					// These files publish one shared Catalog generation in the disposable database.
+					fileParallelism: false,
 					include: ['tests/integration/**/*.test.ts'],
 					testTimeout: 20_000
 				}
