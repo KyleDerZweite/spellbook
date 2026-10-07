@@ -1,11 +1,17 @@
 <script lang="ts">
+	import { nextLoadedRange, type LoadedSpan } from '#lib/browsing/loadedSpan.ts';
 	import type { Snippet } from 'svelte';
 	import { tick, untrack } from 'svelte';
-	import { restoreInitialBrowsePosition } from '#lib/browsing/viewport.ts';
+	import {
+		restoreInitialBrowsePosition,
+		captureBrowseAnchor,
+		browseOriginShift
+	} from '#lib/browsing/viewport.ts';
 	import type { InventoryEntry } from '@spellbook/contracts/inventory.ts';
 	import { inventoryRowSlots, type InventoryRowSlot } from '#lib/inventory/rows.ts';
 	let {
 		total,
+		span,
 		getEntry,
 		loadedIndexes,
 		version,
@@ -16,6 +22,7 @@
 		onRange
 	}: {
 		total: number;
+		span: LoadedSpan;
 		getEntry: (index: number) => InventoryEntry | undefined;
 		loadedIndexes: number[];
 		version: number;
@@ -23,10 +30,10 @@
 		pinnedIndexes?: number[];
 		initialIndex?: number;
 		row: Snippet<[InventoryEntry, number]>;
-		onRange: (start: number, end: number) => void;
+		onRange: (start: number, end: number, reveal: boolean) => void;
 	} = $props();
 	let viewport = $state<HTMLUListElement | null>(null),
-		scrollTop = $state(untrack(() => initialIndex * 96)),
+		scrollTop = $state(0),
 		height = $state(650),
 		measurementVersion = $state(0),
 		focused = $state<number | null>(null),
@@ -46,6 +53,7 @@
 	const heights = new Map<number, { id: string; height: number }>();
 	const estimate = 96;
 	let resizeObserver: ResizeObserver | undefined;
+	let previousListTop: number | undefined;
 	function offset(index: number) {
 		measurementVersion;
 		let value = index * estimate;
@@ -53,24 +61,25 @@
 		return value;
 	}
 	function indexAt(top: number) {
-		let low = 0,
-			high = total;
+		const absolute = top + offset(span.start);
+		let low = span.start,
+			high = span.end;
 		while (low < high) {
 			const middle = Math.floor((low + high) / 2);
-			if (offset(middle + 1) <= top) low = middle + 1;
+			if (offset(middle + 1) <= absolute) low = middle + 1;
 			else high = middle;
 		}
-		return Math.min(low, Math.max(0, total - 1));
+		return Math.min(low, Math.max(span.start, span.end - 1));
 	}
 	let start = $derived.by(() => {
 		measurementVersion;
 		version;
-		return Math.max(0, indexAt(scrollTop) - 4);
+		return Math.max(span.start, indexAt(scrollTop) - 4);
 	});
 	let end = $derived.by(() => {
 		measurementVersion;
 		version;
-		return Math.min(total, indexAt(scrollTop + height) + 5, start + 195);
+		return Math.min(span.end, indexAt(scrollTop + height) + 5, start + 195);
 	});
 	let indexes = $derived(
 		[
@@ -91,11 +100,18 @@
 	let rows = $derived(inventoryRowSlots(queryKey, indexes, rendered));
 	let extent = $derived.by(() => {
 		measurementVersion;
-		return offset(total);
+		return offset(span.end) - offset(span.start);
 	});
 	export function anchor() {
-		const index = indexAt(scrollTop);
-		return { id: rendered(index)?.id ?? null, index, intra: scrollTop - offset(index) };
+		const relativeTop = viewport
+			? headerHeight() - viewport.getBoundingClientRect().top
+			: scrollTop;
+		const captured = captureBrowseAnchor(
+			relativeTop,
+			indexAt,
+			(index) => offset(index) - offset(span.start)
+		);
+		return { id: rendered(captured.index)?.id ?? null, ...captured };
 	}
 	export async function scrollToIndex(
 		index: number,
@@ -105,8 +121,9 @@
 		await tick();
 		if (viewport && isCurrent()) {
 			const top = viewport.getBoundingClientRect().top + window.scrollY;
+			previousListTop = top;
 			window.scrollTo({
-				top: Math.max(0, top + offset(index) + intra - headerHeight()),
+				top: Math.max(0, top + offset(index) - offset(span.start) + intra - headerHeight()),
 				behavior: 'instant'
 			});
 			readGeometry();
@@ -140,10 +157,11 @@
 		queryKey;
 		untrack(() => {
 			heights.clear();
+			previousListTop = undefined;
 			focused = null;
 			focusedSnapshot = null;
 			measurementVersion++;
-			scrollTop = initialIndex * estimate;
+			scrollTop = 0;
 			positioned = false;
 			const owner = queryKey;
 			if (initialIndex > 0) {
@@ -168,8 +186,9 @@
 			...(focused === null ? [] : [focused])
 		]);
 		untrack(() => {
-			const anchorIndex = indexAt(scrollTop),
-				intra = scrollTop - offset(anchorIndex);
+			const captured = anchor();
+			const anchorIndex = captured.index,
+				intra = captured.intra;
 			let changed = false;
 			for (const index of heights.keys())
 				if (!retained.has(index)) {
@@ -209,13 +228,29 @@
 		window.addEventListener('scroll', scroll, { passive: true });
 		window.addEventListener('resize', scroll, { passive: true });
 		element.addEventListener('focusin', focus);
-		resizeObserver = new ResizeObserver(readGeometry);
+		let layoutFrame = 0;
+		resizeObserver = new ResizeObserver(() => {
+			if (layoutFrame) return;
+			layoutFrame = requestAnimationFrame(() => {
+				layoutFrame = 0;
+				const nextTop = element.getBoundingClientRect().top + window.scrollY;
+				const previous = previousListTop;
+				previousListTop = nextTop;
+				if (positioned && previous !== undefined) {
+					const shift = browseOriginShift(previous, nextTop, window.scrollY, headerHeight());
+					if (shift) window.scrollBy({ top: shift, behavior: 'instant' });
+				}
+				readGeometry();
+			});
+		});
 		resizeObserver.observe(element);
+		if (element.parentElement) resizeObserver.observe(element.parentElement);
 		return () => {
 			window.removeEventListener('scroll', scroll);
 			window.removeEventListener('resize', scroll);
 			element.removeEventListener('focusin', focus);
 			resizeObserver?.disconnect();
+			if (layoutFrame) cancelAnimationFrame(layoutFrame);
 		};
 	});
 	function headerHeight() {
@@ -230,8 +265,29 @@
 		scrollTop = Math.max(0, -viewport.getBoundingClientRect().top + headerHeight());
 		height = Math.max(0, window.innerHeight - headerHeight());
 	}
+	let previousStart: number | undefined;
+	let previousOwner: string | undefined;
+	$effect.pre(() => {
+		const next = span.start;
+		const owner = queryKey;
+		untrack(() => {
+			const old = previousOwner === owner ? previousStart : undefined;
+			previousOwner = owner;
+			previousStart = next;
+			if (old === undefined || next >= old || !positioned) return;
+			const shift = offset(old) - offset(next);
+			scrollTop += shift;
+			void tick().then(() => {
+				window.scrollBy({ top: shift, behavior: 'instant' });
+				readGeometry();
+			});
+		});
+	});
 	$effect(() => {
-		if (positioned) onRange(start, end);
+		if (positioned) {
+			const reveal = nextLoadedRange(span, indexAt(scrollTop + height) + 1, total) !== null;
+			untrack(() => onRange(start, end, reveal));
+		}
 	});
 </script>
 
@@ -240,6 +296,8 @@
 	class="virtual-inventory"
 	aria-label="Inventory entries"
 	style:height={`${extent}px`}
+	data-browse-span-start={span.start}
+	data-browse-span-end={span.end}
 	data-measurements={measuredCount}
 	data-inventory-rendered={rows.length}
 >
@@ -248,7 +306,7 @@
 			data-inventory-index={slot.index}
 			data-inventory-query={slot.queryKey}
 			data-inventory-entry={slot.entry?.id}
-			style:top={`${offset(slot.index)}px`}
+			style:top={`${offset(slot.index) - offset(span.start)}px`}
 			use:measure={slot}
 		>
 			{#if slot.entry}{@render row(slot.entry, slot.index)}{:else}<div

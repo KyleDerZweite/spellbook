@@ -132,10 +132,11 @@ it('keeps HTTP work bounded through rapid plans until a response completes', asy
 	};
 	try {
 		window.seed('owner', page());
-		window.plan(500, 600);
+		for (const offset of [450, 500, 550]) void window.request(offset);
 		await vi.waitFor(() => expect(pending.size).toBe(3));
 		window.plan(2000, 2100);
 		window.plan(4000, 4100);
+		void window.request(3950);
 		await barrier();
 		await vi.waitFor(() => expect(started).toHaveLength(transportStarts.length));
 		expect.soft(pending.size).toBe(3);
@@ -150,10 +151,10 @@ it('keeps HTTP work bounded through rapid plans until a response completes', asy
 			await barrier();
 		}
 		await vi.waitFor(() => expect(window.metrics().requests).toBe(0));
-		expect(transportStarts).toEqual([450, 500, 550, 3950, 4000, 4050, 4100]);
+		expect(transportStarts).toEqual([450, 500, 550, 3950]);
 		expect(started.toSorted((a, b) => a - b)).toEqual(transportStarts);
 		expect(serverPeak).toBe(3);
-		expect(window.metrics()).toMatchObject({ contexts: 1, pages: 8, queued: 0 });
+		expect(window.metrics()).toMatchObject({ contexts: 1, pages: 5, queued: 0 });
 	} finally {
 		window.clear();
 		for (const finish of [...pending.values()]) finish();
@@ -175,7 +176,7 @@ it('cancels old pages before a filter replacement and bounds its transport slot'
 		() => {}
 	);
 	window.seed('owner', page());
-	window.plan(500, 600);
+	for (const offset of [450, 500, 550]) void window.request(offset);
 	const controller = new AbortController();
 	const replacing = window.open('owner', { ...query, q: 'new' }, controller.signal);
 	expect(requests).toHaveLength(3);
@@ -213,7 +214,7 @@ it('bounds overlapping replacements while three older transports delay abort', a
 		() => {}
 	);
 	window.seed('owner', page());
-	window.plan(500, 600);
+	for (const offset of [450, 500, 550]) void window.request(offset);
 	const first = window.open('owner', { ...query, q: 'first' }, new AbortController().signal);
 	const latest = window.open('owner', { ...query, q: 'latest' }, new AbortController().signal);
 	await new Promise((resolve) => setTimeout(resolve, 0));
@@ -262,7 +263,7 @@ it('retains entries only in budgeted cache pages, independently of current metad
 	expect(window.current?.entries).toEqual([]);
 	expect(window.at(0)).toBe(entry);
 	expect(window.metrics().entries).toBe(1);
-	window.plan(1000, 1001);
+	window.seed('owner', page(1000));
 	for (let i = 1; i <= 20; i++) await window.request(i * 50);
 	expect(window.at(0)).toBeUndefined();
 	expect(window.current?.entries).toEqual([]);
@@ -404,7 +405,7 @@ it('shares three transport slots with lookup and releases lookup before its page
 		() => {}
 	);
 	window.seed('owner', page());
-	window.plan(500, 600);
+	for (const offset of [450, 500, 550]) void window.request(offset);
 	let complete!: () => void;
 	const located = window.locateAndLoad(
 		'entry',
@@ -449,7 +450,7 @@ it('cancels a waiting lookup and cancels an active lookup on replacement without
 		() => {}
 	);
 	window.seed('owner', page());
-	window.plan(500, 600);
+	for (const offset of [450, 500, 550]) void window.request(offset);
 	const waiting = new AbortController();
 	const canceled = window.locateAndLoad(
 		'entry',
@@ -500,7 +501,7 @@ it('discards a waiting lookup on query replacement even if old transports ignore
 		() => {}
 	);
 	window.seed('owner', page());
-	window.plan(500, 600);
+	for (const offset of [450, 500, 550]) void window.request(offset);
 	let calls = 0;
 	const located = window.locateAndLoad(
 		'entry',
@@ -552,7 +553,7 @@ it('keeps teardown callbacks on their captured entry after eviction and query re
 		refs[card.id] = null;
 		return card;
 	};
-	window.plan(1000, 1001);
+	window.seed('owner', page(1000));
 	for (let i = 1; i <= 20; i++) await window.request(i * 50);
 	expect(window.at(0)).toBeUndefined();
 	window.seed('owner', page(0, 'replacement'));
@@ -660,7 +661,7 @@ it('drains actual HTTP pages during ordinary freshness changes without exceeding
 	const controller = new AbortController();
 	try {
 		window.seed('owner', page(0, '', '0'));
-		window.plan(500, 600);
+		for (const offset of [450, 500, 550]) void window.request(offset);
 		await vi.waitFor(() => expect(active).toBe(3));
 		desired++;
 		const lease = publication();
@@ -849,4 +850,64 @@ it('supersedes a failed native refresh with changed controls and rejects its hel
 		window.clear();
 		await new Promise<void>((resolve) => server.close(() => resolve()));
 	}
+});
+
+it('grows Inventory only on successful near-end requests and keeps deep prefixes explicit', async () => {
+	const populated = (offset: number): InventoryPage => ({
+		...page(offset),
+		query: { ...query, offset, limit: 200 },
+		entries: Array.from({ length: 200 }, (_, i) => ({
+			id: `entry-${offset + i}`,
+			accountId: 'owner',
+			inventoryId: 'inventory',
+			game: 'mtg',
+			notesRevision: '0',
+			catalogCardId: 'printing',
+			canonicalCardId: 'canonical',
+			quantity: 1,
+			finish: 'nonfoil',
+			condition: 'NM',
+			notes: '',
+			spellbookPosition: offset + i,
+			name: 'Opt',
+			setCode: 'dom',
+			imageUri: '',
+			collectorNumber: '1',
+			createdAt: '2026-10-07T00:00:00Z',
+			updatedAt: '2026-10-07T00:00:00Z'
+		}))
+	});
+	const requests: {
+		offset: number;
+		resolve: (value: InventoryPage) => void;
+		reject: (error: Error) => void;
+	}[] = [];
+	const window = new InventoryWindow(
+		(query) =>
+			new Promise((resolve, reject) => requests.push({ offset: query.offset, resolve, reject })),
+		() => {}
+	);
+	window.seed('owner', populated(8000));
+	window.plan(8000, 8030);
+	expect(requests).toHaveLength(0);
+	expect(window.span).toEqual({ start: 8000, end: 8200 });
+	window.plan(8160, 8200, true);
+	expect(requests.map((r) => r.offset)).toEqual([8200]);
+	requests[0].reject(new Error('failed'));
+	await new Promise((resolve) => setTimeout(resolve, 0));
+	expect(window.span).toEqual({ start: 8000, end: 8200 });
+	window.plan(8160, 8200, true);
+	requests[1].resolve(populated(8200));
+	await new Promise((resolve) => setTimeout(resolve, 0));
+	expect(window.span).toEqual({ start: 8000, end: 8400 });
+	expect(requests).toHaveLength(2);
+	window.loadEarlier();
+	expect(requests[2].offset).toBe(7800);
+	requests[2].resolve(populated(7800));
+	await new Promise((resolve) => setTimeout(resolve, 0));
+	expect(window.span).toEqual({ start: 7800, end: 8400 });
+	expect(window.metrics().entries).toBeLessThanOrEqual(1000);
+	window.seed('owner', { ...populated(8000), revision: '2' });
+	expect(window.span).toEqual({ start: 8000, end: 8200 });
+	window.clear();
 });

@@ -2,11 +2,14 @@
 	import { untrack } from 'svelte';
 	import type { CatalogRange } from '#lib/search/catalogWindow.ts';
 	import type { CardDocument } from '#lib/search/types.ts';
+	import type { LoadedSpan } from '#lib/browsing/loadedSpan.ts';
 	import type { BrowseViewport } from '#lib/browsing/viewport.ts';
 	import VirtualCardGrid from '#lib/components/cards/VirtualCardGrid.svelte';
 
 	interface Props {
 		totalCount: number;
+		span?: LoadedSpan;
+		onLoadEarlier?: () => void;
 		cards?: CardDocument[];
 		viewport?: BrowseViewport | null;
 		anchorIndex?: number;
@@ -33,6 +36,8 @@
 
 	let {
 		totalCount,
+		span = { start: 0, end: totalCount },
+		onLoadEarlier,
 		cards = [],
 		viewport = null,
 		anchorIndex = 0,
@@ -120,7 +125,13 @@
 				{/each}
 			</div>
 		{:else}
+			{#if span.start > 0}<button class="btn btn-secondary mb-4" onclick={onLoadEarlier}
+					>Load earlier cards</button
+				>{/if}
 			<VirtualCardGrid
+				span={span.end > span.start
+					? span
+					: { start: anchorIndex, end: anchorIndex + SKELETON_COUNT }}
 				{viewport}
 				{anchorIndex}
 				totalCount={totalCount || SKELETON_COUNT}

@@ -5,7 +5,8 @@
 		browseScrollTop,
 		type BrowseViewport
 	} from '#lib/browsing/viewport.ts';
-	import { untrack } from 'svelte';
+	import { untrack, tick } from 'svelte';
+	import { nextLoadedRange, type LoadedSpan } from '#lib/browsing/loadedSpan.ts';
 	import type { CardDocument } from '#lib/search/types.ts';
 	import type { CatalogRange } from '#lib/search/catalogWindow.ts';
 	import CardGridItem from './CardGridItem.svelte';
@@ -15,6 +16,7 @@
 		viewport?: BrowseViewport | null;
 		anchorIndex?: number;
 		totalCount?: number;
+		span?: LoadedSpan;
 		getCard?: (index: number) => CardDocument | undefined;
 		onRangeChange?: (range: CatalogRange) => void;
 		initialScrollTop?: number;
@@ -32,6 +34,7 @@
 		viewport = null,
 		anchorIndex = 0,
 		totalCount = cards.length,
+		span = { start: 0, end: totalCount },
 		getCard = (index: number) => cards[index],
 		onRangeChange,
 		initialScrollTop = 0,
@@ -57,6 +60,7 @@
 	let viewportHeight = $state(0);
 	let visibleTop = $state(0);
 	let direction: 1 | -1 = $state(1);
+	let measuredOrigin: number | undefined;
 	let positioned = $state(false);
 	let focused: { index: number; card: CardDocument } | null = $state(null);
 
@@ -71,7 +75,8 @@
 	const colWidth = $derived(cols > 0 ? (containerWidth - GAP * (cols - 1)) / cols : MIN_COL_WIDTH);
 	const imageHeight = $derived(colWidth * (7 / 5));
 	const rowHeight = $derived(imageHeight + INFO_HEIGHT + GAP);
-	const totalRows = $derived(Math.ceil(itemCount / cols));
+	const baseRow = $derived(Math.floor(span.start / cols));
+	const totalRows = $derived(Math.max(0, Math.ceil(span.end / cols) - baseRow));
 	const totalHeight = $derived(Math.max(0, totalRows > 0 ? totalRows * rowHeight - GAP : 0));
 
 	const startRow = $derived(
@@ -87,8 +92,8 @@
 
 	const visibleItems = $derived.by(() => {
 		if (containerWidth <= 0) return [];
-		const start = startRow * cols;
-		const end = Math.min(itemCount, (endRow + 1) * cols, start + 199);
+		const start = Math.max(span.start, (baseRow + startRow) * cols);
+		const end = Math.min(span.end, (baseRow + endRow + 1) * cols, start + 199);
 		const indices = Array.from({ length: Math.max(0, end - start) }, (_, index) => start + index);
 		if (focused && !indices.includes(focused.index)) {
 			indices.push(focused.index);
@@ -103,15 +108,58 @@
 	$effect(() => {
 		if (!positioned || containerWidth <= 0 || endRow < startRow) return;
 		const range: CatalogRange = {
-			start: startRow * cols,
-			anchor: Math.floor(visibleTop / rowHeight) * cols,
-			end: Math.min(itemCount, (endRow + 1) * cols, startRow * cols + 199),
+			start: Math.max(span.start, (baseRow + startRow) * cols),
+			anchor: Math.max(span.start, (baseRow + Math.floor(visibleTop / rowHeight)) * cols),
+			end: Math.min(span.end, (baseRow + endRow + 1) * cols, (baseRow + startRow) * cols + 199),
+			reveal:
+				nextLoadedRange(
+					span,
+					(baseRow + Math.ceil((visibleTop + viewportHeight) / rowHeight)) * cols,
+					itemCount
+				) !== null,
 			direction
 		};
 		// The caller publishes reactive Window state. Subscribe only to geometry here.
 		untrack(() => onRangeChange?.(range));
 	});
 
+	let previousReset: number | undefined;
+	let previousGeometry: { start: number; columns: number; stride: number } | undefined;
+	$effect.pre(() => {
+		const start = span.start;
+		const reset = resetToken;
+		const columns = cols;
+		const stride = rowHeight;
+		untrack(() => {
+			const previous = previousReset === reset ? previousGeometry : undefined;
+			previousReset = reset;
+			previousGeometry = { start, columns, stride };
+			if (
+				!previous ||
+				!positioned ||
+				!viewport ||
+				(previous.start === start && previous.columns === columns && previous.stride === stride)
+			)
+				return;
+			if (start > previous.start) return;
+			const oldRow = Math.floor(visibleTop / previous.stride);
+			const index = (Math.floor(previous.start / previous.columns) + oldRow) * previous.columns;
+			const intra = visibleTop - oldRow * previous.stride;
+			const nextTop = (Math.floor(index / columns) - Math.floor(start / columns)) * stride + intra;
+			const shift = nextTop - visibleTop;
+			const host = viewport;
+			const top = browseScrollTop(host);
+			const wrapper = wrapperEl;
+			const origin = measuredOrigin ?? (wrapper ? wrapper.getBoundingClientRect().top + top : 0);
+			visibleTop += shift;
+			void tick().then(() => {
+				if (!wrapper || wrapper !== wrapperEl) return;
+				const nextOrigin = wrapper.getBoundingClientRect().top + browseScrollTop(host);
+				measuredOrigin = nextOrigin;
+				host.scrollTo({ top: top + shift + nextOrigin - origin, behavior: 'instant' });
+			});
+		});
+	});
 	const measured = $derived(containerWidth > 0 && viewportHeight > 0);
 	$effect(() => {
 		void resetToken;
@@ -127,7 +175,7 @@
 				browseScrollTop(host) +
 				wrapper.getBoundingClientRect().top -
 				(host === window ? 0 : (host as HTMLElement).getBoundingClientRect().top);
-			const anchorTop = wrapperTop + Math.floor(anchorIndex / cols) * rowHeight;
+			const anchorTop = wrapperTop + (Math.floor(anchorIndex / cols) - baseRow) * rowHeight;
 			const frame = requestAnimationFrame(() => {
 				restoreInitialBrowsePosition(host, initialScrollTop, anchorIndex, anchorTop, feedback);
 				const geometry = measureBrowseViewport(host, wrapper);
@@ -145,6 +193,7 @@
 		const host = viewport;
 
 		function measure() {
+			measuredOrigin = wrapper.getBoundingClientRect().top + browseScrollTop(host);
 			const geometry = measureBrowseViewport(host, wrapper);
 			containerWidth = geometry.width;
 			viewportHeight = geometry.height;
@@ -181,13 +230,19 @@
 	});
 </script>
 
-<div bind:this={wrapperEl} class={className} style="height: {totalHeight}px; position: relative;">
+<div
+	bind:this={wrapperEl}
+	class={className}
+	data-browse-span-start={span.start}
+	data-browse-span-end={span.end}
+	style="height: {totalHeight}px; position: relative;"
+>
 	{#if containerWidth > 0}
 		{#each visibleItems as { card, index } (index)}
 			<div
 				class="catalog-slot"
-				style="position: absolute; top: {Math.floor(index / cols) * rowHeight}px; left: {(index %
-					cols) *
+				style="position: absolute; top: {(Math.floor(index / cols) - baseRow) *
+					rowHeight}px; left: {(index % cols) *
 					(colWidth + GAP)}px; width: {colWidth}px; height: {rowHeight - GAP}px;"
 				onfocusin={() => {
 					if (card) focused = { index, card };

@@ -1,5 +1,11 @@
 <script lang="ts">
 	import { untrack, tick } from 'svelte';
+	import {
+		initialLoadedSpan,
+		admitLoadedSpan,
+		nextLoadedRange,
+		reconcileDirectorySpan
+	} from '#lib/browsing/loadedSpan.ts';
 	import { restoreInitialBrowsePosition } from '#lib/browsing/viewport.ts';
 	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
 	import type { InventoryGroup } from '#lib/types/legacy.ts';
@@ -25,7 +31,9 @@
 	} = $props();
 
 	let list = $state<HTMLUListElement | null>(null);
-	let top = $state(untrack(() => initialIndex * 112));
+	let span = $state(untrack(() => initialLoadedSpan(initialIndex, 200, groups.length)));
+	let previousLazy = untrack(() => lazy);
+	let top = $state(0);
 	let viewportHeight = $state(650);
 	let measurements = $state(0);
 	let focused = $state<string | null>(null);
@@ -40,18 +48,19 @@
 		return value;
 	}
 	function indexAt(value: number) {
-		let low = 0,
-			high = groups.length;
+		const absolute = value + offset(span.start);
+		let low = lazy ? span.start : 0,
+			high = lazy ? span.end : groups.length;
 		while (low < high) {
 			const middle = Math.floor((low + high) / 2);
-			if (offset(middle + 1) <= value) low = middle + 1;
+			if (offset(middle + 1) <= absolute) low = middle + 1;
 			else high = middle;
 		}
-		return Math.min(low, Math.max(0, groups.length - 1));
+		return Math.min(low, Math.max(span.start, (lazy ? span.end : groups.length) - 1));
 	}
-	const start = $derived(lazy ? Math.max(0, indexAt(top) - 4) : 0);
+	const start = $derived(lazy ? Math.max(span.start, indexAt(top) - 4) : 0);
 	const end = $derived(
-		lazy ? Math.min(groups.length, indexAt(top + viewportHeight) + 5, start + 199) : groups.length
+		lazy ? Math.min(span.end, indexAt(top + viewportHeight) + 5, start + 199) : groups.length
 	);
 	const indexes = $derived(groupDirectoryIndexes(groups, start, end, lazy, focused));
 	function headerHeight() {
@@ -66,7 +75,11 @@
 		top = Math.max(0, -list.getBoundingClientRect().top + headerHeight());
 		viewportHeight = Math.max(0, window.innerHeight - headerHeight());
 		const index = indexAt(top);
-		snapshot = { id: groups[index]?.id ?? null, index, intra: top - offset(index) };
+		snapshot = {
+			id: groups[index]?.id ?? null,
+			index,
+			intra: top - offset(index) + offset(span.start)
+		};
 	}
 	export async function scrollToIndex(
 		index: number,
@@ -78,7 +91,12 @@
 		window.scrollTo({
 			top: Math.max(
 				0,
-				list.getBoundingClientRect().top + window.scrollY + offset(index) + intra - headerHeight()
+				list.getBoundingClientRect().top +
+					window.scrollY +
+					offset(index) -
+					offset(span.start) +
+					intra -
+					headerHeight()
 			),
 			behavior: 'instant'
 		});
@@ -136,8 +154,11 @@
 	});
 	$effect(() => {
 		const next = groups;
+		const enhanced = lazy;
 		untrack(() => {
 			if (focused && !next.some((group) => group.id === focused)) focused = null;
+			span = reconcileDirectorySpan(span, next.length, initialIndex, enhanced && !previousLazy);
+			previousLazy = enhanced;
 			if (!lazy || !snapshot) return;
 			const anchor = snapshot;
 			const index = anchor.id ? next.findIndex((group) => group.id === anchor.id) : -1;
@@ -162,8 +183,24 @@
 		});
 	});
 	$effect(() => {
-		if (lazy && positioned) onRange?.(indexAt(top));
+		if (!lazy || !positioned) return;
+		const index = indexAt(top);
+		const next = nextLoadedRange(span, indexAt(top + viewportHeight) + 1, groups.length);
+		untrack(() => {
+			onRange?.(index);
+			if (next !== null) span = admitLoadedSpan(span, next, 200, groups.length);
+		});
 	});
+	async function loadEarlier() {
+		const anchor = snapshot;
+		span = admitLoadedSpan(
+			span,
+			Math.max(0, span.start - 200),
+			Math.min(200, span.start),
+			groups.length
+		);
+		if (anchor) await scrollToIndex(anchor.index, anchor.intra);
+	}
 	$effect(() => {
 		return () => {
 			mounted = false;
@@ -192,19 +229,24 @@
 		<p>No boxes yet. Create one, then assign cards from their row menu.</p>
 	</div>
 {:else}
+	{#if lazy && span.start > 0}<button class="btn btn-secondary" onclick={loadEarlier}
+			>Load earlier boxes</button
+		>{/if}
 	<ul
 		bind:this={list}
 		class="group-directory"
 		class:lazy
 		aria-label="Inventory boxes"
-		style:height={lazy ? `${offset(groups.length)}px` : undefined}
+		style:height={lazy ? `${offset(span.end) - offset(span.start)}px` : undefined}
+		data-browse-span-start={span.start}
+		data-browse-span-end={span.end}
 		data-group-rendered={indexes.length}
 	>
 		{#each indexes as index (groups[index].id)}
 			{@const group = groups[index]}
 			<li
 				data-group-index={index}
-				style:top={lazy ? `${offset(index)}px` : undefined}
+				style:top={lazy ? `${offset(index) - offset(span.start)}px` : undefined}
 				use:measure={index}
 			>
 				<a href={groupHref(group.id)} class="group-link">

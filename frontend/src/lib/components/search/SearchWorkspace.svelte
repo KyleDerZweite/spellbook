@@ -315,6 +315,8 @@
 			<SearchResults
 				{restorationTarget}
 				totalCount={total}
+				span={snapshot.span}
+				onLoadEarlier={() => catalog.loadEarlier()}
 				getCard={(index) => cardAt(snapshot, index, paging.limit)}
 				cards={pageCards}
 				viewport={host}
@@ -340,6 +342,14 @@
 				onSelect={handleSelect}
 			/>
 			<NativeRangeNavigation state={paging} {total} {canonicalURL} native={!mounted} />
+			<div
+				hidden
+				data-catalog-span-start={snapshot.span?.start}
+				data-catalog-span-end={snapshot.span?.end}
+				data-catalog-cache-records={snapshot.resources?.records}
+				data-catalog-cache-pages={snapshot.resources?.pages}
+				data-catalog-requests={snapshot.resources?.physicalRequests}
+			></div>
 		</div>
 	</div>
 </div>

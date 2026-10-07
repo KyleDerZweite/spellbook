@@ -139,12 +139,12 @@ describe('catalog physical request ownership', () => {
 		h.window.start();
 		h.requests[0].resolve(page());
 		await flush();
-		h.window.setRange({ start: 3400, end: 3700, direction: 1 });
+		for (const offset of [3400, 3600, 3800]) h.window.setAnchor(offset);
 		expect(h.snapshot.resources?.physicalRequests).toBe(3);
-		h.window.setRange({ start: 4000, end: 4100, direction: 1 });
+		h.window.setAnchor(4000);
 		const before = h.requests.length;
 		expect(h.requests.filter((r) => !r.signal.aborted).length).toBe(1); // completed first read
-		h.requests[1].resolve(page(200));
+		h.requests[1].resolve(page(3400));
 		await flush();
 		expect(h.requests.length).toBe(before + 1);
 		expect(h.requests.at(-1)?.offset).toBe(4000);
@@ -273,9 +273,7 @@ describe('catalog global cache admission', () => {
 		h.requests[0].resolve(large);
 		await flush();
 		expect(h.snapshot.resources!.byteOverflow).toBeGreaterThan(0);
-		h.requests[1].resolve(page(200));
-		await flush();
-		expect(h.requests).toHaveLength(2);
+		expect(h.requests).toHaveLength(1);
 		expect(h.snapshot.pages.size).toBe(1);
 		expect(cardAt(h.snapshot, 0)?.id).toBe('first-0');
 	});
@@ -305,7 +303,7 @@ describe('catalog global cache admission', () => {
 		await settle(h);
 		expect(h.snapshot.resources!.records).toBeLessThanOrEqual(1000);
 		expect(h.snapshot.resources!.retainedSeedRecords).toBe(500);
-		expect(h.requests.map((r) => r.offset)).toEqual([0, 200]);
+		expect(h.requests.map((r) => r.offset)).toEqual([0]);
 		for (const query of ['one', 'two', 'three', 'four']) {
 			h.window.activate({ ...lazy, query });
 			h.window.start();
@@ -374,21 +372,21 @@ describe('catalog global cache admission', () => {
 		expect(h.snapshot.generation).toBe('first');
 		expect(h.snapshot.pages.get(1000)).toBe(active);
 		expect(h.snapshot.resources!.retainedSeedRecords).toBe(500);
-		expect(h.snapshot.resources!.records).toBe(900);
+		expect(h.snapshot.resources!.records).toBe(700);
 		expect(h.snapshot.resources!.pages).toBeLessThanOrEqual(20);
 		h.window.retainServerPage(
 			{ game: 'mtg', filters: {}, query: 'native small', limit: 100, browsingMode: 'numeric' },
 			page(0, 'third', 5000, 100)
 		);
 		expect(h.snapshot.resources!.retainedSeedRecords).toBe(100);
-		expect(h.snapshot.resources!.records).toBe(500);
+		expect(h.snapshot.resources!.records).toBe(300);
 		expect(h.snapshot.pages.get(1000)).toBe(active);
 		h.window.retainServerPage(
 			{ game: 'mtg', filters: {}, query: 'native unavailable', limit: 500 },
 			null
 		);
 		expect(h.snapshot.resources!.retainedSeedRecords).toBe(0);
-		expect(h.snapshot.resources!.records).toBe(400);
+		expect(h.snapshot.resources!.records).toBe(200);
 		expect(h.snapshot.generation).toBe('first');
 		h.window.dispose();
 	});
@@ -422,4 +420,93 @@ describe('catalog global cache admission', () => {
 		expect(h.snapshot.generation).toBe('first');
 		h.window.dispose();
 	});
+});
+
+describe('visited Catalog segment', () => {
+	it('keeps full totals without growing past the successful initial slice or fetching a deep prefix', async () => {
+		const h = harness();
+		h.window.activate({ ...lazy, offset: 8000 });
+		h.window.seed(page(8000, 'first', 34948));
+		h.window.start();
+		expect(h.requests).toHaveLength(0);
+		expect(h.snapshot.span).toEqual({ start: 8000, end: 8200 });
+		expect(h.snapshot.total).toBe(34948);
+		h.window.setRange({ start: 8000, end: 8025, direction: 1 });
+		expect(h.requests).toHaveLength(0);
+		h.window.setRange({ start: 8160, end: 8200, anchor: 8170, direction: 1, reveal: true });
+		expect(h.requests.map((r) => r.offset)).toEqual([8200]);
+		expect(h.snapshot.span).toEqual({ start: 8000, end: 8200 });
+		h.requests[0].resolve(page(8200, 'first', 34948));
+		await flush();
+		expect(h.snapshot.span).toEqual({ start: 8000, end: 8400 });
+		expect(h.requests).toHaveLength(1);
+		h.window.loadEarlier();
+		expect(h.requests.at(-1)?.offset).toBe(7800);
+		h.requests.at(-1)!.resolve(page(7800, 'first', 34948));
+		await flush();
+		expect(h.snapshot.span).toEqual({ start: 7800, end: 8400 });
+		h.window.dispose();
+	});
+	it('keeps failure and stale generation reads from extending the segment and retries its single range', async () => {
+		const h = harness();
+		h.window.activate(lazy);
+		h.window.seed(page());
+		h.window.start();
+		h.window.setRange({ start: 160, end: 200, direction: 1, reveal: true });
+		h.requests[0].reject(new Error('read failed'));
+		await flush();
+		expect(h.snapshot.span).toEqual({ start: 0, end: 200 });
+		h.window.retry();
+		h.requests[1].resolve(page(200, 'second'));
+		await flush();
+		expect(h.snapshot.span).toEqual({ start: 0, end: 0 });
+		expect(h.requests[2].offset).toBe(0);
+		h.requests[2].resolve(page(0, 'second'));
+		await flush();
+		expect(h.snapshot.span).toEqual({ start: 0, end: 200 });
+		h.window.dispose();
+	});
+});
+
+it('retains visited Catalog bounds through eviction and reloads an original range without changing the complete total', async () => {
+	const h = harness();
+	h.window.activate(lazy);
+	h.window.seed(page());
+	h.window.start();
+	for (let offset = 200; offset <= 1800; offset += 200) {
+		h.window.setRange({
+			start: offset - 40,
+			end: offset,
+			anchor: offset - 20,
+			direction: 1,
+			reveal: true
+		});
+		for (const request of h.requests) request.resolve(page(request.offset));
+		await flush();
+	}
+	expect(h.snapshot.span).toEqual({ start: 0, end: 2000 });
+	expect(h.snapshot.resources!.records).toBeLessThanOrEqual(1000);
+	expect(cardAt(h.snapshot, 200)).toBeUndefined();
+	const before = h.requests.length;
+	h.window.setRange({ start: 200, end: 230, direction: -1 });
+	expect(h.requests.slice(before).some((request) => request.offset === 200)).toBe(true);
+	for (const request of h.requests.slice(before)) request.resolve(page(request.offset));
+	await flush();
+	expect(cardAt(h.snapshot, 200)?.id).toBe('first-200');
+	expect(h.snapshot.span).toEqual({ start: 0, end: 2000 });
+	expect(h.snapshot.total).toBe(5000);
+	h.window.dispose();
+});
+
+it('publishes stable immutable span references when geometry or loading state changes without successful growth', () => {
+	const h = harness();
+	h.window.activate(lazy);
+	h.window.seed(page());
+	h.window.start();
+	const span = h.snapshot.span;
+	h.window.setRange({ start: 0, end: 30, direction: 1 });
+	expect(h.snapshot.span).toBe(span);
+	h.window.setRange({ start: 160, end: 200, direction: 1, reveal: true });
+	expect(h.snapshot.span).toBe(span);
+	h.window.dispose();
 });

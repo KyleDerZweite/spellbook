@@ -189,6 +189,10 @@
 		windowVersion;
 		return window.current ?? data.window;
 	});
+	let visitedSpan = $derived.by(() => {
+		windowVersion;
+		return window.span;
+	});
 	let loadedEntries = $derived.by(() => {
 		windowVersion;
 		return hydrated
@@ -352,8 +356,8 @@
 			if (pageController === controller) pageController = null;
 		}
 	}
-	function lazyRange(start: number, end: number, directory = false) {
-		if (!directory) window.plan(start, end);
+	function lazyRange(start: number, end: number, directory = false, reveal = false) {
+		if (!directory) window.plan(start, end, reveal);
 		if (!hydrated || pageController || anchorRestoreActive) return;
 		const anchorIndex = directory
 			? start
@@ -1544,16 +1548,20 @@
 							]}
 						/>
 					</div>{/snippet}
-				{#if hydrated}<VirtualInventoryList
+				{#if hydrated}{#if visitedSpan.start > 0}<button
+							class="btn btn-secondary"
+							onclick={() => window.loadEarlier()}>Load earlier entries</button
+						>{/if}<VirtualInventoryList
 						bind:this={virtualList}
 						total={currentWindow.matching.entryCount}
+						span={visitedSpan}
 						queryKey={window.queryIdentity}
 						version={windowVersion}
 						initialIndex={currentWindow.query.offset}
 						loadedIndexes={loadedEntries.map((row) => row.index)}
 						pinnedIndexes={pins}
 						getEntry={(index) => window.at(index)}
-						onRange={lazyRange}
+						onRange={(start, end, reveal) => lazyRange(start, end, false, reveal)}
 					>
 						{#snippet row(entry: InventoryEntry)}{@render entryRow(asLegacy(entry))}{/snippet}
 					</VirtualInventoryList>{:else}<ul class="inventory-list" aria-label="Inventory entries">
@@ -1572,6 +1580,8 @@
 		/>
 		<div
 			hidden
+			data-inventory-span-start={metrics.spanStart}
+			data-inventory-span-end={metrics.spanEnd}
 			data-inventory-cache-pages={metrics.pages}
 			data-inventory-cache-entries={metrics.entries}
 			data-inventory-contexts={metrics.contexts}

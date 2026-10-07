@@ -126,11 +126,12 @@ it('bounds cache by records across contexts and finite Lazy neighbors without re
 	const transport = vi.fn(async (input: InventoryQuery) => result(input));
 	const window = new InventoryWindow(transport, () => {});
 	window.seed('owner', result(query), () => true, false, 'lazy');
-	window.plan(24800, 25000);
+	for (const offset of [24800, 25000, 25200]) void window.request(offset);
 	await vi.waitFor(() => expect(window.metrics().requests).toBe(0));
 	expect(window.metrics().entries).toBeLessThanOrEqual(1000);
 	const calls = transport.mock.calls.length;
-	for (let i = 0; i < 20; i++) window.plan(24800, 25000);
+	for (let i = 0; i < 20; i++)
+		for (const offset of [24800, 25000, 25200]) void window.request(offset);
 	await vi.waitFor(() => expect(window.metrics().requests).toBe(0));
 	expect(transport.mock.calls.length).toBe(calls);
 	for (let i = 0; i < 6; i++) {
@@ -176,7 +177,7 @@ it('retains aborted physical permits across mode replacement until underlying tr
 		() => {}
 	);
 	window.seed('owner', result(query), () => true, false, 'lazy');
-	window.plan(24800, 25000);
+	for (const offset of [24800, 25000, 25200]) void window.request(offset);
 	expect(pending).toHaveLength(3);
 	const replacement = window.open(
 		'owner',
@@ -217,7 +218,7 @@ it('reserves the exact retained 500-entry SSR page across a different-query Lazy
 	window.plan(24800, 24995);
 	await vi.waitFor(() => expect(window.metrics().requests).toBe(0));
 	expect(window.metrics().entries).toBeLessThanOrEqual(1000);
-	expect(window.metrics().entries).toBe(900);
+	expect(window.metrics().entries).toBe(700);
 	expect(window.metrics().pinnedSSREntries).toBe(500);
 	const calls = transport.mock.calls.length;
 	for (let i = 0; i < 20; i++) window.plan(24800, 24995);
@@ -240,12 +241,12 @@ it('keeps required visible ranges and avoids oversized-metadata adjacent refetch
 	}));
 	const window = new InventoryWindow(transport, () => {});
 	window.seed('owner', oversized, () => true, false, 'lazy');
-	window.plan(190, 385);
+	window.plan(190, 200, true);
 	await vi.waitFor(() => expect(window.metrics().requests).toBe(0));
 	expect(window.at(190)?.id).toBe('190');
 	expect(window.at(384)?.id).toBe('384');
 	const calls = transport.mock.calls.length;
-	for (let i = 0; i < 10; i++) window.plan(190, 385);
+	for (let i = 0; i < 10; i++) window.plan(190, 230);
 	await vi.waitFor(() => expect(window.metrics().requests).toBe(0));
 	expect(transport.mock.calls).toHaveLength(calls);
 	expect(window.metrics().entries).toBeLessThanOrEqual(1000);
@@ -347,4 +348,31 @@ describe('Inventory route intent through fresh authentication', () => {
 		const native = { ...query, offset: 7800, limit: 200 as const };
 		expect(matchingNativeInventoryQuery(native, { ...native, q: 'changed', offset: 0 })).toBeNull();
 	});
+});
+
+it('keeps explicit reveals inside the resident budget when a legacy SSR reservation occupies 500 records', async () => {
+	const window = new InventoryWindow(
+		async (input) => result(input),
+		() => {}
+	);
+	const retained = result({ ...query, q: 'native', limit: 500 });
+	window.pinServerPage(retained);
+	window.seed('owner', retained, () => true, false, 'numeric');
+	await window.open(
+		'owner',
+		{ ...query, q: 'current', offset: 1000 },
+		new AbortController().signal,
+		'lazy'
+	);
+	window.plan(1160, 1200, true);
+	await vi.waitFor(() => expect(window.metrics().requests).toBe(0));
+	window.plan(1160, 1230);
+	window.loadEarlier();
+	await vi.waitFor(() => expect(window.metrics().requests).toBe(0));
+	expect(window.metrics().entries).toBeLessThanOrEqual(1000);
+	window.plan(1000, 1030);
+	await vi.waitFor(() => expect(window.metrics().requests).toBe(0));
+	expect(window.span.start).toBe(800);
+	expect(window.metrics().entries).toBeLessThanOrEqual(1000);
+	window.clear(true);
 });

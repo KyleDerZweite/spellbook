@@ -1,3 +1,4 @@
+import { initialLoadedSpan, admitLoadedSpan, type LoadedSpan } from '#lib/browsing/loadedSpan.ts';
 import type {
 	InventoryEntry,
 	InventoryPage,
@@ -12,6 +13,7 @@ export type InventoryTransport = (
 ) => Promise<InventoryPage | RevisionChanged>;
 export type InventoryBrowseMode = 'numeric' | 'lazy';
 interface Context {
+	span: LoadedSpan;
 	page: InventoryPage;
 	pages: Map<number, InventoryPage>;
 	maxPageBytes: number;
@@ -27,6 +29,7 @@ interface Job {
 export class InventoryWindow {
 	private contexts = new Map<string, Context>();
 	private account = '';
+	private reveals = new Set<number>();
 	private clock = 0;
 	private key = '';
 	private mode: InventoryBrowseMode = 'lazy';
@@ -204,6 +207,14 @@ export class InventoryWindow {
 			}
 			if (!currentLease()) return null;
 			if (result.index !== null) {
+				const offset = Math.floor(result.index / current.query.limit) * current.query.limit;
+				const loaded = this.contexts.get(this.key)?.pages.get(offset);
+				if (loaded && (result.index < this.span.start || result.index >= this.span.end))
+					this.contexts.get(this.key)!.span = initialLoadedSpan(
+						offset,
+						loaded.entries.length,
+						loaded.matching.entryCount
+					);
 				const context = this.contexts.get(this.key);
 				if (context)
 					context.page = {
@@ -220,6 +231,38 @@ export class InventoryWindow {
 		return null;
 	}
 
+	get span(): LoadedSpan {
+		return this.contexts.get(this.key)?.span ?? { start: 0, end: 0 };
+	}
+	loadEarlier(): void {
+		const context = this.contexts.get(this.key);
+		if (!context || !context.span.start) return;
+		this.reveal(Math.max(0, context.span.start - context.page.query.limit));
+	}
+	private reveal(offset: number): void {
+		const context = this.contexts.get(this.key);
+		if (!context) return;
+		this.reveals.add(offset);
+		const page = context.pages.get(offset);
+		if (page) {
+			context.span = admitLoadedSpan(
+				context.span,
+				offset,
+				page.entries.length,
+				page.matching.entryCount
+			);
+			this.reveals.delete(offset);
+			this.changed();
+		} else {
+			const reserved = this.serverPage?.entries.length ?? 0;
+			const capacity = Math.max(1, Math.floor((1000 - reserved) / context.page.query.limit));
+			// A retained native page and visible pages must still fit before admitting an earlier range.
+			if (this.visibleOffsets.has(offset) || this.visibleOffsets.size < capacity) {
+				this.visibleOffsets.add(offset);
+				void this.request(offset, true);
+			}
+		}
+	}
 	get current() {
 		const context = this.contexts.get(this.key);
 		return context
@@ -255,7 +298,20 @@ export class InventoryWindow {
 		const metadata = { ...page, entries: [], memberships: [], groupPage: [] };
 		let context = this.contexts.get(this.key);
 		if (!context || context.page.revision !== page.revision)
-			context = { page: metadata, pages: new Map(), maxPageBytes: 0, used: ++this.clock };
+			context = {
+				page: metadata,
+				pages: new Map(),
+				maxPageBytes: 0,
+				used: ++this.clock,
+				span: initialLoadedSpan(page.query.offset, page.entries.length, page.matching.entryCount)
+			};
+		if (page.query.offset < context.span.start || page.query.offset >= context.span.end)
+			context.span = initialLoadedSpan(
+				page.query.offset,
+				page.entries.length,
+				page.matching.entryCount
+			);
+		this.reveals.clear();
 		context.page = metadata;
 		context.pages.set(page.query.offset, page);
 		context.maxPageBytes = Math.max(context.maxPageBytes, this.bytes(page));
@@ -355,6 +411,7 @@ export class InventoryWindow {
 	clear(releaseServerPage = false) {
 		if (releaseServerPage) this.serverPage = null;
 		this.visibleOffsets.clear();
+		this.reveals.clear();
 		this.cancel();
 		this.generation++;
 		this.contexts.clear();
@@ -462,6 +519,14 @@ export class InventoryWindow {
 				result.revision === context.page.revision
 			) {
 				context.pages.set(job.offset, result);
+				if (this.reveals.has(job.offset))
+					context.span = admitLoadedSpan(
+						context.span,
+						job.offset,
+						result.entries.length,
+						result.matching.entryCount
+					);
+				this.reveals.delete(job.offset);
 				context.maxPageBytes = Math.max(context.maxPageBytes, this.bytes(result));
 				context.used = ++this.clock;
 				this.evict();
@@ -482,8 +547,11 @@ export class InventoryWindow {
 			this.pump();
 		}
 	}
-	plan(start: number, end: number) {
+	plan(start: number, end: number, reveal = false) {
 		if (this.replacing) return;
+		if (this.mode === 'lazy' && (end <= this.span.start || start >= this.span.end)) return;
+		start = Math.max(this.span.start, start);
+		end = Math.min(this.span.end, end);
 		const total = this.current?.matching.entryCount ?? 0;
 		const limit = this.current?.query.limit ?? 200;
 		const visible = Math.floor(Math.max(0, start) / limit);
@@ -542,9 +610,18 @@ export class InventoryWindow {
 						lastVisible + (extra > 1 ? 1 : 0),
 						first + plannedCapacity - 1
 					);
+		if (reveal && this.span.end < total) this.reveal(this.span.end);
 		const wanted = new Set(
-			Array.from({ length: Math.max(0, last - first + 1) }, (_, i) => (first + i) * limit)
+			[
+				...this.visibleOffsets,
+				...this.reveals,
+				...Array.from(
+					{ length: Math.max(0, last - first + 1) },
+					(_, i) => (first + i) * limit
+				).filter((offset) => offset >= this.span.start && offset < this.span.end)
+			].slice(0, plannedCapacity)
 		);
+		for (const offset of wanted) if (this.reveals.has(offset)) this.visibleOffsets.add(offset);
 		this.evict();
 		this.queue = this.queue.filter((job) => {
 			if (!job.planned || wanted.has(job.offset)) return true;
@@ -554,7 +631,7 @@ export class InventoryWindow {
 		});
 		// Finish active reads: fetch abort can settle before network/server work stops.
 		// Only queued plans are replaced when scrolling within the same query.
-		for (let index = first; index <= last; index++) void this.request(index * limit, true);
+		for (const offset of wanted) void this.request(offset, true);
 	}
 	at(index: number): InventoryEntry | undefined {
 		const limit = this.current?.query.limit ?? 200;
@@ -575,6 +652,8 @@ export class InventoryWindow {
 	}
 	metrics() {
 		return {
+			spanStart: this.span.start,
+			spanEnd: this.span.end,
 			contexts: this.contexts.size,
 			serializedBytes: this.serializedBytes(),
 			byteTarget: this.byteTarget,

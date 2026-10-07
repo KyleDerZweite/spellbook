@@ -1,3 +1,4 @@
+import { initialLoadedSpan, admitLoadedSpan, type LoadedSpan } from '#lib/browsing/loadedSpan.ts';
 import { browseCards, searchCards } from './catalog.ts';
 import { buildSearchContextKey, type SearchContextInput } from './requestContext.ts';
 import type { CardDocument, FacetResponse, SearchResult } from './types.ts';
@@ -15,6 +16,7 @@ export interface CatalogRange {
 	end: number;
 	direction: 1 | -1;
 	anchor?: number;
+	reveal?: boolean;
 }
 export interface CatalogWindowSnapshot {
 	pages: ReadonlyMap<number, CardDocument[]>;
@@ -27,6 +29,7 @@ export interface CatalogWindowSnapshot {
 	publicationReset?: number;
 	anchor?: number;
 	validated?: boolean;
+	span?: LoadedSpan;
 	resources?: {
 		records: number;
 		bytes: number;
@@ -38,6 +41,7 @@ export interface CatalogWindowSnapshot {
 	};
 }
 interface CachedContext {
+	span: LoadedSpan;
 	key: string;
 	input: SearchContextInput;
 	pages: Map<number, CardDocument[]>;
@@ -114,6 +118,7 @@ export class CatalogWindow {
 	private started = false;
 	private error: string | null = null;
 	private anchor = 0;
+	private reveals = new Set<number>();
 	private range: CatalogRange = { start: 0, end: CATALOG_PAGE_SIZE, direction: 1 };
 	constructor(
 		private changed: (snapshot: CatalogWindowSnapshot) => void,
@@ -134,11 +139,22 @@ export class CatalogWindow {
 		const key = buildSearchContextKey(input);
 		let context = this.contexts.get(key);
 		if (!context)
-			context = { key, input, pages: new Map(), total: 0, generation: undefined, facets: null };
+			context = {
+				key,
+				input,
+				pages: new Map(),
+				total: 0,
+				generation: undefined,
+				facets: null,
+				span: { start: this.anchor, end: this.anchor }
+			};
 		context.input = input;
 		this.contexts.delete(key);
 		this.contexts.set(key, context);
 		this.active = context;
+		if (this.anchor < context.span.start || this.anchor >= context.span.end)
+			context.span = { start: this.anchor, end: this.anchor };
+		this.reveals.clear();
 		while (this.contextCount() > MAX_CONTEXTS) {
 			const oldest = [...this.contexts.values()].find(
 				(c) => c.key !== this.pinned?.context.key && c !== this.active
@@ -154,6 +170,9 @@ export class CatalogWindow {
 		const anchor = this.checkedOffset(offset, this.active.input.limit!);
 		if (anchor === this.anchor) return;
 		this.anchor = anchor;
+		if (anchor < this.active.span.start || anchor >= this.active.span.end)
+			this.active.span = { start: anchor, end: anchor };
+		this.reveals.clear();
 		this.range = { start: anchor, end: anchor + this.active.input.limit!, direction: 1 };
 		this.cancel();
 		this.validated = false;
@@ -175,6 +194,7 @@ export class CatalogWindow {
 		};
 		const key = buildSearchContextKey(input);
 		const context: CachedContext = {
+			span: initialLoadedSpan(input.offset ?? 0, result.hits.length, result.estimatedTotalHits),
 			key,
 			input,
 			pages: new Map(),
@@ -239,6 +259,12 @@ export class CatalogWindow {
 		}
 		this.active.generation = result.generationId;
 		this.active.total = result.estimatedTotalHits;
+		if (changedGeneration || this.active.span.end === this.active.span.start)
+			this.active.span = initialLoadedSpan(
+				this.anchor,
+				changedGeneration ? 0 : result.hits.length,
+				result.estimatedTotalHits
+			);
 		this.active.facets = result.facets ?? null;
 		this.validated = !changedGeneration;
 		if (!changedGeneration) this.admit(this.active, this.anchor, result.hits);
@@ -265,11 +291,26 @@ export class CatalogWindow {
 		if (this.active?.input.browsingMode === 'lazy' && this.validated)
 			this.anchor = this.checkedOffset(range.anchor ?? range.start, this.active.input.limit!);
 		if (!this.started || !this.validated || !this.active) return;
+		if (range.reveal && this.active.span.end < this.active.total) this.reveal(this.active.span.end);
 		const wanted = new Set(this.planned());
 		for (const flight of this.flights)
 			if (flight.session === this.session && !wanted.has(flight.offset)) flight.controller.abort();
 		for (const offset of wanted) this.touch(this.active, offset);
 		this.pump();
+	}
+	loadEarlier(): void {
+		if (!this.active || !this.validated || this.active.span.start === 0) return;
+		this.reveal(Math.max(0, this.active.span.start - this.active.input.limit!));
+		this.pump();
+	}
+	private reveal(offset: number): void {
+		if (!this.active) return;
+		this.reveals.add(offset);
+		const hits = this.active.pages.get(offset);
+		if (hits) {
+			this.active.span = admitLoadedSpan(this.active.span, offset, hits.length, this.active.total);
+			this.reveals.delete(offset);
+		}
 	}
 	retry(): void {
 		this.failures.clear();
@@ -291,7 +332,14 @@ export class CatalogWindow {
 	private planned(): number[] {
 		if (!this.active) return [];
 		if (this.active.input.browsingMode === 'numeric') return [this.anchor];
-		const pages = planCatalogPages(this.range, this.active.total, this.active.input.limit);
+		const pages = [
+			...new Set([
+				...planCatalogPages(this.range, this.active.total, this.active.input.limit).filter(
+					(offset) => offset >= this.active!.span.start && offset < this.active!.span.end
+				),
+				...this.reveals
+			])
+		];
 		const pinIncluded =
 			this.pinned &&
 			this.pinned.context === this.active &&
@@ -355,6 +403,7 @@ export class CatalogWindow {
 	}
 	private protectedOffset(offset: number): boolean {
 		if (!this.active) return false;
+		if (this.reveals.has(offset)) return true;
 		if (this.active.input.browsingMode === 'numeric') return offset === this.anchor;
 		const limit = this.active.input.limit!;
 		return offset <= this.range.end - 1 && offset + limit > this.range.start;
@@ -443,6 +492,8 @@ export class CatalogWindow {
 				for (const cached of this.contexts.values()) this.dropPages(cached);
 				this.contexts.clear();
 				context.total = 0;
+				context.span = { start: 0, end: 0 };
+				this.reveals.clear();
 				context.generation = undefined;
 				context.facets = null;
 				this.contexts.set(context.key, context);
@@ -471,6 +522,11 @@ export class CatalogWindow {
 			if (!result.hits.length && offset < context.total)
 				throw new Error('This card range could not be loaded. Retry search.');
 			this.admit(context, offset, result.hits);
+			if (context.span.end === context.span.start)
+				context.span = initialLoadedSpan(offset, result.hits.length, context.total);
+			else if (this.reveals.has(offset) && context.pages.has(offset))
+				context.span = admitLoadedSpan(context.span, offset, result.hits.length, context.total);
+			this.reveals.delete(offset);
 		} catch (error) {
 			if (!flight.controller.signal.aborted && flight.session === this.session) {
 				this.failures.add(offset);
@@ -498,6 +554,7 @@ export class CatalogWindow {
 			publicationReset: this.publicationReset,
 			anchor: this.anchor,
 			validated: this.validated,
+			span: this.active?.span,
 			resources: {
 				records,
 				bytes,

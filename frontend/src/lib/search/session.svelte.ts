@@ -19,7 +19,7 @@ export class SearchSession {
 	pending = $state(false);
 	scrollTop = 0;
 	range: CatalogRange = { start: 0, end: 200, direction: 1 };
-	snapshot: CatalogWindowSnapshot = $state({
+	snapshot: CatalogWindowSnapshot = $state.raw({
 		pages: new Map(),
 		total: 0,
 		generation: undefined,

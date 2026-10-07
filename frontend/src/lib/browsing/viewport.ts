@@ -70,3 +70,23 @@ export function restoreInitialBrowsePosition(
 	if (feedback) restoreBrowsePosition(host, savedTop, null, feedback);
 	else scrollBrowseViewport(host, savedTop || (anchorIndex > 0 ? anchorTop : 0));
 }
+
+/** Preserve negative clearance while the viewport is above the first rendered row. */
+export function captureBrowseAnchor(
+	relativeTop: number,
+	indexAt: (top: number) => number,
+	rowTop: (index: number) => number
+) {
+	const index = indexAt(Math.max(0, relativeTop));
+	return { index, intra: relativeTop - rowTop(index) };
+}
+
+/** Keep an in-list row fixed while content above the list enters or leaves normal flow. */
+export function browseOriginShift(
+	previousTop: number,
+	nextTop: number,
+	scrollTop: number,
+	clearance: number
+): number {
+	return scrollTop + clearance >= previousTop ? nextTop - previousTop : 0;
+}
