@@ -248,7 +248,8 @@ export class DeckLibraryWindow {
 			current: () => boolean
 		) => Promise<DeckLibraryLocation | DeckLibraryRevisionChanged | null>,
 		signal: AbortSignal,
-		currentLease: () => boolean = () => true
+		currentLease: () => boolean = () => true,
+		preserveSpan = false
 	) {
 		const account = this.account,
 			queryKey = this.current?.queryKey;
@@ -286,20 +287,25 @@ export class DeckLibraryWindow {
 					identity: generation
 				};
 			const offset = Math.floor(location.offset / page.limit) * page.limit;
-			this.visible = new Set([offset]);
-			this.current!.offset = offset;
+			this.visible = new Set(preserveSpan ? [...this.visible, offset] : [offset]);
+			if (!preserveSpan) this.current!.offset = offset;
 			await this.request(offset, false);
 			if (!scope()) return null;
 			if (generation !== this.generation) continue;
 			const context = this.contexts.get(this.key),
 				loaded = context?.pages.get(offset);
 			if (!context || !loaded || loaded.items[location.offset - offset]?.id !== deckId) return null;
-			if (location.offset < this.span.start || location.offset >= this.span.end) {
+			if (
+				!preserveSpan &&
+				(location.offset < this.span.start || location.offset >= this.span.end)
+			) {
 				this.beforeChange();
 				context.span = initialLoadedSpan(offset, loaded.items.length, page.matchingTotal);
 			}
-			context.page.offset = offset;
-			this.visible = new Set([offset]);
+			if (!preserveSpan) {
+				context.page.offset = offset;
+				this.visible = new Set([offset]);
+			}
 			this.evict();
 			this.changed();
 			return {
@@ -310,6 +316,31 @@ export class DeckLibraryWindow {
 			};
 		}
 		return null;
+	}
+	/** Restore a resident anchor range only within its confirmed location identity. */
+	activateLoadedLocation(index: number, deckId: string, revision: string, identity: number) {
+		const context = this.contexts.get(this.key),
+			page = this.current;
+		if (
+			!context ||
+			!page ||
+			identity !== this.generation ||
+			revision !== page.revision ||
+			this.at(index)?.id !== deckId
+		)
+			return false;
+		const offset = Math.floor(index / page.limit) * page.limit,
+			loaded = context.pages.get(offset);
+		if (!loaded) return false;
+		if (index < this.span.start || index >= this.span.end) {
+			this.beforeChange();
+			context.span = initialLoadedSpan(offset, loaded.items.length, page.matchingTotal);
+			context.page.offset = offset;
+			this.visible = new Set([offset]);
+			this.evict();
+			this.changed();
+		}
+		return true;
 	}
 	private enqueue(offset: number, explicit: boolean, refresh: boolean, current: () => boolean) {
 		const context = this.contexts.get(this.key);
@@ -650,32 +681,60 @@ export function deckLibraryMeasurement(
 	};
 }
 
-/** Scheduler notifications cannot retry settled or physically pending location reads. */
-export class DeckLibraryLocateAttempts {
-	private attempts = new Map<'focus' | 'anchor', { key: string; pending: boolean }>();
-	async run<T>(
+type DeckLibraryLocateResult<T> =
+	| { kind: 'Skipped' }
+	| { kind: 'Resolved'; value: Readonly<T> }
+	| { kind: 'Failed'; cause: unknown };
+type DeckLibraryLocateAttempt<T> = {
+	key: string;
+	pending: boolean;
+	result: DeckLibraryLocateResult<T> | null;
+	promise: Promise<DeckLibraryLocateResult<T>>;
+};
+
+/** Logical consumers share a frozen result while scheduler notifications cannot retry reads. */
+export class DeckLibraryLocateAttempts<T extends object> {
+	private attempts = new Map<'focus' | 'anchor', DeckLibraryLocateAttempt<T>>();
+	async run(
 		role: 'focus' | 'anchor',
 		key: string,
-		operation: () => Promise<T>
-	): Promise<
-		{ kind: 'Skipped' } | { kind: 'Resolved'; value: T } | { kind: 'Failed'; cause: unknown }
-	> {
+		operation: () => Promise<T | null>
+	): Promise<DeckLibraryLocateResult<T>> {
 		const previous = this.attempts.get(role);
 		if (previous?.pending) return { kind: 'Skipped' };
 		const shared = [...this.attempts.values()].find((attempt) => attempt.key === key);
 		if (shared) {
 			this.attempts.set(role, shared);
-			return { kind: 'Skipped' };
+			if (shared.pending) return shared.promise;
+			return shared.result?.kind === 'Resolved' ? shared.result : { kind: 'Skipped' };
 		}
-		const attempt = { key, pending: true };
+		const attempt: DeckLibraryLocateAttempt<T> = {
+			key,
+			pending: true,
+			result: null,
+			promise: Promise.resolve()
+				.then(operation)
+				.then(
+					(value): DeckLibraryLocateResult<T> => {
+						if (value === null)
+							return {
+								kind: 'Failed',
+								cause: new Error('Saved Deck position could not be restored. Try again.')
+							};
+						return { kind: 'Resolved', value: Object.freeze({ ...value }) };
+					},
+					(cause): DeckLibraryLocateResult<T> => ({ kind: 'Failed', cause })
+				)
+				.then((result) => {
+					attempt.result = result;
+					return result;
+				})
+				.finally(() => {
+					attempt.pending = false;
+				})
+		};
 		this.attempts.set(role, attempt);
-		try {
-			return { kind: 'Resolved', value: await operation() };
-		} catch (cause) {
-			return { kind: 'Failed', cause };
-		} finally {
-			attempt.pending = false;
-		}
+		return attempt.promise;
 	}
 	clear() {
 		this.attempts.clear();

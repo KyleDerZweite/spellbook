@@ -564,7 +564,9 @@ describe('Deck Library failed location admission', () => {
 	it.each(['focus', 'anchor'] as const)(
 		'bounds %s relocation through deferred failure and scheduler notifications',
 		async (role) => {
-			const attempts = new DeckLibraryLocateAttempts(),
+			const attempts = new DeckLibraryLocateAttempts<
+					NonNullable<Awaited<ReturnType<DeckLibraryWindow['locateAndLoad']>>>
+				>(),
 				response = deferred<Response>();
 			const fetcher = vi
 				.fn<typeof fetch>()
@@ -622,12 +624,21 @@ describe('Deck Library failed location admission', () => {
 			expect(await attempts.run(role, key, locate)).toEqual({ kind: 'Skipped' });
 			enabled = false;
 			expect(
-				await attempts.run(
-					role,
-					JSON.stringify(['account', query, '3', 'deck-0']),
-					async () => 'new revision'
-				)
-			).toEqual({ kind: 'Resolved', value: 'new revision' });
+				await attempts.run(role, JSON.stringify(['account', query, '3', 'deck-0']), async () => ({
+					index: 0,
+					revision: '3',
+					queryKey: deckLibraryQueryKey(query),
+					identity: window.identity
+				}))
+			).toEqual({
+				kind: 'Resolved',
+				value: {
+					index: 0,
+					revision: '3',
+					queryKey: deckLibraryQueryKey(query),
+					identity: window.identity
+				}
+			});
 		}
 	);
 	it('shares one failed Deck identity across focus and viewport-anchor reads', async () => {
@@ -658,5 +669,110 @@ describe('Deck Library failed location admission', () => {
 		expect(
 			deckLibraryTilePosition(900, span, 2, geometry.base, geometry.offsets, 180).offscreen
 		).toBe(true);
+	});
+});
+
+describe('Deck Library shared resolved location', () => {
+	it.each([240, null])(
+		'reuses deferred and settled location %s across focus and anchor without a second physical read',
+		async (index) => {
+			type Location = {
+				index: number | null;
+				revision: string;
+				queryKey: string;
+				identity: number;
+			};
+			const attempts = new DeckLibraryLocateAttempts<Location>(),
+				pending = deferred<Location>();
+			const operation = vi.fn(() => pending.promise);
+			const focus = attempts.run('focus', 'account/query/revision/deck/generation', operation);
+			const anchor = attempts.run('anchor', 'account/query/revision/deck/generation', operation);
+			await settle();
+			expect(operation).toHaveBeenCalledTimes(1);
+			expect(
+				await attempts.run('anchor', 'account/query/revision/deck/generation', operation)
+			).toEqual({ kind: 'Skipped' });
+			const supplied = { index, revision: '2', queryKey: 'query', identity: 7 };
+			pending.resolve(supplied);
+			const focusedResult = await focus,
+				anchorResult = await anchor;
+			expect(focusedResult).toEqual({ kind: 'Resolved', value: supplied });
+			expect(anchorResult).toBe(focusedResult);
+			if (focusedResult.kind !== 'Resolved') throw new Error('Expected coherent resolved location');
+			expect(Object.isFrozen(focusedResult.value)).toBe(true);
+			expect(focusedResult.value).not.toBe(supplied);
+			expect(
+				await attempts.run('anchor', 'account/query/revision/deck/generation', operation)
+			).toBe(focusedResult);
+			expect(operation).toHaveBeenCalledTimes(1);
+		}
+	);
+	it('reports an unconfirmed canceled null and admits the next generation instead of caching silent absence', async () => {
+		type Location = { index: number | null; identity: number };
+		const attempts = new DeckLibraryLocateAttempts<Location>(),
+			pending = deferred<Location | null>();
+		const focus = attempts.run('focus', 'account/query/revision/deck/1', () => pending.promise);
+		const anchor = attempts.run('anchor', 'account/query/revision/deck/1', () => pending.promise);
+		pending.resolve(null);
+		expect(await focus).toMatchObject({
+			kind: 'Failed',
+			cause: new Error('Saved Deck position could not be restored. Try again.')
+		});
+		expect(await anchor).toMatchObject({ kind: 'Failed' });
+		expect(await attempts.run('anchor', 'account/query/revision/deck/1', async () => null)).toEqual(
+			{ kind: 'Skipped' }
+		);
+		expect(
+			await attempts.run('anchor', 'account/query/revision/deck/2', async () => ({
+				index: null,
+				identity: 2
+			}))
+		).toEqual({ kind: 'Resolved', value: { index: null, identity: 2 } });
+		attempts.retry();
+		expect(
+			await attempts.run('focus', 'account/query/revision/deck/1', async () => ({
+				index: 4,
+				identity: 1
+			}))
+		).toEqual({ kind: 'Resolved', value: { index: 4, identity: 1 } });
+	});
+});
+
+describe('Deck Library independent focus metadata', () => {
+	it('keeps the late visible span while loading an early focused Deck and coherently activates a resident anchor', async () => {
+		const window = new DeckLibraryWindow(
+			async (_query, offset) => page(offset, 1601, '2'),
+			() => {}
+		);
+		window.seed('account', page(800, 1601, '2'));
+		const focus = await window.locateAndLoad(
+			'deck-0',
+			async (query, deckId, revision) => ({
+				query,
+				queryKey: deckLibraryQueryKey(query),
+				revision,
+				deckId,
+				offset: 0,
+				matchingTotal: 1601
+			}),
+			new AbortController().signal,
+			() => true,
+			true
+		);
+		expect(focus?.index).toBe(0);
+		expect(window.span).toEqual({ start: 800, end: 1000 });
+		expect(window.current?.offset).toBe(800);
+		expect(window.at(0)?.id).toBe('deck-0');
+		const lateAnchor = window.loaded().find(({ item }) => item.id === 'deck-817');
+		expect(lateAnchor?.index).toBe(817);
+		expect(window.activateLoadedLocation(817, 'deck-817', '2', window.identity)).toBe(true);
+		expect(window.span).toEqual({ start: 800, end: 1000 });
+		expect(window.activateLoadedLocation(0, 'deck-0', '2', window.identity)).toBe(true);
+		expect(window.span).toEqual({ start: 0, end: 200 });
+		expect(window.activateLoadedLocation(817, 'deck-817', '2', window.identity)).toBe(true);
+		expect(window.span).toEqual({ start: 800, end: 1000 });
+		expect(window.activateLoadedLocation(0, 'deck-0', '1', window.identity)).toBe(false);
+		expect(window.activateLoadedLocation(0, 'deck-0', '2', window.identity - 1)).toBe(false);
+		expect(window.metrics().requests).toBe(0);
 	});
 });

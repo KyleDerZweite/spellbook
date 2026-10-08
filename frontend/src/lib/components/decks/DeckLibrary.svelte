@@ -62,7 +62,9 @@
 	} | null = null;
 	let positionError = $state('');
 	let focusError = $state('');
-	const locateAttempts = new DeckLibraryLocateAttempts();
+	const locateAttempts = new DeckLibraryLocateAttempts<
+		NonNullable<Awaited<ReturnType<DeckLibraryWindow['locateAndLoad']>>>
+	>();
 	let layingOut = false,
 		layoutPending = false;
 	let measuredOrigin: number | undefined;
@@ -136,7 +138,7 @@
 			freshFocus ?? focused
 		);
 	});
-	async function locate(deckId: string, owns: () => boolean) {
+	async function locate(deckId: string, owns: () => boolean, preserveSpan = false) {
 		return library.locateAndLoad(
 			deckId,
 			async (query, id, revision, signal, current) => {
@@ -149,7 +151,8 @@
 				);
 			},
 			new AbortController().signal,
-			owns
+			owns,
+			preserveSpan
 		);
 	}
 	function retryPosition() {
@@ -175,8 +178,8 @@
 				attemptedIdentity = library.identity;
 			const result = await locateAttempts.run(
 				'focus',
-				JSON.stringify([account, queryKey, attemptedRevision, retained.item.id]),
-				() => locate(retained.item.id, owns)
+				JSON.stringify([account, queryKey, attemptedRevision, retained.item.id, attemptedIdentity]),
+				() => locate(retained.item.id, owns, true)
 			);
 			if (!owns()) return;
 			if (result.kind === 'Skipped') return;
@@ -319,6 +322,12 @@
 					? library.loaded().find(({ item }) => item.id === captured.deckId)
 					: undefined;
 				if (residentAnchor) {
+					library.activateLoadedLocation(
+						residentAnchor.index,
+						residentAnchor.item.id,
+						library.current!.revision,
+						library.identity
+					);
 					index = residentAnchor.index;
 				} else if (captured.deckId && captured.revision !== library.current?.revision) {
 					const attemptedRevision = library.current?.revision,
@@ -329,7 +338,8 @@
 							captured.account,
 							captured.queryKey,
 							attemptedRevision,
-							captured.deckId
+							captured.deckId,
+							attemptedIdentity
 						]),
 						() => locate(captured.deckId!, owns)
 					);
@@ -355,7 +365,25 @@
 						anchor = null;
 						return;
 					}
-					index = located.index ?? index;
+					if (located.index === null) {
+						// The anchor Deck left this query. Keep the current visible span and release it.
+						anchor = null;
+						positionError = '';
+						layoutPending = true;
+						return;
+					}
+					if (
+						!library.activateLoadedLocation(
+							located.index,
+							captured.deckId,
+							located.revision,
+							located.identity
+						)
+					) {
+						positionError = 'Saved Deck position could not be restored. Try again.';
+						return;
+					}
+					index = located.index;
 				} else if (captured.deckId) {
 					index = library.loaded().find(({ item }) => item.id === captured.deckId)?.index ?? index;
 				}
