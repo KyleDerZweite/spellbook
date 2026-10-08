@@ -251,6 +251,59 @@ const SCHEMA = {
 				}
 			}
 		},
+		'/api/mobile/v1/mtg/inventory/value': {
+			get: {
+				...operation(
+					'Read current private Inventory value and coverage',
+					ref('CurrentInventoryValue')
+				),
+				responses: {
+					200: response(
+						'Current estimate; unknown quantities remain explicit',
+						ref('CurrentInventoryValue')
+					),
+					400: errors[400],
+					401: errors[401],
+					500: errors[500],
+					503: response('Valuation unavailable', ref('ErrorResponse'))
+				}
+			}
+		},
+		'/api/mobile/v1/mtg/inventory/value-history': {
+			get: {
+				...operation(
+					'Read saved private Inventory observations and explicit gaps without capture or backfill',
+					ref('InventoryValueHistory')
+				),
+				parameters: [
+					{
+						name: 'days',
+						in: 'query',
+						schema: { type: 'integer', minimum: 1, maximum: 366, default: 30 }
+					},
+					{
+						name: 'from',
+						in: 'query',
+						schema: { type: 'string', format: 'date' },
+						description: 'Use together with to instead of days. Up to 366 closed reporting dates.'
+					},
+					{ name: 'to', in: 'query', schema: { type: 'string', format: 'date' } },
+					{ name: 'printingId', in: 'query', schema: { type: 'string', format: 'uuid' } },
+					{ name: 'finish', in: 'query', schema: finish, description: 'Requires printingId' },
+					{ name: 'condition', in: 'query', schema: condition, description: 'Requires printingId' }
+				],
+				responses: {
+					200: response(
+						'Saved observations with original calendars and actual capture times',
+						ref('InventoryValueHistory')
+					),
+					400: errors[400],
+					401: errors[401],
+					500: errors[500],
+					503: response('History unavailable', ref('ErrorResponse'))
+				}
+			}
+		},
 		'/api/mobile/v1/mtg/prices/history': {
 			get: {
 				summary: 'Read bounded public source history, never historical holdings',
@@ -1121,6 +1174,57 @@ const SCHEMA = {
 				alternate: integer,
 				missing: integer
 			}),
+			ValueEstimate: object({
+				currency: { const: 'EUR' },
+				coveredValue: { type: 'string', maxLength: 160, pattern: '^(0|[1-9][0-9]*)\\.[0-9]{2}$' },
+				coveredQuantity: { type: 'integer', minimum: 0, maximum: Number.MAX_SAFE_INTEGER },
+				staleQuantity: { type: 'integer', minimum: 0, maximum: Number.MAX_SAFE_INTEGER },
+				unknownQuantity: { type: 'integer', minimum: 0, maximum: Number.MAX_SAFE_INTEGER },
+				totalQuantity: { type: 'integer', minimum: 0, maximum: Number.MAX_SAFE_INTEGER },
+				complete: { type: 'boolean' }
+			}),
+			CurrentInventoryValue: object({
+				evaluatedAt: { type: 'string', format: 'date-time' },
+				estimate: ref('ValueEstimate')
+			}),
+			DeckValueEstimates: object({
+				evaluatedAt: { type: 'string', format: 'date-time' },
+				required: ref('ValueEstimate'),
+				missing: ref('ValueEstimate')
+			}),
+			ValueReadFailure: object({ kind: { const: 'PriceReadUnavailable' }, message: string }),
+			HistoricalHoldingIdentity: object(
+				{ printingId: { type: 'string', format: 'uuid' }, finish, condition },
+				['printingId']
+			),
+			InventoryValueHistory: object({
+				asOf: { type: 'string', format: 'date-time' },
+				timezone: string,
+				window: object({
+					from: { type: 'string', format: 'date' },
+					to: { type: 'string', format: 'date' },
+					days: { type: 'integer', minimum: 1, maximum: 366 }
+				}),
+				identity: nullable('HistoricalHoldingIdentity'),
+				points: {
+					type: 'array',
+					maxItems: 366,
+					items: {
+						oneOf: [
+							object({ kind: { const: 'Gap' }, day: { type: 'string', format: 'date' } }),
+							object({
+								kind: { const: 'Captured' },
+								day: { type: 'string', format: 'date' },
+								timezone: string,
+								dayStart: { type: 'string', format: 'date-time' },
+								dayEnd: { type: 'string', format: 'date-time' },
+								observedAt: { type: 'string', format: 'date-time' },
+								estimate: ref('ValueEstimate')
+							})
+						]
+					}
+				}
+			}),
 			DashboardSummary: object({
 				totals: ref('ProfileTotals'),
 				sets: array('DashboardDistribution'),
@@ -1128,7 +1232,10 @@ const SCHEMA = {
 				conditions: array('DashboardDistribution'),
 				recentEntries: { ...array('DashboardRecentEntry'), maxItems: 8 },
 				decks: array('DashboardDeck'),
-				pendingScanReviews: { type: ['integer', 'null'] }
+				pendingScanReviews: { type: ['integer', 'null'] },
+				inventoryValue: nullable('CurrentInventoryValue'),
+				inventoryValueHistory: nullable('InventoryValueHistory'),
+				valuationError: nullable('ValueReadFailure')
 			}),
 
 			LoginRequest: object({
@@ -2036,7 +2143,9 @@ const SCHEMA = {
 				deckCovers: { type: 'object', additionalProperties: object({ imageUri: string }) },
 				availability: { type: 'object', additionalProperties: ref('AvailabilityCount') },
 				ownedByCanonical: { type: 'object', additionalProperties: integer },
-				ownedPrintings: array('OwnedPrinting')
+				ownedPrintings: array('OwnedPrinting'),
+				valueEstimates: nullable('DeckValueEstimates'),
+				valuationError: nullable('ValueReadFailure')
 			}),
 			DeckDetail: {
 				allOf: [
@@ -2052,6 +2161,8 @@ const SCHEMA = {
 					ref('SearchResponse'),
 					object({
 						ownedPrintings: array('OwnedPrinting'),
+						valueEstimates: nullable('DeckValueEstimates'),
+						valuationError: nullable('ValueReadFailure'),
 						ownedByCanonical: { type: 'object', additionalProperties: integer }
 					})
 				]

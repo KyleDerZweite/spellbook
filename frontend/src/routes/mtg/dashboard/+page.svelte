@@ -1,4 +1,6 @@
 <script lang="ts">
+	import ValueSummary from '#lib/components/valuation/ValueSummary.svelte';
+	import InventoryValueHistory from '#lib/components/valuation/InventoryValueHistory.svelte';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
 	import { onMount, untrack } from 'svelte';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
@@ -12,7 +14,7 @@
 	let subscription: ResourceSubscription | undefined = $state();
 	onMount(() => {
 		subscription = workspaceSavedState.subscribe({
-			topics: ['inventory', 'decks', 'scan'],
+			topics: ['inventory', 'decks', 'scan', 'values'],
 			clear: () => {
 				dashboard = null;
 				loadError = '';
@@ -63,6 +65,7 @@
 	<header class="dashboard-header">
 		<div class="page-title"><h1>Dashboard</h1></div>
 		<div class="dashboard-actions">
+			<a href="/mtg/history" class="btn btn-secondary btn-sm">Inventory history</a>
 			<a href="/mtg/search" class="btn btn-primary btn-sm">Add cards</a>
 		</div>
 	</header>
@@ -74,6 +77,19 @@
 			>
 		</div>
 	{:else if dashboard}
+		<div class="my-5 grid gap-4 lg:grid-cols-[1fr_2fr]">
+			<ValueSummary
+				estimate={dashboard.inventoryValue?.estimate ?? null}
+				evaluatedAt={dashboard.inventoryValue?.evaluatedAt}
+				error={dashboard.valuationError?.message}
+			/>
+			<InventoryValueHistory
+				history={dashboard.inventoryValueHistory}
+				error={dashboard.valuationError?.message}
+				compact
+				onRetry={() => subscription?.invalidate()}
+			/>
+		</div>
 		<dl class="dashboard-totals">
 			<div class="owned-total">
 				<dd>{dashboard.totals.total.toLocaleString()}</dd>

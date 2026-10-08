@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { HistoricalHoldingIdentity } from '@spellbook/contracts/inventory-value.ts';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import type { ResourceSubscription, ReadLease } from '#lib/saved-state/workspace.ts';
@@ -117,6 +118,7 @@
 	let inspection = $state<{
 		entryId: string;
 		mode: 'details' | 'edit' | 'add';
+		historyIdentity: HistoricalHoldingIdentity;
 		card: CardDocument;
 		returnFocus: HTMLElement | null;
 	} | null>(null);
@@ -842,7 +844,17 @@
 		quantityDraft = card.quantity;
 		draftDirty = false;
 		targetGone = false;
-		inspection = { entryId: id, mode, card: storedCardDocument(card), returnFocus };
+		inspection = {
+			entryId: id,
+			mode,
+			card: storedCardDocument(card),
+			returnFocus,
+			historyIdentity: {
+				printingId: card.catalogCardId,
+				finish: card.finish as HistoricalHoldingIdentity['finish'],
+				condition: card.condition as HistoricalHoldingIdentity['condition']
+			}
+		};
 		retainTargetEntries();
 	}
 	function openRemoval(id: string) {
@@ -1706,6 +1718,7 @@
 		<CardDetail
 			card={inspection.card}
 			inventoryEntryId={inspection.mode === 'add' ? undefined : inspection.entryId}
+			inventoryHistoryIdentity={inspection.mode === 'add' ? undefined : inspection.historyIdentity}
 			callerPending={pendingId !== null || addingPending}
 			onPendingChange={(value) => (addingPending = value)}
 			inventoryPriceRefreshKey={`${confirmedInventoryWrite}:${currentWindow.revision}:${inspected?.updatedAt.toISOString() ?? 'missing'}:${targetGone}`}

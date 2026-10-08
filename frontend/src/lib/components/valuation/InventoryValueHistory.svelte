@@ -25,10 +25,12 @@
 
 <section
 	class="rounded-lg border border-border bg-stone p-4"
-	aria-label="Personal Inventory history"
+	aria-label={history?.identity ? 'Card value history' : 'Inventory value history'}
 	aria-busy={loading}
 >
-	<h2 class="text-lg font-semibold">Personal Inventory history</h2>
+	<h2 class="text-lg font-semibold">
+		{history?.identity ? 'Card value history' : 'Inventory value history'}
+	</h2>
 	{#if loading}<p class="mt-3 text-sm" role="status">Loading Inventory history…</p>
 	{:else if error}
 		<p class="mt-3 text-sm" role="alert">{error}</p>

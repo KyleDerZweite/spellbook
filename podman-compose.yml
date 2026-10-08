@@ -81,6 +81,8 @@ services:
       args:
         APP_ORIGIN: ${APP_ORIGIN}
     environment:
+      VALUE_HISTORY_ENABLED: ${VALUE_HISTORY_ENABLED:-true}
+      VALUE_HISTORY_TIMEZONE: ${VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
       DATABASE_URL: postgres://${POSTGRES_USER:-spellbook}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-spellbook}
       APP_ORIGIN: ${APP_ORIGIN}
       ADDRESS_HEADER: ${ADDRESS_HEADER:-}

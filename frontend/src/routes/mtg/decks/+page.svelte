@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ValueSummary from '#lib/components/valuation/ValueSummary.svelte';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import { readSavedJSON } from '#lib/saved-state/read.ts';
@@ -64,7 +65,7 @@
 	});
 	onMount(() => {
 		deckSubscription = workspaceSavedState.subscribe({
-			topics: ['decks', 'inventory'],
+			topics: ['decks', 'inventory', 'values'],
 			clear: () => {
 				categoryRead = null;
 				dirtyCategoryEntries = [];
@@ -76,6 +77,8 @@
 					decks: [],
 					deckCards: [],
 					availability: {},
+					valueEstimates: null,
+					valuationError: null,
 					ownedPrintings: [],
 					ownedByCanonical: {},
 					deckDocuments: {},
@@ -184,8 +187,10 @@
 						current() &&
 						cause instanceof Error &&
 						cause.message === 'This saved target is no longer available.'
-					)
+					) {
 						deletedTarget = true;
+						savedDecks = { ...savedDecks, valueEstimates: null, valuationError: null };
+					}
 					throw cause;
 				}
 			}
@@ -577,6 +582,7 @@
 			saveAccount = accountId;
 		}
 		if (saveLifecycle.setScope(data.user?.accountId ?? '', data.selectedDeckId, data.flow)) {
+			savedDecks = { ...savedDecks, valueEstimates: null, valuationError: null };
 			categoryRead = null;
 			dirtyCategoryEntries = [];
 			nativeCategoriesOpen = false;
@@ -955,6 +961,22 @@
 	{/if}
 	{#if selectedDeck}
 		<section class="deck-overview" aria-label="Deck overview">
+			<div class="my-4 grid gap-4 sm:grid-cols-2">
+				<ValueSummary
+					title="Required cards value"
+					estimate={savedDecks.valueEstimates?.required ?? null}
+					evaluatedAt={savedDecks.valueEstimates?.evaluatedAt}
+					error={savedDecks.valuationError?.message}
+				/>
+				<ValueSummary
+					title="Missing cards value"
+					estimate={savedDecks.valueEstimates?.missing ?? null}
+					error={savedDecks.valuationError?.message}
+				/>
+			</div>
+			<p class="muted text-xs">
+				Nonfoil market references. Each deck compares against your full Inventory.
+			</p>
 			{#if selectedDeck.description}<p class="deck-description muted">
 					{selectedDeck.description}
 				</p>{/if}

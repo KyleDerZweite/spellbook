@@ -7,6 +7,7 @@ import { ACTIVE_GAME_COOKIE, DEFAULT_GAME, isAvailableGame } from '#lib/state/ac
 const PUBLIC_PATH_PREFIXES = ['/auth/', '/privacy', '/terms'];
 const PROTECTED_PATH_PREFIXES = [
 	'/mtg/dashboard',
+	'/mtg/history',
 	'/mtg/inventory',
 	'/mtg/decks',
 	'/mtg/scan',

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { HistoricalHoldingIdentity } from '@spellbook/contracts/inventory-value.ts';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import PriceReference from './PriceReference.svelte';
 	import Select from '#lib/components/ui/select/Select.svelte';
@@ -14,6 +15,7 @@
 	interface Props {
 		card: CardDocument;
 		inventoryEntryId?: string;
+		inventoryHistoryIdentity?: HistoricalHoldingIdentity;
 		inventoryPriceRefreshKey?: string;
 		onPendingChange?: (pending: boolean) => void;
 		actions?: Snippet<[CardDocument]>;
@@ -26,6 +28,7 @@
 		callerPending = false,
 		actions,
 		inventoryEntryId,
+		inventoryHistoryIdentity,
 		inventoryPriceRefreshKey
 	}: Props = $props();
 
@@ -415,6 +418,13 @@
 				{inventoryPriceRefreshKey}
 				historyEnabled={inventoryEntryId === undefined}
 			/>
+			{#if inventoryHistoryIdentity && activeCard.id === inventoryHistoryIdentity.printingId}
+				<a
+					class="mt-2 inline-block underline"
+					href={`/mtg/history?${new URLSearchParams({ printingId: inventoryHistoryIdentity.printingId, ...(inventoryHistoryIdentity.finish ? { finish: inventoryHistoryIdentity.finish } : {}), ...(inventoryHistoryIdentity.condition ? { condition: inventoryHistoryIdentity.condition } : {}) })}`}
+					>Personal Inventory history for this holding</a
+				>
+			{/if}
 			{#if actions}{@render actions(activeCard)}
 			{:else if page.data.user && workspaceSavedState.getState() !== 'expired'}<CardQuickAdd
 					card={activeCard}

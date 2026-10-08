@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { HistoricalHoldingIdentity } from '@spellbook/contracts/inventory-value.ts';
 	import { Dialog } from 'bits-ui';
 	import type { Snippet } from 'svelte';
 	import type { CardDocument } from '#lib/search/types.ts';
@@ -7,6 +8,7 @@
 	interface Props {
 		card: CardDocument;
 		inventoryEntryId?: string;
+		inventoryHistoryIdentity?: HistoricalHoldingIdentity;
 		inventoryPriceRefreshKey?: string;
 		onClose: () => void;
 		actions?: Snippet<[CardDocument]>;
@@ -22,6 +24,7 @@
 		callerPending = false,
 		onPendingChange,
 		inventoryEntryId,
+		inventoryHistoryIdentity,
 		inventoryPriceRefreshKey
 	}: Props = $props();
 	let detailOpen = $state(false);
@@ -67,6 +70,7 @@
 					{actions}
 					{callerPending}
 					{inventoryEntryId}
+					{inventoryHistoryIdentity}
 					{inventoryPriceRefreshKey}
 					onPendingChange={(value) => {
 						quickAddPending = value;
