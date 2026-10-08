@@ -6,7 +6,14 @@ import { requireUuid, readJsonObject, readString } from '#lib/server/http/reques
 import { badRequestIfValidation } from '#lib/server/mobile/route-errors.ts';
 export const PATCH: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
-	const body = await readJsonObject(event.request);
+	const body = await readJsonObject(event.request, 65536);
+	if (
+		Object.keys(body).some(
+			(k) => !['requestId', 'expectedDecisionRevision', 'name', 'manual'].includes(k)
+		) ||
+		(body.name !== undefined && body.manual !== undefined)
+	)
+		throw error(400, 'Unsupported whole-deck category fields');
 	try {
 		const input = {
 			requestId: requireUuid(body.requestId),
@@ -35,7 +42,9 @@ export const PATCH: RequestHandler = async (event) => {
 };
 export const DELETE: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
-	const body = await readJsonObject(event.request);
+	const body = await readJsonObject(event.request, 65536);
+	if (Object.keys(body).some((k) => !['requestId', 'expectedDecisionRevision'].includes(k)))
+		throw error(400, 'Unsupported whole-deck category fields');
 	try {
 		return json(
 			await application.categories.removeWholeCategory(auth.user, {

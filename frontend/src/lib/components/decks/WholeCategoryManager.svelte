@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { untrack, onMount } from 'svelte';
+	import { untrack, onMount, onDestroy } from 'svelte';
 	import type { SubmitFunction } from '$app/forms';
+	import type { WriteHandle } from '#lib/saved-state/workspace.ts';
+	import type { WholeCategoryDraft } from '#lib/decks/whole-drafts.ts';
 	import type { DeckWholeCategories } from '@spellbook/contracts/whole-categories.ts';
 	import type { CategoryPreview } from '@spellbook/contracts/category-library.ts';
 	import { describeCategoryRule } from '#lib/categories/rule-summary.ts';
@@ -13,69 +15,139 @@
 		preview = null,
 		action,
 		unavailable = '',
-		selectedVersionId = null
+		selectedVersionId = null,
+		draft = undefined,
+		beginWrite = undefined
 	}: {
 		categories: DeckWholeCategories;
 		preview?: CategoryPreview | null;
 		action: (name: string) => string;
 		unavailable?: string;
 		selectedVersionId?: string | null;
+		draft?: WholeCategoryDraft;
+		beginWrite?: () => WriteHandle | undefined;
 	} = $props();
 	let selected = $state(
 		untrack(
-			() => selectedVersionId ?? categories.categories.find((c) => !c.suppressed)?.versionId ?? ''
+			() =>
+				(draft?.deckId === categories.deckId ? draft.versionId : null) ??
+				selectedVersionId ??
+				categories.categories.find((c) => !c.suppressed)?.versionId ??
+				''
 		)
 	);
 	let mounted = $state(false);
 	onMount(() => {
 		mounted = true;
 	});
+	let disposed = false;
+	onDestroy(() => {
+		disposed = true;
+	});
 	let mode = $state('Review');
-	let manual = $state<'Include' | 'Exclude'>('Include');
+	const recovery = untrack(() => (draft?.deckId === categories.deckId ? draft : undefined));
+	let manual = $state<'Include' | 'Exclude'>(recovery?.manual ?? 'Include');
 	let name = $state(
-		untrack(() => categories.categories.find((c) => c.versionId === selected)?.name ?? '')
+		untrack(() =>
+			recovery?.kind === 'rename'
+				? recovery.name
+				: (categories.categories.find((c) => c.versionId === selected)?.name ?? '')
+		)
 	);
-	let baseRevision = $state(untrack(() => categories.decisionRevision));
-	let requestId = $state(crypto.randomUUID());
-	let renameRequestId = $state(crypto.randomUUID());
+	let manualBase = $state(
+		recovery?.kind === 'manual'
+			? recovery.expectedDecisionRevision
+			: untrack(() => categories.decisionRevision)
+	);
+	let renameBase = $state(
+		recovery?.kind === 'rename'
+			? recovery.expectedDecisionRevision
+			: untrack(() => categories.decisionRevision)
+	);
+	let requestId = $state(recovery?.kind === 'manual' ? recovery.requestId : crypto.randomUUID());
+	let renameRequestId = $state(
+		recovery?.kind === 'rename' ? recovery.requestId : crypto.randomUUID()
+	);
+	let previewRequestId = $state(crypto.randomUUID()),
+		commitRequestId = $state(crypto.randomUUID()),
+		removeRequestId = $state(
+			recovery?.kind === 'remove' ? recovery.requestId : crypto.randomUUID()
+		);
+	let manualDirty = $state(recovery?.kind === 'manual'),
+		renameDirty = $state(recovery?.kind === 'rename');
 	let busy = $state(false),
-		message = $state(''),
-		dirty = $state(false);
+		message = $state('');
 	const current = $derived(categories.categories.find((c) => c.versionId === selected));
 	const scopedPreview = $derived(preview?.scope === 'deck' ? preview : null);
 	function choose(value: string) {
 		selected = value;
 		name = categories.categories.find((c) => c.versionId === value)?.name ?? '';
-		baseRevision = categories.decisionRevision;
+		manualBase = categories.decisionRevision;
+		renameBase = categories.decisionRevision;
 		requestId = crypto.randomUUID();
 		renameRequestId = crypto.randomUUID();
-		dirty = false;
+		manualDirty = false;
+		renameDirty = false;
 		message = '';
 	}
 	$effect(() => {
-		if (!dirty && !busy) {
-			baseRevision = categories.decisionRevision;
-			name = current?.name ?? '';
+		if (!busy) {
+			if (!manualDirty) manualBase = categories.decisionRevision;
+			if (!renameDirty) {
+				renameBase = categories.decisionRevision;
+				name = current?.name ?? '';
+			}
 		}
 	});
-	const submit: SubmitFunction = () => {
+	const submit: SubmitFunction = ({ action: submittedAction }) => {
+		const operation = submittedAction.search,
+			ownerDeck = categories.deckId,
+			write = beginWrite?.();
 		busy = true;
 		message = '';
 		return async ({ result, update }) => {
 			try {
+				if (disposed || ownerDeck !== categories.deckId || !(write?.current() ?? true)) return;
 				if (result.type === 'success') {
 					await update({ reset: false });
-					requestId = crypto.randomUUID();
-					renameRequestId = crypto.randomUUID();
-					dirty = false;
-					baseRevision = categories.decisionRevision;
-					message = 'Whole-deck category change saved.';
+					if (operation.includes('rebaseWholeDraft')) {
+						const d = result.data?.wholeDraft as WholeCategoryDraft | undefined;
+						if (d?.kind === 'rename') {
+							renameBase = d.expectedDecisionRevision;
+							renameRequestId = d.requestId;
+						} else if (d?.kind === 'manual') {
+							manualBase = d.expectedDecisionRevision;
+							requestId = d.requestId;
+						}
+						message = 'Draft rebased. Review it and save again.';
+					} else if (operation.includes('renameWholeCategory')) {
+						renameDirty = false;
+						renameBase = categories.decisionRevision;
+						renameRequestId = crypto.randomUUID();
+						message = 'Local label saved.';
+					} else if (operation.includes('setWholeCategory')) {
+						manualDirty = false;
+						manualBase = categories.decisionRevision;
+						requestId = crypto.randomUUID();
+						message = 'Manual choice saved.';
+					} else if (operation.includes('previewCategories')) {
+						previewRequestId = crypto.randomUUID();
+						message = 'Review the complete preview before saving.';
+					} else if (operation.includes('commitCategories')) {
+						commitRequestId = crypto.randomUUID();
+						message = 'Whole-deck Review/Reset saved.';
+					} else {
+						removeRequestId = crypto.randomUUID();
+						message = 'Whole-deck origin suppressed.';
+					}
 				} else {
-					dirty = true;
+					if (operation.includes('renameWholeCategory')) renameDirty = true;
+					if (operation.includes('setWholeCategory')) manualDirty = true;
 					message = 'The change was not confirmed. Your draft and original revision are retained.';
 					await update({ reset: false, invalidateAll: false });
 				}
 			} finally {
+				write?.complete();
 				busy = false;
 			}
 		};
@@ -163,7 +235,7 @@
 						/><input type="hidden" name="requestId" value={requestId} /><input
 							type="hidden"
 							name="expectedDecisionRevision"
-							value={baseRevision}
+							value={manualBase}
 						/>
 						<label
 							>Manual choice<Select
@@ -173,7 +245,7 @@
 								value={manual}
 								onchange={(value) => {
 									manual = value as 'Include' | 'Exclude';
-									dirty = true;
+									manualDirty = true;
 									requestId = crypto.randomUUID();
 								}}
 								options={[
@@ -183,7 +255,15 @@
 								disabled={busy}
 							/></label
 						>
-						<Button type="submit" disabled={busy || !!unavailable}>Save Manual choice</Button>
+						<input type="hidden" name="draftKind" value="manual" /><Button
+							type="submit"
+							disabled={busy || !!unavailable}>Save Manual choice</Button
+						><button
+							class="btn btn-ghost"
+							type="submit"
+							formaction={action('rebaseWholeDraft')}
+							disabled={busy || !!unavailable}>Rebase Manual draft</button
+						>
 					</form>
 					<form method="POST" action={action('renameWholeCategory')} use:enhance={submit}>
 						<input type="hidden" name="deckId" value={categories.deckId} /><input
@@ -193,27 +273,35 @@
 						/><input type="hidden" name="requestId" value={renameRequestId} /><input
 							type="hidden"
 							name="expectedDecisionRevision"
-							value={baseRevision}
+							value={renameBase}
 						/>
 						<label
 							>Local label<input
 								name="name"
 								bind:value={name}
 								oninput={() => {
-									dirty = true;
+									renameDirty = true;
 								}}
 								maxlength="128"
 								required
 								disabled={busy}
 							/></label
-						><Button type="submit" disabled={busy || !!unavailable}>Rename local label</Button>
+						><input type="hidden" name="draftKind" value="rename" /><Button
+							type="submit"
+							disabled={busy || !!unavailable}>Rename local label</Button
+						><button
+							class="btn btn-ghost"
+							type="submit"
+							formaction={action('rebaseWholeDraft')}
+							disabled={busy || !!unavailable}>Rebase label draft</button
+						>
 					</form>
 					<form method="POST" action={action('removeWholeCategory')} use:enhance={submit}>
 						<input type="hidden" name="deckId" value={categories.deckId} /><input
 							type="hidden"
 							name="versionId"
 							value={selected}
-						/><input type="hidden" name="requestId" value={crypto.randomUUID()} /><input
+						/><input type="hidden" name="requestId" value={removeRequestId} /><input
 							type="hidden"
 							name="expectedDecisionRevision"
 							value={categories.decisionRevision}
@@ -232,7 +320,7 @@
 				type="hidden"
 				name="scope"
 				value="deck"
-			/><input type="hidden" name="requestId" value={crypto.randomUUID()} />
+			/><input type="hidden" name="requestId" value={previewRequestId} />
 			<label
 				>Whole-deck scope<Select
 					label="Whole-deck change"
@@ -279,7 +367,7 @@
 						type="hidden"
 						name="previewId"
 						value={scopedPreview.id}
-					/><input type="hidden" name="requestId" value={crypto.randomUUID()} /><label
+					/><input type="hidden" name="requestId" value={commitRequestId} /><label
 						><input type="checkbox" name="confirmPreview" value="yes" required />I reviewed the
 						complete whole-deck change</label
 					><Button type="submit" disabled={busy || !!unavailable}

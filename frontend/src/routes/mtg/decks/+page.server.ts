@@ -1,3 +1,4 @@
+import type { WholeCategoryDraft } from '#lib/decks/whole-drafts.ts';
 import { error, fail, isHttpError, isRedirect, redirect } from '@sveltejs/kit';
 import type { Action, Actions, PageServerLoad } from './$types';
 import {
@@ -234,44 +235,82 @@ function removalIntent(form: FormData, prefix = '') {
 	};
 }
 
-export const actions = {
-	setWholeCategory: guarded(async ({ request, locals }) => {
-		const form = await readCategoryForm(request),
-			manual = field(form, 'manual');
-		if (manual !== 'Include' && manual !== 'Exclude')
+function wholeIntent(form: FormData, kind: WholeCategoryDraft['kind']): WholeCategoryDraft {
+	return {
+		kind,
+		deckId: field(form, 'deckId'),
+		versionId: field(form, 'versionId'),
+		requestId: field(form, 'requestId'),
+		expectedDecisionRevision: field(form, 'expectedDecisionRevision'),
+		name: String(form.get('name') ?? ''),
+		manual: field(form, 'manual') === 'Exclude' ? 'Exclude' : 'Include'
+	};
+}
+async function wholeAction(event: Parameters<Action>[0], kind: WholeCategoryDraft['kind']) {
+	let wholeDraft: WholeCategoryDraft | undefined;
+	const result = await guarded(async ({ request, locals }) => {
+		const form = await readCategoryForm(request);
+		wholeDraft = wholeIntent(form, kind);
+		await rememberCategoryPage(event, wholeDraft.deckId);
+		const input = {
+			requestId: wholeDraft.requestId,
+			deckId: wholeDraft.deckId,
+			versionId: wholeDraft.versionId,
+			expectedDecisionRevision: wholeDraft.expectedDecisionRevision
+		};
+		if (
+			kind === 'manual' &&
+			field(form, 'manual') !== 'Include' &&
+			field(form, 'manual') !== 'Exclude'
+		)
 			throw new ValidationError('Select Include or Exclude');
-		const acknowledgement = await application.categories.setWholeCategory(locals.user!, {
-			requestId: field(form, 'requestId'),
-			deckId: field(form, 'deckId'),
-			versionId: field(form, 'versionId'),
-			manual,
-			expectedDecisionRevision: field(form, 'expectedDecisionRevision')
-		});
-		return { success: true, message: 'Version-bound Manual choice saved.', acknowledgement };
-	}),
-	renameWholeCategory: guarded(async ({ request, locals }) => {
-		const form = await readCategoryForm(request);
-		const acknowledgement = await application.categories.renameWholeCategory(locals.user!, {
-			requestId: field(form, 'requestId'),
-			deckId: field(form, 'deckId'),
-			versionId: field(form, 'versionId'),
-			name: field(form, 'name'),
-			expectedDecisionRevision: field(form, 'expectedDecisionRevision')
-		});
-		return { success: true, message: 'Whole-deck local label saved.', acknowledgement };
-	}),
-	removeWholeCategory: guarded(async ({ request, locals }) => {
-		const form = await readCategoryForm(request);
-		if (field(form, 'confirmRemoval') !== 'yes')
+		if (kind === 'remove' && field(form, 'confirmRemoval') !== 'yes')
 			throw new ValidationError('Confirm suppression of this whole-deck origin');
-		const acknowledgement = await application.categories.removeWholeCategory(locals.user!, {
-			requestId: field(form, 'requestId'),
-			deckId: field(form, 'deckId'),
-			versionId: field(form, 'versionId'),
-			expectedDecisionRevision: field(form, 'expectedDecisionRevision')
-		});
-		return { success: true, message: 'Whole-deck origin suppressed.', acknowledgement };
-	}),
+		const acknowledgement =
+			kind === 'manual'
+				? await application.categories.setWholeCategory(locals.user!, {
+						...input,
+						manual: wholeDraft.manual
+					})
+				: kind === 'rename'
+					? await application.categories.renameWholeCategory(locals.user!, {
+							...input,
+							name: wholeDraft.name
+						})
+					: await application.categories.removeWholeCategory(locals.user!, input);
+		return { success: true, message: 'Whole-deck category change saved.', acknowledgement };
+	})(event);
+	return result && 'status' in result && 'data' in result
+		? fail(result.status, { ...result.data, wholeDraft })
+		: result;
+}
+
+export const actions = {
+	setWholeCategory: (event) => wholeAction(event, 'manual'),
+	renameWholeCategory: (event) => wholeAction(event, 'rename'),
+	removeWholeCategory: (event) => wholeAction(event, 'remove'),
+	rebaseWholeDraft: async (event) => {
+		let wholeDraft: WholeCategoryDraft | undefined;
+		const result = await guarded(async ({ request, locals }) => {
+			const form = await readCategoryForm(request);
+			wholeDraft = wholeIntent(form, field(form, 'draftKind') as WholeCategoryDraft['kind']);
+			const current = await application.categories.getDeckWholeCategories(
+				locals.user!,
+				wholeDraft.deckId
+			);
+			wholeDraft = {
+				...wholeDraft,
+				requestId: crypto.randomUUID(),
+				expectedDecisionRevision: current.decisionRevision
+			};
+			return { message: 'Draft rebased. Review it and save again.' };
+		})(event);
+		return result && 'status' in result && 'data' in result
+			? fail(result.status, { ...result.data, wholeDraft })
+			: result && typeof result === 'object'
+				? { ...result, wholeDraft }
+				: result;
+	},
 
 	renameCategory: async (event) => {
 		let renameDraft:
