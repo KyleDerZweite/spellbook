@@ -1,10 +1,10 @@
 # Spellbook
 
 - Status: Canonical domain glossary
-- Last Reviewed: 2026-10-07
+- Last Reviewed: 2026-10-08
 - Source of Truth: product specification, accepted domain requirements, schema, catalog and account repositories
 - Update Triggers: card identity, inventory grouping, deck roles, deck entry categories, whole-deck categories and availability, reference values, coverage and personal Inventory history, scan review, physical-card terminology, profile cards and metric placeholders
-- Related Docs: [Product specification](docs/product/specification.md), [Value tracking](docs/product/value-tracking.md), [Catalog](docs/architecture/catalog.md), [Postgres](docs/architecture/postgres.md), [Card scanner and sorter](docs/integrations/card-robot.md)
+- Related Docs: [Product specification](docs/product/specification.md), [Value tracking](docs/product/value-tracking.md), [Category rules](docs/architecture/category-rules.md), [Catalog](docs/architecture/catalog.md), [Postgres](docs/architecture/postgres.md), [Card scanner and sorter](docs/integrations/card-robot.md)
 
 Spellbook describes MTG catalog identities, owned cards, deck requirements, and scan review in one context. This glossary owns terminology; the linked documents own behavior and proposed capabilities.
 
@@ -117,6 +117,10 @@ _Avoid_: Deck entry category, deck role, format
 **Category definition**:
 An account-owned reusable name, meaning and classification rules for either Deck entries or whole Decks. Its scope is explicit; deck-local categories and assignments remain separate from the definition.
 _Avoid_: Deck entry category, Deck category assignment, catalog tag
+
+**Category definition version**:
+An immutable edition of a Category definition. A Deck can retain an older meaning while newer Decks adopt the current edition.
+_Avoid_: Current label, source publication, category assignment
 
 **Deck availability**:
 A comparison of one deck's required quantities with its owner's inventory, allocating exact printing matches before alternate printings.

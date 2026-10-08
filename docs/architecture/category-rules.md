@@ -2,7 +2,7 @@
 
 - Status: Account Category Library, entry rules, local category controls and entry Review/Reset implemented; whole-deck evaluation and combos planned
 - Last Reviewed: 2026-10-08
-- Source of Truth: Q56 contract, Category backend/contracts, Worker raw facts and native/API adapters
+- Source of Truth: Q56 contract, reviewed whole-deck design dated 2026-10-08, Category backend/contracts, Worker raw facts and native/API adapters
 - Update Triggers: definition versions, deck-local bundles, rule vocabulary and priority, source publications, composition jobs, Review/Reset, combo constraints and category acceptance evidence, operational work budgets, consequence retention and commit-scoped saved-state invalidation
 - Related Docs: [Architecture](./README.md), [Card grouping](../product/card-grouping.md), [Domain glossary](../../GLOSSARY.md), [Classifier research](../integrations/card-categorization.md), [Application contract](./application-contract.md), [Catalog](./catalog.md), [Worker](./worker.md), [ADR-0019](../decisions/0019-versioned-categories-and-local-source-rules.md)
 
@@ -32,7 +32,7 @@ Account Category Definitions have separate entry and whole-deck scopes with immu
 
 Local rename changes a label. Editing reusable meaning changes explicit rules and creates a new version. Starter meanings remain independent of custom replacements. Archive reusable definitions for future decks while preserving referenced old versions. Removing a local entry category atomically chooses a replacement or Uncategorized and suppresses recreation of that origin in the deck.
 
-Persist manual versus automatic entry decisions and manual whole-deck inclusions/exclusions. Quantity/import additions preserve assignments. Role/printing replacement preserves source assignments unless merging into an existing destination, whose assignment wins after preview. Stable decision revisions protect these choices independently of composition revisions.
+Entry decisions persist Manual versus Automatic/Pending provenance. Quantity/import additions preserve assignments. Role/printing replacement preserves source assignments unless merging into an existing destination, whose assignment wins after preview. Stable decision revisions protect these choices independently of composition revisions. Whole-deck Manual Include/Exclude persistence belongs to the reviewed planned contract below.
 
 ## Bounded rule interface
 
@@ -64,13 +64,59 @@ The [private Category work owner](../../backend/src/categories/work.ts) bounds p
 
 Cleanup progresses through at most 1000 expired consequence rows and 8 completed payloads per call through the live-payload partial index. Compact identity/expiry records and original receipts remain. Matching commit replay precedes subject and expiry requirements, so expiry, cleaned plans and later Deck deletion cannot recreate an effect. Bundle, decisions, revision and original receipt share one transaction. The shared SavedState owner supplies transaction-only account invalidation; no separate Category stream is introduced.
 
-## Later whole-deck reevaluation
+## Reviewed whole-deck implementation contract
 
-Whole-deck classification permits multiple categories through account rules and explained threshold templates. Do not invent a universal Control/Midrange heuristic. Saved composition changes enqueue durable coalesced reevaluation with the adopted definition versions. Use the latest valid source facts and record exact provenance. Source refresh alone never queues reassignment. Entry decisions remain fixed; automatic whole-deck outcomes can change after composition edits using newer facts.
+This accepted contract was independently reviewed on 2026-10-08. Whole-deck execution and bounded Deck Library browsing are not implemented yet. They depend on the verified Account Category Library baseline. The existing public Snapshot contract remains available while the Web route adopts bounded reads.
 
-Reject stale jobs against composition and category-decision revisions. Unknown reevaluation keeps a prior valid whole-deck result visibly pending/stale. Manual inclusions/exclusions survive. This lifecycle avoids retaining every complete classifier snapshot indefinitely while allowing new cards to use current facts.
+### Ownership and adopted versions
 
-Review previews current definitions/sources while preserving manual decisions. Reset explicitly releases manual choices only within selected scope. Neither restores suppressed categories without explicit selection. Both show entry moves and changed labels before commit. Commit checks composition/decision revisions, rejecting stale previews instead of reorganizing a newer deck.
+Categories owns multiple whole-deck outcomes, Manual Include/Exclude, copied evidence, scoped Review/Reset and durable jobs. Decks owns composition and metadata commands and invokes one transaction-bound Category helper. Frontend owns transport leases, bounded metadata caching, tile geometry and drafts. Public whole-deck differences and acknowledgements use explicit scoped types, rather than entry-only fields.
+
+The next additive native migration must hydrate existing `whole_deck_definitions` from their exact adopted snapshots. It must not replace them with current reusable definitions. Store local instances, version-bound decisions and one coalesced job per Deck. Several versions of an origin can coexist; uniqueness uses Deck and immutable version, not origin or display name. Copied evidence remains independent of prunable public publications.
+
+Creation and explicit legacy initialization enqueue an initial evaluation, including empty Decks. Negated minimum rules can match empty compositions. Subsequent jobs follow saved semantic composition changes only. Source refresh, Description saves, receipt replay and floor no-ops do not queue reassignment. Entry decisions remain fixed.
+
+Review adopts current versions while preserving historical Manual decisions with their original meaning. A newer automatic version can coexist with an older Manual version of the same origin. Historical Manual Exclude applies only to its saved version. Reset releases Manual decisions only in its selected scope. Suppressed origins return only through explicit selection; names and meanings remain inspectable before commit.
+
+### Three-valued aggregate rules
+
+Evaluate each whole category independently. Account rules and explained threshold templates may overlap. Do not infer a universal Control/Midrange heuristic from names. Participating roles are explicit; trait templates use Main. Traverse every nested aggregate's Entry predicates to collect its requested Oracle roots.
+
+Minimum copies uses proven and possible matching quantity bounds. Minimum distinct deduplicates proven raw Oracle identities across printings and roles; a Printing ID never substitutes for unknown canonical identity. Percentage compares exact BigInt products. For `nonland`, its numerator includes only cards inside that denominator. Unknown Land or predicate facts require jointly possible numerator/denominator bounds. True needs a proven nonempty denominator and a threshold met in every possible case. A proven empty denominator is False, including at zero basis points. A possibly empty denominator can remain Unknown. Invalid persisted quantities fail integrity checks.
+
+Evidence records the adopted rule/version/roles, exact decimal-string bounds, composition revision and current publication IDs, digests, parser and transform versions. Unknown preserves the last valid outcome and evidence visibly as Pending/stale. First-time Unknown creates no positive membership. Manual decisions win. Combo predicates remain Unknown until the optional local adapter provides trusted facts.
+
+### Durable job and runtime ownership
+
+Upsert coalesces short editing bursts into one job with a monotonic generation. Category decisions update the target of an existing job without creating a missing job. Claim briefly with `FOR UPDATE SKIP LOCKED` and a lease token/expiry, then commit before processing. Claim takes no further Profile/Deck locks. Autonomous processing locks Profile, Deck, bundle and job. User commands retain the trusted live-session and receipt fences before Deck/bundle/job locks. Reviewed source-state locks follow Catalog, then Oracle ordering.
+
+Bounded evaluation uses current facts and adopted rules. Success, backoff and deletion all compare the claimed generation and lease token. Publication also checks composition and decision revisions. A newer upsert invalidates an older claim; old work cannot delete or delay the newer generation. Infrastructure failures retain bounded durable backoff. Semantic Unknown completes the attempt without endless retries.
+
+Whole Review/Reset atomically commits exactly its displayed results after Library, composition, decision and source fences. Its new adoption explicitly updates or invalidates pending work. Changed visible decisions, evidence or Pending state advance decision and directory revisions and publish transaction-only `decks` invalidation. No-op, replay and rollback publish nothing.
+
+Runtime owns one timer and one physically unsettled processing promise. Start/close are idempotent; build analysis starts nothing. Shutdown/HMR stops admission and cancelled publication, retaining ownership until actual work settles. Expired leases recover after process failure. Ignored cancellation cannot start a second physical processing task.
+
+### Bounded Library reads and version-safe filters
+
+A separate account Deck-Library revision owns directory consistency. Do not reuse the reusable Category Library revision. Creation/deletion, visible metadata changes, composition covers/totals and Category publication advance it atomically. Missing state reads as revision zero; GET provisions nothing.
+
+`getDeckLibrary` returns at most 200 metadata rows with query identity, revision, offset/limit, unique matching/global totals and compact badges. It returns no compositions, Inventory or full predicate evidence. Filter options/counts use a separate bounded read, with exact immutable version identity, name/meaning/version and historical markers. Selected versions can be read directly. Page, options/counts and `locateDeck` share the expected directory revision or return RevisionChanged. Sorting is deterministic with Deck ID as tie-breaker; location uses the identical normalized query and sort.
+
+Selected versions combine with OR and other filters with AND. Membership is Manual Include or current/retained-valid automatic True unless manually excluded. Counts use unique Deck identities; overlapping category counts are not summed into the global total. The selected Deck/editor has an independent authorized read and remains open outside filters or resident ranges. Replace the Web loader's unbounded Snapshot metadata reads and refreshes; adding a bounded endpoint alongside those reads is insufficient.
+
+### Continuous Lazy Library UI
+
+Enhanced Library uses continuous Lazy loading with one native Window scrollbar. Reuse the existing browsing pagination, loaded-span and viewport helpers and Shell restoration. Previous/Next belongs only to the no-JavaScript fallback. Deep anchor recognition includes the Deck Library.
+
+A small DeckLibraryWindow owns account/query/revision identity, ranges, physical settlement and stale-response rejection. Reuse shared geometry where identical; do not pass Deck DTOs to Inventory- or Catalog-typed renderers. Preserve existing tiles with measured variable heights. Bound the cache to four contexts, twenty pages and 1,000 metadata records including SSR seeds. Admit at most three physical requests until fetch/body decoding actually settles, including ignored aborts. Mount at most 200 tiles including retained focus and prune measurement maps. Selected editor/drafts have a separate bounded lifetime and survive cache eviction. Terminal account state clears all private directory presentation.
+
+Only successful explicit contiguous ranges grow the visited span. Speculative, failed or aborted ranges reserve no unloaded extent. Deep links begin at their addressed segment; evicted ranges can reload. Signed prepend, resize and toolbar changes preserve the visible Deck/intra-tile anchor. Filters push the first range into URL history, browsing replaces its logical page anchor, and Back/Forward/reload restores that segment.
+
+### Required acceptance evidence
+
+Use real isolated PostgreSQL for additive adoption, empty initial evaluation, coalescing, competing claims, crash recovery, stale success/error publication, Manual preservation, scoped Review/Reset, suppression, replay and source-refresh silence. Pure aggregate tests cover raw-ID deduplication, roles, Unknown, possibly empty denominators and exact thresholds. More than 1,000 real Deck metadata rows exercise bounded first/deep/end reads, overlapping/historical versions, unique counts, account isolation and query plans.
+
+Built HTTP verifies cookie/bearer authorization, revoked-session fences, GET-no-write, original receipt retry and payload conflicts, stale previews, directory revision/location and a selected Deck outside filters. Deferred transports verify physical request occupancy, cache and DOM bounds. Two real processes verify durable jobs and `decks` invalidation. Native desktop and 360px journeys cover continuous traversal, eviction/revisit, deep reload, Back/Forward, filters, resize, keyboard focus, long labels and failed-save draft retention. Check a single native scrollbar, no enhanced pagination and functional bounded no-JavaScript navigation. Historical Manual Draw must remain inspectable and must not match a newer Infinite Counter version's filter.
 
 ## Optional local combo adapter
 
