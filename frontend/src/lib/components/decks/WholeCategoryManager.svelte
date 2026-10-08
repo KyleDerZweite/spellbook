@@ -394,9 +394,7 @@
 						.map((c) => [c.originId, c])).values()] as suppressed (suppressed.originId)}<label
 					><input type="checkbox" name="restoreOriginIds" value={suppressed.originId} />Restore {suppressed.name}</label
 				>{/each}
-			<Button type="submit" disabled={busy || !!unavailable || !current}
-				>Preview whole-deck changes</Button
-			>
+			<Button type="submit" disabled={busy || !!unavailable}>Preview whole-deck changes</Button>
 		</form>
 		{#if scopedPreview}
 			<p>{scopedPreview.total} reviewed consequences. {scopedPreview.status}.</p>
@@ -427,7 +425,7 @@
 					/><input type="hidden" name="requestId" value={commitRequestId} /><label
 						><input type="checkbox" name="confirmPreview" value="yes" required />I reviewed the
 						complete whole-deck change</label
-					><Button type="submit" disabled={busy || !!unavailable || !current}
+					><Button type="submit" disabled={busy || !!unavailable}
 						>Save whole-deck Review/Reset</Button
 					>
 				</form>{/if}
