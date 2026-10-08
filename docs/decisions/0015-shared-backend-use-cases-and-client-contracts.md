@@ -2,17 +2,17 @@
 
 - Status: Accepted
 - Date: 2026-10-06
-- Last Reviewed: 2026-10-07
+- Last Reviewed: 2026-10-08
 - Owners: Kyle
 - Source of Truth: accepted maintainer boundary and app-delivery decisions
-- Update Triggers: module ownership, import enforcement, client/API parity, independent backend deployment and app delivery, accepted design contracts and implementation evidence
+- Update Triggers: module ownership, application lifecycle and native operator ownership, import enforcement, client/API parity, independent backend deployment and app delivery, accepted design contracts and implementation evidence
 - Related Docs: [System overview](../architecture/system-overview.md), [Frontend](../architecture/frontend.md), [Product specification](../product/specification.md), [Deployment](../operations/deployment.md), [ADR-0003](./0003-pwa-first-mobile-and-server-side-scan.md), [ADR-0007](./0007-backend-first-mtg-bulk-import-api.md), [Decisions](./README.md), [Application contract](../architecture/application-contract.md)
 
 ## Context
 
 The workspace, Catalog/Auth, Account/Profile/Dashboard, Inventory/Groups reads and mutations, Deck and complete Scan application contracts and SavedState/Profile boundaries are implemented. Complete feature/API parity remains planned.
 
-Current SvelteKit routes combine rendering, HTTP handling and direct repository calls. The external API does not expose every web workflow. A later separate app needs the same account rules and mutation behavior without duplicating domain logic. Self hosting and the current SvelteKit web experience remain priorities.
+SvelteKit routes retain rendering and HTTP handling while calling shared backend use cases. The backend application constructor owns database resources and lifecycle, and backend operator modules own native persistence. Frontend runtime database/schema compatibility modules and legacy persistence exceptions are removed. The external API does not expose every web workflow. A later separate app needs the same account rules and mutation behavior without duplicating domain logic. Self hosting and the current SvelteKit web experience remain priorities.
 
 Separating deployments immediately would also require complete web HTTP adapters, authentication forwarding and additional operator work. Module ownership can establish the needed seam first.
 

@@ -3,12 +3,12 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-08
 - Source of Truth: code
-- Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership and compatibility adapters, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers, private value checkpoints and frozen evidence, public price publication and retention, Oracle Tags publications and raw facts, entry category bundles/decisions and receipts, immutable account definitions and relational preview retention
+- Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership, application resource lifetime and native operator ownership, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers, private value checkpoints and frozen evidence, public price publication and retention, Oracle Tags publications and raw facts, entry category bundles/decisions and receipts, immutable account definitions and relational preview retention
 - Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Category rules](./category-rules.md)
 
 PostgreSQL stores account-owned application state, the public Scryfall catalog and public price references.
 
-The backend [schema](../../backend/src/db/schema.ts) owns table definitions, and [database construction](../../backend/src/db/client.ts) owns Drizzle/pg setup. The named [frontend database compatibility adapter](../../frontend/src/lib/server/db/client.ts) injects database/build-analysis configuration and constructs one backend database resource. Frontend composition privately consumes that resource and exports only feature use cases. Raw `db`/`pool` exports stay in the database adapter for exact allowed compatibility consumers. Frontend schema/client modules are compatibility adapters for untouched repositories; the existing [Drizzle migration history](../../frontend/drizzle/) and migration commands remain unchanged.
+The backend [schema](../../backend/src/db/schema.ts) owns table definitions, and [database construction](../../backend/src/db/client.ts) owns Drizzle/pg setup. The [application constructor](../../backend/src/application.ts) owns the runtime resource and closure. Frontend composition supplies configuration and exports only use cases, without raw database handles. Frontend database/schema compatibility modules are removed. Integration tests use the [test-only database fixture](../../frontend/tests/fixtures/database.ts) and backend schema directly. [Drizzle configuration](../../frontend/drizzle.config.ts) references the backend schema; the existing [migration history](../../frontend/drizzle/) and native migration commands remain in frontend tooling.
 
 ## Current Tables
 
@@ -72,10 +72,10 @@ Additive migration [0016](../../frontend/drizzle/0016_deck_entry_categories.sql)
 
 ## Current Access Pattern
 
-- backend Catalog, Auth, Profile, Dashboard, Inventory, Deck and Valuation use Drizzle ORM and `pg` through frontend server composition; remaining SvelteKit feature repositories use explicit compatibility adapters
+- backend use cases use Drizzle ORM and `pg` through the owned backend application resource; frontend server adapters call those use cases
 - browser pages load user data through server load functions and route actions
-- optional mobile API endpoints call the same repository functions as web routes
-- repository functions enforce ownership by internal Spellbook `accountId`
+- optional mobile API endpoints call the same backend use cases as web routes
+- backend use cases derive internal Spellbook `accountId` from session-produced trusted actors
 - the backend Profile use case reads account-scoped MTG totals directly from `inventory_cards` and `decks` without creating inventory rows or calling the catalog worker
 - profile totals count owned quantities, distinct canonical card IDs, distinct printing IDs, distinct set codes, foil quantities, and decks; a totals read failure leaves profile customization available
 - the backend Profile use case reads the saved card independently of totals and validates it against the shared definition; [authentication](./auth.md) owns Settings validation, default handling and atomic preference updates

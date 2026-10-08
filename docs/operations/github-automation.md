@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-08
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
-- Update Triggers: test commands, workflow coverage, runtime pins, browser verification, PR policy, Dependabot policy, engineering skill tracker and domain layout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks
+- Update Triggers: test commands, workflow coverage, runtime pins, browser verification, PR policy, Dependabot policy, engineering skill tracker and domain layout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
 - Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance), [Application boundaries](../architecture/application-contract.md#implementation-status)
 
 This document owns repository check commands, CI coverage, and verification evidence. Product and integration documents own behavior and acceptance criteria. Run checks appropriate to the changed behavior; do not treat a passing command as proof of requirements it does not exercise.
@@ -78,6 +78,19 @@ frontend/node_modules/.bin/prettier --check README.md GLOSSARY.md AGENTS.md CONT
 ```
 
 Follow [documentation maintenance](../README.md#maintenance) for links, ownership, metadata, and stale claims. Documentation-only changes do not need application tests unless they also change executable behavior.
+
+## Application and native operator checks
+
+[Construction cases](../../frontend/tests/unit/application-construction.test.ts), [lifetime cases](../../frontend/tests/unit/application-lifetime.test.ts) and [transport import cases](../../frontend/tests/unit/transport-lifetime.test.ts) run through `pnpm test:unit`. They cover configuration validation before acquisition, cleanup after construction failure, build analysis, idempotent start/close, close before start, restart rejection and pool closure after cleanup failure. Transport imports require no database configuration and start no resources. The [boundary tests](../../scripts/check-boundaries.test.mjs) reject frontend persistence/internal imports and runtime access to operator wrappers. Real HMR, production shutdown and two-process HTTP behavior require their separate runtime checks.
+
+Integration tests consume the [test-only backend database fixture](../../frontend/tests/fixtures/database.ts) and backend schema directly. Native operator checks run from `frontend/` with the pinned Node toolchain:
+
+```sh
+node --test scripts/demo/operators.test.mjs scripts/demo/precon.test.mjs
+node --test scripts/demo/operators.integration.test.mjs scripts/demo/precon.integration.test.mjs
+```
+
+Set `TEST_DATABASE_URL` for the second command to an empty migrated disposable database ending in `_demo` or `_design`. Without it, native database coverage skips. These cases cover guarded Demo preservation/replacement, transactional rollback, password recovery and session revocation. The disposable target is a verification requirement, not a production restriction on the password recovery command. Check results at the aggregate head; existing fixture/provider tests do not establish normal-database refresh, rendered acceptance or deployment.
 
 ## CI coverage
 

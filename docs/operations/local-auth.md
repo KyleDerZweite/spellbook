@@ -1,9 +1,9 @@
 # Local authentication and account recovery
 
 - Status: Canonical
-- Last Reviewed: 2026-10-07
+- Last Reviewed: 2026-10-08
 - Source of Truth: code
-- Update Triggers: single root environment and demo launch configuration, registration policy, credential recovery command, migration, reverse proxy origin, demo mode, versioned English Catalog publication and private starter preservation, original shipped Upgrades Unleashed Inventory and guarded replacement
+- Update Triggers: single root environment and demo launch configuration, registration policy, credential recovery command and backend operator lifetime, migration, reverse proxy origin, demo mode, versioned English Catalog publication and private starter preservation, original shipped Upgrades Unleashed Inventory and guarded replacement
 - Related Docs: [Authentication architecture](../architecture/auth.md), [Deployment](./deployment.md), [Postgres](../architecture/postgres.md), [ADR-0009](../decisions/0009-local-authentication.md), [Catalog](../architecture/catalog.md), [Manual Demo Catalog updates](./deployment.md#manual-demo-catalog-update)
 
 New users register at `/auth/register` and sign in at `/auth/login`. Registration is public. The [authentication contract](../architecture/auth.md) defines credential rules, sessions, and JSON API login.
@@ -26,7 +26,7 @@ node --env-file=../.env scripts/set-local-password.mjs ACCOUNT_ID USERNAME < /se
 
 The existing account ID and desired local username are arguments. The password is read from standard input, not a process argument. Keep the input file private and remove temporary password files after use.
 
-The command updates the account's local credentials and display username, preserves owned data, and revokes all sessions for that account. It rejects missing account IDs and usernames already assigned to another local account. Successful execution prints `Local credentials saved. Existing sessions revoked.`
+The native script owns arguments and bounded stdin intake. It calls the [backend password operator](../../backend/src/operators/local-password.ts), which owns the database pool and atomic credential/display-username update and session revocation. It supports the operator's authorized target database, including production, without Demo suffix restrictions. Owned data remains intact. It rejects missing account IDs and usernames already assigned to another local account. Successful execution prints `Local credentials saved. Existing sessions revoked.`
 
 For a compose deployment, run the same script in the migration image, which includes the source and inherits the internal database connection. From the repository root:
 
@@ -60,6 +60,8 @@ The seed refuses databases with other usernames. To explicitly delete all accoun
 ```sh
 pnpm demo:seed --reset-users
 ```
+
+The native Demo scripts load and verify public fixtures, then call the [backend Demo operators](../../backend/src/operators/demo.ts) with explicit inputs. Backend owns SQL, transactions and pool cleanup. Native command paths and arguments remain unchanged.
 
 Ordinary `pnpm demo:seed` refreshes the versioned public Catalog before returning for an existing Demo account, preserving credentials, Decks, Inventory, revisions, Notes and other private edits. Only explicit `--reset-users` deletes private users and revokes their sessions through account deletion. A complete already-active bundle is a Catalog pointer/timestamp no-op. The existing seed transaction rolls back Catalog and private changes together on failure. No external card API is needed to seed; images still require network access. Demo publication does not publish Price state or establish provider freshness. Guarded local import and preservation of private state are verified and recorded with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192). Deployment remains separate.
 
