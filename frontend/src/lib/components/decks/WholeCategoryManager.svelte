@@ -10,7 +10,7 @@
 	} from '@spellbook/contracts/whole-categories.ts';
 	import type { CategoryPreview } from '@spellbook/contracts/category-library.ts';
 	import { describeCategoryRule } from '#lib/categories/rule-summary.ts';
-	import { describeCategoryConsequence } from '#lib/categories/preview-label.ts';
+	import { describeWholeCategoryConsequence } from '#lib/categories/whole-preview-label.ts';
 	import Button from '#lib/components/ui/button/Button.svelte';
 	import Select from '#lib/components/ui/select/Select.svelte';
 	let {
@@ -398,13 +398,26 @@
 		</form>
 		{#if scopedPreview}
 			<p>{scopedPreview.total} reviewed consequences. {scopedPreview.status}.</p>
-			{#each scopedPreview.differences as difference (difference.kind + ':' + difference.entityId)}<p
-				>
-					{difference.message}
-					{describeCategoryConsequence(difference.before)} to {describeCategoryConsequence(
-						difference.after
-					)}.
-				</p>{/each}
+			{#each scopedPreview.differences as difference (difference.kind + ':' + difference.entityId)}
+				<div class="whole-consequence">
+					<p>{difference.message}</p>
+					{#each [{ label: 'Before', value: difference.before }, { label: 'After', value: difference.after }] as side (side.label)}
+						{@const consequence = describeWholeCategoryConsequence(side.value)}
+						{#if consequence}
+							<p>{side.label}: {consequence.title}. {consequence.outcome}</p>
+							<details>
+								<summary>{side.label} frozen meaning and criteria</summary>
+								<p>Definition label: {consequence.definitionName}</p>
+								<p>{consequence.meaning}</p>
+								<p>{consequence.criteria}</p>
+								<p class="muted">Version ID: {consequence.versionId}</p>
+							</details>
+						{:else if side.value === null}<p>
+								{side.label}: No adopted version; no membership.
+							</p>{/if}
+					{/each}
+				</div>
+			{/each}
 			{#if scopedPreview.offset > 0}<a
 					href={`/mtg/decks?deck=${categories.deckId}&preview=${scopedPreview.id}&previewOffset=${Math.max(0, scopedPreview.offset - scopedPreview.limit)}`}
 					>Previous consequences</a
