@@ -23,6 +23,7 @@ The [route source](../../frontend/src/routes/) owns implemented handlers. The [s
 | `/mtg/inventory/[entryId]`    | Authenticated SSR owned-entry Notes/Groups/reviewed Remove forms                  |
 | `/mtg/inventory`              | Authenticated bounded Inventory pages, GET filters and form actions               |
 | `/mtg/scan`                   | Authenticated image upload, candidate review, and explicit inventory commit       |
+| `/mtg/categories`             | Authenticated scoped reusable Category Library and native criteria editor         |
 | `/mtg/decks`                  | Authenticated deck library; `deck=ID` selects the editor; native tasks use `flow` |
 | `/mtg/decks/[deckId]/export`  | Authenticated text export of an owned deck                                        |
 | `/settings`                   | Authenticated contact email and Edit avatar dialog; excluded from indexing        |
@@ -53,6 +54,8 @@ Public `/mtg/search` native GET state includes `q`, repeated supported filters, 
 
 The Deck page supports `flow=create|edit|import|delete|search` for native task entry. [Frontend](../architecture/frontend.md#shared-deck-ui) owns the form adapters and shared presentation responsibilities. These queries add no API path or method.
 
+Category controls use `localCategory`, `preview` and `previewOffset` for pure native GET selection/paging. Their POST actions delegate to the [Category owner](../architecture/category-rules.md#entry-reviewreset-transactions).
+
 Signed-out access to protected pages redirects to `/auth/login` with the local path and query preserved. Login and registration default to `/mtg/inventory` when no safe destination is supplied. An explicit safe `returnTo`, including `/` or `/mtg/decks?deck=ID`, remains authoritative. Versioned MTG endpoints accept a bearer session or the authenticated browser session. An Authorization header takes precedence and an invalid bearer token fails without cookie fallback. Unsafe cookie-authenticated requests require same-origin protection. The [authentication document](../architecture/auth.md) owns credential and session rules.
 
 There is no OIDC callback route, game-switching page, play route, public deck page, camera capture page, or offline workspace.
@@ -80,6 +83,12 @@ All paths below begin with `/api/mobile/v1/mtg`. The historical `mobile` name do
 | `/decks/ownership`                                         | Owned-printing aggregates for at most 100 canonical identities |
 | `/decks/[deckId]`                                          | Owned deck retrieval, metadata changes, and deletion           |
 | `/decks/[deckId]/availability`                             | Owned deck availability counts without inventory mutation      |
+| `/category-definitions`                                    | Scoped definition pages and immutable version saves            |
+| `/category-definitions/[originId]/archive`                 | Future-adoption archive or restore                             |
+| `/decks/[deckId]/categories/[categoryId]`                  | Local label PATCH or all-role replacement/suppression DELETE   |
+| `/decks/[deckId]/category-previews`                        | Entry Review/Reset POST with explicit restoration selections   |
+| `/category-previews/[previewId]`                           | Stable paged consequences GET                                  |
+| `/category-previews/[previewId]/commit`                    | Complete atomic reviewed commit POST                           |
 | `/decks/[deckId]/cards`                                    | Deck entries and additions                                     |
 | `/decks/[deckId]/cards/bulk`                               | Idempotent deck entry mutations                                |
 | `/decks/[deckId]/export`                                   | Arena-style text export                                        |

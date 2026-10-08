@@ -1,7 +1,7 @@
 # Authentication
 
 - Status: Canonical
-- Last Reviewed: 2026-10-07
+- Last Reviewed: 2026-10-08
 - Source of Truth: code
 - Update Triggers: credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, summary reporting failures, post-login destinations, agent discovery, workspace ownership and compatibility adapters, SavedState stream authority and origin policy
 - Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Routes](../product/routing-and-games.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md), [Application contract](./application-contract.md)
@@ -107,3 +107,5 @@ Migration `0004` adds credentials and sessions without changing account IDs. His
 ## Agent account creation
 
 `GET /llms.txt` provides a public Markdown overview, application and API links, and ordinary local account registration and credential storage rules for agents. The shared HTML head discovers it through `rel="describedby"`, following the [llms.txt proposal](https://llmstxt.org/). `/agents.md` permanently redirects to `/llms.txt`. The current JSON API remains the authentication owner, with full-account sessions rather than delegated scopes. Demo mode publishes a disabled-registration guide. The [provider evaluation](./auth-provider-evaluation.md#future-authmd-integration) records the separate future auth.md protocol work.
+
+Category commands and Deck writes acquire the owning Profile lock before the internal `requireActorForWrite` session fence. Auth locks the trusted session row `FOR SHARE` and checks live expiry after the wait. A concurrent logout either revokes before validation, causing rollback, or waits until the authorized transaction finishes. Ordinary `requireActor` remains nonlocking for read-only GET transactions.

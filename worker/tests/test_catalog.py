@@ -39,7 +39,7 @@ def publisher():
                 conn.execute(
                     "CREATE TABLE catalog_oracle_facts(generation_id uuid REFERENCES "
                     "catalog_generations(id) ON DELETE CASCADE,printing_id uuid,raw_oracle_id "
-                    "uuid,types text[],transform_version integer,PRIMARY "
+                    "uuid,types text[],keywords text[],transform_version integer,PRIMARY "
                     "KEY(generation_id,printing_id))"
                 )
             yield CatalogPublisher(scoped)
@@ -361,7 +361,7 @@ def test_raw_category_facts_share_catalog_generation_but_not_price_extractor_ver
             "JOIN price_state s ON s.id=1 JOIN price_publications p ON p.id=s.active_publication "
             "AND p.catalog_generation_id=g.id"
         ).fetchone()
-        assert generation == fact_version == SCHEMA_VERSION == 2
+        assert generation == fact_version == SCHEMA_VERSION == 3
         assert (extractor, mapping) == (EXTRACTOR_VERSION, MAPPING_VERSION) == (3, 1)
         assert oracle == UUID(raw["oracle_id"])
         assert types == ["Creature"]
@@ -381,3 +381,17 @@ def test_raw_category_facts_share_catalog_generation_but_not_price_extractor_ver
             == before
         )
         assert conn.execute("SELECT count(*) FROM catalog_oracle_facts").fetchone()[0] == 1
+
+
+def test_raw_keyword_absence_is_not_known_empty(publisher, tmp_path):
+    base = json.loads((FIXTURES / "normal_card.json").read_text())
+    known = dict(base, id=str(uuid4()), keywords=[])
+    positive = dict(base, id=str(uuid4()), keywords=["Flying"])
+    missing = dict(base, id=str(uuid4()))
+    missing.pop("keywords", None)
+    publisher.publish(*snapshot(tmp_path, cards=[known, positive, missing]))
+    with publisher._connect() as conn:
+        rows = dict(conn.execute("SELECT printing_id::text,keywords FROM catalog_oracle_facts"))
+        assert rows[known["id"]] == []
+        assert rows[positive["id"]] == ["Flying"]
+        assert rows[missing["id"]] is None

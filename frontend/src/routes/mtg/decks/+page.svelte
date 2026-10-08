@@ -16,6 +16,7 @@
 		type CategoryEditorEntry
 	} from '#lib/decks/category-save.ts';
 	import type { DeckEntryCategories } from '@spellbook/contracts/categories.ts';
+	import DeckCategoryManager from '#lib/components/decks/DeckCategoryManager.svelte';
 	import EntryCategoryEditor from '#lib/components/decks/EntryCategoryEditor.svelte';
 	import {
 		DeckSaveLifecycle,
@@ -657,7 +658,7 @@
 			if (!importRequestId || importRequestText !== text) importRequestId = crypto.randomUUID();
 			importRequestText = text;
 			formData.set('requestId', importRequestId);
-		} else {
+		} else if (operation !== 'removeCategory' && operation !== 'rebaseRemoval') {
 			const payload =
 				target.pathname +
 				target.search +
@@ -850,6 +851,7 @@
 			</div>
 		{/snippet}
 	</WorkspaceHeader>
+	<Button href="/mtg/categories" variant="ghost">Account Category Library</Button>
 	<DeckDialog
 		title="Create a deck"
 		description="Name the deck and choose its format."
@@ -1273,6 +1275,25 @@
 						<Button type="submit" disabled={busy}>Initialize categories</Button>
 					</form>
 				{:else if entryCategories}
+					{#key entryCategories.deckId}<DeckCategoryManager
+							categories={entryCategories}
+							unavailable={data.categoryReadError || null}
+							removalDraft={form && 'removalDraft' in form ? form.removalDraft : undefined}
+							removalRetry={form && 'removalRetry' in form ? form.removalRetry : undefined}
+							renameDraft={form && 'renameDraft' in form ? form.renameDraft : undefined}
+							renameConfirmation={form && 'acknowledgement' in form
+								? form.acknowledgement
+								: undefined}
+							preview={form && 'categoryPreview' in form
+								? form.categoryPreview
+								: data.categoryPreview}
+							selectedCategoryId={data.localCategoryId}
+							requestId={data.requestId}
+							{busy}
+							submit={save}
+							{action}
+							entryNames={Object.fromEntries(deckCards.map((c) => [c.id, c.name]))}
+						/>{/key}
 					{#if entryCategories.sourceStatus.kind === 'Failed'}<p role="status" class="notice">
 							Oracle Tags refresh failed. Saved decisions and the last valid source remain
 							available.
@@ -1296,7 +1317,8 @@
 											? form.categoryDraft
 											: undefined}
 										entryId={card.id}
-										unavailable={categoryEditorUnavailable(card.id, deckCards, deletedTarget)}
+										unavailable={data.categoryReadError ||
+											categoryEditorUnavailable(card.id, deckCards, deletedTarget)}
 										onDraftChange={(dirty) => categoryDirty(card.id, dirty)}
 										action={action('setCategory')}
 										refresh={refreshCategories}
@@ -1451,11 +1473,8 @@
 								? form.categoryDraft
 								: undefined}
 							entryId={inspectorCategoryEntryId}
-							unavailable={categoryEditorUnavailable(
-								inspectorCategoryEntryId,
-								deckCards,
-								deletedTarget
-							)}
+							unavailable={data.categoryReadError ||
+								categoryEditorUnavailable(inspectorCategoryEntryId, deckCards, deletedTarget)}
 							action={action('setCategory')}
 							refresh={refreshCategories}
 							requestId={data.requestId}

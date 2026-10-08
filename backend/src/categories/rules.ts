@@ -3,6 +3,7 @@ import type {
 	PredicateEvidence,
 	StarterOrigin
 } from '@spellbook/contracts/categories.ts';
+import { evaluateEntryRule } from './library-rules.ts';
 const seeds: [StarterOrigin, string, string | null][] = [
 	['lands', 'Lands', null],
 	['board-wipes', 'Board wipes', '3fb7e4fd-5304-4120-b7c4-8a89f70ad3f0'],
@@ -29,21 +30,42 @@ export const starterDefinitions: EntryDefinition[] = seeds.map(([origin, name, r
 export type PrimaryFacts = {
 	types: string[] | null;
 	canonical: boolean;
+	oracleId?: string | null;
+	keywords?: string[] | null;
 	roots: Record<string, string[] | undefined>;
 };
+export function orderCategoryDefinitions(bundle: EntryDefinition[]) {
+	return bundle
+		.filter((d) => d.automaticEligible !== false)
+		.sort((a, b) => {
+			const custom = Number(b.origin === 'custom') - Number(a.origin === 'custom');
+			if (custom) return custom;
+			if (a.priority !== b.priority) return a.priority - b.priority;
+			const left = a.originId ?? a.id,
+				right = b.originId ?? b.id;
+			return left < right ? -1 : left > right ? 1 : 0;
+		});
+}
 export function evaluatePrimary(
 	bundle: EntryDefinition[],
-	facts: PrimaryFacts
+	facts: PrimaryFacts,
+	ordered = false
 ): {
 	state: 'Automatic' | 'Pending';
-	origin: StarterOrigin | null;
+	origin: EntryDefinition['origin'] | null;
+	definitionId: string | null;
 	predicates: PredicateEvidence[];
 } {
 	const predicates: PredicateEvidence[] = [];
-	for (const rule of [...bundle].sort((a, b) => a.priority - b.priority)) {
+	for (const rule of ordered ? bundle : orderCategoryDefinitions(bundle)) {
 		let result: PredicateEvidence['result'];
 		const matches = rule.rootId && facts.canonical ? facts.roots[rule.rootId] : undefined;
-		if (rule.origin === 'lands')
+		if (rule.rule)
+			result = evaluateEntryRule(rule.rule, {
+				...facts,
+				oracleId: facts.canonical ? facts.oracleId : null
+			});
+		else if (rule.origin === 'lands')
 			result = facts.types === null ? 'Unknown' : facts.types.includes('Land') ? 'True' : 'False';
 		else if (rule.excludeLand && facts.types?.includes('Land')) result = 'False';
 		else
@@ -55,11 +77,19 @@ export function evaluatePrimary(
 						: 'False';
 		predicates.push({
 			origin: rule.origin,
+			definitionId: rule.id,
 			result,
 			matchedTagIds: matches ?? []
 		});
-		if (result === 'Unknown') return { state: 'Pending', origin: null, predicates };
-		if (result === 'True') return { state: 'Automatic', origin: rule.origin, predicates };
+		if (result === 'Unknown')
+			return { state: 'Pending', origin: null, definitionId: null, predicates };
+		if (result === 'True')
+			return {
+				state: 'Automatic',
+				origin: rule.origin,
+				definitionId: rule.id,
+				predicates
+			};
 	}
-	return { state: 'Automatic', origin: null, predicates };
+	return { state: 'Automatic', origin: null, definitionId: null, predicates };
 }

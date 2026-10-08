@@ -73,3 +73,10 @@ if (!building) {
 }
 
 export { CategoryNotFound, CategoryConflict, CategoryMergeConflict } from '@spellbook/backend';
+export {
+	LibraryConflict,
+	CategoryPreviewExpired,
+	CategoryPreviewCapacity
+} from '@spellbook/backend';
+
+export { CategoryUnavailable } from '@spellbook/backend';

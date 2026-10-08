@@ -41,7 +41,13 @@ export async function readCategoryMergePreview(
 		throw new ValidationError('Merged quantity exceeds the entry quantity range');
 	const meaning = (decision: typeof sourceDecision) =>
 		decision
-			? { categoryId: decision.categoryId, state: decision.state, evidence: decision.evidence }
+			? {
+					categoryId: decision.categoryId,
+					state: decision.state,
+					evidence: decision.evidence,
+					definitionSnapshot: decision.definitionSnapshot,
+					previousEvaluation: decision.previousEvaluation
+				}
 			: null;
 	const required =
 		!!destinationId &&

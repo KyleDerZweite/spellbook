@@ -16,7 +16,7 @@ from worker.prices import EXTRACTOR_VERSION, MAPPING_VERSION, project_printing
 from worker.scryfall import BulkDataInfo
 from worker.transform import transform_card
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 # Shared by every catalog publisher. Held until commit or rollback.
 PUBLISH_LOCK = (1936747619, 1)
 
@@ -169,7 +169,8 @@ class CatalogPublisher:
                 path.open(encoding="utf-8") as source,
                 conn.cursor().copy(
                     "COPY catalog_oracle_facts "
-                    "(generation_id,printing_id,raw_oracle_id,types,transform_version) FROM "
+                    "(generation_id,printing_id,raw_oracle_id,types,keywords,transform_version) "
+                    "FROM "
                     "STDIN"
                 ) as copy,
             ):
@@ -184,7 +185,14 @@ class CatalogPublisher:
                         if isinstance(raw.get("type_line"), str) and raw["type_line"]
                         else None
                     )
-                    copy.write_row((generation, doc["id"], raw_oracle, types, SCHEMA_VERSION))
+                    keywords = raw.get("keywords")
+                    if not isinstance(keywords, list) or not all(
+                        isinstance(value, str) and value for value in keywords
+                    ):
+                        keywords = None
+                    copy.write_row(
+                        (generation, doc["id"], raw_oracle, types, keywords, SCHEMA_VERSION)
+                    )
             if not count:
                 raise ValueError("Bulk file contains no indexable cards")
             self._publish_prices(conn, path, publication)

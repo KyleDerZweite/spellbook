@@ -625,9 +625,96 @@ export const catalogOracleFacts = pgTable(
 		printingId: uuid('printing_id').notNull(),
 		rawOracleId: uuid('raw_oracle_id'),
 		types: text('types').array(),
+		keywords: text('keywords').array(),
 		transformVersion: integer('transform_version').notNull()
 	},
 	(t) => [primaryKey({ columns: [t.generationId, t.printingId] })]
+);
+export const categoryLibraryState = pgTable(
+	'category_library_state',
+	{
+		accountId: text('account_id')
+			.primaryKey()
+			.references(() => userProfiles.accountId, { onDelete: 'cascade' }),
+		revision: bigint('revision', { mode: 'bigint' })
+			.notNull()
+			.default(sql`0`)
+	},
+	(t) => [check('category_library_revision_check', sql`${t.revision}>=0`)]
+);
+export const categoryDefinitionOrigins = pgTable(
+	'category_definition_origins',
+	{
+		id: uuid('id').primaryKey(),
+		accountId: text('account_id')
+			.notNull()
+			.references(() => userProfiles.accountId, { onDelete: 'cascade' }),
+		scope: text('scope').notNull(),
+		currentVersion: integer('current_version').notNull(),
+		normalizedName: text('normalized_name').notNull(),
+		archived: boolean('archived').notNull().default(false)
+	},
+	(t) => [
+		check('category_origin_scope_check', sql`${t.scope} IN ('entry','deck')`),
+		check('category_origin_version_check', sql`${t.currentVersion}>0`),
+		uniqueIndex('category_active_name_unique')
+			.on(t.accountId, t.scope, t.normalizedName)
+			.where(sql`NOT ${t.archived}`)
+	]
+);
+export const categoryDefinitionVersions = pgTable(
+	'category_definition_versions',
+	{
+		id: uuid('id').primaryKey(),
+		originId: uuid('origin_id')
+			.notNull()
+			.references(() => categoryDefinitionOrigins.id, { onDelete: 'cascade' }),
+		version: integer('version').notNull(),
+		definition: jsonb('definition').notNull()
+	},
+	(t) => [
+		uniqueIndex('category_definition_version_unique').on(t.originId, t.version),
+		check('category_version_positive', sql`${t.version}>0`)
+	]
+);
+export const categoryChangePreviews = pgTable(
+	'category_change_previews',
+	{
+		id: uuid('id').primaryKey(),
+		accountId: text('account_id')
+			.notNull()
+			.references(() => userProfiles.accountId, { onDelete: 'cascade' }),
+		requestId: uuid('request_id').notNull(),
+		requestHash: text('request_hash').notNull(),
+		deckId: uuid('deck_id').notNull(),
+		scope: text('scope').notNull(),
+		mode: text('mode').notNull(),
+		expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+		differenceTotal: integer('difference_total').notNull().default(0),
+		blocked: boolean('blocked').notNull().default(false),
+		plan: jsonb('plan'),
+		acknowledgement: jsonb('acknowledgement')
+	},
+	(t) => [
+		uniqueIndex('category_preview_request_unique').on(t.accountId, t.requestId),
+		index('category_preview_capacity_idx').on(t.accountId, t.expiresAt),
+		index('category_preview_cleanup_idx')
+			.on(t.accountId, t.expiresAt, t.id)
+			.where(sql`${t.plan} IS NOT NULL`),
+		check('category_preview_scope_check', sql`${t.scope} IN ('entry','deck')`),
+		check('category_preview_mode_check', sql`${t.mode} IN ('Review','Reset')`)
+	]
+);
+export const categoryPreviewDifferences = pgTable(
+	'category_preview_differences',
+	{
+		previewId: uuid('preview_id')
+			.notNull()
+			.references(() => categoryChangePreviews.id, { onDelete: 'cascade' }),
+		position: integer('position').notNull(),
+		difference: jsonb('difference').notNull()
+	},
+	(t) => [primaryKey({ columns: [t.previewId, t.position] })]
 );
 export const deckCategoryBundles = pgTable(
 	'deck_category_bundles',
@@ -636,6 +723,16 @@ export const deckCategoryBundles = pgTable(
 			.primaryKey()
 			.references(() => decks.id, { onDelete: 'cascade' }),
 		definitions: jsonb('definitions').notNull(),
+		wholeDeckDefinitions: jsonb('whole_deck_definitions')
+			.notNull()
+			.default(sql`'[]'::jsonb`),
+		libraryRevision: bigint('library_revision', { mode: 'bigint' })
+			.notNull()
+			.default(sql`0`),
+		suppressedOrigins: uuid('suppressed_origins')
+			.array()
+			.notNull()
+			.default(sql`'{}'::uuid[]`),
 		decisionRevision: bigint('decision_revision', { mode: 'bigint' })
 			.notNull()
 			.default(sql`0`)
@@ -651,6 +748,8 @@ export const deckEntryCategoryDecisions = pgTable(
 		deckId: uuid('deck_id')
 			.notNull()
 			.references(() => decks.id, { onDelete: 'cascade' }),
+		definitionSnapshot: jsonb('definition_snapshot'),
+		previousEvaluation: jsonb('previous_evaluation'),
 		categoryId: uuid('category_id'),
 		state: text('state').notNull(),
 		revision: bigint('revision', { mode: 'bigint' })

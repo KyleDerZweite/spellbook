@@ -19,7 +19,7 @@
 		"check:ts": "node node_modules/typescript-native/bin/tsc --noEmit",
 		"demo:seed": "node --env-file-if-exists=../.env scripts/demo/seed.mjs",
 		"dev:demo": "pnpm demo:seed && DEMO_MODE=true pnpm dev",
-		"test:http": "node --test --test-concurrency=1 tests/http-runtime.test.ts tests/http-application.test.ts tests/categories-http.test.ts tests/deck-choices-http.test.ts tests/value-history-http.test.ts",
+		"test:http": "node --test --test-concurrency=1 tests/http-runtime.test.ts tests/http-application.test.ts tests/categories-http.test.ts tests/category-library-http.test.ts tests/deck-choices-http.test.ts tests/value-history-http.test.ts",
 		"test:sync": "node --test tests/saved-state-http.test.ts",
 		"test:scan": "node --test tests/scan-http.test.ts"
 	},

@@ -1,4 +1,5 @@
 import type { AuthUser } from './auth.ts';
+import type { EntryRule, DefinitionVersion } from './category-library.ts';
 export type StarterOrigin =
 	| 'lands'
 	| 'board-wipes'
@@ -10,7 +11,13 @@ export type StarterOrigin =
 	| 'recursion';
 export type EntryDefinition = {
 	id: string;
-	origin: StarterOrigin;
+	origin: StarterOrigin | 'custom';
+	originId?: string;
+	definitionVersionId?: string;
+	meaning?: string;
+	rule?: EntryRule;
+	automaticEligible?: boolean;
+	definitionSnapshot?: DefinitionVersion;
 	name: string;
 	version: number;
 	policyVersion: number;
@@ -22,7 +29,8 @@ export type EntryDefinition = {
 	excludeLand: boolean;
 };
 export type PredicateEvidence = {
-	origin: StarterOrigin;
+	origin: StarterOrigin | 'custom';
+	definitionId?: string;
 	result: 'True' | 'False' | 'Unknown';
 	matchedTagIds: string[];
 };
@@ -44,12 +52,17 @@ export type EntryCategoryDecision = {
 	state: 'Automatic' | 'Manual' | 'Pending';
 	revision: string;
 	evidence: CategoryEvidence | null;
+	definitionSnapshot?: DefinitionVersion | EntryDefinition | null;
+	previousEvaluation?: CategoryEvidence | null;
 };
 export type DeckEntryCategories = {
 	deckId: string;
 	initialized: boolean;
 	decisionRevision: string;
 	definitions: EntryDefinition[];
+	libraryRevision?: string;
+	wholeDeckDefinitions?: DefinitionVersion[];
+	suppressedOrigins?: { originId: string; name: string }[];
 	decisions: EntryCategoryDecision[];
 	sourceStatus: {
 		kind: 'NeverAttempted' | 'Succeeded' | 'Failed';

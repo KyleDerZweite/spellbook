@@ -10,6 +10,7 @@ const PROTECTED_PATH_PREFIXES = [
 	'/mtg/history',
 	'/mtg/inventory',
 	'/mtg/decks',
+	'/mtg/categories',
 	'/mtg/scan',
 	'/settings'
 ];

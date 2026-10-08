@@ -208,6 +208,56 @@ const categoryOperation = (summary: string, result: Schema, input?: Schema) => (
 		...(input ? { 413: response('JSON body exceeds16 KiB', ref('ErrorResponse')) } : {})
 	}
 });
+const categoryLibraryOperation = (summary: string, result: Schema, input?: Schema) => ({
+	...operation(summary, result, input),
+	...(input
+		? {
+				requestBody: {
+					...requestBody(input),
+					description:
+						'Strict JSON object, at most 64 KiB. Rule depth 8, nodes 128 and 100 selected canonical IDs across the complete tree.'
+				}
+			}
+		: {}),
+	responses: {
+		...operation(summary, result, input).responses,
+		404: response('Owned definition, Deck or preview not found', ref('ErrorResponse')),
+		409: response(
+			'Changed intent, revisions, source publication or expired preview. Re-preview explicitly.',
+			ref('ErrorResponse')
+		),
+		503: response(
+			'Four live previews already exist, or bounded operational Category work was exhausted. Retry the same request.',
+			ref('ErrorResponse')
+		),
+		...(input ? { 413: response('Body exceeds 64 KiB', ref('ErrorResponse')) } : {})
+	}
+});
+const categoryUuid: Schema = { type: 'string', format: 'uuid' };
+const categoryScope: Schema = { enum: ['entry', 'deck'] };
+const categoryStrict = (fields: Record<string, Schema>, required = Object.keys(fields)) => ({
+	...object(fields, required),
+	additionalProperties: false
+});
+const categoryPageParameters = [
+	{ name: 'offset', in: 'query', schema: { type: 'integer', minimum: 0, default: 0 } },
+	{ name: 'limit', in: 'query', schema: { type: 'integer', minimum: 1, maximum: 100, default: 50 } }
+];
+const categoryLogic = (childName: string) => [
+	categoryStrict({
+		op: { enum: ['all', 'any'] },
+		children: { type: 'array', minItems: 1, maxItems: 128, items: ref(childName) }
+	}),
+	categoryStrict({ op: { const: 'not' }, child: ref(childName) })
+];
+const categoryDefinitionFields = {
+	name: { type: 'string', minLength: 1, maxLength: 128 },
+	meaning: { type: 'string', maxLength: 4000 },
+	priority: { type: 'integer', minimum: -2147483648, maximum: 2147483647 },
+	displayOrder: { type: 'integer', minimum: -2147483648, maximum: 2147483647 },
+	roles: { type: 'array', minItems: 1, maxItems: 4, uniqueItems: true, items: role },
+	rule: { anyOf: [ref('EntryRule'), ref('DeckRule')] }
+};
 const profileCardProperties = {
 	template: { const: 'mtg' },
 	name: string,
@@ -818,6 +868,104 @@ const SCHEMA = {
 			}
 		},
 
+		'/api/mobile/v1/mtg/category-definitions': {
+			get: {
+				...categoryLibraryOperation(
+					'Read bounded current scoped immutable definitions',
+					ref('CategoryLibraryPage')
+				),
+				parameters: [
+					{ name: 'scope', in: 'query', schema: categoryScope },
+					...categoryPageParameters
+				]
+			},
+			post: categoryLibraryOperation(
+				'Publish an immutable reusable definition without changing older decks',
+				ref('LibraryAcknowledgement'),
+				{
+					oneOf: ['entry', 'deck'].map((scope) =>
+						categoryStrict({
+							...categoryDefinitionFields,
+							rule: ref(scope === 'entry' ? 'EntryRule' : 'DeckRule'),
+							requestId: categoryUuid,
+							originId: { anyOf: [categoryUuid, { type: 'null' }] },
+							expectedLibraryRevision: inventoryRevision,
+							scope: { const: scope },
+							confirmRetainedRule: { type: 'boolean' }
+						})
+					)
+				}
+			)
+		},
+		'/api/mobile/v1/mtg/category-definitions/{originId}/archive': {
+			parameters: [pathParameter('originId')],
+			post: categoryLibraryOperation(
+				'Archive or restore future adoption while retaining immutable older versions',
+				ref('LibraryAcknowledgement'),
+				categoryStrict({
+					requestId: categoryUuid,
+					expectedLibraryRevision: inventoryRevision,
+					archived: { type: 'boolean' }
+				})
+			)
+		},
+		'/api/mobile/v1/mtg/decks/{deckId}/categories/{categoryId}': {
+			parameters: [pathParameter('deckId'), pathParameter('categoryId')],
+			patch: categoryLibraryOperation(
+				'Rename only the local label without moving assignments',
+				ref('CategoryAcknowledgement'),
+				categoryStrict({
+					requestId: categoryUuid,
+					expectedDecisionRevision: inventoryRevision,
+					name: categoryDefinitionFields.name
+				})
+			),
+			delete: categoryLibraryOperation(
+				'Atomically replace all-role decisions as Manual and suppress the removed origin',
+				ref('CategoryAcknowledgement'),
+				categoryStrict({
+					requestId: categoryUuid,
+					expectedDecisionRevision: inventoryRevision,
+					replacementCategoryId: { anyOf: [categoryUuid, { type: 'null' }] }
+				})
+			)
+		},
+		'/api/mobile/v1/mtg/decks/{deckId}/category-previews': {
+			parameters: [pathParameter('deckId')],
+			post: categoryLibraryOperation(
+				'Persist the complete reviewed entry plan with original fifteen-minute lease; whole-deck scope returns Unsupported',
+				ref('CategoryPreview'),
+				categoryStrict({
+					requestId: categoryUuid,
+					scope: categoryScope,
+					mode: { enum: ['Review', 'Reset'] },
+					restoreOriginIds: {
+						type: 'array',
+						maxItems: 1000,
+						uniqueItems: true,
+						items: categoryUuid
+					}
+				})
+			)
+		},
+		'/api/mobile/v1/mtg/category-previews/{previewId}': {
+			parameters: [pathParameter('previewId')],
+			get: {
+				...categoryLibraryOperation(
+					'Read stable relational consequence pages without decoding the full plan',
+					ref('CategoryPreview')
+				),
+				parameters: categoryPageParameters
+			}
+		},
+		'/api/mobile/v1/mtg/category-previews/{previewId}/commit': {
+			parameters: [pathParameter('previewId')],
+			post: categoryLibraryOperation(
+				'Commit every server-owned consequence atomically after fresh session, expiry and source/revision checks; original replay survives cleanup and deletion',
+				ref('CategoryAcknowledgement'),
+				categoryStrict({ requestId: categoryUuid })
+			)
+		},
 		'/api/mobile/v1/mtg/decks/{deckId}/categories': {
 			parameters: [pathParameter('deckId')],
 			get: categoryOperation(
@@ -2177,29 +2325,180 @@ const SCHEMA = {
 				descriptionRevision: string
 			}),
 
-			EntryDefinition: object({
-				id: string,
-				origin: {
-					enum: [
-						'lands',
-						'board-wipes',
-						'counterspells',
-						'removal',
-						'ramp',
-						'draw',
-						'protection',
-						'recursion'
-					]
+			EntryDefinition: object(
+				{
+					id: string,
+					origin: {
+						enum: [
+							'custom',
+							'lands',
+							'board-wipes',
+							'counterspells',
+							'removal',
+							'ramp',
+							'draw',
+							'protection',
+							'recursion'
+						]
+					},
+					name: string,
+					version: integer,
+					policyVersion: integer,
+					mappingVersion: integer,
+					priority: integer,
+					displayOrder: integer,
+					rootId: { anyOf: [string, { type: 'null' }] },
+					descendants: { type: 'boolean' },
+					excludeLand: { type: 'boolean' },
+					originId: categoryUuid,
+					definitionVersionId: categoryUuid,
+					definitionSnapshot: ref('DefinitionVersion'),
+					meaning: string,
+					rule: ref('EntryRule'),
+					automaticEligible: { type: 'boolean' }
 				},
-				name: string,
-				version: integer,
-				policyVersion: integer,
-				mappingVersion: integer,
-				priority: integer,
-				displayOrder: integer,
-				rootId: { anyOf: [string, { type: 'null' }] },
-				descendants: { type: 'boolean' },
-				excludeLand: { type: 'boolean' }
+				[
+					'id',
+					'origin',
+					'name',
+					'version',
+					'policyVersion',
+					'mappingVersion',
+					'priority',
+					'displayOrder',
+					'rootId',
+					'descendants',
+					'excludeLand'
+				]
+			),
+			EntryRule: {
+				oneOf: [
+					...categoryLogic('EntryRule'),
+					categoryStrict({
+						op: { enum: ['type', 'keyword'] },
+						value: { type: 'string', minLength: 1, maxLength: 128 }
+					}),
+					categoryStrict({
+						op: { const: 'oracleTag' },
+						tagId: categoryUuid,
+						includeDescendants: { type: 'boolean' }
+					}),
+					categoryStrict({
+						op: { const: 'mappedTrait' },
+						traitId: {
+							enum: [
+								'lands',
+								'board-wipes',
+								'counterspells',
+								'removal',
+								'ramp',
+								'draw',
+								'protection',
+								'recursion'
+							]
+						},
+						mappingVersion: { type: 'integer', minimum: 1, maximum: 2147483647 }
+					}),
+					categoryStrict({
+						op: { const: 'canonicalCards' },
+						oracleIds: {
+							type: 'array',
+							minItems: 1,
+							maxItems: 100,
+							uniqueItems: true,
+							items: categoryUuid
+						}
+					}),
+					categoryStrict({
+						op: { const: 'comboParticipant' },
+						outcomeId: { type: 'string', pattern: '^[1-9][0-9]{0,19}$' },
+						policyVersion: { const: 'ingredients-v1' }
+					})
+				]
+			},
+			DeckRule: {
+				oneOf: [
+					...categoryLogic('DeckRule'),
+					categoryStrict({
+						op: { enum: ['minimumCopies', 'minimumDistinct'] },
+						predicate: ref('EntryRule'),
+						minimum: { type: 'integer', minimum: 1, maximum: 2147483647 }
+					}),
+					categoryStrict({
+						op: { const: 'percentage' },
+						predicate: ref('EntryRule'),
+						basisPoints: { type: 'integer', minimum: 0, maximum: 10000 },
+						denominator: { enum: ['all-cards', 'nonland'] }
+					}),
+					categoryStrict({
+						op: { const: 'comboOutcome' },
+						outcomeId: { type: 'string', pattern: '^[1-9][0-9]{0,19}$' },
+						policyVersion: { const: 'ingredients-v1' }
+					})
+				]
+			},
+			DefinitionVersion: object({
+				...categoryDefinitionFields,
+				id: categoryUuid,
+				originId: categoryUuid,
+				scope: categoryScope,
+				version: { type: 'integer', minimum: 1 },
+				createdAt: { type: 'string', format: 'date-time' }
+			}),
+			LibraryDefinition: object({
+				originId: categoryUuid,
+				archived: { type: 'boolean' },
+				current: ref('DefinitionVersion')
+			}),
+			CategoryLibraryPage: object({
+				revision: inventoryRevision,
+				total: { type: 'integer', minimum: 0 },
+				offset: { type: 'integer', minimum: 0 },
+				limit: { type: 'integer', minimum: 1, maximum: 100 },
+				definitions: array('LibraryDefinition')
+			}),
+			LibraryAcknowledgement: object({
+				requestId: categoryUuid,
+				libraryRevision: inventoryRevision,
+				originId: categoryUuid,
+				versionId: categoryUuid,
+				changed: { type: 'boolean' }
+			}),
+			CategoryDifference: object(
+				{
+					kind: {
+						enum: [
+							'DefinitionAdded',
+							'DefinitionChanged',
+							'DefinitionRemoved',
+							'RetainedManual',
+							'EntryChanged',
+							'EntryPreserved',
+							'OriginRestored',
+							'NameConflict'
+						]
+					},
+					entityId: categoryUuid,
+					message: string,
+					before: {
+						anyOf: [ref('EntryDefinition'), ref('EntryCategoryDecision'), { type: 'null' }]
+					},
+					after: { anyOf: [ref('EntryDefinition'), ref('EntryCategoryDecision'), { type: 'null' }] }
+				},
+				['kind', 'entityId', 'message']
+			),
+			CategoryPreview: object({
+				id: categoryUuid,
+				deckId: categoryUuid,
+				scope: categoryScope,
+				mode: { enum: ['Review', 'Reset'] },
+				status: { enum: ['Ready', 'BlockedByNameConflict', 'Expired', 'Committed', 'Unsupported'] },
+				expiresAt: { type: 'string', format: 'date-time' },
+				total: { type: 'integer', minimum: 0 },
+				offset: { type: 'integer', minimum: 0 },
+				limit: { type: 'integer', minimum: 1, maximum: 100 },
+				differences: array('CategoryDifference'),
+				acknowledgement: nullable('CategoryAcknowledgement')
 			}),
 			CategoryPredicateEvidence: object({
 				origin: string,
@@ -2223,13 +2522,23 @@ const SCHEMA = {
 				categoryId: { anyOf: [string, { type: 'null' }] },
 				state: { enum: ['Automatic', 'Manual', 'Pending'] },
 				revision: inventoryRevision,
-				evidence: nullable('CategoryEvidence')
+				evidence: nullable('CategoryEvidence'),
+				definitionSnapshot: {
+					anyOf: [ref('EntryDefinition'), ref('DefinitionVersion'), { type: 'null' }]
+				},
+				previousEvaluation: nullable('CategoryEvidence')
 			}),
 			DeckEntryCategories: object({
 				deckId: string,
 				initialized: { type: 'boolean' },
 				decisionRevision: inventoryRevision,
 				definitions: array('EntryDefinition'),
+				libraryRevision: inventoryRevision,
+				wholeDeckDefinitions: array('DefinitionVersion'),
+				suppressedOrigins: {
+					type: 'array',
+					items: object({ originId: categoryUuid, name: string })
+				},
 				decisions: array('EntryCategoryDecision'),
 				sourceStatus: object({
 					kind: { enum: ['NeverAttempted', 'Succeeded', 'Failed'] },

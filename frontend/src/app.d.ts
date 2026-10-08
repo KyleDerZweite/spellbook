@@ -12,6 +12,9 @@ declare global {
 			kind?:
 				| import('@spellbook/contracts/decks.ts').DeckFailure['kind']
 				| 'CategoryConflict'
+				| 'CategoryPreviewExpired'
+				| 'CategoryPreviewCapacity'
+				| 'CategoryUnavailable'
 				| 'CategoryMergeConflict'
 				| import('@spellbook/contracts/inventory.ts').InventoryFailure['kind']
 				| import('@spellbook/contracts/scan.ts').ScanFailure['kind'];
@@ -40,6 +43,13 @@ declare global {
 		interface Locals {
 			user: AuthUser | null;
 			mobileBearerUser: AuthUser | null;
+			categoryPageRecovery?: {
+				accountId: string;
+				deckId: string;
+				snapshot: import('@spellbook/contracts/decks.ts').DeckSnapshot;
+				categories: import('@spellbook/contracts/categories.ts').DeckEntryCategories;
+				preview?: import('@spellbook/contracts/category-library.ts').CategoryPreview;
+			};
 		}
 	}
 }

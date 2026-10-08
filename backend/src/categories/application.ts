@@ -1,3 +1,5 @@
+import { publishCategoryChange } from './notification.ts';
+import { categoryTransaction } from './work.ts';
 import { sql } from 'drizzle-orm';
 import type {
 	CategoriesApplication,
@@ -16,7 +18,14 @@ import {
 	ensureEntryCategoryInitialization,
 	readDecisions
 } from './persistence.ts';
+import { starterDefinitions } from './rules.ts';
+import type { DefinitionVersion } from '@spellbook/contracts/category-library.ts';
 import { CategoryNotFound, CategoryConflict } from './errors.ts';
+import { createCategoryLibrary } from './library.ts';
+import type { CategoryLibraryApplication } from '@spellbook/contracts/category-library.ts';
+import type { CategoryChangesApplication } from '@spellbook/contracts/category-library.ts';
+import { createCategoryChanges } from './changes.ts';
+import { createCategoryPreviews } from './previews.ts';
 export { CategoryNotFound, CategoryConflict } from './errors.ts';
 const pattern = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
 function uuid(value: unknown): string {
@@ -36,8 +45,8 @@ function strict(value: unknown, keys: string[]): Record<string, unknown> {
 }
 export function createCategories(
 	db: Database,
-	auth: Pick<ReturnType<typeof createLocalAuth>, 'requireActor'>
-): CategoriesApplication {
+	auth: Pick<ReturnType<typeof createLocalAuth>, 'requireActor' | 'requireActorForWrite'>
+): CategoriesApplication & CategoryLibraryApplication & CategoryChangesApplication {
 	async function owned(tx: Transaction, accountId: string, deckId: string, lock = false) {
 		const result = await tx.execute(
 			sql`SELECT id FROM decks WHERE id=${deckId}::uuid AND account_id=${accountId} AND game='mtg' ${lock ? sql`FOR UPDATE` : sql``}`
@@ -46,11 +55,16 @@ export function createCategories(
 	}
 	async function read(tx: Transaction, deckId: string): Promise<DeckEntryCategories> {
 		const bundle = await tx.execute(
-			sql`SELECT definitions,decision_revision::text FROM deck_category_bundles WHERE deck_id=${deckId}::uuid`
+			sql`SELECT definitions,decision_revision::text,library_revision::text,whole_deck_definitions,suppressed_origins FROM deck_category_bundles WHERE deck_id=${deckId}::uuid`
+		);
+		const suppressed = (bundle.rows[0]?.suppressed_origins as string[] | undefined) ?? [];
+		const labels = await tx.execute(
+			sql`SELECT o.id::text,v.definition->>'name' AS name FROM category_definition_origins o JOIN category_definition_versions v ON v.origin_id=o.id AND v.version=o.current_version JOIN decks d ON d.account_id=o.account_id AND d.id=${deckId}::uuid WHERE o.id=ANY(${'{' + suppressed.join(',') + '}'}::uuid[])`
 		);
 		const source = await tx.execute(
 			sql`SELECT s.refresh_status,p.source_updated_at FROM oracle_tag_state s LEFT JOIN oracle_tag_publications p ON p.id=s.active_publication WHERE s.id=1`
 		);
+		const labelsById = new Map(labels.rows.map((r) => [String(r.id), String(r.name)]));
 		const row = source.rows[0],
 			status = row?.refresh_status as { kind?: string } | undefined;
 		return {
@@ -58,6 +72,16 @@ export function createCategories(
 			initialized: !!bundle.rows.length,
 			decisionRevision: String(bundle.rows[0]?.decision_revision ?? '0'),
 			definitions: (bundle.rows[0]?.definitions as EntryDefinition[]) ?? [],
+			libraryRevision: String(bundle.rows[0]?.library_revision ?? '0'),
+			wholeDeckDefinitions: (bundle.rows[0]?.whole_deck_definitions as DefinitionVersion[]) ?? [],
+			suppressedOrigins: suppressed.map((originId) => ({
+				originId,
+				name: String(
+					labelsById.get(originId) ??
+						starterDefinitions.find((d) => d.id === originId)?.name ??
+						'Unavailable historical origin'
+				)
+			})),
 			decisions: await readDecisions(tx, deckId),
 			sourceStatus: {
 				kind:
@@ -66,17 +90,18 @@ export function createCategories(
 						: status?.kind === 'Succeeded'
 							? 'Succeeded'
 							: 'NeverAttempted',
-				sourceTime:
-					row?.source_updated_at instanceof Date ? row.source_updated_at.toISOString() : null
+				sourceTime: row?.source_updated_at
+					? new Date(row.source_updated_at as string | Date).toISOString()
+					: null
 			}
 		};
 	}
 	async function getDeckEntryCategories(actor: AuthUser, deck: string) {
 		const deckId = uuid(deck);
-		const { accountId } = await auth.requireActor(actor);
-		return db.transaction(
+		return categoryTransaction(
+			db,
 			async (tx) => {
-				await auth.requireActor(actor, tx);
+				const { accountId } = await auth.requireActor(actor, tx);
 				await owned(tx, accountId, deckId);
 				return read(tx, deckId);
 			},
@@ -98,7 +123,6 @@ export function createCategories(
 				!/^\d+$/.test(input.expectedDecisionRevision))
 		)
 			throw new ValidationError('Category decision revision is required');
-		const { accountId } = await auth.requireActor(actor);
 		const fingerprint = mutationFingerprint({
 			kind: manual ? 'category.manual' : 'category.initialize',
 			deckId,
@@ -106,11 +130,12 @@ export function createCategories(
 			categoryId,
 			expectedDecisionRevision: manual ? input.expectedDecisionRevision : null
 		});
-		return db.transaction(async (tx) => {
+		return categoryTransaction(db, async (tx) => {
+			const { accountId } = await auth.requireActor(actor, tx);
 			await tx.execute(
 				sql`SELECT account_id FROM user_profiles WHERE account_id=${accountId} FOR UPDATE`
 			);
-			await auth.requireActor(actor, tx);
+			await auth.requireActorForWrite(actor, tx);
 			await tx.execute(
 				sql`SELECT pg_advisory_xact_lock(hashtextextended(${JSON.stringify([accountId, requestId])},0))`
 			);
@@ -142,8 +167,10 @@ export function createCategories(
 					existing.categoryId !== categoryId ||
 					existing.evidence !== null
 				) {
+					const selected = definitions.find((d) => d.id === categoryId);
+					const snapshot = selected?.definitionSnapshot ?? selected ?? null;
 					await tx.execute(
-						sql`INSERT INTO deck_entry_category_decisions(entry_id,deck_id,category_id,state,evidence) VALUES(${entryId}::uuid,${deckId}::uuid,${categoryId}::uuid,'Manual',NULL) ON CONFLICT(entry_id) DO UPDATE SET category_id=EXCLUDED.category_id,state='Manual',revision=deck_entry_category_decisions.revision+1,evidence=NULL`
+						sql`INSERT INTO deck_entry_category_decisions(entry_id,deck_id,category_id,state,evidence,definition_snapshot,previous_evaluation) VALUES(${entryId}::uuid,${deckId}::uuid,${categoryId}::uuid,'Manual',NULL,${snapshot ? JSON.stringify(snapshot) : null}::jsonb,${existing?.evidence ? JSON.stringify(existing.evidence) : null}::jsonb) ON CONFLICT(entry_id) DO UPDATE SET category_id=EXCLUDED.category_id,state='Manual',revision=deck_entry_category_decisions.revision+1,evidence=NULL,definition_snapshot=EXCLUDED.definition_snapshot,previous_evaluation=COALESCE(EXCLUDED.previous_evaluation,deck_entry_category_decisions.previous_evaluation)`
 					);
 					await tx.execute(
 						sql`UPDATE deck_category_bundles SET decision_revision=decision_revision+1 WHERE deck_id=${deckId}::uuid`
@@ -164,14 +191,15 @@ export function createCategories(
 				sql`INSERT INTO category_mutation_requests(account_id,request_id,request_hash,acknowledgement) VALUES(${accountId},${requestId}::uuid,${fingerprint},${JSON.stringify(acknowledgement)}::jsonb)`
 			);
 			if (entryIds.length || !previouslyInitialized) {
-				await tx.execute(
-					sql`SELECT pg_notify('spellbook_saved_state',json_build_object('accountId',${accountId}::text,'topic','decks')::text)`
-				);
+				await publishCategoryChange(tx, accountId);
 			}
 			return acknowledgement;
 		});
 	}
 	return {
+		...createCategoryLibrary(db, auth),
+		...createCategoryChanges(db, auth),
+		...createCategoryPreviews(db, auth),
 		previewEntryMerge: async (actor, value) => {
 			const input = strict(value, ['deckId', 'entryId', 'catalogCardId', 'role', 'quantity']);
 			const normalized = {
@@ -182,10 +210,10 @@ export function createCategories(
 				quantity: normalizeQuantity(input.quantity)
 			};
 			if (normalized.quantity < 1) throw new ValidationError('Quantity must be positive');
-			const { accountId } = await auth.requireActor(actor);
-			return db.transaction(
+			return categoryTransaction(
+				db,
 				async (tx) => {
-					await auth.requireActor(actor, tx);
+					const { accountId } = await auth.requireActor(actor, tx);
 					await owned(tx, accountId, normalized.deckId);
 					return readCategoryMergePreview(tx, normalized);
 				},

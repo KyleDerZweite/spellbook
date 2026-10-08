@@ -1,4 +1,8 @@
 import {
+	LibraryConflict,
+	CategoryPreviewExpired,
+	CategoryPreviewCapacity,
+	CategoryUnavailable,
 	CategoryNotFound,
 	CategoryConflict,
 	CategoryMergeConflict
@@ -15,6 +19,10 @@ import { ValidationError } from '#lib/server/mtg/validation.ts';
 
 /** Map domain failures to HTTP status codes and preserve infrastructure failures. */
 export function badRequestIfValidation(cause: unknown, fallback = 'Invalid request'): never {
+	if (cause instanceof LibraryConflict || cause instanceof CategoryPreviewExpired)
+		throw error(409, { kind: cause.kind, message: cause.message });
+	if (cause instanceof CategoryPreviewCapacity || cause instanceof CategoryUnavailable)
+		throw error(503, { kind: cause.kind, message: cause.message });
 	if (
 		cause &&
 		typeof cause === 'object' &&

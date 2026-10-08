@@ -1,6 +1,8 @@
 import { createValuation, PriceReadUnavailable } from '../valuation/read.ts';
 import { deckValueEstimates } from './value.ts';
 import type { DeckSnapshot } from '@spellbook/contracts/decks.ts';
+import { readTransactionCatalogPrinting } from '../catalog/search.ts';
+import { categoryTransaction } from '../categories/work.ts';
 import { ensureEntryCategoryInitialization } from '../categories/persistence.ts';
 import { requireCategoryMergePreview } from '../categories/merge.ts';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
@@ -152,7 +154,7 @@ export function nextDeckChoiceOffset(
 export function createDecks(
 	db: Database,
 	catalog: CatalogApplication,
-	auth: Pick<ReturnType<typeof createLocalAuth>, 'requireActor'>,
+	auth: Pick<ReturnType<typeof createLocalAuth>, 'requireActor' | 'requireActorForWrite'>,
 	valuation = createValuation(db.$client, auth)
 ): DecksApplication {
 	async function authorizeWrite(tx: Tx, accountId: string, actor?: AuthUser) {
@@ -162,7 +164,7 @@ export function createDecks(
 			.from(userProfiles)
 			.where(eq(userProfiles.accountId, accountId))
 			.for('update');
-		const current = await auth.requireActor(actor, tx);
+		const current = await auth.requireActorForWrite(actor, tx);
 		if (current.accountId !== accountId) throw new ActorError();
 	}
 	async function actorAccount(actor: AuthUser) {
@@ -331,7 +333,7 @@ export function createDecks(
 		actor?: AuthUser
 	) {
 		game(input.game);
-		return db.transaction(async (tx) => {
+		return categoryTransaction(db, async (tx) => {
 			await authorizeWrite(tx, accountId, actor);
 			const [deck] = await tx
 				.insert(decks)
@@ -561,12 +563,13 @@ export function createDecks(
 		create?: { name: string; description: string; format: string },
 		intent?: unknown,
 		actor?: AuthUser,
-		decrementFloor: 0 | 1 = 0
+		decrementFloor: 0 | 1 = 0,
+		catalogAdd?: { catalogCardId: string; quantity: number; role: string }
 	) {
 		game(input.game);
 		const requestId = assertRequestId(input.requestId);
 		const source = normalizeSource(input.source, DECK_SOURCES, 'web');
-		const normalized = operations(input.operations);
+		const normalized = catalogAdd ? [] : operations(input.operations);
 		const hash =
 			intent === undefined
 				? mutationFingerprint({
@@ -579,34 +582,7 @@ export function createDecks(
 					})
 				: mutationFingerprint(intent);
 
-		const [recorded] = await db
-			.select()
-			.from(deckMutationRequests)
-			.where(
-				and(
-					eq(deckMutationRequests.accountId, accountId),
-					eq(deckMutationRequests.requestId, requestId)
-				)
-			)
-			.limit(1);
-		if (recorded) {
-			if (recorded.requestHash !== null && recorded.requestHash !== hash)
-				throw new RequestConflictError();
-			if (recorded.acknowledgement) return recorded.acknowledgement;
-		}
-		const resolvedPrintings = new Map<string, CardDocument>();
-		for (const operation of recorded ? [] : normalized) {
-			const printingId =
-				operation.op === 'add'
-					? operation.card.catalogCardId
-					: operation.op === 'replace'
-						? operation.catalogCardId
-						: null;
-			if (printingId && !resolvedPrintings.has(printingId))
-				resolvedPrintings.set(printingId, await catalog.getCatalogPrinting(printingId));
-		}
-
-		return db.transaction(async (tx) => {
+		return categoryTransaction(db, async (tx) => {
 			await authorizeWrite(tx, accountId, actor);
 			await tx.execute(
 				sql`select pg_advisory_xact_lock(hashtextextended(${JSON.stringify([accountId, requestId])},0))`
@@ -635,6 +611,32 @@ export function createDecks(
 					removedEntryIds: []
 				};
 			}
+			const resolvedPrintings = new Map<string, CardDocument>();
+			if (catalogAdd) {
+				const card = await readTransactionCatalogPrinting(tx, catalogAdd.catalogCardId);
+				resolvedPrintings.set(card.id, card);
+				normalized.push(
+					...operations([
+						{
+							op: 'add',
+							card: toCardIdentity(card),
+							quantity: catalogAdd.quantity,
+							role: catalogAdd.role
+						}
+					])
+				);
+			}
+			for (const operation of normalized) {
+				const printingId =
+					operation.op === 'add'
+						? operation.card.catalogCardId
+						: operation.op === 'replace'
+							? operation.catalogCardId
+							: null;
+				if (printingId && !resolvedPrintings.has(printingId))
+					resolvedPrintings.set(printingId, await readTransactionCatalogPrinting(tx, printingId));
+			}
+
 			let deck: DeckRow;
 			if (create) {
 				const [row] = await tx
@@ -855,9 +857,6 @@ export function createDecks(
 			role: assertDeckRole(input.role),
 			source: normalizeSource(input.source, DECK_SOURCES, 'web')
 		};
-		const previous = await replayIntent(accountId, input.requestId, normalized);
-		if (previous) return previous;
-		const card = await catalog.getCatalogPrinting(input.catalogCardId);
 		return mutation(
 			accountId,
 			{
@@ -865,18 +864,17 @@ export function createDecks(
 				requestId: input.requestId,
 				source: normalized.source,
 				game: 'mtg',
-				operations: [
-					{
-						op: 'add',
-						card: toCardIdentity(card),
-						quantity: input.quantity,
-						role: input.role
-					}
-				]
+				operations: []
 			},
 			undefined,
 			normalized,
-			actor
+			actor,
+			0,
+			{
+				catalogCardId: normalized.catalogCardId,
+				quantity: normalized.quantity,
+				role: normalized.role
+			}
 		);
 	}
 	async function addDeckCard(
@@ -1079,13 +1077,13 @@ export function createDecks(
 		ownership: readWithActor(ownership),
 		search: readWithActor(search),
 		createDeckRecord: async (actor: AuthUser, input: Parameters<typeof createDeckRecord>[1]) =>
-			createDeckRecord(await actorAccount(actor), input, actor),
+			createDeckRecord(actor.accountId, input, actor),
 		updateDeck: async (actor: AuthUser, input: DeckPatch) =>
 			updateDeck(await actorAccount(actor), input, actor),
 		deleteDeck: async (actor: AuthUser, deckId: string) =>
 			deleteDeck(await actorAccount(actor), deckId, actor),
 		bulkMutateDeckCards: async (actor: AuthUser, input: DeckBulkInput) =>
-			bulkMutateDeckCards(await actorAccount(actor), input, actor),
+			bulkMutateDeckCards(actor.accountId, input, actor),
 		updateDeckCard: async (
 			actor: AuthUser,
 			entryId: string,
@@ -1110,11 +1108,11 @@ export function createDecks(
 		removeDeckCard: async (actor: AuthUser, entryId: string, requestId: string, source?: string) =>
 			removeDeckCard(await actorAccount(actor), entryId, requestId, actor, source),
 		addDeckCard: async (actor: AuthUser, input: Parameters<DecksApplication['addDeckCard']>[1]) =>
-			addDeckCard(await actorAccount(actor), input, actor),
+			addDeckCard(actor.accountId, input, actor),
 		addCatalogCardToDeck: async (
 			actor: AuthUser,
 			input: Parameters<DecksApplication['addCatalogCardToDeck']>[1]
-		) => addCatalogCardToDeck(await actorAccount(actor), input, actor),
+		) => addCatalogCardToDeck(actor.accountId, input, actor),
 		changeDeckPrinting: async (
 			actor: AuthUser,
 			input: Parameters<DecksApplication['changeDeckPrinting']>[1]

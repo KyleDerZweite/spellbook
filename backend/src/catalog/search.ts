@@ -1,3 +1,5 @@
+import { sql } from 'drizzle-orm';
+import type { Transaction } from '../db/client.ts';
 import type { Pool } from 'pg';
 import type {
 	CardDocument,
@@ -67,6 +69,17 @@ function copyFacets(facets: FacetResponse): FacetResponse {
 		rarity: { ...facets.rarity },
 		set_code: { ...facets.set_code }
 	};
+}
+/** Catalog-owned printing projection for an existing authorized Deck transaction. */
+export async function readTransactionCatalogPrinting(
+	tx: Transaction,
+	id: string
+): Promise<CardDocument> {
+	const result = await tx.execute<{ document: CardDocument }>(
+		sql`SELECT p.document FROM catalog_printings p JOIN catalog_state s ON s.id=1 AND s.active_generation=p.generation_id WHERE p.id=${uuid(id)}::uuid`
+	);
+	if (!result.rows[0]) throw new ValidationError('Catalog printing not found');
+	return printingDto(result.rows[0].document);
 }
 
 export function createCatalog(pool: Pool) {
@@ -165,7 +178,10 @@ export function createCatalog(pool: Pool) {
 		if (memoEligible && !memoMatches && unfilteredFacets === observedMemo) {
 			unfilteredFacets =
 				row.generation_id && row.total > 0
-					? { generationId: row.generation_id, facets: copyFacets(resultFacets) }
+					? {
+							generationId: row.generation_id,
+							facets: copyFacets(resultFacets)
+						}
 					: undefined;
 		}
 		return {

@@ -1,7 +1,7 @@
 # Catalog
 
 - Status: Canonical
-- Last Reviewed: 2026-10-07
+- Last Reviewed: 2026-10-08
 - Source of Truth: code, reviewed versioned Demo publication and accepted continuous Lazy requirements
 - Update Triggers: catalog source and schema, publication, versioned English Demo bundles, starter samples and display assets, search ranking and query shape, generated color-identity projection and index, filters, facets, browser anchor ranges and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters, internal canonical/type fact provenance, paired reference publication and recovery, continuous Lazy browsing/dialog contract and selected versus implemented read limits
 - Related Docs: [Domain glossary](../../GLOSSARY.md), [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [Local authentication and demo setup](../operations/local-auth.md), [ADR-0010](../decisions/0010-postgres-catalog.md), [Application contract](./application-contract.md), [Category rules](./category-rules.md)
@@ -71,3 +71,5 @@ Catalog publication stores original validated `oracle_id`, printing UUID, availa
 ## Baseline price correspondence
 
 Scryfall refresh now publishes Catalog metadata and its reference-price view atomically. The recorded pair supports coherent operator recovery. Independent immutable price publications do not cascade with disposable Catalog generations. Catalog DTOs stay explicit; callers obtain prices/product links from the bounded [Valuation contract](./valuation.md#implemented-market-references). Demo Catalog publication alone establishes no price view.
+
+Catalog transform version 3 adds nullable raw keyword facts to the same generation publication as raw Oracle identity and types. Missing keyword arrays remain Unknown; an explicit empty array is known empty. Existing version 2 generations cannot establish keyword predicates. The paired price publication and price extractor version remain independent. [Category rules](./category-rules.md) owns rule evaluation.

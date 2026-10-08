@@ -15,7 +15,7 @@ import type {
 import type { Database, Transaction } from '../db/client.ts';
 import { localCredentials, userProfiles, authSessions } from '../db/schema.ts';
 import { hashPassword, normalizeUsername, validPassword, verifyPassword } from './password.ts';
-import { createSessionStore } from './session.ts';
+import { createSessionStore, hashSessionToken } from './session.ts';
 
 export class AuthError extends Error implements AuthFailure {
 	readonly kind = 'RateLimited';
@@ -50,6 +50,21 @@ export function createLocalAuth(db: Database, config: { demoMode: boolean }) {
 		const session = await readSession(token, transaction);
 		if (!session) throw new ActorError();
 		return trust(session.user, token!);
+	}
+	// Call only after the owning Profile lock. Logout waits for this live session fence.
+	async function requireActorForWrite(
+		actor: AuthUser,
+		transaction: Transaction
+	): Promise<AuthUser> {
+		const token = actors.get(actor);
+		if (!token) throw new ActorError();
+		const [session] = await transaction
+			.select({ expiresAt: authSessions.expiresAt })
+			.from(authSessions)
+			.where(eq(authSessions.tokenHash, hashSessionToken(token)))
+			.for('share');
+		if (!session || session.expiresAt.getTime() <= Date.now()) throw new ActorError();
+		return requireActor(actor, transaction);
 	}
 	const demoMode = config.demoMode;
 	function acceptsDemoLogin(
@@ -202,6 +217,7 @@ export function createLocalAuth(db: Database, config: { demoMode: boolean }) {
 		withPasswordDerivation,
 		inspectSession,
 		requireActor,
+		requireActorForWrite,
 		changePassword,
 		actorSession
 	} satisfies LocalAuthApplication & {
@@ -210,6 +226,7 @@ export function createLocalAuth(db: Database, config: { demoMode: boolean }) {
 		withPasswordDerivation: typeof withPasswordDerivation;
 		inspectSession: typeof inspectSession;
 		requireActor: typeof requireActor;
+		requireActorForWrite: typeof requireActorForWrite;
 		changePassword: typeof changePassword;
 		actorSession: typeof actorSession;
 	};

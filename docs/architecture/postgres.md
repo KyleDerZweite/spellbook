@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-08
 - Source of Truth: code
-- Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership and compatibility adapters, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers, private value checkpoints and frozen evidence, public price publication and retention, Oracle Tags publications and raw facts, entry category bundles/decisions and receipts
+- Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership and compatibility adapters, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers, private value checkpoints and frozen evidence, public price publication and retention, Oracle Tags publications and raw facts, entry category bundles/decisions and receipts, immutable account definitions and relational preview retention
 - Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Category rules](./category-rules.md)
 
 PostgreSQL stores account-owned application state, the public Scryfall catalog and public price references.
@@ -38,6 +38,11 @@ The backend [schema](../../backend/src/db/schema.ts) owns table definitions, and
 - `inventory_value_holdings`
 - `inventory_value_references`
 - `catalog_oracle_facts`
+- `category_library_state`
+- `category_definition_origins`
+- `category_definition_versions`
+- `category_change_previews`
+- `category_preview_differences`
 - `category_mutation_requests`
 - `deck_category_bundles`
 - `deck_entry_category_decisions`

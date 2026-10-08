@@ -10,9 +10,13 @@ export { createInventoryMutations } from './inventory/mutations.ts';
 export { createSavedState } from './saved-state/application.ts';
 
 export { createCategories } from './categories/application.ts';
+export { LibraryConflict } from './categories/library.ts';
+export { CategoryPreviewExpired, CategoryPreviewCapacity } from './categories/previews.ts';
 
 export { CategoryNotFound, CategoryConflict } from './categories/application.ts';
 export { CategoryMergeConflict } from './categories/merge.ts';
 export { createScan } from './scan/application.ts';
 export { createInventoryValues } from './valuation/inventory-value.ts';
 export { createValueHistoryRunner } from './valuation/capture.ts';
+
+export { CategoryUnavailable } from './categories/work.ts';
