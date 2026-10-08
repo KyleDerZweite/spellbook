@@ -138,4 +138,4 @@ Worker publishes public Scryfall and optional provider observations and conserva
 
 ## Account Category Library
 
-[Category rules](./category-rules.md) owns immutable scoped reusable definitions, complete ordered Deck adoption, local labels/removal/suppression and server-owned entry Review/Reset plans. Frontend forms and authenticated HTTP routes delegate to the same trusted backend actor commands. Whole-deck rule definitions can be edited and adopted; whole-deck evaluation and local Combo matching remain planned.
+[Category rules](./category-rules.md) owns immutable scoped reusable definitions, complete ordered Deck adoption, local labels/removal/suppression and server-owned entry Review/Reset plans. Frontend forms and authenticated HTTP routes delegate to the same trusted backend actor commands. Whole-deck rule definitions can be edited and adopted; whole-deck evaluation is implemented; local Combo matching remains planned.

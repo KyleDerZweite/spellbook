@@ -520,9 +520,9 @@ test('built whole Categories and bounded Deck Library preserve private saved con
 				assert.equal(initial.status, 200);
 				const initialHTML = await initial.text();
 				assert.match(initialHTML, /No whole-deck definitions are adopted/);
-				const previewButton = initialHTML.match(
-					/<button[^>]*>\s*Preview whole-deck changes\s*<\/button>/
-				)?.[0];
+				const previewButton = initialHTML
+					.replace(/<!--[\s\S]*?-->/g, '')
+					.match(/<button[^>]*>\s*Preview whole-deck changes\s*<\/button>/)?.[0];
 				assert.ok(previewButton);
 				assert.doesNotMatch(previewButton, /disabled/);
 				const previewResponse = await native('previewCategories', {
