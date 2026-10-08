@@ -197,6 +197,12 @@ export function createInventoryValues(
 				[accountId, from, to, asOf.toISOString()]
 			)
 		).rows;
+		const nextRefresh = (
+			await executor.query<{ next_refresh_at: Date }>(
+				`SELECT least($5::timestamptz,coalesce(min(day_end),$5::timestamptz)) AS next_refresh_at FROM inventory_value_days WHERE account_id=$1 AND game='mtg' AND day BETWEEN $2::date AND $3::date AND day_end > $4::timestamptz`,
+				[accountId, from, to, asOf.toISOString(), calendar[0].next_day_boundary.toISOString()]
+			)
+		).rows[0].next_refresh_at;
 		const estimates = new Map<string, ValueEstimate>();
 		if (filter.identity && headers.length) {
 			const rows = (
@@ -221,6 +227,7 @@ export function createInventoryValues(
 		return {
 			asOf: asOf.toISOString(),
 			nextDayBoundary: calendar[0].next_day_boundary.toISOString(),
+			nextRefreshAt: nextRefresh.toISOString(),
 			timezone,
 			window: { from, to, days },
 			identity: filter.identity,
