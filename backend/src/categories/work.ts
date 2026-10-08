@@ -37,7 +37,8 @@ export function categoryJson(tx: Transaction, value: unknown) {
 export async function categoryTransaction<T>(
 	db: Database,
 	run: (tx: Transaction) => Promise<T>,
-	options?: Parameters<Database['transaction']>[1]
+	options?: Parameters<Database['transaction']>[1],
+	lifetime?: { waitForAcquisition?: boolean; signal?: AbortSignal }
 ): Promise<T> {
 	const pool = db.$client as Pool;
 	// Avoid accumulating expired acquisition requests behind an exhausted shared pool.
@@ -57,15 +58,22 @@ export async function categoryTransaction<T>(
 			}
 			return client;
 		});
-	const client: PoolClient = await Promise.race([
-		acquisition,
-		new Promise<never>((_, reject) => {
-			acquisitionTimer = setTimeout(() => {
-				acquisitionExpired = true;
-				reject(new CategoryUnavailable());
-			}, categoryWorkLimits.poolMs);
-		})
-	]).finally(() => clearTimeout(acquisitionTimer));
+	let client: PoolClient;
+	try {
+		client = await Promise.race([
+			acquisition,
+			new Promise<never>((_, reject) => {
+				acquisitionTimer = setTimeout(() => {
+					acquisitionExpired = true;
+					reject(new CategoryUnavailable());
+				}, categoryWorkLimits.poolMs);
+			})
+		]).finally(() => clearTimeout(acquisitionTimer));
+	} catch (cause) {
+		// Runners retain their slot through a late pool connection and its release.
+		if (lifetime?.waitForAcquisition) await acquisition.catch(() => {});
+		throw cause;
+	}
 	let destroyed = false;
 	const deadline = performance.now() + categoryWorkLimits.transactionMs;
 	const terminate = () => {
@@ -84,11 +92,13 @@ export async function categoryTransaction<T>(
 	try {
 		return await drizzle(client, { schema }).transaction(async (tx) => {
 			deadlines.set(tx, deadline);
+			lifetime?.signal?.throwIfAborted();
 			await tx.execute(
 				sql`SELECT set_config('lock_timeout',${String(categoryWorkLimits.lockMs)},true),set_config('statement_timeout',${String(categoryWorkLimits.statementMs)},true),set_config('idle_in_transaction_session_timeout',${String(categoryWorkLimits.transactionMs)},true),set_config('transaction_timeout',${String(categoryWorkLimits.transactionMs)},true)`
 			);
 			const result = await run(tx);
 			categoryCheckpoint(tx);
+			lifetime?.signal?.throwIfAborted();
 			// Stop the work cancellation timer before Drizzle issues COMMIT. Await its actual result.
 			clearTimeout(timer);
 			return result;
