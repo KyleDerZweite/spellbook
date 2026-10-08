@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import assert from 'node:assert/strict';
 import type { Pool } from 'pg';
 import type { CardDocument } from '@spellbook/contracts/catalog.ts';
 
@@ -55,7 +56,11 @@ export async function publishCategoryCatalogFixture(pool: Pool) {
 	try {
 		await client.query('BEGIN');
 		await client.query('SELECT pg_advisory_xact_lock($1,$2)', [1936747619, 1]);
-		previous = (await client.query('SELECT * FROM catalog_state WHERE id=1 FOR UPDATE')).rows[0];
+		previous = (
+			await client.query(
+				'SELECT id,active_generation,previous_generation,updated_at::text AS updated_at FROM catalog_state WHERE id=1 FOR UPDATE'
+			)
+		).rows[0];
 		// Bundle time identifies this recorded fixture, not verified upstream freshness.
 		await client.query(
 			"INSERT INTO catalog_generations(id,source_type,source_updated_at,document_count,schema_version,published_at) VALUES($1,'test-recorded-category-bundle',$2,1000,$3,now())",
@@ -105,6 +110,16 @@ export async function publishCategoryCatalogFixture(pool: Pool) {
 					[previous.active_generation, previous.previous_generation, previous.updated_at]
 				);
 			else await cleanup.query('DELETE FROM catalog_state WHERE id=1');
+			const restored = (
+				await cleanup.query(
+					'SELECT id,active_generation,previous_generation,updated_at::text AS updated_at FROM catalog_state WHERE id=1'
+				)
+			).rows[0];
+			assert.deepEqual(
+				restored,
+				previous,
+				'Category fixture must restore the complete prior Catalog state'
+			);
 			await cleanup.query('DELETE FROM catalog_generations WHERE id=$1', [generationId]);
 			await cleanup.query('COMMIT');
 		} catch (cause) {
