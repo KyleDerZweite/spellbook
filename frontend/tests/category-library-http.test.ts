@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import { ensureDeckCatalogFixture } from './deck-catalog-fixture.ts';
+import { publishCategoryCatalogFixture } from './fixtures/category-catalog.ts';
 import { fixtureAuthRequest } from './fixtures/http-auth.ts';
 import { httpTestOrigin, startHttpApplication, stopHttpApplication } from './http-runtime.ts';
 import type {
@@ -22,7 +23,9 @@ test('built native Category Library and API preserve immutable adoption and comp
 	const pool = new pg.Pool({ connectionString: databaseUrl });
 	const accounts: string[] = [];
 	let child: Awaited<ReturnType<typeof startHttpApplication>> | undefined;
+	let restoreCatalog: (() => Promise<void>) | undefined;
 	try {
+		restoreCatalog = await publishCategoryCatalogFixture(pool);
 		child = await startHttpApplication(origin, new URL('../', import.meta.url));
 		const registered = await fixtureAuthRequest(
 			origin,
@@ -796,9 +799,16 @@ test('built native Category Library and API preserve immutable adoption and comp
 			}
 		);
 	} finally {
-		if (child) await stopHttpApplication(child);
-		for (const account of accounts)
-			await pool.query('DELETE FROM user_profiles WHERE account_id=$1', [account]);
-		await pool.end();
+		try {
+			if (child) await stopHttpApplication(child);
+			for (const account of accounts)
+				await pool.query('DELETE FROM user_profiles WHERE account_id=$1', [account]);
+		} finally {
+			try {
+				await restoreCatalog?.();
+			} finally {
+				await pool.end();
+			}
+		}
 	}
 });

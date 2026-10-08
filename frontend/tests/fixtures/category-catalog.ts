@@ -28,17 +28,27 @@ export async function publishCategoryCatalogFixture(pool: Pool) {
 	const bundle = await verifyBundle();
 	const records: RecordedPrinting[] = [];
 	let artifact: RecordedPrinting | undefined;
+	let creature: RecordedPrinting | undefined;
 	// Consume the whole stream so the native verifier checks the payload digest and counts.
 	for await (const batch of bundleBatches(bundle)) {
 		for (const record of batch) {
 			if (!record.raw_oracle_id || !Array.isArray(record.types)) continue;
 			if (records.length < 1000) records.push(record);
 			if (!artifact && record.types.includes('Artifact')) artifact = record;
+			if (!creature && record.types.includes('Creature')) creature = record;
 		}
 	}
-	if (records.length !== 1000 || !artifact)
-		throw new Error('Recorded Category fixture needs 1000 known printings and an Artifact');
-	if (!records.some((record) => record.types?.includes('Artifact'))) records[999] = artifact;
+	if (records.length !== 1000 || !artifact || !creature)
+		throw new Error(
+			'Recorded Category fixture needs 1000 known printings, an Artifact and a Creature'
+		);
+	const selected = [
+		...new Map(
+			[artifact, creature, ...records].map((record) => [record.document.id, record])
+		).values()
+	].slice(0, 1000);
+	if (selected.length !== 1000)
+		throw new Error('Category fixture printing identities must be unique');
 	const generationId = randomUUID();
 	const client = await pool.connect();
 	let previous;
@@ -51,8 +61,8 @@ export async function publishCategoryCatalogFixture(pool: Pool) {
 			"INSERT INTO catalog_generations(id,source_type,source_updated_at,document_count,schema_version,published_at) VALUES($1,'test-recorded-category-bundle',$2,1000,$3,now())",
 			[generationId, bundle.manifest.bundleVersion, bundle.manifest.catalogTransformVersion]
 		);
-		for (let offset = 0; offset < records.length; offset += 500) {
-			const batch = JSON.stringify(records.slice(offset, offset + 500));
+		for (let offset = 0; offset < selected.length; offset += 500) {
+			const batch = JSON.stringify(selected.slice(offset, offset + 500));
 			await client.query(
 				`INSERT INTO catalog_printings(generation_id,id,oracle_id,name,normalized_name,printed_name,lang,set_code,collector_number,rarity,cmc,colors,card_types,legalities,search_name,search_text,document)
 				 SELECT $1,d.id,d.oracle_id,d.name,d.normalized_name,d.printed_name,d.lang,d.set_code,d.collector_number,d.rarity,d.cmc,d.colors,d.card_types,d.legalities,r.search_name,r.search_text,r.document
