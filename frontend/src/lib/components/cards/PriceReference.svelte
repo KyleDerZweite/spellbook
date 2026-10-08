@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import PriceHistory from './PriceHistory.svelte';
 	import Select from '#lib/components/ui/select/Select.svelte';
@@ -41,55 +42,57 @@
 		health = [];
 		loading = true;
 		readError = '';
-		const subscription = workspaceSavedState.subscribe({
-			topics: ['values'],
-			clear: () => {
-				reference = null;
-				quantity = 1;
-				health = [];
-				readError = '';
-				loading = false;
-				requestGeneration++;
-			},
-			refresh: async (lease) => {
-				const generation = ++requestGeneration;
-				const current = () =>
-					lease.current() &&
-					generation === requestGeneration &&
-					account === page.data.user?.accountId &&
-					selectedEntry === entryId &&
-					selectedPrinting === printingId;
-				try {
-					const result = await loadReferencePrice(
-						{ printingId: selectedPrinting, entryId: selectedEntry, finish: 'nonfoil' },
-						lease.signal,
-						current,
-						async (url, init) => {
-							const response = await fetch(url, { ...init, cache: 'no-store' });
-							if (response.status === 401 && current()) workspaceSavedState.expire();
-							return response;
-						}
-					);
-					if (!result || !current()) return;
-					const first = result.results[0];
-					if (first && 'reference' in first) {
-						reference = first.reference;
-						quantity = first.quantity;
-					}
-					health = result.sourceStatuses;
+		const subscription = untrack(() =>
+			workspaceSavedState.subscribe({
+				topics: ['values'],
+				clear: () => {
+					reference = null;
+					quantity = 1;
+					health = [];
 					readError = '';
 					loading = false;
-				} catch (cause) {
-					if (current()) {
-						reference = null;
+					requestGeneration++;
+				},
+				refresh: async (lease) => {
+					const generation = ++requestGeneration;
+					const current = () =>
+						lease.current() &&
+						generation === requestGeneration &&
+						account === page.data.user?.accountId &&
+						selectedEntry === entryId &&
+						selectedPrinting === printingId;
+					try {
+						const result = await loadReferencePrice(
+							{ printingId: selectedPrinting, entryId: selectedEntry, finish: 'nonfoil' },
+							lease.signal,
+							current,
+							async (url, init) => {
+								const response = await fetch(url, { ...init, cache: 'no-store' });
+								if (response.status === 401 && current()) workspaceSavedState.expire();
+								return response;
+							}
+						);
+						if (!result || !current()) return;
+						const first = result.results[0];
+						if (first && 'reference' in first) {
+							reference = first.reference;
+							quantity = first.quantity;
+						}
+						health = result.sourceStatuses;
+						readError = '';
 						loading = false;
-						readError =
-							cause instanceof Error ? cause.message : 'Reference prices could not be loaded.';
+					} catch (cause) {
+						if (current()) {
+							reference = null;
+							loading = false;
+							readError =
+								cause instanceof Error ? cause.message : 'Reference prices could not be loaded.';
+						}
+						throw cause;
 					}
-					throw cause;
 				}
-			}
-		});
+			})
+		);
 		return () => {
 			subscription.dispose();
 			requestGeneration++;

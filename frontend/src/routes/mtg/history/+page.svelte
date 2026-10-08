@@ -1,4 +1,5 @@
 <script lang="ts">
+	import WorkspaceHeader from '#lib/components/layout/WorkspaceHeader.svelte';
 	import { historyBoundaryTimer } from '#lib/valuation/history-boundary.ts';
 	import Select from '#lib/components/ui/select/Select.svelte';
 	import { onMount, untrack } from 'svelte';
@@ -74,10 +75,10 @@
 	><title>Inventory history | Spellbook</title><meta name="robots" content="noindex" /></svelte:head
 >
 <div class="workspace-container space-y-4">
-	<header class="flex flex-wrap items-center justify-between gap-3">
-		<h1>Inventory history</h1>
-		<a class="underline" href="/mtg/dashboard">Dashboard</a>
-	</header>
+	<WorkspaceHeader title="Inventory history">
+		{#snippet actions()}<a class="btn btn-secondary btn-sm" href="/mtg/dashboard">Dashboard</a
+			>{/snippet}
+	</WorkspaceHeader>
 	<SavedStateStatus resource={subscription} />
 	{#if data.query.printingId}<p class="text-sm text-text-muted">
 			{data.printingName} · {data.query.finish ?? 'all finishes'} · {data.query.condition ??
