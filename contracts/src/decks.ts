@@ -1,3 +1,4 @@
+import type { DeckValueEstimates } from './inventory-value.ts';
 import type { AuthUser } from './auth.ts';
 import type { CardDocument, SearchResult } from './catalog.ts';
 export type DeckRole = 'main' | 'sideboard' | 'commander' | 'companion';
@@ -45,6 +46,8 @@ export interface DeckAvailabilityResponse {
 	totals: DeckAvailability & { required: number };
 }
 export interface DeckSnapshot {
+	valueEstimates: DeckValueEstimates | null;
+	valuationError: { kind: 'PriceReadUnavailable'; message: string } | null;
 	decks: Deck[];
 	deckTotals: Record<string, number>;
 	deckCovers: Record<string, { imageUri: string }>;
