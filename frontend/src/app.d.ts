@@ -49,6 +49,7 @@ declare global {
 				deckId: string;
 				snapshot: import('@spellbook/contracts/decks.ts').DeckSnapshot;
 				categories: import('@spellbook/contracts/categories.ts').DeckEntryCategories;
+				wholeCategories?: import('@spellbook/contracts/whole-categories.ts').DeckWholeCategories;
 				preview?: import('@spellbook/contracts/category-library.ts').CategoryPreview;
 			};
 		}

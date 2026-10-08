@@ -45,7 +45,10 @@ export const GET: RequestHandler = async (event) => {
 	const auth = await requireMobileAuth(event);
 	try {
 		const deckId = requireUuid(event.params.deckId, 'deckId');
-		const snapshot = await application.decks.getDeck(auth.user, deckId);
+		const snapshot =
+			event.url.searchParams.get('selectedOnly') === 'true'
+				? await application.decks.getDeck(auth.user, deckId)
+				: await application.decks.getDeckSnapshot(auth.user, 'mtg', deckId);
 		const detail = await application.decks.getDeckLegality(auth.user, deckId);
 		return json({ ...snapshot, ...detail });
 	} catch (cause) {
