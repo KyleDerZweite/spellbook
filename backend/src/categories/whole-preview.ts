@@ -43,7 +43,17 @@ export async function buildWholePlan(
 				displayOrder: d.current.displayOrder,
 				suppressed: false,
 				automaticActive: true,
-				decision: intent.mode === 'Review' ? (previous?.decision ?? null) : null
+				decision: previous?.decision
+					? intent.mode === 'Reset' && previous.decision.state === 'Manual'
+						? {
+								...previous.decision,
+								state: 'Automatic',
+								manual: null,
+								evidence: previous.decision.previousEvaluation,
+								previousEvaluation: null
+							}
+						: previous.decision
+					: null
 			};
 		});
 	const currentIds = new Set(proposed.map((c) => c.versionId));
