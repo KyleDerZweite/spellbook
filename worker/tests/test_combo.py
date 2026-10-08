@@ -168,6 +168,7 @@ def test_disabled_sync_has_no_dependency_or_fetch(tmp_path):
 
 def test_combo_config_validation(monkeypatch):
     monkeypatch.setenv("DATABASE_URL", "unused")
+    monkeypatch.delenv("COMMANDER_SPELLBOOK_ENABLED", raising=False)
     assert not load_config().commander_spellbook_enabled
     monkeypatch.setenv("COMMANDER_SPELLBOOK_ENABLED", "true")
     assert load_config().commander_spellbook_enabled
