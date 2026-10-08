@@ -1,8 +1,10 @@
 <script lang="ts">
+	import { historyBoundaryTimer } from '#lib/valuation/history-boundary.ts';
 	import ValueSummary from '#lib/components/valuation/ValueSummary.svelte';
 	import InventoryValueHistory from '#lib/components/valuation/InventoryValueHistory.svelte';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
 	import { onMount, untrack } from 'svelte';
+	import { page } from '$app/state';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import { readSavedJSON } from '#lib/saved-state/read.ts';
 	import type { ResourceSubscription } from '#lib/saved-state/workspace.ts';
@@ -12,6 +14,17 @@
 	let dashboard = $state(untrack(() => data.dashboard));
 	let loadError = $state(untrack(() => data.loadError));
 	let subscription: ResourceSubscription | undefined = $state();
+	let boundaryAccount = '';
+	const boundaryTimer = historyBoundaryTimer(
+		() => subscription?.invalidate(),
+		() => workspaceSavedState.isActive(boundaryAccount) && document.visibilityState === 'visible'
+	);
+	$effect(() => {
+		boundaryAccount = page.data.user?.accountId ?? '';
+		boundaryTimer.schedule(dashboard?.inventoryValueHistory?.nextRefreshAt);
+		return boundaryTimer.cancel;
+	});
+
 	onMount(() => {
 		subscription = workspaceSavedState.subscribe({
 			topics: ['inventory', 'decks', 'scan', 'values'],

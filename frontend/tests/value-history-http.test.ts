@@ -147,6 +147,10 @@ test('private Inventory values through the built application and PostgreSQL', as
 				assert.match(response.headers.get('cache-control')!, /no-store/);
 				const history: InventoryValueHistory = await response.json();
 				assert.equal(history.window.days, 30);
+				assert.ok(Date.parse(history.nextDayBoundary) > Date.parse(history.asOf));
+				assert.ok(Date.parse(history.nextRefreshAt) <= Date.parse(history.nextDayBoundary));
+				assert.equal(JSON.stringify(history).includes(owner.user.accountId), false);
+				assert.equal(JSON.stringify(history).includes('publicationId'), false);
 				assert.equal(history.points.filter((point) => point.kind === 'Captured').length, 1);
 				assert.equal(history.points.filter((point) => point.kind === 'Gap').length, 29);
 				const point = history.points.at(-1)!;

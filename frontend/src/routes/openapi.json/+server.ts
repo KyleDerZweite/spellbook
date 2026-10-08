@@ -1199,6 +1199,8 @@ const SCHEMA = {
 			),
 			InventoryValueHistory: object({
 				asOf: { type: 'string', format: 'date-time' },
+				nextDayBoundary: { type: 'string', format: 'date-time' },
+				nextRefreshAt: { type: 'string', format: 'date-time' },
 				timezone: string,
 				window: object({
 					from: { type: 'string', format: 'date' },

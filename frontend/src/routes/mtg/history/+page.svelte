@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { historyBoundaryTimer } from '#lib/valuation/history-boundary.ts';
 	import Select from '#lib/components/ui/select/Select.svelte';
 	import { onMount, untrack } from 'svelte';
 	import { page } from '$app/state';
@@ -13,6 +14,18 @@
 	let history = $state<InventoryValueHistory | null>(untrack(() => data.history));
 	let historyError = $state(untrack(() => data.historyError));
 	let subscription: ResourceSubscription | undefined = $state();
+	let boundaryAccount = '';
+	const boundaryTimer = historyBoundaryTimer(
+		() => subscription?.invalidate(),
+		() => workspaceSavedState.isActive(boundaryAccount) && document.visibilityState === 'visible'
+	);
+	$effect(() => {
+		boundaryAccount = page.data.user?.accountId ?? '';
+		page.url.search;
+		boundaryTimer.schedule(history?.nextRefreshAt);
+		return boundaryTimer.cancel;
+	});
+
 	$effect(() => {
 		data;
 		untrack(() => {
