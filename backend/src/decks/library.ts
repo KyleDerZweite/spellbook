@@ -109,7 +109,7 @@ export async function locateDeck(
 	return read(db, async (tx) => {
 		const current = await revision(tx, accountId, expectedRevision);
 		const rows = await tx.execute(
-			sql`WITH ranked AS (SELECT d.id,row_number() OVER(ORDER BY ${ordering(query)})-1 AS offset FROM decks d WHERE ${matching(accountId, query)}) SELECT count(*)::text AS total,max(offset) FILTER(WHERE id=${deckId}::uuid)::text AS offset FROM ranked`
+			sql`WITH ranked AS (SELECT d.id,row_number() OVER(ORDER BY ${ordering(query)})-1 AS position FROM decks d WHERE ${matching(accountId, query)}) SELECT count(*)::text AS total,max(position) FILTER(WHERE id=${deckId}::uuid)::text AS "offset" FROM ranked`
 		);
 		return {
 			query,
