@@ -19,6 +19,11 @@ import { ValidationError } from '#lib/server/mtg/validation.ts';
 
 /** Map domain failures to HTTP status codes and preserve infrastructure failures. */
 export function badRequestIfValidation(cause: unknown, fallback = 'Invalid request'): never {
+	if (cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'RevisionChanged')
+		throw error(409, {
+			kind: 'RevisionChanged',
+			message: 'Deck Library changed. Read the latest directory and retry.'
+		});
 	if (cause instanceof LibraryConflict || cause instanceof CategoryPreviewExpired)
 		throw error(409, { kind: cause.kind, message: cause.message });
 	if (cause instanceof CategoryPreviewCapacity || cause instanceof CategoryUnavailable)

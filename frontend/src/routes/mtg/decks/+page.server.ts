@@ -235,6 +235,44 @@ function removalIntent(form: FormData, prefix = '') {
 }
 
 export const actions = {
+	setWholeCategory: guarded(async ({ request, locals }) => {
+		const form = await readCategoryForm(request),
+			manual = field(form, 'manual');
+		if (manual !== 'Include' && manual !== 'Exclude')
+			throw new ValidationError('Select Include or Exclude');
+		const acknowledgement = await application.categories.setWholeCategory(locals.user!, {
+			requestId: field(form, 'requestId'),
+			deckId: field(form, 'deckId'),
+			versionId: field(form, 'versionId'),
+			manual,
+			expectedDecisionRevision: field(form, 'expectedDecisionRevision')
+		});
+		return { success: true, message: 'Version-bound Manual choice saved.', acknowledgement };
+	}),
+	renameWholeCategory: guarded(async ({ request, locals }) => {
+		const form = await readCategoryForm(request);
+		const acknowledgement = await application.categories.renameWholeCategory(locals.user!, {
+			requestId: field(form, 'requestId'),
+			deckId: field(form, 'deckId'),
+			versionId: field(form, 'versionId'),
+			name: field(form, 'name'),
+			expectedDecisionRevision: field(form, 'expectedDecisionRevision')
+		});
+		return { success: true, message: 'Whole-deck local label saved.', acknowledgement };
+	}),
+	removeWholeCategory: guarded(async ({ request, locals }) => {
+		const form = await readCategoryForm(request);
+		if (field(form, 'confirmRemoval') !== 'yes')
+			throw new ValidationError('Confirm suppression of this whole-deck origin');
+		const acknowledgement = await application.categories.removeWholeCategory(locals.user!, {
+			requestId: field(form, 'requestId'),
+			deckId: field(form, 'deckId'),
+			versionId: field(form, 'versionId'),
+			expectedDecisionRevision: field(form, 'expectedDecisionRevision')
+		});
+		return { success: true, message: 'Whole-deck origin suppressed.', acknowledgement };
+	}),
+
 	renameCategory: async (event) => {
 		let renameDraft:
 			| {

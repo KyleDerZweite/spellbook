@@ -12,6 +12,7 @@ declare global {
 			kind?:
 				| import('@spellbook/contracts/decks.ts').DeckFailure['kind']
 				| 'CategoryConflict'
+				| 'RevisionChanged'
 				| 'CategoryPreviewExpired'
 				| 'CategoryPreviewCapacity'
 				| 'CategoryUnavailable'
