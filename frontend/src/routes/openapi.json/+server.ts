@@ -2791,12 +2791,21 @@ const SCHEMA = {
 				policyVersion: { const: 'ingredients-v1' },
 				parserVersion: integer
 			}),
-			ComboEvaluationEvidence: object({
-				outcomeId: string,
-				roles: { type: 'array', items: role },
-				truth: { enum: ['True', 'False', 'Unknown'] },
-				proof: nullable('ComboProof')
+			ComboParticipantWitness: object({
+				proof: ref('ComboProof'),
+				entryIds: { type: 'array', items: categoryUuid }
 			}),
+			ComboEvaluationEvidence: object(
+				{
+					outcomeId: string,
+					roles: { type: 'array', items: role },
+					truth: { enum: ['True', 'False', 'Unknown'] },
+					proof: nullable('ComboProof'),
+					participantTruth: { enum: ['True', 'False', 'Unknown'] },
+					participantWitnesses: array('ComboParticipantWitness')
+				},
+				['outcomeId', 'roles', 'truth', 'proof']
+			),
 			ComboEvidence: object({
 				source: ref('ComboSource'),
 				evaluations: array('ComboEvaluationEvidence')

@@ -121,13 +121,42 @@ describe('OpenAPI contract', () => {
 				'policyVersion',
 				'parserVersion'
 			],
-			ComboEvaluationEvidence: ['outcomeId', 'roles', 'truth', 'proof'],
+			ComboParticipantWitness: ['proof', 'entryIds'],
 			ComboEvidence: ['source', 'evaluations']
 		};
 		for (const [name, required] of Object.entries(fields)) {
 			expect(Object.keys(schemas[name].properties)).toEqual(required);
 			expect(schemas[name].required).toEqual(required);
 		}
+		expect(schemas.ComboEvaluationEvidence.required).toEqual([
+			'outcomeId',
+			'roles',
+			'truth',
+			'proof'
+		]);
+		expect(Object.keys(schemas.ComboEvaluationEvidence.properties)).toEqual([
+			'outcomeId',
+			'roles',
+			'truth',
+			'proof',
+			'participantTruth',
+			'participantWitnesses'
+		]);
+		expect(schemas.ComboEvaluationEvidence.properties.participantTruth.enum).toEqual([
+			'True',
+			'False',
+			'Unknown'
+		]);
+		expect(schemas.ComboEvaluationEvidence.properties.participantWitnesses.items.$ref).toBe(
+			'#/components/schemas/ComboParticipantWitness'
+		);
+		expect(schemas.ComboParticipantWitness.properties.proof.$ref).toBe(
+			'#/components/schemas/ComboProof'
+		);
+		expect(schemas.ComboParticipantWitness.properties.entryIds.items).toEqual({
+			type: 'string',
+			format: 'uuid'
+		});
 		expect(schemas.ComboIngredient.properties.states).toEqual({
 			type: 'object',
 			additionalProperties: { type: 'string' }

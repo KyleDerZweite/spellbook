@@ -174,3 +174,85 @@ it('renders a latest Unknown attempt separately from an ingredient proof', async
 	expect(body).toContain('Unknown remains Unknown under negation');
 	expect(body).not.toContain('Documented ingredients are present');
 });
+
+it('distinguishes entry participation from outcome truth and displays the entry witness', async () => {
+	const evaluation = evidence.evaluations[0];
+	const proof = evaluation.proof!;
+	const ownProof = { ...proof, variant: { ...proof.variant, id: 'own-witness' } };
+	const entryEvidence: Evidence = {
+		...evidence,
+		evaluations: [
+			{
+				...evaluation,
+				participantTruth: 'True',
+				proof: ownProof,
+				participantWitnesses: [{ proof: ownProof, entryIds: ['entry-C'] }]
+			}
+		]
+	};
+	const { body } = await render(ComboEvidence, { props: { evidence: entryEvidence } });
+	expect(body).toContain('outcome truth: True');
+	expect(body).toContain('Entry participation: True');
+	expect(body).toContain('related entries: entry-C');
+	expect(body.match(/href="https:\/\/commanderspellbook.com\/combo\/own-witness\//g)).toHaveLength(
+		1
+	);
+	expect(body).not.toContain('2850-4186%2F');
+	const nonparticipant = {
+		...entryEvidence,
+		evaluations: [
+			{
+				...entryEvidence.evaluations[0],
+				participantTruth: 'False' as const,
+				proof: null,
+				participantWitnesses: []
+			}
+		]
+	};
+	const rendered = await render(ComboEvidence, { props: { evidence: nonparticipant } });
+	expect(rendered.body).toContain('outcome truth: True');
+	expect(rendered.body).toContain('Entry participation: False');
+	expect(rendered.body).not.toContain('Documented ingredients are present');
+});
+
+it('displays every grouped aggregate witness with copied ingredient conditions', async () => {
+	const evaluation = evidence.evaluations[0];
+	const first = evaluation.proof!;
+	const second = {
+		...first,
+		variant: {
+			...first.variant,
+			id: 'second/witness',
+			ingredients: [{ ...first.variant.ingredients[0], name: 'Second ingredient', quantity: '3' }],
+			mana: '{U}',
+			prerequisites: 'Second prerequisite'
+		}
+	};
+	const aggregate: Evidence = {
+		...evidence,
+		evaluations: [
+			{
+				...evaluation,
+				participantWitnesses: [
+					{ proof: first, entryIds: ['entry-A', 'entry-B'] },
+					{ proof: second, entryIds: ['entry-C'] }
+				]
+			}
+		]
+	};
+	const { body } = await render(ComboEvidence, { props: { evidence: aggregate } });
+	expect(body.match(/href="https:\/\/commanderspellbook.com\/combo\//g)).toHaveLength(2);
+	expect(body).toContain('second%2Fwitness');
+	for (const text of [
+		'entry-A, entry-B',
+		'entry-C',
+		'3 × Second ingredient',
+		'{U}',
+		'Second prerequisite',
+		'Hand, Battlefield',
+		'requires Commander role',
+		'Gameplay prerequisites are unchecked'
+	])
+		expect(body).toContain(text);
+	expect(body).not.toContain('Entry participation:');
+});
