@@ -7,6 +7,7 @@ This is the primary instruction file for coding agents. Follow it strictly.
 - **Scope:** Keep edits surgical and limited strictly to the requested task. Do not introduce broad refactors during feature work.
 - **Dependencies:** Do not add new packages or dependencies without documenting the rationale.
 - **Structure:** Preserve existing project structure, naming conventions, and architectural boundaries.
+- **Process safety:** Never use SIGKILL or terminate the user's processes. Stop only verified task-owned processes gracefully. After a crash, verify repository state, preserved work and runtime ownership yourself before starting subagents.
 - **Tone & Formatting:** Output short, technical responses. Exclude internal summaries or verbose feedback loops. Absolutely avoid em dashes and en dashes. Use emojis only when they add functional value, never for style or bullets.
 
 ## 2. Canonical References
