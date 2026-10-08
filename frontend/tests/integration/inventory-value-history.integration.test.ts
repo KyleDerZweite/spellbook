@@ -8,7 +8,7 @@ import {
 	createValueHistoryRunner
 } from '@spellbook/backend';
 import type { AuthUser } from '@spellbook/contracts/auth.ts';
-import type { PoolClient } from 'pg';
+import pg, { type PoolClient } from 'pg';
 const run = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 run('private coherent value checkpoints on PostgreSQL', () => {
 	let database: ReturnType<typeof createDatabase>,
@@ -142,6 +142,66 @@ run('private coherent value checkpoints on PostgreSQL', () => {
 		expect((await r.runOnce()).capturedAccounts).toBe(0);
 		await r.close();
 		expect((await history()).points[0].kind).toBe('Gap');
+	});
+
+	it('bounds shutdown while account enumeration is blocked outside a capture transaction', async () => {
+		const blocker = await database.pool.connect();
+		await blocker.query('BEGIN');
+		await blocker.query('LOCK TABLE user_profiles IN ACCESS EXCLUSIVE MODE');
+		const r = runner();
+		const pending = r.runOnce();
+		const handled = pending.catch(() => {});
+		try {
+			let blocked = false;
+			for (let attempt = 0; attempt < 100; attempt++) {
+				blocked =
+					(
+						await database.pool.query(
+							"SELECT count(*)::int AS count FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND query LIKE 'SELECT account_id FROM user_profiles WHERE account_id > %'"
+						)
+					).rows[0].count > 0;
+				if (blocked) break;
+				await new Promise((resolve) => setTimeout(resolve, 10));
+			}
+			expect(blocked).toBe(true);
+			const start = performance.now();
+			await r.close();
+			expect(performance.now() - start).toBeLessThan(12000);
+			await handled;
+			await expect(pending).rejects.toThrow();
+			const leaseClient = await database.pool.connect();
+			try {
+				const lease = (
+					await leaseClient.query('SELECT pg_try_advisory_lock(78173020462008::bigint) AS acquired')
+				).rows[0].acquired;
+				expect(lease).toBe(true);
+				await leaseClient.query('SELECT pg_advisory_unlock(78173020462008::bigint)');
+			} finally {
+				leaseClient.release();
+			}
+		} finally {
+			await blocker.query('ROLLBACK');
+			blocker.release();
+			await r.close();
+		}
+	});
+	it('cancels pending pool admission and releases the later admitted connection without a lease', async () => {
+		const pool = new pg.Pool({ connectionString: process.env.TEST_DATABASE_URL, max: 1 });
+		const occupied = await pool.connect();
+		const r = createValueHistoryRunner(
+			pool,
+			createInventoryValues(pool, auth, createValuation(pool, auth)),
+			{ accountIds: [actor.accountId], observationClock: () => observation }
+		);
+		const pending = r.runOnce(),
+			handled = pending.catch(() => {});
+		await r.close();
+		await handled;
+		await expect(pending).rejects.toThrow();
+		occupied.release();
+		expect((await pool.query('SELECT 1 AS value')).rows[0].value).toBe(1);
+		expect(pool.waitingCount).toBe(0);
+		await pool.end();
 	});
 	it('captures trusted exact products, filters absent holdings as zero, and isolates accounts', async () => {
 		const r = runner();

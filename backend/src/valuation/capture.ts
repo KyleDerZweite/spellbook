@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Pool, PoolClient } from 'pg';
-import type { FrozenReferenceOutcome } from './read.ts';
+import type { ReferenceExecutor, FrozenReferenceOutcome } from './read.ts';
 import {
 	type createInventoryValues,
 	readHoldings,
@@ -48,7 +48,45 @@ export function createValueHistoryRunner(
 			copiedReferences: 0,
 			failedAccounts: 0
 		};
-		const client = await pool.connect();
+		const connection = pool.connect();
+		const client = await new Promise<PoolClient>((resolve, reject) => {
+			let settled = false;
+			const cleanup = () => {
+				clearTimeout(timeout);
+				signal.removeEventListener('abort', abort);
+			};
+			const fail = (message: string) => {
+				if (settled) return;
+				settled = true;
+				cleanup();
+				reject(Error(message));
+			};
+			const abort = () => fail('Value runner cancelled');
+			const timeout = setTimeout(
+				() => fail('Value runner connection unavailable'),
+				VALUE_CAPTURE_STATEMENT_MS
+			);
+			signal.addEventListener('abort', abort, { once: true });
+			if (signal.aborted) abort();
+			connection.then(
+				(value) => {
+					// A timed-out/cancelled acquisition owns no lease; release any later admitted connection.
+					if (settled) value.release();
+					else {
+						settled = true;
+						cleanup();
+						resolve(value);
+					}
+				},
+				(cause) => {
+					if (!settled) {
+						settled = true;
+						cleanup();
+						reject(cause);
+					}
+				}
+			);
+		});
 		let lease = false,
 			transaction = false,
 			lost = false;
@@ -56,6 +94,23 @@ export function createValueHistoryRunner(
 			lost = true;
 			controller?.abort();
 		};
+		async function query<Row extends Record<string, unknown> = Record<string, unknown>>(
+			text: string,
+			parameters?: unknown[]
+		) {
+			if (lost) throw Error('Capture connection lost');
+			try {
+				return await client.query<Row>({
+					text,
+					values: parameters,
+					query_timeout: VALUE_CAPTURE_STATEMENT_MS + 1000
+				});
+			} catch (cause) {
+				if (cause instanceof Error && cause.message === 'Query read timeout') lost = true;
+				throw cause;
+			}
+		}
+		const executor: ReferenceExecutor = { query };
 		client.on('error', connectionLost);
 		client.on('end', connectionLost);
 		const check = () => {
@@ -64,11 +119,11 @@ export function createValueHistoryRunner(
 		};
 		try {
 			check();
+			await query(`SET statement_timeout = '${VALUE_CAPTURE_STATEMENT_MS}ms'`);
 			lease = (
-				await client.query<{ acquired: boolean }>(
-					'SELECT pg_try_advisory_lock($1::bigint) AS acquired',
-					[leaseKey]
-				)
+				await query<{ acquired: boolean }>('SELECT pg_try_advisory_lock($1::bigint) AS acquired', [
+					leaseKey
+				])
 			).rows[0].acquired;
 			if (!lease) return result;
 			async function* eligibleAccounts() {
@@ -76,7 +131,7 @@ export function createValueHistoryRunner(
 				for (;;) {
 					check();
 					const accounts = (
-						await client.query<{ account_id: string }>(
+						await query<{ account_id: string }>(
 							'SELECT account_id FROM user_profiles WHERE account_id > $1 AND ($2::text[] IS NULL OR account_id=ANY($2::text[])) ORDER BY account_id LIMIT 200',
 							[after, tests.accountIds ?? null]
 						)
@@ -89,24 +144,24 @@ export function createValueHistoryRunner(
 			for await (const account of eligibleAccounts()) {
 				try {
 					check();
-					await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ');
+					await query('BEGIN ISOLATION LEVEL REPEATABLE READ');
 					transaction = true;
-					await client.query(`SET LOCAL statement_timeout = '${VALUE_CAPTURE_STATEMENT_MS}ms'`);
+					await query(`SET LOCAL statement_timeout = '${VALUE_CAPTURE_STATEMENT_MS}ms'`);
 					// This is the first snapshot statement. A clock read before BEGIN would permit late backfill.
 					const observed = tests.observationClock?.();
 					const calendar = (
-						await client.query<CalendarRow>(
+						await query<CalendarRow>(
 							`WITH observation AS (SELECT ${observed ? '$2::timestamptz' : 'statement_timestamp()'} AS observed_at), bounds AS (SELECT observed_at,(observed_at AT TIME ZONE $1)::date AS day FROM observation), calendar AS (SELECT observed_at,day,day::timestamp AT TIME ZONE $1 AS day_start,(day+1)::timestamp AT TIME ZONE $1 AS day_end FROM bounds) SELECT observed_at,day::text,day_start,day_end,observed_at >= day_end - interval '60 seconds' AND observed_at < day_end AS eligible FROM calendar`,
 							observed ? [values.timezone, observed.toISOString()] : [values.timezone]
 						)
 					).rows[0];
 					if (!calendar.eligible) {
-						await client.query('ROLLBACK');
+						await query('ROLLBACK');
 						transaction = false;
 						break;
 					}
 					const existing = (
-						await client.query<{
+						await query<{
 							id: string;
 							timezone: string;
 							observed_at: Date;
@@ -124,18 +179,18 @@ export function createValueHistoryRunner(
 							existing.day_end.getTime() !== calendar.day_end.getTime() ||
 							existing.observed_at >= calendar.observed_at)
 					) {
-						await client.query('ROLLBACK');
+						await query('ROLLBACK');
 						transaction = false;
 						continue;
 					}
 					const revision =
 						(
-							await client.query<{ revision: string }>(
+							await query<{ revision: string }>(
 								"SELECT revision::text FROM inventories WHERE account_id=$1 AND game='mtg'",
 								[account.account_id]
 							)
 						).rows[0]?.revision ?? '0';
-					const holdings = await readHoldings(client, account.account_id);
+					const holdings = await readHoldings(executor, account.account_id);
 					const pairs = [
 						...new Map(
 							holdings.map((row) => {
@@ -149,7 +204,7 @@ export function createValueHistoryRunner(
 					for (let offset = 0; offset < pairs.length; offset += 100) {
 						check();
 						const batch = await values.valuation.freezeInTransaction(
-							client,
+							executor,
 							pairs.slice(offset, offset + 100),
 							calendar.observed_at
 						);
@@ -162,14 +217,14 @@ export function createValueHistoryRunner(
 					const estimate = estimateHoldings(holdings, references),
 						dayId = existing?.id ?? randomUUID();
 					if (existing) {
-						await client.query('DELETE FROM inventory_value_holdings WHERE day_id=$1', [dayId]);
-						await client.query('DELETE FROM inventory_value_references WHERE day_id=$1', [dayId]);
-						await client.query(
+						await query('DELETE FROM inventory_value_holdings WHERE day_id=$1', [dayId]);
+						await query('DELETE FROM inventory_value_references WHERE day_id=$1', [dayId]);
+						await query(
 							'UPDATE inventory_value_days SET observed_at=$2,estimate=$3::jsonb,inventory_revision=$4 WHERE id=$1',
 							[dayId, calendar.observed_at, JSON.stringify(estimate), revision]
 						);
 					} else
-						await client.query(
+						await query(
 							`INSERT INTO inventory_value_days(id,account_id,game,day,timezone,day_start,day_end,observed_at,estimate,inventory_revision) VALUES($1,$2,'mtg',$3,$4,$5,$6,$7,$8::jsonb,$9)`,
 							[
 								dayId,
@@ -185,7 +240,7 @@ export function createValueHistoryRunner(
 						);
 					for (let offset = 0; offset < outcomes.length; offset += 100) {
 						check();
-						await client.query(
+						await query(
 							`INSERT INTO inventory_value_references(day_id,printing_id,finish,evidence) SELECT $1,r.printing_id,r.finish,r.evidence FROM jsonb_to_recordset($2::jsonb) AS r(printing_id text,finish text,evidence jsonb)`,
 							[
 								dayId,
@@ -201,22 +256,22 @@ export function createValueHistoryRunner(
 					}
 					for (let offset = 0; offset < holdings.length; offset += 500) {
 						check();
-						await client.query(
+						await query(
 							`INSERT INTO inventory_value_holdings(day_id,printing_id,finish,condition,quantity,canonical_card_id,name,set_code,image_uri) SELECT $1,r.printing_id,r.finish,r.condition,r.quantity,r.canonical_card_id,r.name,r.set_code,r.image_uri FROM jsonb_to_recordset($2::jsonb) AS r(printing_id text,finish text,condition text,quantity integer,canonical_card_id text,name text,set_code text,image_uri text)`,
 							[dayId, JSON.stringify(holdings.slice(offset, offset + 500))]
 						);
 					}
 					await tests.beforeCommit?.(client);
 					check();
-					await client.query('COMMIT');
+					await query('COMMIT');
 					transaction = false;
 					result.capturedAccounts++;
 					result.capturedHoldings += holdings.length;
 					result.copiedReferences += outcomes.length;
 				} catch (cause) {
-					if (transaction) {
+					if (transaction && !lost) {
 						try {
-							await client.query('ROLLBACK');
+							await query('ROLLBACK');
 							transaction = false;
 						} catch {
 							lost = true;
@@ -229,9 +284,16 @@ export function createValueHistoryRunner(
 			}
 			return result;
 		} finally {
-			if (transaction) await client.query('ROLLBACK').catch(() => {});
+			if (transaction && !lost)
+				await query('ROLLBACK').catch(() => {
+					lost = true;
+				});
 			if (lease && !lost)
-				await client.query('SELECT pg_advisory_unlock($1::bigint)', [leaseKey]).catch(() => {
+				await query('SELECT pg_advisory_unlock($1::bigint)', [leaseKey]).catch(() => {
+					lost = true;
+				});
+			if (!lost)
+				await query('RESET statement_timeout').catch(() => {
 					lost = true;
 				});
 			client.removeListener('error', connectionLost);
