@@ -713,7 +713,7 @@ run('whole Categories persistence, durable jobs and bounded directory', () => {
 			createCatalog(database.pool),
 			auth
 		);
-		const definitions = [];
+		const definitions: Awaited<ReturnType<typeof save>>[] = [];
 		for (let i = 0; i < 5; i++) definitions.push(await save('Overlapping ' + i));
 		const template = await deck('Scale 0000');
 		await mutate(template.id, [{ op: 'add', card: await card(), quantity: 2, role: 'main' }]);
