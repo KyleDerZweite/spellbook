@@ -8,6 +8,7 @@ import {
 	date,
 	customType,
 	doublePrecision,
+	foreignKey,
 	index,
 	integer,
 	numeric,
@@ -777,6 +778,97 @@ export const categoryMutationRequests = pgTable(
 		acknowledgement: jsonb('acknowledgement').notNull()
 	},
 	(t) => [primaryKey({ columns: [t.accountId, t.requestId] })]
+);
+
+export const deckLibraryState = pgTable(
+	'deck_library_state',
+	{
+		accountId: text('account_id')
+			.primaryKey()
+			.references(() => userProfiles.accountId, { onDelete: 'cascade' }),
+		revision: bigint('revision', { mode: 'bigint' })
+			.notNull()
+			.default(sql`0`)
+	},
+	(t) => [check('deck_library_revision_check', sql`${t.revision}>=0`)]
+);
+export const deckWholeCategories = pgTable(
+	'deck_whole_categories',
+	{
+		deckId: uuid('deck_id')
+			.notNull()
+			.references(() => decks.id, { onDelete: 'cascade' }),
+		versionId: uuid('version_id').notNull(),
+		originId: uuid('origin_id').notNull(),
+		definitionSnapshot: jsonb('definition_snapshot').notNull(),
+		name: text('name').notNull(),
+		displayOrder: integer('display_order').notNull(),
+		suppressed: boolean('suppressed').notNull().default(false),
+		automaticActive: boolean('automatic_active').notNull().default(true)
+	},
+	(t) => [
+		primaryKey({ columns: [t.deckId, t.versionId] }),
+		index('deck_whole_categories_version_idx').on(t.versionId, t.deckId)
+	]
+);
+export const deckWholeCategoryDecisions = pgTable(
+	'deck_whole_category_decisions',
+	{
+		deckId: uuid('deck_id')
+			.notNull()
+			.references(() => decks.id, { onDelete: 'cascade' }),
+		versionId: uuid('version_id').notNull(),
+		state: text('state').notNull(),
+		manual: text('manual'),
+		truth: text('truth'),
+		attemptedTruth: text('attempted_truth'),
+		revision: bigint('revision', { mode: 'bigint' })
+			.notNull()
+			.default(sql`1`),
+		evidence: jsonb('evidence'),
+		previousEvaluation: jsonb('previous_evaluation')
+	},
+	(t) => [
+		primaryKey({ columns: [t.deckId, t.versionId] }),
+		check('whole_category_state_check', sql`${t.state} IN ('Automatic','Pending','Manual')`),
+		check(
+			'whole_category_manual_check',
+			sql`${t.manual} IS NULL OR ${t.manual} IN ('Include','Exclude')`
+		),
+		check('whole_category_truth_check', sql`${t.truth} IS NULL OR ${t.truth} IN ('True','False')`),
+		check(
+			'whole_category_attempt_check',
+			sql`${t.attemptedTruth} IS NULL OR ${t.attemptedTruth} IN ('True','False','Unknown')`
+		),
+		check('whole_category_revision_check', sql`${t.revision}>0`),
+		foreignKey({
+			columns: [t.deckId, t.versionId],
+			foreignColumns: [deckWholeCategories.deckId, deckWholeCategories.versionId]
+		}).onDelete('cascade')
+	]
+);
+export const deckWholeCategoryJobs = pgTable(
+	'deck_whole_category_jobs',
+	{
+		deckId: uuid('deck_id')
+			.primaryKey()
+			.references(() => decks.id, { onDelete: 'cascade' }),
+		generation: bigint('generation', { mode: 'bigint' }).notNull(),
+		compositionRevision: bigint('composition_revision', {
+			mode: 'bigint'
+		}).notNull(),
+		decisionRevision: bigint('decision_revision', { mode: 'bigint' }).notNull(),
+		availableAt: timestamp('available_at', { withTimezone: true }).notNull(),
+		leaseToken: uuid('lease_token'),
+		leaseExpiresAt: timestamp('lease_expires_at', { withTimezone: true }),
+		attempts: integer('attempts').notNull().default(0),
+		lastError: text('last_error')
+	},
+	(t) => [
+		index('whole_category_job_due_idx').on(t.availableAt, t.deckId),
+		check('whole_category_job_generation_check', sql`${t.generation}>0`),
+		check('whole_category_job_attempts_check', sql`${t.attempts}>=0`)
+	]
 );
 
 export const optionalPricePublications = pgTable(
