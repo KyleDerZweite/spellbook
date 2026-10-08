@@ -5,7 +5,9 @@ import {
 	deckLibraryMountedRows,
 	deckLibraryParams,
 	readDeckLibraryJSON,
-	mergeDeckLibraryCategories
+	mergeDeckLibraryCategories,
+	deckLibraryTiles,
+	deckLibraryMeasurement
 } from '../../src/lib/decks/library-window.ts';
 import {
 	normalizeDeckLibraryQuery,
@@ -501,5 +503,57 @@ describe('Deck Library owned responses and stable identity', () => {
 				['version', 'historical']
 			)
 		).toEqual([{ ...option, count: 7 }, absent]);
+	});
+});
+
+describe('Deck Library keyboard focus identity', () => {
+	it('keeps fresh slots and one focused Deck after an insertion before focus', () => {
+		const old = page().items;
+		const fresh = [
+			{ ...old[0], id: 'inserted', name: 'New Deck' },
+			...old.map((item) => ({ ...item, name: `Fresh ${item.name}` }))
+		];
+		const focus = { index: 1, item: old[1] };
+		const tiles = deckLibraryTiles([0, 1, 2, 3], (index) => fresh[index], focus);
+		expect(tiles.map(({ item }) => item?.id)).toEqual(['inserted', 'deck-0', 'deck-1', 'deck-2']);
+		expect(tiles.filter(({ item }) => item?.id === focus.item.id)).toHaveLength(1);
+		expect(tiles.find(({ item }) => item?.id === focus.item.id)).toMatchObject({
+			index: 2,
+			key: 'deck:deck-1',
+			item: { name: `Fresh ${old[1].name}` }
+		});
+	});
+	it('retains the same focused node key through eviction and relocation within the physical tile budget', () => {
+		const items = page().items;
+		const focused = { index: 900, item: { ...items[0], id: 'focused' } };
+		const evicted = deckLibraryTiles(
+			Array.from({ length: 200 }, (_, i) => i),
+			(index) => items[index],
+			focused
+		);
+		expect(evicted).toHaveLength(200);
+		expect(evicted.at(-1)?.key).toBe('deck:focused');
+		const fresh = { ...focused.item, name: 'Updated focused Deck' };
+		const relocated = deckLibraryTiles(
+			[0, 1, 2],
+			(index) => (index === 1 ? fresh : items[index]),
+			focused
+		);
+		expect(relocated.filter(({ key }) => key === 'deck:focused')).toEqual([
+			{ index: 1, item: fresh, key: 'deck:focused' }
+		]);
+		expect(relocated[0].item).toBe(items[0]);
+	});
+	it('records reused action measurements against the current Deck ID', () => {
+		const items = page().items,
+			record = vi.fn();
+		const measurement = deckLibraryMeasurement(items[0], record);
+		measurement.measure(280);
+		measurement.update(items[1]);
+		measurement.measure(410);
+		expect(record.mock.calls).toEqual([
+			['deck-0', 280],
+			['deck-1', 410]
+		]);
 	});
 });

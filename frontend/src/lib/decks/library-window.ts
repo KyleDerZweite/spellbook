@@ -619,3 +619,33 @@ export function mergeDeckLibraryCategories(
 			current.set(item.versionId, item);
 	return [...current.values()];
 }
+
+/** Fresh records own their slots; retained keyboard focus owns only its Deck identity. */
+export function deckLibraryTiles(
+	indices: number[],
+	at: (index: number) => DeckLibraryItem | undefined,
+	focused: { index: number; item: DeckLibraryItem } | null
+): { index: number; item: DeckLibraryItem | undefined; key: string }[] {
+	const slots = indices.map((index) => {
+		const item = at(index);
+		return { index, item, key: item ? `deck:${item.id}` : `loading:${index}` };
+	});
+	if (!focused || slots.some(({ item }) => item?.id === focused.item.id))
+		return slots.slice(0, 200);
+	// Reserve one physical tile for the existing focused node without replacing a fresh slot.
+	return [...slots.slice(0, 199), { ...focused, key: `deck:${focused.item.id}` }];
+}
+
+/** A reused measurement action always records the currently bound Deck. */
+export function deckLibraryMeasurement(
+	item: DeckLibraryItem,
+	record: (id: string, height: number) => void
+) {
+	let current = item;
+	return {
+		update: (item: DeckLibraryItem) => {
+			current = item;
+		},
+		measure: (height: number) => record(current.id, height)
+	};
+}

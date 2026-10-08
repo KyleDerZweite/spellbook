@@ -14,7 +14,9 @@
 		deckLibraryGeometry,
 		deckLibraryMountedRows,
 		readDeckLibraryJSON,
-		mergeDeckLibraryCategories
+		mergeDeckLibraryCategories,
+		deckLibraryTiles,
+		deckLibraryMeasurement
 	} from '#lib/decks/library-window.ts';
 	import {
 		measureBrowseViewport,
@@ -41,7 +43,7 @@
 	let width = $state(0),
 		visibleTop = $state(0),
 		viewportHeight = $state(0),
-		focused = $state<{ index: number; item: DeckLibraryItem } | null>(null);
+		focused = $state<{ index: number; item: DeckLibraryItem; revision: string } | null>(null);
 	let categoryPage = $state(untrack(() => categories));
 	let categoryError = $state('');
 	let categorySelection = $state(untrack(() => [...page.query.categoryVersionIds]));
@@ -60,6 +62,8 @@
 	let layingOut = false,
 		layoutPending = false;
 	let measuredOrigin: number | undefined;
+	let focusNode: HTMLElement | null = null;
+	let restoreFocus: HTMLElement | null = null;
 	let alive = false,
 		scheduled = false,
 		positioned = false;
@@ -113,6 +117,67 @@
 			focused?.index
 		)
 	);
+	const tiles = $derived.by(() => {
+		version;
+		const freshFocus = focused
+			? library.loaded().find(({ item }) => item.id === focused?.item.id)
+			: undefined;
+		return deckLibraryTiles(
+			rows
+				.flatMap((row) =>
+					Array.from({ length: columns }, (_, i) => (geometry.base + row) * columns + i)
+				)
+				.filter((index) => index >= span.start && index < span.end),
+			(index) => library.at(index),
+			freshFocus ?? focused
+		);
+	});
+	async function locate(deckId: string, owns: () => boolean) {
+		return library.locateAndLoad(
+			deckId,
+			async (query, id, revision, signal, current) => {
+				const params = deckLibraryParams(query, 0, 200, revision);
+				params.set('deckId', id);
+				return readDeckLibraryJSON<
+					DeckLibraryLocation | { kind: 'RevisionChanged'; revision: string }
+				>(`/api/mobile/v1/mtg/deck-library/locate?${params}`, signal, current, () =>
+					workspaceSavedState.expire()
+				);
+			},
+			new AbortController().signal,
+			owns
+		);
+	}
+	async function reconcileFocus() {
+		const retained = focused;
+		if (!retained) return;
+		const account = accountId,
+			queryKey = library.current?.queryKey;
+		const owns = () =>
+			alive &&
+			!terminal &&
+			accountId === account &&
+			library.current?.queryKey === queryKey &&
+			focused?.item.id === retained.item.id;
+		let fresh = library.loaded().find(({ item }) => item.id === retained.item.id);
+		if (!fresh && retained.revision !== library.current?.revision) {
+			const location = await locate(retained.item.id, owns);
+			if (!location || !owns() || location.identity !== library.identity) return;
+			fresh =
+				location.index === null
+					? undefined
+					: library.loaded().find(({ item }) => item.id === retained.item.id);
+			if (location.index === null) {
+				focused = null;
+				library.retain(null);
+				return;
+			}
+		}
+		if (fresh && owns()) {
+			focused = { ...fresh, revision: library.current!.revision };
+			library.retain(fresh.item);
+		}
+	}
 	const options = $derived(
 		mergeDeckLibraryCategories(categoryPage, retainedOptions, categorySelection)
 	);
@@ -135,6 +200,7 @@
 		});
 	});
 	function capture() {
+		if (focusNode && document.activeElement === focusNode) restoreFocus = focusNode;
 		if (!enhanced || !wrapper || !positioned || terminal || anchor) return;
 		const relative = -wrapper.getBoundingClientRect().top;
 		const captured = captureBrowseAnchor(
@@ -166,6 +232,17 @@
 			void layout();
 		});
 	}
+	function restoreKeyboardFocus() {
+		if (
+			restoreFocus?.isConnected &&
+			focused &&
+			restoreFocus.dataset.libraryId === focused.item.id &&
+			(document.activeElement === document.body || document.activeElement === restoreFocus)
+		) {
+			restoreFocus.focus({ preventScroll: true });
+		}
+		restoreFocus = null;
+	}
 	async function layout() {
 		if (layingOut) {
 			layoutPending = true;
@@ -173,6 +250,8 @@
 		}
 		layingOut = true;
 		try {
+			if (!alive || !wrapper || terminal) return;
+			await reconcileFocus();
 			if (!alive || !wrapper || terminal) return;
 			const priorWidth = width;
 			const rect = wrapper.getBoundingClientRect();
@@ -189,6 +268,7 @@
 			}
 			await tick();
 			if (!alive || !wrapper || terminal) return;
+			restoreKeyboardFocus();
 			if (anchor) {
 				const captured = anchor;
 				let index = captured.index;
@@ -202,21 +282,7 @@
 					return;
 				}
 				if (captured.deckId && captured.revision !== library.current?.revision) {
-					const controller = new AbortController();
-					const located = await library.locateAndLoad(
-						captured.deckId,
-						async (query, deckId, revision, signal, current) => {
-							const params = deckLibraryParams(query, 0, 200, revision);
-							params.set('deckId', deckId);
-							return readDeckLibraryJSON<
-								DeckLibraryLocation | { kind: 'RevisionChanged'; revision: string }
-							>(`/api/mobile/v1/mtg/deck-library/locate?${params}`, signal, current, () =>
-								workspaceSavedState.expire()
-							);
-						},
-						controller.signal,
-						owns
-					);
+					const located = await locate(captured.deckId, owns);
 					if (!located || !owns() || located.identity !== library.identity) {
 						anchor = null;
 						return;
@@ -247,6 +313,9 @@
 				});
 			}
 
+			await tick();
+			if (!alive || !wrapper || terminal) return;
+			restoreKeyboardFocus();
 			measuredOrigin = wrapper.getBoundingClientRect().top + window.scrollY;
 			if (!positioned) {
 				positioned = true;
@@ -304,19 +373,26 @@
 		}
 	}
 	function measure(node: HTMLElement, item: DeckLibraryItem) {
-		const observer = new ResizeObserver((entries) => {
-			const height =
-				entries[0]?.borderBoxSize?.[0]?.blockSize ?? node.getBoundingClientRect().height;
-			if (Math.abs((heights.get(item.id) ?? 0) - height) > 0.5) {
+		const measurement = deckLibraryMeasurement(item, (id, height) => {
+			if (Math.abs((heights.get(id) ?? 0) - height) > 0.5) {
 				capture();
-				heights.set(item.id, height);
+				heights.set(id, height);
 				version++;
 				schedule();
 			}
 		});
+		const read = () => measurement.measure(node.getBoundingClientRect().height);
+		const observer = new ResizeObserver(read);
 		observer.observe(node);
-		return { destroy: () => observer.disconnect() };
+		return {
+			update(item: DeckLibraryItem) {
+				measurement.update(item);
+				read();
+			},
+			destroy: () => observer.disconnect()
+		};
 	}
+
 	function href(id: string) {
 		const url = new URL(route.url.href);
 		url.searchParams.set('deck', id);
@@ -498,20 +574,29 @@
 			{library.error}
 			<Button class="directory-action" onclick={() => library.retry()}>Retry</Button>
 		</p>{/if}
-	{#snippet tile(item: DeckLibraryItem, index: number)}
+	{#snippet tile(item: DeckLibraryItem, index: number, virtual = false)}
 		<a
 			class="library-card"
+			class:virtual-tile={virtual}
+			style:top={virtual
+				? `${geometry.offsets[Math.floor(index / columns) - geometry.base] ?? 0}px`
+				: undefined}
+			style:left={virtual ? `${(index % columns) * (tileWidth + 24)}px` : undefined}
+			style:width={virtual ? `${tileWidth}px` : undefined}
 			href={href(item.id)}
 			data-library-id={item.id}
 			use:measure={item}
-			onfocus={() => {
-				focused = { index, item };
+			onfocus={(event) => {
+				focusNode = event.currentTarget;
+				focused = { index, item, revision: current.revision };
 				library.retain(item);
 				if (index >= span.end - columns) void library.loadLater();
 			}}
 			onblur={() => {
 				void tick().then(() => {
+					if (restoreFocus === focusNode && document.activeElement === document.body) return;
 					if (wrapper && !wrapper.contains(document.activeElement)) {
+						focusNode = null;
 						focused = null;
 						library.retain(null);
 					}
@@ -553,21 +638,16 @@
 		style:height={enhanced ? `${geometry.total}px` : undefined}
 		aria-label="Deck Library"
 	>
-		{#if enhanced}{#each rows as row (geometry.base + row)}<div
-					class="virtual-row"
-					style:top={`${geometry.offsets[row]}px`}
-					style:grid-template-columns={`repeat(${columns}, minmax(0, ${width <= 420 ? '1fr' : '180px'}))`}
-				>
-					{#each Array.from({ length: columns }, (_, i) => (geometry.base + row) * columns + i).filter((index) => index >= span.start && index < span.end) as index (index)}{@const item =
-							focused?.index === index ? focused.item : library.at(index)}{#if item}{@render tile(
-								item,
-								index
-							)}{:else}<div
-								class="loading-tile"
-								style:min-height={`${Math.max(140, (tileWidth * 680) / 488 + 94)}px`}
-								aria-label="Loading Deck"
-							></div>{/if}{/each}
-				</div>{/each}{:else}{#each page.items as item, index (item.id)}{@render tile(
+		{#if enhanced}{#each tiles as entry (entry.key)}
+				{#if entry.item}{@render tile(entry.item, entry.index, true)}{:else}<div
+						class="loading-tile virtual-tile"
+						style:top={`${geometry.offsets[Math.floor(entry.index / columns) - geometry.base] ?? 0}px`}
+						style:left={`${(entry.index % columns) * (tileWidth + 24)}px`}
+						style:width={`${tileWidth}px`}
+						style:min-height={`${Math.max(140, (tileWidth * 680) / 488 + 94)}px`}
+						aria-label="Loading Deck"
+					></div>{/if}
+			{/each}{:else}{#each page.items as item, index (item.id)}{@render tile(
 					item,
 					page.offset + index
 				)}{/each}{/if}
@@ -671,13 +751,8 @@
 		position: relative;
 		overflow-anchor: none;
 	}
-	.virtual-row {
+	.virtual-tile {
 		position: absolute;
-		left: 0;
-		right: 0;
-		display: grid;
-		gap: 1.5rem;
-		align-items: start;
 	}
 	.library-card strong,
 	.category-badges small {
