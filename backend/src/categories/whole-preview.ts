@@ -4,7 +4,10 @@ import type {
 	CategoryChangeIntent,
 	CategoryDifference
 } from '@spellbook/contracts/category-library.ts';
-import type { WholeCategory } from '@spellbook/contracts/whole-categories.ts';
+import type {
+	WholeCategory,
+	WholeCategoryDecision
+} from '@spellbook/contracts/whole-categories.ts';
 import { readLibrary } from './library.ts';
 import { lockOwnedCategoryDeck } from './changes.ts';
 import { readWholeCategories, evaluateWholeCategories, wholeSemantics } from './whole.ts';
@@ -43,23 +46,14 @@ export async function buildWholePlan(
 				displayOrder: d.current.displayOrder,
 				suppressed: false,
 				automaticActive: true,
-				decision: previous?.decision
-					? intent.mode === 'Reset' && previous.decision.state === 'Manual'
-						? {
-								...previous.decision,
-								state: 'Automatic',
-								manual: null,
-								evidence: previous.decision.previousEvaluation,
-								previousEvaluation: null
-							}
-						: previous.decision
-					: null
+				decision: releaseManual(previous?.decision ?? null, intent.mode)
 			};
 		});
 	const currentIds = new Set(proposed.map((c) => c.versionId));
 	for (const previous of old) {
 		if (currentIds.has(previous.versionId)) continue;
-		if (previous.suppressed && remaining.includes(previous.originId)) proposed.push(previous);
+		if (previous.suppressed && remaining.includes(previous.originId))
+			proposed.push({ ...previous, decision: releaseManual(previous.decision, intent.mode) });
 		else if (intent.mode === 'Review' && previous.decision?.state === 'Manual')
 			proposed.push({ ...previous, automaticActive: false, suppressed: false });
 	}
@@ -146,8 +140,26 @@ export async function buildWholePlan(
 		sources: evaluated.sources,
 		blocked,
 		changed:
-			mutationFingerprint(old.map(wholeSemantics)) !==
-			mutationFingerprint(evaluated.categories.map(wholeSemantics)),
+			mutationFingerprint(orderedSemantics(old)) !==
+			mutationFingerprint(orderedSemantics(evaluated.categories)),
 		differences
+	};
+}
+
+function orderedSemantics(categories: WholeCategory[]) {
+	return [...categories].sort((a, b) => a.versionId.localeCompare(b.versionId)).map(wholeSemantics);
+}
+function releaseManual(
+	decision: WholeCategoryDecision | null,
+	mode: CategoryChangeIntent['mode']
+): WholeCategoryDecision | null {
+	if (mode !== 'Reset' || decision?.state !== 'Manual') return decision;
+	return {
+		...decision,
+		state: 'Automatic',
+		manual: null,
+		evidence: decision.previousEvaluation,
+		previousEvaluation: null,
+		revision: (BigInt(decision.revision) + 1n).toString()
 	};
 }

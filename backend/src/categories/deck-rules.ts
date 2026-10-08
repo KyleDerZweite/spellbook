@@ -12,18 +12,7 @@ export type DeckRuleEntry = {
 	quantity: number;
 	facts: RuleFacts;
 };
-export type DeckRuleEvidence = {
-	op: DeckRule['op'];
-	truth: Truth;
-	children?: DeckRuleEvidence[];
-	lower?: string;
-	upper?: string;
-	denominatorLower?: string;
-	denominatorUpper?: string;
-	nonemptyContributionLower?: string | null;
-	nonemptyContributionUpper?: string | null;
-	emptyDenominatorPossible?: boolean;
-};
+export type DeckRuleEvidence = import('@spellbook/contracts/whole-categories.ts').WholeRuleEvidence;
 export type DeckRuleEvaluation = { truth: Truth; evidence: DeckRuleEvidence };
 
 /** Inputs are persisted quantities. Corrupt data must not produce a classification. */
