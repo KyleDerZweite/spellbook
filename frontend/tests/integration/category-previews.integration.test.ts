@@ -1,6 +1,7 @@
 import { beforeAll, afterAll, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { writeFile } from 'node:fs/promises';
+import { publishCategoryCatalogFixture } from '../fixtures/category-catalog.ts';
 import { cpus, totalmem } from 'node:os';
 import {
 	createDatabase,
@@ -19,12 +20,14 @@ run('server-owned Category Review, Reset and local decisions', () => {
 		categories: ReturnType<typeof createCategories>,
 		decks: ReturnType<typeof createDecks>,
 		actor: AuthUser;
-	beforeAll(() => {
+	let restoreCatalog: (() => Promise<void>) | undefined;
+	beforeAll(async () => {
 		database = createDatabase(process.env.TEST_DATABASE_URL!);
+		restoreCatalog = await publishCategoryCatalogFixture(database.pool);
 		auth = createLocalAuth(database.db, { demoMode: false });
 		categories = createCategories(database.db, auth);
 		decks = createDecks(database.db, createCatalog(database.pool), auth);
-	});
+	}, 60_000);
 	beforeEach(async () => {
 		const account = await auth.authenticate(
 			'register',
@@ -37,7 +40,13 @@ run('server-owned Category Review, Reset and local decisions', () => {
 	afterEach(async () => {
 		await database.pool.query('DELETE FROM user_profiles WHERE account_id=$1', [actor.accountId]);
 	});
-	afterAll(async () => database.pool.end());
+	afterAll(async () => {
+		try {
+			await restoreCatalog?.();
+		} finally {
+			await database.pool.end();
+		}
+	});
 	it('first Review of unchanged empty current and legacy starter bundles is a revision and notification no-op', async () => {
 		for (const legacy of [false, true]) {
 			const d = await deck();
