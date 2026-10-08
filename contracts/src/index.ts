@@ -9,3 +9,4 @@ export type * from './saved-state.ts';
 
 export type * from './categories.ts';
 export type * from './scan.ts';
+export type * from './inventory-value.ts';

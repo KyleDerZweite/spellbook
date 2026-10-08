@@ -14,3 +14,5 @@ export { createCategories } from './categories/application.ts';
 export { CategoryNotFound, CategoryConflict } from './categories/application.ts';
 export { CategoryMergeConflict } from './categories/merge.ts';
 export { createScan } from './scan/application.ts';
+export { createInventoryValues } from './valuation/inventory-value.ts';
+export { createValueHistoryRunner } from './valuation/capture.ts';
