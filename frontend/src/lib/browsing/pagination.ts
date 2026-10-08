@@ -94,6 +94,13 @@ export function browsePaginationHref(
 
 /** Explicit deep collection ranges own their initial geometry after full route navigation. */
 export function hasDeepBrowseAnchor(url: Pick<URL, 'pathname' | 'searchParams'>): boolean {
+	if (url.pathname === '/mtg/decks')
+		return (
+			parseLazyBrowsePagination(
+				new URLSearchParams({ page: url.searchParams.get('dirPage') ?? '1' }),
+				1_000_000
+			).offset > 0
+		);
 	return (
 		(url.pathname === '/mtg/search' || url.pathname === '/mtg/inventory') &&
 		parseLazyBrowsePagination(url.searchParams, 1_000_000).offset > 0

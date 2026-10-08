@@ -1,10 +1,12 @@
 import type { WholeCategoryDraft } from '#lib/decks/whole-drafts.ts';
+import { deckLibraryQueryFromParams } from '@spellbook/contracts/deck-library.ts';
+import type { DeckSnapshot } from '@spellbook/contracts/decks.ts';
+import { parseLazyBrowsePagination } from '#lib/browsing/pagination.ts';
 import { error, fail, isHttpError, isRedirect, redirect } from '@sveltejs/kit';
 import type { Action, Actions, PageServerLoad } from './$types';
 import {
 	createDeckRecord,
 	deleteDeck,
-	getDeckSnapshot,
 	removeDeckCard,
 	updateDeck,
 	updateDeckCard
@@ -38,15 +40,54 @@ import type { LegalityWarning } from '#lib/server/mtg/legality.ts';
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) throw redirect(303, '/auth/login?returnTo=/mtg/decks');
 	const selectedDeckId = url.searchParams.get('deck') ?? null;
+	let directoryQuery;
+	try {
+		directoryQuery = deckLibraryQueryFromParams(url.searchParams);
+	} catch {
+		throw error(400, 'Invalid Deck Library query');
+	}
+	const directoryPagination = parseLazyBrowsePagination(
+		new URLSearchParams({ page: url.searchParams.get('dirPage') ?? '1' }),
+		1_000_000
+	);
+	let deckLibrary = await application.decks.getDeckLibrary(locals.user, {
+		...directoryQuery,
+		offset: directoryPagination.offset,
+		limit: 200
+	});
+	if (deckLibrary.offset >= deckLibrary.matchingTotal && deckLibrary.offset > 0)
+		deckLibrary = await application.decks.getDeckLibrary(locals.user, {
+			...directoryQuery,
+			offset: Math.max(0, Math.ceil(deckLibrary.matchingTotal / 200) - 1) * 200,
+			limit: 200
+		});
+	const deckLibraryCategories = await application.decks.getDeckLibraryCategories(locals.user, {
+		...directoryQuery,
+		offset: readQueryInteger(url.searchParams.get('dirCategoryOffset'), 'dirCategoryOffset', 0),
+		limit: 200,
+		expectedRevision: deckLibrary.revision
+	});
 	const recovery =
 		locals.categoryPageRecovery?.accountId === locals.user.accountId &&
 		locals.categoryPageRecovery.deckId === selectedDeckId
 			? locals.categoryPageRecovery
 			: undefined;
 	let categoryReadError = '';
-	let snapshot;
+	let snapshot: DeckSnapshot;
 	try {
-		snapshot = await getDeckSnapshot(locals.user, 'mtg', selectedDeckId);
+		snapshot = selectedDeckId
+			? await application.decks.getDeck(locals.user, selectedDeckId)
+			: {
+					decks: [],
+					deckCards: [],
+					deckTotals: {},
+					deckCovers: {},
+					availability: {},
+					valueEstimates: null,
+					valuationError: null,
+					ownedByCanonical: {},
+					ownedPrintings: []
+				};
 	} catch (cause) {
 		if (cause instanceof DeckNotFoundError) throw error(404, 'Deck not found');
 		if (
@@ -117,10 +158,16 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		})()
 	]);
 	let categoryPreview = null,
-		entryCategories = null;
+		entryCategories = null,
+		wholeCategories = null;
 	try {
 		if (selectedDeck)
 			entryCategories = await application.categories.getDeckEntryCategories(
+				locals.user,
+				selectedDeck.id
+			);
+		if (selectedDeck)
+			wholeCategories = await application.categories.getDeckWholeCategories(
 				locals.user,
 				selectedDeck.id
 			);
@@ -141,6 +188,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			!(cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'Unauthenticated')
 		) {
 			entryCategories = recovery.categories;
+			wholeCategories = recovery.wholeCategories ?? null;
 			categoryPreview = recovery.preview ?? null;
 			categoryReadError =
 				'Current category evidence is unavailable. Your receipt and earlier controls are retained; refresh before another change.';
@@ -148,6 +196,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	}
 	return {
 		...snapshot,
+		deckLibrary,
+		deckLibraryCategories,
+		wholeCategories,
+		wholeCategoryVersion: url.searchParams.get('wholeCategoryVersion') ?? null,
 		categoryReadError,
 		categoryPreview,
 		localCategoryId: url.searchParams.get('localCategory'),
@@ -203,16 +255,26 @@ async function rememberCategoryPage(event: Parameters<Action>[0], deckId: string
 	// Native action rendering may read again after the command has already committed.
 	if (event.request.headers.get('x-sveltekit-action') === 'true' || !event.locals.user) return;
 	try {
-		const snapshot = await getDeckSnapshot(event.locals.user, 'mtg', deckId);
+		const snapshot = await application.decks.getDeck(event.locals.user, deckId);
 		const categories = await application.categories.getDeckEntryCategories(
 			event.locals.user,
 			deckId
 		);
+		let wholeCategories;
+		try {
+			wholeCategories = await application.categories.getDeckWholeCategories(
+				event.locals.user,
+				deckId
+			);
+		} catch {
+			/* Optional whole evidence cannot veto a later command. */
+		}
 		event.locals.categoryPageRecovery = {
 			accountId: event.locals.user.accountId,
 			deckId,
 			snapshot,
-			categories
+			categories,
+			wholeCategories
 		};
 	} catch {
 		/* Optional earlier evidence cannot veto a later authoritative command. */
@@ -642,7 +704,7 @@ export const actions = {
 	}),
 	previewImport: guarded(async ({ request, locals }) => {
 		const form = await request.formData();
-		const snapshot = await getDeckSnapshot(locals.user!, 'mtg', field(form, 'deckId'));
+		const snapshot = await application.decks.getDeck(locals.user!, field(form, 'deckId'));
 		const deck = snapshot.decks.find((entry) => entry.id === field(form, 'deckId'));
 		if (!deck) return fail(404, { message: 'Deck not found.' });
 		const text = field(form, 'text');

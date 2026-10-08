@@ -1,43 +1,505 @@
 <script lang="ts">
-	import type { Deck, DeckSnapshot } from '@spellbook/contracts/decks.ts';
+	import { onMount, untrack, tick } from 'svelte';
+	import { goto, replaceState } from '$app/navigation';
+	import { page as route } from '$app/state';
+	import type {
+		DeckLibraryPage,
+		DeckLibraryCategories,
+		DeckLibraryItem
+	} from '@spellbook/contracts/deck-library.ts';
+	import {
+		DeckLibraryWindow,
+		deckLibraryParams,
+		deckLibraryGeometry,
+		deckLibraryMountedRows
+	} from '#lib/decks/library-window.ts';
+	import {
+		measureBrowseViewport,
+		captureBrowseAnchor,
+		browseAnchorScrollTop,
+		browseOriginShift,
+		restoreInitialBrowsePosition
+	} from '#lib/browsing/viewport.ts';
+	import { nextLoadedRange } from '#lib/browsing/loadedSpan.ts';
+	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
+	import type { ResourceSubscription } from '#lib/saved-state/workspace.ts';
+	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
+
 	let {
-		decks,
-		covers,
-		totals
-	}: { decks: Deck[]; covers: DeckSnapshot['deckCovers']; totals: DeckSnapshot['deckTotals'] } =
-		$props();
+		page,
+		categories,
+		accountId
+	}: { page: DeckLibraryPage; categories: DeckLibraryCategories; accountId: string } = $props();
+	let version = $state(0),
+		enhanced = $state(false),
+		terminal = $state(false);
+	let wrapper: HTMLDivElement | undefined = $state();
+	let width = $state(0),
+		visibleTop = $state(0),
+		viewportHeight = $state(0),
+		focused = $state<{ index: number; item: DeckLibraryItem } | null>(null);
+	let categoryPage = $state(untrack(() => categories));
+	let categoryError = $state('');
+	let categorySelection = $state(untrack(() => [...page.query.categoryVersionIds]));
+	let retainedOptions = $state<DeckLibraryCategories['items']>([]);
+	let subscription: ResourceSubscription | undefined = $state();
+	const heights = new Map<string, number>();
+	let anchor: { index: number; intra: number } | null = null;
+	let measuredOrigin: number | undefined;
+	let alive = false,
+		scheduled = false,
+		positioned = false;
+	const library = untrack(
+		() =>
+			new DeckLibraryWindow(
+				async (query, offset, limit, revision, signal) => {
+					const response = await fetch(
+						`/api/mobile/v1/mtg/deck-library?${deckLibraryParams(query, offset, limit, revision)}`,
+						{ signal, cache: 'no-store' }
+					);
+					if (response.status === 401) {
+						workspaceSavedState.expire();
+						throw new Error('Your session has ended.');
+					}
+					const body = await response.json();
+					if (response.status === 409 && body.kind === 'RevisionChanged') return body;
+					if (!response.ok)
+						throw new Error(body.message ?? 'Deck Library could not be loaded. Try again.');
+					return body;
+				},
+				() => {
+					version++;
+					schedule();
+				},
+				capture
+			)
+	);
+	const current = $derived.by(() => {
+		version;
+		return library.current ?? page;
+	});
+	const span = $derived.by(() => {
+		version;
+		return library.span;
+	});
+	const columns = $derived(
+		width > 0 ? (width <= 420 ? 2 : Math.max(1, Math.floor((width + 24) / 204))) : 1
+	);
+	const tileWidth = $derived(width <= 420 ? (width - 24) / 2 : 180);
+	const geometry = $derived.by(() => {
+		version;
+		return deckLibraryGeometry(
+			span,
+			columns,
+			Math.max(140, (tileWidth * 680) / 488 + 94),
+			heights,
+			(index) => library.at(index)
+		);
+	});
+	const rows = $derived(
+		deckLibraryMountedRows(
+			geometry.base,
+			geometry.offsets,
+			visibleTop,
+			viewportHeight,
+			columns,
+			geometry.rowAt,
+			focused?.index
+		)
+	);
+	const options = $derived([
+		...new Map(
+			[...categoryPage.items, ...categoryPage.selected, ...retainedOptions].map(
+				(item) => [item.versionId, item] as const
+			)
+		).values()
+	]);
+	$effect(() => {
+		const seed = page,
+			account = accountId;
+		untrack(() => {
+			if (terminal) return;
+			focused = null;
+			positioned = false;
+			anchor = null;
+			heights.clear();
+			library.seed(account, seed);
+			categoryPage = categories;
+			categorySelection = [...seed.query.categoryVersionIds];
+			retainedOptions = [];
+			positioned = false;
+			if (enhanced) schedule();
+		});
+	});
+	function capture() {
+		if (!enhanced || !wrapper || !positioned || terminal || anchor) return;
+		const relative = -wrapper.getBoundingClientRect().top;
+		const captured = captureBrowseAnchor(
+			relative,
+			(top) => geometry.rowAt(top),
+			(index) => geometry.offsets[index] ?? 0
+		);
+		anchor = { index: (geometry.base + captured.index) * columns, intra: captured.intra };
+	}
+	function schedule() {
+		if (!alive || scheduled) return;
+		scheduled = true;
+		requestAnimationFrame(() => {
+			scheduled = false;
+			void layout();
+		});
+	}
+	async function layout() {
+		if (!alive || !wrapper || terminal) return;
+		const priorWidth = width;
+		const rect = wrapper.getBoundingClientRect();
+		const origin = rect.top + window.scrollY;
+		if (priorWidth !== rect.width) {
+			capture();
+			heights.clear();
+			width = rect.width;
+			version++;
+		}
+		if (measuredOrigin !== undefined && !anchor) {
+			const shift = browseOriginShift(measuredOrigin, origin, window.scrollY, 0);
+			if (shift) window.scrollTo({ top: window.scrollY + shift, behavior: 'instant' });
+		}
+		await tick();
+		if (!alive || !wrapper || terminal) return;
+		if (anchor) {
+			const captured = anchor;
+			anchor = null;
+			const row = Math.max(
+				0,
+				Math.min(geometry.offsets.length - 2, Math.floor(captured.index / columns) - geometry.base)
+			);
+			window.scrollTo({
+				top: browseAnchorScrollTop(
+					wrapper.getBoundingClientRect().top + window.scrollY,
+					geometry.offsets[row] ?? 0,
+					captured.intra,
+					0
+				),
+				behavior: 'instant'
+			});
+		}
+		measuredOrigin = wrapper.getBoundingClientRect().top + window.scrollY;
+		if (!positioned) {
+			positioned = true;
+			restoreInitialBrowsePosition(window, window.scrollY, page.offset, measuredOrigin, null);
+		}
+		const measured = measureBrowseViewport(window, wrapper);
+		viewportHeight = measured.height;
+		visibleTop = Math.max(0, measured.visibleTop);
+		const firstRow = geometry.rowAt(visibleTop),
+			lastRow = geometry.rowAt(visibleTop + viewportHeight);
+		const first = Math.max(span.start, (geometry.base + firstRow) * columns),
+			last = Math.min(span.end, (geometry.base + lastRow + 1) * columns);
+		const mountedStart = Math.max(
+			span.start,
+			(geometry.base + Math.max(0, firstRow - 2)) * columns
+		);
+		library.setVisible(mountedStart, Math.min(span.end, mountedStart + 200), first);
+		const ids = new Set(library.loaded().map(({ item }) => item.id));
+		if (focused) ids.add(focused.item.id);
+		let pruned = false;
+		for (const id of heights.keys())
+			if (!ids.has(id)) {
+				capture();
+				heights.delete(id);
+				pruned = true;
+			}
+		if (pruned) {
+			version++;
+			schedule();
+		}
+		if (span.start > 0 && visibleTop < 100) void library.loadEarlier();
+		if (nextLoadedRange(span, last, current.matchingTotal, columns * 3) !== null)
+			void library.loadLater();
+		const logical = Math.floor(first / current.limit) + 1;
+		if (
+			route.url.pathname === '/mtg/decks' &&
+			!route.url.searchParams.has('deck') &&
+			route.url.searchParams.get('dirPage') !== String(logical)
+		) {
+			const url = new URL(route.url.href);
+			url.searchParams.set('dirPage', String(logical));
+			replaceState(url, route.state);
+		}
+	}
+	function measure(node: HTMLElement, item: DeckLibraryItem) {
+		const observer = new ResizeObserver((entries) => {
+			const height =
+				entries[0]?.borderBoxSize?.[0]?.blockSize ?? node.getBoundingClientRect().height;
+			if (Math.abs((heights.get(item.id) ?? 0) - height) > 0.5) {
+				capture();
+				heights.set(item.id, height);
+				version++;
+				schedule();
+			}
+		});
+		observer.observe(node);
+		return { destroy: () => observer.disconnect() };
+	}
+	function href(id: string) {
+		const url = new URL(route.url.href);
+		url.searchParams.set('deck', id);
+		url.searchParams.delete('flow');
+		return url.pathname + url.search;
+	}
+	function categoryHref(offset: number) {
+		const url = new URL(route.url.href);
+		url.searchParams.set('dirCategoryOffset', String(offset));
+		return url.pathname + url.search;
+	}
+	function pageHref(offset: number) {
+		const url = new URL(route.url.href);
+		url.searchParams.set('dirPage', String(Math.floor(offset / 200) + 1));
+		return url.pathname + url.search;
+	}
+	async function filter(event: SubmitEvent) {
+		if (!enhanced) return;
+		event.preventDefault();
+		const form = event.currentTarget as HTMLFormElement;
+		const values = new FormData(form),
+			url = new URL(route.url.href);
+		for (const key of [
+			'dirQ',
+			'dirFormat',
+			'dirSort',
+			'dirCategory',
+			'dirPage',
+			'dirCategoryOffset'
+		])
+			url.searchParams.delete(key);
+		for (const [key, value] of values)
+			if (key !== 'q' && typeof value === 'string' && value) url.searchParams.append(key, value);
+		url.searchParams.set('dirPage', '1');
+		await goto(url);
+	}
+	async function readCategories(offset: number, signal: AbortSignal, currentLease: () => boolean) {
+		const page = library.current;
+		if (!page) return;
+		const value = await library.read(
+			async (signal) => {
+				const response = await fetch(
+					`/api/mobile/v1/mtg/deck-library/categories?${deckLibraryParams(page.query, offset, 200, page.revision)}`,
+					{ signal, cache: 'no-store' }
+				);
+				if (response.status === 401) {
+					workspaceSavedState.expire();
+					return null;
+				}
+				const body = await response.json();
+				if (!response.ok) throw new Error(body.message ?? 'Category options could not be loaded.');
+				return body as DeckLibraryCategories;
+			},
+			signal,
+			currentLease
+		);
+		if (value && currentLease()) {
+			retainedOptions = options.filter((item) => categorySelection.includes(item.versionId));
+			categoryPage = value;
+			categoryError = '';
+		}
+	}
+	async function categoryNext(offset: number) {
+		const controller = new AbortController();
+		try {
+			await readCategories(offset, controller.signal, () => alive && !terminal);
+		} catch {
+			categoryError = 'Category options could not be loaded. Try again.';
+		}
+	}
+	onMount(() => {
+		alive = true;
+		enhanced = true;
+		library.seed(accountId, page);
+		const observer = new ResizeObserver(() => schedule());
+		if (wrapper) observer.observe(wrapper);
+		const scroll = () => schedule();
+		window.addEventListener('scroll', scroll, { passive: true });
+		window.addEventListener('resize', scroll);
+		subscription = workspaceSavedState.subscribe({
+			topics: ['decks'],
+			clear: () => {
+				terminal = true;
+				library.clear();
+				categoryPage = { ...categoryPage, items: [], selected: [] };
+				focused = null;
+				heights.clear();
+			},
+			refresh: async (lease) => {
+				const account = accountId,
+					query = page.queryKey;
+				const current = () =>
+					lease.current() && alive && !terminal && accountId === account && page.queryKey === query;
+				await library.refresh(current);
+				if (current() && library.error) throw new Error(library.error);
+				if (current()) await readCategories(categoryPage.offset, lease.signal, current);
+			}
+		});
+		schedule();
+		return () => {
+			alive = false;
+			observer.disconnect();
+			window.removeEventListener('scroll', scroll);
+			window.removeEventListener('resize', scroll);
+			subscription?.dispose();
+			library.clear();
+		};
+	});
 </script>
 
-{#if decks.length}
-	<div class="deck-library">
-		{#each decks as deck}
-			{@const cover = covers[deck.id]}
-			<a class="library-card" href={`/mtg/decks?deck=${deck.id}`}>
-				{#if cover?.imageUri}<img src={cover.imageUri} alt="" />{:else}<div
-						class="library-placeholder"
+<SavedStateStatus resource={subscription} />
+{#if !terminal}
+	<form class="directory-controls" method="GET" onsubmit={filter}>
+		{#if route.url.searchParams.get('q')}<input
+				type="hidden"
+				name="q"
+				value={route.url.searchParams.get('q') ?? ''}
+			/>{/if}
+		<label>Deck name <input name="dirQ" value={page.query.query} maxlength="200" /></label>
+		<label
+			>Format <select name="dirFormat" value={page.query.format}
+				><option value="">All formats</option
+				>{#each ['Commander', 'Standard', 'Modern', 'Pioneer', 'Legacy', 'Vintage', 'Pauper', 'Brawl', 'Casual'] as format}<option
+						value={format}>{format}</option
+					>{/each}</select
+			></label
+		>
+		<label
+			>Sort <select name="dirSort" value={page.query.sort}
+				><option value="updated:desc">Recently edited</option><option value="name:asc"
+					>Name A to Z</option
+				><option value="name:desc">Name Z to A</option></select
+			></label
+		>
+		<label
+			>Categories <select
+				name="dirCategory"
+				multiple
+				bind:value={categorySelection}
+				aria-describedby="category-filter-help"
+				>{#each options as option}<option value={option.versionId}
+						>{option.name} · v{option.version}{option.historical ? ' · historical' : ''} ({option.count})</option
+					>{/each}</select
+			></label
+		>
+		<button type="submit">Apply filters</button>
+	</form>
+	<p id="category-filter-help" class="muted">
+		Selected categories match any version. Historical versions keep their saved meaning.
+	</p>
+	{#if categorySelection.length}<details class="category-meanings">
+			<summary>Selected category meanings</summary
+			>{#each options.filter((item) => categorySelection.includes(item.versionId)) as option}<p>
+					<strong>{option.name}</strong> · v{option.version}{option.historical
+						? ' · historical'
+						: ''}. {option.meaning}
+				</p>{/each}
+		</details>{/if}
+	{#if categoryPage.total > 200}<div class="category-options">
+			{#if enhanced}{#if categoryPage.offset > 0}<button
+						onclick={() => categoryNext(Math.max(0, categoryPage.offset - 200))}
+						>Earlier categories</button
+					>{/if}{#if categoryPage.offset + categoryPage.limit < categoryPage.total}<button
+						onclick={() => categoryNext(categoryPage.offset + 200)}>More categories</button
+					>{/if}{:else}{#if categoryPage.offset > 0}<a
+						href={categoryHref(Math.max(0, categoryPage.offset - 200))}>Earlier categories</a
+					>{/if}{#if categoryPage.offset + categoryPage.limit < categoryPage.total}<a
+						href={categoryHref(categoryPage.offset + 200)}>More categories</a
+					>{/if}{/if}
+		</div>{/if}
+	{#if categoryError}<p role="alert">{categoryError}</p>{/if}
+	<p class="directory-total">{current.matchingTotal} of {current.globalTotal} decks</p>
+	{#if enhanced && library.error}<p role="alert">
+			{library.error} <button onclick={() => library.retry()}>Retry</button>
+		</p>{/if}
+	{#snippet tile(item: DeckLibraryItem, index: number)}
+		<a
+			class="library-card"
+			href={href(item.id)}
+			data-library-id={item.id}
+			use:measure={item}
+			onfocus={() => {
+				focused = { index, item };
+				library.retain(item);
+				if (index >= span.end - columns) void library.loadLater();
+			}}
+			onblur={() => {
+				void tick().then(() => {
+					if (wrapper && !wrapper.contains(document.activeElement)) {
+						focused = null;
+						library.retain(null);
+					}
+				});
+			}}
+		>
+			{#if item.imageUri}<img src={item.imageUri} alt="" loading="lazy" />{:else}<div
+					class="library-placeholder"
+					aria-hidden="true"
+				>
+					<svg
 						aria-hidden="true"
+						width="40"
+						height="40"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.4"
+						><rect x="7" y="3" width="13" height="18" rx="2" /><path d="m4 6-2 1 3 15 11-2" /></svg
 					>
-						<svg
-							aria-hidden="true"
-							width="40"
-							height="40"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="1.4"
-							><rect x="7" y="3" width="13" height="18" rx="2" /><path
-								d="m4 6-2 1 3 15 11-2"
-							/></svg
-						>
-					</div>{/if}
-				<strong>{deck.name}</strong><span>{deck.format} · {totals[deck.id] || 0} cards</span>
-				<small>Edited {new Date(deck.updatedAt).toLocaleDateString('en-GB')}</small>
-			</a>
-		{/each}
+				</div>{/if}
+			<strong>{item.name}</strong><span>{item.format} · {item.quantity} cards</span><small
+				>Edited {new Date(item.updatedAt).toLocaleDateString('en-GB')}</small
+			>
+			{#if item.categories.length}<span class="category-badges"
+					>{#each item.categories as category}<small
+							title={category.historical ? 'Historical saved version' : ''}
+							>{category.name}{category.historical ? ' · historical' : ''}</small
+						>{/each}{#if item.remainingCategoryCount}<small
+							>+{item.remainingCategoryCount} categories</small
+						>{/if}</span
+				>{/if}
+		</a>
+	{/snippet}
+	<div
+		bind:this={wrapper}
+		class:virtual={enhanced}
+		class="deck-library"
+		style:height={enhanced ? `${geometry.total}px` : undefined}
+		aria-label="Deck Library"
+	>
+		{#if enhanced}{#each rows as row (geometry.base + row)}<div
+					class="virtual-row"
+					style:top={`${geometry.offsets[row]}px`}
+					style:grid-template-columns={`repeat(${columns}, minmax(0, ${width <= 420 ? '1fr' : '180px'}))`}
+				>
+					{#each Array.from({ length: columns }, (_, i) => (geometry.base + row) * columns + i).filter((index) => index >= span.start && index < span.end) as index (index)}{@const item =
+							focused?.index === index ? focused.item : library.at(index)}{#if item}{@render tile(
+								item,
+								index
+							)}{:else}<div
+								class="loading-tile"
+								style:min-height={`${Math.max(140, (tileWidth * 680) / 488 + 94)}px`}
+								aria-label="Loading Deck"
+							></div>{/if}{/each}
+				</div>{/each}{:else}{#each page.items as item, index (item.id)}{@render tile(
+					item,
+					page.offset + index
+				)}{/each}{/if}
 	</div>
-{:else}<section class="panel empty-state welcome">
-		<p>No decks yet.</p>
-	</section>{/if}
+	{#if !current.matchingTotal}<section class="panel empty-state welcome">
+			<p>{current.globalTotal ? 'No decks match these filters.' : 'No decks yet.'}</p>
+		</section>{/if}
+	{#if !enhanced}<nav aria-label="Deck Library pages">
+			{#if page.offset > 0}<a href={pageHref(Math.max(0, page.offset - page.limit))}>Previous</a
+				>{/if}{#if page.offset + page.items.length < page.matchingTotal}<a
+					href={pageHref(page.offset + page.limit)}>Next</a
+				>{/if}
+		</nav>{/if}
+{/if}
 
 <style>
 	.deck-library {
@@ -84,5 +546,66 @@
 		.deck-library {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
+	}
+
+	.directory-controls {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1rem;
+		align-items: end;
+	}
+	.directory-controls label {
+		min-width: 0;
+		flex: 1 1 10rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+		max-width: 100%;
+	}
+	.directory-controls input,
+	.directory-controls select {
+		max-width: 100%;
+	}
+	.directory-controls select[multiple] {
+		width: 100%;
+		max-width: 100%;
+		min-width: 0;
+		min-height: 5rem;
+	}
+	.virtual {
+		display: block;
+		position: relative;
+		overflow-anchor: none;
+	}
+	.virtual-row {
+		position: absolute;
+		left: 0;
+		right: 0;
+		display: grid;
+		gap: 1.5rem;
+		align-items: start;
+	}
+	.library-card strong,
+	.category-badges small {
+		overflow-wrap: anywhere;
+	}
+	.category-badges {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.3rem;
+	}
+	.category-badges small {
+		background: var(--color-stone);
+		border-radius: 0.25rem;
+		padding: 0.2rem 0.35rem;
+	}
+	.loading-tile {
+		border-radius: 0.6rem;
+		background: var(--color-stone);
+	}
+	nav {
+		display: flex;
+		gap: 1rem;
+		margin-top: 1rem;
 	}
 </style>

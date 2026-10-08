@@ -17,6 +17,7 @@
 	} from '#lib/decks/category-save.ts';
 	import type { DeckEntryCategories } from '@spellbook/contracts/categories.ts';
 	import DeckCategoryManager from '#lib/components/decks/DeckCategoryManager.svelte';
+	import WholeCategoryManager from '#lib/components/decks/WholeCategoryManager.svelte';
 	import {
 		categoryGroupLabel,
 		categoryGroupIdentity,
@@ -36,6 +37,7 @@
 	import ConfirmationDialog from '#lib/components/ui/dialog/ConfirmationDialog.svelte';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
+	import { page as routePage } from '$app/state';
 	import type { SubmitFunction } from '$app/forms';
 	import type { PageProps } from './$types';
 	import DeckDialog from '#lib/components/decks/DeckDialog.svelte';
@@ -62,7 +64,13 @@
 		{ value: 'companion', label: 'Companion' }
 	];
 	let { data, form }: PageProps = $props();
-	let savedDecks = $state(untrack(() => data));
+	let savedDecks = $state(
+		untrack(() => ({
+			...data,
+			deckLibrary: { ...data.deckLibrary, items: [] },
+			deckLibraryCategories: { ...data.deckLibraryCategories, items: [], selected: [] }
+		}))
+	);
 	let deckSubscription: ResourceSubscription | undefined = $state();
 	let deletedTarget = $state(false);
 	$effect(() => {
@@ -81,6 +89,7 @@
 				savedDecks = {
 					...savedDecks,
 					decks: [],
+					wholeCategories: null,
 					deckCards: [],
 					availability: {},
 					valueEstimates: null,
@@ -118,13 +127,11 @@
 					data.flow === flow &&
 					data.user?.accountId === account;
 				const guarded = { signal: lease.signal, current };
+				if (!selected) return;
 				try {
 					const snapshot = await readSavedJSON<
 						DeckSnapshot & Pick<typeof data, 'warnings' | 'deckDocuments'>
-					>(
-						selected ? `/api/mobile/v1/mtg/decks/${selected}` : '/api/mobile/v1/mtg/decks',
-						guarded
-					);
+					>(`/api/mobile/v1/mtg/decks/${selected}?selectedOnly=true`, guarded);
 					if (!snapshot || !current()) return;
 					const next = snapshot.decks.find((deck) => deck.id === selected);
 					if (next && (editOpen || flow === 'edit')) {
@@ -167,7 +174,12 @@
 							throw new Error('The saved category read is older than the current revision.');
 						categoryRead = { accountId: account ?? '', value: categories };
 					}
-					savedDecks = { ...savedDecks, ...snapshot };
+					const wholeCategories = await readSavedJSON<NonNullable<typeof data.wholeCategories>>(
+						`/api/mobile/v1/mtg/decks/${selected}/whole-categories`,
+						guarded
+					);
+					if (!wholeCategories || !current()) return;
+					savedDecks = { ...savedDecks, ...snapshot, wholeCategories };
 					deletedTarget = false;
 					const inspector = inspected;
 					if (inspector) {
@@ -222,6 +234,17 @@
 				: data.entryCategories;
 		return selectCategorySnapshot(server, current);
 	});
+	const displayedCategoryPreview = $derived(
+		form && 'categoryPreview' in form ? form.categoryPreview : data.categoryPreview
+	);
+	const wholeCategories = $derived(
+		savedDecks.wholeCategories?.deckId === data.selectedDeckId &&
+			(!data.wholeCategories ||
+				BigInt(savedDecks.wholeCategories.decisionRevision) >=
+					BigInt(data.wholeCategories.decisionRevision))
+			? savedDecks.wholeCategories
+			: data.wholeCategories
+	);
 	async function refreshCategories(deckId: string, signal: AbortSignal): Promise<void> {
 		if (signal.aborted || deckId !== data.selectedDeckId) return;
 		deckSubscription?.invalidate();
@@ -573,8 +596,21 @@
 			.reduce((sum, { line }) => sum + line.quantity, 0) ?? 0
 	);
 
-	function action(name: string): string {
+	function directoryParams() {
 		const params = new URLSearchParams();
+		for (const key of [
+			'dirQ',
+			'dirFormat',
+			'dirCategory',
+			'dirSort',
+			'dirPage',
+			'dirCategoryOffset'
+		])
+			for (const value of routePage.url.searchParams.getAll(key)) params.append(key, value);
+		return params;
+	}
+	function action(name: string): string {
+		const params = directoryParams();
 		if (data.selectedDeckId) params.set('deck', data.selectedDeckId);
 		if (data.query) params.set('q', data.query);
 		if (data.oracleId) params.set('printing', data.oracleId);
@@ -582,8 +618,13 @@
 		if (groupBy === 'category') params.set('group', 'category');
 		return `?/${name}&${params}`;
 	}
+	function allDecksHref() {
+		const url = new URL(routePage.url.href);
+		for (const key of ['deck', 'flow', 'q', 'printing', 'group']) url.searchParams.delete(key);
+		return url.pathname + url.search;
+	}
 	function flowHref(flow = '') {
-		const p = new URLSearchParams();
+		const p = directoryParams();
 		if (data.selectedDeckId) p.set('deck', data.selectedDeckId);
 		if (data.query) p.set('q', data.query);
 		if (flow) p.set('flow', flow);
@@ -825,7 +866,7 @@
 <div class="builder workspace-container">
 	<WorkspaceHeader title={selectedDeck?.name ?? 'Decks'}>
 		{#snippet metadata()}
-			{#if selectedDeck}<a href="/mtg/decks">All decks</a>
+			{#if selectedDeck}<a href={allDecksHref()}>All decks</a>
 				<p class="deck-format">{selectedDeck.format}</p>{/if}
 		{/snippet}
 		{#snippet actions()}
@@ -1279,6 +1320,15 @@
 				<a href={`/mtg/decks?deck=${encodeURIComponent(selectedDeck.id)}&group=category`}
 					>Category view</a
 				>
+				{#if wholeCategories}{#key wholeCategories.deckId}<WholeCategoryManager
+							categories={wholeCategories}
+							preview={displayedCategoryPreview}
+							{action}
+							unavailable={data.categoryReadError}
+							selectedVersionId={data.wholeCategoryVersion}
+							draft={form && 'wholeDraft' in form ? form.wholeDraft : undefined}
+							beginWrite={() => deckSubscription?.beginWrite()}
+						/>{/key}{/if}
 				{#if entryCategories && !entryCategories.initialized}
 					<form
 						method="POST"
@@ -1305,9 +1355,9 @@
 							renameConfirmation={form && 'acknowledgement' in form
 								? form.acknowledgement
 								: undefined}
-							preview={form && 'categoryPreview' in form
-								? form.categoryPreview
-								: data.categoryPreview}
+							preview={displayedCategoryPreview?.scope === 'entry'
+								? displayedCategoryPreview
+								: null}
 							selectedCategoryId={data.localCategoryId}
 							requestId={data.requestId}
 							{busy}
@@ -1392,9 +1442,9 @@
 				</aside>{/if}
 		</div>
 	{:else}<DeckLibrary
-			decks={savedDecks.decks}
-			covers={savedDecks.deckCovers}
-			totals={savedDecks.deckTotals}
+			page={data.deckLibrary}
+			categories={data.deckLibraryCategories}
+			accountId={data.user?.accountId ?? ''}
 		/>{/if}
 </div>
 
