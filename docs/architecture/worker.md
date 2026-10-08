@@ -46,7 +46,6 @@ Each import checks complete transfer length/digest and streams bounded JSON/gzip
 
 Catalog transform version 3 adds nullable raw keyword facts to the same generation publication as raw Oracle identity and types. Missing keyword arrays remain Unknown; an explicit empty array is known empty. Existing version 2 generations cannot establish keyword predicates. The paired price publication and price extractor version remain independent. [Category rules](./category-rules.md) owns rule evaluation.
 
-
 ## Optional Commander Spellbook synchronization
 
 `COMMANDER_SPELLBOOK_ENABLED` defaults to `false` in Worker and frontend composition. Disabled runs perform no combo fetch or database operation and add no readiness dependency. Enabled runs fetch the fixed official public gzip bulk on `SYNC_INTERVAL`, independently after the other providers, including when those providers fail. Manual mode reports failure after every enabled provider has had its attempt; periodic failure waits the usual interval. No private Deck information reaches the provider.
