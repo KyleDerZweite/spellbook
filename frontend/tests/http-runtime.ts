@@ -24,7 +24,7 @@ export async function stopHttpApplication(child: ChildProcess): Promise<void> {
 					'Owned HTTP application did not exit after SIGTERM. It was left running without force termination.'
 				)
 			);
-		}, 5000);
+		}, 15000);
 		child.once('exit', () => {
 			clearTimeout(timer);
 			resolve();

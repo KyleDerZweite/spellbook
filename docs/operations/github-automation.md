@@ -39,7 +39,7 @@ The integration project in [vite.config.ts](../../frontend/vite.config.ts) uses 
 
 For SavedState transport verification, use the same migrated disposable database and origin/port rules, then run `pnpm test:sync` from `frontend/`. [saved-state-http.test.ts](../../frontend/tests/saved-state-http.test.ts) builds two origin-matched production artifacts, copies them under ignored `.local/saved-state-http/` and runs two application processes. The primary uses `TEST_HTTP_PORT` or default 5191; the replica uses the next port. Set `APP_ORIGIN` to the primary origin and keep both ports free. Runtime guards require each owned child's listening confirmation before fixtures.
 
-HTTP test cleanup sends SIGTERM only to its owned application child. If the child has not exited after five seconds, cleanup fails and leaves it running without force termination.
+HTTP test cleanup sends SIGTERM only to its owned application child. Cleanup allows fifteen seconds for natural exit, including the PostgreSQL pool's default ten-second idle drain. If the child has not exited by then, cleanup fails and leaves it running without force termination.
 
 The test requires the existing Node/pnpm toolchain, `python3` and the Linux `ss` socket-inspection tool on PATH. The [paused socket fixture](../../frontend/tests/fixtures/paused-sse-client.py) uses only Python 3 standard-library `socket`, `json` and `sys`; no Python packages or worker environment are required. It exercises real TCP backpressure. Tests cover commit/rollback, account isolation, recovery, revocation, slow consumers and controlled proxy streaming. They do not establish rendered Profile behavior or the deployed proxy/tunnel. Record current-head results separately from owner browser and deployment acceptance.
 
