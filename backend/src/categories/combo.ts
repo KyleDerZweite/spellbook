@@ -5,6 +5,7 @@ import type {
 	ComboCompositionEntry,
 	ComboEvaluation,
 	ComboEvidence,
+	ComboProof,
 	ComboSource,
 	ComboSourceToken,
 	ComboVariant
@@ -60,6 +61,12 @@ export function comboSourceToken(source: ComboSource): ComboSourceToken {
 		publicationId: source.publicationId,
 		policyVersion: source.policyVersion
 	};
+}
+function hasParticipantRule(rule: EntryRule | DeckRule): boolean {
+	if (rule.op === 'comboParticipant') return true;
+	if (rule.op === 'all' || rule.op === 'any') return rule.children.some(hasParticipantRule);
+	if (rule.op === 'not') return hasParticipantRule(rule.child);
+	return 'predicate' in rule && hasParticipantRule(rule.predicate);
 }
 function groupKey(roles: readonly CategoryRole[]) {
 	return [...new Set(roles)].sort().join(',');
@@ -168,11 +175,32 @@ export async function readComboFacts(
 				evaluations.get(`${groupKey(definition.roles)}:${id}`)!
 			);
 		},
-		evidence(definition: ComboDefinition): ComboEvidence {
+		evidence(definition: ComboDefinition, entryId?: string): ComboEvidence {
 			return {
 				source,
 				evaluations: this.forDefinition(definition).map(
-					({ participants: _participants, ...rest }) => rest
+					({ participants, participantProofs, ...rest }) => {
+						if (entryId !== undefined)
+							return {
+								...rest,
+								participantTruth: participants[entryId] ?? 'False',
+								proof: participantProofs[entryId] ?? null
+							};
+						if (!hasParticipantRule(definition.rule)) return rest;
+						const witnesses = new Map<string, { proof: ComboProof; entryIds: string[] }>();
+						for (const id of Object.keys(participantProofs).sort()) {
+							const proof = participantProofs[id];
+							let witness = witnesses.get(proof.variant.id);
+							if (!witness) witnesses.set(proof.variant.id, (witness = { proof, entryIds: [] }));
+							witness.entryIds.push(id);
+						}
+						return {
+							...rest,
+							participantWitnesses: [...witnesses.values()].sort((a, b) =>
+								a.proof.variant.id.localeCompare(b.proof.variant.id)
+							)
+						};
+					}
 				)
 			};
 		}

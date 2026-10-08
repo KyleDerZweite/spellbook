@@ -16,6 +16,8 @@ import type {
 } from '@spellbook/contracts/category-library.ts';
 import type { DeckOperation } from '@spellbook/contracts/decks.ts';
 import { claimWholeDeckJob, processWholeDeckJob } from '@spellbook/backend/categories/jobs.ts';
+import { readComboFacts, readComboSource } from '@spellbook/backend/categories/combo.ts';
+import { categoryTransaction } from '@spellbook/backend/categories/work.ts';
 import { configureComboAdapter } from '@spellbook/backend/categories/combo-settings.ts';
 import { evaluateWholeDeck } from '@spellbook/backend/categories/whole.ts';
 import {
@@ -485,6 +487,144 @@ run('transaction-bound documented combo categories', () => {
 						source!.publicationId
 					]);
 				await absent?.restore();
+			}
+		}
+	});
+	it('copies each Entry proving variant and every nested participant witness from local PostgreSQL rows', async () => {
+		await source!.restore();
+		const commanderVariant = {
+			...recordedOakVariant,
+			ingredients: [
+				{ ...recordedOakVariant.ingredients[0], mustBeCommander: true },
+				recordedOakVariant.ingredients[1]
+			]
+		};
+		const mainVariant = {
+			...recordedOakVariant,
+			id: 'synthetic-main-oak',
+			ingredients: [recordedOakVariant.ingredients[0]]
+		};
+		source = await publishComboFixture(database.pool, [commanderVariant, mainVariant]);
+		const entries = [
+			{
+				entryId: 'commander-oak',
+				printingId: 'same-oak',
+				oracleId: oakOracleId,
+				role: 'commander' as const,
+				quantity: 1
+			},
+			{
+				entryId: 'main-oak',
+				printingId: 'same-oak',
+				oracleId: oakOracleId,
+				role: 'main' as const,
+				quantity: 1
+			},
+			{
+				entryId: 'denizen',
+				printingId: 'denizen',
+				oracleId: denizenOracleId,
+				role: 'main' as const,
+				quantity: 1
+			}
+		];
+		const definition = {
+			id: randomUUID(),
+			roles: ['main', 'commander'] as CategoryRole[],
+			rule: participant
+		};
+		const nested = {
+			...definition,
+			id: randomUUID(),
+			rule: { op: 'minimumCopies' as const, minimum: 3, predicate: participant }
+		};
+		await categoryTransaction(database.db, async (tx) => {
+			const facts = await readComboFacts(
+				tx,
+				entries,
+				[definition, nested],
+				await readComboSource(tx)
+			);
+			expect(facts.evidence(definition, 'main-oak').evaluations[0]).toMatchObject({
+				truth: 'True',
+				participantTruth: 'True',
+				proof: { variant: mainVariant }
+			});
+			expect(facts.evidence(definition, 'commander-oak').evaluations[0]).toMatchObject({
+				participantTruth: 'True',
+				proof: { variant: commanderVariant }
+			});
+			expect(facts.evidence(nested).evaluations[0].participantWitnesses).toEqual([
+				{
+					proof: facts.forDefinition(nested)[0].participantProofs['commander-oak'],
+					entryIds: ['commander-oak', 'denizen']
+				},
+				{
+					proof: facts.forDefinition(nested)[0].participantProofs['main-oak'],
+					entryIds: ['main-oak']
+				}
+			]);
+			expect(facts.evidence({ ...definition, rule: outcome }).evaluations[0]).not.toHaveProperty(
+				'participantWitnesses'
+			);
+			expect(facts.evidence(definition, 'unrelated').evaluations[0]).toMatchObject({
+				participantTruth: 'False',
+				proof: null
+			});
+			expect(JSON.stringify(facts.evidence(nested))).not.toContain('participantProofs');
+		});
+
+		await save('entry', 'Witness participants', participant);
+		const aggregate = await save('deck', 'Witness count', {
+			op: 'minimumCopies',
+			minimum: 3,
+			predicate: participant
+		});
+		const d = await deck();
+		const commanderId = await add(d.id, oakOracleId, 'commander');
+		const mainId = await add(d.id, oakOracleId);
+		const denizenId = await add(d.id, denizenOracleId);
+		await processJob(d.id);
+		await review(d.id, 'entry');
+		const saved = await categories.getDeckEntryCategories(actor, d.id);
+		expect(
+			saved.decisions.find((v) => v.entryId === mainId)?.evidence?.combo?.evaluations[0]
+		).toMatchObject({ participantTruth: 'True', proof: { variant: mainVariant } });
+		const witnesses = (await whole(d.id, aggregate.versionId))?.evidence?.combo?.evaluations[0]
+			.participantWitnesses;
+		expect(witnesses).toHaveLength(2);
+		expect(witnesses?.find((w) => w.proof.variant.id === mainVariant.id)?.entryIds).toEqual([
+			mainId
+		]);
+		expect(witnesses?.find((w) => w.proof.variant.id === commanderVariant.id)?.entryIds).toEqual(
+			[commanderId, denizenId].sort()
+		);
+		expect(await whole(d.id, aggregate.versionId)).toMatchObject({
+			truth: 'True',
+			evidence: { bounds: { lower: '3', upper: '3' } }
+		});
+		// Concrete state/face uncertainty cannot make a different proven canonical card a participant.
+		for (const constraint of [{ usedFace: 1 }, { states: { battlefieldCardState: 'tapped' } }]) {
+			const constrained = await publishComboFixture(database.pool, [
+				{
+					...recordedOakVariant,
+					ingredients: [{ ...recordedOakVariant.ingredients[0], ...constraint }]
+				}
+			]);
+			try {
+				await categoryTransaction(database.db, async (tx) => {
+					const facts = await readComboFacts(tx, entries, [definition], await readComboSource(tx));
+					expect(facts.evidence(definition, 'denizen').evaluations[0]).toMatchObject({
+						participantTruth: 'False',
+						proof: null
+					});
+					expect(facts.evidence(definition, 'main-oak').evaluations[0]).toMatchObject({
+						participantTruth: 'Unknown',
+						proof: null
+					});
+				});
+			} finally {
+				await constrained.restore();
 			}
 		}
 	});

@@ -2,6 +2,7 @@ import type { CategoryRole, Truth } from '@spellbook/contracts/category-library.
 import type {
 	ComboCompositionEntry,
 	ComboEvaluation,
+	ComboProof,
 	ComboVariant
 } from '@spellbook/contracts/combo.ts';
 
@@ -53,6 +54,7 @@ export function evaluateComboVariants(input: ComboMatcherInput): ComboEvaluation
 		roles,
 		truth: 'Unknown',
 		participants,
+		participantProofs: {},
 		proof: null
 	};
 	const publication = input.publication;
@@ -66,9 +68,10 @@ export function evaluateComboVariants(input: ComboMatcherInput): ComboEvaluation
 		if (!variant.outcomeIds.includes(input.outcomeId)) continue;
 		const truth = evaluateVariant(variant, available, unknown, total, commanderTotal);
 		if (truth === 'False') continue;
+		let proof: ComboProof | null = null;
 		if (truth === 'True') {
 			result.truth = 'True';
-			result.proof ??= {
+			proof = {
 				variant,
 				publicationId: publication.publicationId,
 				outcomeId: input.outcomeId,
@@ -76,6 +79,7 @@ export function evaluateComboVariants(input: ComboMatcherInput): ComboEvaluation
 				policyVersion: 'ingredients-v1',
 				parserVersion: publication.parserVersion
 			};
+			result.proof ??= proof;
 		} else if (result.truth !== 'True') result.truth = 'Unknown';
 		for (const entry of input.entries) {
 			if (!roles.includes(entry.role) || participants[entry.entryId] === 'True') continue;
@@ -86,14 +90,26 @@ export function evaluateComboVariants(input: ComboMatcherInput): ComboEvaluation
 						!validOracle(ingredient.oracleId) ||
 						ingredient.oracleId === entry.oracleId)
 			);
-			if (compatible)
+			if (compatible) {
 				participants[entry.entryId] =
 					truth === 'True' && validOracle(entry.oracleId) ? 'True' : 'Unknown';
-			else if (variant.templates.length || variant.unsupportedReasons.length)
-				participants[entry.entryId] = 'Unknown';
+				if (participants[entry.entryId] === 'True' && proof)
+					result.participantProofs[entry.entryId] = proof;
+			} else if (uncertainIngredientIdentities(variant)) participants[entry.entryId] = 'Unknown';
 		}
 	}
 	return result;
+}
+
+// These provider reasons constrain known ingredients without introducing another identity.
+const identityPreservingReasons = new Set(['used-face', 'card-state', 'status', 'zones']);
+function uncertainIngredientIdentities(variant: ComboVariant) {
+	return (
+		variant.templates.length > 0 ||
+		variant.ingredients.length === 0 ||
+		variant.ingredients.some((ingredient) => !validOracle(ingredient.oracleId)) ||
+		variant.unsupportedReasons.some((reason) => !identityPreservingReasons.has(reason))
+	);
 }
 
 function evaluateVariant(

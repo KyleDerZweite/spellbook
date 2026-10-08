@@ -267,6 +267,8 @@ describe('local documented combo ingredients', () => {
 		);
 		expect(result.participants).toEqual({ oak: 'True', denizen: 'True', other: 'True' });
 		expect(result.proof?.variant.id).toBe('2850-4186');
+		expect(result.participantProofs.other.variant.id).toBe('aaa');
+		expect(result.participantProofs.oak.variant.id).toBe('2850-4186');
 		expect(result.roles).toEqual(['main', 'commander']);
 		expect(
 			run(
@@ -297,4 +299,39 @@ describe('local documented combo ingredients', () => {
 			expect(() => run([entry('bad', oak, 'main', quantity)])).toThrow(/integrity/);
 		}
 	);
+	it.each(['used-face', 'card-state', 'status', 'zones'])(
+		'keeps unrelated proven identities False for unsupported %s constraints',
+		(reason) => {
+			const unsupported = variant(oakVariant.ingredients, { unsupportedReasons: [reason] });
+			const result = run(
+				[entry('oak', oak), entry('denizen', denizen), entry('other', other)],
+				[unsupported]
+			);
+			expect(result.participants).toEqual({ oak: 'Unknown', denizen: 'Unknown', other: 'False' });
+			expect(result.participantProofs).toEqual({});
+		}
+	);
+	it.each(['variant-shape', 'ingredient-shape', 'empty-ingredients', 'future-structural-field'])(
+		'keeps unidentified potential participants Unknown for %s',
+		(reason) => {
+			const result = run(
+				[entry('oak', oak), entry('denizen', denizen), entry('other', other)],
+				[variant(oakVariant.ingredients, { unsupportedReasons: [reason] })]
+			);
+			expect(result.participants.other).toBe('Unknown');
+		}
+	);
+	it.each([
+		variant([{ ...oakVariant.ingredients[0], usedFace: 1 }, oakVariant.ingredients[1]]),
+		variant([
+			{ ...oakVariant.ingredients[0], states: { battlefieldCardState: 'tapped' } },
+			oakVariant.ingredients[1]
+		])
+	])('does not broaden concrete face or state ingredients to unrelated cards', (unsupported) => {
+		const result = run(
+			[entry('oak', oak), entry('denizen', denizen), entry('other', other)],
+			[unsupported]
+		);
+		expect(result.participants).toEqual({ oak: 'Unknown', denizen: 'Unknown', other: 'False' });
+	});
 });

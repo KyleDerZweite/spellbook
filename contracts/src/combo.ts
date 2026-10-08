@@ -75,9 +75,13 @@ export type ComboEvaluation = {
 	roles: CategoryRole[];
 	truth: Truth;
 	participants: Record<string, Truth>;
+	participantProofs: Record<string, ComboProof>;
 	proof: ComboProof | null;
 };
 export type ComboEvidence = {
 	source: ComboSource;
-	evaluations: Omit<ComboEvaluation, 'participants'>[];
+	evaluations: (Omit<ComboEvaluation, 'participants' | 'participantProofs'> & {
+		participantTruth?: Truth;
+		participantWitnesses?: { proof: ComboProof; entryIds: string[] }[];
+	})[];
 };
