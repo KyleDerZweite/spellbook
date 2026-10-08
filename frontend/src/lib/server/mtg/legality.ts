@@ -1,1 +1,5 @@
-export * from '@spellbook/backend/decks/legality.ts';
+export {
+	generateLegalityWarnings,
+	type LegalityLine,
+	type LegalityWarning
+} from '@spellbook/backend/transport.ts';

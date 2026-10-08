@@ -1,1 +1,1 @@
-export * from '@spellbook/backend/decks/request-fingerprint.ts';
+export { RequestConflictError, mutationFingerprint } from '@spellbook/backend/transport.ts';

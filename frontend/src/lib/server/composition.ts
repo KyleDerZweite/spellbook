@@ -1,45 +1,15 @@
 import { building, dev } from '$app/env';
-import {
-	createCatalog,
-	createLocalAuth,
-	createProfile,
-	createDashboard,
-	createInventory,
-	createInventoryMutations,
-	createScan,
-	createDecks,
-	createValuation,
-	createSavedState,
-	createCategories,
-	createInventoryValues,
-	createValueHistoryRunner,
-	createWholeDeckCategoryRunner,
-	evaluateWholeDeck
-} from '@spellbook/backend';
+import { createApplication } from '@spellbook/backend/application.ts';
 import { privateEnv } from '#lib/env/private.ts';
-import { db, pool } from '#lib/server/db/client.ts';
 
-const catalog = createCatalog(pool);
-const auth = createLocalAuth(db, { demoMode: process.env.DEMO_MODE === 'true' });
-const valuation = createValuation(pool, auth);
-const timezone = process.env.VALUE_HISTORY_TIMEZONE?.trim() || 'Europe/Berlin';
-new Intl.DateTimeFormat('en', { timeZone: timezone });
-const enabled = process.env.VALUE_HISTORY_ENABLED ?? 'true';
-if (!['true', 'false'].includes(enabled))
-	throw Error('VALUE_HISTORY_ENABLED must be true or false');
-const inventoryValues = createInventoryValues(pool, auth, valuation, { timezone });
-const valueRunner = createValueHistoryRunner(pool, inventoryValues);
-const wholeRunner = createWholeDeckCategoryRunner(db, evaluateWholeDeck);
-export const application = {
-	catalog,
-	auth,
-	categories: createCategories(db, auth),
-	savedState: createSavedState(
-		privateEnv.DATABASE_URL || 'postgres://spellbook:spellbook@localhost:5432/spellbook',
-		auth
-	),
-	dashboard: createDashboard(pool, auth, inventoryValues),
-	scan: createScan(db, pool, catalog, auth, {
+const lifetime = await createApplication({
+	databaseUrl: privateEnv.DATABASE_URL,
+	buildAnalysis: building,
+	demoMode: process.env.DEMO_MODE === 'true',
+	valueHistoryTimezone: process.env.VALUE_HISTORY_TIMEZONE,
+	valueHistoryEnabled: process.env.VALUE_HISTORY_ENABLED,
+	commanderSpellbookEnabled: process.env.COMMANDER_SPELLBOOK_ENABLED,
+	scan: {
 		storageDriver: privateEnv.SCAN_STORAGE_DRIVER,
 		localStorageDir: privateEnv.SCAN_LOCAL_STORAGE_DIR,
 		workerUrl: privateEnv.SCAN_WORKER_URL,
@@ -49,39 +19,25 @@ export const application = {
 		s3AccessKeyId: privateEnv.S3_ACCESS_KEY_ID,
 		s3SecretAccessKey: privateEnv.S3_SECRET_ACCESS_KEY,
 		s3ForcePathStyle: privateEnv.S3_FORCE_PATH_STYLE
-	}),
-	inventory: { ...createInventory(pool, auth), ...createInventoryMutations(db, catalog, auth) },
-	valuation,
-	inventoryValues,
-	profile: createProfile(db, auth, { demoMode: process.env.DEMO_MODE === 'true' }),
-	decks: createDecks(db, catalog, auth, valuation)
-};
-
+	}
+});
+export const application = lifetime.application;
 let closing: Promise<void> | undefined;
 function closeApplication() {
-	return (closing ??= Promise.allSettled([
-		valueRunner.close(),
-		wholeRunner.close(),
-		application.savedState.close()
-	]).then((results) => {
-		if (results.some((result) => result.status === 'rejected'))
-			console.error('Application shutdown failed');
-	}));
+	return (closing ??= lifetime.close().catch(() => console.error('Application shutdown failed')));
 }
-
 if (!building) {
-	wholeRunner.start();
-	if (enabled === 'true') valueRunner.start();
+	lifetime.start();
 	if (!dev) process.once('sveltekit:shutdown', closeApplication);
 	import.meta.hot?.dispose(closeApplication);
 	import.meta.hot?.on('vite:beforeFullReload', closeApplication);
 }
-
-export { CategoryNotFound, CategoryConflict, CategoryMergeConflict } from '@spellbook/backend';
 export {
+	CategoryNotFound,
+	CategoryConflict,
+	CategoryMergeConflict,
 	LibraryConflict,
 	CategoryPreviewExpired,
-	CategoryPreviewCapacity
-} from '@spellbook/backend';
-
-export { CategoryUnavailable } from '@spellbook/backend';
+	CategoryPreviewCapacity,
+	CategoryUnavailable
+} from '@spellbook/backend/transport.ts';

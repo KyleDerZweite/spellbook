@@ -18,7 +18,7 @@ function files(directory) {
 	});
 }
 
-export function importSpecifiers(text, path) {
+function importEdges(text, path) {
 	if (path.endsWith('.svelte'))
 		text = [...text.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g)]
 			.map((match) => match[1])
@@ -30,14 +30,22 @@ export function importSpecifiers(text, path) {
 			(ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
 			node.moduleSpecifier &&
 			ts.isStringLiteralLike(node.moduleSpecifier)
-		)
-			imports.push(node.moduleSpecifier.text);
+		) {
+			const clause = ts.isImportDeclaration(node) ? node.importClause : node.exportClause;
+			const bindings = clause && ts.isImportDeclaration(node) ? clause.namedBindings : clause;
+			const names =
+				bindings && (ts.isNamedImports(bindings) || ts.isNamedExports(bindings))
+					? bindings.elements.map((binding) => binding.propertyName?.text ?? binding.name.text)
+					: undefined;
+			if (clause && ts.isImportDeclaration(node) && clause.name) names?.push('default');
+			imports.push({ specifier: node.moduleSpecifier.text, names });
+		}
 		if (
 			ts.isImportTypeNode(node) &&
 			ts.isLiteralTypeNode(node.argument) &&
 			ts.isStringLiteralLike(node.argument.literal)
 		)
-			imports.push(node.argument.literal.text);
+			imports.push({ specifier: node.argument.literal.text });
 		if (
 			ts.isCallExpression(node) &&
 			(node.expression.kind === ts.SyntaxKind.ImportKeyword ||
@@ -45,23 +53,21 @@ export function importSpecifiers(text, path) {
 			node.arguments[0] &&
 			ts.isStringLiteralLike(node.arguments[0])
 		)
-			imports.push(node.arguments[0].text);
+			imports.push({ specifier: node.arguments[0].text });
 		ts.forEachChild(node, visit);
 	}
 	visit(source);
 	return imports;
 }
 
-export function checkBoundaries(root = repository, options = {}) {
+export function importSpecifiers(text, path) {
+	return importEdges(text, path).map((edge) => edge.specifier);
+}
+
+export function checkBoundaries(root = repository) {
 	const policyPath = join(root, 'scripts/boundary-policy.json');
 	const policy = existsSync(policyPath) ? JSON.parse(readFileSync(policyPath, 'utf8')) : {};
-	const legacy = options.legacy ?? policy.legacy ?? [];
-	const adapters = policy.adapters ?? [
-		{
-			file: 'frontend/src/lib/server/composition.ts',
-			specifier: '@spellbook/backend'
-		}
-	];
+	const adapters = policy.adapters ?? [];
 	const errors = [];
 	function compilerOptions(path) {
 		const owner = path.startsWith(join(root, 'frontend') + '/')
@@ -96,7 +102,7 @@ export function checkBoundaries(root = repository, options = {}) {
 			!file.includes('/lib/server/') &&
 			!/(\.server\.|\/\+server\.)/.test(file) &&
 			!file.endsWith('/app.d.ts');
-		for (const specifier of importSpecifiers(readFileSync(path, 'utf8'), path)) {
+		for (const { specifier, names } of importEdges(readFileSync(path, 'utf8'), path)) {
 			const host = {
 				...ts.sys,
 				fileExists: (file) =>
@@ -146,11 +152,17 @@ export function checkBoundaries(root = repository, options = {}) {
 				(directPersistence || backend) &&
 				!adapters.some(
 					(edge) =>
-						edge.file === file && edge.specifier === specifier && backend && !directPersistence
-				) &&
-				!legacy.some((edge) => edge.file === file && edge.specifier === specifier)
+						edge.file === file &&
+						edge.specifier === specifier &&
+						backend &&
+						!directPersistence &&
+						(!edge.allowedNames ||
+							(names?.length && names.every((name) => edge.allowedNames.includes(name))))
+				)
 			)
 				rule = 'frontend-persistence';
+			if (file.startsWith('frontend/src/') && target.startsWith('frontend/scripts/'))
+				rule = 'frontend-operator';
 			if (rule) errors.push({ rule, file, specifier, target });
 		}
 	}

@@ -20,7 +20,4 @@ export async function createDeck(
 		await createDeckRecord(actor, input)
 	);
 }
-export {
-	DescriptionConflictError,
-	DeckNotFoundError
-} from '@spellbook/backend/decks/application.ts';
+export { DescriptionConflictError, DeckNotFoundError } from '@spellbook/backend/transport.ts';

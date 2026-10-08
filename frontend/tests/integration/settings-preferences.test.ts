@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
-import { db, pool } from '../../src/lib/server/db/client';
-import { userProfiles } from '../../src/lib/server/db/schema';
+import { db, pool } from '../fixtures/database.ts';
+import { userProfiles } from '@spellbook/backend/db/schema.ts';
 import { authenticate } from '../../src/lib/server/auth/local';
 import { validateSession } from '../../src/lib/server/auth/session';
 import { defaultProfileCard } from '../../src/lib/profile/card';

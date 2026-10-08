@@ -812,7 +812,7 @@ run('PostgreSQL catalog snapshots and search', () => {
 
 async function loadModules() {
 	const [{ pool }, search] = await Promise.all([
-		import('../../src/lib/server/db/client'),
+		import('../fixtures/database.ts'),
 		import('../../src/lib/server/catalog/search')
 	]);
 	return { pool, ...search };

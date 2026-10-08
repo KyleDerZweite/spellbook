@@ -5,15 +5,29 @@ import {
 } from '@spellbook/backend/inventory/write.ts';
 export { lockInventory, advanceInventoryRevision };
 import { and, asc, desc, eq } from 'drizzle-orm';
-import { db } from '#lib/server/db/client.ts';
-import { inventories, inventoryCards, inventoryMutationRequests } from '#lib/server/db/schema.ts';
-import type {
-	Inventory,
-	InventoryBatchItem,
-	InventoryCard,
-	InventorySnapshot,
-	InventoryStats
-} from '#lib/server/data/types.ts';
+import { db } from './database.ts';
+import {
+	inventories,
+	inventoryCards,
+	inventoryMutationRequests
+} from '@spellbook/backend/db/schema.ts';
+import type { InferSelectModel } from 'drizzle-orm';
+type Inventory = InferSelectModel<typeof inventories>;
+type InventoryCard = InferSelectModel<typeof inventoryCards>;
+type InventoryMutationRequest = InferSelectModel<typeof inventoryMutationRequests>;
+interface InventoryStats {
+	total: number;
+	unique: number;
+	foils: number;
+	sets: number;
+	completedSets: number;
+}
+interface InventorySnapshot {
+	inventory: Inventory | null;
+	cards: InventoryCard[];
+	stats: InventoryStats;
+	mutationRequests: InventoryMutationRequest[];
+}
 import type { Transaction } from '@spellbook/backend/db/client.ts';
 function getStats(cards: InventoryCard[]): InventoryStats {
 	const total = cards.reduce((sum, card) => sum + card.quantity, 0);

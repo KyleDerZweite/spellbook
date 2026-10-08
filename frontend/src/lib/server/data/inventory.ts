@@ -2,7 +2,7 @@ export {
 	InventoryQuantityChangedError,
 	InventoryNotFoundError,
 	NotesConflictError
-} from '@spellbook/backend/inventory/mutations.ts';
+} from '@spellbook/backend/transport.ts';
 import type { InventoryBatchItem } from './types';
 import type { AuthUser } from '@spellbook/contracts/auth.ts';
 import type {

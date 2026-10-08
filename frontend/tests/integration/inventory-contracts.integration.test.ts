@@ -5,12 +5,12 @@ import { ensureDeckCatalogFixture } from '../deck-catalog-fixture.ts';
 const run = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 run('authorized Inventory mutation contracts', () => {
 	let application: typeof import('../../src/lib/server/composition.ts').application;
-	let pool: typeof import('../../src/lib/server/db/client.ts').pool;
+	let pool: typeof import('../fixtures/database.ts').pool;
 	let actor: AuthUser;
 	let card: Awaited<ReturnType<typeof ensureDeckCatalogFixture>>;
 	beforeAll(async () => {
 		({ application } = await import('../../src/lib/server/composition.ts'));
-		({ pool } = await import('../../src/lib/server/db/client.ts'));
+		({ pool } = await import('../fixtures/database.ts'));
 		card = await ensureDeckCatalogFixture(pool);
 	});
 	beforeEach(async () => {

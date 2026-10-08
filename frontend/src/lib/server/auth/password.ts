@@ -1,1 +1,6 @@
-export * from '@spellbook/backend/auth/password.ts';
+export {
+	normalizeUsername,
+	validPassword,
+	hashPassword,
+	verifyPassword
+} from '@spellbook/backend/transport.ts';

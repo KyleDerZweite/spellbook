@@ -1,91 +1,79 @@
 {
-	"removalTicket": "https://github.com/KyleDerZweite/spellbook/issues/192",
 	"adapters": [
 		{
 			"file": "frontend/src/lib/server/composition.ts",
-			"specifier": "@spellbook/backend"
+			"specifier": "@spellbook/backend/application.ts"
 		},
 		{
 			"file": "frontend/src/lib/server/auth/local.ts",
-			"specifier": "@spellbook/backend/auth/local.ts"
+			"specifier": "@spellbook/backend/transport.ts"
 		},
 		{
 			"file": "frontend/src/lib/server/auth/password.ts",
-			"specifier": "@spellbook/backend/auth/password.ts"
+			"specifier": "@spellbook/backend/transport.ts"
 		},
 		{
 			"file": "frontend/src/lib/server/auth/session.ts",
-			"specifier": "@spellbook/backend/auth/session.ts"
+			"specifier": "@spellbook/backend/transport.ts"
 		},
 		{
 			"file": "frontend/src/lib/server/catalog/query.ts",
-			"specifier": "@spellbook/backend/catalog/query.ts"
-		},
-		{
-			"file": "frontend/src/lib/server/db/schema.ts",
-			"specifier": "@spellbook/backend/db/schema.ts"
+			"specifier": "@spellbook/backend/transport.ts"
 		},
 		{
 			"file": "frontend/src/lib/server/mtg/validation.ts",
-			"specifier": "@spellbook/backend/mtg/validation.ts"
-		},
-		{
-			"file": "frontend/src/lib/server/db/client.ts",
-			"specifier": "@spellbook/backend"
+			"specifier": "@spellbook/backend/transport.ts"
 		},
 		{
 			"file": "frontend/src/lib/server/data/inventory-window.ts",
-			"specifier": "@spellbook/backend/inventory/query.ts"
+			"specifier": "@spellbook/backend/transport.ts"
 		},
 		{
 			"file": "frontend/src/lib/server/data/decks.ts",
-			"specifier": "@spellbook/backend/decks/application.ts"
+			"specifier": "@spellbook/backend/transport.ts"
 		},
 		{
 			"file": "frontend/src/lib/server/data/request-fingerprint.ts",
-			"specifier": "@spellbook/backend/decks/request-fingerprint.ts"
+			"specifier": "@spellbook/backend/transport.ts"
 		},
 		{
 			"file": "frontend/src/lib/server/mtg/import.ts",
-			"specifier": "@spellbook/backend/decks/import.ts"
+			"specifier": "@spellbook/backend/transport.ts"
 		},
 		{
 			"file": "frontend/src/lib/server/mtg/catalog-resolver.ts",
-			"specifier": "@spellbook/backend/decks/catalog-resolver.ts"
+			"specifier": "@spellbook/backend/transport.ts"
 		},
 		{
 			"file": "frontend/src/lib/server/mtg/decklist.ts",
-			"specifier": "@spellbook/backend/decks/decklist.ts"
+			"specifier": "@spellbook/backend/transport.ts"
 		},
 		{
 			"file": "frontend/src/lib/server/mtg/legality.ts",
-			"specifier": "@spellbook/backend/decks/legality.ts"
+			"specifier": "@spellbook/backend/transport.ts"
 		},
 		{
 			"file": "frontend/src/lib/server/data/inventory.ts",
-			"specifier": "@spellbook/backend/inventory/mutations.ts"
-		}
-	],
-	"legacy": [
-		{
-			"file": "frontend/src/lib/server/data/types.ts",
-			"specifier": "drizzle-orm"
-		},
-		{
-			"file": "frontend/src/lib/server/data/types.ts",
-			"specifier": "#lib/server/db/schema.ts"
-		},
-		{
-			"file": "frontend/scripts/demo/seed.mjs",
-			"specifier": "pg"
-		},
-		{
-			"file": "frontend/scripts/set-local-password.mjs",
-			"specifier": "pg"
+			"specifier": "@spellbook/backend/transport.ts"
 		},
 		{
 			"file": "frontend/src/lib/server/composition.ts",
-			"specifier": "#lib/server/db/client.ts"
+			"specifier": "@spellbook/backend/transport.ts"
+		},
+		{
+			"file": "frontend/scripts/demo/seed.mjs",
+			"specifier": "@spellbook/backend/operators/demo.ts",
+			"allowedNames": ["seedDemo"]
+		},
+		{
+			"file": "frontend/scripts/demo/replace-inventory.mjs",
+			"specifier": "@spellbook/backend/operators/demo.ts",
+			"allowedNames": ["replaceDemoInventory", "requireDemoDatabase", "matchesLegacy"]
+		},
+		{
+			"file": "frontend/scripts/set-local-password.mjs",
+			"specifier": "@spellbook/backend/operators/local-password.ts",
+			"allowedNames": ["setLocalPassword", "normalizeUsername", "validPassword"]
 		}
 	]
 }

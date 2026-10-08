@@ -480,8 +480,8 @@ run('deck builder transactions', () => {
 
 async function loadModules() {
 	const [{ db, pool }, schema, decks, inventory] = await Promise.all([
-		import('../../src/lib/server/db/client'),
-		import('../../src/lib/server/db/schema'),
+		import('../fixtures/database.ts'),
+		import('@spellbook/backend/db/schema.ts'),
 		import('../../src/lib/server/data/decks'),
 		import('../../src/lib/server/data/inventory')
 	]);

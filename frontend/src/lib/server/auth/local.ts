@@ -1,6 +1,6 @@
 import { error, type RequestEvent } from '@sveltejs/kit';
 import { application } from '#lib/server/composition.ts';
-import { AuthError } from '@spellbook/backend/auth/local.ts';
+import { AuthError } from '@spellbook/backend/transport.ts';
 export function sanitizeReturnTo(value: string | null | undefined): string {
 	if (!value || !value.startsWith('/') || value.startsWith('//') || /[\\\x00-\x1f\x7f]/.test(value))
 		return '/mtg/inventory';

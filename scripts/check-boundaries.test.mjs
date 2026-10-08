@@ -65,19 +65,21 @@ test('contracts reject platform and implementation types', () => {
 		});
 });
 
-test('server persistence exceptions are exact edges and cannot authorize a new caller', () => {
+test('frontend persistence has no legacy exemptions', () => {
 	fixture(
 		{
 			'frontend/src/lib/server/old.ts': "import { db } from './db/client.ts';",
-			'frontend/src/lib/server/new.ts': "import { db } from './db/client.ts';",
-			'frontend/src/lib/server/db/client.ts': 'export const db = {};'
+			'frontend/src/lib/server/db/client.ts': 'export const db = {};',
+			'scripts/boundary-policy.json': JSON.stringify({
+				legacy: [
+					{
+						file: 'frontend/src/lib/server/old.ts',
+						specifier: './db/client.ts'
+					}
+				]
+			})
 		},
-		(root) => {
-			const allowlist = [{ file: 'frontend/src/lib/server/old.ts', specifier: './db/client.ts' }];
-			const errors = checkBoundaries(root, { legacy: allowlist });
-			assert.equal(errors.length, 1);
-			assert.equal(errors[0].file, 'frontend/src/lib/server/new.ts');
-		}
+		(root) => assert.equal(checkBoundaries(root)[0].rule, 'frontend-persistence')
 	);
 });
 
@@ -87,8 +89,16 @@ test('browser contracts and named composition imports are allowed', () => {
 			'frontend/src/lib/client.ts':
 				"import type { AuthUser } from '../../..//contracts/src/auth.ts';",
 			'frontend/src/lib/server/composition.ts':
-				"import { createDatabase } from '@spellbook/backend';",
-			'contracts/src/auth.ts': 'export interface AuthUser { accountId: string; }'
+				"import { createApplication } from '@spellbook/backend/application.ts';",
+			'contracts/src/auth.ts': 'export interface AuthUser { accountId: string; }',
+			'scripts/boundary-policy.json': JSON.stringify({
+				adapters: [
+					{
+						file: 'frontend/src/lib/server/composition.ts',
+						specifier: '@spellbook/backend/application.ts'
+					}
+				]
+			})
 		},
 		(root) => assert.deepEqual(checkBoundaries(root), [])
 	);
@@ -136,4 +146,115 @@ test('public server composition rejects raw database access for a new caller', a
 			);
 		}
 	);
+});
+
+test('approved composition rejects root factories and implementation imports', () => {
+	for (const specifier of [
+		'@spellbook/backend',
+		'@spellbook/backend/db/client.ts',
+		'@spellbook/backend/categories/jobs.ts'
+	])
+		fixture(
+			{
+				'frontend/src/lib/server/composition.ts': `export * from '${specifier}';`,
+				'scripts/boundary-policy.json': JSON.stringify({
+					adapters: [
+						{
+							file: 'frontend/src/lib/server/composition.ts',
+							specifier: '@spellbook/backend/application.ts'
+						}
+					]
+				})
+			},
+			(root) => assert.equal(checkBoundaries(root)[0].rule, 'frontend-persistence')
+		);
+});
+
+test('operator seams are limited to their exact native entries', () => {
+	fixture(
+		{
+			'frontend/scripts/demo/seed.mjs':
+				"import { seedDemo } from '@spellbook/backend/operators/demo.ts';",
+			'frontend/scripts/other.mjs':
+				"import { seedDemo } from '@spellbook/backend/operators/demo.ts';",
+			'scripts/boundary-policy.json': JSON.stringify({
+				adapters: [
+					{
+						file: 'frontend/scripts/demo/seed.mjs',
+						specifier: '@spellbook/backend/operators/demo.ts'
+					}
+				]
+			})
+		},
+		(root) => {
+			assert.deepEqual(
+				checkBoundaries(root).map((error) => error.file),
+				['frontend/scripts/other.mjs']
+			);
+		}
+	);
+});
+
+test('frontend runtime cannot reach operator scripts through aliases or relative imports', () => {
+	for (const specifier of ['../../../scripts/demo/seed.mjs', '#operator/demo/seed.mjs'])
+		for (const statement of [
+			`import type { Result } from '${specifier}';`,
+			`export * from '${specifier}';`,
+			`const operator = import('${specifier}');`
+		])
+			fixture(
+				{
+					'frontend/package.json': JSON.stringify({
+						imports: { '#operator/*': './scripts/*' }
+					}),
+					'frontend/src/lib/server/bypass.ts': statement,
+					'frontend/scripts/demo/seed.mjs': 'export const seedDemo = () => {};'
+				},
+				(root) => assert.equal(checkBoundaries(root)[0].rule, 'frontend-operator')
+			);
+});
+
+test('native operators permit only approved named operations', () => {
+	const file = 'frontend/scripts/demo/seed.mjs';
+	const specifier = '@spellbook/backend/operators/demo.ts';
+	for (const statement of [
+		`import { createDemoPool } from '${specifier}';`,
+		`import { createDemoPool as seedDemo } from '${specifier}';`,
+		`import * as demo from '${specifier}';`,
+		`import demo, { seedDemo } from '${specifier}';`,
+		`export * from '${specifier}';`,
+		`export * as demo from '${specifier}';`,
+		`const demo = import('${specifier}');`,
+		`import type { Database } from '${specifier}';`,
+		"import { seedDemo } from '#operator/demo.ts';"
+	])
+		fixture(
+			{
+				[file]: statement,
+				'frontend/package.json': JSON.stringify({
+					imports: { '#operator/*': '../backend/src/operators/*' }
+				}),
+				'backend/src/operators/demo.ts': 'export const seedDemo = () => {};',
+				'frontend/tsconfig.json': JSON.stringify({
+					compilerOptions: { paths: { '#operator/*': ['../backend/src/operators/*'] } }
+				}),
+				'scripts/boundary-policy.json': JSON.stringify({
+					adapters: [{ file, specifier, allowedNames: ['seedDemo'] }]
+				})
+			},
+			(root) => assert.equal(checkBoundaries(root)[0].rule, 'frontend-persistence')
+		);
+	for (const statement of [
+		`import { seedDemo as seed } from '${specifier}';`,
+		`export { seedDemo } from '${specifier}';`
+	])
+		fixture(
+			{
+				[file]: statement,
+				'scripts/boundary-policy.json': JSON.stringify({
+					adapters: [{ file, specifier, allowedNames: ['seedDemo'] }]
+				})
+			},
+			(root) => assert.deepEqual(checkBoundaries(root), [])
+		);
 });

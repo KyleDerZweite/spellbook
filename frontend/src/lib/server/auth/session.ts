@@ -4,8 +4,8 @@ export {
 	SESSION_COOKIE,
 	SESSION_LIFETIME_SECONDS,
 	hashSessionToken
-} from '@spellbook/backend/auth/session.ts';
-import { SESSION_COOKIE, SESSION_LIFETIME_SECONDS } from '@spellbook/backend/auth/session.ts';
+} from '@spellbook/backend/transport.ts';
+import { SESSION_COOKIE, SESSION_LIFETIME_SECONDS } from '@spellbook/backend/transport.ts';
 export const { validateSession, revokeSession } = application.auth;
 export async function createSession(...args: Parameters<typeof application.auth.createSession>) {
 	const session = await application.auth.createSession(...args);

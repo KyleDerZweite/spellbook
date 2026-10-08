@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { eq, inArray, sql } from 'drizzle-orm';
 import { defaultProfileCard, type ProfileCardDefinition } from '../../src/lib/profile/card';
-import { db, pool } from '../../src/lib/server/db/client';
+import { db, pool } from '../fixtures/database.ts';
 import {
 	authSessions,
 	decks,
@@ -10,7 +10,7 @@ import {
 	inventoryCards,
 	localCredentials,
 	userProfiles
-} from '../../src/lib/server/db/schema';
+} from '@spellbook/backend/db/schema.ts';
 import { authenticate } from '../../src/lib/server/auth/local';
 import {
 	createSession,

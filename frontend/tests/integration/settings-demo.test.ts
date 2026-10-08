@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
-import { db, pool } from '../../src/lib/server/db/client';
-import { authSessions, localCredentials, userProfiles } from '../../src/lib/server/db/schema';
+import { db, pool } from '../fixtures/database.ts';
+import { authSessions, localCredentials, userProfiles } from '@spellbook/backend/db/schema.ts';
 import { authenticate } from '../../src/lib/server/auth/local';
 import { hashPassword } from '../../src/lib/server/auth/password';
 import {
