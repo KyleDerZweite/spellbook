@@ -1,6 +1,28 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { historyBoundaryTimer } from '#lib/valuation/history-boundary.ts';
 describe('server reporting boundary refresh', () => {
+	it('calls browser timer methods with their global receiver', () => {
+		const set = vi.spyOn(globalThis, 'setTimeout').mockImplementation(function (this: unknown) {
+			expect(this).toBe(globalThis);
+			return 1 as unknown as ReturnType<typeof setTimeout>;
+		});
+		const clear = vi.spyOn(globalThis, 'clearTimeout').mockImplementation(function (this: unknown) {
+			expect(this).toBe(globalThis);
+		});
+		try {
+			const timer = historyBoundaryTimer(
+				() => {},
+				() => true
+			);
+			timer.schedule(new Date(Date.now() + 60000).toISOString());
+			timer.cancel();
+			expect(set).toHaveBeenCalledOnce();
+			expect(clear).toHaveBeenCalledOnce();
+		} finally {
+			set.mockRestore();
+			clear.mockRestore();
+		}
+	});
 	it('fires once, replaces dates and cancels stale callbacks on cleanup', () => {
 		const callbacks = new Map<ReturnType<typeof setTimeout>, () => void>();
 		let sequence = 0,

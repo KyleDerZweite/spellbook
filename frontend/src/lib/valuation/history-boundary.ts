@@ -7,7 +7,11 @@ interface BoundaryClock {
 export function historyBoundaryTimer(
 	invalidate: () => void,
 	current: () => boolean,
-	clock: BoundaryClock = { now: Date.now, set: setTimeout, clear: clearTimeout }
+	clock: BoundaryClock = {
+		now: Date.now,
+		set: (callback, delay) => globalThis.setTimeout(callback, delay),
+		clear: (timer) => globalThis.clearTimeout(timer)
+	}
 ) {
 	let timer: ReturnType<typeof setTimeout> | undefined;
 	let generation = 0,
