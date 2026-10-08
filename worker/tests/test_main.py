@@ -129,3 +129,31 @@ def test_scryfall_failure_still_attempts_optional_sources_before_manual_exit(tmp
         main()
     assert failure.value.code == 1
     optional.assert_called_once()
+
+
+def test_combo_failure_keeps_existing_periodic_cadence_and_other_provider_isolation(tmp_path):
+    config = WorkerConfig(
+        "unused",
+        "all_cards",
+        "daily",
+        "fixture://api",
+        tmp_path,
+        commander_spellbook_enabled=True,
+    )
+    with (
+        patch("worker.main.load_config", return_value=config),
+        patch("worker.main.CatalogPublisher"),
+        patch("worker.main.OptionalPricePublisher"),
+        patch("worker.main.ComboPublisher"),
+        patch("worker.main.ScryfallClient"),
+        patch("worker.main.wait_for_database"),
+        patch("worker.main.sync_catalog", side_effect=ValueError("public failure")),
+        patch("worker.main.sync_optional_sources", return_value=False),
+        patch("worker.main.sync_oracle_tags", side_effect=ValueError("public failure")),
+        patch("worker.main.sync_combo", return_value=False) as combo,
+        patch("worker.main.time.sleep", side_effect=KeyboardInterrupt) as sleep,
+        pytest.raises(KeyboardInterrupt),
+    ):
+        main()
+    combo.assert_called_once()
+    sleep.assert_called_once_with(86400)

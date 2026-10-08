@@ -587,7 +587,10 @@ def _owned_stage(action, payload, deadline):
     remaining = deadline - time.monotonic()
     if remaining <= 0:
         raise ValueError(f"Combo {action} deadline exceeded")
-    code = "import json,sys; from worker.combo import _child_stage; _child_stage(json.load(sys.stdin))"
+    code = (
+        "import json,sys; from worker.combo import _child_stage; "
+        "_child_stage(json.load(sys.stdin))"
+    )
     process = subprocess.Popen(
         [sys.executable, "-c", code],
         stdin=subprocess.PIPE,
@@ -612,7 +615,11 @@ def _owned_stage(action, payload, deadline):
     result = json.loads(output)
     if "error" in result:
         name = result["error"]
-        exception = getattr(psycopg.errors, name, None)
+        exception = (
+            getattr(sqlite3, name, None)
+            if action == "parse"
+            else getattr(psycopg.errors, name, None)
+        )
         if exception is None:
             exception = {"IntegrityError": sqlite3.IntegrityError, "EOFError": EOFError}.get(
                 name, ValueError
@@ -674,4 +681,11 @@ def _download_combo(path, limits, deadline):
         },
         follow_redirects=True,
     ) as client:
-        return download_artifact(client, BULK_URL, path, limits, import_deadline=deadline)
+        return download_artifact(
+            client,
+            BULK_URL,
+            path,
+            limits,
+            import_deadline=deadline,
+            allowed_transport_encodings=("identity", "gzip"),
+        )

@@ -219,7 +219,6 @@ def test_download_timeout_stops_and_reaps_owned_child(monkeypatch, tmp_path):
     monkeypatch.setattr("worker.combo.subprocess.Popen", MagicMock(return_value=process))
     with pytest.raises(ValueError, match="deadline"):
         download_combo(tmp_path / "download.gz", DEFAULT_COMBO_LIMITS, time.monotonic() + 0.01)
-    process.poll.return_value = None
     process.kill.assert_not_called()
     process.terminate.assert_called_once()
     assert process.communicate.call_count == 2
@@ -290,3 +289,86 @@ def test_real_complete_unchanged_previous_pruning_and_failed_copy(combo_publishe
             "SELECT active_publication,refresh_status->>'kind' FROM combo_state"
         ).fetchone() == (active, "Failed")
         assert conn.execute("SELECT count(*) FROM combo_publications").fetchone() == (2,)
+
+
+@pytest.mark.parametrize("change", ["duplicate-alias", "bad-tail", "root-duplicate"])
+def test_late_alias_and_complete_root_validation(tmp_path, change):
+    path = artifact(
+        tmp_path,
+        aliases=[{"id": "alias", "variant": "oak-denizen"}]
+        * (2 if change == "duplicate-alias" else 1),
+    )
+    if change != "duplicate-alias":
+        decoded = gzip.decompress(path.read_bytes())
+        decoded = decoded[:-1] + (
+            b',"version":"duplicate"}'
+            if change == "root-duplicate"
+            else b',"unexpected": [broken]}'
+        )
+        path.write_bytes(gzip.compress(decoded))
+    with (
+        pytest.raises((ValueError, sqlite3.IntegrityError)),
+        ComboAdapter(path, tmp_path / "stage.sqlite"),
+    ):
+        pass
+
+
+def test_real_owned_parse_deadline_closes_blocked_fifo(monkeypatch, tmp_path):
+    import os
+    import subprocess
+
+    from worker.combo import _owned_stage
+
+    fifo = tmp_path / "blocked.gz"
+    os.mkfifo(fifo)
+    created = []
+    native_popen = subprocess.Popen
+
+    def tracked(*args, **kwargs):
+        process = native_popen(*args, **kwargs)
+        created.append(process)
+        return process
+
+    monkeypatch.setattr("worker.combo.subprocess.Popen", tracked)
+    start = time.monotonic()
+    deadline = start + 0.5
+    with pytest.raises(ValueError):
+        _owned_stage(
+            "parse",
+            {
+                "path": str(fifo),
+                "staging": str(tmp_path / "stage.sqlite"),
+                "limits": DEFAULT_COMBO_LIMITS.__dict__,
+                "deadline": deadline,
+            },
+            deadline,
+        )
+    assert time.monotonic() - start < 3
+    assert len(created) == 1
+    assert created[0].poll() is not None
+    assert created[0].returncode is not None
+
+
+def test_official_gzip_transport_is_hashed_and_saved_as_raw_bytes(tmp_path):
+    import hashlib
+
+    import httpx
+    import respx
+
+    from worker.combo import BULK_URL, _download_combo
+
+    source = artifact(tmp_path).read_bytes()
+    destination = tmp_path / "downloaded.gz"
+    with respx.mock:
+        request = respx.get(BULK_URL).mock(
+            return_value=httpx.Response(
+                200,
+                content=source,
+                headers={"content-encoding": "gzip", "content-length": str(len(source))},
+            )
+        )
+        transfer = _download_combo(destination, DEFAULT_COMBO_LIMITS, time.monotonic() + 10)
+    assert request.call_count == 1
+    assert destination.read_bytes() == source
+    assert transfer["payloadDigest"] == hashlib.sha256(source).hexdigest()
+    assert transfer["contentEncoding"] == "gzip"

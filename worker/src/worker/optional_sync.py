@@ -25,7 +25,15 @@ MTGJSON_TODAY = "https://mtgjson.com/api/v5/AllPricesToday.json.gz"
 MTGJSON_HISTORY = "https://mtgjson.com/api/v5/AllPrices.json.gz"
 
 
-def download_artifact(client, url, destination: Path, limits, *, import_deadline=None):
+def download_artifact(
+    client,
+    url,
+    destination: Path,
+    limits,
+    *,
+    import_deadline=None,
+    allowed_transport_encodings=("identity",),
+):
     started = time.monotonic()
     deadline = min(
         started + limits.download_seconds,
@@ -41,7 +49,7 @@ def download_artifact(client, url, destination: Path, limits, *, import_deadline
     with client.stream("GET", url, timeout=timeout) as response:
         response.raise_for_status()
         # Automatic Content-Encoding decoding would break the byte-bound digest.
-        if response.headers.get("content-encoding", "identity") != "identity":
+        if response.headers.get("content-encoding", "identity") not in allowed_transport_encodings:
             raise ValueError("Unexpected artifact transport encoding")
         expected = response.headers.get("content-length")
         if expected is not None and (
@@ -66,6 +74,7 @@ def download_artifact(client, url, destination: Path, limits, *, import_deadline
             "payloadDigest": digest.hexdigest(),
             "compressedBytes": total,
             "etag": response.headers.get("etag"),
+            "contentEncoding": response.headers.get("content-encoding", "identity"),
             "lastModified": response.headers.get("last-modified"),
             "downloadedAt": datetime.now(UTC).isoformat(),
         }
