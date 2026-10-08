@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 
 from worker.catalog import CatalogPublisher
+from worker.combo import ComboPublisher, sync_combo
 from worker.config import load_config
 from worker.optional_publication import OptionalPricePublisher
 from worker.optional_sync import sync_optional_sources
@@ -137,6 +138,7 @@ def main() -> None:
     tags_publisher = OracleTagsPublisher(config.database_url)
     interval = sync_interval_seconds(config.sync_interval)
     optional_publisher = OptionalPricePublisher(config.database_url, config.price_limits)
+    combo_publisher = ComboPublisher(config.database_url, config.combo_limits)
     while True:
         successful = True
         try:
@@ -151,6 +153,8 @@ def main() -> None:
             sync_oracle_tags(scryfall, tags_publisher, config.data_dir)
         except Exception as exc:
             log.error("Oracle Tags synchronization failed (%s)", type(exc).__name__)
+            successful = False
+        if not sync_combo(config, combo_publisher):
             successful = False
         if interval is None:
             if not successful:

@@ -4,6 +4,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from worker.combo import DEFAULT_COMBO_LIMITS, ComboLimits
 from worker.price_artifacts import DEFAULT_PRICE_LIMITS, PriceLimits
 
 
@@ -17,6 +18,8 @@ class WorkerConfig:
     cardmarket_prices_enabled: bool = False
     mtgjson_prices_enabled: bool = False
     price_limits: PriceLimits = DEFAULT_PRICE_LIMITS
+    commander_spellbook_enabled: bool = False
+    combo_limits: ComboLimits = DEFAULT_COMBO_LIMITS
 
 
 def boolean_setting(name):
@@ -24,6 +27,17 @@ def boolean_setting(name):
     if value not in ("true", "false"):
         raise ValueError(f"{name} must be true or false")
     return value == "true"
+
+
+def combo_limits():
+    values = {}
+    for name, default in DEFAULT_COMBO_LIMITS.__dict__.items():
+        variable = f"COMBO_{name.upper()}"
+        raw = os.environ.get(variable, str(default))
+        if not raw.isascii() or not raw.isdigit() or len(raw) > 15 or int(raw) <= 0:
+            raise ValueError(f"{variable} must be a positive integer")
+        values[name] = int(raw)
+    return ComboLimits(**values)
 
 
 def price_limits():
@@ -59,4 +73,6 @@ def load_config() -> WorkerConfig:
         cardmarket_prices_enabled=boolean_setting("CARDMARKET_PRICES_ENABLED"),
         mtgjson_prices_enabled=boolean_setting("MTGJSON_PRICES_ENABLED"),
         price_limits=price_limits(),
+        commander_spellbook_enabled=boolean_setting("COMMANDER_SPELLBOOK_ENABLED"),
+        combo_limits=combo_limits(),
     )

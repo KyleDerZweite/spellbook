@@ -35,7 +35,8 @@ def _resolve_host(host, deadline):
             raise subprocess.TimeoutExpired(process.args, 0)
         output, _ = process.communicate(input=host, timeout=remaining)
     except BaseException as cause:
-        process.kill()
+        if process.poll() is None:
+            process.terminate()
         process.communicate()
         if isinstance(cause, subprocess.TimeoutExpired):
             raise psycopg.OperationalError(
