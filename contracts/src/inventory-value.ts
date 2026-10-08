@@ -41,6 +41,10 @@ export type InventoryValueHistoryPoint =
 	  };
 export interface InventoryValueHistory {
 	asOf: string;
+	/** Next midnight in the configured reporting calendar, expressed as a UTC instant. */
+	nextDayBoundary: string;
+	/** Earliest owned checkpoint closure in this window or the next reporting midnight. */
+	nextRefreshAt: string;
 	timezone: string;
 	window: { from: string; to: string; days: number };
 	identity: HistoricalHoldingIdentity | null;

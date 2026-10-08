@@ -306,6 +306,22 @@ run('private coherent value checkpoints on PostgreSQL', () => {
 			new Date('2026-10-07T21:59:55Z')
 		);
 		expect(before.window.to).toBe('2026-10-07');
+		expect(before.nextRefreshAt).toBe('2026-10-07T22:00:00.000Z');
+		expect(before.nextDayBoundary).toBe('2026-10-08T10:00:00.000Z');
+		const isolated = await moved.historyInTransaction(
+			database.pool,
+			other.accountId,
+			{ days: 1 },
+			new Date('2026-10-07T21:59:55Z')
+		);
+		expect(isolated.nextRefreshAt).toBe(isolated.nextDayBoundary);
+		const outsideWindow = await moved.historyInTransaction(
+			database.pool,
+			actor.accountId,
+			{ from: '2026-10-06', to: '2026-10-06' },
+			new Date('2026-10-07T21:59:55Z')
+		);
+		expect(outsideWindow.nextRefreshAt).toBe(outsideWindow.nextDayBoundary);
 		expect(before.points[0]).toEqual({ kind: 'Gap', day: '2026-10-07' });
 		const closed = await moved.historyInTransaction(
 			database.pool,
@@ -314,6 +330,7 @@ run('private coherent value checkpoints on PostgreSQL', () => {
 			new Date('2026-10-07T22:00:00Z')
 		);
 		expect(closed.points[0]).toMatchObject({ kind: 'Captured', timezone: 'Europe/Berlin' });
+		expect(closed.nextRefreshAt).toBe(closed.nextDayBoundary);
 	});
 	it('leaves missed windows and downtime as gaps without backfill', async () => {
 		for (const instant of [
@@ -340,6 +357,37 @@ run('private coherent value checkpoints on PostgreSQL', () => {
 		await r.runOnce();
 		await r.close();
 		expect((await history()).points[0]).toMatchObject({ observedAt: '2026-10-07T21:59:30.000Z' });
+	});
+
+	it('returns the next configured calendar boundary using PostgreSQL DST conversion', async () => {
+		for (const [asOf, nextBoundary, hours] of [
+			['2026-03-28T23:00:00Z', '2026-03-29T22:00:00.000Z', 23],
+			['2026-10-24T22:00:00Z', '2026-10-25T23:00:00.000Z', 25]
+		] as const) {
+			const response = await values.historyInTransaction(
+				database.pool,
+				actor.accountId,
+				{ days: 1 },
+				new Date(asOf)
+			);
+			expect(response.asOf).toBe(new Date(asOf).toISOString());
+			expect(response.nextDayBoundary).toBe(nextBoundary);
+			expect(response.nextRefreshAt).toBe(nextBoundary);
+			expect((Date.parse(response.nextDayBoundary) - Date.parse(response.asOf)) / 3600000).toBe(
+				hours
+			);
+		}
+		const moved = createInventoryValues(database.pool, auth, createValuation(database.pool, auth), {
+			timezone: 'Pacific/Kiritimati'
+		});
+		const response = await moved.historyInTransaction(
+			database.pool,
+			actor.accountId,
+			{ days: 1 },
+			new Date('2026-10-07T21:59:55Z')
+		);
+		expect(response.nextDayBoundary).toBe('2026-10-08T10:00:00.000Z');
+		expect(response.asOf).toBe('2026-10-07T21:59:55.000Z');
 	});
 	it('records actual 23 and 25 hour reporting boundaries', async () => {
 		for (const [instant, day, hours] of [
