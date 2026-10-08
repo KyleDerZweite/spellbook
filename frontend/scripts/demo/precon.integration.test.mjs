@@ -1,13 +1,19 @@
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import test from 'node:test';
-import { createDemoPool } from './seed.mjs';
-import { precon, insertPrecon } from './precon.mjs';
 import {
-	legacyInventory,
-	replaceDemoInventory,
-	requireDemoDatabase
-} from './replace-inventory.mjs';
+	createDemoPool,
+	insertPrecon as insertPreconOperation,
+	replaceDemoInventoryWithClient as replaceDemoInventoryOperation
+} from '@spellbook/backend/operators/demo.ts';
+import { precon } from './precon.mjs';
+import { legacyInventory, requireDemoDatabase } from './replace-inventory.mjs';
+
+const legacy = await legacyInventory();
+const replaceDemoInventory = (client, options = {}) =>
+	replaceDemoInventoryOperation(client, { ...options, precon, legacyInventory: legacy });
+const insertPrecon = (client, account, inventory) =>
+	insertPreconOperation(client, account, inventory, precon);
 
 const url = process.env.TEST_DATABASE_URL;
 for (const revision of [0, 1])
