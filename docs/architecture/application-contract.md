@@ -38,6 +38,22 @@ Use small application interfaces for Auth/Profile, Catalog, Inventory/Groups, De
 
 Check imports with the existing TypeScript compiler API, resolving aliases, type imports, dynamic imports and re-exports. Deliberately forbidden imports and built client output verify enforcement. During expand and contract, an enumerated server compatibility allowlist permits existing callers without allowing new frontend persistence or backend-to-frontend dependencies. Remove adapters only after all callers migrate. Independent deployments, a complete external HTTP adapter for every web call and the separate app remain later work.
 
+## Reviewed final contraction
+
+The remaining [contraction slice](https://github.com/KyleDerZweite/spellbook/issues/192) retains one SvelteKit deployment and the existing HTTP contracts. These interfaces are reviewed for implementation, not yet implemented. Python backend migration, OpenAPI-generated clients and Worker directory changes remain separate evaluations.
+
+Backend application construction receives database, build-analysis, Demo, Value-history, Scan and Combo configuration. Its asynchronous constructor returns the existing feature interface with explicit `start` and idempotent asynchronous `close` operations. It exposes no raw database or pool. Validate database presence outside build analysis, timezone and strict boolean configuration before creating resources. Construction starts no runners or listener connections. Unexpected construction failures await cleanup of acquired resources.
+
+Frontend composition consumes only this application constructor and retains SvelteKit shutdown and Vite disposal hooks. Start is idempotent and inactive during build analysis. Close cancels and awaits both runners and SavedState before always attempting the owned pool's closure. Concurrent shutdown calls join the same Promise. Backend registers no framework hooks. Preserve configured Combo database ownership and original receipt replay.
+
+A separate resource-free backend transport facade exports only existing helper functions, errors and safe types needed by native adapters. Importing helpers must require no database configuration and start no work. Frontend runtime loses all database/schema compatibility imports; integration fixtures consume backend database construction and schema directly. Migration history remains in `frontend/drizzle/`.
+
+Backend operator modules own Demo publication, starter replacement and local-password transactions and pool lifetime. Existing frontend command paths retain argv, stdin and public fixture loading. They pass explicit inputs and receive results, without exporting raw resources. Keep Demo target guards, preview-first replacement, explicit reset, parent locks and revisions. Password recovery retains its existing production database support, atomic credential/profile update and session revocation. Backend never imports frontend fixtures or framework code.
+
+The boundary checker removes legacy persistence exceptions and allows only precise application, transport and operator imports. Frontend runtime cannot import operator scripts to bypass these checks. Verify aliases, type imports, dynamic imports and re-exports, resource-free helper imports and application lifecycle failure paths.
+
+Acceptance requires current-head checks, real PostgreSQL/HTTP and two-process Sync, native operator rollback/recovery, rendered journeys and actual public-source refresh in the normal Dev database. Back up that database before migration and compare private-table fingerprints around public imports. Preserve environment values in the protected root store. Distinguish optional provider failures, disabled sources, controlled-clock tests, scheduled observations and deployment evidence.
+
 ## Adapter and mutation contracts
 
 This section retains the accepted target across features. Implemented Inventory/Deck contracts and explicit legacy receipt fallback are distinguished below.
