@@ -43,10 +43,6 @@ function stop(code) {
 	stopping = true;
 	process.exitCode = code;
 	for (const child of children) signal(child, 'SIGTERM');
-	const timer = setTimeout(() => {
-		for (const child of children) signal(child, 'SIGKILL');
-	}, 5000);
-	timer.unref();
 }
 
 function start(command, args, cwd) {
