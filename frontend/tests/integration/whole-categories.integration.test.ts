@@ -761,22 +761,24 @@ run('whole Categories persistence, durable jobs and bounded directory', () => {
 			'INSERT INTO deck_whole_category_decisions(deck_id,version_id,state,manual,truth,attempted_truth,revision,evidence,previous_evaluation) SELECT d.id,w.version_id,w.state,w.manual,w.truth,w.attempted_truth,w.revision,w.evidence,w.previous_evaluation FROM decks d CROSS JOIN deck_whole_category_decisions w WHERE d.account_id=$1 AND d.id<>$2 AND w.deck_id=$2',
 			[actor.accountId, template.id]
 		);
+		const renamedCategory = (await observed.getDeckLibrary(actor, { query: 'Scale 0000' })).items[0]
+			.categories[0];
 		await categories.renameWholeCategory(actor, {
 			requestId: randomUUID(),
 			deckId: template.id,
-			versionId: definitions[0].versionId,
+			versionId: renamedCategory.versionId,
 			name: 'Only this Deck label',
 			expectedDecisionRevision: (await categories.getDeckWholeCategories(actor, template.id))
 				.decisionRevision
 		});
 		const renamed = await observed.getDeckLibrary(actor, { query: 'Scale 0000' });
 		expect(
-			renamed.items[0].categories.find((c) => c.versionId === definitions[0].versionId)?.name
+			renamed.items[0].categories.find((c) => c.versionId === renamedCategory.versionId)?.name
 		).toBe('Only this Deck label');
 		const unchanged = await observed.getDeckLibrary(actor, { query: 'Scale 0001' });
 		expect(
-			unchanged.items[0].categories.find((c) => c.versionId === definitions[0].versionId)?.name
-		).toBe('Overlapping 0');
+			unchanged.items[0].categories.find((c) => c.versionId === renamedCategory.versionId)?.name
+		).toBe(renamedCategory.name);
 		captured.splice(0);
 		// Bulk fixtures need current statistics before inspecting the application's actual plans.
 		await database.pool.query(
@@ -805,8 +807,8 @@ run('whole Categories persistence, durable jobs and bounded directory', () => {
 		const optionStatements = captured.splice(0);
 		expect(options.items).toHaveLength(5);
 		expect(
-			options.items.find((option) => option.versionId === definitions[0].versionId)?.name
-		).toBe('Overlapping 0');
+			options.items.find((option) => option.versionId === renamedCategory.versionId)?.name
+		).toBe(renamedCategory.name);
 		expect(options.items.every((option) => option.count === 1005)).toBe(true);
 		const deep = await observed.getDeckLibrary(actor, {
 			...query,
