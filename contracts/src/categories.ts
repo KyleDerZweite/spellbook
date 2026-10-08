@@ -31,6 +31,8 @@ export type EntryDefinition = {
 export type PredicateEvidence = {
 	origin: StarterOrigin | 'custom';
 	definitionId?: string;
+	definitionName?: string;
+	definitionVersion?: number;
 	result: 'True' | 'False' | 'Unknown';
 	matchedTagIds: string[];
 };

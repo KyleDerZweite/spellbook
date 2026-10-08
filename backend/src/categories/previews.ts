@@ -149,6 +149,13 @@ function proposedDefinitions(
 		.map((d) => ({ ...d, automaticEligible: false }));
 	return [...eligible, ...retained];
 }
+function definitionSemantics(definition: EntryDefinition) {
+	return {
+		...definition,
+		originId: originIdentity(definition),
+		automaticEligible: definition.automaticEligible !== false
+	};
+}
 async function buildPlan(
 	tx: Transaction,
 	accountId: string,
@@ -208,7 +215,10 @@ async function buildPlan(
 				before: null,
 				after: definition
 			});
-		else if (mutationFingerprint(before) !== mutationFingerprint(definition))
+		else if (
+			mutationFingerprint(definitionSemantics(before)) !==
+			mutationFingerprint(definitionSemantics(definition))
+		)
 			differences.push({
 				kind: 'DefinitionChanged',
 				entityId: definition.id,
@@ -321,7 +331,8 @@ async function buildPlan(
 		blocked,
 		changed:
 			decisions.length > 0 ||
-			mutationFingerprint(current) !== mutationFingerprint(definitions) ||
+			mutationFingerprint(current.map(definitionSemantics)) !==
+				mutationFingerprint(definitions.map(definitionSemantics)) ||
 			JSON.stringify(oldSuppressed) !== JSON.stringify(suppressed)
 	};
 }

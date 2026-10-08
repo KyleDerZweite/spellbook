@@ -195,7 +195,17 @@ export function evaluateCategoryFact(
 		? prepared.byId.get(outcome.definitionId ?? '')
 		: definitions.find((d) => d.id === outcome.definitionId);
 	const evidence: CategoryEvidence = {
-		predicates: outcome.predicates,
+		predicates: outcome.predicates.map((predicate) => {
+			const evaluated = prepared
+				? prepared.byId.get(predicate.definitionId ?? '')
+				: definitions.find((d) => d.id === predicate.definitionId);
+			return {
+				...predicate,
+				...(evaluated
+					? { definitionName: evaluated.name, definitionVersion: evaluated.version }
+					: {})
+			};
+		}),
 		catalogGenerationId: fact?.catalog_generation_id ?? null,
 		oraclePublicationId: fact?.oracle_publication_id ?? null,
 		sourceTime: fact?.source_time ? new Date(fact.source_time).toISOString() : null,

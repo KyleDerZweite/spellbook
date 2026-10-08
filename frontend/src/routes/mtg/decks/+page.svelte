@@ -17,6 +17,11 @@
 	} from '#lib/decks/category-save.ts';
 	import type { DeckEntryCategories } from '@spellbook/contracts/categories.ts';
 	import DeckCategoryManager from '#lib/components/decks/DeckCategoryManager.svelte';
+	import {
+		categoryGroupLabel,
+		categoryGroupIdentity,
+		categoryDecisionPresentation
+	} from '#lib/categories/decision-presentation.ts';
 	import EntryCategoryEditor from '#lib/components/decks/EntryCategoryEditor.svelte';
 	import {
 		DeckSaveLifecycle,
@@ -506,6 +511,8 @@
 	);
 	const groups = $derived.by(() => {
 		const grouped = new Map<string, typeof visibleCards>();
+		const categoryOrders = new Map<string, number>();
+		const labels = new Map<string, string>();
 		for (const card of visibleCards) {
 			const types = savedDecks.deckDocuments[card.catalogCardId]?.card_types ?? [];
 			const type = [
@@ -520,26 +527,45 @@
 			].find((value) => types.includes(value));
 			const label =
 				card.role === 'main' && groupBy === 'category'
-					? (entryCategories?.definitions.find(
-							(d) =>
-								d.id === entryCategories?.decisions.find((c) => c.entryId === card.id)?.categoryId
-						)?.name ?? 'Uncategorized')
+					? entryCategories
+						? categoryGroupLabel(
+								entryCategories,
+								entryCategories.decisions.find((c) => c.entryId === card.id)
+							)
+						: 'Uncategorized'
 					: card.role === 'main' && groupBy === 'type' && type
 						? type
 						: (roles.find((role) => role.value === card.role)?.label ?? card.role);
-			grouped.set(label, [...(grouped.get(label) ?? []), card]);
+			const key =
+				entryCategories && card.role === 'main' && groupBy === 'category'
+					? categoryGroupIdentity(
+							entryCategories,
+							entryCategories.decisions.find((c) => c.entryId === card.id)
+						)
+					: label;
+			labels.set(key, label);
+			if (entryCategories && card.role === 'main' && groupBy === 'category')
+				categoryOrders.set(
+					key,
+					categoryDecisionPresentation(
+						entryCategories,
+						entryCategories.decisions.find((c) => c.entryId === card.id)
+					).displayOrder
+				);
+			grouped.set(key, [...(grouped.get(key) ?? []), card]);
 		}
-		return [...grouped].sort(([a], [b]) =>
-			a === 'Commander'
-				? -1
-				: b === 'Commander'
-					? 1
-					: groupBy === 'category'
-						? (entryCategories?.definitions.find((d) => d.name === a)?.displayOrder ?? 100) -
-								(entryCategories?.definitions.find((d) => d.name === b)?.displayOrder ?? 100) ||
-							a.localeCompare(b)
-						: a.localeCompare(b)
-		);
+		return [...grouped]
+			.sort(([a], [b]) =>
+				a === 'Commander'
+					? -1
+					: b === 'Commander'
+						? 1
+						: groupBy === 'category'
+							? (categoryOrders.get(a) ?? 100) - (categoryOrders.get(b) ?? 100) ||
+								(labels.get(a) ?? a).localeCompare(labels.get(b) ?? b)
+							: a.localeCompare(b)
+			)
+			.map(([key, cards]): [string, typeof cards, string] => [labels.get(key)!, cards, key]);
 	});
 
 	const catalogCards = $derived(

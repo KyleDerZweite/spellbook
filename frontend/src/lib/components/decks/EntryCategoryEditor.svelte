@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { untrack, onDestroy } from 'svelte';
 	import {
+		categoryDecisionPresentation,
+		categoryPredicateLabel
+	} from '#lib/categories/decision-presentation.ts';
+	import { describeCategoryRule } from '#lib/categories/rule-summary.ts';
+	import {
 		initialCategoryDraft,
 		editCategoryDraft,
 		acknowledgeCategoryDraft,
@@ -36,9 +41,8 @@
 	} = $props();
 	const inputId = $props.id();
 	const decision = $derived(categories.decisions.find((d) => d.entryId === entryId));
-	const name = $derived(
-		categories.definitions.find((d) => d.id === decision?.categoryId)?.name ?? 'Uncategorized'
-	);
+	const presentation = $derived(categoryDecisionPresentation(categories, decision));
+	const name = $derived(presentation.name);
 	let draft = $state(
 		untrack(() => initialCategoryDraft(decision, categories.decisionRevision, recovery))
 	);
@@ -103,12 +107,22 @@
 			evaluated.{:else if decision?.state === 'Automatic'}Starter rule decision.{:else if decision?.state === 'Manual'}Your
 			saved decision.{/if}
 	</p>
+	{#if decision?.state === 'Manual' && presentation.snapshot}<details data-category-saved-meaning>
+			<summary>Saved Manual meaning</summary>
+			<p>{presentation.snapshot.name}, version {presentation.snapshot.version}.</p>
+			{#if presentation.snapshot.meaning}<p>{presentation.snapshot.meaning}</p>{/if}
+			{#if presentation.snapshot.rule}<p>{describeCategoryRule(presentation.snapshot.rule)}</p>{/if}
+			{#if presentation.historical}<p>
+					The currently adopted definition is {presentation.adopted?.name ?? 'unavailable'}. Review
+					retained your saved meaning. Reset explicitly releases this Manual choice.
+				</p>{/if}
+		</details>{/if}
 	{#if decision?.evidence}<details>
 			<summary>Rule evidence</summary>
 			<p class="muted">Source date: {decision.evidence.sourceTime ?? 'Unavailable'}</p>
 			{#each decision.evidence.predicates as predicate}<p class="muted">
-					{categories.definitions.find((d) => d.origin === predicate.origin)?.name ??
-						predicate.origin}: {predicate.result}{predicate.matchedTagIds.length
+					{categoryPredicateLabel(predicate, decision, categories)}: {predicate.result}{predicate
+						.matchedTagIds.length
 						? ` (${predicate.matchedTagIds.join(', ')})`
 						: ''}
 				</p>{/each}
@@ -140,7 +154,13 @@
 				{ value: '', label: 'Uncategorized' },
 				...categories.definitions
 					.toSorted((a, b) => a.displayOrder - b.displayOrder)
-					.map((definition) => ({ value: definition.id, label: definition.name }))
+					.map((definition) => ({
+						value: definition.id,
+						label:
+							presentation.historical && definition.id === decision?.categoryId
+								? `${presentation.name} (saved Manual version ${presentation.snapshot!.version})`
+								: definition.name
+					}))
 			]}
 			bind:value={draft.value}
 			onchange={(value) => (draft = editCategoryDraft(draft, value))}

@@ -38,6 +38,47 @@ run('server-owned Category Review, Reset and local decisions', () => {
 		await database.pool.query('DELETE FROM user_profiles WHERE account_id=$1', [actor.accountId]);
 	});
 	afterAll(async () => database.pool.end());
+	it('first Review of unchanged empty current and legacy starter bundles is a revision and notification no-op', async () => {
+		for (const legacy of [false, true]) {
+			const d = await deck();
+			if (legacy)
+				await database.pool.query(
+					"UPDATE deck_category_bundles SET definitions=(SELECT jsonb_agg(x-'originId'-'automaticEligible') FROM jsonb_array_elements(definitions) x) WHERE deck_id=$1",
+					[d.id]
+				);
+			const before = await categories.getDeckEntryCategories(actor, d.id);
+			const listener = await database.pool.connect(),
+				notifications: string[] = [];
+			const received = (value: { payload?: string }) => {
+				if (value.payload?.includes(actor.accountId)) notifications.push(value.payload);
+			};
+			listener.on('notification', received);
+			await listener.query('LISTEN spellbook_saved_state');
+			try {
+				const p = await preview(d.id);
+				expect(p.total).toBe(0);
+				expect(p.differences).toEqual([]);
+				const requestId = randomUUID();
+				const committed = await categories.commitCategoryChange(actor, {
+					requestId,
+					previewId: p.id
+				});
+				expect(committed.decisionRevision).toBe(before.decisionRevision);
+				expect(committed.entryIds).toEqual([]);
+				expect(await categories.getDeckEntryCategories(actor, d.id)).toEqual(before);
+				await listener.query('SELECT 1');
+				await new Promise((resolve) => setTimeout(resolve, 50));
+				expect(notifications).toEqual([]);
+				expect(
+					await categories.commitCategoryChange(actor, { requestId, previewId: p.id })
+				).toEqual(committed);
+			} finally {
+				await listener.query('UNLISTEN spellbook_saved_state');
+				listener.removeListener('notification', received);
+				listener.release();
+			}
+		}
+	});
 	async function save(name = 'Artifacts', existing?: { originId: string; revision: string }) {
 		const revision = existing?.revision ?? (await categories.getLibrary(actor)).revision;
 		const input: SaveDefinitionInput = {
@@ -556,11 +597,11 @@ run('server-owned Category Review, Reset and local decisions', () => {
 		const started = performance.now(),
 			p = await preview(d.id),
 			built = performance.now();
-		expect(p.total).toBe(1508);
+		expect(p.total).toBe(1500);
 		const pageStart = performance.now(),
 			last = await categories.getCategoryPreview(actor, {
 				previewId: p.id,
-				offset: 1408,
+				offset: 1400,
 				limit: 100
 			}),
 			pageEnd = performance.now();

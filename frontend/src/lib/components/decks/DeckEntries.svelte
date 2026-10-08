@@ -17,7 +17,7 @@
 		onInspect,
 		categories
 	}: {
-		groups: [string, DeckCard[]][];
+		groups: [string, DeckCard[], string?][];
 		view: 'list' | 'stacks';
 		documents: Record<string, CardDocument>;
 		availability: Record<string, DeckAvailability>;
@@ -31,7 +31,7 @@
 </script>
 
 <div class:stacks={view === 'stacks'}>
-	{#each groups as [group, cards]}
+	{#each groups as [group, cards, identity] (identity ?? group)}
 		{#if cards.length}
 			<div class="card-group">
 				<div
