@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { InventoryValueHistory } from '@spellbook/contracts/inventory-value.ts';
-	import { formatReferenceEUR } from '#lib/valuation/money.ts';
+	import { formatValueEUR } from '#lib/valuation/money.ts';
 	import {
 		historyChart,
 		hasPlottableValue,
@@ -40,8 +40,7 @@
 			{history.window.from} to {history.window.to} · Reporting calendar {history.timezone}
 		</p>
 		<p class="mt-2 text-sm text-text-muted">
-			Captured covered value near day end. Unknown references are excluded. Missing observations
-			remain gaps.
+			Daily estimates captured near midnight. Missing days remain gaps.
 		</p>
 		{#if captured === 0}<p class="mt-3 text-sm">No captured observations in this window.</p>
 		{:else if chart.segments.length === 0}<p class="mt-3 text-sm">
@@ -72,8 +71,8 @@
 							fill={point.estimate.complete ? 'currentColor' : 'var(--color-stone)'}
 						>
 							<title
-								>{point.day}: {formatReferenceEUR(point.estimate.coveredValue)} covered; {point
-									.estimate.coveredQuantity} of {point.estimate.totalQuantity} copies. {observationTime(
+								>{point.day}: {formatValueEUR(point.estimate.coveredValue)} covered; {point.estimate
+									.coveredQuantity} of {point.estimate.totalQuantity} copies. {observationTime(
 									point.observedAt,
 									point.timezone
 								)} ({point.timezone})</title
@@ -87,7 +86,7 @@
 				>
 			</svg>
 			<p class="break-words text-xs text-text-muted">
-				Chart scale: {formatReferenceEUR('0.00')} to {formatReferenceEUR(
+				Chart scale: {formatValueEUR('0.00')} to {formatValueEUR(
 					`${chart.maximum / 100n}.${(chart.maximum % 100n).toString().padStart(2, '0')}`
 				)}.
 			</p>
@@ -107,8 +106,7 @@
 			>
 				<table class="w-full text-left text-xs">
 					<caption class="pb-2 text-left text-text-muted"
-						>Actual observation times use each saved reporting timezone. Observations do not
-						reconstruct exact midnight holdings.</caption
+						>Capture times use each saved reporting timezone.</caption
 					>
 					<thead
 						><tr
@@ -128,7 +126,7 @@
 								{:else}
 									<td class="p-2 whitespace-nowrap tabular-nums"
 										>{hasPlottableValue(point.estimate)
-											? formatReferenceEUR(point.estimate.coveredValue)
+											? formatValueEUR(point.estimate.coveredValue)
 											: 'Unknown'}{point.estimate.complete ? ' · complete' : ' · partial'}</td
 									>
 									<td class="p-2"

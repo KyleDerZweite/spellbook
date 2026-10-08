@@ -9,7 +9,7 @@ import {
 	historyChart,
 	observationTime
 } from '#lib/valuation/history-chart.ts';
-import { formatReferenceEUR } from '#lib/valuation/money.ts';
+import { formatValueEUR } from '#lib/valuation/money.ts';
 
 function captured(day: string, overrides: Partial<ValueEstimate> = {}): InventoryValueHistoryPoint {
 	return {
@@ -67,13 +67,13 @@ describe('personal Inventory history presentation', () => {
 		expect(estimateLabel(chart.segments[0][0].point.estimate)).toBe('Market value estimate');
 	});
 	it('normalizes arbitrary exact amounts without losing or overflowing display values', () => {
-		const amount = '9'.repeat(110) + '.99';
+		const amount = '9'.repeat(144) + '.99';
 		const chart = historyChart([
 			captured('2026-10-01', { coveredValue: amount }),
 			captured('2026-10-02', { coveredValue: '0.01' })
 		]);
 		expect(chart.segments[0].map(({ y }) => y)).toEqual([28, 148]);
-		expect(formatReferenceEUR(amount)).toContain('.99');
+		expect(formatValueEUR(amount)).toContain('.99');
 	});
 	it('handles empty and single-day windows without invalid coordinates', () => {
 		expect(historyChart([]).segments).toEqual([]);

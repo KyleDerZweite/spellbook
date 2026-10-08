@@ -8,6 +8,18 @@ export function formatReferenceEUR(amount: string, quantity = 1): string {
 	const scale = 10n ** BigInt(fraction.length),
 		units = BigInt(whole + fraction) * BigInt(quantity);
 	const cents = (units * 100n + scale / 2n) / scale;
+	return formatCentsEUR(cents);
+}
+
+/** Inventory and Deck subtotals are already rounded by Backend Valuation. */
+export function formatValueEUR(amount: string): string {
+	if (amount.length > 160 || !/^(?:0|[1-9][0-9]*)\.[0-9]{2}$/.test(amount))
+		throw new Error('Invalid value subtotal');
+	const [whole, fraction] = amount.split('.');
+	return formatCentsEUR(BigInt(whole) * 100n + BigInt(fraction));
+}
+
+function formatCentsEUR(cents: bigint): string {
 	const formatter = new Intl.NumberFormat('en-IE', {
 		style: 'currency',
 		currency: 'EUR',
