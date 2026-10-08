@@ -41,6 +41,8 @@ export type InventoryValueHistoryPoint =
 	  };
 export interface InventoryValueHistory {
 	asOf: string;
+	/** Next midnight in the configured reporting calendar, expressed as a UTC instant. */
+	nextDayBoundary: string;
 	timezone: string;
 	window: { from: string; to: string; days: number };
 	identity: HistoricalHoldingIdentity | null;

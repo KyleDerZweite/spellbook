@@ -169,8 +169,8 @@ export function createInventoryValues(
 		asOf: Date = new Date()
 	): Promise<InventoryValueHistory> {
 		const filter = request(input);
-		const { rows: calendar } = await executor.query<{ today: string }>(
-			'SELECT ($1::timestamptz AT TIME ZONE $2)::date::text AS today',
+		const { rows: calendar } = await executor.query<{ today: string; next_day_boundary: Date }>(
+			'WITH calendar AS (SELECT ($1::timestamptz AT TIME ZONE $2)::date AS day) SELECT day::text AS today,(day+1)::timestamp AT TIME ZONE $2 AS next_day_boundary FROM calendar',
 			[asOf.toISOString(), timezone]
 		);
 		const lastClosed = new Date(Date.parse(calendar[0].today) - 86400000)
@@ -220,6 +220,7 @@ export function createInventoryValues(
 		const byDay = new Map(headers.map((header) => [header.day, header]));
 		return {
 			asOf: asOf.toISOString(),
+			nextDayBoundary: calendar[0].next_day_boundary.toISOString(),
 			timezone,
 			window: { from, to, days },
 			identity: filter.identity,
