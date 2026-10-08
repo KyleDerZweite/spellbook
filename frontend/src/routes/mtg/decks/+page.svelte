@@ -514,7 +514,10 @@
 		const categoryOrders = new Map<string, number>();
 		const labels = new Map<string, string>();
 		for (const card of visibleCards) {
-			const decision = entryCategories?.decisions.find((c) => c.entryId === card.id);
+			const decision =
+				card.role === 'main' && groupBy === 'category'
+					? entryCategories?.decisions.find((c) => c.entryId === card.id)
+					: undefined;
 			const types = savedDecks.deckDocuments[card.catalogCardId]?.card_types ?? [];
 			const type = [
 				'Land',
