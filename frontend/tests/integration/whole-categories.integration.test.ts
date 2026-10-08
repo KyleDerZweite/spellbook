@@ -739,6 +739,10 @@ run('whole Categories persistence, durable jobs and bounded directory', () => {
 			'INSERT INTO deck_whole_category_decisions(deck_id,version_id,state,manual,truth,attempted_truth,revision,evidence,previous_evaluation) SELECT d.id,w.version_id,w.state,w.manual,w.truth,w.attempted_truth,w.revision,w.evidence,w.previous_evaluation FROM decks d CROSS JOIN deck_whole_category_decisions w WHERE d.account_id=$1 AND d.id<>$2 AND w.deck_id=$2',
 			[actor.accountId, template.id]
 		);
+		// Bulk fixtures need current statistics before inspecting the application's actual plans.
+		await database.pool.query(
+			'ANALYZE decks, deck_cards, deck_whole_categories, deck_whole_category_decisions, category_definition_origins, category_definition_versions'
+		);
 		const query = {
 			sort: 'name:asc' as const,
 			categoryVersionIds: definitions.slice(0, 2).map((definition) => definition.versionId),
@@ -762,11 +766,20 @@ run('whole Categories persistence, durable jobs and bounded directory', () => {
 		const optionStatements = captured.splice(0);
 		expect(options.items).toHaveLength(5);
 		expect(options.items.every((option) => option.count === 1005)).toBe(true);
-		const end = await decks.getDeckLibrary(actor, {
+		const deep = await observed.getDeckLibrary(actor, {
+			...query,
+			offset: 800,
+			expectedRevision: page.revision
+		});
+		const deepStatements = captured.splice(0);
+		expect(deep.items).toHaveLength(200);
+		expect(deep.items[0].name).toBe('Scale 0800');
+		const end = await observed.getDeckLibrary(actor, {
 			...query,
 			offset: 1000,
 			expectedRevision: page.revision
 		});
+		const endStatements = captured.splice(0);
 		expect(end.items).toHaveLength(5);
 		expect(
 			(
@@ -795,6 +808,8 @@ run('whole Categories persistence, durable jobs and bounded directory', () => {
 		};
 		const actual = {
 			page: statement(pageStatements, 'LEFT JOIN LATERAL'),
+			deep: statement(deepStatements, 'LEFT JOIN LATERAL'),
+			end: statement(endStatements, 'LEFT JOIN LATERAL'),
 			options: statement(optionStatements, 'AS count FROM choices'),
 			location: statement(locationStatements, 'WITH ranked AS')
 		};
@@ -803,7 +818,9 @@ run('whole Categories persistence, durable jobs and bounded directory', () => {
 			const plan = (
 				await database.pool.query('EXPLAIN (ANALYZE,BUFFERS,FORMAT JSON) ' + emittedSQL, params)
 			).rows[0]['QUERY PLAN'];
-			expect(plan[0].Plan['Actual Rows']).toBe(kind === 'page' ? 200 : kind === 'options' ? 5 : 1);
+			expect(plan[0].Plan['Actual Rows']).toBe(
+				kind === 'page' || kind === 'deep' ? 200 : kind === 'options' || kind === 'end' ? 5 : 1
+			);
 			plans[kind] = { emittedSQL, params, plan };
 		}
 		console.info(
