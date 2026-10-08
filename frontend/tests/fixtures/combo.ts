@@ -206,6 +206,7 @@ export async function publishComboFixture(
 		| undefined;
 	try {
 		await client.query('BEGIN');
+		await client.query('SELECT pg_advisory_xact_lock($1,$2)', [1936747619, 23]);
 		previous = (
 			await client.query(
 				'SELECT active_publication,previous_publication,refresh_status FROM combo_state WHERE id=1 FOR UPDATE'

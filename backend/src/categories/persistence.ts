@@ -90,6 +90,8 @@ export async function readEntryCategoryFacts(
 	if (applicableCombo && !comboTransactionReadOnly(tx)) {
 		await tx.execute(sql`SELECT id FROM catalog_state WHERE id=1 FOR SHARE`);
 		await tx.execute(sql`SELECT id FROM oracle_tag_state WHERE id=1 FOR SHARE`);
+		// The publisher holds the exclusive form even before the singleton exists.
+		await tx.execute(sql`SELECT pg_advisory_xact_lock_shared(1936747619,23)`);
 		await tx.execute(sql`SELECT id FROM combo_state WHERE id=1 FOR SHARE`);
 	}
 	const comboSource = applicableCombo ? await readComboSource(tx) : null;
@@ -282,7 +284,8 @@ export function evaluateCategoryFact(
 			? {
 					combo: combinedComboEvidence(
 						combo.combos,
-						definitions.filter((d) => outcome.predicates.some((p) => p.definitionId === d.id))
+						definitions.filter((d) => outcome.predicates.some((p) => p.definitionId === d.id)),
+						combo.entryId
 					)
 				}
 			: {})
@@ -371,9 +374,10 @@ export function comboComposition(
 }
 function combinedComboEvidence(
 	combos: Awaited<ReturnType<typeof readComboFacts>>,
-	definitions: EntryDefinition[]
+	definitions: EntryDefinition[],
+	entryId: string
 ): ComboEvidence {
-	const evidence = entryComboDefinitions(definitions).map((d) => combos.evidence(d));
+	const evidence = entryComboDefinitions(definitions).map((d) => combos.evidence(d, entryId));
 	return {
 		source: evidence[0]!.source,
 		evaluations: evidence.flatMap((e) => e.evaluations)
