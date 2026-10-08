@@ -96,21 +96,29 @@ export function validateRule(input: unknown, scope: CategoryScope): EntryRule | 
 	}
 	return input as EntryRule | DeckRule;
 }
-export function evaluateEntryRule(rule: EntryRule, facts: RuleFacts): Truth {
+export function evaluateEntryRule(
+	rule: EntryRule,
+	facts: RuleFacts,
+	landAssumption?: boolean
+): Truth {
 	switch (rule.op) {
 		case 'all':
 		case 'any': {
-			const values = rule.children.map((r) => evaluateEntryRule(r, facts));
+			const values = rule.children.map((r) => evaluateEntryRule(r, facts, landAssumption));
 			if (rule.op === 'all')
 				return values.includes('False') ? 'False' : values.includes('Unknown') ? 'Unknown' : 'True';
 			return values.includes('True') ? 'True' : values.includes('Unknown') ? 'Unknown' : 'False';
 		}
 		case 'not': {
-			const result = evaluateEntryRule(rule.child, facts);
+			const result = evaluateEntryRule(rule.child, facts, landAssumption);
 			return result === 'Unknown' ? result : result === 'True' ? 'False' : 'True';
 		}
 		case 'type':
-			return includes(facts.types, rule.value);
+			return rule.value === 'Land' && landAssumption !== undefined
+				? landAssumption
+					? 'True'
+					: 'False'
+				: includes(facts.types, rule.value);
 		case 'keyword':
 			return includes(facts.keywords, rule.value);
 		case 'canonicalCards':
@@ -130,9 +138,12 @@ export function evaluateEntryRule(rule: EntryRule, facts: RuleFacts): Truth {
 		case 'mappedTrait': {
 			if (rule.mappingVersion !== 1) return 'Unknown';
 			const definition = starterDefinitions.find((d) => d.origin === rule.traitId)!;
-			if (definition.origin === 'lands') return includes(facts.types, 'Land');
-			if (definition.excludeLand && facts.types?.includes('Land')) return 'False';
-			if (definition.excludeLand && facts.types == null) return 'Unknown';
+			const land =
+				landAssumption ?? (facts.types == null ? undefined : facts.types.includes('Land'));
+			if (definition.origin === 'lands')
+				return land === undefined ? 'Unknown' : land ? 'True' : 'False';
+			if (definition.excludeLand && land === true) return 'False';
+			if (definition.excludeLand && land === undefined) return 'Unknown';
 			return evaluateEntryRule(
 				{
 					op: 'oracleTag',
