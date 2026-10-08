@@ -24,12 +24,14 @@
 		{ value: 'keyword', label: 'Printed keyword' },
 		{ value: 'mappedTrait', label: 'Starter trait' },
 		{ value: 'oracleTag', label: 'Oracle Tag' },
-		{ value: 'canonicalCards', label: 'Selected cards' }
+		{ value: 'canonicalCards', label: 'Selected cards' },
+		{ value: 'comboParticipant', label: 'Documented combo participant' }
 	];
 	const deckOps = [
 		{ value: 'minimumCopies', label: 'At least this many copies' },
 		{ value: 'minimumDistinct', label: 'At least this many distinct cards' },
-		{ value: 'percentage', label: 'At least this percentage' }
+		{ value: 'percentage', label: 'At least this percentage' },
+		{ value: 'comboOutcome', label: 'Documented combo ingredients' }
 	];
 	const logic = [
 		{ value: 'all', label: 'All criteria' },
@@ -67,13 +69,7 @@
 		name={name('op')}
 		label="Criterion"
 		value={rule.op}
-		options={[
-			...(scope === 'entry' ? entryOps : deckOps),
-			...logic,
-			...(rule.op === 'comboParticipant' || rule.op === 'comboOutcome'
-				? [{ value: rule.op, label: 'Documented combo (source unavailable)' }]
-				: [])
-		]}
+		options={[...(scope === 'entry' ? entryOps : deckOps), ...logic]}
 	/>
 	{#if rule.op === 'all' || rule.op === 'any'}
 		{#each rule.children as child, index}<RuleEditor
@@ -178,6 +174,39 @@
 				{ value: 'nonland', label: 'Participating nonland cards' }
 			]}
 		/><RuleEditor rule={rule.predicate} scope="entry" path={`${path}.predicate`} {choices} />
+	{:else if rule.op === 'comboParticipant' || rule.op === 'comboOutcome'}
+		{@const outcomes = [
+			...(choices.combo?.selectedOutcomes ?? []),
+			...(choices.combo?.outcomes ?? [])
+		].filter((outcome, index, all) => all.findIndex((other) => other.id === outcome.id) === index)}
+		<Select
+			native
+			name={name('outcomeId')}
+			label="Documented outcome"
+			value={rule.outcomeId}
+			options={[
+				{ value: '', label: 'Search and select an outcome' },
+				...outcomes.map((outcome) => ({ value: outcome.id, label: outcome.name })),
+				...(!outcomes.some((outcome) => outcome.id === rule.outcomeId) && rule.outcomeId
+					? [
+							{
+								value: rule.outcomeId,
+								label: `Previously selected outcome ${rule.outcomeId} (currently unavailable)`
+							}
+						]
+					: [])
+			]}
+		/>
+		<p class="text-sm">
+			Source: {choices.combo?.source.availability ?? 'Unavailable'}. Uses the definition's
+			participating roles. A match proves documented ingredients; mana, starting zones and gameplay
+			prerequisites remain unchecked.
+		</p>
+		{#if choices.combo?.source.refreshStatus.kind === 'Failed'}<p class="text-sm">
+				Latest refresh failed. {choices.combo.source.availability === 'Available'
+					? 'The previous valid publication remains usable.'
+					: 'This criterion stays Unknown.'}
+			</p>{/if}
 	{:else}<p>
 			Documented combo evidence is unavailable. This criterion evaluates Unknown, including under
 			negation.

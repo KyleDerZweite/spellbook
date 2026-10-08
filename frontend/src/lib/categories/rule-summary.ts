@@ -32,6 +32,6 @@ export function describeCategoryRule(
 			return `At least ${rule.basisPoints / 100}% of ${rule.denominator === 'nonland' ? 'nonland cards' : 'all cards'} matching ${describeCategoryRule(rule.predicate, choices)}`;
 		case 'comboParticipant':
 		case 'comboOutcome':
-			return 'Documented combo criterion. Required source is unavailable.';
+			return `${rule.op === 'comboParticipant' ? 'Participant in documented combo' : 'Documented combo ingredients for'} ${[...(choices?.combo?.selectedOutcomes ?? []), ...(choices?.combo?.outcomes ?? [])].find((outcome) => outcome.id === rule.outcomeId)?.name ?? `outcome ${rule.outcomeId}`} (unchecked gameplay prerequisites)`;
 	}
 }

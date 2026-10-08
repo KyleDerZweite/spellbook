@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ComboEvidence from '#lib/components/categories/ComboEvidence.svelte';
 	import { untrack, onDestroy } from 'svelte';
 	import {
 		categoryDecisionPresentation,
@@ -127,6 +128,13 @@
 						: ''}
 				</p>{/each}
 		</details>{/if}
+	<ComboEvidence
+		evidence={decision?.evidence?.combo}
+		label={decision?.state === 'Pending'
+			? 'Latest Unknown entry combo evaluation'
+			: 'Saved entry combo evidence'}
+	/>
+	<ComboEvidence evidence={decision?.previousEvaluation?.combo} label="Previous entry evaluation" />
 	{#if draft.confirmation}<p role="status" class="notice">
 			Your Manual choice is saved. Waiting for a current read.
 		</p>

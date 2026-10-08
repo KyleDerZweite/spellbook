@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ComboEvidence from '#lib/components/categories/ComboEvidence.svelte';
 	import ValueSummary from '#lib/components/valuation/ValueSummary.svelte';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
@@ -1583,6 +1584,14 @@
 				Its complete saved decision is retained. Resulting quantity: {form.categoryMerge
 					.resultingQuantity}.
 			</p>
+			<ComboEvidence
+				evidence={form.categoryMerge.source?.evidence?.combo}
+				label="Source saved combo evidence"
+			/>
+			<ComboEvidence
+				evidence={form.categoryMerge.destination?.evidence?.combo}
+				label="Destination retained combo evidence"
+			/>
 			<form method="POST" action={action(form.mergeAction ?? 'changePrinting')} use:enhance={save}>
 				{#each Object.entries(form.mergeDraft) as [key, value]}{#if value !== undefined}<input
 							type="hidden"

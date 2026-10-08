@@ -40,6 +40,11 @@ export function readRuleForm(form: FormData, scope: CategoryScope): Rule {
 			if (op === 'oracleTag') return { op, tagId: '', includeDescendants: true };
 			if (op === 'mappedTrait') return { op, traitId: 'lands', mappingVersion: 1 };
 			if (op === 'canonicalCards') return { op, oracleIds: [] };
+			if (
+				(op === 'comboParticipant' && currentScope === 'entry') ||
+				(op === 'comboOutcome' && currentScope === 'deck')
+			)
+				return { op, outcomeId: '', policyVersion: 'ingredients-v1' };
 			if (op === 'minimumCopies' || op === 'minimumDistinct')
 				return { op, minimum: 1, predicate: { op: 'type', value: 'Creature' } };
 			if (op === 'percentage')
@@ -115,21 +120,37 @@ export function readRuleForm(form: FormData, scope: CategoryScope): Rule {
 				) as EntryRule
 			};
 		}
-		if (node.op === 'comboParticipant' || node.op === 'comboOutcome') return node;
+		if (node.op === 'comboParticipant' || node.op === 'comboOutcome')
+			return {
+				op: node.op,
+				outcomeId: form.has(`rule.${path}.outcomeId`) ? field('outcomeId') : node.outcomeId,
+				policyVersion: node.policyVersion
+			};
 		throw new Error('Choose a supported criterion');
 	}
 	return read(original as Rule, 'root', scope);
 }
-export function ruleSelections(rule: Rule): { tagIds: string[]; oracleIds: string[] } {
+export function ruleSelections(rule: Rule): {
+	tagIds: string[];
+	oracleIds: string[];
+	outcomeIds: string[];
+} {
 	const tagIds: string[] = [],
-		oracleIds: string[] = [];
+		oracleIds: string[] = [],
+		outcomeIds: string[] = [];
 	function visit(node: Rule) {
 		if (node.op === 'oracleTag' && node.tagId) tagIds.push(node.tagId);
 		if (node.op === 'canonicalCards') oracleIds.push(...node.oracleIds);
+		if ((node.op === 'comboParticipant' || node.op === 'comboOutcome') && node.outcomeId)
+			outcomeIds.push(node.outcomeId);
 		if (node.op === 'all' || node.op === 'any') node.children.forEach(visit);
 		if (node.op === 'not') visit(node.child);
 		if ('predicate' in node) visit(node.predicate);
 	}
 	visit(rule);
-	return { tagIds: [...new Set(tagIds)], oracleIds: [...new Set(oracleIds)] };
+	return {
+		tagIds: [...new Set(tagIds)],
+		oracleIds: [...new Set(oracleIds)],
+		outcomeIds: [...new Set(outcomeIds)]
+	};
 }

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import CategoryComboEvidence from '#lib/components/categories/CategoryComboEvidence.svelte';
 	import { describeCategoryConsequence } from '#lib/categories/preview-label.ts';
 	import { describeCategoryRule } from '#lib/categories/rule-summary.ts';
 	import { enhance } from '$app/forms';
@@ -370,6 +371,8 @@
 											? (difference.after as { name: string }).name
 											: 'Category change')}: {difference.message}
 								</p>
+								<CategoryComboEvidence value={difference.before} label="Before" />
+								<CategoryComboEvidence value={difference.after} label="After" />
 								{#if difference.before || difference.after}<p class="muted">
 										Before: {describeCategoryConsequence(difference.before)}. After: {describeCategoryConsequence(
 											difference.after

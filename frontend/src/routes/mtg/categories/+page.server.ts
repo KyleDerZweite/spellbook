@@ -97,7 +97,8 @@ export const actions = {
 			const choices = await application.categories.getRuleChoices(locals.user, {
 				...ruleSelections(draft.rule),
 				tagQuery: String(form.get('tagQuery') ?? ''),
-				cardQuery: String(form.get('cardQuery') ?? '')
+				cardQuery: String(form.get('cardQuery') ?? ''),
+				outcomeQuery: String(form.get('outcomeQuery') ?? '')
 			});
 			if (form.get('ruleAction'))
 				return { draft, choices, message: 'Criteria updated. Review them before saving.' };

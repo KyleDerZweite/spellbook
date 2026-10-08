@@ -1,4 +1,6 @@
 <script lang="ts">
+	import ComboEvidence from '#lib/components/categories/ComboEvidence.svelte';
+	import CategoryComboEvidence from '#lib/components/categories/CategoryComboEvidence.svelte';
 	import { enhance } from '$app/forms';
 	import { untrack, onMount, onDestroy } from 'svelte';
 	import type { SubmitFunction } from '$app/forms';
@@ -255,6 +257,12 @@
 								.catalogGenerationId ?? 'unavailable'}. Oracle publication {inspected.decision
 								.evidence.oraclePublicationId ?? 'unavailable'}.
 						</p>
+						<ComboEvidence
+							evidence={inspected.decision.evidence.combo}
+							label={inspected.decision.state === 'Pending'
+								? 'Retained valid combo evidence, stale'
+								: 'Saved valid combo evidence'}
+						/>
 						<pre>{JSON.stringify(inspected.decision.evidence, null, 2)}</pre>
 					</details>{/if}
 				{#if inspected.decision?.previousEvaluation}<details>
@@ -270,6 +278,12 @@
 							publication {inspected.decision.previousEvaluation.oraclePublicationId ??
 								'unavailable'}.
 						</p>
+						<ComboEvidence
+							evidence={inspected.decision.previousEvaluation.combo}
+							label={inspected.decision.state === 'Pending'
+								? 'Latest Unknown combo attempt'
+								: 'Previous automatic combo evidence'}
+						/>
 						<pre>{JSON.stringify(inspected.decision.previousEvaluation, null, 2)}</pre>
 					</details>{/if}
 
@@ -407,6 +421,7 @@
 					<p>{difference.message}</p>
 					{#each [{ label: 'Before', value: difference.before }, { label: 'After', value: difference.after }] as side (side.label)}
 						{@const consequence = describeWholeCategoryConsequence(side.value)}
+						<CategoryComboEvidence value={side.value} label={side.label} />
 						{#if consequence}
 							<p>{side.label}: {consequence.title}. {consequence.outcome}</p>
 							<details>

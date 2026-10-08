@@ -25,7 +25,9 @@
 	let draft = $state(
 		untrack(() => (form && 'draft' in form && form.draft ? form.draft : data.draft))
 	);
-	let choices = $state(untrack(() => data.choices));
+	let choices = $state(
+		untrack(() => (form && 'choices' in form && form.choices ? form.choices : data.choices))
+	);
 	let library = $state(untrack(() => data.library));
 	let libraryReadError = $state('');
 	let editorKey = untrack(
@@ -425,14 +427,17 @@
 					>Update criteria</Button
 				>
 				<fieldset>
-					<legend>Find source criteria</legend><label
-						>Oracle Tag name<input class="input" name="tagQuery" maxlength="200" /></label
-					><label>Card name<input class="input" name="cardQuery" maxlength="200" /></label><Button
-						type="submit"
-						name="ruleAction"
-						value="choices"
-						variant="outline"
-						disabled={busy}>Find Tags and cards</Button
+					<legend>Find source criteria</legend>
+					<p>
+						Commander Spellbook source: {choices.combo?.source.availability ?? 'Unavailable'}.
+						Search returns up to 50 outcomes. Previously selected outcomes stay available for
+						editing.
+					</p>
+					<label>Oracle Tag name<input class="input" name="tagQuery" maxlength="200" /></label
+					><label>Card name<input class="input" name="cardQuery" maxlength="200" /></label><label
+						>Combo outcome name<input class="input" name="outcomeQuery" maxlength="200" /></label
+					><Button type="submit" name="ruleAction" value="choices" variant="outline" disabled={busy}
+						>Find Tags, cards and outcomes</Button
 					>
 				</fieldset>
 				<label
