@@ -102,6 +102,10 @@ export async function buildWholePlan(
 				after: null
 			});
 	const evaluated = await evaluateWholeCategories(tx, intent.deckId, compositionRevision, proposed);
+	const evaluatedByVersion = new Map(evaluated.categories.map((c) => [c.versionId, c]));
+	for (const difference of differences)
+		if (difference.after && 'definition' in difference.after)
+			difference.after = evaluatedByVersion.get(difference.after.versionId) ?? difference.after;
 	for (const c of evaluated.categories) {
 		const before = byVersion.get(c.versionId);
 		const preserved = c.decision?.state === 'Manual';

@@ -699,6 +699,28 @@ run('whole Categories persistence, durable jobs and bounded directory', () => {
 		expect((await categories.getDeckEntryCategories(actor, d.id)).decisions).toEqual(entryManual);
 	});
 
+	it('freezes the same evaluated result in definition adoption and decision consequences', async () => {
+		const d = await deck('Initially empty Library');
+		const definition = await save('New Main Creature criterion');
+		const p = await preview(d.id);
+		const added = p.differences.find(
+			(difference) =>
+				difference.kind === 'DefinitionAdded' && difference.entityId === definition.versionId
+		);
+		const changed = p.differences.find(
+			(difference) =>
+				difference.kind === 'DeckChanged' && difference.entityId === definition.versionId
+		);
+		expect(added?.after).toEqual(changed?.after);
+		expect(added?.after).toMatchObject({
+			decision: { state: 'Automatic', truth: 'False', attemptedTruth: 'False' }
+		});
+		await categories.commitCategoryChange(actor, { requestId: randomUUID(), previewId: p.id });
+		expect((await categories.getDeckWholeCategories(actor, d.id)).categories[0]).toEqual(
+			added?.after
+		);
+	});
+
 	it('bounds metadata across more than 1000 real Deck rows, overlaps, exact counts, deep location and selected Deck outside filters', async () => {
 		const captured: { query: string; params: unknown[] }[] = [];
 		const observed = createDecks(

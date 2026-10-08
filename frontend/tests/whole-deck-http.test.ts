@@ -534,6 +534,7 @@ test('built whole Categories and bounded Deck Library preserve private saved con
 				assert.equal(previewResponse.status, 200);
 				const previewHTML = await previewResponse.text();
 				assert.match(previewHTML, /Automatic False; no membership/);
+				assert.doesNotMatch(previewHTML, /Automatic Unknown; no membership/);
 				assert.match(previewHTML, /At least one Main Creature/);
 				assert.match(previewHTML, /At least 1 copies matching Card type Creature Roles: main/);
 				const previewId = previewHTML.match(/name="previewId" value="([^"]+)"/)?.[1];
