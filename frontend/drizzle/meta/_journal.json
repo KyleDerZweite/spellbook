@@ -1,167 +1,174 @@
 {
-	"version": "7",
-	"dialect": "postgresql",
-	"entries": [
-		{
-			"idx": 0,
-			"version": "7",
-			"when": 1777135660177,
-			"tag": "0000_sleepy_maximus",
-			"breakpoints": true
-		},
-		{
-			"idx": 1,
-			"version": "7",
-			"when": 1779032747787,
-			"tag": "0001_fine_raider",
-			"breakpoints": true
-		},
-		{
-			"idx": 2,
-			"version": "7",
-			"when": 1779089325647,
-			"tag": "0002_curious_king_cobra",
-			"breakpoints": true
-		},
-		{
-			"idx": 3,
-			"version": "7",
-			"when": 1779093493244,
-			"tag": "0003_breezy_justin_hammer",
-			"breakpoints": true
-		},
-		{
-			"idx": 4,
-			"version": "7",
-			"when": 1791053307277,
-			"tag": "0004_local_auth",
-			"breakpoints": true
-		},
-		{
-			"idx": 5,
-			"version": "7",
-			"when": 1791054932365,
-			"tag": "0005_mutation_request_fingerprints",
-			"breakpoints": true
-		},
-		{
-			"idx": 6,
-			"version": "7",
-			"when": 1791058654525,
-			"tag": "0006_postgres_catalog",
-			"breakpoints": true
-		},
-		{
-			"idx": 7,
-			"version": "7",
-			"when": 1791213430389,
-			"tag": "0007_profile_avatar",
-			"breakpoints": true
-		},
-		{
-			"idx": 8,
-			"version": "7",
-			"when": 1791278208940,
-			"tag": "0008_profile_artwork",
-			"breakpoints": true
-		},
-		{
-			"idx": 9,
-			"version": "7",
-			"when": 1791281673275,
-			"tag": "0009_profile_card",
-			"breakpoints": true
-		},
-		{
-			"idx": 10,
-			"version": "7",
-			"when": 1791307844968,
-			"tag": "0010_inventory_groups",
-			"breakpoints": true
-		},
-		{
-			"idx": 11,
-			"version": "7",
-			"when": 1791327225584,
-			"tag": "0011_inventory_windows",
-			"breakpoints": true
-		},
-		{
-			"idx": 12,
-			"version": "7",
-			"when": 1791327225585,
-			"tag": "0012_deck_contracts",
-			"breakpoints": true
-		},
-		{
-			"idx": 13,
-			"version": "7",
-			"when": 1791335000000,
-			"tag": "0013_saved_state",
-			"breakpoints": true
-		},
-		{
-			"idx": 14,
-			"version": "7",
-			"when": 1791337754627,
-			"tag": "0014_inventory_contracts",
-			"breakpoints": true
-		},
-		{
-			"idx": 15,
-			"version": "7",
-			"when": 1791342918165,
-			"tag": "0015_scryfall_prices",
-			"breakpoints": true
-		},
-		{
-			"idx": 16,
-			"version": "7",
-			"when": 1791345162135,
-			"tag": "0016_deck_entry_categories",
-			"breakpoints": true
-		},
-		{
-			"idx": 17,
-			"version": "7",
-			"when": 1791349630333,
-			"tag": "0017_optional_prices",
-			"breakpoints": true
-		},
-		{
-			"idx": 18,
-			"version": "7",
-			"when": 1791391948815,
-			"tag": "0018_inventory_set_directory",
-			"breakpoints": true
-		},
-		{
-			"idx": 19,
-			"version": "7",
-			"when": 1791405224225,
-			"tag": "0019_catalog_color_identity",
-			"breakpoints": true
-		},
-		{
-			"idx": 20,
-			"version": "7",
-			"when": 1791440186950,
-			"tag": "0020_inventory_value_history",
-			"breakpoints": true
-		},
-		{
-			"idx": 21,
-			"version": "7",
-			"when": 1791444411875,
-			"tag": "0021_account_category_library",
-			"breakpoints": true
-		},
-		{
-			"idx": 22,
-			"version": "7",
-			"when": 1791450890027,
-			"tag": "0022_whole_deck_categories",
-			"breakpoints": true
-		}
-	]
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1777135660177,
+      "tag": "0000_sleepy_maximus",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779032747787,
+      "tag": "0001_fine_raider",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779089325647,
+      "tag": "0002_curious_king_cobra",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1779093493244,
+      "tag": "0003_breezy_justin_hammer",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791053307277,
+      "tag": "0004_local_auth",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791054932365,
+      "tag": "0005_mutation_request_fingerprints",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791058654525,
+      "tag": "0006_postgres_catalog",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791213430389,
+      "tag": "0007_profile_avatar",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791278208940,
+      "tag": "0008_profile_artwork",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791281673275,
+      "tag": "0009_profile_card",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791307844968,
+      "tag": "0010_inventory_groups",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791327225584,
+      "tag": "0011_inventory_windows",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791327225585,
+      "tag": "0012_deck_contracts",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791335000000,
+      "tag": "0013_saved_state",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791337754627,
+      "tag": "0014_inventory_contracts",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1791342918165,
+      "tag": "0015_scryfall_prices",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1791345162135,
+      "tag": "0016_deck_entry_categories",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791349630333,
+      "tag": "0017_optional_prices",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791391948815,
+      "tag": "0018_inventory_set_directory",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791405224225,
+      "tag": "0019_catalog_color_identity",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791440186950,
+      "tag": "0020_inventory_value_history",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791444411875,
+      "tag": "0021_account_category_library",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1791450890027,
+      "tag": "0022_whole_deck_categories",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791458175116,
+      "tag": "0023_commander_spellbook",
+      "breakpoints": true
+    }
+  ]
 }
