@@ -353,8 +353,12 @@
 							name="expectedDecisionRevision"
 							value={removalBase}
 						/><label
-							><input type="checkbox" name="confirmRemoval" value="yes" required />Suppress this
-							origin, including historical versions</label
+							>{#key selected}<input
+									type="checkbox"
+									name="confirmRemoval"
+									value="yes"
+									required
+								/>{/key}Suppress this origin, including historical versions</label
 						><input type="hidden" name="draftKind" value="remove" /><Button
 							type="submit"
 							disabled={busy || !!unavailable || !current}>Suppress origin</Button
