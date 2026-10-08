@@ -473,6 +473,112 @@ test('built whole Categories and bounded Deck Library preserve private saved con
 			}
 		);
 		await t.test(
+			'native empty adoption explains False membership and retains failed label receipts',
+			async () => {
+				const actor = await register();
+				const decks = await json<{ id: string }[]>(
+					await request(
+						`${base}/decks`,
+						'POST',
+						{ name: 'Native empty adoption', format: 'Modern', description: '' },
+						actor.token
+					)
+				);
+				const deckId = decks[0].id;
+				const definition = await json<LibraryAcknowledgement>(
+					await request(
+						`${base}/category-definitions`,
+						'POST',
+						{
+							requestId: randomUUID(),
+							originId: null,
+							expectedLibraryRevision: '0',
+							scope: 'deck',
+							name: 'Native creatures',
+							meaning: 'At least one Main Creature',
+							priority: 0,
+							displayOrder: 0,
+							roles: ['main'],
+							rule: {
+								op: 'minimumCopies',
+								minimum: 1,
+								predicate: { op: 'type', value: 'Creature' }
+							},
+							confirmRetainedRule: false
+						},
+						actor.token
+					)
+				);
+				const native = (action = '', body?: Record<string, string>) =>
+					fetch(`${origin}/mtg/decks?${action ? '/' + action + '&' : ''}deck=${deckId}`, {
+						method: body ? 'POST' : 'GET',
+						redirect: 'manual',
+						headers: { cookie: `spellbook_session=${actor.token}`, origin, accept: 'text/html' },
+						body: body ? new URLSearchParams(body) : undefined
+					});
+				const initial = await native();
+				assert.equal(initial.status, 200);
+				const initialHTML = await initial.text();
+				assert.match(initialHTML, /No whole-deck definitions are adopted/);
+				const previewButton = initialHTML.match(
+					/<button[^>]*>\s*Preview whole-deck changes\s*<\/button>/
+				)?.[0];
+				assert.ok(previewButton);
+				assert.doesNotMatch(previewButton, /disabled/);
+				const previewResponse = await native('previewCategories', {
+					deckId,
+					scope: 'deck',
+					mode: 'Review',
+					requestId: randomUUID()
+				});
+				assert.equal(previewResponse.status, 200);
+				const previewHTML = await previewResponse.text();
+				assert.match(previewHTML, /Automatic False; no membership/);
+				assert.match(previewHTML, /At least one Main Creature/);
+				assert.match(previewHTML, /At least 1 copies matching Card type Creature Roles: main/);
+				const previewId = previewHTML.match(/name="previewId" value="([^"]+)"/)?.[1];
+				assert.ok(previewId);
+				const committed = await native('commitCategories', {
+					deckId,
+					previewId,
+					requestId: randomUUID(),
+					confirmPreview: 'yes'
+				});
+				assert.equal(committed.status, 200);
+				const before = await json<DeckWholeCategories>(
+					await request(`${base}/decks/${deckId}/whole-categories`, 'GET', undefined, actor.token)
+				);
+				await json(
+					await request(
+						`${base}/decks/${deckId}/whole-categories/${definition.versionId}`,
+						'PATCH',
+						{
+							requestId: randomUUID(),
+							manual: 'Include',
+							expectedDecisionRevision: before.decisionRevision
+						},
+						actor.token
+					)
+				);
+				const requestId = randomUUID();
+				const failed = await native('renameWholeCategory', {
+					deckId,
+					versionId: definition.versionId,
+					requestId,
+					expectedDecisionRevision: before.decisionRevision,
+					name: 'Native retained failed label',
+					draftKind: 'rename'
+				});
+				assert.equal(failed.status, 409);
+				const recovery = await failed.text();
+				assert.match(recovery, /value="Native retained failed label"/);
+				assert.ok(recovery.includes(`name="requestId" value="${requestId}"`));
+				assert.ok(
+					recovery.includes(`name="expectedDecisionRevision" value="${before.decisionRevision}"`)
+				);
+			}
+		);
+		await t.test(
 			'revocation while a whole-category write waits on Profile prevents its receipt and publication',
 			async () => {
 				const login = await fixtureAuthRequest(
