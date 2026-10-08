@@ -95,7 +95,8 @@ export function evaluateComboVariants(input: ComboMatcherInput): ComboEvaluation
 					truth === 'True' && validOracle(entry.oracleId) ? 'True' : 'Unknown';
 				if (participants[entry.entryId] === 'True' && proof)
 					result.participantProofs[entry.entryId] = proof;
-			} else if (uncertainIngredientIdentities(variant)) participants[entry.entryId] = 'Unknown';
+			} else if (uncertainIngredientIdentities(variant, entry.role))
+				participants[entry.entryId] = 'Unknown';
 		}
 	}
 	return result;
@@ -103,12 +104,22 @@ export function evaluateComboVariants(input: ComboMatcherInput): ComboEvaluation
 
 // These provider reasons constrain known ingredients without introducing another identity.
 const identityPreservingReasons = new Set(['used-face', 'card-state', 'status', 'zones']);
-function uncertainIngredientIdentities(variant: ComboVariant) {
+function uncertainIngredientIdentities(variant: ComboVariant, role: CategoryRole) {
+	const eligible = (requirement: { mustBeCommander: boolean }) =>
+		!requirement.mustBeCommander || role === 'commander';
 	return (
-		variant.templates.length > 0 ||
-		variant.ingredients.length === 0 ||
-		variant.ingredients.some((ingredient) => !validOracle(ingredient.oracleId)) ||
-		variant.unsupportedReasons.some((reason) => !identityPreservingReasons.has(reason))
+		variant.templates.some(eligible) ||
+		(variant.ingredients.length === 0 && variant.templates.length === 0) ||
+		variant.ingredients.some(
+			(ingredient) => eligible(ingredient) && !validOracle(ingredient.oracleId)
+		) ||
+		variant.unsupportedReasons.some(
+			(reason) =>
+				!identityPreservingReasons.has(reason) &&
+				reason !== 'oracle-id' &&
+				reason !== 'templates' &&
+				(reason !== 'empty-ingredients' || variant.ingredients.length > 0)
+		)
 	);
 }
 

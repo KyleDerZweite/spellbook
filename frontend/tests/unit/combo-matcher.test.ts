@@ -293,6 +293,39 @@ describe('local documented combo ingredients', () => {
 			unknown: 'Unknown'
 		});
 	});
+	it('keeps uncertain Commander-only identities and templates outside Main participation', () => {
+		const commanderOnly = variant(
+			[{ ...oakVariant.ingredients[0], oracleId: null, mustBeCommander: true }],
+			{ unsupportedReasons: ['oracle-id'] }
+		);
+		const entries = [entry('unknown-commander', null, 'commander'), entry('known-main', other)];
+		const result = run(entries, [commanderOnly]);
+		expect(result.truth).toBe('Unknown');
+		expect(result.participants).toEqual({ 'unknown-commander': 'Unknown', 'known-main': 'False' });
+		const template = {
+			id: 'commander-template',
+			name: 'Commander',
+			query: null,
+			quantity: '1',
+			zones: ['B'],
+			states: {},
+			mustBeCommander: true,
+			usedFace: null
+		};
+		const templateOnly = variant([], {
+			templates: [template],
+			unsupportedReasons: ['empty-ingredients', 'templates']
+		});
+		expect(run(entries, [templateOnly]).participants).toEqual(result.participants);
+		expect(
+			run(entries, [
+				variant([], {
+					templates: [{ ...template, mustBeCommander: false }],
+					unsupportedReasons: ['empty-ingredients', 'templates']
+				})
+			]).participants['known-main']
+		).toBe('Unknown');
+	});
 	it.each([0, -1, 1.5, 2147483648, Number.NaN])(
 		'rejects corrupt persisted quantities %s',
 		(quantity) => {

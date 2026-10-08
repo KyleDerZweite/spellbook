@@ -335,6 +335,61 @@ run('transaction-bound documented combo categories', () => {
 		});
 	});
 
+	it('excludes Main from uncertain Commander-only requirements and nested aggregate upper bounds', async () => {
+		await source!.restore();
+		source = await publishComboFixture(database.pool, [
+			{
+				...recordedOakVariant,
+				id: 'synthetic-unknown-commander-only',
+				ingredients: [
+					{ ...recordedOakVariant.ingredients[0], oracleId: null, mustBeCommander: true }
+				],
+				unsupportedReasons: ['oracle-id']
+			}
+		]);
+		await save('entry', 'Uncertain commander participation', participant);
+		const minimum = await save('deck', 'Two uncertain participants', {
+			op: 'minimumCopies',
+			minimum: 2,
+			predicate: participant
+		});
+		const percentage = await save('deck', 'All uncertain participants', {
+			op: 'percentage',
+			basisPoints: 10000,
+			denominator: 'all-cards',
+			predicate: participant
+		});
+		const d = await deck();
+		await add(d.id, oakOracleId, 'commander');
+		const main = await add(d.id, denizenOracleId);
+		const oakCard = await card(oakOracleId);
+		try {
+			await database.pool.query(
+				'UPDATE catalog_oracle_facts SET raw_oracle_id=NULL WHERE generation_id=(SELECT active_generation FROM catalog_state WHERE id=1) AND printing_id=$1',
+				[oakCard.catalogCardId]
+			);
+			await review(d.id, 'entry');
+			const entry = (await categories.getDeckEntryCategories(actor, d.id)).decisions.find(
+				(e) => e.entryId === main
+			);
+			expect(entry?.evidence?.combo?.evaluations[0].participantTruth).toBe('False');
+			await review(d.id, 'deck');
+			expect(await whole(d.id, minimum.versionId)).toMatchObject({
+				state: 'Automatic',
+				truth: 'False',
+				evidence: { bounds: { lower: '0', upper: '1' } }
+			});
+			expect(await whole(d.id, percentage.versionId)).toMatchObject({
+				state: 'Automatic',
+				truth: 'False'
+			});
+		} finally {
+			await database.pool.query(
+				'UPDATE catalog_oracle_facts SET raw_oracle_id=$1 WHERE generation_id=(SELECT active_generation FROM catalog_state WHERE id=1) AND printing_id=$2',
+				[oakOracleId, oakCard.catalogCardId]
+			);
+		}
+	});
 	it.each(['entry', 'deck'] as const)(
 		'fences %s previews on combo source/configuration changes and replays committed receipts after pruning and Deck deletion',
 		async (scope) => {
