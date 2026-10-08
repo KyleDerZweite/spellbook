@@ -271,8 +271,8 @@
 		>
 	</nav>
 	{#if data.scope === 'deck'}<p class="notice">
-			You can save whole-deck definitions. Automatic whole-deck classification and Review/Reset are
-			not available yet.
+			New Decks adopt whole-deck definitions. Existing Decks adopt changed meanings through explicit
+			whole-deck Review/Reset.
 		</p>{/if}
 	{#if message}<p role="status" class="notice">{message}</p>{/if}
 	{#if libraryReadError}<p role="alert" class="notice">{libraryReadError}</p>

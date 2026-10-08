@@ -1,6 +1,6 @@
 # Card grouping
 
-- Status: Canonical, Inventory groups and starter primary Deck Entry Categories implemented; account rules and entry Review/Reset implemented; whole-deck evaluation planned
+- Status: Canonical, Inventory groups and starter primary Deck Entry Categories implemented; account rules and entry Review/Reset implemented; whole-deck evaluation implemented
 - Last Reviewed: 2026-10-08
 - Source of Truth: maintainer grouping decision, inventory and deck implementations
 - Update Triggers: Inventory Box labels, inventory groups, memberships, scan targets, deck entry and whole-deck categories, automatic classification, account category definitions and manual overrides, accepted design contracts and implementation evidence
@@ -38,7 +38,7 @@ Verify CRUD and reload persistence, empty groups, multiple memberships without d
 
 ## Deck categories
 
-The maintainer selected both Deck entry categories inside the editor and Deck categories for whole decks in the Library. These are separate concepts in the [glossary](../../GLOSSARY.md). Full automatic default categorization, editable custom meanings and manual override are required. Starter primary categories are implemented separately from Inventory groups. Account customization and entry Review/Reset are implemented. Whole-deck evaluation remains planned.
+The maintainer selected both Deck entry categories inside the editor and Deck categories for whole decks in the Library. These are separate concepts in the [glossary](../../GLOSSARY.md). Full automatic default categorization, editable custom meanings and manual override are required. Starter primary categories are implemented separately from Inventory groups. Account customization and entry Review/Reset are implemented. Whole-deck evaluation and overlapping immutable-version filters are implemented.
 
 Scryfall Oracle Tags remains a selected source for card traits. On 2026-10-06, the maintainer selected automatic categorization from sources, card types and explicit rules. Free-text-only meanings and a stronger or hybrid semantic classifier are outside this pass. Jev remains the recorded prototype. Q56 accepted the optional local Commander Spellbook bulk adapter for documented ingredients/outcomes. [Integration research](../integrations/card-categorization.md) owns dated source evidence; [category rules](../architecture/category-rules.md) owns the accepted adapter constraints and evaluation mechanisms. The Oracle Tags importer and starter primary assignment lifecycle are implemented; the optional combo adapter remains planned.
 
@@ -62,7 +62,7 @@ Track whether an assignment is automatic or manual when suggestions are persiste
 
 Renamed entry categories keep stable identifiers; deleted suggestions must not immediately recreate a category the user removed. Changing Draw into a new meaning such as Infinite Counter updates explicit classification criteria and its reusable account definition, rather than inferring meaning from a label alone. The selected pass uses rules, not free-text semantic inference.
 
-### Later whole-Deck categories
+### Whole-Deck categories
 
 Deck categories group whole decks in the Library. The maintainer selected automatic reuse of custom meanings, including an Infinite Counter example, for new decks. This classification may need the deck's full composition. Card-level traits alone do not establish an infinite combo or an archetype.
 
