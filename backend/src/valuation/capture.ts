@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import type { Pool, PoolClient } from 'pg';
+import type { Pool, PoolClient, QueryConfig, QueryResult } from 'pg';
 import type { ReferenceExecutor, FrozenReferenceOutcome } from './read.ts';
 import {
 	type createInventoryValues,
 	readHoldings,
+	uniqueHoldingPairs,
 	pairKey,
 	estimateHoldings
 } from './inventory-value.ts';
@@ -97,14 +98,15 @@ export function createValueHistoryRunner(
 		async function query<Row extends Record<string, unknown> = Record<string, unknown>>(
 			text: string,
 			parameters?: unknown[]
-		) {
+		): Promise<QueryResult<Row>> {
 			if (lost) throw Error('Capture connection lost');
 			try {
-				return await client.query<Row>({
+				const config: QueryConfig & { query_timeout: number } = {
 					text,
 					values: parameters,
 					query_timeout: VALUE_CAPTURE_STATEMENT_MS + 1000
-				});
+				};
+				return await client.query<Row>(config);
 			} catch (cause) {
 				if (cause instanceof Error && cause.message === 'Query read timeout') lost = true;
 				throw cause;
@@ -191,14 +193,7 @@ export function createValueHistoryRunner(
 							)
 						).rows[0]?.revision ?? '0';
 					const holdings = await readHoldings(executor, account.account_id);
-					const pairs = [
-						...new Map(
-							holdings.map((row) => {
-								const pair = { printingId: row.printing_id, finish: row.finish };
-								return [pairKey(pair), pair] as const;
-							})
-						).values()
-					];
+					const pairs = uniqueHoldingPairs(holdings);
 					const outcomes: FrozenReferenceOutcome[] = [],
 						references = new Map<string, PriceReference>();
 					for (let offset = 0; offset < pairs.length; offset += 100) {

@@ -41,14 +41,8 @@ export async function readHoldings(
 		)
 	).rows;
 }
-export async function referencesForHoldings(
-	executor: ReferenceExecutor,
-	valuation: ValueValuation,
-	holdings: { printing_id: string; finish: PriceFinish }[],
-	asOf: Date,
-	signal?: AbortSignal
-) {
-	const pairs = [
+export function uniqueHoldingPairs(holdings: { printing_id: string; finish: PriceFinish }[]) {
+	return [
 		...new Map(
 			holdings.map((row) => {
 				const pair = { printingId: row.printing_id, finish: row.finish };
@@ -56,6 +50,15 @@ export async function referencesForHoldings(
 			})
 		).values()
 	];
+}
+export async function referencesForHoldings(
+	executor: ReferenceExecutor,
+	valuation: ValueValuation,
+	holdings: { printing_id: string; finish: PriceFinish }[],
+	asOf: Date,
+	signal?: AbortSignal
+) {
+	const pairs = uniqueHoldingPairs(holdings);
 	const references = new Map<string, PriceReference>();
 	for (let offset = 0; offset < pairs.length; offset += 100) {
 		signal?.throwIfAborted();
