@@ -2,7 +2,7 @@
 
 - Status: Account Category Library, entry rules, local category controls and entry Review/Reset implemented; whole-deck evaluation implemented; local combo adapter planned
 - Last Reviewed: 2026-10-08
-- Source of Truth: Q56 contract, reviewed whole-deck design and proposed local combo contract dated 2026-10-08, Category backend/contracts, Worker raw facts and native/API adapters
+- Source of Truth: Q56 contract, reviewed whole-deck and local combo contracts dated 2026-10-08, Category backend/contracts, Worker raw facts and native/API adapters
 - Update Triggers: definition versions, deck-local bundles, rule vocabulary and priority, source publications, composition jobs, Review/Reset, combo constraints and category acceptance evidence, operational work budgets, consequence retention and commit-scoped saved-state invalidation
 - Related Docs: [Architecture](./README.md), [Card grouping](../product/card-grouping.md), [Domain glossary](../../GLOSSARY.md), [Classifier research](../integrations/card-categorization.md), [Application contract](./application-contract.md), [Catalog](./catalog.md), [Worker](./worker.md), [ADR-0019](../decisions/0019-versioned-categories-and-local-source-rules.md)
 
@@ -120,7 +120,7 @@ Built HTTP verifies cookie/bearer authorization, revoked-session fences, GET-no-
 
 ## Optional local combo adapter
 
-Q56 and [slice 18](https://github.com/KyleDerZweite/spellbook/issues/191) selected Commander Spellbook bulk for documented ingredients/outcomes. The following implementation contract is proposed for independent review on the integrated `0022` baseline. The adapter remains unimplemented until that review and the preceding slice's verification complete. [Source research](../integrations/card-categorization.md#curated-combo-alternative) owns provider observations, not private matching behavior.
+Q56 and [slice 18](https://github.com/KyleDerZweite/spellbook/issues/191) selected Commander Spellbook bulk for documented ingredients/outcomes. The following implementation contract was independently reviewed on 2026-10-08 on the integrated `0022` baseline. The adapter remains unimplemented; implementation starts only after the preceding slice's verification completes. Design review is separate from execution evidence. [Source research](../integrations/card-categorization.md#curated-combo-alternative) owns provider observations, not private matching behavior.
 
 ### Ownership and additive storage
 
