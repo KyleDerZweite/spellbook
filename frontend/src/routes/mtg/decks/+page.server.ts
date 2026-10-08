@@ -1,5 +1,9 @@
 import type { WholeCategoryDraft } from '#lib/decks/whole-drafts.ts';
-import { deckLibraryQueryFromParams } from '@spellbook/contracts/deck-library.ts';
+import {
+	deckLibraryQueryFromParams,
+	deckLibraryQueryKey
+} from '@spellbook/contracts/deck-library.ts';
+import type { DeckLibraryPage, DeckLibraryCategories } from '@spellbook/contracts/deck-library.ts';
 import type { DeckSnapshot } from '@spellbook/contracts/decks.ts';
 import { parseLazyBrowsePagination } from '#lib/browsing/pagination.ts';
 import { error, fail, isHttpError, isRedirect, redirect } from '@sveltejs/kit';
@@ -50,23 +54,86 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		new URLSearchParams({ page: url.searchParams.get('dirPage') ?? '1' }),
 		1_000_000
 	);
-	let deckLibrary = await application.decks.getDeckLibrary(locals.user, {
-		...directoryQuery,
+	let deckLibrary: DeckLibraryPage = {
+		query: directoryQuery,
+		queryKey: deckLibraryQueryKey(directoryQuery),
+		revision: '0',
 		offset: directoryPagination.offset,
-		limit: 200
-	});
-	if (deckLibrary.offset >= deckLibrary.matchingTotal && deckLibrary.offset > 0)
-		deckLibrary = await application.decks.getDeckLibrary(locals.user, {
-			...directoryQuery,
-			offset: Math.max(0, Math.ceil(deckLibrary.matchingTotal / 200) - 1) * 200,
-			limit: 200
-		});
-	const deckLibraryCategories = await application.decks.getDeckLibraryCategories(locals.user, {
-		...directoryQuery,
-		offset: readQueryInteger(url.searchParams.get('dirCategoryOffset'), 'dirCategoryOffset', 0),
 		limit: 200,
-		expectedRevision: deckLibrary.revision
-	});
+		matchingTotal: 0,
+		globalTotal: 0,
+		items: []
+	};
+	let deckLibraryCategories: DeckLibraryCategories = {
+		query: directoryQuery,
+		queryKey: deckLibrary.queryKey,
+		revision: '0',
+		offset: 0,
+		limit: 200,
+		total: 0,
+		items: [],
+		selected: []
+	};
+	let deckLibraryReadError = '';
+	try {
+		for (let attempt = 0; attempt < 2; attempt++) {
+			try {
+				const page = await application.decks.getDeckLibrary(locals.user, {
+					...directoryQuery,
+					offset: directoryPagination.offset,
+					limit: 200
+				});
+				const boundedPage =
+					page.offset >= page.matchingTotal && page.offset > 0
+						? await application.decks.getDeckLibrary(locals.user, {
+								...directoryQuery,
+								offset: Math.max(0, Math.ceil(page.matchingTotal / 200) - 1) * 200,
+								limit: 200
+							})
+						: page;
+				const options = await application.decks.getDeckLibraryCategories(locals.user, {
+					...directoryQuery,
+					offset: readQueryInteger(
+						url.searchParams.get('dirCategoryOffset'),
+						'dirCategoryOffset',
+						0
+					),
+					limit: 200,
+					expectedRevision: boundedPage.revision
+				});
+				if (options.revision !== boundedPage.revision)
+					throw Object.assign(new Error('Deck Library revision changed.'), {
+						kind: 'RevisionChanged'
+					});
+				deckLibrary = boundedPage;
+				deckLibraryCategories = options;
+				break;
+			} catch (cause) {
+				if (
+					attempt === 0 &&
+					cause &&
+					typeof cause === 'object' &&
+					'kind' in cause &&
+					cause.kind === 'RevisionChanged'
+				)
+					continue;
+				throw cause;
+			}
+		}
+	} catch (cause) {
+		if (
+			(cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'Unauthenticated') ||
+			(isHttpError(cause) && cause.status >= 400 && cause.status < 500 && cause.status !== 409)
+		)
+			throw cause;
+		if (cause instanceof ValidationError) throw error(400, cause.message);
+		const changed =
+			!!cause && typeof cause === 'object' && 'kind' in cause && cause.kind === 'RevisionChanged';
+		deckLibraryReadError = changed
+			? 'Deck Library changed while loading. Reload to continue.'
+			: 'Deck Library is unavailable. Reload to try again.';
+		if (!selectedDeckId) throw error(changed ? 409 : 503, deckLibraryReadError);
+	}
 	const recovery =
 		locals.categoryPageRecovery?.accountId === locals.user.accountId &&
 		locals.categoryPageRecovery.deckId === selectedDeckId
@@ -197,6 +264,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	return {
 		...snapshot,
 		deckLibrary,
+		deckLibraryReadError,
 		deckLibraryCategories,
 		wholeCategories,
 		wholeCategoryVersion: url.searchParams.get('wholeCategoryVersion') ?? null,

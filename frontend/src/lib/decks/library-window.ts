@@ -1,7 +1,9 @@
 import type {
 	DeckLibraryPage,
 	DeckLibraryQuery,
-	DeckLibraryItem
+	DeckLibraryItem,
+	DeckLibraryLocation,
+	DeckLibraryCategories
 } from '@spellbook/contracts/deck-library.ts';
 import { initialLoadedSpan, admitLoadedSpan, type LoadedSpan } from '#lib/browsing/loadedSpan.ts';
 
@@ -11,8 +13,9 @@ export type DeckLibraryTransport = (
 	offset: number,
 	limit: number,
 	revision: string | undefined,
-	signal: AbortSignal
-) => Promise<DeckLibraryPage | DeckLibraryRevisionChanged>;
+	signal: AbortSignal,
+	current: () => boolean
+) => Promise<DeckLibraryPage | DeckLibraryRevisionChanged | null>;
 type Context = {
 	page: DeckLibraryPage;
 	pages: Map<number, DeckLibraryPage>;
@@ -235,6 +238,79 @@ export class DeckLibraryWindow {
 			offset = redirect.offset;
 		}
 	}
+	async locateAndLoad(
+		deckId: string,
+		locate: (
+			query: DeckLibraryQuery,
+			deckId: string,
+			revision: string,
+			signal: AbortSignal,
+			current: () => boolean
+		) => Promise<DeckLibraryLocation | DeckLibraryRevisionChanged | null>,
+		signal: AbortSignal,
+		currentLease: () => boolean = () => true
+	) {
+		const account = this.account,
+			queryKey = this.current?.queryKey;
+		const scope = () =>
+			currentLease() &&
+			!signal.aborted &&
+			account === this.account &&
+			queryKey === this.current?.queryKey;
+		for (let attempt = 0; attempt < 2; attempt++) {
+			const page = this.current,
+				generation = this.generation;
+			if (!page || !scope()) return null;
+			const location = await this.read(
+				(signal, current) => locate(page.query, deckId, page.revision, signal, current),
+				signal,
+				scope
+			);
+			if (!location || !scope() || generation !== this.generation) return null;
+			if ('kind' in location) {
+				await this.refresh(scope);
+				if (!scope() || this.error) return null;
+				continue;
+			}
+			if (
+				location.queryKey !== page.queryKey ||
+				location.revision !== page.revision ||
+				location.deckId !== deckId
+			)
+				throw new Error('Invalid Deck Library location');
+			if (location.offset === null)
+				return {
+					index: null,
+					revision: page.revision,
+					queryKey: page.queryKey,
+					identity: generation
+				};
+			const offset = Math.floor(location.offset / page.limit) * page.limit;
+			this.visible = new Set([offset]);
+			this.current!.offset = offset;
+			await this.request(offset, false);
+			if (!scope()) return null;
+			if (generation !== this.generation) continue;
+			const context = this.contexts.get(this.key),
+				loaded = context?.pages.get(offset);
+			if (!context || !loaded || loaded.items[location.offset - offset]?.id !== deckId) return null;
+			if (location.offset < this.span.start || location.offset >= this.span.end) {
+				this.beforeChange();
+				context.span = initialLoadedSpan(offset, loaded.items.length, page.matchingTotal);
+			}
+			context.page.offset = offset;
+			this.visible = new Set([offset]);
+			this.evict();
+			this.changed();
+			return {
+				index: location.offset,
+				revision: page.revision,
+				queryKey: page.queryKey,
+				identity: generation
+			};
+		}
+		return null;
+	}
 	private enqueue(offset: number, explicit: boolean, refresh: boolean, current: () => boolean) {
 		const context = this.contexts.get(this.key);
 		if (!context || offset < 0 || offset > 1_000_000 || !current()) return Promise.resolve();
@@ -277,7 +353,7 @@ export class DeckLibraryWindow {
 		return promise;
 	}
 	async read<T>(
-		operation: (signal: AbortSignal) => Promise<T>,
+		operation: (signal: AbortSignal, current: () => boolean) => Promise<T>,
 		signal: AbortSignal,
 		current: () => boolean = () => true
 	): Promise<T | null> {
@@ -300,7 +376,10 @@ export class DeckLibraryWindow {
 		this.active.set(key, controller);
 		this.changed();
 		try {
-			const result = await operation(controller.signal);
+			const result = await operation(
+				controller.signal,
+				() => !controller.signal.aborted && generation === this.generation && current()
+			);
 			return !controller.signal.aborted && generation === this.generation && current()
 				? result
 				: null;
@@ -341,7 +420,12 @@ export class DeckLibraryWindow {
 				job.offset,
 				context.page.limit,
 				job.refresh ? undefined : context.page.revision,
-				controller.signal
+				controller.signal,
+				() =>
+					!controller.signal.aborted &&
+					job.generation === this.generation &&
+					job.context === this.key &&
+					job.current()
 			);
 			if (
 				controller.signal.aborted ||
@@ -350,6 +434,7 @@ export class DeckLibraryWindow {
 				!job.current()
 			)
 				return;
+			if (!result) return;
 			if ('kind' in result) {
 				if (result.kind === 'RevisionChanged') {
 					this.beforeChange();
@@ -492,4 +577,45 @@ export function deckLibraryMountedRows(
 		rows.sort((a, b) => a - b);
 	}
 	return rows;
+}
+
+/** Guard caller ownership before any authentication or error side effect. The caller holds the physical permit through decode. */
+export async function readDeckLibraryJSON<T>(
+	path: string,
+	signal: AbortSignal,
+	current: () => boolean,
+	expire: () => void,
+	fetcher: typeof fetch = fetch
+): Promise<T | null> {
+	const owned = () => !signal.aborted && current();
+	if (!owned()) return null;
+	try {
+		const response = await fetcher(path, { signal, cache: 'no-store' });
+		if (!owned()) return null;
+		if (response.status === 401) {
+			expire();
+			return null;
+		}
+		const body = await response.json();
+		if (!owned()) return null;
+		if (!response.ok && !(response.status === 409 && body.kind === 'RevisionChanged'))
+			throw new Error(body.message ?? 'Deck Library could not be loaded. Try again.');
+		return body;
+	} catch (cause) {
+		if (!owned()) return null;
+		throw cause;
+	}
+}
+export function mergeDeckLibraryCategories(
+	fresh: DeckLibraryCategories,
+	retained: DeckLibraryCategories['items'],
+	selected: string[]
+) {
+	const current = new Map(
+		[...fresh.items, ...fresh.selected].map((item) => [item.versionId, item])
+	);
+	for (const item of retained)
+		if (selected.includes(item.versionId) && !current.has(item.versionId))
+			current.set(item.versionId, item);
+	return [...current.values()];
 }

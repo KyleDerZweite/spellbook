@@ -5,13 +5,16 @@
 	import type {
 		DeckLibraryPage,
 		DeckLibraryCategories,
-		DeckLibraryItem
+		DeckLibraryItem,
+		DeckLibraryLocation
 	} from '@spellbook/contracts/deck-library.ts';
 	import {
 		DeckLibraryWindow,
 		deckLibraryParams,
 		deckLibraryGeometry,
-		deckLibraryMountedRows
+		deckLibraryMountedRows,
+		readDeckLibraryJSON,
+		mergeDeckLibraryCategories
 	} from '#lib/decks/library-window.ts';
 	import {
 		measureBrowseViewport,
@@ -23,6 +26,7 @@
 	import { nextLoadedRange } from '#lib/browsing/loadedSpan.ts';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import type { ResourceSubscription } from '#lib/saved-state/workspace.ts';
+	import Button from '#lib/components/ui/button/Button.svelte';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
 
 	let {
@@ -44,7 +48,17 @@
 	let retainedOptions = $state<DeckLibraryCategories['items']>([]);
 	let subscription: ResourceSubscription | undefined = $state();
 	const heights = new Map<string, number>();
-	let anchor: { index: number; intra: number } | null = null;
+	let anchor: {
+		deckId: string | null;
+		index: number;
+		intra: number;
+		queryKey: string;
+		revision: string;
+		account: string;
+	} | null = null;
+	let positionError = $state('');
+	let layingOut = false,
+		layoutPending = false;
 	let measuredOrigin: number | undefined;
 	let alive = false,
 		scheduled = false,
@@ -52,21 +66,13 @@
 	const library = untrack(
 		() =>
 			new DeckLibraryWindow(
-				async (query, offset, limit, revision, signal) => {
-					const response = await fetch(
+				async (query, offset, limit, revision, signal, owned) =>
+					readDeckLibraryJSON<DeckLibraryPage | { kind: 'RevisionChanged'; revision: string }>(
 						`/api/mobile/v1/mtg/deck-library?${deckLibraryParams(query, offset, limit, revision)}`,
-						{ signal, cache: 'no-store' }
-					);
-					if (response.status === 401) {
-						workspaceSavedState.expire();
-						throw new Error('Your session has ended.');
-					}
-					const body = await response.json();
-					if (response.status === 409 && body.kind === 'RevisionChanged') return body;
-					if (!response.ok)
-						throw new Error(body.message ?? 'Deck Library could not be loaded. Try again.');
-					return body;
-				},
+						signal,
+						() => owned() && alive && !terminal,
+						() => workspaceSavedState.expire()
+					),
 				() => {
 					version++;
 					schedule();
@@ -107,13 +113,9 @@
 			focused?.index
 		)
 	);
-	const options = $derived([
-		...new Map(
-			[...categoryPage.items, ...categoryPage.selected, ...retainedOptions].map(
-				(item) => [item.versionId, item] as const
-			)
-		).values()
-	]);
+	const options = $derived(
+		mergeDeckLibraryCategories(categoryPage, retainedOptions, categorySelection)
+	);
 	$effect(() => {
 		const seed = page,
 			account = accountId;
@@ -122,6 +124,7 @@
 			focused = null;
 			positioned = false;
 			anchor = null;
+			positionError = '';
 			heights.clear();
 			library.seed(account, seed);
 			categoryPage = categories;
@@ -139,10 +142,24 @@
 			(top) => geometry.rowAt(top),
 			(index) => geometry.offsets[index] ?? 0
 		);
-		anchor = { index: (geometry.base + captured.index) * columns, intra: captured.intra };
+		const index = Math.max(span.start, (geometry.base + captured.index) * columns);
+		const item = library.at(index);
+		anchor = {
+			deckId: item?.id ?? null,
+			index,
+			intra: captured.intra,
+			queryKey: current.queryKey,
+			revision: current.revision,
+			account: accountId
+		};
 	}
 	function schedule() {
-		if (!alive || scheduled) return;
+		if (!alive) return;
+		if (layingOut) {
+			layoutPending = true;
+			return;
+		}
+		if (scheduled) return;
 		scheduled = true;
 		requestAnimationFrame(() => {
 			scheduled = false;
@@ -150,81 +167,140 @@
 		});
 	}
 	async function layout() {
-		if (!alive || !wrapper || terminal) return;
-		const priorWidth = width;
-		const rect = wrapper.getBoundingClientRect();
-		const origin = rect.top + window.scrollY;
-		if (priorWidth !== rect.width) {
-			capture();
-			heights.clear();
-			width = rect.width;
-			version++;
+		if (layingOut) {
+			layoutPending = true;
+			return;
 		}
-		if (measuredOrigin !== undefined && !anchor) {
-			const shift = browseOriginShift(measuredOrigin, origin, window.scrollY, 0);
-			if (shift) window.scrollTo({ top: window.scrollY + shift, behavior: 'instant' });
-		}
-		await tick();
-		if (!alive || !wrapper || terminal) return;
-		if (anchor) {
-			const captured = anchor;
-			anchor = null;
-			const row = Math.max(
-				0,
-				Math.min(geometry.offsets.length - 2, Math.floor(captured.index / columns) - geometry.base)
-			);
-			window.scrollTo({
-				top: browseAnchorScrollTop(
-					wrapper.getBoundingClientRect().top + window.scrollY,
-					geometry.offsets[row] ?? 0,
-					captured.intra,
-					0
-				),
-				behavior: 'instant'
-			});
-		}
-		measuredOrigin = wrapper.getBoundingClientRect().top + window.scrollY;
-		if (!positioned) {
-			positioned = true;
-			restoreInitialBrowsePosition(window, window.scrollY, page.offset, measuredOrigin, null);
-		}
-		const measured = measureBrowseViewport(window, wrapper);
-		viewportHeight = measured.height;
-		visibleTop = Math.max(0, measured.visibleTop);
-		const firstRow = geometry.rowAt(visibleTop),
-			lastRow = geometry.rowAt(visibleTop + viewportHeight);
-		const first = Math.max(span.start, (geometry.base + firstRow) * columns),
-			last = Math.min(span.end, (geometry.base + lastRow + 1) * columns);
-		const mountedStart = Math.max(
-			span.start,
-			(geometry.base + Math.max(0, firstRow - 2)) * columns
-		);
-		library.setVisible(mountedStart, Math.min(span.end, mountedStart + 200), first);
-		const ids = new Set(library.loaded().map(({ item }) => item.id));
-		if (focused) ids.add(focused.item.id);
-		let pruned = false;
-		for (const id of heights.keys())
-			if (!ids.has(id)) {
+		layingOut = true;
+		try {
+			if (!alive || !wrapper || terminal) return;
+			const priorWidth = width;
+			const rect = wrapper.getBoundingClientRect();
+			const origin = rect.top + window.scrollY;
+			if (priorWidth !== rect.width) {
 				capture();
-				heights.delete(id);
-				pruned = true;
+				heights.clear();
+				width = rect.width;
+				version++;
 			}
-		if (pruned) {
-			version++;
-			schedule();
-		}
-		if (span.start > 0 && visibleTop < 100) void library.loadEarlier();
-		if (nextLoadedRange(span, last, current.matchingTotal, columns * 3) !== null)
-			void library.loadLater();
-		const logical = Math.floor(first / current.limit) + 1;
-		if (
-			route.url.pathname === '/mtg/decks' &&
-			!route.url.searchParams.has('deck') &&
-			route.url.searchParams.get('dirPage') !== String(logical)
-		) {
-			const url = new URL(route.url.href);
-			url.searchParams.set('dirPage', String(logical));
-			replaceState(url, route.state);
+			if (measuredOrigin !== undefined && !anchor) {
+				const shift = browseOriginShift(measuredOrigin, origin, window.scrollY, 0);
+				if (shift) window.scrollTo({ top: window.scrollY + shift, behavior: 'instant' });
+			}
+			await tick();
+			if (!alive || !wrapper || terminal) return;
+			if (anchor) {
+				const captured = anchor;
+				let index = captured.index;
+				const owns = () =>
+					alive &&
+					!terminal &&
+					accountId === captured.account &&
+					library.current?.queryKey === captured.queryKey;
+				if (!owns()) {
+					anchor = null;
+					return;
+				}
+				if (captured.deckId && captured.revision !== library.current?.revision) {
+					const controller = new AbortController();
+					const located = await library.locateAndLoad(
+						captured.deckId,
+						async (query, deckId, revision, signal, current) => {
+							const params = deckLibraryParams(query, 0, 200, revision);
+							params.set('deckId', deckId);
+							return readDeckLibraryJSON<
+								DeckLibraryLocation | { kind: 'RevisionChanged'; revision: string }
+							>(`/api/mobile/v1/mtg/deck-library/locate?${params}`, signal, current, () =>
+								workspaceSavedState.expire()
+							);
+						},
+						controller.signal,
+						owns
+					);
+					if (!located || !owns() || located.identity !== library.identity) {
+						anchor = null;
+						return;
+					}
+					index = located.index ?? index;
+				} else if (captured.deckId) {
+					index = library.loaded().find(({ item }) => item.id === captured.deckId)?.index ?? index;
+				}
+				await tick();
+				if (!owns()) {
+					anchor = null;
+					return;
+				}
+				anchor = null;
+				positionError = '';
+				const row = Math.max(
+					0,
+					Math.min(geometry.offsets.length - 2, Math.floor(index / columns) - geometry.base)
+				);
+				window.scrollTo({
+					top: browseAnchorScrollTop(
+						wrapper.getBoundingClientRect().top + window.scrollY,
+						geometry.offsets[row] ?? 0,
+						captured.intra,
+						0
+					),
+					behavior: 'instant'
+				});
+			}
+
+			measuredOrigin = wrapper.getBoundingClientRect().top + window.scrollY;
+			if (!positioned) {
+				positioned = true;
+				restoreInitialBrowsePosition(window, window.scrollY, page.offset, measuredOrigin, null);
+			}
+			const measured = measureBrowseViewport(window, wrapper);
+			viewportHeight = measured.height;
+			visibleTop = Math.max(0, measured.visibleTop);
+			const firstRow = geometry.rowAt(visibleTop),
+				lastRow = geometry.rowAt(visibleTop + viewportHeight);
+			const first = Math.max(span.start, (geometry.base + firstRow) * columns),
+				last = Math.min(span.end, (geometry.base + lastRow + 1) * columns);
+			const mountedStart = Math.max(
+				span.start,
+				(geometry.base + Math.max(0, firstRow - 2)) * columns
+			);
+			library.setVisible(mountedStart, Math.min(span.end, mountedStart + 200), first);
+			const ids = new Set(library.loaded().map(({ item }) => item.id));
+			if (focused) ids.add(focused.item.id);
+			let pruned = false;
+			for (const id of heights.keys())
+				if (!ids.has(id)) {
+					capture();
+					heights.delete(id);
+					pruned = true;
+				}
+			if (pruned) {
+				version++;
+				schedule();
+			}
+			if (span.start > 0 && visibleTop < 100) void library.loadEarlier();
+			if (nextLoadedRange(span, last, current.matchingTotal, columns * 3) !== null)
+				void library.loadLater();
+			const logical = Math.floor(first / current.limit) + 1;
+			if (
+				route.url.pathname === '/mtg/decks' &&
+				!route.url.searchParams.has('deck') &&
+				route.url.searchParams.get('dirPage') !== String(logical)
+			) {
+				const url = new URL(route.url.href);
+				url.searchParams.set('dirPage', String(logical));
+				replaceState(url, route.state);
+			}
+		} catch (cause) {
+			anchor = null;
+			if (alive && !terminal)
+				positionError =
+					cause instanceof Error ? cause.message : 'Saved Deck position could not be restored.';
+		} finally {
+			layingOut = false;
+			if (layoutPending) {
+				layoutPending = false;
+				schedule();
+			}
 		}
 	}
 	function measure(node: HTMLElement, item: DeckLibraryItem) {
@@ -281,22 +357,18 @@
 		const page = library.current;
 		if (!page) return;
 		const value = await library.read(
-			async (signal) => {
-				const response = await fetch(
+			async (signal, owned) =>
+				readDeckLibraryJSON<DeckLibraryCategories | { kind: 'RevisionChanged'; revision: string }>(
 					`/api/mobile/v1/mtg/deck-library/categories?${deckLibraryParams(page.query, offset, 200, page.revision)}`,
-					{ signal, cache: 'no-store' }
-				);
-				if (response.status === 401) {
-					workspaceSavedState.expire();
-					return null;
-				}
-				const body = await response.json();
-				if (!response.ok) throw new Error(body.message ?? 'Category options could not be loaded.');
-				return body as DeckLibraryCategories;
-			},
+					signal,
+					() => owned() && alive && !terminal,
+					() => workspaceSavedState.expire()
+				),
 			signal,
 			currentLease
 		);
+		if (value && 'kind' in value)
+			throw new Error('Deck Library changed while loading category options. Try again.');
 		if (value && currentLease()) {
 			retainedOptions = options.filter((item) => categorySelection.includes(item.versionId));
 			categoryPage = value;
@@ -304,11 +376,13 @@
 		}
 	}
 	async function categoryNext(offset: number) {
-		const controller = new AbortController();
+		const controller = new AbortController(),
+			identity = library.identity;
+		const owned = () => alive && !terminal && identity === library.identity;
 		try {
-			await readCategories(offset, controller.signal, () => alive && !terminal);
+			await readCategories(offset, controller.signal, owned);
 		} catch {
-			categoryError = 'Category options could not be loaded. Try again.';
+			if (owned()) categoryError = 'Category options could not be loaded. Try again.';
 		}
 	}
 	onMount(() => {
@@ -326,6 +400,10 @@
 				terminal = true;
 				library.clear();
 				categoryPage = { ...categoryPage, items: [], selected: [] };
+				retainedOptions = [];
+				categorySelection = [];
+				categoryError = '';
+				positionError = '';
 				focused = null;
 				heights.clear();
 			},
@@ -386,7 +464,7 @@
 					>{/each}</select
 			></label
 		>
-		<button type="submit">Apply filters</button>
+		<Button class="directory-action" type="submit">Apply filters</Button>
 	</form>
 	<p id="category-filter-help" class="muted">
 		Selected categories match any version. Historical versions keep their saved meaning.
@@ -400,11 +478,13 @@
 				</p>{/each}
 		</details>{/if}
 	{#if categoryPage.total > 200}<div class="category-options">
-			{#if enhanced}{#if categoryPage.offset > 0}<button
+			{#if enhanced}{#if categoryPage.offset > 0}<Button
+						class="directory-action"
 						onclick={() => categoryNext(Math.max(0, categoryPage.offset - 200))}
-						>Earlier categories</button
-					>{/if}{#if categoryPage.offset + categoryPage.limit < categoryPage.total}<button
-						onclick={() => categoryNext(categoryPage.offset + 200)}>More categories</button
+						>Earlier categories</Button
+					>{/if}{#if categoryPage.offset + categoryPage.limit < categoryPage.total}<Button
+						class="directory-action"
+						onclick={() => categoryNext(categoryPage.offset + 200)}>More categories</Button
 					>{/if}{:else}{#if categoryPage.offset > 0}<a
 						href={categoryHref(Math.max(0, categoryPage.offset - 200))}>Earlier categories</a
 					>{/if}{#if categoryPage.offset + categoryPage.limit < categoryPage.total}<a
@@ -412,9 +492,11 @@
 					>{/if}{/if}
 		</div>{/if}
 	{#if categoryError}<p role="alert">{categoryError}</p>{/if}
+	{#if positionError}<p role="alert">{positionError}</p>{/if}
 	<p class="directory-total">{current.matchingTotal} of {current.globalTotal} decks</p>
 	{#if enhanced && library.error}<p role="alert">
-			{library.error} <button onclick={() => library.retry()}>Retry</button>
+			{library.error}
+			<Button class="directory-action" onclick={() => library.retry()}>Retry</Button>
 		</p>{/if}
 	{#snippet tile(item: DeckLibraryItem, index: number)}
 		<a
@@ -565,6 +647,18 @@
 	.directory-controls input,
 	.directory-controls select {
 		max-width: 100%;
+		min-height: 44px;
+		padding: 0.65rem 0.75rem;
+		border: 1px solid var(--color-border);
+		border-radius: 0.5rem;
+		background: var(--color-surface);
+		color: var(--color-text-primary);
+		font: inherit;
+	}
+	.directory-controls input:focus-visible,
+	.directory-controls select:focus-visible {
+		outline: 2px solid var(--color-primary);
+		outline-offset: 2px;
 	}
 	.directory-controls select[multiple] {
 		width: 100%;
@@ -602,6 +696,15 @@
 	.loading-tile {
 		border-radius: 0.6rem;
 		background: var(--color-stone);
+	}
+	:global(.directory-action) {
+		min-height: 44px;
+	}
+	nav a {
+		min-height: 44px;
+		display: inline-flex;
+		align-items: center;
+		padding: 0.5rem;
 	}
 	nav {
 		display: flex;

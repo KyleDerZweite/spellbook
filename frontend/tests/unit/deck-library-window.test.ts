@@ -1,14 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
 	DeckLibraryWindow,
 	deckLibraryGeometry,
 	deckLibraryMountedRows,
-	deckLibraryParams
+	deckLibraryParams,
+	readDeckLibraryJSON,
+	mergeDeckLibraryCategories
 } from '../../src/lib/decks/library-window.ts';
 import {
 	normalizeDeckLibraryQuery,
 	deckLibraryQueryKey,
-	type DeckLibraryPage
+	type DeckLibraryPage,
+	type DeckLibraryCategories
 } from '../../../contracts/src/deck-library.ts';
 import { hasDeepBrowseAnchor } from '../../src/lib/browsing/pagination.ts';
 import { captureBrowseAnchor, browseAnchorScrollTop } from '../../src/lib/browsing/viewport.ts';
@@ -264,5 +267,239 @@ describe('Deck Library measured geometry and route identity', () => {
 		expect(params.get('revision')).toBe('7');
 		expect(hasDeepBrowseAnchor(new URL('http://localhost/mtg/decks?dirPage=3&q=Bolt'))).toBe(true);
 		expect(hasDeepBrowseAnchor(new URL('http://localhost/mtg/decks?page=3'))).toBe(false);
+	});
+});
+
+describe('Deck Library owned responses and stable identity', () => {
+	it('ignores a deferred old-account 401 before expiring the current workspace', async () => {
+		const response = deferred<Response>(),
+			expire = vi.fn();
+		let owned = true;
+		const read = readDeckLibraryJSON(
+			'/directory',
+			new AbortController().signal,
+			() => owned,
+			expire,
+			(() => response.promise) as typeof fetch
+		);
+		owned = false;
+		response.resolve(new Response(null, { status: 401 }));
+		expect(await read).toBeNull();
+		expect(expire).not.toHaveBeenCalled();
+	});
+	it('guards aborted and invalidated external option leases before a 401 side effect', async () => {
+		const window = new DeckLibraryWindow(
+			async () => page(),
+			() => {}
+		);
+		window.seed('account', page());
+		const response = deferred<Response>(),
+			expire = vi.fn(),
+			controller = new AbortController();
+		let lease = true;
+		const read = window.read(
+			(signal, current) =>
+				readDeckLibraryJSON(
+					'/options',
+					signal,
+					current,
+					expire,
+					(() => response.promise) as typeof fetch
+				),
+			controller.signal,
+			() => lease
+		);
+		lease = false;
+		controller.abort();
+		response.resolve(new Response(null, { status: 401 }));
+		expect(await read).toBeNull();
+		expect(expire).not.toHaveBeenCalled();
+	});
+	it('expires only a still-owned 401 and holds decode admission until it settles', async () => {
+		const expire = vi.fn();
+		await readDeckLibraryJSON(
+			'/directory',
+			new AbortController().signal,
+			() => true,
+			expire,
+			(async () => new Response(null, { status: 401 })) as typeof fetch
+		);
+		expect(expire).toHaveBeenCalledTimes(1);
+		const body = deferred<DeckLibraryPage>();
+		let owned = true;
+		const read = readDeckLibraryJSON(
+			'/directory',
+			new AbortController().signal,
+			() => owned,
+			expire,
+			async () => {
+				const response = new Response(null, { status: 200 });
+				vi.spyOn(response, 'json').mockImplementation(() => body.promise);
+				return response;
+			}
+		);
+		await settle();
+		owned = false;
+		body.resolve(page());
+		expect(await read).toBeNull();
+		expect(expire).toHaveBeenCalledTimes(1);
+	});
+	it('locates the same visible Deck after a revision reorders it into an evicted range', async () => {
+		const reordered = page(800, 1601, '2');
+		reordered.items[17] = { ...reordered.items[17], id: 'deck-0' };
+		const window = new DeckLibraryWindow(
+			async (_query, offset) => (offset === 800 ? reordered : page(offset, 1601, '2')),
+			() => {}
+		);
+		window.seed('account', page());
+		await window.refresh();
+		const location = await window.locateAndLoad(
+			'deck-0',
+			async (query, deckId, revision) => ({
+				query,
+				queryKey: deckLibraryQueryKey(query),
+				revision,
+				deckId,
+				offset: 817,
+				matchingTotal: 1601
+			}),
+			new AbortController().signal
+		);
+		expect(location).toMatchObject({ index: 817, revision: '2' });
+		expect(window.at(817)?.id).toBe('deck-0');
+		expect(window.span).toEqual({ start: 800, end: 1000 });
+		expect(window.metrics().requests).toBe(0);
+	});
+	it('locate shares physical admission and cannot publish across account replacement', async () => {
+		const bodies = Array.from({ length: 3 }, () => deferred<DeckLibraryPage>());
+		let calls = 0;
+		const window = new DeckLibraryWindow(
+			() => bodies[calls++].promise,
+			() => {}
+		);
+		window.seed('first', page());
+		void window.request(200);
+		void window.request(400);
+		void window.request(600);
+		const locate = vi.fn(async (query, deckId, revision) => ({
+			query,
+			queryKey: deckLibraryQueryKey(query),
+			revision,
+			deckId,
+			offset: 0,
+			matchingTotal: 1601
+		}));
+		const result = window.locateAndLoad('deck-0', locate, new AbortController().signal);
+		expect(locate).not.toHaveBeenCalled();
+		window.seed('second', page(1000, 1601, '2'));
+		await settle();
+		expect(await result).toBeNull();
+		expect(locate).not.toHaveBeenCalled();
+		bodies.forEach((body, index) => body.resolve(page((index + 1) * 200)));
+		await settle();
+		expect(window.metrics().requests).toBe(0);
+	});
+	it('rejects stale revision locations and refreshes before coherent lookup', async () => {
+		const window = new DeckLibraryWindow(
+			async () => page(0, 1601, '2'),
+			() => {}
+		);
+		window.seed('account', page());
+		let attempts = 0;
+		const location = await window.locateAndLoad(
+			'deck-0',
+			async (query, deckId, revision) =>
+				++attempts === 1
+					? { kind: 'RevisionChanged', revision: '2' }
+					: {
+							query,
+							queryKey: deckLibraryQueryKey(query),
+							revision,
+							deckId,
+							offset: 0,
+							matchingTotal: 1601
+						},
+			new AbortController().signal
+		);
+		expect(attempts).toBe(2);
+		expect(location).toMatchObject({ index: 0, revision: '2' });
+	});
+	it('decodes fresh SSE category counts before replacing retained selected options', async () => {
+		const window = new DeckLibraryWindow(
+			async () => page(0, 1601, '2'),
+			() => {}
+		);
+		window.seed('account', page());
+		await window.refresh();
+		const option = {
+			versionId: 'version',
+			originId: 'origin',
+			name: 'Draw',
+			historical: false,
+			meaning: 'Saved meaning',
+			version: 1,
+			count: 1
+		};
+		const body = deferred<DeckLibraryCategories>();
+		const request = window.read(
+			(signal, current) =>
+				readDeckLibraryJSON<DeckLibraryCategories>(
+					'/options',
+					signal,
+					current,
+					() => {},
+					async () => {
+						const response = new Response(null, { status: 200 });
+						vi.spyOn(response, 'json').mockImplementation(() => body.promise);
+						return response;
+					}
+				),
+			new AbortController().signal
+		);
+		await settle();
+		expect(window.metrics().requests).toBe(1);
+		body.resolve({
+			query,
+			queryKey: deckLibraryQueryKey(query),
+			revision: '2',
+			offset: 0,
+			limit: 200,
+			total: 1,
+			items: [],
+			selected: [{ ...option, count: 7 }]
+		});
+		const fresh = await request;
+		expect(fresh?.revision).toBe('2');
+		expect(mergeDeckLibraryCategories(fresh!, [option], ['version'])[0].count).toBe(7);
+		expect(window.metrics().requests).toBe(0);
+	});
+	it('uses fresh SSE option counts over retained same-version labels and keeps only absent selected choices', () => {
+		const option = {
+			versionId: 'version',
+			originId: 'origin',
+			name: 'Draw',
+			historical: false,
+			meaning: 'Saved meaning',
+			version: 1,
+			count: 1
+		};
+		const fresh = {
+			query,
+			queryKey: deckLibraryQueryKey(query),
+			revision: '2',
+			offset: 0,
+			limit: 200,
+			total: 2,
+			items: [{ ...option, count: 7 }],
+			selected: [{ ...option, count: 7 }]
+		};
+		const absent = { ...option, versionId: 'historical', count: 3 };
+		expect(
+			mergeDeckLibraryCategories(
+				fresh,
+				[option, absent, { ...option, versionId: 'unselected' }],
+				['version', 'historical']
+			)
+		).toEqual([{ ...option, count: 7 }, absent]);
 	});
 });
