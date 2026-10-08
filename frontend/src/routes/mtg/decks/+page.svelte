@@ -514,6 +514,7 @@
 		const categoryOrders = new Map<string, number>();
 		const labels = new Map<string, string>();
 		for (const card of visibleCards) {
+			const decision = entryCategories?.decisions.find((c) => c.entryId === card.id);
 			const types = savedDecks.deckDocuments[card.catalogCardId]?.card_types ?? [];
 			const type = [
 				'Land',
@@ -528,29 +529,20 @@
 			const label =
 				card.role === 'main' && groupBy === 'category'
 					? entryCategories
-						? categoryGroupLabel(
-								entryCategories,
-								entryCategories.decisions.find((c) => c.entryId === card.id)
-							)
+						? categoryGroupLabel(entryCategories, decision)
 						: 'Uncategorized'
 					: card.role === 'main' && groupBy === 'type' && type
 						? type
 						: (roles.find((role) => role.value === card.role)?.label ?? card.role);
 			const key =
 				entryCategories && card.role === 'main' && groupBy === 'category'
-					? categoryGroupIdentity(
-							entryCategories,
-							entryCategories.decisions.find((c) => c.entryId === card.id)
-						)
+					? categoryGroupIdentity(entryCategories, decision)
 					: label;
 			labels.set(key, label);
 			if (entryCategories && card.role === 'main' && groupBy === 'category')
 				categoryOrders.set(
 					key,
-					categoryDecisionPresentation(
-						entryCategories,
-						entryCategories.decisions.find((c) => c.entryId === card.id)
-					).displayOrder
+					categoryDecisionPresentation(entryCategories, decision).displayOrder
 				);
 			grouped.set(key, [...(grouped.get(key) ?? []), card]);
 		}
