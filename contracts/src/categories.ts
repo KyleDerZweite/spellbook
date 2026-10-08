@@ -1,127 +1,121 @@
-import type { AuthUser } from "./auth.ts";
-import type { EntryRule, DefinitionVersion } from "./category-library.ts";
+import type { AuthUser } from './auth.ts';
+import type { EntryRule, DefinitionVersion } from './category-library.ts';
 export type StarterOrigin =
-  | "lands"
-  | "board-wipes"
-  | "counterspells"
-  | "removal"
-  | "ramp"
-  | "draw"
-  | "protection"
-  | "recursion";
+	| 'lands'
+	| 'board-wipes'
+	| 'counterspells'
+	| 'removal'
+	| 'ramp'
+	| 'draw'
+	| 'protection'
+	| 'recursion';
 export type EntryDefinition = {
-  id: string;
-  origin: StarterOrigin | "custom";
-  originId?: string;
-  definitionVersionId?: string;
-  meaning?: string;
-  rule?: EntryRule;
-  automaticEligible?: boolean;
-  definitionSnapshot?: DefinitionVersion;
-  name: string;
-  version: number;
-  policyVersion: number;
-  mappingVersion: number;
-  priority: number;
-  displayOrder: number;
-  rootId: string | null;
-  descendants: boolean;
-  excludeLand: boolean;
+	id: string;
+	origin: StarterOrigin | 'custom';
+	originId?: string;
+	definitionVersionId?: string;
+	meaning?: string;
+	rule?: EntryRule;
+	automaticEligible?: boolean;
+	definitionSnapshot?: DefinitionVersion;
+	name: string;
+	version: number;
+	policyVersion: number;
+	mappingVersion: number;
+	priority: number;
+	displayOrder: number;
+	rootId: string | null;
+	descendants: boolean;
+	excludeLand: boolean;
 };
 export type PredicateEvidence = {
-  origin: StarterOrigin | "custom";
-  definitionId?: string;
-  definitionName?: string;
-  definitionVersion?: number;
-  result: "True" | "False" | "Unknown";
-  matchedTagIds: string[];
+	origin: StarterOrigin | 'custom';
+	definitionId?: string;
+	definitionName?: string;
+	definitionVersion?: number;
+	result: 'True' | 'False' | 'Unknown';
+	matchedTagIds: string[];
 };
 export type CategoryEvidence = {
-  combo?: import("./combo.ts").ComboEvidence;
-  predicates: PredicateEvidence[];
-  catalogGenerationId: string | null;
-  oraclePublicationId: string | null;
-  sourceTime: string | null;
-  payloadDigest: string | null;
-  parserVersion: number | null;
-  printingId: string;
-  rawOracleId: string | null;
-  types: string[] | null;
-  transformVersion: number | null;
+	combo?: import('./combo.ts').ComboEvidence;
+	predicates: PredicateEvidence[];
+	catalogGenerationId: string | null;
+	oraclePublicationId: string | null;
+	sourceTime: string | null;
+	payloadDigest: string | null;
+	parserVersion: number | null;
+	printingId: string;
+	rawOracleId: string | null;
+	types: string[] | null;
+	transformVersion: number | null;
 };
 export type EntryCategoryDecision = {
-  entryId: string;
-  categoryId: string | null;
-  state: "Automatic" | "Manual" | "Pending";
-  revision: string;
-  evidence: CategoryEvidence | null;
-  definitionSnapshot?: DefinitionVersion | EntryDefinition | null;
-  previousEvaluation?: CategoryEvidence | null;
+	entryId: string;
+	categoryId: string | null;
+	state: 'Automatic' | 'Manual' | 'Pending';
+	revision: string;
+	evidence: CategoryEvidence | null;
+	definitionSnapshot?: DefinitionVersion | EntryDefinition | null;
+	previousEvaluation?: CategoryEvidence | null;
 };
 export type DeckEntryCategories = {
-  deckId: string;
-  initialized: boolean;
-  decisionRevision: string;
-  definitions: EntryDefinition[];
-  libraryRevision?: string;
-  wholeDeckDefinitions?: DefinitionVersion[];
-  suppressedOrigins?: { originId: string; name: string }[];
-  decisions: EntryCategoryDecision[];
-  sourceStatus: {
-    kind: "NeverAttempted" | "Succeeded" | "Failed";
-    sourceTime: string | null;
-  };
+	deckId: string;
+	initialized: boolean;
+	decisionRevision: string;
+	definitions: EntryDefinition[];
+	libraryRevision?: string;
+	wholeDeckDefinitions?: DefinitionVersion[];
+	suppressedOrigins?: { originId: string; name: string }[];
+	decisions: EntryCategoryDecision[];
+	sourceStatus: {
+		kind: 'NeverAttempted' | 'Succeeded' | 'Failed';
+		sourceTime: string | null;
+	};
 };
 export type CategoryAcknowledgement = {
-  requestId: string;
-  deckId: string;
-  decisionRevision: string;
-  entryIds: string[];
+	requestId: string;
+	deckId: string;
+	decisionRevision: string;
+	entryIds: string[];
 };
 export type CategoryMergeInput = {
-  deckId: string;
-  entryId: string;
-  catalogCardId: string;
-  role: "main" | "sideboard" | "commander" | "companion";
-  quantity: number;
+	deckId: string;
+	entryId: string;
+	catalogCardId: string;
+	role: 'main' | 'sideboard' | 'commander' | 'companion';
+	quantity: number;
 };
 export type CategoryMergePreview = {
-  required: boolean;
-  token: string;
-  source: EntryCategoryDecision | null;
-  destination: EntryCategoryDecision | null;
-  destinationEntryId: string | null;
-  resultingQuantity: number;
-  compositionRevision: string;
-  decisionRevision: string;
-  sourceTokens: {
-    catalogGenerationId: string | null;
-    oraclePublicationId: string | null;
-    policy: string;
-    combo?: import("./combo.ts").ComboSourceToken;
-  };
+	required: boolean;
+	token: string;
+	source: EntryCategoryDecision | null;
+	destination: EntryCategoryDecision | null;
+	destinationEntryId: string | null;
+	resultingQuantity: number;
+	compositionRevision: string;
+	decisionRevision: string;
+	sourceTokens: {
+		catalogGenerationId: string | null;
+		oraclePublicationId: string | null;
+		policy: string;
+		combo?: import('./combo.ts').ComboSourceToken;
+	};
 };
 export interface CategoriesApplication {
-  previewEntryMerge(
-    actor: AuthUser,
-    input: CategoryMergeInput,
-  ): Promise<CategoryMergePreview>;
-  getDeckEntryCategories(
-    actor: AuthUser,
-    deckId: string,
-  ): Promise<DeckEntryCategories>;
-  initializeDeckCategories(
-    actor: AuthUser,
-    input: { deckId: string; requestId: string },
-  ): Promise<CategoryAcknowledgement>;
-  setEntryCategory(
-    actor: AuthUser,
-    input: {
-      deckId: string;
-      entryId: string;
-      categoryId: string | null;
-      expectedDecisionRevision: string;
-      requestId: string;
-    },
-  ): Promise<CategoryAcknowledgement>;
+	previewEntryMerge(actor: AuthUser, input: CategoryMergeInput): Promise<CategoryMergePreview>;
+	getDeckEntryCategories(actor: AuthUser, deckId: string): Promise<DeckEntryCategories>;
+	initializeDeckCategories(
+		actor: AuthUser,
+		input: { deckId: string; requestId: string }
+	): Promise<CategoryAcknowledgement>;
+	setEntryCategory(
+		actor: AuthUser,
+		input: {
+			deckId: string;
+			entryId: string;
+			categoryId: string | null;
+			expectedDecisionRevision: string;
+			requestId: string;
+		}
+	): Promise<CategoryAcknowledgement>;
 }
