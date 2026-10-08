@@ -10,7 +10,7 @@
 
 ## Context
 
-The starter entry-category and Oracle Tags portion is implemented. Account customization and entry Review/Reset are implemented. Whole-deck evaluation and local combos remain accepted later work. [Category rules](../architecture/category-rules.md#implemented-starter-entry-decisions) owns current component responsibilities and evidence.
+The starter entry-category and Oracle Tags portion is implemented. Account customization, scoped Review/Reset and whole-deck evaluation are implemented. The optional local combo adapter remains accepted later work. [Category rules](../architecture/category-rules.md#implemented-starter-entry-decisions) owns current component responsibilities and evidence.
 
 Reusable meanings must not silently reorganize older decks or erase manual choices. The Jev prototype did not establish dependable combo recognition or arbitrary custom semantics. Generic traits cannot alone establish a whole deck strategy.
 

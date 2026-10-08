@@ -48,7 +48,7 @@ Selected-Deck reporting estimates the reference value of all required cards and 
 
 Sources/Rules categories, reusable definitions, manual overrides, Review/Reset and the later separate app keep their existing scope. [Card grouping](./card-grouping.md) and [the application contract](../architecture/application-contract.md) remain their owners.
 
-The former Costs slice 12 remains excluded. Personal history and account/selected-Deck estimates are implemented. Account category rules, whole-deck categories and combos remain later work. Automated tests do not establish owner acceptance, deployment, a real midnight observation or live provider refresh. The normal development launcher does not publish price sources automatically. Operator refresh and owner verification remain tracked with [integration acceptance](https://github.com/KyleDerZweite/spellbook/issues/192).
+The former Costs slice 12 remains excluded. Personal history and account/selected-Deck estimates are implemented. Automated tests do not establish owner acceptance, deployment, a real midnight observation or live provider refresh. The normal development launcher does not publish price sources automatically. Operator refresh and owner verification remain tracked with [integration acceptance](https://github.com/KyleDerZweite/spellbook/issues/192).
 
 ## Current reference presentation
 
