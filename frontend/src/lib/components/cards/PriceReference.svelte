@@ -34,6 +34,13 @@
 			selectedPrinting = printingId,
 			account = page.data.user?.accountId;
 		if (!selectedEntry || !account) return;
+		void inventoryPriceRefreshKey;
+		void retry;
+		reference = null;
+		quantity = 1;
+		health = [];
+		loading = true;
+		readError = '';
 		const subscription = workspaceSavedState.subscribe({
 			topics: ['values'],
 			clear: () => {
@@ -45,7 +52,7 @@
 				requestGeneration++;
 			},
 			refresh: async (lease) => {
-				const generation = requestGeneration;
+				const generation = ++requestGeneration;
 				const current = () =>
 					lease.current() &&
 					generation === requestGeneration &&
@@ -75,6 +82,7 @@
 				} catch (cause) {
 					if (current()) {
 						reference = null;
+						loading = false;
 						readError =
 							cause instanceof Error ? cause.message : 'Reference prices could not be loaded.';
 					}
@@ -82,7 +90,10 @@
 				}
 			}
 		});
-		return () => subscription.dispose();
+		return () => {
+			subscription.dispose();
+			requestGeneration++;
+		};
 	});
 	const copyLabel = $derived(quantity === 1 ? 'copy' : 'copies');
 	const reasons: Record<string, string> = {
@@ -100,7 +111,7 @@
 			selectedEntry = entryId,
 			selectedFinish = finish,
 			selectedAccount = page.data.user?.accountId;
-		if (selectedEntry) void inventoryPriceRefreshKey;
+		if (selectedEntry) return;
 		void retry;
 		const controller = new AbortController();
 		const generation = ++requestGeneration;

@@ -26,11 +26,16 @@
 		return boundaryTimer.cancel;
 	});
 
+	let serverScope = untrack(() => `${data.user?.accountId ?? ''}:${page.url.search}`);
 	$effect(() => {
+		const scope = `${data.user?.accountId ?? ''}:${page.url.search}`;
 		data;
 		untrack(() => {
-			history = data.history;
-			historyError = data.historyError;
+			if (scope !== serverScope) {
+				serverScope = scope;
+				history = data.history;
+				historyError = data.historyError;
+			}
 			subscription?.invalidate();
 		});
 	});
