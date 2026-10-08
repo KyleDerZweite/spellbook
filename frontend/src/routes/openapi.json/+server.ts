@@ -972,6 +972,35 @@ const SCHEMA = {
 				categoryStrict({ requestId: categoryUuid, expectedDecisionRevision: inventoryRevision })
 			)
 		},
+		'/api/mobile/v1/mtg/category-rule-choices': {
+			get: {
+				...categoryLibraryOperation(
+					'Search bounded source choices and look up selected identities',
+					ref('CategoryRuleChoices')
+				),
+				parameters: [
+					...['tagQuery', 'cardQuery', 'outcomeQuery'].map((name) => ({
+						name,
+						in: 'query',
+						schema: { type: 'string', maxLength: 200 }
+					})),
+					...['tagId', 'oracleId', 'outcomeId'].map((name) => ({
+						name,
+						in: 'query',
+						style: 'form',
+						explode: true,
+						schema: {
+							type: 'array',
+							maxItems: 100,
+							items:
+								name === 'outcomeId'
+									? { type: 'string', pattern: '^[1-9][0-9]{0,19}$' }
+									: categoryUuid
+						}
+					}))
+				]
+			}
+		},
 		'/api/mobile/v1/mtg/category-definitions': {
 			get: {
 				...categoryLibraryOperation(
@@ -2679,6 +2708,46 @@ const SCHEMA = {
 				archived: { type: 'boolean' },
 				current: ref('DefinitionVersion')
 			}),
+			ComboSource: object({
+				enabled: { type: 'boolean' },
+				publicationId: nullable('ComboPublicationId'),
+				policyVersion: { const: 'ingredients-v1' },
+				availability: { enum: ['Disabled', 'Unavailable', 'Available'] },
+				refreshStatus: object(
+					{
+						kind: { enum: ['NeverAttempted', 'Succeeded', 'Failed'] },
+						attemptedAt: string,
+						error: string
+					},
+					['kind']
+				),
+				sourceTime: { type: ['string', 'null'], format: 'date-time' },
+				sourceVersion: { type: ['string', 'null'] },
+				payloadDigest: { type: ['string', 'null'] },
+				decodedDigest: { type: ['string', 'null'] },
+				parserVersion: { type: ['integer', 'null'] }
+			}),
+			ComboPublicationId: categoryUuid,
+			CategoryRuleChoices: object(
+				{
+					tags: { type: 'array', maxItems: 100, items: object({ id: categoryUuid, name: string }) },
+					cards: {
+						type: 'array',
+						maxItems: 100,
+						items: object({ oracleId: categoryUuid, name: string })
+					},
+					combo: object({
+						source: ref('ComboSource'),
+						outcomes: { type: 'array', maxItems: 50, items: object({ id: string, name: string }) },
+						selectedOutcomes: {
+							type: 'array',
+							maxItems: 100,
+							items: object({ id: string, name: string })
+						}
+					})
+				},
+				['tags', 'cards']
+			),
 			CategoryLibraryPage: object({
 				revision: inventoryRevision,
 				total: { type: 'integer', minimum: 0 },

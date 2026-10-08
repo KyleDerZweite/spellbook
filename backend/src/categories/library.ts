@@ -265,7 +265,7 @@ export function createCategoryLibrary(
             source.availability === "Available" && outcomeIds.length
               ? (
                   await tx.execute(
-                    sql`SELECT id,name FROM combo_outcomes WHERE publication_id=${source.publicationId}::uuid AND id=ANY(${outcomeIds}::text[]) ORDER BY name,id`,
+                    sql`SELECT id,name FROM combo_outcomes WHERE publication_id=${source.publicationId}::uuid AND id=ANY(${"{" + outcomeIds.join(",") + "}"}::text[]) ORDER BY name,id`,
                   )
                 ).rows
               : [];
