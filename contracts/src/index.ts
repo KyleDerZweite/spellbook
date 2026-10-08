@@ -11,3 +11,4 @@ export type * from './categories.ts';
 export type * from './category-library.ts';
 export type * from './scan.ts';
 export type * from './inventory-value.ts';
+export type * from './deck-library.ts';

@@ -1,3 +1,11 @@
+import type {
+	DeckLibraryInput,
+	DeckLibraryPage,
+	DeckLibraryCategoryInput,
+	DeckLibraryCategories,
+	DeckLibraryLocation,
+	SelectedDeck
+} from './deck-library.ts';
 import type { DeckValueEstimates } from './inventory-value.ts';
 import type { AuthUser } from './auth.ts';
 import type { CardDocument, SearchResult } from './catalog.ts';
@@ -147,6 +155,17 @@ export interface ImportPreview {
 	warnings: LegalityWarning[];
 }
 export interface DecksApplication {
+	getDeck(actor: AuthUser, deckId: string): Promise<SelectedDeck>;
+	getDeckLibrary(actor: AuthUser, input?: DeckLibraryInput): Promise<DeckLibraryPage>;
+	getDeckLibraryCategories(
+		actor: AuthUser,
+		input?: DeckLibraryCategoryInput
+	): Promise<DeckLibraryCategories>;
+	locateDeck(
+		actor: AuthUser,
+		deckId: string,
+		input?: DeckLibraryInput
+	): Promise<DeckLibraryLocation>;
 	importTextDeck(
 		actor: AuthUser,
 		input: {

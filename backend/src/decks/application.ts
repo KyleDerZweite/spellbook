@@ -1,5 +1,14 @@
 import { advanceDeckLibraryRevision } from './directory-revision.ts';
 import { queueWholeDeckEvaluation } from '../categories/jobs.ts';
+import {
+	readDeckLibrary,
+	readDeckLibraryCategories,
+	locateDeck as locateDeckInLibrary
+} from './library.ts';
+import type {
+	DeckLibraryInput,
+	DeckLibraryCategoryInput
+} from '@spellbook/contracts/deck-library.ts';
 import { createValuation, PriceReadUnavailable } from '../valuation/read.ts';
 import { deckValueEstimates } from './value.ts';
 import type { DeckSnapshot } from '@spellbook/contracts/decks.ts';
@@ -229,10 +238,11 @@ export function createDecks(
 			quantity: aggregateQuantity(row.quantity)
 		}));
 	}
-	async function getDeckSnapshot(
+	async function readDeckState(
 		accountId: string,
 		requestedGame = 'mtg',
-		selectedDeckId: string | null = null
+		selectedDeckId: string | null = null,
+		independent = false
 	) {
 		game(requestedGame);
 		return db.transaction(
@@ -244,7 +254,13 @@ export function createDecks(
 				const userDecks = await tx
 					.select()
 					.from(decks)
-					.where(and(eq(decks.accountId, accountId), eq(decks.game, requestedGame)))
+					.where(
+						and(
+							eq(decks.accountId, accountId),
+							eq(decks.game, requestedGame),
+							independent && selectedDeckId ? eq(decks.id, selectedDeckId) : undefined
+						)
+					)
 					.orderBy(desc(decks.updatedAt), asc(decks.name));
 				if (selectedDeckId && !userDecks.some((d) => d.id === selectedDeckId))
 					throw new DeckNotFoundError();
@@ -260,7 +276,8 @@ export function createDecks(
 						and(
 							eq(deckCards.accountId, accountId),
 							eq(decks.accountId, accountId),
-							eq(deckCards.game, 'mtg')
+							eq(deckCards.game, 'mtg'),
+							independent && selectedDeckId ? eq(deckCards.deckId, selectedDeckId) : undefined
 						)
 					)
 					.groupBy(deckCards.deckId);
@@ -308,8 +325,15 @@ export function createDecks(
 			{ isolationLevel: 'repeatable read', accessMode: 'read only' }
 		);
 	}
+	async function getDeckSnapshot(
+		accountId: string,
+		requestedGame = 'mtg',
+		selectedDeckId: string | null = null
+	) {
+		return readDeckState(accountId, requestedGame, selectedDeckId);
+	}
 	async function availability(accountId: string, deckId: string) {
-		const snapshot = await getDeckSnapshot(accountId, 'mtg', deckId);
+		const snapshot = await readDeckState(accountId, 'mtg', deckId, true);
 		const entries = snapshot.deckCards.map((c) => ({
 			entryId: c.id,
 			required: c.quantity,
@@ -1086,6 +1110,19 @@ export function createDecks(
 	}
 	return {
 		getDeckSnapshot: readWithActor(getDeckSnapshot),
+		getDeck: readWithActor(async (accountId: string, deckId: string) =>
+			readDeckState(accountId, 'mtg', assertUuid(deckId, 'deckId'), true)
+		),
+		getDeckLibrary: readWithActor((accountId: string, input: DeckLibraryInput = {}) =>
+			readDeckLibrary(db, accountId, input)
+		),
+		getDeckLibraryCategories: readWithActor(
+			(accountId: string, input: DeckLibraryCategoryInput = {}) =>
+				readDeckLibraryCategories(db, accountId, input)
+		),
+		locateDeck: readWithActor((accountId: string, deckId: string, input: DeckLibraryInput = {}) =>
+			locateDeckInLibrary(db, accountId, deckId, input)
+		),
 		getDeckCardsForDeck: readWithActor(getDeckCardsForDeck),
 		availability: readWithActor(availability),
 		ownership: readWithActor(ownership),
