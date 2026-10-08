@@ -7,7 +7,9 @@ import {
 	readDeckLibraryJSON,
 	mergeDeckLibraryCategories,
 	deckLibraryTiles,
-	deckLibraryMeasurement
+	deckLibraryMeasurement,
+	DeckLibraryLocateAttempts,
+	deckLibraryTilePosition
 } from '../../src/lib/decks/library-window.ts';
 import {
 	normalizeDeckLibraryQuery,
@@ -555,5 +557,106 @@ describe('Deck Library keyboard focus identity', () => {
 			['deck-0', 280],
 			['deck-1', 410]
 		]);
+	});
+});
+
+describe('Deck Library failed location admission', () => {
+	it.each(['focus', 'anchor'] as const)(
+		'bounds %s relocation through deferred failure and scheduler notifications',
+		async (role) => {
+			const attempts = new DeckLibraryLocateAttempts(),
+				response = deferred<Response>();
+			const fetcher = vi
+				.fn<typeof fetch>()
+				.mockImplementationOnce(() => response.promise)
+				.mockResolvedValue(
+					new Response(JSON.stringify({ message: 'Location unavailable' }), { status: 503 })
+				);
+			let enabled = false;
+			const key = JSON.stringify(['account', query, '2', 'deck-0']);
+			const locate = vi.fn(() =>
+				window.locateAndLoad(
+					'deck-0',
+					async (_query, _id, _revision, signal, current) =>
+						readDeckLibraryJSON('/locate', signal, current, vi.fn(), fetcher),
+					new AbortController().signal
+				)
+			);
+			const window = new DeckLibraryWindow(
+				async () => page(400, 1000, '2'),
+				() => {
+					if (enabled) void Promise.resolve().then(() => attempts.run(role, key, locate));
+				}
+			);
+			window.seed('account', page(400, 1000, '2'));
+			const retained = { index: 0, item: page().items[0] };
+			window.retain(retained.item);
+			enabled = true;
+			const pending = attempts.run(role, key, locate);
+			await settle();
+			for (let i = 0; i < 20; i++) {
+				attempts.retry(); // Cannot free a physically pending attempt.
+				expect(await attempts.run(role, key, locate)).toEqual({ kind: 'Skipped' });
+			}
+			expect(fetcher).toHaveBeenCalledTimes(1);
+			expect(window.metrics().requests).toBe(1);
+			response.resolve(
+				new Response(JSON.stringify({ message: 'Location unavailable' }), { status: 503 })
+			);
+			expect(await pending).toMatchObject({
+				kind: 'Failed',
+				cause: new Error('Location unavailable')
+			});
+			await settle();
+			for (let i = 0; i < 20; i++)
+				expect(await attempts.run(role, key, locate)).toEqual({ kind: 'Skipped' });
+			expect(fetcher).toHaveBeenCalledTimes(1);
+			expect(window.metrics().requests).toBe(0);
+			expect(deckLibraryTiles([400], (index) => window.at(index), retained).at(-1)?.key).toBe(
+				'deck:deck-0'
+			);
+			attempts.retry();
+			expect(await attempts.run(role, key, locate)).toMatchObject({ kind: 'Failed' });
+			await settle();
+			expect(fetcher).toHaveBeenCalledTimes(2);
+			expect(await attempts.run(role, key, locate)).toEqual({ kind: 'Skipped' });
+			enabled = false;
+			expect(
+				await attempts.run(
+					role,
+					JSON.stringify(['account', query, '3', 'deck-0']),
+					async () => 'new revision'
+				)
+			).toEqual({ kind: 'Resolved', value: 'new revision' });
+		}
+	);
+	it('shares one failed Deck identity across focus and viewport-anchor reads', async () => {
+		const attempts = new DeckLibraryLocateAttempts();
+		const operation = vi.fn(async () => {
+			throw new Error('503');
+		});
+		expect(await attempts.run('focus', 'account/query/revision/deck', operation)).toMatchObject({
+			kind: 'Failed'
+		});
+		expect(await attempts.run('anchor', 'account/query/revision/deck', operation)).toEqual({
+			kind: 'Skipped'
+		});
+		expect(operation).toHaveBeenCalledTimes(1);
+		attempts.retry();
+		expect(await attempts.run('anchor', 'account/query/revision/deck', operation)).toMatchObject({
+			kind: 'Failed'
+		});
+		expect(operation).toHaveBeenCalledTimes(2);
+	});
+	it('places retained focus outside a later span offscreen instead of over a fresh slot', () => {
+		const span = { start: 400, end: 600 };
+		const geometry = deckLibraryGeometry(span, 2, 300, new Map(), () => undefined);
+		const retained = deckLibraryTilePosition(0, span, 2, geometry.base, geometry.offsets, 180);
+		const fresh = deckLibraryTilePosition(400, span, 2, geometry.base, geometry.offsets, 180);
+		expect(retained).toEqual({ top: 0, left: -10000, offscreen: true });
+		expect(fresh).toEqual({ top: 0, left: 0, offscreen: false });
+		expect(
+			deckLibraryTilePosition(900, span, 2, geometry.base, geometry.offsets, 180).offscreen
+		).toBe(true);
 	});
 });

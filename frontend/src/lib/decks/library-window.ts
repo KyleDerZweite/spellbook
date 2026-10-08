@@ -649,3 +649,55 @@ export function deckLibraryMeasurement(
 		measure: (height: number) => record(current.id, height)
 	};
 }
+
+/** Scheduler notifications cannot retry settled or physically pending location reads. */
+export class DeckLibraryLocateAttempts {
+	private attempts = new Map<'focus' | 'anchor', { key: string; pending: boolean }>();
+	async run<T>(
+		role: 'focus' | 'anchor',
+		key: string,
+		operation: () => Promise<T>
+	): Promise<
+		{ kind: 'Skipped' } | { kind: 'Resolved'; value: T } | { kind: 'Failed'; cause: unknown }
+	> {
+		const previous = this.attempts.get(role);
+		if (previous?.pending) return { kind: 'Skipped' };
+		const shared = [...this.attempts.values()].find((attempt) => attempt.key === key);
+		if (shared) {
+			this.attempts.set(role, shared);
+			return { kind: 'Skipped' };
+		}
+		const attempt = { key, pending: true };
+		this.attempts.set(role, attempt);
+		try {
+			return { kind: 'Resolved', value: await operation() };
+		} catch (cause) {
+			return { kind: 'Failed', cause };
+		} finally {
+			attempt.pending = false;
+		}
+	}
+	clear() {
+		this.attempts.clear();
+	}
+	retry() {
+		for (const [role, attempt] of this.attempts) if (!attempt.pending) this.attempts.delete(role);
+	}
+}
+
+export function deckLibraryTilePosition(
+	index: number,
+	span: LoadedSpan,
+	columns: number,
+	base: number,
+	offsets: number[],
+	width: number
+) {
+	const top = offsets[Math.floor(index / columns) - base];
+	const offscreen = index < span.start || index >= span.end || top === undefined;
+	return {
+		top: offscreen ? 0 : top,
+		left: offscreen ? -10000 : (index % columns) * (width + 24),
+		offscreen
+	};
+}

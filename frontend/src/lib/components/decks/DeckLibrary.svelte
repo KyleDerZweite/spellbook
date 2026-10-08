@@ -16,7 +16,9 @@
 		readDeckLibraryJSON,
 		mergeDeckLibraryCategories,
 		deckLibraryTiles,
-		deckLibraryMeasurement
+		deckLibraryMeasurement,
+		DeckLibraryLocateAttempts,
+		deckLibraryTilePosition
 	} from '#lib/decks/library-window.ts';
 	import {
 		measureBrowseViewport,
@@ -59,6 +61,8 @@
 		account: string;
 	} | null = null;
 	let positionError = $state('');
+	let focusError = $state('');
+	const locateAttempts = new DeckLibraryLocateAttempts();
 	let layingOut = false,
 		layoutPending = false;
 	let measuredOrigin: number | undefined;
@@ -148,6 +152,12 @@
 			owns
 		);
 	}
+	function retryPosition() {
+		locateAttempts.retry();
+		focusError = '';
+		positionError = '';
+		schedule();
+	}
 	async function reconcileFocus() {
 		const retained = focused;
 		if (!retained) return;
@@ -161,7 +171,29 @@
 			focused?.item.id === retained.item.id;
 		let fresh = library.loaded().find(({ item }) => item.id === retained.item.id);
 		if (!fresh && retained.revision !== library.current?.revision) {
-			const location = await locate(retained.item.id, owns);
+			const attemptedRevision = library.current?.revision,
+				attemptedIdentity = library.identity;
+			const result = await locateAttempts.run(
+				'focus',
+				JSON.stringify([account, queryKey, attemptedRevision, retained.item.id]),
+				() => locate(retained.item.id, owns)
+			);
+			if (!owns()) return;
+			if (result.kind === 'Skipped') return;
+			if (result.kind === 'Failed') {
+				if (
+					library.current?.revision !== attemptedRevision ||
+					library.identity !== attemptedIdentity
+				)
+					return;
+				focusError =
+					result.cause instanceof Error
+						? result.cause.message
+						: 'Focused Deck position could not be restored.';
+				return;
+			}
+			const location = result.value;
+			focusError = '';
 			if (!location || !owns() || location.identity !== library.identity) return;
 			fresh =
 				location.index === null
@@ -174,6 +206,7 @@
 			}
 		}
 		if (fresh && owns()) {
+			focusError = '';
 			focused = { ...fresh, revision: library.current!.revision };
 			library.retain(fresh.item);
 		}
@@ -190,6 +223,7 @@
 			positioned = false;
 			anchor = null;
 			positionError = '';
+			focusError = '';
 			heights.clear();
 			library.seed(account, seed);
 			categoryPage = categories;
@@ -281,8 +315,42 @@
 					anchor = null;
 					return;
 				}
-				if (captured.deckId && captured.revision !== library.current?.revision) {
-					const located = await locate(captured.deckId, owns);
+				const residentAnchor = captured.deckId
+					? library.loaded().find(({ item }) => item.id === captured.deckId)
+					: undefined;
+				if (residentAnchor) {
+					index = residentAnchor.index;
+				} else if (captured.deckId && captured.revision !== library.current?.revision) {
+					const attemptedRevision = library.current?.revision,
+						attemptedIdentity = library.identity;
+					const result = await locateAttempts.run(
+						'anchor',
+						JSON.stringify([
+							captured.account,
+							captured.queryKey,
+							attemptedRevision,
+							captured.deckId
+						]),
+						() => locate(captured.deckId!, owns)
+					);
+					if (!owns()) {
+						anchor = null;
+						return;
+					}
+					if (result.kind === 'Skipped') return;
+					if (result.kind === 'Failed') {
+						if (
+							library.current?.revision !== attemptedRevision ||
+							library.identity !== attemptedIdentity
+						)
+							return;
+						positionError =
+							result.cause instanceof Error
+								? result.cause.message
+								: 'Saved Deck position could not be restored.';
+						return;
+					}
+					const located = result.value;
 					if (!located || !owns() || located.identity !== library.identity) {
 						anchor = null;
 						return;
@@ -381,7 +449,10 @@
 				schedule();
 			}
 		});
-		const read = () => measurement.measure(node.getBoundingClientRect().height);
+		const read = () => {
+			if (!node.classList.contains('retained-outside'))
+				measurement.measure(node.getBoundingClientRect().height);
+		};
 		const observer = new ResizeObserver(read);
 		observer.observe(node);
 		return {
@@ -480,6 +551,8 @@
 				categorySelection = [];
 				categoryError = '';
 				positionError = '';
+				focusError = '';
+				locateAttempts.clear();
 				focused = null;
 				heights.clear();
 			},
@@ -568,20 +641,30 @@
 					>{/if}{/if}
 		</div>{/if}
 	{#if categoryError}<p role="alert">{categoryError}</p>{/if}
-	{#if positionError}<p role="alert">{positionError}</p>{/if}
+	{#if positionError || focusError}<p role="alert">
+			{focusError || positionError}
+			<Button class="directory-action" onclick={retryPosition}>Retry position</Button>
+		</p>{/if}
 	<p class="directory-total">{current.matchingTotal} of {current.globalTotal} decks</p>
 	{#if enhanced && library.error}<p role="alert">
 			{library.error}
 			<Button class="directory-action" onclick={() => library.retry()}>Retry</Button>
 		</p>{/if}
 	{#snippet tile(item: DeckLibraryItem, index: number, virtual = false)}
+		{@const position = deckLibraryTilePosition(
+			index,
+			span,
+			columns,
+			geometry.base,
+			geometry.offsets,
+			tileWidth
+		)}
 		<a
 			class="library-card"
 			class:virtual-tile={virtual}
-			style:top={virtual
-				? `${geometry.offsets[Math.floor(index / columns) - geometry.base] ?? 0}px`
-				: undefined}
-			style:left={virtual ? `${(index % columns) * (tileWidth + 24)}px` : undefined}
+			class:retained-outside={virtual && position.offscreen}
+			style:top={virtual ? `${position.top}px` : undefined}
+			style:left={virtual ? `${position.left}px` : undefined}
 			style:width={virtual ? `${tileWidth}px` : undefined}
 			href={href(item.id)}
 			data-library-id={item.id}
@@ -753,6 +836,12 @@
 	}
 	.virtual-tile {
 		position: absolute;
+	}
+	.virtual-tile.retained-outside {
+		width: 1px !important;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(100%);
 	}
 	.library-card strong,
 	.category-badges small {
