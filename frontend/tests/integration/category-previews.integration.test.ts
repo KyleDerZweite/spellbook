@@ -13,6 +13,7 @@ import {
 import type { AuthUser } from '@spellbook/contracts/auth.ts';
 import { describeCategoryConsequence } from '../../src/lib/categories/preview-label.ts';
 import type { SaveDefinitionInput } from '@spellbook/contracts/category-library.ts';
+import type { WholeCategoryAcknowledgement } from '@spellbook/contracts/whole-categories.ts';
 const run = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 run('server-owned Category Review, Reset and local decisions', () => {
 	let database: ReturnType<typeof createDatabase>,
@@ -359,19 +360,52 @@ run('server-owned Category Review, Reset and local decisions', () => {
 			lock.release();
 		}
 	});
-	it('returns Unsupported only for the unavailable whole-deck command engine', async () => {
-		const d = await deck();
+	it('reviews an empty whole-deck bundle with a scoped no-op acknowledgement and replayable receipt', async () => {
+		const d = await deck(),
+			beforeEntry = await categories.getDeckEntryCategories(actor, d.id),
+			beforeWhole = await categories.getDeckWholeCategories(actor, d.id);
+		const intent = {
+			requestId: randomUUID(),
+			deckId: d.id,
+			scope: 'deck' as const,
+			mode: 'Review' as const,
+			restoreOriginIds: []
+		};
+		const p = await categories.previewCategoryChange(actor, intent);
+		expect(p).toMatchObject({ scope: 'deck', status: 'Ready', total: 0, differences: [] });
+		expect(await categories.previewCategoryChange(actor, intent)).toEqual(p);
+		const requestId = randomUUID();
+		const committed = await categories.commitCategoryChange(actor, {
+			requestId,
+			previewId: p.id
+		});
+		if (!('scope' in committed)) throw new Error('Expected whole-deck acknowledgement');
+		const acknowledgement: WholeCategoryAcknowledgement = committed;
+		expect(acknowledgement).toEqual({
+			requestId,
+			deckId: d.id,
+			scope: 'deck',
+			decisionRevision: beforeWhole.decisionRevision,
+			versionIds: [],
+			changed: false
+		});
+		expect(await categories.getDeckEntryCategories(actor, d.id)).toEqual(beforeEntry);
+		expect(await categories.getDeckWholeCategories(actor, d.id)).toEqual(beforeWhole);
 		expect(
 			(
-				await categories.previewCategoryChange(actor, {
-					requestId: randomUUID(),
-					deckId: d.id,
-					scope: 'deck',
-					mode: 'Review',
-					restoreOriginIds: []
-				})
-			).status
-		).toBe('Unsupported');
+				await database.pool.query(
+					'SELECT acknowledgement FROM category_mutation_requests WHERE account_id=$1 AND request_id=$2',
+					[actor.accountId, requestId]
+				)
+			).rows[0].acknowledgement
+		).toEqual(acknowledgement);
+		expect(await categories.commitCategoryChange(actor, { requestId, previewId: p.id })).toEqual(
+			acknowledgement
+		);
+		expect(await categories.getCategoryPreview(actor, { previewId: p.id })).toMatchObject({
+			status: 'Committed',
+			acknowledgement
+		});
 	});
 	it('Review retains hidden-role Manual choices but entry Reset releases them without changing roles or initializing other hidden entries', async () => {
 		const first = await save(),

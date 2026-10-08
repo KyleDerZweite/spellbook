@@ -11,6 +11,7 @@ import type {
 	CategoryPreview
 } from '@spellbook/contracts/category-library.ts';
 import type { DeckEntryCategories } from '@spellbook/contracts/categories.ts';
+import type { WholeCategoryAcknowledgement } from '@spellbook/contracts/whole-categories.ts';
 const databaseUrl = process.env.TEST_DATABASE_URL;
 if (
 	!databaseUrl ||
@@ -752,7 +753,7 @@ test('built native Category Library and API preserve immutable adoption and comp
 		);
 
 		await t.test(
-			'HTTP errors are controlled; fifth preview does not evict, unsupported scope is explicit, and revocation blocks receipt replay',
+			'HTTP whole Review commits its scoped receipt before capacity checks and revocation blocks replay',
 			async () => {
 				const body = {
 					requestId: randomUUID(),
@@ -760,13 +761,35 @@ test('built native Category Library and API preserve immutable adoption and comp
 					mode: 'Review',
 					restoreOriginIds: []
 				};
-				const unsupported = await request(
+				const before = await state(a);
+				const reviewed = await request(
 					`/api/mobile/v1/mtg/decks/${a}/category-previews`,
 					'POST',
 					body
 				);
-				assert.equal(unsupported.status, 200);
-				assert.equal((await unsupported.json()).status, 'Unsupported');
+				assert.equal(reviewed.status, 200);
+				const wholePreview = (await reviewed.json()) as CategoryPreview;
+				assert.equal(wholePreview.scope, 'deck');
+				assert.equal(wholePreview.status, 'Ready');
+				assert.equal(wholePreview.total, 0);
+				assert.deepEqual(wholePreview.differences, []);
+				const commitPath = `/api/mobile/v1/mtg/category-previews/${wholePreview.id}/commit`,
+					commitInput = { requestId: randomUUID() };
+				const committed = await request(commitPath, 'POST', commitInput);
+				assert.equal(committed.status, 200);
+				const acknowledgement: WholeCategoryAcknowledgement = await committed.json();
+				assert.deepEqual(acknowledgement, {
+					requestId: commitInput.requestId,
+					deckId: a,
+					scope: 'deck',
+					decisionRevision: before.decisionRevision,
+					versionIds: [],
+					changed: false
+				});
+				const replay = await request(commitPath, 'POST', commitInput);
+				assert.equal(replay.status, 200);
+				assert.deepEqual(await replay.json(), acknowledgement);
+				assert.deepEqual(await state(a), before);
 				for (let i = 0; i < 4; i++)
 					assert.equal(
 						(
@@ -795,6 +818,7 @@ test('built native Category Library and API preserve immutable adoption and comp
 				);
 				const logout = await request('/api/auth/logout', 'POST');
 				assert.equal(logout.status, 204);
+				assert.equal((await request(commitPath, 'POST', commitInput)).status, 401);
 				assert.equal((await request('/api/mobile/v1/mtg/category-definitions')).status, 401);
 			}
 		);
