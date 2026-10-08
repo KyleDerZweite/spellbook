@@ -93,6 +93,7 @@ jobs:
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/spellbook_test
       TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/spellbook_test
+      TEST_SCAN_DATABASE_NAME: spellbook_test
       SCAN_WORKER_URL: http://127.0.0.1:5227
       SCAN_STORAGE_DRIVER: local
     steps:
