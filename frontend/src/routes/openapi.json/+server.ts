@@ -2426,20 +2426,37 @@ const SCHEMA = {
 				},
 				['op', 'truth']
 			),
-			WholeCategoryEvidence: object({
-				definitionVersionId: categoryUuid,
-				rule: ref('DeckRule'),
-				roles: { type: 'array', items: role },
-				compositionRevision: inventoryRevision,
-				attemptedTruth: { enum: ['True', 'False', 'Unknown'] },
-				bounds: ref('WholeRuleEvidence'),
-				catalogGenerationId: { anyOf: [categoryUuid, { type: 'null' }] },
-				oraclePublicationId: { anyOf: [categoryUuid, { type: 'null' }] },
-				sourceTime: { anyOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }] },
-				payloadDigest: { anyOf: [string, { type: 'null' }] },
-				parserVersion: { anyOf: [integer, { type: 'null' }] },
-				transformVersions: { type: 'array', items: integer }
-			}),
+			WholeCategoryEvidence: object(
+				{
+					combo: ref('ComboEvidence'),
+					definitionVersionId: categoryUuid,
+					rule: ref('DeckRule'),
+					roles: { type: 'array', items: role },
+					compositionRevision: inventoryRevision,
+					attemptedTruth: { enum: ['True', 'False', 'Unknown'] },
+					bounds: ref('WholeRuleEvidence'),
+					catalogGenerationId: { anyOf: [categoryUuid, { type: 'null' }] },
+					oraclePublicationId: { anyOf: [categoryUuid, { type: 'null' }] },
+					sourceTime: { anyOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }] },
+					payloadDigest: { anyOf: [string, { type: 'null' }] },
+					parserVersion: { anyOf: [integer, { type: 'null' }] },
+					transformVersions: { type: 'array', items: integer }
+				},
+				[
+					'definitionVersionId',
+					'rule',
+					'roles',
+					'compositionRevision',
+					'attemptedTruth',
+					'bounds',
+					'catalogGenerationId',
+					'oraclePublicationId',
+					'sourceTime',
+					'payloadDigest',
+					'parserVersion',
+					'transformVersions'
+				]
+			),
 			WholeCategoryDecision: object({
 				versionId: categoryUuid,
 				state: { enum: ['Automatic', 'Pending', 'Manual'] },
@@ -2727,6 +2744,63 @@ const SCHEMA = {
 				decodedDigest: { type: ['string', 'null'] },
 				parserVersion: { type: ['integer', 'null'] }
 			}),
+			ComboIngredient: object({
+				oracleId: { anyOf: [categoryUuid, { type: 'null' }] },
+				name: string,
+				quantity: string,
+				mustBeCommander: { type: 'boolean' },
+				zones: { type: 'array', items: string },
+				usedFace: { type: ['integer', 'null'] },
+				states: { type: 'object', additionalProperties: string }
+			}),
+			ComboTemplate: object({
+				id: string,
+				name: string,
+				query: { type: ['string', 'null'] },
+				quantity: string,
+				zones: { type: 'array', items: string },
+				states: { type: 'object', additionalProperties: string },
+				mustBeCommander: { type: 'boolean' },
+				usedFace: { type: ['integer', 'null'] }
+			}),
+			ComboProducedOutcome: object({
+				id: string,
+				name: string,
+				status: string,
+				uncountable: { type: 'boolean' },
+				quantity: string
+			}),
+			ComboVariant: object({
+				id: string,
+				status: string,
+				ingredients: array('ComboIngredient'),
+				outcomeIds: { type: 'array', items: string },
+				unsupportedReasons: { type: 'array', items: string },
+				mana: string,
+				prerequisites: string,
+				steps: string,
+				notes: string,
+				templates: array('ComboTemplate'),
+				producedOutcomes: array('ComboProducedOutcome')
+			}),
+			ComboProof: object({
+				variant: ref('ComboVariant'),
+				publicationId: categoryUuid,
+				outcomeId: string,
+				roles: { type: 'array', items: role },
+				policyVersion: { const: 'ingredients-v1' },
+				parserVersion: integer
+			}),
+			ComboEvaluationEvidence: object({
+				outcomeId: string,
+				roles: { type: 'array', items: role },
+				truth: { enum: ['True', 'False', 'Unknown'] },
+				proof: nullable('ComboProof')
+			}),
+			ComboEvidence: object({
+				source: ref('ComboSource'),
+				evaluations: array('ComboEvaluationEvidence')
+			}),
 			ComboPublicationId: categoryUuid,
 			CategoryRuleChoices: object(
 				{
@@ -2823,18 +2897,33 @@ const SCHEMA = {
 				result: { enum: ['True', 'False', 'Unknown'] },
 				matchedTagIds: { type: 'array', items: string }
 			}),
-			CategoryEvidence: object({
-				predicates: array('CategoryPredicateEvidence'),
-				catalogGenerationId: { anyOf: [string, { type: 'null' }] },
-				oraclePublicationId: { anyOf: [string, { type: 'null' }] },
-				sourceTime: { anyOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }] },
-				payloadDigest: { anyOf: [string, { type: 'null' }] },
-				parserVersion: { anyOf: [integer, { type: 'null' }] },
-				printingId: string,
-				rawOracleId: { anyOf: [string, { type: 'null' }] },
-				types: { anyOf: [{ type: 'array', items: string }, { type: 'null' }] },
-				transformVersion: { anyOf: [integer, { type: 'null' }] }
-			}),
+			CategoryEvidence: object(
+				{
+					combo: ref('ComboEvidence'),
+					predicates: array('CategoryPredicateEvidence'),
+					catalogGenerationId: { anyOf: [string, { type: 'null' }] },
+					oraclePublicationId: { anyOf: [string, { type: 'null' }] },
+					sourceTime: { anyOf: [{ type: 'string', format: 'date-time' }, { type: 'null' }] },
+					payloadDigest: { anyOf: [string, { type: 'null' }] },
+					parserVersion: { anyOf: [integer, { type: 'null' }] },
+					printingId: string,
+					rawOracleId: { anyOf: [string, { type: 'null' }] },
+					types: { anyOf: [{ type: 'array', items: string }, { type: 'null' }] },
+					transformVersion: { anyOf: [integer, { type: 'null' }] }
+				},
+				[
+					'predicates',
+					'catalogGenerationId',
+					'oraclePublicationId',
+					'sourceTime',
+					'payloadDigest',
+					'parserVersion',
+					'printingId',
+					'rawOracleId',
+					'types',
+					'transformVersion'
+				]
+			),
 			EntryCategoryDecision: object({
 				entryId: string,
 				categoryId: { anyOf: [string, { type: 'null' }] },

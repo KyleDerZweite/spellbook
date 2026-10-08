@@ -66,6 +66,89 @@ function visit(value: Json, visitor: (value: Record<string, Json>) => void): voi
 }
 
 describe('OpenAPI contract', () => {
+	it('documents complete copied combo proof while keeping legacy evidence compatible', async () => {
+		const {
+			components: { schemas }
+		} = await GET().json();
+		for (const name of ['CategoryEvidence', 'WholeCategoryEvidence']) {
+			expect(schemas[name].properties.combo).toEqual({
+				$ref: '#/components/schemas/ComboEvidence'
+			});
+			expect(schemas[name].required).not.toContain('combo');
+			expect(schemas[name].required).toEqual(
+				Object.keys(schemas[name].properties).filter((key) => key !== 'combo')
+			);
+		}
+		const fields = {
+			ComboIngredient: [
+				'oracleId',
+				'name',
+				'quantity',
+				'mustBeCommander',
+				'zones',
+				'usedFace',
+				'states'
+			],
+			ComboTemplate: [
+				'id',
+				'name',
+				'query',
+				'quantity',
+				'zones',
+				'states',
+				'mustBeCommander',
+				'usedFace'
+			],
+			ComboProducedOutcome: ['id', 'name', 'status', 'uncountable', 'quantity'],
+			ComboVariant: [
+				'id',
+				'status',
+				'ingredients',
+				'outcomeIds',
+				'unsupportedReasons',
+				'mana',
+				'prerequisites',
+				'steps',
+				'notes',
+				'templates',
+				'producedOutcomes'
+			],
+			ComboProof: [
+				'variant',
+				'publicationId',
+				'outcomeId',
+				'roles',
+				'policyVersion',
+				'parserVersion'
+			],
+			ComboEvaluationEvidence: ['outcomeId', 'roles', 'truth', 'proof'],
+			ComboEvidence: ['source', 'evaluations']
+		};
+		for (const [name, required] of Object.entries(fields)) {
+			expect(Object.keys(schemas[name].properties)).toEqual(required);
+			expect(schemas[name].required).toEqual(required);
+		}
+		expect(schemas.ComboIngredient.properties.states).toEqual({
+			type: 'object',
+			additionalProperties: { type: 'string' }
+		});
+		expect(schemas.ComboIngredient.properties.quantity).toEqual({ type: 'string' });
+		expect(schemas.ComboIngredient.properties.oracleId.anyOf).toContainEqual({ type: 'null' });
+		expect(schemas.ComboTemplate.properties.query.type).toEqual(['string', 'null']);
+		expect(schemas.ComboProof.properties.policyVersion.const).toBe('ingredients-v1');
+		expect(schemas.ComboEvaluationEvidence.properties.truth.enum).toEqual([
+			'True',
+			'False',
+			'Unknown'
+		]);
+		expect(schemas.ComboEvaluationEvidence.properties.proof.anyOf).toContainEqual({ type: 'null' });
+		expect(schemas.ComboEvaluationEvidence.properties).not.toHaveProperty('participants');
+		expect(schemas.ComboEvidence.properties.source.$ref).toBe('#/components/schemas/ComboSource');
+		expect(schemas.ComboEvidence.properties.evaluations.items.$ref).toBe(
+			'#/components/schemas/ComboEvaluationEvidence'
+		);
+	});
+
 	it('documents metadata-only Deck choices and bounded authenticated query parameters', async () => {
 		const schema = await GET().json();
 		const operation = schema.paths['/api/mobile/v1/mtg/decks/choices'].get;
