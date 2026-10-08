@@ -4,7 +4,10 @@
 	import type { SubmitFunction } from '$app/forms';
 	import type { WriteHandle } from '#lib/saved-state/workspace.ts';
 	import type { WholeCategoryDraft } from '#lib/decks/whole-drafts.ts';
-	import type { DeckWholeCategories } from '@spellbook/contracts/whole-categories.ts';
+	import type {
+		DeckWholeCategories,
+		WholeCategory
+	} from '@spellbook/contracts/whole-categories.ts';
 	import type { CategoryPreview } from '@spellbook/contracts/category-library.ts';
 	import { describeCategoryRule } from '#lib/categories/rule-summary.ts';
 	import { describeCategoryConsequence } from '#lib/categories/preview-label.ts';
@@ -68,6 +71,12 @@
 	let renameRequestId = $state(
 		recovery?.kind === 'rename' ? recovery.requestId : crypto.randomUUID()
 	);
+	let removalBase = $state(
+		recovery?.kind === 'remove'
+			? recovery.expectedDecisionRevision
+			: untrack(() => categories.decisionRevision)
+	);
+	let removalDirty = $state(recovery?.kind === 'remove');
 	let previewRequestId = $state(crypto.randomUUID()),
 		commitRequestId = $state(crypto.randomUUID()),
 		removeRequestId = $state(
@@ -77,10 +86,16 @@
 		renameDirty = $state(recovery?.kind === 'rename');
 	let busy = $state(false),
 		message = $state('');
+	let retainedCategory = $state<WholeCategory | undefined>(
+		untrack(() => categories.categories.find((c) => c.versionId === selected))
+	);
 	const current = $derived(categories.categories.find((c) => c.versionId === selected));
+	const inspected = $derived(current ?? retainedCategory);
+
 	const scopedPreview = $derived(preview?.scope === 'deck' ? preview : null);
 	function choose(value: string) {
 		selected = value;
+		retainedCategory = categories.categories.find((c) => c.versionId === value);
 		name = categories.categories.find((c) => c.versionId === value)?.name ?? '';
 		manualBase = categories.decisionRevision;
 		renameBase = categories.decisionRevision;
@@ -92,10 +107,14 @@
 	}
 	$effect(() => {
 		if (!busy) {
+			if (!removalDirty) removalBase = categories.decisionRevision;
 			if (!manualDirty) manualBase = categories.decisionRevision;
 			if (!renameDirty) {
 				renameBase = categories.decisionRevision;
-				name = current?.name ?? '';
+				if (current) {
+					retainedCategory = current;
+					name = current.name;
+				}
 			}
 		}
 	});
@@ -110,6 +129,7 @@
 				if (disposed || ownerDeck !== categories.deckId || !(write?.current() ?? true)) return;
 				if (result.type === 'success') {
 					await update({ reset: false });
+					if (disposed || ownerDeck !== categories.deckId || !(write?.current() ?? true)) return;
 					if (operation.includes('rebaseWholeDraft')) {
 						const d = result.data?.wholeDraft as WholeCategoryDraft | undefined;
 						if (d?.kind === 'rename') {
@@ -118,6 +138,10 @@
 						} else if (d?.kind === 'manual') {
 							manualBase = d.expectedDecisionRevision;
 							requestId = d.requestId;
+						}
+						if (d?.kind === 'remove') {
+							removalBase = d.expectedDecisionRevision;
+							removeRequestId = d.requestId;
 						}
 						message = 'Draft rebased. Review it and save again.';
 					} else if (operation.includes('renameWholeCategory')) {
@@ -137,18 +161,23 @@
 						commitRequestId = crypto.randomUUID();
 						message = 'Whole-deck Review/Reset saved.';
 					} else {
+						removalDirty = false;
+						removalBase = categories.decisionRevision;
 						removeRequestId = crypto.randomUUID();
 						message = 'Whole-deck origin suppressed.';
 					}
 				} else {
 					if (operation.includes('renameWholeCategory')) renameDirty = true;
 					if (operation.includes('setWholeCategory')) manualDirty = true;
+					if (operation.includes('removeWholeCategory')) removalDirty = true;
 					message = 'The change was not confirmed. Your draft and original revision are retained.';
-					await update({ reset: false, invalidateAll: false });
+					if (result.type === 'failure') await update({ reset: false, invalidateAll: false });
+					if (disposed || ownerDeck !== categories.deckId || !(write?.current() ?? true)) return;
 				}
 			} finally {
 				write?.complete();
-				busy = false;
+				if (!disposed && ownerDeck === categories.deckId && (write?.current() ?? true))
+					busy = false;
 			}
 		};
 	};
@@ -193,40 +222,55 @@
 					disabled={busy}
 				/></label
 			>
-			{#if current}
-				<p>{current.definition.meaning}</p>
+			{#if inspected}
+				<p>{inspected.definition.meaning}</p>
 				<p class="muted">
-					{describeCategoryRule(current.definition.rule)} Roles: {current.definition.roles.join(
+					{describeCategoryRule(inspected.definition.rule)} Roles: {inspected.definition.roles.join(
 						', '
 					)}.
 				</p>
 				<p>
-					{current.suppressed
+					{inspected.suppressed
 						? 'Suppressed'
-						: current.decision?.state === 'Manual'
-							? `Manual ${current.decision.manual}`
-							: current.decision?.state === 'Pending'
-								? `Pending, retained result ${current.decision.truth ?? 'none'}`
-								: current.decision
-									? `Automatic ${current.decision.truth}`
+						: inspected.decision?.state === 'Manual'
+							? `Manual ${inspected.decision.manual}`
+							: inspected.decision?.state === 'Pending'
+								? `Pending, retained result ${inspected.decision.truth ?? 'none'}`
+								: inspected.decision
+									? `Automatic ${inspected.decision.truth}`
 									: 'Awaiting initial evaluation'}
 				</p>
-				{#if current.decision?.evidence || current.decision?.previousEvaluation}
-					<details>
-						<summary>Saved rule evidence</summary>
+				{#if inspected.decision?.evidence}<details>
+						<summary
+							>{inspected.decision.state === 'Pending'
+								? 'Retained valid evidence, stale'
+								: 'Saved valid evidence'}</summary
+						>
 						<p class="muted">
-							Composition revision {(
-								current.decision.previousEvaluation ?? current.decision.evidence
-							)?.compositionRevision}. The evidence belongs to version {current.definition.version}.
+							Composition revision {inspected.decision.evidence.compositionRevision}. Adopted
+							version {inspected.definition.version}. Catalog {inspected.decision.evidence
+								.catalogGenerationId ?? 'unavailable'}. Oracle publication {inspected.decision
+								.evidence.oraclePublicationId ?? 'unavailable'}.
 						</p>
-						<pre>{JSON.stringify(
-								current.decision.previousEvaluation ?? current.decision.evidence,
-								null,
-								2
-							)}</pre>
-					</details>
-				{/if}
-				{#if !current.suppressed}
+						<pre>{JSON.stringify(inspected.decision.evidence, null, 2)}</pre>
+					</details>{/if}
+				{#if inspected.decision?.previousEvaluation}<details>
+						<summary
+							>{inspected.decision.state === 'Pending'
+								? 'Latest Unknown attempt'
+								: 'Previous automatic evidence'}</summary
+						>
+						<p class="muted">
+							Composition revision {inspected.decision.previousEvaluation.compositionRevision}.
+							Attempt {inspected.decision.previousEvaluation.attemptedTruth}. Catalog {inspected
+								.decision.previousEvaluation.catalogGenerationId ?? 'unavailable'}. Oracle
+							publication {inspected.decision.previousEvaluation.oraclePublicationId ??
+								'unavailable'}.
+						</p>
+						<pre>{JSON.stringify(inspected.decision.previousEvaluation, null, 2)}</pre>
+					</details>{/if}
+
+				{#if !inspected.suppressed}
 					<form method="POST" action={action('setWholeCategory')} use:enhance={submit}>
 						<input type="hidden" name="deckId" value={categories.deckId} /><input
 							type="hidden"
@@ -257,12 +301,12 @@
 						>
 						<input type="hidden" name="draftKind" value="manual" /><Button
 							type="submit"
-							disabled={busy || !!unavailable}>Save Manual choice</Button
+							disabled={busy || !!unavailable || !current}>Save Manual choice</Button
 						><button
 							class="btn btn-ghost"
 							type="submit"
 							formaction={action('rebaseWholeDraft')}
-							disabled={busy || !!unavailable}>Rebase Manual draft</button
+							disabled={busy || !!unavailable || !current}>Rebase Manual draft</button
 						>
 					</form>
 					<form method="POST" action={action('renameWholeCategory')} use:enhance={submit}>
@@ -288,12 +332,12 @@
 							/></label
 						><input type="hidden" name="draftKind" value="rename" /><Button
 							type="submit"
-							disabled={busy || !!unavailable}>Rename local label</Button
+							disabled={busy || !!unavailable || !current}>Rename local label</Button
 						><button
 							class="btn btn-ghost"
 							type="submit"
 							formaction={action('rebaseWholeDraft')}
-							disabled={busy || !!unavailable}>Rebase label draft</button
+							disabled={busy || !!unavailable || !current}>Rebase label draft</button
 						>
 					</form>
 					<form method="POST" action={action('removeWholeCategory')} use:enhance={submit}>
@@ -304,11 +348,19 @@
 						/><input type="hidden" name="requestId" value={removeRequestId} /><input
 							type="hidden"
 							name="expectedDecisionRevision"
-							value={categories.decisionRevision}
+							value={removalBase}
 						/><label
 							><input type="checkbox" name="confirmRemoval" value="yes" required />Suppress this
 							origin, including historical versions</label
-						><Button type="submit" disabled={busy || !!unavailable}>Suppress origin</Button>
+						><input type="hidden" name="draftKind" value="remove" /><Button
+							type="submit"
+							disabled={busy || !!unavailable || !current}>Suppress origin</Button
+						><button
+							class="btn btn-ghost"
+							type="submit"
+							formaction={action('rebaseWholeDraft')}
+							disabled={busy || !!unavailable || !current}>Rebase suppression draft</button
+						>
 					</form>
 				{/if}
 			{/if}
@@ -339,7 +391,9 @@
 						.map((c) => [c.originId, c])).values()] as suppressed (suppressed.originId)}<label
 					><input type="checkbox" name="restoreOriginIds" value={suppressed.originId} />Restore {suppressed.name}</label
 				>{/each}
-			<Button type="submit" disabled={busy || !!unavailable}>Preview whole-deck changes</Button>
+			<Button type="submit" disabled={busy || !!unavailable || !current}
+				>Preview whole-deck changes</Button
+			>
 		</form>
 		{#if scopedPreview}
 			<p>{scopedPreview.total} reviewed consequences. {scopedPreview.status}.</p>
@@ -370,7 +424,7 @@
 					/><input type="hidden" name="requestId" value={commitRequestId} /><label
 						><input type="checkbox" name="confirmPreview" value="yes" required />I reviewed the
 						complete whole-deck change</label
-					><Button type="submit" disabled={busy || !!unavailable}
+					><Button type="submit" disabled={busy || !!unavailable || !current}
 						>Save whole-deck Review/Reset</Button
 					>
 				</form>{/if}
