@@ -1,13 +1,14 @@
 import { error, redirect } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getDeckSnapshot, DeckNotFoundError } from '#lib/server/data/decks.ts';
+import { DeckNotFoundError } from '#lib/server/data/decks.ts';
+import { application } from '#lib/server/composition.ts';
 import { exportDecklist } from '#lib/server/mtg/deck-builder.ts';
 
 export const GET: RequestHandler = async ({ locals, params }) => {
 	if (!locals.user) throw redirect(303, '/auth/login?returnTo=/mtg/decks');
 	let snapshot;
 	try {
-		snapshot = await getDeckSnapshot(locals.user, 'mtg', params.deckId);
+		snapshot = await application.decks.getDeck(locals.user, params.deckId);
 	} catch (cause) {
 		if (cause instanceof DeckNotFoundError) throw error(404, 'Deck not found');
 		throw cause;

@@ -346,6 +346,16 @@ test('built whole Categories and bounded Deck Library preserve private saved con
 					await request(`${base}/decks/${selected}`)
 				);
 				assert.equal(legacySnapshot.decks.length, 1004);
+				const exported = await request(
+					`/mtg/decks/${selected}/export`,
+					'GET',
+					undefined,
+					a.token,
+					true
+				);
+				assert.equal(exported.status, 200);
+				assert.equal(exported.headers.get('content-type'), 'text/plain; charset=utf-8');
+				assert.match(exported.headers.get('content-disposition') ?? '', /Selected_original\.txt/);
 
 				await json(
 					await request(`${base}/decks/${selected}`, 'PATCH', { name: 'Selected renamed' })
