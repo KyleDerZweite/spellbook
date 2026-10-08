@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-08
 - Source of Truth: repo config
-- Update Triggers: Catalog set-directory and color-identity projection migrations, price publication/pair and optional recovery, private value history migration and runtime configuration, source opt-ins and ingestion limits, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and graceful shutdown, preview target, single root environment and local/build origins, migrations, storage, workspace ownership and compatibility adapters, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
+- Update Triggers: Catalog set-directory and color-identity projection migrations, price publication/pair and optional recovery, private value history migration and runtime configuration, source opt-ins and ingestion limits, optional local combo publication and recovery, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and graceful shutdown, preview target, single root environment and local/build origins, migrations, storage, workspace ownership and compatibility adapters, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
 - Related Docs: [Postgres](../architecture/postgres.md), [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Classifier research](../integrations/card-categorization.md), [Catalog](../architecture/catalog.md)
 
 The canonical service definitions are [`podman-compose.yml`](../../podman-compose.yml) and the local storage override [`podman-compose.dev.yml`](../../podman-compose.dev.yml). Keep live domains, account details, and secret references in private operator notes.
@@ -228,3 +228,22 @@ Apply the coherent migration journal through [0020](../../frontend/drizzle/0020_
 The application starts the Backend Valuation runner outside build analysis when `VALUE_HISTORY_ENABLED=true`. Development HMR disposal and production shutdown close owned work. Set the flag to `false` to stop scheduling while retaining existing history and current read routes. Configure `VALUE_HISTORY_TIMEZONE` with a valid IANA name. Saved observations retain their own timezone and UTC boundaries after configuration changes. [Valuation](../architecture/valuation.md#reviewed-personal-history-contract) owns lease, observation window and closure rules.
 
 The host development launcher does not publish prices automatically. A running capture timer does not establish provider refresh or known-price coverage. Operator refresh, actual midnight observation, deployment and owner acceptance require separate evidence. The remaining integration verification is tracked with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192).
+
+## Optional local combo rollout and recovery
+
+Apply [migration 0023](../../frontend/drizzle/0023_commander_spellbook.sql) after 0022 before starting the updated application and Worker. It adds public Combo tables without rewriting private definitions, decisions or receipts. `COMMANDER_SPELLBOOK_ENABLED` defaults to `false` in both services. Set it to `true` in the existing protected root environment to enable independent public ingestion and local ingredient evaluation. Restart both services after changing the flag. Disabled ingestion fetches nothing and adds no readiness dependency; existing combo criteria evaluate Unknown.
+
+The fixed official Commander Spellbook bulk is synchronized on the existing `SYNC_INTERVAL`. Resource overrides are positive integers: `COMBO_COMPRESSED_BYTES`, `COMBO_DECOMPRESSED_BYTES`, `COMBO_RECORD_BYTES`, `COMBO_PROGRESS_SECONDS`, `COMBO_CONNECT_SECONDS`, `COMBO_DOWNLOAD_SECONDS`, `COMBO_PARSE_SECONDS`, `COMBO_PUBLICATION_SECONDS`, `COMBO_IMPORT_SECONDS` and `COMBO_STAGING_BYTES`. [Worker](../architecture/worker.md#optional-commander-spellbook-synchronization) owns defaults, transfer validation and publication limits. No private Deck data is sent to the provider.
+
+Inspect the publication through the existing protected database connection:
+
+```sql
+SELECT s.active_publication, s.previous_publication, s.refresh_status,
+       p.source_updated_at, p.source_version, p.payload_digest, p.decoded_digest,
+       p.parser_version, p.policy_version, p.variant_count, p.outcome_count, p.alias_count
+FROM combo_state s
+LEFT JOIN combo_publications p ON p.id = s.active_publication
+WHERE s.id = 1;
+```
+
+A usable active publication can remain available after a failed refresh. Inspect `refresh_status` separately from the publication metadata. Retry the fixed source through the existing manual Worker command after resolving transfer, resource or database failures. Publication rollback preserves both previous pointers. Do not delete Combo tables or private evidence to recover a failed refresh. Public refresh does not reassign existing Entry decisions or enqueue whole-deck jobs. Review/Reset is the explicit account action for renewed adoption and evaluation; an outdated source-fenced preview requires a new preview. [Category rules](../architecture/category-rules.md#optional-local-combo-adapter) owns those lifecycle rules.

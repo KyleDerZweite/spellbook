@@ -1,6 +1,6 @@
 # Category persistence and rules
 
-- Status: Account Category Library, entry rules, local category controls and entry Review/Reset implemented; whole-deck evaluation implemented; local combo adapter planned
+- Status: Account Category Library, entry rules, local category controls and entry Review/Reset implemented; whole-deck evaluation implemented; local combo adapter implemented
 - Last Reviewed: 2026-10-08
 - Source of Truth: Q56 contract, reviewed whole-deck and local combo contracts dated 2026-10-08, Category backend/contracts, Worker raw facts and native/API adapters
 - Update Triggers: definition versions, deck-local bundles, rule vocabulary and priority, source publications, composition jobs, Review/Reset, combo constraints and category acceptance evidence, operational work budgets, consequence retention and commit-scoped saved-state invalidation
@@ -22,7 +22,7 @@ Assignments store Automatic, Pending or Manual provenance, including Manual Unca
 
 Non-merging printing/role changes retain entry identity and its complete decision, including hidden non-Main decisions. Merging retains the destination's entire decision and deletes the source. A conflicting merge first returns a 409 consequence preview with both decisions, resulting quantity, composition/decision revisions and source tokens. Confirmation binds that consequence, and changed revisions/quantities require renewed review. Public source changes alone do not alter immutable existing decisions or permit reassignment. Already-Manual same-choice saves retain revisions and persist an original no-op acknowledgement. Automatic/Pending-to-Manual remains a semantic decision change. Decision revisions advance independently; Deck acknowledgements retain compact affected/removed category identities and original revision on replay.
 
-Category view groups Main entries once by adopted display order, with Pending visible inside Uncategorized. Commander, Sideboard and Companion retain sections. Inspector and native Main-entry forms show provenance and save Manual choices through the same command. Read failures remain infrastructure failures, never evaluated Unknown. The Account Library and entry Review/Reset extend these decisions as described below. Whole-deck jobs are implemented separately from entry decisions. The combo matcher remains unavailable.
+Category view groups Main entries once by adopted display order, with Pending visible inside Uncategorized. Commander, Sideboard and Companion retain sections. Inspector and native Main-entry forms show provenance and save Manual choices through the same command. Read failures remain infrastructure failures, never evaluated Unknown. The Account Library and entry Review/Reset extend these decisions as described below. Whole-deck jobs are implemented separately from entry decisions. The optional local combo matcher is described below.
 
 Library version/archive changes, local rename/removal, Manual decisions and reviewed commits publish the existing commit-scoped `decks` invalidation inside the same transaction as their state and original receipt. No-op definitions, archives, labels and previews publish nothing. First initialization of an empty legacy Deck is a semantic change. Receipt replay, fresh initialization no-op and an unchanged Manual decision publish nothing. Rollback publishes nothing; Deck timestamps and composition revisions are unchanged. The [workspace consumer](./frontend.md#profile-saved-state-consumer) refetches the selected Deck categories through its leased read pipeline and retains dirty Manual choices.
 
@@ -36,7 +36,7 @@ Entry decisions persist Manual versus Automatic/Pending provenance. Quantity/imp
 
 ## Bounded rule interface
 
-The implemented validator and entry evaluator support all/any/not, catalog type, keyword, stable Oracle Tag with descendants, mapped trait and explicit canonical-card selections. Whole-deck definitions validate and retain minimum copies or distinct canonical cards, integer percentage thresholds with an explicit all-cards/nonland denominator, and optional documented-combo outcomes. Whole-deck classification and scoped Review/Reset implement these aggregate criteria. Missing optional combo facts return Unknown inside supported entry evaluation. Rules record participating roles. Templates use Main for trait thresholds and Main plus Commander for combo ingredients. Empty denominators do not match.
+The implemented validator and entry evaluator support all/any/not, catalog type, keyword, stable Oracle Tag with descendants, mapped trait and explicit canonical-card selections. Whole-deck definitions validate and retain minimum copies or distinct canonical cards, integer percentage thresholds with an explicit all-cards/nonland denominator, and optional documented-combo outcomes. Whole-deck classification and scoped Review/Reset implement these aggregate criteria. Disabled or unavailable local combo facts return Unknown inside supported entry evaluation. Rules record participating roles. Templates use Main for trait thresholds and Main plus Commander for combo ingredients. Empty denominators do not match.
 
 Rules neither execute user code nor infer semantics from names. The editor shows supported criteria and provenance. Import Oracle Tag hierarchy and local mappings as versioned publications; mutable names are not source IDs. Do not call Jev in production or expand the pass to arbitrary free-text meanings.
 
@@ -120,7 +120,7 @@ Built HTTP verifies cookie/bearer authorization, revoked-session fences, GET-no-
 
 ## Optional local combo adapter
 
-Q56 and [slice 18](https://github.com/KyleDerZweite/spellbook/issues/191) selected Commander Spellbook bulk for documented ingredients/outcomes. The following implementation contract was independently reviewed on 2026-10-08 on the integrated `0022` baseline. The adapter remains unimplemented; implementation starts only after the preceding slice's verification completes. Design review is separate from execution evidence. [Source research](../integrations/card-categorization.md#curated-combo-alternative) owns provider observations, not private matching behavior.
+Q56 and [slice 18](https://github.com/KyleDerZweite/spellbook/issues/191) selected Commander Spellbook bulk for documented ingredients/outcomes. The following implementation contract was independently reviewed on 2026-10-08 on the integrated `0022` baseline. The adapter implements this contract through additive migration `0023`, the public Worker publisher, local Categories matcher and shared native rule editor. Design review is separate from execution evidence. [Source research](../integrations/card-categorization.md#curated-combo-alternative) owns provider observations, not private matching behavior.
 
 ### Ownership and additive storage
 
