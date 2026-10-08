@@ -42,6 +42,17 @@ export type ComboVariant = {
 		name: string;
 		query: string | null;
 		quantity: string;
+		zones: string[];
+		states: Record<string, string>;
+		mustBeCommander: boolean;
+		usedFace: number | null;
+	}[];
+	producedOutcomes: {
+		id: string;
+		name: string;
+		status: string;
+		uncountable: boolean;
+		quantity: string;
 	}[];
 };
 export type ComboCompositionEntry = {
