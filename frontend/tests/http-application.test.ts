@@ -1394,6 +1394,12 @@ test('built HTTP application preserves public Catalog and local account journeys
 					account.user.accountId,
 					process.env.TEST_SCALE_CATALOG_PATH!
 				);
+				await pool.query(
+					`UPDATE inventory_cards SET updated_at=clock_timestamp() WHERE id IN (
+					 SELECT id FROM inventory_cards WHERE account_id=$1 AND game='mtg'
+					 ORDER BY octet_length(name) DESC,id LIMIT 8)`,
+					[account.user.accountId]
+				);
 				const response = await request('/api/account/dashboard', undefined, {
 					authorization: `Bearer ${account.token}`
 				});
@@ -1403,7 +1409,21 @@ test('built HTTP application preserves public Catalog and local account journeys
 				assert.equal(summary.totals.total, 50000);
 				assert.equal(summary.totals.printings, 10000);
 				assert.equal(summary.recentEntries.length, 8);
-				assert.ok(text.length < 30000);
+				const { inventoryValue, inventoryValueHistory, valuationError, ...legacySummary } = summary;
+				assert.ok(inventoryValue);
+				assert.equal(inventoryValue.estimate.totalQuantity, 50000);
+				assert.ok(inventoryValueHistory);
+				assert.equal(inventoryValueHistory.window.days, 30);
+				assert.equal(inventoryValueHistory.points.length, 30);
+				assert.equal(valuationError, null);
+				assert.ok(Buffer.byteLength(JSON.stringify(legacySummary)) < 30000);
+				assert.ok(
+					Buffer.byteLength(
+						JSON.stringify({ inventoryValue, inventoryValueHistory, valuationError })
+					) <= 3500
+				);
+				assert.ok(Buffer.byteLength(text) <= 33500);
+
 				assert.equal(summary.inventoryCards, undefined);
 				const page = await request('/mtg/dashboard', undefined, {
 					cookie: `spellbook_session=${account.token}`
