@@ -1,7 +1,7 @@
 # Card and deck categorization
 
 - Status: Oracle Tags publication and starter entry categories implemented; optional local Commander Spellbook adapter selected and planned
-- Last Reviewed: 2026-10-07
+- Last Reviewed: 2026-10-08
 - Source of Truth: linked primary documentation, local public Scryfall snapshots, recorded Jev HTTP experiment and read-only repository inspection
 - Update Triggers: classifier access, model versions and prices, taxonomy coverage, category quality, custom criteria, deck context and selected provider
 - Related Docs: [Integrations](./README.md), [Card grouping](../product/card-grouping.md), [Domain glossary](../../GLOSSARY.md), [Catalog](../architecture/catalog.md), [Worker](../architecture/worker.md), [System overview](../architecture/system-overview.md), [Category rules](../architecture/category-rules.md)
@@ -10,7 +10,7 @@ This document owns source and classifier research. [Card grouping](../product/ca
 
 ## Existing application and comparable tools
 
-The Worker now publishes Catalog types, keywords and Oracle text plus an independent complete Oracle Tags publication. [Category rules](../architecture/category-rules.md#implemented-starter-entry-decisions) owns the implemented deterministic starter primary selection. The source facts do not establish a deck's strategy or a later account's custom category meaning. Account rules, whole-deck categories and local combos remain later work. Jev remains a recorded prototype without production inference integration.
+The Worker now publishes Catalog types, keywords and Oracle text plus an independent complete Oracle Tags publication. [Category rules](../architecture/category-rules.md#implemented-starter-entry-decisions) owns the implemented deterministic starter primary selection. The source facts do not establish a deck's strategy or a later account's custom category meaning. Account rules and entry Review/Reset are implemented. Whole-deck evaluation and local combos remain later work. Jev remains a recorded prototype without production inference integration.
 
 [Archidekt's announcement](https://archidekt.com/news/4958603) describes automatic defaults derived from common user assignments within an allowlisted vocabulary. It does not publish its algorithm or dataset. Moxfield's [public repository](https://github.com/moxfield/moxfield-public) and first-party [tag feedback](https://moxfield.nolt.io/617) do not establish a public automatic strategy classifier. These sources do not establish a reproducible classifier for Spellbook.
 
