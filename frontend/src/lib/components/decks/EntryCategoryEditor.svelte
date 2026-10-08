@@ -104,7 +104,7 @@
 	<p class="muted" data-category-provenance>
 		{name}: {decision?.state ?? 'Uninitialized'}.
 		{#if decision?.state === 'Pending'}Required source facts were unavailable when this entry was
-			evaluated.{:else if decision?.state === 'Automatic'}Starter rule decision.{:else if decision?.state === 'Manual'}Your
+			evaluated.{:else if decision?.state === 'Automatic'}Automatic rule decision.{:else if decision?.state === 'Manual'}Your
 			saved decision.{/if}
 	</p>
 	{#if decision?.state === 'Manual' && presentation.snapshot}<details data-category-saved-meaning>
