@@ -1956,6 +1956,20 @@
 					"primaryKey": false,
 					"notNull": true
 				},
+				"inventory_revision": {
+					"name": "inventory_revision",
+					"type": "bigint",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "'0'"
+				},
+				"policy_version": {
+					"name": "policy_version",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"default": "'daily-final-minute-v1'"
+				},
 				"estimate": {
 					"name": "estimate",
 					"type": "jsonb",

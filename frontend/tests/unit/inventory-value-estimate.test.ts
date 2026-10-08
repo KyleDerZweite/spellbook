@@ -70,4 +70,12 @@ describe('exact value estimates', () => {
 		expect(() => valueEstimate([{ quantity: 1, reference: known('1'.repeat(129)) }])).toThrow();
 		expect(() => valueEstimate([{ quantity: -1, reference: known('1') }])).toThrow();
 	});
+	it('allows the derived subtotal to exceed the source literal bound', () => {
+		const estimate = valueEstimate([
+			{ quantity: Number.MAX_SAFE_INTEGER, reference: known('9'.repeat(128)) }
+		]);
+		expect(estimate.coveredValue.length).toBeGreaterThan(128);
+		expect(estimate.coveredValue).toMatch(/^[0-9]+\.00$/);
+		expect(estimate.complete).toBe(true);
+	});
 });

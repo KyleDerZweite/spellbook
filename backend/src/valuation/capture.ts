@@ -23,10 +23,12 @@ export interface CaptureResult {
 	capturedAccounts: number;
 	capturedHoldings: number;
 	copiedReferences: number;
+	failedAccounts: number;
 }
 /** Clock overrides and barriers are only for controlled acceptance tests. */
 export interface CaptureTestControls {
 	observationClock?: () => Date;
+	accountIds?: string[];
 	afterBatch?: (batch: number, client: PoolClient) => Promise<void>;
 	beforeCommit?: (client: PoolClient) => Promise<void>;
 }
@@ -43,7 +45,8 @@ export function createValueHistoryRunner(
 		const result: CaptureResult = {
 			capturedAccounts: 0,
 			capturedHoldings: 0,
-			copiedReferences: 0
+			copiedReferences: 0,
+			failedAccounts: 0
 		};
 		const client = await pool.connect();
 		let lease = false,
@@ -54,6 +57,7 @@ export function createValueHistoryRunner(
 			controller?.abort();
 		};
 		client.on('error', connectionLost);
+		client.on('end', connectionLost);
 		const check = () => {
 			signal.throwIfAborted();
 			if (lost) throw Error('Capture connection lost');
@@ -67,129 +71,161 @@ export function createValueHistoryRunner(
 				)
 			).rows[0].acquired;
 			if (!lease) return result;
-			const accounts = (
-				await client.query<{ account_id: string }>(
-					'SELECT account_id FROM user_profiles ORDER BY account_id'
-				)
-			).rows;
-			for (const account of accounts) {
-				check();
-				await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ');
-				transaction = true;
-				await client.query(`SET LOCAL statement_timeout = '${VALUE_CAPTURE_STATEMENT_MS}ms'`);
-				// This is the first snapshot statement. A clock read before BEGIN would permit late backfill.
-				const observed = tests.observationClock?.();
-				const calendar = (
-					await client.query<CalendarRow>(
-						`WITH observation AS (SELECT ${observed ? '$2::timestamptz' : 'statement_timestamp()'} AS observed_at), bounds AS (SELECT observed_at,(observed_at AT TIME ZONE $1)::date AS day FROM observation), calendar AS (SELECT observed_at,day,day::timestamp AT TIME ZONE $1 AS day_start,(day+1)::timestamp AT TIME ZONE $1 AS day_end FROM bounds) SELECT observed_at,day::text,day_start,day_end,observed_at >= day_end - interval '60 seconds' AND observed_at < day_end AS eligible FROM calendar`,
-						observed ? [values.timezone, observed.toISOString()] : [values.timezone]
-					)
-				).rows[0];
-				if (!calendar.eligible) {
-					await client.query('ROLLBACK');
-					transaction = false;
-					break;
-				}
-				const existing = (
-					await client.query<{
-						id: string;
-						timezone: string;
-						observed_at: Date;
-						day_start: Date;
-						day_end: Date;
-					}>(
-						"SELECT id,timezone,observed_at,day_start,day_end FROM inventory_value_days WHERE account_id=$1 AND game='mtg' AND day=$2::date",
-						[account.account_id, calendar.day]
-					)
-				).rows[0];
-				if (
-					existing &&
-					(existing.timezone !== values.timezone ||
-						existing.day_start.getTime() !== calendar.day_start.getTime() ||
-						existing.day_end.getTime() !== calendar.day_end.getTime() ||
-						existing.observed_at >= calendar.observed_at)
-				) {
-					await client.query('ROLLBACK');
-					transaction = false;
-					continue;
-				}
-				const holdings = await readHoldings(client, account.account_id);
-				const pairs = [
-					...new Map(
-						holdings.map((row) => {
-							const pair = { printingId: row.printing_id, finish: row.finish };
-							return [pairKey(pair), pair] as const;
-						})
-					).values()
-				];
-				const outcomes: FrozenReferenceOutcome[] = [],
-					references = new Map<string, PriceReference>();
-				for (let offset = 0; offset < pairs.length; offset += 100) {
+			async function* eligibleAccounts() {
+				let after = '';
+				for (;;) {
 					check();
-					const batch = await values.valuation.freezeInTransaction(
-						client,
-						pairs.slice(offset, offset + 100),
-						calendar.observed_at
-					);
-					outcomes.push(...batch.evidence);
-					for (const reference of batch.response.results)
-						references.set(pairKey(reference), reference);
-					await tests.afterBatch?.(offset / 100, client);
+					const accounts = (
+						await client.query<{ account_id: string }>(
+							'SELECT account_id FROM user_profiles WHERE account_id > $1 AND ($2::text[] IS NULL OR account_id=ANY($2::text[])) ORDER BY account_id LIMIT 200',
+							[after, tests.accountIds ?? null]
+						)
+					).rows;
+					for (const account of accounts) yield account;
+					if (accounts.length < 200) return;
+					after = accounts.at(-1)!.account_id;
 				}
-				check();
-				const estimate = estimateHoldings(holdings, references),
-					dayId = existing?.id ?? randomUUID();
-				if (existing) {
-					await client.query('DELETE FROM inventory_value_holdings WHERE day_id=$1', [dayId]);
-					await client.query('DELETE FROM inventory_value_references WHERE day_id=$1', [dayId]);
-					await client.query(
-						'UPDATE inventory_value_days SET observed_at=$2,estimate=$3::jsonb WHERE id=$1',
-						[dayId, calendar.observed_at, JSON.stringify(estimate)]
-					);
-				} else
-					await client.query(
-						`INSERT INTO inventory_value_days(id,account_id,game,day,timezone,day_start,day_end,observed_at,estimate) VALUES($1,$2,'mtg',$3,$4,$5,$6,$7,$8::jsonb)`,
-						[
-							dayId,
-							account.account_id,
-							calendar.day,
-							values.timezone,
-							calendar.day_start,
-							calendar.day_end,
-							calendar.observed_at,
-							JSON.stringify(estimate)
-						]
-					);
-				for (let offset = 0; offset < outcomes.length; offset += 100) {
+			}
+			for await (const account of eligibleAccounts()) {
+				try {
 					check();
-					await client.query(
-						`INSERT INTO inventory_value_references(day_id,printing_id,finish,evidence) SELECT $1,r.printing_id,r.finish,r.evidence FROM jsonb_to_recordset($2::jsonb) AS r(printing_id text,finish text,evidence jsonb)`,
-						[
-							dayId,
-							JSON.stringify(
-								outcomes.slice(offset, offset + 100).map((evidence) => ({
-									printing_id: evidence.reference.printingId,
-									finish: evidence.reference.finish,
-									evidence
-								}))
+					await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ');
+					transaction = true;
+					await client.query(`SET LOCAL statement_timeout = '${VALUE_CAPTURE_STATEMENT_MS}ms'`);
+					// This is the first snapshot statement. A clock read before BEGIN would permit late backfill.
+					const observed = tests.observationClock?.();
+					const calendar = (
+						await client.query<CalendarRow>(
+							`WITH observation AS (SELECT ${observed ? '$2::timestamptz' : 'statement_timestamp()'} AS observed_at), bounds AS (SELECT observed_at,(observed_at AT TIME ZONE $1)::date AS day FROM observation), calendar AS (SELECT observed_at,day,day::timestamp AT TIME ZONE $1 AS day_start,(day+1)::timestamp AT TIME ZONE $1 AS day_end FROM bounds) SELECT observed_at,day::text,day_start,day_end,observed_at >= day_end - interval '60 seconds' AND observed_at < day_end AS eligible FROM calendar`,
+							observed ? [values.timezone, observed.toISOString()] : [values.timezone]
+						)
+					).rows[0];
+					if (!calendar.eligible) {
+						await client.query('ROLLBACK');
+						transaction = false;
+						break;
+					}
+					const existing = (
+						await client.query<{
+							id: string;
+							timezone: string;
+							observed_at: Date;
+							day_start: Date;
+							day_end: Date;
+						}>(
+							"SELECT id,timezone,observed_at,day_start,day_end FROM inventory_value_days WHERE account_id=$1 AND game='mtg' AND day=$2::date",
+							[account.account_id, calendar.day]
+						)
+					).rows[0];
+					if (
+						existing &&
+						(existing.timezone !== values.timezone ||
+							existing.day_start.getTime() !== calendar.day_start.getTime() ||
+							existing.day_end.getTime() !== calendar.day_end.getTime() ||
+							existing.observed_at >= calendar.observed_at)
+					) {
+						await client.query('ROLLBACK');
+						transaction = false;
+						continue;
+					}
+					const revision =
+						(
+							await client.query<{ revision: string }>(
+								"SELECT revision::text FROM inventories WHERE account_id=$1 AND game='mtg'",
+								[account.account_id]
 							)
-						]
-					);
-				}
-				for (let offset = 0; offset < holdings.length; offset += 500) {
+						).rows[0]?.revision ?? '0';
+					const holdings = await readHoldings(client, account.account_id);
+					const pairs = [
+						...new Map(
+							holdings.map((row) => {
+								const pair = { printingId: row.printing_id, finish: row.finish };
+								return [pairKey(pair), pair] as const;
+							})
+						).values()
+					];
+					const outcomes: FrozenReferenceOutcome[] = [],
+						references = new Map<string, PriceReference>();
+					for (let offset = 0; offset < pairs.length; offset += 100) {
+						check();
+						const batch = await values.valuation.freezeInTransaction(
+							client,
+							pairs.slice(offset, offset + 100),
+							calendar.observed_at
+						);
+						outcomes.push(...batch.evidence);
+						for (const reference of batch.response.results)
+							references.set(pairKey(reference), reference);
+						await tests.afterBatch?.(offset / 100, client);
+					}
 					check();
-					await client.query(
-						`INSERT INTO inventory_value_holdings(day_id,printing_id,finish,condition,quantity,canonical_card_id,name,set_code,image_uri) SELECT $1,r.printing_id,r.finish,r.condition,r.quantity,r.canonical_card_id,r.name,r.set_code,r.image_uri FROM jsonb_to_recordset($2::jsonb) AS r(printing_id text,finish text,condition text,quantity integer,canonical_card_id text,name text,set_code text,image_uri text)`,
-						[dayId, JSON.stringify(holdings.slice(offset, offset + 500))]
-					);
+					const estimate = estimateHoldings(holdings, references),
+						dayId = existing?.id ?? randomUUID();
+					if (existing) {
+						await client.query('DELETE FROM inventory_value_holdings WHERE day_id=$1', [dayId]);
+						await client.query('DELETE FROM inventory_value_references WHERE day_id=$1', [dayId]);
+						await client.query(
+							'UPDATE inventory_value_days SET observed_at=$2,estimate=$3::jsonb,inventory_revision=$4 WHERE id=$1',
+							[dayId, calendar.observed_at, JSON.stringify(estimate), revision]
+						);
+					} else
+						await client.query(
+							`INSERT INTO inventory_value_days(id,account_id,game,day,timezone,day_start,day_end,observed_at,estimate,inventory_revision) VALUES($1,$2,'mtg',$3,$4,$5,$6,$7,$8::jsonb,$9)`,
+							[
+								dayId,
+								account.account_id,
+								calendar.day,
+								values.timezone,
+								calendar.day_start,
+								calendar.day_end,
+								calendar.observed_at,
+								JSON.stringify(estimate),
+								revision
+							]
+						);
+					for (let offset = 0; offset < outcomes.length; offset += 100) {
+						check();
+						await client.query(
+							`INSERT INTO inventory_value_references(day_id,printing_id,finish,evidence) SELECT $1,r.printing_id,r.finish,r.evidence FROM jsonb_to_recordset($2::jsonb) AS r(printing_id text,finish text,evidence jsonb)`,
+							[
+								dayId,
+								JSON.stringify(
+									outcomes.slice(offset, offset + 100).map((evidence) => ({
+										printing_id: evidence.reference.printingId,
+										finish: evidence.reference.finish,
+										evidence
+									}))
+								)
+							]
+						);
+					}
+					for (let offset = 0; offset < holdings.length; offset += 500) {
+						check();
+						await client.query(
+							`INSERT INTO inventory_value_holdings(day_id,printing_id,finish,condition,quantity,canonical_card_id,name,set_code,image_uri) SELECT $1,r.printing_id,r.finish,r.condition,r.quantity,r.canonical_card_id,r.name,r.set_code,r.image_uri FROM jsonb_to_recordset($2::jsonb) AS r(printing_id text,finish text,condition text,quantity integer,canonical_card_id text,name text,set_code text,image_uri text)`,
+							[dayId, JSON.stringify(holdings.slice(offset, offset + 500))]
+						);
+					}
+					await tests.beforeCommit?.(client);
+					check();
+					await client.query('COMMIT');
+					transaction = false;
+					result.capturedAccounts++;
+					result.capturedHoldings += holdings.length;
+					result.copiedReferences += outcomes.length;
+				} catch (cause) {
+					if (transaction) {
+						try {
+							await client.query('ROLLBACK');
+							transaction = false;
+						} catch {
+							lost = true;
+						}
+					}
+					check();
+					result.failedAccounts++;
+					console.error('Inventory value checkpoint failed; prior observation retained.');
 				}
-				await tests.beforeCommit?.(client);
-				check();
-				await client.query('COMMIT');
-				transaction = false;
-				result.capturedAccounts++;
-				result.capturedHoldings += holdings.length;
-				result.copiedReferences += outcomes.length;
 			}
 			return result;
 		} finally {
@@ -199,6 +235,7 @@ export function createValueHistoryRunner(
 					lost = true;
 				});
 			client.removeListener('error', connectionLost);
+			client.removeListener('end', connectionLost);
 			client.release(lost);
 		}
 	}
@@ -217,7 +254,9 @@ export function createValueHistoryRunner(
 		start() {
 			if (closed || timer) return;
 			const attempt = () => {
-				void runOnce().catch(() => {});
+				void runOnce().catch(() => {
+					if (!closed) console.error('Inventory value runner unavailable.');
+				});
 			};
 			timer = setInterval(attempt, VALUE_CAPTURE_INTERVAL_MS);
 			timer.unref();

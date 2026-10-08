@@ -86,6 +86,8 @@ function dateInput(value: unknown): string {
 	if (
 		typeof value !== 'string' ||
 		!/^\d{4}-\d{2}-\d{2}$/.test(value) ||
+		value.slice(0, 4) === '0000' ||
+		!Number.isFinite(Date.parse(value)) ||
 		new Date(value).toISOString().slice(0, 10) !== value
 	)
 		throw new ValidationError('Invalid history date');
@@ -188,8 +190,8 @@ export function createInventoryValues(
 				estimate: ValueEstimate;
 				id: string;
 			}>(
-				`SELECT id,day::text,timezone,day_start,day_end,observed_at,estimate FROM inventory_value_days WHERE account_id=$1 AND game='mtg' AND day BETWEEN $2::date AND $3::date ORDER BY day`,
-				[accountId, from, to]
+				`SELECT id,day::text,timezone,day_start,day_end,observed_at,estimate FROM inventory_value_days WHERE account_id=$1 AND game='mtg' AND day BETWEEN $2::date AND $3::date AND day_end <= $4::timestamptz ORDER BY day`,
+				[accountId, from, to, asOf.toISOString()]
 			)
 		).rows;
 		const estimates = new Map<string, ValueEstimate>();

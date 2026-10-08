@@ -7,6 +7,8 @@ CREATE TABLE "inventory_value_days" (
 	"day_start" timestamp with time zone NOT NULL,
 	"day_end" timestamp with time zone NOT NULL,
 	"observed_at" timestamp with time zone NOT NULL,
+	"inventory_revision" bigint DEFAULT '0' NOT NULL,
+	"policy_version" text DEFAULT 'daily-final-minute-v1' NOT NULL,
 	"estimate" jsonb NOT NULL,
 	CONSTRAINT "inventory_value_days_game_check" CHECK ("inventory_value_days"."game" = 'mtg'),
 	CONSTRAINT "inventory_value_days_observation_check" CHECK ("inventory_value_days"."observed_at" >= "inventory_value_days"."day_end" - interval '60 seconds' and "inventory_value_days"."observed_at" < "inventory_value_days"."day_end" and "inventory_value_days"."day_start" < "inventory_value_days"."day_end")

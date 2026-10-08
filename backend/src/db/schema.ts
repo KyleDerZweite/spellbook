@@ -858,6 +858,8 @@ export const inventoryValueDays = pgTable(
 		dayStart: timestamp('day_start', { withTimezone: true }).notNull(),
 		dayEnd: timestamp('day_end', { withTimezone: true }).notNull(),
 		observedAt: timestamp('observed_at', { withTimezone: true }).notNull(),
+		inventoryRevision: decimalRevision('inventory_revision').notNull().default('0'),
+		policyVersion: text('policy_version').notNull().default('daily-final-minute-v1'),
 		estimate: jsonb('estimate')
 			.$type<import('@spellbook/contracts/inventory-value.ts').ValueEstimate>()
 			.notNull()
