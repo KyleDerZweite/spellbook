@@ -1,9 +1,9 @@
 # Repository verification and GitHub automation
 
 - Status: Canonical
-- Last Reviewed: 2026-10-07
+- Last Reviewed: 2026-10-08
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
-- Update Triggers: test commands, workflow coverage, runtime pins, browser verification, PR policy, Dependabot policy, engineering skill tracker and domain layout, optional account-summary and Inventory scale fixtures, integration file serialization and range fixtures, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures
+- Update Triggers: test commands, workflow coverage, runtime pins, browser verification, PR policy, Dependabot policy, engineering skill tracker and domain layout, optional account-summary and Inventory scale fixtures, integration file serialization and range fixtures, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks
 - Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance), [Application boundaries](../architecture/application-contract.md#implementation-status)
 
 This document owns repository check commands, CI coverage, and verification evidence. Product and integration documents own behavior and acceptance criteria. Run checks appropriate to the changed behavior; do not treat a passing command as proof of requirements it does not exercise.
@@ -112,3 +112,9 @@ ADRs live in `docs/decisions/`; preserve their numbering, filenames, template, a
 Skills that default to `docs/agents/` or `docs/adr/` must use these existing owners. Edit this configuration and the label mapping directly when they change; rerun setup only to change the tracker or reconsider the layout.
 
 Workspace sync unit checks exercise the public transport/lease seam, including hidden resume, terminal activation, deferred publication, counted writes and coalesced probes. InventoryWindow held actual HTTP responses verify physical admission under ordinary invalidation. `test:sync` also drives the production workspace lease module against two built processes and PostgreSQL for Inventory/Deck/Profile totals and actual-worker Scan result invalidation. Those checks establish HTTP/resource behavior, not browser draft/focus/anchor acceptance; record rendered and deployment evidence separately.
+
+## Value history verification
+
+[History integration tests](../../frontend/tests/integration/inventory-value-history.integration.test.ts), [value summaries](../../frontend/tests/integration/value-summary.integration.test.ts), [value events](../../frontend/tests/integration/inventory-value-events.integration.test.ts) and [value HTTP tests](../../frontend/tests/value-history-http.test.ts) own checkpoint, summary, notification and route evidence. Run these against the migrated disposable database using the existing integration/HTTP isolation rules. [Scale integration](../../frontend/tests/integration/inventory-value-scale.integration.test.ts) requires `TEST_VALUE_SCALE_ACCOUNT_ID` naming a disposable account already populated with 50,000 real Catalog holdings. It uses `TEST_DATABASE_URL`, changes that account's checkpoint fixtures and skips without both variables. Record Catalog/fixture provenance and absent coverage.
+
+Record head, migration state and fixture provenance with results. Controlled-clock captures prove eligibility and consistency, not an actual scheduled midnight observation. Provider refresh, rendered presentation, owner acceptance and deployment remain separate evidence. [Valuation](../architecture/valuation.md#reviewed-personal-history-contract) lists relevant failure and lifecycle scenarios.

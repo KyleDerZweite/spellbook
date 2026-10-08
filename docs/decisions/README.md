@@ -57,7 +57,7 @@ Rules:
 - [ADR-0018: Acquisition portions and atomic history restatement](./0018-acquisition-portions-and-atomic-history-restatement.md), superseded by [ADR-0020](./0020-value-only-inventory-history.md); historical cost design, not implemented on main
 - [ADR-0019: Versioned categories and local source rules](./0019-versioned-categories-and-local-source-rules.md), starter entry categories and Oracle Tags implemented; account rules, Review/Reset, whole-deck categories and combos planned
 
-- [ADR-0020: Value-only Inventory history](./0020-value-only-inventory-history.md), accepted scope; personal implementation pending
+- [ADR-0020: Value-only Inventory history](./0020-value-only-inventory-history.md), accepted scope; value-only personal history implemented under ADR-0022
 
 - [ADR-0021: Hybrid browsing and contextual Card dialog](./0021-hybrid-browsing-and-contextual-card-dialog.md), API, Shell, result-window foundations and contextual Card actions implemented; uniform continuous Lazy source implemented; local composed verification recorded with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192); partially supersedes ADR-0014 and ADR-0017 for affected browser UI and read limits
-- [ADR-0022: Daily value observation checkpoints](./0022-daily-value-observation-checkpoints.md), reviewed technical capture contract; persistence and UI pending
+- [ADR-0022: Daily value observation checkpoints](./0022-daily-value-observation-checkpoints.md), daily observation persistence, runtime and private presentation implemented

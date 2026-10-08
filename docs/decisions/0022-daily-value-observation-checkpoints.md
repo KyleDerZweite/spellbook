@@ -1,6 +1,6 @@
 # ADR-0022: Daily value observation checkpoints
 
-- Status: Accepted, technical design reviewed; implementation pending
+- Status: Accepted, persistence, runtime and private presentation implemented
 - Date: 2026-10-08
 - Last Reviewed: 2026-10-08
 - Owners: Kyle

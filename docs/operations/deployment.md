@@ -1,9 +1,9 @@
 # Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-10-07
+- Last Reviewed: 2026-10-08
 - Source of Truth: repo config
-- Update Triggers: Catalog set-directory and color-identity projection migrations, price publication/pair and optional recovery, source opt-ins and ingestion limits, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and preview target, single root environment and local/build origins, migrations, storage, workspace ownership and compatibility adapters, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
+- Update Triggers: Catalog set-directory and color-identity projection migrations, price publication/pair and optional recovery, private value history migration and runtime configuration, source opt-ins and ingestion limits, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and preview target, single root environment and local/build origins, migrations, storage, workspace ownership and compatibility adapters, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
 - Related Docs: [Postgres](../architecture/postgres.md), [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Classifier research](../integrations/card-categorization.md), [Catalog](../architecture/catalog.md)
 
 The canonical service definitions are [`podman-compose.yml`](../../podman-compose.yml) and the local storage override [`podman-compose.dev.yml`](../../podman-compose.dev.yml). Keep live domains, account details, and secret references in private operator notes.
@@ -85,6 +85,8 @@ Use `podman-compose --profile tunnel up --build -d` to include Newt. Set `PANGOL
 | `ADDRESS_HEADER`, `XFF_DEPTH`                       | Optional trusted-proxy client address configuration; leave the header empty until proxy trust is configured             |
 | `BODY_SIZE_LIMIT`                                   | Adapter request limit; compose defaults to `12M` to allow multipart overhead around a 10 MiB scan image                 |
 | `DEMO_MODE`                                         | Set to `true` only for an explicitly seeded disposable demo. See [demo setup](./local-auth.md#demo-mode).               |
+| `VALUE_HISTORY_TIMEZONE`                            | IANA reporting timezone, default `Europe/Berlin`; invalid names fail startup                                            |
+| `VALUE_HISTORY_ENABLED`                             | Strict `true` or `false`, default `true`; disables only observation scheduling                                          |
 | `DATABASE_URL`                                      | Server, catalog worker, or operator PostgreSQL connection; compose constructs its internal connection from `POSTGRES_*` |
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Database and credentials; replace the example password                                                                  |
 | `CATALOG_SOURCE`                                    | Scryfall source: `all_cards` by default, or `default_cards`                                                             |
@@ -218,3 +220,11 @@ For optional recovery, stop the scheduled Worker and call OptionalPricePublisher
 Apply the sequenced category migration before the frontend or worker that uses category tables. Migration 0016 follows the Inventory and price migrations 0014/0015 in the coherent journal. Apply migrations in sequence before starting the upgraded application. Catalog transform changes require a fresh publication that includes internal raw Oracle/type facts. Until that publication exists, primary tag predicates remain Unknown; saved decisions remain readable and Manual choices work.
 
 Worker sync imports the exact trusted Oracle Tags descriptor and payload, then atomically activates complete facts/mapping. Inspect `oracle_tag_state` active/previous publication and safe refresh status together with immutable publication source time/digest/parser/mapping versions. A failed refresh preserves prior valid facts. Recovery retries the same source; filenames or new metadata must not redatestamp an old offline export. [Worker](../architecture/worker.md#oracle-tags-publication) owns import mechanics and [category rules](../architecture/category-rules.md#implemented-starter-entry-decisions) owns account assignment behavior. Public recovery never triggers existing automatic reassignment.
+
+## Personal value history upgrade
+
+Apply the coherent migration journal through [0020](../../frontend/drizzle/0020_inventory_value_history.sql) before starting the upgraded application. It adds private daily checkpoint/evidence tables and `values` notification triggers. Existing Inventory writes and account rows remain unchanged. No historical backfill runs.
+
+The application starts the Backend Valuation runner outside build analysis when `VALUE_HISTORY_ENABLED=true`. Development HMR disposal and production shutdown close owned work. Set the flag to `false` to stop scheduling while retaining existing history and current read routes. Configure `VALUE_HISTORY_TIMEZONE` with a valid IANA name. Saved observations retain their own timezone and UTC boundaries after configuration changes. [Valuation](../architecture/valuation.md#reviewed-personal-history-contract) owns lease, observation window and closure rules.
+
+The host development launcher does not publish prices automatically. A running capture timer does not establish provider refresh or known-price coverage. Operator refresh, actual midnight observation, deployment and owner acceptance require separate evidence. The remaining integration verification is tracked with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192).

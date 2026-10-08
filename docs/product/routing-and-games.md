@@ -1,9 +1,9 @@
 # Routes and supported game, paused Scan entrypoints
 
 - Status: Canonical
-- Last Reviewed: 2026-10-07
+- Last Reviewed: 2026-10-08
 - Source of Truth: route handlers and server hooks
-- Update Triggers: route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game, paused Scan entrypoints
+- Update Triggers: route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game, paused Scan entrypoints, private Inventory history routes
 - Related Docs: [Product specification](./specification.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Frontend architecture](../architecture/frontend.md), [Catalog](../architecture/catalog.md), [Product index](./README.md)
 
 Scan presentation is paused. The existing `/mtg/scan` route and versioned Scan API are retained, but Navigation, Inventory and Dashboard do not link to Scan. [Mobile and scan](../architecture/mobile-and-scan.md) owns retained capabilities and the later recognition scope.
@@ -17,6 +17,7 @@ The [route source](../../frontend/src/routes/) owns implemented handlers. The [s
 | Route                         | Access and behavior                                                               |
 | ----------------------------- | --------------------------------------------------------------------------------- |
 | `/`                           | Public landing for signed-out and signed-in users                                 |
+| `/mtg/history`                | Authenticated personal Inventory value history and identity/date filters          |
 | `/mtg/dashboard`              | Authenticated account summaries and per-deck availability                         |
 | `/mtg/search`                 | Public catalog search and printing details                                        |
 | `/mtg/inventory/[entryId]`    | Authenticated SSR owned-entry Notes/Groups/reviewed Remove forms                  |
@@ -66,6 +67,8 @@ All paths below begin with `/api/mobile/v1/mtg`. The historical `mobile` name do
 | ---------------------------------------------------------- | -------------------------------------------------------------- |
 | `/search`                                                  | Catalog queries                                                |
 | `/cards/[oracleId]/printings`                              | Printings for a canonical card                                 |
+| `/inventory/value`                                         | Authenticated current Inventory estimate and coverage          |
+| `/inventory/value-history`                                 | Authenticated closed daily checkpoints and explicit gaps       |
 | `/inventory`                                               | Account inventory                                              |
 | `/inventory/batch-add`                                     | Batch additions                                                |
 | `/inventory/bulk`                                          | Idempotent inventory mutations                                 |

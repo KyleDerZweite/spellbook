@@ -1,9 +1,9 @@
 # Postgres
 
 - Status: Canonical
-- Last Reviewed: 2026-10-07
+- Last Reviewed: 2026-10-08
 - Source of Truth: code
-- Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership and compatibility adapters, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers, public price publication and retention, Oracle Tags publications and raw facts, entry category bundles/decisions and receipts
+- Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership and compatibility adapters, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers, private value checkpoints and frozen evidence, public price publication and retention, Oracle Tags publications and raw facts, entry category bundles/decisions and receipts
 - Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Category rules](./category-rules.md)
 
 PostgreSQL stores account-owned application state, the public Scryfall catalog and public price references.
@@ -34,6 +34,9 @@ The backend [schema](../../backend/src/db/schema.ts) owns table definitions, and
 - `price_printings`
 - `price_observations`
 - `price_state`
+- `inventory_value_days`
+- `inventory_value_holdings`
+- `inventory_value_references`
 - `catalog_oracle_facts`
 - `category_mutation_requests`
 - `deck_category_bundles`
@@ -128,3 +131,9 @@ An identical retry has one write effect. Reusing an existing request ID with a d
 Inventory and Deck requests store compact original acknowledgements in their mutation transaction. Identical replay returns the stored acknowledgement after later subject changes or deletion; changed normalized intent fails with 409. Legacy Inventory records without acknowledgements return explicit unavailable-history receipts, retaining their stored fingerprint/no-repeat protection. Legacy Deck records retain their documented empty-change behavior. Notes/Description revision checks are separate from request replay. Scan candidate-result replacement is separate from Inventory mutation replay and has no event fingerprint. See [mobile and scan](./mobile-and-scan.md) for wire migration.
 
 Migration 0017 adds independent optional publication/state/mapping/observation tables and normalized public source-history evidence/daily points. These public tables have no Catalog cascade or private account dependency. [Valuation](./valuation.md#optional-references-and-public-source-history) owns selection, 90-day retention and trusted evidence. Run it after the coherent 0016 migration prefix.
+
+## Personal value persistence
+
+[Migration 0020](../../frontend/drizzle/0020_inventory_value_history.sql) adds account/game/date-unique daily headers, identity/condition holdings and deduplicated printing/finish frozen reference evidence. Private evidence has no live Inventory, Catalog or public-price foreign key. Deleting an account removes its private history. Automatic history expiry is absent. The header stores the observation clock, reporting timezone, UTC boundaries, Inventory revision, policy version and exact estimate. Its constraint restricts observation time to the final 60 seconds. [Valuation](./valuation.md#reviewed-personal-history-contract) owns transactional replacement, runner lease, closure and read semantics.
+
+Migration 0020 also notifies account-scoped `values` after checkpoint commit and emits the strict two-key public `values` invalidation after public price-state changes. Rollback emits neither. [Application contract](./application-contract.md#saved-state-synchronization) owns transport isolation.
