@@ -190,6 +190,23 @@ describe('Deck Library physical window', () => {
 		expect(window.current).toBeUndefined();
 		expect(window.metrics()).toMatchObject({ records: 0, pages: 0, contexts: 0 });
 	});
+	it('waits for a bounded end-range replacement when deletion removes the visible page', async () => {
+		const final = deferred<DeckLibraryPage>();
+		let settled = false;
+		const window = new DeckLibraryWindow(
+			async (_query, offset) => (offset === 1000 ? page(1000, 401, '2') : final.promise),
+			() => {}
+		);
+		window.seed('account', page(1000));
+		const refresh = window.refresh().then(() => (settled = true));
+		await settle();
+		expect(settled).toBe(false);
+		expect(window.current?.revision).toBe('1');
+		final.resolve(page(400, 401, '2'));
+		await refresh;
+		expect(window.span).toEqual({ start: 400, end: 401 });
+		expect(window.current?.revision).toBe('2');
+	});
 	it('fences cancelled refresh publication', async () => {
 		const body = deferred<DeckLibraryPage>();
 		let current = true;

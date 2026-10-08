@@ -42,6 +42,7 @@ export class DeckLibraryWindow {
 	private clock = 0;
 	private seedPage: DeckLibraryPage | null = null;
 	private retained: DeckLibraryItem | null = null;
+	private refreshRedirect: { generation: number; offset: number } | null = null;
 	private waiters = new Set<() => void>();
 	private visible = new Set<number>();
 	private failed: { offset: number; explicit: boolean; refresh: boolean } | null = null;
@@ -78,6 +79,7 @@ export class DeckLibraryWindow {
 		this.contexts.clear();
 		this.seedPage = null;
 		this.retained = null;
+		this.refreshRedirect = null;
 		this.key = '';
 		this.account = '';
 		this.visible.clear();
@@ -89,6 +91,7 @@ export class DeckLibraryWindow {
 		if (account !== this.account) this.clear();
 		else this.cancel();
 		this.account = account;
+		this.refreshRedirect = null;
 		if (pinServerPage) {
 			this.seedPage = page;
 			this.retained = null;
@@ -216,8 +219,21 @@ export class DeckLibraryWindow {
 		if (page && this.span.end < page.matchingTotal) return this.request(this.span.end);
 		return Promise.resolve();
 	}
-	refresh(current: () => boolean = () => true) {
-		return this.enqueue(this.current?.offset ?? 0, true, true, current);
+	async refresh(current: () => boolean = () => true) {
+		let offset = this.current?.offset ?? 0;
+		for (let attempt = 0; attempt < 2; attempt++) {
+			const generation = this.generation;
+			await this.enqueue(offset, true, true, current);
+			const redirect = this.refreshRedirect;
+			if (
+				!redirect ||
+				this.generation !== generation ||
+				redirect.generation !== generation ||
+				!current()
+			)
+				return;
+			offset = redirect.offset;
+		}
 	}
 	private enqueue(offset: number, explicit: boolean, refresh: boolean, current: () => boolean) {
 		const context = this.contexts.get(this.key);
@@ -349,12 +365,10 @@ export class DeckLibraryWindow {
 			)
 				throw new Error('Invalid Deck Library range');
 			if (job.refresh && result.offset > 0 && result.offset >= result.matchingTotal) {
-				void this.enqueue(
-					Math.max(0, Math.ceil(result.matchingTotal / result.limit) - 1) * result.limit,
-					true,
-					true,
-					job.current
-				);
+				this.refreshRedirect = {
+					generation: this.generation,
+					offset: Math.max(0, Math.ceil(result.matchingTotal / result.limit) - 1) * result.limit
+				};
 				return;
 			}
 			this.beforeChange();
