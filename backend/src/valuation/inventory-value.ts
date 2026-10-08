@@ -121,7 +121,10 @@ function request(input: unknown) {
 			identity.finish = value.finish;
 		}
 		if (value.condition !== undefined) {
-			if (!['NM', 'LP', 'MP', 'HP', 'DMG'].includes(String(value.condition)))
+			if (
+				typeof value.condition !== 'string' ||
+				!['NM', 'LP', 'MP', 'HP', 'DMG'].includes(value.condition)
+			)
 				throw new ValidationError('Invalid condition');
 			identity.condition = value.condition as HistoricalHoldingIdentity['condition'];
 		}

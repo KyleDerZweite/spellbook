@@ -440,7 +440,8 @@ run('private coherent value checkpoints on PostgreSQL', () => {
 			{ from: '2026-99-99', to: '2026-10-07' },
 			{ from: '2026-10-07', to: '2026-10-06' },
 			{ accountId: other.accountId },
-			{ finish: 'foil' }
+			{ finish: 'foil' },
+			{ printingId: printing, condition: ['NM'] }
 		])
 			await expect(history(input)).rejects.toMatchObject({ kind: 'ValidationFailed' });
 		expect((await values.current(actor)).estimate.totalQuantity).toBe(4);
