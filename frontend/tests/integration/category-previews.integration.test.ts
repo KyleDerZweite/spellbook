@@ -619,7 +619,7 @@ run('server-owned Category Review, Reset and local decisions', () => {
 		).rows[0];
 		const queryPlan = (
 			await database.pool.query(
-				'EXPLAIN (ANALYZE,BUFFERS,FORMAT JSON) SELECT difference FROM category_preview_differences WHERE preview_id=$1 AND position>=1408 ORDER BY position LIMIT 100',
+				'EXPLAIN (ANALYZE,BUFFERS,FORMAT JSON) SELECT difference FROM category_preview_differences WHERE preview_id=$1 AND position>=1400 ORDER BY position LIMIT 100',
 				[p.id]
 			)
 		).rows[0]['QUERY PLAN'];
