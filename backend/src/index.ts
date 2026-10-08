@@ -20,3 +20,6 @@ export { createInventoryValues } from './valuation/inventory-value.ts';
 export { createValueHistoryRunner } from './valuation/capture.ts';
 
 export { CategoryUnavailable } from './categories/work.ts';
+
+export { createWholeDeckCategoryRunner } from './categories/jobs.ts';
+export { evaluateWholeDeck } from './categories/whole.ts';

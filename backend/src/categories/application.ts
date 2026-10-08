@@ -1,3 +1,6 @@
+import { createWholeCategories } from './whole.ts';
+import type { WholeCategoriesApplication } from '@spellbook/contracts/whole-categories.ts';
+import { touchWholeDeckJob } from './jobs.ts';
 import { publishCategoryChange } from './notification.ts';
 import { categoryTransaction } from './work.ts';
 import { sql } from 'drizzle-orm';
@@ -46,7 +49,10 @@ function strict(value: unknown, keys: string[]): Record<string, unknown> {
 export function createCategories(
 	db: Database,
 	auth: Pick<ReturnType<typeof createLocalAuth>, 'requireActor' | 'requireActorForWrite'>
-): CategoriesApplication & CategoryLibraryApplication & CategoryChangesApplication {
+): CategoriesApplication &
+	CategoryLibraryApplication &
+	CategoryChangesApplication &
+	WholeCategoriesApplication {
 	async function owned(tx: Transaction, accountId: string, deckId: string, lock = false) {
 		const result = await tx.execute(
 			sql`SELECT id FROM decks WHERE id=${deckId}::uuid AND account_id=${accountId} AND game='mtg' ${lock ? sql`FOR UPDATE` : sql``}`
@@ -191,6 +197,7 @@ export function createCategories(
 				sql`INSERT INTO category_mutation_requests(account_id,request_id,request_hash,acknowledgement) VALUES(${accountId},${requestId}::uuid,${fingerprint},${JSON.stringify(acknowledgement)}::jsonb)`
 			);
 			if (entryIds.length || !previouslyInitialized) {
+				await touchWholeDeckJob(tx, deckId);
 				await publishCategoryChange(tx, accountId);
 			}
 			return acknowledgement;
@@ -198,6 +205,7 @@ export function createCategories(
 	}
 	return {
 		...createCategoryLibrary(db, auth),
+		...createWholeCategories(db, auth),
 		...createCategoryChanges(db, auth),
 		...createCategoryPreviews(db, auth),
 		previewEntryMerge: async (actor, value) => {

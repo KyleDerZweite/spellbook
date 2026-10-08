@@ -12,7 +12,9 @@ import {
 	createSavedState,
 	createCategories,
 	createInventoryValues,
-	createValueHistoryRunner
+	createValueHistoryRunner,
+	createWholeDeckCategoryRunner,
+	evaluateWholeDeck
 } from '@spellbook/backend';
 import { privateEnv } from '#lib/env/private.ts';
 import { db, pool } from '#lib/server/db/client.ts';
@@ -27,6 +29,7 @@ if (!['true', 'false'].includes(enabled))
 	throw Error('VALUE_HISTORY_ENABLED must be true or false');
 const inventoryValues = createInventoryValues(pool, auth, valuation, { timezone });
 const valueRunner = createValueHistoryRunner(pool, inventoryValues);
+const wholeRunner = createWholeDeckCategoryRunner(db, evaluateWholeDeck);
 export const application = {
 	catalog,
 	auth,
@@ -58,6 +61,7 @@ let closing: Promise<void> | undefined;
 function closeApplication() {
 	return (closing ??= Promise.allSettled([
 		valueRunner.close(),
+		wholeRunner.close(),
 		application.savedState.close()
 	]).then((results) => {
 		if (results.some((result) => result.status === 'rejected'))
@@ -66,6 +70,7 @@ function closeApplication() {
 }
 
 if (!building) {
+	wholeRunner.start();
 	if (enabled === 'true') valueRunner.start();
 	if (!dev) process.once('sveltekit:shutdown', closeApplication);
 	import.meta.hot?.dispose(closeApplication);

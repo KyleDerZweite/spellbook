@@ -1,3 +1,4 @@
+import type { WholeCategory, WholeCategoryAcknowledgement } from './whole-categories.ts';
 import type { StarterOrigin } from './categories.ts';
 import type {
 	CategoryAcknowledgement,
@@ -87,12 +88,14 @@ export type CategoryDifference = {
 		| 'RetainedManual'
 		| 'EntryChanged'
 		| 'EntryPreserved'
+		| 'DeckChanged'
+		| 'DeckPreserved'
 		| 'OriginRestored'
 		| 'NameConflict';
 	entityId: string;
 	message: string;
-	before?: EntryDefinition | EntryCategoryDecision | null;
-	after?: EntryDefinition | EntryCategoryDecision | null;
+	before?: EntryDefinition | EntryCategoryDecision | WholeCategory | null;
+	after?: EntryDefinition | EntryCategoryDecision | WholeCategory | null;
 };
 export type CategoryPreview = {
 	id: string;
@@ -105,7 +108,7 @@ export type CategoryPreview = {
 	offset: number;
 	limit: number;
 	differences: CategoryDifference[];
-	acknowledgement: CategoryAcknowledgement | null;
+	acknowledgement: CategoryAcknowledgement | WholeCategoryAcknowledgement | null;
 };
 export interface CategoryChangesApplication {
 	renameLocalCategory(
@@ -136,7 +139,7 @@ export interface CategoryChangesApplication {
 	commitCategoryChange(
 		actor: AuthUser,
 		input: { requestId: string; previewId: string }
-	): Promise<CategoryAcknowledgement>;
+	): Promise<CategoryAcknowledgement | WholeCategoryAcknowledgement>;
 }
 export interface CategoryLibraryApplication {
 	getDefinition(

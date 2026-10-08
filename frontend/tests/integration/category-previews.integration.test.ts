@@ -73,6 +73,7 @@ run('server-owned Category Review, Reset and local decisions', () => {
 					previewId: p.id
 				});
 				expect(committed.decisionRevision).toBe(before.decisionRevision);
+				if (!('entryIds' in committed)) throw new Error('Expected entry acknowledgement');
 				expect(committed.entryIds).toEqual([]);
 				expect(await categories.getDeckEntryCategories(actor, d.id)).toEqual(before);
 				await listener.query('SELECT 1');
@@ -230,6 +231,7 @@ run('server-owned Category Review, Reset and local decisions', () => {
 			expectedDecisionRevision: state.decisionRevision
 		};
 		const ack = await categories.removeLocalCategory(actor, removal);
+		if (!('entryIds' in ack)) throw new Error('Expected entry acknowledgement');
 		expect(ack.entryIds).toHaveLength(2);
 		expect(await categories.removeLocalCategory(actor, removal)).toEqual(ack);
 		state = await categories.getDeckEntryCategories(actor, d.id);
@@ -518,6 +520,7 @@ run('server-owned Category Review, Reset and local decisions', () => {
 			requestId: randomUUID(),
 			previewId: p.id
 		});
+		if (!('entryIds' in ack)) throw new Error('Expected entry acknowledgement');
 		expect(ack.entryIds).toHaveLength(150);
 		expect((await categories.getDeckEntryCategories(actor, d.id)).decisions).toHaveLength(150);
 		console.info('category-150-complete-plan', {
@@ -643,6 +646,7 @@ run('server-owned Category Review, Reset and local decisions', () => {
 				previewId: p.id
 			}),
 			ended = performance.now();
+		if (!('entryIds' in committed)) throw new Error('Expected entry acknowledgement');
 		expect(committed.entryIds).toHaveLength(1000);
 		await writeFile(
 			'/tmp/spellbook-slice16-many-plan-measurement-20261007.json',

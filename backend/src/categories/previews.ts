@@ -1,3 +1,11 @@
+import { buildWholePlan } from './whole-preview.ts';
+import { storeWholeCategories } from './whole.ts';
+import type {
+	WholeCategory,
+	WholeCategoryAcknowledgement
+} from '@spellbook/contracts/whole-categories.ts';
+import { advanceDeckLibraryRevision } from '../decks/directory-revision.ts';
+import { touchWholeDeckJob } from './jobs.ts';
 import { publishCategoryChange } from './notification.ts';
 import { categoryTransaction, categoryCheckpoint, categoryJson } from './work.ts';
 import { sql } from 'drizzle-orm';
@@ -49,6 +57,7 @@ export class CategoryPreviewExpired extends Error {
 	}
 }
 type Plan = {
+	wholeCategories?: WholeCategory[];
 	definitions: EntryDefinition[];
 	decisions: EntryCategoryDecision[];
 	suppressed: string[];
@@ -66,7 +75,7 @@ type PreviewRow = {
 	mode: CategoryChangeIntent['mode'];
 	expires_at: Date | string;
 	plan: Plan | null;
-	acknowledgement: CategoryAcknowledgement | null;
+	acknowledgement: CategoryAcknowledgement | WholeCategoryAcknowledgement | null;
 	difference_total: number;
 	blocked: boolean;
 	has_plan: boolean;
@@ -389,26 +398,15 @@ export function createCategoryPreviews(
 					return readPage(tx, old.rows[0] as PreviewRow);
 				}
 				await lockOwnedCategoryDeck(tx, accountId, deckId);
-				if (intent.scope === 'deck')
-					return {
-						id: requestId,
-						deckId,
-						scope: 'deck',
-						mode: intent.mode,
-						status: 'Unsupported',
-						expiresAt: new Date().toISOString(),
-						total: 0,
-						offset: 0,
-						limit: 50,
-						differences: [],
-						acknowledgement: null
-					};
 				await cleanupExpired(tx, accountId);
 				const live = await tx.execute(
 					sql`SELECT count(*)::int AS count FROM category_change_previews WHERE account_id=${accountId} AND expires_at>clock_timestamp() AND acknowledgement IS NULL`
 				);
 				if (Number(live.rows[0].count) >= 4) throw new CategoryPreviewCapacity();
-				const complete = await buildPlan(tx, accountId, intent);
+				const complete =
+					intent.scope === 'deck'
+						? await buildWholePlan(tx, accountId, intent)
+						: await buildPlan(tx, accountId, intent);
 				categoryJson(tx, complete);
 				const { differences, ...plan } = complete,
 					id = crypto.randomUUID();
@@ -461,7 +459,7 @@ export function createCategoryPreviews(
 		commitCategoryChange: async (
 			actor: AuthUser,
 			value: { requestId: string; previewId: string }
-		): Promise<CategoryAcknowledgement> => {
+		): Promise<CategoryAcknowledgement | WholeCategoryAcknowledgement> => {
 			const raw = strictCategoryFields(value, ['requestId', 'previewId']),
 				requestId = categoryUuid(raw.requestId),
 				previewId = categoryUuid(raw.previewId),
@@ -473,7 +471,7 @@ export function createCategoryPreviews(
 				const { accountId } = await auth.requireActor(actor, tx);
 				await accountLock(tx, actor, accountId);
 				const replay = await categoryReceipt(tx, accountId, requestId, hash);
-				if (replay) return replay as CategoryAcknowledgement;
+				if (replay) return replay as CategoryAcknowledgement | WholeCategoryAcknowledgement;
 				const lookup = await tx.execute(
 					sql`SELECT ${previewColumns} FROM category_change_previews WHERE id=${previewId}::uuid AND account_id=${accountId}`
 				);
@@ -517,6 +515,36 @@ export function createCategoryPreviews(
 				const { tokens } = await readEntryCategoryFacts(tx, [], plan.definitions);
 				if (mutationFingerprint(tokens) !== mutationFingerprint(plan.sources))
 					throw new LibraryConflict();
+				if (row.scope === 'deck') {
+					if (!plan.wholeCategories) throw new CategoryPreviewExpired();
+					if (plan.changed) {
+						await storeWholeCategories(tx, row.deck_id, plan.wholeCategories);
+						await tx.execute(
+							sql`UPDATE deck_category_bundles SET whole_deck_definitions=${categoryJson(
+								tx,
+								plan.wholeCategories.filter((c) => !c.suppressed).map((c) => c.definition)
+							)}::jsonb,library_revision=${plan.libraryRevision}::bigint,decision_revision=decision_revision+1 WHERE deck_id=${row.deck_id}::uuid`
+						);
+						await touchWholeDeckJob(tx, row.deck_id);
+						await advanceDeckLibraryRevision(tx, accountId);
+						await publishCategoryChange(tx, accountId);
+					}
+					const ack: WholeCategoryAcknowledgement = {
+						requestId,
+						deckId: row.deck_id,
+						scope: 'deck',
+						decisionRevision: plan.changed
+							? (BigInt(plan.decisionRevision) + 1n).toString()
+							: plan.decisionRevision,
+						versionIds: plan.wholeCategories.map((c) => c.versionId),
+						changed: plan.changed
+					};
+					await storeCategoryReceipt(tx, accountId, requestId, hash, ack);
+					await tx.execute(
+						sql`UPDATE category_change_previews SET acknowledgement=${JSON.stringify(ack)}::jsonb WHERE id=${previewId}::uuid`
+					);
+					return ack;
+				}
 				const ordered = [...plan.decisions].sort((a, b) => (a.entryId < b.entryId ? -1 : 1));
 				for (let offset = 0; offset < ordered.length; offset += 100) {
 					categoryCheckpoint(tx);
@@ -542,7 +570,10 @@ export function createCategoryPreviews(
 				await tx.execute(
 					sql`UPDATE category_change_previews SET acknowledgement=${JSON.stringify(ack)}::jsonb WHERE id=${previewId}::uuid`
 				);
-				if (plan.changed) await publishCategoryChange(tx, accountId);
+				if (plan.changed) {
+					await touchWholeDeckJob(tx, row.deck_id);
+					await publishCategoryChange(tx, accountId);
+				}
 				return ack;
 			});
 		}

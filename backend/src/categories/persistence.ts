@@ -1,3 +1,4 @@
+import { queueWholeDeckEvaluation } from './jobs.ts';
 import { categoryCheckpoint, categoryJson } from './work.ts';
 import { mutationFingerprint } from '../decks/request-fingerprint.ts';
 import { sql } from 'drizzle-orm';
@@ -109,7 +110,7 @@ export async function readEntryCategoryFacts(
 		oraclePublicationId: first?.oracle_publication_id ?? null,
 		policy: mutationFingerprint(definitions)
 	};
-	return { facts, tokens };
+	return { facts, tokens, source: first };
 }
 export async function adoptedDefinitions(
 	tx: Transaction,
@@ -139,6 +140,10 @@ export async function ensureEntryCategoryInitialization(tx: Transaction, deckId:
 		await tx.execute(
 			sql`INSERT INTO deck_category_bundles(deck_id,definitions,whole_deck_definitions,library_revision) VALUES(${deckId}::uuid,${JSON.stringify(definitions)}::jsonb,${JSON.stringify(library.definitions.filter((d) => !d.archived && d.current.scope === 'deck').map((d) => d.current))}::jsonb,${library.revision}::bigint)`
 		);
+		await tx.execute(
+			sql`INSERT INTO deck_whole_categories(deck_id,version_id,origin_id,definition_snapshot,name,display_order) SELECT deck_id,(v->>'id')::uuid,(v->>'originId')::uuid,v,v->>'name',(v->>'displayOrder')::integer FROM deck_category_bundles CROSS JOIN LATERAL jsonb_array_elements(whole_deck_definitions) v WHERE deck_id=${deckId}::uuid`
+		);
+		await queueWholeDeckEvaluation(tx, deckId);
 	}
 	const entries = await tx.execute(
 		sql`SELECT c.id,c.catalog_card_id FROM deck_cards c LEFT JOIN deck_entry_category_decisions d ON d.entry_id=c.id WHERE c.deck_id=${deckId}::uuid AND c.role='main' AND d.entry_id IS NULL`

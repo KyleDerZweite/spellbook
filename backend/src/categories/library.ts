@@ -1,3 +1,4 @@
+import { advanceDeckLibraryRevision } from '../decks/directory-revision.ts';
 import { publishCategoryChange } from './notification.ts';
 import { categoryTransaction, categoryCheckpoint } from './work.ts';
 import { sql } from 'drizzle-orm';
@@ -163,7 +164,15 @@ export function createCategoryLibrary(
 			if (replay) return replay as LibraryAcknowledgement;
 			const ack = await run(tx, accountId);
 			await storeCategoryReceipt(tx, accountId, requestId, hash, ack);
-			if (ack.changed) await publishCategoryChange(tx, accountId);
+			if (ack.changed) {
+				const origin = (
+					await tx.execute(
+						sql`SELECT scope FROM category_definition_origins WHERE id=${ack.originId}::uuid`
+					)
+				).rows[0];
+				if (origin?.scope === 'deck') await advanceDeckLibraryRevision(tx, accountId);
+				await publishCategoryChange(tx, accountId);
+			}
 			return ack;
 		});
 	}

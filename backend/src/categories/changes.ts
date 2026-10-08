@@ -1,3 +1,4 @@
+import { touchWholeDeckJob } from './jobs.ts';
 import { publishCategoryChange } from './notification.ts';
 import { categoryTransaction } from './work.ts';
 import { sql } from 'drizzle-orm';
@@ -114,7 +115,10 @@ export function createCategoryChanges(
 				entryIds
 			};
 			await storeCategoryReceipt(tx, accountId, requestId, hash, ack);
-			if (changed) await publishCategoryChange(tx, accountId);
+			if (changed) {
+				await touchWholeDeckJob(tx, deckId);
+				await publishCategoryChange(tx, accountId);
+			}
 			return ack;
 		});
 	}

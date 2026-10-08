@@ -1,3 +1,5 @@
+import { advanceDeckLibraryRevision } from './directory-revision.ts';
+import { queueWholeDeckEvaluation } from '../categories/jobs.ts';
 import { createValuation, PriceReadUnavailable } from '../valuation/read.ts';
 import { deckValueEstimates } from './value.ts';
 import type { DeckSnapshot } from '@spellbook/contracts/decks.ts';
@@ -347,6 +349,7 @@ export function createDecks(
 				})
 				.returning();
 			await ensureEntryCategoryInitialization(tx, deck.id);
+			await advanceDeckLibraryRevision(tx, accountId);
 			return deckDto(deck);
 		});
 	}
@@ -370,7 +373,13 @@ export function createDecks(
 				if (patch.description !== deck.description)
 					patch.descriptionRevision = deck.descriptionRevision + 1n;
 			}
+			const changed =
+				(patch.name !== undefined && patch.name !== deck.name) ||
+				(patch.format !== undefined && patch.format !== deck.format) ||
+				(patch.description !== undefined && patch.description !== deck.description);
+			if (!changed) return deckDto(deck);
 			const [updated] = await tx.update(decks).set(patch).where(eq(decks.id, deck.id)).returning();
+			await advanceDeckLibraryRevision(tx, accountId);
 			return deckDto(updated);
 		});
 	}
@@ -379,6 +388,7 @@ export function createDecks(
 			await authorizeWrite(tx, accountId, actor);
 			await requireDeck(accountId, deckId, tx, true);
 			await tx.delete(decks).where(and(eq(decks.id, deckId), eq(decks.accountId, accountId)));
+			await advanceDeckLibraryRevision(tx, accountId);
 		});
 	}
 	async function apply(
@@ -693,6 +703,10 @@ export function createDecks(
 					.update(decks)
 					.set({ compositionRevision: revision, updatedAt: now })
 					.where(eq(decks.id, deck.id));
+			if (semanticChange) {
+				await queueWholeDeckEvaluation(tx, deck.id);
+				await advanceDeckLibraryRevision(tx, accountId);
+			}
 			const acknowledgement: DeckAcknowledgement = {
 				requestId,
 				deckId: deck.id,
