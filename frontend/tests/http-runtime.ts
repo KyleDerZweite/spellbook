@@ -17,8 +17,14 @@ export function httpTestOrigin(env: NodeJS.ProcessEnv = process.env): string {
 
 export async function stopHttpApplication(child: ChildProcess): Promise<void> {
 	if (child.exitCode !== null || child.signalCode !== null) return;
-	await new Promise<void>((resolve) => {
-		const timer = setTimeout(() => child.kill('SIGKILL'), 5000);
+	await new Promise<void>((resolve, reject) => {
+		const timer = setTimeout(() => {
+			reject(
+				new Error(
+					'Owned HTTP application did not exit after SIGTERM. It was left running without force termination.'
+				)
+			);
+		}, 5000);
 		child.once('exit', () => {
 			clearTimeout(timer);
 			resolve();
