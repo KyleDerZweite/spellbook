@@ -275,7 +275,9 @@ run('authorized account profile patches', () => {
 				}
 			]);
 			expect(summary.pendingScanReviews).toBe(1);
-			expect(JSON.stringify(summary).length).toBeLessThan(30000);
+			expect(summary.inventoryValue?.estimate.totalQuantity).toBe(50000);
+			expect(summary.inventoryValueHistory?.points).toHaveLength(30);
+			expect(JSON.stringify(summary).length).toBeLessThan(32000);
 			expect(await dashboard.get(other.user)).toMatchObject({
 				totals: { total: 0 },
 				recentEntries: [],

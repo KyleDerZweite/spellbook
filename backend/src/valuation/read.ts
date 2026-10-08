@@ -196,6 +196,11 @@ export function createValuation(
 	auth: Pick<ReturnType<typeof createLocalAuth>, 'requireActor'>,
 	clock: () => Date = () => new Date()
 ): ValuationApplication & {
+	readInTransaction(
+		executor: ReferenceExecutor,
+		input: unknown,
+		asOf: Date
+	): Promise<PriceResponse>;
 	freezePrintingReferences(
 		input: unknown
 	): Promise<{ response: PriceResponse; evidence: FrozenReferenceEvidence[] }>;
@@ -616,6 +621,9 @@ export function createValuation(
 		printingReferences,
 		printingHistory,
 		inventoryReferences,
+		readInTransaction(executor, input, asOf) {
+			return read(executor, requests(input), undefined, asOf);
+		},
 		freezePrintingReferences,
 		freezeInTransaction
 	};

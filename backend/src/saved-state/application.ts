@@ -291,6 +291,18 @@ export function createSavedState(databaseUrl: string, auth: Auth): SavedStateRun
 				try {
 					const value = JSON.parse(message.payload);
 					if (
+						value &&
+						value.public === true &&
+						value.topic === 'values' &&
+						Object.keys(value).length === 2
+					) {
+						for (const accountId of new Set([...subscribers].map((sub) => sub.accountId)))
+							enqueue(accountId, 'values');
+						return;
+					}
+					if (
+						value &&
+						value.public === undefined &&
 						typeof value.accountId === 'string' &&
 						(value.topic === 'auth' || SAVED_STATE_TOPICS.includes(value.topic))
 					)

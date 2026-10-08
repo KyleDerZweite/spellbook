@@ -1,5 +1,5 @@
 /** Coarse invalidations carry no persisted documents, account IDs or credentials. */
-export const SAVED_STATE_TOPICS = ['profile', 'inventory', 'decks', 'scan'] as const;
+export const SAVED_STATE_TOPICS = ['profile', 'inventory', 'decks', 'scan', 'values'] as const;
 export type SavedStateTopic = (typeof SAVED_STATE_TOPICS)[number];
 export type SavedStateEvent =
 	| {

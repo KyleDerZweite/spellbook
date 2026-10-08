@@ -1,3 +1,5 @@
+import { createInventoryValues } from '../valuation/inventory-value.ts';
+import { createValuation, PriceReadUnavailable } from '../valuation/read.ts';
 import { summaryNumber, profileTotals, SummaryRangeError } from './summary-number.ts';
 import type { Pool } from 'pg';
 import type {
@@ -11,7 +13,8 @@ import type { createLocalAuth } from '../auth/local.ts';
 
 export function createDashboard(
 	pool: Pool,
-	auth: Pick<ReturnType<typeof createLocalAuth>, 'requireActor'>
+	auth: Pick<ReturnType<typeof createLocalAuth>, 'requireActor'>,
+	values = createInventoryValues(pool, auth, createValuation(pool, auth))
 ): DashboardApplication {
 	return {
 		async get(actor) {
@@ -19,6 +22,8 @@ export function createDashboard(
 			const client = await pool.connect();
 			try {
 				await client.query('BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
+				const asOf = (await client.query<{ as_of: Date }>('SELECT statement_timestamp() AS as_of'))
+					.rows[0].as_of;
 				const args = [user.accountId];
 				const totals = profileTotals(
 					(
@@ -102,6 +107,26 @@ export function createDashboard(
 					await client.query('ROLLBACK TO SAVEPOINT scan_summary');
 					pendingScanReviews = null;
 				}
+				let inventoryValue: DashboardSummary['inventoryValue'] = null;
+				let inventoryValueHistory: DashboardSummary['inventoryValueHistory'] = null;
+				let valuationError: DashboardSummary['valuationError'] = null;
+				await client.query('SAVEPOINT inventory_value_summary');
+				try {
+					inventoryValue = await values.currentInTransaction(client, user.accountId, asOf);
+					inventoryValueHistory = await values.historyInTransaction(
+						client,
+						user.accountId,
+						{ days: 30 },
+						asOf
+					);
+				} catch {
+					await client.query('ROLLBACK TO SAVEPOINT inventory_value_summary');
+					inventoryValue = null;
+					inventoryValueHistory = null;
+					const failure = new PriceReadUnavailable();
+					valuationError = { kind: failure.kind, message: failure.message };
+				}
+				await client.query('RELEASE SAVEPOINT inventory_value_summary');
 				await client.query('COMMIT');
 				return {
 					totals,
@@ -110,7 +135,10 @@ export function createDashboard(
 					conditions,
 					recentEntries: recent.map((row) => ({ ...row, updatedAt: row.updatedAt.toISOString() })),
 					decks,
-					pendingScanReviews
+					pendingScanReviews,
+					inventoryValue,
+					inventoryValueHistory,
+					valuationError
 				} satisfies DashboardSummary;
 			} catch (cause) {
 				await client.query('ROLLBACK');

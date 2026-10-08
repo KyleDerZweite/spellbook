@@ -1,3 +1,6 @@
+import { createValuation, PriceReadUnavailable } from '../valuation/read.ts';
+import { deckValueEstimates } from './value.ts';
+import type { DeckSnapshot } from '@spellbook/contracts/decks.ts';
 import { ensureEntryCategoryInitialization } from '../categories/persistence.ts';
 import { requireCategoryMergePreview } from '../categories/merge.ts';
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
@@ -149,7 +152,8 @@ export function nextDeckChoiceOffset(
 export function createDecks(
 	db: Database,
 	catalog: CatalogApplication,
-	auth: Pick<ReturnType<typeof createLocalAuth>, 'requireActor'>
+	auth: Pick<ReturnType<typeof createLocalAuth>, 'requireActor'>,
+	valuation = createValuation(db.$client, auth)
 ): DecksApplication {
 	async function authorizeWrite(tx: Tx, accountId: string, actor?: AuthUser) {
 		if (!actor) throw new ActorError();
@@ -229,6 +233,10 @@ export function createDecks(
 		game(requestedGame);
 		return db.transaction(
 			async (tx) => {
+				const asOf = new Date(
+					(await tx.execute<{ as_of: string }>(sql`SELECT statement_timestamp() AS as_of`)).rows[0]
+						.as_of
+				);
 				const userDecks = await tx
 					.select()
 					.from(decks)
@@ -267,12 +275,28 @@ export function createDecks(
 					tx
 				);
 				const ownedByCanonical = canonicalQuantities(ownedPrintings);
+				const availability = allocateDeckAvailability(cards, ownedPrintings);
+				let valueEstimates: DeckSnapshot['valueEstimates'] = null;
+				let valuationError: DeckSnapshot['valuationError'] = null;
+				if (selectedDeckId) {
+					await tx.execute(sql`SAVEPOINT deck_value_summary`);
+					try {
+						valueEstimates = await deckValueEstimates(tx, valuation, cards, availability, asOf);
+					} catch {
+						await tx.execute(sql`ROLLBACK TO SAVEPOINT deck_value_summary`);
+						const failure = new PriceReadUnavailable();
+						valuationError = { kind: failure.kind, message: failure.message };
+					}
+					await tx.execute(sql`RELEASE SAVEPOINT deck_value_summary`);
+				}
 				return {
 					decks: userDecks.map(deckDto),
 					deckTotals,
 					deckCovers,
 					deckCards: cards,
-					availability: allocateDeckAvailability(cards, ownedPrintings),
+					availability,
+					valueEstimates,
+					valuationError,
 					ownedByCanonical,
 					ownedPrintings
 				};

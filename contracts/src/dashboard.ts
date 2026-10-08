@@ -1,3 +1,4 @@
+import type { CurrentInventoryValue, InventoryValueHistory } from './inventory-value.ts';
 import type { AuthUser } from './auth.ts';
 import type { ProfileTotals, SummaryFailure } from './profile.ts';
 export interface DashboardDistribution {
@@ -34,6 +35,9 @@ export interface DashboardSummary {
 	recentEntries: DashboardRecentEntry[];
 	decks: DashboardDeck[];
 	pendingScanReviews: number | null;
+	inventoryValue: CurrentInventoryValue | null;
+	inventoryValueHistory: InventoryValueHistory | null;
+	valuationError: { kind: 'PriceReadUnavailable'; message: string } | null;
 }
 export interface DashboardApplication {
 	get(actor: AuthUser): Promise<DashboardSummary>;

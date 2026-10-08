@@ -835,10 +835,85 @@ export const priceHistoryPrintings = pgTable(
 	{
 		publicationId: uuid('publication_id')
 			.notNull()
-			.references(() => priceHistoryPublications.publicationId, { onDelete: 'cascade' }),
+			.references(() => priceHistoryPublications.publicationId, {
+				onDelete: 'cascade'
+			}),
 		printingId: uuid('printing_id').notNull(),
 		identity: jsonb('identity').notNull(),
 		variantKey: text('variant_key')
 	},
 	(t) => [primaryKey({ columns: [t.publicationId, t.printingId] })]
+);
+
+export const inventoryValueDays = pgTable(
+	'inventory_value_days',
+	{
+		id: uuid('id').primaryKey(),
+		accountId: text('account_id')
+			.notNull()
+			.references(() => userProfiles.accountId, { onDelete: 'cascade' }),
+		game: text('game').notNull(),
+		day: date('day').notNull(),
+		timezone: text('timezone').notNull(),
+		dayStart: timestamp('day_start', { withTimezone: true }).notNull(),
+		dayEnd: timestamp('day_end', { withTimezone: true }).notNull(),
+		observedAt: timestamp('observed_at', { withTimezone: true }).notNull(),
+		inventoryRevision: decimalRevision('inventory_revision').notNull().default('0'),
+		policyVersion: text('policy_version').notNull().default('daily-final-minute-v1'),
+		estimate: jsonb('estimate')
+			.$type<import('@spellbook/contracts/inventory-value.ts').ValueEstimate>()
+			.notNull()
+	},
+	(table) => [
+		uniqueIndex('inventory_value_days_owner_date_idx').on(table.accountId, table.game, table.day),
+		check('inventory_value_days_game_check', sql`${table.game} = 'mtg'`),
+		check(
+			'inventory_value_days_observation_check',
+			sql`${table.observedAt} >= ${table.dayEnd} - interval '60 seconds' and ${table.observedAt} < ${table.dayEnd} and ${table.dayStart} < ${table.dayEnd}`
+		)
+	]
+);
+export const inventoryValueReferences = pgTable(
+	'inventory_value_references',
+	{
+		dayId: uuid('day_id')
+			.notNull()
+			.references(() => inventoryValueDays.id, { onDelete: 'cascade' }),
+		printingId: text('printing_id').notNull(),
+		finish: text('finish').notNull(),
+		evidence: jsonb('evidence')
+			.$type<import('../valuation/read.ts').FrozenReferenceOutcome>()
+			.notNull()
+	},
+	(table) => [
+		primaryKey({ columns: [table.dayId, table.printingId, table.finish] }),
+		check('inventory_value_references_finish_check', sql`${table.finish} in ('nonfoil','foil')`)
+	]
+);
+export const inventoryValueHoldings = pgTable(
+	'inventory_value_holdings',
+	{
+		dayId: uuid('day_id')
+			.notNull()
+			.references(() => inventoryValueDays.id, { onDelete: 'cascade' }),
+		printingId: text('printing_id').notNull(),
+		finish: text('finish').notNull(),
+		condition: text('condition').notNull(),
+		canonicalCardId: text('canonical_card_id').notNull(),
+		name: text('name').notNull(),
+		setCode: text('set_code').notNull(),
+		imageUri: text('image_uri').notNull(),
+		quantity: integer('quantity').notNull()
+	},
+	(table) => [
+		primaryKey({
+			columns: [table.dayId, table.printingId, table.finish, table.condition]
+		}),
+		check('inventory_value_holdings_quantity_check', sql`${table.quantity} > 0`),
+		check('inventory_value_holdings_finish_check', sql`${table.finish} in ('nonfoil','foil')`),
+		check(
+			'inventory_value_holdings_condition_check',
+			sql`${table.condition} in ('NM','LP','MP','HP','DMG')`
+		)
+	]
 );
