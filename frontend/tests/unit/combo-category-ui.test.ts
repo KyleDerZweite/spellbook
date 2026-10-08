@@ -94,9 +94,9 @@ const evidence: Evidence = {
 							name: '<script>Oak</script>',
 							quantity: '2',
 							mustBeCommander: true,
-							zones: ['Hand', 'Battlefield'],
+							zones: ['H', 'B'],
 							usedFace: null,
-							states: { battlefield: 'untapped' }
+							states: { battlefield: 'untapped', exileCardState: '' }
 						}
 					],
 					mana: '{2}{G}',
@@ -149,6 +149,7 @@ it('renders saved proof, unchecked conditions and safe credited links without so
 	expect(body).toContain('https://commanderspellbook.com/combo/2850-4186%2F%3F%3Cscript%3E/');
 	expect(body).toContain('&lt;script>Oak&lt;/script>');
 	expect(body).not.toContain('<script>Oak</script>');
+	expect(body).not.toContain('exileCardState');
 	for (const text of [
 		'2 ×',
 		'requires Commander role',

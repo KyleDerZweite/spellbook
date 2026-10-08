@@ -4,6 +4,14 @@
 		evidence,
 		label = 'Documented combo evidence'
 	}: { evidence?: ComboEvidence | null; label?: string } = $props();
+	const zoneNames: Record<string, string> = {
+		H: 'Hand',
+		B: 'Battlefield',
+		C: 'Command zone',
+		E: 'Exile',
+		G: 'Graveyard',
+		L: 'Library'
+	};
 </script>
 
 {#if evidence}
@@ -66,9 +74,11 @@
 		{#each proof.variant.ingredients as ingredient}<li>
 				{ingredient.quantity} × {ingredient.name}{ingredient.mustBeCommander
 					? ' (requires Commander role)'
-					: ''}. Unchecked starting zones: {ingredient.zones.join(', ') || 'unspecified'}. {#if ingredient.usedFace !== null}Required
-					face: {ingredient.usedFace}.
-				{/if}{#each Object.entries(ingredient.states) as [state, value]}{state}: {value}.
+					: ''}. Unchecked starting zones: {ingredient.zones
+					.map((zone) => zoneNames[zone] ?? zone)
+					.join(', ') || 'unspecified'}. {#if ingredient.usedFace !== null}Required face: {ingredient.usedFace}.
+				{/if}{#each Object.entries(ingredient.states).filter(([, value]) => value.trim() !== '') as [state, value]}{state}:
+					{value}.
 				{/each}
 			</li>{/each}
 	</ul>
