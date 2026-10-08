@@ -55,7 +55,7 @@ Rules:
 - [ADR-0016: PostgreSQL saved-state invalidation](./0016-postgres-saved-state-invalidation.md), transport and mounted workspace consumers implemented; rendered acceptance recorded separately
 - [ADR-0017: Revisioned Inventory windows and mutation receipts](./0017-revisioned-inventory-windows-and-mutation-receipts.md), bounded reads, original mutation receipts and Notes/Description revision protection implemented
 - [ADR-0018: Acquisition portions and atomic history restatement](./0018-acquisition-portions-and-atomic-history-restatement.md), superseded by [ADR-0020](./0020-value-only-inventory-history.md); historical cost design, not implemented on main
-- [ADR-0019: Versioned categories and local source rules](./0019-versioned-categories-and-local-source-rules.md), starter entry categories, Oracle Tags, account rules, scoped Review/Reset and whole-deck evaluation implemented; local combos planned
+- [ADR-0019: Versioned categories and local source rules](./0019-versioned-categories-and-local-source-rules.md), starter entry categories, Oracle Tags, account rules, scoped Review/Reset and whole-deck evaluation implemented; optional local combos implemented
 
 - [ADR-0020: Value-only Inventory history](./0020-value-only-inventory-history.md), accepted scope; value-only personal history implemented under ADR-0022
 
