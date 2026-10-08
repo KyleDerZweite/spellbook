@@ -5,8 +5,8 @@
 - Last Reviewed: 2026-10-08
 - Owners: Kyle
 - Source of Truth: accepted maintainer boundary and app-delivery decisions
-- Update Triggers: module ownership, application lifecycle and native operator ownership, import enforcement, client/API parity, independent backend deployment and app delivery, accepted design contracts and implementation evidence
-- Related Docs: [System overview](../architecture/system-overview.md), [Frontend](../architecture/frontend.md), [Product specification](../product/specification.md), [Deployment](../operations/deployment.md), [ADR-0003](./0003-pwa-first-mobile-and-server-side-scan.md), [ADR-0007](./0007-backend-first-mtg-bulk-import-api.md), [Decisions](./README.md), [Application contract](../architecture/application-contract.md)
+- Update Triggers: module ownership, application lifecycle and native operator ownership, import enforcement, client/API parity, independent backend deployment and app delivery, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
+- Related Docs: [System overview](../architecture/system-overview.md), [Frontend](../architecture/frontend.md), [Product specification](../product/specification.md), [Deployment](../operations/deployment.md), [ADR-0003](./0003-pwa-first-mobile-and-server-side-scan.md), [ADR-0007](./0007-backend-first-mtg-bulk-import-api.md), [Decisions](./README.md), [Application contract](../architecture/application-contract.md), [ADR-0023](./0023-local-recognition-in-scanner-clients.md)
 
 ## Context
 
@@ -34,4 +34,4 @@ This pass does not prove the web client can already switch to an arbitrary exter
 
 Q56 accepted the concrete module, transport, query and mutation mechanisms on 2026-10-06. The [application contract](../architecture/application-contract.md) owns those interfaces and their acceptance evidence. Preserve existing workflows throughout expand and contract. [ADR-0016](./0016-postgres-saved-state-invalidation.md) records synchronization; [ADR-0017](./0017-revisioned-inventory-windows-and-mutation-receipts.md) records bounded reads and original mutation acknowledgements. SavedState transport/Profile, bounded Inventory and Inventory/Deck original receipts are implemented. Mounted Inventory/Deck/Scan workspace consumers are implemented; complete API parity remains later work. Backend Scan upload/read/result/review contracts are implemented; automatic recognition remains outside this pass.
 
-[ADR-0003](./0003-pwa-first-mobile-and-server-side-scan.md) continues to describe the delivered web client; app technology and the replacement of its single-client direction need a separate decision. This ADR selects the module and contract seam, not that later client implementation.
+[ADR-0003](./0003-pwa-first-mobile-and-server-side-scan.md) continues to describe the delivered web client. [ADR-0023](./0023-local-recognition-in-scanner-clients.md) records local recognition while leaving allocation across phone, sorter and potentially browser open. The phone app should offer website functionality; app technology and complete parity evidence remain unselected. This ADR still owns the backend module and contract seam, not that later client implementation.

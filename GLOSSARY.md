@@ -3,7 +3,7 @@
 - Status: Canonical domain glossary
 - Last Reviewed: 2026-10-08
 - Source of Truth: product specification, accepted domain requirements, schema, catalog and account repositories
-- Update Triggers: card identity, inventory grouping, deck roles, deck entry categories, whole-deck categories and availability, reference values, coverage and personal Inventory history, scan review, physical-card terminology, profile cards and metric placeholders
+- Update Triggers: card identity, inventory grouping, deck roles, deck entry categories, whole-deck categories and availability, reference values, coverage and personal Inventory history, scan review, physical-card terminology, sorter destinations and box identity, profile cards and metric placeholders
 - Related Docs: [Product specification](docs/product/specification.md), [Value tracking](docs/product/value-tracking.md), [Category rules](docs/architecture/category-rules.md), [Catalog](docs/architecture/catalog.md), [Postgres](docs/architecture/postgres.md), [Card scanner and sorter](docs/integrations/card-robot.md)
 
 Spellbook describes MTG catalog identities, owned cards, deck requirements, and scan review in one context. This glossary owns terminology; the linked documents own behavior and proposed capabilities.
@@ -165,6 +165,18 @@ _Avoid_: Recognition result, deck import, output placement
 **Output placement**:
 The observed arrival of a physical card at a sorter destination, established through sensor evidence or operator reconciliation. This proposed workflow has no persisted placement record in the current application.
 _Avoid_: Movement command, confirmed import
+
+**Sorter**:
+A physical machine that routes presented MTG cards into configured output destinations.
+_Avoid_: Backend, scan worker, Inventory
+
+**Physical box**:
+A removable physical storage destination with an identity independent of its installed sorter position. This proposed sorter concept is separate from the implemented interface term Box for an Inventory group.
+_Avoid_: Inventory group, display position, Inventory entry
+
+**Eject**:
+The sorter's fixed general output for cards that are not routed into an available box, including intentionally selected output cards.
+_Avoid_: Error-only tray, failed recognition
 
 **Deck assembly**:
 The proposed physical selection of required cards from the stack fed into a device for one fixed decklist. It does not imply retrieval from other storage or AI deck recommendations.

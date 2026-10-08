@@ -1,9 +1,9 @@
 # Issue labels
 
 - Status: Canonical
-- Last Reviewed: 2026-10-06
+- Last Reviewed: 2026-10-08
 - Source of Truth: maintainer policy and GitHub repository labels
-- Update Triggers: label definitions, issue triage policy, contribution policy, label automation, engineering skill triage role mapping
+- Update Triggers: label definitions, issue triage policy, contribution policy, label automation, engineering skill triage role mapping, Wayfinder planning labels
 - Related Docs: [Contributing](../CONTRIBUTING.md), [Agent instructions](../AGENTS.md), [GitHub automation](./operations/github-automation.md), [Docs index](./README.md)
 
 Use labels to describe an issue's type, affected area, and current work status. A label does not promise acceptance, implementation, a merge, or a delivery date. GitHub's open or closed issue state records completion; there is no separate completion label.
@@ -72,6 +72,19 @@ Engineering skills use these roles. Apply the repository label in the second col
 A feature is ready only when its accepted outcome, component responsibilities, interfaces, dependency directions, and acceptance evidence are recorded in a reviewed contract or referenced from established owners. Withdraw readiness when an accepted direction changes or a prerequisite becomes unresolved. Readiness grants no additional execution, publishing, merging, or deployment authority.
 
 ## Agent workflow
+
+### Wayfinder planning labels
+
+These labels describe planning artifacts, not implementation readiness or work status. Use `question` as the primary type. GitHub sub-issues and native dependencies express membership and blocking; [Wayfinding operations](./operations/github-automation.md#wayfinding-operations) owns the procedure.
+
+| Label                | Meaning                                                          | Color    |
+| -------------------- | ---------------------------------------------------------------- | -------- |
+| `wayfinder:map`      | Index of an invoked planning effort's destination and decisions. | `0052cc` |
+| `wayfinder:grilling` | Decision ticket requiring a live exchange with the maintainer.   | `d876e3` |
+
+Document any additional Wayfinder ticket-type label before creating it. Planning tickets do not receive readiness labels merely because their questions are precise.
+
+### Label changes
 
 1. Read the issue body, relevant discussion, existing labels, and linked code or pull requests before changing labels.
 2. Infer type and area only from that evidence. Apply `status:in-progress` only for verified active work. Apply other status labels only when the discussion establishes the required condition.

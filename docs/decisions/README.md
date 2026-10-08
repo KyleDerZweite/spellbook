@@ -3,8 +3,8 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-08
 - Source of Truth: mixed
-- Update Triggers: major architectural decisions, major product decisions, documentation system changes, supersession of earlier decisions, uniform continuous Lazy browsing
-- Related Docs: [ADR Template](./ADR-template.md), [ADR-0001](./0001-docs-first-knowledge-system.md), [ADR-0006](./0006-generic-oidc-and-internal-account-identity.md), [ADR-0007](./0007-backend-first-mtg-bulk-import-api.md), [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md), [ADR-0009](./0009-local-authentication.md), [ADR-0014](./0014-public-landing-and-private-workspace.md), [Docs Index](../README.md), [Accepted mechanisms](../architecture/application-contract.md), [ADR-0021](./0021-hybrid-browsing-and-contextual-card-dialog.md)
+- Update Triggers: major architectural decisions, major product decisions, documentation system changes, supersession of earlier decisions, uniform continuous Lazy browsing, local recognition direction
+- Related Docs: [ADR Template](./ADR-template.md), [ADR-0001](./0001-docs-first-knowledge-system.md), [ADR-0006](./0006-generic-oidc-and-internal-account-identity.md), [ADR-0007](./0007-backend-first-mtg-bulk-import-api.md), [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md), [ADR-0009](./0009-local-authentication.md), [ADR-0014](./0014-public-landing-and-private-workspace.md), [Docs Index](../README.md), [Accepted mechanisms](../architecture/application-contract.md), [ADR-0021](./0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](./0023-local-recognition-in-scanner-clients.md)
 
 This section stores architecture and product decision records.
 
@@ -33,7 +33,7 @@ Rules:
 - [ADR template](./ADR-template.md)
 - [ADR-0001: Docs-first knowledge system](./0001-docs-first-knowledge-system.md)
 - [ADR-0002: Android-first mobile client and server-side scan pipeline](./0002-android-first-mobile-and-server-side-scan.md) (superseded by ADR-0003)
-- [ADR-0003: PWA-first mobile client and server-side scan pipeline](./0003-pwa-first-mobile-and-server-side-scan.md)
+- [ADR-0003: PWA-first mobile client and server-side scan pipeline](./0003-pwa-first-mobile-and-server-side-scan.md), future capture and recognition placement superseded by ADR-0023
 - [ADR-0004: Flat user-facing routes with active game in client state](./0004-flat-routes-with-active-game-state.md) (superseded by ADR-0008 for product scope and ADR-0013 for page routing)
 - [ADR-0005: Postgres core data and separated play app](./0005-postgres-core-data-and-separated-play-app.md)
 - [ADR-0006: Generic OIDC and internal account identity](./0006-generic-oidc-and-internal-account-identity.md), superseded by ADR-0009
@@ -61,3 +61,5 @@ Rules:
 
 - [ADR-0021: Hybrid browsing and contextual Card dialog](./0021-hybrid-browsing-and-contextual-card-dialog.md), API, Shell, result-window foundations and contextual Card actions implemented; uniform continuous Lazy source implemented; local composed verification recorded with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192); partially supersedes ADR-0014 and ADR-0017 for affected browser UI and read limits
 - [ADR-0022: Daily value observation checkpoints](./0022-daily-value-observation-checkpoints.md), daily observation persistence, runtime and private presentation implemented
+
+- [ADR-0023: Local recognition in scanner clients](./0023-local-recognition-in-scanner-clients.md), local recognition direction; full phone functionality, client allocation and browser scanning under review
