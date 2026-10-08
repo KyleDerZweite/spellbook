@@ -103,6 +103,9 @@
 		renameRequestId = crypto.randomUUID();
 		manualDirty = false;
 		renameDirty = false;
+		removalDirty = false;
+		removalBase = categories.decisionRevision;
+		removeRequestId = crypto.randomUUID();
 		message = '';
 	}
 	$effect(() => {
