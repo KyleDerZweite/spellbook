@@ -1,7 +1,7 @@
 # Value tracking
 
 - Status: Market references, public source history and product links implemented; account value summaries and personal daily history planned
-- Last Reviewed: 2026-10-07
+- Last Reviewed: 2026-10-08
 - Source of Truth: implemented reference contracts and Kyle's value-only scope decision of 2026-10-07
 - Update Triggers: price providers and fallback policy, value coverage, daily history, reporting currency and timezone, retention, valuation UI and API contracts
 - Related Docs: [Product index](./README.md), [Specification](./specification.md), [Domain glossary](../../GLOSSARY.md), [Market price research](../integrations/market-prices.md), [Valuation](../architecture/valuation.md), [Application contract](../architecture/application-contract.md), [ADR-0020](../decisions/0020-value-only-inventory-history.md)
@@ -34,7 +34,7 @@ Market-value estimates sum quantity times eligible reference for covered holding
 
 Personal history remains planned. Capture the aggregate Inventory entries and held quantities at the end of each reporting day, together with the chosen reference evidence and coverage for those quantities. Preserve printing, finish and condition identity so captured entries support card-level history as well as Inventory totals, without introducing acquisition portions. Saved history survives removal or recreation of a current entry and remains separate from live current holdings.
 
-The reporting calendar uses an instance-configurable timezone, defaulting to `Europe/Berlin`. Preserve the calendar and source dates attached to saved observations instead of relabeling them after a timezone change. Capture timing must handle midnight and daylight saving correctly. A runner, persistence schema, routes and scheduling tolerance require a reviewed value-only design before implementation; the former cost-dependent capture design is not a ready contract.
+The reporting calendar uses an instance-configurable timezone, defaulting to `Europe/Berlin`. Preserve the calendar and source dates attached to saved observations instead of relabeling them after a timezone change. The reviewed capture contract records the last successful observation within the final minute of the day and shows its actual time. It does not claim a reconstructed exact-midnight state. A missed capture window is a gap. [Valuation](../architecture/valuation.md#reviewed-personal-history-contract) owns the runtime, transaction and route contract; implementation remains pending.
 
 History starts when valid capture records exist. Missing days remain visible gaps. Restart must not reconstruct an uncaptured day from today's holdings. Historical values use their captured references and quantities, never today's price presented as an older observation. Empty captured holdings are known zero; a missing capture is a gap.
 
@@ -48,7 +48,7 @@ Planned Deck reporting estimates the reference value of all required cards and m
 
 Sources/Rules categories, reusable definitions, manual overrides, Review/Reset and the later separate app keep their existing scope. [Card grouping](./card-grouping.md) and [the application contract](../architecture/application-contract.md) remain their owners.
 
-The former Costs slice 12 is unmerged and is excluded from main. The old personal-history slice 13 depends on superseded cost mechanisms and needs design rereview against this value-only scope and current main before implementation can resume. Preserve unaffected reviewed boundaries and implemented references. Verify real provider selection, unknown coverage, entry removal/recreation, calendar changes, missing days, retention and account isolation against the revised design; source checks alone do not establish rendered acceptance or deployment.
+The former Costs slice 12 is unmerged and is excluded from main. The replacement personal-history contract is reviewed against value-only scope and current main before implementation. Preserve unaffected reviewed boundaries and implemented references. Verify real provider selection, unknown coverage, entry removal/recreation, calendar changes, missing days, retention and account isolation against the revised design; source checks alone do not establish rendered acceptance or deployment.
 
 ## Current reference presentation
 
