@@ -30,6 +30,7 @@ export interface CaptureResult {
 export interface CaptureTestControls {
 	observationClock?: () => Date;
 	accountIds?: string[];
+	admissionTimeoutMs?: number;
 	afterBatch?: (batch: number, client: PoolClient) => Promise<void>;
 	beforeCommit?: (client: PoolClient) => Promise<void>;
 }
@@ -41,6 +42,7 @@ export function createValueHistoryRunner(
 	let timer: ReturnType<typeof setInterval> | undefined;
 	let running: Promise<CaptureResult> | undefined;
 	let controller: AbortController | undefined;
+	let admission: Promise<PoolClient> | undefined;
 	let closed = false;
 	async function capture(signal: AbortSignal): Promise<CaptureResult> {
 		const result: CaptureResult = {
@@ -49,7 +51,9 @@ export function createValueHistoryRunner(
 			copiedReferences: 0,
 			failedAccounts: 0
 		};
+		if (admission) throw Error('Value runner connection admission pending');
 		const connection = pool.connect();
+		admission = connection;
 		const client = await new Promise<PoolClient>((resolve, reject) => {
 			let settled = false;
 			const cleanup = () => {
@@ -65,21 +69,25 @@ export function createValueHistoryRunner(
 			const abort = () => fail('Value runner cancelled');
 			const timeout = setTimeout(
 				() => fail('Value runner connection unavailable'),
-				VALUE_CAPTURE_STATEMENT_MS
+				tests.admissionTimeoutMs ?? VALUE_CAPTURE_STATEMENT_MS
 			);
 			signal.addEventListener('abort', abort, { once: true });
 			if (signal.aborted) abort();
 			connection.then(
 				(value) => {
 					// A timed-out/cancelled acquisition owns no lease; release any later admitted connection.
-					if (settled) value.release();
-					else {
+					if (settled) {
+						value.release();
+						admission = undefined;
+					} else {
 						settled = true;
 						cleanup();
+						admission = undefined;
 						resolve(value);
 					}
 				},
 				(cause) => {
+					admission = undefined;
 					if (!settled) {
 						settled = true;
 						cleanup();

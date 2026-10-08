@@ -203,6 +203,39 @@ run('private coherent value checkpoints on PostgreSQL', () => {
 		expect(pool.waitingCount).toBe(0);
 		await pool.end();
 	});
+
+	it('retains one physical pool admission across repeated timed-out attempts', async () => {
+		const pool = new pg.Pool({ connectionString: process.env.TEST_DATABASE_URL, max: 1 });
+		const occupied = await pool.connect();
+		const r = createValueHistoryRunner(
+			pool,
+			createInventoryValues(pool, auth, createValuation(pool, auth)),
+			{ accountIds: [actor.accountId], admissionTimeoutMs: 25, observationClock: () => observation }
+		);
+		try {
+			await expect(r.runOnce()).rejects.toThrow('connection unavailable');
+			expect(pool.waitingCount).toBe(1);
+			for (let attempt = 0; attempt < 4; attempt++) {
+				await expect(r.runOnce()).rejects.toThrow('admission pending');
+				expect(pool.waitingCount).toBe(1);
+			}
+			await r.close();
+			occupied.release();
+			expect((await pool.query('SELECT 1 AS value')).rows[0].value).toBe(1);
+			expect(pool.waitingCount).toBe(0);
+			expect(
+				(
+					await database.pool.query(
+						'SELECT count(*)::int AS count FROM inventory_value_days WHERE account_id=$1',
+						[actor.accountId]
+					)
+				).rows[0].count
+			).toBe(0);
+		} finally {
+			await r.close();
+			await pool.end();
+		}
+	});
 	it('captures trusted exact products, filters absent holdings as zero, and isolates accounts', async () => {
 		const r = runner();
 		expect(await r.runOnce()).toEqual({
