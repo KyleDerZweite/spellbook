@@ -1,9 +1,9 @@
 # Repository verification and GitHub automation
 
 - Status: Canonical
-- Last Reviewed: 2026-10-08
+- Last Reviewed: 2026-10-09
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
-- Update Triggers: test commands, workflow coverage, runtime pins, browser verification, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
+- Update Triggers: test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
 - Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance), [Application boundaries](../architecture/application-contract.md#implementation-status)
 
 This document owns repository check commands, CI coverage, and verification evidence. Product and integration documents own behavior and acceptance criteria. Run checks appropriate to the changed behavior; do not treat a passing command as proof of requirements it does not exercise.
@@ -100,7 +100,15 @@ CI does not run the root Markdown command or the standalone Node suites under `f
 
 ## Proposed workflow improvements
 
-The [Wayfinder map](https://github.com/KyleDerZweite/spellbook/issues/194) tracks unresolved recommendations for protected runtime ownership and graceful recovery, CI wiring for existing operator/Markdown checks, one acceptance evidence manifest per integration, verified worktree closeout and concise Agent instructions/tool output. No common manifest, stop helper, CI change or automatic cleanup is selected by this planning record. Existing process-safety constraints apply now. Worktree closeout requires the runtime-ownership and evidence contracts to be settled; unfinished and user-owned work remains preserved. The CI proposal initially reuses existing tests rather than adding new cases.
+The [Wayfinder map](https://github.com/KyleDerZweite/spellbook/issues/194) tracks unresolved recommendations for protected runtime ownership and graceful recovery, CI wiring for existing operator/Markdown checks, one acceptance evidence manifest per integration and verified worktree closeout. Concise Agent instructions and targeted tool output were selected for [PR 220](https://github.com/KyleDerZweite/spellbook/pull/220); the rules below own evidence handling. No common manifest, stop helper, CI change or automatic cleanup is selected by this planning record. Existing process-safety constraints apply now. Worktree closeout requires the runtime-ownership and evidence contracts to be settled; unfinished and user-owned work remains preserved. The CI proposal initially reuses existing tests rather than adding new cases.
+
+## Tool output and evidence
+
+Request the fields and scope needed for the current question. For browser work, use focused snapshots and their locators; capture a wider view when layout or missing context requires it. For CI, inspect check names, status and run URLs first, then failed jobs and relevant log excerpts. Read additional context until the failure is understood.
+
+When a tool returns both structured data and serialized text, inspect one representation. Summarize findings instead of printing both or repeating full payloads. Retain necessary full logs in the existing evidence location, keep credentials and private payloads protected, and record the command or artifact URL plus the relevant commit, base and working diff. Short output does not replace required checks or establish skipped acceptance evidence.
+
+Give child tasks the accepted outcome, responsibilities, interfaces, dependencies, unresolved objections and exact workspace/revision. Link required canonical owners and request concise findings with evidence references instead of repeating the full parent context.
 
 ## Browser verification and evidence
 
