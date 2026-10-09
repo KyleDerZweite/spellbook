@@ -3,10 +3,12 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-08
 - Source of Truth: mixed
-- Update Triggers: external system contracts, integration scope and provider evaluations
-- Related Docs: [Market price research](./market-prices.md), [Card and deck categorization](./card-categorization.md), [Realtime backend evaluation](./realtime-backends.md), [Proposed card robot](./card-robot.md), [Worker](../architecture/worker.md), [Catalog](../architecture/catalog.md), [Docs index](../README.md), [Application contract](../architecture/application-contract.md), [Category rules](../architecture/category-rules.md)
+- Update Triggers: external system contracts, integration scope, provider evaluations and scanner-platform research
+- Related Docs: [Market price research](./market-prices.md), [Card and deck categorization](./card-categorization.md), [Realtime backend evaluation](./realtime-backends.md), [Proposed card robot](./card-robot.md), [Scanner platform evaluation](./scanner-platform-evaluation.md), [Worker](../architecture/worker.md), [Catalog](../architecture/catalog.md), [Docs index](../README.md), [Application contract](../architecture/application-contract.md), [Category rules](../architecture/category-rules.md)
 
-The [card robot proposal](./card-robot.md) defines future scanner and sorter boundaries. It is not implemented hardware support.
+The [card robot proposal](./card-robot.md) owns the future phone/sorter integration, hardware concept, local fast/slow recognition, device-login concept and exploratory simulator. [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md) selects local recognition, with public reference preparation proposed centrally. These decisions are not implemented hardware or phone-client support.
+
+[Scanner platform evaluation](./scanner-platform-evaluation.md) is the research report on website/phone options, local recognition hosts, controller separation, OSS operation, self-hosting and hardware reproduction. Its recommendations and proposed experiments are decision support, not accepted implementation contracts.
 
 Scryfall ingestion belongs to the [worker architecture](../architecture/worker.md), and PostgreSQL catalog contracts belong to [catalog architecture](../architecture/catalog.md).
 

@@ -1,85 +1,25 @@
-# AI Agent Instructions
+# AI agent instructions
 
-This is the primary instruction file for coding agents. Follow it strictly.
+## Constraints
 
-## 1. Hard Constraints
+- Keep changes within the requested scope and preserve project structure, naming and architectural boundaries.
+- Keep code typed, modular and minimal. Apply KISS, YAGNI, DRY, SOLID and Separation of Concerns; avoid broad refactors during feature work.
+- Document the rationale for new dependencies. Keep secrets out of code and tool output.
+- Never use SIGKILL or terminate the user's processes. Stop only verified task-owned processes gracefully. After a crash, verify repository state, preserved work and runtime ownership yourself before starting subagents.
+- Use `main` as the base for PRs and merges.
+- Write short, technical responses without internal summaries or verbose feedback loops. Avoid em dashes and en dashes. Use emojis only when functional.
 
-- **Scope:** Keep edits surgical and limited strictly to the requested task. Do not introduce broad refactors during feature work.
-- **Dependencies:** Do not add new packages or dependencies without documenting the rationale.
-- **Structure:** Preserve existing project structure, naming conventions, and architectural boundaries.
-- **Process safety:** Never use SIGKILL or terminate the user's processes. Stop only verified task-owned processes gracefully. After a crash, verify repository state, preserved work and runtime ownership yourself before starting subagents.
-- **Tone & Formatting:** Output short, technical responses. Exclude internal summaries or verbose feedback loops. Absolutely avoid em dashes and en dashes. Use emojis only when they add functional value, never for style or bullets.
+## Workflow
 
-## 2. Canonical References
+1. Read [the docs index](docs/README.md), then the relevant owning documents before planning or editing. Resolve implementation questions against code, tests and configuration.
+2. Make targeted changes and update their canonical documentation in the same change. For documentation edits, follow [maintenance rules](docs/README.md#maintenance), including metadata, indexes, ownership and decision records.
+3. Run the checks required by [repository verification](docs/operations/github-automation.md) for the changed behavior. Correct failures before concluding; report skipped checks and unavailable evidence.
+4. Before preparing a PR, follow [contribution disclosure](CONTRIBUTING.md#pull-request-expectations) for actual AI assistance, review, validation and contributor responsibility.
 
-- **Codebase:** The running code, tests, and configuration are the ultimate source of truth. Do not hallucinate capabilities.
-- **Documentation:** Check `docs/README.md` first, then the relevant typed section under `docs/`.
-- **Domain language:** Read [GLOSSARY.md](GLOSSARY.md) before changing card identity, inventory, deck, or scan terminology. Keep definitions there and behavior in its canonical owner.
-- **Issue triage:** Before creating or changing issue labels, follow [the issue label rules](docs/ISSUE_LABELS.md).
-- **Pull requests:** Follow the [contribution disclosure rules](CONTRIBUTING.md#pull-request-expectations). Report known AI tools, models, affected work, review, tests, and the responsible contributor. Do not infer other authors' AI use.
-- **Historical Docs:** Do not keep a parallel archive tree under `docs/`. Use git history for superseded documentation.
-- **Duplication:** Do not duplicate complex logic or architecture details in multiple places. Reference the canonical files instead.
+## Task-specific references
 
-## 3. Required Workflow
-
-1.  **Analyze:** Ingest context from the codebase and relevant documentation before planning or generating code.
-2.  **Implement:** Apply targeted changes. Do not hardcode secrets.
-3.  **Verify:** Follow the [repository verification workflow](docs/operations/github-automation.md) for commands and evidence appropriate to the change.
-4.  **Correct:** If checks fail, fix issues autonomously before concluding the task.
-5.  **Document:** Apply this documentation decision tree in the same change:
-    - If system behavior, route surface, schema, auth flow, env vars, or operator steps changed, update the relevant canonical doc.
-    - If a significant architectural or product decision was made, create or update an ADR in `docs/decisions/`.
-    - If a doc was replaced or became historical, remove it from the active docs surface and rely on git history for retention.
-    - If no current doc fits, create one in the correct typed section and add it to that section index.
-
-## 4. Coding Principles
-
-- Keep code typed, modular, and minimal.
-- Prefer small, targeted edits over large rewrites.
-- Follow: KISS, YAGNI, DRY, SOLID, and Separation of Concerns.
-- Keep comments and documentation concise.
-- Do not add features beyond the requested scope.
-
-## 5. Documentation Knowledge System
-
-- `docs/README.md` is the canonical documentation entrypoint for both humans and agents.
-- Active docs live under typed sections in `docs/`: `product/`, `architecture/`, `operations/`, `integrations/`, `decisions/`, and `reference/`. Root `GLOSSARY.md` owns domain terminology.
-- Use `docs/decisions/` for significant decisions and tradeoffs.
-- Use plain markdown only. Do not introduce Obsidian-only syntax or workflow assumptions.
-- Do not create ad hoc markdown in random repo locations for durable project knowledge.
-- For any touched canonical doc, update `Last Reviewed`, confirm `Update Triggers`, verify `Related Docs`, and fix links affected by moves or renames.
-- Do not document planned behavior as if it is implemented.
-- Do not let code and canonical docs diverge intentionally for later cleanup.
-- Do not duplicate the same system truth across multiple canonical docs unless one file is clearly an index.
-- Do not leave durable project knowledge only in issue comments or commit messages when it belongs in docs or ADRs.
-- Run a docs health check once per milestone or release, or monthly during active development.
-- A docs health check should look for stale claims versus code, orphaned docs, missing index links, duplicate truths, planned-versus-implemented confusion, and ADRs that should be marked superseded.
-- Do not keep a docs archive directory. Remove superseded docs and use git history when historical recovery is needed.
-- Do not plan a separate `wiki/` unless the docs and ADR corpus outgrow this structure or raw research material becomes a first-class repo concern.
-
----
-
-# Project Specific Instructions
-
-## Git
-
-- **Default branch:** `main`. Use `main` as the base for PRs and merges.
-
-## Dependencies
-
-- For any usage or integration of the BitsUI dependency, always check `docs/reference/bits-ui.md` first, then follow the links there to the needed Bits UI documentation.
-- For catalog search or publication changes, read `docs/architecture/catalog.md` first, then `docs/architecture/worker.md` for ingestion and `docs/operations/deployment.md` for rebuild and recovery procedures. Keep the authenticated API contract and transactional generation publication consistent.
-
-## Agent skills
-
-### Issue tracker
-
-Use GitHub Issues for this repository. Read [the engineering skill configuration](docs/operations/github-automation.md#engineering-skill-configuration) before tracker operations.
-
-### Triage labels
-
-Use the repository's [triage role mapping and label policy](docs/ISSUE_LABELS.md#engineering-skill-triage-roles) before triage.
-
-### Domain docs
-
-Use the single-context root glossary and `docs/decisions/`. Read [the domain consumer rules](docs/operations/github-automation.md#domain-docs) before domain exploration.
+- Before changing card identity, inventory, deck or scan terminology, read [GLOSSARY.md](GLOSSARY.md). Before domain exploration, follow [domain consumer rules](docs/operations/github-automation.md#domain-docs).
+- Before GitHub tracker operations, read [engineering skill configuration](docs/operations/github-automation.md#engineering-skill-configuration). Before triage or label changes, follow [issue label rules](docs/ISSUE_LABELS.md), including their [skill role mapping](docs/ISSUE_LABELS.md#engineering-skill-triage-roles).
+- Before using or integrating BitsUI, read [the Bits UI reference](docs/reference/bits-ui.md), then its relevant upstream documentation.
+- Before catalog search or publication changes, read [Catalog](docs/architecture/catalog.md), [worker ingestion](docs/architecture/worker.md) and [deployment/recovery](docs/operations/deployment.md). Preserve the authenticated API contract and transactional generation publication.
+- For browser or CI inspection and other large tool results, follow [tool output and evidence](docs/operations/github-automation.md#tool-output-and-evidence). Inspect targeted fields and excerpts; avoid duplicate full payloads without dropping required checks or failure analysis.

@@ -1,7 +1,7 @@
 # Spellbook documentation
 
 - Status: Canonical
-- Last Reviewed: 2026-10-08
+- Last Reviewed: 2026-10-09
 - Source of Truth: mixed
 - Update Triggers: document ownership, product contracts, section changes, documentation health review
 - Related Docs: [Product](./product/README.md), [Architecture](./architecture/README.md), [Operations](./operations/README.md), [Integrations](./integrations/README.md), [Decisions](./decisions/README.md), [Reference](./reference/README.md), [Issue labels](./ISSUE_LABELS.md)
@@ -25,6 +25,8 @@ Use the [issue label rules](./ISSUE_LABELS.md) for repository triage and the [co
 
 Update the owning document when behavior, routes, schemas, authentication, environment variables, or operator steps change. Keep requirements and planned work distinct from implemented behavior. Link to the owning document instead of duplicating a contract.
 
-Every touched canonical document needs an updated `Last Reviewed` date, relevant `Update Triggers`, and checked `Related Docs`. Add new files to their section index. Remove replaced documentation and rely on git history; do not create an archive or parallel wiki. Retain decision records with explicit supersession status.
+Record significant architectural or product decisions in `decisions/`. Keep durable project knowledge in its canonical document, with links from issues or commits rather than leaving that knowledge only there. If no owner fits, create a document in the appropriate typed section.
+
+Every touched canonical document needs an updated `Last Reviewed` date, relevant `Update Triggers`, and checked `Related Docs`. Repair links affected by moves or renames in the same change. Add new files to their section index. Remove replaced documentation and rely on git history; do not create an archive or parallel wiki. Retain decision records with explicit supersession status.
 
 Review documentation health at each milestone or release, or monthly during active development. Check claims against code, broken links, orphaned documents, duplicate contracts, and superseded decisions. Use plain repository Markdown.

@@ -1,9 +1,9 @@
 # Repository verification and GitHub automation
 
 - Status: Canonical
-- Last Reviewed: 2026-10-08
+- Last Reviewed: 2026-10-09
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
-- Update Triggers: test commands, workflow coverage, runtime pins, browser verification, PR policy, Dependabot policy, engineering skill tracker and domain layout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
+- Update Triggers: test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
 - Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance), [Application boundaries](../architecture/application-contract.md#implementation-status)
 
 This document owns repository check commands, CI coverage, and verification evidence. Product and integration documents own behavior and acceptance criteria. Run checks appropriate to the changed behavior; do not treat a passing command as proof of requirements it does not exercise.
@@ -96,7 +96,19 @@ Set `TEST_DATABASE_URL` for the second command to an empty migrated disposable d
 
 [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs on pull requests and pushes to `main`. Its jobs use the root package-manager pin and cache lockfile, then run the application commands above with frozen workspace installs. The frontend integration job starts the actual locked Python Scan scaffold, then builds and runs `test:http`, `test:scan` and `test:sync` after migration and repository integration tests. For isolated worktrees, set the existing `TEST_SCAN_DATABASE_NAME` to the assigned disposable database and `SCAN_WORKER_URL` to the assigned real loopback worker before PG/HTTP Scan checks. The suite verifies that explicit loopback port and actual worker health without a fixed local port. `test:scan` uses the actual built application, PostgreSQL and configured local storage; [Mobile and Scan](../architecture/mobile-and-scan.md#scan-uploads) owns its evidence limits. Frontend and catalog-worker integration jobs provision separate PostgreSQL services. The workflow is the source of truth for job names, environment variables, and tool versions.
 
-CI does not run the root Markdown command, browser workflows, container builds, image publication, or deployment. These remain explicit checks when relevant. [Deployment](./deployment.md) owns container startup and operator verification; [database upgrades](./postgres-upgrade.md) owns restore rehearsal and rollback checks.
+CI does not run the root Markdown command or the standalone Node suites under `frontend/scripts/demo/`, including native operator checks. Those suites are outside the Vitest projects. Their local results do not establish CI coverage. Browser workflows, container builds, image publication and deployment also remain explicit checks when relevant. [Deployment](./deployment.md) owns container startup and operator verification; [database upgrades](./postgres-upgrade.md) owns restore rehearsal and rollback checks.
+
+## Proposed workflow improvements
+
+The [Wayfinder map](https://github.com/KyleDerZweite/spellbook/issues/194) tracks unresolved recommendations for protected runtime ownership and graceful recovery, CI wiring for existing operator/Markdown checks, one acceptance evidence manifest per integration and verified worktree closeout. Concise Agent instructions and targeted tool output were selected for [PR 220](https://github.com/KyleDerZweite/spellbook/pull/220); the rules below own evidence handling. No common manifest, stop helper, CI change or automatic cleanup is selected by this planning record. Existing process-safety constraints apply now. Worktree closeout requires the runtime-ownership and evidence contracts to be settled; unfinished and user-owned work remains preserved. The CI proposal initially reuses existing tests rather than adding new cases.
+
+## Tool output and evidence
+
+Request the fields and scope needed for the current question. For browser work, use focused snapshots and their locators; capture a wider view when layout or missing context requires it. For CI, inspect check names, status and run URLs first, then failed jobs and relevant log excerpts. Read additional context until the failure is understood.
+
+When a tool returns both structured data and serialized text, inspect one representation. Summarize findings instead of printing both or repeating full payloads. Retain necessary full logs in the existing evidence location, keep credentials and private payloads protected, and record the command or artifact URL plus the relevant commit, base and working diff. Short output does not replace required checks or establish skipped acceptance evidence.
+
+Give child tasks the accepted outcome, responsibilities, interfaces, dependencies, unresolved objections and exact workspace/revision. Link required canonical owners and request concise findings with evidence references instead of repeating the full parent context.
 
 ## Browser verification and evidence
 
@@ -117,6 +129,18 @@ GitHub Issues in `KyleDerZweite/spellbook` are the repository's issue tracker. U
 Read the [issue label policy](../ISSUE_LABELS.md) before triage. Keep multi-line issue bodies in a temporary file and pass `--body-file`. A tracker operation needs authorization from the current request or invoked workflow. This configuration does not authorize unsolicited issues, comments, priority changes, merges, or releases.
 
 PRs as a request surface: no.
+
+### Wayfinding operations
+
+An explicitly invoked Wayfinder effort uses one GitHub issue labelled `wayfinder:map`. Its body owns the destination, standing notes, links to resolved decisions, remaining unspecified areas and exclusions. Open decision tickets are native sub-issues, not a second list maintained in the map body. Write repository documentation and durable issue context in English. Issues must contain enough context to resume work without a local-only branch, worktree or temporary evidence file. Use published sources and commits for supplementary links; keep unpublished decisions and essential experiment findings in the issue itself. Follow the [planning label policy](../ISSUE_LABELS.md#wayfinder-planning-labels).
+
+Create each decision issue with its question and appropriate `wayfinder:<type>` label, then add it through `POST /repos/KyleDerZweite/spellbook/issues/{mapNumber}/sub_issues` with the child's numeric `sub_issue_id`. After all relevant issues exist, add native blocking through `POST /repos/KyleDerZweite/spellbook/issues/{childNumber}/dependencies/blocked_by` with the blocker's numeric `issue_id`. Numeric database IDs come from `gh api repos/KyleDerZweite/spellbook/issues/{number} --jq .id`; issue numbers and GraphQL node IDs are not interchangeable with them.
+
+Read children with `GET /repos/KyleDerZweite/spellbook/issues/{mapNumber}/sub_issues`, using pagination. The frontier is the open, unassigned children whose `issue_dependencies_summary.blocked_by` is zero. Preserve child order when choosing the next ticket. A decision session first claims its chosen ticket with `gh issue edit {number} --add-assignee @me`, before resolving it. Charting creates questions without claiming or resolving them. A human decision remains open until the maintainer answers it.
+
+Read the current map, child and relevant comments before any update. Record a resolved answer as an issue comment, close that child, and add a short named link to the map's Decisions so far. Significant accepted contracts also belong in their canonical document or ADR; the map is an index, not their duplicate owner. Do not turn proposed answers into implementation readiness.
+
+If GitHub explicitly reports native sub-issues or dependencies unavailable, record that limitation and use a map task list plus a named parent link, or a named blocking line, respectively. Do not fall back merely because a request used the wrong endpoint or ID. This configuration grants no authority beyond the invoked planning effort.
 
 ### Domain docs
 
