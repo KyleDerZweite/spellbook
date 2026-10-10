@@ -4,7 +4,7 @@ Spellbook is an open-source, self-hosted Magic: The Gathering inventory and deck
 
 The application uses SvelteKit, PostgreSQL, and a Python ingestion worker. Accounts use local username and password authentication. The retained Scan route/API supports image uploads and manual printing selection; Scan UI development and navigation entrypoints are paused. Future recognition is planned locally, with browser scanning and client responsibilities under review. The phone app should offer the website's functions; no separate app or production recognizer is implemented. [The recognition decision](docs/decisions/0023-local-recognition-in-scanner-clients.md) distinguishes that direction from the current upload/review workflow.
 
-Start the configured local development environment with `./dev.sh`. This runs Vite on port 5173. `./dev.sh --scan` additionally starts the retained scan-worker on port 8087. See [local development setup](docs/operations/deployment.md#local-development) for prerequisites and private configuration.
+Start the configured local development environment with `./dev.sh`. Use `./dev.sh start --demo` for Demo mode and `./dev.sh stop` to stop the launcher. This runs Vite on port 5173. `./dev.sh --scan` additionally starts the retained scan-worker on port 8087. See [local development setup](docs/operations/deployment.md#local-development) for prerequisites and private configuration.
 
 - [Product specification](docs/product/specification.md)
 - [Documentation index](docs/README.md)
