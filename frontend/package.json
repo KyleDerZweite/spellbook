@@ -26,7 +26,7 @@
 	},
 	"dependencies": {
 		"bits-ui": "^2.19.5",
-		"drizzle-orm": "^0.45.3",
+		"drizzle-orm": "^0.45.4",
 		"mana-font": "^1.18.0",
 		"pg": "^8.23.1",
 		"@spellbook/backend": "workspace:*",
@@ -43,7 +43,7 @@
 		"drizzle-kit": "^0.31.11",
 		"prettier": "^3.9.9",
 		"prettier-plugin-svelte": "^4.1.1",
-		"svelte": "^5.57.1",
+		"svelte": "^5.57.2",
 		"svelte-check": "^4.7.6",
 		"tailwindcss": "^4.3.3",
 		"typescript": "^6.0.3",
