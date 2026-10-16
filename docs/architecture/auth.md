@@ -1,12 +1,35 @@
 # Authentication
 
 - Status: Canonical
-- Last Reviewed: 2026-10-08
+- Last Reviewed: 2026-10-16
 - Source of Truth: code
 - Update Triggers: credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, summary reporting failures, post-login destinations, agent discovery, workspace ownership, application resource lifetime and native operator ownership, SavedState stream authority and origin policy
 - Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Routes](../product/routing-and-games.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md), [Application contract](./application-contract.md)
 
 Spellbook authenticates local accounts by username and password. `user_profiles.account_id` remains the stable ownership key for inventories, decks, and scans. Registration generates a new account ID; operator enrollment preserves an existing account ID.
+
+## PWA and QR sign-in implementation contract
+
+The authorized 2026-10-16 delivery is one PR against current `main`: an installable, online-first SvelteKit PWA with mobile navigation, camera QR scanning, and QR sign-in beside the existing password form. A signed-in phone explicitly approves a new browser session. The same JSON protocol supports a later Jetson client obtaining an ordinary bearer session. This delivers account sign-in, not physical device ownership, motor control, card recognition, complete offline account data or a native Android package.
+
+Backend Auth owns a PostgreSQL-backed QR authorization module and additive migration. Contracts owns JSON-safe request/result shapes. Frontend owns origin checks, HttpOnly cookies, QR rendering, camera scanning, forms and session-cookie delivery. Existing backend application/transport import rules and local Account session semantics remain authoritative. No external identity provider is introduced.
+
+The protocol is:
+
+- `POST /api/auth/qr/requests` accepts only `{ kind: 'browser' | 'device' }`. It creates a five-minute request with independent random 32-byte public `code` and private `requesterSecret`. Only their digests persist. Response includes `code`, `kind`, `expiresAt`, `interval: 3` and same-instance `verificationUri`. Browser requests store the private secret in a five-minute HttpOnly, SameSite=Lax cookie and omit it from JSON. Device requests return the secret to that requester. Browser JavaScript never receives the account session token.
+- `GET /api/auth/qr/requests/{code}` requires an authenticated actor and returns only `code`, `kind`, `status` and `expiresAt`. An owned account is not selected by client input. The approval page displays the signed-in username, same-instance origin and request code before explicit Approve or Deny. Scanning never approves automatically.
+- `POST /api/auth/qr/requests/{code}/decision` accepts only `{ decision: 'approve' | 'deny' }` from an authenticated actor. The first decision is immutable and bound to the approver's exact live session. Identical repeats from that session are idempotent; conflicting decisions or a different approver return 409.
+- `POST /api/auth/qr/token` accepts `code` and the device requester's secret, or the matching browser secret cookie. Pending requests return `{ status: 'pending' }`. Denied, expired and consumed requests return their explicit terminal status. Approved requests issue and consume at most one new session in one transaction. Browser success writes the normal session cookie and returns `{ status: 'authenticated', expiresAt }`; device success additionally returns `token`. It never grants a session to a caller knowing only the public QR code.
+
+Browser creation/redemption rejects an already authenticated browser rather than silently switching accounts. An unsigned requester cannot assert a desired account; account choice happens on the explicit signed-in approval screen. Cookie mutations require matching Origin. Native JSON callers may omit Origin, but supplied foreign/null Origin is rejected. Authenticated operations retain Authorization-before-cookie precedence. Responses are `no-store`; approval pages also use `Referrer-Policy: no-referrer`. URLs, QR images, logs and LocalStorage contain no requester secret or session token.
+
+Approval/redeem follow existing Profile-first lock order. After locking the Profile and request, recheck wall-clock expiry and acquire a live approver-session share lock before issuing a session. Logout, password rotation/recovery and session expiry before redemption invalidate authorization. Session issuance and consumption commit together; concurrent redemption creates one session. A lost successful redemption response requires a new QR request, with no automatic reissuance from the consumed request. The UI must explain this recovery.
+
+Creation and decisions have separate bounded attempt limits; polling has a larger allowance and one physical request at a time. Expired rows are removed opportunistically in bounded batches through an expiry index. These limits are per process, as with existing password protection; multi-replica public hosting retains its proxy rate-limit requirement.
+
+The service worker caches only versioned immutable application assets and a public static offline fallback. Private SSR pages, API responses, authentication, QR state and card artifacts remain network-only. Updates require an explicit reload when a worker is waiting, preserving drafts until the user chooses it. The PWA uses HTTPS outside localhost. Installation does not establish offline Inventory writes or recognition support.
+
+Acceptance requires PostgreSQL and built-HTTP tests for browser/device issuance, bearer/cookie precedence, Origin rejection, explicit approval/denial, wrong secret, expiry after lock waits, conflicting accounts/decisions, revocation and concurrent redemption. Rendered desktop/mobile journeys cover password fallback, QR waiting/expiry/retry, approval and PWA installation/offline/update presentation. Android Studio/emulator testing is attempted only with installed tools; if unavailable or unsuccessful, stop that target check without alternate tooling and leave physical Android acceptance to the owner.
 
 ## Application ownership
 
