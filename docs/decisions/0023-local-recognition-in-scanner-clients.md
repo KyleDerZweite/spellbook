@@ -2,9 +2,9 @@
 
 - Status: Accepted
 - Date: 2026-10-07
-- Last Reviewed: 2026-10-08
+- Last Reviewed: 2026-10-15
 - Owners: Kyle
-- Source of Truth: maintainer's explicit local-recognition decision of 2026-10-07
+- Source of Truth: maintainer's explicit local-recognition decision of 2026-10-07 and client-scope clarification of 2026-10-15
 - Update Triggers: recognition placement, client feature parity and responsibilities, browser scanning, phone-client technology, device access, capture storage, client compatibility, supersession
 - Supersedes: [ADR-0003](./0003-pwa-first-mobile-and-server-side-scan.md) for future capture and recognition placement only
 - Related Docs: [Mobile and scan](../architecture/mobile-and-scan.md), [System overview](../architecture/system-overview.md), [Product specification](../product/specification.md), [Card scanner and sorter](../integrations/card-robot.md), [Application contract](../architecture/application-contract.md), [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md), [Decision index](./README.md)
@@ -17,13 +17,13 @@ The intended ecosystem includes the website, a phone app and a physical sorter. 
 
 ## Decision
 
-Future recognition of user captures follows a local-client direction. Server-side recognition is outside that direction. Phone and sorter recognition remain intended capabilities; browser capture and local browser recognition are additional options to evaluate. The exact allocation of capture, preprocessing and recognition across clients is open. Keep the fast sorting decision and slower exact recognition separable; their concrete execution hosts and scheduling need a reviewed contract.
+Future recognition of user captures follows a local-client direction. Server-side recognition is outside that direction. Phone and sorter recognition remain intended capabilities. The dated client-scope clarification below distinguishes app presentation from ordinary website exposure while leaving a shared PWA implementation open. Exact preprocessing, runtimes and recognition interfaces remain open. Keep the fast sorting decision and slower exact recognition separable; their scheduling needs a reviewed contract.
 
 The server may prepare public Catalog reference images, features, embeddings and versioned indices for clients. This preparation concerns known public references, not inference on user captures. Its build format, distribution protocol, model choice and per-client compatibility remain to be specified. Recognition and Condition estimation on a presented user's card stay local.
 
 Spellbook remains authoritative for account access, Catalog identity validation and authorized Inventory/Deck operations. The backend receives client-produced recognition evidence and agreed device outcomes through reviewed contracts. A client's proposed printing does not bypass ownership, validation, review or mutation replay rules. Recognition does not itself determine whether a physical card is a new Inventory addition.
 
-Scanning clients should use consistent recognition meanings and result contracts. This decision does not select one shared binary, language, model or runtime across browser, phones and Jetson. Native app versus PWA, supported phone platforms, recognition asset distribution and device credentials remain open. The device-login concept uses a short-lived QR displayed by the sorter and approved through the authenticated phone app; token mechanics and revocation still need a contract. Website-based confirmation remains available where the existing product already provides it; a future app review flow is not yet implemented.
+Scanning clients should use consistent recognition meanings and result contracts. This decision does not select one shared binary, language, model or runtime across phones and Jetson. Android is the first phone target; client technology, later phone platforms, recognition asset distribution and device credentials remain open. The device-login concept uses a short-lived QR displayed by the sorter and approved through the authenticated phone app; token mechanics and revocation still need a contract. Website-based confirmation remains available where the existing product already provides it; a future app review flow is not yet implemented.
 
 Existing web Scan upload/review routes, artifact storage, the worker scaffold and their public contracts are implemented compatibility behavior. This documentation decision neither removes them nor supplies a results-only scanner protocol. Their future reuse or migration needs a reviewed contract. Whether future clients upload images for review is a separate storage decision, not permission for server inference.
 
@@ -37,9 +37,11 @@ The former server-recognition and Scan/Hold/Wait-for-server variants are withdra
 
 ## Client-scope clarification
 
-On 2026-10-07, the maintainer clarified that the phone app should offer the website's functions and that website scanning deserves evaluation. The earlier phone/sorter-only description was too restrictive. This ADR records local recognition placement, not a finalized responsibility split or a prohibition of browser scanning.
+On 2026-10-07, the maintainer clarified that the phone app should offer the website's functions and that website scanning deserved evaluation. The earlier phone/sorter-only description was too restrictive. The 2026-10-15 clarification below narrows the current product scope.
 
-The phone's primary role during a sort run is login, operation and status. A phone acting as the computation core is an additional concept variant. It could host recognition and job planning while a device controller handles sensors, actuators and movement timing. Camera attachment, transport, deadlines and disconnect behavior remain open; this variant does not select a controller or replace the available Jetson.
+On 2026-10-15, the maintainer prioritized Android and confirmed app-specific functions beyond website parity: scanning the Cardstation QR to approve an account session and synchronization, and scanning individual cards locally with the phone camera. The app should have a distinct mobile layout/navigation. The shared API must support common functions and app extensions, while the ordinary website need not expose every workflow. The maintainer explicitly allows one web application with a PWA presentation that exposes those additional workflows; app-specific functionality does not select a separate native client. PWA/native technology and exact visibility rules remain open. Additional app ideas remain unspecified. Existing web Scan compatibility behavior remains as described above; this clarification authorizes no implementation or removal.
+
+The phone's primary role during a sort run is login, operation and status. Cardstation capture, recognition, local job processing, motors and sensors belong to the Jetson Orin Nano Super in the current research direction. Earlier phone-host/controller alternatives remain background research. Low-level implementation stays in the separate hardware project. Device access, synchronization and disconnect contracts remain open.
 
 ## Follow-up
 

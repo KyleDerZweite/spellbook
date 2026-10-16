@@ -1,22 +1,30 @@
 # Spellbook client, recognition and sorter research
 
 - Status: Research and decision support; not an accepted architecture
-- Last Reviewed: 2026-10-08
-- Source of Truth: linked primary sources, current repository code and explicitly identified engineering assessments
-- Update Triggers: platform/runtime support, client responsibilities, reference-data use, hardware experiments, recognition measurements, distribution and operating model
+- Last Reviewed: 2026-10-15
+- Source of Truth: linked primary sources, repository code, maintainer's dated scope clarification and explicitly identified engineering assessments
+- Update Triggers: Android priority, app-specific capabilities, website packaging, Cardstation integration, platform/runtime support, client responsibilities, reference-data use, hardware experiments, recognition measurements, distribution and operating model
 - Related Docs: [Product specification](../product/specification.md), [Clients and Scan](../architecture/mobile-and-scan.md), [Sorter concept](./card-robot.md), [Application contract](../architecture/application-contract.md), [Deployment](../operations/deployment.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Domain glossary](../../GLOSSARY.md), [Integrations index](./README.md)
 
-## Research recommendation
+## Current overview, 2026-10-15
 
-Spellbook should start with a shared product foundation for the website and phone. Dashboard, Catalog, Inventory and Deck Builder need the same domain rules and backend use cases. Camera capture and recognition add capabilities to those clients. A separate native app becomes worthwhile when specific camera, inference or device requirements justify its additional implementation. This is an engineering recommendation, not a selected technology.
+The 2026-10-15 scope prioritizes Android, all website product functions in the app, a distinct mobile layout/navigation, QR authorization for Cardstation login/sync and individual-card local scanning. The shared API must support common functions and app extensions. The ordinary website need not expose every workflow; one web application/PWA may provide both presentations. No framework is selected. Further app ideas remain unspecified. The Jetson owns Cardstation capture, recognition and hardware execution. [Current client scope](../architecture/mobile-and-scan.md#client-scope-and-open-responsibilities).
 
-Use the existing Jetson as the compute host for the first sorter comparison. Separating the compute host from the device controller could help open-source maintenance and reproducible builds. Recognition could later run on different hardware while the controller handles sensors and movement sequences. Direct Jetson control remains a comparison option. An additional controller must earn its complexity through measured timing or hardware replacement requirements.
+Evaluate a shared SvelteKit web/PWA first. Mobile can use separate layouts/components while reusing backend rules and contracts. Viewport/input adaptation determines suitable layout; `display-mode` can distinguish ordinary browser and standalone presentation for additional app entrypoints. Standalone mode describes the current window, not universal installation state or device identity. Visibility and API authorization have separate responsibilities. [Responsive layouts](https://web.dev/learn/design/media-queries), [PWA display-mode detection](https://web.dev/learn/pwa/detection).
 
-The phone should initially handle login, operation and status, as the maintainer described. A phone as the compute host deserves investigation but is not yet a proven Jetson replacement. Camera mounting, device connections, app interruption and heat matter more than the ability to execute a model alone.
+A hosted PWA can retain SvelteKit server loads/actions; installation does not force a static SPA or offline support. If measured browser limits justify native modules, Capacitor remains an alternative, with bundled-client/API adaptation work. Its `server.url` is documented for live reload rather than production. [SvelteKit routing](https://svelte.dev/docs/kit/routing), [Capacitor configuration](https://capacitorjs.com/docs/config).
 
-Revisit browser scanning. Browser cameras and local inference are documented capabilities, but their combination with a particular MTG model on the intended devices remains unproven. The retained upload/review route offers a possible fallback. Scan UI development and navigation entrypoints are currently paused. [Media Capture](https://www.w3.org/TR/mediacapture-streams/), [ONNX Runtime Web](https://onnxruntime.ai/docs/tutorials/web/).
+Browser camera capture and local ONNX inference are available capabilities. They establish no MTG model compatibility, accuracy, latency or resource budget. Test one-card capture/recognition on target Android phones; continuous scanning is not yet required. QR decoding and approving a device session are separate steps. [Media Capture](https://www.w3.org/TR/mediacapture-streams/), [ORT Web support](https://onnxruntime.ai/docs/get-started/with-javascript/web.html).
 
-For self-hosting, use an ordinary Account/Inventory server without a required GPU. Treat recognition-reference production as a separate build process. Managing cards and Decks should not require every operator to maintain an ML toolchain. Permission to redistribute finished reference packages remains a separate open question.
+Evaluate Jetson-initiated HTTPS to the selected Spellbook instance for authorized jobs and status. The backend owns account effects; the Jetson executes locally and retains pending results. Existing SSE can notify clients to refetch, but is not a durable job queue. Direct LAN access remains an alternative with browser permission and origin constraints. [SavedState owner](../architecture/application-contract.md#saved-state-synchronization), [Chrome LNA](https://developer.chrome.com/blog/local-network-access).
+
+Resolve these contracts before implementation:
+
+1. Pairing and device authority: short-lived QR approval, account binding, permissions, expiry and revocation. [RFC 8628](https://www.rfc-editor.org/rfc/rfc8628.html) supplies a device-authorization pattern without requiring a switch to OAuth.
+2. Jobs and recovery: start/pause/cancel semantics, accepted versus completed commands, persisted results and duplicate-safe reconnect. Local routing should tolerate temporary backend loss; full offline operation is not yet specified.
+3. Inventory effects: distinguish recognition, observed placement and confirmed intake. Rescanning an owned card must not add another copy. Existing artifact-bound Scan APIs do not provide a complete Cardstation job protocol. [Sorter contract gaps](./card-robot.md#minimal-device-contract).
+
+Later validation should cover mobile versus PWA presentation, QR approval through Cardstation sync, local phone recognition and backend-loss/reconnect. This pass performed source/repository research only, with no implementation or device/browser/model measurements. Repository baseline is `97623de`; comparisons below retain earlier evidence dates and do not expand current scope.
 
 ## Starting point and research limits
 
@@ -26,7 +34,7 @@ The repository has a SvelteKit website, shared backend application modules, JSON
 
 Scan UI development is paused. Navigation, Inventory and Dashboard no longer expose Scan entrypoints, but the authenticated `/mtg/scan` route, sessions, backend contracts and API remain. The [Scan worker](../../scan-worker/src/scan_worker/main.py) still returns `no_match` and `stub-v1`; productive recognition is absent. A separate phone client, machine credentials and physical box/placement management are not implemented. Existing UI Boxes are Inventory groups, not physical copy locations. [Clients and Scan](../architecture/mobile-and-scan.md), [Domain glossary](../../GLOSSARY.md).
 
-The phone app should cover the website's product functions. During sorting, its primary role is login and operation. Browser scanning and a phone compute host remain open options. Recognition on user images should stay local, so server inference is not an active recommendation. The server may prepare public references. Job modes, duplicate-counting strategy, filter semantics and offline contracts remain open. [Current client question](https://github.com/KyleDerZweite/spellbook/issues/205), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md).
+The current scope distinguishes app-specific presentation from execution technology: browser/PWA recognition remains eligible for the phone app, while the Jetson owns Cardstation execution. The app also covers website product functions. Recognition remains local; the server may prepare public references. Job modes, duplicate-counting strategy, filter semantics and offline contracts remain open. [Client decision question](https://github.com/KyleDerZweite/spellbook/issues/205), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md).
 
 ## Website and phone app
 
