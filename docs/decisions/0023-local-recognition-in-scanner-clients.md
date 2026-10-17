@@ -47,7 +47,7 @@ The phone's primary role during a sort run is login, operation and status. Cards
 
 The accepted 2026-10-16 delivery selects an installable, online-first, same-origin SvelteKit PWA, an `/app` launch/install hub and a camera/manual QR authorization journey. A signed-in account explicitly approves or denies at `/auth/approve`; desktop login retains passwords alongside QR. Installed narrow windows gain bottom navigation. This narrows the earlier open client-technology question for installation and QR only.
 
-The backend QR API and public-only service worker are integrated. Page/navigation integration and browser/Android acceptance remain pending on 2026-10-17. Device-kind requests can supply ordinary bearer sessions to a future Jetson client. This adds no machine enrollment, job/sync protocol, hardware control or MTG recognition. [Mobile and scan](../architecture/mobile-and-scan.md#client-scope-and-open-responsibilities) owns current scope and [Frontend](../architecture/frontend.md#pwa-and-qr-presentation) owns presentation.
+The backend QR API and public-only service worker are integrated. The PWA pages and navigation are implemented. Target verification is recorded with the change. Device-kind requests can supply ordinary bearer sessions to a future Jetson client. This adds no machine enrollment, job/sync protocol, hardware control or MTG recognition. [Mobile and scan](../architecture/mobile-and-scan.md#client-scope-and-open-responsibilities) owns current scope and [Frontend](../architecture/frontend.md#pwa-and-qr-presentation) owns presentation.
 
 ## Follow-up
 

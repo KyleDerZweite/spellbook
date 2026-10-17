@@ -46,7 +46,7 @@ The accepted install/use journey is:
 
 Installation is online-first. Only immutable JavaScript/CSS, existing public icons/logo and `offline.html` enter the service-worker cache. Account/API/auth/QR responses and card artifacts remain network-only. A network navigation failure displays public reconnect guidance; HTTP error responses retain their original behavior. There are no offline account writes or MTG recognition assets. When an update is waiting, save drafts and choose the explicit reload action.
 
-These steps describe the accepted delivery. Page/navigation integration and current-head browser, Android and deployed HTTPS acceptance remain pending on 2026-10-17. [PWA/QR verification](./github-automation.md#pwa-and-qr-verification) owns target checks. A future Jetson may use device-kind QR requests to obtain an ordinary bearer session; this deployment adds no hardware enrollment, machine control or synchronization protocol.
+These steps describe the accepted delivery. The PWA pages and navigation are implemented. Deployed HTTPS and physical Android acceptance remain separate from implementation checks. [PWA/QR verification](./github-automation.md#pwa-and-qr-verification) owns target checks. A future Jetson may use device-kind QR requests to obtain an ordinary bearer session; this deployment adds no hardware enrollment, machine control or synchronization protocol.
 
 ## Manual Demo Catalog update
 

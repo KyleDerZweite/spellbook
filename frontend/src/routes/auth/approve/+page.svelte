@@ -44,7 +44,7 @@
 					pending = true;
 					return async ({ update }) => {
 						try {
-							await update();
+							await update({ refreshAll: true });
 						} finally {
 							pending = false;
 						}

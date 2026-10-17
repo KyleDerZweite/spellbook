@@ -100,7 +100,7 @@ SvelteKit owns service-worker registration. [The worker](../../frontend/src/serv
 
 Shell owns the shared [PWA state](../../frontend/src/lib/pwa/state.svelte.ts) listeners for installation, display mode, connectivity and waiting updates. A waiting worker presents an explicit reload action; it does not force an update over a draft. Save work before selecting reload. Install guidance uses the browser's available prompt or manual install instructions. HTTPS outside localhost is required. [Deployment](../operations/deployment.md#pwa-installation-and-qr-use) owns install/use steps.
 
-The backend transport, manifest and worker are integrated. Page/navigation integration and rendered desktop/mobile, browser install/update and Android acceptance remain pending on 2026-10-17. [Verification](../operations/github-automation.md#pwa-and-qr-verification) distinguishes those checks from automated evidence.
+The backend transport, manifest and worker are integrated. The PWA pages and navigation are implemented. Rendered, installation and Android checks remain separate from automated coverage. [Verification](../operations/github-automation.md#pwa-and-qr-verification) distinguishes those checks from automated evidence.
 
 ## Profile saved-state consumer
 

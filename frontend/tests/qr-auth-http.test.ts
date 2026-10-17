@@ -39,6 +39,11 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 		assert.ok(header, `Expected ${name} cookie`);
 		return { header, value: header.split(';')[0] };
 	}
+	function reviewMarker(html: string) {
+		const marker = html.match(/name="review" value="([A-Za-z0-9_-]{43})"/)?.[1];
+		assert.ok(marker, 'Approval page supplies a session-bound review marker');
+		return marker;
+	}
 	async function create(kind: 'browser' | 'device') {
 		const response = await request(
 			'/api/auth/qr/requests',
@@ -93,8 +98,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 				assert.match(html, /Approve sign-in/);
 				assert.match(html, /Only approve a code you just scanned/);
 				assert.match(html, new RegExp(approver.user.username));
-				const review = html.match(/name="review" value="([A-Za-z0-9_-]{43})"/)?.[1];
-				assert.ok(review, 'Approval page supplies a session-bound review marker');
+				const review = reviewMarker(html);
 				assert.equal(
 					(
 						await (
@@ -120,6 +124,17 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 				const switched = await decide('approve', origin, other.token);
 				assert.equal(switched.status, 409);
 				assert.match(await switched.text(), /Your sign-in session changed/);
+				const freshLogin = await fixtureAuthRequest(
+					origin,
+					'/api/auth/login',
+					{ username: approver.user.username, password: 'qr-http-original-password' },
+					{}
+				);
+				assert.equal(freshLogin.status, 200);
+				assert.equal(
+					(await decide('approve', origin, (await freshLogin.json()).token)).status,
+					409
+				);
 				assert.equal(
 					(
 						await (
@@ -144,8 +159,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 				const denialHtml = await (
 					await request(`/auth/approve?code=${denied.code}`, undefined, headers)
 				).text();
-				const denialReview = denialHtml.match(/name="review" value="([A-Za-z0-9_-]{43})"/)?.[1];
-				assert.ok(denialReview);
+				const denialReview = reviewMarker(denialHtml);
 				const deniedPage = await fetch(`${origin}/auth/approve?code=${denied.code}`, {
 					method: 'POST',
 					headers: { ...headers, origin, 'content-type': 'application/x-www-form-urlencoded' },

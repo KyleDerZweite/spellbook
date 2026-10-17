@@ -100,7 +100,7 @@ pnpm test:http
 
 Rendered desktop and narrow journeys must cover password fallback, QR pending/expiry/denial/retry, sign-in return to approval, manual input and foreign-instance rejection, camera denial/unavailability and stream cleanup. Verify installation from `/app`, standalone/narrow-only App, Search, Inventory, Decks and Connect bottom navigation, offline navigation without cached private data, and a waiting update that reloads only on explicit action. Check draft retention before reload and no unsolicited reload when another window activates an update. Use deployed same-origin HTTPS for physical phone camera/install acceptance.
 
-Attempt Android Studio/emulator checks only with already installed tools. If those tools are absent or the target check fails, record the limit without alternate tooling. Physical Android acceptance belongs to the owner. Browser and Android acceptance remain pending on 2026-10-17; no successful target run is claimed by this documentation update. Record the final head/base/diff, commands, skipped checks and target owner with the change, separately from deployment.
+Attempt Android Studio/emulator checks only with already installed tools. If those tools are absent or the target check fails, record the limit without alternate tooling. Physical Android acceptance belongs to the owner. Record browser and emulator results with the change; those results do not establish physical Android acceptance. Record the final head/base/diff, commands, skipped checks and target owner with the change, separately from deployment.
 
 ## Application and native operator checks
 
