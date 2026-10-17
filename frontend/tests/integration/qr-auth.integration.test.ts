@@ -140,6 +140,16 @@ run('QR authorization transactions', () => {
 				nextAddress()
 			)
 		).toEqual({ kind: 'device', status: 'consumed' });
+		expect(await auth.qr.decide(actor.user, created.code, 'approve', nextAddress())).toMatchObject({
+			status: 'consumed'
+		});
+		await expect(
+			auth.qr.decide(actor.user, created.code, 'deny', nextAddress())
+		).rejects.toMatchObject({ kind: 'Conflict' });
+		const another = await account();
+		await expect(
+			auth.qr.decide(another.user, created.code, 'approve', nextAddress())
+		).rejects.toMatchObject({ kind: 'Conflict' });
 	});
 	it('rejects wrong secrets without consuming approval', async () => {
 		const { actor, created } = await approved();

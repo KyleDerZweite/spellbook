@@ -138,7 +138,7 @@ const qrErrors = {
 	400: response('Invalid QR request fields', ref('ErrorResponse')),
 	401: response('A current approving session is required', ref('ErrorResponse')),
 	403: response('Invalid request origin', ref('ErrorResponse')),
-	404: response('Unknown request or invalid requester credential', ref('ErrorResponse')),
+	404: response('Unknown QR request', ref('ErrorResponse')),
 	409: response(
 		'Request decision conflicts or browser is already authenticated',
 		ref('ErrorResponse')
@@ -1493,7 +1493,13 @@ const SCHEMA = {
 				additionalProperties: false
 			},
 			QrDecisionForm: {
-				...object({ code: qrCode, decision: { enum: ['approve', 'deny'] } }),
+				...object({
+					decision: { enum: ['approve', 'deny'] },
+					review: {
+						...qrCode,
+						description: 'Code-scoped session marker supplied by the approval page'
+					}
+				}),
 				additionalProperties: false
 			},
 			QrTokenRequest: {

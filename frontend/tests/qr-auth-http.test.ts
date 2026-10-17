@@ -75,6 +75,92 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 		const other = await actor();
 		const authorization = `Bearer ${approver.token}`;
 		await t.test(
+			'approval page requires sign-in and an explicit same-origin decision',
+			async () => {
+				const { response, result } = await create('browser');
+				const path = `/auth/approve?code=${result.code}`;
+				const anonymous = await request(path);
+				assert.equal(anonymous.status, 303);
+				assert.equal(
+					new URL(anonymous.headers.get('location')!, origin).searchParams.get('returnTo'),
+					path
+				);
+				const headers = { cookie: `${SESSION_COOKIE}=${approver.token}` };
+				const page = await request(path, undefined, headers);
+				assert.equal(page.status, 200);
+				assert.equal(page.headers.get('referrer-policy'), 'no-referrer');
+				const html = await page.text();
+				assert.match(html, /Approve sign-in/);
+				assert.match(html, /Only approve a code you just scanned/);
+				assert.match(html, new RegExp(approver.user.username));
+				const review = html.match(/name="review" value="([A-Za-z0-9_-]{43})"/)?.[1];
+				assert.ok(review, 'Approval page supplies a session-bound review marker');
+				assert.equal(
+					(
+						await (
+							await request(`/api/auth/qr/requests/${result.code}`, undefined, { authorization })
+						).json()
+					).status,
+					'pending'
+				);
+				async function decide(decision: string, suppliedOrigin?: string, token = approver.token) {
+					return fetch(origin + path, {
+						method: 'POST',
+						redirect: 'manual',
+						headers: {
+							cookie: `${SESSION_COOKIE}=${token}`,
+							'content-type': 'application/x-www-form-urlencoded',
+							...(suppliedOrigin ? { origin: suppliedOrigin } : {})
+						},
+						body: new URLSearchParams({ decision, review })
+					});
+				}
+				assert.equal((await decide('approve')).status, 403);
+				assert.equal((await decide('invalid', origin)).status, 400);
+				const switched = await decide('approve', origin, other.token);
+				assert.equal(switched.status, 409);
+				assert.match(await switched.text(), /Your sign-in session changed/);
+				assert.equal(
+					(
+						await (
+							await request(`/api/auth/qr/requests/${result.code}`, undefined, { authorization })
+						).json()
+					).status,
+					'pending'
+				);
+				const approved = await decide('approve', origin);
+				assert.equal(approved.status, 200);
+				assert.match(await approved.text(), /Sign-in approved/);
+				const signedIn = await request(
+					'/api/auth/qr/token',
+					{ code: result.code },
+					{ origin, cookie: cookie(response, requesterCookie).value }
+				);
+				assert.equal((await signedIn.json()).status, 'authenticated');
+				const repeated = await decide('approve', origin);
+				assert.equal(repeated.status, 200);
+				assert.match(await repeated.text(), /already been used/);
+				const denied = (await create('device')).result;
+				const denialHtml = await (
+					await request(`/auth/approve?code=${denied.code}`, undefined, headers)
+				).text();
+				const denialReview = denialHtml.match(/name="review" value="([A-Za-z0-9_-]{43})"/)?.[1];
+				assert.ok(denialReview);
+				const deniedPage = await fetch(`${origin}/auth/approve?code=${denied.code}`, {
+					method: 'POST',
+					headers: { ...headers, origin, 'content-type': 'application/x-www-form-urlencoded' },
+					body: new URLSearchParams({ decision: 'deny', review: denialReview })
+				});
+				assert.equal(deniedPage.status, 200);
+				assert.match(await deniedPage.text(), /Sign-in denied/);
+				assert.equal((await request('/auth/approve?code=invalid', undefined, headers)).status, 400);
+				assert.equal(
+					(await request(`${path}&code=${result.code}`, undefined, headers)).status,
+					400
+				);
+			}
+		);
+		await t.test(
 			'browser private cookie, explicit approval, cookie session delivery and one-time redemption',
 			async () => {
 				const { response, result } = await create('browser');

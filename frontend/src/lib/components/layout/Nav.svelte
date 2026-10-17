@@ -55,7 +55,11 @@
 			label: 'Decks',
 			icon: 'm12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5'
 		},
-		{ href: '/mtg/scan', label: 'Scan', icon: 'M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5M8 8h8v8H8z' }
+		{
+			href: '/app/connect',
+			label: 'Connect',
+			icon: 'M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5M8 8h8v8H8z'
+		}
 	];
 
 	let collapsed = $state(false);
@@ -92,7 +96,7 @@
 		const path = page.state.searchOverlay
 			? (page.shallow?.url.pathname ?? page.url.pathname)
 			: page.url.pathname;
-		return path === href || path.startsWith(href + '/');
+		return path === href || (href !== '/app' && path.startsWith(href + '/'));
 	}
 </script>
 

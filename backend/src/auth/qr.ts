@@ -152,7 +152,7 @@ export function createQrAuth(
 				const status = decision === 'approve' ? 'approved' : 'denied';
 				if (row.status !== 'pending') {
 					if (
-						row.status !== status ||
+						(row.status !== status && !(row.status === 'consumed' && status === 'approved')) ||
 						row.approverSessionHash !== hash ||
 						row.approverAccountId !== user.accountId
 					)
