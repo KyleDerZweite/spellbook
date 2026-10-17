@@ -15,11 +15,10 @@ import { createSessionStore, hashSessionToken } from './session.ts';
 export { validQrCredential } from '@spellbook/contracts/auth.ts';
 
 export class QrAuthError extends Error {
-	constructor(
-		readonly kind: 'ValidationFailed' | 'NotFound' | 'Conflict' | 'Unauthenticated' | 'RateLimited',
-		message: string
-	) {
+	readonly kind: 'ValidationFailed' | 'NotFound' | 'Conflict' | 'Unauthenticated' | 'RateLimited';
+	constructor(kind: QrAuthError['kind'], message: string) {
 		super(message);
+		this.kind = kind;
 	}
 }
 const lifetimeMs = 5 * 60 * 1000;

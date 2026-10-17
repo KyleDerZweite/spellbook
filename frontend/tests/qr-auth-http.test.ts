@@ -112,6 +112,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 						method: 'POST',
 						redirect: 'manual',
 						headers: {
+							accept: 'text/html',
 							cookie: `${SESSION_COOKIE}=${token}`,
 							'content-type': 'application/x-www-form-urlencoded',
 							...(suppliedOrigin ? { origin: suppliedOrigin } : {})
@@ -162,7 +163,12 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 				const denialReview = reviewMarker(denialHtml);
 				const deniedPage = await fetch(`${origin}/auth/approve?code=${denied.code}`, {
 					method: 'POST',
-					headers: { ...headers, origin, 'content-type': 'application/x-www-form-urlencoded' },
+					headers: {
+						...headers,
+						accept: 'text/html',
+						origin,
+						'content-type': 'application/x-www-form-urlencoded'
+					},
 					body: new URLSearchParams({ decision: 'deny', review: denialReview })
 				});
 				assert.equal(deniedPage.status, 200);
