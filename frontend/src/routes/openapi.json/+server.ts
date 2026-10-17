@@ -143,7 +143,7 @@ const qrErrors = {
 		'Request decision conflicts or browser is already authenticated',
 		ref('ErrorResponse')
 	),
-	413: response('QR JSON body exceeds 4 KiB', ref('ErrorResponse')),
+	413: response('QR JSON body exceeds 1 KiB', ref('ErrorResponse')),
 	415: response('Use application/json', ref('ErrorResponse')),
 	429: response('QR request limit reached; wait before retrying', ref('ErrorResponse')),
 	500: response('QR authorization unavailable', ref('ErrorResponse'))

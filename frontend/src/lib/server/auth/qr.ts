@@ -58,7 +58,7 @@ export async function qrResponse(
 			}
 			const response: QrCreateResponse = {
 				...publicRequest,
-				verificationUri: new URL(`/auth/qr?code=${created.code}`, event.url.origin).href,
+				verificationUri: new URL(`/auth/approve?code=${created.code}`, event.url.origin).href,
 				...(created.kind === 'device' ? { requesterSecret } : {})
 			};
 			return json(response, { status: 201 });

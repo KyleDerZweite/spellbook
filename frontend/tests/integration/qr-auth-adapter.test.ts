@@ -67,7 +67,7 @@ describe('QR HTTP adapter', () => {
 			kind: 'browser',
 			expiresAt,
 			interval: 3,
-			verificationUri: `${origin}/auth/qr?code=${code}`
+			verificationUri: `${origin}/auth/approve?code=${code}`
 		});
 		expect(input.cookies.set).toHaveBeenCalledWith(QR_REQUESTER_COOKIE, `${code}.${secret}`, {
 			path: '/api/auth/qr',

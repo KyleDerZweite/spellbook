@@ -50,7 +50,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 		codes.push(hashSessionToken(result.code));
 		assert.equal(result.kind, kind);
 		assert.equal(result.interval, 3);
-		assert.equal(result.verificationUri, `${origin}/auth/qr?code=${result.code}`);
+		assert.equal(result.verificationUri, `${origin}/auth/approve?code=${result.code}`);
 		assert.ok(Date.parse(result.expiresAt) > Date.now());
 		return { response, result };
 	}
