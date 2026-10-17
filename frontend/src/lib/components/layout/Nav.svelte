@@ -6,6 +6,7 @@
 	import { isPrimaryClick } from '#lib/search/navigation.ts';
 	import type { ComponentProps } from 'svelte';
 	import { page } from '$app/state';
+	import { pwaState } from '#lib/pwa/state.svelte.ts';
 	import { asset } from '$app/paths';
 	import { Dialog } from 'bits-ui';
 	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
@@ -41,6 +42,22 @@
 		}
 	]);
 
+	const APP_LINKS = [
+		{ href: '/app', label: 'App', icon: 'M4 4h16v16H4zM8 8h8M8 12h8M8 16h4' },
+		{
+			href: '/mtg/search',
+			label: 'Search',
+			icon: 'M21 21l-5-5M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0'
+		},
+		{ href: '/mtg/inventory', label: 'Inventory', icon: 'M4 4h16v16H4zM4 10h16M10 10v10' },
+		{
+			href: '/mtg/decks',
+			label: 'Decks',
+			icon: 'm12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5'
+		},
+		{ href: '/mtg/scan', label: 'Scan', icon: 'M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5M8 8h8v8H8z' }
+	];
+
 	let collapsed = $state(false);
 	$effect(() => {
 		const update = () => {
@@ -57,7 +74,7 @@
 	const userName = $derived(user?.username || 'Account');
 	const accountActions: ComponentProps<typeof ActionMenu>['items'] = [
 		{ label: 'Settings', href: '/settings' },
-		{ label: 'App coming soon', disabled: true },
+		{ label: 'App', href: '/app' },
 		{ label: 'Sign out', onSelect: () => logoutForm?.requestSubmit() }
 	];
 
@@ -85,7 +102,30 @@
 	>Skip to content</a
 >
 
-<nav class="primary-nav" class:collapsed aria-label="Primary">
+{#if pwaState.standalone}
+	<nav class="app-bottom-nav" aria-label="App">
+		{#each APP_LINKS as link}
+			<a
+				href={link.href}
+				onclick={link.href === '/mtg/search' ? (event) => searchClick(event) : undefined}
+				aria-current={isActive(link.href) ? 'page' : undefined}
+			>
+				<svg
+					aria-hidden="true"
+					width="20"
+					height="20"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="1.5"><path d={link.icon} /></svg
+				>
+				<span>{link.label}</span>
+			</a>
+		{/each}
+	</nav>
+{/if}
+
+<nav class="primary-nav" class:collapsed class:installed={pwaState.standalone} aria-label="Primary">
 	<div class="nav-inner">
 		<div class="brand-controls">
 			<a
@@ -216,6 +256,47 @@
 {/snippet}
 
 <style>
+	.app-bottom-nav {
+		display: none;
+	}
+	@media (max-width: 700px) {
+		.primary-nav.installed .nav-inner {
+			padding-top: env(safe-area-inset-top, 0px);
+		}
+		.app-bottom-nav {
+			display: grid;
+			grid-template-columns: repeat(5, minmax(0, 1fr));
+			position: fixed;
+			inset: auto 0 0;
+			z-index: 30;
+			min-height: 4.5rem;
+			padding: 0 max(0.25rem, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px)
+				max(0.25rem, env(safe-area-inset-left, 0px));
+			border-top: 1px solid var(--color-border);
+			background: var(--color-background);
+		}
+		.app-bottom-nav a {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: center;
+			gap: 0.35rem;
+			min-height: 44px;
+			padding: 0.5rem 0;
+			font-size: 0.7rem;
+			color: var(--color-foreground);
+			text-decoration: none;
+		}
+		.app-bottom-nav a[aria-current='page'] {
+			color: var(--color-gold);
+			box-shadow: inset 0 3px currentColor;
+		}
+		.app-bottom-nav a:focus-visible {
+			outline: 2px solid var(--color-gold);
+			outline-offset: -4px;
+		}
+	}
+
 	.account-identity {
 		display: flex;
 		align-items: center;

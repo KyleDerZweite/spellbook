@@ -5,7 +5,7 @@
 	"description": "Magic: The Gathering inventory and deck companion",
 	"lang": "en",
 	"dir": "ltr",
-	"start_url": "/search",
+	"start_url": "/app",
 	"scope": "/",
 	"display": "standalone",
 	"display_override": ["standalone", "minimal-ui", "browser"],
@@ -37,12 +37,12 @@
 		{
 			"name": "MTG Search",
 			"short_name": "Search",
-			"url": "/search"
+			"url": "/mtg/search"
 		},
 		{
 			"name": "Inventory",
 			"short_name": "Inventory",
-			"url": "/inventory"
+			"url": "/mtg/inventory"
 		}
 	]
 }
