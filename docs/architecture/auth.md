@@ -1,12 +1,39 @@
 # Authentication
 
 - Status: Canonical
-- Last Reviewed: 2026-10-08
+- Last Reviewed: 2026-10-17
 - Source of Truth: code
-- Update Triggers: credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, summary reporting failures, post-login destinations, agent discovery, workspace ownership, application resource lifetime and native operator ownership, SavedState stream authority and origin policy
+- Update Triggers: QR challenge lifecycle, session-bound decisions, requester cookies and PWA delivery, credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, summary reporting failures, post-login destinations, agent discovery, workspace ownership, application resource lifetime and native operator ownership, SavedState stream authority and origin policy
 - Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Routes](../product/routing-and-games.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md), [Application contract](./application-contract.md)
 
 Spellbook authenticates local accounts by username and password. `user_profiles.account_id` remains the stable ownership key for inventories, decks, and scans. Registration generates a new account ID; operator enrollment preserves an existing account ID.
+
+## PWA and QR sign-in implementation contract
+
+The authorized 2026-10-16 delivery is one PR against current `main`: an installable, online-first SvelteKit PWA with mobile navigation, camera QR scanning, and QR sign-in beside the existing password form. A signed-in phone explicitly approves a new browser session. The same JSON protocol supports a later Jetson client obtaining an ordinary bearer session. This delivers account sign-in, not physical device ownership, motor control, card recognition, complete offline account data or a native Android package.
+
+Backend Auth exposes `auth.qr.create`, `inspect`, `decide` and `redeem` through the shared application interface. The [QR module](../../backend/src/auth/qr.ts) owns PostgreSQL-backed authorization; [migration 0024](../../frontend/drizzle/0024_qr_authorization.sql) adds challenge persistence without changing existing account or session identities. Contracts owns JSON-safe request/result shapes. Frontend owns origin checks, HttpOnly cookies, QR rendering, camera scanning, forms and session-cookie delivery. Existing backend application/transport import rules and local Account session semantics remain authoritative. No external identity provider is introduced.
+
+The protocol is:
+
+- `POST /api/auth/qr/requests` accepts only `{ kind: 'browser' | 'device' }`. It creates a five-minute request with independent random 32-byte public `code` and private `requesterSecret`. Only their digests persist. Response includes `code`, `kind`, `expiresAt`, `interval: 3` and same-instance `verificationUri`. Browser requests store the code-bound private credential in the five-minute `spellbook_qr_requester` HttpOnly, SameSite=Lax cookie scoped to `/api/auth/qr`, use Secure over HTTPS, and omit the secret from JSON. Device requests return the secret to that requester. Browser JavaScript never receives the account session token.
+- `GET /api/auth/qr/requests/{code}` requires an authenticated actor and returns only `code`, `kind`, `status` and `expiresAt`. An owned account is not selected by client input. The approval page displays the signed-in username, same-instance origin and request code prefix, with a warning before explicit Approve or Deny. Scanning never approves automatically.
+- `POST /api/auth/qr/requests/{code}/decision` accepts only `{ decision: 'approve' | 'deny' }` from an authenticated actor. The first decision is immutable and bound to the approver's exact live session. Identical repeats from that session remain idempotent after consumption and never issue another session; conflicting decisions or a different approver return 409.
+- `POST /api/auth/qr/token` accepts `code` and the device requester's secret, or the matching browser secret cookie. Pending requests return `{ status: 'pending' }`. Denied, expired and consumed requests return their explicit terminal status. Approved requests issue and consume at most one new session in one transaction. Browser success writes the normal session cookie and returns `{ status: 'authenticated', expiresAt }`; device success additionally returns `token`. It never grants a session to a caller knowing only the public QR code.
+
+Browser creation/redemption rejects an already authenticated browser rather than silently switching accounts. An unsigned requester cannot assert a desired account; account choice happens on the explicit signed-in approval screen. Cookie mutations require matching Origin. Native JSON callers may omit Origin, but supplied foreign/null Origin is rejected. Authenticated operations retain Authorization-before-cookie precedence. QR responses use `Cache-Control: no-store`. All `/auth/*` and `/app*` page responses also use `no-store` and `Referrer-Policy: no-referrer`. URLs, QR images, logs and LocalStorage contain no requester secret or session token.
+
+The approval page returns the reviewed username and a code-scoped HMAC marker derived from that exact session in the same server load. Its native and enhanced forms submit the marker with the decision. A changed account or session returns 409 before deciding the challenge and requires renewed review. The marker reveals no session token and cannot authorize another code. Inherited layout data does not select the displayed approval account.
+
+Approval/redeem follow existing Profile-first lock order. After locking the Profile and request, recheck wall-clock expiry and acquire a live approver-session share lock before issuing a session. Logout, password rotation/recovery and session expiry before redemption invalidate authorization. Session issuance and consumption commit together; concurrent redemption creates one session. A lost successful redemption response requires a new QR request, with no automatic reissuance from the consumed request. The UI must explain this recovery.
+
+Creation and decisions have separate bounded attempt limits; polling has a larger allowance and one physical request at a time. Expired rows are removed opportunistically in bounded batches through an expiry index. These limits are per process, as with existing password protection; multi-replica public hosting retains its proxy rate-limit requirement.
+
+The service worker caches only build-listed immutable JavaScript/CSS, existing public app icons/logo and `offline.html`. Navigations use the network, with the public fallback only on a network error; HTTP error responses retain their status and body. Private SSR pages, API responses, authentication, QR state and card artifacts remain network-only. Updates require an explicit reload when a worker is waiting, preserving drafts until the user chooses it. The PWA uses HTTPS outside localhost. Installation does not establish offline Inventory writes or recognition support.
+
+The backend QR transport, manifest and service worker are integrated. The PWA pages and navigation are implemented. [Frontend](./frontend.md#pwa-and-qr-presentation) owns the accepted page contract; [repository verification](../operations/github-automation.md#pwa-and-qr-verification) owns commands and evidence limits. No browser or Android acceptance is recorded here.
+
+Acceptance requires PostgreSQL and built-HTTP tests for browser/device issuance, bearer/cookie precedence, Origin rejection, explicit approval/denial, wrong secret, expiry after lock waits, conflicting accounts/decisions, revocation and concurrent redemption. Rendered desktop/mobile journeys cover password fallback, QR waiting/expiry/retry, approval and PWA installation/offline/update presentation. Android Studio/emulator testing is attempted only with installed tools; if unavailable or unsuccessful, stop that target check without alternate tooling and leave physical Android acceptance to the owner.
 
 ## Application ownership
 
@@ -70,7 +97,12 @@ Backend Auth `actorSession` derives the bound account and expiry from its privat
 | `/settings/profile-card`                                 | Private card definition and artwork load and form action              |
 | `/settings/password`                                     | Current-password-confirmed change and fresh browser session           |
 | `/auth/register`                                         | Local account registration page and form action                       |
-| `/auth/login`                                            | Local login page and form action                                      |
+| `/auth/login`                                            | Local password form and accepted QR sign-in presentation              |
+| `/auth/approve?code=CODE`                                | Accepted signed-in explicit QR approval/denial page                   |
+| `POST /api/auth/qr/requests`                             | Create a browser or device authorization request                      |
+| `GET /api/auth/qr/requests/{code}`                       | Inspect a request as a signed-in actor                                |
+| `POST /api/auth/qr/requests/{code}/decision`             | Explicit signed-in approval or denial                                 |
+| `POST /api/auth/qr/token`                                | Redeem with the private browser cookie or device secret               |
 | `POST /auth/logout`                                      | Revoke the browser session and redirect to `/`                        |
 | `POST /api/auth/register`                                | Accept JSON credentials and return a session token with HTTP 201      |
 | `POST /api/auth/login`                                   | Accept JSON credentials and return a session token with HTTP 200      |
@@ -98,7 +130,7 @@ Login, registration and password changes share a per-process limit of 20 attempt
 
 ## Access and migration
 
-`/mtg/dashboard`, `/mtg/inventory`, `/mtg/decks`, `/mtg/scan`, and `/settings`, including their child routes, require authentication. Catalog browsing at `/mtg/search` and read-only `/api/catalog/*` endpoints is public. Saving inventory or decks still requires authentication. Legacy MTG and collection URLs redirect before the guard. The public root remains the landing after sign-in. Login and registration default to `/mtg/inventory`; a safe explicit `returnTo` preserves its path and query, including a deck selection or `/`. The guard supplies the protected destination with its query. `returnTo` must start with one slash and contain no backslashes or control characters; absent or rejected values use the inventory default.
+`/mtg/dashboard`, `/mtg/inventory`, `/mtg/decks`, `/mtg/scan`, and `/settings`, including their child routes, require authentication. The accepted `/app/connect` and `/auth/approve` pages also require sign-in; `/app` remains a public install/launch hub. Catalog browsing at `/mtg/search` and read-only `/api/catalog/*` endpoints is public. Saving inventory or decks still requires authentication. Legacy MTG and collection URLs redirect before the guard. The public root remains the landing after sign-in. Login and registration default to `/mtg/inventory`; a safe explicit `returnTo` preserves its path and query, including a deck selection or `/`. The guard supplies the protected destination with its query. `returnTo` must start with one slash and contain no backslashes or control characters; absent or rejected values use the inventory default.
 
 Registration is public. Email verification and emailed reset links are not implemented. The [operator procedure](../operations/local-auth.md) covers recovery and enrollment of accounts created under OIDC.
 

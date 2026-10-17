@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import AccountLayout from '#lib/components/auth/AccountLayout.svelte';
 	import PasswordInput from '#lib/components/auth/PasswordInput.svelte';
+	import QrSignIn from '#lib/components/auth/QrSignIn.svelte';
 	import type { PageProps } from './$types';
 	let { data, form }: PageProps = $props();
 	let pending = $state(false);
@@ -11,6 +12,7 @@
 >
 
 <AccountLayout title="Sign in">
+	{#snippet aside()}<QrSignIn returnTo={data.returnTo} />{/snippet}
 	{#if data.demoMode}<p class="mb-5 text-sm text-text-secondary">
 			Demo mode. Sign in with <strong>demo</strong> / <strong>demo</strong>.
 		</p>{/if}

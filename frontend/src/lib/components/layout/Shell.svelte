@@ -1,5 +1,7 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte';
+	import { onMount, type Snippet } from 'svelte';
+	import { pwaState } from '#lib/pwa/state.svelte.ts';
+	import AppStatus from '#lib/components/pwa/AppStatus.svelte';
 	import { afterNavigate, onNavigate, disableScrollHandling, snapshot } from '$app/navigation';
 	import { hasDeepBrowseAnchor } from '#lib/browsing/pagination.ts';
 	import Nav from './Nav.svelte';
@@ -11,6 +13,7 @@
 	}
 
 	let { children }: Props = $props();
+	onMount(() => pwaState.start());
 	snapshot({
 		id: 'workspace-scroll',
 		capture: () => ({ x: window.scrollX, y: window.scrollY }),
@@ -35,11 +38,12 @@
 	});
 </script>
 
-<div class="app-shell bg-background">
+<div class="app-shell bg-background" class:installed={pwaState.standalone}>
 	<SearchOverlay />
 	<Nav />
 	<main id="main-content" tabindex="-1" class="app-main">
 		<div class="app-content">
+			<AppStatus />
 			{@render children()}
 		</div>
 		<Footer />
@@ -47,6 +51,17 @@
 </div>
 
 <style>
+	@media (max-width: 700px) {
+		.installed {
+			--app-header-height: calc(64px + env(safe-area-inset-top, 0px));
+			padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+		}
+		.installed :global(:focus-visible) {
+			scroll-margin-top: calc(var(--app-header-height) + 18px);
+			scroll-margin-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+		}
+	}
+
 	.app-content:has(> :global(.full-search)) {
 		flex: 1 0 0;
 		min-height: calc(32rem + var(--app-header-height));

@@ -1,9 +1,9 @@
 # Repository verification and GitHub automation
 
 - Status: Canonical
-- Last Reviewed: 2026-10-10
+- Last Reviewed: 2026-10-17
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
-- Update Triggers: Dev launcher lifecycle tests, test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
+- Update Triggers: PWA worker build harness and tsconfig, QR integration/HTTP and pending target acceptance, Dev launcher lifecycle tests, test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
 - Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance), [Application boundaries](../architecture/application-contract.md#implementation-status)
 
 This document owns repository check commands, CI coverage, and verification evidence. Product and integration documents own behavior and acceptance criteria. Run checks appropriate to the changed behavior; do not treat a passing command as proof of requirements it does not exercise.
@@ -24,7 +24,7 @@ pnpm db:check
 
 `pnpm test:dev` runs the native launcher lifecycle regression tests with isolated command fixtures. CI runs these alongside frontend lint and unit tests. These fixtures verify process ownership and cleanup paths; actual Podman and PostgreSQL startup require separate local integration evidence.
 
-`lint` includes the root TypeScript import-boundary checker and forbidden-import tests, Prettier, SvelteKit synchronization, the TypeScript 7 check, and Svelte checking. `build` also checks built client output for backend/persistence leakage. Running those nested checks again adds no coverage unless isolating a failure. `db:check` checks Drizzle migration consistency; it does not apply migrations or exercise transactions.
+`lint` includes the root TypeScript import-boundary checker and forbidden-import tests, Prettier, SvelteKit synchronization, the TypeScript 7 check, and Svelte checking. `check:ts` includes the separate [service-worker TypeScript configuration](../../frontend/src/service-worker/tsconfig.json). `build` also checks built client output for backend/persistence leakage and runs `node --test tests/pwa-worker.test.ts` after producing the worker output. Running those nested checks again adds no coverage unless isolating a failure. `db:check` checks Drizzle migration consistency; it does not apply migrations or exercise transactions.
 
 For frontend integration tests, set `DATABASE_URL` and `TEST_DATABASE_URL` to the same disposable PostgreSQL 18 database, then run from `frontend/`:
 
@@ -80,6 +80,27 @@ frontend/node_modules/.bin/prettier --check README.md GLOSSARY.md AGENTS.md CONT
 ```
 
 Follow [documentation maintenance](../README.md#maintenance) for links, ownership, metadata, and stale claims. Documentation-only changes do not need application tests unless they also change executable behavior.
+
+## PWA and QR verification
+
+Use the existing isolated-worktree, disposable PostgreSQL and origin-matched build procedure above. From `frontend/`, run:
+
+```sh
+pnpm check
+pnpm test:unit
+pnpm db:migrate
+pnpm test:integration
+APP_ORIGIN=http://127.0.0.1:5191 pnpm build
+pnpm test:http
+```
+
+`check:ts`, reached through `pnpm check`, also checks the separate service-worker tsconfig. `test:unit` covers QR input parsing and PWA cache/state helpers. The built [worker harness](../../frontend/tests/pwa-worker.test.ts) requires build output, so `build` runs `node --test tests/pwa-worker.test.ts` after compilation; it does not belong to `test:unit`. The harness executes worker behavior with controlled platform doubles, without a server or database. It verifies the cache allowlist, private/auth/API exclusions, network-error fallback and explicit update activation; it is not browser installation evidence.
+
+[QR integration tests](../../frontend/tests/integration/qr-auth.integration.test.ts) and [adapter tests](../../frontend/tests/integration/qr-auth-adapter.test.ts) exercise the backend/transport with real PostgreSQL. The [QR HTTP suite](../../frontend/tests/qr-auth-http.test.ts) runs through `test:http` against the actual built application. Cover browser cookies and device bearer issuance, explicit decisions, wrong credentials, expiry after lock waits, same-session repeated approval including after consumption, conflicting decisions/approvers, revocation and concurrent one-use redemption. Failed or skipped cases do not establish those guarantees. The command wiring is part of the accepted PWA integration; final current-head results remain the implementation owner's evidence.
+
+Rendered desktop and narrow journeys must cover password fallback, QR pending/expiry/denial/retry, sign-in return to approval, manual input and foreign-instance rejection, camera denial/unavailability and stream cleanup. Verify installation from `/app`, standalone/narrow-only App, Search, Inventory, Decks and Connect bottom navigation, offline navigation without cached private data, and a waiting update that reloads only on explicit action. Check draft retention before reload and no unsolicited reload when another window activates an update. Use deployed same-origin HTTPS for physical phone camera/install acceptance.
+
+Attempt Android Studio/emulator checks only with already installed tools. If those tools are absent or the target check fails, record the limit without alternate tooling. Physical Android acceptance belongs to the owner. Record browser and emulator results with the change; those results do not establish physical Android acceptance. Record the final head/base/diff, commands, skipped checks and target owner with the change, separately from deployment.
 
 ## Application and native operator checks
 

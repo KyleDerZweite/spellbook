@@ -12,9 +12,10 @@ const PROTECTED_PATH_PREFIXES = [
 	'/mtg/decks',
 	'/mtg/categories',
 	'/mtg/scan',
-	'/settings'
+	'/settings',
+	'/app/connect'
 ];
-const NO_INDEX_PATH_PREFIXES = ['/auth/', '/api/', '/mtg/', '/settings'];
+const NO_INDEX_PATH_PREFIXES = ['/auth/', '/api/', '/mtg/', '/settings', '/app'];
 const LEGACY_PAGE_PATHS = ['/search', '/inventory', '/decks', '/scan'];
 
 function isPublicPath(pathname: string): boolean {
@@ -89,6 +90,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	const response = await resolve(event);
+	if (pathname.startsWith('/auth/') || pathname === '/app' || pathname.startsWith('/app/')) {
+		response.headers.set('Cache-Control', 'no-store');
+		response.headers.set('Referrer-Policy', 'no-referrer');
+	}
 	if (NO_INDEX_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
 		response.headers.set('X-Robots-Tag', NO_INDEX_ROBOTS_TAG);
 	}

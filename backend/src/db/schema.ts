@@ -68,6 +68,38 @@ export const authSessions = pgTable(
 	(table) => [index('auth_sessions_account_idx').on(table.accountId)]
 );
 
+export const qrAuthorizations = pgTable(
+	'qr_authorizations',
+	{
+		codeHash: text('code_hash').primaryKey(),
+		secretHash: text('secret_hash').notNull(),
+		kind: text('kind').$type<'browser' | 'device'>().notNull(),
+		status: text('status')
+			.$type<'pending' | 'approved' | 'denied' | 'consumed'>()
+			.notNull()
+			.default('pending'),
+		approverAccountId: text('approver_account_id').references(() => userProfiles.accountId, {
+			onDelete: 'cascade'
+		}),
+		// Retain the original hash after revocation; a new session cannot revive an approval.
+		approverSessionHash: text('approver_session_hash'),
+		expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+	},
+	(table) => [
+		index('qr_authorizations_expiry_idx').on(table.expiresAt),
+		check('qr_authorizations_kind_check', sql`${table.kind} in ('browser', 'device')`),
+		check(
+			'qr_authorizations_status_check',
+			sql`${table.status} in ('pending', 'approved', 'denied', 'consumed')`
+		),
+		check(
+			'qr_authorizations_approver_check',
+			sql`(${table.status} = 'pending' and ${table.approverAccountId} is null and ${table.approverSessionHash} is null) or (${table.status} <> 'pending' and ${table.approverAccountId} is not null and ${table.approverSessionHash} is not null)`
+		)
+	]
+);
+
 export const authIdentities = pgTable(
 	'auth_identities',
 	{

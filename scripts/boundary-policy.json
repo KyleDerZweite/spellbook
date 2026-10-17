@@ -74,6 +74,11 @@
 			"file": "frontend/scripts/set-local-password.mjs",
 			"specifier": "@spellbook/backend/operators/local-password.ts",
 			"allowedNames": ["setLocalPassword", "normalizeUsername", "validPassword"]
+		},
+		{
+			"file": "frontend/src/lib/server/auth/qr-page.ts",
+			"specifier": "@spellbook/backend/transport.ts",
+			"allowedNames": ["QrAuthError"]
 		}
 	]
 }
