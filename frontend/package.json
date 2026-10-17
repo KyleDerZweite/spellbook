@@ -25,12 +25,14 @@
 		"test:scan": "node --test tests/scan-http.test.ts"
 	},
 	"dependencies": {
+		"@spellbook/backend": "workspace:*",
+		"@spellbook/contracts": "workspace:*",
+		"@zxing/browser": "^0.2.1",
 		"bits-ui": "^2.19.5",
 		"drizzle-orm": "^0.45.4",
 		"mana-font": "^1.18.0",
 		"pg": "^8.23.1",
-		"@spellbook/backend": "workspace:*",
-		"@spellbook/contracts": "workspace:*"
+		"qrcode": "^1.5.4"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-node": "^6.0.0",
@@ -39,6 +41,7 @@
 		"@tailwindcss/vite": "^4.3.3",
 		"@types/node": "^26.6.4",
 		"@types/pg": "^8.23.1",
+		"@types/qrcode": "^1.5.6",
 		"csstype": "^3.2.3",
 		"drizzle-kit": "^0.31.11",
 		"prettier": "^3.9.9",
