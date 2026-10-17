@@ -22,6 +22,9 @@ const string: Schema = { type: 'string' };
 const integer: Schema = { type: 'integer' };
 const quantity: Schema = { type: 'integer', minimum: 1 };
 const role: Schema = { enum: ['main', 'sideboard', 'commander', 'companion'] };
+const qrCode: Schema = { type: 'string', pattern: '^[A-Za-z0-9_-]{43}$' };
+const qrCodeParameter = { name: 'code', in: 'path', required: true, schema: qrCode };
+
 const finish: Schema = { enum: ['nonfoil', 'foil'] };
 const condition: Schema = { enum: ['NM', 'LP', 'MP', 'HP', 'DMG'] };
 const priceSource: Schema = { enum: ['Scryfall', 'Cardmarket', 'MTGJSON'] };
@@ -130,6 +133,20 @@ const authErrors = {
 	415: response('Use application/json', ref('ErrorResponse')),
 	429: response('Authentication attempt limit reached', ref('ErrorResponse')),
 	500: errors[500]
+};
+const qrErrors = {
+	400: response('Invalid QR request fields', ref('ErrorResponse')),
+	401: response('A current approving session is required', ref('ErrorResponse')),
+	403: response('Invalid request origin', ref('ErrorResponse')),
+	404: response('Unknown request or invalid requester credential', ref('ErrorResponse')),
+	409: response(
+		'Request decision conflicts or browser is already authenticated',
+		ref('ErrorResponse')
+	),
+	413: response('QR JSON body exceeds 4 KiB', ref('ErrorResponse')),
+	415: response('Use application/json', ref('ErrorResponse')),
+	429: response('QR request limit reached; wait before retrying', ref('ErrorResponse')),
+	500: response('QR authorization unavailable', ref('ErrorResponse'))
 };
 const browserAuthErrors = {
 	400: {
@@ -552,6 +569,82 @@ const SCHEMA = {
 				responses: {
 					303: { description: 'Session cookie set; redirect into the app' },
 					...browserAuthErrors
+				}
+			}
+		},
+		'/auth/approve': {
+			parameters: [{ name: 'code', in: 'query', required: true, schema: qrCode }],
+			get: {
+				summary: 'Review a QR sign-in request using the currently signed-in account',
+				tags: ['auth'],
+				security: [{ sessionCookie: [] }],
+				responses: {
+					200: {
+						description: 'Explicit approval or denial page',
+						content: content(string, 'text/html')
+					},
+					303: { description: 'Sign in first, retaining this approval destination' },
+					400: browserAuthErrors[400],
+					404: qrErrors[404]
+				}
+			},
+			post: {
+				summary: 'Explicitly approve or deny the displayed QR sign-in request',
+				tags: ['auth'],
+				security: [{ sessionCookie: [] }],
+				requestBody: requestBody(ref('QrDecisionForm'), 'application/x-www-form-urlencoded'),
+				responses: {
+					200: {
+						description: 'Decision confirmation or retained form error',
+						content: content(string, 'text/html')
+					},
+					303: { description: 'Authentication required' },
+					...browserAuthErrors,
+					409: qrErrors[409]
+				}
+			}
+		},
+		'/api/auth/qr/requests': {
+			post: {
+				summary: 'Create a five-minute QR sign-in request for a browser or device',
+				description:
+					'The QR contains only verificationUri/public code. Browser requester secrets use an HttpOnly cookie; device secrets are returned only to the initiating device. No-store.',
+				tags: ['auth'],
+				security: [],
+				requestBody: requestBody(ref('QrCreateRequest')),
+				responses: { 201: response('Created sign-in request', ref('QrCreated')), ...qrErrors }
+			}
+		},
+		'/api/auth/qr/requests/{code}': {
+			parameters: [qrCodeParameter],
+			get: {
+				summary: 'Read safe QR request details before explicit approval',
+				tags: ['auth'],
+				security: authenticated,
+				responses: { 200: response('Sign-in request details', ref('QrRequestInfo')), ...qrErrors }
+			}
+		},
+		'/api/auth/qr/requests/{code}/decision': {
+			parameters: [qrCodeParameter],
+			post: {
+				summary: 'Approve or deny a QR request, bound to the exact current session',
+				tags: ['auth'],
+				security: authenticated,
+				requestBody: requestBody(ref('QrDecisionRequest')),
+				responses: { 200: response('Immutable decision', ref('QrRequestInfo')), ...qrErrors }
+			}
+		},
+		'/api/auth/qr/token': {
+			post: {
+				summary: 'Poll and redeem a QR request once using its private requester credential',
+				description:
+					'Poll no faster than the returned interval. Browser success sets the ordinary session cookie without returning a token. Device success returns a bearer token. A consumed request cannot reissue a session; restart after a lost success response.',
+				tags: ['auth'],
+				security: [],
+				requestBody: requestBody(ref('QrTokenRequest')),
+				responses: {
+					200: response('Pending, terminal or authenticated result', ref('QrTokenResult')),
+					...qrErrors
 				}
 			}
 		},
@@ -1364,6 +1457,71 @@ const SCHEMA = {
 			}
 		},
 		schemas: {
+			QrCreateRequest: {
+				...object({ kind: { enum: ['browser', 'device'] } }),
+				additionalProperties: false
+			},
+			QrCreated: {
+				...object(
+					{
+						code: qrCode,
+						kind: { enum: ['browser', 'device'] },
+						expiresAt: { type: 'string', format: 'date-time' },
+						interval: { type: 'integer', const: 3 },
+						verificationUri: { type: 'string', format: 'uri' },
+						requesterSecret: {
+							...qrCode,
+							description:
+								'Returned only for device requests. Never place this secret in a QR, URL or log.'
+						}
+					},
+					['code', 'kind', 'expiresAt', 'interval', 'verificationUri']
+				),
+				additionalProperties: false
+			},
+			QrRequestInfo: {
+				...object({
+					code: qrCode,
+					kind: { enum: ['browser', 'device'] },
+					status: { enum: ['pending', 'approved', 'denied', 'expired', 'consumed'] },
+					expiresAt: { type: 'string', format: 'date-time' }
+				}),
+				additionalProperties: false
+			},
+			QrDecisionRequest: {
+				...object({ decision: { enum: ['approve', 'deny'] } }),
+				additionalProperties: false
+			},
+			QrDecisionForm: {
+				...object({ code: qrCode, decision: { enum: ['approve', 'deny'] } }),
+				additionalProperties: false
+			},
+			QrTokenRequest: {
+				...object({ code: qrCode, requesterSecret: { ...qrCode, writeOnly: true } }, ['code']),
+				additionalProperties: false
+			},
+			QrTokenResult: {
+				oneOf: [
+					{
+						...object({ status: { enum: ['pending', 'denied', 'expired', 'consumed'] } }),
+						additionalProperties: false
+					},
+					{
+						...object(
+							{
+								status: { const: 'authenticated' },
+								expiresAt: { type: 'string', format: 'date-time' },
+								token: {
+									...qrCode,
+									description: 'Device bearer token only; absent for browser redemption.'
+								}
+							},
+							['status', 'expiresAt']
+						),
+						additionalProperties: false
+					}
+				]
+			},
 			SummaryOutOfRangeResponse: {
 				...object({
 					status: { type: 'integer', const: 503 },

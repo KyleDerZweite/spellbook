@@ -8,15 +8,15 @@
 	let message = $state('Scan the QR code shown on the device you want to sign in to.');
 	let manual = $state('');
 	let controls: IScannerControls | undefined;
+	let camera: MediaStream | undefined;
 	let generation = 0;
 
 	function stop() {
 		generation++;
 		controls?.stop();
 		controls = undefined;
-		const stream = video?.srcObject;
-		if (stream && typeof MediaStream !== 'undefined' && stream instanceof MediaStream)
-			stream.getTracks().forEach((track) => track.stop());
+		camera?.getTracks().forEach((track) => track.stop());
+		camera = undefined;
 		if (video) video.srcObject = null;
 		active = false;
 	}
@@ -34,23 +34,28 @@
 		try {
 			const { BrowserQRCodeReader } = await import('@zxing/browser');
 			if (current !== generation || !video) return;
+			const stream = await navigator.mediaDevices.getUserMedia({
+				video: { facingMode: { ideal: 'environment' } },
+				audio: false
+			});
+			if (current !== generation || !video) {
+				stream.getTracks().forEach((track) => track.stop());
+				return;
+			}
+			camera = stream;
 			const reader = new BrowserQRCodeReader();
-			const scanning = await reader.decodeFromConstraints(
-				{ video: { facingMode: { ideal: 'environment' } }, audio: false },
-				video,
-				(result, _error, running) => {
-					if (current !== generation) {
-						running.stop();
-						return;
-					}
-					if (result) {
-						running.stop();
-						stop();
-						message = 'Code found. Review the sign-in request before approving.';
-						onScan(result.getText());
-					}
+			const scanning = await reader.decodeFromStream(stream, video, (result, _error, running) => {
+				if (current !== generation) {
+					running.stop();
+					return;
 				}
-			);
+				if (result) {
+					running.stop();
+					stop();
+					message = 'Code found. Review the sign-in request before approving.';
+					onScan(result.getText());
+				}
+			});
 			if (current === generation) controls = scanning;
 			else scanning.stop();
 		} catch {
