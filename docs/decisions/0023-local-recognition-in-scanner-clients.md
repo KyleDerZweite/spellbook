@@ -2,10 +2,10 @@
 
 - Status: Accepted
 - Date: 2026-10-07
-- Last Reviewed: 2026-10-15
+- Last Reviewed: 2026-10-17
 - Owners: Kyle
-- Source of Truth: maintainer's explicit local-recognition decision of 2026-10-07 and client-scope clarification of 2026-10-15
-- Update Triggers: recognition placement, client feature parity and responsibilities, browser scanning, phone-client technology, device access, capture storage, client compatibility, supersession
+- Source of Truth: maintainer's explicit local-recognition decision of 2026-10-07 and client-scope clarifications of 2026-10-15 and 2026-10-16
+- Update Triggers: PWA/QR delivery clarification and remaining machine/recognition scope, recognition placement, client feature parity and responsibilities, browser scanning, phone-client technology, device access, capture storage, client compatibility, supersession
 - Supersedes: [ADR-0003](./0003-pwa-first-mobile-and-server-side-scan.md) for future capture and recognition placement only
 - Related Docs: [Mobile and scan](../architecture/mobile-and-scan.md), [System overview](../architecture/system-overview.md), [Product specification](../product/specification.md), [Card scanner and sorter](../integrations/card-robot.md), [Application contract](../architecture/application-contract.md), [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md), [Decision index](./README.md)
 
@@ -23,7 +23,7 @@ The server may prepare public Catalog reference images, features, embeddings and
 
 Spellbook remains authoritative for account access, Catalog identity validation and authorized Inventory/Deck operations. The backend receives client-produced recognition evidence and agreed device outcomes through reviewed contracts. A client's proposed printing does not bypass ownership, validation, review or mutation replay rules. Recognition does not itself determine whether a physical card is a new Inventory addition.
 
-Scanning clients should use consistent recognition meanings and result contracts. This decision does not select one shared binary, language, model or runtime across phones and Jetson. Android is the first phone target; client technology, later phone platforms, recognition asset distribution and device credentials remain open. The device-login concept uses a short-lived QR displayed by the sorter and approved through the authenticated phone app; token mechanics and revocation still need a contract. Website-based confirmation remains available where the existing product already provides it; a future app review flow is not yet implemented.
+Scanning clients should use consistent recognition meanings and result contracts. This decision does not select one shared binary, language, model or runtime across phones and Jetson. Android is the first phone target. The accepted PWA delivery below selects the initial install/QR client; later phone platforms, recognition asset distribution and machine-specific credentials remain open. [Authentication](../architecture/auth.md#pwa-and-qr-sign-in-implementation-contract) now owns the shared browser/device QR session contract, including expiry and revocation. Website-based confirmation remains available where the existing product already provides it; a future app review flow is not yet implemented.
 
 Existing web Scan upload/review routes, artifact storage, the worker scaffold and their public contracts are implemented compatibility behavior. This documentation decision neither removes them nor supplies a results-only scanner protocol. Their future reuse or migration needs a reviewed contract. Whether future clients upload images for review is a separate storage decision, not permission for server inference.
 
@@ -42,6 +42,12 @@ On 2026-10-07, the maintainer clarified that the phone app should offer the webs
 On 2026-10-15, the maintainer prioritized Android and confirmed app-specific functions beyond website parity: scanning the Cardstation QR to approve an account session and synchronization, and scanning individual cards locally with the phone camera. The app should have a distinct mobile layout/navigation. The shared API must support common functions and app extensions, while the ordinary website need not expose every workflow. The maintainer explicitly allows one web application with a PWA presentation that exposes those additional workflows; app-specific functionality does not select a separate native client. PWA/native technology and exact visibility rules remain open. Additional app ideas remain unspecified. Existing web Scan compatibility behavior remains as described above; this clarification authorizes no implementation or removal.
 
 The phone's primary role during a sort run is login, operation and status. Cardstation capture, recognition, local job processing, motors and sensors belong to the Jetson Orin Nano Super in the current research direction. Earlier phone-host/controller alternatives remain background research. Low-level implementation stays in the separate hardware project. Device access, synchronization and disconnect contracts remain open.
+
+## PWA and QR delivery clarification
+
+The accepted 2026-10-16 delivery selects an installable, online-first, same-origin SvelteKit PWA, an `/app` launch/install hub and a camera/manual QR authorization journey. A signed-in account explicitly approves or denies at `/auth/approve`; desktop login retains passwords alongside QR. Installed narrow windows gain bottom navigation. This narrows the earlier open client-technology question for installation and QR only.
+
+The backend QR API and public-only service worker are integrated. Page/navigation integration and browser/Android acceptance remain pending on 2026-10-17. Device-kind requests can supply ordinary bearer sessions to a future Jetson client. This adds no machine enrollment, job/sync protocol, hardware control or MTG recognition. [Mobile and scan](../architecture/mobile-and-scan.md#client-scope-and-open-responsibilities) owns current scope and [Frontend](../architecture/frontend.md#pwa-and-qr-presentation) owns presentation.
 
 ## Follow-up
 

@@ -1,10 +1,18 @@
 # Spellbook client, recognition and sorter research
 
 - Status: Research and decision support; not an accepted architecture
-- Last Reviewed: 2026-10-15
+- Last Reviewed: 2026-10-17
 - Source of Truth: linked primary sources, repository code, maintainer's dated scope clarification and explicitly identified engineering assessments
-- Update Triggers: Android priority, app-specific capabilities, website packaging, Cardstation integration, platform/runtime support, client responsibilities, reference-data use, hardware experiments, recognition measurements, distribution and operating model
+- Update Triggers: PWA/QR implementation status without replacing dated research, Android priority, app-specific capabilities, website packaging, Cardstation integration, platform/runtime support, client responsibilities, reference-data use, hardware experiments, recognition measurements, distribution and operating model
 - Related Docs: [Product specification](../product/specification.md), [Clients and Scan](../architecture/mobile-and-scan.md), [Sorter concept](./card-robot.md), [Application contract](../architecture/application-contract.md), [Deployment](../operations/deployment.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Domain glossary](../../GLOSSARY.md), [Integrations index](./README.md)
+
+## Implementation update, 2026-10-17
+
+The accepted 2026-10-16 delivery selects the shared same-origin SvelteKit PWA for online-first installation and QR authorization. It includes an `/app` hub, `/app/connect` camera/manual same-instance QR input, explicit signed-in approval/denial at `/auth/approve` and QR beside desktop password login. Bottom navigation applies only to installed narrow windows. [Frontend](../architecture/frontend.md#pwa-and-qr-presentation) owns these presentation contracts.
+
+The backend browser/device QR API, manifest and public-only service worker are integrated. [Authentication](../architecture/auth.md#pwa-and-qr-sign-in-implementation-contract) owns five-minute, session-bound, one-use challenges and ordinary account sessions. Page/navigation integration and final verification remain in progress; no successful browser or Android acceptance is recorded here. The device API prepares future Jetson sign-in, not machine enrollment, job synchronization, hardware control or MTG recognition. [Verification](../operations/github-automation.md#pwa-and-qr-verification) owns pending target evidence.
+
+The dated research below remains decision support for recognition runtimes, later packaging and hardware. Its earlier open install/QR questions are narrowed by this accepted delivery; its original source assessments and unmeasured limits remain intact.
 
 ## Current overview, 2026-10-15
 
@@ -32,7 +40,7 @@ Primary documentation and official source repositories were reviewed on 2026-10-
 
 The repository has a SvelteKit website, shared backend application modules, JSON-safe contracts and Scan upload/review APIs. Backend owns database resources, transactions and Scan orchestration; frontend composition exposes application operations and named transport helpers rather than database handles. Category rules, optional local Commander Spellbook matching, market references and Inventory value history are implemented. These capabilities establish no camera or recognition evidence. The [application contract](../architecture/application-contract.md) owns implementation status and remaining client work.
 
-Scan UI development is paused. Navigation, Inventory and Dashboard no longer expose Scan entrypoints, but the authenticated `/mtg/scan` route, sessions, backend contracts and API remain. The [Scan worker](../../scan-worker/src/scan_worker/main.py) still returns `no_match` and `stub-v1`; productive recognition is absent. A separate phone client, machine credentials and physical box/placement management are not implemented. Existing UI Boxes are Inventory groups, not physical copy locations. [Clients and Scan](../architecture/mobile-and-scan.md), [Domain glossary](../../GLOSSARY.md).
+Scan UI development is paused. Navigation, Inventory and Dashboard no longer expose Scan entrypoints, but the authenticated `/mtg/scan` route, sessions, backend contracts and API remain. The [Scan worker](../../scan-worker/src/scan_worker/main.py) still returns `no_match` and `stub-v1`; productive recognition is absent. At that research baseline, a separate phone client, machine credentials and physical box/placement management were not implemented. The implementation update above records the later PWA/QR scope without establishing machine-specific authority or physical placement support. Existing UI Boxes are Inventory groups, not physical copy locations. [Clients and Scan](../architecture/mobile-and-scan.md), [Domain glossary](../../GLOSSARY.md).
 
 The current scope distinguishes app-specific presentation from execution technology: browser/PWA recognition remains eligible for the phone app, while the Jetson owns Cardstation execution. The app also covers website product functions. Recognition remains local; the server may prepare public references. Job modes, duplicate-counting strategy, filter semantics and offline contracts remain open. [Client decision question](https://github.com/KyleDerZweite/spellbook/issues/205), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md).
 

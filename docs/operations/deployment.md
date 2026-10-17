@@ -1,9 +1,9 @@
 # Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-10-16
+- Last Reviewed: 2026-10-17
 - Source of Truth: repo config
-- Update Triggers: Catalog set-directory and color-identity projection migrations, price publication/pair and optional recovery, private value history migration and runtime configuration, source opt-ins and ingestion limits, optional local combo publication and recovery, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and graceful shutdown, preview target, single root environment and local/build origins, migrations, storage, workspace ownership, application resource lifetime and native operator ownership, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
+- Update Triggers: PWA HTTPS/install/update operations and QR migration 0024, Catalog set-directory and color-identity projection migrations, price publication/pair and optional recovery, private value history migration and runtime configuration, source opt-ins and ingestion limits, optional local combo publication and recovery, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and graceful shutdown, preview target, single root environment and local/build origins, migrations, storage, workspace ownership, application resource lifetime and native operator ownership, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
 - Related Docs: [Postgres](../architecture/postgres.md), [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Classifier research](../integrations/card-categorization.md), [Catalog](../architecture/catalog.md)
 
 The canonical service definitions are [`podman-compose.yml`](../../podman-compose.yml) and the local storage override [`podman-compose.dev.yml`](../../podman-compose.dev.yml). Keep live domains, account details, and secret references in private operator notes.
@@ -29,6 +29,24 @@ Stopping the launcher sends SIGTERM to its own frontend and, when selected, scan
 The T3 project uses `./dev.sh` as its Dev server script and `http://localhost:5173/` as its design-review preview URL. The root always shows the public landing, including with a signed-in demo session. Open `/mtg/dashboard` to review the private account summary. The removed `review=landing` override is no longer needed. The preview URL is a local app setting, not deployment configuration.
 
 The Compose base file starts the built stack on port 3000. Its `podman-compose.dev.yml` override selects a shared local scan-storage volume instead of S3; it does not run Vite or enable Hot Reload.
+
+## PWA installation and QR use
+
+Serve the application and its API from the same HTTPS origin outside localhost. A phone visiting a private LAN HTTP address does not have the localhost camera/service-worker exception. Set `APP_ORIGIN` to that public HTTPS origin and rebuild when it changes. The PWA needs no external QR service, separate frontend host or new runtime variable.
+
+Apply [migration 0024](../../frontend/drizzle/0024_qr_authorization.sql) with the existing migrator before starting QR-capable code. It adds authorization challenges; existing accounts, passwords and sessions remain valid. [Authentication](../architecture/auth.md#pwa-and-qr-sign-in-implementation-contract) owns five-minute expiry, one-use redemption and session revocation.
+
+The accepted install/use journey is:
+
+1. Open `/app` on the intended Spellbook instance. Use its install action when offered, or the browser's Install app/Add to Home Screen menu. Launch the installed app to return to `/app`. Existing account and workspace links remain available without installation.
+2. Sign in on the phone. In the new browser, open `/auth/login` and request its QR alongside the password form.
+3. On the phone, open `/app/connect`. Start the camera and grant permission, or enter the same-instance approval link/public request code manually. Camera denial or lack of support leaves manual entry available.
+4. Check the signed-in username, instance origin and request code prefix on `/auth/approve`. Read the access warning, then explicitly approve or deny. Scanning alone grants no session. Approval lets the requesting browser receive its normal session cookie.
+5. Start a new request after expiry, denial or a consumed request whose successful response was lost. QR requests last five minutes. Password sign-in remains available.
+
+Installation is online-first. Only immutable JavaScript/CSS, existing public icons/logo and `offline.html` enter the service-worker cache. Account/API/auth/QR responses and card artifacts remain network-only. A network navigation failure displays public reconnect guidance; HTTP error responses retain their original behavior. There are no offline account writes or MTG recognition assets. When an update is waiting, save drafts and choose the explicit reload action.
+
+These steps describe the accepted delivery. Page/navigation integration and current-head browser, Android and deployed HTTPS acceptance remain pending on 2026-10-17. [PWA/QR verification](./github-automation.md#pwa-and-qr-verification) owns target checks. A future Jetson may use device-kind QR requests to obtain an ordinary bearer session; this deployment adds no hardware enrollment, machine control or synchronization protocol.
 
 ## Manual Demo Catalog update
 
