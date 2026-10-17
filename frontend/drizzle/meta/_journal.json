@@ -169,6 +169,13 @@
 			"when": 1791458175116,
 			"tag": "0023_commander_spellbook",
 			"breakpoints": true
+		},
+		{
+			"idx": 24,
+			"version": "7",
+			"when": 1792187626879,
+			"tag": "0024_qr_authorization",
+			"breakpoints": true
 		}
 	]
 }

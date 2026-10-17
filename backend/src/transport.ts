@@ -70,3 +70,5 @@ export { CategoryMergeConflict } from './categories/merge.ts';
 export { LibraryConflict } from './categories/library.ts';
 export { CategoryPreviewExpired, CategoryPreviewCapacity } from './categories/previews.ts';
 export { CategoryUnavailable } from './categories/work.ts';
+
+export { QrAuthError, validQrCredential } from './auth/qr.ts';
