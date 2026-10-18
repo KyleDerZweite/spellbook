@@ -1,5 +1,7 @@
 (async () => {
 	if (location.pathname !== '/mtg/inventory') throw new Error('Open a deep Inventory range.');
+	const previousCleanup = Reflect.get(window, '__inventoryPrependCleanup');
+	if (typeof previousCleanup === 'function') previousCleanup();
 	await document.fonts.ready;
 	/** @param {number} ms */
 	const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -31,34 +33,60 @@
 	});
 	const id = row?.getAttribute('data-inventory-entry');
 	if (!row || !id) throw new Error('No visible real entry below the earlier control.');
-	const before = {
+	const prepared = {
 		id,
 		top: row.getBoundingClientRect().top,
 		header: getComputedStyle(document.documentElement).getPropertyValue('--app-header-height')
 	};
-	const verify = async () => {
-		const deadline = performance.now() + 5000;
-		while (
-			Number(
-				document
-					.querySelector('[data-inventory-span-start]')
-					?.getAttribute('data-inventory-span-start')
-			) === start
-		) {
-			if (performance.now() > deadline) throw new Error('Earlier range did not load.');
-			await wait(25);
-		}
-		await wait(350);
+	/** @type {typeof prepared | undefined} */
+	let before;
+	/** @param {MouseEvent} event */
+	const capture = (event) => {
+		if (!(event.target instanceof Element)) return;
+		if (event.target.closest('button')?.textContent?.trim() !== 'Load earlier entries') return;
 		const current = [...document.querySelectorAll('li[data-inventory-entry]')].find(
 			(node) => node.getAttribute('data-inventory-entry') === id
 		);
-		if (!current) throw new Error('The visible anchor entry disappeared.');
-		const after = current.getBoundingClientRect().top;
-		const result = { before, after, delta: after - before.top };
-		Object.assign(window, { __inventoryPrependResult: result });
-		if (Math.abs(result.delta) > 0.5) throw new Error(`Inventory anchor moved ${result.delta}px.`);
-		return result;
+		if (!current) return;
+		before = {
+			id,
+			top: current.getBoundingClientRect().top,
+			header: getComputedStyle(document.documentElement).getPropertyValue('--app-header-height')
+		};
+		cleanup();
 	};
-	Object.assign(window, { __inventoryPrependVerify: verify });
-	return before;
+	const cleanup = () => document.removeEventListener('click', capture, true);
+	document.addEventListener('click', capture, true);
+	const verify = async () => {
+		try {
+			const captured = before;
+			if (!captured) throw new Error('Activate the earlier control through the native browser.');
+			const deadline = performance.now() + 5000;
+			while (
+				Number(
+					document
+						.querySelector('[data-inventory-span-start]')
+						?.getAttribute('data-inventory-span-start')
+				) === start
+			) {
+				if (performance.now() > deadline) throw new Error('Earlier range did not load.');
+				await wait(25);
+			}
+			await wait(350);
+			const current = [...document.querySelectorAll('li[data-inventory-entry]')].find(
+				(node) => node.getAttribute('data-inventory-entry') === id
+			);
+			if (!current) throw new Error('The visible anchor entry disappeared.');
+			const after = current.getBoundingClientRect().top;
+			const result = { prepared, before: captured, after, delta: after - captured.top };
+			Object.assign(window, { __inventoryPrependResult: result });
+			if (Math.abs(result.delta) > 0.5)
+				throw new Error(`Inventory anchor moved ${result.delta}px.`);
+			return result;
+		} finally {
+			cleanup();
+		}
+	};
+	Object.assign(window, { __inventoryPrependVerify: verify, __inventoryPrependCleanup: cleanup });
+	return prepared;
 })();
