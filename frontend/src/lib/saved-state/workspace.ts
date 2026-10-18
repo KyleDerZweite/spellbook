@@ -1,6 +1,8 @@
 import { SAVED_STATE_TOPICS, type SavedStateTopic } from '@spellbook/contracts/saved-state.ts';
 export type WorkspaceStatus = 'idle' | 'connecting' | 'live' | 'recovering' | 'offline' | 'expired';
+export type ReadCause = 'full' | readonly SavedStateTopic[];
 export interface ReadLease {
+	readonly cause?: ReadCause;
 	signal: AbortSignal;
 	current(): boolean;
 }
@@ -14,9 +16,9 @@ export interface WriteHandle {
 	complete(): void;
 }
 export interface ResourceSubscription {
-	invalidate(): void;
+	invalidate(topics?: readonly SavedStateTopic[]): void;
 	publication(): () => boolean;
-	beginWrite(): WriteHandle;
+	beginWrite(topics?: readonly SavedStateTopic[]): WriteHandle;
 	getState(): ResourceStatus;
 	dispose(): void;
 }
@@ -35,13 +37,14 @@ interface Environment {
 }
 interface Resource {
 	topics: readonly SavedStateTopic[];
-	refresh(lease: ReadLease): Promise<void>;
+	refresh(lease: ReadLease): Promise<void | false>;
 	clear(): void;
 	version: number;
 	generation: number;
 	writes: number;
 	disposed: boolean;
 	pending: boolean;
+	cause?: ReadCause;
 	status: ResourceStatus;
 	controller?: AbortController;
 }
@@ -166,6 +169,7 @@ export class WorkspaceSavedState {
 			resource.controller?.abort();
 			resource.clear();
 			resource.status.stale = true;
+			resource.cause = 'full';
 			resource.status.error = '';
 		}
 		this.environment.changed();
@@ -182,17 +186,28 @@ export class WorkspaceSavedState {
 			resource.version++;
 			resource.status.stale = true;
 			resource.pending = true;
+			resource.cause = 'full';
 		}
 		this.environment.changed();
 	}
 	invalidate(topics?: readonly SavedStateTopic[]) {
 		for (const resource of this.resources) {
 			if (topics && !resource.topics.some((topic) => topics.includes(topic))) continue;
-			this.dirty(resource);
+			this.dirty(resource, topics);
 		}
 		this.environment.changed();
 	}
-	private dirty(resource: Resource) {
+	private accumulate(resource: Resource, topics?: readonly SavedStateTopic[]) {
+		if (!topics || resource.cause === 'full') {
+			resource.cause = 'full';
+			return;
+		}
+		resource.cause = [...new Set([...(resource.cause ?? []), ...topics])].filter((topic) =>
+			resource.topics.includes(topic)
+		);
+	}
+	private dirty(resource: Resource, topics?: readonly SavedStateTopic[]) {
+		this.accumulate(resource, topics);
 		resource.version++;
 		resource.pending = true;
 		resource.status.stale = true;
@@ -202,7 +217,7 @@ export class WorkspaceSavedState {
 		const generation = this.generation;
 		const handles = [...this.resources]
 			.filter((resource) => resource.topics.some((topic) => topics.includes(topic)))
-			.map((resource) => this.resourceWrite(resource));
+			.map((resource) => this.resourceWrite(resource, topics));
 		let completed = false;
 		return {
 			current: () => generation === this.generation && this.isActive(),
@@ -213,7 +228,7 @@ export class WorkspaceSavedState {
 			}
 		};
 	}
-	private resourceWrite(resource: Resource): WriteHandle {
+	private resourceWrite(resource: Resource, topics?: readonly SavedStateTopic[]): WriteHandle {
 		const generation = this.generation;
 		resource.version++;
 		resource.writes++;
@@ -229,13 +244,17 @@ export class WorkspaceSavedState {
 				if (!current()) return;
 				resource.version++;
 				resource.writes--;
-				this.invalidate(resource.topics);
+				// Keep the existing cross-resource fallback while omitted causes stay full.
+				for (const target of this.resources) {
+					if (target.topics.some((topic) => (topics ?? resource.topics).includes(topic)))
+						this.dirty(target, topics);
+				}
 			}
 		};
 	}
 	subscribe(input: {
 		topics: readonly SavedStateTopic[];
-		refresh(lease: ReadLease): Promise<void>;
+		refresh(lease: ReadLease): Promise<void | false>;
 		clear(): void;
 	}): ResourceSubscription {
 		const resource: Resource = {
@@ -245,6 +264,7 @@ export class WorkspaceSavedState {
 			writes: 0,
 			disposed: false,
 			pending: false,
+			cause: 'full',
 			status: { stale: true, refreshing: false, error: '' }
 		};
 		this.resources.add(resource);
@@ -260,8 +280,8 @@ export class WorkspaceSavedState {
 			this.environment.changed();
 		};
 		return {
-			invalidate: () => {
-				if (!resource.disposed) this.dirty(resource);
+			invalidate: (topics) => {
+				if (!resource.disposed) this.dirty(resource, topics);
 			},
 			getState: () => ({ ...resource.status }),
 			dispose,
@@ -277,7 +297,7 @@ export class WorkspaceSavedState {
 					!resource.writes &&
 					!!this.accountId;
 			},
-			beginWrite: () => this.resourceWrite(resource)
+			beginWrite: (topics) => this.resourceWrite(resource, topics)
 		};
 	}
 	private run(resource: Resource) {
@@ -285,6 +305,8 @@ export class WorkspaceSavedState {
 			resource.disposed ||
 			resource.status.refreshing ||
 			resource.writes ||
+			this.status === 'offline' ||
+			this.status === 'recovering' ||
 			!this.accountId ||
 			!this.environment.visible() ||
 			!resource.pending
@@ -307,9 +329,10 @@ export class WorkspaceSavedState {
 			!!this.accountId;
 		this.environment.changed();
 		void resource
-			.refresh({ signal: controller.signal, current })
-			.then(() => {
-				if (current()) {
+			.refresh({ signal: controller.signal, current, cause: resource.cause ?? 'full' })
+			.then((accepted) => {
+				if (current() && accepted !== false) {
+					resource.cause = undefined;
 					resource.status.stale = !(this.reset && this.status === 'live');
 					resource.status.error = '';
 				}
