@@ -421,6 +421,7 @@
 		inspector: () =>
 			inspected ? { canonicalCardId: inspected.oracle_id, opening: inspectorOpening } : null,
 		search: () => ({ query, open: searchOpen }),
+		initialSearch: untrack(() => (!data.oracleId && !data.catalogError ? data.query : undefined)),
 		publication: () => deckSubscription?.publication() ?? (() => true),
 		read: readSavedJSON,
 		ownership: (value) => {
@@ -442,7 +443,7 @@
 	function setSearchQuery(value: string) {
 		if (query === value) return;
 		query = value;
-		optionalReads.searchChanged();
+		optionalReads.searchChanged('query');
 	}
 	function setSearchOpen(value: boolean) {
 		if (searchOpen === value) return;

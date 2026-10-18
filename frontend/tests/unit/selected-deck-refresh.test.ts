@@ -237,7 +237,8 @@ function holdDecode(h: ReturnType<typeof harness>, path: string) {
 
 function optionalHarness(
 	cause: ReadCause = ['decks'],
-	searchInputs?: () => { query: string; open: boolean }
+	searchInputs?: () => { query: string; open: boolean },
+	initialSearch?: string
 ) {
 	const h = harness(cause);
 	let version = 0;
@@ -257,6 +258,7 @@ function optionalHarness(
 		active: (account) => account === 'account',
 		inspector: () => h.context.inspector,
 		search: () => searchInputs?.() ?? searchInput,
+		initialSearch,
 		publication: () => {
 			const captured = version;
 			return () => captured === version;
@@ -312,6 +314,65 @@ class SearchMedia extends EventTarget {
 }
 
 describe('production selected Deck optional-read owner', () => {
+	it('refreshes confirmed Search after Desktop/mobile/Desktop activity replacement', async () => {
+		const h = optionalHarness(),
+			media = new SearchMedia();
+		h.searchInput.open = false;
+		h.owner.watchSearchActivity(media);
+		await h.owner.submitSearch();
+		media.change(true);
+		h.replies.set(search, { hits: [document], ownedByCanonical: { oracle: 3 } });
+		media.change(false);
+		await vi.waitFor(() => expect(h.searchState.values).toHaveLength(2));
+		expect(h.searchState.values.at(-1)?.ownedByCanonical).toEqual({ oracle: 3 });
+		h.owner.dispose();
+	});
+	it('refreshes successful SSR Search on activation without a prior client publication', async () => {
+		const h = optionalHarness(['inventory'], undefined, 'Opt');
+		h.searchInput.open = false;
+		await refreshSelectedDeck(h.input);
+		expect(h.fetcher.mock.calls.some(([path]) => path === search)).toBe(false);
+		h.searchInput.open = true;
+		h.owner.searchChanged();
+		await vi.waitFor(() => expect(h.searchState.values).toHaveLength(1));
+		h.owner.dispose();
+	});
+	it.each(['query', 'scope', 'clear'] as const)(
+		'does not reactivate a confirmed query after %s replacement',
+		async (replacement) => {
+			const h = optionalHarness();
+			await h.owner.submitSearch();
+			if (replacement === 'query') {
+				h.searchInput.query = 'Other';
+				h.owner.searchChanged('query');
+			} else if (replacement === 'scope') h.context.scope = {};
+			else h.owner.clear();
+			h.searchInput.open = false;
+			h.owner.searchChanged();
+			h.searchInput.open = true;
+			h.owner.searchChanged();
+			expect(h.fetcher.mock.calls.filter(([path]) => path.includes('/search?'))).toHaveLength(1);
+			h.owner.dispose();
+		}
+	);
+	it.each(['direct', 'coordinator'] as const)(
+		'refreshes confirmed %s Search on reopening after an inactive Inventory event',
+		async (source) => {
+			const h = optionalHarness(['inventory']);
+			await (source === 'direct' ? h.owner.submitSearch() : refreshSelectedDeck(h.input));
+			expect(h.searchState.values).toHaveLength(1);
+			h.searchInput.open = false;
+			h.owner.searchChanged();
+			h.replies.set(search, { hits: [document], ownedByCanonical: { oracle: 3 } });
+			await refreshSelectedDeck(h.input);
+			expect(h.fetcher.mock.calls.filter(([path]) => path === search)).toHaveLength(1);
+			h.searchInput.open = true;
+			h.owner.searchChanged();
+			await vi.waitFor(() => expect(h.searchState.values).toHaveLength(2));
+			expect(h.searchState.values.at(-1)?.ownedByCanonical).toEqual({ oracle: 3 });
+			h.owner.dispose();
+		}
+	);
 	it.each([
 		['decks', 'inspector', ownership],
 		['values', 'inspector', ownership],

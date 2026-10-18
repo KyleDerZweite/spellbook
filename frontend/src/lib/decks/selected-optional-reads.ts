@@ -10,6 +10,7 @@ type Options = {
 	active(accountId: string): boolean;
 	inspector(): Inspector | null;
 	search(): { query: string; open: boolean };
+	initialSearch?: string;
 	publication(): () => boolean;
 	read<T>(path: string, lease: ReadLease): Promise<T | null>;
 	ownership(value: NonNullable<SelectedDeckPublication['ownership']>): void;
@@ -34,10 +35,14 @@ export class SelectedDeckOptionalReads {
 	private ownershipRequest?: Request;
 	private searchRequest?: Request;
 	private searchResume?: { route: Route; query: string };
+	private confirmedSearch?: { route: Route; query: string };
 	private searchOpening = 0;
 	private desktop = false;
 	private removeMedia?: () => void;
-	constructor(private readonly options: Options) {}
+	constructor(private readonly options: Options) {
+		if (options.initialSearch && options.initialSearch.trim().length >= 2)
+			this.confirmedSearch = { route: { ...options.route() }, query: options.initialSearch };
+	}
 	private snapshot(): SelectedDeckContext {
 		const route = this.options.route();
 		const search = this.options.search();
@@ -91,7 +96,7 @@ export class SelectedDeckOptionalReads {
 		update();
 	}
 	/** Called synchronously after an opening, query or responsive activity change. */
-	searchChanged() {
+	searchChanged(reason: 'activity' | 'query' = 'activity') {
 		const previous = this.searchRequest;
 		const next = this.snapshot();
 		const query = this.options.search().query;
@@ -100,8 +105,14 @@ export class SelectedDeckOptionalReads {
 			sameRoute(previous.context, next) &&
 			previous.context.search?.query === query;
 		const resume = this.searchResume;
+		const confirmed = this.confirmedSearch;
 		const restart =
-			unanswered || (resume && sameRoute(resume.route, next) && resume.query === query);
+			unanswered ||
+			(resume && sameRoute(resume.route, next) && resume.query === query) ||
+			(reason === 'activity' &&
+				confirmed &&
+				sameRoute(confirmed.route, next) &&
+				confirmed.query === query);
 		this.searchOpening++;
 		previous?.controller.abort();
 		this.searchRequest = undefined;
@@ -184,6 +195,7 @@ export class SelectedDeckOptionalReads {
 	}
 	acceptSearch(value: NonNullable<SelectedDeckPublication['search']>, context: Search) {
 		if (!sameSearch(context, this.snapshot().search)) return;
+		this.confirmedSearch = { route: { ...this.options.route() }, query: context.query };
 		const request = this.searchRequest;
 		if (request && this.matches(request, 'search')) {
 			request.needsRead = false;
@@ -202,6 +214,7 @@ export class SelectedDeckOptionalReads {
 		this.searchRequest?.controller.abort();
 		this.searchRequest = undefined;
 		this.searchResume = undefined;
+		this.confirmedSearch = undefined;
 		this.searchOpening++;
 		this.options.searchStatus(false, '');
 	}
