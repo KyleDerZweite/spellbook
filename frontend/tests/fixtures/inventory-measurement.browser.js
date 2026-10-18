@@ -1,7 +1,9 @@
 (async () => {
 	if (location.pathname !== '/mtg/inventory') throw new Error('Open the real Inventory route.');
 	await document.fonts.ready;
+	/** @type {string[]} */
 	const messages = [];
+	/** @type {Record<string, number>} */
 	const peak = {};
 	const attributes = [
 		'data-inventory-rendered',
@@ -24,7 +26,8 @@
 			document.querySelectorAll('li[data-inventory-index]').length
 		);
 	};
-	const error = (event) => messages.push(String(event.message ?? event.reason));
+	/** @param {ErrorEvent | PromiseRejectionEvent} event */
+	const error = (event) => messages.push('message' in event ? event.message : String(event.reason));
 	const observer = new MutationObserver(sample);
 	observer.observe(document.documentElement, {
 		subtree: true,
@@ -34,6 +37,7 @@
 	});
 	window.addEventListener('error', error);
 	window.addEventListener('unhandledrejection', error);
+	/** @param {number} ms */
 	const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 	try {
 		sample();
@@ -57,9 +61,11 @@
 				document.querySelector('[data-inventory-span-end]')?.getAttribute('data-inventory-span-end')
 			]
 		};
-		window.__inventoryMeasurementResult = result;
+		Object.assign(window, { __inventoryMeasurementResult: result });
 		if (messages.length)
 			throw new Error(`Inventory measurement: ${messages.length} browser errors; ${messages[0]}`);
+		if (attributes.some((name) => !(name in peak)))
+			throw new Error('Missing Inventory measurement metrics.');
 		if (
 			peak.rows > 200 ||
 			peak['data-inventory-cache-entries'] > 1000 ||
