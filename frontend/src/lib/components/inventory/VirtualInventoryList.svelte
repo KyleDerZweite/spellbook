@@ -63,12 +63,17 @@
 			: undefined;
 	}
 	let prependFrame = 0;
+	let pendingMeasurements = 0;
 	// Initial row observers settle across layout frames; retain the pre-click row until then.
 	function settlePrepend() {
 		if (prependFrame) cancelAnimationFrame(prependFrame);
 		prependFrame = requestAnimationFrame(() => {
 			prependFrame = requestAnimationFrame(() => {
 				prependFrame = 0;
+				if (pendingMeasurements) {
+					settlePrepend();
+					return;
+				}
 				prependAnchor = undefined;
 			});
 		});
@@ -155,9 +160,11 @@
 		let frame = 0;
 		const observer = new ResizeObserver(() => {
 			if (frame) return;
+			pendingMeasurements++;
 			// Publish measured geometry outside ResizeObserver delivery.
 			frame = requestAnimationFrame(() => {
 				frame = 0;
+				pendingMeasurements--;
 				if (queryKey !== owner || rendered(index)?.id !== id || !node.isConnected) return;
 				const measured = node.getBoundingClientRect().height + 8;
 				const old = heights.get(index);
@@ -180,7 +187,11 @@
 		return {
 			destroy() {
 				observer.disconnect();
-				if (frame) cancelAnimationFrame(frame);
+				if (frame) {
+					cancelAnimationFrame(frame);
+					frame = 0;
+					pendingMeasurements--;
+				}
 			}
 		};
 	}
