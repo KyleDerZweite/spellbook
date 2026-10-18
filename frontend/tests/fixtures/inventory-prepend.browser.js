@@ -3,22 +3,28 @@
 	await document.fonts.ready;
 	/** @param {number} ms */
 	const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-	const hydrationDeadline = performance.now() + 5000;
-	while (
-		!(Number(document.querySelector('[data-measurements]')?.getAttribute('data-measurements')) > 0)
-	) {
-		if (performance.now() > hydrationDeadline) throw new Error('Inventory rows were not measured.');
-		await wait(25);
+	async function readyControl() {
+		const deadline = performance.now() + 5000;
+		while (true) {
+			const button = [...document.querySelectorAll('button')].find(
+				(node) => node.textContent?.trim() === 'Load earlier entries'
+			);
+			const measured = Number(
+				document.querySelector('[data-measurements]')?.getAttribute('data-measurements')
+			);
+			if (button && !button.disabled && measured > 0) return button;
+			if (performance.now() > deadline) throw new Error('Earlier control is not ready.');
+			await wait(25);
+		}
 	}
-	const root = document.querySelector('[data-inventory-span-start]');
-	const button = [...document.querySelectorAll('button')].find(
-		(node) => node.textContent?.trim() === 'Load earlier entries'
-	);
-	if (!root || !button) throw new Error('A deep Inventory range needs its earlier control.');
-	const start = Number(root.getAttribute('data-inventory-span-start'));
-	if (start <= 0) throw new Error('Open a deep Inventory range.');
+	let button = await readyControl();
 	button.scrollIntoView({ block: 'center' });
 	await wait(350);
+	button = await readyControl();
+	const start = Number(
+		document.querySelector('[data-inventory-span-start]')?.getAttribute('data-inventory-span-start')
+	);
+	if (start <= 0) throw new Error('Open a deep Inventory range.');
 	const row = [...document.querySelectorAll('li[data-inventory-entry]')].find((node) => {
 		const top = node.getBoundingClientRect().top;
 		return top > button.getBoundingClientRect().bottom && top < innerHeight;
@@ -32,7 +38,13 @@
 	};
 	button.click();
 	const deadline = performance.now() + 5000;
-	while (Number(root.getAttribute('data-inventory-span-start')) === start) {
+	while (
+		Number(
+			document
+				.querySelector('[data-inventory-span-start]')
+				?.getAttribute('data-inventory-span-start')
+		) === start
+	) {
 		if (performance.now() > deadline) throw new Error('Earlier range did not load.');
 		await wait(25);
 	}
