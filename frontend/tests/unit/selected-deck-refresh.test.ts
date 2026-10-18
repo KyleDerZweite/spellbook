@@ -19,6 +19,7 @@ import {
 	reconcileCategoryDraft
 } from '#lib/decks/category-save.ts';
 import { DeckSaveLifecycle } from '#lib/decks/save-lifecycle.ts';
+import { SelectedDeckOptionalReads } from '#lib/decks/selected-optional-reads.ts';
 
 const terminal = vi.hoisted(() => ({ expire: vi.fn() }));
 vi.mock('#lib/saved-state/workspace.svelte.ts', () => ({ workspaceSavedState: terminal }));
@@ -234,7 +235,346 @@ function holdDecode(h: ReturnType<typeof harness>, path: string) {
 	return body;
 }
 
+function optionalHarness(
+	cause: ReadCause = ['decks'],
+	searchInputs?: () => { query: string; open: boolean }
+) {
+	const h = harness(cause);
+	let version = 0;
+	const searchInput = { query: 'Opt', open: true };
+	const ownershipState: {
+		loading: boolean;
+		error: string;
+		values: DeckSnapshot['ownedPrintings'][];
+	} = { loading: false, error: '', values: [] };
+	const searchState: {
+		loading: boolean;
+		error: string;
+		values: NonNullable<SelectedDeckPublication['search']>[];
+	} = { loading: false, error: '', values: [] };
+	const owner = new SelectedDeckOptionalReads({
+		route: () => h.context,
+		active: (account) => account === 'account',
+		inspector: () => h.context.inspector,
+		search: () => searchInputs?.() ?? searchInput,
+		publication: () => {
+			const captured = version;
+			return () => captured === version;
+		},
+		read: readSavedJSON,
+		ownership: (value) => ownershipState.values.push(value),
+		results: (value) => searchState.values.push(value),
+		ownershipStatus: (loading, error) => Object.assign(ownershipState, { loading, error }),
+		searchStatus: (loading, error) => Object.assign(searchState, { loading, error })
+	});
+	const input = {
+		...h.input,
+		context: () => owner.context(),
+		publish(value: SelectedDeckPublication) {
+			h.input.publish(value);
+			if (value.ownership && value.ownershipContext)
+				owner.acceptOwnership(value.ownership, value.ownershipContext);
+			if (value.search && value.searchContext)
+				owner.acceptSearch(value.search, value.searchContext);
+		}
+	};
+	return {
+		...h,
+		input,
+		owner,
+		searchInput,
+		ownershipState,
+		searchState,
+		invalidateDirect: () => {
+			version++;
+		}
+	};
+}
+function holdFirstOptional(h: ReturnType<typeof optionalHarness>, path: string) {
+	const body = held<unknown>();
+	let first = true;
+	h.fetcher.mockImplementation(async (url) => {
+		const response = Response.json(h.replies.get(url));
+		if (url === path && first) {
+			first = false;
+			vi.spyOn(response, 'json').mockImplementation(() => body.promise);
+		}
+		return response;
+	});
+	return body;
+}
+class SearchMedia extends EventTarget {
+	matches = false;
+	change(narrow: boolean) {
+		this.matches = narrow;
+		this.dispatchEvent(new Event('change'));
+	}
+}
+
+describe('production selected Deck optional-read owner', () => {
+	it.each([
+		['decks', 'inspector', ownership],
+		['values', 'inspector', ownership],
+		['decks', 'search', search]
+	] as const)(
+		'replaces held direct %s-topic %s demand and accepts only the final merge',
+		async (topic, kind, path) => {
+			const h = optionalHarness([topic]),
+				body = holdFirstOptional(h, path);
+			const direct = kind === 'inspector' ? h.owner.readOwnership() : h.owner.submitSearch();
+			await waitForRead(h, path);
+			const directSignal = h.fetcher.mock.calls.find(([url]) => url === path)![1]!.signal!;
+			h.invalidateDirect();
+			expect(h.owner.context()[kind]?.needsRead).toBe(true);
+			await refreshSelectedDeck(h.input);
+			expect(h.fetcher.mock.calls.filter(([url]) => url === path)).toHaveLength(2);
+			expect(h.owner.context()[kind]?.needsRead).toBe(false);
+			expect(directSignal.aborted).toBe(true);
+			const state = kind === 'inspector' ? h.ownershipState : h.searchState;
+			expect(state).toMatchObject({ loading: false, error: '' });
+			expect(state.values).toHaveLength(1);
+			body.resolve(h.replies.get(path));
+			await direct;
+			expect(state.values).toHaveLength(1);
+			h.owner.dispose();
+		}
+	);
+	it.each(['inspector', 'search'] as const)(
+		'consumes a current direct %s error without widening later decks refreshes',
+		async (kind) => {
+			const h = optionalHarness(),
+				path = kind === 'inspector' ? ownership : search;
+			h.fetcher.mockResolvedValueOnce(new Response('', { status: 503 }));
+			await (kind === 'inspector' ? h.owner.readOwnership() : h.owner.submitSearch());
+			expect(h.owner.context()[kind]?.needsRead).toBe(false);
+			const state = kind === 'inspector' ? h.ownershipState : h.searchState;
+			expect(state.loading).toBe(false);
+			expect(state.error).toContain('Saved changes could not be loaded');
+			await refreshSelectedDeck(h.input);
+			expect(h.fetcher.mock.calls.filter(([url]) => url === path)).toHaveLength(1);
+			h.owner.dispose();
+		}
+	);
+	it('retains unanswered ownership after a discarded direct reply and failed combined attempt', async () => {
+		const h = optionalHarness('full'),
+			body = holdFirstOptional(h, ownership);
+		const direct = h.owner.readOwnership();
+		await waitForRead(h, ownership);
+		h.invalidateDirect();
+		body.resolve(h.replies.get(ownership));
+		await direct;
+		expect(h.ownershipState.loading).toBe(true);
+		h.fetcher.mockImplementation(async (url) =>
+			url === search ? new Response('', { status: 503 }) : Response.json(h.replies.get(url))
+		);
+		await expect(refreshSelectedDeck(h.input)).rejects.toMatchObject({ phase: 'search' });
+		expect(h.publications).toEqual([]);
+		expect(h.owner.context().inspector?.needsRead).toBe(true);
+		expect(h.ownershipState.loading).toBe(true);
+		h.fetcher.mockImplementation(async (url) => Response.json(h.replies.get(url)));
+		h.input.lease = { ...h.input.lease, cause: ['decks'] };
+		await refreshSelectedDeck(h.input);
+		expect(h.ownershipState.loading).toBe(false);
+		expect(h.owner.context().inspector?.needsRead).toBe(false);
+		h.owner.dispose();
+	});
+	it.each(['direct', 'coordinator'] as const)(
+		'rejects held %s Search after narrow close/reopen with the same query',
+		async (source) => {
+			const h = optionalHarness(['inventory']),
+				body = holdFirstOptional(h, search);
+			const work = source === 'direct' ? h.owner.submitSearch() : refreshSelectedDeck(h.input);
+			await waitForRead(h, search);
+			// A coordinator read alone has no unanswered direct demand to resume.
+			if (source === 'coordinator') {
+				h.searchInput.open = false;
+				h.owner.searchChanged();
+				h.searchInput.open = true;
+				h.owner.searchChanged();
+			} else {
+				h.searchInput.open = false;
+				h.owner.searchChanged();
+				expect(h.owner.context().search).toBeNull();
+				await refreshSelectedDeck(h.input);
+				expect(h.fetcher.mock.calls.filter(([url]) => url === search)).toHaveLength(1);
+				h.searchInput.open = true;
+				h.owner.searchChanged();
+				await vi.waitFor(() => expect(h.searchState.values).toHaveLength(1));
+			}
+			body.resolve({ hits: [{ ...document, name: 'Obsolete' }], ownedByCanonical: {} });
+			await work;
+			expect(
+				h.searchState.values.flatMap((value) => value.hits).some((hit) => hit.name === 'Obsolete')
+			).toBe(false);
+			h.owner.dispose();
+		}
+	);
+	it('restarts unanswered Desktop Search after Desktop/mobile/Desktop ABA and removes its listener', async () => {
+		const h = optionalHarness(),
+			media = new SearchMedia();
+		h.searchInput.open = false;
+		h.owner.watchSearchActivity(media);
+		const remove = vi.spyOn(media, 'removeEventListener');
+		const body = holdFirstOptional(h, search),
+			direct = h.owner.submitSearch();
+		await waitForRead(h, search);
+		const opening = h.owner.context().search!.opening;
+		media.change(true);
+		expect(h.owner.context().search).toBeNull();
+		media.change(false);
+		expect(h.owner.context().search!.opening).toBeGreaterThan(opening);
+		await vi.waitFor(() => expect(h.searchState.values).toHaveLength(1));
+		body.resolve({ hits: [], ownedByCanonical: { obsolete: 1 } });
+		await direct;
+		expect(h.searchState.values).toHaveLength(1);
+		h.owner.dispose();
+		expect(remove).toHaveBeenCalledOnce();
+		const requests = h.fetcher.mock.calls.length;
+		media.change(true);
+		media.change(false);
+		expect(h.fetcher.mock.calls).toHaveLength(requests);
+	});
+	it('restarts unanswered Search when a dialog opens during a Desktop request', async () => {
+		const h = optionalHarness();
+		h.searchInput.open = false;
+		h.owner.watchSearchActivity(new SearchMedia());
+		const body = holdFirstOptional(h, search),
+			direct = h.owner.submitSearch();
+		await waitForRead(h, search);
+		h.searchInput.open = true;
+		h.owner.searchChanged();
+		await vi.waitFor(() => expect(h.searchState.values).toHaveLength(1));
+		body.reject(Error('obsolete request failed'));
+		await direct;
+		expect(h.searchState).toMatchObject({ loading: false, error: '' });
+		expect(h.owner.context().search?.needsRead).toBe(false);
+		h.owner.dispose();
+	});
+	it('keeps native Search active at narrow width with a closed dialog', async () => {
+		const h = optionalHarness(['inventory']);
+		h.context.flow = 'search';
+		h.searchInput.open = false;
+		await refreshSelectedDeck(h.input);
+		expect(h.fetcher.mock.calls.map(([path]) => path)).toContain(search);
+		h.owner.dispose();
+	});
+	it('requires manual submission after changing a pending query, including close/reopen and query ABA', async () => {
+		const h = optionalHarness(),
+			body = holdFirstOptional(h, search);
+		const direct = h.owner.submitSearch();
+		await waitForRead(h, search);
+		for (const query of ['Othe', 'Other']) {
+			h.searchInput.query = query;
+			h.owner.searchChanged();
+		}
+		h.searchInput.open = false;
+		h.owner.searchChanged();
+		h.searchInput.open = true;
+		h.owner.searchChanged();
+		expect(h.owner.context().search?.needsRead).toBe(false);
+		expect(h.fetcher.mock.calls).toHaveLength(1);
+		h.searchInput.query = 'Opt';
+		h.owner.searchChanged();
+		body.resolve(h.replies.get(search));
+		await direct;
+		expect(h.searchState.values).toEqual([]);
+		expect(h.fetcher.mock.calls).toHaveLength(1);
+		await h.owner.submitSearch();
+		expect(h.searchState.values).toHaveLength(1);
+		h.owner.dispose();
+	});
+	it('allows the normal matrix to read an edited active query without direct submission', async () => {
+		const h = optionalHarness(['inventory']);
+		h.searchInput.query = 'Other';
+		h.owner.searchChanged();
+		const path = '/api/mobile/v1/mtg/decks/search?q=Other';
+		h.replies.set(path, { hits: [document], ownedByCanonical: {} });
+		await refreshSelectedDeck(h.input);
+		expect(h.fetcher.mock.calls.map(([url]) => url)).toContain(path);
+		h.owner.dispose();
+	});
+	it.each(['inspector', 'search'] as const)(
+		'does not let a discarded direct %s request clean up a newer direct request',
+		async (kind) => {
+			const h = optionalHarness(),
+				path = kind === 'inspector' ? ownership : search,
+				oldBody = holdFirstOptional(h, path);
+			const older = kind === 'inspector' ? h.owner.readOwnership() : h.owner.submitSearch();
+			await waitForRead(h, path);
+			const newBody = holdFirstOptional(h, path);
+			if (kind === 'inspector') h.context.inspector!.opening++;
+			const newer = kind === 'inspector' ? h.owner.readOwnership() : h.owner.submitSearch();
+			await vi.waitFor(() => expect(h.fetcher.mock.calls).toHaveLength(2));
+			oldBody.reject(Error('old request failed'));
+			await older;
+			const state = kind === 'inspector' ? h.ownershipState : h.searchState;
+			expect(state).toMatchObject({ loading: true, error: '' });
+			expect(h.owner.context()[kind]?.needsRead).toBe(true);
+			newBody.reject(Error('current request failed'));
+			await newer;
+			expect(state).toMatchObject({ loading: false, error: 'current request failed' });
+			expect(h.owner.context()[kind]?.needsRead).toBe(false);
+			h.owner.dispose();
+		}
+	);
+	it('does not let an older coordinator merge or direct completion clean up a newer submission', async () => {
+		const h = optionalHarness(['inventory']),
+			olderBody = holdFirstOptional(h, search);
+		const older = refreshSelectedDeck(h.input);
+		await waitForRead(h, search);
+		const newerBody = holdFirstOptional(h, search),
+			newer = h.owner.submitSearch();
+		await vi.waitFor(() =>
+			expect(h.fetcher.mock.calls.filter(([url]) => url === search)).toHaveLength(2)
+		);
+		const signal = h.fetcher.mock.calls.at(-1)![1]!.signal!;
+		olderBody.resolve(h.replies.get(search));
+		await older;
+		expect(signal.aborted).toBe(false);
+		expect(h.searchState.loading).toBe(true);
+		expect(h.owner.context().search?.needsRead).toBe(true);
+		newerBody.resolve(h.replies.get(search));
+		await newer;
+		expect(h.searchState.loading).toBe(false);
+		expect(h.searchState.values).toHaveLength(1);
+		h.owner.dispose();
+	});
+	it.each(['ownership', 'search'] as const)(
+		'keeps genuine direct %s 401 under terminal authority',
+		async (kind) => {
+			const h = optionalHarness();
+			h.fetcher.mockResolvedValue(new Response('', { status: 401 }));
+			await (kind === 'ownership' ? h.owner.readOwnership() : h.owner.submitSearch());
+			expect(terminal.expire).toHaveBeenCalledOnce();
+			expect(h.searchState.values).toEqual([]);
+			expect(h.ownershipState.values).toEqual([]);
+			h.owner.dispose();
+		}
+	);
+	it('clears a current optional error when a later accepted matrix read publishes', async () => {
+		const h = optionalHarness(['inventory']);
+		h.fetcher.mockResolvedValueOnce(new Response('', { status: 503 }));
+		await h.owner.submitSearch();
+		expect(h.searchState.error).not.toBe('');
+		await refreshSelectedDeck(h.input);
+		expect(h.searchState).toMatchObject({ loading: false, error: '' });
+		expect(h.searchState.values).toHaveLength(1);
+		h.owner.dispose();
+	});
+});
+
 describe('production selected Deck read and publication interface', () => {
+	it.each([
+		['decks', 'inspector', ownership],
+		['values', 'inspector', ownership],
+		['decks', 'search', search]
+	] as const)('replaces unanswered %s-topic %s demand', async (topic, kind, path) => {
+		const h = harness([topic]);
+		Object.assign(h.context[kind]!, { needsRead: true });
+		await refreshSelectedDeck(h.input);
+		expect(h.fetcher.mock.calls.map(([called]) => called)).toContain(path);
+		expect(h.publications[0][kind === 'inspector' ? 'ownership' : 'search']).toBeDefined();
+	});
 	it.each<[ReadCause | undefined, string[]]>([
 		[undefined, [full, entries, wholes, ownership, search]],
 		['full', [full, entries, wholes, ownership, search]],
@@ -560,6 +900,10 @@ const clientUrl = import.meta.resolve('svelte/internal/client');
 const fixtureCode = compileModule(
 	`
  export { flush } from 'svelte/internal/client';
+ export function searchInputs() {
+  let input = $state({ query: 'Opt', open: true });
+  return { get: () => input };
+ }
  export function owner(initial, initialContext) {
   let state = $state(initial), context = $state.raw(initialContext), publications = $state(0);
   const observations = [];
@@ -578,6 +922,7 @@ const fixtureCode = compileModule(
 ).js.code.replaceAll("from 'svelte/internal/client'", `from ${JSON.stringify(clientUrl)}`);
 const reactive: {
 	flush(): void;
+	searchInputs(): { get(): { query: string; open: boolean } };
 	owner(
 		state: SelectedDeckMergeState,
 		context: SelectedDeckContext
@@ -593,6 +938,31 @@ const reactive: {
 	};
 } = await import(
 	/* @vite-ignore */ 'data:text/javascript;base64,' + Buffer.from(fixtureCode).toString('base64')
+);
+it.each(['direct', 'coordinator'] as const)(
+	'rejects a held %s Search opening before Svelte effects flush',
+	async (source) => {
+		const inputs = reactive.searchInputs(),
+			h = optionalHarness(['inventory'], inputs.get);
+		const body = holdFirstOptional(h, search);
+		const work = source === 'direct' ? h.owner.submitSearch() : refreshSelectedDeck(h.input);
+		await waitForRead(h, search);
+		const opening = h.owner.context().search!.opening;
+		inputs.get().open = false;
+		h.owner.searchChanged();
+		inputs.get().open = true;
+		h.owner.searchChanged();
+		// No flush between the reactive changes and the production publication check.
+		expect(h.owner.context().search!.opening).toBeGreaterThan(opening);
+		body.resolve({ hits: [{ ...document, name: 'Obsolete' }], ownedByCanonical: {} });
+		await work;
+		expect(
+			h.searchState.values.flatMap((value) => value.hits).some((hit) => hit.name === 'Obsolete')
+		).toBe(false);
+		if (source === 'coordinator') expect(h.publications).toHaveLength(1);
+		reactive.flush();
+		h.owner.dispose();
+	}
 );
 it.each([false, true])(
 	'uses current reactive owner state during a held final read, late confirmation=%s',

@@ -19,8 +19,8 @@ export type SelectedDeckContext = {
 	flow: string;
 	/** Immediate route identity, independent of scheduled effects. */
 	scope: object;
-	inspector: { canonicalCardId: string; opening: number } | null;
-	search: { query: string; opening: number } | null;
+	inspector: { canonicalCardId: string; opening: number; needsRead?: boolean } | null;
+	search: { query: string; opening: number; needsRead?: boolean } | null;
 };
 type Phase = 'snapshot' | 'categories' | 'whole-categories' | 'ownership' | 'search';
 export class SelectedDeckReadError extends Error {
@@ -74,6 +74,8 @@ export type SelectedDeckPublication = {
 	wholeCategories?: DeckWholeCategories;
 	ownership?: Ownership;
 	search?: Search;
+	ownershipContext?: NonNullable<SelectedDeckContext['inspector']>;
+	searchContext?: NonNullable<SelectedDeckContext['search']>;
 	details?: Partial<SelectedDeckFields>;
 	inspector?: Partial<SelectedInspectorFields>;
 };
@@ -123,8 +125,9 @@ export async function refreshSelectedDeck(input: SelectedDeckRefreshInput): Prom
 	const full = !cause || cause === 'full';
 	const has = (topic: 'decks' | 'inventory' | 'values') => full || cause.includes(topic);
 	const categoriesNeeded = has('decks') || has('values');
-	const ownershipNeeded = !!context.inspector && has('inventory');
-	const searchNeeded = !!context.search && (has('inventory') || has('values'));
+	const ownershipNeeded = !!context.inspector && (has('inventory') || context.inspector.needsRead);
+	const searchNeeded =
+		!!context.search && (has('inventory') || has('values') || context.search.needsRead);
 	const guarded = { signal: lease.signal, current };
 	async function stage<T>(phase: Phase, path: string, relevant = () => true): Promise<T | null> {
 		const active = () => current() && relevant();
@@ -265,6 +268,8 @@ export async function refreshSelectedDeck(input: SelectedDeckRefreshInput): Prom
 		details,
 		inspector,
 		ownership: ownership && inspectorCurrent() ? ownership : undefined,
-		search: search && searchCurrent() ? search : undefined
+		search: search && searchCurrent() ? search : undefined,
+		ownershipContext: ownership && inspectorCurrent() ? context.inspector! : undefined,
+		searchContext: search && searchCurrent() ? context.search! : undefined
 	});
 }

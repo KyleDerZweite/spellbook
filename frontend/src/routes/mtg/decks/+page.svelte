@@ -6,6 +6,7 @@
 	import { readSavedJSON } from '#lib/saved-state/read.ts';
 	import type { ResourceSubscription } from '#lib/saved-state/workspace.ts';
 	import { refreshSelectedDeck, SelectedDeckReadError } from '#lib/decks/selected-refresh.ts';
+	import { SelectedDeckOptionalReads } from '#lib/decks/selected-optional-reads.ts';
 	import CardDetail from '#lib/components/cards/CardDetail.svelte';
 	import { storedCardDocument } from '#lib/mtg/stored-card.ts';
 	import type { CardDocument } from '#lib/search/types.ts';
@@ -79,6 +80,7 @@
 		untrack(() => deckSubscription?.invalidate());
 	});
 	onMount(() => {
+		optionalReads.watchSearchActivity(window.matchMedia('(max-width: 1000px)'));
 		deckSubscription = workspaceSavedState.subscribe({
 			topics: ['decks', 'inventory', 'values'],
 			clear: () => {
@@ -114,8 +116,7 @@
 				searchOwned = {};
 				inspectorOwned = [];
 				pendingRequests.clear();
-				searchController?.abort();
-				ownershipController?.abort();
+				optionalReads.clear();
 				saveLifecycle.destroy();
 			},
 			refresh: async (lease) => {
@@ -124,16 +125,7 @@
 					return await refreshSelectedDeck({
 						lease,
 						read: readSavedJSON,
-						context: () => ({
-							accountId: data.user?.accountId ?? '',
-							deckId: data.selectedDeckId,
-							flow: data.flow,
-							scope: data,
-							inspector: inspected
-								? { canonicalCardId: inspected.oracle_id, opening: inspectorOpening }
-								: null,
-							search: query.trim().length >= 2 ? { query, opening: searchOpening } : null
-						}),
+						context: () => optionalReads.context(),
 						state: () => ({
 							confirmedDecks: [...savedDecks.decks, ...data.decks],
 							categories: entryCategories,
@@ -187,11 +179,10 @@
 								...value.optionalLegality,
 								...(value.wholeCategories ? { wholeCategories: value.wholeCategories } : {})
 							};
-							if (value.ownership) inspectorOwned = value.ownership;
-							if (value.search) {
-								results = value.search.hits;
-								searchOwned = value.search.ownedByCanonical;
-							}
+							if (value.ownership && value.ownershipContext)
+								optionalReads.acceptOwnership(value.ownership, value.ownershipContext);
+							if (value.search && value.searchContext)
+								optionalReads.acceptSearch(value.search, value.searchContext);
 							deletedTarget = false;
 						}
 					});
@@ -416,20 +407,52 @@
 	let inspectorOwned = $state<typeof savedDecks.ownedPrintings>([]);
 	let ownershipLoading = $state(false);
 	let ownershipError = $state('');
-	let ownershipController: AbortController | undefined;
 	let inspectorOpening = 0;
 	let searching = $state(false);
 	let searchError = $state('');
-	let searchController: AbortController | undefined;
-	let searchOpening = 0;
+	const optionalReads = new SelectedDeckOptionalReads({
+		route: () => ({
+			accountId: data.user?.accountId ?? '',
+			deckId: data.selectedDeckId,
+			flow: data.flow,
+			scope: data
+		}),
+		active: (accountId) => workspaceSavedState.isActive(accountId),
+		inspector: () =>
+			inspected ? { canonicalCardId: inspected.oracle_id, opening: inspectorOpening } : null,
+		search: () => ({ query, open: searchOpen }),
+		publication: () => deckSubscription?.publication() ?? (() => true),
+		read: readSavedJSON,
+		ownership: (value) => {
+			inspectorOwned = value;
+		},
+		results: (value) => {
+			results = value.hits;
+			searchOwned = value.ownedByCanonical;
+		},
+		ownershipStatus: (loading, error) => {
+			ownershipLoading = loading;
+			ownershipError = error;
+		},
+		searchStatus: (loading, error) => {
+			searching = loading;
+			searchError = error;
+		}
+	});
 	function setSearchQuery(value: string) {
-		if (query !== value) searchOpening++;
+		if (query === value) return;
 		query = value;
+		optionalReads.searchChanged();
+	}
+	function setSearchOpen(value: boolean) {
+		if (searchOpen === value) return;
+		searchOpen = value;
+		optionalReads.searchChanged();
 	}
 	function closeInspector() {
 		inspectorOpening++;
 		inspected = null;
-		ownershipController?.abort();
+		optionalReads.closeInspector();
 	}
 	let saveStatus = $state('');
 	let saveError = $state('');
@@ -440,7 +463,7 @@
 	const inspectorGone = $derived(!!inspectedEntryId && !inspectedEntry);
 
 	async function inspect(card: CardDocument, entry?: (typeof savedDecks.deckCards)[number]) {
-		const opening = ++inspectorOpening;
+		inspectorOpening++;
 		saveLifecycle.open('inspector', entry?.id ?? card.id);
 		inspected = card;
 		inspectedEntryId = entry?.id ?? null;
@@ -449,77 +472,12 @@
 		inspectorRole = entry?.role ?? addRole;
 		inspectorQuantityBase = inspectorQuantity;
 		inspectorRoleBase = inspectorRole;
-		ownershipController?.abort();
-		const controller = new AbortController();
-		ownershipController = controller;
 		inspectorOwned = [];
-		const publication = deckSubscription?.publication() ?? (() => true);
-		const routeData = data;
-		const current = () =>
-			publication() &&
-			!controller.signal.aborted &&
-			inspectorOpening === opening &&
-			data === routeData &&
-			inspected?.oracle_id === card.oracle_id;
-		ownershipLoading = true;
-		ownershipError = '';
-		try {
-			const response = await fetch(
-				`/api/mobile/v1/mtg/decks/ownership?canonicalCardId=${encodeURIComponent(card.oracle_id)}`,
-				{ signal: controller.signal }
-			);
-			if (!current()) return;
-			if (response.status === 401 && current()) workspaceSavedState.expire();
-			if (!response.ok) throw new Error('Owned quantities are unavailable.');
-			const owned = await response.json();
-			if (current()) inspectorOwned = owned;
-		} catch (cause) {
-			if (current())
-				ownershipError =
-					cause instanceof Error ? cause.message : 'Owned quantities are unavailable.';
-		} finally {
-			if (!controller.signal.aborted) ownershipLoading = false;
-		}
+		await optionalReads.readOwnership();
 	}
 	async function findCards(event: SubmitEvent) {
 		event.preventDefault();
-		searchController?.abort();
-		const controller = new AbortController();
-		searchController = controller;
-		const publication = deckSubscription?.publication() ?? (() => true);
-		const opening = searchOpening;
-		const submittedQuery = query,
-			account = data.user?.accountId,
-			selected = data.selectedDeckId,
-			flow = data.flow;
-		const ownsRequest = () =>
-			searchController === controller &&
-			!controller.signal.aborted &&
-			workspaceSavedState.isActive(account) &&
-			data.user?.accountId === account &&
-			data.selectedDeckId === selected &&
-			data.flow === flow;
-		const current = () =>
-			ownsRequest() && publication() && query === submittedQuery && searchOpening === opening;
-		searching = true;
-		searchError = '';
-		try {
-			const result = await readSavedJSON<{
-				hits: CardDocument[];
-				ownedByCanonical: Record<string, number>;
-			}>(`/api/mobile/v1/mtg/decks/search?q=${encodeURIComponent(submittedQuery)}`, {
-				signal: controller.signal,
-				current
-			});
-			if (result && current()) {
-				searchOwned = result.ownedByCanonical;
-				results = result.hits;
-			}
-		} catch (cause) {
-			if (current()) searchError = cause instanceof Error ? cause.message : 'Search failed.';
-		} finally {
-			if (ownsRequest()) searching = false;
-		}
+		await optionalReads.submitSearch();
 	}
 
 	const selectedDeck = $derived(savedDecks.decks.find((deck) => deck.id === data.selectedDeckId));
@@ -663,6 +621,7 @@
 			saveAccount = accountId;
 		}
 		if (saveLifecycle.setScope(data.user?.accountId ?? '', data.selectedDeckId, data.flow)) {
+			optionalReads.clear();
 			savedDecks = { ...savedDecks, valueEstimates: null, valuationError: null };
 			categoryRead = null;
 			dirtyCategoryEntries = [];
@@ -692,8 +651,7 @@
 	});
 	onDestroy(() => {
 		saveLifecycle.destroy();
-		searchController?.abort();
-		ownershipController?.abort();
+		optionalReads.dispose();
 	});
 	function reportUnconfirmedSave() {
 		saveError = 'Could not confirm the save. Your changes are still here. Try again.';
@@ -1278,7 +1236,7 @@
 				onclick={(event) => {
 					event.preventDefault();
 					searchTrigger = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
-					searchOpen = true;
+					setSearchOpen(true);
 				}}>Find cards</Button
 			>
 		</div>
@@ -1494,7 +1452,7 @@
 	cancelHref={flowHref()}
 	pending={busy}
 	variant="import"
-	bind:open={searchOpen}
+	bind:open={() => searchOpen, setSearchOpen}
 	returnFocus={searchTrigger}>{@render discovery()}</DeckDialog
 >
 
