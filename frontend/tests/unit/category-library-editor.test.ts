@@ -414,6 +414,57 @@ it('unrelated receipts and successful criteria cannot discard the uncertain orig
 	expect(editor.draft.name).toBe('New B');
 });
 
+it.each([null, 'existing-origin'])(
+	'original receipt cannot replace a newer confirmed save for origin %s',
+	(originId) => {
+		const seed = initial();
+		seed.routeOriginId = seed.draft.originId = originId;
+		const { editor } = mount(seed);
+		const original = fields('Uncertain A');
+		original.set('originId', originId ?? '');
+		const attempt = begin(editor, original);
+		attempt.complete({ type: 'error', error: { status: 500, message: 'Lost' } }, original);
+		attempt.finish();
+		const retry = editor.originalRetry!;
+		editB(editor);
+		const newer = fields('New B');
+		newer.set('originId', originId ?? '');
+		newer.set('rebaseLibraryRevision', '5');
+		const saved = begin(editor, newer);
+		saved.complete(
+			reply({
+				draft: { ...seed.draft, name: 'New B', expectedLibraryRevision: '5' },
+				acknowledgement: {
+					...acknowledged('request-B', originId ?? 'origin-B'),
+					libraryRevision: '6'
+				}
+			}),
+			newer
+		);
+		saved.finish();
+		expect(editor.draft.originId).toBe(originId ?? 'origin-B');
+		expect(editor.draft.expectedLibraryRevision).toBe('6');
+		expect(editor.dirty).toBe(false);
+		const repeated = new FormData();
+		for (const [name, value] of retry.fields) repeated.append(name, value);
+		const current = fields('New B');
+		current.set('originId', originId ?? 'origin-B');
+		current.set('expectedLibraryRevision', '6');
+		const replayed = begin(editor, repeated, current);
+		replayed.complete(
+			reply({ acknowledgement: acknowledged('request-A', originId ?? 'origin-A') }),
+			current
+		);
+		replayed.finish();
+		expect(editor.confirmation?.libraryRevision).toBe('5');
+		expect(editor.originalRetry).toBeNull();
+		expect(editor.draft.originId).toBe(originId ?? 'origin-B');
+		expect(editor.draft.expectedLibraryRevision).toBe('6');
+		expect(editor.draft.name).toBe('New B');
+		expect(editor.dirty).toBe(false);
+	}
+);
+
 it('successful original criteria retry clears its retry while retaining newer controls', () => {
 	const { editor } = mount();
 	const original = fields('Criteria A', 'update');

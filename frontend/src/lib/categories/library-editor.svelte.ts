@@ -252,13 +252,18 @@ export function createCategoryLibraryEditor(input: {
 					const reply = result.data;
 					if (reply?.acknowledgement) {
 						const acknowledged = reply.acknowledgement;
+						const advancesDraft =
+							!save ||
+							BigInt(acknowledged.libraryRevision) >= BigInt(draft.expectedLibraryRevision);
 						confirmation = acknowledged;
 						confirmed(payload);
-						message = unchanged
-							? (reply.message ?? 'Submitted definition saved.')
-							: 'Submitted definition saved. Your newer edits remain unsaved.';
-						if (unchanged && reply.draft) draft = copyDraft(reply.draft);
-						if (save) {
+						message = !advancesDraft
+							? 'Original submission confirmed. Your newer draft is retained.'
+							: unchanged
+								? (reply.message ?? 'Submitted definition saved.')
+								: 'Submitted definition saved. Your newer edits remain unsaved.';
+						if (advancesDraft && unchanged && reply.draft) draft = copyDraft(reply.draft);
+						if (save && advancesDraft) {
 							draft.originId = acknowledged.originId;
 							draft.expectedLibraryRevision = acknowledged.libraryRevision;
 							dirty = !unchanged;
