@@ -12,6 +12,7 @@
 		"check": "svelte-kit sync && pnpm check:ts && svelte-check --tsconfig ./tsconfig.json",
 		"test:unit": "vitest run --project unit",
 		"test:integration": "vitest run --project integration",
+		"test:performance": "vitest run --project performance",
 		"lint": "pnpm --dir .. check:boundaries && pnpm --dir .. test:boundaries && prettier --config .prettierrc --check . ../backend ../contracts ../scripts ../package.json && pnpm check",
 		"format": "prettier --write .",
 		"db:generate": "node --env-file-if-exists=../.env node_modules/drizzle-kit/bin.cjs generate",
