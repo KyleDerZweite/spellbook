@@ -60,20 +60,6 @@ Use the same source fixture for both runs. Those cases verify aggregate identiti
 
 The opt-in [Inventory scale script](../../backend/scripts/inventory-scale.ts) is a local disposable evidence harness, not a normal CI prerequisite. Its source declares the isolated database name, public JSONL/manifest path and fixture checks. Provision that exact isolated database, apply current migrations, and supply matching `TEST_DATABASE_URL` and `DATABASE_URL` through the existing protected environment. From the repository root run `node backend/scripts/inventory-scale.ts`; `--analyze` captures analyzed plans and `--measure-only --final` remeasures existing fixture accounts. The script creates accounts with 1,000, 10,000 and 50,000 entries and writes machine/source/implementation hashes, plans and raw timings under ignored `.local/inventory-evidence/`. Keep its protected credential file local. These query measurements require separate final-head HTTP and rendered scrolling/focus acceptance; they are not a deployment or scalability claim.
 
-### Accepted portable browsing performance contract
-
-The independently reviewed follow-up to [PR 231](https://github.com/KyleDerZweite/spellbook/pull/231) adds opt-in `test:performance` in an isolated Vitest `performance` project. Normal unit/integration commands do not select it. An additional explicit environment guard prevents fixture access when all projects are selected accidentally. The project uses the existing Vitest transform to execute actual InventoryWindow and CatalogWindow production classes, and the existing HTTP runtime owner to start built application children. No copied window algorithm, new compiler or dependency is selected. Implementation evidence and runnable parameters are recorded with the resulting change.
-
-Require matching `DATABASE_URL`/`TEST_DATABASE_URL`, explicit disposable database-name confirmation, matching origin/port and an unoccupied port before fixture writes. Require the owned child's listening confirmation. The fixture consumes and verifies the complete tracked English Catalog bundle, including compressed/decoded hashes and manifest counts. It publishes only its own generation under the existing advisory lock. Cleanup restores the full previous Catalog state and deletes only owned accounts/generation. A foreign publication blocks restoration rather than being overwritten. Do not use a shared database or concurrent Catalog publisher.
-
-The existing account-scale fixture gains a records entry point while retaining its path interface and 10000-real-printing requirement. Deterministic supported finishes and five valid Conditions produce distinct Inventory entries for accounts of 1000, 10000 and 50000 entries. Include repeated Canonical cards, overlapping/empty Groups, selective filters and analyzed fixture tables. Never change existing Demo accounts. Separate protected credentials from normal reports, and make retained fixtures and their owned cleanup explicit.
-
-Measure first, deep and final 200-result Inventory ranges and Search against the same generation. Deep addresses must not load earlier prefix ranges. Preserve API defaults and maximum 500. Assert DTO shape, counts, identity, revision/generation coherence and bounded read/receipt content; report actual UTF-8 payload sizes. Retain existing limits of three physical requests including unsettled aborts, four contexts, 1000 resident records, twenty pages, 200 mounted rows and eight active DTO snapshots. Existing byte targets retain their documented overflow rules. Do not invent a response-byte cap or hardware-independent latency gate.
-
-Reports distinguish runner Head from the tested build's Head/digests and dirty state. Include fixture hashes/date/counts, generation, machine, Node/PostgreSQL/migrations, parameters, UTC time, raw latencies and directly observable decode/update timings. Mark SQL or other unobserved segments unmeasured. Client-cold means empty client caches; it does not establish PostgreSQL buffer-cold. Identical fixtures, parameters, machine and origin are required for before/after claims.
-
-Rendered acceptance uses the native browser, fixture manifest and production metrics for continuous loading, deep entry, revisit, Load earlier, Back/Forward, context changes, remote invalidation and anchor restoration. Exercise affected Inventory Group labels and Deck drafts at desktop/narrow sizes, with keyboard, light/dark and native fallbacks. Node-only results cannot establish DOM bounds. Record unavailable physical touch/zoom separately. This recorded-English fixture does not satisfy the separate current-full-Catalog gate in [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md). Keep the historical full-Catalog suite and existing mutation/SQL-scale evidence unchanged.
-
 For each changed Python package, run the following from `worker/` or `scan-worker/`. The [CI workflow](../../.github/workflows/ci.yml) owns the pinned Python and uv versions.
 
 ```sh
@@ -94,6 +80,35 @@ frontend/node_modules/.bin/prettier --check README.md GLOSSARY.md AGENTS.md CONT
 ```
 
 Follow [documentation maintenance](../README.md#maintenance) for links, ownership, metadata, and stale claims. Documentation-only changes do not need application tests unless they also change executable behavior.
+
+### Portable browsing performance evidence
+
+The independently reviewed follow-up to [PR 231](https://github.com/KyleDerZweite/spellbook/pull/231) adds opt-in `test:performance` in an isolated Vitest `performance` project. Normal unit/integration commands do not select it. An additional explicit environment guard prevents fixture access when all projects are selected accidentally. The project uses the existing Vitest transform to execute actual InventoryWindow and CatalogWindow production classes, and the existing HTTP runtime owner to start built application children. No copied window algorithm, new compiler or dependency is selected. The [fixture owner](../../frontend/tests/fixtures/browsing-performance.ts) and [runner](../../frontend/tests/browsing-performance.test.ts) own this procedure.
+
+Require matching `DATABASE_URL`/`TEST_DATABASE_URL`, explicit disposable database-name confirmation, matching origin/port and an unoccupied port before fixture writes. Require the owned child's listening confirmation. The fixture consumes and verifies the complete tracked English Catalog bundle, including compressed/decoded hashes and manifest counts. It publishes only its own generation under the existing advisory lock. Cleanup restores the full previous Catalog state and deletes only owned accounts/generation. A foreign publication blocks restoration rather than being overwritten. Do not use a shared database or concurrent Catalog publisher.
+
+The existing account-scale fixture gains a records entry point while retaining its path interface and 10000-real-printing requirement. Deterministic supported finishes and five valid Conditions produce distinct Inventory entries for accounts of 1000, 10000 and 50000 entries. Include repeated Canonical cards, overlapping/empty Groups, selective filters and analyzed fixture tables. Never change existing Demo accounts. Separate protected credentials from normal reports, and make retained fixtures and their owned cleanup explicit.
+
+Measure first, deep and final 200-result Inventory ranges and Search against the same generation. Deep addresses must not load earlier prefix ranges. Preserve API defaults and maximum 500. Assert DTO shape, counts, identity, revision/generation coherence and bounded read/receipt content; report actual UTF-8 payload sizes. Retain existing limits of three physical requests including unsettled aborts, four contexts, 1000 resident records, twenty pages, 200 mounted rows and eight active DTO snapshots. Existing byte targets retain their documented overflow rules. Do not invent a response-byte cap or hardware-independent latency gate.
+
+Reports distinguish runner Head from the tested build's Head/digests and dirty state. Include fixture hashes/date/counts, generation, machine, Node/PostgreSQL/migrations, parameters, UTC time, raw latencies and directly observable decode/update timings. Mark SQL or other unobserved segments unmeasured. Client-cold means empty client caches; it does not establish PostgreSQL buffer-cold. Identical fixtures, parameters, machine and origin are required for before/after claims.
+
+Rendered acceptance uses the native browser, fixture manifest and production metrics for continuous loading, deep entry, revisit, Load earlier, Back/Forward, context changes, remote invalidation and anchor restoration. Exercise affected Inventory Group labels and Deck drafts at desktop/narrow sizes, with keyboard, light/dark and native fallbacks. Node-only results cannot establish DOM bounds. Record unavailable physical touch/zoom separately. This recorded-English fixture does not satisfy the separate current-full-Catalog gate in [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md). Keep the historical full-Catalog suite and existing mutation/SQL-scale evidence unchanged.
+
+Build from a known revision with the intended `APP_ORIGIN`, and write that exact full commit SHA to a separate build-stamp file. Keep its build log and source cleanliness evidence. The stamp attributes source; the runner independently hashes the executed artifact tree and cannot infer source dirtiness from a commit-only stamp. With the protected database environment already loaded, run from the repository root:
+
+```sh
+TEST_BROWSING_PERFORMANCE=1 \
+TEST_PERFORMANCE_DISPOSABLE_DB=spellbook_perf_disposable \
+TEST_HTTP_PORT=5191 APP_ORIGIN=http://127.0.0.1:5191 \
+TEST_PERFORMANCE_BUILD_STAMP=/absolute/path/to/artifact-head.txt \
+TEST_PERFORMANCE_OUTPUT=.local/browsing-performance/my-run \
+fnm exec --using 26.10.0 pnpm --dir frontend test:performance
+```
+
+Replace the database confirmation with the exact disposable target name. Use a new output directory for every run. `TEST_PERFORMANCE_ENTRYPOINT` defaults to frontend `build/index.js` and accepts an absolute saved-artifact entrypoint for comparison runs. `TEST_PERFORMANCE_REPETITIONS` defaults to three and permits 1 through 20. Without `TEST_BROWSING_PERFORMANCE=1`, the suite skips before fixtures.
+
+Set `TEST_PERFORMANCE_KEEP_FIXTURES=1` to retain data for browser work. The runner still stops its owned application child. The output contains `report.json`, `manifest.json` and a mode-0600 `credentials.json`. Start the same tested artifact at the manifest origin, sign in using the protected local credentials and exercise each account's first/deep/end `browser[].inventoryURLs` plus `searchURLs`. Observe the existing Inventory/Catalog metric attributes and actual mounted rows while scrolling, revisiting and changing contexts. Record focus, drafts and errors separately from Node metrics. Stop the owned browser application before running the manifest's `cleanupCommand` with the original protected database environment. Cleanup removes the credentials file after success. Inspect a failed cleanup manifest before any recovery; never replace foreign Catalog state.
 
 ## PWA and QR verification
 

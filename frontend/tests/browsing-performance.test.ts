@@ -591,7 +591,7 @@ test.skipIf(process.env.TEST_BROWSING_PERFORMANCE !== '1')(
 					'single confirmed receipt',
 					`/api/mobile/v1/mtg/inventory/${entry.id}`,
 					{
-						headers: { ...headers, 'content-type': 'application/json' },
+						headers: { ...headers, origin: config.origin, 'content-type': 'application/json' },
 						method: 'PATCH',
 						body: JSON.stringify({ requestId: randomUUID(), quantity: 1 })
 					},
