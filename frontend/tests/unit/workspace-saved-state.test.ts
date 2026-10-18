@@ -350,3 +350,234 @@ it.each(['profile', 'inventory', 'decks', 'scan'] as const)(
 		workspace.stop();
 	}
 );
+
+// Drive the real workspace scheduler, including a physical read held across bursts.
+function causeWorkspace() {
+	const listeners = new Map<string, (event: { data: string }) => void>();
+	const source = {
+		readyState: 1,
+		close() {},
+		addEventListener(name: string, listener: (event: { data: string }) => void) {
+			listeners.set(name, listener);
+		},
+		onerror: null as (() => void) | null
+	};
+	let visible = true,
+		resume = () => {};
+	const workspace = new WorkspaceSavedState({
+		source: () => source,
+		session: async () => 200,
+		visible: () => visible,
+		listen: (listener) => {
+			resume = listener;
+			return () => {};
+		},
+		changed() {}
+	});
+	workspace.start({ accountId: 'owner', activation: 'initial' });
+	const reads: Array<{
+		lease: import('#lib/saved-state/workspace.ts').ReadLease;
+		finish(value?: false): void;
+		fail(): void;
+	}> = [];
+	const resource = workspace.subscribe({
+		topics: ['decks', 'inventory', 'values'],
+		clear() {},
+		refresh: (lease) =>
+			new Promise<void | false>((resolve, reject) => {
+				reads.push({ lease, finish: resolve, fail: () => reject(Error('read failed')) });
+			})
+	});
+	const emit = (topics: string[]) =>
+		listeners.get('invalidate')!({ data: JSON.stringify({ topics }) });
+	const reset = () => listeners.get('reset')!({ data: '{}' });
+	return {
+		workspace,
+		resource,
+		reads,
+		emit,
+		reset,
+		source,
+		hide: () => {
+			visible = false;
+		},
+		resume: () => {
+			visible = true;
+			resume();
+		},
+		recover: () => listeners.get('recovering')!({ data: '{}' })
+	};
+}
+const settled = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+async function liveCauseWorkspace() {
+	const h = causeWorkspace();
+	h.reset();
+	h.reads[0].finish();
+	await settled();
+	return h;
+}
+describe('bounded saved-state causes and publication acknowledgement', () => {
+	it('clears a successful full cause independently of stale transport status', async () => {
+		const h = await liveCauseWorkspace();
+		h.emit(['inventory']);
+		expect(h.reads[1].lease.cause).toEqual(['inventory']);
+		h.reads[1].finish();
+		await settled();
+		expect(h.resource.getState().stale).toBe(false);
+		h.recover();
+		h.resource.invalidate(['values']);
+		expect(h.reads).toHaveLength(2);
+		h.reset();
+		expect(h.reads[2].lease.cause).toBe('full');
+		h.reads[2].finish();
+		await settled();
+		h.emit(['decks']);
+		expect(h.reads[3].lease.cause).toEqual(['decks']);
+		h.workspace.stop();
+	});
+	it('does not turn later topic reads into full while a successful connecting read remains stale', async () => {
+		const h = causeWorkspace();
+		h.emit(['inventory']);
+		expect(h.reads[0].lease.cause).toBe('full');
+		h.reads[0].finish();
+		await settled();
+		expect(h.workspace.getState()).toBe('connecting');
+		expect(h.resource.getState().stale).toBe(true);
+		h.emit(['values']);
+		expect(h.reads[1].lease.cause).toEqual(['values']);
+		h.reads[1].finish();
+		await settled();
+		expect(h.workspace.getState()).toBe('connecting');
+		h.workspace.stop();
+	});
+	it('full dominates a later narrow event until current accepted publication', async () => {
+		const h = causeWorkspace();
+		h.reset();
+		h.emit(['values']);
+		expect(h.reads[0].lease.current()).toBe(false);
+		h.reads[0].finish();
+		await settled();
+		expect(h.reads).toHaveLength(2);
+		expect(h.reads[1].lease.cause).toBe('full');
+		h.reads[1].finish();
+		await settled();
+		h.emit(['values']);
+		expect(h.reads[2].lease.cause).toEqual(['values']);
+		h.workspace.stop();
+	});
+	it('unions all in-flight topics into one coalesced follow-up and bounds unrelated topics', async () => {
+		const h = await liveCauseWorkspace();
+		h.emit(['values']);
+		for (let i = 0; i < 100; i++) h.emit(['inventory', 'decks', 'profile']);
+		expect(h.reads).toHaveLength(2);
+		expect(h.reads[1].lease.current()).toBe(false);
+		h.reads[1].finish(false);
+		await settled();
+		expect(h.reads).toHaveLength(3);
+		expect(h.reads[2].lease.cause).toEqual(['values', 'inventory', 'decks']);
+		h.reads[2].finish();
+		await settled();
+		expect(h.reads).toHaveLength(3);
+		h.workspace.stop();
+	});
+	it('false retains stale causes without an error or self retry and preserves queued work', async () => {
+		const h = await liveCauseWorkspace();
+		h.emit(['values']);
+		h.reads[1].finish(false);
+		await settled();
+		expect(h.reads).toHaveLength(2);
+		expect(h.resource.getState()).toEqual({ stale: true, refreshing: false, error: '' });
+		h.resource.invalidate(['inventory']);
+		expect(h.reads[2].lease.cause).toEqual(['values', 'inventory']);
+		h.emit(['decks']);
+		h.reads[2].finish(false);
+		await settled();
+		expect(h.reads).toHaveLength(4);
+		expect(h.reads[3].lease.cause).toEqual(['values', 'inventory', 'decks']);
+		h.workspace.stop();
+	});
+	it('failure keeps causes without a loop, explicit retry requests full and void still succeeds', async () => {
+		const h = await liveCauseWorkspace();
+		h.emit(['inventory']);
+		h.reads[1].fail();
+		await settled();
+		expect(h.resource.getState().error).toBe('read failed');
+		expect(h.reads).toHaveLength(2);
+		h.emit(['values']);
+		expect(h.reads[2].lease.cause).toEqual(['inventory', 'values']);
+		h.reads[2].fail();
+		await settled();
+		h.resource.invalidate();
+		expect(h.reads[3].lease.cause).toBe('full');
+		h.reads[3].finish();
+		await settled();
+		expect(h.resource.getState()).toEqual({ stale: false, refreshing: false, error: '' });
+		h.workspace.stop();
+	});
+	it('counted topic writes retain foreign events and complete without SSE exactly once', async () => {
+		const h = await liveCauseWorkspace();
+		const deck = h.resource.beginWrite(['decks']);
+		const category = h.resource.beginWrite(['decks']);
+		const inventory = h.workspace.beginWrite(['inventory']);
+		h.emit(['values']);
+		deck.complete();
+		deck.complete();
+		category.complete();
+		expect(h.reads).toHaveLength(1);
+		inventory.complete();
+		inventory.complete();
+		expect(h.reads).toHaveLength(2);
+		expect(h.reads[1].lease.cause).toEqual(['values', 'decks', 'inventory']);
+		h.reads[1].finish();
+		await settled();
+		const legacy = h.resource.beginWrite();
+		legacy.complete();
+		expect(h.reads[2].lease.cause).toBe('full');
+		h.workspace.stop();
+	});
+	it('all writes fence the whole resource and old/disposed handles cannot release replacements', async () => {
+		const h = await liveCauseWorkspace();
+		h.emit(['values']);
+		const write = h.resource.beginWrite(['decks']);
+		expect(h.reads[1].lease.current()).toBe(false);
+		h.reads[1].finish();
+		await settled();
+		h.resource.dispose();
+		let reads = 0;
+		const replacement = h.workspace.subscribe({
+			topics: ['decks'],
+			clear() {},
+			refresh: async () => {
+				reads++;
+			}
+		});
+		const currentWrite = replacement.beginWrite(['decks']);
+		write.complete();
+		await settled();
+		expect(reads).toBe(1);
+		currentWrite.complete();
+		await settled();
+		expect(reads).toBe(2);
+		h.workspace.stop();
+	});
+	it('hidden and offline bursts stay bounded and reset/resume/recovery remain full', async () => {
+		const h = await liveCauseWorkspace();
+		h.hide();
+		for (let i = 0; i < 100; i++) h.emit(['values', 'inventory']);
+		expect(h.reads).toHaveLength(1);
+		h.resume();
+		expect(h.reads[1].lease.cause).toBe('full');
+		h.source.onerror!();
+		h.reads[1].finish();
+		await settled();
+		for (let i = 0; i < 100; i++) h.emit(['decks']);
+		expect(h.reads).toHaveLength(2);
+		expect(h.workspace.getState()).toBe('offline');
+		h.reset();
+		expect(h.reads[2].lease.cause).toBe('full');
+		h.reads[2].finish();
+		await settled();
+		expect(h.workspace.getState()).toBe('live');
+		h.workspace.stop();
+	});
+});

@@ -5,7 +5,8 @@
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import { readSavedJSON } from '#lib/saved-state/read.ts';
 	import type { ResourceSubscription } from '#lib/saved-state/workspace.ts';
-	import type { DeckSnapshot } from '@spellbook/contracts/decks.ts';
+	import { refreshSelectedDeck, SelectedDeckReadError } from '#lib/decks/selected-refresh.ts';
+	import { SelectedDeckOptionalReads } from '#lib/decks/selected-optional-reads.ts';
 	import CardDetail from '#lib/components/cards/CardDetail.svelte';
 	import { storedCardDocument } from '#lib/mtg/stored-card.ts';
 	import type { CardDocument } from '#lib/search/types.ts';
@@ -79,6 +80,7 @@
 		untrack(() => deckSubscription?.invalidate());
 	});
 	onMount(() => {
+		optionalReads.watchSearchActivity(window.matchMedia('(max-width: 1000px)'));
 		deckSubscription = workspaceSavedState.subscribe({
 			topics: ['decks', 'inventory', 'values'],
 			clear: () => {
@@ -114,98 +116,82 @@
 				searchOwned = {};
 				inspectorOwned = [];
 				pendingRequests.clear();
-				searchController?.abort();
-				ownershipController?.abort();
+				optionalReads.clear();
 				saveLifecycle.destroy();
 			},
 			refresh: async (lease) => {
-				const selected = data.selectedDeckId,
-					flow = data.flow,
-					account = data.user?.accountId;
-				const current = () =>
-					lease.current() &&
-					data.selectedDeckId === selected &&
-					data.flow === flow &&
-					data.user?.accountId === account;
-				const guarded = { signal: lease.signal, current };
-				if (!selected) return;
+				const routeData = data;
 				try {
-					const snapshot = await readSavedJSON<
-						DeckSnapshot & Pick<typeof data, 'warnings' | 'deckDocuments'>
-					>(`/api/mobile/v1/mtg/decks/${selected}?selectedOnly=true`, guarded);
-					if (!snapshot || !current()) return;
-					const next = snapshot.decks.find((deck) => deck.id === selected);
-					if (next && (editOpen || flow === 'edit')) {
-						if (nameDraft === nameBase) {
-							nameDraft = next.name;
-							nameBase = next.name;
+					return await refreshSelectedDeck({
+						lease,
+						read: readSavedJSON,
+						context: () => optionalReads.context(),
+						state: () => ({
+							confirmedDecks: [...savedDecks.decks, ...data.decks],
+							categories: entryCategories,
+							wholeCategories,
+							details:
+								editOpen || data.flow === 'edit'
+									? {
+											name: nameDraft,
+											nameBase,
+											format: formatDraft,
+											formatBase,
+											description: descriptionDraft,
+											descriptionBase,
+											descriptionRevision: descriptionBaseRevision
+										}
+									: null,
+							inspector: inspectedEntryId
+								? {
+										entryId: inspectedEntryId,
+										opening: inspectorOpening,
+										quantity: inspectorQuantity,
+										quantityBase: inspectorQuantityBase,
+										role: inspectorRole,
+										roleBase: inspectorRoleBase
+									}
+								: null
+						}),
+						publish: (value) => {
+							if (value.details?.name !== undefined) nameDraft = value.details.name;
+							if (value.details?.nameBase !== undefined) nameBase = value.details.nameBase;
+							if (value.details?.format !== undefined) formatDraft = value.details.format;
+							if (value.details?.formatBase !== undefined) formatBase = value.details.formatBase;
+							if (value.details?.description !== undefined)
+								descriptionDraft = value.details.description;
+							if (value.details?.descriptionBase !== undefined)
+								descriptionBase = value.details.descriptionBase;
+							if (value.details?.descriptionRevision !== undefined)
+								descriptionBaseRevision = value.details.descriptionRevision;
+							if (value.inspector?.quantity !== undefined)
+								inspectorQuantity = value.inspector.quantity;
+							if (value.inspector?.quantityBase !== undefined)
+								inspectorQuantityBase = value.inspector.quantityBase;
+							if (value.inspector?.role !== undefined) inspectorRole = value.inspector.role;
+							if (value.inspector?.roleBase !== undefined)
+								inspectorRoleBase = value.inspector.roleBase;
+							if (value.categories)
+								categoryRead = { accountId: data.user?.accountId ?? '', value: value.categories };
+							savedDecks = {
+								...savedDecks,
+								...value.snapshot,
+								...value.optionalLegality,
+								...(value.wholeCategories ? { wholeCategories: value.wholeCategories } : {})
+							};
+							if (value.ownership && value.ownershipContext)
+								optionalReads.acceptOwnership(value.ownership, value.ownershipContext);
+							if (value.search && value.searchContext)
+								optionalReads.acceptSearch(value.search, value.searchContext);
+							deletedTarget = false;
 						}
-						if (formatDraft === formatBase) {
-							formatDraft = next.format;
-							formatBase = next.format;
-						}
-						if (descriptionDraft === descriptionBase) {
-							descriptionDraft = next.description;
-							descriptionBase = next.description;
-							descriptionBaseRevision = next.descriptionRevision;
-						}
-					}
-					const nextEntry = snapshot.deckCards.find((entry) => entry.id === inspectedEntryId);
-					if (nextEntry) {
-						if (inspectorQuantity === inspectorQuantityBase) {
-							inspectorQuantity = nextEntry.quantity;
-							inspectorQuantityBase = nextEntry.quantity;
-						}
-						if (inspectorRole === inspectorRoleBase) {
-							inspectorRole = nextEntry.role;
-							inspectorRoleBase = nextEntry.role;
-						}
-					}
-					if (selected) {
-						const categories = await readSavedJSON<DeckEntryCategories>(
-							`/api/mobile/v1/mtg/decks/${encodeURIComponent(selected)}/categories`,
-							guarded
-						);
-						if (!categories || !current()) return;
-						if (
-							categories.deckId !== selected ||
-							(entryCategories &&
-								BigInt(categories.decisionRevision) < BigInt(entryCategories.decisionRevision))
-						)
-							throw new Error('The saved category read is older than the current revision.');
-						categoryRead = { accountId: account ?? '', value: categories };
-					}
-					const wholeCategories = await readSavedJSON<NonNullable<typeof data.wholeCategories>>(
-						`/api/mobile/v1/mtg/decks/${selected}/whole-categories`,
-						guarded
-					);
-					if (!wholeCategories || !current()) return;
-					savedDecks = { ...savedDecks, ...snapshot, wholeCategories };
-					deletedTarget = false;
-					const inspector = inspected;
-					if (inspector) {
-						const owned = await readSavedJSON<typeof inspectorOwned>(
-							`/api/mobile/v1/mtg/decks/ownership?canonicalCardId=${encodeURIComponent(inspector.oracle_id)}`,
-							guarded
-						);
-						if (owned && current() && inspected === inspector) inspectorOwned = owned;
-					}
-					const searchQuery = query;
-					if (searchQuery.trim().length >= 2) {
-						const search = await readSavedJSON<{
-							hits: CardDocument[];
-							ownedByCanonical: Record<string, number>;
-						}>(`/api/mobile/v1/mtg/decks/search?q=${encodeURIComponent(searchQuery)}`, guarded);
-						if (search && current() && query === searchQuery) {
-							results = search.hits;
-							searchOwned = search.ownedByCanonical;
-						}
-					}
+					});
 				} catch (cause) {
 					if (
-						current() &&
-						cause instanceof Error &&
-						cause.message === 'This saved target is no longer available.'
+						lease.current() &&
+						data === routeData &&
+						cause instanceof SelectedDeckReadError &&
+						cause.deckUnavailable
 					) {
 						deletedTarget = true;
 						savedDecks = { ...savedDecks, valueEstimates: null, valuationError: null };
@@ -248,7 +234,7 @@
 	);
 	async function refreshCategories(deckId: string, signal: AbortSignal): Promise<void> {
 		if (signal.aborted || deckId !== data.selectedDeckId) return;
-		deckSubscription?.invalidate();
+		deckSubscription?.invalidate(['decks']);
 	}
 
 	const saveLifecycle = untrack(
@@ -421,10 +407,54 @@
 	let inspectorOwned = $state<typeof savedDecks.ownedPrintings>([]);
 	let ownershipLoading = $state(false);
 	let ownershipError = $state('');
-	let ownershipController: AbortController | undefined;
+	let inspectorOpening = 0;
 	let searching = $state(false);
 	let searchError = $state('');
-	let searchController: AbortController | undefined;
+	const optionalReads = new SelectedDeckOptionalReads({
+		route: () => ({
+			accountId: data.user?.accountId ?? '',
+			deckId: data.selectedDeckId,
+			flow: data.flow,
+			scope: data
+		}),
+		active: (accountId) => workspaceSavedState.isActive(accountId),
+		inspector: () =>
+			inspected ? { canonicalCardId: inspected.oracle_id, opening: inspectorOpening } : null,
+		search: () => ({ query, open: searchOpen }),
+		initialSearch: untrack(() => (!data.oracleId && !data.catalogError ? data.query : undefined)),
+		publication: () => deckSubscription?.publication() ?? (() => true),
+		read: readSavedJSON,
+		ownership: (value) => {
+			inspectorOwned = value;
+		},
+		results: (value) => {
+			results = value.hits;
+			searchOwned = value.ownedByCanonical;
+		},
+		ownershipStatus: (loading, error) => {
+			ownershipLoading = loading;
+			ownershipError = error;
+		},
+		searchStatus: (loading, error) => {
+			searching = loading;
+			searchError = error;
+		}
+	});
+	function setSearchQuery(value: string) {
+		if (query === value) return;
+		query = value;
+		optionalReads.searchChanged('query');
+	}
+	function setSearchOpen(value: boolean) {
+		if (searchOpen === value) return;
+		searchOpen = value;
+		optionalReads.searchChanged();
+	}
+	function closeInspector() {
+		inspectorOpening++;
+		inspected = null;
+		optionalReads.closeInspector();
+	}
 	let saveStatus = $state('');
 	let saveError = $state('');
 	let removed = $state<(typeof savedDecks.deckCards)[number] | null>(null);
@@ -434,6 +464,7 @@
 	const inspectorGone = $derived(!!inspectedEntryId && !inspectedEntry);
 
 	async function inspect(card: CardDocument, entry?: (typeof savedDecks.deckCards)[number]) {
+		inspectorOpening++;
 		saveLifecycle.open('inspector', entry?.id ?? card.id);
 		inspected = card;
 		inspectedEntryId = entry?.id ?? null;
@@ -442,67 +473,12 @@
 		inspectorRole = entry?.role ?? addRole;
 		inspectorQuantityBase = inspectorQuantity;
 		inspectorRoleBase = inspectorRole;
-		ownershipController?.abort();
-		const controller = new AbortController();
-		ownershipController = controller;
 		inspectorOwned = [];
-		const publication = deckSubscription?.publication() ?? (() => true);
-		ownershipLoading = true;
-		ownershipError = '';
-		try {
-			const response = await fetch(
-				`/api/mobile/v1/mtg/decks/ownership?canonicalCardId=${encodeURIComponent(card.oracle_id)}`,
-				{ signal: controller.signal }
-			);
-			if (response.status === 401 && publication()) workspaceSavedState.expire();
-			if (!response.ok) throw new Error('Owned quantities are unavailable.');
-			const owned = await response.json();
-			if (publication() && !controller.signal.aborted) inspectorOwned = owned;
-		} catch (cause) {
-			if (publication() && !controller.signal.aborted)
-				ownershipError =
-					cause instanceof Error ? cause.message : 'Owned quantities are unavailable.';
-		} finally {
-			if (!controller.signal.aborted) ownershipLoading = false;
-		}
+		await optionalReads.readOwnership();
 	}
 	async function findCards(event: SubmitEvent) {
 		event.preventDefault();
-		searchController?.abort();
-		const controller = new AbortController();
-		searchController = controller;
-		const publication = deckSubscription?.publication() ?? (() => true);
-		const submittedQuery = query,
-			account = data.user?.accountId,
-			selected = data.selectedDeckId,
-			flow = data.flow;
-		const ownsRequest = () =>
-			searchController === controller &&
-			!controller.signal.aborted &&
-			workspaceSavedState.isActive(account) &&
-			data.user?.accountId === account &&
-			data.selectedDeckId === selected &&
-			data.flow === flow;
-		const current = () => ownsRequest() && publication() && query === submittedQuery;
-		searching = true;
-		searchError = '';
-		try {
-			const result = await readSavedJSON<{
-				hits: CardDocument[];
-				ownedByCanonical: Record<string, number>;
-			}>(`/api/mobile/v1/mtg/decks/search?q=${encodeURIComponent(submittedQuery)}`, {
-				signal: controller.signal,
-				current
-			});
-			if (result && current()) {
-				searchOwned = result.ownedByCanonical;
-				results = result.hits;
-			}
-		} catch (cause) {
-			if (current()) searchError = cause instanceof Error ? cause.message : 'Search failed.';
-		} finally {
-			if (ownsRequest()) searching = false;
-		}
+		await optionalReads.submitSearch();
 	}
 
 	const selectedDeck = $derived(savedDecks.decks.find((deck) => deck.id === data.selectedDeckId));
@@ -646,6 +622,7 @@
 			saveAccount = accountId;
 		}
 		if (saveLifecycle.setScope(data.user?.accountId ?? '', data.selectedDeckId, data.flow)) {
+			optionalReads.clear();
 			savedDecks = { ...savedDecks, valueEstimates: null, valuationError: null };
 			categoryRead = null;
 			dirtyCategoryEntries = [];
@@ -675,8 +652,7 @@
 	});
 	onDestroy(() => {
 		saveLifecycle.destroy();
-		searchController?.abort();
-		ownershipController?.abort();
+		optionalReads.dispose();
 	});
 	function reportUnconfirmedSave() {
 		saveError = 'Could not confirm the save. Your changes are still here. Try again.';
@@ -702,7 +678,7 @@
 			cancel();
 			return;
 		}
-		const write = deckSubscription?.beginWrite();
+		const write = deckSubscription?.beginWrite(['decks']);
 		const operation =
 			[...target.searchParams.keys()].find((key) => key.startsWith('/'))?.slice(1) ?? '';
 		const submission = saveLifecycle.capture(
@@ -1261,7 +1237,7 @@
 				onclick={(event) => {
 					event.preventDefault();
 					searchTrigger = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
-					searchOpen = true;
+					setSearchOpen(true);
 				}}>Find cards</Button
 			>
 		</div>
@@ -1328,7 +1304,7 @@
 							unavailable={data.categoryReadError}
 							selectedVersionId={data.wholeCategoryVersion}
 							draft={form && 'wholeDraft' in form ? form.wholeDraft : undefined}
-							beginWrite={() => deckSubscription?.beginWrite()}
+							beginWrite={() => deckSubscription?.beginWrite(['decks'])}
 						/>{/key}{/if}
 				{#if entryCategories && !entryCategories.initialized}
 					<form
@@ -1451,7 +1427,7 @@
 
 {#snippet discovery()}<DeckDiscovery
 		deckId={selectedDeck?.id}
-		bind:query
+		bind:query={() => query, setSearchQuery}
 		bind:ownedOnly
 		bind:addRole
 		bind:addQuantity
@@ -1477,12 +1453,12 @@
 	cancelHref={flowHref()}
 	pending={busy}
 	variant="import"
-	bind:open={searchOpen}
+	bind:open={() => searchOpen, setSearchOpen}
 	returnFocus={searchTrigger}>{@render discovery()}</DeckDialog
 >
 
 {#if inspected}
-	<CardDetail callerPending={busy} card={inspected} onClose={() => (inspected = null)}>
+	<CardDetail callerPending={busy} card={inspected} onClose={closeInspector}>
 		{#snippet actions(printing)}
 			{@const owned = inspectorOwned.filter((card) => card.canonicalCardId === printing.oracle_id)}
 			<div class="inspector-form">
