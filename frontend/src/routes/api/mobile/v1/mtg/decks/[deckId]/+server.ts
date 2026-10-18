@@ -61,9 +61,10 @@ export const GET: RequestHandler = async (event) => {
 			event.url.searchParams.get('selectedOnly') === 'true'
 				? await application.decks.getDeck(auth.user, deckId)
 				: await application.decks.getDeckSnapshot(auth.user, 'mtg', deckId);
-		if (includeLegality === 'false') return json(snapshot);
+		if (includeLegality === 'false')
+			return json(snapshot, { headers: { 'Cache-Control': 'no-store' } });
 		const detail = await application.decks.getDeckLegality(auth.user, deckId);
-		return json({ ...snapshot, ...detail });
+		return json({ ...snapshot, ...detail }, { headers: { 'Cache-Control': 'no-store' } });
 	} catch (cause) {
 		badRequestIfValidation(cause);
 	}
