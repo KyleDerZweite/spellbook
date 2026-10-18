@@ -104,7 +104,7 @@ The backend transport, manifest and worker are integrated. The PWA pages and nav
 
 ## Selected Deck refresh contract
 
-The following accepted implementation contract was independently reviewed against parent revision `43cb7e3` for the follow-up to [PR 231](https://github.com/KyleDerZweite/spellbook/pull/231). Implementation and current-head acceptance evidence remain separate. The route keeps drafts, confirmed bases, original receipts and retry intents. A route-owned `lib/decks/selected-refresh.ts` coordinates reads through the existing SavedState lease and HTTP adapter. It does not own persistence or duplicate editor state.
+The implemented contract was independently reviewed against parent revision `43cb7e3` for the follow-up to [PR 231](https://github.com/KyleDerZweite/spellbook/pull/231). Current-head acceptance evidence remains separate. The route keeps drafts, confirmed bases, original receipts and retry intents. A route-owned `lib/decks/selected-refresh.ts` coordinates reads through the existing SavedState lease and HTTP adapter. It does not own persistence or duplicate editor state.
 
 | Read cause                                                          | Selected snapshot | Legality/documents and both Category reads | Active Inspector ownership | Active Search |
 | ------------------------------------------------------------------- | ----------------- | ------------------------------------------ | -------------------------- | ------------- |
