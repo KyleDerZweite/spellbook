@@ -375,6 +375,96 @@ it('payload identity excludes requestId but distinguishes actions, named submitt
 	expect(uncertain('?/save', roles)).not.toBe(a);
 });
 
+it('unrelated receipts and successful criteria cannot discard the uncertain original request', () => {
+	const { editor } = mount();
+	const original = fields('Uncertain A');
+	const uncertain = begin(editor, original);
+	uncertain.complete(
+		{ type: 'error', error: { status: 500, message: 'Lost acknowledgement' } },
+		original
+	);
+	uncertain.finish();
+	const retry = editor.originalRetry;
+	editB(editor);
+	const archive = new FormData();
+	archive.set('originId', 'other-definition');
+	const archived = begin(editor, archive, fields('New B'), '?/archive');
+	archived.complete(
+		reply({ acknowledgement: acknowledged('archive-request', 'other-definition') }),
+		fields('New B')
+	);
+	archived.finish();
+	expect(editor.originalRetry).toBe(retry);
+	expect(editor.confirmation?.originId).toBe('other-definition');
+	const criteriaFields = fields('New B', 'choices');
+	const criteria = begin(editor, criteriaFields);
+	criteria.complete(reply({ choices: { tags: [], cards: [] } }), fields('New B'));
+	criteria.finish();
+	expect(editor.originalRetry).toBe(retry);
+	const repeated = new FormData();
+	for (const [name, value] of retry!.fields) repeated.append(name, value);
+	const originalAttempt = begin(editor, repeated, fields('New B'));
+	expect(repeated.get('requestId')).toBe(original.get('requestId'));
+	originalAttempt.complete(
+		reply({ acknowledgement: acknowledged(String(repeated.get('requestId'))) }),
+		fields('New B')
+	);
+	originalAttempt.finish();
+	expect(editor.originalRetry).toBeNull();
+	expect(editor.draft.name).toBe('New B');
+});
+
+it('successful original criteria retry clears its retry while retaining newer controls', () => {
+	const { editor } = mount();
+	const original = fields('Criteria A', 'update');
+	const attempt = begin(editor, original);
+	attempt.complete(reply({ message: 'Unavailable' }, 503), original);
+	attempt.finish();
+	const retry = editor.originalRetry!;
+	editB(editor);
+	const repeated = new FormData();
+	for (const [name, value] of retry.fields) repeated.append(name, value);
+	const retried = begin(editor, repeated, fields('New B'));
+	expect(repeated.get('requestId')).toBe(original.get('requestId'));
+	retried.complete(reply({ draft: initial().draft }), fields('New B'));
+	retried.finish();
+	expect(editor.originalRetry).toBeNull();
+	expect(editor.draft.name).toBe('New B');
+	expect(editor.dirty).toBe(true);
+});
+
+it('retains the uncertain original and current retry identities through repeated edited validation failures', () => {
+	const { editor } = mount();
+	const original = fields('Uncertain A');
+	const attempt = begin(editor, original);
+	attempt.complete({ type: 'error', error: { status: 500, message: 'Lost' } }, original);
+	attempt.finish();
+	const retry = editor.originalRetry!;
+	let lastId: FormDataEntryValue | null = null;
+	for (let index = 0; index < 100; index++) {
+		const rejected = fields(`Rejected ${index}`);
+		const current = begin(editor, rejected);
+		current.complete(reply({ message: 'Invalid criteria' }, 400), rejected);
+		current.finish();
+		lastId = rejected.get('requestId');
+	}
+	const last = fields('Rejected 99');
+	const lastAttempt = begin(editor, last);
+	expect(last.get('requestId')).toBe(lastId);
+	lastAttempt.complete(reply({ message: 'Unavailable' }, 503), last);
+	lastAttempt.finish();
+	expect(editor.originalRetry).toBe(retry);
+	const repeated = new FormData();
+	for (const [name, value] of retry.fields) repeated.append(name, value);
+	const originalAttempt = begin(editor, repeated);
+	expect(repeated.get('requestId')).toBe(original.get('requestId'));
+	originalAttempt.finish();
+	const currentFields = fields('Rejected 99');
+	const currentAttempt = begin(editor, currentFields);
+	expect(currentFields.get('requestId')).toBe(lastId);
+	currentAttempt.finish();
+});
+
 it.each(['scope', 'account', 'route origin'])(
 	'synchronously rejects %s replacement before effects and after returning',
 	(change) => {
@@ -396,6 +486,20 @@ it.each(['scope', 'account', 'route origin'])(
 		expect(editor.busy).toBe(false);
 	}
 );
+
+it('navigation reopen rejects away/back callbacks even when no authority read or effect observes the intermediate route', () => {
+	const { editor, inputs } = mount();
+	const attempt = begin(editor);
+	const read = editor.authority();
+	// The page's beforeNavigate adapter calls reopen when leaving the context.
+	editor.reopen();
+	inputs.replace({ ...initial(), scope: 'deck' });
+	inputs.replace(initial());
+	attempt.complete(reply({ acknowledgement: acknowledged() }), fields());
+	attempt.finish();
+	expect(read.current()).toBe(false);
+	expect(editor.confirmation).toBeNull();
+});
 
 it('synchronously rejects inactive account evidence before effects and after reactivation', () => {
 	const { editor, inputs } = mount();

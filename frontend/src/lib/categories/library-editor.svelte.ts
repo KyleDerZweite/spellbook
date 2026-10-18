@@ -26,6 +26,7 @@ type OriginalRetry = {
 	readonly action: string;
 	readonly fields: readonly (readonly [string, string])[];
 };
+type RequestIdentity = { payload: string; requestId: string };
 
 function draftIdentity(fields: FormData) {
 	return JSON.stringify(
@@ -56,6 +57,8 @@ export function createCategoryLibraryEditor(input: {
 	let dirty = $state(false);
 	let confirmation = $state<LibraryAcknowledgement | null>(null);
 	let originalRetry = $state.raw<OriginalRetry | null>(null);
+	let retryRequest: RequestIdentity | null = null;
+	let lastRequest: RequestIdentity | null = null;
 	let key = seedKey(initial);
 	let opening = {};
 	let edits = 0;
@@ -64,22 +67,36 @@ export function createCategoryLibraryEditor(input: {
 	let reopened = false;
 	let pending: object | null = null;
 	let observedDraft = initial.draft;
-	const requests = new Map<string, string>();
 
 	function resetOpening() {
 		opening = {};
 		reopened = false;
 		edits = 0;
 		pending = null;
-		requests.clear();
+		lastRequest = null;
 		busy = dirty = false;
 		confirmation = originalRetry = null;
+		retryRequest = null;
 		message = '';
 	}
 	function adopt(seed: CategoryEditorSeed) {
 		draft = copyDraft(seed.draft);
 		choices = copyChoices(seed.choices);
 		reopened = false;
+	}
+	function confirmed(payload: string) {
+		if (lastRequest?.payload === payload) lastRequest = null;
+		if (retryRequest?.payload === payload) {
+			originalRetry = null;
+			retryRequest = null;
+		}
+	}
+	function retainRetry(original: OriginalRetry, identity: RequestIdentity) {
+		// Keep the earlier uncertain command available while newer controls are submitted.
+		if (retryRequest && retryRequest.payload !== identity.payload) return;
+		originalRetry = original;
+		retryRequest = identity;
+		if (lastRequest?.payload === identity.payload) lastRequest = null;
 	}
 	function synchronize(seed = input.seed()) {
 		if (!live) return;
@@ -193,8 +210,12 @@ export function createCategoryLibraryEditor(input: {
 			const current = authority();
 			if (!current.current() || busy) return null;
 			const payload = action + JSON.stringify([...fields].filter(([name]) => name !== 'requestId'));
-			const requestId = requests.get(payload) ?? crypto.randomUUID();
-			requests.set(payload, requestId);
+			const requestId =
+				(retryRequest?.payload === payload ? retryRequest.requestId : undefined) ??
+				(lastRequest?.payload === payload ? lastRequest.requestId : undefined) ??
+				crypto.randomUUID();
+			const identity = { payload, requestId };
+			if (retryRequest?.payload !== payload) lastRequest = identity;
 			fields.set('requestId', requestId);
 			const original: OriginalRetry = Object.freeze({
 				action,
@@ -220,9 +241,11 @@ export function createCategoryLibraryEditor(input: {
 					const unchanged =
 						submittedEdits === edits && submittedDraft === draftIdentity(currentFields);
 					if (result.type === 'error') {
-						originalRetry = original;
+						retainRetry(original, identity);
 						message =
-							'Could not confirm this submission. Your draft is retained. Retry the same submission.';
+							retryRequest?.payload === payload
+								? 'Could not confirm this submission. Your draft is retained. Retry the same submission.'
+								: 'Could not confirm this submission. Your draft and the earlier original retry are retained. Submit the current draft again to retry it.';
 						return;
 					}
 					if (result.type === 'redirect') return unchanged ? { redirect: true } : undefined;
@@ -230,8 +253,7 @@ export function createCategoryLibraryEditor(input: {
 					if (reply?.acknowledgement) {
 						const acknowledged = reply.acknowledgement;
 						confirmation = acknowledged;
-						requests.delete(payload);
-						originalRetry = null;
+						confirmed(payload);
 						message = unchanged
 							? (reply.message ?? 'Submitted definition saved.')
 							: 'Submitted definition saved. Your newer edits remain unsaved.';
@@ -243,7 +265,9 @@ export function createCategoryLibraryEditor(input: {
 						}
 						return { refresh: current };
 					}
-					if (result.type === 'failure' && result.status >= 500) originalRetry = original;
+					if (result.type === 'failure' && result.status >= 500) {
+						retainRetry(original, identity);
+					}
 					message =
 						!unchanged && reply?.draft
 							? result.type === 'success'
@@ -257,7 +281,7 @@ export function createCategoryLibraryEditor(input: {
 						}
 						if (reply?.choices) choices = copyChoices(reply.choices);
 					}
-					if (result.type === 'success') requests.delete(payload);
+					if (result.type === 'success') confirmed(payload);
 				},
 				finish() {
 					finished = true;

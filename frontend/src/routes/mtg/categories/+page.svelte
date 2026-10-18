@@ -6,6 +6,7 @@
 	import { describeCategoryRule } from '#lib/categories/rule-summary.ts';
 	import { enhance } from '$app/forms';
 	import type { SubmitFunction } from '$app/forms';
+	import { beforeNavigate } from '$app/navigation';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
 	import type { ResourceSubscription, ReadLease } from '#lib/saved-state/workspace.ts';
@@ -36,6 +37,16 @@
 			return accountId && workspaceSavedState.isActive(accountId) ? accountId : null;
 		},
 		initialAction: untrack(() => form)
+	});
+	beforeNavigate(({ to }) => {
+		const scope = to?.url.searchParams.get('scope') === 'deck' ? 'deck' : 'entry';
+		const originId = to?.url.searchParams.get('edit') || null;
+		if (
+			to?.route.id !== '/mtg/categories' ||
+			scope !== data.scope ||
+			originId !== data.draft.originId
+		)
+			editor.reopen();
 	});
 	let library = $state(untrack(() => data.library));
 	let libraryReadError = $state('');
