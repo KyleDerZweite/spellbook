@@ -1,9 +1,9 @@
 # Routes and supported game, paused Scan entrypoints
 
 - Status: Canonical
-- Last Reviewed: 2026-10-08
+- Last Reviewed: 2026-10-17
 - Source of Truth: route handlers and server hooks
-- Update Triggers: route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game, paused Scan entrypoints, private Inventory history routes
+- Update Triggers: PWA launch/connect and QR approval/API routes, route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game, paused Scan entrypoints, private Inventory history routes
 - Related Docs: [Product specification](./specification.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Frontend architecture](../architecture/frontend.md), [Catalog](../architecture/catalog.md), [Product index](./README.md)
 
 Scan presentation is paused. The existing `/mtg/scan` route and versioned Scan API are retained, but Navigation, Inventory and Dashboard do not link to Scan. [Mobile and scan](../architecture/mobile-and-scan.md) owns retained capabilities and the later recognition scope.
@@ -14,37 +14,46 @@ The [route source](../../frontend/src/routes/) owns implemented handlers. The [s
 
 ## Pages and account routes
 
-| Route                         | Access and behavior                                                               |
-| ----------------------------- | --------------------------------------------------------------------------------- |
-| `/`                           | Public landing for signed-out and signed-in users                                 |
-| `/mtg/history`                | Authenticated personal Inventory value history and identity/date filters          |
-| `/mtg/dashboard`              | Authenticated account summaries and per-deck availability                         |
-| `/mtg/search`                 | Public catalog search and printing details                                        |
-| `/mtg/inventory/[entryId]`    | Authenticated SSR owned-entry Notes/Groups/reviewed Remove forms                  |
-| `/mtg/inventory`              | Authenticated bounded Inventory pages, GET filters and form actions               |
-| `/mtg/scan`                   | Authenticated image upload, candidate review, and explicit inventory commit       |
-| `/mtg/categories`             | Authenticated scoped reusable Category Library and native criteria editor         |
-| `/mtg/decks`                  | Authenticated deck library; `deck=ID` selects the editor; native tasks use `flow` |
-| `/mtg/decks/[deckId]/export`  | Authenticated text export of an owned deck                                        |
-| `/settings`                   | Authenticated contact email and Edit avatar dialog; excluded from indexing        |
-| `/settings/profile-card`      | Authenticated private card editor and artwork save; excluded from indexing        |
-| `/settings/password`          | Authenticated current-password-confirmed change; disabled in demo mode            |
-| `/auth/login`                 | Local sign-in page and form action                                                |
-| `/auth/register`              | Local account registration page and form action                                   |
-| `/auth/logout`                | POST revokes the browser session and clears its cookie                            |
-| `/privacy`, `/terms`          | Public information pages                                                          |
-| `/api/auth/register`          | POST creates a local account and returns a bearer session                         |
-| `/api/auth/login`             | POST verifies local credentials and returns a bearer session                      |
-| `/api/account/profile`        | Authenticated GET profile read and PATCH supplied preference/card fields          |
-| `/api/account/dashboard`      | Authenticated GET account aggregates and deck availability summaries              |
-| `/api/account/password`       | Authenticated POST password rotation and replacement session                      |
-| `/api/account/events`         | Authenticated GET SavedState event stream                                         |
-| `/api/auth/session`           | Authenticated GET selected-session inspection                                     |
-| `/api/auth/logout`            | POST revokes the presented bearer session                                         |
-| `/openapi.json`               | API description                                                                   |
-| `/llms.txt`                   | Public Markdown overview, application links, and agent registration rules         |
-| `/agents.md`                  | Permanent same-origin redirect to `/llms.txt`                                     |
-| `/robots.txt`, `/sitemap.xml` | Search-engine metadata                                                            |
+| Route                                   | Access and behavior                                                               |
+| --------------------------------------- | --------------------------------------------------------------------------------- |
+| `/`                                     | Public landing for signed-out and signed-in users                                 |
+| `/mtg/history`                          | Authenticated personal Inventory value history and identity/date filters          |
+| `/mtg/dashboard`                        | Authenticated account summaries and per-deck availability                         |
+| `/mtg/search`                           | Public catalog search and printing details                                        |
+| `/mtg/inventory/[entryId]`              | Authenticated SSR owned-entry Notes/Groups/reviewed Remove forms                  |
+| `/mtg/inventory`                        | Authenticated bounded Inventory pages, GET filters and form actions               |
+| `/mtg/scan`                             | Authenticated image upload, candidate review, and explicit inventory commit       |
+| `/mtg/categories`                       | Authenticated scoped reusable Category Library and native criteria editor         |
+| `/mtg/decks`                            | Authenticated deck library; `deck=ID` selects the editor; native tasks use `flow` |
+| `/mtg/decks/[deckId]/export`            | Authenticated text export of an owned deck                                        |
+| `/settings`                             | Authenticated contact email and Edit avatar dialog; excluded from indexing        |
+| `/settings/profile-card`                | Authenticated private card editor and artwork save; excluded from indexing        |
+| `/settings/password`                    | Authenticated current-password-confirmed change; disabled in demo mode            |
+| `/auth/login`                           | Local password form; accepted delivery adds QR sign-in alongside it               |
+| `/app`                                  | Accepted public PWA launch/install hub and existing account/workspace links       |
+| `/app/connect`                          | Accepted authenticated camera/manual same-instance authorization QR scanner       |
+| `/auth/approve`                         | Accepted authenticated explicit Approve/Deny page, selected by `code` query       |
+| `/auth/register`                        | Local account registration page and form action                                   |
+| `/auth/logout`                          | POST revokes the browser session and clears its cookie                            |
+| `/privacy`, `/terms`                    | Public information pages                                                          |
+| `/api/auth/register`                    | POST creates a local account and returns a bearer session                         |
+| `/api/auth/login`                       | POST verifies local credentials and returns a bearer session                      |
+| `/api/auth/qr/requests`                 | POST creates a five-minute browser/device authorization request                   |
+| `/api/auth/qr/requests/[code]`          | Authenticated GET inspects public request status                                  |
+| `/api/auth/qr/requests/[code]/decision` | Authenticated POST explicitly approves or denies                                  |
+| `/api/auth/qr/token`                    | POST redeems with the private requester credential                                |
+| `/api/account/profile`                  | Authenticated GET profile read and PATCH supplied preference/card fields          |
+| `/api/account/dashboard`                | Authenticated GET account aggregates and deck availability summaries              |
+| `/api/account/password`                 | Authenticated POST password rotation and replacement session                      |
+| `/api/account/events`                   | Authenticated GET SavedState event stream                                         |
+| `/api/auth/session`                     | Authenticated GET selected-session inspection                                     |
+| `/api/auth/logout`                      | POST revokes the presented bearer session                                         |
+| `/openapi.json`                         | API description                                                                   |
+| `/llms.txt`                             | Public Markdown overview, application links, and agent registration rules         |
+| `/agents.md`                            | Permanent same-origin redirect to `/llms.txt`                                     |
+| `/robots.txt`, `/sitemap.xml`           | Search-engine metadata                                                            |
+
+The QR API is integrated. The `/app`, `/app/connect`, `/auth/approve` and login presentation rows describe the accepted delivery; the PWA pages and navigation are implemented. Target verification is recorded with the change. [Frontend](../architecture/frontend.md#pwa-and-qr-presentation) owns presentation, and [Authentication](../architecture/auth.md#pwa-and-qr-sign-in-implementation-contract) owns the QR protocol. All `/auth/*` and `/app*` page responses use `no-store` and `Referrer-Policy: no-referrer`.
 
 `GET /llms.txt` provides a public Markdown overview and links to the application and API, with instructions for creating a new account through the existing registration API. The shared HTML head links to it with `rel="describedby"`. Demo deployments instead state that registration is disabled. `/agents.md` returns HTTP 308 to `/llms.txt` without duplicating the guide. This guide does not implement the proposed auth.md protocol.
 
@@ -58,7 +67,7 @@ Category controls use `localCategory`, `preview` and `previewOffset` for pure na
 
 Signed-out access to protected pages redirects to `/auth/login` with the local path and query preserved. Login and registration default to `/mtg/inventory` when no safe destination is supplied. An explicit safe `returnTo`, including `/` or `/mtg/decks?deck=ID`, remains authoritative. Versioned MTG endpoints accept a bearer session or the authenticated browser session. An Authorization header takes precedence and an invalid bearer token fails without cookie fallback. Unsafe cookie-authenticated requests require same-origin protection. The [authentication document](../architecture/auth.md) owns credential and session rules.
 
-There is no OIDC callback route, game-switching page, play route, public deck page, camera capture page, or offline workspace.
+There is no OIDC callback route, game-switching page, play route, public deck page, MTG card camera-capture page or offline workspace. Authorization QR camera scanning belongs to `/app/connect`. The public `offline.html` fallback contains no account workspace.
 
 Public read-only browser endpoints are `GET` and `POST /api/catalog/search` and `GET /api/catalog/cards/{oracleId}/printings`. They use the same validated search and printing contracts as their versioned counterparts. Inventory and deck mutations remain authenticated.
 

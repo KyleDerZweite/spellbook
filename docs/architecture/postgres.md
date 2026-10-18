@@ -1,20 +1,23 @@
 # Postgres
 
 - Status: Canonical
-- Last Reviewed: 2026-10-08
+- Last Reviewed: 2026-10-17
 - Source of Truth: code
-- Update Triggers: schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership, application resource lifetime and native operator ownership, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers, private value checkpoints and frozen evidence, public price publication and retention, Oracle Tags publications and raw facts, entry category bundles/decisions and receipts, immutable account definitions and relational preview retention
+- Update Triggers: QR authorization persistence and migration 0024, schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership, application resource lifetime and native operator ownership, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers, private value checkpoints and frozen evidence, public price publication and retention, Oracle Tags publications and raw facts, entry category bundles/decisions and receipts, immutable account definitions and relational preview retention
 - Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Category rules](./category-rules.md)
 
 PostgreSQL stores account-owned application state, the public Scryfall catalog and public price references.
 
 The backend [schema](../../backend/src/db/schema.ts) owns table definitions, and [database construction](../../backend/src/db/client.ts) owns Drizzle/pg setup. The [application constructor](../../backend/src/application.ts) owns the runtime resource and closure. Frontend composition supplies configuration and exports only use cases, without raw database handles. Frontend database/schema compatibility modules are removed. Integration tests use the [test-only database fixture](../../frontend/tests/fixtures/database.ts) and backend schema directly. [Drizzle configuration](../../frontend/drizzle.config.ts) references the backend schema; the existing [migration history](../../frontend/drizzle/) and native migration commands remain in frontend tooling.
 
+The [QR authorization migration 0024](../../frontend/drizzle/0024_qr_authorization.sql) adds challenge digests, kind, expiry, decision and approver-session binding. Issuing a session and consuming an approved request share one transaction. Existing account/session tables retain their identities. [Authentication](./auth.md#pwa-and-qr-sign-in-implementation-contract) owns locking, expiry, revocation and idempotent decisions.
+
 ## Current Tables
 
 - `user_profiles`
 - `local_credentials`
 - `auth_sessions`
+- `qr_authorizations`
 - `auth_identities`, retained historical provider mappings
 - `inventories`
 - `inventory_cards`

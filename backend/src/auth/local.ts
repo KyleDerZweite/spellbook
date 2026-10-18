@@ -16,6 +16,7 @@ import type { Database, Transaction } from '../db/client.ts';
 import { localCredentials, userProfiles, authSessions } from '../db/schema.ts';
 import { hashPassword, normalizeUsername, validPassword, verifyPassword } from './password.ts';
 import { createSessionStore, hashSessionToken } from './session.ts';
+import { createQrAuth } from './qr.ts';
 
 export class AuthError extends Error implements AuthFailure {
 	readonly kind = 'RateLimited';
@@ -208,7 +209,15 @@ export function createLocalAuth(db: Database, config: { demoMode: boolean }) {
 		});
 	}
 
+	const qr = createQrAuth(db, {
+		requireActor,
+		sessionHash(actor) {
+			const token = actors.get(actor);
+			return token ? hashSessionToken(token) : undefined;
+		}
+	});
 	return {
+		qr,
 		authenticate,
 		createSession,
 		validateSession,

@@ -1,3 +1,6 @@
+import type { QrAuthApplication } from './auth-qr.ts';
+export type * from './auth-qr.ts';
+export { validQrCredential } from './auth-qr.ts';
 export interface AuthUser {
 	accountId: string;
 	username: string;
@@ -17,6 +20,7 @@ export interface Authenticated {
 export type AuthFailure = { kind: 'RateLimited'; message: string };
 
 export interface LocalAuthApplication {
+	qr: QrAuthApplication;
 	authenticate(
 		mode: 'login' | 'register',
 		username: unknown,
