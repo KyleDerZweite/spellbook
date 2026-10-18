@@ -36,26 +36,29 @@
 		top: row.getBoundingClientRect().top,
 		header: getComputedStyle(document.documentElement).getPropertyValue('--app-header-height')
 	};
-	button.click();
-	const deadline = performance.now() + 5000;
-	while (
-		Number(
-			document
-				.querySelector('[data-inventory-span-start]')
-				?.getAttribute('data-inventory-span-start')
-		) === start
-	) {
-		if (performance.now() > deadline) throw new Error('Earlier range did not load.');
-		await wait(25);
-	}
-	await wait(350);
-	const current = [...document.querySelectorAll('li[data-inventory-entry]')].find(
-		(node) => node.getAttribute('data-inventory-entry') === id
-	);
-	if (!current) throw new Error('The visible anchor entry disappeared.');
-	const after = current.getBoundingClientRect().top;
-	const result = { before, after, delta: after - before.top };
-	Object.assign(window, { __inventoryPrependResult: result });
-	if (Math.abs(result.delta) > 0.5) throw new Error(`Inventory anchor moved ${result.delta}px.`);
-	return result;
+	const verify = async () => {
+		const deadline = performance.now() + 5000;
+		while (
+			Number(
+				document
+					.querySelector('[data-inventory-span-start]')
+					?.getAttribute('data-inventory-span-start')
+			) === start
+		) {
+			if (performance.now() > deadline) throw new Error('Earlier range did not load.');
+			await wait(25);
+		}
+		await wait(350);
+		const current = [...document.querySelectorAll('li[data-inventory-entry]')].find(
+			(node) => node.getAttribute('data-inventory-entry') === id
+		);
+		if (!current) throw new Error('The visible anchor entry disappeared.');
+		const after = current.getBoundingClientRect().top;
+		const result = { before, after, delta: after - before.top };
+		Object.assign(window, { __inventoryPrependResult: result });
+		if (Math.abs(result.delta) > 0.5) throw new Error(`Inventory anchor moved ${result.delta}px.`);
+		return result;
+	};
+	Object.assign(window, { __inventoryPrependVerify: verify });
+	return before;
 })();
