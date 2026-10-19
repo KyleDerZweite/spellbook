@@ -197,6 +197,70 @@ test(
 			}
 		);
 		await t.test(
+			'browser QR redemption replaces a stale session cookie without deleting the new session',
+			async () => {
+				const created = await createQr('browser');
+				const requesterCookie = created.response.headers.getSetCookie()[0].split(';')[0];
+				const decision = await call(
+					`/api/auth/qr/requests/${created.body.code}/decision`,
+					'POST',
+					authorization,
+					{ decision: 'approve' }
+				);
+				assert.equal(decision.status, 200);
+				const staleCookie = `spellbook_session=${'z'.repeat(43)}`;
+				const redeemed = await call(
+					'/api/auth/qr/token',
+					'POST',
+					{
+						Origin: publicOrigin,
+						Cookie: `${staleCookie}; ${requesterCookie}`
+					},
+					{ code: created.body.code }
+				);
+				assert.equal(redeemed.status, 200);
+				const result = await redeemed.json();
+				assert.equal(result.status, 'authenticated');
+				assert.equal(result.token, undefined);
+				const cookies = redeemed.headers.getSetCookie();
+				assert.equal(cookies.length, 3);
+				// Apply Set-Cookie fields in wire order, including deletion, as the browser does.
+				const jar = new Map(
+					[staleCookie, requesterCookie].map((value) => {
+						const separator = value.indexOf('=');
+						return [value.slice(0, separator), value.slice(separator + 1)];
+					})
+				);
+				for (const cookie of cookies) {
+					const pair = cookie.split(';')[0];
+					const separator = pair.indexOf('=');
+					const name = pair.slice(0, separator);
+					if (/;\s*Max-Age=0(?:;|$)/i.test(cookie)) jar.delete(name);
+					else jar.set(name, pair.slice(separator + 1));
+				}
+				assert.ok(
+					jar.has('spellbook_session'),
+					'The redeemed session must survive stale-cookie cleanup'
+				);
+				assert.equal(jar.has('spellbook_qr_requester'), false);
+				const inspected = await call('/api/auth/session', 'GET', {
+					Cookie: [...jar].map(([name, value]) => `${name}=${value}`).join('; ')
+				});
+				assert.equal(inspected.status, 200);
+				assert.equal((await inspected.json()).user.accountId, alice.user.accountId);
+				const repeated = await call(
+					'/api/auth/qr/token',
+					'POST',
+					{
+						Origin: publicOrigin,
+						Cookie: `${staleCookie}; ${requesterCookie}`
+					},
+					{ code: created.body.code }
+				);
+				assert.equal((await repeated.json()).status, 'consumed');
+			}
+		);
+		await t.test(
 			'device secrets stay separate and requester/decision validation preserves protocol failures',
 			async () => {
 				const created = await createQr('device');

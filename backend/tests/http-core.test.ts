@@ -491,6 +491,47 @@ test('browser QR secrets stay in secure HttpOnly cookies, and redemption preserv
 	assert.equal((await response.json()).token, replacement);
 });
 
+test('stale session cleanup precedes a browser QR replacement and survives without a replacement', async () => {
+	const { http } = fixture();
+	const stale = 'z'.repeat(43);
+	const response = await http.handle(
+		request(
+			'/api/auth/qr/token',
+			'POST',
+			{
+				Origin: origin,
+				Cookie: `spellbook_session=${stale}; spellbook_qr_requester=${code}.${secret}`
+			},
+			{ code }
+		),
+		metadata
+	);
+	assert.equal(response.status, 200);
+	assert.deepEqual(await response.json(), { status: 'authenticated', expiresAt });
+	const cookies = response.headers.getSetCookie();
+	assert.equal(cookies.length, 3);
+	const sessionCookies = cookies.filter((value) => value.startsWith('spellbook_session='));
+	assert.match(sessionCookies[0], /^spellbook_session=; Path=\/; Max-Age=0;/);
+	assert.match(
+		sessionCookies[1],
+		new RegExp(`^spellbook_session=${replacement}; Path=/; Max-Age=[1-9]`)
+	);
+	assert.ok(cookies.some((value) => /^spellbook_qr_requester=;.*Max-Age=0/.test(value)));
+
+	for (const authorization of [undefined, `Bearer ${token}`, 'Bearer invalid']) {
+		const profile = await http.handle(
+			request('/api/account/profile', 'GET', {
+				Cookie: `spellbook_session=${stale}`,
+				...(authorization === undefined ? {} : { Authorization: authorization })
+			}),
+			metadata
+		);
+		assert.equal(profile.status, authorization === `Bearer ${token}` ? 200 : 401);
+		assert.equal(profile.headers.getSetCookie().length, 1);
+		assert.match(profile.headers.getSetCookie()[0], /^spellbook_session=; Path=\/; Max-Age=0;/);
+	}
+});
+
 test('account failures remain safe and password replacement cookie follows the chosen credential mode', async () => {
 	const { http, profile, dashboard } = fixture();
 	let response = await http.handle(

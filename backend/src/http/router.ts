@@ -90,8 +90,14 @@ export function createRouter(routes: HttpRoute[], dependencies: HttpDependencies
 		}
 		if (policy) response.headers.set('Cache-Control', policy);
 		if (url.pathname.startsWith('/api/')) response.headers.set('X-Robots-Tag', 'noindex, nofollow');
-		for (const cookie of responseHeaders.getSetCookie())
-			response.headers.append('Set-Cookie', cookie);
+		const cleanupCookies = responseHeaders.getSetCookie();
+		if (cleanupCookies.length) {
+			// A handler's replacement must follow cleanup for the same cookie name and path.
+			const handlerCookies = response.headers.getSetCookie();
+			response.headers.delete('Set-Cookie');
+			for (const cookie of [...cleanupCookies, ...handlerCookies])
+				response.headers.append('Set-Cookie', cookie);
+		}
 		if (request.method === 'HEAD') {
 			await response.body?.cancel();
 			return new Response(null, {
