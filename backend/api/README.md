@@ -32,6 +32,9 @@ Only `servers` changes for `APP_ORIGIN`.
 Hatch's small build hook embeds that artifact in the sdist and wheel; no duplicate schema is checked in.
 Editable source installs read the same repository artifact directly.
 GET-derived HEAD, OPTIONS with ordered Allow, the original 405 body and one trailing slash are tested for Discovery.
+The router matches raw URI path segments before framework decoding, so percent-encoded aliases remain 404 as in Node.
+Existing URL dot-segment normalization still precedes literal matching.
+P02b adapters must decode named parameters explicitly after matching and preserve malformed-encoding errors.
 Missing business routes return 404; they do not claim readiness.
 Framework-generated public schema and documentation routes are disabled.
 

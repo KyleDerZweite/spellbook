@@ -5,8 +5,8 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from urllib.error import URLError
-from urllib.request import urlopen
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 import pytest
 
@@ -107,6 +107,17 @@ def test_actual_host_loads_schema_and_exits_gracefully(tmp_path: Path) -> None:
                     time.sleep(0.05)
             else:
                 pytest.fail("owned candidate did not become ready")
+            for path in ("/openapi.json%2F", "/%6fpenapi.json", "/openapi%2ejson"):
+                for method in ("GET", "OPTIONS", "POST"):
+                    with pytest.raises(HTTPError) as failure:
+                        urlopen(
+                            Request(f"http://127.0.0.1:{port}{path}", method=method), timeout=1
+                        )
+                    assert failure.value.code == 404
+                    assert "Allow" not in failure.value.headers
+            for path in ("/other/../openapi.json", "/other/%2e%2e/openapi.json"):
+                with urlopen(f"http://127.0.0.1:{port}{path}", timeout=1) as response:
+                    assert response.status == 200
         finally:
             if child.poll() is None:
                 child.terminate()

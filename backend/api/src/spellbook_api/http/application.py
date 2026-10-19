@@ -7,7 +7,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from starlette.responses import JSONResponse, Response
 
-from spellbook_api.http.router import DISCOVERY_PATHS, install_error_handlers
+from spellbook_api.http.router import DISCOVERY_PATHS, RawPathRouting, install_error_handlers
 from spellbook_api.http.types import Configuration
 
 
@@ -24,6 +24,7 @@ def create_http_application(configuration: Configuration) -> FastAPI:
     schema = json.loads(schema_text)
     schema["servers"] = [{"url": configuration.public_origin}]
     http = FastAPI(openapi_url=None, docs_url=None, redoc_url=None, redirect_slashes=False)
+    http.add_middleware(RawPathRouting)
     install_error_handlers(http)
 
     async def discovery(request: Request) -> Response:

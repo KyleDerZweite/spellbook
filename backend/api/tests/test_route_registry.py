@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from spellbook_api.application import create_application
@@ -46,3 +47,20 @@ def test_no_business_routes_or_generated_documentation_are_exposed() -> None:
             assert response.status_code == 404
             assert response.json() == {"status": 404, "message": "Not Found"}
         assert client.get("/openapi.json//").status_code == 404
+
+
+@pytest.mark.parametrize("path", ["/openapi.json%2F", "/%6fpenapi.json", "/openapi%2ejson"])
+def test_encoded_literal_paths_are_not_discovery_aliases(path: str) -> None:
+    with TestClient(create_application(Configuration("http://localhost:5173")).http) as client:
+        for method in ("GET", "HEAD", "OPTIONS", "POST"):
+            response = client.request(method, path)
+            assert response.status_code == 404
+            assert "allow" not in response.headers
+            if method != "HEAD":
+                assert response.json() == {"status": 404, "message": "Not Found"}
+
+
+@pytest.mark.parametrize("path", ["/other/../openapi.json", "/other/%2e%2e/openapi.json"])
+def test_url_dot_normalization_still_precedes_raw_literal_matching(path: str) -> None:
+    with TestClient(create_application(Configuration("http://localhost:5173")).http) as client:
+        assert client.get(path).status_code == 200
