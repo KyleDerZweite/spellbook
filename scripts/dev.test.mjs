@@ -15,7 +15,8 @@ async function fixture(
 		containerId,
 		appFails = false,
 		webOrigin,
-		apiPort
+		apiPort,
+		demoMode = 'false'
 	} = {}
 ) {
 	const root = await mkdtemp(join(tmpdir(), 'spellbook-dev-'));
@@ -40,7 +41,7 @@ async function fixture(
 import {appendFileSync} from 'node:fs';
 const name = process.cwd().split('/').at(-1);
 const record = (value) => appendFileSync(process.env.FIXTURE_ROOT + '/events', JSON.stringify(value) + '\\n');
-record({event:'start',name,api:process.env.API_INTERNAL_URL,host:process.env.API_HOST,port:process.env.API_PORT,trusted:process.env.API_TRUSTED_PROXY_ADDRESSES,database:process.env.DATABASE_URL,s3:process.env.S3_SECRET_ACCESS_KEY,pgPassword:process.env.PGPASSWORD,args:process.argv.slice(2)});
+record({event:'start',name,demo:process.env.DEMO_MODE,api:process.env.API_INTERNAL_URL,host:process.env.API_HOST,port:process.env.API_PORT,trusted:process.env.API_TRUSTED_PROXY_ADDRESSES,database:process.env.DATABASE_URL,s3:process.env.S3_SECRET_ACCESS_KEY,pgPassword:process.env.PGPASSWORD,args:process.argv.slice(2)});
 console.log('fixture ready ' + name);
 setInterval(() => {}, 1000);
 if (name === 'backend' && process.env.FIXTURE_APP_FAILS === 'true') setTimeout(()=>process.exit(7),150);
@@ -89,6 +90,7 @@ else if (args[0] === 'stop') {
 					FIXTURE_ID: id,
 					FIXTURE_STOP_FAIL: String(stopFails),
 					FIXTURE_APP_FAILS: String(appFails),
+					DEMO_MODE: demoMode,
 					S3_SECRET_ACCESS_KEY: 'fixture-only-secret',
 					PGPASSWORD: 'fixture-only-password',
 					DEV_APP_ORIGIN: webOrigin || 'http://localhost:5173',
@@ -254,3 +256,23 @@ test('the compatibility frontend entry retains verified root launcher shutdown',
 	assert.equal((await server.exited).code, 0);
 	assert.equal(await f.database(), 'false');
 });
+
+for (const mode of ['argument', 'environment']) {
+	test(`the ${mode} demo flag reaches both API and web presentation`, async (t) => {
+		const f = await fixture(t, { demoMode: mode === 'environment' ? 'true' : 'false' });
+		const server = f.launch(mode === 'argument' ? ['start', '--demo'] : ['start']);
+		await f.ready(server);
+		assert.equal((await f.launch(['stop']).exited).code, 0);
+		assert.equal((await server.exited).code, 0);
+		const starts = (await readFile(join(f.root, 'events'), 'utf8'))
+			.trim()
+			.split('\n')
+			.map((line) => JSON.parse(line))
+			.filter((event) => event.event === 'start');
+		assert.equal(starts.length, 2);
+		assert.equal(starts.find((event) => event.name === 'backend').demo, 'true');
+		const web = starts.find((event) => event.name === 'frontend');
+		assert.equal(web.demo, 'true');
+		assert.equal(web.database, undefined);
+	});
+}

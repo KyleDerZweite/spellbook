@@ -90,6 +90,8 @@ test('three fixed web form routes preserve form media types, Origin and safe res
 		]);
 		assert.equal(operation.parameters[0].name, 'Origin');
 		assert.equal(operation.parameters[0].required, true);
+		assert.ok(operation.responses[200]);
+		assert.equal('201' in operation.responses, false);
 		assert.ok(operation.responses[400]);
 		assert.ok(operation.responses[413]);
 		assert.ok(operation.responses[415]);
@@ -108,4 +110,12 @@ test('three fixed web form routes preserve form media types, Origin and safe res
 		Object.keys(path).filter((method) => ['get', 'post', 'patch', 'put', 'delete'].includes(method))
 	);
 	assert.equal(methods.length, 95);
+});
+
+test('public errors require only the actual message and retain optional legacy status', () => {
+	const schema = openapi('https://spellbook.example');
+	assert.deepEqual(schema.components.schemas.ErrorResponse.required, ['message']);
+	assert.equal(schema.components.schemas.ErrorResponse.properties.status.type, 'integer');
+	assert.equal('additionalProperties' in schema.components.schemas.ErrorResponse, false);
+	assert.ok(schema.paths['/api/auth/register'].post.responses[201]);
 });

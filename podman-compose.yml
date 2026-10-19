@@ -91,6 +91,7 @@ services:
       API_PORT: 3001
       API_TRUSTED_PROXY_ADDRESSES: 127.0.0.1,::1
       APP_ORIGIN: ${APP_ORIGIN}
+      DEMO_MODE: ${DEMO_MODE:-false}
       VALUE_HISTORY_ENABLED: ${VALUE_HISTORY_ENABLED:-true}
       VALUE_HISTORY_TIMEZONE: ${VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
       DATABASE_URL: postgres://${POSTGRES_USER:-spellbook}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-spellbook}
@@ -120,6 +121,7 @@ services:
       HOST: 0.0.0.0
       PORT: 3000
       APP_ORIGIN: ${APP_ORIGIN}
+      DEMO_MODE: ${DEMO_MODE:-false}
       API_INTERNAL_URL: http://127.0.0.1:3001
       ADDRESS_HEADER: ${ADDRESS_HEADER:-}
       XFF_DEPTH: ${XFF_DEPTH:-1}

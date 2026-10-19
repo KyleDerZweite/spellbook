@@ -2292,7 +2292,7 @@ const SCHEMA = {
 					status: { type: 'integer', minimum: 400, maximum: 599 },
 					message: { type: 'string' }
 				},
-				required: ['status', 'message']
+				required: ['message']
 			},
 			CardIdentity: {
 				type: 'object',
@@ -3616,7 +3616,7 @@ export function openapi(publicOrigin: string) {
 						'The API takes the original authentication attempt exactly once before decoding. Missing optional artwork stays absent. Web preserves the native or enhanced form result and redirect.',
 					responses: {
 						...authErrors,
-						201: response('Registered account and session', ref('AuthSession')),
+						200: response('Registered account and session', ref('AuthSession')),
 						400: response(
 							'Original safe form failure with entered username and artwork',
 							ref('WebRegisterFormFailure')
