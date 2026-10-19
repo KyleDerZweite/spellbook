@@ -1,0 +1,908 @@
+{
+	"baseline": "b835eee87ff0e92e99df18ab384602e48183a88d",
+	"routes": [
+		{
+			"method": "POST",
+			"path": "/api/web/v1/password",
+			"owner": "backend/src/http/routes/account.ts",
+			"slice": "P03",
+			"bodyBytes": 12582912,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/auth/session",
+			"owner": "backend/src/http/routes/account.ts",
+			"slice": "P03",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/account/profile",
+			"owner": "backend/src/http/routes/account.ts",
+			"slice": "P03",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "PATCH",
+			"path": "/api/account/profile",
+			"owner": "backend/src/http/routes/account.ts",
+			"slice": "P03",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/account/dashboard",
+			"owner": "backend/src/http/routes/account.ts",
+			"slice": "P03/P15",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/account/password",
+			"owner": "backend/src/http/routes/account.ts",
+			"slice": "P03",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/web/v1/auth/login",
+			"owner": "backend/src/http/routes/auth.ts",
+			"slice": "P03",
+			"bodyBytes": 12582912,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/web/v1/auth/register",
+			"owner": "backend/src/http/routes/auth.ts",
+			"slice": "P03",
+			"bodyBytes": 12582912,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/auth/login",
+			"owner": "backend/src/http/routes/auth.ts",
+			"slice": "P03",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/auth/register",
+			"owner": "backend/src/http/routes/auth.ts",
+			"slice": "P03",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/auth/logout",
+			"owner": "backend/src/http/routes/auth.ts",
+			"slice": "P03",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/auth/qr/requests",
+			"owner": "backend/src/http/routes/auth.ts",
+			"slice": "P03",
+			"bodyBytes": 1024,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/auth/qr/requests/{code}",
+			"owner": "backend/src/http/routes/auth.ts",
+			"slice": "P03",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/auth/qr/requests/{code}/decision",
+			"owner": "backend/src/http/routes/auth.ts",
+			"slice": "P03",
+			"bodyBytes": 1024,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/auth/qr/token",
+			"owner": "backend/src/http/routes/auth.ts",
+			"slice": "P03",
+			"bodyBytes": 1024,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/catalog/search",
+			"owner": "backend/src/http/routes/catalog.ts",
+			"slice": "P04",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/search",
+			"owner": "backend/src/http/routes/catalog.ts",
+			"slice": "P04",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/catalog/search",
+			"owner": "backend/src/http/routes/catalog.ts",
+			"slice": "P04",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/mobile/v1/mtg/search",
+			"owner": "backend/src/http/routes/catalog.ts",
+			"slice": "P04",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/catalog/cards/{oracleId}/printings",
+			"owner": "backend/src/http/routes/catalog.ts",
+			"slice": "P04",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/cards/{oracleId}/printings",
+			"owner": "backend/src/http/routes/catalog.ts",
+			"slice": "P04",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/catalog/printings/{printingId}",
+			"owner": "backend/src/http/routes/catalog.ts",
+			"slice": "P04",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/category-definitions",
+			"owner": "backend/src/http/routes/categories.ts",
+			"slice": "P09",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/mobile/v1/mtg/category-definitions",
+			"owner": "backend/src/http/routes/categories.ts",
+			"slice": "P09",
+			"bodyBytes": 65536,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/category-rule-choices",
+			"owner": "backend/src/http/routes/categories.ts",
+			"slice": "P07/P12",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/mobile/v1/mtg/category-definitions/{originId}/archive",
+			"owner": "backend/src/http/routes/categories.ts",
+			"slice": "P09",
+			"bodyBytes": 65536,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/category-previews/{previewId}",
+			"owner": "backend/src/http/routes/categories.ts",
+			"slice": "P09/P11",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/mobile/v1/mtg/category-previews/{previewId}/commit",
+			"owner": "backend/src/http/routes/categories.ts",
+			"slice": "P09/P11",
+			"bodyBytes": 65536,
+			"transport": "api"
+		},
+		{
+			"method": "PATCH",
+			"path": "/api/mobile/v1/mtg/deck-cards/{entryId}/category",
+			"owner": "backend/src/http/routes/categories.ts",
+			"slice": "P07",
+			"bodyBytes": 16384,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/decks/{deckId}/categories",
+			"owner": "backend/src/http/routes/categories.ts",
+			"slice": "P07",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/mobile/v1/mtg/decks/{deckId}/categories/initialize",
+			"owner": "backend/src/http/routes/categories.ts",
+			"slice": "P07",
+			"bodyBytes": 16384,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/mobile/v1/mtg/decks/{deckId}/categories/merge-preview",
+			"owner": "backend/src/http/routes/categories.ts",
+			"slice": "P07",
+			"bodyBytes": 16384,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/mobile/v1/mtg/decks/{deckId}/category-previews",
+			"owner": "backend/src/http/routes/categories.ts",
+			"slice": "P09/P11",
+			"bodyBytes": 65536,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/decks/{deckId}/whole-categories",
+			"owner": "backend/src/http/routes/categories.ts",
+			"slice": "P11",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/category-definitions/{originId}",
+			"owner": "backend/src/http/routes/categories.ts",
+			"slice": "P09",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "PATCH",
+			"path": "/api/mobile/v1/mtg/decks/{deckId}/whole-categories/{versionId}",
+			"owner": "backend/src/http/routes/categories.ts",
+			"slice": "P11",
+			"bodyBytes": 65536,
+			"transport": "api"
+		},
+		{
+			"method": "DELETE",
+			"path": "/api/mobile/v1/mtg/decks/{deckId}/whole-categories/{versionId}",
+			"owner": "backend/src/http/routes/categories.ts",
+			"slice": "P11",
+			"bodyBytes": 65536,
+			"transport": "api"
+		},
+		{
+			"method": "PATCH",
+			"path": "/api/mobile/v1/mtg/decks/{deckId}/categories/{categoryId}",
+			"owner": "backend/src/http/routes/categories.ts",
+			"slice": "P07",
+			"bodyBytes": 65536,
+			"transport": "api"
+		},
+		{
+			"method": "DELETE",
+			"path": "/api/mobile/v1/mtg/decks/{deckId}/categories/{categoryId}",
+			"owner": "backend/src/http/routes/categories.ts",
+			"slice": "P07",
+			"bodyBytes": 65536,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/deck-library",
+			"owner": "backend/src/http/routes/decks.ts",
+			"slice": "P11",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/deck-library/categories",
+			"owner": "backend/src/http/routes/decks.ts",
+			"slice": "P11",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/deck-library/locate",
+			"owner": "backend/src/http/routes/decks.ts",
+			"slice": "P11",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/decks",
+			"owner": "backend/src/http/routes/decks.ts",
+			"slice": "P08",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/mobile/v1/mtg/decks",
+			"owner": "backend/src/http/routes/decks.ts",
+			"slice": "P08",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/decks/choices",
+			"owner": "backend/src/http/routes/decks.ts",
+			"slice": "P08",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/mobile/v1/mtg/decks/import/commit",
+			"owner": "backend/src/http/routes/decks.ts",
+			"slice": "P10",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/mobile/v1/mtg/decks/import/preview",
+			"owner": "backend/src/http/routes/decks.ts",
+			"slice": "P10",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/decks/ownership",
+			"owner": "backend/src/http/routes/decks.ts",
+			"slice": "P08",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/decks/search",
+			"owner": "backend/src/http/routes/decks.ts",
+			"slice": "P08",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "PATCH",
+			"path": "/api/mobile/v1/mtg/deck-cards/{entryId}",
+			"owner": "backend/src/http/routes/decks.ts",
+			"slice": "P10",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "DELETE",
+			"path": "/api/mobile/v1/mtg/deck-cards/{entryId}",
+			"owner": "backend/src/http/routes/decks.ts",
+			"slice": "P10",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "PATCH",
+			"path": "/api/mobile/v1/mtg/decks/{deckId}",
+			"owner": "backend/src/http/routes/decks.ts",
+			"slice": "P08",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "DELETE",
+			"path": "/api/mobile/v1/mtg/decks/{deckId}",
+			"owner": "backend/src/http/routes/decks.ts",
+			"slice": "P08",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/decks/{deckId}",
+			"owner": "backend/src/http/routes/decks.ts",
+			"slice": "P08",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/decks/{deckId}/availability",
+			"owner": "backend/src/http/routes/decks.ts",
+			"slice": "P08",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/mobile/v1/mtg/decks/{deckId}/cards",
+			"owner": "backend/src/http/routes/decks.ts",
+			"slice": "P10",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/mobile/v1/mtg/decks/{deckId}/cards/bulk",
+			"owner": "backend/src/http/routes/decks.ts",
+			"slice": "P10",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/decks/{deckId}/export",
+			"owner": "backend/src/http/routes/decks.ts",
+			"slice": "P08",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/inventory",
+			"owner": "backend/src/http/routes/inventory.ts",
+			"slice": "P04",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/mobile/v1/mtg/inventory",
+			"owner": "backend/src/http/routes/inventory.ts",
+			"slice": "P05",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/mobile/v1/mtg/inventory/batch-add",
+			"owner": "backend/src/http/routes/inventory.ts",
+			"slice": "P05",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/mobile/v1/mtg/inventory/bulk",
+			"owner": "backend/src/http/routes/inventory.ts",
+			"slice": "P05",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/inventory/groups",
+			"owner": "backend/src/http/routes/inventory.ts",
+			"slice": "P04",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/mobile/v1/mtg/inventory/groups",
+			"owner": "backend/src/http/routes/inventory.ts",
+			"slice": "P05",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "PATCH",
+			"path": "/api/mobile/v1/mtg/inventory/groups/{groupId}",
+			"owner": "backend/src/http/routes/inventory.ts",
+			"slice": "P05",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "DELETE",
+			"path": "/api/mobile/v1/mtg/inventory/groups/{groupId}",
+			"owner": "backend/src/http/routes/inventory.ts",
+			"slice": "P05",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/mobile/v1/mtg/inventory/import/preview",
+			"owner": "backend/src/http/routes/inventory.ts",
+			"slice": "P05",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/mobile/v1/mtg/inventory/import/commit",
+			"owner": "backend/src/http/routes/inventory.ts",
+			"slice": "P05",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/inventory/{entryId}",
+			"owner": "backend/src/http/routes/inventory.ts",
+			"slice": "P04",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "PATCH",
+			"path": "/api/mobile/v1/mtg/inventory/{entryId}",
+			"owner": "backend/src/http/routes/inventory.ts",
+			"slice": "P05",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "DELETE",
+			"path": "/api/mobile/v1/mtg/inventory/{entryId}",
+			"owner": "backend/src/http/routes/inventory.ts",
+			"slice": "P05",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "PUT",
+			"path": "/api/mobile/v1/mtg/inventory/{entryId}/groups",
+			"owner": "backend/src/http/routes/inventory.ts",
+			"slice": "P05",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "PATCH",
+			"path": "/api/mobile/v1/mtg/inventory/{entryId}/position",
+			"owner": "backend/src/http/routes/inventory.ts",
+			"slice": "P05",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/inventory/{entryId}/location",
+			"owner": "backend/src/http/routes/inventory.ts",
+			"slice": "P04",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/account/events",
+			"owner": "backend/src/http/routes/saved-state.ts",
+			"slice": "P02",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/mobile/v1/mtg/scan/sessions",
+			"owner": "backend/src/http/routes/scan.ts",
+			"slice": "P14",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/scan/sessions",
+			"owner": "backend/src/http/routes/scan.ts",
+			"slice": "P14",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/mobile/v1/mtg/scan/sessions/{sessionId}/frames",
+			"owner": "backend/src/http/routes/scan.ts",
+			"slice": "P14",
+			"bodyBytes": 12582912,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/scan/sessions/{sessionId}/result",
+			"owner": "backend/src/http/routes/scan.ts",
+			"slice": "P14",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/mobile/v1/mtg/scan/sessions/{sessionId}/artifacts/{artifactId}/result",
+			"owner": "backend/src/http/routes/scan.ts",
+			"slice": "P14",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/scan/artifacts/{artifactId}/image",
+			"owner": "backend/src/http/routes/scan.ts",
+			"slice": "P14",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/mobile/v1/mtg/scan/review/commit",
+			"owner": "backend/src/http/routes/scan.ts",
+			"slice": "P14",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/prices",
+			"owner": "backend/src/http/routes/valuation.ts",
+			"slice": "P06",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/prices/history",
+			"owner": "backend/src/http/routes/valuation.ts",
+			"slice": "P06",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/mobile/v1/mtg/inventory/prices",
+			"owner": "backend/src/http/routes/valuation.ts",
+			"slice": "P06",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/inventory/value",
+			"owner": "backend/src/http/routes/valuation.ts",
+			"slice": "P15",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/api/mobile/v1/mtg/inventory/value-history",
+			"owner": "backend/src/http/routes/valuation.ts",
+			"slice": "P15",
+			"bodyBytes": null,
+			"transport": "api"
+		},
+		{
+			"method": "POST",
+			"path": "/api/web/v1/commands",
+			"owner": "backend/src/http/routes/web.ts",
+			"slice": "P05/P08/P10",
+			"bodyBytes": 1048576,
+			"transport": "api"
+		},
+		{
+			"method": "GET",
+			"path": "/auth/login",
+			"owner": "frontend/src/routes/auth/login/+page.server.ts",
+			"slice": "P03",
+			"bodyBytes": null,
+			"transport": "web-browser-auth"
+		},
+		{
+			"method": "POST",
+			"path": "/auth/login",
+			"owner": "frontend/src/routes/auth/login/+page.server.ts",
+			"slice": "P03",
+			"bodyBytes": null,
+			"transport": "web-browser-auth"
+		},
+		{
+			"method": "GET",
+			"path": "/auth/register",
+			"owner": "frontend/src/routes/auth/register/+page.server.ts",
+			"slice": "P03",
+			"bodyBytes": null,
+			"transport": "web-browser-auth"
+		},
+		{
+			"method": "POST",
+			"path": "/auth/register",
+			"owner": "frontend/src/routes/auth/register/+page.server.ts",
+			"slice": "P03",
+			"bodyBytes": null,
+			"transport": "web-browser-auth"
+		},
+		{
+			"method": "GET",
+			"path": "/auth/approve",
+			"owner": "frontend/src/routes/auth/approve/+page.server.ts",
+			"slice": "P03",
+			"bodyBytes": null,
+			"transport": "web-browser-auth"
+		},
+		{
+			"method": "POST",
+			"path": "/auth/approve",
+			"owner": "frontend/src/routes/auth/approve/+page.server.ts",
+			"slice": "P03",
+			"bodyBytes": null,
+			"transport": "web-browser-auth"
+		},
+		{
+			"method": "POST",
+			"path": "/auth/logout",
+			"owner": "frontend/src/routes/auth/logout/+server.ts",
+			"slice": "P03",
+			"bodyBytes": null,
+			"transport": "web-browser-auth"
+		},
+		{
+			"method": "GET",
+			"path": "/openapi.json",
+			"owner": "backend/src/http/application.ts",
+			"slice": "P01",
+			"bodyBytes": null,
+			"transport": "discovery"
+		}
+	],
+	"commands": [
+		{
+			"operation": "inventory.add",
+			"slice": "P05",
+			"owner": "backend/src/http/routes/web.ts"
+		},
+		{
+			"operation": "inventory.patchEntry",
+			"slice": "P05",
+			"owner": "backend/src/http/routes/web.ts"
+		},
+		{
+			"operation": "inventory.remove",
+			"slice": "P05",
+			"owner": "backend/src/http/routes/web.ts"
+		},
+		{
+			"operation": "decks.createRecord",
+			"slice": "P08",
+			"owner": "backend/src/http/routes/web.ts"
+		},
+		{
+			"operation": "decks.addCatalogCard",
+			"slice": "P10",
+			"owner": "backend/src/http/routes/web.ts"
+		},
+		{
+			"operation": "decks.changePrinting",
+			"slice": "P10",
+			"owner": "backend/src/http/routes/web.ts"
+		},
+		{
+			"operation": "decks.updateCard",
+			"slice": "P10",
+			"owner": "backend/src/http/routes/web.ts"
+		},
+		{
+			"operation": "decks.removeCard",
+			"slice": "P10",
+			"owner": "backend/src/http/routes/web.ts"
+		},
+		{
+			"operation": "decks.importInto",
+			"slice": "P10",
+			"owner": "backend/src/http/routes/web.ts"
+		}
+	],
+	"runners": [
+		{
+			"name": "node-api",
+			"owner": "backend/src/main.ts",
+			"responsibility": "HTTP, Auth derivation admission and graceful transport/application lifetime",
+			"slice": "P16",
+			"target": "backend/api"
+		},
+		{
+			"name": "saved-state-listener",
+			"owner": "backend/src/saved-state/application.ts",
+			"responsibility": "Dedicated LISTEN connection, reconnect and delivery-time session checks",
+			"slice": "P02",
+			"target": "backend/api"
+		},
+		{
+			"name": "value-history",
+			"owner": "backend/src/valuation/capture.ts",
+			"responsibility": "Node-embedded single capture, advisory lease 78173020462008, 10s poll; optional VALUE_HISTORY_ENABLED",
+			"slice": "P15",
+			"target": "backend/workers/state"
+		},
+		{
+			"name": "whole-deck-category",
+			"owner": "backend/src/categories/jobs.ts",
+			"responsibility": "Node-embedded serial leased jobs, generation/token/revision fencing",
+			"slice": "P11",
+			"target": "backend/workers/state"
+		},
+		{
+			"name": "catalog-scheduler",
+			"owner": "worker/src/worker/main.py",
+			"responsibility": "Separate Python process, daily/weekly/manual serial publication orchestration",
+			"slice": "P13",
+			"target": "backend/workers/catalog"
+		},
+		{
+			"name": "catalog-publication",
+			"owner": "worker/src/worker/catalog.py",
+			"responsibility": "Streaming COPY and atomic Catalog/paired Price publication and pruning",
+			"slice": "P13",
+			"target": "backend/workers/catalog"
+		},
+		{
+			"name": "optional-prices",
+			"owner": "worker/src/worker/optional_publication.py",
+			"responsibility": "Opt-in Cardmarket/MTGJSON publication with shared Catalog lock",
+			"slice": "P13",
+			"target": "backend/workers/catalog"
+		},
+		{
+			"name": "oracle-tags",
+			"owner": "worker/src/worker/oracle_tags.py",
+			"responsibility": "Independent Tags lock, publication and retention, called by Catalog scheduler",
+			"slice": "P13",
+			"target": "backend/workers/catalog"
+		},
+		{
+			"name": "combo-publication",
+			"owner": "worker/src/worker/combo.py",
+			"responsibility": "Opt-in local Combo publication and retention, called by Catalog scheduler",
+			"slice": "P13",
+			"target": "backend/workers/catalog"
+		},
+		{
+			"name": "scan-scaffold",
+			"owner": "scan-worker/src/scan_worker/main.py",
+			"responsibility": "Independent FastAPI no_match compatibility worker; Phone/Jetson recognition remains local",
+			"slice": "P13/P14",
+			"target": "backend/workers/scan"
+		}
+	],
+	"workerRoutes": [
+		{
+			"method": "GET",
+			"path": "/health",
+			"owner": "scan-worker/src/scan_worker/main.py",
+			"slice": "P13",
+			"purpose": "Scan scaffold health"
+		},
+		{
+			"method": "POST",
+			"path": "/v1/scan/process",
+			"owner": "scan-worker/src/scan_worker/main.py",
+			"slice": "P13/P14",
+			"purpose": "Internal no_match compatibility call"
+		}
+	]
+}
