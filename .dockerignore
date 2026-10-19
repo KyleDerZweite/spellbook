@@ -32,6 +32,11 @@ __pycache__/
 *.pyc
 venv/
 .venv/
+**/.venv/
+**/.mypy_cache/
+**/.ruff_cache/
+backend/api/dist/
+backend/core/dist/
 .pytest_cache/
 
 # SpacetimeDB local

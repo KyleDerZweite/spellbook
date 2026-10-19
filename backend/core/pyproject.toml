@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling==1.32.4"]
+build-backend = "hatchling.build"
+
+[project]
+name = "spellbook-core"
+version = "0.1.0"
+requires-python = "==3.14.8"
+dependencies = ["psycopg[binary]==3.3.6"]
+
+[project.optional-dependencies]
+dev = ["mypy==2.4.0", "pytest==9.1.1", "ruff==0.17.1"]
+
+[tool.uv]
+required-version = "==0.12.23"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/spellbook_core"]
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+files = ["src"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 99
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "B", "SIM", "RUF"]

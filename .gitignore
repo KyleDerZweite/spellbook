@@ -94,3 +94,4 @@ data.ms/
 venv/
 .venv/
 .ruff_cache/
+.mypy_cache/
