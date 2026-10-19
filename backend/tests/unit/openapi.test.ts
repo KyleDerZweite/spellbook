@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { error, HttpError } from '../../src/http/errors.ts';
+import { error, errorResponse, HttpError } from '../../src/http/errors.ts';
 import { describe, expect, it } from 'vitest';
 import { openapi } from '../../src/http/openapi.ts';
 const GET = () => Response.json(openapi('https://spellbook.test'));
@@ -241,21 +241,22 @@ describe('OpenAPI contract', () => {
 		expect(pattern.test('0x005')).toBe(false);
 		expect(pattern.test('0.' + '1'.repeat(19))).toBe(false);
 	});
-	it('includes the safe message returned by HTTP errors', async () => {
+	it('includes the status and safe message serialized by HTTP errors', async () => {
 		const schema = (await GET().json()) as Document;
 		let body: unknown;
 		try {
 			error(400, 'Invalid request');
 		} catch (cause) {
 			if (!(cause instanceof HttpError)) throw cause;
-			body = cause.body;
+			body = await errorResponse(cause).json();
 		}
-		expect(body).toEqual({ message: 'Invalid request' });
+		expect(body).toEqual({ message: 'Invalid request', status: 400 });
 		expect(schema.components.schemas.ErrorResponse).toMatchObject({
 			properties: {
+				status: { type: 'integer' },
 				message: { type: 'string' }
 			},
-			required: Object.keys(body as object)
+			required: ['status', 'message']
 		});
 	});
 

@@ -564,7 +564,8 @@ describe('Deck and Category original REST route map', () => {
 			const failure = await h.send('GET', path, { query });
 			assert.equal(failure.status, 400);
 			assert.deepEqual(await failure.json(), {
-				message: 'includeLegality=false requires selectedOnly=true.'
+				message: 'includeLegality=false requires selectedOnly=true.',
+				status: 400
 			});
 			assert.equal(h.calls.length, 0);
 		}
@@ -973,11 +974,11 @@ describe('closed web command parser and receipt-preserving dispatch', () => {
 			h.failures.set('inventory.add', failure);
 			const response = await h.send('POST', WEB, { body: commands[0].command });
 			assert.equal(response.status, status);
-			assert.deepEqual(await response.json(), { message: failure.message, ...extra });
+			assert.deepEqual(await response.json(), { message: failure.message, ...extra, status });
 		}
 		h.failures.set('inventory.add', new Error('postgres://private-infrastructure'));
 		const response = await h.send('POST', WEB, { body: commands[0].command });
 		assert.equal(response.status, 500);
-		assert.deepEqual(await response.json(), { message: 'Internal Server Error' });
+		assert.deepEqual(await response.json(), { message: 'Internal Server Error', status: 500 });
 	});
 });
