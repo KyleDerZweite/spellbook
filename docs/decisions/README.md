@@ -30,6 +30,8 @@ Rules:
 
 ## Files
 
+- [ADR-0024: Independent web, API and Android applications](./0024-independent-applications.md), accepted runtime extraction and Kotlin/Compose selection; implementation in progress
+
 - [ADR template](./ADR-template.md)
 - [ADR-0001: Docs-first knowledge system](./0001-docs-first-knowledge-system.md)
 - [ADR-0002: Android-first mobile client and server-side scan pipeline](./0002-android-first-mobile-and-server-side-scan.md) (superseded by ADR-0003)

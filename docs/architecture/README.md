@@ -1,12 +1,14 @@
 # Architecture
 
 - Status: Canonical
-- Last Reviewed: 2026-10-08
+- Last Reviewed: 2026-10-19
 - Source of Truth: code and explicitly marked accepted design
 - Update Triggers: schema changes, repository changes, auth flow changes, worker flow changes, service boundaries and reviewed module contracts
 - Related Docs: [System Overview](./system-overview.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Worker](./worker.md), [Catalog](./catalog.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Docs Index](../README.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Category rules](./category-rules.md)
 
 Architecture documents distinguish implemented boundaries from explicitly marked accepted designs and proposals. Use the product specification for requirements and current workflow scope.
+
+[Independent applications](./independent-applications.md) owns the accepted HTTP extraction and native Android implementation contract.
 
 | Owner                                             | Subject                                                                                                                                                                                                                                                                                                                                                                                        |
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
