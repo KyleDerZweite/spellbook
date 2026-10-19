@@ -10,7 +10,9 @@
 
 ## Context
 
-Spellbook is in development and has no important production data to preserve. The base app product focus is card search, inventory, scan, and deck management. Full tabletop or Arena-style play would require a different state model, session lifecycle, and game-specific rules engine than the current inventory and deck workflows.
+Spellbook is in development and has no important production data to preserve.
+The base app product focus is card search, inventory, scan, and deck management.
+Full tabletop or Arena-style play would require a different state model, session lifecycle, and game-specific rules engine than the current inventory and deck workflows.
 
 Keeping realtime game-session infrastructure in the base app creates product and operational coupling before play is a committed feature.
 
@@ -18,9 +20,13 @@ Keeping realtime game-session infrastructure in the base app creates product and
 
 Spellbook base app uses Postgres for durable user data.
 
-SpacetimeDB is removed from the base app. User profiles, inventory, decks, scan sessions, scan artifacts, scan review items, and idempotency records live in Postgres and are accessed through authorized framework-free backend modules. SvelteKit adapts the shared contracts and transport; the [application contract](../architecture/application-contract.md) owns this current boundary.
+SpacetimeDB is removed from the base app.
+User profiles, inventory, decks, scan sessions, scan artifacts, scan review items, and idempotency records live in Postgres and are accessed through authorized framework-free backend modules.
+SvelteKit adapts the shared contracts and transport; the [application contract](../architecture/application-contract.md) owns this current boundary.
 
-Play is removed from the Spellbook base app scope. A future play experience must be a separate application or module. That application may use Spellbook as the source for catalog and deck data and may choose its own realtime/game-session infrastructure independently.
+Play is removed from the Spellbook base app scope.
+A future play experience must be a separate application or module.
+That application may use Spellbook as the source for catalog and deck data and may choose its own realtime/game-session infrastructure independently.
 
 ## Consequences
 

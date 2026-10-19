@@ -6,7 +6,8 @@ import { builtinModules } from 'node:module';
 
 const repository = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const platformModules = new Set(builtinModules.map((name) => name.replace(/^node:/, '')));
-const persistence = /^(pg|drizzle-orm|@aws-sdk\/client-s3)(\/|$)/;
+const persistence =
+	/^(pg|pg-pool|drizzle-orm|drizzle-kit|@aws-sdk\/client-s3|bcrypt|bcryptjs|argon2|scrypt-js)(\/|$)/;
 
 function files(directory) {
 	if (!existsSync(directory)) return [];
@@ -31,14 +32,7 @@ function importEdges(text, path) {
 			node.moduleSpecifier &&
 			ts.isStringLiteralLike(node.moduleSpecifier)
 		) {
-			const clause = ts.isImportDeclaration(node) ? node.importClause : node.exportClause;
-			const bindings = clause && ts.isImportDeclaration(node) ? clause.namedBindings : clause;
-			const names =
-				bindings && (ts.isNamedImports(bindings) || ts.isNamedExports(bindings))
-					? bindings.elements.map((binding) => binding.propertyName?.text ?? binding.name.text)
-					: undefined;
-			if (clause && ts.isImportDeclaration(node) && clause.name) names?.push('default');
-			imports.push({ specifier: node.moduleSpecifier.text, names });
+			imports.push({ specifier: node.moduleSpecifier.text });
 		}
 		if (
 			ts.isImportTypeNode(node) &&
@@ -65,9 +59,6 @@ export function importSpecifiers(text, path) {
 }
 
 export function checkBoundaries(root = repository) {
-	const policyPath = join(root, 'scripts/boundary-policy.json');
-	const policy = existsSync(policyPath) ? JSON.parse(readFileSync(policyPath, 'utf8')) : {};
-	const adapters = policy.adapters ?? [];
 	const errors = [];
 	function compilerOptions(path) {
 		const owner = path.startsWith(join(root, 'frontend') + '/')
@@ -92,19 +83,21 @@ export function checkBoundaries(root = repository) {
 		};
 	}
 
-	const input = ['frontend/src', 'frontend/scripts', 'backend/src', 'contracts/src'].flatMap(
-		(directory) => files(join(root, directory))
-	);
+	const input = [
+		'frontend/src',
+		'frontend/scripts',
+		'backend/src',
+		'backend/scripts',
+		'contracts/src'
+	].flatMap((directory) => files(join(root, directory)));
 	for (const path of input) {
 		const file = relative(root, path).replaceAll('\\', '/');
-		const operatorTest =
-			file.startsWith('frontend/scripts/') && /\.(?:integration\.)?test\.mjs$/.test(file);
 		const browser =
 			file.startsWith('frontend/src/') &&
 			!file.includes('/lib/server/') &&
 			!/(\.server\.|\/\+server\.)/.test(file) &&
 			!file.endsWith('/app.d.ts');
-		for (const { specifier, names } of importEdges(readFileSync(path, 'utf8'), path)) {
+		for (const { specifier } of importEdges(readFileSync(path, 'utf8'), path)) {
 			const host = {
 				...ts.sys,
 				fileExists: (file) =>
@@ -117,7 +110,10 @@ export function checkBoundaries(root = repository) {
 			const resolved = result?.replace(/\.d\.svelte\.ts$/, '.svelte');
 			const target = resolved ? relative(root, realpathSync(resolved)).replaceAll('\\', '/') : '';
 			const backend = target.startsWith('backend/') || specifier.startsWith('@spellbook/backend');
-			const frontend = target.startsWith('frontend/');
+			const frontend =
+				target.startsWith('frontend/') ||
+				specifier === 'spellbook-frontend' ||
+				specifier.startsWith('spellbook-frontend/');
 			const server =
 				backend || target.includes('/lib/server/') || /(\.server\.|\/\+server\.)/.test(target);
 			const platform = specifier.startsWith('node:') || platformModules.has(specifier);
@@ -140,32 +136,29 @@ export function checkBoundaries(root = repository) {
 				file.startsWith('contracts/') &&
 				(backend ||
 					frontend ||
+					(resolved && !target.startsWith('contracts/')) ||
 					platform ||
 					(!specifier.startsWith('.') && !specifier.startsWith('@spellbook/contracts')))
 			)
 				rule = 'contracts-safe';
 			const directPersistence =
 				persistence.test(specifier) ||
+				/\/node_modules\/(pg|pg-pool|drizzle-orm|drizzle-kit|bcrypt|bcryptjs|argon2|scrypt-js)\//.test(
+					target
+				) ||
 				target === 'frontend/src/lib/server/db/client.ts' ||
 				target === 'frontend/src/lib/server/db/schema.ts';
-			if (
-				file.startsWith('frontend/') &&
-				!operatorTest &&
-				!browser &&
-				(directPersistence || backend) &&
-				!adapters.some(
-					(edge) =>
-						edge.file === file &&
-						edge.specifier === specifier &&
-						backend &&
-						!directPersistence &&
-						(!edge.allowedNames ||
-							(names?.length && names.every((name) => edge.allowedNames.includes(name))))
-				)
-			)
+			if (file.startsWith('frontend/') && !browser && (directPersistence || backend))
 				rule = 'frontend-persistence';
-			if (file.startsWith('frontend/src/') && target.startsWith('frontend/scripts/'))
+			if (
+				file.startsWith('frontend/src/') &&
+				(target.startsWith('frontend/scripts/') ||
+					target.startsWith('scripts/') ||
+					target.startsWith('backend/scripts/'))
+			)
 				rule = 'frontend-operator';
+			if (file.startsWith('frontend/src/') && target.startsWith('frontend/tests/'))
+				rule = 'frontend-test';
 			if (rule) errors.push({ rule, file, specifier, target });
 		}
 	}

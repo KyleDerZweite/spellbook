@@ -83,14 +83,11 @@ test('frontend persistence has no legacy exemptions', () => {
 	);
 });
 
-test('browser contracts and named composition imports are allowed', () => {
+test('frontend SSR rejects backend even when an old adapter policy allows it', () => {
 	fixture(
 		{
-			'frontend/src/lib/client.ts':
-				"import type { AuthUser } from '../../..//contracts/src/auth.ts';",
 			'frontend/src/lib/server/composition.ts':
 				"import { createApplication } from '@spellbook/backend/application.ts';",
-			'contracts/src/auth.ts': 'export interface AuthUser { accountId: string; }',
 			'scripts/boundary-policy.json': JSON.stringify({
 				adapters: [
 					{
@@ -99,6 +96,18 @@ test('browser contracts and named composition imports are allowed', () => {
 					}
 				]
 			})
+		},
+		(root) => assert.equal(checkBoundaries(root)[0].rule, 'frontend-persistence')
+	);
+});
+
+test('frontend and backend can both import pure contracts', () => {
+	fixture(
+		{
+			'frontend/src/lib/server/remote.ts':
+				"import type { AuthUser } from '../../../../contracts/src/auth.ts';",
+			'backend/src/auth.ts': "import type { AuthUser } from '../../contracts/src/auth.ts';",
+			'contracts/src/auth.ts': 'export interface AuthUser { accountId: string; }'
 		},
 		(root) => assert.deepEqual(checkBoundaries(root), [])
 	);
@@ -112,86 +121,38 @@ test('built client check detects backend code and rejects absent output', async 
 	});
 });
 
-test('public server composition rejects raw database access for a new caller', async () => {
-	const { default: ts } = await import('../frontend/node_modules/typescript/lib/typescript.js');
-	const composition = new URL('../frontend/src/lib/server/composition.ts', import.meta.url)
-		.pathname;
-	fixture(
-		{
-			'new-server.ts': `import { application } from '${composition}';\napplication.db;\napplication.pool;\napplication.catalog;\napplication.auth;`
-		},
-		(root) => {
-			const caller = join(root, 'new-server.ts');
-			const program = ts.createProgram([caller], {
-				moduleResolution: ts.ModuleResolutionKind.Bundler,
-				module: ts.ModuleKind.ESNext,
-				target: ts.ScriptTarget.ESNext,
-				allowImportingTsExtensions: true,
-				noEmit: true,
-				skipLibCheck: true,
-				strict: true
-			});
-			const failures = program.getSemanticDiagnostics(program.getSourceFile(caller));
-			assert.deepEqual(
-				failures.map((failure) => failure.code),
-				[2339, 2339]
-			);
-			assert.match(
-				ts.flattenDiagnosticMessageText(failures[0].messageText, '\n'),
-				/^Property 'db' does not exist/
-			);
-			assert.match(
-				ts.flattenDiagnosticMessageText(failures[1].messageText, '\n'),
-				/^Property 'pool' does not exist/
-			);
-		}
-	);
-});
-
-test('approved composition rejects root factories and implementation imports', () => {
-	for (const specifier of [
-		'@spellbook/backend',
-		'@spellbook/backend/db/client.ts',
-		'@spellbook/backend/categories/jobs.ts'
+test('frontend server rejects persistence through aliases, type imports, dynamic imports and require', () => {
+	for (const statement of [
+		"import type { Pool } from 'pg';",
+		"const db = require('drizzle-orm');",
+		"const db = import('@spellbook/backend/db/client.ts');",
+		"export * from '#db/schema.ts';"
 	])
 		fixture(
 			{
-				'frontend/src/lib/server/composition.ts': `export * from '${specifier}';`,
-				'scripts/boundary-policy.json': JSON.stringify({
-					adapters: [
-						{
-							file: 'frontend/src/lib/server/composition.ts',
-							specifier: '@spellbook/backend/application.ts'
-						}
-					]
-				})
+				'frontend/src/lib/server/runtime.ts': statement,
+				'frontend/tsconfig.json': JSON.stringify({
+					compilerOptions: { paths: { '#db/*': ['../backend/src/db/*'] } }
+				}),
+				'backend/src/db/schema.ts': 'export const schema = {};'
 			},
 			(root) => assert.equal(checkBoundaries(root)[0].rule, 'frontend-persistence')
 		);
 });
 
-test('operator seams are limited to their exact native entries', () => {
+test('frontend integration fixtures may import backend without admitting runtime tests', () => {
 	fixture(
 		{
-			'frontend/scripts/demo/seed.mjs':
-				"import { seedDemo } from '@spellbook/backend/operators/demo.ts';",
-			'frontend/scripts/other.mjs':
-				"import { seedDemo } from '@spellbook/backend/operators/demo.ts';",
-			'scripts/boundary-policy.json': JSON.stringify({
-				adapters: [
-					{
-						file: 'frontend/scripts/demo/seed.mjs',
-						specifier: '@spellbook/backend/operators/demo.ts'
-					}
-				]
-			})
+			'frontend/tests/integration/fixture.ts':
+				"import { createDatabase } from '@spellbook/backend/db/client.ts';",
+			'frontend/src/lib/server/runtime.test.ts':
+				"import { createDatabase } from '@spellbook/backend/db/client.ts';"
 		},
-		(root) => {
+		(root) =>
 			assert.deepEqual(
 				checkBoundaries(root).map((error) => error.file),
-				['frontend/scripts/other.mjs']
-			);
-		}
+				['frontend/src/lib/server/runtime.test.ts']
+			)
 	);
 });
 
@@ -214,79 +175,33 @@ test('frontend runtime cannot reach operator scripts through aliases or relative
 			);
 });
 
-test('native operators permit only approved named operations', () => {
-	const file = 'frontend/scripts/demo/seed.mjs';
-	const specifier = '@spellbook/backend/operators/demo.ts';
+test('frontend runtime cannot bypass the API through test fixtures', () => {
 	for (const statement of [
-		`import { createDemoPool } from '${specifier}';`,
-		`import { createDemoPool as seedDemo } from '${specifier}';`,
-		`import * as demo from '${specifier}';`,
-		`import demo, { seedDemo } from '${specifier}';`,
-		`export * from '${specifier}';`,
-		`export * as demo from '${specifier}';`,
-		`const demo = import('${specifier}');`,
-		`import type { Database } from '${specifier}';`,
-		"import { seedDemo } from '#operator/demo.ts';"
+		"import '../../../tests/integration/fixture.ts';",
+		"export * from '../../../tests/integration/fixture.ts';",
+		"const fixture=import('../../../tests/integration/fixture.ts');"
 	])
 		fixture(
 			{
-				[file]: statement,
-				'frontend/package.json': JSON.stringify({
-					imports: { '#operator/*': '../backend/src/operators/*' }
-				}),
-				'backend/src/operators/demo.ts': 'export const seedDemo = () => {};',
-				'frontend/tsconfig.json': JSON.stringify({
-					compilerOptions: {
-						paths: { '#operator/*': ['../backend/src/operators/*'] }
-					}
-				}),
-				'scripts/boundary-policy.json': JSON.stringify({
-					adapters: [{ file, specifier, allowedNames: ['seedDemo'] }]
-				})
+				'frontend/src/lib/server/runtime.ts': statement,
+				'frontend/tests/integration/fixture.ts':
+					"import {createDatabase} from '@spellbook/backend/db/client.ts';"
 			},
-			(root) => assert.equal(checkBoundaries(root)[0].rule, 'frontend-persistence')
-		);
-	for (const statement of [
-		`import { seedDemo as seed } from '${specifier}';`,
-		`export { seedDemo } from '${specifier}';`
-	])
-		fixture(
-			{
-				[file]: statement,
-				'scripts/boundary-policy.json': JSON.stringify({
-					adapters: [{ file, specifier, allowedNames: ['seedDemo'] }]
-				})
-			},
-			(root) => assert.deepEqual(checkBoundaries(root), [])
+			(root) => assert.equal(checkBoundaries(root)[0].rule, 'frontend-test')
 		);
 });
 
-test('native operator tests can use backend fixtures but runtime cannot import those tests', () => {
+test('contracts cannot import repository scripts and backend cannot import the frontend package', () => {
 	fixture(
 		{
-			'frontend/scripts/demo/operators.integration.test.mjs':
-				"import { createDemoPool } from '@spellbook/backend/operators/demo.ts';",
-			'frontend/scripts/demo/operators.test.mjs':
-				"import { validPassword } from '@spellbook/backend/operators/local-password.ts';",
-			'frontend/src/lib/server/bypass.ts':
-				"import '../../../scripts/demo/operators.integration.test.mjs';",
-			'frontend/src/lib/server/bypass.test.mjs':
-				"import { createDatabase } from '@spellbook/backend/db/client.ts';"
+			'contracts/src/index.ts': "export * from '../../scripts/helper.mjs';",
+			'scripts/helper.mjs': 'export const pool={};',
+			'backend/src/main.ts': "import type {Page} from 'spellbook-frontend';"
 		},
-		(root) => {
+		(root) =>
 			assert.deepEqual(
-				checkBoundaries(root).map(({ rule, file }) => ({ rule, file })),
-				[
-					{
-						rule: 'frontend-persistence',
-						file: 'frontend/src/lib/server/bypass.test.mjs'
-					},
-					{
-						rule: 'frontend-operator',
-						file: 'frontend/src/lib/server/bypass.ts'
-					}
-				]
-			);
-		}
+				checkBoundaries(root).map((error) => error.rule),
+				['backend-frontend', 'contracts-safe']
+			)
 	);
 });

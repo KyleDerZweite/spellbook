@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
 }));
 vi.mock('../../src/lib/server/data/decks', async () => ({
 	...(await vi.importActual<typeof import('../../src/lib/server/data/decks')>(
-		'@spellbook/backend/decks/application.ts'
+		'#lib/server/remote/errors.ts'
 	)),
 	getDeckSnapshot: mocks.snapshot,
 	createDeckRecord: vi.fn(),
@@ -30,10 +30,10 @@ vi.mock('../../src/lib/server/mtg/deck-builder', () => ({
 	importIntoDeck: vi.fn()
 }));
 vi.mock('../../src/lib/server/catalog/search', () => ({ getPrintings: vi.fn() }));
-vi.mock('../../src/lib/server/mtg/import', () => ({ previewMtgImport: vi.fn() }));
 vi.mock('../../src/lib/server/composition.ts', async () => {
-	const { CategoryNotFound, CategoryConflict, CategoryMergeConflict } =
-		await vi.importActual<typeof import('@spellbook/backend')>('@spellbook/backend');
+	const { CategoryNotFound, CategoryConflict, CategoryMergeConflict } = await vi.importActual<
+		typeof import('#lib/server/remote/errors.ts')
+	>('#lib/server/remote/errors.ts');
 	return {
 		CategoryNotFound,
 		CategoryConflict,

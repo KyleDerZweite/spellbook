@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { normalizeCardName, type ParsedDecklistLine } from '../../src/lib/server/mtg/decklist';
 const lookup = vi.hoisted(() => vi.fn());
-vi.mock('../../src/lib/server/catalog/search.ts', () => ({ resolveCatalogCandidates: lookup }));
-import { resolveDecklistLines } from '../../src/lib/server/mtg/catalog-resolver';
+import { resolveDecklistLines as resolve } from '@spellbook/backend/decks/catalog-resolver.ts';
+const resolveDecklistLines = (
+	lines: Parameters<typeof resolve>[0],
+	malformed?: Parameters<typeof resolve>[1]
+) => resolve(lines, malformed, { resolveCatalogCandidates: lookup });
 
 const line = (name: string, overrides: Partial<ParsedDecklistLine> = {}): ParsedDecklistLine => ({
 	quantity: 1,

@@ -246,7 +246,7 @@ def combo_publisher():
         scoped = make_conninfo(url, options=f"-csearch_path={schema},public")
         try:
             migration = (
-                Path(__file__).parents[2] / "frontend/drizzle/0023_commander_spellbook.sql"
+                Path(__file__).parents[2] / "backend/drizzle/0023_commander_spellbook.sql"
             ).read_text()
             with psycopg.connect(scoped) as conn:
                 conn.execute(migration.replace('"public".', f'"{schema}".'))

@@ -8,7 +8,9 @@
 
 > Bits UI is a headless component library for Svelte.
 
-Use the local shared Select and TooltipButton for repeated controls. Their implementation and caller rules are recorded in [Selected UI components](./ui-libraries.md). Read the linked vendor page before changing their Bits composition.
+Use the local shared Select and TooltipButton for repeated controls.
+Their implementation and caller rules are recorded in [Selected UI components](./ui-libraries.md).
+Read the linked vendor page before changing their Bits composition.
 
 This site provides documentation in a format optimized for Large Language Models, with each page available as a clean markdown file.
 

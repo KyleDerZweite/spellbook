@@ -3,7 +3,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { rm, readdir } from 'node:fs/promises';
-import type { ChildProcess } from 'node:child_process';
 import pg from 'pg';
 import { httpTestOrigin, startHttpApplication, stopHttpApplication } from './http-runtime.ts';
 import { fixtureAuthRequest } from './fixtures/http-auth.ts';
@@ -24,7 +23,7 @@ const pool = new pg.Pool({ connectionString: url });
 const api = '/api/mobile/v1/mtg/scan';
 const accounts: string[] = [],
 	sessions: string[] = [];
-let child: ChildProcess | undefined;
+let child: Awaited<ReturnType<typeof startHttpApplication>> | undefined;
 const png = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10]);
 async function account() {
 	const username = `scan_http_${randomUUID().slice(0, 8)}`,
