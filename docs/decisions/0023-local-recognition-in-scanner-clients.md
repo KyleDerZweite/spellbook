@@ -53,7 +53,9 @@ The backend QR API and public-only service worker are integrated. The PWA pages 
 
 The maintainer rejected the research recommendation to retain PWA as the next phone-app default and requested a new Spellbook Figma workspace with complete website and independent Android flows. The maintainer subsequently reaffirmed a separate Android application with its own presentation and lifecycle against the shared backend. Public Search remains usable before login. A distinct mobile UX is sufficient reason for that client; it need not first demonstrate a browser capability failure. [The design handoff](../product/mobile-app-exploration.md) owns the flow scaffold and framework recommendation. The native framework and production implementation contract remain unselected.
 
-The implemented PWA/QR delivery remains available and is not removed by this design work. Existing backend account, Catalog and mutation authority is shared with future clients. Local recognition and Jetson-owned Cardstation execution remain unchanged. The separate Cardstation Figma file contains only the requested website design reference, with no machine UI or job/synchronization contract selected.
+The maintainer subsequently selected completion of the clickable Android Figma prototype before native implementation, with online-first operation and modest account-scoped caches/drafts. The main Spellbook file includes commissioned mobile Cardstation and capture simulations. Those views do not establish device registry, live jobs, recognition or synchronization contracts. The separate Cardstation Figma file remains limited to the public Landing page reference.
+
+The implemented PWA/QR delivery remains available and is not removed by this design work. Existing backend account, Catalog and mutation authority is shared with future clients. Local recognition and Jetson-owned Cardstation execution remain unchanged.
 
 ## Follow-up
 

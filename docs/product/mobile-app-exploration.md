@@ -1,59 +1,63 @@
 # Spellbook website and Android design handoff
 
-- Status: Revised design proposal; separate Android application selected, maintainer acceptance and native implementation pending
+- Status: Connected Android prototype prepared; maintainer visual acceptance and native implementation pending
 - Last Reviewed: 2026-10-19
-- Source of Truth: maintainer's revised Android direction, inspected first-party app images and versioned mobile source, linked Figma files, website artifact `903b427` and shared API contracts
-- Update Triggers: mobile visual/flow review, framework selection, API parity, native session lifecycle, camera/recognition or Cardstation contracts
+- Source of Truth: maintainer's selected Android structure and Figma-first sequence, inspected first-party app images and versioned mobile source, linked Figma files and shared API contracts
+- Update Triggers: prototype journey review, app navigation or typography, Cardstation/capture contracts, framework selection, API parity, native session lifecycle and cache policy
 - Related Docs: [UI direction](./ui-design-direction.md), [Routes](./routing-and-games.md), [Mobile and Scan](../architecture/mobile-and-scan.md), [Auth](../architecture/auth.md), [Client evaluation](../integrations/scanner-platform-evaluation.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Product index](./README.md)
 
-The maintainer selected a separate Android application with its own UI and lifecycle against the shared backend. The first mobile visual scaffold was rejected on 2026-10-19. It is not the current design direction. The replacement uses actual mobile-app references, artwork, a useful Dashboard-like Home, public Search and contextual sign-in. The implemented PWA is not the future app design.
+The maintainer selected a separate Android application against the shared backend. On 2026-10-19, the maintainer requested a complete clickable Figma prototype before native implementation in a separate application directory. The earlier mobile scaffold and isolated T3 comparisons did not establish the required overall experience. This handoff owns the replacement app structure. Framework selection remains open.
 
-## Figma files and review
+## Figma files and current entry
 
-| File                                                                                     | Scope                                                                                                                                                           |
-| ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Spellbook](https://www.figma.com/design/aKZ8f01JvXu68PAOIeevbw?node-id=42-2)            | Visual overview, revised Android prototype, source references and implementation handoff. Existing website captures remain a separate implementation inventory. |
-| [Spellbook Cardstation](https://www.figma.com/design/mvLCjFJobIjv1gPKOi6b31?node-id=2-2) | Only the real public Landing page and a short handoff. The unfinished Dashboard is not its design reference.                                                    |
+| File                                                                                     | Scope                                                                                                                                             |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Spellbook](https://www.figma.com/design/aKZ8f01JvXu68PAOIeevbw/Spellbook?node-id=42-2)  | Active overview, coherent Android journeys, source references and implementation handoff. Earlier drafts remain identified as superseded history. |
+| [Spellbook Cardstation](https://www.figma.com/design/mvLCjFJobIjv1gPKOi6b31?node-id=2-2) | Public website Landing page and short reference handoff only. The Android prototype contains the separately requested mobile Cardstation views.   |
 
-Start at `00 Übersicht`, then open the current Android journey. The earlier mobile page is marked rejected. Website typography and routes remain unchanged. Marcellus, IBM Plex Mono and neutral surfaces preserve the brand; the app has its own navigation and composition. Sample data and technical notes belong outside phone screens.
+The [Android prototype](https://www.figma.com/proto/aKZ8f01JvXu68PAOIeevbw/Spellbook?page-id=61%3A178&node-id=63-128&starting-point-node-id=63%3A128&scaling=scale-down&content-scaling=fixed) starts at guest Home. For the contextual Auth journey, find Sol Ring, choose a Printing and prepare an Inventory Add. Login or Registration returns to the unsaved draft; Save remains explicit.
 
-![Revised Android Home, Search, Inventory and contextual Login exported from Figma.](./assets/mobile-app-exploration.png)
+![Initialized Android Home, Search, Inventory and Cardstation review previews exported from Figma.](./assets/mobile-app-exploration.png)
 
-## Visible references
+These are initialized static review previews. The linked prototype contains the connected frames and state bindings. Cardstation and capture use demo data.
 
-| Inspected first-party source                                                                       | Adapted pattern                                                                     |
-| -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| [Letterboxd Android](https://letterboxd.com/crew/story/huge-update-to-our-android-app-is-out-now/) | Large artwork, neutral dark chrome and readable image grids.                        |
-| [ManaBox](https://www.manabox.app/)                                                                | Compact Inventory/Box rows with artwork, counts and adjacent search.                |
-| [Pocket Casts Search](https://blog.pocketcasts.com/2025/11/18/search/)                             | Persistent search, one filter row and concise image/name/metadata results.          |
-| [T3 Code Android](https://play.google.com/store/apps/details?id=com.t3tools.t3code)                | Compact headers, content hierarchy, a named primary action and contextual controls. |
+## Selected app structure
 
-The downloaded product images establish visible design, not conversion or Spellbook usability. Competitor branding, markets, physical-storage semantics and social features are not adopted. Android onboarding illustrations are guidance, not verified real-app login screenshots.
+Home, Search, Inventory and Decks are the four main destinations. Root views use compact toolbars and a directly reachable Settings gear. Search puts its field in the toolbar. Large Spellbook wordmarks, filled avatar buttons and website chrome do not belong in this app. Details have Back, an object title and contextual actions. Focused tasks have explicit finish/cancel controls and omit the tab bar. Settings returns to its originating context.
+
+Home shows compact collection data, recent objects and a Cardstation entry. Settings contains account actions, appearance, QR authorization, Cardstation and About. The mobile design uses Android system typography, restrained neutral surfaces, consistent controls and card artwork within card content. This supersedes the earlier mobile font/avatar treatment. Website fonts and layout remain their own accepted design.
+
+## Connected journeys
+
+| Journey                  | Required prototype behavior                                                                                                                                                                                            |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Public Catalog           | Guest Search, filters, supported Printing choice, details and preserved query/context on return.                                                                                                                       |
+| Contextual account entry | A prepared Add draft opens Login or Registration. Success returns to the same UNSAVED draft, followed by explicit Save. Direct/private destination entry resumes the requested context. Login never mutates Inventory. |
+| Inventory                | Cards, Boxes, details, Quantity/Notes edit, group assignment, confirmation before removal and consistent counts/receipts. Printing, Finish and Condition identify an entry and remain fixed during entry editing.      |
+| Decks                    | Create, Search/add to an explicit Deck and role, quantity/role edits, Availability, import preview/correction and export. Requirements remain separate from owned quantities.                                          |
+| Settings and QR          | Settings return, account/logout, and scan/manual QR request inspection with explicit Approve/Deny and expiry recovery. A new account and logout must not expose another account's records.                             |
+| Cardstation and capture  | Device selection/status views and a future single-card capture/correction/confirmation journey, using identified demo data and no automatic ownership changes.                                                         |
+
+Meaningful loading, empty, failed-read and unconfirmed-save examples preserve inputs and task context. A failed read is not an empty success. Save needs a confirmed result. All visible prototype actions need an intentional destination or an explicit unavailable state. Figma input choices are simulations, not native forms.
+
+## Cardstation boundary
+
+Home and Settings open the same Cardstation area. Device registry, connection/activity status, jobs and result data are design proposals. A schematic can show Input, Scan, six output trays and Eject as the ordinary seventh output. Processing, stale data and review states must not imply new Inventory ownership. No motor Start/Stop controls are selected.
+
+The existing QR contract authorizes an ordinary account session. Success says Anmeldung freigegeben. It does not enroll a device or implement monitoring/synchronization. Sample data and missing integration contracts are annotated outside phone screens. Local recognition and Jetson-owned execution follow [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md). The website's paused Scan presentation does not prohibit this commissioned Android design simulation.
 
 ## T3 Code Android follow-up
 
-The maintainer requested this additional reference on 2026-10-19. Official Android phone screenshots were inspected alongside source commit `1451e7cb23034d29774338608368a15d8845df36`. T3 has a separate React Native client with a [Compose App Bar](https://github.com/pingdotgg/t3code/blob/1451e7cb23034d29774338608368a15d8845df36/apps/mobile/src/components/ui/NativeAppBar.android.tsx#L1-L40) and [native Material3 navigation](https://github.com/pingdotgg/t3code/blob/1451e7cb23034d29774338608368a15d8845df36/apps/mobile/modules/t3-native-controls/android/src/main/java/expo/modules/t3nativecontrols/T3WorkspaceNavigationModule.kt#L103-L126). This supports a separate mobile presentation without selecting Spellbook's framework.
+Actual Android phone images from [T3 Code's official Store listing](https://play.google.com/store/apps/details?id=com.t3tools.t3code) and source commit `1451e7cb23034d29774338608368a15d8845df36` inform the overall composition. Useful owners include its [Compose App Bar](https://github.com/pingdotgg/t3code/blob/1451e7cb23034d29774338608368a15d8845df36/apps/mobile/src/components/ui/NativeAppBar.android.tsx#L1-L40), [Settings entry](https://github.com/pingdotgg/t3code/blob/1451e7cb23034d29774338608368a15d8845df36/apps/mobile/src/features/home/ThreadListToolbar.tsx#L102-L149), [keyboard-first Back](https://github.com/pingdotgg/t3code/blob/1451e7cb23034d29774338608368a15d8845df36/apps/mobile/src/features/home/ThreadListToolbar.tsx#L53-L86) and [Android sheets](https://github.com/pingdotgg/t3code/blob/1451e7cb23034d29774338608368a15d8845df36/apps/mobile/src/components/ui/Sheet.android.tsx#L9-L28). Store captures show Light Mode and are not revision-matched to that source. T3's React Native implementation does not select Spellbook's framework.
 
-Propose a compact Inventory header, clear card-row hierarchy, one named Add cards action and contextual entry editing. Keep the four Spellbook destinations, artwork, fonts and public Search contract. The editor changes Quantity and Notes, keeps Printing, Finish and Condition fixed, and requires an explicit Save.
+Other inspected references are [Letterboxd Android](https://letterboxd.com/crew/story/huge-update-to-our-android-app-is-out-now/) for artwork, [ManaBox](https://www.manabox.app/) for card rows and [Pocket Casts Search](https://blog.pocketcasts.com/2025/11/18/search/) for search/result hierarchy. Product images establish visible composition, not conversion, performance or Spellbook usability.
 
-For implementation, specify Keyboard/Back order, retained query/draft context and distinct loading, refresh, error and empty states. T3 implements [keyboard-first Back handling](https://github.com/pingdotgg/t3code/blob/1451e7cb23034d29774338608368a15d8845df36/apps/mobile/src/features/home/ThreadListToolbar.tsx#L53-L86) and [platform-specific sheets](https://github.com/pingdotgg/t3code/blob/1451e7cb23034d29774338608368a15d8845df36/apps/mobile/src/components/ui/Sheet.android.tsx#L9-L28). Its chat gestures, hidden filters and device-connection model are not automatic Spellbook requirements.
+## Native implementation handoff
 
-The [Figma comparison](https://www.figma.com/design/aKZ8f01JvXu68PAOIeevbw/Spellbook?node-id=58-107) contains two static, editable Spellbook proposals beside the actual T3 references. It does not replace the current flow graph. Store images show Light Mode and have no stated capture commit; they are not revision-matched to the inspected source. Source review and static images establish no Android runtime, gesture, keyboard or performance result.
+Build the Android client after the prototype, in its own directory. Kotlin/Jetpack Compose is a candidate; React Native/Expo with native Android controls is a viable alternative. Both use the shared backend through HTTP. Framework selection and native implementation remain open.
 
-![T3 Code Android references beside the proposed Spellbook Inventory and explicit entry editor.](./assets/t3-android-ui-comparison.png)
+The selected first delivery is online-first. Use bounded read/image caches and local drafts scoped by backend, account and target. Respect Catalog generation/revision and HTTP no-store contracts. Refresh private reads after mutation and resume. Keep secure session storage, reauthentication and logout separate from draft persistence. No offline mutation queue, CRDT or implicit resubmission is selected.
 
-## Main journeys
+Public single-Printing lookup, full API parity, native sessions/App Links/lifecycle, local recognition assets and Cardstation registry/jobs/sync need reviewed contracts. Existing mutation authority stays in the backend. The first native slices should exercise public Search/Printing, contextual Auth with draft retention, acknowledged Inventory changes visible on the website, then Deck editing/Availability.
 
-Home, Search, Inventory and Decks are four stable destinations. The signed-in Home shows owned copies, Canonical-card counts, exact/alternate/missing Deck requirements and recently edited cards. A guest gets usable Catalog content and Search. No invented trends or gains appear. Account actions and QR authorization sit behind the avatar.
-
-Search and Printing details remain public. A guest selects a Printing and prepares Quantity, Finish and Condition. Save opens Login or Registration. Success returns to the same unsaved draft; the user confirms Save explicitly. Cancel retains the public context. Direct Login opens Home; an explicitly requested private destination resumes that destination. Login never creates an Inventory entry. Invalid credentials and failed or unconfirmed saves retain their inputs. [Android onboarding](https://developer.android.com/design/ui/mobile/guides/patterns/onboarding) and [conditional navigation](https://developer.android.com/guide/navigation/use-graph/conditional) inform this proposal.
-
-Deck quantities remain requirements, Inventory quantities remain ownership, and Boxes remain groups. QR requires explicit account/instance approval; requester redemption creates the ordinary session. It is not machine enrollment or synchronization. Camera permission belongs at the scan action. Local recognition and Jetson-owned Cardstation execution follow [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md).
-
-## Implementation handoff
-
-Recommend [Kotlin/Jetpack Compose](https://developer.android.com/develop/ui/compose/documentation) for Android-first UI, with [CameraX](https://developer.android.com/media/camera/camerax/analyze) as a later capture candidate. Framework selection remains open. The first native slice should cover public Search, exact Printing, contextual Login and acknowledged Inventory addition visible on the website.
-
-The API already supports much of the product. A public single-Printing GET by Printing ID, native session storage/App Links/lifecycle, local reference assets, offline writes and device jobs/sync need separate reviewed contracts. Existing-entry PATCH changes Quantity/Notes; changing Printing/Finish/Condition needs a separate identity rule. Keep [auth authority](../architecture/auth.md) and [Inventory/Deck/category contracts](../architecture/mobile-and-scan.md) in the shared backend.
-
-The Figma fields and responses simulate fixture states. Rendered Dark Mode and prototype reactions do not establish native forms, keyboard/Back behavior, Light Mode, real authentication, physical-phone capture or recognition. Product acceptance and native implementation remain separate work.
+Rendered screens, saved Figma reactions and simulated scenarios do not prove Player execution, Android keyboard/Back, accessibility, real authentication, physical capture or hardware integration. Maintainer visual acceptance and native verification remain separate work.
