@@ -165,11 +165,12 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 			'dir'
 		);
 		for (const [index, origin] of [primary, secondary].entries()) {
-			const build = spawnSync('fnm', ['exec', '--using', '26.10.0', 'pnpm', 'build'], {
+			const build = spawnSync('pnpm', ['build'], {
 				cwd,
 				env: { ...webTestEnvironment(), APP_ORIGIN: origin },
 				stdio: ['ignore', 'pipe', 'pipe']
 			});
+			if (build.error) throw build.error;
 			assert.equal(build.status, 0, 'Origin-matched production build must succeed');
 			const target = new URL(`${index}/`, artifacts);
 			await rm(target, { recursive: true, force: true });

@@ -6,9 +6,14 @@
 - Update Triggers: Commander precon baseline and source attribution, logo replacement, illustration source, landing artwork and deck sources, showcase manifest or refresh procedure, asset generation, profile frame source or preparation, favicon or manifest changes, installation requirements
 - Related Docs: [Reference](./README.md), [Design direction](../product/ui-design-direction.md), [Frontend](../architecture/frontend.md), [Original logo](../../logo.png)
 
-The root [logo.png](../../logo.png) is an unchanged copy of the logo supplied by the maintainer. It is a 1254 by 1254 pixel transparent PNG and is the source for the committed browser assets. The navigation uses a 128 by 128 pixel lossless WebP, displayed at 32 by 32 pixels. The adjacent brand text names the link, so the image has an empty alt attribute.
+The root [logo.png](../../logo.png) is an unchanged copy of the logo supplied by the maintainer.
+It is a 1254 by 1254 pixel transparent PNG and is the source for the committed browser assets.
+The navigation uses a 128 by 128 pixel lossless WebP, displayed at 32 by 32 pixels.
+The adjacent brand text names the link, so the image has an empty alt attribute.
 
-Derived assets trim transparent padding and nearly invisible alpha speckles, preserve the artwork and aspect ratio, and add canvas spacing. No image model, vector tracing, or recoloring was used. Asset conversion is an offline preparation step; the application build does not require an image-conversion dependency.
+Derived assets trim transparent padding and nearly invisible alpha speckles, preserve the artwork and aspect ratio, and add canvas spacing.
+No image model, vector tracing, or recoloring was used.
+Asset conversion is an offline preparation step; the application build does not require an image-conversion dependency.
 
 | Asset                                                                                                     | Use                                                     |
 | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
@@ -19,36 +24,76 @@ Derived assets trim transparent padding and nearly invisible alpha speckles, pre
 | [icon-192.png](../../frontend/static/icon-192.png) and [icon-512.png](../../frontend/static/icon-512.png) | Transparent manifest icons with purpose `any`           |
 | [icon-maskable-512.png](../../frontend/static/icon-maskable-512.png)                                      | Separate opaque manifest icon with purpose `maskable`   |
 
-The [HTML document](../../frontend/src/app.html) declares exact favicon and Apple touch sizes. The [manifest](../../frontend/static/manifest.webmanifest) declares exact PNG dimensions and separate ordinary and maskable purposes. Its theme and background colors match the neutral dark application background, `#101010`. Its start URL and shortcuts use `/search` and `/inventory`, which redirect to their canonical `/mtg/` routes.
+The [HTML document](../../frontend/src/app.html) declares exact favicon and Apple touch sizes.
+The [manifest](../../frontend/static/manifest.webmanifest) declares exact PNG dimensions and separate ordinary and maskable purposes.
+Its theme and background colors match the neutral dark application background, `#101010`.
+Its start URL and shortcuts use `/search` and `/inventory`, which redirect to their canonical `/mtg/` routes.
 
-The maskable icon has an opaque `#0d0b0f` background. Its complete mark fits inside the centered safe circle with radius 40 percent of the canvas. Keep the original PNG and regenerate derivatives when the source changes; do not replace the source with a reduced export or describe this raster artwork as an SVG.
+The maskable icon has an opaque `#0d0b0f` background.
+Its complete mark fits inside the centered safe circle with radius 40 percent of the canvas.
+Keep the original PNG and regenerate derivatives when the source changes; do not replace the source with a reduced export or describe this raster artwork as an SVG.
 
-Verify dimensions, alpha, ICO entries, referenced URLs, and small previews on light and dark backgrounds after regeneration. Check navigation and the fetched favicon in a browser. Browser caches can retain earlier favicons. Native home-screen installation and launcher rendering require checks on the target devices; a valid manifest alone does not establish installation support. The application has no offline service worker.
+Verify dimensions, alpha, ICO entries, referenced URLs, and small previews on light and dark backgrounds after regeneration.
+Check navigation and the fetched favicon in a browser.
+Browser caches can retain earlier favicons.
+Native home-screen installation and launcher rendering require checks on the target devices; a valid manifest alone does not establish installation support.
+The application has no offline service worker.
 
-The [HTML icon specification](https://html.spec.whatwg.org/multipage/links.html#rel-icon) defines size declarations. The [Web App Manifest specification](https://www.w3.org/TR/appmanifest/#icon-masks) defines maskable safe areas. Apple's [Web Clip guidance](https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariWebContent/ConfiguringWebApplications/ConfiguringWebApplications.html) describes PNG touch icons.
+The [HTML icon specification](https://html.spec.whatwg.org/multipage/links.html#rel-icon) defines size declarations.
+The [Web App Manifest specification](https://www.w3.org/TR/appmanifest/#icon-masks) defines maskable safe areas.
+Apple's [Web Clip guidance](https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariWebContent/ConfiguringWebApplications/ConfiguringWebApplications.html) describes PNG touch icons.
 
 ## Workspace illustration
 
-The repository retains an unused [card-box illustration](../../frontend/static/brand/card-box.webp), a transparent 1200 by 1000 pixel WebP. Its editable source is [card-box.blend](../../frontend/brand/card-box.blend), generated by [card-box.py](../../frontend/brand/card-box.py). The scene contains a graphite open box and 24 sleeve-card meshes grouped in violet, blue, cyan, and teal, with a blank front label. It is separate from the unchanged supplied logo and its icon derivatives.
+The repository retains an unused [card-box illustration](../../frontend/static/brand/card-box.webp), a transparent 1200 by 1000 pixel WebP.
+Its editable source is [card-box.blend](../../frontend/brand/card-box.blend), generated by [card-box.py](../../frontend/brand/card-box.py).
+The scene contains a graphite open box and 24 sleeve-card meshes grouped in violet, blue, cyan, and teal, with a blank front label.
+It is separate from the unchanged supplied logo and its icon derivatives.
 
-The geometry and materials are procedural, with no downloaded models or textures. Blender 5.2 renders the scene offline; Pillow converts the PNG to WebP. The generator's docstring owns the regeneration commands, including absolute paths for the Flatpak invocation. The current home page does not load this asset and needs no runtime 3D library.
+The geometry and materials are procedural, with no downloaded models or textures.
+Blender 5.2 renders the scene offline; Pillow converts the PNG to WebP.
+The generator's docstring owns the regeneration commands, including absolute paths for the Flatpak invocation.
+The current home page does not load this asset and needs no runtime 3D library.
 
 ## Card showcase assets
 
-The bounded local artwork collection under `frontend/static/showcase/` includes twelve full-frame Magic images at 560 by 780 pixels. The [asset manifest](../../frontend/src/lib/showcase/cards.json) owns their printing UUIDs, names, sets, collector numbers, artists, source pages, metadata and image URLs, dimensions, and refresh dates. [Showcase data](../../frontend/src/lib/showcase/cards.ts) imports that manifest with a typed contract. Manifests live beside their source imports; only images belong in the public static directory. Rendering does not request Scryfall metadata or image URLs at runtime.
+The bounded local artwork collection under `frontend/static/showcase/` includes twelve full-frame Magic images at 560 by 780 pixels.
+The [asset manifest](../../frontend/src/lib/showcase/cards.json) owns their printing UUIDs, names, sets, collector numbers, artists, source pages, metadata and image URLs, dimensions, and refresh dates.
+[Showcase data](../../frontend/src/lib/showcase/cards.ts) imports that manifest with a typed contract.
+Manifests live beside their source imports; only images belong in the public static directory.
+Rendering does not request Scryfall metadata or image URLs at runtime.
 
-[refresh-assets.py](../../frontend/scripts/showcase/refresh-assets.py) refreshes the manifest's confirmed printings and converts their full images to WebP. It requires Python 3 and Pillow for offline image preparation, with no frontend build dependency. Run it from the repository root:
+[refresh-assets.py](../../frontend/scripts/showcase/refresh-assets.py) refreshes the manifest's confirmed printings and converts their full images to WebP.
+It requires Python 3 and Pillow for offline image preparation, with no frontend build dependency.
+Run it from the repository root:
 
 ```sh
 python3 frontend/scripts/showcase/refresh-assets.py
 python3 frontend/scripts/showcase/refresh-assets.py ponder birds-of-paradise
 ```
 
-The first command refreshes all manifest entries; the second refreshes selected slugs. To add a printing, first add its confirmed Scryfall UUID and unique path-safe slug to the manifest. The script validates identities and image shape, preserves full frames, stages downloads before replacement, and records provenance. This process prepares a small website asset set. General catalog artwork indexing, bulk downloads, and a wider test-image corpus remain separate future work.
+The first command refreshes all manifest entries; the second refreshes selected slugs.
+To add a printing, first add its confirmed Scryfall UUID and unique path-safe slug to the manifest.
+The script validates identities and image shape, preserves full frames, stages downloads before replacement, and records provenance.
+This process prepares a small website asset set.
+General catalog artwork indexing, bulk downloads, and a wider test-image corpus remain separate future work.
 
-The [other-game manifest](../../frontend/src/lib/showcase/other-tcg-cards.json) indexes eight full-frame decorative cards from Pokémon, Yu-Gi-Oh! and Digimon. Each entry records its game, card identity, local slug, source page, metadata endpoint, original image URL, and actual local dimensions. Downloaded images record their refresh date; retained assets do not invent one. Pokémon images come from TCGdex and Yu-Gi-Oh! images from YGOPRODeck. Agumon and Gabumon use official Bandai images at their original 430 by 600 pixels. Offline Pillow conversion preserves the complete frames. One Piece and Disney Lorcana assets and manifest entries are removed at the user's request. The Magic refresh script does not refresh this separate manifest.
+The [other-game manifest](../../frontend/src/lib/showcase/other-tcg-cards.json) indexes eight full-frame decorative cards from Pokémon, Yu-Gi-Oh!
+and Digimon.
+Each entry records its game, card identity, local slug, source page, metadata endpoint, original image URL, and actual local dimensions.
+Downloaded images record their refresh date; retained assets do not invent one.
+Pokémon images come from TCGdex and Yu-Gi-Oh!
+images from YGOPRODeck.
+Agumon and Gabumon use official Bandai images at their original 430 by 600 pixels.
+Offline Pillow conversion preserves the complete frames.
+One Piece and Disney Lorcana assets and manifest entries are removed at the user's request.
+The Magic refresh script does not refresh this separate manifest.
 
-The [pack manifest](../../frontend/src/lib/showcase/packs.json) records all four sealed packs with their game, set, source page, original image URL and local and source dimensions. The ordinary landing pool selects 36 tiles with weights of 75 for full card frames, 15 for packs and 10 for authentic Magic card backs. The [backs manifest](../../frontend/src/lib/showcase/backs.json) owns their source and dimensions. Packs preserve complete packaging artwork; only transparent outer margins are trimmed. These assets do not establish pack opening or purchases.
+The [pack manifest](../../frontend/src/lib/showcase/packs.json) records all four sealed packs with their game, set, source page, original image URL and local and source dimensions.
+The ordinary landing pool selects 36 tiles with weights of 75 for full card frames, 15 for packs and 10 for authentic Magic card backs.
+The [backs manifest](../../frontend/src/lib/showcase/backs.json) owns their source and dimensions.
+Packs preserve complete packaging artwork; only transparent outer margins are trimmed.
+These assets do not establish pack opening or purchases.
 
 | Asset               | Source                                                                                                                          |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
@@ -57,28 +102,66 @@ The [pack manifest](../../frontend/src/lib/showcase/packs.json) records all four
 | `yugioh-pack.webp`  | [Konami's Age of Overlord product page](https://www.yugioh-card.com/en/products/agov/)                                          |
 | `digimon-pack.webp` | [Bandai's Dimensional Phase product page](https://world.digimoncard.com/products/pack/ver11.php)                                |
 
-The [Sol Ring artwork crop](../../frontend/static/showcase/sol-ring-art.webp) is a 626 by 457 pixel WebP from FRC 21, illustrated by Titus Lunter. Its sources are the [Scryfall card page](https://scryfall.com/card/frc/21/sol-ring), [printing metadata](https://api.scryfall.com/cards/8ee443cc-e17a-493b-9c93-1f9e141a30e4), and [original art crop](https://cards.scryfall.io/art_crop/front/8/e/8ee443cc-e17a-493b-9c93-1f9e141a30e4.jpg?1789644446). Artwork crops are separate from full card images. Keep their source and artist attribution when changing the composition.
+The [Sol Ring artwork crop](../../frontend/static/showcase/sol-ring-art.webp) is a 626 by 457 pixel WebP from FRC 21, illustrated by Titus Lunter.
+Its sources are the [Scryfall card page](https://scryfall.com/card/frc/21/sol-ring), [printing metadata](https://api.scryfall.com/cards/8ee443cc-e17a-493b-9c93-1f9e141a30e4), and [original art crop](https://cards.scryfall.io/art_crop/front/8/e/8ee443cc-e17a-493b-9c93-1f9e141a30e4.jpg?1789644446).
+Artwork crops are separate from full card images.
+Keep their source and artist attribution when changing the composition.
 
-The [Commander snapshot](../../frontend/src/lib/showcase/commander-deck.json) records Wizards of the Coast's original shipped [Upgrades Unleashed](https://magic.wizards.com/en/news/feature/kamigawa-neon-dynasty-commander-decklists-2022-02-07) list, retrieved on 2026-10-07. Its 75 named entries total 100 copies including Chishiro as commander, with red and green color identity. It retains the acknowledged two Mossfire Valley copies, excludes tokens and the display commander, and does not claim singleton legality. The snapshot retains quantities, roles, printing and canonical identities, card types and image provenance. It is a fixed public example. [Local authentication](../operations/local-auth.md#demo-mode) owns the corresponding private Demo starter and its guarded replacement procedure.
+The [Commander snapshot](../../frontend/src/lib/showcase/commander-deck.json) records Wizards of the Coast's original shipped [Upgrades Unleashed](https://magic.wizards.com/en/news/feature/kamigawa-neon-dynasty-commander-decklists-2022-02-07) list, retrieved on 2026-10-07.
+Its 75 named entries total 100 copies including Chishiro as commander, with red and green color identity.
+It retains the acknowledged two Mossfire Valley copies, excludes tokens and the display commander, and does not claim singleton legality.
+The snapshot retains quantities, roles, printing and canonical identities, card types and image provenance.
+It is a fixed public example.
+[Local authentication](../operations/local-auth.md#demo-mode) owns the corresponding private Demo starter and its guarded replacement procedure.
 
-Eight local 488 by 680 pixel WebPs render the deckbox preview: Chishiro, Kaima, Sol Ring, Swiftfoot Boots, Kodama's Reach, Sakura-Tribe Elder, Rhythm of the Wild and Bear Umbra. Full card frames use the exact regular NEC printing identities recorded in the snapshot. The remaining list uses regular English NEC printings, with four NEO spells and normal NEO 289 Mountain and NEO 291 Forest representatives. Exact sealed-deck basic artwork variants remain unverified. Chishiro and Kaima use foil, with [WPN product contents](https://wpn.wizards.com/en/products/kamigawa-neon-dynasty) confirming two foil legendary cards. Their exact local filenames, dimensions, artists and Scryfall image sources belong to the snapshot. [commander-deck.ts](../../frontend/src/lib/showcase/commander-deck.ts) derives the visible stack from the complete list. The generic refresh script does not refresh this separate snapshot. When replacing it, verify source, roles, quantities, commander, color identity and displayed-card membership together. The visible and accessible source credit links to Wizards' full list. Opening it does not import the Deck into an account.
+Eight local 488 by 680 pixel WebPs render the deckbox preview: Chishiro, Kaima, Sol Ring, Swiftfoot Boots, Kodama's Reach, Sakura-Tribe Elder, Rhythm of the Wild and Bear Umbra.
+Full card frames use the exact regular NEC printing identities recorded in the snapshot.
+The remaining list uses regular English NEC printings, with four NEO spells and normal NEO 289 Mountain and NEO 291 Forest representatives.
+Exact sealed-deck basic artwork variants remain unverified.
+Chishiro and Kaima use foil, with [WPN product contents](https://wpn.wizards.com/en/products/kamigawa-neon-dynasty) confirming two foil legendary cards.
+Their exact local filenames, dimensions, artists and Scryfall image sources belong to the snapshot.
+[commander-deck.ts](../../frontend/src/lib/showcase/commander-deck.ts) derives the visible stack from the complete list.
+The generic refresh script does not refresh this separate snapshot.
+When replacing it, verify source, roles, quantities, commander, color identity and displayed-card membership together.
+The visible and accessible source credit links to Wizards' full list.
+Opening it does not import the Deck into an account.
 
-These are third-party card artworks, not original Spellbook branding or assets covered by the repository's code license. Credits name the respective games and image providers. All non-MTG images are decorative; no corresponding game catalogs or account tools are implemented. Decorative Magic artwork is not an inventory record or a guarantee of local catalog availability. Verify image loading, uncropped frames, source links, and reduced-motion presentation after asset changes.
+These are third-party card artworks, not original Spellbook branding or assets covered by the repository's code license.
+Credits name the respective games and image providers.
+All non-MTG images are decorative; no corresponding game catalogs or account tools are implemented.
+Decorative Magic artwork is not an inventory record or a guarantee of local catalog availability.
+Verify image loading, uncropped frames, source links, and reduced-motion presentation after asset changes.
 
-Transparent pack margins are trimmed without changing the packaging artwork. The retained pack sources do not establish a pack-opening or purchase feature. The rejected isolated three-card and two-pack row should not return as filler beneath an unrelated hero.
+Transparent pack margins are trimmed without changing the packaging artwork.
+The retained pack sources do not establish a pack-opening or purchase feature.
+The rejected isolated three-card and two-pack row should not return as filler beneath an unrelated hero.
 
-The game control uses the `ms-planeswalker` glyph from the existing Mana Font dependency to identify MTG, with an accessible name and tooltip. It sits before the theme icon and does not imply additional game support.
+The game control uses the `ms-planeswalker` glyph from the existing Mana Font dependency to identify MTG, with an accessible name and tooltip.
+It sits before the theme icon and does not imply additional game support.
 
 ## Profile card frames
 
-The [frame manifest](../../frontend/brand/profile-frames.json) records 28 regular 745 by 1040 pixel RGBA PNGs loaded by [CardCraft](https://mtg-card-maker.herokuapp.com/) on 2026-10-06. Seven colors each provide Spell and Creature variants, with Standard and Legendary styling. Local assets under `frontend/static/profile/frames/` use lossless WebP with identical decoded RGBA pixels, including partial-alpha edges. The manifest owns exact source URLs, source and output SHA256 hashes, dimensions, transparent-pixel counts and the inspected deployment-bundle hash. No runtime request goes to CardCraft.
+The [frame manifest](../../frontend/brand/profile-frames.json) records 28 regular 745 by 1040 pixel RGBA PNGs loaded by [CardCraft](https://mtg-card-maker.herokuapp.com/) on 2026-10-06.
+Seven colors each provide Spell and Creature variants, with Standard and Legendary styling.
+Local assets under `frontend/static/profile/frames/` use lossless WebP with identical decoded RGBA pixels, including partial-alpha edges.
+The manifest owns exact source URLs, source and output SHA256 hashes, dimensions, transparent-pixel counts and the inspected deployment-bundle hash.
+No runtime request goes to CardCraft.
 
-These are third-party MTG frame reproductions. A corresponding upstream repository, commit, image author, frame-specific reuse license and official Wizards publication are unverified. CardCraft's software dependency notices do not establish an image license. These images are not covered by Spellbook's code license. The shared footer links to CardCraft as their source.
+These are third-party MTG frame reproductions.
+A corresponding upstream repository, commit, image author, frame-specific reuse license and official Wizards publication are unverified.
+CardCraft's software dependency notices do not establish an image license.
+These images are not covered by Spellbook's code license.
+The shared footer links to CardCraft as their source.
 
-[prepare-frames.py](../../frontend/scripts/profile/prepare-frames.py) downloads the recorded sources, rejects changed source hashes, creates lossless WebP and verifies every decoded RGBA pixel before replacing the prepared assets. Python and Pillow are offline preparation tools, without a frontend build dependency. Run from the repository root:
+[prepare-frames.py](../../frontend/scripts/profile/prepare-frames.py) downloads the recorded sources, rejects changed source hashes, creates lossless WebP and verifies every decoded RGBA pixel before replacing the prepared assets.
+Python and Pillow are offline preparation tools, without a frontend build dependency.
+Run from the repository root:
 
 ```sh
 python3 frontend/scripts/profile/prepare-frames.py
 ```
 
-The optional `--source-dir` accepts the directory of previously extracted original PNGs. The renderer uses local SVG crops rather than claiming separate original Crown or Power/Toughness layers. It preserves the fully transparent common artwork rectangle `[58,120,687,576]`, uses the Spell frame for the main regions and the Creature frame for the optional Power/Toughness capsule. Long valid content expands the corresponding text region while preserving the existing field limits.
+The optional `--source-dir` accepts the directory of previously extracted original PNGs.
+The renderer uses local SVG crops rather than claiming separate original Crown or Power/Toughness layers.
+It preserves the fully transparent common artwork rectangle `[58,120,687,576]`, uses the Spell frame for the main regions and the Creature frame for the optional Power/Toughness capsule.
+Long valid content expands the corresponding text region while preserving the existing field limits.

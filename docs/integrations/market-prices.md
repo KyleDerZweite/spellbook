@@ -6,15 +6,34 @@
 - Update Triggers: provider access or terms, price fields and freshness, printing identity, reference coverage, public history and accepted value scope
 - Related Docs: [Integrations](./README.md), [Value tracking](../product/value-tracking.md), [Domain glossary](../../GLOSSARY.md), [Product specification](../product/specification.md#dashboard), [Catalog](../architecture/catalog.md), [Worker](../architecture/worker.md), [Postgres](../architecture/postgres.md), [Valuation](../architecture/valuation.md)
 
-Scryfall supplies the daily baseline for implemented per-printing EUR references and supplied external product links. Cardmarket offers public downloads for a specifically named Cardmarket trend price. Direct marketplace APIs are not a reliable basis for a new integration at present because both providers restrict new access. Q56 accepted the baseline and optional adapter direction. Optional Cardmarket/MTGJSON adapters and bounded public source history are implemented; Dashboard and selected-Deck estimates are implemented. External product links are implemented; sales and a trading ledger are not.
+Scryfall supplies the daily baseline for implemented per-printing EUR references and supplied external product links.
+Cardmarket offers public downloads for a specifically named Cardmarket trend price.
+Direct marketplace APIs are not a reliable basis for a new integration at present because both providers restrict new access.
+Q56 accepted the baseline and optional adapter direction.
+Optional Cardmarket/MTGJSON adapters and bounded public source history are implemented; Dashboard and selected-Deck estimates are implemented.
+External product links are implemented; sales and a trading ledger are not.
 
-The maintainer selected Scryfall as the baseline and optional Cardmarket Price Guide and MTGJSON imports. The implemented public downloads need no key or account. The [value-tracking contract](../product/value-tracking.md) owns coverage, freshness and implemented personal daily Inventory history. Q56 accepted source publication and module ownership on 2026-10-06; [valuation](../architecture/valuation.md) owns implemented Scryfall publication/mapping/backend references and the implemented personal-history boundary. Provider facts below remain dated research. The baseline has actual full-source import evidence. Current optional import and coverage evidence is recorded with Slice 11 acceptance; dated research below is not that evidence.
+The maintainer selected Scryfall as the baseline and optional Cardmarket Price Guide and MTGJSON imports.
+The implemented public downloads need no key or account.
+The [value-tracking contract](../product/value-tracking.md) owns coverage, freshness and implemented personal daily Inventory history.
+Q56 accepted source publication and module ownership on 2026-10-06; [valuation](../architecture/valuation.md) owns implemented Scryfall publication/mapping/backend references and the implemented personal-history boundary.
+Provider facts below remain dated research.
+The baseline has actual full-source import evidence.
+Current optional import and coverage evidence is recorded with Slice 11 acceptance; dated research below is not that evidence.
 
 ## Current state in Spellbook
 
-The [Worker](../architecture/worker.md) downloads `all_cards` by default and syncs daily. [transform_card](../../worker/src/worker/transform.py) does not carry over `prices`, marketplace IDs, or `purchase_uris`. [CardDocument](../../frontend/src/lib/search/types.ts) also lacks these fields. The separate [Worker price extractor](../../worker/src/worker/prices.py) now retains these public facts in immutable price publications; Catalog metadata DTOs remain separate. [Valuation](../architecture/valuation.md#implemented-market-references) owns the implemented baseline and conservative language mapping.
+The [Worker](../architecture/worker.md) downloads `all_cards` by default and syncs daily.
+[transform_card](../../worker/src/worker/transform.py) does not carry over `prices`, marketplace IDs, or `purchase_uris`.
+[CardDocument](../../frontend/src/lib/search/types.ts) also lacks these fields.
+The separate [Worker price extractor](../../worker/src/worker/prices.py) now retains these public facts in immutable price publications; Catalog metadata DTOs remain separate.
+[Valuation](../architecture/valuation.md#implemented-market-references) owns the implemented baseline and conservative language mapping.
 
-The [backend Inventory schema](../../backend/src/db/schema.ts) stores printing, quantity, finish, and condition. It does not store acquisition costs or purchases. The [backend Dashboard calculation](../../backend/src/profile/dashboard.ts) uses bounded SQL aggregates for current Inventory and Deck availability. The Dashboard also includes coherent optional value estimates and captured personal history. The [value-tracking contract](../product/value-tracking.md) owns current reporting and its limits.
+The [backend Inventory schema](../../backend/src/db/schema.ts) stores printing, quantity, finish, and condition.
+It does not store acquisition costs or purchases.
+The [backend Dashboard calculation](../../backend/src/profile/dashboard.ts) uses bounded SQL aggregates for current Inventory and Deck availability.
+The Dashboard also includes coherent optional value estimates and captured personal history.
+The [value-tracking contract](../product/value-tracking.md) owns current reporting and its limits.
 
 ## Available sources
 
@@ -27,58 +46,150 @@ The [backend Inventory schema](../../backend/src/db/schema.ts) stores printing, 
 
 ### Scryfall
 
-The [Card Object documentation](https://scryfall.com/docs/api/cards) describes daily price fields as strings. For the current inventory, `eur` and `eur_foil` are the corresponding EUR fields, and `usd` and `usd_foil` are the corresponding USD fields. The documentation also lists `usd_etched`, `eur_etched`, and `tix`. The checked responses did not contain `eur_etched`. An adapter must preserve missing fields and `null`. `tix` is for Magic Online and must not be included in a physical EUR inventory.
+The [Card Object documentation](https://scryfall.com/docs/api/cards) describes daily price fields as strings.
+For the current inventory, `eur` and `eur_foil` are the corresponding EUR fields, and `usd` and `usd_foil` are the corresponding USD fields.
+The documentation also lists `usd_etched`, `eur_etched`, and `tix`.
+The checked responses did not contain `eur_etched`.
+An adapter must preserve missing fields and `null`.
+`tix` is for Magic Online and must not be included in a physical EUR inventory.
 
-Scryfall syncs affiliate prices about every 24 hours. According to the [price FAQ](https://scryfall.com/docs/faqs/where-do-scryfall-prices-come-from-7), it uses the TCGplayer Market Price. For Cardmarket, it uses available trend, daily average, seven day average, average, or suggested prices. A single `eur` field does not name the measure used. The selected application labels are "Scryfall EUR" and "Scryfall EUR foil", with the original field preserved. It must not claim that the field is always the same trend price.
+Scryfall syncs affiliate prices about every 24 hours.
+According to the [price FAQ](https://scryfall.com/docs/faqs/where-do-scryfall-prices-come-from-7), it uses the TCGplayer Market Price.
+For Cardmarket, it uses available trend, daily average, seven day average, average, or suggested prices.
+A single `eur` field does not name the measure used.
+The selected application labels are "Scryfall EUR" and "Scryfall EUR foil", with the original field preserved.
+It must not claim that the field is always the same trend price.
 
-The [Bulk documentation](https://scryfall.com/docs/api/bulk-data) confirms price fields in Card Objects. It describes prices as stale after 24 hours and limits their suitability to general estimates and trends. Bulk prices are not a basis for a storefront or sales process. `all_cards` contains all available languages. `default_cards` contains mostly English records. Switching to `default_cards` would therefore not cover the exact German printings in the inventory.
+The [Bulk documentation](https://scryfall.com/docs/api/bulk-data) confirms price fields in Card Objects.
+It describes prices as stale after 24 hours and limits their suitability to general estimates and trends.
+Bulk prices are not a basis for a storefront or sales process.
+`all_cards` contains all available languages.
+`default_cards` contains mostly English records.
+Switching to `default_cards` would therefore not cover the exact German printings in the inventory.
 
-The current [rate limits](https://scryfall.com/docs/api/rate-limits) are two requests per second for `/cards/search`, `/cards/named`, `/cards/random`, and `/cards/collection`. `/cards/manifest` allows ten per minute, and other methods allow ten per second. Scryfall requires bulk files for fast or large price queries and recommends at least a 24 hour cache. On HTTP 429, the client must reduce requests. The [API rules](https://scryfall.com/docs/api) require suitable `User-Agent` and `Accept` headers.
+The current [rate limits](https://scryfall.com/docs/api/rate-limits) are two requests per second for `/cards/search`, `/cards/named`, `/cards/random`, and `/cards/collection`.
+`/cards/manifest` allows ten per minute, and other methods allow ten per second.
+Scryfall requires bulk files for fast or large price queries and recommends at least a 24 hour cache.
+On HTTP 429, the client must reduce requests.
+The [API rules](https://scryfall.com/docs/api) require suitable `User-Agent` and `Accept` headers.
 
-Scryfall provides the data [free of charge under usage rules](https://scryfall.com/docs/api#use-of-scryfall-data-and-images). These include providing additional value to users, not claiming Scryfall's endorsement, and not putting Scryfall data behind a paywall. The [Terms](https://scryfall.com/docs/terms) describe prices as informational and nonbinding. These conditions are not a general license for marketplace transactions.
+Scryfall provides the data [free of charge under usage rules](https://scryfall.com/docs/api#use-of-scryfall-data-and-images).
+These include providing additional value to users, not claiming Scryfall's endorsement, and not putting Scryfall data behind a paywall.
+The [Terms](https://scryfall.com/docs/terms) describe prices as informational and nonbinding.
+These conditions are not a general license for marketplace transactions.
 
 ### Cardmarket
 
-In 2024, Cardmarket made the Price Guide and Product Catalogue [publicly available](https://news.cardmarket.com/en/Magic/were-making-the-price-guide-and-product-catalogue-available-for-download). The guide updates daily, and the product catalog updates with new releases. The previous API endpoints were deprecated for this purpose. The [official explanation](https://insight.cardmarket.com/en/Articles/the-state-of-cardmarket-2024) confirms that the downloads require no API access. The [download page](https://www.cardmarket.com/en/Magic/Data/Price-Guide) returned HTTP 403 during this research, but the files themselves were accessible without credentials.
+In 2024, Cardmarket made the Price Guide and Product Catalogue [publicly available](https://news.cardmarket.com/en/Magic/were-making-the-price-guide-and-product-catalogue-available-for-download).
+The guide updates daily, and the product catalog updates with new releases.
+The previous API endpoints were deprecated for this purpose.
+The [official explanation](https://insight.cardmarket.com/en/Articles/the-state-of-cardmarket-2024) confirms that the downloads require no API access.
+The [download page](https://www.cardmarket.com/en/Magic/Data/Price-Guide) returned HTTP 403 during this research, but the files themselves were accessible without credentials.
 
-The checked [Magic Price Guide](https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_1.json) contains `createdAt`, `idProduct`, and values such as `low`, `trend`, `avg1`, `avg7`, `avg30`, and their `-foil` variants. The [previous official field description](https://apiv2.cardmarket.com/ws/documentation/API_2.0:PriceGuide) distinguishes lowest offers, trend prices, and average sales. These measures must not be silently substituted for one another. The current JSON guide has no `language` or `condition` dimension. It does not establish an exact price for a German LP copy.
+The checked [Magic Price Guide](https://downloads.s3.cardmarket.com/productCatalog/priceGuide/price_guide_1.json) contains `createdAt`, `idProduct`, and values such as `low`, `trend`, `avg1`, `avg7`, `avg30`, and their `-foil` variants.
+The [previous official field description](https://apiv2.cardmarket.com/ws/documentation/API_2.0:PriceGuide) distinguishes lowest offers, trend prices, and average sales.
+These measures must not be silently substituted for one another.
+The current JSON guide has no `language` or `condition` dimension.
+It does not establish an exact price for a German LP copy.
 
-The [Product Catalogue](https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_1.json) provides product IDs and names. For existing mappings, Scryfall's nullable `cardmarket_id` is the appropriate link to `idProduct`. The [Scryfall field definition](https://scryfall.com/docs/api/cards) confirms this relationship. Matching by card name or `oracle_id` alone is insufficient because sets and treatments differ. A missing mapping remains unknown.
+The [Product Catalogue](https://downloads.s3.cardmarket.com/productCatalog/productList/products_singles_1.json) provides product IDs and names.
+For existing mappings, Scryfall's nullable `cardmarket_id` is the appropriate link to `idProduct`.
+The [Scryfall field definition](https://scryfall.com/docs/api/cards) confirms this relationship.
+Matching by card name or `oracle_id` alone is insufficient because sets and treatments differ.
+A missing mapping remains unknown.
 
-Cardmarket's [current API help](https://help.cardmarket.com/en/cardmarket-api) accepts no new applications. Existing dedicated app credentials must not be shared with third party apps. The older [authentication documentation](https://apiv2.cardmarket.com/ws/documentation/API:Auth_Overview) describes manual approval and specific app types. This documentation does not establish access that is available today. Public reference data requires no account connection. A reliable price for a future approved API contract was not established.
+Cardmarket's [current API help](https://help.cardmarket.com/en/cardmarket-api) accepts no new applications.
+Existing dedicated app credentials must not be shared with third party apps.
+The older [authentication documentation](https://apiv2.cardmarket.com/ws/documentation/API:Auth_Overview) describes manual approval and specific app types.
+This documentation does not establish access that is available today.
+Public reference data requires no account connection.
+A reliable price for a future approved API contract was not established.
 
 ### TCGplayer
 
-The [Getting Started page](https://docs.tcgplayer.com/docs/getting-started) requires a Developer Key and says that no new API access is currently being granted. Existing [product prices](https://docs.tcgplayer.com/reference/pricing_getproductprices-1) distinguish `marketPrice`, `lowPrice`, and other measures by product subtype. [SKU details](https://docs.tcgplayer.com/reference/catalog_getskus) include Language, Condition, and Printing IDs. [SKU prices](https://docs.tcgplayer.com/reference/pricing_getproductconditionprices-1) allow finer references accordingly, where access is approved.
+The [Getting Started page](https://docs.tcgplayer.com/docs/getting-started) requires a Developer Key and says that no new API access is currently being granted.
+Existing [product prices](https://docs.tcgplayer.com/reference/pricing_getproductprices-1) distinguish `marketPrice`, `lowPrice`, and other measures by product subtype.
+[SKU details](https://docs.tcgplayer.com/reference/catalog_getskus) include Language, Condition, and Printing IDs.
+[SKU prices](https://docs.tcgplayer.com/reference/pricing_getproductconditionprices-1) allow finer references accordingly, where access is approved.
 
-The [Market Price](https://help.tcgplayer.com/hc/en-us/articles/213588017-TCGplayer-Market-Price) is based on recent completed sales. It is not a personal purchase price. The [API terms](https://help.tcgplayer.com/hc/en-us/articles/360061115874-TCGplayer-API-Terms-Conditions) restrict use to approved purposes and require attribution with a product link when showing prices. A new direct integration or its price was not verified. It is not required for the initial EUR estimate.
+The [Market Price](https://help.tcgplayer.com/hc/en-us/articles/213588017-TCGplayer-Market-Price) is based on recent completed sales.
+It is not a personal purchase price.
+The [API terms](https://help.tcgplayer.com/hc/en-us/articles/360061115874-TCGplayer-API-Terms-Conditions) restrict use to approved purposes and require attribution with a product link when showing prices.
+A new direct integration or its price was not verified.
+It is not required for the initial EUR estimate.
 
 ### MTGJSON
 
-MTGJSON publishes public price files without a bulk-download API key. `AllPricesToday` contains the current day's observations and `AllPrices` retains the past 90 days, keyed by MTGJSON printing UUID. The price model separates provider, currency, paper/MTGO, retail/buylist and normal/foil/etched series. Match through verified printing identifiers rather than card names. Its GraphQL service is a separate access model and is not needed for these downloads. See [file definitions](https://mtgjson.com/downloads/all-files/), [price formats](https://mtgjson.com/data-models/price/price-formats/), [price lists](https://mtgjson.com/data-models/price/price-list/) and [FAQ](https://mtgjson.com/faq/).
+MTGJSON publishes public price files without a bulk-download API key.
+`AllPricesToday` contains the current day's observations and `AllPrices` retains the past 90 days, keyed by MTGJSON printing UUID.
+The price model separates provider, currency, paper/MTGO, retail/buylist and normal/foil/etched series.
+Match through verified printing identifiers rather than card names.
+Its GraphQL service is a separate access model and is not needed for these downloads.
+See [file definitions](https://mtgjson.com/downloads/all-files/), [price formats](https://mtgjson.com/data-models/price/price-formats/), [price lists](https://mtgjson.com/data-models/price/price-list/) and [FAQ](https://mtgjson.com/faq/).
 
-The published model includes Cardmarket and TCGplayer alongside other providers. Repeated upstream references are not independent market confirmation. Retail and buylist are different measures and must not be substituted silently. Only matching EUR references qualify for the selected EUR totals. Source history alone does not establish historical account holdings. There is no condition dimension in the checked price model.
+The published model includes Cardmarket and TCGplayer alongside other providers.
+Repeated upstream references are not independent market confirmation.
+Retail and buylist are different measures and must not be substituted silently.
+Only matching EUR references qualify for the selected EUR totals.
+Source history alone does not establish historical account holdings.
+There is no condition dimension in the checked price model.
 
-The v5.3 [changelog](https://mtgjson.com/changelogs/mtgjson-v5/) adds Manapool, while the checked Price Formats type does not list it. Validate actual payloads before depending on that provider. MTGJSON's project [MIT license](https://github.com/mtgjson/mtgjson/blob/master/LICENSE.txt) does not establish separately verified rights for every upstream dataset. No integration or full-catalog mapping benchmark was performed in this research.
+The v5.3 [changelog](https://mtgjson.com/changelogs/mtgjson-v5/) adds Manapool, while the checked Price Formats type does not list it.
+Validate actual payloads before depending on that provider.
+MTGJSON's project [MIT license](https://github.com/mtgjson/mtgjson/blob/master/LICENSE.txt) does not establish separately verified rights for every upstream dataset.
+No integration or full-catalog mapping benchmark was performed in this research.
 
 ## Accepted provider design
 
-The smallest useful contract is a shared price reference per exact printing, finish, provider, price measure, and currency. It includes an optional amount, the original provider identity and field provenance, the source snapshot time, and the import time. Amounts need a decimal or integer money representation. Missing values remain unknown. An import time must not appear to be the time of an individual market sale.
+The smallest useful contract is a shared price reference per exact printing, finish, provider, price measure, and currency.
+It includes an optional amount, the original provider identity and field provenance, the source snapshot time, and the import time.
+Amounts need a decimal or integer money representation.
+Missing values remain unknown.
+An import time must not appear to be the time of an individual market sale.
 
-The Worker imports Scryfall prices once daily for all accounts. The implementation needs no generic plugin framework or per-account queries to marketplaces. Backend Valuation owns implemented bounded public printing and authenticated owned-entry reference reads. Full-account value summaries and Dashboard totals are implemented. Optional Cardmarket and MTGJSON public adapters are implemented with explicit operator opt-ins. Catalog identity remains with Catalog and ownership remains with Inventory. Publication and error behavior follow the existing [Catalog contract](../architecture/catalog.md#storage-and-publication).
+The Worker imports Scryfall prices once daily for all accounts.
+The implementation needs no generic plugin framework or per-account queries to marketplaces.
+Backend Valuation owns implemented bounded public printing and authenticated owned-entry reference reads.
+Full-account value summaries and Dashboard totals are implemented.
+Optional Cardmarket and MTGJSON public adapters are implemented with explicit operator opt-ins.
+Catalog identity remains with Catalog and ownership remains with Inventory.
+Publication and error behavior follow the existing [Catalog contract](../architecture/catalog.md#storage-and-publication).
 
-The selected [value-tracking contract](../product/value-tracking.md#reference-selection-and-coverage) permits a marked, unambiguous English-printing fallback and requires a matching finish. `null`, missing provider IDs and unresolved treatments do not count as zero. The current inventory distinguishes only `nonfoil` and `foil`, while the transformation combines `etched` as an available foil variant. Valuation independently requires explicit source finish membership: `foil` selects the typed `eur_foil` field even when `etched` also appears; Etched-only does not qualify. The API accepts no Etched finish and never substitutes an Etched price. References use no invented condition discounts.
+The selected [value-tracking contract](../product/value-tracking.md#reference-selection-and-coverage) permits a marked, unambiguous English-printing fallback and requires a matching finish.
+`null`, missing provider IDs and unresolved treatments do not count as zero.
+The current inventory distinguishes only `nonfoil` and `foil`, while the transformation combines `etched` as an available foil variant.
+Valuation independently requires explicit source finish membership: `foil` selects the typed `eur_foil` field even when `etched` also appears; Etched-only does not qualify.
+The API accepts no Etched finish and never substitutes an Etched price.
+References use no invented condition discounts.
 
-[Value tracking](../product/value-tracking.md#reference-selection-and-coverage) owns account estimate and quantity-coverage requirements. Historical value trends require saved quantities and reference evidence; `updatedAt`, today's Inventory and provider averages do not establish personal holdings history. Purchase-cost accounting is removed from scope under [ADR-0020](../decisions/0020-value-only-inventory-history.md).
+[Value tracking](../product/value-tracking.md#reference-selection-and-coverage) owns account estimate and quantity-coverage requirements.
+Historical value trends require saved quantities and reference evidence; `updatedAt`, today's Inventory and provider averages do not establish personal holdings history.
+Purchase-cost accounting is removed from scope under [ADR-0020](../decisions/0020-value-only-inventory-history.md).
 
-For marketplace navigation, external product links from Scryfall's documented `purchase_uris` are enough. These may lead to search results and do not provide availability or prices for a particular condition. Account linking, listing offers, stock sync, cart, and order import would be separate integrations requiring approved access. None of these follows from a Price Guide.
+For marketplace navigation, external product links from Scryfall's documented `purchase_uris` are enough.
+These may lead to search results and do not provide availability or prices for a particular condition.
+Account linking, listing offers, stock sync, cart, and order import would be separate integrations requiring approved access.
+None of these follows from a Price Guide.
 
 ## Observations and outstanding evidence
 
-On 2026-10-06, the [Bulk index](https://api.scryfall.com/bulk-data), the first record from its current `all_cards` download, and the two Cardmarket JSON files were read without credentials. The bulk record contained `prices`, `cardmarket_id`, and `tcgplayer_id`. The Cardmarket guide had `createdAt: 2026-10-06T02:48:11+0200`. A full coverage measurement was not performed.
+On 2026-10-06, the [Bulk index](https://api.scryfall.com/bulk-data), the first record from its current `all_cards` download, and the two Cardmarket JSON files were read without credentials.
+The bulk record contained `prices`, `cardmarket_id`, and `tcgplayer_id`.
+The Cardmarket guide had `createdAt: 2026-10-06T02:48:11+0200`.
+A full coverage measurement was not performed.
 
-The [English Sol Ring printing CMM 410](https://api.scryfall.com/cards/cmm/410/en) had EUR and foil prices, as well as a Cardmarket ID. The [German printing from the same set and collector number](https://api.scryfall.com/cards/cmm/410/de) had `null` for those fields. This shows a real coverage gap, but not a general rate for German cards. The values are only a dated format sample.
+The [English Sol Ring printing CMM 410](https://api.scryfall.com/cards/cmm/410/en) had EUR and foil prices, as well as a Cardmarket ID.
+The [German printing from the same set and collector number](https://api.scryfall.com/cards/cmm/410/de) had `null` for those fields.
+This shows a real coverage gap, but not a general rate for German cards.
+The values are only a dated format sample.
 
-The [value-tracking contract](../product/value-tracking.md) owns the selected freshness/source priority and language fallback. Q56 accepted publication/mapping responsibilities in [valuation](../architecture/valuation.md#ownership-and-source-publication); Scryfall extraction, publication and backend/UI reference reads are implemented; optional Cardmarket/MTGJSON adapters and public source history are implemented. Dated format samples do not establish German-card or finish coverage rates. A limited data check should cover German printings, foil, Etched, alternate treatments, and missing references. Acceptance evidence needs a failed refresh that preserves an eligible old reference, a successful null that does not reactivate it, visibly stale data, and traceable owned-entry quantity coverage; Dashboard values remain later work. No marketplace accounts were connected, and no real listings or transactions were checked.
+The [value-tracking contract](../product/value-tracking.md) owns the selected freshness/source priority and language fallback.
+Q56 accepted publication/mapping responsibilities in [valuation](../architecture/valuation.md#ownership-and-source-publication); Scryfall extraction, publication and backend/UI reference reads are implemented; optional Cardmarket/MTGJSON adapters and public source history are implemented.
+Dated format samples do not establish German-card or finish coverage rates.
+A limited data check should cover German printings, foil, Etched, alternate treatments, and missing references.
+Acceptance evidence needs a failed refresh that preserves an eligible old reference, a successful null that does not reactivate it, visibly stale data, and traceable owned-entry quantity coverage; Dashboard values remain later work.
+No marketplace accounts were connected, and no real listings or transactions were checked.
 
-The implemented adapter and Day-precision/history contract is owned by [valuation](../architecture/valuation.md#optional-references-and-public-source-history). MTGJSON is the immediate source of its Cardmarket retail series; source date, upstream and measure remain visible. Provider research samples do not establish full-import coverage or account holdings.
+The implemented adapter and Day-precision/history contract is owned by [valuation](../architecture/valuation.md#optional-references-and-public-source-history).
+MTGJSON is the immediate source of its Cardmarket retail series; source date, upstream and measure remain visible.
+Provider research samples do not establish full-import coverage or account holdings.

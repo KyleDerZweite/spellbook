@@ -6,7 +6,10 @@
 - Update Triggers: provider selection, SDK compatibility, pricing, hosting requirements, identity migration, agent registration protocol, deployment profiles
 - Related Docs: [Architecture index](./README.md), [Authentication](./auth.md), [Local authentication decision](../decisions/0009-local-authentication.md), [Product](../product/specification.md)
 
-Managed authentication is worth evaluating before adding social login, email recovery, or MFA. It can replace Spellbook's credential and session implementation and supply maintained account flows. Spellbook still owns authorization and mapping authenticated identities to internal account IDs. This proposal does not change the current local-auth decision.
+Managed authentication is worth evaluating before adding social login, email recovery, or MFA.
+It can replace Spellbook's credential and session implementation and supply maintained account flows.
+Spellbook still owns authorization and mapping authenticated identities to internal account IDs.
+This proposal does not change the current local-auth decision.
 
 | Option                       | Fit for Spellbook                                                                                                                                                                                                               | Tradeoff                                                                                                                                                                                                            |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -14,28 +17,66 @@ Managed authentication is worth evaluating before adding social login, email rec
 | Clerk                        | Strong alternative if embedded prebuilt sign-in and account UI is the priority. The JavaScript SDK can mount maintained UI components.                                                                                          | Clerk currently lists its SvelteKit adapter as community-maintained. Verify SSR, hooks, session validation, and component lifecycle with the current stack. Do not assume React components work directly in Svelte. |
 | Current local authentication | Keeps self-hosted installations independent of a managed identity service.                                                                                                                                                      | Spellbook continues owning credentials, sessions, recovery, abuse prevention, and future social-login integration.                                                                                                  |
 
-Use the provider's actual supported UI when adopting it. Configure branding and supported methods instead of recreating its login screens. For WorkOS, prefer hosted AuthKit; for Clerk, evaluate mounted prebuilt JavaScript components or a verified adapter. Google and GitHub require provider configuration and production credentials; adding their logos alone is not integration.
+Use the provider's actual supported UI when adopting it.
+Configure branding and supported methods instead of recreating its login screens.
+For WorkOS, prefer hosted AuthKit; for Clerk, evaluate mounted prebuilt JavaScript components or a verified adapter.
+Google and GitHub require provider configuration and production credentials; adding their logos alone is not integration.
 
-Recommendation: prototype WorkOS AuthKit first while retaining the current frontend stack. Compare Clerk only if embedded account components materially improve the desired flow. Both managed options introduce service availability and operator configuration dependencies. Decide whether independent self-hosting remains a product requirement before replacing local authentication; do not maintain two auth systems by default.
+Recommendation: prototype WorkOS AuthKit first while retaining the current frontend stack.
+Compare Clerk only if embedded account components materially improve the desired flow.
+Both managed options introduce service availability and operator configuration dependencies.
+Decide whether independent self-hosting remains a product requirement before replacing local authentication; do not maintain two auth systems by default.
 
-Pricing checked on 2026-10-05: Clerk lists 50,000 monthly retained users on Hobby; WorkOS lists the first 1 million monthly active users free for User Management. These are different usage measures. Verify branding, MFA, domain, support, and other feature costs before selection; free user allowances do not imply every feature is free.
+Pricing checked on 2026-10-05: Clerk lists 50,000 monthly retained users on Hobby; WorkOS lists the first 1 million monthly active users free for User Management.
+These are different usage measures.
+Verify branding, MFA, domain, support, and other feature costs before selection; free user allowances do not imply every feature is free.
 
-A migration must preserve existing internal account IDs and all owned data. Link verified provider identities through an explicit authenticated migration or operator process, never by username or unverified email alone. Confirm password import compatibility or design enrollment/recovery before removing local credentials. Define how existing bearer-token clients migrate, revoke old sessions at cutover, and test rollback. No migration or credential transfer is authorized by this evaluation.
+A migration must preserve existing internal account IDs and all owned data.
+Link verified provider identities through an explicit authenticated migration or operator process, never by username or unverified email alone.
+Confirm password import compatibility or design enrollment/recovery before removing local credentials.
+Define how existing bearer-token clients migrate, revoke old sessions at cutover, and test rollback.
+No migration or credential transfer is authorized by this evaluation.
 
-The prototype should verify Google and GitHub login, registration, cancellation, expiry, logout, protected mutations, public catalog access, saved return destinations, mobile accessibility, both themes, and existing-account ownership. Test the supported SDK versions in an isolated branch before making a final provider decision.
+The prototype should verify Google and GitHub login, registration, cancellation, expiry, logout, protected mutations, public catalog access, saved return destinations, mobile accessibility, both themes, and existing-account ownership.
+Test the supported SDK versions in an isolated branch before making a final provider decision.
 
 Sources: [WorkOS SvelteKit SDK](https://github.com/workos/authkit-sveltekit), [AuthKit hosted UI](https://workos.com/docs/authkit/hosted-ui), [WorkOS social login](https://workos.com/docs/authkit/social-login), [Clerk SDK support](https://clerk.com/docs/reference/overview), [Clerk JavaScript components](https://clerk.com/docs/js-frontend/reference/components/authentication/sign-in), [Clerk pricing](https://clerk.com/pricing), [WorkOS pricing](https://workos.com/pricing).
 
 ## Future auth.md integration
 
-Kyle's accepted scope on 2026-10-06 is ordinary registration of the agent's own new account using the existing username/password API. The [authentication contract](./auth.md) owns that implemented behavior and the public `/llms.txt` guide. Full auth.md integration is deferred. The choice between independently self-hosted and managed deployment profiles remains open. This decision does not select WorkOS AuthKit or authorize identity migration.
+Kyle's accepted scope on 2026-10-06 is ordinary registration of the agent's own new account using the existing username/password API.
+The [authentication contract](./auth.md) owns that implemented behavior and the public `/llms.txt` guide.
+Full auth.md integration is deferred.
+The choice between independently self-hosted and managed deployment profiles remains open.
+This decision does not select WorkOS AuthKit or authorize identity migration.
 
-WorkOS's [auth.md protocol](https://workos.com/auth-md) is independent of WorkOS infrastructure. Its [User claimed flow](https://workos.com/auth-md/docs/flows/claimed) can operate without an agent identity provider. The agent presents a code and verification link; the user signs in or registers at the application and confirms the code. That authorizes the agent against an account. It does not provide fully automatic account creation. The [Agent verified flow](https://workos.com/auth-md/docs/flows/verified) requires a participating, trusted provider that can issue an audience-bound identity assertion. Provider examples in the guide do not establish that a particular agent runtime supports that capability.
+WorkOS's [auth.md protocol](https://workos.com/auth-md) is independent of WorkOS infrastructure.
+Its [User claimed flow](https://workos.com/auth-md/docs/flows/claimed) can operate without an agent identity provider.
+The agent presents a code and verification link; the user signs in or registers at the application and confirms the code.
+That authorizes the agent against an account.
+It does not provide fully automatic account creation.
+The [Agent verified flow](https://workos.com/auth-md/docs/flows/verified) requires a participating, trusted provider that can issue an audience-bound identity assertion.
+Provider examples in the guide do not establish that a particular agent runtime supports that capability.
 
-The [file format](https://workos.com/auth-md/docs/auth-md) and [apps guide](https://workos.com/auth-md/docs/apps) require implemented discovery, registration, claim, token exchange, and revocation behavior. Publishing instructions for `/api/auth/register` alone would not implement this protocol. Discovery uses [Protected Resource Metadata](https://www.rfc-editor.org/rfc/rfc9728.html) and [Authorization Server Metadata](https://www.rfc-editor.org/rfc/rfc8414.html). The claim grant is `urn:workos:agent-auth:grant-type:claim`; it borrows the device ceremony from [RFC 8628](https://datatracker.ietf.org/doc/html/rfc8628) and is distinct from that RFC's `device_code` grant. Assertions exchange through [RFC 7523](https://www.rfc-editor.org/rfc/rfc7523.html), and access-token revocation follows [RFC 7009](https://www.rfc-editor.org/rfc/rfc7009.html).
+The [file format](https://workos.com/auth-md/docs/auth-md) and [apps guide](https://workos.com/auth-md/docs/apps) require implemented discovery, registration, claim, token exchange, and revocation behavior.
+Publishing instructions for `/api/auth/register` alone would not implement this protocol.
+Discovery uses [Protected Resource Metadata](https://www.rfc-editor.org/rfc/rfc9728.html) and [Authorization Server Metadata](https://www.rfc-editor.org/rfc/rfc8414.html).
+The claim grant is `urn:workos:agent-auth:grant-type:claim`; it borrows the device ceremony from [RFC 8628](https://datatracker.ietf.org/doc/html/rfc8628) and is distinct from that RFC's `device_code` grant.
+Assertions exchange through [RFC 7523](https://www.rfc-editor.org/rfc/rfc7523.html), and access-token revocation follows [RFC 7009](https://www.rfc-editor.org/rfc/rfc7009.html).
 
-The reference implementation at [revision b53c9ed](https://github.com/workos/auth.md/tree/b53c9edfbfeea679b617727ebca9ba436bade794), checked on 2026-10-06, requires email for claim initiation. Its [identifier classifier](https://github.com/workos/auth.md/blob/b53c9edfbfeea679b617727ebca9ba436bade794/agent-services/src/store.ts) accepts only email, although its comments anticipate other identifier types. Spellbook has no verified email registration contract. A future username-based adaptation must define and document its interoperability limits; adding email identity requires a separate product decision. Do not silently replace the current account model.
+The reference implementation at [revision b53c9ed](https://github.com/workos/auth.md/tree/b53c9edfbfeea679b617727ebca9ba436bade794), checked on 2026-10-06, requires email for claim initiation.
+Its [identifier classifier](https://github.com/workos/auth.md/blob/b53c9edfbfeea679b617727ebca9ba436bade794/agent-services/src/store.ts) accepts only email, although its comments anticipate other identifier types.
+Spellbook has no verified email registration contract.
+A future username-based adaptation must define and document its interoperability limits; adding email identity requires a separate product decision.
+Do not silently replace the current account model.
 
-A future design must define the supported identity type, account binding, consent and scope inventory, resource-bound token lifetime, separate agent credential storage, complete-registration revocation, shared attempt limits, audit events, and demo policy. It must preserve stable account ownership and enforce scopes at the API authorization boundary. Existing 30-day local sessions have no scopes and cannot establish this contract. Browser claim actions must retain same-origin protection; OAuth form requests need narrowly specified origin handling. Acceptance evidence must cover the real discovery and claim path, expiry, wrong-account attempts, concurrent claims, scope denials, revocation, and unchanged local browser and mobile authentication.
+A future design must define the supported identity type, account binding, consent and scope inventory, resource-bound token lifetime, separate agent credential storage, complete-registration revocation, shared attempt limits, audit events, and demo policy.
+It must preserve stable account ownership and enforce scopes at the API authorization boundary.
+Existing 30-day local sessions have no scopes and cannot establish this contract.
+Browser claim actions must retain same-origin protection; OAuth form requests need narrowly specified origin handling.
+Acceptance evidence must cover the real discovery and claim path, expiry, wrong-account attempts, concurrent claims, scope denials, revocation, and unchanged local browser and mobile authentication.
 
-Review protocol versions before implementation. The current [ID-JAG draft, section 9.3](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04#section-9.3), limits ID-JAG to cross-domain use and prohibits an issuer exchanging its own ID-JAG within the same trust domain. The auth.md reference labels its service-issued, self-exchanged assertions `oauth-id-jag+jwt`. Resolve that difference before claiming IETF ID-JAG conformance.
+Review protocol versions before implementation.
+The current [ID-JAG draft, section 9.3](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-identity-assertion-authz-grant-04#section-9.3), limits ID-JAG to cross-domain use and prohibits an issuer exchanging its own ID-JAG within the same trust domain.
+The auth.md reference labels its service-issued, self-exchanged assertions `oauth-id-jag+jwt`.
+Resolve that difference before claiming IETF ID-JAG conformance.
