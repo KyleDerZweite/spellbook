@@ -39,6 +39,7 @@ Design acceptance establishes neither implementation, a performance claim nor re
 ## Follow-Up
 
 Derive slice-PR tickets from the accepted migration contract and its completed independent reviews.
+The [implementation epic](https://github.com/KyleDerZweite/spellbook/issues/245) owns native sub-issues, blocking relationships and evidence gates.
 Each ticket must carry its reviewed responsibilities, dependencies, resource limits and acceptance evidence.
 Map tests to the runtime they actually exercise and enable Python CI with the first API/core package.
 Experiments, heavy integration/Android runs and release operations remain separately scoped under the contract.

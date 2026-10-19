@@ -123,6 +123,9 @@ The documented inventory is 88 API method/path pairs and 95 OpenAPI pairs includ
 
 ## Delivery, evidence and rollback
 
+The [implementation epic](https://github.com/KyleDerZweite/spellbook/issues/245) owns the native sub-issues, blocking relationships and per-slice readiness/evidence.
+[P00](https://github.com/KyleDerZweite/spellbook/issues/246) publishes this documentation; issue 211 retains the original design discussion.
+The reviewed breakdown contains twenty documentation/code PR slices and one separate operational cutover gate.
 Use one PR per useful verified slice against current `main`.
 The shared integration delivery for issue 244 was specific to that extraction and does not govern this migration.
 Merge dormant candidate code only after its checks pass; Node keeps all production API mutation ownership until one final API switch.
@@ -179,6 +182,7 @@ Their follow-ups added explicit Python import-check evidence and dedicated-liste
 The reviewed initial contract had SHA-256 `9003545d8c022e9cd0704ab8598877209a51ec4c6f9341bea112b3417a9a62d2`; proposed ADR-0026 had SHA-256 `fc3b00b32894e18b5bbfa04a1172e7776e04a589ba5697f37b9f102ad2ffa211`.
 On 2026-10-20, an independent GPT-6 Astra review with Medium Reasoning confirmed no blockers against the same baseline and final Sol-reviewed contract.
 Its two follow-ups require explicit test-to-runtime mapping and Python CI from the first API/core package, now included above and in the slice contracts.
+The concrete slice plan also passed Astra Medium review after adding required Catalog/parser blockers, early shared integration ownership and explicit partial Category/Combo evidence limits.
 Numeric resource/rejection limits remain prerequisites for the relevant future tickets; architecture acceptance does not settle unmeasured limits.
 Markdown formatting, local documentation links and `git diff --check` pass for this planning change.
 No parity test, experiment, Android/heavy workflow, cutover or deployment is claimed by this planning change.
