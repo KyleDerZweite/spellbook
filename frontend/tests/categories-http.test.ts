@@ -149,7 +149,9 @@ test('built category HTTP and native forms share authorized commands and reviewe
 					requestId: randomUUID()
 				});
 				assert.equal(stale.status, 409);
-				assert.equal((await stale.json()).kind, 'CategoryConflict');
+				const categoryFailure = await stale.json();
+				assert.equal(categoryFailure.kind, 'CategoryConflict');
+				assert.deepEqual(categoryFailure.latest, latest);
 				const unsupported = await request(
 					`/api/mobile/v1/mtg/deck-cards/${main}/category`,
 					'PATCH',
@@ -354,7 +356,12 @@ test('built category HTTP and native forms share authorized commands and reviewe
 					categoryPreview: preview.token
 				});
 				assert.equal(stale.status, 409);
-				assert.equal((await stale.json()).kind, 'CategoryMergeConflict');
+				const mergeFailure = await stale.json();
+				assert.equal(mergeFailure.kind, 'CategoryMergeConflict');
+				assert.equal(mergeFailure.preview.destinationEntryId, side);
+				assert.equal(mergeFailure.preview.resultingQuantity, 9);
+				assert.notEqual(mergeFailure.preview.token, preview.token);
+				assert.ok(mergeFailure.preview.compositionRevision);
 				const current = (await (
 					await request(categoriesPath + '/merge-preview', 'POST', {
 						entryId: main,

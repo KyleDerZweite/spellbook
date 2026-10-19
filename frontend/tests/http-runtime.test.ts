@@ -7,7 +7,16 @@ import { mkdtemp, writeFile, access, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { httpTestOrigin, startHttpApplication, stopHttpApplication } from './http-runtime.ts';
+import { ChildProcess } from 'node:child_process';
+import {
+	httpApiTestOrigin,
+	httpTestOrigin,
+	startHttpApplication,
+	stopHttpApplication,
+	startHttpProcess,
+	stopHttpProcess,
+	webTestEnvironment
+} from './http-runtime.ts';
 
 async function unusedOrigin(): Promise<string> {
 	const server = createServer();
@@ -31,6 +40,150 @@ test('HTTP test origin rejects a mismatched origin or invalid port before startu
 	);
 	for (const port of ['abc', '0', '65536', '5192/other']) {
 		assert.throws(() => httpTestOrigin({ TEST_HTTP_PORT: port }), /valid TCP port/);
+		assert.throws(() => httpApiTestOrigin({ TEST_API_PORT: port }), /valid TCP port/);
+	}
+	assert.equal(httpApiTestOrigin({ TEST_API_PORT: '5193' }), 'http://127.0.0.1:5193');
+});
+
+test('web environment excludes database, worker, storage and inherited proxy authority', () => {
+	assert.deepEqual(
+		webTestEnvironment({
+			PATH: '/bin',
+			PUBLIC_NAME: 'Spellbook',
+			DEMO_MODE: 'true',
+			DATABASE_URL: 'private',
+			TEST_DATABASE_URL: 'private',
+			PGHOST: 'private',
+			SCAN_WORKER_URL: 'private',
+			S3_SECRET_ACCESS_KEY: 'private',
+			AWS_SECRET_ACCESS_KEY: 'private',
+			API_TRUSTED_PROXY_ADDRESSES: '*',
+			ORIGIN: 'https://unrelated.invalid',
+			ADDRESS_HEADER: 'x-forwarded-for',
+			NODE_OPTIONS: '--env-file=.env'
+		}),
+		{ PATH: '/bin', DEMO_MODE: 'true', PUBLIC_NAME: 'Spellbook' }
+	);
+});
+
+test('application owns separate API/web children and gives only API private configuration', async () => {
+	const origin = await unusedOrigin();
+	const apiOrigin = await unusedOrigin();
+	const entrypoint = new URL('./fixtures/http-runtime-child.mjs', import.meta.url).pathname;
+	let application: Awaited<ReturnType<typeof startHttpApplication>> | undefined;
+	const prior = {
+		DATABASE_URL: process.env.DATABASE_URL,
+		TEST_DATABASE_URL: process.env.TEST_DATABASE_URL,
+		S3_SECRET_ACCESS_KEY: process.env.S3_SECRET_ACCESS_KEY,
+		SCAN_WORKER_URL: process.env.SCAN_WORKER_URL
+	};
+	try {
+		for (const name of Object.keys(prior)) process.env[name] = 'owned-runtime-fixture';
+		application = await startHttpApplication(origin, new URL('../', import.meta.url), entrypoint, {
+			apiOrigin,
+			apiEntrypoint: entrypoint
+		});
+		assert.notEqual(application.api.pid, application.web.pid);
+		const api = await (await fetch(apiOrigin)).json();
+		const web = await (await fetch(origin)).json();
+		assert.deepEqual(api, {
+			pid: application.api.pid,
+			api: true,
+			publicOrigin: origin,
+			trustedProxies: '127.0.0.1,::1',
+			hasDatabase: true,
+			hasTestDatabase: true,
+			hasStorageSecret: true,
+			hasWorker: true
+		});
+		assert.deepEqual(web, {
+			pid: application.web.pid,
+			api: false,
+			publicOrigin: origin,
+			apiInternalUrl: apiOrigin,
+			hasDatabase: false,
+			hasTestDatabase: false,
+			hasStorageSecret: false,
+			hasWorker: false
+		});
+		await stopHttpApplication(application);
+		for (const child of [application.api, application.web]) {
+			assert.equal(child.exitCode, 0);
+			assert.equal(child.signalCode, null);
+		}
+	} finally {
+		for (const [name, value] of Object.entries(prior)) {
+			if (value === undefined) delete process.env[name];
+			else process.env[name] = value;
+		}
+		if (application) await stopHttpApplication(application);
+	}
+});
+
+test('occupied API port fails before starting web or contacting the existing service', async () => {
+	let requests = 0;
+	const server = createServer((_, response) => {
+		requests++;
+		response.end();
+	});
+	await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+	const address = server.address();
+	assert.ok(address && typeof address === 'object');
+	const origin = await unusedOrigin();
+	try {
+		await assert.rejects(
+			startHttpApplication(origin, new URL('../', import.meta.url), 'does-not-exist.js', {
+				apiOrigin: `http://127.0.0.1:${address.port}`
+			}),
+			/occupied/
+		);
+		assert.equal(requests, 0);
+		await assert.rejects(fetch(origin));
+	} finally {
+		await new Promise<void>((resolve, reject) =>
+			server.close((error) => (error ? reject(error) : resolve()))
+		);
+	}
+});
+
+test('web startup failure gracefully closes its already-started API', async () => {
+	const origin = await unusedOrigin();
+	const apiOrigin = await unusedOrigin();
+	await assert.rejects(
+		startHttpApplication(origin, new URL('../', import.meta.url), 'does-not-exist.js', {
+			apiOrigin,
+			apiEntrypoint: new URL('./fixtures/http-runtime-child.mjs', import.meta.url).pathname
+		}),
+		/exited before listening/
+	);
+	await assert.rejects(fetch(apiOrigin));
+});
+
+test('application rejects a shared API/web port and cleanup rejects unowned processes', async () => {
+	const origin = await unusedOrigin();
+	await assert.rejects(
+		startHttpApplication(origin, new URL('../', import.meta.url), undefined, {
+			apiOrigin: origin
+		}),
+		/separate HTTP test ports/
+	);
+	await assert.rejects(stopHttpProcess(new ChildProcess()), /unowned HTTP process/);
+});
+
+test('listening output without a bound socket cannot establish readiness', async () => {
+	const folder = await mkdtemp(join(tmpdir(), 'spellbook-http-runtime-'));
+	const origin = await unusedOrigin();
+	await writeFile(
+		join(folder, 'entry.mjs'),
+		`console.log('Listening on ${origin}');setInterval(()=>{},1000);`
+	);
+	try {
+		await assert.rejects(
+			startHttpProcess(origin, pathToFileURL(folder + '/'), 'entry.mjs', {}),
+			/listener is unavailable/
+		);
+	} finally {
+		await rm(folder, { recursive: true, force: true });
 	}
 });
 
@@ -51,10 +204,11 @@ test('occupied origin fails before spawning or contacting the existing applicati
 	);
 	try {
 		await assert.rejects(
-			startHttpApplication(
+			startHttpProcess(
 				`http://127.0.0.1:${address.port}`,
 				pathToFileURL(folder + '/'),
-				'entry.mjs'
+				'entry.mjs',
+				{}
 			),
 			/occupied/
 		);
@@ -74,7 +228,10 @@ test('startup exit cannot count an HTTP response as owned readiness', async () =
 	await writeFile(join(folder, 'entry.mjs'), 'process.exit(7);');
 	try {
 		await assert.rejects(
-			startHttpApplication(origin, pathToFileURL(folder + '/'), 'entry.mjs'),
+			startHttpProcess(origin, pathToFileURL(folder + '/'), 'entry.mjs', {
+				HOST: '127.0.0.1',
+				PORT: new URL(origin).port
+			}),
 			/exited before listening/
 		);
 	} finally {
@@ -91,12 +248,15 @@ test('owned application must listen before readiness and can be stopped', async 
 	);
 	let child;
 	try {
-		child = await startHttpApplication(origin, pathToFileURL(folder + '/'), 'entry.mjs');
+		child = await startHttpProcess(origin, pathToFileURL(folder + '/'), 'entry.mjs', {
+			HOST: '127.0.0.1',
+			PORT: new URL(origin).port
+		});
 		assert.equal(await (await fetch(origin)).text(), 'owned');
-		await stopHttpApplication(child);
+		await stopHttpProcess(child);
 		assert.notEqual(child.exitCode, null);
 	} finally {
-		if (child) await stopHttpApplication(child);
+		if (child) await stopHttpProcess(child);
 		await rm(folder, { recursive: true, force: true });
 	}
 });
@@ -149,7 +309,7 @@ test(
 							assert.equal(chunk.done, false);
 							frames += new TextDecoder().decode(chunk.value);
 						}
-						const listenerName = 'spellbook_saved_state:' + child.pid;
+						const listenerName = 'spellbook_saved_state:' + child.api.pid;
 						assert.equal(
 							(
 								await pool.query(
@@ -158,6 +318,16 @@ test(
 								)
 							).rows[0].n,
 							1
+						);
+						assert.equal(
+							(
+								await pool.query(
+									'SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname=current_database() AND application_name=$1',
+									['spellbook_saved_state:' + child.web.pid]
+								)
+							).rows[0].n,
+							0,
+							'The web process must not own the private SavedState listener'
 						);
 						if (!keepOpen) {
 							controller.abort();
@@ -177,12 +347,12 @@ test(
 						const started = performance.now();
 						const exited = new Promise<boolean>((resolve) => {
 							const timer = setTimeout(() => resolve(false), 15000);
-							child!.once('exit', () => {
+							child!.api.once('exit', () => {
 								clearTimeout(timer);
 								resolve(true);
 							});
 						});
-						child.kill('SIGTERM');
+						child.api.kill('SIGTERM');
 						const naturalExit = await exited;
 						const listenerRows = (
 							await pool.query(
@@ -192,21 +362,25 @@ test(
 						).rows;
 						t.diagnostic(
 							JSON.stringify({
-								pid: child.pid,
+								pid: child.api.pid,
 								keepOpen,
 								naturalExit,
 								exitAfterTermMs: Math.round(performance.now() - started),
-								exitCode: child.exitCode,
+								exitCode: child.api.exitCode,
 								listenerRows
 							})
 						);
 						await assert.rejects(
-							fetch(origin, { signal: AbortSignal.timeout(1000) }),
+							fetch(child.apiOrigin, { signal: AbortSignal.timeout(1000) }),
 							'Owned HTTP listener must be closed'
 						);
 						assert.equal(naturalExit, true, 'Owned Node process must exit naturally within15s');
-						assert.equal(child.exitCode, 0, 'Forced cleanup or signal termination is not success');
-						assert.equal(child.signalCode, null);
+						assert.equal(
+							child.api.exitCode,
+							0,
+							'Forced cleanup or signal termination is not success'
+						);
+						assert.equal(child.api.signalCode, null);
 						assert.equal(
 							(
 								await pool.query(
@@ -218,10 +392,10 @@ test(
 						);
 						t.diagnostic(
 							JSON.stringify({
-								pid: child.pid,
+								pid: child.api.pid,
 								keepOpen,
 								exitAfterTermMs: Math.round(performance.now() - started),
-								exitCode: child.exitCode,
+								exitCode: child.api.exitCode,
 								listenerConnections: 0
 							})
 						);

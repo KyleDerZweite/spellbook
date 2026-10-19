@@ -8,7 +8,13 @@ import { execFileSync } from 'node:child_process';
 import { spawn, spawnSync } from 'node:child_process';
 import { cp, mkdir, rm, symlink } from 'node:fs/promises';
 import pg from 'pg';
-import { startHttpApplication, stopHttpApplication, httpTestOrigin } from './http-runtime.ts';
+import {
+	startHttpApplication,
+	stopHttpApplication,
+	httpTestOrigin,
+	httpApiTestOrigin,
+	webTestEnvironment
+} from './http-runtime.ts';
 import { hashSessionToken } from '@spellbook/backend/auth/session.ts';
 const databaseUrl = process.env.TEST_DATABASE_URL;
 if (!databaseUrl || databaseUrl !== process.env.DATABASE_URL)
@@ -144,7 +150,7 @@ async function delay(ms: number) {
 }
 async function listenerPid(child: (typeof children)[number]) {
 	const result = await pool.query('SELECT pid FROM pg_stat_activity WHERE application_name=$1', [
-		`spellbook_saved_state:${child.pid}`
+		`spellbook_saved_state:${child.api.pid}`
 	]);
 	assert.equal(result.rowCount, 1);
 	return result.rows[0].pid;
@@ -159,16 +165,20 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 			'dir'
 		);
 		for (const [index, origin] of [primary, secondary].entries()) {
-			const build = spawnSync('pnpm', ['build'], {
+			const build = spawnSync('fnm', ['exec', '--using', '26.10.0', 'pnpm', 'build'], {
 				cwd,
-				env: { ...process.env, APP_ORIGIN: origin },
+				env: { ...webTestEnvironment(), APP_ORIGIN: origin },
 				stdio: ['ignore', 'pipe', 'pipe']
 			});
 			assert.equal(build.status, 0, 'Origin-matched production build must succeed');
 			const target = new URL(`${index}/`, artifacts);
 			await rm(target, { recursive: true, force: true });
 			await cp(new URL('build/', cwd), target, { recursive: true });
-			children.push(await startHttpApplication(origin, cwd, `${target.pathname}index.js`));
+			children.push(
+				await startHttpApplication(origin, cwd, `${target.pathname}index.js`, {
+					apiOrigin: `http://127.0.0.1:${Number(new URL(httpApiTestOrigin()).port) + index}`
+				})
+			);
 		}
 		const a = await register(),
 			b = await register();
@@ -831,9 +841,13 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 		);
 	} finally {
 		for (const client of clients) client.close();
-		for (const child of children) await stopHttpApplication(child);
-		if (accounts.length)
-			await pool.query('DELETE FROM user_profiles WHERE account_id=ANY($1::text[])', [accounts]);
-		await pool.end();
+		const stopped = await Promise.allSettled(children.map(stopHttpApplication));
+		try {
+			if (accounts.length)
+				await pool.query('DELETE FROM user_profiles WHERE account_id=ANY($1::text[])', [accounts]);
+		} finally {
+			await pool.end();
+		}
+		for (const result of stopped) if (result.status === 'rejected') throw result.reason;
 	}
 });

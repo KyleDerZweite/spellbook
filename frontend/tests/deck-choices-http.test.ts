@@ -1,7 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import pg from 'pg';
-import type { ChildProcess } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { SESSION_COOKIE } from '@spellbook/backend/auth/session.ts';
 import { fixtureAuthRequest } from './fixtures/http-auth.ts';
@@ -15,7 +14,7 @@ const pool = new pg.Pool({ connectionString: databaseUrl });
 const origin = httpTestOrigin();
 const path = '/api/mobile/v1/mtg/decks/choices';
 const accounts: string[] = [];
-let child: ChildProcess | undefined;
+let child: Awaited<ReturnType<typeof startHttpApplication>> | undefined;
 
 test('built bounded Deck choice HTTP contract', async (t) => {
 	try {

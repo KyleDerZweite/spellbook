@@ -206,7 +206,7 @@ test.skipIf(process.env.TEST_BROWSING_PERFORMANCE !== '1')(
 		manifest.credentialsFile = 'credentials.json';
 		const report: Record<string, unknown> = {
 			startedAt: new Date().toISOString(),
-			runtime: { pid: child.pid, entrypoint: config.entrypoint },
+			runtime: { pid: child.web.pid, entrypoint: config.entrypoint },
 			windowImplementation: { source: 'runner checkout transformed by Vitest', head: runner.head },
 			runner,
 			artifact,

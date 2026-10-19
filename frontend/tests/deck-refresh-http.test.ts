@@ -1,7 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import type { ChildProcess } from 'node:child_process';
 import pg from 'pg';
 import type { Deck, DeckSnapshot, LegalityWarning } from '@spellbook/contracts/decks.ts';
 import type { CardDocument } from '@spellbook/contracts/catalog.ts';
@@ -23,7 +22,8 @@ test('built selected Deck refresh projection preserves coherent PostgreSQL state
 	const pool = new pg.Pool({ connectionString: databaseUrl });
 	const accounts: string[] = [],
 		publication = randomUUID();
-	let child: ChildProcess | undefined, restoreCatalog: (() => Promise<void>) | undefined;
+	let child: Awaited<ReturnType<typeof startHttpApplication>> | undefined,
+		restoreCatalog: (() => Promise<void>) | undefined;
 	let previousPrice:
 		| {
 				active_publication: string | null;
