@@ -3,7 +3,7 @@
 - Status: Accepted
 - Implementation: Migration not started
 - Date: 2026-10-19
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-10-20
 - Owners: Kyle
 - Source of Truth: maintainer-selected shared API/worker language
 - Update Triggers: Python migration design, framework or schema ownership selection, worker relocation, parity evidence
@@ -40,6 +40,7 @@ The decision favors maintenance consistency; it does not claim a measured speed 
 
 ## Follow-up
 
-[Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211) retains framework, language-neutral contracts, schema/migration ownership, staged delivery and rollback questions.
+[Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211) records the migration design discussion.
+The [accepted migration contract](../architecture/python-backend-migration.md) and [ADR-0026](./0026-python-migration-contract.md) settle framework, language-neutral contracts, schema/migration ownership, staged delivery and rollback separately from this language direction.
 The [evaluation's migration gates](../integrations/backend-language-evaluation.md#migration-gates) define compatibility evidence to retain before replacing production behavior.
 Implementation tickets remain unready until their responsibilities, interfaces and acceptance evidence are reviewed.

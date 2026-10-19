@@ -1,7 +1,7 @@
 # Backend language and worker layout evaluation
 
-- Status: Python selected, migration design pending
-- Last Reviewed: 2026-10-19
+- Status: Python and migration contract accepted, implementation not started
+- Last Reviewed: 2026-10-20
 - Source of Truth: current implementation and linked primary-source research
 - Update Triggers: Python API/worker language selection and migration planning, backend language selection, worker ownership, schema generation, representative measurements
 - Related Docs: [Independent applications](../architecture/independent-applications.md), [Application contract](../architecture/application-contract.md), [Worker](../architecture/worker.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Verification](../operations/github-automation.md), [Decision issue 211](https://github.com/KyleDerZweite/spellbook/issues/211), [Python direction](../decisions/0025-python-api-and-workers.md)
@@ -12,7 +12,8 @@ The maintainer selected Python for both the future HTTP API and server workers i
 The new constraint is one server language, choosing between Go and Python.
 Python retains the existing workers; Go for both would also require porting or replacing them.
 This maintenance tradeoff supersedes the earlier Go-API/Python-worker recommendation.
-Framework, migration boundary and schedule remain open in [issue 211](https://github.com/KyleDerZweite/spellbook/issues/211).
+[Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211) records the migration design discussion.
+The [accepted migration contract](../architecture/python-backend-migration.md) and [ADR-0026](../decisions/0026-python-migration-contract.md) select FastAPI/Uvicorn, Psycopg, ownership, staged delivery and rollback after independent review.
 
 The baseline is the independent TypeScript/Node API, SvelteKit website and Kotlin/Compose app.
 Catalog ingestion already uses Python; the Scan worker returns `no_match` and implements no recognition.
@@ -35,10 +36,11 @@ Optional [free-threaded Python](https://docs.python.org/3/howto/free-threading-p
 [Python server processes](https://fastapi.tiangolo.com/deployment/server-workers/) replicate memory and resources; [Rust's Send/Sync checks](https://doc.rust-lang.org/book/ch16-04-extensible-concurrency-sync-and-send.html) constrain thread sharing.
 [Tokio cancellation](https://docs.rs/tokio/latest/tokio/macro.select.html#cancellation-safety) and [SQLx query checks](https://docs.rs/sqlx/latest/sqlx/macro.query.html) require deliberate use; neither verifies authorization or lock order.
 
-## Proposed ownership
+## Accepted ownership
 
 Group the Python API and server workers under `backend/` as selected in ADR-0025.
-The exact package layout remains proposed:
+The [migration contract](../architecture/python-backend-migration.md#framework-modules-and-resources) owns the accepted package layout, including shared application/SQL modules and separate state runners.
+Its API and existing worker destinations are:
 
 ```text
 backend/
@@ -48,7 +50,7 @@ backend/
     scan/      # Python compatibility scaffold
 ```
 
-This is a proposed destination, not the current layout.
+This is the accepted destination, not the current layout.
 Keep separate packages, environments, images and process lifetimes.
 Do not move bulk ingestion into HTTP request tasks.
 Phone/Jetson recognition remains local under ADR-0023; Python tooling does not select server inference.
