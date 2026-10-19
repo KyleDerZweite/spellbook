@@ -84,7 +84,7 @@ Scan UI development is paused by the product owner on 2026-10-07.
 Navigation, Inventory and Dashboard no longer expose Scan entrypoints.
 The existing authenticated route, sessions, backend contracts and API remain available to preserve prior work.
 The normal host development launcher starts the Node API and web application; `./dev.sh --scan` explicitly starts the retained Python scaffold.
-Worker relocation and recognition changes are deferred.
+Recognition changes are deferred.
 
 Original phone images for later evaluation belong in `data/phone-scan-examples/`.
 Scan presentation remains paused as described above.
