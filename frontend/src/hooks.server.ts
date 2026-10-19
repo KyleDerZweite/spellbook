@@ -1,4 +1,8 @@
 import type { Handle } from '@sveltejs/kit/hooks';
+import { error } from '@sveltejs/kit';
+import { RemoteClient } from '#lib/server/remote/client.ts';
+import { remoteConfiguration } from '#lib/server/remote/config.ts';
+import { RemoteError } from '#lib/server/remote/errors.ts';
 import { requireFormOrigin } from '#lib/server/auth/csrf.ts';
 import { NO_INDEX_ROBOTS_TAG, createNoIndexRedirect } from '#lib/seo/site.ts';
 import { SESSION_COOKIE, clearSessionCookie, validateSession } from '#lib/server/auth/session.ts';
@@ -49,8 +53,14 @@ function buildRedirectResponse(location: string): Response {
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
-	requireFormOrigin(event);
 	const pathname = event.url.pathname;
+	// The API authenticates the raw request and owns its Origin and cache policy.
+	if (pathname.startsWith('/api/') || pathname === '/openapi.json') {
+		const response = await resolve(event);
+		response.headers.set('X-Robots-Tag', NO_INDEX_ROBOTS_TAG);
+		return response;
+	}
+	requireFormOrigin(event);
 
 	// Redirect old page URLs before applying the destination auth guard.
 	const legacyTarget = resolveLegacyRedirect(pathname);
@@ -60,7 +70,26 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	const token = event.cookies.get(SESSION_COOKIE);
-	const session = await validateSession(token);
+	event.locals.api = new RemoteClient({
+		get apiUrl() {
+			return remoteConfiguration(event.url).apiUrl;
+		},
+		get publicOrigin() {
+			return remoteConfiguration(event.url).publicOrigin;
+		},
+		get clientAddress() {
+			return event.getClientAddress();
+		},
+		token,
+		signal: event.request.signal
+	});
+	let session;
+	try {
+		session = await validateSession(token);
+	} catch (cause) {
+		if (cause instanceof RemoteError) error(cause.status, cause.message);
+		throw cause;
+	}
 	if (token && !session) clearSessionCookie(event.cookies);
 	event.locals.user = session;
 	event.locals.mobileBearerUser = null;

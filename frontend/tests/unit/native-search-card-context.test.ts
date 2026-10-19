@@ -47,7 +47,7 @@ it('maps repeated, oversized and malformed inputs to controlled errors without f
 });
 it('renders only an explicit owned selected summary across choice GET and keeps the default empty', async () => {
 	const docs: CardDocument[] = JSON.parse(
-		await readFile(new URL('../../scripts/demo/cards.json', import.meta.url), 'utf8')
+		await readFile(new URL('../../../backend/scripts/demo/cards.json', import.meta.url), 'utf8')
 	);
 	const common = {
 		selectedPrinting: docs[0],

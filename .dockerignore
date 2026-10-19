@@ -20,7 +20,8 @@ archive/
 frontend/node_modules/
 frontend/.svelte-kit/
 frontend/build/
-frontend/tests/
+frontend/tests/*
+!frontend/tests/pwa-worker.test.ts
 spacetimedb/node_modules/
 spacetimedb/dist/
 spacetimedb/.cursor/
@@ -53,6 +54,7 @@ Thumbs.db
 # Workspace packages and isolated local worktrees
 node_modules/
 backend/node_modules/
+backend/dist/
 contracts/node_modules/
 .local/
 .git

@@ -1,15 +1,18 @@
+import { createTestApplication } from './application.ts';
+import type { Application } from '@spellbook/backend/application.ts';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AuthUser } from '@spellbook/contracts/auth.ts';
 import { ensureDeckCatalogFixture } from '../deck-catalog-fixture.ts';
 
 const run = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 run('authorized Inventory mutation contracts', () => {
-	let application: typeof import('../../src/lib/server/composition.ts').application;
+	let application: Application;
+	let close: () => Promise<void>;
 	let pool: typeof import('../fixtures/database.ts').pool;
 	let actor: AuthUser;
 	let card: Awaited<ReturnType<typeof ensureDeckCatalogFixture>>;
 	beforeAll(async () => {
-		({ application } = await import('../../src/lib/server/composition.ts'));
+		({ application, close } = await createTestApplication());
 		({ pool } = await import('../fixtures/database.ts'));
 		card = await ensureDeckCatalogFixture(pool);
 	});
@@ -30,6 +33,7 @@ run('authorized Inventory mutation contracts', () => {
 		await pool.query('DELETE FROM user_profiles WHERE account_id=$1', [actor.accountId]);
 	});
 	afterAll(async () => {
+		await close();
 		await pool.end();
 	});
 	const addInput = (quantity = 2) => ({

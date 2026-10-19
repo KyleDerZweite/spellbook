@@ -1,7 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import type { ChildProcess } from 'node:child_process';
 import pg from 'pg';
 import { hashSessionToken, SESSION_COOKIE } from '@spellbook/backend/auth/session.ts';
 import { fixtureAuthRequest } from './fixtures/http-auth.ts';
@@ -20,7 +19,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 	const pool = new pg.Pool({ connectionString: databaseUrl });
 	const accounts: string[] = [];
 	const codes: string[] = [];
-	let child: ChildProcess | undefined;
+	let child: Awaited<ReturnType<typeof startHttpApplication>> | undefined;
 	async function request(path: string, body?: unknown, headers: Record<string, string> = {}) {
 		const response = await fetch(`${origin}${path}`, {
 			method: body === undefined ? 'GET' : 'POST',

@@ -42,6 +42,7 @@ declare global {
 		}
 
 		interface Locals {
+			api: import('#lib/server/remote/client.ts').RemoteClient;
 			user: AuthUser | null;
 			mobileBearerUser: AuthUser | null;
 			categoryPageRecovery?: {

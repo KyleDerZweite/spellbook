@@ -19,6 +19,25 @@
 	},
 	"devDependencies": {
 		"@types/pg": "^8.23.1",
-		"@types/node": "^26.6.4"
+		"@types/node": "^26.6.4",
+		"drizzle-kit": "^0.31.11",
+		"esbuild": "^0.28.2",
+		"typescript-native": "npm:typescript@^7.0.2",
+		"vitest": "^5.0.3"
+	},
+	"scripts": {
+		"dev": "node --env-file-if-exists=../.env scripts/dev.mjs",
+		"start": "node --env-file-if-exists=../.env dist/main.js",
+		"build": "pnpm check && node scripts/build.mjs",
+		"check": "tsc --noEmit",
+		"test": "pnpm test:unit && pnpm test:native",
+		"db:generate": "node --env-file-if-exists=../.env node_modules/drizzle-kit/bin.cjs generate",
+		"db:migrate": "node --env-file-if-exists=../.env node_modules/drizzle-kit/bin.cjs migrate",
+		"db:check": "node --env-file-if-exists=../.env node_modules/drizzle-kit/bin.cjs check",
+		"operator:password": "node --env-file-if-exists=../.env scripts/set-local-password.mjs",
+		"demo:seed": "node --env-file-if-exists=../.env scripts/demo/seed.mjs",
+		"demo:replace-inventory": "node --env-file-if-exists=../.env scripts/demo/replace-inventory.mjs",
+		"test:native": "node --import ./scripts/register-types.mjs --test --test-concurrency=1 tests/*.test.ts scripts/*.test.mjs scripts/demo/*.test.mjs",
+		"test:unit": "vitest run --passWithNoTests"
 	}
 }

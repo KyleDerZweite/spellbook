@@ -1,4 +1,1 @@
-export {
-	parseCatalogSearchRequest,
-	type CatalogSearchInput
-} from '@spellbook/backend/transport.ts';
+export * from '@spellbook/contracts/catalog-query.ts';

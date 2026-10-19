@@ -6,7 +6,7 @@ services:
     volumes:
       - scan_artifacts:/app/storage/scans
 
-  frontend:
+  api:
     environment:
       SCAN_STORAGE_DRIVER: local
       SCAN_LOCAL_STORAGE_DIR: /app/storage/scans

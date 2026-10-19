@@ -5,7 +5,7 @@ import type { CardDocument } from '@spellbook/contracts/catalog.ts';
 /** Seed public Sol Ring printings in the disposable test Catalog without replacing existing data. */
 export async function ensureDeckCatalogFixture(pool: Pool) {
 	const documents: CardDocument[] = JSON.parse(
-		await readFile(new URL('../scripts/demo/cards.json', import.meta.url), 'utf8')
+		await readFile(new URL('../../backend/scripts/demo/cards.json', import.meta.url), 'utf8')
 	);
 	const printings = documents.filter((document) => document.name === 'Sol Ring');
 	const card = printings[0];

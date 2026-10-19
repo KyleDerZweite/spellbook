@@ -8,11 +8,16 @@
 
 ## Current applicability
 
-The bulk and import contracts remain accepted. [ADR-0010](./0010-postgres-catalog.md) supersedes the MeiliSearch indexes and atomic-swap implementation with PostgreSQL catalog generations. The temporary pause on frontend work ended with the deck builder implementation on 2026-10-03. Scan recognition remains deferred. [The specification](../product/specification.md) owns current workflow scope.
+The bulk and import contracts remain accepted.
+[ADR-0010](./0010-postgres-catalog.md) supersedes the MeiliSearch indexes and atomic-swap implementation with PostgreSQL catalog generations.
+The temporary pause on frontend work ended with the deck builder implementation on 2026-10-03.
+Scan recognition remains deferred.
+[The specification](../product/specification.md) owns current workflow scope.
 
 ## Context
 
-Spellbook needs stable MTG backend contracts before another scan-recognition sprint or larger frontend build. Inventory, decks, catalog import resolution, and Scryfall indexing all need predictable behavior for mobile and PWA clients.
+Spellbook needs stable MTG backend contracts before another scan-recognition sprint or larger frontend build.
+Inventory, decks, catalog import resolution, and Scryfall indexing all need predictable behavior for mobile and PWA clients.
 
 ## Decision
 
@@ -35,6 +40,7 @@ Frontend clients can build against typed bulk and import contracts without depen
 
 Import commits re-parse and re-resolve text, commit only resolved supported lines, and return unresolved or ambiguous lines to clients.
 
-Legality warnings are intentionally lightweight. Spellbook does not run a complete MTG rules engine in this sprint.
+Legality warnings are intentionally lightweight.
+Spellbook does not run a complete MTG rules engine in this sprint.
 
 The worker now requires durable state storage in production so sync status survives container recreation.

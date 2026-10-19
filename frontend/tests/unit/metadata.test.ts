@@ -1,9 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { pageMetadata } from '../../src/lib/seo/site';
 
 vi.mock('#lib/env/private.ts', () => ({
 	privateEnv: {
-		APP_ORIGIN: 'https://spellbook.example.test'
+		APP_ORIGIN: 'https://spellbook.example.test',
+		API_INTERNAL_URL: 'http://127.0.0.1:8080'
 	}
 }));
 
@@ -12,6 +13,7 @@ import { GET as robotsGet } from '../../src/routes/robots.txt/+server';
 import { GET as sitemapGet } from '../../src/routes/sitemap.xml/+server';
 
 describe('crawl and metadata surface', () => {
+	afterEach(() => vi.unstubAllGlobals());
 	it('serves robots.txt with crawl policy and sitemap URL', async () => {
 		const response = await robotsGet();
 		const text = await response.text();
@@ -46,15 +48,27 @@ describe('crawl and metadata surface', () => {
 		]);
 	});
 
-	it('serves the OpenAPI schema as public metadata', async () => {
-		const response = await openapiGet();
-		const schema = await response.json();
-
+	it('proxies the API-owned OpenAPI schema as public metadata', async () => {
+		const schema = {
+			info: { title: 'Spellbook OpenAPI Schema' },
+			servers: [{ url: 'https://spellbook.example.test' }],
+			paths: { '/auth/login': {} }
+		};
+		const send = vi.fn(async () => Response.json(schema));
+		vi.stubGlobal('fetch', send);
+		const url = new URL('https://spellbook.example.test/openapi.json');
+		const response = await openapiGet({
+			url,
+			request: new Request(url),
+			getClientAddress: () => 'metadata-client'
+		} as Parameters<typeof openapiGet>[0]);
 		expect(response.status).toBe(200);
 		expect(response.headers.get('x-robots-tag')).toBeNull();
-		expect(schema.info.title).toBe('Spellbook OpenAPI Schema');
-		expect(schema.servers[0].url).toBe('https://spellbook.example.test');
-		expect(schema.paths['/auth/login']).toBeDefined();
+		expect(await response.json()).toEqual(schema);
+		expect(send).toHaveBeenCalledWith(
+			new URL('http://127.0.0.1:8080/openapi.json'),
+			expect.objectContaining({ method: 'GET', redirect: 'manual' })
+		);
 	});
 
 	it('builds consistent canonical metadata for public pages', () => {

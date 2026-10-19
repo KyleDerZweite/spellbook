@@ -3,108 +3,417 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-19
 - Source of Truth: code, accepted design requirements and upstream runtime documentation
-- Update Triggers: guarded initial Deck Search activation, Inventory row measurement scheduling, topic-aware selected Deck refresh and publication acknowledgement, Library Editor state ownership and production reactivity tests, PWA install/update/cache policy, QR presentation and camera cleanup, installed narrow navigation, private value presentation and boundary refresh, backend application/transport interface and framework lifecycle hooks, routes, authentication, public landing, responsive layout, typography, development review controls, search, Shell window scrolling, Card Detail modal overflow, shared scroll viewports, inventory ordering and filters, Inventory metadata shortcuts and compact read-only rows, bounded inventory loading and scale evidence, deck builder and native task entry, shared control interfaces, uniform continuous browsing and native range fallbacks, workspace saved-state consumers, transient feedback delay, leases and draft baselines, primary Deck entry category forms and provenance, component choices, runtime support and compatibility, root environment and local/build origins, accepted design contracts and implementation evidence, bounded Deck Library metadata and whole-deck drafts, visited result extents and deep-segment prepend, hybrid browsing, native window scroll and contextual Card dialog, bounded Deck choice reads, shared Card addition adapters and retained caller drafts, native Search context hydration and feedback restoration
-- Related Docs: [System overview](./system-overview.md), [Auth](./auth.md), [Routes](../product/routing-and-games.md), [Catalog](./catalog.md), [Selected UI components](../reference/ui-libraries.md), [Design direction](../product/ui-design-direction.md), [Application contract](./application-contract.md), [Category rules](./category-rules.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md)
+- Update Triggers: independent API/web ownership and relocated code references, guarded initial Deck Search activation, Inventory row measurement scheduling, topic-aware selected Deck refresh and publication acknowledgement, Library Editor state ownership and production reactivity tests, PWA install/update/cache policy, QR presentation and camera cleanup, installed narrow navigation, private value presentation and boundary refresh, backend application/transport interface and framework lifecycle hooks, routes, authentication, public landing, responsive layout, typography, development review controls, search, Shell window scrolling, Card Detail modal overflow, shared scroll viewports, inventory ordering and filters, Inventory metadata shortcuts and compact read-only rows, bounded inventory loading and scale evidence, deck builder and native task entry, shared control interfaces, uniform continuous browsing and native range fallbacks, workspace saved-state consumers, transient feedback delay, leases and draft baselines, primary Deck entry category forms and provenance, component choices, runtime support and compatibility, root environment and local/build origins, accepted design contracts and implementation evidence, bounded Deck Library metadata and whole-deck drafts, visited result extents and deep-segment prepend, hybrid browsing, native window scroll and contextual Card dialog, bounded Deck choice reads, shared Card addition adapters and retained caller drafts, native Search context hydration and feedback restoration
+- Related Docs: [System overview](./system-overview.md), [Auth](./auth.md), [Routes](../product/routing-and-games.md), [Catalog](./catalog.md), [Selected UI components](../reference/ui-libraries.md), [Design direction](../product/ui-design-direction.md), [Application contract](./application-contract.md), [Category rules](./category-rules.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [Independent applications](./independent-applications.md)
 
-The SvelteKit application renders pages and owns HTTP adapters. Its named [server composition](../../frontend/src/lib/server/composition.ts) supplies configuration to the [backend application constructor](../../backend/src/application.ts) and exports feature use cases without raw database handles. Backend owns persistence and resource lifetime; frontend retains framework shutdown and HMR hooks. Native server adapters import named helpers and errors through the resource-free [transport facade](../../backend/src/transport.ts). Exact import rules and lifecycle behavior belong to the [application contract](./application-contract.md#implemented-application-lifecycle-and-operator-ownership). Svelte components and Tailwind styles implement the interface; Bits UI supplies accessible interactive components. The [selected component guidance](../reference/ui-libraries.md) owns shadcn-svelte source adoption and its boundary with existing Bits UI controls. The shared stylesheet defines the neutral light and dark, icon-accented card workspace design described in [design direction](../product/ui-design-direction.md).
+The SvelteKit application renders pages and owns native form presentation and browser cookies.
+Its [server composition](../../frontend/src/lib/server/composition.ts) exposes a request-bound [remote application](../../frontend/src/lib/server/remote/application.ts) over HTTP.
+The independent Node API owns persistence, authentication, use cases and resource lifetime.
+Web runtime imports no backend implementation, pg, Drizzle or password hashing.
+[Local error types](../../frontend/src/lib/server/remote/errors.ts) reconstruct safe structured API failures, including current conflict values and revision tokens.
+The [application contract](./application-contract.md#implemented-application-lifecycle-and-operator-ownership) owns lifecycle and operator boundaries.
+Svelte components and Tailwind styles implement the interface; Bits UI supplies accessible interactive components.
+The [selected component guidance](../reference/ui-libraries.md) owns shadcn-svelte source adoption and its boundary with existing Bits UI controls.
+The shared stylesheet defines the neutral light and dark, icon-accented card workspace design described in [design direction](../product/ui-design-direction.md).
 
-The root `/` always renders the shared [PublicLanding](../../frontend/src/lib/components/showcase/PublicLanding.svelte), including for signed-in users. Its native GET search form targets public `/mtg/search` with the query in `q`. With JavaScript, it opens the shared Search overlay above the mounted landing page. The private `/mtg/dashboard` is a separate account workspace. [The product specification](../product/specification.md#dashboard) owns its summaries and limits.
+The root `/` always renders the shared [PublicLanding](../../frontend/src/lib/components/showcase/PublicLanding.svelte), including for signed-in users.
+Its native GET search form targets public `/mtg/search` with the query in `q`.
+With JavaScript, it opens the shared Search overlay above the mounted landing page.
+The private `/mtg/dashboard` is a separate account workspace.
+[The product specification](../product/specification.md#dashboard) owns its summaries and limits.
 
-The public root uses Background with an interactive Commander deckbox and shared design tokens. The previous ownership example, isolated card-and-pack strip, oversized Spellbook headings, numbered comparison routes and `/fonts` page are removed. The `review=landing` composition override is also removed; local landing review uses `/`.
+The public root uses Background with an interactive Commander deckbox and shared design tokens.
+The previous ownership example, isolated card-and-pack strip, oversized Spellbook headings, numbered comparison routes and `/fonts` page are removed.
+The `review=landing` composition override is also removed; local landing review uses `/`.
 
-[LandingBackdrop](../../frontend/src/lib/components/showcase/LandingBackdrop.svelte) owns Background. Its right-aligned diagonal field has six columns and six rows of decorative tiles mixing Magic, Pokémon, Yu-Gi-Oh! and Digimon. Its 36 tiles contain 27 cards and nine packs. All four games have pack artwork. Tile widths scale with the viewport. Partial cards remain visible at softly faded edges. Desktop actions are vertically centered on the left, and the deckbox sits in the lower-right corner. Mobile places the right-aligned deckbox after the actions in the normal page flow.
+[LandingBackdrop](../../frontend/src/lib/components/showcase/LandingBackdrop.svelte) owns Background.
+Its right-aligned diagonal field has six columns and six rows of decorative tiles mixing Magic, Pokémon, Yu-Gi-Oh!
+and Digimon.
+Its 36 tiles contain 27 cards and nine packs.
+All four games have pack artwork.
+Tile widths scale with the viewport.
+Partial cards remain visible at softly faded edges.
+Desktop actions are vertically centered on the left, and the deckbox sits in the lower-right corner.
+Mobile places the right-aligned deckbox after the actions in the normal page flow.
 
-[LandingCommander](../../frontend/src/lib/components/showcase/LandingCommander.svelte) owns the filled CSS 3D deckbox. Seven cards sit inside the open box; the Commander appears once in its front window. Selecting a seated card partially withdraws it without changing its orientation, scale or camera. Box walls cover the hidden portions and block pointer selection through them. Hover, focus or tap selects one of eight real deck cards directly. Arrow keys, Home and End move focus; separate previous and next controls provide 44-pixel targets. There is no automatic cycling. Reduced motion removes the transition while preserving selection. The Commander format label reuses the deck editor's `--color-role-commander` token. Deck name, format, 100-card count, color identity, creator and Archidekt source remain visible. This is a complete static public snapshot, with no account import, inventory comparison, internal public deck page or live synchronization. The [asset reference](../reference/website-icons.md#card-showcase-assets) owns provenance and refresh boundaries.
+[LandingCommander](../../frontend/src/lib/components/showcase/LandingCommander.svelte) owns the filled CSS 3D deckbox.
+Seven cards sit inside the open box; the Commander appears once in its front window.
+Selecting a seated card partially withdraws it without changing its orientation, scale or camera.
+Box walls cover the hidden portions and block pointer selection through them.
+Hover, focus or tap selects one of eight real deck cards directly.
+Arrow keys, Home and End move focus; separate previous and next controls provide 44-pixel targets.
+There is no automatic cycling.
+Reduced motion removes the transition while preserving selection.
+The Commander format label reuses the deck editor's `--color-role-commander` token.
+Deck name, format, 100-card count, color identity, creator and Archidekt source remain visible.
+This is a complete static public snapshot, with no account import, inventory comparison, internal public deck page or live synchronization.
+The [asset reference](../reference/website-icons.md#card-showcase-assets) owns provenance and refresh boundaries.
 
-The root [Shell](../../frontend/src/lib/components/layout/Shell.svelte) renders the same [Nav](../../frontend/src/lib/components/layout/Nav.svelte), scrolling content and footer for every page, including login, registration, legal and error pages. There is no separate authentication header. The full-width header places the brand left, navigation in the center, and game, theme and account controls right. Shared `nav-link` styles cover navigation and the direct Sign in entry; the current entry uses the same underline state. Search, Inventory, Decks, Scan, Dashboard and Settings share `.workspace-container`, with width `min(calc(100% - 2rem), var(--layout-wide-width))`. The shared outer limit is `clamp(72rem, 84vw, 150rem)`. The landing uses this limit with responsive padding. Public home and hero use column flex layouts to fill the space remaining after the header and actual footer content. Short viewports scroll naturally. Background tiles and the deckbox scale within separate bounds, while action text stays at its normal size.
+The root [Shell](../../frontend/src/lib/components/layout/Shell.svelte) renders the same [Nav](../../frontend/src/lib/components/layout/Nav.svelte), scrolling content and footer for every page, including login, registration, legal and error pages.
+There is no separate authentication header.
+The full-width header places the brand left, navigation in the center, and game, theme and account controls right.
+Shared `nav-link` styles cover navigation and the direct Sign in entry; the current entry uses the same underline state.
+Search, Inventory, Decks, Scan, Dashboard and Settings share `.workspace-container`, with width `min(calc(100% - 2rem), var(--layout-wide-width))`.
+The shared outer limit is `clamp(72rem, 84vw, 150rem)`.
+The landing uses this limit with responsive padding.
+Public home and hero use column flex layouts to fill the space remaining after the header and actual footer content.
+Short viewports scroll naturally.
+Background tiles and the deckbox scale within separate bounds, while action text stays at its normal size.
 
-[AccountLayout](../../frontend/src/lib/components/auth/AccountLayout.svelte) owns the shared login and registration form frame, selected logo and functional heading. Its narrow content centers within the shell on desktop and starts beneath the header on mobile. [PasswordInput](../../frontend/src/lib/components/auth/PasswordInput.svelte) owns the native password input and its 44-pixel Show/Hide control. Visibility changes the type of the existing input without replacing it; callers retain labels, autocomplete, length constraints and error associations. The pages retain their form actions, pending state and login destination. Legal text and account forms keep readable content widths inside the common shell.
+[AccountLayout](../../frontend/src/lib/components/auth/AccountLayout.svelte) owns the shared login and registration form frame, selected logo and functional heading.
+Its narrow content centers within the shell on desktop and starts beneath the header on mobile.
+[PasswordInput](../../frontend/src/lib/components/auth/PasswordInput.svelte) owns the native password input and its 44-pixel Show/Hide control.
+Visibility changes the type of the existing input without replacing it; callers retain labels, autocomplete, length constraints and error associations.
+The pages retain their form actions, pending state and login destination.
+Legal text and account forms keep readable content widths inside the common shell.
 
-[The Settings layout](../../frontend/src/routes/settings/+layout.svelte) centers a bounded 1120-pixel composition inside the shared workspace. It supplies Profile, Profile Card and Password route links, with an underline for the current page. Below 1100 pixels the links wrap above the content. Profile owns optional contact email, the saved card and its Edit Card link. [AvatarEditor](../../frontend/src/lib/components/profile/AvatarEditor.svelte) opens a Bits Dialog around the shared sprite picker. It copies the saved avatar into a draft on open, discards cancelled selections, retains failed selections and closes after a successful save. The selected radio receives focus on open; the trigger receives it on close. Password uses the existing native PasswordInput with current, new and confirmation fields, independent submission state and no returned password values.
+[The Settings layout](../../frontend/src/routes/settings/+layout.svelte) centers a bounded 1120-pixel composition inside the shared workspace.
+It supplies Profile, Profile Card and Password route links, with an underline for the current page.
+Below 1100 pixels the links wrap above the content.
+Profile owns optional contact email, the saved card and its Edit Card link.
+[AvatarEditor](../../frontend/src/lib/components/profile/AvatarEditor.svelte) opens a Bits Dialog around the shared sprite picker.
+It copies the saved avatar into a draft on open, discards cancelled selections, retains failed selections and closes after a successful save.
+The selected radio receives focus on open; the trigger receives it on close.
+Password uses the existing native PasswordInput with current, new and confirmation fields, independent submission state and no returned password values.
 
-[ProfileCard](../../frontend/src/lib/components/profile/ProfileCard.svelte) renders the private MTG-style account card from a validated definition, username, avatar, artwork and account-scoped totals. It owns no queries or persistence. [ProfileFrameRegion](../../frontend/src/lib/components/profile/ProfileFrameRegion.svelte) displays cropped regions of the lossless CardCraft frame while keeping content in normal DOM flow. Header, type, rules and Power/Toughness regions can grow; crown, corner and footer slices retain their geometry. Artwork uses the common transparent source rectangle with `object-fit: contain`. The optional Power/Toughness capsule is a local crop of the corresponding Creature frame, not an upstream standalone layer. [Asset provenance](../reference/website-icons.md#profile-card-frames) owns source hashes and preparation. The shared [profile card contract](../../contracts/src/profile-card.ts) owns field limits, frame choices, mana grammar, KPI names, defaults and validation. The frontend [profile renderer helpers](../../frontend/src/lib/profile/card.ts) own current-metric resolution, text segments and KPI insertion. [ProfileCardEditor](../../frontend/src/lib/components/profile/ProfileCardEditor.svelte) owns editable card controls. Shared [ProfileTextField](../../frontend/src/lib/components/profile/ProfileTextField.svelte) and [KpiInsert](../../frontend/src/lib/components/profile/KpiInsert.svelte) insert placeholders using ActionMenu and restore field focus. The Profile Card route owns the reactive draft, saved/error status, authenticated card/artwork submission and height-aware sticky preview. It retains rejected inputs and focuses the first invalid field after controls are enabled. The shared [ArtworkPicker](../../frontend/src/lib/components/profile/ArtworkPicker.svelte) supplies native radios with complete 3:2 images in registration and the editor; [AvatarPicker](../../frontend/src/lib/components/profile/AvatarPicker.svelte) owns sprite choices. The backend Profile use case loads the stored definition independently of aggregate MTG totals so unavailable metrics do not block customization. Enhanced submissions send edited fields; native submissions include saved card/artwork baselines and derive the changed fields before calling the same Profile patch. Unchanged submissions authenticate without writing. The artwork registry owns allowed IDs and fallbacks; [authentication](./auth.md) owns independent account-scoped persistence. Generated artwork and choice images remain local WebP assets with provenance in [the asset manifest](../../frontend/brand/profile-artwork.json).
+[ProfileCard](../../frontend/src/lib/components/profile/ProfileCard.svelte) renders the private MTG-style account card from a validated definition, username, avatar, artwork and account-scoped totals.
+It owns no queries or persistence.
+[ProfileFrameRegion](../../frontend/src/lib/components/profile/ProfileFrameRegion.svelte) displays cropped regions of the lossless CardCraft frame while keeping content in normal DOM flow.
+Header, type, rules and Power/Toughness regions can grow; crown, corner and footer slices retain their geometry.
+Artwork uses the common transparent source rectangle with `object-fit: contain`.
+The optional Power/Toughness capsule is a local crop of the corresponding Creature frame, not an upstream standalone layer.
+[Asset provenance](../reference/website-icons.md#profile-card-frames) owns source hashes and preparation.
+The shared [profile card contract](../../contracts/src/profile-card.ts) owns field limits, frame choices, mana grammar, KPI names, defaults and validation.
+The frontend [profile renderer helpers](../../frontend/src/lib/profile/card.ts) own current-metric resolution, text segments and KPI insertion.
+[ProfileCardEditor](../../frontend/src/lib/components/profile/ProfileCardEditor.svelte) owns editable card controls.
+Shared [ProfileTextField](../../frontend/src/lib/components/profile/ProfileTextField.svelte) and [KpiInsert](../../frontend/src/lib/components/profile/KpiInsert.svelte) insert placeholders using ActionMenu and restore field focus.
+The Profile Card route owns the reactive draft, saved/error status, authenticated card/artwork submission and height-aware sticky preview.
+It retains rejected inputs and focuses the first invalid field after controls are enabled.
+The shared [ArtworkPicker](../../frontend/src/lib/components/profile/ArtworkPicker.svelte) supplies native radios with complete 3:2 images in registration and the editor; [AvatarPicker](../../frontend/src/lib/components/profile/AvatarPicker.svelte) owns sprite choices.
+The backend Profile use case loads the stored definition independently of aggregate MTG totals so unavailable metrics do not block customization.
+Enhanced submissions send edited fields; native submissions include saved card/artwork baselines and derive the changed fields before calling the same Profile patch.
+Unchanged submissions authenticate without writing.
+The artwork registry owns allowed IDs and fallbacks; [authentication](./auth.md) owns independent account-scoped persistence.
+Generated artwork and choice images remain local WebP assets with provenance in [the asset manifest](../../frontend/brand/profile-artwork.json).
 
-[SearchBar](../../frontend/src/lib/components/search/SearchBar.svelte) owns the shared labeled search input and clear action. Optional `name` and `submitLabel` props support the landing form. PublicLanding retains a native GET fallback and a SvelteKit snapshot that restores its input on browser Back. Empty submission opens the unfiltered catalog. The accepted PWA delivery replaces App coming soon with an App link to `/app` in the existing account/mobile menus.
+[SearchBar](../../frontend/src/lib/components/search/SearchBar.svelte) owns the shared labeled search input and clear action.
+Optional `name` and `submitLabel` props support the landing form.
+PublicLanding retains a native GET fallback and a SvelteKit snapshot that restores its input on browser Back.
+Empty submission opens the unfiltered catalog.
+The accepted PWA delivery replaces App coming soon with an App link to `/app` in the existing account/mobile menus.
 
-[SearchOverlay](../../frontend/src/lib/components/search/SearchOverlay.svelte) owns navigation and the single Ctrl+K or Cmd+K listener. A normal primary Search navigation click opens its large desktop dialog or full-height mobile dialog, keeping the underlying page mounted. Modified clicks retain the real `/mtg/search` link. Query, the four filter categories and the logical range serialize into the visible URL through SvelteKit shallow routing. Typing and Lazy anchor movement replace the entry; explicit submissions and filter changes push one entry. Overlay entries retain their distance from the background so Close returns there after those pushes. Close, Escape and browser Back restore the background; Forward reopens Search. Full view replaces the overlay history entry with the real Search route. A direct URL or reload renders that route. The [root-layout Search session](../../frontend/src/lib/search/session.svelte.ts) is instance-scoped and retains query, filters, catalog cache and result position across those transitions. [SearchWorkspace](../../frontend/src/lib/components/search/SearchWorkspace.svelte) supplies the same controls and results to both hosts. Opening Search on the full route focuses its existing workspace. The deck editor retains its separate contextual search.
+[SearchOverlay](../../frontend/src/lib/components/search/SearchOverlay.svelte) owns navigation and the single Ctrl+K or Cmd+K listener.
+A normal primary Search navigation click opens its large desktop dialog or full-height mobile dialog, keeping the underlying page mounted.
+Modified clicks retain the real `/mtg/search` link.
+Query, the four filter categories and the logical range serialize into the visible URL through SvelteKit shallow routing.
+Typing and Lazy anchor movement replace the entry; explicit submissions and filter changes push one entry.
+Overlay entries retain their distance from the background so Close returns there after those pushes.
+Close, Escape and browser Back restore the background; Forward reopens Search.
+Full view replaces the overlay history entry with the real Search route.
+A direct URL or reload renders that route.
+The [root-layout Search session](../../frontend/src/lib/search/session.svelte.ts) is instance-scoped and retains query, filters, catalog cache and result position across those transitions.
+[SearchWorkspace](../../frontend/src/lib/components/search/SearchWorkspace.svelte) supplies the same controls and results to both hosts.
+Opening Search on the full route focuses its existing workspace.
+The deck editor retains its separate contextual search.
 
-Shared application tokens use the selected Marcellus display face with a serif fallback and IBM Plex Mono interface face with monospace fallbacks. Marcellus remains provisional, but only an explicit user instruction may change the selected heading font; agents must not replace it autonomously. Font selectors, optional comparison font loading and the `font` and `uiFont` query overrides are removed. [Design direction](../product/ui-design-direction.md) owns the accepted content and visual requirements.
+Shared application tokens use the selected Marcellus display face with a serif fallback and IBM Plex Mono interface face with monospace fallbacks.
+Marcellus remains provisional, but only an explicit user instruction may change the selected heading font; agents must not replace it autonomously.
+Font selectors, optional comparison font loading and the `font` and `uiFont` query overrides are removed.
+[Design direction](../product/ui-design-direction.md) owns the accepted content and visual requirements.
 
-The synchronous `static/theme.js` bootstrap owns theme preference, local storage, system appearance changes, and browser theme color. It runs before page content to avoid a mismatched initial palette. The shared header's `ThemeToggle` controls that bootstrap through browser events on every page. Storage failure leaves the control functional for the current page.
+The synchronous `static/theme.js` bootstrap owns theme preference, local storage, system appearance changes, and browser theme color.
+It runs before page content to avoid a mismatched initial palette.
+The shared header's `ThemeToggle` controls that bootstrap through browser events on every page.
+Storage failure leaves the control functional for the current page.
 
-Shell now renders a semantic native `main`; the browser window owns page scrolling. Nav remains sticky and uses window scroll position for label collapse. Shell snapshots restore the window position on Back/Forward. Normal new pathnames start at the top, while same-page query/form changes preserve position. Checked deep Search/Inventory ranges own initial geometry for their navigation, suppressing the native Kit and Shell reset for that navigation. Initial range publication waits for positioning. First ranges retain the visible toolbar at the top. Root CSS uses a stable native scrollbar gutter and scroll padding for the header. Card Detail retains Bits Dialog's default body lock and focus trap, with one native overflowing dialog viewport and no independently scrolling Inspector columns. Pending dismissal guards and caller focus return remain unchanged.
+Shell now renders a semantic native `main`; the browser window owns page scrolling.
+Nav remains sticky and uses window scroll position for label collapse.
+Shell snapshots restore the window position on Back/Forward.
+Normal new pathnames start at the top, while same-page query/form changes preserve position.
+Checked deep Search/Inventory ranges own initial geometry for their navigation, suppressing the native Kit and Shell reset for that navigation.
+Initial range publication waits for positioning.
+First ranges retain the visible toolbar at the top.
+Root CSS uses a stable native scrollbar gutter and scroll padding for the header.
+Card Detail retains Bits Dialog's default body lock and focus trap, with one native overflowing dialog viewport and no independently scrolling Inspector columns.
+Pending dismissal guards and caller focus return remain unchanged.
 
-Search uses the native window on its full route and one native overflow viewport for its whole overlay. Inventory uses native window geometry for enhanced Lazy entries and Groups, with bounded native SSR range fallbacks and set choices. Shared menus retain their existing scroll ownership through [ScrollArea](../../frontend/src/lib/components/ui/scroll-area/ScrollArea.svelte). [Selected UI components](../reference/ui-libraries.md) owns retained controls. Search overlay history remains with its existing owner.
+Search uses the native window on its full route and one native overflow viewport for its whole overlay.
+Inventory uses native window geometry for enhanced Lazy entries and Groups, with bounded native SSR range fallbacks and set choices.
+Shared menus retain their existing scroll ownership through [ScrollArea](../../frontend/src/lib/components/ui/scroll-area/ScrollArea.svelte).
+[Selected UI components](../reference/ui-libraries.md) owns retained controls.
+Search overlay history remains with its existing owner.
 
-Root CSS defines `--app-header-height` for desktop and mobile. `.app-main` contains normal document-flow content; the root native scrollbar has a stable gutter. The initial header clearance belongs to `.app-content`, so sticky descendants apply the header offset only once. The deck summary and catalog use that shared value. Navigation underlines remain visible when labels collapse to icons. Shared CSS retains themed native scrollbars for other scroll containers.
+Root CSS defines `--app-header-height` for desktop and mobile.
+`.app-main` contains normal document-flow content; the root native scrollbar has a stable gutter.
+The initial header clearance belongs to `.app-content`, so sticky descendants apply the header offset only once.
+The deck summary and catalog use that shared value.
+Navigation underlines remain visible when labels collapse to icons.
+Shared CSS retains themed native scrollbars for other scroll containers.
 
-[Routing and games](../product/routing-and-games.md) owns the route list and legacy redirects. [The product specification](../product/specification.md) owns workflow behavior and acceptance criteria.
+[Routing and games](../product/routing-and-games.md) owns the route list and legacy redirects.
+[The product specification](../product/specification.md) owns workflow behavior and acceptance criteria.
 
-The shared [error page](../../frontend/src/routes/+error.svelte) uses the existing shell and control styles. Missing pages offer Search and Home links; server errors also offer a retry of the current page.
+The shared [error page](../../frontend/src/routes/+error.svelte) uses the existing shell and control styles.
+Missing pages offer Search and Home links; server errors also offer a retry of the current page.
 
-[CardInspector](../../frontend/src/lib/components/cards/CardInspector.svelte) owns shared printing selection and inspector content. Search hosts selection in CardDetail and retains the grid and logical focus anchor behind the dialog. [CardDetail](../../frontend/src/lib/components/cards/CardDetail.svelte) owns that dialog lifecycle for Search, Inventory and Decks. Callers supply action content and an explicit focus return target. Its optional `callerPending` combines with the inspector's internal quick-add state to block dismissal, Printing selection and tab changes during a caller save. CardDetail forwards internal pending changes through its optional callback. Search supplies shared browsing actions and owns their reactive addition drafts outside Inspector tabs. Native Search and contextual Inventory use the same shared action adapters with their own caller lifetimes.
+[CardInspector](../../frontend/src/lib/components/cards/CardInspector.svelte) owns shared printing selection and inspector content.
+Search hosts selection in CardDetail and retains the grid and logical focus anchor behind the dialog.
+[CardDetail](../../frontend/src/lib/components/cards/CardDetail.svelte) owns that dialog lifecycle for Search, Inventory and Decks.
+Callers supply action content and an explicit focus return target.
+Its optional `callerPending` combines with the inspector's internal quick-add state to block dismissal, Printing selection and tab changes during a caller save.
+CardDetail forwards internal pending changes through its optional callback.
+Search supplies shared browsing actions and owns their reactive addition drafts outside Inspector tabs.
+Native Search and contextual Inventory use the same shared action adapters with their own caller lifetimes.
 
-The Inventory route owns browser `page`/`pageSize` state, quantity/Notes drafts, stable inspector documents, pending entry IDs and logical focus. Its server-only [browser adapter](../../frontend/src/lib/server/data/inventory-browsing.ts) translates logical 200-result Lazy ranges into the unchanged backend offset/limit contract. Enhanced browsing always uses [VirtualInventoryList](../../frontend/src/lib/components/inventory/VirtualInventoryList.svelte) with native window geometry, finite adjacent page planning, pruned height measurements and preserved entry/intra-row anchors. [GroupDirectory](../../frontend/src/lib/components/inventory/GroupDirectory.svelte) uses the same continuous browsing policy; Lazy renders bounded rows from existing complete group metadata without additional HTTP windows. No-JavaScript Lazy remains a 200-result page with native Previous/Next links. The shared native range navigation supplies accessible Previous/Next links only before hydration. Enhanced surfaces have no pagination or size controls. Filters, sorting and view transitions reset page 1; Back/Forward and deep links restore the addressed range. Current count changes clamp the URL without changing editor drafts. The [application contract](./application-contract.md#frontend-state-and-shared-controls) owns admission and revision guards, and [card grouping](../product/card-grouping.md) owns group semantics.
+The Inventory route owns browser `page`/`pageSize` state, quantity/Notes drafts, stable inspector documents, pending entry IDs and logical focus.
+Its server-only [browser adapter](../../frontend/src/lib/server/data/inventory-browsing.ts) translates logical 200-result Lazy ranges into the unchanged backend offset/limit contract.
+Enhanced browsing always uses [VirtualInventoryList](../../frontend/src/lib/components/inventory/VirtualInventoryList.svelte) with native window geometry, finite adjacent page planning, pruned height measurements and preserved entry/intra-row anchors.
+[GroupDirectory](../../frontend/src/lib/components/inventory/GroupDirectory.svelte) uses the same continuous browsing policy; Lazy renders bounded rows from existing complete group metadata without additional HTTP windows.
+No-JavaScript Lazy remains a 200-result page with native Previous/Next links.
+The shared native range navigation supplies accessible Previous/Next links only before hydration.
+Enhanced surfaces have no pagination or size controls.
+Filters, sorting and view transitions reset page 1; Back/Forward and deep links restore the addressed range.
+Current count changes clamp the URL without changing editor drafts.
+The [application contract](./application-contract.md#frontend-state-and-shared-controls) owns admission and revision guards, and [card grouping](../product/card-grouping.md) owns group semantics.
 
-Inventory row quantity is read-only. Header and row grids share compact metadata and quantity widths, retaining room for ten-digit quantities and the 44-pixel action menu. Set, Finish and Condition badges are native filter links; enhanced primary clicks use the existing reactive controls and bounded navigation owner. Mobile metadata links sit outside the Inspect button. Shortcuts preserve query, ordering and Box scope and start at the first range. Details and Edit open caller-owned modes in the existing CardDetail dialog; only the owned entry's original printing/finish/condition and revision baselines can be edited. Add another printing uses an explicit add mode and CardQuickAdd, without retargeting the owned entry. The route owns reactive Deck and Inventory addition drafts outside the Inspector action panel. Details uses CardBrowsingActions with Deck Primary and Inventory Secondary; Add another printing uses the same Inventory draft through CardQuickAdd with a Primary task action. Serial action-panel unmounts during mode, Info or All Printings changes preserve fields and the immutable original uncertain-request journal. New openings, explicit close, account replacement and terminal SavedState expiry clear both caller drafts even while actions are unmounted. Combined pending state reaches CardDetail and all Inspector controls. Current source and isolated checks do not establish rendered original-retry or scale acceptance.
+Inventory row quantity is read-only.
+Header and row grids share compact metadata and quantity widths, retaining room for ten-digit quantities and the 44-pixel action menu.
+Set, Finish and Condition badges are native filter links; enhanced primary clicks use the existing reactive controls and bounded navigation owner.
+Mobile metadata links sit outside the Inspect button.
+Shortcuts preserve query, ordering and Box scope and start at the first range.
+Details and Edit open caller-owned modes in the existing CardDetail dialog; only the owned entry's original printing/finish/condition and revision baselines can be edited.
+Add another printing uses an explicit add mode and CardQuickAdd, without retargeting the owned entry.
+The route owns reactive Deck and Inventory addition drafts outside the Inspector action panel.
+Details uses CardBrowsingActions with Deck Primary and Inventory Secondary; Add another printing uses the same Inventory draft through CardQuickAdd with a Primary task action.
+Serial action-panel unmounts during mode, Info or All Printings changes preserve fields and the immutable original uncertain-request journal.
+New openings, explicit close, account replacement and terminal SavedState expiry clear both caller drafts even while actions are unmounted.
+Combined pending state reaches CardDetail and all Inspector controls.
+Current source and isolated checks do not establish rendered original-retry or scale acceptance.
 
-Inventory enhanced forms retain unchanged unconfirmed intent IDs, drafts and their original Notes/quantity baselines. Network/error action results stay inline and do not enter the framework ErrorPage. Confirmed receipts clear their pending intent before bounded refetch; refresh failure cannot turn a confirmed write into a new addition. Web forms derive only changed fields, preserving concurrent disjoint quantity/Notes edits. Notes conflict exposes latest saved text and an explicit rebase control. Native row Details links open the authorized SSR `/mtg/inventory/[entryId]` page with Notes, Boxes and reviewed Remove forms, preserving filters and browser page/mode. Account privacy clearing retains only checked query/range intent; private DTOs, drafts and targets still clear. A current authorized leased read restores the selected range, uses its latest checked address and consumes only matching pending intent. Expected native validation/conflict failures render the submitted Notes/base in the Inventory page without hydration. An out-of-range native POST reload reads the clamped 200-entry range once under the initial read revision and retains its action result instead of redirecting. If that revision changes, one fresh page-one read supplies the complete replacement snapshot without combining revisions. Ordinary GET range correction still redirects with 307. The native Boxes directory supplies create/rename/delete forms. [Slice 4](https://github.com/KyleDerZweite/spellbook/issues/177) records completed current-head native/enhanced browser acceptance, including retained drafts, lost-response retry and reviewed Remove.
+Inventory enhanced forms retain unchanged unconfirmed intent IDs, drafts and their original Notes/quantity baselines.
+Network/error action results stay inline and do not enter the framework ErrorPage.
+Confirmed receipts clear their pending intent before bounded refetch; refresh failure cannot turn a confirmed write into a new addition.
+Web forms derive only changed fields, preserving concurrent disjoint quantity/Notes edits.
+Notes conflict exposes latest saved text and an explicit rebase control.
+Native row Details links open the authorized SSR `/mtg/inventory/[entryId]` page with Notes, Boxes and reviewed Remove forms, preserving filters and browser page/mode.
+Account privacy clearing retains only checked query/range intent; private DTOs, drafts and targets still clear.
+A current authorized leased read restores the selected range, uses its latest checked address and consumes only matching pending intent.
+Expected native validation/conflict failures render the submitted Notes/base in the Inventory page without hydration.
+An out-of-range native POST reload reads the clamped 200-entry range once under the initial read revision and retains its action result instead of redirecting.
+If that revision changes, one fresh page-one read supplies the complete replacement snapshot without combining revisions.
+Ordinary GET range correction still redirects with 307.
+The native Boxes directory supplies create/rename/delete forms.
+[Slice 4](https://github.com/KyleDerZweite/spellbook/issues/177) records completed current-head native/enhanced browser acceptance, including retained drafts, lost-response retry and reviewed Remove.
 
-[CardQuickAdd](../../frontend/src/lib/components/cards/CardQuickAdd.svelte) owns the enhanced Inventory-add form and local feedback. Its named `actionRole` defaults to Primary; [CardBrowsingActions](../../frontend/src/lib/components/cards/CardBrowsingActions.svelte) composes the smaller Secondary Inventory action beside Primary [CardDeckAdd](../../frontend/src/lib/components/cards/CardDeckAdd.svelte). Scan's existing Accept to Inventory priority is unchanged. Both addition components accept caller-owned reactive drafts created by [addition-drafts](../../frontend/src/lib/cards/addition-drafts.ts), so mode transitions can retain controls and original retry payloads without moving persistence into CardInspector. Callers retain one draft owner per opening and clear it on close or account replacement. Mounted components clear private state on terminal expiry and require the matching active account before writes.
+[CardQuickAdd](../../frontend/src/lib/components/cards/CardQuickAdd.svelte) owns the enhanced Inventory-add form and local feedback.
+Its named `actionRole` defaults to Primary; [CardBrowsingActions](../../frontend/src/lib/components/cards/CardBrowsingActions.svelte) composes the smaller Secondary Inventory action beside Primary [CardDeckAdd](../../frontend/src/lib/components/cards/CardDeckAdd.svelte).
+Scan's existing Accept to Inventory priority is unchanged.
+Both addition components accept caller-owned reactive drafts created by [addition-drafts](../../frontend/src/lib/cards/addition-drafts.ts), so mode transitions can retain controls and original retry payloads without moving persistence into CardInspector.
+Callers retain one draft owner per opening and clear it on close or account replacement.
+Mounted components clear private state on terminal expiry and require the matching active account before writes.
 
-CardDeckAdd starts with no selected Deck. Its searchable summary picker uses the bounded Deck-choice use case with 20-result pages, a separate selected-owned lookup and one serialized SavedState read resource. Query, page, account, draft owner and response-body leases guard publication. It never loads Deck Composition or Inventory Availability. Section and Quantity are explicit controls. Counted Inventory/Deck WriteHandles hold publication during POST. Unconfirmed original intents remain immutable retry controls, separately from newer fields; changed intent gets a new request ID. Only a matching original acknowledgement confirms an addition. Optional read failure retains confirmed feedback, and newer drafts remain intact.
+CardDeckAdd starts with no selected Deck.
+Its searchable summary picker uses the bounded Deck-choice use case with 20-result pages, a separate selected-owned lookup and one serialized SavedState read resource.
+Query, page, account, draft owner and response-body leases guard publication.
+It never loads Deck Composition or Inventory Availability.
+Section and Quantity are explicit controls.
+Counted Inventory/Deck WriteHandles hold publication during POST.
+Unconfirmed original intents remain immutable retry controls, separately from newer fields; changed intent gets a new request ID.
+Only a matching original acknowledgement confirms an addition.
+Optional read failure retains confirmed feedback, and newer drafts remain intact.
 
-[The exported browsing adapters](../../frontend/src/lib/server/card-browsing-actions.ts) supply `addToDeck` and `addBrowsingToInventory` to the Search route owner. They use the authenticated actor and existing authoritative Catalog mutation use cases, retain submitted native drafts for controlled failures and return existing acknowledgements directly. [NativeCardBrowsingActions](../../frontend/src/lib/components/cards/NativeCardBrowsingActions.svelte) consumes explicit Printing, signed-in state, bounded choice page/errors, canonical Search URL and action result props. Native POST URLs retain the selected Printing and canonical GET context for post-action reloads. The panel also renders receipts and original retries when current Printing evidence is unavailable. Optional `deckDraft` and `inventoryDraft` props restore validated original snapshots after native choice GET navigation. The choice form forwards bounded nonsecret `deckRetry*` and `inventoryRetry*` fields; `readNativeAdditionDrafts` decodes their exact strings and rejects incomplete, repeated or oversized snapshots. These URL fields never confirm a command or establish account/target authority. The loader maps malformed snapshots to controlled read errors. An unchanged uncertain native submit keeps its original ID, while changed fields use the loader's new ID. Original retry forms retain exact submitted identity; a new addition uses the loader's fresh ID. A confirmed Deck receipt remains visible with View Deck when choice reads fail. CardDetail uses the existing dialog layers 110/111 above SearchOverlay 40/50 and below shared Select/Menu 120. Native Search route wiring has actual production-route HTML and PostgreSQL evidence. The contextual Inventory caller is integrated; local composed rendered evidence is recorded with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192). Shared fixture-route checks alone do not establish production caller integration or rendered acceptance.
+[The exported browsing adapters](../../frontend/src/lib/server/card-browsing-actions.ts) supply `addToDeck` and `addBrowsingToInventory` to the Search route owner.
+They forward the selected browser credential to existing authoritative Catalog mutation use cases, retain submitted native drafts for controlled failures and return existing acknowledgements directly.
+[NativeCardBrowsingActions](../../frontend/src/lib/components/cards/NativeCardBrowsingActions.svelte) consumes explicit Printing, signed-in state, bounded choice page/errors, canonical Search URL and action result props.
+Native POST URLs retain the selected Printing and canonical GET context for post-action reloads.
+The panel also renders receipts and original retries when current Printing evidence is unavailable.
+Optional `deckDraft` and `inventoryDraft` props restore validated original snapshots after native choice GET navigation.
+The choice form forwards bounded nonsecret `deckRetry*` and `inventoryRetry*` fields; `readNativeAdditionDrafts` decodes their exact strings and rejects incomplete, repeated or oversized snapshots.
+These URL fields never confirm a command or establish account/target authority.
+The loader maps malformed snapshots to controlled read errors.
+An unchanged uncertain native submit keeps its original ID, while changed fields use the loader's new ID.
+Original retry forms retain exact submitted identity; a new addition uses the loader's fresh ID.
+A confirmed Deck receipt remains visible with View Deck when choice reads fail.
+CardDetail uses the existing dialog layers 110/111 above SearchOverlay 40/50 and below shared Select/Menu 120.
+Native Search route wiring has actual production-route HTML and PostgreSQL evidence.
+The contextual Inventory caller is integrated; local composed rendered evidence is recorded with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192).
+Shared fixture-route checks alone do not establish production caller integration or rendered acceptance.
 
 ## Shared Deck UI
 
-Deck server loads/actions now use the backend [Deck application](./application-contract.md#implemented-deck-application-boundary). The route loads library summaries and one selected composition, with contextual search and inspector ownership requests rather than full Inventory. Inspector ownership has explicit loading/error state and cancels replaced requests. Native metadata forms compare original field baselines. Enhanced network or unexpected action errors retain mounted editors, drafts and pending request IDs without applying the framework page update. The route shows an inline unconfirmed-save alert and releases busy controls. It removes a pending request ID only after a successful update or redirect; an unchanged lost-response retry keeps that ID. A stale Description keeps the draft open and offers an explicit rebase to the saved revision. Native metadata failures with HTTP 409 or 400 return submitted details and original field baselines in a labeled server-rendered recovery form. Rebase submits the shown latest Description revision through the normal backend check, so another intervening save can conflict again. Retained name/format baselines preserve disjoint patches. The shared UI is implemented; current-head keyboard, focus, responsive and no-JavaScript browser acceptance remains separate from source and built HTTP evidence.
+Deck server loads/actions now use the backend [Deck application](./application-contract.md#implemented-deck-application-boundary).
+The route loads library summaries and one selected composition, with contextual search and inspector ownership requests rather than full Inventory.
+Inspector ownership has explicit loading/error state and cancels replaced requests.
+Native metadata forms compare original field baselines.
+Enhanced network or unexpected action errors retain mounted editors, drafts and pending request IDs without applying the framework page update.
+The route shows an inline unconfirmed-save alert and releases busy controls.
+It removes a pending request ID only after a successful update or redirect; an unchanged lost-response retry keeps that ID.
+A stale Description keeps the draft open and offers an explicit rebase to the saved revision.
+Native metadata failures with HTTP 409 or 400 return submitted details and original field baselines in a labeled server-rendered recovery form.
+Rebase submits the shown latest Description revision through the normal backend check, so another intervening save can conflict again.
+Retained name/format baselines preserve disjoint patches.
+The shared UI is implemented; current-head keyboard, focus, responsive and no-JavaScript browser acceptance remains separate from source and built HTTP evidence.
 
-[DeckLibrary](../../frontend/src/lib/components/decks/DeckLibrary.svelte) presents safe Deck metadata, covers and totals. Enhanced browsing uses the bounded [Library window](../../frontend/src/lib/decks/library-window.ts), measured variable-height tiles and the shared signed anchor helpers with one native Window scrollbar. It admits at most three physical fetch and body-decode requests, four contexts, twenty pages, 1000 resident metadata records including seeds and retained focus, and 200 mounted tiles. Only successful contiguous ranges become visible. `dirQ`, `dirFormat`, `dirCategory`, `dirSort` and `dirPage` restore directory state independently of the selected Deck Catalog `q`; the selected composition remains mounted outside directory filters. Native Previous/Next links render before hydration. Web loads and saved-state refreshes use bounded metadata and an independent selected read; public Snapshot callers retain their existing default directory cardinality. [DeckEntries](../../frontend/src/lib/components/decks/DeckEntries.svelte) presents grouped entries, documents and availability with explicit native action fields and a caller SubmitFunction. [DeckDiscovery](../../frontend/src/lib/components/decks/DeckDiscovery.svelte) presents contextual Catalog results with explicit search/add inputs and callbacks. The route owns filtering, grouping, search and ownership requests, pending/error state, mutation retry IDs, Description baselines, import previews, Inspector drafts and focus targets. These components do not import Backend persistence or InventoryWindow.
+[DeckLibrary](../../frontend/src/lib/components/decks/DeckLibrary.svelte) presents safe Deck metadata, covers and totals.
+Enhanced browsing uses the bounded [Library window](../../frontend/src/lib/decks/library-window.ts), measured variable-height tiles and the shared signed anchor helpers with one native Window scrollbar.
+It admits at most three physical fetch and body-decode requests, four contexts, twenty pages, 1000 resident metadata records including seeds and retained focus, and 200 mounted tiles.
+Only successful contiguous ranges become visible.
+`dirQ`, `dirFormat`, `dirCategory`, `dirSort` and `dirPage` restore directory state independently of the selected Deck Catalog `q`; the selected composition remains mounted outside directory filters.
+Native Previous/Next links render before hydration.
+Web loads and saved-state refreshes use bounded metadata and an independent selected read; public Snapshot callers retain their existing default directory cardinality.
+[DeckEntries](../../frontend/src/lib/components/decks/DeckEntries.svelte) presents grouped entries, documents and availability with explicit native action fields and a caller SubmitFunction.
+[DeckDiscovery](../../frontend/src/lib/components/decks/DeckDiscovery.svelte) presents contextual Catalog results with explicit search/add inputs and callbacks.
+The route owns filtering, grouping, search and ownership requests, pending/error state, mutation retry IDs, Description baselines, import previews, Inspector drafts and focus targets.
+These components do not import Backend persistence or InventoryWindow.
 
-WorkspaceHeader supplies title, metadata and actions slots to the Library and editor. Library New deck uses the same Primary Button as Inventory Add cards. [QuantityControl](../../frontend/src/lib/components/ui/QuantityControl.svelte) retains the caller's native POST fields and enhancement callback. Its optional `maxQuantity` defaults to Infinity; Deck supplies 10000 so Increase disables at the existing upper limit while Decrease remains usable. Floor-one behavior and signed deltas retain their Backend owner.
+WorkspaceHeader supplies title, metadata and actions slots to the Library and editor.
+Library New deck uses the same Primary Button as Inventory Add cards.
+[QuantityControl](../../frontend/src/lib/components/ui/QuantityControl.svelte) retains the caller's native POST fields and enhancement callback.
+Its optional `maxQuantity` defaults to Infinity; Deck supplies 10000 so Increase disables at the existing upper limit while Decrease remains usable.
+Floor-one behavior and signed deltas retain their Backend owner.
 
-[DeckDialog](../../frontend/src/lib/components/decks/DeckDialog.svelte) composes [FormDialog](../../frontend/src/lib/components/ui/dialog/FormDialog.svelte) for create, details, import and contextual search. The optional FormDialog `variant="import"` retains a wider working area; the default geometry remains unchanged. Callers provide forms, pending state, cancellation and return-focus targets. Delete uses ConfirmationDialog with initial Cancel focus and pending dismissal protection. The shared Select's optional `native` input defaults to false; native Deck create/edit uses a real select while existing callers retain Bits UI.
+[DeckDialog](../../frontend/src/lib/components/decks/DeckDialog.svelte) composes [FormDialog](../../frontend/src/lib/components/ui/dialog/FormDialog.svelte) for create, details, import and contextual search.
+The optional FormDialog `variant="import"` retains a wider working area; the default geometry remains unchanged.
+Callers provide forms, pending state, cancellation and return-focus targets.
+Delete uses ConfirmationDialog with initial Cancel focus and pending dismissal protection.
+The shared Select's optional `native` input defaults to false; native Deck create/edit uses a real select while existing callers retain Bits UI.
 
-The Deck page accepts `flow=create|edit|import|delete|search` alongside the selected `deck` query. Library New deck and the selected Deck's no-JavaScript task links reach server-rendered forms. Native Search renders Catalog results with per-card section/quantity fields and Add forms. The same existing web actions persist changes. Native create/import validation failures retain submitted text; import preview and failure retain the original submitted request ID for retry. Description recovery retains its original baselines. Enhanced saves preserve newer Description, Inspector quantity/role/printing and import drafts; an unchanged unconfirmed retry retains its request ID. A changed enhanced import intent receives a fresh ID. Genuine redirects retain normal navigation. No mobile API or Backend mutation contract changes accompany these presentation adapters.
+The Deck page accepts `flow=create|edit|import|delete|search` alongside the selected `deck` query.
+Library New deck and the selected Deck's no-JavaScript task links reach server-rendered forms.
+Native Search renders Catalog results with per-card section/quantity fields and Add forms.
+The same existing web actions persist changes.
+Native create/import validation failures retain submitted text; import preview and failure retain the original submitted request ID for retry.
+Description recovery retains its original baselines.
+Enhanced saves preserve newer Description, Inspector quantity/role/printing and import drafts; an unchanged unconfirmed retry retains its request ID.
+A changed enhanced import intent receives a fresh ID.
+Genuine redirects retain normal navigation.
+No mobile API or Backend mutation contract changes accompany these presentation adapters.
 
-The feature-specific [DeckSaveLifecycle](../../frontend/src/lib/decks/save-lifecycle.ts) guards completion by action, active account/Deck scope and exact editor or Inspector opening. Row saves cannot dismiss an unrelated editor. Closing or reopening the same target invalidates an older completion. Refresh checks scope before and after the framework update; replaced or unmounted callbacks cannot change UI state. Successful details actions return the existing use case's committed Deck as `savedDetails`. Only that acknowledgement advances the same opening's name/format/Description bases and Description revision while newer drafts remain editable. A later refetched Deck never substitutes for this acknowledgement, so an intervening remote Description save still conflicts.
+The feature-specific [DeckSaveLifecycle](../../frontend/src/lib/decks/save-lifecycle.ts) guards completion by action, active account/Deck scope and exact editor or Inspector opening.
+Row saves cannot dismiss an unrelated editor.
+Closing or reopening the same target invalidates an older completion.
+Refresh checks scope before and after the framework update; replaced or unmounted callbacks cannot change UI state.
+Successful details actions return the existing use case's committed Deck as `savedDetails`.
+Only that acknowledgement advances the same opening's name/format/Description bases and Description revision while newer drafts remain editable.
+A later refetched Deck never substitutes for this acknowledgement, so an intervening remote Description save still conflicts.
 
 ## Catalog presentation
 
-Server loads and actions use the same backend use cases as `/api/mobile/v1/mtg/...`. Backend derives account authority from validated sessions and scopes mutations and reads accordingly. The API keeps its existing MTG path segment for compatibility.
+Server loads and actions reach the same backend use cases as `/api/mobile/v1/mtg/...` through HTTP.
+Backend derives account authority from validated sessions and scopes mutations and reads accordingly.
+The API keeps its existing MTG path segment for compatibility.
 
-Public browser search, authenticated import resolution, and external API search use the same PostgreSQL [catalog](./catalog.md) through SvelteKit. Browser requests can carry the local session cookie, but public catalog reads do not require it. No catalog key or separate search origin is required.
+Public browser search, authenticated import resolution, and external API search use the same API-owned PostgreSQL [catalog](./catalog.md).
+Browser paths retain the same-origin SvelteKit proxy.
+Browser requests can carry the local session cookie, but public catalog reads do not require it.
+No catalog key or separate search origin is required.
 
-Search always uses continuous Lazy browsing without selected filters by default. The shared [browser policy](../../frontend/src/lib/browsing/pagination.ts) covers native SSR, sessions, overlay, full-route navigation and reload. Legacy numeric URLs normalize to the logical 200-result range containing their former first entry. [Native range navigation](../../frontend/src/lib/components/ui/pagination/NativeRangeNavigation.svelte) supplies accessible Previous/Next links only before hydration. Enhanced surfaces have no pagination or size controls. Lazy renders measured absolute slots through [VirtualCardGrid](../../frontend/src/lib/components/cards/VirtualCardGrid.svelte), using an explicit window or modal geometry host. [Catalog](./catalog.md#browser-result-window) owns page, cache and physical-request bounds. Filters and results stay in normal flow without their own scrollers. Mobile filters expand inline in the same host. Search prewarms up to 12 adjacent image URLs after a 120-millisecond delay, skips Save-Data and 2G, and retains at most 120 warmed URL identities.
+Search always uses continuous Lazy browsing without selected filters by default.
+The shared [browser policy](../../frontend/src/lib/browsing/pagination.ts) covers native SSR, sessions, overlay, full-route navigation and reload.
+Legacy numeric URLs normalize to the logical 200-result range containing their former first entry.
+[Native range navigation](../../frontend/src/lib/components/ui/pagination/NativeRangeNavigation.svelte) supplies accessible Previous/Next links only before hydration.
+Enhanced surfaces have no pagination or size controls.
+Lazy renders measured absolute slots through [VirtualCardGrid](../../frontend/src/lib/components/cards/VirtualCardGrid.svelte), using an explicit window or modal geometry host.
+[Catalog](./catalog.md#browser-result-window) owns page, cache and physical-request bounds.
+Filters and results stay in normal flow without their own scrollers.
+Mobile filters expand inline in the same host.
+Search prewarms up to 12 adjacent image URLs after a 120-millisecond delay, skips Save-Data and 2G, and retains at most 120 warmed URL identities.
 
-[SearchWorkspace](../../frontend/src/lib/components/search/SearchWorkspace.svelte) supplies controls, filters, status and results to both hosts. The native no-JavaScript fallback alone supplies Previous/Next links. The session retains URL-backed logical ranges and bounded address-to-position history across overlay, Full view and Back/Forward transitions. Deep links restore the logical anchor directly without reading earlier ranges. Selection uses CardDetail's existing lifecycle and action-snippet boundary rather than an absolute clipped inline Inspector. Search forwards combined addition/Inspector pending state through the shared dialog and navigation guards. Caller-owned drafts retain fields and original retries across Inspector tabs; explicit close, opening, account replacement and terminal expiry clear them. Native route actions and the inline selected-Printing panel are also implemented. Local composed rendered evidence is recorded with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192); owner UI judgment remains separate.
+[SearchWorkspace](../../frontend/src/lib/components/search/SearchWorkspace.svelte) supplies controls, filters, status and results to both hosts.
+The native no-JavaScript fallback alone supplies Previous/Next links.
+The session retains URL-backed logical ranges and bounded address-to-position history across overlay, Full view and Back/Forward transitions.
+Deep links restore the logical anchor directly without reading earlier ranges.
+Selection uses CardDetail's existing lifecycle and action-snippet boundary rather than an absolute clipped inline Inspector.
+Search forwards combined addition/Inspector pending state through the shared dialog and navigation guards.
+Caller-owned drafts retain fields and original retries across Inspector tabs; explicit close, opening, account replacement and terminal expiry clear them.
+Native route actions and the inline selected-Printing panel are also implemented.
+Local composed rendered evidence is recorded with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192); owner UI judgment remains separate.
 
-The public Search server loader accepts `q`, repeated supported filters, `pageSize`, `page` and an independent `printing` UUID. It returns the selected result page, total, facets and publication generation or an explicit read error. Its native GET form and 200-result Previous/Next links provide the no-JavaScript fallback. Hydrated Lazy browsing has no pagination links or selector. A printing read returns its exact document or an unavailable/invalid selection error. Pagination preserves a valid native printing selection; changed queries and filters close it. The existing authenticated Inventory action preserves its validation, original receipts and retry behavior. The loader now supplies the reusable native panel and bounded owned Deck-choice seed. The conditional native panel precedes results. Numeric and Lazy hydration/restoration give an active native panel precedence over result anchors, so selection, read errors and confirmed receipts remain visible after native navigation or submission. Retained loader data and action results display only when their original path and raw query context match the effective URL, excluding the two named action transport keys. While that panel is active, Lazy measured ranges retain the native route anchor rather than clearing its context during restoration. Enhanced query/filter edits close that context; Back restores it without treating optional read success as receipt authority. Local composed rendered evidence is recorded with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192); physical touch, true 200% zoom and deployment remain unverified.
+The public Search server loader accepts `q`, repeated supported filters, `pageSize`, `page` and an independent `printing` UUID.
+It returns the selected result page, total, facets and publication generation or an explicit read error.
+Its native GET form and 200-result Previous/Next links provide the no-JavaScript fallback.
+Hydrated Lazy browsing has no pagination links or selector.
+A printing read returns its exact document or an unavailable/invalid selection error.
+Pagination preserves a valid native printing selection; changed queries and filters close it.
+The existing authenticated Inventory action preserves its validation, original receipts and retry behavior.
+The loader now supplies the reusable native panel and bounded owned Deck-choice seed.
+The conditional native panel precedes results.
+Numeric and Lazy hydration/restoration give an active native panel precedence over result anchors, so selection, read errors and confirmed receipts remain visible after native navigation or submission.
+Retained loader data and action results display only when their original path and raw query context match the effective URL, excluding the two named action transport keys.
+While that panel is active, Lazy measured ranges retain the native route anchor rather than clearing its context during restoration.
+Enhanced query/filter edits close that context; Back restores it without treating optional read success as receipt authority.
+Local composed rendered evidence is recorded with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192); physical touch, true 200% zoom and deployment remain unverified.
 
 [Mobile and scan](./mobile-and-scan.md) owns manifest capabilities, API validation, uploads, and recognition boundaries.
 
 ## PWA and QR presentation
 
-The accepted delivery keeps one same-origin SvelteKit application with server loads/actions and ordinary account sessions. `/app` is its public launch/install hub and the manifest start URL. It composes the shared InstallApp control. Signed-in users see Connect device linking to `/app/connect`, Inventory and Decks; anonymous users see Sign in. Installation remains optional. Existing account/mobile App links lead here. The installed narrow presentation adds App, Search, Inventory, Decks and Connect bottom links; Connect opens `/app/connect` for authorization QR scanning. Ordinary browser windows and wide layouts retain their existing navigation. Standalone display mode selects presentation, not account authority.
+The retained PWA uses one same-origin SvelteKit presentation with remote server loads/actions and ordinary account sessions.
+The API runs independently, and Kotlin/Compose Android is a separate client under the [implementation contract](./independent-applications.md).
+`/app` is its public launch/install hub and the manifest start URL.
+It composes the shared InstallApp control.
+Signed-in users see Connect device linking to `/app/connect`, Inventory and Decks; anonymous users see Sign in.
+Installation remains optional.
+Existing account/mobile App links lead here.
+The installed narrow presentation adds App, Search, Inventory, Decks and Connect bottom links; Connect opens `/app/connect` for authorization QR scanning.
+Ordinary browser windows and wide layouts retain their existing navigation.
+Standalone display mode selects presentation, not account authority.
 
-`/app/connect` requires sign-in and accepts a QR through the camera or manual input. The parser accepts only this instance's `/auth/approve?code=CODE` link or its opaque public request code. Foreign-instance URLs, embedded credentials and unrelated QR payloads fail validation. Scanning opens the approval page without deciding the request. Camera access starts only on user action and stops when scanning ends or the page loses its active scanning lifetime. Manual entry remains available when camera access is unavailable or denied. This camera workflow decodes authorization QR codes, not MTG cards.
+`/app/connect` requires sign-in and accepts a QR through the camera or manual input.
+The parser accepts only this instance's `/auth/approve?code=CODE` link or its opaque public request code.
+Foreign-instance URLs, embedded credentials and unrelated QR payloads fail validation.
+Scanning opens the approval page without deciding the request.
+Camera access starts only on user action and stops when scanning ends or the page loses its active scanning lifetime.
+Manual entry remains available when camera access is unavailable or denied.
+This camera workflow decodes authorization QR codes, not MTG cards.
 
-`/auth/approve` requires sign-in and displays the signed-in username, instance origin, request code prefix and status, with an explicit warning before Approve or Deny. Safe login return paths preserve the request. All `/auth/*` and `/app*` page responses use `no-store` and `Referrer-Policy: no-referrer`. The server-only `qr-page.ts` adapter calls `auth.qr.inspect`/`decide` and maps the named transport `QrAuthError` to page errors/form failures. Its boundary-policy entry allows only that named import; pages do not import backend internals. Backend Auth owns the decision and session binding described in [authentication](./auth.md#pwa-and-qr-sign-in-implementation-contract).
+`/auth/approve` requires sign-in and displays the signed-in username, instance origin, request code prefix and status, with an explicit warning before Approve or Deny.
+Safe login return paths preserve the request.
+All `/auth/*` and `/app*` page responses use `no-store` and `Referrer-Policy: no-referrer`.
+The server-only `qr-page.ts` adapter calls remote `auth.qr.inspect`/`decide` and maps the local `QrAuthError` to page errors/form failures.
+Pages import no backend internals.
+Backend Auth owns the decision and session binding described in [authentication](./auth.md#pwa-and-qr-sign-in-implementation-contract).
 
-Desktop login displays a locally rendered QR beside the existing password form. Polling follows the server interval with at most one request in flight. Pending, denied, expired, consumed and failed requests have explicit feedback and a new-request recovery path. A lost successful redemption response requires a new challenge. Browser JavaScript receives neither the requester secret nor the issued session token. Password sign-in remains available.
+Desktop login displays a locally rendered QR beside the existing password form.
+Polling follows the server interval with at most one request in flight.
+Pending, denied, expired, consumed and failed requests have explicit feedback and a new-request recovery path.
+A lost successful redemption response requires a new challenge.
+Browser JavaScript receives neither the requester secret nor the issued session token.
+Password sign-in remains available.
 
-`qrcode` renders the public approval URL locally, avoiding an external QR service. `@zxing/browser` supplies camera QR decoding across browsers without relying on native QR detection. The scanner handles synchronous and asynchronous decoder-stop failures, including optional torch cleanup, while independently releasing its owned camera tracks. This applies to explicit stop, scan completion and superseded work. These dependencies add no recognition model or device controller. [The shared parser](../../frontend/src/lib/auth/qr-code.ts) owns accepted input; backend authorization never trusts a decoded QR as approval.
+`qrcode` renders the public approval URL locally, avoiding an external QR service.
+`@zxing/browser` supplies camera QR decoding across browsers without relying on native QR detection.
+The scanner handles synchronous and asynchronous decoder-stop failures, including optional torch cleanup, while independently releasing its owned camera tracks.
+This applies to explicit stop, scan completion and superseded work.
+These dependencies add no recognition model or device controller.
+[The shared parser](../../frontend/src/lib/auth/qr-code.ts) owns accepted input; backend authorization never trusts a decoded QR as approval.
 
-SvelteKit owns service-worker registration. [The worker](../../frontend/src/service-worker/index.ts) and [cache policy](../../frontend/src/lib/pwa/cache.ts) restrict Cache Storage to build-listed immutable JavaScript/CSS, existing public icons/logo and `offline.html`. Precache fetches omit credentials and reject redirects, private/no-store responses and unexpected content types. API responses, SSR pages, authentication, QR state and card artifacts remain network-only. Only failed network navigation receives the offline fallback; HTTP errors pass through. No account data or write queue is available offline.
+SvelteKit owns service-worker registration.
+[The worker](../../frontend/src/service-worker/index.ts) and [cache policy](../../frontend/src/lib/pwa/cache.ts) restrict Cache Storage to build-listed immutable JavaScript/CSS, existing public icons/logo and `offline.html`.
+Precache fetches omit credentials and reject redirects, private/no-store responses and unexpected content types.
+API responses, SSR pages, authentication, QR state and card artifacts remain network-only.
+Only failed network navigation receives the offline fallback; HTTP errors pass through.
+No account data or write queue is available offline.
 
-Shell owns the shared [PWA state](../../frontend/src/lib/pwa/state.svelte.ts) listeners for installation, display mode, connectivity and waiting updates. A waiting worker presents an explicit reload action; it does not force an update over a draft. Save work before selecting reload. Install guidance uses the browser's available prompt or manual install instructions. HTTPS outside localhost is required. [Deployment](../operations/deployment.md#pwa-installation-and-qr-use) owns install/use steps.
+Shell owns the shared [PWA state](../../frontend/src/lib/pwa/state.svelte.ts) listeners for installation, display mode, connectivity and waiting updates.
+A waiting worker presents an explicit reload action; it does not force an update over a draft.
+Save work before selecting reload.
+Install guidance uses the browser's available prompt or manual install instructions.
+HTTPS outside localhost is required.
+[Deployment](../operations/deployment.md#pwa-installation-and-qr-use) owns install/use steps.
 
-The backend transport, manifest and worker are integrated. The PWA pages and navigation are implemented. Rendered, installation and Android checks remain separate from automated coverage. [Verification](../operations/github-automation.md#pwa-and-qr-verification) distinguishes those checks from automated evidence.
+The backend transport, manifest and worker are integrated.
+The PWA pages and navigation are implemented.
+Rendered, installation and Android checks remain separate from automated coverage.
+[Verification](../operations/github-automation.md#pwa-and-qr-verification) distinguishes those checks from automated evidence.
 
 ## Selected Deck refresh contract
 
-The implemented contract was independently reviewed against parent revision `43cb7e3` for the follow-up to [PR 231](https://github.com/KyleDerZweite/spellbook/pull/231). Current-head acceptance evidence remains separate. The route keeps drafts, confirmed bases, original receipts and retry intents. A route-owned `lib/decks/selected-refresh.ts` coordinates reads through the existing SavedState lease and HTTP adapter. It does not own persistence or duplicate editor state.
+The implemented contract was independently reviewed against parent revision `43cb7e3` for the follow-up to [PR 231](https://github.com/KyleDerZweite/spellbook/pull/231).
+Current-head acceptance evidence remains separate.
+The route keeps drafts, confirmed bases, original receipts and retry intents.
+A route-owned `lib/decks/selected-refresh.ts` coordinates reads through the existing SavedState lease and HTTP adapter.
+It does not own persistence or duplicate editor state.
 
 | Read cause                                                          | Selected snapshot | Legality/documents and both Category reads | Active Inspector ownership | Active Search |
 | ------------------------------------------------------------------- | ----------------- | ------------------------------------------ | -------------------------- | ------------- |
@@ -114,41 +423,128 @@ The implemented contract was independently reviewed against parent revision `43c
 | `values`                                                            | Read              | Read                                       | Retain                     | Read          |
 | Mixed topics                                                        | Read              | Union of required reads                    | Union                      | Union         |
 
-For confirmed optional results, the matrix above applies directly. A direct Inspector/Search request that loses its resource publication lease still needs a result. The demand belongs to the exact account, route, opening and query. The route retains it until matching current success, current error or context closure. A discarded reply or failed combined attempt cannot consume it. The coordinator also replaces such pending reads during an otherwise unrelated topic refresh. This recovery cannot discard a newer opening or query. Final optional publication clears its matching demand, loading and error state and cancels only its matching superseded direct request.
+For confirmed optional results, the matrix above applies directly.
+A direct Inspector/Search request that loses its resource publication lease still needs a result.
+The demand belongs to the exact account, route, opening and query.
+The route retains it until matching current success, current error or context closure.
+A discarded reply or failed combined attempt cannot consume it.
+The coordinator also replaces such pending reads during an otherwise unrelated topic refresh.
+This recovery cannot discard a newer opening or query.
+Final optional publication clears its matching demand, loading and error state and cancels only its matching superseded direct request.
 
-The selected snapshot retains the Backend repeatable-read transaction for Composition, owned printings, Availability and Values. A normal public `values` event can accompany a new Catalog generation. It therefore retains Legality/documents, Category source evidence and Search refresh. No new transport topic or source-stamp mechanism is selected.
+The selected snapshot retains the Backend repeatable-read transaction for Composition, owned printings, Availability and Values.
+A normal public `values` event can accompany a new Catalog generation.
+It therefore retains Legality/documents, Category source evidence and Search refresh.
+No new transport topic or source-stamp mechanism is selected.
 
-GET `/api/mobile/v1/mtg/decks/{deckId}` adds `includeLegality=false` only with the literal `selectedOnly=true`. Invalid values or an invalid narrow combination return 400. Missing `includeLegality` or literal `true` preserves the existing response and permissive legacy `selectedOnly` parsing. Narrow responses omit Legality/documents rather than inventing empty values. Distinct local narrow/full DTOs expose optional Legality to the coordinator. Auth, account isolation, UUID validation and NotFound retain their owners.
+GET `/api/mobile/v1/mtg/decks/{deckId}` adds `includeLegality=false` only with the literal `selectedOnly=true`.
+Invalid values or an invalid narrow combination return 400.
+Missing `includeLegality` or literal `true` preserves the existing response and permissive legacy `selectedOnly` parsing.
+Narrow responses omit Legality/documents rather than inventing empty values.
+Distinct local narrow/full DTOs expose optional Legality to the coordinator.
+Auth, account isolation, UUID validation and NotFound retain their owners.
 
-The coordinator stages every requested core and active optional read before publication. A current optional infrastructure failure blocks the whole attempt through the existing error path. Only a core Deck NotFound can mark the selected target unavailable. Optional Search/ownership NotFound cannot imply Deck deletion. Replaced optional openings or queries may discard their own results while a valid core publishes. Immediate opening/query epochs protect A/B/A changes; account, Deck, flow and lease changes reject the whole core. Search opening and closing bindings advance the opening epoch immediately. Search is active in native Search flow, an open dialog or the visible Desktop sidebar; a closed narrow-screen dialog is inactive. A responsive activity change also advances the epoch, with an owned media listener removed on disposal. Direct replies use the same activity fences. A new active opening preserves or restarts any unanswered demand after an epoch change. It also refreshes the last accepted Search query for that exact route, including successful initial SSR Search results. Inactive Search keeps that demand without HTTP. Query edits alone remain manual and cannot reactivate a different confirmed query. Scope replacement and disposal clear this marker. Every awaited read and decode checks those identities.
+The coordinator stages every requested core and active optional read before publication.
+A current optional infrastructure failure blocks the whole attempt through the existing error path.
+Only a core Deck NotFound can mark the selected target unavailable.
+Optional Search/ownership NotFound cannot imply Deck deletion.
+Replaced optional openings or queries may discard their own results while a valid core publishes.
+Immediate opening/query epochs protect A/B/A changes; account, Deck, flow and lease changes reject the whole core.
+Search opening and closing bindings advance the opening epoch immediately.
+Search is active in native Search flow, an open dialog or the visible Desktop sidebar; a closed narrow-screen dialog is inactive.
+A responsive activity change also advances the epoch, with an owned media listener removed on disposal.
+Direct replies use the same activity fences.
+A new active opening preserves or restarts any unanswered demand after an epoch change.
+It also refreshes the last accepted Search query for that exact route, including successful initial SSR Search results.
+Inactive Search keeps that demand without HTTP.
+Query edits alone remain manual and cannot reactivate a different confirmed query.
+Scope replacement and disposal clear this marker.
+Every awaited read and decode checks those identities.
 
-After all awaits, the final synchronous merge rechecks confirmed Category revisions, Composition/Text bases and current dirty fields. It suppresses any core that would regress confirmed state. It updates only fields still clean at that merge and retains newer drafts and their bases. There is no intermediate Category or draft publication before an optional await. A rejected or superseded core returns `false` to SavedState. Production-interface tests must cover the read matrix, held replies, errors, A/B/A replacement, monotone revisions, late confirmed saves, dirty drafts and original uncertain retries. Built HTTP and rendered evidence remain required by [repository verification](../operations/github-automation.md).
+After all awaits, the final synchronous merge rechecks confirmed Category revisions, Composition/Text bases and current dirty fields.
+It suppresses any core that would regress confirmed state.
+It updates only fields still clean at that merge and retains newer drafts and their bases.
+There is no intermediate Category or draft publication before an optional await.
+A rejected or superseded core returns `false` to SavedState.
+Production-interface tests must cover the read matrix, held replies, errors, A/B/A replacement, monotone revisions, late confirmed saves, dirty drafts and original uncertain retries.
+Built HTTP and rendered evidence remain required by [repository verification](../operations/github-automation.md).
 
 ## Profile saved-state consumer
 
-The root layout owns one cookie EventSource through [workspaceSavedState](../../frontend/src/lib/saved-state/workspace.svelte.ts). Its [transport and lease implementation](../../frontend/src/lib/saved-state/workspace.ts) owns account activation, reset/recovery epochs, hidden/online resume, coalesced session probes and one bounded read pipeline per mounted resource. Live requires OPEN plus an authorized reset; read failures retain stale state without changing transport readiness. Terminal expiry clears protected state and suppresses private SSR content, including header and Search mutation controls. Initial/native SSR hydration remains available. The first layout activation preserves freshly hydrated subscribers mounted before that activation; account replacement, stop and terminal expiry still clear their protected state. Later mounted Inventory or Deck server-load completion requests a fresh leased read instead of replacing synchronized snapshots or deleted-target state. Native Inventory context transitions retain the requested offset through that bounded read. Direct Deck search captures the submitted query through body decode. Ordinary rerenders cannot restart an expired activation; a non-shallow navigation establishes a new activation only after a fresh no-store session response proves the same account. Failed, unauthenticated, superseded or late proof retains terminal clearing.
+The root layout owns one cookie EventSource through [workspaceSavedState](../../frontend/src/lib/saved-state/workspace.svelte.ts).
+Its [transport and lease implementation](../../frontend/src/lib/saved-state/workspace.ts) owns account activation, reset/recovery epochs, hidden/online resume, coalesced session probes and one bounded read pipeline per mounted resource.
+Live requires OPEN plus an authorized reset; read failures retain stale state without changing transport readiness.
+Terminal expiry clears protected state and suppresses private SSR content, including header and Search mutation controls.
+Initial/native SSR hydration remains available.
+The first layout activation preserves freshly hydrated subscribers mounted before that activation; account replacement, stop and terminal expiry still clear their protected state.
+Later mounted Inventory or Deck server-load completion requests a fresh leased read instead of replacing synchronized snapshots or deleted-target state.
+Native Inventory context transitions retain the requested offset through that bounded read.
+Direct Deck search captures the submitted query through body decode.
+Ordinary rerenders cannot restart an expired activation; a non-shallow navigation establishes a new activation only after a fresh no-store session response proves the same account.
+Failed, unauthenticated, superseded or late proof retains terminal clearing.
 
-[SavedStateStatus](../../frontend/src/lib/saved-state/SavedStateStatus.svelte) delays routine connecting and stale-read feedback for 400 milliseconds. Resolved reads remove feedback immediately. Resource replacement and unmount cancel pending feedback; errors, offline recovery and expired-session feedback remain immediate. Retry controls retain their existing refresh and invalidation behavior.
+[SavedStateStatus](../../frontend/src/lib/saved-state/SavedStateStatus.svelte) delays routine connecting and stale-read feedback for 400 milliseconds.
+Resolved reads remove feedback immediately.
+Resource replacement and unmount cancel pending feedback; errors, offline recovery and expired-session feedback remain immediate.
+Retry controls retain their existing refresh and invalidation behavior.
 
-The [Profile adapter](../../frontend/src/lib/saved-state/profile.svelte.ts) retains the saved Profile/header interface and subscribes to Profile, Inventory and Deck changes. Dashboard reads server aggregates, Inventory refreshes its current window and active details, Deck refreshes library metadata plus the selected composition/availability and active contextual ownership, and Scan reads bounded recent sessions plus the selected result. Inactive routes register no readers. [The application contract](./application-contract.md#saved-state-synchronization) owns topic dependencies and transport authority.
+The [Profile adapter](../../frontend/src/lib/saved-state/profile.svelte.ts) retains the saved Profile/header interface and subscribes to Profile, Inventory and Deck changes.
+Dashboard reads server aggregates, Inventory refreshes its current window and active details, Deck refreshes library metadata plus the selected composition/availability and active contextual ownership, and Scan reads bounded recent sessions plus the selected result.
+Inactive routes register no readers.
+[The application contract](./application-contract.md#saved-state-synchronization) owns topic dependencies and transport authority.
 
-Read leases check account, registration, recovery epoch, desired freshness and local writes before publishing and after decoding or awaited UI work. Writes acquire counted, idempotent handles before POST and release after acknowledgement or failure handling. Completion requests current saved state without changing original retry IDs or treating a lost response as confirmed. Ordinary Inventory invalidation drains active page work within its existing three permits, prunes queued plans and lazily restores the current logical anchor; true query or terminal changes retain their cancellation ownership.
+Read leases check account, registration, recovery epoch, desired freshness and local writes before publishing and after decoding or awaited UI work.
+Writes acquire counted, idempotent handles before POST and release after acknowledgement or failure handling.
+Completion requests current saved state without changing original retry IDs or treating a lost response as confirmed.
+Ordinary Inventory invalidation drains active page work within its existing three permits, prunes queued plans and lazily restores the current logical anchor; true query or terminal changes retain their cancellation ownership.
 
-Read leases add an optional readonly cause, either `full` or a deduplicated bounded set of registered topics. An absent cause means full for existing consumers. The workspace accumulates causes until a current accepted publication; full dominates. An invalidation during a read invalidates its lease and retains the union for one coalesced follow-up. Failures retain causes without an automatic retry loop. Hidden/offline/write suspension preserves bounded causes; recovery, reset and resume request full reads.
+Read leases add an optional readonly cause, either `full` or a deduplicated bounded set of registered topics.
+An absent cause means full for existing consumers.
+The workspace accumulates causes until a current accepted publication; full dominates.
+An invalidation during a read invalidates its lease and retains the union for one coalesced follow-up.
+Failures retain causes without an automatic retry loop.
+Hidden/offline/write suspension preserves bounded causes; recovery, reset and resume request full reads.
 
-The additive refresh callback returns `Promise<void | false>`. Existing `void` consumers acknowledge success. `false` retains causes and stale state without scheduling a retry or clearing an already queued invalidation. Resource `invalidate` and `beginWrite` accept optional known topics; omitted topics preserve the safe default. Workspace writes pass known completion causes through their counted handles. Deck/Category commands identify `decks`; completion still invalidates without an SSE event. Topics reduce reads only. Account, registration, recovery, version and resource-wide counted-write publication fences remain authoritative. The Deck route establishes its Resource subscription before synchronous Search activity can start an optional request. A missing subscription denies publication; every direct request captures the real Resource fence before its first await.
+The additive refresh callback returns `Promise<void | false>`.
+Existing `void` consumers acknowledge success.
+`false` retains causes and stale state without scheduling a retry or clearing an already queued invalidation.
+Resource `invalidate` and `beginWrite` accept optional known topics; omitted topics preserve the safe default.
+Workspace writes pass known completion causes through their counted handles.
+Deck/Category commands identify `decks`; completion still invalidates without an SSE event.
+Topics reduce reads only.
+Account, registration, recovery, version and resource-wide counted-write publication fences remain authoritative.
+The Deck route establishes its Resource subscription before synchronous Search activity can start an optional request.
+A missing subscription denies publication; every direct request captures the real Resource fence before its first await.
 
-Settings email, card fields/artwork, avatar selection, Inventory Notes/quantity, Deck Description/metadata/Inspector and Scan review choices remain separate from saved snapshots. Remote reads update clean fields only and preserve dirty fields with their original bases. Local Profile and Deck Inspector actions return compact confirmed field acknowledgements; only submitted fields advance their bases, preserving newer drafts. Deleted targets retain drafts with unavailable submission state. Scan candidate arrivals do not select or confirm a printing, and a changed photo requires explicit review. Native forms retain their normal server loads and do not require streaming. Source and automated integration evidence do not establish current-head rendered acceptance or deployed proxy behavior; those remain separately recorded with [slice 9](https://github.com/KyleDerZweite/spellbook/issues/182).
+Settings email, card fields/artwork, avatar selection, Inventory Notes/quantity, Deck Description/metadata/Inspector and Scan review choices remain separate from saved snapshots.
+Remote reads update clean fields only and preserve dirty fields with their original bases.
+Local Profile and Deck Inspector actions return compact confirmed field acknowledgements; only submitted fields advance their bases, preserving newer drafts.
+Deleted targets retain drafts with unavailable submission state.
+Scan candidate arrivals do not select or confirm a printing, and a changed photo requires explicit review.
+Native forms retain their normal server loads and do not require streaming.
+Source and automated integration evidence do not establish current-head rendered acceptance or deployed proxy behavior; those remain separately recorded with [slice 9](https://github.com/KyleDerZweite/spellbook/issues/182).
 
 ## Inventory bounded loading
 
-Inventory now loads revisioned backend pages instead of a full read snapshot. Filtering, ordering, matching counts and group metadata cover the complete owned dataset. Native GET filters and one-based Previous/Next links provide bounded no-JavaScript navigation; enhanced rendering loads visible and adjacent ranges using native window geometry. The [query contract](./application-contract.md#inventory-query-contract) owns ordering and consistency, and the [state contract](./application-contract.md#frontend-state-and-shared-controls) owns cache, drafts and focus. The declared local browser and representative-scale evidence is tied to the verified implementation in [slice 3](https://github.com/KyleDerZweite/spellbook/issues/176); performance on other hardware requires its own measurement. Compact Inventory mutation responses are implemented in slice 4; Inventory workspace synchronization is implemented through the mounted resource adapter.
+Inventory now loads revisioned backend pages instead of a full read snapshot.
+Filtering, ordering, matching counts and group metadata cover the complete owned dataset.
+Native GET filters and one-based Previous/Next links provide bounded no-JavaScript navigation; enhanced rendering loads visible and adjacent ranges using native window geometry.
+The [query contract](./application-contract.md#inventory-query-contract) owns ordering and consistency, and the [state contract](./application-contract.md#frontend-state-and-shared-controls) owns cache, drafts and focus.
+The declared local browser and representative-scale evidence is tied to the verified implementation in [slice 3](https://github.com/KyleDerZweite/spellbook/issues/176); performance on other hardware requires its own measurement.
+Compact Inventory mutation responses are implemented in slice 4; Inventory workspace synchronization is implemented through the mounted resource adapter.
 
-Form actions and Search background history follow the effective current URL rather than SvelteKit's older rendered URL. Successful enhanced Inventory and Group forms refresh the current bounded window without navigating to old filters. The [state contract](./application-contract.md#frontend-state-and-shared-controls) owns offset, anchor and submitted-draft guards; native forms and redirects retain their existing navigation.
+Form actions and Search background history follow the effective current URL rather than SvelteKit's older rendered URL.
+Successful enhanced Inventory and Group forms refresh the current bounded window without navigating to old filters.
+The [state contract](./application-contract.md#frontend-state-and-shared-controls) owns offset, anchor and submitted-draft guards; native forms and redirects retain their existing navigation.
 
 ## Selected hybrid browsing contract
 
-The [selected interaction contract](../product/ui-design-direction.md#selected-hybrid-browsing-and-card-dialog) replaces browser loading/navigation, scroll ownership, shared card-opening behavior and Inventory row quantity actions. API maximum 500, native Shell scrolling, native range fallback links, bounded Deck choices and both result-window implementations are present. Shared Card actions are wired into native/enhanced Search and contextual Inventory callers. [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md) leaves account ownership, publication, revision/receipt authority and Deck editing intact. The resource contract below is settled; combined integration, scale and rendered evidence remain delivery gates. Earlier scale evidence applies to its recorded revision.
+The [selected interaction contract](../product/ui-design-direction.md#selected-hybrid-browsing-and-card-dialog) replaces browser loading/navigation, scroll ownership, shared card-opening behavior and Inventory row quantity actions.
+API maximum 500, native Shell scrolling, native range fallback links, bounded Deck choices and both result-window implementations are present.
+Shared Card actions are wired into native/enhanced Search and contextual Inventory callers.
+[ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md) leaves account ownership, publication, revision/receipt authority and Deck editing intact.
+The resource contract below is settled; combined integration, scale and rendered evidence remain delivery gates.
+Earlier scale evidence applies to its recorded revision.
 
 | Module                               | Responsibility and interface                                                                                                                                                                                                                                            |
 | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -160,76 +556,262 @@ The [selected interaction contract](../product/ui-design-direction.md#selected-h
 | CardInspector                        | Printing selection, card/details content and generation-checked printing reads.                                                                                                                                                                                         |
 | Caller editors and CardQuickAdd      | Inventory entry drafts, Inventory-add intent or Deck intent, their respective baselines/receipts and existing backend commands. Dialog rendering does not own persistence.                                                                                              |
 
-Use one explicit task/context at a time, carrying the selected printing and, where relevant, the owned entry or Deck identity. The mode-specific caller supplies its editor/actions. Preserve the existing action-snippet seam where it fits; review any smaller replacement interface before adding it. Do not generalize the two result windows into one account/catalog state machine or add a configurable dialog framework.
+Use one explicit task/context at a time, carrying the selected printing and, where relevant, the owned entry or Deck identity.
+The mode-specific caller supplies its editor/actions.
+Preserve the existing action-snippet seam where it fits; review any smaller replacement interface before adding it.
+Do not generalize the two result windows into one account/catalog state machine or add a configurable dialog framework.
 
-The logical anchor range uses size 200, with offset `(page - 1) * 200`. Legacy numeric URLs first recover their checked former offset and normalize to its containing 200-result range. Validate decimal positive page numbers and checked arithmetic before issuing requests; retain existing backend offset limits. Once a coherent total proves the requested page is beyond the end, clamp once to the last page, or page 1 for an empty result, and replace its URL. Invalid browser state normalizes without changing HTTP validation. Query and logical range enter request and cache identity. Every completion captures its actual query, range and ownership together before starting work. Delayed responses cannot adopt another page or newer query.
+The logical anchor range uses size 200, with offset `(page - 1) * 200`.
+Legacy numeric URLs first recover their checked former offset and normalize to its containing 200-result range.
+Validate decimal positive page numbers and checked arithmetic before issuing requests; retain existing backend offset limits.
+Once a coherent total proves the requested page is beyond the end, clamp once to the last page, or page 1 for an empty result, and replace its URL.
+Invalid browser state normalizes without changing HTTP validation.
+Query and logical range enter request and cache identity.
+Every completion captures its actual query, range and ownership together before starting work.
+Delayed responses cannot adopt another page or newer query.
 
-Preserve Catalog generation checks across every result and printing range. A changed generation discards mixed pages and resets to page 1 with the same filters/mode; a selected printing needs current evidence before a fresh mutation. Inventory revision drift permits its existing one coherent reset/retry and authorized location reanchor, never a scan of earlier pages. Mutation acknowledgements, original retry identity and dirty field baselines remain separate from these fresh reads. Deleted/moved targets retain disabled drafts. SavedState leases and counted write handles remain the existing ownership mechanism. No additional EventSource is introduced.
+Preserve Catalog generation checks across every result and printing range.
+A changed generation discards mixed pages and resets to page 1 with the same filters/mode; a selected printing needs current evidence before a fresh mutation.
+Inventory revision drift permits its existing one coherent reset/retry and authorized location reanchor, never a scan of earlier pages.
+Mutation acknowledgements, original retry identity and dirty field baselines remain separate from these fresh reads.
+Deleted/moved targets retain disabled drafts.
+SavedState leases and counted write handles remain the existing ownership mechanism.
+No additional EventSource is introduced.
 
-Inventory and Catalog search now accept maximum `limit` 500 through their existing offset/limit DTOs. Inventory's omitted-limit default remains 50 and Catalog search's remains 20, including search limit 0. Printing-page limits/defaults, offset validation, unknown-option rejection, response mapping, auth and error semantics remain unchanged. Uniform continuous browser loading uses fixed 200-result logical ranges and does not change API defaults. Validators, public and authenticated GET/POST adapters and OpenAPI agree. Real PostgreSQL and built HTTP regression checks cover complete counts, coherent revisions/generations and legacy request compatibility; browser adoption and representative scale checks remain separate.
+Inventory and Catalog search now accept maximum `limit` 500 through their existing offset/limit DTOs.
+Inventory's omitted-limit default remains 50 and Catalog search's remains 20, including search limit 0.
+Printing-page limits/defaults, offset validation, unknown-option rejection, response mapping, auth and error semantics remain unchanged.
+Uniform continuous browser loading uses fixed 200-result logical ranges and does not change API defaults.
+Validators, public and authenticated GET/POST adapters and OpenAPI agree.
+Real PostgreSQL and built HTTP regression checks cover complete counts, coherent revisions/generations and legacy request compatibility; browser adoption and representative scale checks remain separate.
 
-Each result-window owner has hard bounds of four query contexts, three physical requests, 1,000 resident result records globally across its contexts and 20 resident pages. Aborted requests occupy their physical slot until actual settlement. Enhanced browsing renders at most 200 result rows/cards. Outside the cache, retain at most eight distinct DTO snapshots for active focus, dialog, deletion, group assignment and pending intents, sharing snapshots rather than cloning the same target for each consumer. Preserve dirty drafts, saved baselines, confirmed receipts and immutable retry intents under their explicit editor/command lifetimes. Eviction cannot discard these active drafts or change logical position. No dataset membership cap or whole-result fetch follows from these bounds.
+Each result-window owner has hard bounds of four query contexts, three physical requests, 1,000 resident result records globally across its contexts and 20 resident pages.
+Aborted requests occupy their physical slot until actual settlement.
+Enhanced browsing renders at most 200 result rows/cards.
+Outside the cache, retain at most eight distinct DTO snapshots for active focus, dialog, deletion, group assignment and pending intents, sharing snapshots rather than cloning the same target for each consumer.
+Preserve dirty drafts, saved baselines, confirmed receipts and immutable retry intents under their explicit editor/command lifetimes.
+Eviction cannot discard these active drafts or change logical position.
+No dataset membership cap or whole-result fetch follows from these bounds.
 
-The current SvelteKit SSR result array counts as a resident page while page data retains it. Adopt that array by reference and reserve its record/page budget until the framework replaces it or its owner is destroyed. It is not a small active Card snapshot. Range planning includes that reservation, including any retained legacy seed in addition to current 200-record ranges.
+The current SvelteKit SSR result array counts as a resident page while page data retains it.
+Adopt that array by reference and reserve its record/page budget until the framework replaces it or its owner is destroyed.
+It is not a small active Card snapshot.
+Range planning includes that reservation, including any retained legacy seed in addition to current 200-record ranges.
 
-Measure serialized cache bytes on admission and LRU eviction against targets of 8 MiB for Catalog and 32 MiB for Inventory. Evict other cached pages first and preserve a valid current page even when it alone exceeds the byte target. Report sole-active-page and metadata overflow in resource metrics; record and page bounds remain hard. These targets introduce no hard HTTP response-byte rejection or new group, membership or string limits. Existing groups, sets, memberships and Catalog facets retain their current API contracts and can grow independently of result count. Serialized cache targets do not guarantee bounded entire response size or browser heap.
+Measure serialized cache bytes on admission and LRU eviction against targets of 8 MiB for Catalog and 32 MiB for Inventory.
+Evict other cached pages first and preserve a valid current page even when it alone exceeds the byte target.
+Report sole-active-page and metadata overflow in resource metrics; record and page bounds remain hard.
+These targets introduce no hard HTTP response-byte rejection or new group, membership or string limits.
+Existing groups, sets, memberships and Catalog facets retain their current API contracts and can grow independently of result count.
+Serialized cache targets do not guarantee bounded entire response size or browser heap.
 
-[Loaded span](../../frontend/src/lib/browsing/loadedSpan.ts) owns pure absolute visited bounds independently of retained records. CatalogWindow and InventoryWindow keep a span per query context and publication, and expose it to their renderers. Search, both full route and overlay, and Inventory allocate height only for that visited segment. A successful initial 200-record range does not reserve height for the complete matching count. Absolute indices remain stable; local row positions subtract the segment's start offset. Near-end geometry requests at most the next contiguous range, and its successful admission extends the segment. Planning, failure, abort and speculative adjacent data cannot extend it. Complete totals remain metadata.
+[Loaded span](../../frontend/src/lib/browsing/loadedSpan.ts) owns pure absolute visited bounds independently of retained records.
+CatalogWindow and InventoryWindow keep a span per query context and publication, and expose it to their renderers.
+Search, both full route and overlay, and Inventory allocate height only for that visited segment.
+A successful initial 200-record range does not reserve height for the complete matching count.
+Absolute indices remain stable; local row positions subtract the segment's start offset.
+Near-end geometry requests at most the next contiguous range, and its successful admission extends the segment.
+Planning, failure, abort and speculative adjacent data cannot extend it.
+Complete totals remain metadata.
 
-A deep URL starts at its checked anchor without prefix height or preceding requests. Load earlier admits one preceding range and retains the visible row and its intra-row position. Noncontiguous location reanchors start a fresh segment instead of reserving an unfetched gap. Cache eviction preserves visited bounds, so revisiting an evicted range reloads that range. Publication changes reset the span under the existing revision/generation rules. The hydrated Boxes directory applies the same visited-segment policy to the already supplied group metadata, without a new directory transport contract. Inventory anchors preserve signed clearance above the first row, so ordinary refresh does not move a visible toolbar beneath the sticky header. A coalesced size observation preserves a scrolled row when transient SavedState feedback shifts the list origin. Inventory prepend retains its original signed row anchor until the new rows finish initial measurement, including removal of the earlier-range control. Row size notifications coalesce into one pending animation frame per mounted row. That frame reads current geometry and rechecks query, index, entry identity and DOM connectivity before publishing measurements or adjusting the anchor. Row teardown disconnects its observer and cancels its pending frame. Prepend settling retains its signed anchor while row measurement frames remain pending, then waits through its existing quiet window. Frame execution and cancellation both release that pending count, including stale rows and query replacement. The list/parent origin observation keeps its existing frame scheduling; measured heights and offset arithmetic retain their existing owner.
+A deep URL starts at its checked anchor without prefix height or preceding requests.
+Load earlier admits one preceding range and retains the visible row and its intra-row position.
+Noncontiguous location reanchors start a fresh segment instead of reserving an unfetched gap.
+Cache eviction preserves visited bounds, so revisiting an evicted range reloads that range.
+Publication changes reset the span under the existing revision/generation rules.
+The hydrated Boxes directory applies the same visited-segment policy to the already supplied group metadata, without a new directory transport contract.
+Inventory anchors preserve signed clearance above the first row, so ordinary refresh does not move a visible toolbar beneath the sticky header.
+A coalesced size observation preserves a scrolled row when transient SavedState feedback shifts the list origin.
+Inventory prepend retains its original signed row anchor until the new rows finish initial measurement, including removal of the earlier-range control.
+Row size notifications coalesce into one pending animation frame per mounted row.
+That frame reads current geometry and rechecks query, index, entry identity and DOM connectivity before publishing measurements or adjusting the anchor.
+Row teardown disconnects its observer and cancels its pending frame.
+Prepend settling retains its signed anchor while row measurement frames remain pending, then waits through its existing quiet window.
+Frame execution and cancellation both release that pending count, including stale rows and query replacement.
+The list/parent origin observation keeps its existing frame scheduling; measured heights and offset arithmetic retain their existing owner.
 
-Range planning fits the admitted cache rather than repeatedly fetching pages that LRU immediately evicts. Adjacent plans stay inside visited bounds, apart from one explicitly requested reveal range. Existing resident record, page, byte, context and physical request bounds remain unchanged. Source tests cover admission, failure, deep requests, complete totals, bounded ownership and renderer extents. Current-head composed browser journeys and large Inventory fixtures remain required acceptance evidence.
+Range planning fits the admitted cache rather than repeatedly fetching pages that LRU immediately evicts.
+Adjacent plans stay inside visited bounds, apart from one explicitly requested reveal range.
+Existing resident record, page, byte, context and physical request bounds remain unchanged.
+Source tests cover admission, failure, deep requests, complete totals, bounded ownership and renderer extents.
+Current-head composed browser journeys and large Inventory fixtures remain required acceptance evidence.
 
-The local engineering performance objective is a warm bounded 500-result HTTP read, both first and deep page, under two seconds, and cold initial navigation under five seconds on an AMD Ryzen 7 7840HS with 32 GB RAM and desktop Chrome. These are objectives, not observed or accepted performance. Record actual p50, p95 and worst latency, payload sizes and layout work, and correct material stalls. Other hardware remains unverified. The accepted approximately two-second SavedState synchronization target remains a separate requirement.
+The local engineering performance objective is a warm bounded 500-result HTTP read, both first and deep page, under two seconds, and cold initial navigation under five seconds on an AMD Ryzen 7 7840HS with 32 GB RAM and desktop Chrome.
+These are objectives, not observed or accepted performance.
+Record actual p50, p95 and worst latency, payload sizes and layout work, and correct material stalls.
+Other hardware remains unverified.
+The accepted approximately two-second SavedState synchronization target remains a separate requirement.
 
-Native window position replaces Shell ScrollArea scrollTop and wheel-controller ownership outside modals. The browser retains native wheel/touch behavior; no custom wheel controller moves the window. The shared Shell change preserves accepted Home, Settings and authentication layout/content. Full-route Search/Inventory lists and filter panes do not receive independent vertical overflow viewports. Header collapse, snapshots, navigation resets and sticky clearance use the native window. SearchOverlay retains its accepted modal/background history and uses one native modal overflow viewport as its range geometry owner. Heading and saved-position restoration scroll only that explicit host; modal heading restoration does not use ancestor-scrolling `scrollIntoView`. Kit 3 shallow navigation preserves scroll by default, while full Search route navigation retains its ordinary window restoration. The installed Bits 2.19.5 standard body scroll lock and focus trap remain in use while a modal is active, with one native overflow viewport for long dialog content. No additional Inspector-column, results or list scrollers sit inside that viewport. Closing restores the native window position and guarded return focus. This routine geometry interpretation adds no owner approval or prerequisite for independent API implementation. Actual long-content, focus, body-lock and restoration journeys remain rendered acceptance checks.
+Native window position replaces Shell ScrollArea scrollTop and wheel-controller ownership outside modals.
+The browser retains native wheel/touch behavior; no custom wheel controller moves the window.
+The shared Shell change preserves accepted Home, Settings and authentication layout/content.
+Full-route Search/Inventory lists and filter panes do not receive independent vertical overflow viewports.
+Header collapse, snapshots, navigation resets and sticky clearance use the native window.
+SearchOverlay retains its accepted modal/background history and uses one native modal overflow viewport as its range geometry owner.
+Heading and saved-position restoration scroll only that explicit host; modal heading restoration does not use ancestor-scrolling `scrollIntoView`.
+Kit 3 shallow navigation preserves scroll by default, while full Search route navigation retains its ordinary window restoration.
+The installed Bits 2.19.5 standard body scroll lock and focus trap remain in use while a modal is active, with one native overflow viewport for long dialog content.
+No additional Inspector-column, results or list scrollers sit inside that viewport.
+Closing restores the native window position and guarded return focus.
+This routine geometry interpretation adds no owner approval or prerequisite for independent API implementation.
+Actual long-content, focus, body-lock and restoration journeys remain rendered acceptance checks.
 
-Acceptance requires current-head real PostgreSQL and built HTTP validation plus owner-rendered journeys. Use genuine isolated Inventory fixtures at 1k, 10k and 50k distinct entries and the actual full Catalog generation. Cover first/deep/end ranges, continuous traversal and revisits, URL reload/Back/Forward, group/filter/order changes, source publication and concurrent Inventory edits. Record source/revision, machine resources, cold/warm latency, payload bytes, query plans, resident records/DOM/bytes and physical request peaks. Recheck single scrollbar, window restoration, Navbar, keyboard focus, long names/rules, 360px mobile, 200% zoom, light/dark, pending/failed/uncertain saves, deleted targets and account expiry. Native no-JavaScript navigation/edit/add flows and original-receipt replay remain required. Source/interface and implementation-plan review establishes readiness; current-head integration and rendered journeys establish delivery acceptance. Prior source tests and old scale evidence do not establish replacement performance acceptance.
+Acceptance requires current-head real PostgreSQL and built HTTP validation plus owner-rendered journeys.
+Use genuine isolated Inventory fixtures at 1k, 10k and 50k distinct entries and the actual full Catalog generation.
+Cover first/deep/end ranges, continuous traversal and revisits, URL reload/Back/Forward, group/filter/order changes, source publication and concurrent Inventory edits.
+Record source/revision, machine resources, cold/warm latency, payload bytes, query plans, resident records/DOM/bytes and physical request peaks.
+Recheck single scrollbar, window restoration, Navbar, keyboard focus, long names/rules, 360px mobile, 200% zoom, light/dark, pending/failed/uncertain saves, deleted targets and account expiry.
+Native no-JavaScript navigation/edit/add flows and original-receipt replay remain required.
+Source/interface and implementation-plan review establishes readiness; current-head integration and rendered journeys establish delivery acceptance.
+Prior source tests and old scale evidence do not establish replacement performance acceptance.
 
 ## Selected shared Card actions
 
-The existing Card actions snippet keeps caller context and mutation ownership. Shared browsing action modules now support an explicitly selected owned Deck; native/enhanced Search and Inventory caller integration is implemented with separate draft ownership. [Deck contracts](../../contracts/src/decks.ts) now provide `DeckChoice` and `DeckChoicePage`; backend `getDeckChoices(actor, { query?, offset?, limit?, selectedDeckId? })` owns authorization, literal name filtering and bounded metadata selection. The thin authenticated `GET /api/mobile/v1/mtg/decks/choices` adapter is implemented. It returns only ID, name and format, plus pagination and an optional explicitly selected owned summary. It does not load Description, Composition or Inventory availability. [Mobile and Scan](./mobile-and-scan.md#deck-choice-read) owns its HTTP parameters. The read supplies the shared bounded picker without changing Deck mutation semantics. The Search route wires the shared native Deck and Inventory action adapters and an inline selected-Printing panel. Its bounded choice GET validates literal query, offset and explicit selected UUID, without deriving authority from URL values. Native canonical redirects preserve repeated supported filters and validated choice/original-retry context. Controlled optional reads retain confirmed acknowledgements and immutable original retry forms independently of current Printing or choice evidence. Enhanced dialogs and Inventory callers keep their own opening and draft lifetimes; local composed rendered evidence is recorded with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192); physical touch, true 200% zoom and deployment remain unverified.
+The existing Card actions snippet keeps caller context and mutation ownership.
+Shared browsing action modules now support an explicitly selected owned Deck; native/enhanced Search and Inventory caller integration is implemented with separate draft ownership.
+[Deck contracts](../../contracts/src/decks.ts) now provide `DeckChoice` and `DeckChoicePage`; backend `getDeckChoices(actor, { query?, offset?, limit?, selectedDeckId? })` owns authorization, literal name filtering and bounded metadata selection.
+The thin authenticated `GET /api/mobile/v1/mtg/decks/choices` adapter is implemented.
+It returns only ID, name and format, plus pagination and an optional explicitly selected owned summary.
+It does not load Description, Composition or Inventory availability.
+[Mobile and Scan](./mobile-and-scan.md#deck-choice-read) owns its HTTP parameters.
+The read supplies the shared bounded picker without changing Deck mutation semantics.
+The Search route wires the shared native Deck and Inventory action adapters and an inline selected-Printing panel.
+Its bounded choice GET validates literal query, offset and explicit selected UUID, without deriving authority from URL values.
+Native canonical redirects preserve repeated supported filters and validated choice/original-retry context.
+Controlled optional reads retain confirmed acknowledgements and immutable original retry forms independently of current Printing or choice evidence.
+Enhanced dialogs and Inventory callers keep their own opening and draft lifetimes; local composed rendered evidence is recorded with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192); physical touch, true 200% zoom and deployment remain unverified.
 
 ## Runtime compatibility
 
-The application targets Node 26 and pnpm 12, with the Node version in [`frontend/.node-version`](../../frontend/.node-version) and package-manager pin in [root package.json](../../package.json). Root pnpm workspace manifests and lockfile own installs across frontend, backend and contracts. Node 26 is a stable Current release on 2026-10-03, not yet LTS. The [Node schedule](https://github.com/nodejs/Release/blob/main/schedule.json) starts its LTS phase on 2026-10-28 and supports the release through 2029-04-30.
+The application targets Node 26 and pnpm 12, with the Node version in [`frontend/.node-version`](../../frontend/.node-version) and package-manager pin in [root package.json](../../package.json).
+Root pnpm workspace manifests and lockfile own installs across frontend, backend and contracts.
+Node 26 is a stable Current release on 2026-10-03, not yet LTS.
+The [Node schedule](https://github.com/nodejs/Release/blob/main/schedule.json) starts its LTS phase on 2026-10-28 and supports the release through 2029-04-30.
 
-The implemented stack uses Svelte 5, SvelteKit 3, adapter-node 6, and Tailwind 4. The [Kit 3 migration](https://github.com/sveltejs/kit/blob/main/documentation/docs/60-appendix/35-migrating-to-sveltekit-3.md) moves configuration into the SvelteKit Vite plugin. Application imports use the `#lib/*` package mapping, and [`src/env.ts`](../../frontend/src/env.ts) declares environment variables exposed through the framework's environment modules.
+The implemented stack uses Svelte 5, SvelteKit 3, adapter-node 6, and Tailwind 4.
+The [Kit 3 migration](https://github.com/sveltejs/kit/blob/main/documentation/docs/60-appendix/35-migrating-to-sveltekit-3.md) moves configuration into the SvelteKit Vite plugin.
+Application imports use the `#lib/*` package mapping, and [`src/env.ts`](../../frontend/src/env.ts) declares environment variables exposed through the framework's environment modules.
 
-The 2026-10-18 registry and official release check retains current stable [Svelte 5.57.2](https://github.com/sveltejs/svelte/releases/tag/svelte%405.57.2) and updates compatible tooling to [SvelteKit 3.1.0](https://github.com/sveltejs/kit/releases/tag/%40sveltejs%2Fkit%403.1.0) and svelte-check 4.7.7. Svelte's [module runes](https://svelte.dev/docs/svelte/svelte-js-files) support the per-mounted Library Editor state owner. Project checks still require both compilers: [svelte-check's TypeScript 7 guidance](https://github.com/sveltejs/language-tools/blob/master/packages/svelte-check/README.md) retains TypeScript 6 for the tools' compiler interface. Removing that compatibility dependency is conditional on upstream support, not on the Editor refactor.
+The 2026-10-18 registry and official release check retains current stable [Svelte 5.57.2](https://github.com/sveltejs/svelte/releases/tag/svelte%405.57.2) and updates compatible tooling to [SvelteKit 3.1.0](https://github.com/sveltejs/kit/releases/tag/%40sveltejs%2Fkit%403.1.0) and svelte-check 4.7.7.
+Svelte's [module runes](https://svelte.dev/docs/svelte/svelte-js-files) support the per-mounted Library Editor state owner.
+Project checks still require both compilers: [svelte-check's TypeScript 7 guidance](https://github.com/sveltejs/language-tools/blob/master/packages/svelte-check/README.md) retains TypeScript 6 for the tools' compiler interface.
+Removing that compatibility dependency is conditional on upstream support, not on the Editor refactor.
 
-Application type checking uses TypeScript 7 through the `typescript-native` alias. Kit 3 and svelte-check still require TypeScript 6's compiler API. Installing TypeScript 7 as that API dependency fails because it does not provide the expected `ts.sys.readFile` interface. The compatibility dependency supports those tools; it does not replace the project's TypeScript 7 check. The [verification workflow](../operations/github-automation.md#local-checks) owns the commands.
+Application type checking uses TypeScript 7 through the `typescript-native` alias.
+Kit 3 and svelte-check still require TypeScript 6's compiler API.
+Installing TypeScript 7 as that API dependency fails because it does not provide the expected `ts.sys.readFile` interface.
+The compatibility dependency supports those tools; it does not replace the project's TypeScript 7 check.
+The [verification workflow](../operations/github-automation.md#local-checks) owns the commands.
 
-[Root pnpm-workspace.yaml](../../pnpm-workspace.yaml) retains the patched esbuild dependency for Drizzle's legacy loader. Its scoped `runed` peer rule accepts the reviewed Kit 3.1.0 release because Bits UI uses the framework-independent entry point, not `runed/kit`. The upstream optional peer still targets Kit 2; its removal requires a compatible upstream peer declaration or removal of that transitive dependency. The [root lockfile](../../pnpm-lock.yaml) preserves these choices. Commands invoked from `frontend/` resolve the same root workspace; there is no separate frontend lockfile.
+[Root pnpm-workspace.yaml](../../pnpm-workspace.yaml) retains the patched esbuild dependency for Drizzle's legacy loader.
+Its scoped `runed` peer rule accepts the reviewed Kit 3.1.0 release because Bits UI uses the framework-independent entry point, not `runed/kit`.
+The upstream optional peer still targets Kit 2; its removal requires a compatible upstream peer declaration or removal of that transitive dependency.
+The [root lockfile](../../pnpm-lock.yaml) preserves these choices.
+Commands invoked from `frontend/` resolve the same root workspace; there is no separate frontend lockfile.
 
-`APP_ORIGIN` configures `paths.origin` at build time in [`vite.config.ts`](../../frontend/vite.config.ts). Vite development instead uses `DEV_APP_ORIGIN`, defaulting to `http://localhost:5173`, from the single root `.env` or caller environment. The local launcher passes that origin to its children. Compose passes `APP_ORIGIN` to both frontend and migration builds. Adapter-node 6 no longer reads runtime `ORIGIN`; changing the public origin requires rebuilding the frontend. [Deployment](../operations/deployment.md) owns the operator procedure.
+`APP_ORIGIN` configures `paths.origin` at build time in [`vite.config.ts`](../../frontend/vite.config.ts) and the API public Origin at runtime.
+Vite development uses `DEV_APP_ORIGIN`, defaulting to `http://localhost:5173`.
+Web uses `envDir: '.'` and framework `env.dir: '.'`; it does not load the root database/S3 environment.
+The root launcher loads protected configuration, starts API plus web and filters backend secrets from the web environment.
+Safe `DEMO_MODE` presentation reaches web separately from API auth enforcement.
+A web build needs no database or API process.
+Set `API_INTERNAL_URL` when starting web.
+Adapter-node 6 does not read runtime `ORIGIN`; rebuild web and update API runtime `APP_ORIGIN` when the public Origin changes.
+[Deployment](../operations/deployment.md#independent-build-and-start) owns commands.
 
-The application serves its machine-readable API contract at `/openapi.json`. It describes local authentication, account Profile/Dashboard/password/session operations and MTG API operations, including typed requests, responses, and cookie or bearer authentication. The route implementation remains the source of truth for error conditions and transaction behavior.
+The application serves its machine-readable API contract at `/openapi.json`.
+It describes local authentication, account Profile/Dashboard/password/session operations and MTG API operations, including typed requests, responses, and cookie or bearer authentication.
+The route implementation remains the source of truth for error conditions and transaction behavior.
 
 ## Primary Deck entry categories
 
-Deck page reads category DTOs without initializing. Enhanced owned opening submits the explicit initialization form once; no-JavaScript users submit that visible native form. Category view groups Main only, with section rendering for Commander, Sideboard and Companion. Native Main-entry forms and the inspector reuse [EntryCategoryEditor](../../frontend/src/lib/components/decks/EntryCategoryEditor.svelte) for Manual selection, Uncategorized, provenance and retained drafts. Pending facts remain visible inside Uncategorized. A confirmed Manual acknowledgement advances the local base; failed subsequent reads retain the choice until a current matching read arrives. Enhanced Manual saves apply the confirmed acknowledgement without invalidating the entire page, then request the existing owned category endpoint. Read failures keep the mounted editor, selected choice and confirmation, and show an operational read error. An explicit refresh button retries only that bounded read. Newer local drafts remain retained, and late results cannot update another account, Deck, flow or disposed editor. Conflicting moves/printing merges show a native/enhanced consequence form before confirmation and preserve the complete destination decision. [Category rules](./category-rules.md#implemented-starter-entry-decisions) owns the implemented semantics and later-slice boundary. Shared Deck save lifecycle remains the owner for pending guards, retries and focus.
+Deck page reads category DTOs without initializing.
+Enhanced owned opening submits the explicit initialization form once; no-JavaScript users submit that visible native form.
+Category view groups Main only, with section rendering for Commander, Sideboard and Companion.
+Native Main-entry forms and the inspector reuse [EntryCategoryEditor](../../frontend/src/lib/components/decks/EntryCategoryEditor.svelte) for Manual selection, Uncategorized, provenance and retained drafts.
+Pending facts remain visible inside Uncategorized.
+A confirmed Manual acknowledgement advances the local base; failed subsequent reads retain the choice until a current matching read arrives.
+Enhanced Manual saves apply the confirmed acknowledgement without invalidating the entire page, then request the existing owned category endpoint.
+Read failures keep the mounted editor, selected choice and confirmation, and show an operational read error.
+An explicit refresh button retries only that bounded read.
+Newer local drafts remain retained, and late results cannot update another account, Deck, flow or disposed editor.
+Conflicting moves/printing merges show a native/enhanced consequence form before confirmation and preserve the complete destination decision.
+[Category rules](./category-rules.md#implemented-starter-entry-decisions) owns the implemented semantics and later-slice boundary.
+Shared Deck save lifecycle remains the owner for pending guards, retries and focus.
 
-Profile uses SSR only for the first active-account snapshot. Later same-account server data requests a leased current read instead of replacing synchronized values. Profile Card adopts only clean saved fields and preserves local drafts and their saved bases through enhanced validation failures or delayed server data. Account changes clear the editor lifetime. Category editors retain entry-owned dirty input when a saved role moves outside Main or the entry disappears, display the moved or missing state, and disable writes until that target is usable. Explicit editor close or account expiry clears the draft. Main grouping remains based on current saved Main entries.
+Profile uses SSR only for the first active-account snapshot.
+Later same-account server data requests a leased current read instead of replacing synchronized values.
+Profile Card adopts only clean saved fields and preserves local drafts and their saved bases through enhanced validation failures or delayed server data.
+Account changes clear the editor lifetime.
+Category editors retain entry-owned dirty input when a saved role moves outside Main or the entry disappears, display the moved or missing state, and disable writes until that target is usable.
+Explicit editor close or account expiry clears the draft.
+Main grouping remains based on current saved Main entries.
 
 ## Private value presentation
 
-Dashboard renders current Inventory value and bounded personal history. `/mtg/history` owns the authenticated date/identity-filtered history view; the Inventory inspector links using printing, finish and condition rather than a live entry ID. Shared [ValueSummary](../../frontend/src/lib/components/valuation/ValueSummary.svelte) and [InventoryValueHistory](../../frontend/src/lib/components/valuation/InventoryValueHistory.svelte) distinguish covered subtotal, unknown and stale quantities, captured known zero and gaps. Selected Deck shows required and missing nonfoil estimates without changing availability or drafts.
+Dashboard renders current Inventory value and bounded personal history.
+`/mtg/history` owns the authenticated date/identity-filtered history view; the Inventory inspector links using printing, finish and condition rather than a live entry ID.
+Shared [ValueSummary](../../frontend/src/lib/components/valuation/ValueSummary.svelte) and [InventoryValueHistory](../../frontend/src/lib/components/valuation/InventoryValueHistory.svelte) distinguish covered subtotal, unknown and stale quantities, captured known zero and gaps.
+Selected Deck shows required and missing nonfoil estimates without changing availability or drafts.
 
-These consumers subscribe to `values` through existing SavedState read leases and account/selection guards. History schedules one refresh at the server-provided `nextRefreshAt`; it does not poll. Later same-account server data requests a leased history read instead of overwriting the synchronized snapshot. Failed optional valuation leaves other Dashboard/Deck data usable. [Valuation](./valuation.md#reviewed-personal-history-contract) owns exact arithmetic and calendar boundaries. Rendered verification, owner acceptance and deployment remain separate evidence.
+These consumers subscribe to `values` through existing SavedState read leases and account/selection guards.
+History schedules one refresh at the server-provided `nextRefreshAt`; it does not poll.
+Later same-account server data requests a leased history read instead of overwriting the synchronized snapshot.
+Failed optional valuation leaves other Dashboard/Deck data usable.
+[Valuation](./valuation.md#reviewed-personal-history-contract) owns exact arithmetic and calendar boundaries.
+Rendered verification, owner acceptance and deployment remain separate evidence.
 
-The private `/mtg/categories` page owns scoped current-definition pages and a retained criteria draft. Native POST updates criteria without saving a version; a separate save publishes the reusable definition. Typed name/meaning/order/rule/role controls survive controlled failures, and a changed Library revision requires explicit recovery. [RuleEditor](../../frontend/src/lib/components/categories/RuleEditor.svelte) renders supported criteria instead of editable implementation JSON. The page uses the shared Header, Button and native Select controls. Whole-deck definition editing feeds the independent overlapping classification engine. Combo criteria use the optional local source and remain Unknown when required facts are unavailable.
+The private `/mtg/categories` page owns scoped current-definition pages and a retained criteria draft.
+Native POST updates criteria without saving a version; a separate save publishes the reusable definition.
+Typed name/meaning/order/rule/role controls survive controlled failures, and a changed Library revision requires explicit recovery.
+[RuleEditor](../../frontend/src/lib/components/categories/RuleEditor.svelte) renders supported criteria instead of editable implementation JSON.
+The page uses the shared Header, Button and native Select controls.
+Whole-deck definition editing feeds the independent overlapping classification engine.
+Combo criteria use the optional local source and remain Unknown when required facts are unavailable.
 
 ### Library Editor state ownership
 
-The per-mounted [Library Editor state owner](../../frontend/src/lib/categories/library-editor.svelte.ts) implements the `.svelte.ts` design Kyle selected on 2026-10-18. Its interface supplies the reactive draft, choices, pending/dirty feedback, confirmed acknowledgement and immutable original retry, together with edit, reopen, clear, dispose and submission-completion operations. It receives typed server seeds and active-account evidence. Its implementation owns adoption, completion authority and retry identity. Tests exercise that same implementation through its interface; no framework-independent editor core or new state-management dependency is introduced.
+The per-mounted [Library Editor state owner](../../frontend/src/lib/categories/library-editor.svelte.ts) implements the `.svelte.ts` design Kyle selected on 2026-10-18.
+Its interface supplies the reactive draft, choices, pending/dirty feedback, confirmed acknowledgement and immutable original retry, together with edit, reopen, clear, dispose and submission-completion operations.
+It receives typed server seeds and active-account evidence.
+Its implementation owns adoption, completion authority and retry identity.
+Tests exercise that same implementation through its interface; no framework-independent editor core or new state-management dependency is introduced.
 
-The page retains rendering, actual FormData capture, SvelteKit form adaptation, existing SavedState leases and independently addressed Library reads. Editor identity remains account/scope/origin/opening; list identity remains account/scope/offset/limit. The editor supplies opaque authority for refreshes started on its behalf. Actual DOM fields, repeated roles and named submitters remain authoritative. Payload identity includes action and `ruleAction` but excludes `requestId`; draft identity excludes both `ruleAction` and `requestId`.
+The page retains rendering, actual FormData capture, SvelteKit form adaptation, existing SavedState leases and independently addressed Library reads.
+Editor identity remains account/scope/origin/opening; list identity remains account/scope/offset/limit.
+The editor supplies opaque authority for refreshes started on its behalf.
+Actual DOM fields, repeated roles and named submitters remain authoritative.
+Payload identity includes action and `ruleAction` but excludes `requestId`; draft identity excludes both `ruleAction` and `requestId`.
 
-A confirmed Save A advances only its acknowledged origin and revision when newer draft B exists. An older original receipt cannot replace a newer confirmed draft origin or revision. Receipt A, draft B and uncertain original retries remain separate. Held criteria replies and failures cannot replace newer controls. Account, scope, origin, reopen and disposal invalidate earlier completions synchronously, including before scheduled effects run. Terminal clearing removes private state; only matching active-account evidence permits server reseeding. Bounded list ownership, native form behavior and the shared SavedState transport retain their existing contracts.
+A confirmed Save A advances only its acknowledged origin and revision when newer draft B exists.
+An older original receipt cannot replace a newer confirmed draft origin or revision.
+Receipt A, draft B and uncertain original retries remain separate.
+Held criteria replies and failures cannot replace newer controls.
+Account, scope, origin, reopen and disposal invalidate earlier completions synchronously, including before scheduled effects run.
+Terminal clearing removes private state; only matching active-account evidence permits server reseeding.
+Bounded list ownership, native form behavior and the shared SavedState transport retain their existing contracts.
 
-The [Editor tests](../../frontend/tests/unit/category-library-editor.test.ts) replace source-sliced effects and manually reconstructed adoption with the complete production module and Svelte client scheduler. [Library read tests](../../frontend/tests/unit/category-library-read.test.ts) retain independently addressed page ownership. Acceptance covers held A/B completions, changed-then-restored fields, original retries, acknowledgement followed by failed refresh, context/opening replacement, terminal clearing, authenticated reactivation, stable hydration and independent pagination. Existing real PostgreSQL/native and enhanced HTTP checks remain applicable; rendered desktop and narrow forms verify integration with actual controls. Current-head check results and rendered observations belong in the PR evidence, separately from owner acceptance and deployment. Compatibility uses current stable Svelte and supported tooling peers, retaining older compiler dependencies only while upstream tools require them.
+The [Editor tests](../../frontend/tests/unit/category-library-editor.test.ts) replace source-sliced effects and manually reconstructed adoption with the complete production module and Svelte client scheduler.
+[Library read tests](../../frontend/tests/unit/category-library-read.test.ts) retain independently addressed page ownership.
+Acceptance covers held A/B completions, changed-then-restored fields, original retries, acknowledgement followed by failed refresh, context/opening replacement, terminal clearing, authenticated reactivation, stable hydration and independent pagination.
+Existing real PostgreSQL/native and enhanced HTTP checks remain applicable; rendered desktop and narrow forms verify integration with actual controls.
+Current-head check results and rendered observations belong in the PR evidence, separately from owner acceptance and deployment.
+Compatibility uses current stable Svelte and supported tooling peers, retaining older compiler dependencies only while upstream tools require them.
 
-The Library subscribes through the shared account SavedState resource and retains editable drafts independently of synchronized current-definition pages. Its write handle suspends conflicting reads and terminal/account replacement clears private drafts and receipts. After confirmed enhanced Library saves, the existing bounded scoped API refreshes only current Library evidence; read failures keep the mounted controls and receipt, with an explicit refresh action. Native forms retain their redirect behavior. An uncertain original form and request ID remain available through an explicit retry form, independently of newer Name, Meaning or Rules edits.
+The Library subscribes through the shared account SavedState resource and retains editable drafts independently of synchronized current-definition pages.
+Its write handle suspends conflicting reads and terminal/account replacement clears private drafts and receipts.
+After confirmed enhanced Library saves, the existing bounded scoped API refreshes only current Library evidence; read failures keep the mounted controls and receipt, with an explicit refresh action.
+Native forms retain their redirect behavior.
+An uncertain original form and request ID remain available through an explicit retry form, independently of newer Name, Meaning or Rules edits.
 
-[DeckCategoryManager](../../frontend/src/lib/components/decks/DeckCategoryManager.svelte) uses the shared DeckDialog for enhanced management and retained native controls without JavaScript. Its pending and return-focus behavior follows shared forms. It distinguishes local labels/removal from reusable editing. Removal uses the existing ConfirmationDialog for enhanced users and an explicit native replacement confirmation. A remotely removed local category retains its disabled label draft. Explicit Review/Reset shows server-owned paged consequences, preserved Manual choices, name conflicts, Pending evidence, criteria/meaning changes and expiry. Commit saves the complete plan. The shared Deck save lifecycle owns pending requests and retained native/enhanced failures. Native local-label failures return the exact submitted label, original decision base and request identity. Reviewed commit returns its confirmed receipt independently of optional current reads; failed native follow-up reads retain earlier controls with an explicit unavailable state. [Category rules](./category-rules.md#entry-reviewreset-transactions) owns authority, fences and retention.
+[DeckCategoryManager](../../frontend/src/lib/components/decks/DeckCategoryManager.svelte) uses the shared DeckDialog for enhanced management and retained native controls without JavaScript.
+Its pending and return-focus behavior follows shared forms.
+It distinguishes local labels/removal from reusable editing.
+Removal uses the existing ConfirmationDialog for enhanced users and an explicit native replacement confirmation.
+A remotely removed local category retains its disabled label draft.
+Explicit Review/Reset shows server-owned paged consequences, preserved Manual choices, name conflicts, Pending evidence, criteria/meaning changes and expiry.
+Commit saves the complete plan.
+The shared Deck save lifecycle owns pending requests and retained native/enhanced failures.
+Native local-label failures return the exact submitted label, original decision base and request identity.
+Reviewed commit returns its confirmed receipt independently of optional current reads; failed native follow-up reads retain earlier controls with an explicit unavailable state.
+[Category rules](./category-rules.md#entry-reviewreset-transactions) owns authority, fences and retention.

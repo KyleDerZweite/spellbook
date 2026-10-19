@@ -1,10 +1,10 @@
 # Decision Records
 
 - Status: Canonical
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-10-20
 - Source of Truth: mixed
-- Update Triggers: major architectural decisions, major product decisions, documentation system changes, supersession of earlier decisions, uniform continuous Lazy browsing, local recognition direction and independent Android design clarification
-- Related Docs: [ADR Template](./ADR-template.md), [ADR-0001](./0001-docs-first-knowledge-system.md), [ADR-0006](./0006-generic-oidc-and-internal-account-identity.md), [ADR-0007](./0007-backend-first-mtg-bulk-import-api.md), [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md), [ADR-0009](./0009-local-authentication.md), [ADR-0014](./0014-public-landing-and-private-workspace.md), [Docs Index](../README.md), [Accepted mechanisms](../architecture/application-contract.md), [ADR-0021](./0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](./0023-local-recognition-in-scanner-clients.md)
+- Update Triggers: accepted Python migration framework and delivery contract, Python API/worker language selection and migration planning, major architectural decisions, major product decisions, documentation system changes, supersession of earlier decisions, uniform continuous Lazy browsing, local recognition direction and independent Android design clarification
+- Related Docs: [ADR Template](./ADR-template.md), [ADR-0001](./0001-docs-first-knowledge-system.md), [ADR-0006](./0006-generic-oidc-and-internal-account-identity.md), [ADR-0007](./0007-backend-first-mtg-bulk-import-api.md), [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md), [ADR-0009](./0009-local-authentication.md), [ADR-0014](./0014-public-landing-and-private-workspace.md), [Docs Index](../README.md), [Accepted mechanisms](../architecture/application-contract.md), [ADR-0021](./0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](./0023-local-recognition-in-scanner-clients.md), [Python direction](./0025-python-api-and-workers.md)
 
 This section stores architecture and product decision records.
 
@@ -30,6 +30,12 @@ Rules:
 
 ## Files
 
+- [ADR-0026: Python migration framework and delivery contract](./0026-python-migration-contract.md), accepted contract after independent Sol/Astra review; migration not started
+
+- [ADR-0025: Python for the API and server workers](./0025-python-api-and-workers.md), accepted language direction; migration design follows ADR-0026
+
+- [ADR-0024: Independent web, API and Android applications](./0024-independent-applications.md), accepted runtime extraction and Kotlin/Compose selection; first slice integrated, native target acceptance pending
+
 - [ADR template](./ADR-template.md)
 - [ADR-0001: Docs-first knowledge system](./0001-docs-first-knowledge-system.md)
 - [ADR-0002: Android-first mobile client and server-side scan pipeline](./0002-android-first-mobile-and-server-side-scan.md) (superseded by ADR-0003)
@@ -50,7 +56,7 @@ Rules:
 
 - [ADR-0014: Public landing and private workspace](./0014-public-landing-and-private-workspace.md)
 
-- [ADR-0015: Shared backend use cases and client contracts](./0015-shared-backend-use-cases-and-client-contracts.md), workspace/Catalog/Auth/Profile/Dashboard/Inventory/Groups/Deck/Scan/SavedState boundaries implemented; remaining API parity planned
+- [ADR-0015: Shared backend use cases and client contracts](./0015-shared-backend-use-cases-and-client-contracts.md), workspace/Catalog/Auth/Profile/Dashboard/Inventory/Groups/Deck/Scan/SavedState boundaries implemented; independent runtime delivery advances under ADR-0024
 
 - [ADR-0016: PostgreSQL saved-state invalidation](./0016-postgres-saved-state-invalidation.md), transport and mounted workspace consumers implemented; rendered acceptance recorded separately
 - [ADR-0017: Revisioned Inventory windows and mutation receipts](./0017-revisioned-inventory-windows-and-mutation-receipts.md), bounded reads, original mutation receipts and Notes/Description revision protection implemented
@@ -62,4 +68,4 @@ Rules:
 - [ADR-0021: Hybrid browsing and contextual Card dialog](./0021-hybrid-browsing-and-contextual-card-dialog.md), API, Shell, result-window foundations and contextual Card actions implemented; uniform continuous Lazy source implemented; local composed verification recorded with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192); partially supersedes ADR-0014 and ADR-0017 for affected browser UI and read limits
 - [ADR-0022: Daily value observation checkpoints](./0022-daily-value-observation-checkpoints.md), daily observation persistence, runtime and private presentation implemented
 
-- [ADR-0023: Local recognition in scanner clients](./0023-local-recognition-in-scanner-clients.md), local recognition; Android-first app with distinct mobile layout and shared API supporting QR/card scanning; initial PWA/QR implemented; separate Android application selected, with framework and implementation contract still open; Jetson-owned Cardstation execution
+- [ADR-0023: Local recognition in scanner clients](./0023-local-recognition-in-scanner-clients.md), local recognition; Android-first app with distinct mobile layout and shared API supporting QR/card scanning; initial PWA/QR implemented; separate Android application selected, with Kotlin/Compose and the implementation contract selected by ADR-0024; Jetson-owned Cardstation execution

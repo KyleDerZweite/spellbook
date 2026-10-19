@@ -232,14 +232,23 @@ importers:
       '@types/pg':
         specifier: ^8.23.1
         version: 8.23.1
+      drizzle-kit:
+        specifier: ^0.31.11
+        version: 0.31.11
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
+      typescript-native:
+        specifier: npm:typescript@^7.0.2
+        version: typescript@7.0.2
+      vitest:
+        specifier: ^5.0.3
+        version: 5.0.3(@types/node@26.6.4)(vite@8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15))
 
   contracts: {}
 
   frontend:
     dependencies:
-      '@spellbook/backend':
-        specifier: workspace:*
-        version: link:../backend
       '@spellbook/contracts':
         specifier: workspace:*
         version: link:../contracts
@@ -249,19 +258,16 @@ importers:
       bits-ui:
         specifier: ^2.19.5
         version: 2.19.5(@internationalized/date@3.12.4)(@sveltejs/kit@3.1.0(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.2)(vite@8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))(svelte@5.57.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))(svelte@5.57.2)
-      drizzle-orm:
-        specifier: ^0.45.4
-        version: 0.45.4(@types/pg@8.23.1)(pg@8.23.1)
       mana-font:
         specifier: ^1.18.0
         version: 1.18.0
-      pg:
-        specifier: ^8.23.1
-        version: 8.23.1
       qrcode:
         specifier: ^1.5.4
         version: 1.5.4
     devDependencies:
+      '@spellbook/backend':
+        specifier: workspace:*
+        version: link:../backend
       '@sveltejs/adapter-node':
         specifier: ^6.0.0
         version: 6.0.0(@sveltejs/kit@3.1.0(@sveltejs/vite-plugin-svelte@7.3.1(svelte@5.57.2)(vite@8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))(svelte@5.57.2)(typescript@6.0.3)(vite@8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)))
@@ -286,9 +292,12 @@ importers:
       csstype:
         specifier: ^3.2.3
         version: 3.2.3
-      drizzle-kit:
-        specifier: ^0.31.11
-        version: 0.31.11
+      drizzle-orm:
+        specifier: ^0.45.4
+        version: 0.45.4(@types/pg@8.23.1)(pg@8.23.1)
+      pg:
+        specifier: ^8.23.1
+        version: 8.23.1
       prettier:
         specifier: ^3.9.9
         version: 3.9.9

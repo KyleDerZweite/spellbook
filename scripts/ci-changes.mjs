@@ -11,23 +11,29 @@ export function classifyPaths(paths) {
 		if (
 			path.startsWith('docs/') ||
 			/^[^/]+\.md$/.test(path) ||
-			/^(frontend|backend|contracts|worker|scan-worker)\/README\.md$/.test(path) ||
+			/^(frontend|backend|contracts|worker|scan-worker|android)\/README\.md$/.test(path) ||
 			['LICENSE', 'NOTICE'].includes(path)
 		)
 			continue;
 		if (
 			path.startsWith('.github/') ||
 			path.startsWith('scripts/ci-changes') ||
-			['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'frontend/.node-version'].includes(
-				path
-			) ||
-			/(^|\/)(Dockerfile|\.dockerignore)$/.test(path)
+			path === '.dockerignore'
 		)
 			return all();
-		if (path.startsWith('frontend/drizzle/')) {
+		if (
+			['package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'frontend/.node-version'].includes(
+				path
+			)
+		) {
+			checks.application = true;
+			continue;
+		}
+		if (path.startsWith('backend/drizzle/') || path.startsWith('frontend/drizzle/')) {
 			checks.application = true;
 			checks.worker = true;
-		} else if (path.startsWith('worker/')) checks.worker = true;
+		} else if (path.startsWith('android/')) continue;
+		else if (path.startsWith('worker/')) checks.worker = true;
 		else if (path.startsWith('scan-worker/')) {
 			checks.application = true;
 			checks.scan_worker = true;
@@ -39,7 +45,7 @@ export function classifyPaths(paths) {
 
 export function selectChecks({ eventName, base, head, cwd = process.cwd() }) {
 	if (
-		eventName !== 'pull_request' ||
+		!['pull_request', 'push'].includes(eventName) ||
 		!/^[a-f\d]{40}$/i.test(base ?? '') ||
 		!/^[a-f\d]{40}$/i.test(head ?? '')
 	)
@@ -48,7 +54,13 @@ export function selectChecks({ eventName, base, head, cwd = process.cwd() }) {
 		// Disabling renames exposes both the old and new paths. NUL preserves unusual filenames.
 		const changed = execFileSync(
 			'git',
-			['diff', '--name-only', '--no-renames', '-z', `${base}...${head}`],
+			[
+				'diff',
+				'--name-only',
+				'--no-renames',
+				'-z',
+				`${base}${eventName === 'pull_request' ? '...' : '..'}${head}`
+			],
 			{
 				cwd,
 				encoding: 'utf8',
@@ -57,7 +69,7 @@ export function selectChecks({ eventName, base, head, cwd = process.cwd() }) {
 		);
 		return classifyPaths(changed.split('\0').filter(Boolean));
 	} catch {
-		// An unavailable comparison must never silently skip a suite.
+		// An unavailable comparison must never silently skip an automatic suite.
 		return all();
 	}
 }
