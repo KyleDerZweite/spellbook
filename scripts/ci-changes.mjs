@@ -3,10 +3,10 @@ import { appendFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const all = () => ({ application: true, worker: true, scan_worker: true, android: true });
+const all = () => ({ application: true, worker: true, scan_worker: true });
 
 export function classifyPaths(paths) {
-	const checks = { application: false, worker: false, scan_worker: false, android: false };
+	const checks = { application: false, worker: false, scan_worker: false };
 	for (const path of paths) {
 		if (
 			path.startsWith('docs/') ||
@@ -32,11 +32,8 @@ export function classifyPaths(paths) {
 		if (path.startsWith('backend/drizzle/') || path.startsWith('frontend/drizzle/')) {
 			checks.application = true;
 			checks.worker = true;
-		} else if (path.startsWith('android/')) checks.android = true;
-		else if (path.startsWith('contracts/')) {
-			checks.application = true;
-			checks.android = true;
-		} else if (path.startsWith('worker/')) checks.worker = true;
+		} else if (path.startsWith('android/')) continue;
+		else if (path.startsWith('worker/')) checks.worker = true;
 		else if (path.startsWith('scan-worker/')) {
 			checks.application = true;
 			checks.scan_worker = true;
@@ -72,7 +69,7 @@ export function selectChecks({ eventName, base, head, cwd = process.cwd() }) {
 		);
 		return classifyPaths(changed.split('\0').filter(Boolean));
 	} catch {
-		// An unavailable comparison must never silently skip a suite.
+		// An unavailable comparison must never silently skip an automatic suite.
 		return all();
 	}
 }

@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-19
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
-- Update Triggers: independent API/web ownership and relocated code references, native initial Deck Search publication regression, conditional CI scope and consolidated jobs, native Inventory measurement regression, portable opt-in browsing performance evidence and artifact provenance, PWA worker build harness and tsconfig, QR integration/HTTP and pending target acceptance, Dev launcher lifecycle tests, test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
+- Update Triggers: independent API/web ownership and relocated code references, native initial Deck Search publication regression, conditional CI scope, manual-only heavy workflows and consolidated jobs, native Inventory measurement regression, portable opt-in browsing performance evidence and artifact provenance, PWA worker build harness and tsconfig, QR integration/HTTP and pending target acceptance, Dev launcher lifecycle tests, test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
 - Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance), [Application boundaries](../architecture/application-contract.md#implementation-status)
 
 This document owns repository check commands, CI coverage, and verification evidence.
@@ -33,9 +33,9 @@ pnpm --dir .. build
 pnpm --dir ../backend db:check
 ```
 
-`pnpm --dir .. test:tooling` runs boundary, CI routing, root launcher and packaging regression tests.
-Frontend `pnpm test:dev` runs its compatibility-launcher tests with isolated command fixtures.
-CI runs these alongside frontend lint and unit tests.
+`pnpm --dir .. test:tooling` runs boundary, CI routing/workflow ownership, root launcher and packaging regression tests.
+Frontend `pnpm test:dev` imports the root launcher suite, so running it or standalone packaging tests again adds no coverage.
+Automatic CI runs the tooling aggregate alongside frontend lint and unit tests.
 These fixtures verify process ownership and cleanup paths; actual Podman and PostgreSQL startup require separate local integration evidence.
 
 `lint` includes the root TypeScript import-boundary checker and forbidden-import tests, Prettier, independent backend type checking, SvelteKit synchronization, the TypeScript 7 check and Svelte checking.
@@ -292,7 +292,7 @@ The maintainer requested no workaround, so installation, native guest Search and
 Physical Honor, camera, hardware and production deployment acceptance are also absent.
 The parent integration owner records final revision, commands and target evidence in [issue 244](https://github.com/KyleDerZweite/spellbook/issues/244).
 
-The Android CI job uses [setup-android v4.0.4](https://github.com/android-actions/setup-android/tree/v4.0.4) to install command-line tools, put `sdkmanager` on PATH and provision platform 37.0 and build-tools 36.0.0.
+The manually dispatched [Android Build workflow](../../.github/workflows/android.yml) uses [setup-android v4.0.4](https://github.com/android-actions/setup-android/tree/v4.0.4) to install command-line tools, put `sdkmanager` on PATH and provision platform 37.0 and build-tools 36.0.0 with JDK 21.
 This explicit setup avoids relying on the runner image's SDK installation.
 SDK license acceptance is authorized for this delivery; accepted license text is omitted from logs.
 
@@ -322,36 +322,50 @@ Check results at the aggregate head; existing fixture/provider tests do not esta
 ## CI coverage
 
 [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs on pull requests, pushes to `main` and manual dispatch.
-It has at most five jobs.
-A short `CI Scope` job runs the native [routing tests](../../scripts/ci-changes.test.mjs) and [change classifier](../../scripts/ci-changes.mjs), without installing application dependencies.
-The four substantive jobs depend only on successful classification and can run in parallel:
+It has three jobs.
+The short `CI Scope` job runs the native [routing/workflow ownership tests](../../scripts/ci-changes.test.mjs) and [change classifier](../../scripts/ci-changes.mjs), without installing application dependencies.
+The two substantive jobs depend on successful classification and can run in parallel:
 
-| Job                     | Checks                                                                                                                                       | PR scope                                                                |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Application Checks      | Web/backend types and boundaries through `lint`, web unit/Dev tests, packaging, backend unit/native tests and backend `db:check`             | App/shared source and Scan worker changes                               |
-| Application Integration | Backend migration, `test:integration`, independent API/web build, `test:http`, `test:scan`, `test:sync` with real PostgreSQL and Scan worker | Same as Application Checks                                              |
-| Python Workers          | Lock consistency, Ruff lint/format and pytest for each affected Python project                                                               | Catalog worker, Scan worker, or migrations used by Catalog worker tests |
-| Android Build           | SDK 37, Java 21; `:app:lintDebug :app:testDebugUnitTest :app:assembleDebug`                                                                  | Android source or shared contracts                                      |
+| Job                | Checks                                                                                                                         | Automatic scope                                                         |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| Application Checks | Web/backend types and boundaries through `lint`, web unit tests, root `test:tooling`, backend unit/native tests and `db:check` | App/shared source and Scan worker changes                               |
+| Python Workers     | Lock consistency, Ruff lint/format and pytest for each affected Python project                                                 | Catalog worker, Scan worker, or migrations used by Catalog worker tests |
 
-The standalone build is removed because Application Integration already builds and checks the client boundary and PWA worker.
 Migration consistency runs in Application Checks using the existing frozen workspace install.
+Root `test:tooling` includes launcher and packaging tests, so CI does not invoke those suites separately.
 Python projects share one job/toolchain setup, retaining separate project environments; its PostgreSQL service starts only when Catalog worker tests are selected.
-Application Integration retains its separate disposable PostgreSQL service and actual locked Scan worker.
+The scope job has a five-minute timeout; Application Checks and Python Workers each have fifteen minutes.
+
+[Application Integration](../../.github/workflows/application-integration.yml) and [Android Build](../../.github/workflows/android.yml) are separate workflows triggered only by `workflow_dispatch`.
+Neither has an automatic trigger or a `workflow_call` entry point, and automatic CI never invokes them.
+Each manual workflow has one job with a thirty-minute timeout and no concurrency cancellation of another manual run.
+Application Integration retains disposable PostgreSQL 18, the actual locked Scan worker, migrations, `test:integration`, the independent API/web build, `test:http`, `test:scan` and `test:sync`.
+Android Build retains explicit SDK 37.0, build-tools 36.0.0, setup-android v4.0.4, JDK 21 and `:app:lintDebug :app:testDebugUnitTest :app:assembleDebug`.
+Dispatch the required workflow against the revision being verified, for example:
+
+```sh
+gh workflow run application-integration.yml --ref <branch-or-tag>
+gh workflow run android.yml --ref <branch-or-tag>
+```
+
+Automatic CI trades full application builds and PostgreSQL/HTTP/Scan/SavedState integration plus Android verification for shorter feedback.
+A green automatic run establishes only the selected lightweight checks.
+It does not establish that either manual workflow passed, and moving a failing suite to manual dispatch does not resolve its failure.
+Run the relevant manual or documented local checks before claiming their coverage, and record their revision, result and skipped cases separately.
 
 PR scope uses the complete local Git merge-base diff between event base/head SHAs; main pushes use the pushed `base..head` diff.
 Paths are NUL-delimited and rename detection is disabled so additions and deletions both count.
-`frontend/`, `backend/` and other `scripts/` select application jobs.
-Shared `contracts/` also selects Android.
-Migration paths under `backend/drizzle/`, including the legacy frontend path, select application and Catalog worker tests.
-`worker/` selects Catalog tests; `scan-worker/` selects application and Scan worker tests.
-Android paths select the single Android job.
-JS workspace/lockfile changes select application jobs, without forcing Python or Android.
-Known documentation alone selects no substantive job.
-CI/workflow files, unknown paths, manual runs or unavailable comparisons select all suites.
-The workflow has no path filter and avoids GitHub's path-filter limits.
-New pushes cancel obsolete runs of the same PR; non-PR runs use unique concurrency groups.
+`frontend/`, `backend/`, shared `contracts/` and other `scripts/` select Application Checks.
+Migration paths under `backend/drizzle/`, including the legacy frontend path, select Application Checks and Catalog worker tests.
+`worker/` selects Catalog tests; `scan-worker/` selects Application Checks and Scan worker tests.
+Android-only changes and known documentation alone select no substantive automatic job.
+JS workspace/lockfile changes select Application Checks without forcing Python.
+CI/workflow files, unknown paths, manual lightweight CI runs or unavailable comparisons select every automatic suite.
+The classifier has no Android output because Android is always an explicit manual check.
+The automatic workflow has no path filter and avoids GitHub's path-filter limits.
+New pushes cancel obsolete runs of the same PR or main branch; manual CI dispatches use unique concurrency groups and remain independent.
 
-If repository protection later requires status checks, include `CI Scope` alongside the four substantive checks.
+If repository protection later requires status checks, include `CI Scope` alongside Application Checks and Python Workers.
 A failed classifier skips dependent jobs, and [GitHub accepts skipped jobs as successful checks](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-jobs-with-conditions).
 Requiring descendants alone does not establish successful classification.
 This workflow change does not alter repository protection settings.
@@ -359,12 +373,12 @@ This workflow change does not alter repository protection settings.
 For isolated worktrees, set the existing `TEST_SCAN_DATABASE_NAME` to the assigned disposable database and `SCAN_WORKER_URL` to the assigned real loopback worker before PG/HTTP Scan checks.
 The suite verifies that explicit loopback port and actual worker health without a fixed local port.
 `test:scan` uses the actual built application, PostgreSQL and configured local storage; [Mobile and Scan](../architecture/mobile-and-scan.md#scan-uploads) owns its evidence limits.
-The workflow is the source of truth for job names, environment variables, and tool versions.
+The workflows are the source of truth for job names, environment variables and tool versions.
 
-CI does not run the root Markdown command.
+Automatic CI does not run the root Markdown command.
 Backend `test` includes standalone native/operator suites under `backend/scripts/`; database-dependent operator cases skip without their explicitly guarded disposable target.
-CI database names do not satisfy the `_demo`/`_design` guard, so those transaction checks require separate local evidence.
-Android CI assembles/tests/lints; it does not boot an emulator or establish installation/native journeys.
+The manual application workflow's database name does not satisfy the `_demo`/`_design` guard, so those transaction checks require separate local evidence.
+Android Build assembles/tests/lints; it does not boot an emulator or establish installation/native journeys.
 Browser workflows, container builds, image publication and deployment also remain explicit checks when relevant.
 [Deployment](./deployment.md) owns container startup and operator verification; [database upgrades](./postgres-upgrade.md) owns restore rehearsal and rollback checks.
 
