@@ -47,10 +47,10 @@ API_TRUSTED_PROXY_ADDRESSES=127.0.0.1,::1 \
 fnm exec --using 26.10.0 pnpm --dir backend start
 
 APP_ORIGIN=http://127.0.0.1:3000 API_INTERNAL_URL=http://127.0.0.1:3001 \
-HOST=127.0.0.1 PORT=3000 fnm exec --using 26.10.0 node frontend/build/index.js
+HOST=127.0.0.1 PORT=3000 BODY_SIZE_LIMIT=12M fnm exec --using 26.10.0 node frontend/build/index.js
 ```
 
-Use free task-owned ports and the matching public Origin for isolated work. Backend `start` loads root `.env`; the web command needs only its selected presentation/proxy variables. The API defaults to loopback and trusts no forwarded client address unless configured. [Configuration](#configuration) owns proxy trust and public-origin policy. Android uses the separate Gradle project and [native delivery contract](../architecture/independent-applications.md#android-delivery); native build/run instructions remain with that project when integrated.
+Use free task-owned ports and the matching public Origin for isolated work. Backend `start` loads root `.env`; the web command needs only its selected presentation/proxy variables. The API defaults to loopback and trusts no forwarded client address unless configured. [Configuration](#configuration) owns proxy trust and public-origin policy. Android uses the separate Gradle project and [native delivery contract](../architecture/independent-applications.md#android-delivery); the [Android README](../../android/README.md) owns its build/run instructions.
 
 ## PWA installation and QR use
 
@@ -123,32 +123,32 @@ Use `podman-compose --profile tunnel up --build -d` to include Newt. Set `PANGOL
 
 ## Configuration
 
-| Variable                                            | Meaning                                                                                                               |
-| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `DEV_APP_ORIGIN`                                    | Local Vite form origin; defaults to `http://localhost:5173`, independently of the production build origin             |
-| `APP_ORIGIN`                                        | Public Origin compiled into web and supplied to API at runtime for Origin checks, QR URLs and secure cookies          |
-| `API_INTERNAL_URL`                                  | Web-only private API destination; Compose uses `http://127.0.0.1:3001`                                                |
-| `API_HOST`, `API_PORT`                              | API listener, default `127.0.0.1:3001`; keep private                                                                  |
-| `API_TRUSTED_PROXY_ADDRESSES`                       | Explicit comma-separated socket-peer IPs allowed to supply `X-Spellbook-Client-Address`; empty trusts none            |
-| `ADDRESS_HEADER`, `XFF_DEPTH`                       | Web ingress client-address configuration; leave the header empty until proxy trust is configured                      |
+| Variable                                            | Meaning                                                                                                                                                   |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DEV_APP_ORIGIN`                                    | Local Vite form origin; defaults to `http://localhost:5173`, independently of the production build origin                                                 |
+| `APP_ORIGIN`                                        | Public Origin compiled into web and supplied to API at runtime for Origin checks, QR URLs and secure cookies                                              |
+| `API_INTERNAL_URL`                                  | Web-only private API destination; Compose uses `http://127.0.0.1:3001`                                                                                    |
+| `API_HOST`, `API_PORT`                              | API listener, default `127.0.0.1:3001`; keep private                                                                                                      |
+| `API_TRUSTED_PROXY_ADDRESSES`                       | Explicit comma-separated socket-peer IPs allowed to supply `X-Spellbook-Client-Address`; empty trusts none                                                |
+| `ADDRESS_HEADER`, `XFF_DEPTH`                       | Web ingress client-address configuration; leave the header empty until proxy trust is configured                                                          |
 | `BODY_SIZE_LIMIT`                                   | Web transport limit; launcher, HTTP harness and web image default to `12M`, preserving explicit overrides. API transport defaults to 12 MiB independently |
-| `DEMO_MODE`                                         | Set to `true` only for an explicitly seeded disposable demo. See [demo setup](./local-auth.md#demo-mode).             |
-| `VALUE_HISTORY_TIMEZONE`                            | API reporting timezone, default `Europe/Berlin`; invalid names fail API startup                                       |
-| `VALUE_HISTORY_ENABLED`                             | API-only strict `true` or `false`, default `true`; disables only observation scheduling                               |
-| `DATABASE_URL`                                      | API, Catalog worker or operator PostgreSQL connection; compose constructs its internal connection from `POSTGRES_*`   |
-| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Database and credentials; replace the example password                                                                |
-| `CATALOG_SOURCE`                                    | Scryfall source: `all_cards` by default, or `default_cards`                                                           |
-| `SCRYFALL_BULK_URL`                                 | Scryfall bulk-data list URL; defaults to `https://api.scryfall.com/bulk-data`                                         |
-| `SYNC_INTERVAL`                                     | `daily`, `weekly`, or `manual`                                                                                        |
-| `WORKER_DATA_DIR`                                   | Persistent worker status directory; compose uses `/app/data`                                                          |
-| `SCAN_WORKER_URL`                                   | API-only internal scan-worker URL; Compose uses `http://scan-worker:8080`                                             |
-| `SCAN_STORAGE_DRIVER`                               | API and Scan worker use `s3` in the base stack or `local` with the development override                               |
-| `SCAN_LOCAL_STORAGE_DIR`                            | Local artifact directory for the `local` driver                                                                       |
-| `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`             | API/Scan-worker S3-compatible endpoint, region and bucket; never web configuration                                    |
-| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`          | API/Scan-worker S3-compatible credentials                                                                             |
-| `S3_FORCE_PATH_STYLE`                               | Defaults to `true` for S3-compatible services                                                                         |
+| `DEMO_MODE`                                         | Set to `true` only for an explicitly seeded disposable demo. See [demo setup](./local-auth.md#demo-mode).                                                 |
+| `VALUE_HISTORY_TIMEZONE`                            | API reporting timezone, default `Europe/Berlin`; invalid names fail API startup                                                                           |
+| `VALUE_HISTORY_ENABLED`                             | API-only strict `true` or `false`, default `true`; disables only observation scheduling                                                                   |
+| `DATABASE_URL`                                      | API, Catalog worker or operator PostgreSQL connection; compose constructs its internal connection from `POSTGRES_*`                                       |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Database and credentials; replace the example password                                                                                                    |
+| `CATALOG_SOURCE`                                    | Scryfall source: `all_cards` by default, or `default_cards`                                                                                               |
+| `SCRYFALL_BULK_URL`                                 | Scryfall bulk-data list URL; defaults to `https://api.scryfall.com/bulk-data`                                                                             |
+| `SYNC_INTERVAL`                                     | `daily`, `weekly`, or `manual`                                                                                                                            |
+| `WORKER_DATA_DIR`                                   | Persistent worker status directory; compose uses `/app/data`                                                                                              |
+| `SCAN_WORKER_URL`                                   | API-only internal scan-worker URL; Compose uses `http://scan-worker:8080`                                                                                 |
+| `SCAN_STORAGE_DRIVER`                               | API and Scan worker use `s3` in the base stack or `local` with the development override                                                                   |
+| `SCAN_LOCAL_STORAGE_DIR`                            | Local artifact directory for the `local` driver                                                                                                           |
+| `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`             | API/Scan-worker S3-compatible endpoint, region and bucket; never web configuration                                                                        |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`          | API/Scan-worker S3-compatible credentials                                                                                                                 |
+| `S3_FORCE_PATH_STYLE`                               | Defaults to `true` for S3-compatible services                                                                                                             |
 
-Native Python commands do not implicitly load `.env`. From `worker/` or `scan-worker/`, use `uv run --env-file ../.env` before the existing command when its configuration should come from that file. Compose injects its selected service variables and constructs internal database URLs from `POSTGRES_*`; it does not pass native `DEMO_MODE` or `DEV_APP_ORIGIN` into the deployed frontend.
+Native Python commands do not implicitly load `.env`. From `worker/` or `scan-worker/`, use `uv run --env-file ../.env` before the existing command when its configuration should come from that file. Compose injects its selected service variables and constructs internal database URLs from `POSTGRES_*`; it forwards the safe `DEMO_MODE` flag to API and web, while `DEV_APP_ORIGIN` remains a native-development setting.
 
 Set `APP_ORIGIN` before building web and starting the API. Changing it requires `podman-compose build frontend` and recreation of frontend and API with the same public Origin. The backend/migrator build is origin-independent. Updating runtime variables alone does not change SvelteKit 3's compiled origin.
 

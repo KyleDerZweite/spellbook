@@ -1,6 +1,6 @@
 # Spellbook website and Android design handoff
 
-- Status: Android visual direction and Kotlin/Compose accepted; native implementation in progress
+- Status: Android first slice implemented; native target verification pending
 - Last Reviewed: 2026-10-19
 - Source of Truth: maintainer's selected Android structure and Figma-first sequence, inspected first-party app images and versioned mobile source, linked Figma files and shared API contracts
 - Update Triggers: accepted visual direction and Card Station demo name, independent web/backend/Android delivery, native stack recommendation, prototype journey review, colored app navigation and compact Inventory actions, eight-box Cardstation and proposed Filter-Box/physical links, Cardstation/capture contracts, framework selection, API parity, native session lifecycle and cache policy
@@ -72,4 +72,4 @@ Public single-Printing lookup, web/API parity and initial native session/lifecyc
 
 Rendered screens, saved Figma reactions and simulated scenarios do not prove Player execution, Android keyboard/Back, accessibility, real authentication, physical capture or hardware integration. Maintainer visual acceptance covers the design direction; native verification remains separate work.
 
-The selected toolchain pins SDK 37, AGP 9.1.1, Gradle 9.6.1, Kotlin 2.4.21 and Compose BOM 2026.09.00, with Navigation3, Lifecycle, Activity and Ktor versions in the [contract](../architecture/independent-applications.md#android-delivery). The producer reports debug assembly, JVM unit tests and lint passed; native source integration is pending. The root-owned emulator attempt exited 139 before boot. Per maintainer instruction, no workaround was attempted. Install, rendered UI, real API native journeys and website-to-app SSE remain unexecuted. No physical Honor, camera, hardware or production deployment acceptance is established.
+The selected toolchain pins SDK 37, AGP 9.1.1, Gradle 9.6.1, Kotlin 2.4.21 and Compose BOM 2026.09.00, with Navigation3, Lifecycle, Activity and Ktor versions in the [contract](../architecture/independent-applications.md#android-delivery). The native source is integrated, and debug assembly, JVM unit tests and lint passed in the parent checkout. The root-owned emulator attempt exited 139 before boot. Per maintainer instruction, no workaround was attempted. Install, rendered UI, real API native journeys and website-to-app SSE remain unexecuted. No physical Honor, camera, hardware or production deployment acceptance is established.
