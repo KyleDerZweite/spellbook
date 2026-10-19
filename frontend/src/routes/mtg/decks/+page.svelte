@@ -80,7 +80,6 @@
 		untrack(() => deckSubscription?.invalidate());
 	});
 	onMount(() => {
-		optionalReads.watchSearchActivity(window.matchMedia('(max-width: 1000px)'));
 		deckSubscription = workspaceSavedState.subscribe({
 			topics: ['decks', 'inventory', 'values'],
 			clear: () => {
@@ -200,6 +199,7 @@
 				}
 			}
 		});
+		optionalReads.watchSearchActivity(window.matchMedia('(max-width: 1000px)'));
 		return () => deckSubscription?.dispose();
 	});
 	$effect(() => {
@@ -422,7 +422,7 @@
 			inspected ? { canonicalCardId: inspected.oracle_id, opening: inspectorOpening } : null,
 		search: () => ({ query, open: searchOpen }),
 		initialSearch: untrack(() => (!data.oracleId && !data.catalogError ? data.query : undefined)),
-		publication: () => deckSubscription?.publication() ?? (() => true),
+		publication: () => deckSubscription?.publication() ?? (() => false),
 		read: readSavedJSON,
 		ownership: (value) => {
 			inspectorOwned = value;
