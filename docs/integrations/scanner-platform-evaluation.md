@@ -1,10 +1,14 @@
 # Spellbook client, recognition and sorter research
 
 - Status: Research and decision support; not an accepted architecture
-- Last Reviewed: 2026-10-17
+- Last Reviewed: 2026-10-19
 - Source of Truth: linked primary sources, repository code, maintainer's dated scope clarification and explicitly identified engineering assessments
-- Update Triggers: PWA/QR implementation status without replacing dated research, Android priority, app-specific capabilities, website packaging, Cardstation integration, platform/runtime support, client responsibilities, reference-data use, hardware experiments, recognition measurements, distribution and operating model
-- Related Docs: [Product specification](../product/specification.md), [Clients and Scan](../architecture/mobile-and-scan.md), [Sorter concept](./card-robot.md), [Application contract](../architecture/application-contract.md), [Deployment](../operations/deployment.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Domain glossary](../../GLOSSARY.md), [Integrations index](./README.md)
+- Update Triggers: independent Android direction and complete Figma flow handoff, PWA/QR implementation status without replacing dated research, Android priority, app-specific capabilities, website packaging, Cardstation integration, platform/runtime support, client responsibilities, reference-data use, hardware experiments, recognition measurements, distribution and operating model
+- Related Docs: [Product specification](../product/specification.md), [Mobile exploration](../product/mobile-app-exploration.md), [Clients and Scan](../architecture/mobile-and-scan.md), [Sorter concept](./card-robot.md), [Application contract](../architecture/application-contract.md), [Deployment](../operations/deployment.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Domain glossary](../../GLOSSARY.md), [Integrations index](./README.md)
+
+## Mobile UX follow-up, 2026-10-19
+
+The maintainer rejected the PWA-first research recommendation and selected a separate Android application against the shared backend, with a complete website/mobile Figma flow scaffold. [The design handoff](../product/mobile-app-exploration.md) records that direction and the open framework comparison. A separate mobile UX is a valid product reason; a browser benchmark failure is not a prerequisite. Earlier platform facts remain comparison evidence rather than a requirement to retain PWA. The implemented PWA/QR behavior and local-recognition decision are preserved. Separate Android/Brave emulator evidence in [PR 231](https://github.com/KyleDerZweite/spellbook/pull/231) establishes neither physical Honor compatibility nor a native app.
 
 ## Implementation update, 2026-10-17
 
@@ -14,11 +18,11 @@ The backend browser/device QR API, manifest and public-only service worker are i
 
 The dated research below remains decision support for recognition runtimes, later packaging and hardware. Its earlier open install/QR questions are narrowed by this accepted delivery; its original source assessments and unmeasured limits remain intact.
 
-## Current overview, 2026-10-15
+## Dated research overview, 2026-10-15
 
 The 2026-10-15 scope prioritizes Android, all website product functions in the app, a distinct mobile layout/navigation, QR authorization for Cardstation login/sync and individual-card local scanning. The shared API must support common functions and app extensions. The ordinary website need not expose every workflow; one web application/PWA may provide both presentations. No framework is selected. Further app ideas remain unspecified. The Jetson owns Cardstation capture, recognition and hardware execution. [Current client scope](../architecture/mobile-and-scan.md#client-scope-and-open-responsibilities).
 
-Evaluate a shared SvelteKit web/PWA first. Mobile can use separate layouts/components while reusing backend rules and contracts. Viewport/input adaptation determines suitable layout; `display-mode` can distinguish ordinary browser and standalone presentation for additional app entrypoints. Standalone mode describes the current window, not universal installation state or device identity. Visibility and API authorization have separate responsibilities. [Responsive layouts](https://web.dev/learn/design/media-queries), [PWA display-mode detection](https://web.dev/learn/pwa/detection).
+At that research point, the recommendation was to evaluate a shared SvelteKit web/PWA first. The 2026-10-19 independent Android direction replaces that priority. Mobile clients can use separate layouts/components while reusing backend rules and contracts. Viewport/input adaptation determines suitable layout; `display-mode` can distinguish ordinary browser and standalone presentation for additional app entrypoints. Standalone mode describes the current window, not universal installation state or device identity. Visibility and API authorization have separate responsibilities. [Responsive layouts](https://web.dev/learn/design/media-queries), [PWA display-mode detection](https://web.dev/learn/pwa/detection).
 
 A hosted PWA can retain SvelteKit server loads/actions; installation does not force a static SPA or offline support. If measured browser limits justify native modules, Capacitor remains an alternative, with bundled-client/API adaptation work. Its `server.url` is documented for live reload rather than production. [SvelteKit routing](https://svelte.dev/docs/kit/routing), [Capacitor configuration](https://capacitorjs.com/docs/config).
 
@@ -48,11 +52,11 @@ The current scope distinguishes app-specific presentation from execution technol
 
 ### Three reasonable client approaches
 
-| Approach                                               | What it makes easier for Spellbook                                              | Additional work                                                                                             | When it becomes useful                                                 |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| Responsive website, optionally a PWA                   | Existing product functions and UI remain usable. Browser scanning can be added. | Camera/runtime tests, install behavior, local assets and recovery. Offline functions require separate work. | The first shared product foundation and foreground scanning.           |
-| Shared web UI with a native wrapper, such as Capacitor | Svelte/TypeScript UI can be reused and native capabilities added.               | API adapters, native projects, plugins, platform tests and separate releases.                               | Specific camera or accessory requirements exceed browser capabilities. |
-| Separate native app                                    | Direct access to platform cameras and native ML/accessory APIs.                 | Another UI, full feature parity, auth/sync adapters and platform releases.                                  | A proven capability requirement justifies additional maintenance.      |
+| Approach                                               | What it makes easier for Spellbook                                              | Additional work                                                                                             | When it becomes useful                                                             |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Responsive website, optionally a PWA                   | Existing product functions and UI remain usable. Browser scanning can be added. | Camera/runtime tests, install behavior, local assets and recovery. Offline functions require separate work. | The first shared product foundation and foreground scanning.                       |
+| Shared web UI with a native wrapper, such as Capacitor | Svelte/TypeScript UI can be reused and native capabilities added.               | API adapters, native projects, plugins, platform tests and separate releases.                               | Specific camera or accessory requirements exceed browser capabilities.             |
+| Separate native app                                    | Direct access to platform cameras and native ML/accessory APIs.                 | Another UI, full feature parity, auth/sync adapters and platform releases.                                  | A distinct product UX or required native capability justifies the separate client. |
 
 This table gives qualitative engineering estimates, not development hours or an app choice. A native app may use a cross-platform framework without becoming compatible with the existing website.
 

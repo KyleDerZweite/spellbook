@@ -11,9 +11,18 @@
 	let camera: MediaStream | undefined;
 	let generation = 0;
 
+	async function stopScanner(control?: IScannerControls) {
+		try {
+			// ZXing's typed-void stop can reject while disabling an unsupported torch.
+			await control?.stop();
+		} catch {
+			// The owned camera tracks are released separately from decoder cleanup.
+		}
+	}
+
 	function stop() {
 		generation++;
-		controls?.stop();
+		void stopScanner(controls);
 		controls = undefined;
 		camera?.getTracks().forEach((track) => track.stop());
 		camera = undefined;
@@ -46,18 +55,18 @@
 			const reader = new BrowserQRCodeReader();
 			const scanning = await reader.decodeFromStream(stream, video, (result, _error, running) => {
 				if (current !== generation) {
-					running.stop();
+					void stopScanner(running);
 					return;
 				}
 				if (result) {
-					running.stop();
+					void stopScanner(running);
 					stop();
 					message = 'Code found. Review the sign-in request before approving.';
 					onScan(result.getText());
 				}
 			});
 			if (current === generation) controls = scanning;
-			else scanning.stop();
+			else void stopScanner(scanning);
 		} catch {
 			if (current !== generation) return;
 			stop();

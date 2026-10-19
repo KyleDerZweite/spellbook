@@ -41,6 +41,16 @@ export default defineConfig(({ mode, command }) => ({
 			{
 				extends: true,
 				test: {
+					name: 'performance',
+					include: ['tests/browsing-performance.test.ts'],
+					fileParallelism: false,
+					testTimeout: 600_000,
+					hookTimeout: 600_000
+				}
+			},
+			{
+				extends: true,
+				test: {
 					name: 'unit',
 					include: ['tests/unit/**/*.test.ts']
 				}

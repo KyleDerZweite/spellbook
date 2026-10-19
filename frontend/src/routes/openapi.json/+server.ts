@@ -939,7 +939,11 @@ const SCHEMA = {
 		'/api/mobile/v1/mtg/decks/{deckId}': {
 			parameters: [pathParameter('deckId')],
 			get: {
-				...operation('Read the compatible owned Deck Snapshot and legality', ref('DeckDetail')),
+				...operation('Read an owned Deck Snapshot with optional legality', {
+					anyOf: [ref('DeckDetail'), ref('DeckSnapshot')],
+					description:
+						'DeckDetail by default; DeckSnapshot without warnings/deckDocuments only with selectedOnly=true&includeLegality=false.'
+				}),
 				parameters: [
 					{
 						name: 'selectedOnly',
@@ -947,6 +951,13 @@ const SCHEMA = {
 						schema: { type: 'boolean', default: false },
 						description:
 							'true independently loads only the selected Deck; default preserves account directory metadata.'
+					},
+					{
+						name: 'includeLegality',
+						in: 'query',
+						schema: { type: 'boolean', default: true },
+						description:
+							'Literal false omits warnings and deckDocuments and requires literal selectedOnly=true. Missing or literal true preserves the full response. Invalid values, duplicate occurrences and invalid narrow combinations return 400.'
 					}
 				]
 			},

@@ -63,12 +63,17 @@
 			: undefined;
 	}
 	let prependFrame = 0;
+	let pendingMeasurements = 0;
 	// Initial row observers settle across layout frames; retain the pre-click row until then.
 	function settlePrepend() {
 		if (prependFrame) cancelAnimationFrame(prependFrame);
 		prependFrame = requestAnimationFrame(() => {
 			prependFrame = requestAnimationFrame(() => {
 				prependFrame = 0;
+				if (pendingMeasurements) {
+					settlePrepend();
+					return;
+				}
 				prependAnchor = undefined;
 			});
 		});
@@ -152,28 +157,41 @@
 		const { index, queryKey: owner } = slot;
 		const id = slot.entry?.id;
 		if (!id) return;
+		let frame = 0;
 		const observer = new ResizeObserver(() => {
-			if (queryKey !== owner || rendered(index)?.id !== id || !node.isConnected) return;
-			const measured = node.getBoundingClientRect().height + 8;
-			const old = heights.get(index);
-			if (old?.id === id && Math.abs(old.height - measured) < 0.5) return;
-			const previous = old?.height ?? estimate;
-			heights.set(index, { id, height: measured });
-			const retainedAnchor = currentPrepend();
-			if (retainedAnchor) {
-				const captured = retainedAnchor;
-				void scrollToIndex(captured.index, captured.intra, () => currentPrepend() === captured);
-				settlePrepend();
-			} else if (viewport && index < indexAt(scrollTop)) {
-				window.scrollBy({ top: measured - previous, behavior: 'instant' });
-				readGeometry();
-			}
-			measurementVersion++;
+			if (frame) return;
+			pendingMeasurements++;
+			// Publish measured geometry outside ResizeObserver delivery.
+			frame = requestAnimationFrame(() => {
+				frame = 0;
+				pendingMeasurements--;
+				if (queryKey !== owner || rendered(index)?.id !== id || !node.isConnected) return;
+				const measured = node.getBoundingClientRect().height + 8;
+				const old = heights.get(index);
+				if (old?.id === id && Math.abs(old.height - measured) < 0.5) return;
+				const previous = old?.height ?? estimate;
+				heights.set(index, { id, height: measured });
+				const retainedAnchor = currentPrepend();
+				if (retainedAnchor) {
+					const captured = retainedAnchor;
+					void scrollToIndex(captured.index, captured.intra, () => currentPrepend() === captured);
+					settlePrepend();
+				} else if (viewport && index < indexAt(scrollTop)) {
+					window.scrollBy({ top: measured - previous, behavior: 'instant' });
+					readGeometry();
+				}
+				measurementVersion++;
+			});
 		});
 		observer.observe(node);
 		return {
 			destroy() {
 				observer.disconnect();
+				if (frame) {
+					cancelAnimationFrame(frame);
+					frame = 0;
+					pendingMeasurements--;
+				}
 			}
 		};
 	}

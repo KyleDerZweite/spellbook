@@ -1,10 +1,10 @@
 # Card scanner and sorter
 
 - Status: Proposed integration
-- Last Reviewed: 2026-10-17
+- Last Reviewed: 2026-10-19
 - Source of Truth: product requirements, scan API code, maintainer scope brief and supplied hardware concept
-- Update Triggers: implemented QR API versus unimplemented machine integration, project responsibilities, integration planning, capture and recognition APIs, physical inventory schema, device protocol, construction choices, prototype results, local scanner recognition and device-login direction, client feature parity, browser scanning and phone computation-core variants
-- Related Docs: [Product specification](../product/specification.md), [Domain model](../../GLOSSARY.md), [Mobile and scan](../architecture/mobile-and-scan.md), [API routes](../product/routing-and-games.md), [Local authentication](../operations/local-auth.md), [Sorter integration Wayfinder map](https://github.com/KyleDerZweite/spellbook/issues/194), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
+- Update Triggers: circular eight-box app prototype, proposed Inventory filters and physical-box links, implemented QR API versus unimplemented machine integration, project responsibilities, integration planning, capture and recognition APIs, physical inventory schema, device protocol, construction choices, prototype results, local scanner recognition and device-login direction, client feature parity, browser scanning and phone computation-core variants
+- Related Docs: [Product specification](../product/specification.md), [Domain model](../../GLOSSARY.md), [Android design handoff](../product/mobile-app-exploration.md), [Mobile and scan](../architecture/mobile-and-scan.md), [API routes](../product/routing-and-games.md), [Local authentication](../operations/local-auth.md), [Sorter integration Wayfinder map](https://github.com/KyleDerZweite/spellbook/issues/194), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
 
 The proposed device accepts a stack of MTG cards, separates one card at a time, captures an image, and sorts cards into output trays. Spellbook supplies the review interface, inventory, decklist, and selected sorting rule. A Jetson may run capture and recognition; a microcontroller may operate motors and read position sensors. Construction and board selection remain undecided.
 
@@ -16,31 +16,43 @@ The maintainer's 2026-10-07 concept extends the existing website, Dashboard, Inv
 
 This effort prepares backend and client contracts, records the concept and plans an exploratory simulator. Hardware construction, machine control, CAD and optimization belong to a separate project, with eventual integration into this service. The maintainer has started local testing and 3D prototyping separately. No measurements or design revisions from that work have been incorporated into this software contract. [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md) records local recognition as the direction; exact client responsibilities need another review. The backend manages authorized account data and can prepare public references; it does not infer a presented user's card from its images.
 
-The eventual destination remains a buildable Spec with a simulator-based integration plan. Immediate work is documentation and experiments that show Input, Scan, transport, six boxes and Eject alongside a rough component list. The [Sorter integration Wayfinder map](https://github.com/KyleDerZweite/spellbook/issues/194) indexes the decisions. A completed Spec, implemented simulator and real hardware evidence do not yet exist.
+The eventual destination remains a buildable Spec with a simulator-based integration plan. Current app design work shows eight boxes around a central input stack. The earlier straight-path concept below remains background for the hardware investigation. The [Sorter integration Wayfinder map](https://github.com/KyleDerZweite/spellbook/issues/194) indexes the decisions. A completed Spec, implemented simulator and real hardware evidence do not yet exist.
 
 The [scanner platform evaluation](./scanner-platform-evaluation.md) researches client/runtime and host/controller alternatives, including OSS maintenance, self-hosting and reproduction. It proposes experiments without selecting construction or implementation contracts.
 
 The maintainer proposed new-intake, re-sorting and possibly physical deck-assembly modes but kept their semantics and the duplicate-counting strategy open. Arbitrary input stacks without known source boxes must be supported. A known source box can help a workflow; it is not a prerequisite. A capture identifier correlates a presentation and its processing, not a permanent physical-copy identity or proof that the card is newly owned.
 
-## Physical concept
+## Current app geometry and Box proposal
+
+On 2026-10-19, the maintainer specified a circular Cardstation view with eight box positions around the central input stack. This replaces the six-box-plus-Eject diagram in the Android prototype. It does not establish a revised mechanical design. Eject's location and routing role in this geometry remain open; no ninth output or reserved eighth position is selected.
+
+The app shows a device name, stable device ID, connection/activity state and observation time. Each recognized box shows its identity and a coarse Filter. Last reported device configuration stays distinguishable from an edited draft. An unavailable or stale observation does not independently prove absence or capacity.
+
+Existing Inventory Boxes are manual, overlapping groups of whole Inventory entries. A proposed Filter-Box would derive a matching Inventory view from a fixed criterion, initially card colour or a selected Deck. Card colour is distinct from Commander colour identity. A Deck match does not reserve copies or assemble that Deck. The current Inventory query has neither colour nor Deck predicates; this is a prototype proposal, not an implemented filtering service.
+
+Keep three identities separate: the logical Inventory Box, an optional stable reference to a removable physical box, and the current device position. A logical Box without a physical link is virtual. Matching Inventory is not observed physical content. Previewing a rule or linking a container does not change owned quantities, establish placement or activate a device rule. Overlapping views must not inflate Inventory totals.
+
+The prototype explores filter preview/confirmation/cancellation and physical link/unlink. Automatic membership, overlap priority, rule activation/versioning, exact versus alternate Deck matching, physical quantity allocation and intake duplicate handling still need reviewed contracts. [The Android handoff](../product/mobile-app-exploration.md) owns the screens and simulated flows.
+
+## Earlier straight-path physical concept
 
 Version 0 presents one card at a time. A weight presses the input stack downward and a motorized roller extracts its bottom card through a narrow opening. Separation reliability and any additional separator remain engineering questions. The card slides down a scanning ramp before an upper conveyor grips it. The conveyor is intended to run continuously; pressure, guidance, timing and arrival detection remain unproven construction choices.
 
 Three positions along the straight path each contain a flap and a left/right rocker. An opened flap releases the card downward to its rocker, producing six removable box destinations. With all flaps closed, the card continues to a fixed end-of-line Eject. Exact geometry and actuation are undecided. The available Jetson Orin Nano Super development kit and HD Logitech USB camera are test equipment, not proof that a chosen control or recognition pipeline meets the movement deadline. Direct Jetson actuation versus a separate microcontroller remains open.
 
-Eject is a regular seventh output. It handles unmatched or uncertain cards, absent/unavailable destinations, intentional output and proposed deck assembly. Logical uncertainty should route a card there rather than stop the whole run, provided its physical position is known and the machine can perform that routing. Jams, double feeds and unknown position still require safe device handling; a straight path alone does not prove a safe outcome in those cases.
+In that earlier concept, Eject is a regular seventh output. It handles unmatched or uncertain cards, absent/unavailable destinations, intentional output and proposed deck assembly. Logical uncertainty should route a card there rather than stop the whole run, provided its physical position is known and the machine can perform that routing. Jams, double feeds and unknown position still require safe device handling; a straight path alone does not prove a safe outcome in those cases.
 
 ## Box identity and availability
 
-Each removable box has a durable identity independent of its current left/right row position and a configurable rule. Candidate filters include colour, colour identity, set, rarity, card type and membership in a selected decklist. Overlapping filters, priority, unknown attributes and rule changes during a run require explicit semantics.
+Each removable box has a durable identity independent of its current device position and a configurable rule. Candidate filters include colour, colour identity, set, rarity, card type and membership in a selected decklist. Overlapping filters, priority, unknown attributes and rule changes during a run require explicit semantics.
 
 The concept puts a QR marker on the rear inner wall, viewed at an angle. One camera or reader per position is an idea, not a selected part. QR may carry a filter or reference a versioned configuration. An ID/config-reference design permits a stored rule to change without reprinting the marker, but offline evaluation requires that configuration on the device. QR payload, optional signatures and configuration activation remain open.
 
-The intended availability rule is deliberate: a visible, recognized QR makes the box available; when cards hide it, further matching cards go to Eject. The signal establishes unavailability, not its cause. Occlusion due to capacity, a missing box and a failed read must not be presented as independently verified observations. Whether additional presence/capacity sensing is necessary remains a hardware decision. A box change before a queued card arrives requires correlation with the observed outcome.
+The proposed availability rule uses a visible, recognized QR as evidence that the box is available. In the earlier straight-path concept, cards hiding the QR cause further matching cards to go to Eject; fallback routing for the circular geometry remains open. An unavailable QR does not establish its cause. Occlusion due to capacity, a missing box and a failed read must not be presented as independently verified observations. Whether additional presence/capacity sensing is necessary remains a hardware decision. A box change before a queued card arrives requires correlation with the observed outcome.
 
 ## Local fast and slow recognition
 
-Installed box rules determine the attributes needed for a local fast decision. When those attributes are reliably available, the device chooses a box or Eject before the routing deadline. Five monocolour destinations plus colourless make six boxes; this does not settle whether their rules use card colour or Commander colour identity. [Magic rules 105 and 903.4](https://media.wizards.com/2026/downloads/MagicCompRules%2020260925.txt) distinguish both from frame colour and include rules-text and back-face contributions to colour identity. Set or deck-membership rules may require stronger identification. No confidence thresholds or measured classifier latency are selected.
+Installed box rules determine the attributes needed for a local fast decision before the routing deadline. The earlier straight-path concept chose a box or Eject and used five monocolour destinations plus colourless as a six-box example. This does not select the new eight-box mapping or settle whether rules use card colour or Commander colour identity. [Magic rules 105 and 903.4](https://media.wizards.com/2026/downloads/MagicCompRules%2020260925.txt) distinguish both from frame colour and include rules-text and back-face contributions to colour identity. Set or deck-membership rules may require stronger identification. No confidence thresholds or measured classifier latency are selected.
 
 Captured frames also feed a slower local queue for exact printing, language, finish evidence and optional Condition estimation. Recognition candidates and estimates remain distinguishable from confirmed data. The [scan architecture](../architecture/mobile-and-scan.md#proposed-recognition-pipeline) owns candidate methods and evaluation. No model, OCR package, local index or cross-platform runtime is selected. Multiple frames and specialized crops are evaluation ideas, not proven improvements.
 
@@ -60,15 +72,15 @@ The current research direction gives the Jetson Orin Nano Super responsibility f
 
 The proposed meaning of a "stateless" backend is that a service process does not own motor timing or depend on its memory to resume machine work. Account Inventory, accepted-event evidence and review state still require durable storage. Machine-process state and durable account state must have separate owners in the integration contract.
 
-For proposed deck assembly, the user chooses a Deck and may empty relevant boxes into the input. Matching required cards go to Eject as the assembly output; remaining cards follow available sorting rules. The machine cannot retrieve from arbitrary storage. A new pass must not add already owned cards again, and actual allocations still depend on the unresolved physical-location model and confirmed outcomes.
+For proposed deck assembly, the user chooses a Deck and may empty relevant boxes into the input. The earlier straight-path concept sent matching required cards to Eject as the assembly output, with remaining cards following available sorting rules. The new geometry's assembly output remains open. The machine cannot retrieve from arbitrary storage. A new pass must not add already owned cards again, and actual allocations still depend on the unresolved physical-location model and confirmed outcomes.
 
 ## Exploratory simulator
 
-The desired concept surface shows Input, Scan, transport, six removable boxes and Eject. It can expose active rules, QR availability, local fast/slow results, retained captures, queue depth and backend sync. Vary local recognition delay, uncertainty, a later contradictory result and a network interruption without turning an open physical-identity rule into an assumed Inventory effect. Compare Jetson-hosted processing with a phone computation-core variant, including loss of the phone connection separately from backend interruption.
+The desired concept surface follows the current eight-box app geometry and can expose active rules, QR availability, local fast/slow results, retained captures, queue depth and backend sync. Vary local recognition delay, uncertainty, a later contradictory result and a network interruption without turning an open physical-identity rule into an assumed Inventory effect. Earlier phone computation-core comparisons remain background research; the current direction gives the Jetson local processing responsibility.
 
 The former server-inference and waiting-for-server variants are withdrawn after the maintainer's correction. Simulate local scheduling and deferred synchronization instead. This surface is an exploratory model before CAD and hardware, not a measured motion model or a completed integration acceptance suite. The rough component inventory below distinguishes known equipment from conceptual requirements.
 
-### Rough component inventory
+### Earlier straight-path component inventory
 
 This is a concept checklist, not a selected bill of materials. Counts describe the supplied mechanism; they do not select parts or prove a workable design.
 
@@ -129,7 +141,7 @@ The device-to-microcontroller transport is undecided. Whichever transport is cho
 
 ## State, inventory, and recovery
 
-Physical routing and digital interpretation progress separately. A presented card can be captured, receive a fast target, move and arrive while exact recognition, review or synchronization remains pending. Logical uncertainty uses regular Eject when physical routing remains possible. A jam, double feed, lost position or uncertain placement requires device handling and reconciliation. These are conceptual lifecycles, not selected protocol enums or new values for the current Scan-session status column.
+Physical routing and digital interpretation progress separately. A presented card can be captured, receive a fast target, move and arrive while exact recognition, review or synchronization remains pending. The earlier straight-path concept sent logical uncertainty to regular Eject when physical routing remained possible; the circular geometry needs its own fallback decision. A jam, double feed, lost position or uncertain placement requires device handling and reconciliation. These are conceptual lifecycles, not selected protocol enums or new values for the current Scan-session status column.
 
 The digital lifecycle retains local captures and recognition evidence, then applies the review and authorized Inventory effect selected for that handling intent. Physical arrival does not authorize a new owned quantity, and a recognition result does not establish arrival. The duplicate-intake strategy and final mode semantics remain open for simulator and hardware experiments.
 

@@ -2,11 +2,13 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { createDatabase, createLocalAuth, createCatalog, createDecks } from '@spellbook/backend';
 import type { AuthUser } from '@spellbook/contracts/auth.ts';
+import { publishCategoryCatalogFixture } from '../fixtures/category-catalog.ts';
 const run = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 run('Category deadlines in parent-owned Deck adoption', () => {
 	let database: ReturnType<typeof createDatabase>,
 		actor: AuthUser,
 		decks: ReturnType<typeof createDecks>;
+	let restoreCatalog: (() => Promise<void>) | undefined;
 	let card: {
 		catalogCardId: string;
 		canonicalCardId: string;
@@ -16,6 +18,7 @@ run('Category deadlines in parent-owned Deck adoption', () => {
 	};
 	beforeAll(async () => {
 		database = createDatabase(process.env.TEST_DATABASE_URL!);
+		restoreCatalog = await publishCategoryCatalogFixture(database.pool);
 		const auth = createLocalAuth(database.db, { demoMode: false });
 		const session = await auth.authenticate(
 			'register',
@@ -37,11 +40,20 @@ run('Category deadlines in parent-owned Deck adoption', () => {
 			setCode: printing.set_code,
 			imageUri: printing.image_uri ?? ''
 		};
-	});
+	}, 60_000);
 	afterAll(async () => {
-		if (actor)
-			await database.pool.query('DELETE FROM user_profiles WHERE account_id=$1', [actor.accountId]);
-		await database.pool.end();
+		try {
+			if (actor)
+				await database.pool.query('DELETE FROM user_profiles WHERE account_id=$1', [
+					actor.accountId
+				]);
+		} finally {
+			try {
+				await restoreCatalog?.();
+			} finally {
+				await database.pool.end();
+			}
+		}
 	});
 	const create = () =>
 		decks.createDeckRecord(actor, {

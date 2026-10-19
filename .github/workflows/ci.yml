@@ -4,13 +4,44 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
 
 jobs:
+  changes:
+    name: CI Scope
+    runs-on: ubuntu-latest
+    outputs:
+      application: ${{ steps.scope.outputs.application }}
+      worker: ${{ steps.scope.outputs.worker }}
+      scan_worker: ${{ steps.scope.outputs.scan_worker }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: frontend/.node-version
+          package-manager-cache: false
+      - run: node --test scripts/ci-changes.test.mjs
+      - name: Select affected suites
+        id: scope
+        run: node scripts/ci-changes.mjs
+        env:
+          CI_EVENT_NAME: ${{ github.event_name }}
+          CI_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CI_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+
   frontend-lint-unit:
-    name: Frontend Lint & Unit Tests
+    name: Application Checks
+    needs: changes
+    if: needs.changes.outputs.application == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -30,49 +61,12 @@ jobs:
       - run: pnpm lint
       - run: pnpm test:unit
       - run: pnpm test:dev
-
-  frontend-build:
-    name: Frontend Build
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: frontend/.node-version
-          package-manager-cache: false
-      - uses: pnpm/action-setup@v6
-        with:
-          package_json_file: package.json
-          cache: true
-          cache_dependency_path: pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm build
-
-  frontend-db-check:
-    name: Frontend DB Schema Check
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version-file: frontend/.node-version
-          package-manager-cache: false
-      - uses: pnpm/action-setup@v6
-        with:
-          package_json_file: package.json
-          cache: true
-          cache_dependency_path: pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
       - run: pnpm db:check
 
   frontend-integration:
-    name: Frontend Integration Tests
+    name: Application Integration
+    needs: changes
+    if: needs.changes.outputs.application == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -138,11 +132,13 @@ jobs:
           if test -f ../.scan-worker-test.pid; then kill "$(cat ../.scan-worker-test.pid)"; fi
 
   worker-tests:
-    name: Worker Tests
+    name: Python Workers
+    needs: changes
+    if: needs.changes.outputs.worker == 'true' || needs.changes.outputs.scan_worker == 'true'
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:18.6-bookworm
+        image: ${{ needs.changes.outputs.worker == 'true' && 'postgres:18.6-bookworm' || '' }}
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
@@ -156,37 +152,28 @@ jobs:
           --health-retries 10
     env:
       WORKER_TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/spellbook_worker_test
-    defaults:
-      run:
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: '0.12.23'
+          enable-cache: true
+      - run: uv python install 3.14.8
+      - name: Catalog worker checks
+        if: needs.changes.outputs.worker == 'true'
         working-directory: worker
-    steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v7
-        with:
-          version: '0.12.23'
-          enable-cache: true
-      - run: uv python install 3.14.8
-      - run: uv lock --check --python 3.14.8
-      - run: uv sync --frozen --extra dev --python 3.14.8
-      - run: uv run --no-sync ruff check
-      - run: uv run --no-sync ruff format --check
-      - run: uv run --no-sync pytest
-
-  scan-worker-tests:
-    name: Scan Worker Tests
-    runs-on: ubuntu-latest
-    defaults:
-      run:
+        run: |
+          uv lock --check --python 3.14.8
+          uv sync --frozen --extra dev --python 3.14.8
+          uv run --no-sync ruff check
+          uv run --no-sync ruff format --check
+          uv run --no-sync pytest
+      - name: Scan worker checks
+        if: ${{ !cancelled() && needs.changes.outputs.scan_worker == 'true' }}
         working-directory: scan-worker
-    steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v7
-        with:
-          version: '0.12.23'
-          enable-cache: true
-      - run: uv python install 3.14.8
-      - run: uv lock --check --python 3.14.8
-      - run: uv sync --frozen --extra dev --python 3.14.8
-      - run: uv run --no-sync ruff check
-      - run: uv run --no-sync ruff format --check
-      - run: uv run --no-sync pytest
+        run: |
+          uv lock --check --python 3.14.8
+          uv sync --frozen --extra dev --python 3.14.8
+          uv run --no-sync ruff check
+          uv run --no-sync ruff format --check
+          uv run --no-sync pytest
