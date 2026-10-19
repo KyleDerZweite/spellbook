@@ -6,152 +6,467 @@
 - Update Triggers: independent API/web ownership and relocated code references, workspace ownership, backend application/transport/operator interfaces and resource cleanup, use-case interfaces, experimental API migration, mutation receipts and revisions, Inventory queries and cache limits, shared UI interfaces and native Deck task entry, synchronization and SavedState process/HMR lifetime, reference publication, value-only history scope, Categories interfaces, immutable entry decisions/manual provenance, Oracle/Combo source and rule lifecycle and acceptance evidence, continuous Lazy browsing/dialog contract and selected versus implemented read limits
 - Related Docs: [Architecture](./README.md), [System overview](./system-overview.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Authentication](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Product specification](../product/specification.md), [UI direction](../product/ui-design-direction.md), [Valuation](./valuation.md), [Category rules](./category-rules.md), [Verification](../operations/github-automation.md), [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md), [ADR-0016](../decisions/0016-postgres-saved-state-invalidation.md), [ADR-0017](../decisions/0017-revisioned-inventory-windows-and-mutation-receipts.md), [Independent applications](./independent-applications.md)
 
-Kyle accepted the original nineteen-slice contract and real HTTP/PostgreSQL/browser acceptance seam in Q56 on 2026-10-06. The value-only scope update below supersedes its cost-dependent contracts and dependency ordering. This document owns the shared application mechanisms. Product owners retain user-facing requirements. Acceptance of the design establishes no capability or benchmark evidence beyond the implementation status below. Deployment remains a separate operator action. The [accepted parent specification, stories and slice dependency graph](https://github.com/KyleDerZweite/spellbook/issues/173) records delivery scope. [Slice 1](https://github.com/KyleDerZweite/spellbook/issues/174) begins the workspace migration. GitHub Issues owns delivery slices, not a second copy of canonical behavior.
+Kyle accepted the original nineteen-slice contract and real HTTP/PostgreSQL/browser acceptance seam in Q56 on 2026-10-06.
+The value-only scope update below supersedes its cost-dependent contracts and dependency ordering.
+This document owns the shared application mechanisms.
+Product owners retain user-facing requirements.
+Acceptance of the design establishes no capability or benchmark evidence beyond the implementation status below.
+Deployment remains a separate operator action.
+The [accepted parent specification, stories and slice dependency graph](https://github.com/KyleDerZweite/spellbook/issues/173) records delivery scope.
+[Slice 1](https://github.com/KyleDerZweite/spellbook/issues/174) begins the workspace migration.
+GitHub Issues owns delivery slices, not a second copy of canonical behavior.
 
 ## Implementation status
 
-Slice 1 establishes the root pnpm workspace, safe Catalog/local-authentication contracts, backend schema/database construction and checked frontend server boundaries. [Root package.json](../../package.json), [pnpm-workspace.yaml](../../pnpm-workspace.yaml) and [pnpm-lock.yaml](../../pnpm-lock.yaml) own package-manager pins, dependency policies and the frozen install. Frontend commands resolve this workspace even when invoked from `frontend/`.
+Slice 1 establishes the root pnpm workspace, safe Catalog/local-authentication contracts, backend schema/database construction and checked frontend server boundaries.
+[Root package.json](../../package.json), [pnpm-workspace.yaml](../../pnpm-workspace.yaml) and [pnpm-lock.yaml](../../pnpm-lock.yaml) own package-manager pins, dependency policies and the frozen install.
+Frontend commands resolve this workspace even when invoked from `frontend/`.
 
-The shared Auth foundation now provides session-produced actor authority, session inspection and atomic backend password rotation. [Authentication](./auth.md#application-ownership) owns these implemented rules. Slice 2 adds Account/Profile HTTP parity, shared card/avatar validation and backend Dashboard summaries. [Authentication](./auth.md#account-http-contract) owns profile patch and password/session contracts; [Postgres](./postgres.md#dashboard-summary-reads) owns summary-query consistency. Slice 3 adds backend Inventory page/detail/location reads, query revisions, a bounded browser window and native GET pagination. Slice 5 migrates Deck use cases and JSON-safe contracts. Slice 4 adds authorized Inventory/Groups mutations, compact original acknowledgements and stale Notes recovery. Slice 6 adds shared Deck UI and native task entry. Starter primary entry categories are implemented. Mounted workspace saved-state consumers are implemented; current-head rendered acceptance remains separate. Account definitions and entry Review/Reset are implemented. Whole-deck evaluation and bounded directory reads are implemented. Optional local Commander Spellbook ingredient matching is implemented.
+The shared Auth foundation now provides session-produced actor authority, session inspection and atomic backend password rotation.
+[Authentication](./auth.md#application-ownership) owns these implemented rules.
+Slice 2 adds Account/Profile HTTP parity, shared card/avatar validation and backend Dashboard summaries.
+[Authentication](./auth.md#account-http-contract) owns profile patch and password/session contracts; [Postgres](./postgres.md#dashboard-summary-reads) owns summary-query consistency.
+Slice 3 adds backend Inventory page/detail/location reads, query revisions, a bounded browser window and native GET pagination.
+Slice 5 migrates Deck use cases and JSON-safe contracts.
+Slice 4 adds authorized Inventory/Groups mutations, compact original acknowledgements and stale Notes recovery.
+Slice 6 adds shared Deck UI and native task entry.
+Starter primary entry categories are implemented.
+Mounted workspace saved-state consumers are implemented; current-head rendered acceptance remains separate.
+Account definitions and entry Review/Reset are implemented.
+Whole-deck evaluation and bounded directory reads are implemented.
+Optional local Commander Spellbook ingredient matching is implemented.
 
-[`composition.ts`](../../frontend/src/lib/server/composition.ts) exposes the request-bound [remote application](../../frontend/src/lib/server/remote/application.ts). The independent [API host](../../backend/src/main.ts) constructs the [backend application](../../backend/src/application.ts) and owns its database, runners, Scan and SavedState resources. The [boundary checker](../../scripts/check-boundaries.mjs) forbids web runtime imports of backend implementation and persistence packages. Test-only backend dependencies remain permitted. [`backend/src/db/schema.ts`](../../backend/src/db/schema.ts), [Drizzle configuration](../../backend/drizzle.config.ts) and [migration history](../../backend/drizzle/) have one backend owner. Integration tests use the [test-only database fixture](../../frontend/tests/fixtures/database.ts) and backend schema directly.
+[`composition.ts`](../../frontend/src/lib/server/composition.ts) exposes the request-bound [remote application](../../frontend/src/lib/server/remote/application.ts).
+The independent [API host](../../backend/src/main.ts) constructs the [backend application](../../backend/src/application.ts) and owns its database, runners, Scan and SavedState resources.
+The [boundary checker](../../scripts/check-boundaries.mjs) forbids web runtime imports of backend implementation and persistence packages.
+Test-only backend dependencies remain permitted.
+[`backend/src/db/schema.ts`](../../backend/src/db/schema.ts), [Drizzle configuration](../../backend/drizzle.config.ts) and [migration history](../../backend/drizzle/) have one backend owner.
+Integration tests use the [test-only database fixture](../../frontend/tests/fixtures/database.ts) and backend schema directly.
 
-[`contracts/src/catalog.ts`](../../contracts/src/catalog.ts), [`auth.ts`](../../contracts/src/auth.ts), [`profile.ts`](../../contracts/src/profile.ts) and [`errors.ts`](../../contracts/src/errors.ts) own the extracted safe shapes. Catalog explicitly maps returned printing fields, excluding unknown stored fields. Local authentication returns ISO-string `expiresAt`; the API owns authentication and API Origin/error policy, while frontend adapters own browser cookies and native form results. Shared avatar/artwork IDs, defaults and validation live in [profile.ts](../../contracts/src/profile.ts); [profile-card.ts](../../contracts/src/profile-card.ts) owns full card validation, limits, mana grammar, defaults and KPI names. Frontend retains image/label metadata and metric/text rendering. [dashboard.ts](../../contracts/src/dashboard.ts) owns the JSON-safe account-summary shape. Untouched feature view types may retain Dates and are not new wire DTOs.
+[`contracts/src/catalog.ts`](../../contracts/src/catalog.ts), [`auth.ts`](../../contracts/src/auth.ts), [`profile.ts`](../../contracts/src/profile.ts) and [`errors.ts`](../../contracts/src/errors.ts) own the extracted safe shapes.
+Catalog explicitly maps returned printing fields, excluding unknown stored fields.
+Local authentication returns ISO-string `expiresAt`; the API owns authentication and API Origin/error policy, while frontend adapters own browser cookies and native form results.
+Shared avatar/artwork IDs, defaults and validation live in [profile.ts](../../contracts/src/profile.ts); [profile-card.ts](../../contracts/src/profile-card.ts) owns full card validation, limits, mana grammar, defaults and KPI names.
+Frontend retains image/label metadata and metric/text rendering.
+[dashboard.ts](../../contracts/src/dashboard.ts) owns the JSON-safe account-summary shape.
+Untouched feature view types may retain Dates and are not new wire DTOs.
 
-The TypeScript [boundary checker](../../scripts/check-boundaries.mjs) resolves actual workspace package imports and tsconfig aliases, including type imports, re-exports and dynamic imports. Lint runs it and its forbidden-import tests. Build runs the [client-output checker](../../scripts/check-client.mjs). [Verification](../operations/github-automation.md) owns current commands and the real HTTP/PostgreSQL seam.
+The TypeScript [boundary checker](../../scripts/check-boundaries.mjs) resolves actual workspace package imports and tsconfig aliases, including type imports, re-exports and dynamic imports.
+Lint runs it and its forbidden-import tests.
+Build runs the [client-output checker](../../scripts/check-client.mjs).
+[Verification](../operations/github-automation.md) owns current commands and the real HTTP/PostgreSQL seam.
 
-Inventory and Deck now implement compact original mutation acknowledgements and independent Notes/Description conflicts. Shared Deck UI and native task entry are implemented; [Frontend](./frontend.md) owns their presentation and compatibility. Current source references, optional public providers, bounded public source history and supplied product links are implemented. Starter entry categories are implemented. Full-account valuation, personal history and selected-Deck estimates are implemented. Account category rules and entry Review/Reset are implemented. Whole-deck evaluation is implemented; optional local combo matching is implemented. Local rendered and representative-scale acceptance for bounded Inventory loading is recorded with [slice 3](https://github.com/KyleDerZweite/spellbook/issues/176). [Slice 4](https://github.com/KyleDerZweite/spellbook/issues/177) records completed mutation and current-head native/enhanced browser acceptance; no hardware-independent latency guarantee is selected.
+Inventory and Deck now implement compact original mutation acknowledgements and independent Notes/Description conflicts.
+Shared Deck UI and native task entry are implemented; [Frontend](./frontend.md) owns their presentation and compatibility.
+Current source references, optional public providers, bounded public source history and supplied product links are implemented.
+Starter entry categories are implemented.
+Full-account valuation, personal history and selected-Deck estimates are implemented.
+Account category rules and entry Review/Reset are implemented.
+Whole-deck evaluation is implemented; optional local combo matching is implemented.
+Local rendered and representative-scale acceptance for bounded Inventory loading is recorded with [slice 3](https://github.com/KyleDerZweite/spellbook/issues/176).
+[Slice 4](https://github.com/KyleDerZweite/spellbook/issues/177) records completed mutation and current-head native/enhanced browser acceptance; no hardware-independent latency guarantee is selected.
 
-Slice 8 implements SavedState transport and the Profile consumer described below. Slice 9 implements mounted Inventory/Deck/Scan and dependent KPI consumers. Rendered browser acceptance, independent review and deployed proxy verification remain separate evidence.
+Slice 8 implements SavedState transport and the Profile consumer described below.
+Slice 9 implements mounted Inventory/Deck/Scan and dependent KPI consumers.
+Rendered browser acceptance, independent review and deployed proxy verification remain separate evidence.
 
-The 2026-10-07 [value-only decision](../decisions/0020-value-only-inventory-history.md) supersedes cost-dependent Q56 contracts. The unmerged Costs slice is excluded from main. [ADR-0022](../decisions/0022-daily-value-observation-checkpoints.md) replaces the old personal-history slice's lot/correction dependency with implemented aggregate daily observations. Sources/Rules categories and later app delivery retain their accepted contracts.
+The 2026-10-07 [value-only decision](../decisions/0020-value-only-inventory-history.md) supersedes cost-dependent Q56 contracts.
+The unmerged Costs slice is excluded from main.
+[ADR-0022](../decisions/0022-daily-value-observation-checkpoints.md) replaces the old personal-history slice's lot/correction dependency with implemented aggregate daily observations.
+Sources/Rules categories and later app delivery retain their accepted contracts.
 
 ## Module ownership
 
-The [backend Scan commit use case](../../backend/src/scan/commit.ts) owns its normalized fingerprint, session/artifact/review persistence and orchestration. It reuses the concrete [Inventory writer](../../backend/src/inventory/mutations.ts) for trusted preparation, lock participation, effects, revision and original receipt persistence. This internal transaction seam is unavailable to frontend callers; public composition exposes only actor-based operations. The [Scan application](../../backend/src/scan/application.ts) owns complete upload/read/result/review behavior with injected storage/worker configuration. Its shared JSON-safe DTOs expose neither account identity nor storage keys. [Mobile and Scan](./mobile-and-scan.md#selected-reads-and-compact-review-commits) owns bounded reads, the legacy replay bridge and cancellation/uncertain-commit cleanup. Scan workspace invalidation uses the mounted frontend resource adapter.
+The [backend Scan commit use case](../../backend/src/scan/commit.ts) owns its normalized fingerprint, session/artifact/review persistence and orchestration.
+It reuses the concrete [Inventory writer](../../backend/src/inventory/mutations.ts) for trusted preparation, lock participation, effects, revision and original receipt persistence.
+This internal transaction seam is unavailable to frontend callers; public composition exposes only actor-based operations.
+The [Scan application](../../backend/src/scan/application.ts) owns complete upload/read/result/review behavior with injected storage/worker configuration.
+Its shared JSON-safe DTOs expose neither account identity nor storage keys.
+[Mobile and Scan](./mobile-and-scan.md#selected-reads-and-compact-review-commits) owns bounded reads, the legacy replay bridge and cancellation/uncertain-commit cleanup.
+Scan workspace invalidation uses the mounted frontend resource adapter.
 
-Build and start the SvelteKit web runtime and Node API independently under the [independent applications contract](./independent-applications.md). Use root workspace packages `frontend/`, `backend/` and `contracts/` with existing dependencies. Preserve pinned runtimes, dependency patches, peer rules, migration history and lock/cache ownership. Frozen install, development, tests, production package resolution, containers, migrator, operator commands and CI must migrate together.
+Build and start the SvelteKit web runtime and Node API independently under the [independent applications contract](./independent-applications.md).
+Use root workspace packages `frontend/`, `backend/` and `contracts/` with existing dependencies.
+Preserve pinned runtimes, dependency patches, peer rules, migration history and lock/cache ownership.
+Frozen install, development, tests, production package resolution, containers, migrator, operator commands and CI must migrate together.
 
-Contracts owns explicit JSON-safe requests, DTOs and discriminated errors. Timestamps are ISO strings and revisions are opaque decimal strings. Contracts imports neither implementation, database rows, platform APIs nor framework types. Backend owns trusted actor authentication, account authorization, validated use cases, persistence, transactions and artifact storage. Frontend owns presentation, navigation, browser cookies, HTML form Origin protection and native form results. The API owns HTTP parsing, API Origin policy and credential authentication.
+Contracts owns explicit JSON-safe requests, DTOs and discriminated errors.
+Timestamps are ISO strings and revisions are opaque decimal strings.
+Contracts imports neither implementation, database rows, platform APIs nor framework types.
+Backend owns trusted actor authentication, account authorization, validated use cases, persistence, transactions and artifact storage.
+Frontend owns presentation, navigation, browser cookies, HTML form Origin protection and native form results.
+The API owns HTTP parsing, API Origin policy and credential authentication.
 
-Use small application interfaces for Auth/Profile, Catalog, Inventory/Groups, Decks, Scan, Valuation/History and Categories. Backend maps DTOs at that interface so direct API clients and the web remote adapter receive the same serialized semantics. The frontend remote adapter forwards request-bound credentials; it neither constructs use cases nor holds database handles. Browser modules never import backend. Backend never imports frontend or SvelteKit helpers.
+Use small application interfaces for Auth/Profile, Catalog, Inventory/Groups, Decks, Scan, Valuation/History and Categories.
+Backend maps DTOs at that interface so direct API clients and the web remote adapter receive the same serialized semantics.
+The frontend remote adapter forwards request-bound credentials; it neither constructs use cases nor holds database handles.
+Browser modules never import backend.
+Backend never imports frontend or SvelteKit helpers.
 
-Check imports with the existing TypeScript compiler API, resolving aliases, type imports, dynamic imports and re-exports. Deliberately forbidden imports and built client output verify enforcement. The final policy contains no legacy persistence exceptions. Web runtime has no backend import exceptions. Frontend CLI compatibility wrappers forward to backend-owned operators. The HTTP adapter preserves current callers; independent Android and aggregate acceptance remain in progress.
+Check imports with the existing TypeScript compiler API, resolving aliases, type imports, dynamic imports and re-exports.
+Deliberately forbidden imports and built client output verify enforcement.
+The final policy contains no legacy persistence exceptions.
+Web runtime has no backend import exceptions.
+Frontend CLI compatibility wrappers forward to backend-owned operators.
+The HTTP adapter preserves current callers; independent Android and aggregate acceptance remain in progress.
 
 ## Implemented application lifecycle and operator ownership
 
-The [contraction slice](https://github.com/KyleDerZweite/spellbook/issues/192) established application, transport and operator ownership. [Issue 244](https://github.com/KyleDerZweite/spellbook/issues/244) tracks independent runtimes and Android delivery while preserving existing HTTP contracts. Current-head automated, PostgreSQL, HTTP, browser and public-provider acceptance remain separate evidence. Python backend migration, OpenAPI-generated clients and Worker directory changes remain separate evaluations.
+The [contraction slice](https://github.com/KyleDerZweite/spellbook/issues/192) established application, transport and operator ownership.
+[Issue 244](https://github.com/KyleDerZweite/spellbook/issues/244) tracks independent runtimes and Android delivery while preserving existing HTTP contracts.
+Current-head automated, PostgreSQL, HTTP, browser and public-provider acceptance remain separate evidence.
+Python backend migration, OpenAPI-generated clients and Worker directory changes remain separate evaluations.
 
-[Backend application construction](../../backend/src/application.ts) receives database, build-analysis, Demo, Value-history, Scan and Combo configuration. Its asynchronous constructor returns `{ application, start, close }`, with no raw database or pool. It validates database presence outside build analysis, timezone and exact Value-history/Combo boolean strings before creating resources. One resolved database URL supplies both the pool and SavedState. Construction starts no runners or listener connections. Unexpected construction failures await cleanup of acquired resources before returning the original error.
+[Backend application construction](../../backend/src/application.ts) receives database, build-analysis, Demo, Value-history, Scan and Combo configuration.
+Its asynchronous constructor returns `{ application, start, close }`, with no raw database or pool.
+It validates database presence outside build analysis, timezone and exact Value-history/Combo boolean strings before creating resources.
+One resolved database URL supplies both the pool and SavedState.
+Construction starts no runners or listener connections.
+Unexpected construction failures await cleanup of acquired resources before returning the original error.
 
-The [Node host](../../backend/src/main.ts) supplies configuration, starts runners after listening, and owns SIGINT/SIGTERM cleanup. It closes SSE before draining HTTP, then closes application resources. Web HMR and shutdown own no backend resources. Start is idempotent, inactive during build analysis and rejects restart after close. Close cancels and awaits both runners, SavedState and the Scan application before always attempting the owned pool's closure, even after cleanup failure. Concurrent shutdown calls join the same Promise. Shutdown failures expose a safe message. Backend registers no framework hooks. The configured Combo option remains attached to the single database owner.
+The [Node host](../../backend/src/main.ts) supplies configuration, starts runners after listening, and owns SIGINT/SIGTERM cleanup.
+It closes SSE before draining HTTP, then closes application resources.
+Web HMR and shutdown own no backend resources.
+Start is idempotent, inactive during build analysis and rejects restart after close.
+Close cancels and awaits both runners, SavedState and the Scan application before always attempting the owned pool's closure, even after cleanup failure.
+Concurrent shutdown calls join the same Promise.
+Shutdown failures expose a safe message.
+Backend registers no framework hooks.
+The configured Combo option remains attached to the single database owner.
 
-The resource-free [transport facade](../../backend/src/transport.ts) remains available to backend tooling and tests. Web native adapters use [local error types](../../frontend/src/lib/server/remote/errors.ts) reconstructed from safe API failures. Migration SQL, journal and snapshots moved unchanged to `backend/drizzle/`; [backend scripts](../../backend/package.json) own migration commands.
+The resource-free [transport facade](../../backend/src/transport.ts) remains available to backend tooling and tests.
+Web native adapters use [local error types](../../frontend/src/lib/server/remote/errors.ts) reconstructed from safe API failures.
+Migration SQL, journal and snapshots moved unchanged to `backend/drizzle/`; [backend scripts](../../backend/package.json) own migration commands.
 
-Backend [Demo operators](../../backend/src/operators/demo.ts) own publication, starter replacement, transactions and pool lifetime. The [local-password operator](../../backend/src/operators/local-password.ts) owns atomic credential/profile updates and session revocation, including authorized production recovery. Backend scripts own argv, bounded stdin and public fixture loading. Existing frontend command paths remain compatibility forwarders without persistence or fixture ownership. Demo target guards, preview-first replacement, explicit reset, parent locks and revisions remain intact. Backend imports no frontend fixtures or framework code. [Local authentication operations](../operations/local-auth.md) owns commands and target requirements.
+Backend [Demo operators](../../backend/src/operators/demo.ts) own publication, starter replacement, transactions and pool lifetime.
+The [local-password operator](../../backend/src/operators/local-password.ts) owns atomic credential/profile updates and session revocation, including authorized production recovery.
+Backend scripts own argv, bounded stdin and public fixture loading.
+Existing frontend command paths remain compatibility forwarders without persistence or fixture ownership.
+Demo target guards, preview-first replacement, explicit reset, parent locks and revisions remain intact.
+Backend imports no frontend fixtures or framework code.
+[Local authentication operations](../operations/local-auth.md) owns commands and target requirements.
 
-The [boundary checker](../../scripts/check-boundaries.mjs) rejects frontend backend/persistence imports and runtime imports of operator or test tooling. Its tests cover aliases, type imports, dynamic imports and re-exports. [Verification](../operations/github-automation.md#application-and-native-operator-checks) owns resource-free imports, lifecycle failure paths and native operator checks.
+The [boundary checker](../../scripts/check-boundaries.mjs) rejects frontend backend/persistence imports and runtime imports of operator or test tooling.
+Its tests cover aliases, type imports, dynamic imports and re-exports.
+[Verification](../operations/github-automation.md#application-and-native-operator-checks) owns resource-free imports, lifecycle failure paths and native operator checks.
 
-Acceptance requires current-head checks, real PostgreSQL/HTTP and two-process Sync, native operator rollback/recovery, rendered journeys and actual public-source refresh in the normal Dev database. [Verification](../operations/github-automation.md) owns commands and evidence limits; [Deployment](../operations/deployment.md) owns backup, migration and public-source recovery procedures. Preserve environment values in the protected root store. Distinguish optional provider failures, disabled sources, controlled-clock tests, scheduled observations and deployment evidence.
+Acceptance requires current-head checks, real PostgreSQL/HTTP and two-process Sync, native operator rollback/recovery, rendered journeys and actual public-source refresh in the normal Dev database.
+[Verification](../operations/github-automation.md) owns commands and evidence limits; [Deployment](../operations/deployment.md) owns backup, migration and public-source recovery procedures.
+Preserve environment values in the protected root store.
+Distinguish optional provider failures, disabled sources, controlled-clock tests, scheduled observations and deployment evidence.
 
 ## Adapter and mutation contracts
 
-This section retains the accepted target across features. Implemented Inventory/Deck contracts and explicit legacy receipt fallback are distinguished below.
+This section retains the accepted target across features.
+Implemented Inventory/Deck contracts and explicit legacy receipt fallback are distinguished below.
 
-The web remote adapter and direct API clients reach the same authorized use cases for local authentication/session inspection, preferences, password rotation, Profile Card/artwork, Dashboard, Catalog enrichment, Inventory/Groups, Deck create/edit/import/export/role/printing/availability/search operations, and Scan upload/review/commit. Preserve public paths and map safe errors consistently. Server Dashboard summaries and selected-deck availability must avoid transferring full Inventory or account mutation-request history. The [HTTP module interface](./independent-applications.md#http-module-interface) owns two parity reads and the nine closed web mutation intents. [Credential form forwarding](./independent-applications.md#authority-and-compatibility) preserves API attempt limits before form decoding. Original sources, request IDs, receipts, delta floors and conflict revisions remain unchanged.
+The web remote adapter and direct API clients reach the same authorized use cases for local authentication/session inspection, preferences, password rotation, Profile Card/artwork, Dashboard, Catalog enrichment, Inventory/Groups, Deck create/edit/import/export/role/printing/availability/search operations, and Scan upload/review/commit.
+Preserve public paths and map safe errors consistently.
+Server Dashboard summaries and selected-deck availability must avoid transferring full Inventory or account mutation-request history.
+The [HTTP module interface](./independent-applications.md#http-module-interface) owns two parity reads and the nine closed web mutation intents.
+[Credential form forwarding](./independent-applications.md#authority-and-compatibility) preserves API attempt limits before form decoding.
+Original sources, request IDs, receipts, delta floors and conflict revisions remain unchanged.
 
-Q56 approved changing experimental v1 wire contracts in place. Bounded Inventory reads replace snapshots; mutation, import and Scan responses become compact; Notes/Description writes require their field revision. For each migrated operation, document old and new requests/responses in OpenAPI and migration notes. Existing consumers are not automatically compatible. No legacy route may bypass stale-text protection or remain an unbounded internal refresh path.
+Q56 approved changing experimental v1 wire contracts in place.
+Bounded Inventory reads replace snapshots; mutation, import and Scan responses become compact; Notes/Description writes require their field revision.
+For each migrated operation, document old and new requests/responses in OpenAPI and migration notes.
+Existing consumers are not automatically compatible.
+No legacy route may bypass stale-text protection or remain an unbounded internal refresh path.
 
-Backend authentication supplies the actor. Caller account IDs confer no authority. Quantity deltas carry a stable request ID. The account-scoped fingerprint binds the normalized payload and rejects changed-payload reuse. Persist the minimal original acknowledgement in the writing transaction, including request identity, affected stable entity identities, applied change, revision and removed identities. Replay returns this original acknowledgement after later edits or deletion/recreation. Clients fetch current state separately. Keep the documented legacy treatment of null fingerprints.
+Backend authentication supplies the actor.
+Caller account IDs confer no authority.
+Quantity deltas carry a stable request ID.
+The account-scoped fingerprint binds the normalized payload and rejects changed-payload reuse.
+Persist the minimal original acknowledgement in the writing transaction, including request identity, affected stable entity identities, applied change, revision and removed identities.
+Replay returns this original acknowledgement after later edits or deletion/recreation.
+Clients fetch current state separately.
+Keep the documented legacy treatment of null fingerprints.
 
-Patch only supplied fields. Avatar and selection fields use the last successful save. Disjoint patches preserve independent changes. Notes and Description use independent revisions that quantity and unrelated metadata do not advance. A stale save returns the latest saved field and revision; the frontend retains its draft and original base revision.
+Patch only supplied fields.
+Avatar and selection fields use the last successful save.
+Disjoint patches preserve independent changes.
+Notes and Description use independent revisions that quantity and unrelated metadata do not advance.
+A stale save returns the latest saved field and revision; the frontend retains its draft and original base revision.
 
-All Inventory writers lock the Inventory parent before entries before groups. Scan commit keeps Scan-session-before-Inventory order; Inventory operations never acquire a Scan session afterward. Shared transaction helpers compose atomic bulk/import and Scan operations. Before bounded reads activate, every entry, group, membership, reorder, import and Scan writer must advance the monotonic Inventory revision in its writing transaction. Successful semantic changes advance it; retries and no-ops do not. This query revision is separate from field revisions.
+All Inventory writers lock the Inventory parent before entries before groups.
+Scan commit keeps Scan-session-before-Inventory order; Inventory operations never acquire a Scan session afterward.
+Shared transaction helpers compose atomic bulk/import and Scan operations.
+Before bounded reads activate, every entry, group, membership, reorder, import and Scan writer must advance the monotonic Inventory revision in its writing transaction.
+Successful semantic changes advance it; retries and no-ops do not.
+This query revision is separate from field revisions.
 
-Ordinary quantity changes and removal neither scan/rewrite unrelated positions nor return all entries. Explicit reorder keeps its separate behavior. Row decrement stops at one; confirmed Remove remains a separate action. Printing replacement is a semantic operation that preserves source identity/provenance, rather than remove/add copying.
+Ordinary quantity changes and removal neither scan/rewrite unrelated positions nor return all entries.
+Explicit reorder keeps its separate behavior.
+Row decrement stops at one; confirmed Remove remains a separate action.
+Printing replacement is a semantic operation that preserves source identity/provenance, rather than remove/add copying.
 
 ## Implemented Inventory read boundary
 
-The backend [Inventory reader](../../backend/src/inventory/read.ts) authenticates its actor and returns page, detail and location DTOs from [inventory.ts](../../contracts/src/inventory.ts). Reads use a repeatable-read, read-only transaction and never create an Inventory parent. The [query normalizer](../../backend/src/inventory/query.ts) validates backend reads; native GET adapters send pure shared request shapes over HTTP. Metadata retained outside the page cache contains no hidden entry or membership snapshot.
+The backend [Inventory reader](../../backend/src/inventory/read.ts) authenticates its actor and returns page, detail and location DTOs from [inventory.ts](../../contracts/src/inventory.ts).
+Reads use a repeatable-read, read-only transaction and never create an Inventory parent.
+The [query normalizer](../../backend/src/inventory/query.ts) validates backend reads; native GET adapters send pure shared request shapes over HTTP.
+Metadata retained outside the page cache contains no hidden entry or membership snapshot.
 
-The [Inventory mutation use cases](../../backend/src/inventory/mutations.ts) authenticate a session-produced actor, lock the Profile/account row and revalidate the session before writes. Scan commits then lock the owned ScanSession; all writes lock the MTG Inventory parent, sorted existing entry IDs and sorted target Group IDs. Catalog resolution runs before parent locking. All operations in one bulk/import/Scan commit succeed atomically or roll back together. Notes changes advance only the independent Notes revision; omitted Notes preserve the current text. A stale Notes intent returns the latest owned text/revision and preserves the frontend draft for explicit rebase. Ordinary signed row deltas floor at one. Reviewed Remove binds the expected quantity under the lock; explicit absolute/bulk removals retain their earlier semantics. Ordinary writes preserve sparse positions and return compact receipts, with no account snapshot or unrelated position reflow.
+The [Inventory mutation use cases](../../backend/src/inventory/mutations.ts) authenticate a session-produced actor, lock the Profile/account row and revalidate the session before writes.
+Scan commits then lock the owned ScanSession; all writes lock the MTG Inventory parent, sorted existing entry IDs and sorted target Group IDs.
+Catalog resolution runs before parent locking.
+All operations in one bulk/import/Scan commit succeed atomically or roll back together.
+Notes changes advance only the independent Notes revision; omitted Notes preserve the current text.
+A stale Notes intent returns the latest owned text/revision and preserves the frontend draft for explicit rebase.
+Ordinary signed row deltas floor at one.
+Reviewed Remove binds the expected quantity under the lock; explicit absolute/bulk removals retain their earlier semantics.
+Ordinary writes preserve sparse positions and return compact receipts, with no account snapshot or unrelated position reflow.
 
-The account/request journal atomically stores normalized fingerprints and the original acknowledgement. Authenticated replay precedes Catalog lookup, subject existence and current preconditions, surviving later edits, entry deletion/recreation and Group deletion. Changed normalized intent returns 409. Imports fingerprint normalized source text, defaults and source before resolution. Legacy null fingerprints retain no-repeat behavior; missing historical receipts return an explicit empty `legacy: true` acknowledgement, never reconstructed current state. Older non-null fingerprints remain strict and may reject clients migrated to the new normalized shape; callers must not replace an uncertain old request with a fresh ID merely to bypass that conflict.
+The account/request journal atomically stores normalized fingerprints and the original acknowledgement.
+Authenticated replay precedes Catalog lookup, subject existence and current preconditions, surviving later edits, entry deletion/recreation and Group deletion.
+Changed normalized intent returns 409.
+Imports fingerprint normalized source text, defaults and source before resolution.
+Legacy null fingerprints retain no-repeat behavior; missing historical receipts return an explicit empty `legacy: true` acknowledgement, never reconstructed current state.
+Older non-null fingerprints remain strict and may reject clients migrated to the new normalized shape; callers must not replace an uncertain old request with a fresh ID merely to bypass that conflict.
 
 ## Implemented Deck application boundary
 
-The backend [Deck application](../../backend/src/decks/application.ts) owns authorization, metadata patches, quantity/role operations, printing replacement, import/export, legality and ownership/availability reads. [Deck contracts](../../contracts/src/decks.ts) explicitly map DTO fields, ISO timestamps and decimal revisions. Web actions and HTTP routes call the same trusted-actor interface. Frontend owns cookies/origins, native form adaptation, errors and drafts. Existing Account Dashboard use cases remain the summary owner.
+The backend [Deck application](../../backend/src/decks/application.ts) owns authorization, metadata patches, quantity/role operations, printing replacement, import/export, legality and ownership/availability reads.
+[Deck contracts](../../contracts/src/decks.ts) explicitly map DTO fields, ISO timestamps and decimal revisions.
+Web actions and HTTP routes call the same trusted-actor interface.
+Frontend owns cookies/origins, native form adaptation, errors and drafts.
+Existing Account Dashboard use cases remain the summary owner.
 
-Bounded `getDeckLibrary` reads return at most 200 Deck metadata rows, SQL totals, covers and at most three category badges. Independent `getDeck` reads load the selected editor without reading its account directory. Version-filter options/counts and direct location share a separate account directory revision. Legacy public Snapshot reads remain compatible. Only the selected Deck composition is loaded, with Inventory quantities aggregated by its canonical identities. Contextual search and inspector ownership use bounded identities instead of full Inventory or mutation-request history. [Postgres](./postgres.md#deck-persistence-and-reads) owns consistency and supported aggregate ranges; [the HTTP contract](./mobile-and-scan.md#deck-http-contract) records the experimental v1 migration.
+Bounded `getDeckLibrary` reads return at most 200 Deck metadata rows, SQL totals, covers and at most three category badges.
+Independent `getDeck` reads load the selected editor without reading its account directory.
+Version-filter options/counts and direct location share a separate account directory revision.
+Legacy public Snapshot reads remain compatible.
+Only the selected Deck composition is loaded, with Inventory quantities aggregated by its canonical identities.
+Contextual search and inspector ownership use bounded identities instead of full Inventory or mutation-request history.
+[Postgres](./postgres.md#deck-persistence-and-reads) owns consistency and supported aggregate ranges; [the HTTP contract](./mobile-and-scan.md#deck-http-contract) records the experimental v1 migration.
 
-Deck metadata patches change supplied fields. Description saves require the original `descriptionRevision`; quantity, role and unrelated metadata changes do not advance it. A stale save returns the latest saved text/revision while the frontend retains the draft for explicit rebase. Native metadata baselines prevent stale unchanged fields from overwriting independent saves.
+Deck metadata patches change supplied fields.
+Description saves require the original `descriptionRevision`; quantity, role and unrelated metadata changes do not advance it.
+A stale save returns the latest saved text/revision while the frontend retains the draft for explicit rebase.
+Native metadata baselines prevent stale unchanged fields from overwriting independent saves.
 
-New Deck entry mutations persist compact original acknowledgements atomically with their fingerprints. Replays return the original result after later edits, entry recreation or Deck deletion. Lookup precedes Catalog resolution, so recorded retries work when Catalog is unavailable. Fresh additions and printing replacements resolve authoritative Catalog identity, name, set and image before the transaction; caller presentation fields do not become stored identity. Legacy null acknowledgements suppress repeated writes without inventing historical results.
+New Deck entry mutations persist compact original acknowledgements atomically with their fingerprints.
+Replays return the original result after later edits, entry recreation or Deck deletion.
+Lookup precedes Catalog resolution, so recorded retries work when Catalog is unavailable.
+Fresh additions and printing replacements resolve authoritative Catalog identity, name, set and image before the transaction; caller presentation fields do not become stored identity.
+Legacy null acknowledgements suppress repeated writes without inventing historical results.
 
-Ordinary signed negative quantity deltas stop at one inside the transaction. A floor no-op returns delta zero without advancing `compositionRevision` or rewriting the entry timestamp. Absolute setters, bulk decrement and explicit Remove retain their deletion semantics. Printing replacement requires the same canonical card. An unmerged source keeps its ID and creation time; a merge keeps destination identity/provenance and removes the source. Category-aware merging and starter primary entry categories are implemented by the [Categories owner](./category-rules.md#implemented-starter-entry-decisions). Shared Deck controls/layout are implemented. Account customization and entry Review/Reset are implemented; whole-deck categories use independent overlapping version-bound outcomes, and Inventory/Deck/Scan workspace synchronization is implemented; rendered acceptance is separately recorded.
+Ordinary signed negative quantity deltas stop at one inside the transaction.
+A floor no-op returns delta zero without advancing `compositionRevision` or rewriting the entry timestamp.
+Absolute setters, bulk decrement and explicit Remove retain their deletion semantics.
+Printing replacement requires the same canonical card.
+An unmerged source keeps its ID and creation time; a merge keeps destination identity/provenance and removes the source.
+Category-aware merging and starter primary entry categories are implemented by the [Categories owner](./category-rules.md#implemented-starter-entry-decisions).
+Shared Deck controls/layout are implemented.
+Account customization and entry Review/Reset are implemented; whole-deck categories use independent overlapping version-bound outcomes, and Inventory/Deck/Scan workspace synchronization is implemented; rendered acceptance is separately recorded.
 
 ## Inventory query contract
 
-The read maximum of 500 is implemented. The [selected continuous browsing replacement](./frontend.md#selected-hybrid-browsing-contract) requires uniform bounded Lazy loading in 200-entry ranges throughout Search, Inventory and Groups. Result-window foundations are implemented; uniform browser-policy/caller integration is implemented. Local composed scale/rendered evidence is recorded with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192); owner UI judgment and deployment remain separate.
+The read maximum of 500 is implemented.
+The [selected continuous browsing replacement](./frontend.md#selected-hybrid-browsing-contract) requires uniform bounded Lazy loading in 200-entry ranges throughout Search, Inventory and Groups.
+Result-window foundations are implemented; uniform browser-policy/caller integration is implemented.
+Local composed scale/rendered evidence is recorded with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192); owner UI judgment and deployment remain separate.
 
-Backend accepts normalized filters, the existing composite order, optional group, offset and bounded limit. The backend defaults to 50 entries and permits 1 through 500 per request. The selected browser policy requests 200-entry Lazy ranges, with no enhanced pagination or page-size selector. Native no-JavaScript requests retain 200-entry Previous/Next navigation; legacy API omitted-limit behavior remains 50. Preserve name/set/newest and variant-order transitions with stable printing/finish/condition/entry-ID ties. PostgreSQL ICU root collation makes name/set ordering canonical; UUID ties are byte-stable. [Migration 0011](../../backend/drizzle/0011_inventory_windows.sql) creates `inventory_root`, validates the accepted ordering examples and checks the actual ICU version, failing when the required collation is unavailable. It adds the Inventory name/set ordering index and Inventory/Notes revision columns. [Deployment](../operations/deployment.md#inventory-collation-and-recovery) owns version-change recovery.
+Backend accepts normalized filters, the existing composite order, optional group, offset and bounded limit.
+The backend defaults to 50 entries and permits 1 through 500 per request.
+The selected browser policy requests 200-entry Lazy ranges, with no enhanced pagination or page-size selector.
+Native no-JavaScript requests retain 200-entry Previous/Next navigation; legacy API omitted-limit behavior remains 50.
+Preserve name/set/newest and variant-order transitions with stable printing/finish/condition/entry-ID ties.
+PostgreSQL ICU root collation makes name/set ordering canonical; UUID ties are byte-stable.
+[Migration 0011](../../backend/drizzle/0011_inventory_windows.sql) creates `inventory_root`, validates the accepted ordering examples and checks the actual ICU version, failing when the required collation is unavailable.
+It adds the Inventory name/set ordering index and Inventory/Notes revision columns.
+[Deployment](../operations/deployment.md#inventory-collation-and-recovery) owns version-change recovery.
 
-A read-only local probe matched the current Node en-US comparator for these examples: `10, 100_, 100%, 2, A B, A-B, AB, aether, Aether, Æther, Angel, Ángel, Eclair, éclair, Other, Öther, 卡牌, 土地`. This is limited example evidence. A client locale's former order can differ from the accepted server order. The declared local scale scenarios are verified with [slice 3](https://github.com/KyleDerZweite/spellbook/issues/176); other ordering cases remain unverified.
+A read-only local probe matched the current Node en-US comparator for these examples: `10, 100_, 100%, 2, A B, A-B, AB, aether, Aether, Æther, Angel, Ángel, Eclair, éclair, Other, Öther, 卡牌, 土地`.
+This is limited example evidence.
+A client locale's former order can differ from the accepted server order.
+The declared local scale scenarios are verified with [slice 3](https://github.com/KyleDerZweite/spellbook/issues/176); other ordering cases remain unverified.
 
-Search uses literal case-insensitive substrings of name, set code, condition and Notes, escaping percent and underscore. Selected sets combine with OR; text, sets, finish, condition and group combine with AND. Group membership joins cannot duplicate entries. Summary fields distinguish entry count, copy count, distinct canonical-card count and set count. Inventory's foil-entry count remains separate from Dashboard's foil-copy count. Overlapping groups are never summed as global holdings.
+Search uses literal case-insensitive substrings of name, set code, condition and Notes, escaping percent and underscore.
+Selected sets combine with OR; text, sets, finish, condition and group combine with AND.
+Group membership joins cannot duplicate entries.
+Summary fields distinguish entry count, copy count, distinct canonical-card count and set count.
+Inventory's foil-entry count remains separate from Dashboard's foil-copy count.
+Overlapping groups are never summed as global holdings.
 
-One short consistent database read returns query identity, revision, page, matching entry/copy counts, global totals and complete group counts. Loaded entries include their memberships. Owned set options and one-set progress remain complete metadata. One-set progress keeps its current independence from group/text/finish/condition filters. Later pages require the active revision; changed revisions explicitly reset the window instead of mixing versions.
+One short consistent database read returns query identity, revision, page, matching entry/copy counts, global totals and complete group counts.
+Loaded entries include their memberships.
+Owned set options and one-set progress remain complete metadata.
+One-set progress keeps its current independence from group/text/finish/condition filters.
+Later pages require the active revision; changed revisions explicitly reset the window instead of mixing versions.
 
-Expose an authorized single-entry read with its text revision/memberships and an entry-location operation. Location accepts normalized query, entry ID and expected revision, returning its matching absolute index, not-in-query or RevisionChanged. It shares page ordering and read consistency. The frontend does not find anchors by loading preceding pages. Removal reanchors to captured surviving neighbor IDs, then the existing Search/empty-state target.
+Expose an authorized single-entry read with its text revision/memberships and an entry-location operation.
+Location accepts normalized query, entry ID and expected revision, returning its matching absolute index, not-in-query or RevisionChanged.
+It shares page ordering and read consistency.
+The frontend does not find anchors by loading preceding pages.
+Removal reanchors to captured surviving neighbor IDs, then the existing Search/empty-state target.
 
-Native GET URLs use `q`, repeated `set`, `finish`, `condition`, `sort`, `dir`, `variant`, `variantDir`, `view`, `group` and one-based `page`. HTTP queries share the normalizer with offset/limit. Links and form return locations preserve the query. Browser page addresses identify logical 200-entry Lazy anchor ranges; legacy numeric addresses normalize to the range containing their original offset. Invalid API limits, directions, scopes or IDs fail validation.
+Native GET URLs use `q`, repeated `set`, `finish`, `condition`, `sort`, `dir`, `variant`, `variantDir`, `view`, `group` and one-based `page`.
+HTTP queries share the normalizer with offset/limit.
+Links and form return locations preserve the query.
+Browser page addresses identify logical 200-entry Lazy anchor ranges; legacy numeric addresses normalize to the range containing their original offset.
+Invalid API limits, directions, scopes or IDs fail validation.
 
 ## Frontend state and shared controls
 
-Current controls/window evidence below remains tied to its implementation. [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md) selects native window scrolling, continuous bounded Lazy browser navigation, a contextual Card dialog and read-only Inventory row quantity. [Frontend](./frontend.md#selected-hybrid-browsing-contract) owns the replacement interfaces; current Deck editing and backend authority remain unchanged.
+Current controls/window evidence below remains tied to its implementation.
+[ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md) selects native window scrolling, continuous bounded Lazy browser navigation, a contextual Card dialog and read-only Inventory row quantity.
+[Frontend](./frontend.md#selected-hybrid-browsing-contract) owns the replacement interfaces; current Deck editing and backend authority remain unchanged.
 
-InventoryWindow owns query/range-aware private cache identity, cancellation, stale-response guards, revision coherence and bounded cache eviction. The legacy wire queryKey remains unchanged. Admission is hard at four contexts, twenty pages and 1,000 resident entry records, including the current Kit SSR page by its original array reference until Kit replaces it or the owner is destroyed. Three physical request slots remain occupied through fetch/body decode settlement, including aborted transports that ignore their signal. Continuous Lazy plans the visible 200-entry ranges and finite neighbors that fit admission, with at most 200 rendered rows and pruned measurement maps. Route targets, pending captures, dialog documents and focused rows retain at most eight distinct active DTO snapshots outside the cache; draft strings and original retry intent have explicit editor/account lifetimes. The 32 MiB serialized-byte target evicts other pages first while preserving a valid sole/current range and reporting overflow. Complete group/set/membership metadata remains the existing soft-target exception, so this is not a heap or HTTP response guarantee. Logout/account changes clear protected presentation and cached account contexts while the retained Kit seed continues to count until framework replacement or owner destruction. Prior slice 3 acceptance does not establish this replacement's scale or rendered acceptance.
+InventoryWindow owns query/range-aware private cache identity, cancellation, stale-response guards, revision coherence and bounded cache eviction.
+The legacy wire queryKey remains unchanged.
+Admission is hard at four contexts, twenty pages and 1,000 resident entry records, including the current Kit SSR page by its original array reference until Kit replaces it or the owner is destroyed.
+Three physical request slots remain occupied through fetch/body decode settlement, including aborted transports that ignore their signal.
+Continuous Lazy plans the visible 200-entry ranges and finite neighbors that fit admission, with at most 200 rendered rows and pruned measurement maps.
+Route targets, pending captures, dialog documents and focused rows retain at most eight distinct active DTO snapshots outside the cache; draft strings and original retry intent have explicit editor/account lifetimes.
+The 32 MiB serialized-byte target evicts other pages first while preserving a valid sole/current range and reporting overflow.
+Complete group/set/membership metadata remains the existing soft-target exception, so this is not a heap or HTTP response guarantee.
+Logout/account changes clear protected presentation and cached account contexts while the retained Kit seed continues to count until framework replacement or owner destruction.
+Prior slice 3 acceptance does not establish this replacement's scale or rendered acceptance.
 
-The implemented [VirtualInventoryList](../../frontend/src/lib/components/inventory/VirtualInventoryList.svelte) owns variable row geometry, visible indexes, overscan and stable scroll anchors using native window geometry for continuous Lazy browsing. Labels remain readable rather than clipped to enforce fixed row heights. Routes own dirty drafts, stable inspector documents, pending operation IDs and logical focus outside the page cache. Eviction cannot discard this state. Refresh reanchors by entry ID and preserves intra-row position where possible. Window anchor restoration checks account/query generation, revision and cancellation after location, target-page loading and the final render tick. Revision drift permits one coherent reset/retry; cancelled or replaced work cannot move scroll or restore focus. It never loads preceding pages to locate an entry. A changed Remove quantity needs an updated consequence before commit. A remotely deleted target retains its draft and shows the deletion. Only native no-JavaScript Previous/Next links and forms provide the bounded 200-entry fallback.
+The implemented [VirtualInventoryList](../../frontend/src/lib/components/inventory/VirtualInventoryList.svelte) owns variable row geometry, visible indexes, overscan and stable scroll anchors using native window geometry for continuous Lazy browsing.
+Labels remain readable rather than clipped to enforce fixed row heights.
+Routes own dirty drafts, stable inspector documents, pending operation IDs and logical focus outside the page cache.
+Eviction cannot discard this state.
+Refresh reanchors by entry ID and preserves intra-row position where possible.
+Window anchor restoration checks account/query generation, revision and cancellation after location, target-page loading and the final render tick.
+Revision drift permits one coherent reset/retry; cancelled or replaced work cannot move scroll or restore focus.
+It never loads preceding pages to locate an entry.
+A changed Remove quantity needs an updated consequence before commit.
+A remotely deleted target retains its draft and shows the deletion.
+Only native no-JavaScript Previous/Next links and forms provide the bounded 200-entry fallback.
 
-Inventory forms derive their action URL from the current Inventory shallow URL, a same-origin Inventory Search background, or the native loaded URL. Successful enhanced Inventory and Group actions refresh the active bounded window through its shared transport gate, preserving the native page offset and logical anchor. They do not reload the older rendered query. A background Search refresh cannot replace the active shallow query with that older result. Save completion clears a draft only if its entry, Notes and quantity still match the submitted values. Newer edits remain dirty. Native forms and genuine redirects retain normal navigation.
+Inventory forms derive their action URL from the current Inventory shallow URL, a same-origin Inventory Search background, or the native loaded URL.
+Successful enhanced Inventory and Group actions refresh the active bounded window through its shared transport gate, preserving the native page offset and logical anchor.
+They do not reload the older rendered query.
+A background Search refresh cannot replace the active shallow query with that older result.
+Save completion clears a draft only if its entry, Notes and quantity still match the submitted values.
+Newer edits remain dirty.
+Native forms and genuine redirects retain normal navigation.
 
-Native offset restoration waits for the hydrated list binding and checks account/window identity after each render tick. Target detail reads apply only to the newest refresh in the same account/window and target lifetime, including after body decoding. Closing or switching a target prunes its snapshot when the pending pin is released. These reads cannot overwrite a newer saved inspector state or repopulate a closed target.
+Native offset restoration waits for the hydrated list binding and checks account/window identity after each render tick.
+Target detail reads apply only to the newest refresh in the same account/window and target lifetime, including after body decoding.
+Closing or switching a target prunes its snapshot when the pending pin is released.
+These reads cannot overwrite a newer saved inspector state or repopulate a closed target.
 
-Keep CatalogWindow separate because catalog generations and mutable account revisions have different lifecycles. Reuse transport/range helpers only for actual duplication. Inventory and Deck use shared Button and WorkspaceHeader components. Deck retains QuantityControl for editable quantities; Inventory rows display read-only quantity. Shared Button owns Primary, Secondary, Ghost and Destructive purposes, geometry, pending and focus behavior. Text/navigation links retain underline hover; icon Ghost actions retain background hover. Preserve native anchor/submit and Bits trigger semantics. WorkspaceHeader accepts title, metadata and actions. QuantityControl and the existing dialog lifecycle retain their respective rendering responsibilities while Inventory and Deck callers retain data/mutation ownership. Deck Library/editor/contextual search use explicit safe DTOs, native form fields and callbacks without an Inventory loading superclass. [Frontend](./frontend.md#shared-deck-ui) owns the compatible control inputs and native Deck task adapters. Preserve the accepted Search toolbar, Home, Settings, fonts and brand.
+Keep CatalogWindow separate because catalog generations and mutable account revisions have different lifecycles.
+Reuse transport/range helpers only for actual duplication.
+Inventory and Deck use shared Button and WorkspaceHeader components.
+Deck retains QuantityControl for editable quantities; Inventory rows display read-only quantity.
+Shared Button owns Primary, Secondary, Ghost and Destructive purposes, geometry, pending and focus behavior.
+Text/navigation links retain underline hover; icon Ghost actions retain background hover.
+Preserve native anchor/submit and Bits trigger semantics.
+WorkspaceHeader accepts title, metadata and actions.
+QuantityControl and the existing dialog lifecycle retain their respective rendering responsibilities while Inventory and Deck callers retain data/mutation ownership.
+Deck Library/editor/contextual search use explicit safe DTOs, native form fields and callbacks without an Inventory loading superclass.
+[Frontend](./frontend.md#shared-deck-ui) owns the compatible control inputs and native Deck task adapters.
+Preserve the accepted Search toolbar, Home, Settings, fonts and brand.
 
 ## Saved-state synchronization
 
-SavedState transport and Profile synchronization are implemented. [saved-state.ts](../../contracts/src/saved-state.ts) owns coarse events and subscriptions; the backend [SavedState application](../../backend/src/saved-state/application.ts) owns account-scoped PostgreSQL LISTEN/NOTIFY fanout. Database commit triggers notify account identity and one coarse topic without documents or credentials. Rollbacks produce no notification. Each API process lazily opens one dedicated listener on `spellbook_saved_state`, identified by `spellbook_saved_state:<processPID>`. The Node host closes SSE before waiting for HTTP connections, then closes the backend application. Backend closure disposes subscriptions, recovery timers and the dedicated listener, awaits runner and Scan cleanup, then ends its owned database pool. Web shutdown owns no pool or SavedState listener.
+SavedState transport and Profile synchronization are implemented.
+[saved-state.ts](../../contracts/src/saved-state.ts) owns coarse events and subscriptions; the backend [SavedState application](../../backend/src/saved-state/application.ts) owns account-scoped PostgreSQL LISTEN/NOTIFY fanout.
+Database commit triggers notify account identity and one coarse topic without documents or credentials.
+Rollbacks produce no notification.
+Each API process lazily opens one dedicated listener on `spellbook_saved_state`, identified by `spellbook_saved_state:<processPID>`.
+The Node host closes SSE before waiting for HTTP connections, then closes the backend application.
+Backend closure disposes subscriptions, recovery timers and the dedicated listener, awaits runner and Scan cleanup, then ends its owned database pool.
+Web shutdown owns no pool or SavedState listener.
 
-Subscriptions register before the initial reset. SSE `reset`, `recovering` and `auth-expired` contain empty data; `invalidate` contains only topics. Stream events contain no account ID, document text, credential or event ID. There is no durable replay or outbox. Current-state refetch recovers missed signals without sticky sessions. [Authentication](./auth.md#saved-state-stream) owns cookie/bearer and origin policy.
+Subscriptions register before the initial reset.
+SSE `reset`, `recovering` and `auth-expired` contain empty data; `invalidate` contains only topics.
+Stream events contain no account ID, document text, credential or event ID.
+There is no durable replay or outbox.
+Current-state refetch recovers missed signals without sticky sessions.
+[Authentication](./auth.md#saved-state-stream) owns cookie/bearer and origin policy.
 
-The backend binds streams to its private trusted actor/session identity and database expiry. It revalidates sessions every ten seconds and starts a fresh session read immediately before framing each protected delivery. Reserved events remain bound to their subscription and listener epoch until backend `deliver(event)` authorizes the write. Auth notifications remain control and expiry is not extended. Listener loss emits `recovering` and suppresses protected fanout. Reconnect retries after 500 milliseconds and revalidates every attached session before reset/fanout resumes. Revocation discards queued and reserved protected events, substitutes `auth-expired` where possible and disposes the subscription. Listener outage replaces stale reservations with current control handling, including events retained across a heartbeat or downstream pause. Bytes already delivered to a socket cannot be withdrawn.
+The backend binds streams to its private trusted actor/session identity and database expiry.
+It revalidates sessions every ten seconds and starts a fresh session read immediately before framing each protected delivery.
+Reserved events remain bound to their subscription and listener epoch until backend `deliver(event)` authorizes the write.
+Auth notifications remain control and expiry is not extended.
+Listener loss emits `recovering` and suppresses protected fanout.
+Reconnect retries after 500 milliseconds and revalidates every attached session before reset/fanout resumes.
+Revocation discards queued and reserved protected events, substitutes `auth-expired` where possible and disposes the subscription.
+Listener outage replaces stale reservations with current control handling, including events retained across a heartbeat or downstream pause.
+Bytes already delivered to a socket cannot be withdrawn.
 
-Each subscriber retains coalesced topic invalidation and control events, without saved documents. The API [stream adapter](../../backend/src/http/saved-state.ts) owns framing and calls backend delivery authorization immediately before writing. It uses a zero high-water mark for socket backpressure, comment heartbeats every fifteen seconds and abort cleanup. An undrained queued subscription is disposed after thirty seconds. The Node bridge honors socket backpressure and aborts disconnected requests; the web proxy forwards SSE without buffering. The transport preserves bounded queues during slow-consumer and listener recovery.
+Each subscriber retains coalesced topic invalidation and control events, without saved documents.
+The API [stream adapter](../../backend/src/http/saved-state.ts) owns framing and calls backend delivery authorization immediately before writing.
+It uses a zero high-water mark for socket backpressure, comment heartbeats every fifteen seconds and abort cleanup.
+An undrained queued subscription is disposed after thirty seconds.
+The Node bridge honors socket backpressure and aborts disconnected requests; the web proxy forwards SSE without buffering.
+The transport preserves bounded queues during slow-consumer and listener recovery.
 
-Subscription setup accepts the contract's structural cancellation interface, without framework or platform types. The HTTP adapter maps request cancellation before setup. Aborted setup promptly removes timers and attachment; late completion cannot reattach the subscriber. One subscriber's cancellation does not cancel shared listener setup. PostgreSQL connection/query waits, authority reads and recovery checks have five-second operation deadlines. Coalesced periodic/fanout validation retains one underlying read during a stall; final delivery always starts a fresh read.
+Subscription setup accepts the contract's structural cancellation interface, without framework or platform types.
+The HTTP adapter maps request cancellation before setup.
+Aborted setup promptly removes timers and attachment; late completion cannot reattach the subscriber.
+One subscriber's cancellation does not cancel shared listener setup.
+PostgreSQL connection/query waits, authority reads and recovery checks have five-second operation deadlines.
+Coalesced periodic/fanout validation retains one underlying read during a stall; final delivery always starts a fresh read.
 
-The layout-owned [workspace transport](../../frontend/src/lib/saved-state/workspace.svelte.ts) supplies one stream for the authenticated activation. Mounted registrations coalesce reads under account, registration, recovery-epoch and resource-version leases. Profile/header depends on `profile`, `inventory` and `decks`; Dashboard depends on `inventory`, `decks` and `scan`; Inventory on `inventory`; Deck availability on `decks` and `inventory`; Scan on `scan`. Reset/reconnect and visible/online resume refetch current state. Hidden tabs keep bounded stale bits and auth control without routine protected reads. A successful read cannot make an offline/recovering transport live. Current 401 expires; infrastructure errors retain visible stale state and explicit retry.
+The layout-owned [workspace transport](../../frontend/src/lib/saved-state/workspace.svelte.ts) supplies one stream for the authenticated activation.
+Mounted registrations coalesce reads under account, registration, recovery-epoch and resource-version leases.
+Profile/header depends on `profile`, `inventory` and `decks`; Dashboard depends on `inventory`, `decks` and `scan`; Inventory on `inventory`; Deck availability on `decks` and `inventory`; Scan on `scan`.
+Reset/reconnect and visible/online resume refetch current state.
+Hidden tabs keep bounded stale bits and auth control without routine protected reads.
+A successful read cannot make an offline/recovering transport live.
+Current 401 expires; infrastructure errors retain visible stale state and explicit retry.
 
-Local writes advance freshness before POST through counted ownership handles. Finally completion invalidates mounted dependents after success, validation failure, abort or lost response, without automatically resubmitting or changing request IDs. Late handles cannot release a replacement registration/account. Every protected publication checks its lease before applying and after awaited decode, location, render or focus work. Inventory ordinary refresh drains physical reads within Window's existing permit gate; it does not abort repeated replacements or refresh all cached contexts. [Frontend](./frontend.md#profile-saved-state-consumer) owns route merges, drafts and bounded target lifetime.
+Local writes advance freshness before POST through counted ownership handles.
+Finally completion invalidates mounted dependents after success, validation failure, abort or lost response, without automatically resubmitting or changing request IDs.
+Late handles cannot release a replacement registration/account.
+Every protected publication checks its lease before applying and after awaited decode, location, render or focus work.
+Inventory ordinary refresh drains physical reads within Window's existing permit gate; it does not abort repeated replacements or refresh all cached contexts.
+[Frontend](./frontend.md#profile-saved-state-consumer) owns route merges, drafts and bounded target lifetime.
 
-Terminal expiry clears subscriber state, closes the stream and suppresses private SSR fallbacks. Old activation data cannot restart the same account through an ordinary rerender. A non-shallow navigation may establish a fresh frontend activation only after a guarded no-store session read proves the same account. Failed, unauthenticated or superseded proof retains terminal clearing. The frontend activation carries no credentials or backend authority. Dirty values and original Notes/Description revisions survive remote reads; remote deletion preserves drafts but disables invalid targets. Healthy connected clients retain the approximately two-second visibility target. Automated two-process and physical admission checks are distinct from current-head rendered workspace acceptance and deployed proxy verification. Offline writes and closed-app push remain outside this pass.
+Terminal expiry clears subscriber state, closes the stream and suppresses private SSR fallbacks.
+Old activation data cannot restart the same account through an ordinary rerender.
+A non-shallow navigation may establish a fresh frontend activation only after a guarded no-store session read proves the same account.
+Failed, unauthenticated or superseded proof retains terminal clearing.
+The frontend activation carries no credentials or backend authority.
+Dirty values and original Notes/Description revisions survive remote reads; remote deletion preserves drafts but disables invalid targets.
+Healthy connected clients retain the approximately two-second visibility target.
+Automated two-process and physical admission checks are distinct from current-head rendered workspace acceptance and deployed proxy verification.
+Offline writes and closed-app push remain outside this pass.
 
 ## Acceptance evidence
 
-Use independently built and started web/API processes over HTTP with isolated PostgreSQL 18. Check direct API and same-origin proxy parity. Constructed route events alone cannot establish cookies, streaming or network behavior. Assert account-visible outcomes, persistence, errors and rollback. Use two API replicas, their web proxies, two authenticated clients and an unrelated account to verify disjoint saves, text conflicts, lost-response replay, changed-payload rejection, import/Scan atomicity, cross-process notifications, reconnect/resume, listener recovery and logout/password/operator revocation. Measure the synchronization target.
+Use independently built and started web/API processes over HTTP with isolated PostgreSQL 18.
+Check direct API and same-origin proxy parity.
+Constructed route events alone cannot establish cookies, streaming or network behavior.
+Assert account-visible outcomes, persistence, errors and rollback.
+Use two API replicas, their web proxies, two authenticated clients and an unrelated account to verify disjoint saves, text conflicts, lost-response replay, changed-payload rejection, import/Scan atomicity, cross-process notifications, reconnect/resume, listener recovery and logout/password/operator revocation.
+Measure the synchronization target.
 
-Rendered browser journeys cover retained drafts, failure states, virtualized focus, dialog return, Search overlay, Add another, group navigation and Deck interactions. Include keyboard, zoom, long metadata, light/dark, 360px mobile, wide desktop and no-JavaScript pagination/forms. Preserve Home and Settings behavior.
+Rendered browser journeys cover retained drafts, failure states, virtualized focus, dialog return, Search overlay, Add another, group navigation and Deck interactions.
+Include keyboard, zoom, long metadata, light/dark, 360px mobile, wide desktop and no-JavaScript pagination/forms.
+Preserve Home and Settings behavior.
 
-Use disposable accounts with 1,000, 10,000 and 50,000 distinct valid Inventory entries from real catalog printings and allowed finish/condition combinations. Report copies separately. Include overlapping/empty groups, repeated canonical cards and selective filters; preserve existing demo accounts. Record machine resources, source generation, revisions and fixtures. Measure first/deep windows, orders/filters, counts, groups and set progress with query plans, cold/warm latency and payload size. Measure scrolling, jumps, resize, long tasks, DOM/cache/request bounds and pending rows. Start/middle/end quantity/removal measurements must prove no unrelated scans or snapshot responses. Revise offset addressing if deep positions fail the declared target; no hardware-independent latency promise is selected.
+Use disposable accounts with 1,000, 10,000 and 50,000 distinct valid Inventory entries from real catalog printings and allowed finish/condition combinations.
+Report copies separately.
+Include overlapping/empty groups, repeated canonical cards and selective filters; preserve existing demo accounts.
+Record machine resources, source generation, revisions and fixtures.
+Measure first/deep windows, orders/filters, counts, groups and set progress with query plans, cold/warm latency and payload size.
+Measure scrolling, jumps, resize, long tasks, DOM/cache/request bounds and pending rows.
+Start/middle/end quantity/removal measurements must prove no unrelated scans or snapshot responses.
+Revise offset addressing if deep positions fail the declared target; no hardware-independent latency promise is selected.
 
-Run relevant current-head type, lint, unit/integration, build, import/workspace, container and docs checks under the [verification workflow](../operations/github-automation.md). Later value/category integration refreshes affected scale/sync evidence. Record missing browser/proxy/provider evidence and its consequence. Design acceptance, passed checks, owner UI acceptance and deployment remain separate states.
+Run relevant current-head type, lint, unit/integration, build, import/workspace, container and docs checks under the [verification workflow](../operations/github-automation.md).
+Later value/category integration refreshes affected scale/sync evidence.
+Record missing browser/proxy/provider evidence and its consequence.
+Design acceptance, passed checks, owner UI acceptance and deployment remain separate states.
 
 ## Implemented reference boundary
 
-Worker publishes public Scryfall and optional provider observations and conservative language mappings; backend Valuation selects exact EUR references for public printing reads and bounded owned-entry batches. Frontend renders source/measure/date, freshness, Unknown coverage and supplied safe product links. [Valuation](./valuation.md#implemented-market-references) owns immutable evidence and pruning; [HTTP ownership](./mobile-and-scan.md#reference-price-http-contract) owns the public exception/private routes. Bounded public source history is implemented; personal daily history and coherent Dashboard/selected-Deck estimates are implemented. [Valuation](./valuation.md#reviewed-personal-history-contract) owns capture consistency, frozen evidence, calendar closure and `values` invalidation. Acquisition tracking is removed from scope under [ADR-0020](../decisions/0020-value-only-inventory-history.md).
+Worker publishes public Scryfall and optional provider observations and conservative language mappings; backend Valuation selects exact EUR references for public printing reads and bounded owned-entry batches.
+Frontend renders source/measure/date, freshness, Unknown coverage and supplied safe product links.
+[Valuation](./valuation.md#implemented-market-references) owns immutable evidence and pruning; [HTTP ownership](./mobile-and-scan.md#reference-price-http-contract) owns the public exception/private routes.
+Bounded public source history is implemented; personal daily history and coherent Dashboard/selected-Deck estimates are implemented.
+[Valuation](./valuation.md#reviewed-personal-history-contract) owns capture consistency, frozen evidence, calendar closure and `values` invalidation.
+Acquisition tracking is removed from scope under [ADR-0020](../decisions/0020-value-only-inventory-history.md).
 
 ## Account Category Library
 
-[Category rules](./category-rules.md) owns immutable scoped reusable definitions, complete ordered Deck adoption, local labels/removal/suppression and server-owned entry Review/Reset plans. Frontend forms and authenticated HTTP routes delegate to the same trusted backend actor commands. Whole-deck rule definitions can be edited and adopted; whole-deck evaluation is implemented; optional local Combo matching is implemented.
+[Category rules](./category-rules.md) owns immutable scoped reusable definitions, complete ordered Deck adoption, local labels/removal/suppression and server-owned entry Review/Reset plans.
+Frontend forms and authenticated HTTP routes delegate to the same trusted backend actor commands.
+Whole-deck rule definitions can be edited and adopted; whole-deck evaluation is implemented; optional local Combo matching is implemented.

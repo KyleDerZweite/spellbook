@@ -6,11 +6,14 @@
 - Update Triggers: label definitions, issue triage policy, contribution policy, label automation, engineering skill triage role mapping, Wayfinder planning labels
 - Related Docs: [Contributing](../CONTRIBUTING.md), [Agent instructions](../AGENTS.md), [GitHub automation](./operations/github-automation.md), [Docs index](./README.md)
 
-Use labels to describe an issue's type, affected area, and current work status. A label does not promise acceptance, implementation, a merge, or a delivery date. GitHub's open or closed issue state records completion; there is no separate completion label.
+Use labels to describe an issue's type, affected area, and current work status.
+A label does not promise acceptance, implementation, a merge, or a delivery date.
+GitHub's open or closed issue state records completion; there is no separate completion label.
 
 ## Type
 
-Choose one primary type when the issue provides enough evidence. Leave the type unset when it is unclear.
+Choose one primary type when the issue provides enough evidence.
+Leave the type unset when it is unclear.
 
 | Label              | Use                                                                                                                      |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------ |
@@ -21,11 +24,14 @@ Choose one primary type when the issue provides enough evidence. Leave the type 
 | `type:security`    | Security hardening or vulnerability remediation. Follow the security policy before recording sensitive details publicly. |
 | `question`         | A request for an explanation or discussion without a concrete implementation request.                                    |
 
-Do not create `type:bug` or another duplicate of an existing label. Treat dependency bot labels as additional metadata, not competing issue types.
+Do not create `type:bug` or another duplicate of an existing label.
+Treat dependency bot labels as additional metadata, not competing issue types.
 
 ## Area
 
-Add an area only when the issue identifies it. Multiple areas are appropriate when the work directly affects each area. These labels describe responsibilities, not programming languages.
+Add an area only when the issue identifies it.
+Multiple areas are appropriate when the work directly affects each area.
+These labels describe responsibilities, not programming languages.
 
 | Label          | Meaning                                                                | Color    |
 | -------------- | ---------------------------------------------------------------------- | -------- |
@@ -34,11 +40,13 @@ Add an area only when the issue identifies it. Multiple areas are appropriate wh
 | `area:tooling` | Builds, CI, dependencies, containers, and deployment tooling.          | `0366d6` |
 | `area:design`  | Visual design, interaction design, and accessibility of the interface. | `c5def5` |
 
-Leave unrelated issues without an area until a recurring need justifies another label. Reuse the existing label when its meaning fits.
+Leave unrelated issues without an area until a recurring need justifies another label.
+Reuse the existing label when its meaning fits.
 
 ## Status and maintainer decisions
 
-Use at most one status label. An open issue without a status label has no recorded work status.
+Use at most one status label.
+An open issue without a status label has no recorded work status.
 
 | Label                | Use                                                                                        |
 | -------------------- | ------------------------------------------------------------------------------------------ |
@@ -47,17 +55,28 @@ Use at most one status label. An open issue without a status label has no record
 | `status:needs-info`  | Progress requires a specific unanswered question for the reporter or stakeholder.          |
 | `status:deferred`    | A maintainer explicitly postponed the work. Use color `d4c5f9`.                            |
 
-When status changes, remove the previous status label. Remove active status labels when closing an issue. An existing pull request alone does not establish that someone is still working on it.
+When status changes, remove the previous status label.
+Remove active status labels when closing an issue.
+An existing pull request alone does not establish that someone is still working on it.
 
-Maintainers control `priority:p0` through `priority:p3`. These mean critical, high, normal, and low priority respectively. Agents must not assign a priority from a title, a bug classification, a reaction count, or their own estimate of importance. Leave priority unset without an explicit maintainer decision.
+Maintainers control `priority:p0` through `priority:p3`.
+These mean critical, high, normal, and low priority respectively.
+Agents must not assign a priority from a title, a bug classification, a reaction count, or their own estimate of importance.
+Leave priority unset without an explicit maintainer decision.
 
-Preserve the existing `duplicate`, `invalid`, and `wontfix` labels. Apply them only for an explicit maintainer disposition. A duplicate needs a reference to the issue that owns the work. Deferral uses `status:deferred`, not `wontfix`.
+Preserve the existing `duplicate`, `invalid`, and `wontfix` labels.
+Apply them only for an explicit maintainer disposition.
+A duplicate needs a reference to the issue that owns the work.
+Deferral uses `status:deferred`, not `wontfix`.
 
-Apply `help wanted` only when a maintainer welcomes outside implementation work on that issue. Apply `good first issue` only when a maintainer has identified a bounded task with enough context for a new contributor. The general contribution policy does not automatically qualify every issue for either label.
+Apply `help wanted` only when a maintainer welcomes outside implementation work on that issue.
+Apply `good first issue` only when a maintainer has identified a bounded task with enough context for a new contributor.
+The general contribution policy does not automatically qualify every issue for either label.
 
 ## Engineering skill triage roles
 
-Engineering skills use these roles. Apply the repository label in the second column, including when a skill uses the default name from the first column.
+Engineering skills use these roles.
+Apply the repository label in the second column, including when a skill uses the default name from the first column.
 
 | Skill role        | Repository label    | Meaning                                                                                | Color    |
 | ----------------- | ------------------- | -------------------------------------------------------------------------------------- | -------- |
@@ -67,34 +86,51 @@ Engineering skills use these roles. Apply the repository label in the second col
 | `ready-for-human` | `ready-for-human`   | The maintainer accepted the scope and identified implementation that requires a human. | `1d76db` |
 | `wontfix`         | `wontfix`           | The maintainer explicitly decided not to implement the issue.                          | Existing |
 
-`needs-triage`, `ready-for-agent`, and `ready-for-human` are work-status labels even though their names omit `status:`. Apply at most one work-status label across these and the existing status labels. Replace readiness with `status:in-progress` when implementation starts. Remove work-status labels when closing an issue.
+`needs-triage`, `ready-for-agent`, and `ready-for-human` are work-status labels even though their names omit `status:`.
+Apply at most one work-status label across these and the existing status labels.
+Replace readiness with `status:in-progress` when implementation starts.
+Remove work-status labels when closing an issue.
 
-A feature is ready only when its accepted outcome, component responsibilities, interfaces, dependency directions, and acceptance evidence are recorded in a reviewed contract or referenced from established owners. Withdraw readiness when an accepted direction changes or a prerequisite becomes unresolved. Readiness grants no additional execution, publishing, merging, or deployment authority.
+A feature is ready only when its accepted outcome, component responsibilities, interfaces, dependency directions, and acceptance evidence are recorded in a reviewed contract or referenced from established owners.
+Withdraw readiness when an accepted direction changes or a prerequisite becomes unresolved.
+Readiness grants no additional execution, publishing, merging, or deployment authority.
 
 ## Agent workflow
 
 ### Wayfinder planning labels
 
-These labels describe planning artifacts, not implementation readiness or work status. Use `question` as the primary type. GitHub sub-issues and native dependencies express membership and blocking; [Wayfinding operations](./operations/github-automation.md#wayfinding-operations) owns the procedure.
+These labels describe planning artifacts, not implementation readiness or work status.
+Use `question` as the primary type.
+GitHub sub-issues and native dependencies express membership and blocking; [Wayfinding operations](./operations/github-automation.md#wayfinding-operations) owns the procedure.
 
 | Label                | Meaning                                                          | Color    |
 | -------------------- | ---------------------------------------------------------------- | -------- |
 | `wayfinder:map`      | Index of an invoked planning effort's destination and decisions. | `0052cc` |
 | `wayfinder:grilling` | Decision ticket requiring a live exchange with the maintainer.   | `d876e3` |
 
-Document any additional Wayfinder ticket-type label before creating it. Planning tickets do not receive readiness labels merely because their questions are precise.
+Document any additional Wayfinder ticket-type label before creating it.
+Planning tickets do not receive readiness labels merely because their questions are precise.
 
 ### Label changes
 
 1. Read the issue body, relevant discussion, existing labels, and linked code or pull requests before changing labels.
-2. Infer type and area only from that evidence. Apply `status:in-progress` only for verified active work. Apply other status labels only when the discussion establishes the required condition.
-3. Preserve unrelated labels. Do not change priorities, acceptance decisions, or contributor labels without the maintainer direction described above.
-4. Before adding a new label, check for an existing equivalent. Document its precise meaning and color here. Do not rename or delete existing labels as part of routine triage.
-5. Apply the labels, then read the issue again to verify the result. Keep issue descriptions and discussion intact.
+2. Infer type and area only from that evidence.
+   Apply `status:in-progress` only for verified active work.
+   Apply other status labels only when the discussion establishes the required condition.
+3. Preserve unrelated labels.
+   Do not change priorities, acceptance decisions, or contributor labels without the maintainer direction described above.
+4. Before adding a new label, check for an existing equivalent.
+   Document its precise meaning and color here.
+   Do not rename or delete existing labels as part of routine triage.
+5. Apply the labels, then read the issue again to verify the result.
+   Keep issue descriptions and discussion intact.
 
-Use GitHub or `gh` for triage. No automated labeling workflow is required. Existing `dependencies`, `javascript`, `python`, `python:uv`, and `github_actions` labels remain available to dependency automation.
+Use GitHub or `gh` for triage.
+No automated labeling workflow is required.
+Existing `dependencies`, `javascript`, `python`, `python:uv`, and `github_actions` labels remain available to dependency automation.
 
-For example, further UI work in [issue 168](https://github.com/KyleDerZweite/spellbook/issues/168) is explicitly deferred after the base design implementation. It uses `type:feature`, `area:design`, and `status:deferred`:
+For example, further UI work in [issue 168](https://github.com/KyleDerZweite/spellbook/issues/168) is explicitly deferred after the base design implementation.
+It uses `type:feature`, `area:design`, and `status:deferred`:
 
 ```sh
 gh label list --limit 100

@@ -10,14 +10,24 @@
 
 ## Context
 
-The earlier Q56 value design combined market references with purchase-cost accounting. Kyle explicitly removed that accounting scope and requested documentation consolidation on 2026-10-07. The implemented public reference system remains useful without the unmerged cost design.
+The earlier Q56 value design combined market references with purchase-cost accounting.
+Kyle explicitly removed that accounting scope and requested documentation consolidation on 2026-10-07.
+The implemented public reference system remains useful without the unmerged cost design.
 
 ## Decision
 
-Kyle selected card and Inventory market reference value and history instead of purchase-cost accounting. Buy prices, acquisition lots, FIFO retirement, pack/bulk allocation, cost corrections and gain/profit calculations are removed from active scope. This supersedes ADR-0018 and the cost-dependent parts of the earlier Q56 design.
+Kyle selected card and Inventory market reference value and history instead of purchase-cost accounting.
+Buy prices, acquisition lots, FIFO retirement, pack/bulk allocation, cost corrections and gain/profit calculations are removed from active scope.
+This supersedes ADR-0018 and the cost-dependent parts of the earlier Q56 design.
 
-Keep the implemented Scryfall baseline, optional Cardmarket/MTGJSON references, EUR selection, freshness, conservative finish/language matching, unknown coverage, supplied product links and bounded public source history. Personal daily history captures aggregate current Inventory quantities and their selected reference evidence. Its timezone, gaps and indefinite retention remain requirements owned by value tracking, distinct from the implemented rolling public market history.
+Keep the implemented Scryfall baseline, optional Cardmarket/MTGJSON references, EUR selection, freshness, conservative finish/language matching, unknown coverage, supplied product links and bounded public source history.
+Personal daily history captures aggregate current Inventory quantities and their selected reference evidence.
+Its timezone, gaps and indefinite retention remain requirements owned by value tracking, distinct from the implemented rolling public market history.
 
 ## Consequences
 
-The Costs slice remains unmerged. The old cost-dependent personal-history contract was replaced by [ADR-0022](./0022-daily-value-observation-checkpoints.md). Its value-only checkpoint persistence, runtime and private reporting are implemented; this scope decision alone did not define them. Deck estimates and nonreservation, Sources/Rules categories and later app delivery retain their accepted policies. This removes the cost-specific persistence and correction mechanisms while preserving historical value evidence independent of current-entry deletion and public pruning.
+The Costs slice remains unmerged.
+The old cost-dependent personal-history contract was replaced by [ADR-0022](./0022-daily-value-observation-checkpoints.md).
+Its value-only checkpoint persistence, runtime and private reporting are implemented; this scope decision alone did not define them.
+Deck estimates and nonreservation, Sources/Rules categories and later app delivery retain their accepted policies.
+This removes the cost-specific persistence and correction mechanisms while preserving historical value evidence independent of current-entry deletion and public pruning.

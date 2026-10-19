@@ -10,28 +10,74 @@
 
 ## Context
 
-When this decision was selected, Inventory and Search used bounded virtual windows with 50-entry pages, request maxima of 100 and custom scroll viewports. Card inspection was shared internally but Search opened it inline, and Inventory also edited quantity in table rows. Kyle initially selected numeric/Lazy browsing on 2026-10-07, then withdrew numeric pagination and its selector before delivery. The final selection is uniform continuous Lazy loading with bounded DOM management. Earlier implementation acceptance does not cover this replacement.
+When this decision was selected, Inventory and Search used bounded virtual windows with 50-entry pages, request maxima of 100 and custom scroll viewports.
+Card inspection was shared internally but Search opened it inline, and Inventory also edited quantity in table rows.
+Kyle initially selected numeric/Lazy browsing on 2026-10-07, then withdrew numeric pagination and its selector before delivery.
+The final selection is uniform continuous Lazy loading with bounded DOM management.
+Earlier implementation acceptance does not cover this replacement.
 
 ## Decision
 
-Select continuous Lazy loading throughout Search and Inventory, including the full Search route, Search overlay and Inventory Groups. Enhanced browsing exposes neither numeric pagination nor a page-size selector. Logical 200-entry range addresses support deep links, reload and Back/Forward without fetching earlier ranges. `pageSize=lazy` records this policy; legacy numeric addresses normalize to the containing 200-entry range. Native no-JavaScript use alone retains 200-entry Previous/Next fallback links. Select one native browser page scrollbar outside modals, with bounded internal Lazy rendering. Active modals retain installed Bits standard body locking and focus trapping, with one native overflow viewport for long content. SearchOverlay retains its modal/background history and uses that viewport; full Search uses the window. No nested Inspector-column, results or list scrollers are added. Select one context-aware Card dialog for Details, Inventory Edit and Add another printing. Inventory table quantity becomes read-only. Browsing Add to deck is Primary, Add to Inventory Secondary and visually smaller with touch access; Scan review's Accept to Inventory remains Primary. Deck quantity editing remains unchanged.
+Select continuous Lazy loading throughout Search and Inventory, including the full Search route, Search overlay and Inventory Groups.
+Enhanced browsing exposes neither numeric pagination nor a page-size selector.
+Logical 200-entry range addresses support deep links, reload and Back/Forward without fetching earlier ranges.
+`pageSize=lazy` records this policy; legacy numeric addresses normalize to the containing 200-entry range.
+Native no-JavaScript use alone retains 200-entry Previous/Next fallback links.
+Select one native browser page scrollbar outside modals, with bounded internal Lazy rendering.
+Active modals retain installed Bits standard body locking and focus trapping, with one native overflow viewport for long content.
+SearchOverlay retains its modal/background history and uses that viewport; full Search uses the window.
+No nested Inspector-column, results or list scrollers are added.
+Select one context-aware Card dialog for Details, Inventory Edit and Add another printing.
+Inventory table quantity becomes read-only.
+Browsing Add to deck is Primary, Add to Inventory Secondary and visually smaller with touch access; Scan review's Accept to Inventory remains Primary.
+Deck quantity editing remains unchanged.
 
-The product owner defines interactions; Frontend defines module interfaces, request ownership and acceptance. The backward-compatible Inventory/Catalog search limit expansion to 500 is implemented with legacy omitted-limit defaults preserved. Uniform Lazy adoption is implemented. Representative composed scale checks remain a delivery gate. No new printing endpoint, mutation command, dependency or framework is selected.
+The product owner defines interactions; Frontend defines module interfaces, request ownership and acceptance.
+The backward-compatible Inventory/Catalog search limit expansion to 500 is implemented with legacy omitted-limit defaults preserved.
+Uniform Lazy adoption is implemented.
+Representative composed scale checks remain a delivery gate.
+No new printing endpoint, mutation command, dependency or framework is selected.
 
 ## Loaded-range refinement on 2026-10-07
 
-Kyle subsequently selected a short page that grows as Search and Inventory load further ranges. Complete matching totals remain metadata; they do not size the page. The same policy covers the full Search route, overlay and Boxes directory. Cached adjacent prefetch does not itself enlarge the page. Only a successful requested reveal extends the visited segment. Result-window owners retain visited bounds separately from bounded resident pages. Renderers map absolute indices into that segment and continue to cap mounted rows/cards.
+Kyle subsequently selected a short page that grows as Search and Inventory load further ranges.
+Complete matching totals remain metadata; they do not size the page.
+The same policy covers the full Search route, overlay and Boxes directory.
+Cached adjacent prefetch does not itself enlarge the page.
+Only a successful requested reveal extends the visited segment.
+Result-window owners retain visited bounds separately from bounded resident pages.
+Renderers map absolute indices into that segment and continue to cap mounted rows/cards.
 
-A direct deep URL starts at its addressed range without reserving or fetching its earlier prefix. A deliberate Load earlier action reveals the preceding range and preserves the visible anchor. Noncontiguous authorized reanchors start a new segment. Generation/revision resets, request admission, original retries, drafts, focus and native history retain their existing authority. The implementation contract is reviewed; affected browser acceptance must be refreshed for this replacement. Earlier full-height browser evidence applies only to its recorded revision.
+A direct deep URL starts at its addressed range without reserving or fetching its earlier prefix.
+A deliberate Load earlier action reveals the preceding range and preserves the visible anchor.
+Noncontiguous authorized reanchors start a new segment.
+Generation/revision resets, request admission, original retries, drafts, focus and native history retain their existing authority.
+The implementation contract is reviewed; affected browser acceptance must be refreshed for this replacement.
+Earlier full-height browser evidence applies only to its recorded revision.
 
 ## Partial supersession
 
-This decision supersedes ADR-0014 only for Search browser loading/navigation, its scroll/inspection presentation and the affected request maximum. Public landing, private dashboard, authentication destination and bounded catalog-generation ownership remain unchanged.
+This decision supersedes ADR-0014 only for Search browser loading/navigation, its scroll/inspection presentation and the affected request maximum.
+Public landing, private dashboard, authentication destination and bounded catalog-generation ownership remain unchanged.
 
-It supersedes ADR-0017 only for Inventory browser range navigation, viewport, table quantity actions and the affected read maximum. Complete server filtering/counts, ICU ordering, account revisions, parent locking, authorized location reads, original mutation receipts and independent text revisions remain unchanged. Historical implementation evidence remains valid for its recorded revision.
+It supersedes ADR-0017 only for Inventory browser range navigation, viewport, table quantity actions and the affected read maximum.
+Complete server filtering/counts, ICU ordering, account revisions, parent locking, authorized location reads, original mutation receipts and independent text revisions remain unchanged.
+Historical implementation evidence remains valid for its recorded revision.
 
 ## Consequences and gates
 
-The API maximum of 500, native Shell window scrolling and bounded Deck-choice read are implemented. Native no-JavaScript fallback retains the shared Previous/Next control. Contextual Card actions and bounded result-window foundations are implemented. The reviewed uniform Lazy browser-policy and native/caller replacement is implemented. Local composed verification is recorded with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192); owner UI judgment, physical touch, true 200% zoom and deployment remain separate or unverified. The [Frontend resource contract](../architecture/frontend.md#selected-hybrid-browsing-contract) settles hard request, context, resident-record, page, render and snapshot bounds, serialized cache-byte targets and local performance objectives. Byte targets preserve valid active pages and do not impose new HTTP or domain limits. Coherent source/interface and implementation-plan review makes window slices Ready; combined real PostgreSQL, HTTP, scale and rendered evidence remain delivery acceptance gates. Standard modal scroll ownership is settled routine engineering interpretation. All product choices are confirmed; no additional owner permission is required. Source inspection does not finalize unavailable library APIs.
+The API maximum of 500, native Shell window scrolling and bounded Deck-choice read are implemented.
+Native no-JavaScript fallback retains the shared Previous/Next control.
+Contextual Card actions and bounded result-window foundations are implemented.
+The reviewed uniform Lazy browser-policy and native/caller replacement is implemented.
+Local composed verification is recorded with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192); owner UI judgment, physical touch, true 200% zoom and deployment remain separate or unverified.
+The [Frontend resource contract](../architecture/frontend.md#selected-hybrid-browsing-contract) settles hard request, context, resident-record, page, render and snapshot bounds, serialized cache-byte targets and local performance objectives.
+Byte targets preserve valid active pages and do not impose new HTTP or domain limits.
+Coherent source/interface and implementation-plan review makes window slices Ready; combined real PostgreSQL, HTTP, scale and rendered evidence remain delivery acceptance gates.
+Standard modal scroll ownership is settled routine engineering interpretation.
+All product choices are confirmed; no additional owner permission is required.
+Source inspection does not finalize unavailable library APIs.
 
-Verify the deliberate limit expansion through actual PostgreSQL and built HTTP, then native/enhanced browser flows at 1k/10k/50k Inventory entries and the full Catalog. Record measured request/cache/DOM bounds, query latency and payloads, plus navigation, focus, draft and failure recovery. Product selection, design review, implementation, owner acceptance and deployment remain separate evidence.
+Verify the deliberate limit expansion through actual PostgreSQL and built HTTP, then native/enhanced browser flows at 1k/10k/50k Inventory entries and the full Catalog.
+Record measured request/cache/DOM bounds, query latency and payloads, plus navigation, focus, draft and failure recovery.
+Product selection, design review, implementation, owner acceptance and deployment remain separate evidence.
