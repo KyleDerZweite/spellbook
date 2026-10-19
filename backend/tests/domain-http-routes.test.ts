@@ -233,6 +233,7 @@ test(
 				const printing = await success(await invoke(`/api/catalog/printings/${card.id}`));
 				assert.equal(printing.id, card.id);
 				assert.equal(printing.internalOnly, undefined);
+				assert.equal((await invoke(`/api/catalog/printings/${randomUUID()}`)).status, 404);
 				const printings = `/api/catalog/cards/${card.oracle_id}/printings`;
 				assert.equal((await success(await invoke(printings))).hits[0].id, card.id);
 				assert.equal(

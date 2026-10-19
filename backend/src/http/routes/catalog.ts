@@ -1,8 +1,9 @@
 import type { HttpDependencies, HttpRoute } from '../types.ts';
-import { json, badRequestIfValidation } from '../errors.ts';
+import { json, error, badRequestIfValidation } from '../errors.ts';
 import { requireMobileAuth } from '../auth.ts';
 import { readJsonObject, readQueryInteger, requireUuid } from '../request.ts';
 import { parseCatalogSearchRequest } from '../../catalog/query.ts';
+import { CatalogPrintingNotFoundError } from '../../catalog/search.ts';
 
 export function createCatalogRoutes(deps: HttpDependencies): HttpRoute[] {
 	const { application } = deps;
@@ -55,6 +56,7 @@ export function createCatalogRoutes(deps: HttpDependencies): HttpRoute[] {
 				headers: { 'cache-control': 'no-store' }
 			});
 		} catch (cause) {
+			if (cause instanceof CatalogPrintingNotFoundError) error(404, cause.message);
 			badRequestIfValidation(cause, 'Invalid catalog printing');
 		}
 	};
