@@ -24,6 +24,11 @@ class _SessionRow:
     expires_at: datetime
 
 
+def _now() -> datetime:
+    now = datetime.now(UTC)
+    return now.replace(microsecond=now.microsecond // 1000 * 1000)
+
+
 def hash_session_token(token: str) -> str:
     return hashlib.sha256(js_utf8(token)).hexdigest()
 
@@ -51,7 +56,7 @@ class SessionAuth:
                 "s.expires_at "
                 "FROM auth_sessions s JOIN user_profiles p ON p.account_id=s.account_id "
                 "WHERE s.token_hash=%s AND s.expires_at>%s LIMIT 1",
-                (digest, datetime.now(UTC)),
+                (digest, _now()),
             )
             row = await cursor.fetchone()
         return self._trust(row, digest) if row else None
@@ -79,7 +84,8 @@ class SessionAuth:
 
     async def actor_session(self, actor: Actor) -> SessionInfo:
         session = await self._inspect(self._digest(actor))
-        if session is None:
+        # Node actorSession checks expiry again after the database read has returned.
+        if session is None or datetime.fromisoformat(session.expires_at) <= _now():
             raise ActorError()
         return session
 
@@ -96,7 +102,10 @@ class SessionAuth:
             "SELECT expires_at FROM auth_sessions WHERE token_hash=%s FOR SHARE", (digest,)
         )
         row = await cursor.fetchone()
-        if not row or not isinstance(row[0], datetime) or row[0] <= datetime.now(UTC):
+        if not row or not isinstance(row[0], datetime):
+            raise ActorError()
+        expiry = row[0].replace(microsecond=row[0].microsecond // 1000 * 1000)
+        if expiry <= _now():
             raise ActorError()
         return await self.require_actor(actor, tx)
 

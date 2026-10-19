@@ -11,9 +11,14 @@ from pathlib import Path
 
 import pytest
 
-from spellbook_core.auth import create_session_auth, hash_session_token, valid_session_token
+from spellbook_core.auth import (
+    SessionAuth,
+    create_session_auth,
+    hash_session_token,
+    valid_session_token,
+)
 from spellbook_core.catalog import create_catalog, printing_dto
-from spellbook_core.db import database_integer, iso_timestamp
+from spellbook_core.db import ConnectionPool, Transaction, database_integer, iso_timestamp
 from spellbook_core.errors import (
     ActorError,
     AuthError,
@@ -262,3 +267,24 @@ def test_error_names_and_public_contracts() -> None:
     assert str(description) == vector["message"]
     assert InventoryQuantityChangedError(None).latest_quantity is None
     assert InventoryQuantityChangedError(3).latest_quantity == 3
+
+
+def test_actor_session_rechecks_expiry_after_the_read() -> None:
+    from typing import cast
+
+    actor = Actor(UUID, "test", "", "wizard", "grove")
+
+    class DelayedAuth(SessionAuth):
+        def _digest(self, actor: Actor) -> str:
+            return "public-test-digest"
+
+        async def _inspect(self, digest: str, tx: Transaction | None = None) -> SessionInfo | None:
+            # The SQL predicate can pass before the session expires during response I/O.
+            return SessionInfo(actor, iso_timestamp(datetime.now(UTC) - timedelta(seconds=1)))
+
+    async def check() -> None:
+        auth = DelayedAuth(cast(ConnectionPool, object()))
+        with pytest.raises(ActorError):
+            await auth.actor_session(actor)
+
+    asyncio.run(check())
