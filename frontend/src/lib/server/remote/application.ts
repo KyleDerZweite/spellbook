@@ -1,9 +1,4 @@
-import type {
-	AuthUser,
-	AuthSession,
-	Authenticated,
-	SessionInfo
-} from '@spellbook/contracts/auth.ts';
+import type { AuthUser, SessionInfo } from '@spellbook/contracts/auth.ts';
 import type { QrAuthApplication } from '@spellbook/contracts/auth-qr.ts';
 import type { CatalogApplication } from '@spellbook/contracts/catalog.ts';
 import type { InventoryApplication } from '@spellbook/contracts/inventory.ts';
@@ -367,50 +362,11 @@ export function createRemoteApplication(client: () => RemoteClient) {
 		async revokeSession(token: string | undefined): Promise<void> {
 			if (token)
 				await client().request('/api/auth/logout', { method: 'POST', token, bearer: true });
-		},
-		async authenticate(
-			mode: 'login' | 'register',
-			username: unknown,
-			password: unknown,
-			preferences: { artworkId?: unknown } = {}
-		): Promise<Authenticated | null> {
-			try {
-				const { user, token, expiresAt } = await client().request<AuthUserToken>(
-					`/api/auth/${mode}`,
-					{ method: 'POST', body: { username, password, ...preferences }, token: undefined }
-				);
-				return { user, session: { token, expiresAt } };
-			} catch (cause) {
-				if (
-					cause instanceof ValidationError ||
-					(cause instanceof RemoteError && cause.status === 401)
-				)
-					return null;
-				throw cause;
-			}
-		},
-		async changePassword(
-			_actor: AuthUser,
-			currentPassword: string,
-			newPassword: string
-		): Promise<AuthSession | null> {
-			try {
-				const session = await client().request<AuthSession>('/api/account/password', {
-					method: 'POST',
-					body: { currentPassword, newPassword }
-				});
-				client().replaceToken(session.token);
-				return session;
-			} catch (cause) {
-				if (cause instanceof ValidationError) return null;
-				throw cause;
-			}
 		}
 	};
 	return { catalog, inventory, decks, categories, profile, dashboard, inventoryValues, auth };
 }
 
-type AuthUserToken = AuthSession & { user: AuthUser };
 function webSource(source: string | undefined) {
 	if (source !== undefined && source !== 'web') throw new ValidationError('Unsupported web source');
 }

@@ -1,25 +1,48 @@
-import { fail, redirect, type RequestEvent } from '@sveltejs/kit';
-import { authenticate, requireSameOrigin, sanitizeReturnTo } from './local';
+import { error, fail, redirect, type RequestEvent } from '@sveltejs/kit';
+import type { AuthSession, AuthUser } from '@spellbook/contracts/auth.ts';
+import { requireSameOrigin, sanitizeReturnTo } from './local';
 import { revokeSession, SESSION_COOKIE, writeSessionCookie } from './session';
+import { RemoteError } from '#lib/server/remote/errors.ts';
+import type { WebFormPath } from '#lib/server/remote/client.ts';
+
+interface AuthFormSuccess extends AuthSession {
+	user: AuthUser;
+}
+interface AuthFormFailure {
+	message: string;
+	username: string;
+	artworkId?: string;
+}
+export interface PasswordFormFailure {
+	success: false;
+	message: string;
+	errors: { currentPassword?: string; newPassword?: string; confirmPassword?: string };
+}
+export interface PasswordFormSuccess extends AuthSession {
+	success: true;
+}
+
+/** Forward before decoding so the API consumes exactly one auth attempt for every form. */
+export async function submitCredentialForm<Success, Failure>(
+	event: RequestEvent,
+	path: WebFormPath
+) {
+	try {
+		return await event.locals.api.form<Success, Failure>(path, event.request);
+	} catch (cause) {
+		if (cause instanceof RemoteError) error(cause.status, cause.message);
+		throw cause;
+	}
+}
 
 export async function submitAuthForm(event: RequestEvent, mode: 'login' | 'register') {
 	requireSameOrigin(event);
-	const data = await event.request.formData();
-	const username = data.get('username');
-	const artworkId = data.get('artworkId');
-	const preferences = data.has('artworkId') ? { artworkId } : {};
-	const authenticated = await authenticate(mode, username, data.get('password'), preferences);
-	if (!authenticated)
-		return fail(400, {
-			message:
-				mode === 'login'
-					? 'Invalid username or password.'
-					: 'Unable to create an account with those details.',
-			username: typeof username === 'string' ? username : '',
-			...(mode === 'register' ? { artworkId: typeof artworkId === 'string' ? artworkId : '' } : {})
-		});
+	const result = await submitCredentialForm<AuthFormSuccess, AuthFormFailure>(
+		event,
+		`/api/web/v1/auth/${mode}`
+	);
+	if (!result.ok) return fail(result.status, result.data);
 	await revokeSession(event.cookies.get(SESSION_COOKIE));
-	const { session } = authenticated;
-	writeSessionCookie(event.cookies, session.token, event.url);
+	writeSessionCookie(event.cookies, result.data.token, event.url);
 	redirect(303, sanitizeReturnTo(event.url.searchParams.get('returnTo')));
 }

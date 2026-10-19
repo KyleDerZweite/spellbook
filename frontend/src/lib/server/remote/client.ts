@@ -12,6 +12,11 @@ export interface RemoteClientOptions {
 	fetch?: typeof fetch;
 }
 
+export type WebFormPath =
+	'/api/web/v1/auth/login' | '/api/web/v1/auth/register' | '/api/web/v1/password';
+export type WebFormResult<Success, Failure> =
+	{ ok: true; data: Success } | { ok: false; status: 400 | 403; data: Failure };
+
 export class RemoteClient {
 	private token: string | undefined;
 	constructor(private readonly options: RemoteClientOptions) {
@@ -19,6 +24,44 @@ export class RemoteClient {
 	}
 	replaceToken(token: string | undefined) {
 		this.token = token;
+	}
+	/** API owns attempt ordering and bounded decoding, including malformed multipart. */
+	async form<Success, Failure>(
+		path: WebFormPath,
+		request: Request
+	): Promise<WebFormResult<Success, Failure>> {
+		const headers = new Headers({ accept: 'application/json', origin: this.options.publicOrigin });
+		headers.set('X-Spellbook-Client-Address', this.options.clientAddress);
+		const contentType = request.headers.get('content-type');
+		if (contentType !== null) headers.set('content-type', contentType);
+		if (this.token) headers.set('cookie', `${SESSION_COOKIE}=${encodeURIComponent(this.token)}`);
+		const signal = this.options.signal ?? request.signal;
+		let response: Response;
+		try {
+			const init: RequestInit & { duplex?: 'half' } = {
+				method: 'POST',
+				headers,
+				body: request.body,
+				duplex: 'half',
+				signal,
+				redirect: 'manual',
+				cache: 'no-store'
+			};
+			response = await (this.options.fetch ?? fetch)(new URL(path, this.options.apiUrl), init);
+		} catch {
+			if (signal.aborted) throw signal.reason;
+			throw new RemoteUnavailableError();
+		}
+		let value: unknown;
+		try {
+			value = await response.json();
+		} catch {
+			throw new RemoteUnavailableError();
+		}
+		if (response.ok) return { ok: true, data: value as Success };
+		if (response.status === 400 || response.status === 403)
+			return { ok: false, status: response.status, data: value as Failure };
+		throw decodeRemoteError(response.status, value);
 	}
 	async request<T>(
 		path: string,

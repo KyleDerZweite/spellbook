@@ -80,8 +80,8 @@ describe('request-bound SSR credentials', () => {
 		const send = vi.fn<typeof fetch>().mockImplementation(async (url) => {
 			if (String(url).endsWith('/api/auth/session'))
 				return Response.json({ user, expiresAt: 'expiry' });
-			if (String(url).endsWith('/api/account/password'))
-				return Response.json({ token: 'rotated-session', expiresAt: 'expiry' });
+			if (String(url).endsWith('/api/web/v1/password'))
+				return Response.json({ success: true, token: 'rotated-session', expiresAt: 'expiry' });
 			return Response.json({ user, card: {}, totals: {} });
 		});
 		vi.stubGlobal('fetch', send);

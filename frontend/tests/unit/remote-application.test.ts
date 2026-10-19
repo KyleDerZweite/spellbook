@@ -248,17 +248,6 @@ describe('named remote web use cases', () => {
 			}
 		});
 	});
-	it('replaces the request credential before subsequent reads after password rotation', async () => {
-		const { app, send } = setup();
-		send.mockResolvedValueOnce(
-			Response.json({ token: 'replacement-session', expiresAt: 'expiry' })
-		);
-		await app.auth.changePassword(actor, 'current-password', 'new-password');
-		await app.profile.get(actor);
-		expect(sent(send).headers.get('cookie')).toBe('spellbook_session=cookie-session');
-		expect(sent(send, 1).headers.get('cookie')).toBe('spellbook_session=replacement-session');
-		expect(sent(send, 1).headers.get('authorization')).toBeNull();
-	});
 	it('does not retry a mutation after an ambiguous response or later read failure', async () => {
 		const { app, send } = setup();
 		const input = {
