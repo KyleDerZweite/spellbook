@@ -15,11 +15,11 @@
 		"@spellbook/contracts": "workspace:*",
 		"drizzle-orm": "^0.45.4",
 		"pg": "^8.23.1",
-		"@aws-sdk/client-s3": "^3.1148.0"
+		"@aws-sdk/client-s3": "^3.1152.0"
 	},
 	"devDependencies": {
 		"@types/pg": "^8.23.1",
-		"@types/node": "^26.6.4",
+		"@types/node": "^26.6.5",
 		"drizzle-kit": "^0.31.11",
 		"esbuild": "^0.28.2",
 		"typescript-native": "npm:typescript@^7.0.2",

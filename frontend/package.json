@@ -38,7 +38,7 @@
 		"@sveltejs/kit": "^3.1.0",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
 		"@tailwindcss/vite": "^4.3.3",
-		"@types/node": "^26.6.4",
+		"@types/node": "^26.6.5",
 		"@types/pg": "^8.23.1",
 		"@types/qrcode": "^1.5.6",
 		"csstype": "^3.2.3",
