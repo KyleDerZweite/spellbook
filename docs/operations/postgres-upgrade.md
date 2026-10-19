@@ -1,9 +1,9 @@
 # PostgreSQL 17 to 18 upgrade
 
 - Status: Canonical
-- Last Reviewed: 2026-10-03
+- Last Reviewed: 2026-10-19
 - Source of Truth: compose configuration, PostgreSQL tools, disposable migration rehearsal
-- Update Triggers: PostgreSQL major versions, database volume layout, ownership or role changes, migration commands
+- Update Triggers: independent API/web ownership and relocated code references, PostgreSQL major versions, database volume layout, ownership or role changes, migration commands
 - Related Docs: [Deployment](./deployment.md), [Postgres architecture](../architecture/postgres.md), [Local authentication](./local-auth.md), [Operations](./README.md)
 
 The stack now uses PostgreSQL 18.6 with `postgres18_data` mounted at `/var/lib/postgresql`. The image stores its database at `/var/lib/postgresql/18/docker`. Existing PostgreSQL 17 data stays in `postgres_data`; a new volume does not migrate that data automatically.
@@ -18,6 +18,8 @@ Use the old deployment configuration and the same compose project name throughou
 podman-compose stop frontend worker scan-worker
 podman ps --format '{{.ID}} {{.Names}} {{.Image}}'
 ```
+
+The command above names the historical single-application services. For an independent-runtime deployment, also stop `api` before dumping; it owns application writes and runners. Keep it stopped through restore and migration.
 
 Record the observed PostgreSQL 17 container, original data volume, configured database name, and database owner. Replace the example values below with those observations. The dump contains private account data and password hashes; store it in the existing protected backup location.
 
@@ -60,7 +62,7 @@ podman exec -i "$SPELLBOOK_PG18_CONTAINER" pg_restore \
   --exit-on-error --single-transaction --no-owner --no-acl < "$SPELLBOOK_PG_BACKUP"
 ```
 
-A restore error stops the transaction. Investigate before retrying; do not start the frontend against a partial or empty replacement database. Compare restored table counts and migration history with the source, then run application migrations:
+A restore error stops the transaction. Investigate before retrying; do not start API writers or web ingress against a partial or empty replacement database. Compare restored table counts and migration history with the source, then run application migrations:
 
 ```sh
 podman-compose run --build --rm db-migrate

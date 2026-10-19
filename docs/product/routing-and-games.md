@@ -1,16 +1,16 @@
 # Routes and supported game, paused Scan entrypoints
 
 - Status: Canonical
-- Last Reviewed: 2026-10-17
+- Last Reviewed: 2026-10-19
 - Source of Truth: route handlers and server hooks
-- Update Triggers: PWA launch/connect and QR approval/API routes, route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game, paused Scan entrypoints, private Inventory history routes
+- Update Triggers: independent API/web ownership and relocated code references, PWA launch/connect and QR approval/API routes, route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game, paused Scan entrypoints, private Inventory history routes
 - Related Docs: [Product specification](./specification.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Frontend architecture](../architecture/frontend.md), [Catalog](../architecture/catalog.md), [Product index](./README.md)
 
 Scan presentation is paused. The existing `/mtg/scan` route and versioned Scan API are retained, but Navigation, Inventory and Dashboard do not link to Scan. [Mobile and scan](../architecture/mobile-and-scan.md) owns retained capabilities and the later recognition scope.
 
 Spellbook supports MTG. Game-specific pages use the `/mtg/` prefix. Public home, authentication, account settings, and legal pages remain shared; versioned integration endpoints keep their existing paths. The header game icon sits immediately before the theme control. It identifies Magic with the Mana Font planeswalker symbol and a tooltip. Cycling is inactive while MTG is the only available game. The `/mtg/` layout owns workspace game identity; the cookie retains the selection for shared pages. Unsupported cookie values reset to MTG. Additional games require their own catalog and workflow implementation before becoming selectable.
 
-The [route source](../../frontend/src/routes/) owns implemented handlers. The [server hooks](../../frontend/src/hooks.server.ts) own page protection and redirects. `/openapi.json` exposes authentication, account and versioned MTG API contracts.
+The [web routes](../../frontend/src/routes/) own pages and the same-origin API proxy. The [backend route registry](../../backend/src/http/application.ts) owns API handlers; [server hooks](../../frontend/src/hooks.server.ts) own page protection and redirects. `/openapi.json` exposes authentication, account and versioned MTG API contracts.
 
 ## Pages and account routes
 
@@ -69,7 +69,11 @@ Signed-out access to protected pages redirects to `/auth/login` with the local p
 
 There is no OIDC callback route, game-switching page, play route, public deck page, MTG card camera-capture page or offline workspace. Authorization QR camera scanning belongs to `/app/connect`. The public `offline.html` fallback contains no account workspace.
 
-Public read-only browser endpoints are `GET` and `POST /api/catalog/search` and `GET /api/catalog/cards/{oracleId}/printings`. They use the same validated search and printing contracts as their versioned counterparts. Inventory and deck mutations remain authenticated.
+Public read-only browser endpoints are `GET` and `POST /api/catalog/search`, `GET /api/catalog/cards/{oracleId}/printings` and `GET /api/catalog/printings/{printingId}`. They use the same validated search and printing contracts as their versioned counterparts. Inventory and deck mutations remain authenticated.
+
+## Web adapter API
+
+`POST /api/web/v1/commands` accepts exactly the nine typed intents owned by [contracts/src/web.ts](../../contracts/src/web.ts). It is a closed mutation adapter, with unchanged source, request-ID, receipt and conflict semantics. `POST /api/web/v1/auth/login`, `/api/web/v1/auth/register` and `/api/web/v1/password` are the selected raw-form routes; the API takes the original auth attempt before decoding. The [implementation contract](../architecture/independent-applications.md#authority-and-compatibility) owns their details. Core form/OpenAPI follow-up and final verification are in progress.
 
 ## Versioned MTG API
 
@@ -78,6 +82,7 @@ All paths below begin with `/api/mobile/v1/mtg`. The historical `mobile` name do
 | Relative path                                              | Purpose                                                        |
 | ---------------------------------------------------------- | -------------------------------------------------------------- |
 | `/search`                                                  | Catalog queries                                                |
+| `/category-definitions/[originId]`                         | Authenticated read of one owned reusable definition            |
 | `/cards/[oracleId]/printings`                              | Printings for a canonical card                                 |
 | `/inventory/value`                                         | Authenticated current Inventory estimate and coverage          |
 | `/inventory/value-history`                                 | Authenticated closed daily checkpoints and explicit gaps       |

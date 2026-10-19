@@ -1,14 +1,16 @@
 # Spellbook documentation
 
 - Status: Canonical
-- Last Reviewed: 2026-10-09
+- Last Reviewed: 2026-10-19
 - Source of Truth: mixed
-- Update Triggers: document ownership, product contracts, section changes, documentation health review
+- Update Triggers: independent API/web ownership and relocated code references, document ownership, product contracts, section changes, documentation health review
 - Related Docs: [Product](./product/README.md), [Architecture](./architecture/README.md), [Operations](./operations/README.md), [Integrations](./integrations/README.md), [Decisions](./decisions/README.md), [Reference](./reference/README.md), [Issue labels](./ISSUE_LABELS.md)
 
 Start with the [product specification](./product/specification.md) for current behavior, requirements, and known limits. Use the [domain glossary](../GLOSSARY.md) for precise MTG and ownership terms. The code, tests, and configuration resolve implementation questions.
 
 [Value tracking](./product/value-tracking.md) owns market value, coverage and personal Inventory history. [Valuation](./architecture/valuation.md) owns implemented reference mechanics, public source history and private daily checkpoints. [ADR-0020](./decisions/0020-value-only-inventory-history.md) records the value-only scope and supersedes the cost-dependent history design.
+
+The [independent applications contract](./architecture/independent-applications.md) owns the accepted web/API/Android split and implementation status. [Deployment](./operations/deployment.md#independent-build-and-start) owns separate runtime commands; [verification](./operations/github-automation.md) owns current-artifact evidence and unavailable native checks.
 
 Use the [issue label rules](./ISSUE_LABELS.md) for repository triage and the [contribution policy](../CONTRIBUTING.md) for proposals, pull requests, and AI assistance disclosure.
 

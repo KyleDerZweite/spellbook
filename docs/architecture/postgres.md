@@ -1,16 +1,16 @@
 # Postgres
 
 - Status: Canonical
-- Last Reviewed: 2026-10-17
+- Last Reviewed: 2026-10-19
 - Source of Truth: code
-- Update Triggers: QR authorization persistence and migration 0024, schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership, application resource lifetime and native operator ownership, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers, private value checkpoints and frozen evidence, public price publication and retention, Oracle Tags publications and raw facts, entry category bundles/decisions and receipts, immutable account definitions and relational preview retention
-- Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Category rules](./category-rules.md)
+- Update Triggers: independent API/web ownership and relocated code references, QR authorization persistence and migration 0024, schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership, application resource lifetime and native operator ownership, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers, private value checkpoints and frozen evidence, public price publication and retention, Oracle Tags publications and raw facts, entry category bundles/decisions and receipts, immutable account definitions and relational preview retention
+- Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Category rules](./category-rules.md), [Independent applications](./independent-applications.md)
 
 PostgreSQL stores account-owned application state, the public Scryfall catalog and public price references.
 
-The backend [schema](../../backend/src/db/schema.ts) owns table definitions, and [database construction](../../backend/src/db/client.ts) owns Drizzle/pg setup. The [application constructor](../../backend/src/application.ts) owns the runtime resource and closure. Frontend composition supplies configuration and exports only use cases, without raw database handles. Frontend database/schema compatibility modules are removed. Integration tests use the [test-only database fixture](../../frontend/tests/fixtures/database.ts) and backend schema directly. [Drizzle configuration](../../frontend/drizzle.config.ts) references the backend schema; the existing [migration history](../../frontend/drizzle/) and native migration commands remain in frontend tooling.
+The backend [schema](../../backend/src/db/schema.ts) owns table definitions, and [database construction](../../backend/src/db/client.ts) owns Drizzle/pg setup. The [application constructor](../../backend/src/application.ts) owns the runtime resource and closure. The Node API host supplies configuration and owns this application resource. Web calls use cases through HTTP and has no database handle or runtime persistence dependency. Integration tests use the [test-only database fixture](../../frontend/tests/fixtures/database.ts) and backend schema directly. [Drizzle configuration](../../backend/drizzle.config.ts) references the backend schema; the [migration history](../../backend/drizzle/) and native migration commands belong to backend. SQL, journal and snapshots retain their original history; frontend migration commands are compatibility forwarders.
 
-The [QR authorization migration 0024](../../frontend/drizzle/0024_qr_authorization.sql) adds challenge digests, kind, expiry, decision and approver-session binding. Issuing a session and consuming an approved request share one transaction. Existing account/session tables retain their identities. [Authentication](./auth.md#pwa-and-qr-sign-in-implementation-contract) owns locking, expiry, revocation and idempotent decisions.
+The [QR authorization migration 0024](../../backend/drizzle/0024_qr_authorization.sql) adds challenge digests, kind, expiry, decision and approver-session binding. Issuing a session and consuming an approved request share one transaction. Existing account/session tables retain their identities. [Authentication](./auth.md#pwa-and-qr-sign-in-implementation-contract) owns locking, expiry, revocation and idempotent decisions.
 
 ## Current Tables
 
@@ -55,7 +55,7 @@ The [QR authorization migration 0024](../../frontend/drizzle/0024_qr_authorizati
 - `oracle_tag_state`
 - `oracle_tags`
 
-Additive migration [0016](../../frontend/drizzle/0016_deck_entry_categories.sql) adds the category/source tables. [Category rules](./category-rules.md) owns their publication, adopted-bundle and immutable decision semantics.
+Additive migration [0016](../../backend/drizzle/0016_deck_entry_categories.sql) adds the category/source tables. [Category rules](./category-rules.md) owns their publication, adopted-bundle and immutable decision semantics.
 
 ## Current Model Notes
 
@@ -75,9 +75,9 @@ Additive migration [0016](../../frontend/drizzle/0016_deck_entry_categories.sql)
 
 ## Current Access Pattern
 
-- backend use cases use Drizzle ORM and `pg` through the owned backend application resource; frontend server adapters call those use cases
+- backend use cases use Drizzle ORM and `pg` through the owned backend application resource; frontend server adapters reach those use cases through the API
 - browser pages load user data through server load functions and route actions
-- optional mobile API endpoints call the same backend use cases as web routes
+- direct API clients and web remote adapters reach the same backend use cases
 - backend use cases derive internal Spellbook `accountId` from session-produced trusted actors
 - the backend Profile use case reads account-scoped MTG totals directly from `inventory_cards` and `decks` without creating inventory rows or calling the catalog worker
 - profile totals count owned quantities, distinct canonical card IDs, distinct printing IDs, distinct set codes, foil quantities, and decks; a totals read failure leaves profile customization available
@@ -85,15 +85,15 @@ Additive migration [0016](../../frontend/drizzle/0016_deck_entry_categories.sql)
 
 ## Public price persistence
 
-[Migration 0015](../../frontend/drizzle/0015_scryfall_prices.sql) adds four public price tables and initializes the singleton pointer row. It preserves existing account and Catalog tables. [Valuation](./valuation.md#implemented-market-references) owns paired publication, exact observations, independent retention and trusted frozen-reference evidence. Worker ingestion never reads or writes private holdings.
+[Migration 0015](../../backend/drizzle/0015_scryfall_prices.sql) adds four public price tables and initializes the singleton pointer row. It preserves existing account and Catalog tables. [Valuation](./valuation.md#implemented-market-references) owns paired publication, exact observations, independent retention and trusted frozen-reference evidence. Worker ingestion never reads or writes private holdings.
 
 ## Inventory read and write consistency
 
-[Migration 0011](../../frontend/drizzle/0011_inventory_windows.sql) adds bigint Inventory and Notes revisions, ICU root ordering and a name/set window index. The [application contract](./application-contract.md#inventory-query-contract) owns page ordering, metadata and revision resets. Backend page/detail/location reads use one repeatable-read, read-only snapshot scoped to the trusted actor and MTG, including counts, memberships and catalog-derived set metadata. An absent Inventory returns empty data without creating a parent.
+[Migration 0011](../../backend/drizzle/0011_inventory_windows.sql) adds bigint Inventory and Notes revisions, ICU root ordering and a name/set window index. The [application contract](./application-contract.md#inventory-query-contract) owns page ordering, metadata and revision resets. Backend page/detail/location reads use one repeatable-read, read-only snapshot scoped to the trusted actor and MTG, including counts, memberships and catalog-derived set metadata. An absent Inventory returns empty data without creating a parent.
 
 Inventory SQL counts, copy sums, group totals, set progress and location indexes remain exact text until the shared [integer decoder](../../backend/src/db/numbers.ts) validates a nonnegative safe JSON integer. Unsupported ranges fail explicitly instead of narrowing to signed 32-bit values or rounding through floating-point SQL casts. [The HTTP contract](./mobile-and-scan.md#bounded-inventory-http-reads) owns the controlled failure response. Per-entry quantity limits are unchanged.
 
-The backend [mutation owner](../../backend/src/inventory/mutations.ts) uses the shared [Inventory helper](../../backend/src/inventory/write.ts) after Profile/account locking and session revalidation. Scan locks its session before Inventory; sorted target entries precede Groups. Catalog resolution uses no nested connection under those locks. Semantic changes advance the Inventory revision once per transaction; no-ops and receipt replays do not. Notes has an independent stored revision and stale-text guard. Ordinary entry changes keep sparse positions; only explicit reorder may scan/rewrite their ordering. [Migration 0014](../../frontend/drizzle/0014_inventory_contracts.sql) adds nullable JSONB original acknowledgements without backfilling fabricated history. [The application contract](./application-contract.md#inventory-query-contract) owns replay, legacy receipt treatment and lock order. [Deployment](../operations/deployment.md#inventory-collation-and-recovery) owns ICU preflight and recovery.
+The backend [mutation owner](../../backend/src/inventory/mutations.ts) uses the shared [Inventory helper](../../backend/src/inventory/write.ts) after Profile/account locking and session revalidation. Scan locks its session before Inventory; sorted target entries precede Groups. Catalog resolution uses no nested connection under those locks. Semantic changes advance the Inventory revision once per transaction; no-ops and receipt replays do not. Notes has an independent stored revision and stale-text guard. Ordinary entry changes keep sparse positions; only explicit reorder may scan/rewrite their ordering. [Migration 0014](../../backend/drizzle/0014_inventory_contracts.sql) adds nullable JSONB original acknowledgements without backfilling fabricated history. [The application contract](./application-contract.md#inventory-query-contract) owns replay, legacy receipt treatment and lock order. [Deployment](../operations/deployment.md#inventory-collation-and-recovery) owns ICU preflight and recovery.
 
 ## Dashboard summary reads
 
@@ -105,7 +105,7 @@ SQL keeps quantity sums as exact numeric aggregates rather than narrowing accoun
 
 ## Deck persistence and reads
 
-[Migration 0012](../../frontend/drizzle/0012_deck_contracts.sql) adds independent `description_revision` and `composition_revision` bigint columns to Decks and a JSONB acknowledgement to Deck mutation requests. It replaces the request record's Deck foreign key with an account foreign key: records survive Deck deletion and cascade with account deletion.
+[Migration 0012](../../backend/drizzle/0012_deck_contracts.sql) adds independent `description_revision` and `composition_revision` bigint columns to Decks and a JSONB acknowledgement to Deck mutation requests. It replaces the request record's Deck foreign key with an account foreign key: records survive Deck deletion and cascade with account deletion.
 
 The backend [Deck application](../../backend/src/decks/application.ts) reads library totals/covers, selected composition and relevant owned-printing aggregates in a repeatable-read, read-only transaction. SQL restricts Inventory aggregation to the selected canonical identities. Search/inspector ownership accepts at most 100 canonical identities. Exact SQL sums pass through the shared integer decoder with a nonnegative check; unsupported JSON integer ranges fail instead of rounding. The backend [canonical quantity helper](../../backend/src/decks/availability.ts) sums across printings with bigint and validates the safe JSON range before returning ownership DTOs to printing selectors, selected Decks or search. Per-entry limits remain unchanged. Dashboard retains its separate backend summary owner.
 
@@ -113,7 +113,7 @@ Writes lock the account profile and revalidate the session inside the transactio
 
 ## Saved-state notifications
 
-[Migration 0013](../../frontend/drizzle/0013_saved_state.sql) adds the notification function and AFTER row triggers without changing table columns or existing rows. It requires no new Drizzle schema snapshot. Triggers cover Profile changes, sessions/credentials, Inventory entries/groups/memberships, Decks/cards and Scan sessions/artifacts/review items. Profile updates limited to `last_seen_at` emit nothing. Group ownership derives from the Inventory parent.
+[Migration 0013](../../backend/drizzle/0013_saved_state.sql) adds the notification function and AFTER row triggers without changing table columns or existing rows. It requires no new Drizzle schema snapshot. Triggers cover Profile changes, sessions/credentials, Inventory entries/groups/memberships, Decks/cards and Scan sessions/artifacts/review items. Profile updates limited to `last_seen_at` emit nothing. Group ownership derives from the Inventory parent.
 
 PostgreSQL delivers notifications after commit; rollback emits nothing. The payload contains account identity and a coarse topic. Auth is transport control and never becomes a protected browser topic. [The application contract](./application-contract.md#saved-state-synchronization) owns the listener, session barrier and bounded queues. [Deployment](../operations/deployment.md#saved-state-streaming) owns migrator and connection capacity requirements.
 
@@ -142,6 +142,6 @@ Migration 0017 adds independent optional publication/state/mapping/observation t
 
 ## Personal value persistence
 
-[Migration 0020](../../frontend/drizzle/0020_inventory_value_history.sql) adds account/game/date-unique daily headers, identity/condition holdings and deduplicated printing/finish frozen reference evidence. Private evidence has no live Inventory, Catalog or public-price foreign key. Deleting an account removes its private history. Automatic history expiry is absent. The header stores the observation clock, reporting timezone, UTC boundaries, Inventory revision, policy version and exact estimate. Its constraint restricts observation time to the final 60 seconds. [Valuation](./valuation.md#reviewed-personal-history-contract) owns transactional replacement, runner lease, closure and read semantics.
+[Migration 0020](../../backend/drizzle/0020_inventory_value_history.sql) adds account/game/date-unique daily headers, identity/condition holdings and deduplicated printing/finish frozen reference evidence. Private evidence has no live Inventory, Catalog or public-price foreign key. Deleting an account removes its private history. Automatic history expiry is absent. The header stores the observation clock, reporting timezone, UTC boundaries, Inventory revision, policy version and exact estimate. Its constraint restricts observation time to the final 60 seconds. [Valuation](./valuation.md#reviewed-personal-history-contract) owns transactional replacement, runner lease, closure and read semantics.
 
 Migration 0020 also notifies account-scoped `values` after checkpoint commit and emits the strict two-key public `values` invalidation after public price-state changes. Rollback emits neither. [Application contract](./application-contract.md#saved-state-synchronization) owns transport isolation.

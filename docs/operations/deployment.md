@@ -1,9 +1,9 @@
 # Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-10-17
+- Last Reviewed: 2026-10-19
 - Source of Truth: repo config
-- Update Triggers: PWA HTTPS/install/update operations and QR migration 0024, Catalog set-directory and color-identity projection migrations, price publication/pair and optional recovery, private value history migration and runtime configuration, source opt-ins and ingestion limits, optional local combo publication and recovery, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and graceful shutdown, preview target, single root environment and local/build origins, migrations, storage, workspace ownership, application resource lifetime and native operator ownership, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
+- Update Triggers: independent API/web ownership and relocated code references, PWA HTTPS/install/update operations and QR migration 0024, Catalog set-directory and color-identity projection migrations, price publication/pair and optional recovery, private value history migration and runtime configuration, source opt-ins and ingestion limits, optional local combo publication and recovery, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and graceful shutdown, preview target, single root environment and local/build origins, migrations, storage, workspace ownership, application resource lifetime and native operator ownership, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
 - Related Docs: [Postgres](../architecture/postgres.md), [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Classifier research](../integrations/card-categorization.md), [Catalog](../architecture/catalog.md)
 
 The canonical service definitions are [`podman-compose.yml`](../../podman-compose.yml) and the local storage override [`podman-compose.dev.yml`](../../podman-compose.dev.yml). Keep live domains, account details, and secret references in private operator notes.
@@ -12,7 +12,7 @@ The canonical service definitions are [`podman-compose.yml`](../../podman-compos
 
 [`dev.sh`](../../dev.sh) starts the host development environment. It uses the pinned Node version through `fnm` when available; otherwise activate that version before launching. Install the root workspace dependencies with `pnpm install --frozen-lockfile` from the repository root. The default development loop does not require Python or either Worker. An existing PostgreSQL database with migrations applied is required. [Demo setup](./local-auth.md#demo-mode) owns the explicit initial migration and seed commands.
 
-Copy [`.env.example`](../../.env.example) to the ignored root `.env` and set `DATABASE_URL` to an existing local database. This is the single environment file for native development, operator commands and Compose configuration. Enable `DEMO_MODE` only for the prepared disposable demo. The launcher, database commands and explicit demo seed read `.env`; variables already supplied by the caller take precedence. Vite also reads it through the root environment directory. The old `.env.local` is no longer part of setup. Run from the repository root:
+Copy [`.env.example`](../../.env.example) to the ignored root `.env` and set `DATABASE_URL` to an existing local database. This is the single environment file for native development, operator commands and Compose configuration. Enable `DEMO_MODE` only for the prepared disposable demo. The launcher, database commands and explicit demo seed read `.env`; variables already supplied by the caller take precedence. The launcher filters database, storage and worker secrets from web children. Vite and framework env directories are `frontend/`, so web does not read the root `.env` directly. The old `.env.local` is no longer part of setup. Run from the repository root:
 
 ```sh
 ./demo.sh
@@ -22,19 +22,41 @@ Copy [`.env.example`](../../.env.example) to the ignored root `.env` and set `DA
 
 [`demo.sh`](../../demo.sh) forwards to `dev.sh` with `--demo`, including optional `start`, `stop` and `--scan` arguments. Both entrypoints share the same launcher ownership record. The `start` command runs in the foreground. `--demo` seeds the disposable Demo database without resetting private edits and enables Demo mode. Without `--demo`, `./dev.sh` and `./dev.sh start` retain the ordinary development behavior. Set `DEV_DATABASE_CONTAINER` in the ignored root `.env` to an existing Podman PostgreSQL container name if the launcher should start it and wait for readiness. The launcher stops that container only when it started it; an already-running database remains running. `stop` verifies the recorded launcher PID and Linux process identity before sending SIGTERM. Runtime ownership is published atomically in ignored `.local/dev.pid`. A per-container lease under `~/.cache/spellbook/dev-containers/` prevents concurrent managed use across worktrees. After a crash or failed cleanup, inspect the retained records and verify that their processes and resources have stopped before removing them. Cleanup failures retain records and return a failure rather than reporting a successful stop.
 
-The equivalent frontend command is `pnpm --dir frontend dev:local`. The launcher starts Vite with Hot Reload on port 5173. Scan UI development is paused. To run the retained scaffold explicitly, first prepare its environment with `uv sync --project scan-worker --frozen`, then run `./dev.sh --scan` or `pnpm --dir frontend dev:local --scan`. This adds the scan-worker on loopback port 8087 and local scan storage, defaulting to the ignored `.local/scans` directory. Set `SCAN_LOCAL_STORAGE_DIR` in `.env` to retain an existing artifact directory. `DEV_APP_ORIGIN` defaults to `http://localhost:5173`; change it only to match the local browser origin used for form submissions. Both the launcher and direct Vite development use this value. Keep `APP_ORIGIN` for origin-matched production builds; a configured deployment origin does not change local form origins.
+The equivalent frontend command is `pnpm --dir frontend dev:local`. The root launcher starts the API on `127.0.0.1:3001` and Vite with Hot Reload on port 5173. `API_PORT` and `DEV_APP_ORIGIN` select task-owned API and web ports; the launcher passes matching `APP_ORIGIN` and `API_INTERNAL_URL`. Scan UI development is paused. To run the retained scaffold explicitly, first prepare its environment with `uv sync --project scan-worker --frozen`, then run `./dev.sh --scan` or `pnpm --dir frontend dev:local --scan`. This adds the scan-worker on loopback port 8087 and local scan storage, defaulting to the ignored `.local/scans` directory. Set `SCAN_LOCAL_STORAGE_DIR` in `.env` to retain an existing artifact directory. `DEV_APP_ORIGIN` defaults to `http://localhost:5173`; change it only to match the local browser origin used for form submissions. The launcher passes this value to web and uses it as the API public Origin. A direct Vite start also needs a separately running API and `API_INTERNAL_URL`. Keep `APP_ORIGIN` for origin-matched production builds; a configured deployment origin does not change local form origins.
 
-Stopping the launcher sends SIGTERM to its own frontend and, when selected, scan-worker process groups. It does not escalate to SIGKILL. An error or occupied port shuts down the other owned child process too. Existing services and an already-running database are not stopped. Startup does not apply migrations, reset accounts, build containers or start a tunnel. Only explicit `--demo` publishes the versioned Demo Catalog and seeds missing Demo data. The retained scan-worker still returns no matches. Existing Scan routes and data remain available, but Navigation, Inventory and Dashboard no longer advertise that workflow. `worker/` still owns Catalog ingestion; moving either Python package into `backend/` is deferred.
+Stopping the launcher sends SIGTERM to its own API, frontend and, when selected, scan-worker process groups. It does not escalate to SIGKILL. An error or occupied port shuts down the other owned child process too. Existing services and an already-running database are not stopped. Startup does not apply migrations, reset accounts, build containers or start a tunnel. Only explicit `--demo` publishes the versioned Demo Catalog and seeds missing Demo data. The retained scan-worker still returns no matches. Existing Scan routes and data remain available, but Navigation, Inventory and Dashboard no longer advertise that workflow. `worker/` still owns Catalog ingestion; moving either Python package into `backend/` is deferred.
 
 The T3 project uses `./dev.sh` as its Dev server script and `http://localhost:5173/` as its design-review preview URL. The root always shows the public landing, including with a signed-in demo session. Open `/mtg/dashboard` to review the private account summary. The removed `review=landing` override is no longer needed. The preview URL is a local app setting, not deployment configuration.
 
 The Compose base file starts the built stack on port 3000. Its `podman-compose.dev.yml` override selects a shared local scan-storage volume instead of S3; it does not run Vite or enable Hot Reload.
 
+## Independent build and start
+
+The API and web build independently. From the root with the frozen workspace installed:
+
+```sh
+fnm exec --using 26.10.0 pnpm --dir backend build
+APP_ORIGIN=http://127.0.0.1:3000 fnm exec --using 26.10.0 pnpm --dir frontend build
+```
+
+The API artifact is `backend/dist/main.js`; web is `frontend/build/index.js`. Web builds without database credentials or a running API. Start the API with the protected database/storage configuration, then start web in another terminal:
+
+```sh
+APP_ORIGIN=http://127.0.0.1:3000 API_HOST=127.0.0.1 API_PORT=3001 \
+API_TRUSTED_PROXY_ADDRESSES=127.0.0.1,::1 \
+fnm exec --using 26.10.0 pnpm --dir backend start
+
+APP_ORIGIN=http://127.0.0.1:3000 API_INTERNAL_URL=http://127.0.0.1:3001 \
+HOST=127.0.0.1 PORT=3000 fnm exec --using 26.10.0 node frontend/build/index.js
+```
+
+Use free task-owned ports and the matching public Origin for isolated work. Backend `start` loads root `.env`; the web command needs only its selected presentation/proxy variables. The API defaults to loopback and trusts no forwarded client address unless configured. [Configuration](#configuration) owns proxy trust and public-origin policy. Android uses the separate Gradle project and [native delivery contract](../architecture/independent-applications.md#android-delivery); native build/run instructions remain with that project when integrated.
+
 ## PWA installation and QR use
 
-Serve the application and its API from the same HTTPS origin outside localhost. A phone visiting a private LAN HTTP address does not have the localhost camera/service-worker exception. Set `APP_ORIGIN` to that public HTTPS origin and rebuild when it changes. The PWA needs no external QR service, separate frontend host or new runtime variable.
+Serve the application and its API from the same HTTPS origin outside localhost. A phone visiting a private LAN HTTP address does not have the localhost camera/service-worker exception. Set `APP_ORIGIN` to that public HTTPS origin for the web build and API runtime. Rebuild web and restart the API when it changes. `API_INTERNAL_URL` points web to the private API destination. The PWA needs no external QR service.
 
-Apply [migration 0024](../../frontend/drizzle/0024_qr_authorization.sql) with the existing migrator before starting QR-capable code. It adds authorization challenges; existing accounts, passwords and sessions remain valid. [Authentication](../architecture/auth.md#pwa-and-qr-sign-in-implementation-contract) owns five-minute expiry, one-use redemption and session revocation.
+Apply [migration 0024](../../backend/drizzle/0024_qr_authorization.sql) with the existing migrator before starting QR-capable code. It adds authorization challenges; existing accounts, passwords and sessions remain valid. [Authentication](../architecture/auth.md#pwa-and-qr-sign-in-implementation-contract) owns five-minute expiry, one-use redemption and session revocation.
 
 The accepted install/use journey is:
 
@@ -55,11 +77,11 @@ Update the versioned English Demo baseline manually when selecting a new source 
 1. From the repository root, build from the selected local default bulk export with the native Worker transform:
 
    ```sh
-   python3 frontend/scripts/demo/build-catalog.py data/<default-export>.jsonl frontend/scripts/demo/catalog-default-en-<date>.jsonl.gz --version <explicit-UTC-bundle-version>
+   python3 backend/scripts/demo/build-catalog.py data/<default-export>.jsonl backend/scripts/demo/catalog-default-en-<date>.jsonl.gz --version <explicit-UTC-bundle-version>
    ```
 
-2. Review source hash, native transform version, count/exclusion provenance, all starter identities and artifact integrity tests. Update the manifest filename selected by `frontend/scripts/demo/catalog-bundle.mjs` and the pinned baseline test counts deliberately. Format the manifest with the existing frontend Prettier. Keep the compressed bundle and its manifest together.
-3. Verify the protected target is the intended migrated disposable Demo database. From `frontend/`, run the existing `pnpm demo:seed` without `--reset-users` to publish while preserving private edits. Inspect the active Catalog generation and verify Search, starter identity coverage and preserved private state.
+2. Review source hash, native transform version, count/exclusion provenance, all starter identities and artifact integrity tests. Update the manifest filename selected by `backend/scripts/demo/catalog-bundle.mjs` and the pinned baseline test counts deliberately. Format the manifest with the existing frontend Prettier. Keep the compressed bundle and its manifest together.
+3. Verify the protected target is the intended migrated disposable Demo database. From `backend/`, run `pnpm demo:seed` without `--reset-users` to publish while preserving private edits. Inspect the active Catalog generation and verify Search, starter identity coverage and preserved private state.
 
 The importer rejects a compressed hash mismatch before publication. Decoding, payload integrity or SQL failure rolls back the entire seed transaction under the existing publisher lock. A valid already-active bundle leaves its pointer and timestamp unchanged. The explicit bundle version and local export filename do not establish Scryfall or Price freshness.
 
@@ -67,28 +89,29 @@ The importer rejects a compressed hash mismatch before publication. Decoding, pa
 
 [Root package.json](../../package.json), [pnpm-workspace.yaml](../../pnpm-workspace.yaml) and [pnpm-lock.yaml](../../pnpm-lock.yaml) own Node workspace install policies and the package-manager pin. Frontend-scoped install commands still resolve this frozen root workspace. Keep the root manifests and `frontend/`, `backend/`, `contracts/` and `scripts/` in the image build context.
 
-The [frontend Dockerfile](../../frontend/Dockerfile) copies workspace manifests before installation, builds the frontend with backend/contracts sources and the client-boundary check, then installs production workspace dependencies for runtime. The runtime starts `node frontend/build/index.js` from `/app`. The migrator keeps `/app/frontend` and `pnpm db:migrate`, preserving existing Compose/operator commands and `frontend/drizzle/` history. Compose contexts remain the repository root. This module split adds no independently deployed backend service.
+The [frontend Dockerfile](../../frontend/Dockerfile) builds only web and contracts sources and checks client output. Its production dependency graph excludes backend, pg, Drizzle and AWS; web receives no database or storage secrets. Runtime starts `node frontend/build/index.js` from `/app`. The [backend Dockerfile](../../backend/Dockerfile) builds the API and starts `node backend/dist/main.js`. Its `migrator` and `operator` targets use `/app/backend`; the migrator runs `pnpm db:migrate` against unchanged `backend/drizzle/` history. Compose build contexts remain the repository root.
 
 ## Services and startup
 
-| Service       | Responsibility                                                    |
-| ------------- | ----------------------------------------------------------------- |
-| `postgres`    | Accounts, inventory, decks, scan metadata, and the public catalog |
-| `db-migrate`  | One-shot Drizzle migrations                                       |
-| `worker`      | Scryfall catalog ingestion and synchronization                    |
-| `frontend`    | SvelteKit web application and API                                 |
-| `scan-worker` | Scan API scaffold that returns no matches                         |
-| `newt`        | Optional Pangolin tunnel, enabled by the `tunnel` profile         |
+| Service       | Responsibility                                                      |
+| ------------- | ------------------------------------------------------------------- |
+| `postgres`    | Accounts, inventory, decks, scan metadata, and the public catalog   |
+| `db-migrate`  | One-shot Drizzle migrations                                         |
+| `worker`      | Scryfall catalog ingestion and synchronization                      |
+| `frontend`    | SvelteKit rendering, forms and same-origin streaming API proxy      |
+| `api`         | Node HTTP authentication, use cases, database and resource lifetime |
+| `scan-worker` | Scan API scaffold that returns no matches                           |
+| `newt`        | Optional Pangolin tunnel, enabled by the `tunnel` profile           |
 
-`postgres` has a compose health check. `db-migrate` waits for healthy Postgres, and both the frontend and catalog worker wait for successful migration completion. Other dependencies require service startup, not readiness. The catalog worker also retries database schema readiness with backoff. No vector database is required.
+`postgres` has a compose health check. `db-migrate` waits for healthy Postgres, and the API and catalog worker wait for successful migration completion. Web can start before API readiness and returns explicit unavailable responses while it is absent. Other dependencies require service startup, not readiness. The catalog worker also retries database schema readiness with backoff. No vector database is required.
 
 On a new deployment, `podman-compose up --build -d` runs migrations and starts the catalog worker. The worker immediately imports the configured Scryfall bulk source into PostgreSQL, then repeats on the configured interval, daily by default. Scryfall does not require an application credential. Operators do not import the shared catalog for individual accounts. The first publication may still be in progress after the frontend starts, so search can be empty until the worker completes. Check the worker logs and active generation as described in [catalog migration and recovery](#catalog-migration-and-recovery). The worker has no HTTP readiness or import-status endpoint.
 
 This automatic import applies to Compose deployment. The host [development launcher](#local-development) expects an existing migrated database and does not start the Catalog Worker or seed automatically. Explicit [Demo setup](./local-auth.md#demo-mode) publishes the versioned searchable English bundle without a Scryfall download. Its private Precon starter remains separate; [Demo setup](./local-auth.md#demo-mode) owns the selected composition and guarded replacement of the previous fixture. Neither workflow downloads Catalog card image files.
 
-The frontend binds to host loopback port 3000. Configure a reverse proxy or enable the optional tunnel. Catalog requests use the same application origin.
+Web publishes host loopback port 3000. The API shares the frontend network namespace and binds only `127.0.0.1:3001`; it has no published port. Web forwards `/api/*` and `/openapi.json` to it. Configure external same-origin ingress through a reverse proxy or the optional tunnel. Direct API tests use their own loopback listener, without broadening production ingress.
 
-For an existing PostgreSQL 17 deployment, complete the [database dump/restore upgrade](./postgres-upgrade.md) before starting migrations or the frontend. The new `postgres18_data` volume is initially empty; the original `postgres_data` volume remains available for rollback.
+For an existing PostgreSQL 17 deployment, complete the [database dump/restore upgrade](./postgres-upgrade.md) before starting migrations or API writers. The new `postgres18_data` volume is initially empty; the original `postgres_data` volume remains available for rollback.
 
 1. Copy `.env.example` to a private `.env` and replace the database credentials.
 2. Set `APP_ORIGIN` to the externally reachable application origin.
@@ -100,33 +123,36 @@ Use `podman-compose --profile tunnel up --build -d` to include Newt. Set `PANGOL
 
 ## Configuration
 
-| Variable                                            | Meaning                                                                                                                 |
-| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `DEV_APP_ORIGIN`                                    | Local Vite form origin; defaults to `http://localhost:5173`, independently of the production build origin               |
-| `APP_ORIGIN`                                        | Public application origin compiled into the frontend; compose passes it as a build argument                             |
-| `ADDRESS_HEADER`, `XFF_DEPTH`                       | Optional trusted-proxy client address configuration; leave the header empty until proxy trust is configured             |
-| `BODY_SIZE_LIMIT`                                   | Adapter request limit; compose defaults to `12M` to allow multipart overhead around a 10 MiB scan image                 |
-| `DEMO_MODE`                                         | Set to `true` only for an explicitly seeded disposable demo. See [demo setup](./local-auth.md#demo-mode).               |
-| `VALUE_HISTORY_TIMEZONE`                            | IANA reporting timezone, default `Europe/Berlin`; invalid names fail startup                                            |
-| `VALUE_HISTORY_ENABLED`                             | Strict `true` or `false`, default `true`; disables only observation scheduling                                          |
-| `DATABASE_URL`                                      | Server, catalog worker, or operator PostgreSQL connection; compose constructs its internal connection from `POSTGRES_*` |
-| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Database and credentials; replace the example password                                                                  |
-| `CATALOG_SOURCE`                                    | Scryfall source: `all_cards` by default, or `default_cards`                                                             |
-| `SCRYFALL_BULK_URL`                                 | Scryfall bulk-data list URL; defaults to `https://api.scryfall.com/bulk-data`                                           |
-| `SYNC_INTERVAL`                                     | `daily`, `weekly`, or `manual`                                                                                          |
-| `WORKER_DATA_DIR`                                   | Persistent worker status directory; compose uses `/app/data`                                                            |
-| `SCAN_WORKER_URL`                                   | Internal scan-worker URL; compose uses `http://scan-worker:8080`                                                        |
-| `SCAN_STORAGE_DRIVER`                               | `s3` in the base stack or `local` with the development override                                                         |
-| `SCAN_LOCAL_STORAGE_DIR`                            | Local artifact directory for the `local` driver                                                                         |
-| `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`             | Existing S3-compatible storage endpoint, region, and bucket                                                             |
-| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`          | S3-compatible credentials                                                                                               |
-| `S3_FORCE_PATH_STYLE`                               | Defaults to `true` for S3-compatible services                                                                           |
+| Variable                                            | Meaning                                                                                                               |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `DEV_APP_ORIGIN`                                    | Local Vite form origin; defaults to `http://localhost:5173`, independently of the production build origin             |
+| `APP_ORIGIN`                                        | Public Origin compiled into web and supplied to API at runtime for Origin checks, QR URLs and secure cookies          |
+| `API_INTERNAL_URL`                                  | Web-only private API destination; Compose uses `http://127.0.0.1:3001`                                                |
+| `API_HOST`, `API_PORT`                              | API listener, default `127.0.0.1:3001`; keep private                                                                  |
+| `API_TRUSTED_PROXY_ADDRESSES`                       | Explicit comma-separated socket-peer IPs allowed to supply `X-Spellbook-Client-Address`; empty trusts none            |
+| `ADDRESS_HEADER`, `XFF_DEPTH`                       | Web ingress client-address configuration; leave the header empty until proxy trust is configured                      |
+| `BODY_SIZE_LIMIT`                                   | Web/API request limit, each default `12M`; Compose forwards the override to web. API limits still apply independently |
+| `DEMO_MODE`                                         | Set to `true` only for an explicitly seeded disposable demo. See [demo setup](./local-auth.md#demo-mode).             |
+| `VALUE_HISTORY_TIMEZONE`                            | API reporting timezone, default `Europe/Berlin`; invalid names fail API startup                                       |
+| `VALUE_HISTORY_ENABLED`                             | API-only strict `true` or `false`, default `true`; disables only observation scheduling                               |
+| `DATABASE_URL`                                      | API, Catalog worker or operator PostgreSQL connection; compose constructs its internal connection from `POSTGRES_*`   |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Database and credentials; replace the example password                                                                |
+| `CATALOG_SOURCE`                                    | Scryfall source: `all_cards` by default, or `default_cards`                                                           |
+| `SCRYFALL_BULK_URL`                                 | Scryfall bulk-data list URL; defaults to `https://api.scryfall.com/bulk-data`                                         |
+| `SYNC_INTERVAL`                                     | `daily`, `weekly`, or `manual`                                                                                        |
+| `WORKER_DATA_DIR`                                   | Persistent worker status directory; compose uses `/app/data`                                                          |
+| `SCAN_WORKER_URL`                                   | API-only internal scan-worker URL; Compose uses `http://scan-worker:8080`                                             |
+| `SCAN_STORAGE_DRIVER`                               | API and Scan worker use `s3` in the base stack or `local` with the development override                               |
+| `SCAN_LOCAL_STORAGE_DIR`                            | Local artifact directory for the `local` driver                                                                       |
+| `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`             | API/Scan-worker S3-compatible endpoint, region and bucket; never web configuration                                    |
+| `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`          | API/Scan-worker S3-compatible credentials                                                                             |
+| `S3_FORCE_PATH_STYLE`                               | Defaults to `true` for S3-compatible services                                                                         |
 
 Native Python commands do not implicitly load `.env`. From `worker/` or `scan-worker/`, use `uv run --env-file ../.env` before the existing command when its configuration should come from that file. Compose injects its selected service variables and constructs internal database URLs from `POSTGRES_*`; it does not pass native `DEMO_MODE` or `DEV_APP_ORIGIN` into the deployed frontend.
 
-Set `APP_ORIGIN` before building the frontend or migration image. Changing it requires `podman-compose build frontend db-migrate` and recreation of the frontend. Updating runtime environment variables alone does not change SvelteKit 3's compiled origin.
+Set `APP_ORIGIN` before building web and starting the API. Changing it requires `podman-compose build frontend` and recreation of frontend and API with the same public Origin. The backend/migrator build is origin-independent. Updating runtime variables alone does not change SvelteKit 3's compiled origin.
 
-Leave `ADDRESS_HEADER` empty for direct deployments. Behind a trusted proxy, set it only when that proxy overwrites the client-address header and direct client access is blocked. For `x-forwarded-for`, set `XFF_DEPTH` to the trusted hop count. Without this configuration, users behind one proxy can share the same process-local authentication attempt limit.
+Leave `ADDRESS_HEADER` empty for direct deployments. Behind a trusted proxy, set it only when that proxy overwrites the client-address header and direct client access is blocked. For `x-forwarded-for`, set `XFF_DEPTH` to the trusted hop count. The web proxy overwrites `X-Spellbook-Client-Address` from its validated `getClientAddress()`. The API honors that header only from an explicitly listed `API_TRUSTED_PROXY_ADDRESSES` socket peer. It ignores arbitrary Forwarded/X-Forwarded-For values. Compose and the local launcher explicitly trust their loopback web peer. Do not trust an externally reachable peer that can supply arbitrary client-address headers. Keep a shared ingress rate limit for multiple API replicas.
 
 Keep the reverse proxy request limit large enough for the configured adapter limit. JSON handlers independently cap streamed bodies at 1 MiB; scan uploads independently cap their multipart body at 12 MiB and image at 10 MiB. Raising `BODY_SIZE_LIMIT` does not bypass these application limits. See [request validation](../architecture/mobile-and-scan.md#request-validation).
 
@@ -136,15 +162,15 @@ The optional `TYPESAFE_API_KEY` in `.env.example` belongs only to the isolated [
 
 ## Application and native operator ownership
 
-[Frontend composition](../../frontend/src/lib/server/composition.ts) supplies configuration to the [backend application constructor](../../backend/src/application.ts). Backend owns database construction, runners, SavedState and Scan resources. Frontend retains SvelteKit shutdown and Vite HMR/full-reload hooks and delegates closure. Build analysis starts no background work. Runtime validates database presence, timezone and exact Value-history/Combo boolean strings before constructing resources. Shutdown waits for owned cleanup and always attempts pool closure, including after cleanup failure. [The application contract](../architecture/application-contract.md#implemented-application-lifecycle-and-operator-ownership) owns these interfaces.
+The [Node API host](../../backend/src/main.ts) supplies configuration to the [backend application constructor](../../backend/src/application.ts). API owns database construction, runners, SavedState and Scan resources. It validates database presence, timezone and exact Value-history/Combo boolean strings before acquisition. SIGINT/SIGTERM close SSE before draining HTTP, then await application cleanup and pool closure, including after cleanup failure. Web owns no backend resource or shutdown/HMR hook. [The application contract](../architecture/application-contract.md#implemented-application-lifecycle-and-operator-ownership) owns these interfaces.
 
-Native Demo and password command paths remain in `frontend/scripts/`, with persistence and pool lifetime owned by backend operator modules. Frontend loads public fixtures and parses argv/stdin. [Local authentication operations](./local-auth.md) owns target guards, enrollment, recovery and starter replacement commands. Migration tooling references the backend schema directly while retaining `frontend/drizzle/` and existing migration commands. Container workspace resolution remains unchanged.
+Native Demo/password implementations, public fixtures and bounded argv/stdin intake belong to `backend/scripts/`, with persistence and pool lifetime in backend operator modules. Existing `frontend/scripts/` commands remain compatibility forwarders. [Local authentication operations](./local-auth.md) owns target guards, enrollment, recovery and starter replacement. Migration configuration and unchanged SQL/journal/snapshots belong to backend; frontend database commands forward there.
 
 ## Storage and upgrades
 
 Migration `0005` adds nullable request fingerprints without rewriting existing mutation history. New conflicting request-ID reuse returns HTTP 409; old null-hash records retain their earlier replay behavior. The [Postgres contract](../architecture/postgres.md#mutation-replay) owns the details.
 
-[Migration 0012](../../frontend/drizzle/0012_deck_contracts.sql) adds Deck Description/composition revisions and persisted compact acknowledgements, retaining request records after Deck deletion. Run the existing migrator for the integrated migration history before starting these Deck contracts. [Postgres](../architecture/postgres.md#deck-persistence-and-reads) owns their persistence semantics. Existing operator commands, database/image ownership and dependencies are unchanged.
+[Migration 0012](../../backend/drizzle/0012_deck_contracts.sql) adds Deck Description/composition revisions and persisted compact acknowledgements, retaining request records after Deck deletion. Run the existing migrator for the integrated migration history before starting these Deck contracts. [Postgres](../architecture/postgres.md#deck-persistence-and-reads) owns their persistence semantics. Existing operator commands, database/image ownership and dependencies are unchanged.
 
 PostgreSQL and worker status use named volumes. Back up account data before migrations and keep a tested restore procedure. Image versions and runtime pins live in compose, Dockerfiles, and package manifests. Keep these files and lockfiles together when deploying an update.
 
@@ -158,7 +184,7 @@ For local scan artifacts in Compose, run:
 podman-compose -f podman-compose.yml -f podman-compose.dev.yml up --build -d
 ```
 
-The override shares the `scan_artifacts` volume at `/app/storage/scans` between the frontend and scan-worker. For S3 storage, provision the bucket separately and configure its lifecycle policy. Scan upload bytes remain outside Postgres; PostgreSQL stores their account and review metadata. The backend Scan application owns storage and worker calls; frontend adapters inject existing configuration. Failed uploads remove only confirmed unattached objects. If COMMIT outcome cannot be established, retain the object for operator inspection rather than risking deletion of a committed artifact. Cleanup logs contain no object keys or credentials. Local filesystem and the actual Python scaffold are covered by local acceptance; real S3-compatible bucket evidence must be obtained separately. These user-uploaded images are separate from catalog card image URLs and tracked landing-page images. Recognition and normalized-image generation are not implemented.
+The override shares the `scan_artifacts` volume at `/app/storage/scans` between the API and scan-worker. For S3 storage, provision the bucket separately and configure its lifecycle policy. Scan upload bytes remain outside Postgres; PostgreSQL stores their account and review metadata. The backend Scan application owns storage and worker calls; the Node host injects existing configuration. Failed uploads remove only confirmed unattached objects. If COMMIT outcome cannot be established, retain the object for operator inspection rather than risking deletion of a committed artifact. Cleanup logs contain no object keys or credentials. Local filesystem and the actual Python scaffold are covered by local acceptance; real S3-compatible bucket evidence must be obtained separately. These user-uploaded images are separate from catalog card image URLs and tracked landing-page images. Recognition and normalized-image generation are not implemented.
 
 `worker_data` persists `state.json` across container recreation. See [worker operations and limits](../architecture/worker.md).
 
@@ -168,23 +194,23 @@ The [verification workflow](./github-automation.md#ci-coverage) owns CI coverage
 
 ## Inventory collation and recovery
 
-[Migration 0011](../../frontend/drizzle/0011_inventory_windows.sql) requires PostgreSQL ICU support, creates deterministic root-locale `inventory_root`, verifies the accepted ordering examples and records the actual ICU version. Migration failure leaves this capability unavailable; use an ICU-enabled PostgreSQL installation and rerun the existing migrator before starting bounded Inventory reads. Demo initialization uses the same revision-aware writers and preserves the tracked sample.
+[Migration 0011](../../backend/drizzle/0011_inventory_windows.sql) requires PostgreSQL ICU support, creates deterministic root-locale `inventory_root`, verifies the accepted ordering examples and records the actual ICU version. Migration failure leaves this capability unavailable; use an ICU-enabled PostgreSQL installation and rerun the existing migrator before starting bounded Inventory reads. Demo initialization uses the same revision-aware writers and preserves the tracked sample.
 
 After a PostgreSQL or ICU upgrade, compare the stored `pg_collation.collversion` with `pg_collation_actual_version(oid)` for `inventory_root`. If they differ, rebuild every index dependent on that collation, including `inventory_cards_window_name_idx`, before `ALTER COLLATION inventory_root REFRESH VERSION`. Coordinate writes and application restart during this operator maintenance, then verify page/location ordering against the same revision. Refreshing the version alone does not rebuild indexes. Catalog set-code equality retains its existing default collation as described in [Catalog](../architecture/catalog.md#printing-and-import-identity).
 
-Apply [migration 0014](../../frontend/drizzle/0014_inventory_contracts.sql) with the existing migrator before starting the updated Inventory mutation application. The integrated journal applies it after 0013 SavedState, following 0011 Inventory windows and 0012 Deck contracts. It adds nullable JSONB original acknowledgements to Inventory mutation requests without fabricating or backfilling old receipts. [Postgres](../architecture/postgres.md) owns the legacy policy.
+Apply [migration 0014](../../backend/drizzle/0014_inventory_contracts.sql) with the existing migrator before starting the updated Inventory mutation application. The integrated journal applies it after 0013 SavedState, following 0011 Inventory windows and 0012 Deck contracts. It adds nullable JSONB original acknowledgements to Inventory mutation requests without fabricating or backfilling old receipts. [Postgres](../architecture/postgres.md) owns the legacy policy.
 
 ## Saved-state streaming
 
-Apply [migration 0013](../../frontend/drizzle/0013_saved_state.sql) with the existing migrator before starting SSE-capable replicas. The integrated migration journal applies it after 0011 Inventory windows and 0012 Deck contracts. It adds commit notification triggers, not table columns. Reserve one additional PostgreSQL listener connection per application process beyond request pools. No new runtime variable, package or sticky-session configuration is required.
+Apply [migration 0013](../../backend/drizzle/0013_saved_state.sql) with the existing migrator before starting SSE-capable replicas. The integrated migration journal applies it after 0011 Inventory windows and 0012 Deck contracts. It adds commit notification triggers, not table columns. Reserve one additional PostgreSQL listener connection per API process beyond request pools. Web has no database connection. No new synchronization provider or sticky-session configuration is required.
 
-The `/api/account/events` proxy path must pass cookies/Authorization, disable response buffering and caching, permit long-lived streaming and use an idle timeout longer than the fifteen-second heartbeat. Changing public `APP_ORIGIN` still requires origin-matched builds. Keep credentials out of URLs. Test a live stream through the actual proxy/tunnel before rollout. Local controlled proxy/socket tests do not establish deployed proxy behavior or deployment acceptance. [The application contract](../architecture/application-contract.md#saved-state-synchronization) owns recovery/expiry; [verification](./github-automation.md) owns the reproducible two-process test.
+The public proxy, web forwarding and API `/api/account/events` path must pass cookies/Authorization, disable response buffering and caching, permit long-lived streaming and use an idle timeout longer than the fifteen-second heartbeat. Changing public `APP_ORIGIN` still requires origin-matched builds. Keep credentials out of URLs. Test a live stream through the actual proxy/tunnel before rollout. Local controlled proxy/socket tests do not establish deployed proxy behavior or deployment acceptance. [The application contract](../architecture/application-contract.md#saved-state-synchronization) owns recovery/expiry; [verification](./github-automation.md) owns the reproducible two-process test.
 
 ## Catalog migration and recovery
 
-Apply [migration 0018](../../frontend/drizzle/0018_inventory_set_directory.sql) with the existing migrator to add the generation/set/UUID index used by complete Inventory set choices. It preserves Catalog and private account rows and requires no publication or application rebuild. Index creation runs in the normal migration transaction and can wait for concurrent Catalog writers; schedule it with the existing migration procedure. [Catalog](../architecture/catalog.md#printing-and-import-identity) owns the lookup and collation contract.
+Apply [migration 0018](../../backend/drizzle/0018_inventory_set_directory.sql) with the existing migrator to add the generation/set/UUID index used by complete Inventory set choices. It preserves Catalog and private account rows and requires no publication or application rebuild. Index creation runs in the normal migration transaction and can wait for concurrent Catalog writers; schedule it with the existing migration procedure. [Catalog](../architecture/catalog.md#printing-and-import-identity) owns the lookup and collation contract.
 
-Apply [migration 0019](../../frontend/drizzle/0019_catalog_color_identity.sql) after 0018 before starting the updated Catalog reader. It derives the stored color-identity projection from existing documents. The same migration transaction creates the generation/mask index and initializes the new column's planner statistics. This table rewrite can wait for Catalog writers, so use the existing migration maintenance procedure. Catalog publications, source metadata and private rows remain unchanged. No Worker change or Catalog rebuild is required. [Catalog](../architecture/catalog.md#search-behavior) owns the filter and projection contract.
+Apply [migration 0019](../../backend/drizzle/0019_catalog_color_identity.sql) after 0018 before starting the updated Catalog reader. It derives the stored color-identity projection from existing documents. The same migration transaction creates the generation/mask index and initializes the new column's planner statistics. This table rewrite can wait for Catalog writers, so use the existing migration maintenance procedure. Catalog publications, source metadata and private rows remain unchanged. No Worker change or Catalog rebuild is required. [Catalog](../architecture/catalog.md#search-behavior) owns the filter and projection contract.
 
 Migration `0006` creates the catalog tables and `pg_trgm` extension. The migration database role must be allowed to create that extension, or an administrator must provision it first. After migration, the worker imports the configured Scryfall source automatically. A new deployment needs no manual catalog import or MeiliSearch export. Existing account data, decks, and inventory stay in their application tables.
 
@@ -245,21 +271,21 @@ For optional recovery, stop the scheduled Worker and call OptionalPricePublisher
 
 ## Oracle Tags and category rollout
 
-Apply the sequenced category migration before the frontend or worker that uses category tables. Migration 0016 follows the Inventory and price migrations 0014/0015 in the coherent journal. Apply migrations in sequence before starting the upgraded application. Catalog transform changes require a fresh publication that includes internal raw Oracle/type facts. Until that publication exists, primary tag predicates remain Unknown; saved decisions remain readable and Manual choices work.
+Apply the sequenced category migration before the API or Worker that uses category tables. Migration 0016 follows the Inventory and price migrations 0014/0015 in the coherent journal. Apply migrations in sequence before starting the upgraded application. Catalog transform changes require a fresh publication that includes internal raw Oracle/type facts. Until that publication exists, primary tag predicates remain Unknown; saved decisions remain readable and Manual choices work.
 
 Worker sync imports the exact trusted Oracle Tags descriptor and payload, then atomically activates complete facts/mapping. Inspect `oracle_tag_state` active/previous publication and safe refresh status together with immutable publication source time/digest/parser/mapping versions. A failed refresh preserves prior valid facts. Recovery retries the same source; filenames or new metadata must not redatestamp an old offline export. [Worker](../architecture/worker.md#oracle-tags-publication) owns import mechanics and [category rules](../architecture/category-rules.md#implemented-starter-entry-decisions) owns account assignment behavior. Public recovery never triggers existing automatic reassignment.
 
 ## Personal value history upgrade
 
-Apply the coherent migration journal through [0020](../../frontend/drizzle/0020_inventory_value_history.sql) before starting the upgraded application. It adds private daily checkpoint/evidence tables and `values` notification triggers. Existing Inventory writes and account rows remain unchanged. No historical backfill runs.
+Apply the coherent migration journal through [0020](../../backend/drizzle/0020_inventory_value_history.sql) before starting the upgraded application. It adds private daily checkpoint/evidence tables and `values` notification triggers. Existing Inventory writes and account rows remain unchanged. No historical backfill runs.
 
-The application starts the Backend Valuation runner outside build analysis when `VALUE_HISTORY_ENABLED=true`. Development HMR disposal and production shutdown close owned work. Set the flag to `false` to stop scheduling while retaining existing history and current read routes. Configure `VALUE_HISTORY_TIMEZONE` with a valid IANA name. Saved observations retain their own timezone and UTC boundaries after configuration changes. [Valuation](../architecture/valuation.md#reviewed-personal-history-contract) owns lease, observation window and closure rules.
+The API starts the Backend Valuation runner after listening when `VALUE_HISTORY_ENABLED=true`. API development restart and production shutdown close owned work. Set the flag to `false` to stop scheduling while retaining existing history and current read routes. Configure `VALUE_HISTORY_TIMEZONE` with a valid IANA name. Saved observations retain their own timezone and UTC boundaries after configuration changes. [Valuation](../architecture/valuation.md#reviewed-personal-history-contract) owns lease, observation window and closure rules.
 
 The host development launcher does not publish prices automatically. A running capture timer does not establish provider refresh or known-price coverage. Operator refresh, actual midnight observation, deployment and owner acceptance require separate evidence. The remaining integration verification is tracked with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192).
 
 ## Optional local combo rollout and recovery
 
-Apply [migration 0023](../../frontend/drizzle/0023_commander_spellbook.sql) after 0022 before starting the updated application and Worker. It adds public Combo tables without rewriting private definitions, decisions or receipts. `COMMANDER_SPELLBOOK_ENABLED` defaults to `false` in both services. Set it to `true` in the existing protected root environment to enable independent public ingestion and local ingredient evaluation. Restart both services after changing the flag. Disabled ingestion fetches nothing and adds no readiness dependency; existing combo criteria evaluate Unknown.
+Apply [migration 0023](../../backend/drizzle/0023_commander_spellbook.sql) after 0022 before starting the updated application and Worker. It adds public Combo tables without rewriting private definitions, decisions or receipts. `COMMANDER_SPELLBOOK_ENABLED` defaults to `false` in API and Worker. Set it to `true` in the existing protected root environment to enable independent public ingestion and local ingredient evaluation. Restart API and Worker after changing the flag. Disabled ingestion fetches nothing and adds no readiness dependency; existing combo criteria evaluate Unknown.
 
 The fixed official Commander Spellbook bulk is synchronized on the existing `SYNC_INTERVAL`. Resource overrides are positive integers: `COMBO_COMPRESSED_BYTES`, `COMBO_DECOMPRESSED_BYTES`, `COMBO_RECORD_BYTES`, `COMBO_PROGRESS_SECONDS`, `COMBO_CONNECT_SECONDS`, `COMBO_DOWNLOAD_SECONDS`, `COMBO_PARSE_SECONDS`, `COMBO_PUBLICATION_SECONDS`, `COMBO_IMPORT_SECONDS` and `COMBO_STAGING_BYTES`. [`.env.example`](../../.env.example) lists all ten native defaults, and Compose forwards those settings to Worker. [Worker](../architecture/worker.md#optional-commander-spellbook-synchronization) owns transfer validation and publication limits. No private Deck data is sent to the provider.
 

@@ -1,10 +1,10 @@
 # Worker
 
 - Status: Canonical
-- Last Reviewed: 2026-10-08
+- Last Reviewed: 2026-10-19
 - Source of Truth: code
-- Update Triggers: price evidence and paired/optional publication/recovery, public history, resource limits and provider opt-ins, Scryfall formats, synchronization schedule and retries, first publication, source selection, status persistence, Oracle Tags publication, Commander Spellbook publication and raw canonical fact extraction
-- Related Docs: [System overview](./system-overview.md), [Catalog](./catalog.md), [Deployment](../operations/deployment.md), [Category rules](./category-rules.md), [Valuation](./valuation.md)
+- Update Triggers: independent API/web ownership and relocated code references, price evidence and paired/optional publication/recovery, public history, resource limits and provider opt-ins, Scryfall formats, synchronization schedule and retries, first publication, source selection, status persistence, Oracle Tags publication, Commander Spellbook publication and raw canonical fact extraction
+- Related Docs: [System overview](./system-overview.md), [Catalog](./catalog.md), [Deployment](../operations/deployment.md), [Category rules](./category-rules.md), [Valuation](./valuation.md), [Independent applications](./independent-applications.md)
 
 The Python worker imports and synchronizes the shared Scryfall catalog in PostgreSQL. It is a service-level import, not a per-account operation. Compose starts it after database migrations. Each process startup attempts a sync. `CATALOG_SOURCE` selects `all_cards` by default or `default_cards`; each run synchronizes that configured source directly. It does not replace a full-language catalog with a recurring default-only refresh. All languages present in the selected snapshot are retained.
 
@@ -48,7 +48,7 @@ Catalog transform version 3 adds nullable raw keyword facts to the same generati
 
 ## Optional Commander Spellbook synchronization
 
-`COMMANDER_SPELLBOOK_ENABLED` defaults to `false` in Worker and frontend composition. Disabled runs perform no combo fetch or database operation and add no readiness dependency. Enabled runs fetch the fixed official public gzip bulk on `SYNC_INTERVAL`, independently after the other providers, including when those providers fail. Manual mode reports failure after every enabled provider has had its attempt; periodic failure waits the usual interval. No private Deck information reaches the provider.
+`COMMANDER_SPELLBOOK_ENABLED` defaults to `false` in Worker and the Node API. Disabled runs perform no combo fetch or database operation and add no readiness dependency. Enabled runs fetch the fixed official public gzip bulk on `SYNC_INTERVAL`, independently after the other providers, including when those providers fail. Manual mode reports failure after every enabled provider has had its attempt; periodic failure waits the usual interval. No private Deck information reaches the provider.
 
 [combo.py](../../worker/src/worker/combo.py) streams both `variants` and `aliases`, validates the entire gzip/JSON root, and reduces variants into temporary SQLite staging. Validation rejects malformed quantities, duplicate identities, inconsistent outcome definitions and dangling aliases before publication. Unsupported semantic constraints retain their known mandatory ingredients, outcome labels, templates, face/commander/zone/state fields and unsupported reasons. Parser version 1 and policy `ingredients-v1` identify the reduced format. [Category rules](./category-rules.md#optional-local-combo-adapter) owns matching and the presentation of unchecked prerequisites.
 

@@ -1,14 +1,14 @@
 # Realtime backend evaluation
 
 - Status: Research, PostgreSQL retained for the current pass
-- Last Reviewed: 2026-10-07
+- Last Reviewed: 2026-10-19
 - Source of Truth: linked vendor documentation and current repository code
-- Update Triggers: provider pricing, usage limits, client support, authentication requirements, accepted backend and synchronization contracts
+- Update Triggers: independent API/web ownership and relocated code references, provider pricing, usage limits, client support, authentication requirements, accepted backend and synchronization contracts
 - Related Docs: [Integrations](./README.md), [System overview](../architecture/system-overview.md#accepted-boundary-redesign), [Authentication](../architecture/auth.md), [Catalog](../architecture/catalog.md), [Postgres](../architecture/postgres.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Application contract](../architecture/application-contract.md)
 
 The maintainer prefers self hosting but will consider a managed backend if its benefits and recurring cost justify the dependency. On 2026-10-06, the maintainer set an ideal managed-service cost of $0 and a maximum of $10 per month, in addition to any retained hosting costs. Professional's listed base fee exceeds that ceiling before usage. Free or Starter needs a representative workload estimate and verified cost controls before adoption.
 
-This pass prepares backend contracts for the web client and a later app in one SvelteKit deployment. Independent backend deployment and a complete external HTTP adapter for web server calls are deferred. The maintainer selected PostgreSQL and saved-change synchronization without Convex on 2026-10-06. The [application contract](../architecture/application-contract.md#saved-state-synchronization) owns the accepted PostgreSQL LISTEN/NOTIFY and account-scoped SSE mechanisms; the [system overview](../architecture/system-overview.md#accepted-boundary-redesign) owns topology. This research does not implement synchronization.
+The original pass prepared backend contracts within one SvelteKit deployment. [ADR-0024](../decisions/0024-independent-applications.md) now selects independent Node API/web runtimes and Kotlin/Compose Android; implementation is in progress under its linked contract. The maintainer selected PostgreSQL and saved-change synchronization without Convex on 2026-10-06. The [application contract](../architecture/application-contract.md#saved-state-synchronization) owns the accepted PostgreSQL LISTEN/NOTIFY and account-scoped SSE mechanisms; the [system overview](../architecture/system-overview.md#accepted-boundary-redesign) owns topology. This research does not implement synchronization.
 
 ## Convex capabilities and coupling
 
@@ -42,7 +42,7 @@ Convex documents limits on document size, transaction reads/writes, indexes and 
 
 ## Current choice and alternatives
 
-Keeping PostgreSQL authoritative and exposing the existing use cases through a Spellbook API preserves the current data model and catalog behavior. That API can initially share the SvelteKit deployment. Q56 accepted account-scoped SSE invalidation through PostgreSQL LISTEN/NOTIFY. The [application contract](../architecture/application-contract.md#saved-state-synchronization) defines authorization, multi-process notification, recovery and draft preservation. SavedState transport and the Profile consumer are implemented; [slice 8](https://github.com/KyleDerZweite/spellbook/issues/181) records real HTTP/PostgreSQL and rendered browser acceptance. Mounted workspace consumers are implemented under the [application contract](../architecture/application-contract.md#saved-state-synchronization); rendered workspace acceptance remains separate. Deployed proxy verification remains a separate operator action.
+Keeping PostgreSQL authoritative and exposing the existing use cases through a Spellbook API preserves the current data model and catalog behavior. The initial API shared the SvelteKit deployment; the current extraction retains the same PostgreSQL authority and SavedState protocol. Q56 accepted account-scoped SSE invalidation through PostgreSQL LISTEN/NOTIFY. The [application contract](../architecture/application-contract.md#saved-state-synchronization) defines authorization, multi-process notification, recovery and draft preservation. SavedState transport and the Profile consumer are implemented; [slice 8](https://github.com/KyleDerZweite/spellbook/issues/181) records real HTTP/PostgreSQL and rendered browser acceptance. Mounted workspace consumers are implemented under the [application contract](../architecture/application-contract.md#saved-state-synchronization); rendered workspace acceptance remains separate. Deployed proxy verification remains a separate operator action.
 
 Convex could reduce the work required for reactive queries if it owns the relevant state. That benefit must be weighed against data/query migration, SDK and authentication coupling, recurring cost and self-hosted operations. Adding Convex beside PostgreSQL just to mirror account records or relay notifications would create a second system to operate and synchronize. No such dual-store design is selected.
 

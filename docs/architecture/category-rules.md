@@ -1,10 +1,10 @@
 # Category persistence and rules
 
 - Status: Account Category Library, entry rules, local category controls and entry Review/Reset implemented; whole-deck evaluation implemented; local combo adapter implemented
-- Last Reviewed: 2026-10-08
+- Last Reviewed: 2026-10-19
 - Source of Truth: Q56 contract, reviewed whole-deck and local combo contracts dated 2026-10-08, Category backend/contracts, Worker raw facts and native/API adapters
-- Update Triggers: definition versions, deck-local bundles, rule vocabulary and priority, source publications, composition jobs, Review/Reset, combo constraints and category acceptance evidence, operational work budgets, consequence retention and commit-scoped saved-state invalidation
-- Related Docs: [Architecture](./README.md), [Card grouping](../product/card-grouping.md), [Domain glossary](../../GLOSSARY.md), [Classifier research](../integrations/card-categorization.md), [Application contract](./application-contract.md), [Catalog](./catalog.md), [Worker](./worker.md), [ADR-0019](../decisions/0019-versioned-categories-and-local-source-rules.md)
+- Update Triggers: backend migration ownership, definition versions, deck-local bundles, rule vocabulary and priority, source publications, composition jobs, Review/Reset, combo constraints and category acceptance evidence, operational work budgets, consequence retention and commit-scoped saved-state invalidation
+- Related Docs: [Architecture](./README.md), [Card grouping](../product/card-grouping.md), [Domain glossary](../../GLOSSARY.md), [Classifier research](../integrations/card-categorization.md), [Application contract](./application-contract.md), [Catalog](./catalog.md), [Worker](./worker.md), [ADR-0019](../decisions/0019-versioned-categories-and-local-source-rules.md), [Independent applications](./independent-applications.md)
 
 [Card grouping](../product/card-grouping.md) owns category behavior and manual choices. This document owns accepted storage, rule interfaces and evaluation lifecycle. Starter entry categories, Oracle Tags ingestion, immutable account definitions and entry Review/Reset are implemented. Whole-deck evaluation, scoped Review/Reset and bounded directory reads are implemented. The Commander Spellbook matcher remains a later slice.
 
@@ -44,7 +44,7 @@ Predicates evaluate true, false or unknown. Missing/failed source input stays un
 
 Entry classification uses first-match custom priority before starter fallback, independently of display-group order. Starter order is Lands, Board wipes, Counterspells, Removal, Ramp, Draw, Protection, Recursion. Lands uses type; Ramp excludes Lands. Other starters use reviewed Oracle Tag roots/descendants. No broad Token-makers starter is supported by the incomplete narrow subtree. This priority describes inspectable rules, not confidence or strongest-purpose detection. Main entries receive one primary category; all false results yield Uncategorized. Manual choices, including Uncategorized, always win.
 
-The native [0021 migration](../../frontend/drizzle/0021_account_category_library.sql) preserves existing starter bundles and decisions with empty whole-deck definitions, revision zero and no suppressed origins. Database triggers protect immutable origin identity/account/scope and published version snapshots. Category reads never provision account state.
+The native [0021 migration](../../backend/drizzle/0021_account_category_library.sql) preserves existing starter bundles and decisions with empty whole-deck definitions, revision zero and no suppressed origins. Database triggers protect immutable origin identity/account/scope and published version snapshots. Category reads never provision account state.
 
 Category commands lock Profile/account, then the trusted live Auth session, then receipt identity and the owned Deck. The write-only Auth fence blocks concurrent revocation through commit and rechecks expiry after waiting. Protected GETs retain nonlocking actor checks and read-only transactions.
 
