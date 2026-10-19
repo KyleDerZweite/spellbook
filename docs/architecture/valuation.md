@@ -6,56 +6,174 @@
 - Update Triggers: source publication, mapping, exact-decimal evaluation, public history, pruning, private checkpoint persistence, capture scheduling, safe summary contracts and acceptance evidence
 - Related Docs: [Architecture](./README.md), [Value tracking](../product/value-tracking.md), [Market price research](../integrations/market-prices.md), [Application contract](./application-contract.md), [Postgres](./postgres.md), [Worker](./worker.md), [ADR-0020](../decisions/0020-value-only-inventory-history.md), [ADR-0022](../decisions/0022-daily-value-observation-checkpoints.md)
 
-[Value tracking](../product/value-tracking.md) owns reference selection, coverage, reporting calendar, personal history and Deck estimates. This document owns price publication, evaluation, public source history and private daily observation persistence and runtime.
+[Value tracking](../product/value-tracking.md) owns reference selection, coverage, reporting calendar, personal history and Deck estimates.
+This document owns price publication, evaluation, public source history and private daily observation persistence and runtime.
 
 ## Ownership and source publication
 
-Worker imports public observations and validated printing mappings. Backend Valuation selects references and evaluates account-authorized holdings. Frontend renders safe reference DTOs and coverage. Ingestion never reads or mutates private holdings. Catalog owns printing identity; Inventory owns aggregate quantities and account isolation. Optional sources remain operator-configured and their absence does not block accounts.
+Worker imports public observations and validated printing mappings.
+Backend Valuation selects references and evaluates account-authorized holdings.
+Frontend renders safe reference DTOs and coverage.
+Ingestion never reads or mutates private holdings.
+Catalog owns printing identity; Inventory owns aggregate quantities and account isolation.
+Optional sources remain operator-configured and their absence does not block accounts.
 
-Successful complete publications replace missing/null products as well as amounts. Failed download, parsing or publication retains the prior valid source view with safe failure health and its original source time. One optional source failure does not block another. Observation evidence remains separate from the selected reference; import time is not source or sale time.
+Successful complete publications replace missing/null products as well as amounts.
+Failed download, parsing or publication retains the prior valid source view with safe failure health and its original source time.
+One optional source failure does not block another.
+Observation evidence remains separate from the selected reference; import time is not source or sale time.
 
 ## Reviewed personal history contract
 
-A personal history operation captures a consistent aggregate Inventory state and trusted selected reference evidence before public pruning can remove it. Saved captures do not depend on the lifetime of a current entry or disposable public publication. No acquisition intervals, allocation or historical cost restatement belong to this scope. Migration 0020, Backend Valuation and private Dashboard/history/selected-Deck presentation implement this contract.
+A personal history operation captures a consistent aggregate Inventory state and trusted selected reference evidence before public pruning can remove it.
+Saved captures do not depend on the lifetime of a current entry or disposable public publication.
+No acquisition intervals, allocation or historical cost restatement belong to this scope.
+Migration 0020, Backend Valuation and private Dashboard/history/selected-Deck presentation implement this contract.
 
-[Value tracking](../product/value-tracking.md#personal-daily-inventory-history) owns calendar, gaps and indefinite personal retention. [ADR-0022](../decisions/0022-daily-value-observation-checkpoints.md) records the observed end-of-day policy. Backend Valuation owns the implementation; source ingestion never reads private holdings.
+[Value tracking](../product/value-tracking.md#personal-daily-inventory-history) owns calendar, gaps and indefinite personal retention.
+[ADR-0022](../decisions/0022-daily-value-observation-checkpoints.md) records the observed end-of-day policy.
+Backend Valuation owns the implementation; source ingestion never reads private holdings.
 
-The application runtime observes accounts in the final 60 seconds before midnight in the configured IANA timezone, default `Europe/Berlin`. It attempts another checkpoint every ten seconds while that window is open. A point means the last successful consistent observation in that window, with its actual `observedAt`, rather than an exact reconstruction at midnight. PostgreSQL computes calendar boundaries with timezone conversion, including 23-hour and 25-hour days. The first snapshot statement of each capture transaction obtains the actual PostgreSQL observation clock and checks eligibility again. A late timer cannot record yesterday from today's holdings. No successful eligible observation means a visible gap; startup performs no historical backfill.
+The application runtime observes accounts in the final 60 seconds before midnight in the configured IANA timezone, default `Europe/Berlin`.
+It attempts another checkpoint every ten seconds while that window is open.
+A point means the last successful consistent observation in that window, with its actual `observedAt`, rather than an exact reconstruction at midnight.
+PostgreSQL computes calendar boundaries with timezone conversion, including 23-hour and 25-hour days.
+The first snapshot statement of each capture transaction obtains the actual PostgreSQL observation clock and checks eligibility again.
+A late timer cannot record yesterday from today's holdings.
+No successful eligible observation means a visible gap; startup performs no historical backfill.
 
-A single session-level database runner lease is acquired before beginning repeatable-read capture transactions. The same connection holds the lease and performs sequential captures. Connection loss rolls back the active capture and releases ownership. Cancellation waits for rollback before releasing the lease or reusing the connection; bounded statement timeouts prevent shutdown from waiting indefinitely. Each transaction uses one observation clock and snapshot for Inventory revision, holdings, price states and exact selection. Printing/finish pairs are deduplicated across conditions and evaluated in bounded batches through the existing Valuation owner. No per-chunk transaction or clock is allowed. A copied reference table stores evidence once per day and pair; holding rows preserve printing, canonical identity, finish, condition, quantity and presentation. Neither depends on current entries, Catalog generations or rolling public prices. Known, stale and Unknown outcomes are successful evidence; infrastructure or invalid-price failures roll back and preserve an earlier checkpoint.
+A single session-level database runner lease is acquired before beginning repeatable-read capture transactions.
+The same connection holds the lease and performs sequential captures.
+Connection loss rolls back the active capture and releases ownership.
+Cancellation waits for rollback before releasing the lease or reusing the connection; bounded statement timeouts prevent shutdown from waiting indefinitely.
+Each transaction uses one observation clock and snapshot for Inventory revision, holdings, price states and exact selection.
+Printing/finish pairs are deduplicated across conditions and evaluated in bounded batches through the existing Valuation owner.
+No per-chunk transaction or clock is allowed.
+A copied reference table stores evidence once per day and pair; holding rows preserve printing, canonical identity, finish, condition, quantity and presentation.
+Neither depends on current entries, Catalog generations or rolling public prices.
+Known, stale and Unknown outcomes are successful evidence; infrastructure or invalid-price failures roll back and preserve an earlier checkpoint.
 
-Daily headers are unique per account, game and reporting date. A newer eligible observation can replace the same calendar's checkpoint atomically. Eligibility follows the actual observation time: a consistent observation begun before the boundary may finish committing after midnight. An observation begun after the boundary cannot replace that date. Once eligible in-flight observations finish, the checkpoint is immutable. A timezone change never rewrites a saved date, timezone, boundary or observation. If that reporting date already exists in another calendar, it is retained rather than overwritten; subsequent dates use the new calendar. Empty holdings save a known-zero header. Personal retention has no automatic expiry.
+Daily headers are unique per account, game and reporting date.
+A newer eligible observation can replace the same calendar's checkpoint atomically.
+Eligibility follows the actual observation time: a consistent observation begun before the boundary may finish committing after midnight.
+An observation begun after the boundary cannot replace that date.
+Once eligible in-flight observations finish, the checkpoint is immutable.
+A timezone change never rewrites a saved date, timezone, boundary or observation.
+If that reporting date already exists in another calendar, it is retained rather than overwritten; subsequent dates use the new calendar.
+Empty holdings save a known-zero header.
+Personal retention has no automatic expiry.
 
-Authenticated `GET /api/mobile/v1/mtg/inventory/value` returns a current estimate and coverage. `GET /api/mobile/v1/mtg/inventory/value-history` returns closed points and explicit gaps within a validated window of at most 366 calendar dates, default 30. Optional printing/finish/condition filters identify historical holdings independently of a live entry UUID. A filtered identity absent from a successfully captured account day returns known zero holdings and value. An absent account checkpoint remains a gap. Reads never capture, backfill or revalue stored points. Responses exclude raw evidence and full holdings, derive account identity exclusively from the trusted actor and use `private, no-store`. The required `nextDayBoundary` is the next configured-calendar midnight. `nextRefreshAt` is the earlier of that boundary and an owned checkpoint's future stored closure within the requested window. A checkpoint is visible only after its stored `dayEnd`, including after timezone changes. The private Dashboard shows current value and bounded personal history; the Inventory inspector links to its historical holding identity. No public capture command is introduced.
+Authenticated `GET /api/mobile/v1/mtg/inventory/value` returns a current estimate and coverage.
+`GET /api/mobile/v1/mtg/inventory/value-history` returns closed points and explicit gaps within a validated window of at most 366 calendar dates, default 30.
+Optional printing/finish/condition filters identify historical holdings independently of a live entry UUID.
+A filtered identity absent from a successfully captured account day returns known zero holdings and value.
+An absent account checkpoint remains a gap.
+Reads never capture, backfill or revalue stored points.
+Responses exclude raw evidence and full holdings, derive account identity exclusively from the trusted actor and use `private, no-store`.
+The required `nextDayBoundary` is the next configured-calendar midnight.
+`nextRefreshAt` is the earlier of that boundary and an owned checkpoint's future stored closure within the requested window.
+A checkpoint is visible only after its stored `dayEnd`, including after timezone changes.
+The private Dashboard shows current value and bounded personal history; the Inventory inspector links to its historical holding identity.
+No public capture command is introduced.
 
-Current Dashboard and selected-Deck estimates reuse trusted reference selection inside their existing coherent snapshots. Deck required and missing values use nonfoil references and the existing allocation owner. Exact decimal products are summed before display rounding. Coverage distinguishes covered, stale and unknown quantities; an incomplete covered subtotal is never called a complete total. Unavailable valuation is shown independently of otherwise valid account or Deck data.
+Current Dashboard and selected-Deck estimates reuse trusted reference selection inside their existing coherent snapshots.
+Deck required and missing values use nonfoil references and the existing allocation owner.
+Exact decimal products are summed before display rounding.
+Coverage distinguishes covered, stale and unknown quantities; an incomplete covered subtotal is never called a complete total.
+Unavailable valuation is shown independently of otherwise valid account or Deck data.
 
-Capture commits publish account-scoped `values` invalidation. Public price-state changes publish only `{ "public": true, "topic": "values" }` without reading accounts or exposing private data. Backend transport accepts exactly those two keys for this exception, then invalidates subscribed accounts. Private notifications remain account-scoped; other topics retain their isolation. Frontend value consumers use existing leased refresh, account/selection guards and draft preservation. History consumers schedule one boundary refresh from `nextRefreshAt`, without polling. Build analysis starts no runner; development HMR and production shutdown stop timers and owned work. Duplicate processes, cancellation, rollback, DST, gaps, timezone changes, entry removal/recreation, public pruning, decimal/quantity bounds and actual 50k holdings are acceptance scenarios.
+Capture commits publish account-scoped `values` invalidation.
+Public price-state changes publish only `{ "public": true, "topic": "values" }` without reading accounts or exposing private data.
+Backend transport accepts exactly those two keys for this exception, then invalidates subscribed accounts.
+Private notifications remain account-scoped; other topics retain their isolation.
+Frontend value consumers use existing leased refresh, account/selection guards and draft preservation.
+History consumers schedule one boundary refresh from `nextRefreshAt`, without polling.
+Build analysis starts no runner; development HMR and production shutdown stop timers and owned work.
+Duplicate processes, cancellation, rollback, DST, gaps, timezone changes, entry removal/recreation, public pruning, decimal/quantity bounds and actual 50k holdings are acceptance scenarios.
 
 ## Implemented market references
 
-Migration 0015 adds independent immutable price publications, projected printing facts, nullable exact observations and active/previous pointers. Worker publishes the baseline Catalog/Price pair atomically under the existing publisher lock. Currentness checks require both extraction and mapping versions. Source descriptor time and payload digest identify the imported input; import time never resets freshness. Failed attempts retain the active publication and store safe health separately after rollback. A successful complete null/missing view replaces the older same-source amount.
+Migration 0015 adds independent immutable price publications, projected printing facts, nullable exact observations and active/previous pointers.
+Worker publishes the baseline Catalog/Price pair atomically under the existing publisher lock.
+Currentness checks require both extraction and mapping versions.
+Source descriptor time and payload digest identify the imported input; import time never resets freshness.
+Failed attempts retain the active publication and store safe health separately after rollback.
+A successful complete null/missing view replaces the older same-source amount.
 
-Backend Valuation evaluates bounded requests in one repeatable-read transaction with one clock. It returns exact decimal EUR strings, source/measure/time, publication/observation identities, Fresh/Stale, requested and matched finishes/printings and marked English provenance. References expire after seven days. Zero is known; missing market amount is Unknown. Ordinary nonnegative decimal inputs are limited to 128 characters and 18 fractional digits before Decimal/BigInt work. Invalid source amounts abort publication; invalid stored amounts produce an operational read failure, including expired references. Exact bigint arithmetic multiplies before half-up two-decimal display rounding. No condition discount or currency conversion is applied.
+Backend Valuation evaluates bounded requests in one repeatable-read transaction with one clock.
+It returns exact decimal EUR strings, source/measure/time, publication/observation identities, Fresh/Stale, requested and matched finishes/printings and marked English provenance.
+References expire after seven days.
+Zero is known; missing market amount is Unknown.
+Ordinary nonnegative decimal inputs are limited to 128 characters and 18 fractional digits before Decimal/BigInt work.
+Invalid source amounts abort publication; invalid stored amounts produce an operational read failure, including expired references.
+Exact bigint arithmetic multiplies before half-up two-decimal display rounding.
+No condition discount or currency conversion is applied.
 
-English mapping v1 requires valid matching Oracle/edition IDs, set code, exact collector number, supported layout, explicit variation false, matching top artwork or ordered multi-face artwork, frame/border/treatment/promo facts and explicit equal unordered frame-effects/promo-types arrays. Missing/null evidence never defaults to equality. Exactly one English identity/finish candidate is required even if its amount is null. Supported layouts are normal, transform, modal_dfc, split, adventure and flip; reversible/unsupported layouts decline fallback. Exact finishes come from the source array; an explicit empty array is valid unsupported availability, while malformed finish values fail publication. An explicit Foil member permits the typed `eur_foil` field even when Etched also appears. Etched-only printings remain unsupported, and the price API accepts no Etched request. Extractor v3 records this interpretation and decimal bounds without changing printing identity.
+English mapping v1 requires valid matching Oracle/edition IDs, set code, exact collector number, supported layout, explicit variation false, matching top artwork or ordered multi-face artwork, frame/border/treatment/promo facts and explicit equal unordered frame-effects/promo-types arrays.
+Missing/null evidence never defaults to equality.
+Exactly one English identity/finish candidate is required even if its amount is null.
+Supported layouts are normal, transform, modal_dfc, split, adventure and flip; reversible/unsupported layouts decline fallback.
+Exact finishes come from the source array; an explicit empty array is valid unsupported availability, while malformed finish values fail publication.
+An explicit Foil member permits the typed `eur_foil` field even when Etched also appears.
+Etched-only printings remain unsupported, and the price API accepts no Etched request.
+Extractor v3 records this interpretation and decimal bounds without changing printing identity.
 
-Current/previous public price views have no cascading Catalog dependency. Backend's internal frozen-reference evidence includes the exact reference, publication descriptor, raw selected amount and requested/matched identity facts. Personal capture copies this trusted evidence before public pruning. Ingestion never inspects private holdings. Private reference rows retain copied evidence independently of public publications.
+Current/previous public price views have no cascading Catalog dependency.
+Backend's internal frozen-reference evidence includes the exact reference, publication descriptor, raw selected amount and requested/matched identity facts.
+Personal capture copies this trusted evidence before public pruning.
+Ingestion never inspects private holdings.
+Private reference rows retain copied evidence independently of public publications.
 
-[Contracts](../../contracts/src/valuation.ts), [backend Valuation](../../backend/src/valuation/read.ts) and [Worker extraction](../../worker/src/worker/prices.py) own concrete shapes and rules. [HTTP ownership](./mobile-and-scan.md#reference-price-http-contract) owns routes, limits and errors; [deployment](../operations/deployment.md#catalog-migration-and-recovery) owns paired recovery.
+[Contracts](../../contracts/src/valuation.ts), [backend Valuation](../../backend/src/valuation/read.ts) and [Worker extraction](../../worker/src/worker/prices.py) own concrete shapes and rules.
+[HTTP ownership](./mobile-and-scan.md#reference-price-http-contract) owns routes, limits and errors; [deployment](../operations/deployment.md#catalog-migration-and-recovery) owns paired recovery.
 
 ## Optional references and public source history
 
-The explicit [Cardmarket/MTGJSON adapters](../../worker/src/worker/optional_prices.py) use complete public artifacts through the bounded [artifact reader](../../worker/src/worker/price_artifacts.py). Cardmarket joins an exact Scryfall `cardmarket_id` to both Product Catalogue and Price Guide `idProduct`. Nonfoil selects `trend`; Foil selects `trend-foil`. The guide and catalogue retain independent original offset-bearing `createdAt` values, UTC instants, versions and digests. No language, condition or sale-time dimension is invented.
+The explicit [Cardmarket/MTGJSON adapters](../../worker/src/worker/optional_prices.py) use complete public artifacts through the bounded [artifact reader](../../worker/src/worker/price_artifacts.py).
+Cardmarket joins an exact Scryfall `cardmarket_id` to both Product Catalogue and Price Guide `idProduct`.
+Nonfoil selects `trend`; Foil selects `trend-foil`.
+The guide and catalogue retain independent original offset-bearing `createdAt` values, UTC instants, versions and digests.
+No language, condition or sale-time dimension is invented.
 
-MTGJSON maps a price UUID through a unique AllIdentifiers `identifiers.scryfallId`; duplicate or contradictory crosswalks decline that mapping. It selects only paper/Cardmarket/retail EUR normal or foil points. In the full source, currency belongs to `paper.cardmarket.currency`. AllPricesToday supplies current values only when the point key equals its `meta.date`; AllPrices supplies historical points only. Missing or null current values never revive prior publications or historical amounts. All three inputs retain their own digest and `meta.version`. Explicit Foil membership remains required, including printings that also support Etched. The baseline's versioned, pre-price unique English predicate remains unchanged.
+MTGJSON maps a price UUID through a unique AllIdentifiers `identifiers.scryfallId`; duplicate or contradictory crosswalks decline that mapping.
+It selects only paper/Cardmarket/retail EUR normal or foil points.
+In the full source, currency belongs to `paper.cardmarket.currency`.
+AllPricesToday supplies current values only when the point key equals its `meta.date`; AllPrices supplies historical points only.
+Missing or null current values never revive prior publications or historical amounts.
+All three inputs retain their own digest and `meta.version`.
+Explicit Foil membership remains required, including printings that also support Etched.
+The baseline's versioned, pre-price unique English predicate remains unchanged.
 
-[Optional publication](../../worker/src/worker/optional_publication.py) gives each provider independent opt-in, active/previous pointers, failure health and pruning under the native publication lock. It copies validated Scryfall printing/finish/variant and English-match facts into its immutable public view. There is no cascading Catalog dependency. A complete successful view replaces missing and null amounts; failure rolls back and records safe health separately. Backend evaluates all sources in one transaction and clock: Fresh precedes Stale, then Cardmarket trend, Scryfall EUR and MTGJSON retail; within a provider exact printing precedes approved English fallback. Disabled sources are not selected. Shared Cardmarket upstream is labelled and does not imply independent confirmations.
+[Optional publication](../../worker/src/worker/optional_publication.py) gives each provider independent opt-in, active/previous pointers, failure health and pruning under the native publication lock.
+It copies validated Scryfall printing/finish/variant and English-match facts into its immutable public view.
+There is no cascading Catalog dependency.
+A complete successful view replaces missing and null amounts; failure rolls back and records safe health separately.
+Backend evaluates all sources in one transaction and clock: Fresh precedes Stale, then Cardmarket trend, Scryfall EUR and MTGJSON retail; within a provider exact printing precedes approved English fallback.
+Disabled sources are not selected.
+Shared Cardmarket upstream is labelled and does not imply independent confirmations.
 
-Instant sources retain the real source instant. MTGJSON preserves `timePrecision: Day` and the actual `sourceDate`, with no invented midnight market timestamp. `day-upper-bound-utc-start-v1` uses `asOf - startOfSourceDateUTC` only as a conservative freshness bound: Fresh through 24 hours, Stale through 168 hours, then Unknown. Future dates are invalid; actual instants permit at most five minutes of future skew. Failure health does not change age-derived freshness. The personal reporting calendar remains separately configurable with Europe/Berlin as its default.
+Instant sources retain the real source instant.
+MTGJSON preserves `timePrecision: Day` and the actual `sourceDate`, with no invented midnight market timestamp.
+`day-upper-bound-utc-start-v1` uses `asOf - startOfSourceDateUTC` only as a conservative freshness bound: Fresh through 24 hours, Stale through 168 hours, then Unknown.
+Future dates are invalid; actual instants permit at most five minutes of future skew.
+Failure health does not change age-derived freshness.
+The personal reporting calendar remains separately configurable with Europe/Berlin as its default.
 
-Exact numeric hooks preserve raw JSON tokens, reject duplicate keys, bound tokens to 128 characters before Decimal, bound exponent magnitude to 128 before expansion, then require nonnegative finite ordinary decimals within 128 characters and 18 fractional digits. Known zero remains known. Transfer URL, digest, byte counts, ETag and Last-Modified are immutable provenance, not source time. Reimport currentness excludes transport download time and includes input digests, versions and trusted mapping evidence.
+Exact numeric hooks preserve raw JSON tokens, reject duplicate keys, bound tokens to 128 characters before Decimal, bound exponent magnitude to 128 before expansion, then require nonnegative finite ordinary decimals within 128 characters and 18 fractional digits.
+Known zero remains known.
+Transfer URL, digest, byte counts, ETag and Last-Modified are immutable provenance, not source time.
+Reimport currentness excludes transport download time and includes input digests, versions and trusted mapping evidence.
 
-Public history is a rolling inclusive UTC window from today minus 89 days through today. Instant sources retain only recorded imports, choosing the greatest source instant per day and latest successful publication for an equal instant. A latest complete null or missing point suppresses earlier same-day known amounts. MTGJSON replaces its complete AllPrices history view; gaps are never filled from the previous view. Immutable publication and printing evidence are stored once in independent public history tables, while daily points retain their exact amount, raw token and provider ID. Source pruning cannot affect another provider or private frozen evidence.
+Public history is a rolling inclusive UTC window from today minus 89 days through today.
+Instant sources retain only recorded imports, choosing the greatest source instant per day and latest successful publication for an equal instant.
+A latest complete null or missing point suppresses earlier same-day known amounts.
+MTGJSON replaces its complete AllPrices history view; gaps are never filled from the previous view.
+Immutable publication and printing evidence are stored once in independent public history tables, while daily points retain their exact amount, raw token and provider ID.
+Source pruning cannot affect another provider or private frozen evidence.
 
-The public history use case validates one printing/finish, 1 to 90 days (default 30) and at most three distinct source filters. Indexed selection applies the window first and returns at most one point per enabled source per UTC day, at most 270 points. Card Details is the caller. History carries actual source precision, point artifact/digest, publication and exact/English provenance, with no quantity, personal capture or Fresh/Stale claim for historical points. Corrected public points do not mutate a previously cloned trusted reference. Personal captures use the independent private checkpoint mechanism described above.
+The public history use case validates one printing/finish, 1 to 90 days (default 30) and at most three distinct source filters.
+Indexed selection applies the window first and returns at most one point per enabled source per UTC day, at most 270 points.
+Card Details is the caller.
+History carries actual source precision, point artifact/digest, publication and exact/English provenance, with no quantity, personal capture or Fresh/Stale claim for historical points.
+Corrected public points do not mutate a previously cloned trusted reference.
+Personal captures use the independent private checkpoint mechanism described above.

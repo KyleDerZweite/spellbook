@@ -6,147 +6,410 @@
 - Update Triggers: backend migration ownership, definition versions, deck-local bundles, rule vocabulary and priority, source publications, composition jobs, Review/Reset, combo constraints and category acceptance evidence, operational work budgets, consequence retention and commit-scoped saved-state invalidation
 - Related Docs: [Architecture](./README.md), [Card grouping](../product/card-grouping.md), [Domain glossary](../../GLOSSARY.md), [Classifier research](../integrations/card-categorization.md), [Application contract](./application-contract.md), [Catalog](./catalog.md), [Worker](./worker.md), [ADR-0019](../decisions/0019-versioned-categories-and-local-source-rules.md), [Independent applications](./independent-applications.md)
 
-[Card grouping](../product/card-grouping.md) owns category behavior and manual choices. This document owns accepted storage, rule interfaces and evaluation lifecycle. Starter entry categories, Oracle Tags ingestion, immutable account definitions and entry Review/Reset are implemented. Whole-deck evaluation, scoped Review/Reset and bounded directory reads are implemented. The Commander Spellbook matcher remains a later slice.
+[Card grouping](../product/card-grouping.md) owns category behavior and manual choices.
+This document owns accepted storage, rule interfaces and evaluation lifecycle.
+Starter entry categories, Oracle Tags ingestion, immutable account definitions and entry Review/Reset are implemented.
+Whole-deck evaluation, scoped Review/Reset and bounded directory reads are implemented.
+The Commander Spellbook matcher remains a later slice.
 
 ## Implemented starter entry decisions
 
-The backend [Categories application](../../backend/src/categories/application.ts) owns trusted-actor reads, explicit idempotent initialization and Manual saves. [Category contracts](../../contracts/src/categories.ts) map only JSON-safe definitions, decisions, evidence, source status, acknowledgements and merge previews. Deck writes compose transaction-bound category helpers with their established account/request/Deck lock order. Frontend owns form adaptation, draft/focus behavior and presentation. Worker writes public facts only.
+The backend [Categories application](../../backend/src/categories/application.ts) owns trusted-actor reads, explicit idempotent initialization and Manual saves.
+[Category contracts](../../contracts/src/categories.ts) map only JSON-safe definitions, decisions, evidence, source status, acknowledgements and merge previews.
+Deck writes compose transaction-bound category helpers with their established account/request/Deck lock order.
+Frontend owns form adaptation, draft/focus behavior and presentation.
+Worker writes public facts only.
 
-New Decks adopt all current active custom definitions in both scopes, including nonmatching definitions and explicit empty whole-deck bundles, plus all eight immutable starter definitions with local UUIDs, names, order, mapping/root semantics and policy versions. Existing Decks initialize through `initializeDeckCategories`, an actor-authorized POST. Enhanced owned Deck opening submits it once; a native form supplies the same command without JavaScript. GET, category reads, snapshots and prefetch never initialize. New Main entries and uninitialized role moves into Main initialize in their existing Deck write transaction. New-Deck creation and Deck composition enter the same private finite Category work owner before transactional authorization and adoption. Web and mobile Main-add callers perform authorization, original receipt replay and Catalog-owned printing resolution inside that original transaction, before any pooled read can escape finite admission. Quantity-only edits and additions to existing entries preserve decisions.
+New Decks adopt all current active custom definitions in both scopes, including nonmatching definitions and explicit empty whole-deck bundles, plus all eight immutable starter definitions with local UUIDs, names, order, mapping/root semantics and policy versions.
+Existing Decks initialize through `initializeDeckCategories`, an actor-authorized POST.
+Enhanced owned Deck opening submits it once; a native form supplies the same command without JavaScript.
+GET, category reads, snapshots and prefetch never initialize.
+New Main entries and uninitialized role moves into Main initialize in their existing Deck write transaction.
+New-Deck creation and Deck composition enter the same private finite Category work owner before transactional authorization and adoption.
+Web and mobile Main-add callers perform authorization, original receipt replay and Catalog-owned printing resolution inside that original transaction, before any pooled read can escape finite admission.
+Quantity-only edits and additions to existing entries preserve decisions.
 
-[The starter registry](../../backend/src/categories/rules.ts) fixes priority as Lands, Board wipes, Counterspells, Removal, Ramp, Draw, Protection, Recursion. Lands uses the existing combined-face Catalog type policy; Ramp excludes Lands. Other starters match the registry's UUID Oracle Tag roots and descendants at any recorded prominence. A higher-priority Unknown stops evaluation and stores Pending within Uncategorized. All known false predicates produce Automatic Uncategorized. A valid complete publication with a present root establishes absent membership as false only for a proven original raw Oracle UUID. Legacy projected printing-ID fallback is Unknown, never canonical authority inferred from UUID equality or inequality.
+[The starter registry](../../backend/src/categories/rules.ts) fixes priority as Lands, Board wipes, Counterspells, Removal, Ramp, Draw, Protection, Recursion.
+Lands uses the existing combined-face Catalog type policy; Ramp excludes Lands.
+Other starters match the registry's UUID Oracle Tag roots and descendants at any recorded prominence.
+A higher-priority Unknown stops evaluation and stores Pending within Uncategorized.
+All known false predicates produce Automatic Uncategorized.
+A valid complete publication with a present root establishes absent membership as false only for a proven original raw Oracle UUID.
+Legacy projected printing-ID fallback is Unknown, never canonical authority inferred from UUID equality or inequality.
 
-`readEntryCategoryFacts(tx, printingIds, adoptedDefinitions)` reads one Catalog generation, one Oracle publication and the requested identities/types/memberships in a single statement inside the decision transaction. Raw Oracle/type facts are independently extracted into `catalog_oracle_facts` alongside their Catalog generation, with the matching Catalog transform version. This internal provenance is absent from public CardDocument and cannot be supplied by clients. A Catalog transform version is distinct from any price extractor version. Future paired publishers must preserve this fact COPY and bind it to the final Catalog transform version.
+`readEntryCategoryFacts(tx, printingIds, adoptedDefinitions)` reads one Catalog generation, one Oracle publication and the requested identities/types/memberships in a single statement inside the decision transaction.
+Raw Oracle/type facts are independently extracted into `catalog_oracle_facts` alongside their Catalog generation, with the matching Catalog transform version.
+This internal provenance is absent from public CardDocument and cannot be supplied by clients.
+A Catalog transform version is distinct from any price extractor version.
+Future paired publishers must preserve this fact COPY and bind it to the final Catalog transform version.
 
-Assignments store Automatic, Pending or Manual provenance, including Manual Uncategorized. Compact evaluated predicate/type/raw-Oracle and publication ID/time/digest/parser evidence survives public source pruning. Embedded adopted definitions do not depend on a publication foreign key. New entries use the latest valid facts with old adopted roots/policy. A missing old root remains Unknown. A public refresh never rewrites assignments. Failed refresh status is separate from usable prior-valid facts.
+Assignments store Automatic, Pending or Manual provenance, including Manual Uncategorized.
+Compact evaluated predicate/type/raw-Oracle and publication ID/time/digest/parser evidence survives public source pruning.
+Embedded adopted definitions do not depend on a publication foreign key.
+New entries use the latest valid facts with old adopted roots/policy.
+A missing old root remains Unknown.
+A public refresh never rewrites assignments.
+Failed refresh status is separate from usable prior-valid facts.
 
-Non-merging printing/role changes retain entry identity and its complete decision, including hidden non-Main decisions. Merging retains the destination's entire decision and deletes the source. A conflicting merge first returns a 409 consequence preview with both decisions, resulting quantity, composition/decision revisions and source tokens. Confirmation binds that consequence, and changed revisions/quantities require renewed review. Public source changes alone do not alter immutable existing decisions or permit reassignment. Already-Manual same-choice saves retain revisions and persist an original no-op acknowledgement. Automatic/Pending-to-Manual remains a semantic decision change. Decision revisions advance independently; Deck acknowledgements retain compact affected/removed category identities and original revision on replay.
+Non-merging printing/role changes retain entry identity and its complete decision, including hidden non-Main decisions.
+Merging retains the destination's entire decision and deletes the source.
+A conflicting merge first returns a 409 consequence preview with both decisions, resulting quantity, composition/decision revisions and source tokens.
+Confirmation binds that consequence, and changed revisions/quantities require renewed review.
+Public source changes alone do not alter immutable existing decisions or permit reassignment.
+Already-Manual same-choice saves retain revisions and persist an original no-op acknowledgement.
+Automatic/Pending-to-Manual remains a semantic decision change.
+Decision revisions advance independently; Deck acknowledgements retain compact affected/removed category identities and original revision on replay.
 
-Category view groups Main entries once by adopted display order, with Pending visible inside Uncategorized. Commander, Sideboard and Companion retain sections. Inspector and native Main-entry forms show provenance and save Manual choices through the same command. Read failures remain infrastructure failures, never evaluated Unknown. The Account Library and entry Review/Reset extend these decisions as described below. Whole-deck jobs are implemented separately from entry decisions. The optional local combo matcher is described below.
+Category view groups Main entries once by adopted display order, with Pending visible inside Uncategorized.
+Commander, Sideboard and Companion retain sections.
+Inspector and native Main-entry forms show provenance and save Manual choices through the same command.
+Read failures remain infrastructure failures, never evaluated Unknown.
+The Account Library and entry Review/Reset extend these decisions as described below.
+Whole-deck jobs are implemented separately from entry decisions.
+The optional local combo matcher is described below.
 
-Library version/archive changes, local rename/removal, Manual decisions and reviewed commits publish the existing commit-scoped `decks` invalidation inside the same transaction as their state and original receipt. No-op definitions, archives, labels and previews publish nothing. First initialization of an empty legacy Deck is a semantic change. Receipt replay, fresh initialization no-op and an unchanged Manual decision publish nothing. Rollback publishes nothing; Deck timestamps and composition revisions are unchanged. The [workspace consumer](./frontend.md#profile-saved-state-consumer) refetches the selected Deck categories through its leased read pipeline and retains dirty Manual choices.
+Library version/archive changes, local rename/removal, Manual decisions and reviewed commits publish the existing commit-scoped `decks` invalidation inside the same transaction as their state and original receipt.
+No-op definitions, archives, labels and previews publish nothing.
+First initialization of an empty legacy Deck is a semantic change.
+Receipt replay, fresh initialization no-op and an unchanged Manual decision publish nothing.
+Rollback publishes nothing; Deck timestamps and composition revisions are unchanged.
+The [workspace consumer](./frontend.md#profile-saved-state-consumer) refetches the selected Deck categories through its leased read pipeline and retains dirty Manual choices.
 
 ## Implemented account definitions and local ownership
 
-Account Category Definitions have separate entry and whole-deck scopes with immutable versions. Deck creation adopts the entire ordered bundle, including definitions that do not yet match. Deck-local instances retain the adopted version, name and order. New decks use current account definitions. Existing decks retain their bundle until explicit Review/Reset.
+Account Category Definitions have separate entry and whole-deck scopes with immutable versions.
+Deck creation adopts the entire ordered bundle, including definitions that do not yet match.
+Deck-local instances retain the adopted version, name and order.
+New decks use current account definitions.
+Existing decks retain their bundle until explicit Review/Reset.
 
-Local rename changes a label. Editing reusable meaning changes explicit rules and creates a new version. Starter meanings remain independent of custom replacements. Archive reusable definitions for future decks while preserving referenced old versions. Removing a local entry category atomically chooses a replacement or Uncategorized and suppresses recreation of that origin in the deck.
+Local rename changes a label.
+Editing reusable meaning changes explicit rules and creates a new version.
+Starter meanings remain independent of custom replacements.
+Archive reusable definitions for future decks while preserving referenced old versions.
+Removing a local entry category atomically chooses a replacement or Uncategorized and suppresses recreation of that origin in the deck.
 
-Entry decisions persist Manual versus Automatic/Pending provenance. Quantity/import additions preserve assignments. Role/printing replacement preserves source assignments unless merging into an existing destination, whose assignment wins after preview. Stable decision revisions protect these choices independently of composition revisions. Whole-deck Manual Include/Exclude persistence follows the implemented contract below.
+Entry decisions persist Manual versus Automatic/Pending provenance.
+Quantity/import additions preserve assignments.
+Role/printing replacement preserves source assignments unless merging into an existing destination, whose assignment wins after preview.
+Stable decision revisions protect these choices independently of composition revisions.
+Whole-deck Manual Include/Exclude persistence follows the implemented contract below.
 
 ## Bounded rule interface
 
-The implemented validator and entry evaluator support all/any/not, catalog type, keyword, stable Oracle Tag with descendants, mapped trait and explicit canonical-card selections. Whole-deck definitions validate and retain minimum copies or distinct canonical cards, integer percentage thresholds with an explicit all-cards/nonland denominator, and optional documented-combo outcomes. Whole-deck classification and scoped Review/Reset implement these aggregate criteria. Disabled or unavailable local combo facts return Unknown inside supported entry evaluation. Rules record participating roles. Templates use Main for trait thresholds and Main plus Commander for combo ingredients. Empty denominators do not match.
+The implemented validator and entry evaluator support all/any/not, catalog type, keyword, stable Oracle Tag with descendants, mapped trait and explicit canonical-card selections.
+Whole-deck definitions validate and retain minimum copies or distinct canonical cards, integer percentage thresholds with an explicit all-cards/nonland denominator, and optional documented-combo outcomes.
+Whole-deck classification and scoped Review/Reset implement these aggregate criteria.
+Disabled or unavailable local combo facts return Unknown inside supported entry evaluation.
+Rules record participating roles.
+Templates use Main for trait thresholds and Main plus Commander for combo ingredients.
+Empty denominators do not match.
 
-Rules neither execute user code nor infer semantics from names. The editor shows supported criteria and provenance. Import Oracle Tag hierarchy and local mappings as versioned publications; mutable names are not source IDs. Do not call Jev in production or expand the pass to arbitrary free-text meanings.
+Rules neither execute user code nor infer semantics from names.
+The editor shows supported criteria and provenance.
+Import Oracle Tag hierarchy and local mappings as versioned publications; mutable names are not source IDs.
+Do not call Jev in production or expand the pass to arbitrary free-text meanings.
 
-Predicates evaluate true, false or unknown. Missing/failed source input stays unknown under negation. Retain the last valid source publication after import failure. A first-time unknown higher-priority result leaves classification pending with visible source status. Persist exact source/version provenance for each evaluation.
+Predicates evaluate true, false or unknown.
+Missing/failed source input stays unknown under negation.
+Retain the last valid source publication after import failure.
+A first-time unknown higher-priority result leaves classification pending with visible source status.
+Persist exact source/version provenance for each evaluation.
 
-Entry classification uses first-match custom priority before starter fallback, independently of display-group order. Starter order is Lands, Board wipes, Counterspells, Removal, Ramp, Draw, Protection, Recursion. Lands uses type; Ramp excludes Lands. Other starters use reviewed Oracle Tag roots/descendants. No broad Token-makers starter is supported by the incomplete narrow subtree. This priority describes inspectable rules, not confidence or strongest-purpose detection. Main entries receive one primary category; all false results yield Uncategorized. Manual choices, including Uncategorized, always win.
+Entry classification uses first-match custom priority before starter fallback, independently of display-group order.
+Starter order is Lands, Board wipes, Counterspells, Removal, Ramp, Draw, Protection, Recursion.
+Lands uses type; Ramp excludes Lands.
+Other starters use reviewed Oracle Tag roots/descendants.
+No broad Token-makers starter is supported by the incomplete narrow subtree.
+This priority describes inspectable rules, not confidence or strongest-purpose detection.
+Main entries receive one primary category; all false results yield Uncategorized.
+Manual choices, including Uncategorized, always win.
 
-The native [0021 migration](../../backend/drizzle/0021_account_category_library.sql) preserves existing starter bundles and decisions with empty whole-deck definitions, revision zero and no suppressed origins. Database triggers protect immutable origin identity/account/scope and published version snapshots. Category reads never provision account state.
+The native [0021 migration](../../backend/drizzle/0021_account_category_library.sql) preserves existing starter bundles and decisions with empty whole-deck definitions, revision zero and no suppressed origins.
+Database triggers protect immutable origin identity/account/scope and published version snapshots.
+Category reads never provision account state.
 
-Category commands lock Profile/account, then the trusted live Auth session, then receipt identity and the owned Deck. The write-only Auth fence blocks concurrent revocation through commit and rechecks expiry after waiting. Protected GETs retain nonlocking actor checks and read-only transactions.
+Category commands lock Profile/account, then the trusted live Auth session, then receipt identity and the owned Deck.
+The write-only Auth fence blocks concurrent revocation through commit and rechecks expiry after waiting.
+Protected GETs retain nonlocking actor checks and read-only transactions.
 
 ## Entry Review/Reset transactions
 
-The [Library use cases](../../backend/src/categories/library.ts) own scoped pages, current versions and future-adoption archive state. The [local change use cases](../../backend/src/categories/changes.ts) own label-only rename and all-role removal/replacement/suppression. The [preview use cases](../../backend/src/categories/previews.ts) own complete server plans, stable consequence pages and atomic reviewed commits. Public contracts are in [category-library.ts](../../contracts/src/category-library.ts). `/mtg/categories` supplies native and enhanced criteria forms; Deck controls distinguish local changes from editing reusable meaning. Delayed Library reads capture account, scope, offset and limit from one incoming query snapshot before retained-page adoption. The request and its page ownership share that snapshot independently of editor drafts. Server-page adoption observes incoming data and workspace activation, without subscribing to the retained state it replaces. A cleared editor can seed fresh server controls only while the workspace owns that authenticated account; terminal state keeps private data empty. Native removal failures retain the submitted replacement, original revision and request ID. A stale removal requires explicit rebase; uncertain original retries remain separate from a rebased draft. Confirmed acknowledgements remain authoritative when optional follow-up evidence is unavailable.
+The [Library use cases](../../backend/src/categories/library.ts) own scoped pages, current versions and future-adoption archive state.
+The [local change use cases](../../backend/src/categories/changes.ts) own label-only rename and all-role removal/replacement/suppression.
+The [preview use cases](../../backend/src/categories/previews.ts) own complete server plans, stable consequence pages and atomic reviewed commits.
+Public contracts are in [category-library.ts](../../contracts/src/category-library.ts).
+`/mtg/categories` supplies native and enhanced criteria forms; Deck controls distinguish local changes from editing reusable meaning.
+Delayed Library reads capture account, scope, offset and limit from one incoming query snapshot before retained-page adoption.
+The request and its page ownership share that snapshot independently of editor drafts.
+Server-page adoption observes incoming data and workspace activation, without subscribing to the retained state it replaces.
+A cleared editor can seed fresh server controls only while the workspace owns that authenticated account; terminal state keeps private data empty.
+Native removal failures retain the submitted replacement, original revision and request ID.
+A stale removal requires explicit rebase; uncertain original retries remain separate from a rebased draft.
+Confirmed acknowledgements remain authoritative when optional follow-up evidence is unavailable.
 
-An unchanged first Review treats omitted starter origin/automatic-eligibility defaults as their established semantics. Its commit retains the original decision revision and emits no invalidation.
+An unchanged first Review treats omitted starter origin/automatic-eligibility defaults as their established semantics.
+Its commit retains the original decision revision and emits no invalidation.
 
-Saved Manual presentation and grouping preserve the historical meaning/version when Review reuses a local ID for a newer version. A local label-only rename still uses the current label for that same meaning. Predicate evidence captures the exact evaluated definition ID, name and version; unavailable older custom labels are identified explicitly rather than inferred from the first custom rule.
+Saved Manual presentation and grouping preserve the historical meaning/version when Review reuses a local ID for a newer version.
+A local label-only rename still uses the current label for that same meaning.
+Predicate evidence captures the exact evaluated definition ID, name and version; unavailable older custom labels are identified explicitly rather than inferred from the first custom rule.
 
-Review/Reset consequence labels use each frozen before/after definition snapshot, including deep entry-only pages and preserved historical Manual meanings. Explicit Uncategorized is distinct from unavailable definition evidence. Review preserves every Manual choice, including Uncategorized and hidden-role decisions, with its immutable historical definition and evaluation. Current versions of the same origin reuse the local category ID. Retained archived Manual instances stay outside automatic evaluation. Distinct origins cannot share normalized local names; conflicts require an explicit local rename and fresh preview. Entry Reset releases Manual choices across roles without moving roles or clearing whole-deck scope. Suppressed origins return only when explicitly selected. Independent starter names are reserved in the entry Library so initial adoption and reviewed adoption obey the same name policy.
+Review/Reset consequence labels use each frozen before/after definition snapshot, including deep entry-only pages and preserved historical Manual meanings.
+Explicit Uncategorized is distinct from unavailable definition evidence.
+Review preserves every Manual choice, including Uncategorized and hidden-role decisions, with its immutable historical definition and evaluation.
+Current versions of the same origin reuse the local category ID.
+Retained archived Manual instances stay outside automatic evaluation.
+Distinct origins cannot share normalized local names; conflicts require an explicit local rename and fresh preview.
+Entry Reset releases Manual choices across roles without moving roles or clearing whole-deck scope.
+Suppressed origins return only when explicitly selected.
+Independent starter names are reserved in the entry Library so initial adoption and reviewed adoption obey the same name policy.
 
-Preview identity binds normalized intent, original fifteen-minute expiry, Library/decision/composition revisions and Catalog/Oracle/policy tokens. Same-intent retries retain identity and expiry. Four live uncommitted plans are allowed per account; a fifth fails 503 without eviction. Consequences use a relational `(preview_id,position)` key with default 50 and maximum 100 rows. Page reads do not fetch the full commit plan. Commit applies every consequence, including undisplayed pages, after account, owned Deck and preview locks. Expiry is rechecked after locks. Source-state share locks protect the final source fence through commit. A changed source or revision requires 409 and an explicit new preview.
+Preview identity binds normalized intent, original fifteen-minute expiry, Library/decision/composition revisions and Catalog/Oracle/policy tokens.
+Same-intent retries retain identity and expiry.
+Four live uncommitted plans are allowed per account; a fifth fails 503 without eviction.
+Consequences use a relational `(preview_id,position)` key with default 50 and maximum 100 rows.
+Page reads do not fetch the full commit plan.
+Commit applies every consequence, including undisplayed pages, after account, owned Deck and preview locks.
+Expiry is rechecked after locks.
+Source-state share locks protect the final source fence through commit.
+A changed source or revision requires 409 and an explicit new preview.
 
-The [private Category work owner](../../backend/src/categories/work.ts) bounds pool acquisition to 2 seconds, lock waits to 2 seconds, individual SQL to 5 seconds and transaction work to 10 seconds. PostgreSQL 18 transaction and idle deadlines complement application checkpoints. A 16 MiB decoded-work budget rejects complete work atomically rather than truncating membership or applying one page. Indexed maps and fact-cell preflight checks with 100-row write batches bound repeated lookup and SQL overhead. Operational failures return safe 503 only after rollback or connection teardown; no background promise can later issue COMMIT. The final COMMIT result is awaited. These are operational budgets, not product limits on Library or Deck membership.
+The [private Category work owner](../../backend/src/categories/work.ts) bounds pool acquisition to 2 seconds, lock waits to 2 seconds, individual SQL to 5 seconds and transaction work to 10 seconds.
+PostgreSQL 18 transaction and idle deadlines complement application checkpoints.
+A 16 MiB decoded-work budget rejects complete work atomically rather than truncating membership or applying one page.
+Indexed maps and fact-cell preflight checks with 100-row write batches bound repeated lookup and SQL overhead.
+Operational failures return safe 503 only after rollback or connection teardown; no background promise can later issue COMMIT.
+The final COMMIT result is awaited.
+These are operational budgets, not product limits on Library or Deck membership.
 
-Cleanup progresses through at most 1000 expired consequence rows and 8 completed payloads per call through the live-payload partial index. Compact identity/expiry records and original receipts remain. Matching commit replay precedes subject and expiry requirements, so expiry, cleaned plans and later Deck deletion cannot recreate an effect. Bundle, decisions, revision and original receipt share one transaction. The shared SavedState owner supplies transaction-only account invalidation; no separate Category stream is introduced.
+Cleanup progresses through at most 1000 expired consequence rows and 8 completed payloads per call through the live-payload partial index.
+Compact identity/expiry records and original receipts remain.
+Matching commit replay precedes subject and expiry requirements, so expiry, cleaned plans and later Deck deletion cannot recreate an effect.
+Bundle, decisions, revision and original receipt share one transaction.
+The shared SavedState owner supplies transaction-only account invalidation; no separate Category stream is introduced.
 
 ## Reviewed whole-deck implementation contract
 
-This contract was independently reviewed on 2026-10-08. Whole-deck execution and bounded directory reads are implemented on the verified Account Category Library baseline. The existing public Snapshot contract remains compatible. The Web route uses independent selected reads and bounded directory pages. Rendered acceptance and deployment are recorded separately.
+This contract was independently reviewed on 2026-10-08.
+Whole-deck execution and bounded directory reads are implemented on the verified Account Category Library baseline.
+The existing public Snapshot contract remains compatible.
+The Web route uses independent selected reads and bounded directory pages.
+Rendered acceptance and deployment are recorded separately.
 
 ### Ownership and adopted versions
 
-Categories owns multiple whole-deck outcomes, Manual Include/Exclude, copied evidence, scoped Review/Reset and durable jobs. Decks owns composition and metadata commands and invokes one transaction-bound Category helper. Frontend owns transport leases, bounded metadata caching, tile geometry and drafts. Public whole-deck differences and acknowledgements use explicit scoped types, rather than entry-only fields.
+Categories owns multiple whole-deck outcomes, Manual Include/Exclude, copied evidence, scoped Review/Reset and durable jobs.
+Decks owns composition and metadata commands and invokes one transaction-bound Category helper.
+Frontend owns transport leases, bounded metadata caching, tile geometry and drafts.
+Public whole-deck differences and acknowledgements use explicit scoped types, rather than entry-only fields.
 
-Native additive migration `0022_whole_deck_categories` hydrates existing `whole_deck_definitions` from their exact adopted snapshots. It never substitutes current reusable definitions. `deck_whole_categories`, `deck_whole_category_decisions` and `deck_whole_category_jobs` store local instances, version-bound decisions and one coalesced job per Deck. Several versions of an origin can coexist; uniqueness uses Deck and immutable version, not origin or display name. Copied evidence remains independent of prunable public publications.
+Native additive migration `0022_whole_deck_categories` hydrates existing `whole_deck_definitions` from their exact adopted snapshots.
+It never substitutes current reusable definitions.
+`deck_whole_categories`, `deck_whole_category_decisions` and `deck_whole_category_jobs` store local instances, version-bound decisions and one coalesced job per Deck.
+Several versions of an origin can coexist; uniqueness uses Deck and immutable version, not origin or display name.
+Copied evidence remains independent of prunable public publications.
 
-Creation and explicit legacy initialization enqueue an initial evaluation, including empty Decks. Negated minimum rules can match empty compositions. Subsequent jobs follow saved semantic composition changes only. Source refresh, Description saves, receipt replay and floor no-ops do not queue reassignment. Entry decisions remain fixed.
+Creation and explicit legacy initialization enqueue an initial evaluation, including empty Decks.
+Negated minimum rules can match empty compositions.
+Subsequent jobs follow saved semantic composition changes only.
+Source refresh, Description saves, receipt replay and floor no-ops do not queue reassignment.
+Entry decisions remain fixed.
 
-Review adopts current versions while preserving historical Manual decisions with their original meaning. A newer automatic version can coexist with an older Manual version of the same origin. Historical Manual Exclude applies only to its saved version. Reset releases Manual decisions only in its selected scope. Suppressed origins return only through explicit selection; names and meanings remain inspectable before commit.
+Review adopts current versions while preserving historical Manual decisions with their original meaning.
+A newer automatic version can coexist with an older Manual version of the same origin.
+Historical Manual Exclude applies only to its saved version.
+Reset releases Manual decisions only in its selected scope.
+Suppressed origins return only through explicit selection; names and meanings remain inspectable before commit.
 
 ### Three-valued aggregate rules
 
-Evaluate each whole category independently. Account rules and explained threshold templates may overlap. Do not infer a universal Control/Midrange heuristic from names. Participating roles are explicit; trait templates use Main. Traverse every nested aggregate's Entry predicates to collect its requested Oracle roots.
+Evaluate each whole category independently.
+Account rules and explained threshold templates may overlap.
+Do not infer a universal Control/Midrange heuristic from names.
+Participating roles are explicit; trait templates use Main.
+Traverse every nested aggregate's Entry predicates to collect its requested Oracle roots.
 
-[The pure aggregate evaluator](../../backend/src/categories/deck-rules.ts) owns exact bounds. Minimum copies uses proven and possible matching quantity bounds. Minimum distinct deduplicates proven raw Oracle identities across printings and roles; a Printing ID never substitutes for unknown canonical identity. Percentage compares exact BigInt products. For `nonland`, its numerator includes only cards inside that denominator. Unknown Land or predicate facts require jointly possible numerator/denominator bounds. True needs a proven nonempty denominator and a threshold met in every possible case. A proven empty denominator is False, including at zero basis points. A possibly empty denominator can remain Unknown. Invalid persisted quantities fail integrity checks.
+[The pure aggregate evaluator](../../backend/src/categories/deck-rules.ts) owns exact bounds.
+Minimum copies uses proven and possible matching quantity bounds.
+Minimum distinct deduplicates proven raw Oracle identities across printings and roles; a Printing ID never substitutes for unknown canonical identity.
+Percentage compares exact BigInt products.
+For `nonland`, its numerator includes only cards inside that denominator.
+Unknown Land or predicate facts require jointly possible numerator/denominator bounds.
+True needs a proven nonempty denominator and a threshold met in every possible case.
+A proven empty denominator is False, including at zero basis points.
+A possibly empty denominator can remain Unknown.
+Invalid persisted quantities fail integrity checks.
 
-Evidence records the adopted rule/version/roles, exact decimal-string bounds, composition revision and current publication IDs, digests, parser and transform versions. Unknown preserves the last valid outcome and evidence visibly as Pending/stale. First-time Unknown creates no positive membership. Manual decisions win. Combo predicates remain Unknown until the optional local adapter provides trusted facts.
+Evidence records the adopted rule/version/roles, exact decimal-string bounds, composition revision and current publication IDs, digests, parser and transform versions.
+Unknown preserves the last valid outcome and evidence visibly as Pending/stale.
+First-time Unknown creates no positive membership.
+Manual decisions win.
+Combo predicates remain Unknown until the optional local adapter provides trusted facts.
 
 ### Durable job and runtime ownership
 
-Upsert coalesces short editing bursts into one job with a monotonic generation. Category decisions update the target of an existing job without creating a missing job. Claim briefly with `FOR UPDATE SKIP LOCKED` and a lease token/expiry, then commit before processing. Claim takes no further Profile/Deck locks. Autonomous processing locks Profile, Deck, bundle and job. User commands retain the trusted live-session and receipt fences before Deck/bundle/job locks. Reviewed source-state locks follow Catalog, then Oracle ordering.
+Upsert coalesces short editing bursts into one job with a monotonic generation.
+Category decisions update the target of an existing job without creating a missing job.
+Claim briefly with `FOR UPDATE SKIP LOCKED` and a lease token/expiry, then commit before processing.
+Claim takes no further Profile/Deck locks.
+Autonomous processing locks Profile, Deck, bundle and job.
+User commands retain the trusted live-session and receipt fences before Deck/bundle/job locks.
+Reviewed source-state locks follow Catalog, then Oracle ordering.
 
-Bounded evaluation uses current facts and adopted rules. Success, backoff and deletion all compare the claimed generation and lease token. Publication also checks composition and decision revisions. A newer upsert invalidates an older claim; old work cannot delete or delay the newer generation. Infrastructure failures retain bounded durable backoff. Semantic Unknown completes the attempt without endless retries.
+Bounded evaluation uses current facts and adopted rules.
+Success, backoff and deletion all compare the claimed generation and lease token.
+Publication also checks composition and decision revisions.
+A newer upsert invalidates an older claim; old work cannot delete or delay the newer generation.
+Infrastructure failures retain bounded durable backoff.
+Semantic Unknown completes the attempt without endless retries.
 
-Whole Review/Reset atomically commits exactly its displayed results after Library, composition, decision and source fences. Its new adoption explicitly updates or invalidates pending work. Changed visible decisions, evidence or Pending state advance decision and directory revisions and publish transaction-only `decks` invalidation. No-op, replay and rollback publish nothing.
+Whole Review/Reset atomically commits exactly its displayed results after Library, composition, decision and source fences.
+Its new adoption explicitly updates or invalidates pending work.
+Changed visible decisions, evidence or Pending state advance decision and directory revisions and publish transaction-only `decks` invalidation.
+No-op, replay and rollback publish nothing.
 
-[The durable job owner](../../backend/src/categories/jobs.ts) owns coalescing, claims and recovery. Runtime owns one timer and one physically unsettled processing promise. Start/close are idempotent; build analysis starts nothing. Shutdown/HMR stops admission and cancelled publication, retaining ownership until actual work settles. Expired leases recover after process failure. Ignored cancellation cannot start a second physical processing task.
+[The durable job owner](../../backend/src/categories/jobs.ts) owns coalescing, claims and recovery.
+Runtime owns one timer and one physically unsettled processing promise.
+Start/close are idempotent; build analysis starts nothing.
+Shutdown/HMR stops admission and cancelled publication, retaining ownership until actual work settles.
+Expired leases recover after process failure.
+Ignored cancellation cannot start a second physical processing task.
 
 ### Bounded Library reads and version-safe filters
 
-A separate account Deck-Library revision owns directory consistency. Do not reuse the reusable Category Library revision. Creation/deletion, visible metadata changes, composition covers/totals and Category publication advance it atomically. Missing state reads as revision zero; GET provisions nothing. Whole-scope reusable definition writes also advance directory revision because current filter choices and historical markers change.
+A separate account Deck-Library revision owns directory consistency.
+Do not reuse the reusable Category Library revision.
+Creation/deletion, visible metadata changes, composition covers/totals and Category publication advance it atomically.
+Missing state reads as revision zero; GET provisions nothing.
+Whole-scope reusable definition writes also advance directory revision because current filter choices and historical markers change.
 
-`getDeckLibrary` returns at most 200 metadata rows with query identity, revision, offset/limit, unique matching/global totals and at most three compact badges per row and an accurate remaining-category count. It returns no compositions, Inventory or full predicate evidence. Filter options/counts use a separate bounded read, with exact immutable version identity, name/meaning/version and historical markers. Selected versions can be read directly. Page, options/counts and `locateDeck` share the expected directory revision or return RevisionChanged. Sorting is deterministic with Deck ID as tie-breaker; location uses the identical normalized query and sort.
+`getDeckLibrary` returns at most 200 metadata rows with query identity, revision, offset/limit, unique matching/global totals and at most three compact badges per row and an accurate remaining-category count.
+It returns no compositions, Inventory or full predicate evidence.
+Filter options/counts use a separate bounded read, with exact immutable version identity, name/meaning/version and historical markers.
+Selected versions can be read directly.
+Page, options/counts and `locateDeck` share the expected directory revision or return RevisionChanged.
+Sorting is deterministic with Deck ID as tie-breaker; location uses the identical normalized query and sort.
 
-Selected versions combine with OR and other filters with AND. Membership is Manual Include or current/retained-valid automatic True unless manually excluded. Counts use unique Deck identities; overlapping category counts are not summed into the global total. The selected Deck/editor has an independent authorized read and remains open outside filters or resident ranges. Replace the Web loader's unbounded Snapshot metadata reads and refreshes; adding a bounded endpoint alongside those reads is insufficient.
+Selected versions combine with OR and other filters with AND.
+Membership is Manual Include or current/retained-valid automatic True unless manually excluded.
+Counts use unique Deck identities; overlapping category counts are not summed into the global total.
+The selected Deck/editor has an independent authorized read and remains open outside filters or resident ranges.
+Replace the Web loader's unbounded Snapshot metadata reads and refreshes; adding a bounded endpoint alongside those reads is insufficient.
 
 ### Continuous Lazy Library UI
 
-Enhanced Library uses continuous Lazy loading with one native Window scrollbar. Reuse the existing browsing pagination, loaded-span and viewport helpers and Shell restoration. Previous/Next belongs only to the no-JavaScript fallback. Deep anchor recognition includes the Deck Library.
+Enhanced Library uses continuous Lazy loading with one native Window scrollbar.
+Reuse the existing browsing pagination, loaded-span and viewport helpers and Shell restoration.
+Previous/Next belongs only to the no-JavaScript fallback.
+Deep anchor recognition includes the Deck Library.
 
-A small DeckLibraryWindow owns account/query/revision identity, ranges, physical settlement and stale-response rejection. Reuse shared geometry where identical; do not pass Deck DTOs to Inventory- or Catalog-typed renderers. Preserve existing tiles with measured variable heights. Bound the cache to four contexts, twenty pages and 1,000 metadata records including SSR seeds. Admit at most three physical requests until fetch/body decoding actually settles, including ignored aborts. Mount at most 200 tiles including retained focus and prune measurement maps. Selected editor/drafts have a separate bounded lifetime and survive cache eviction. Terminal account state clears all private directory presentation.
+A small DeckLibraryWindow owns account/query/revision identity, ranges, physical settlement and stale-response rejection.
+Reuse shared geometry where identical; do not pass Deck DTOs to Inventory- or Catalog-typed renderers.
+Preserve existing tiles with measured variable heights.
+Bound the cache to four contexts, twenty pages and 1,000 metadata records including SSR seeds.
+Admit at most three physical requests until fetch/body decoding actually settles, including ignored aborts.
+Mount at most 200 tiles including retained focus and prune measurement maps.
+Selected editor/drafts have a separate bounded lifetime and survive cache eviction.
+Terminal account state clears all private directory presentation.
 
-Only successful explicit contiguous ranges grow the visited span. Speculative, failed or aborted ranges reserve no unloaded extent. Deep links begin at their addressed segment; evicted ranges can reload. Signed prepend, resize and toolbar changes preserve the visible Deck/intra-tile anchor. Filters push the first range into URL history, browsing replaces its logical page anchor, and Back/Forward/reload restores that segment.
+Only successful explicit contiguous ranges grow the visited span.
+Speculative, failed or aborted ranges reserve no unloaded extent.
+Deep links begin at their addressed segment; evicted ranges can reload.
+Signed prepend, resize and toolbar changes preserve the visible Deck/intra-tile anchor.
+Filters push the first range into URL history, browsing replaces its logical page anchor, and Back/Forward/reload restores that segment.
 
 ### Required acceptance evidence
 
-Use real isolated PostgreSQL for additive adoption, empty initial evaluation, coalescing, competing claims, crash recovery, stale success/error publication, Manual preservation, scoped Review/Reset, suppression, replay and source-refresh silence. Pure aggregate tests cover raw-ID deduplication, roles, Unknown, possibly empty denominators and exact thresholds. More than 1,000 real Deck metadata rows exercise bounded first/deep/end reads, overlapping/historical versions, unique counts, account isolation and query plans.
+Use real isolated PostgreSQL for additive adoption, empty initial evaluation, coalescing, competing claims, crash recovery, stale success/error publication, Manual preservation, scoped Review/Reset, suppression, replay and source-refresh silence.
+Pure aggregate tests cover raw-ID deduplication, roles, Unknown, possibly empty denominators and exact thresholds.
+More than 1,000 real Deck metadata rows exercise bounded first/deep/end reads, overlapping/historical versions, unique counts, account isolation and query plans.
 
-Built HTTP verifies cookie/bearer authorization, revoked-session fences, GET-no-write, original receipt retry and payload conflicts, stale previews, directory revision/location and a selected Deck outside filters. Deferred transports verify physical request occupancy, cache and DOM bounds. Two real processes verify durable jobs and `decks` invalidation. Native desktop and 360px journeys cover continuous traversal, eviction/revisit, deep reload, Back/Forward, filters, resize, keyboard focus, long labels and failed-save draft retention. Check a single native scrollbar, no enhanced pagination and functional bounded no-JavaScript navigation. Historical Manual Draw must remain inspectable and must not match a newer Infinite Counter version's filter.
+Built HTTP verifies cookie/bearer authorization, revoked-session fences, GET-no-write, original receipt retry and payload conflicts, stale previews, directory revision/location and a selected Deck outside filters.
+Deferred transports verify physical request occupancy, cache and DOM bounds.
+Two real processes verify durable jobs and `decks` invalidation.
+Native desktop and 360px journeys cover continuous traversal, eviction/revisit, deep reload, Back/Forward, filters, resize, keyboard focus, long labels and failed-save draft retention.
+Check a single native scrollbar, no enhanced pagination and functional bounded no-JavaScript navigation.
+Historical Manual Draw must remain inspectable and must not match a newer Infinite Counter version's filter.
 
 ## Optional local combo adapter
 
-Q56 and [slice 18](https://github.com/KyleDerZweite/spellbook/issues/191) selected Commander Spellbook bulk for documented ingredients/outcomes. The following implementation contract was independently reviewed on 2026-10-08 on the integrated `0022` baseline. The adapter implements this contract through additive migration `0023`, the public Worker publisher, local Categories matcher and shared native rule editor. Design review is separate from execution evidence. [Source research](../integrations/card-categorization.md#curated-combo-alternative) owns provider observations, not private matching behavior.
+Q56 and [slice 18](https://github.com/KyleDerZweite/spellbook/issues/191) selected Commander Spellbook bulk for documented ingredients/outcomes.
+The following implementation contract was independently reviewed on 2026-10-08 on the integrated `0022` baseline.
+The adapter implements this contract through additive migration `0023`, the public Worker publisher, local Categories matcher and shared native rule editor.
+Design review is separate from execution evidence.
+[Source research](../integrations/card-categorization.md#curated-combo-alternative) owns provider observations, not private matching behavior.
 
 ### Ownership and additive storage
 
-The existing Python Worker alone downloads the fixed official [gzip bulk](https://json.commanderspellbook.com/variants.json.gz). Backend Categories alone reads the reduced local publication and matches owned composition. Frontend only adapts the shared contracts and shows evidence. No request, background task or browser sends private Deck identities, quantities or composition to a remote matcher. No inference, price or free-text classifier is added.
+The existing Python Worker alone downloads the fixed official [gzip bulk](https://json.commanderspellbook.com/variants.json.gz).
+Backend Categories alone reads the reduced local publication and matches owned composition.
+Frontend only adapts the shared contracts and shows evidence.
+No request, background task or browser sends private Deck identities, quantities or composition to a remote matcher.
+No inference, price or free-text classifier is added.
 
-Native additive `0023` adds public `combo_publications`, singleton `combo_state`, `combo_outcomes`, `combo_variants`, `combo_variant_ingredients` and `combo_variant_outcomes`. Publication-scoped keys and cascading public rows retain current/previous snapshots independently of Catalog pruning. Variant IDs are bounded opaque strings; outcome IDs remain positive decimal strings compatible with adopted `ingredients-v1` rules. Quantities are positive exact integers. Index outcome-to-variant and variant-to-ingredient lookups; retain nullable original Oracle IDs, commander/face/zone/state constraints, template requirements and unsupported reasons. Missing Oracle IDs never acquire authority from names or provider card IDs.
+Native additive `0023` adds public `combo_publications`, singleton `combo_state`, `combo_outcomes`, `combo_variants`, `combo_variant_ingredients` and `combo_variant_outcomes`.
+Publication-scoped keys and cascading public rows retain current/previous snapshots independently of Catalog pruning.
+Variant IDs are bounded opaque strings; outcome IDs remain positive decimal strings compatible with adopted `ingredients-v1` rules.
+Quantities are positive exact integers.
+Index outcome-to-variant and variant-to-ingredient lookups; retain nullable original Oracle IDs, commander/face/zone/state constraints, template requirements and unsupported reasons.
+Missing Oracle IDs never acquire authority from names or provider card IDs.
 
-Store the provider's embedded timestamp/version, transfer headers, exact compressed/decoded digests, import time, parser/matcher versions and complete counts. Reduced variants retain required ingredient names/IDs/quantities, produced outcome labels/IDs, zones, mana, prerequisite text, steps and notes, without images, prices or popularity. Copied private decision evidence has no foreign key to a prunable public publication. Existing tables, decisions, receipts and immutable definitions are preserved; legacy evidence without combo fields means not evaluated, never False.
+Store the provider's embedded timestamp/version, transfer headers, exact compressed/decoded digests, import time, parser/matcher versions and complete counts.
+Reduced variants retain required ingredient names/IDs/quantities, produced outcome labels/IDs, zones, mana, prerequisite text, steps and notes, without images, prices or popularity.
+Copied private decision evidence has no foreign key to a prunable public publication.
+Existing tables, decisions, receipts and immutable definitions are preserved; legacy evidence without combo fields means not evaluated, never False.
 
 ### Finite public ingestion
 
-`COMMANDER_SPELLBOOK_ENABLED` defaults to false in Worker and backend composition. Disabled runs fetch nothing and add no readiness dependency; backend evaluation returns Unknown even if an older index exists. Enabled sync runs independently on the existing `SYNC_INTERVAL`, including after other sources fail. Use the provider's requested descriptive User-Agent and attribution; do not export through paginated APIs. Record failed refresh separately from usable prior-valid facts.
+`COMMANDER_SPELLBOOK_ENABLED` defaults to false in Worker and backend composition.
+Disabled runs fetch nothing and add no readiness dependency; backend evaluation returns Unknown even if an older index exists.
+Enabled sync runs independently on the existing `SYNC_INTERVAL`, including after other sources fail.
+Use the provider's requested descriptive User-Agent and attribution; do not export through paginated APIs.
+Record failed refresh separately from usable prior-valid facts.
 
-Reuse existing bounded artifact-transfer and deadline-aware PostgreSQL connection helpers. Stream both root `variants` and `aliases`; do not materialize the whole root or treat an alias array as unbounded metadata. Validate the complete gzip/JSON transfer, root timestamp/version, unique identities, referenced outcomes and structural fields before atomically publishing under a dedicated advisory lock. Unexpected semantic shapes stay unsupported; malformed/incomplete input fails publication. Parse reduced rows into disk staging and COPY bounded batches. Database constraints enforce duplicate/reference integrity. A successful unchanged digest/parser/policy check retains the original publication and clears failure status. Failure rolls back and retains current/previous views; only safe exception-class status is recorded after settlement.
+Reuse existing bounded artifact-transfer and deadline-aware PostgreSQL connection helpers.
+Stream both root `variants` and `aliases`; do not materialize the whole root or treat an alias array as unbounded metadata.
+Validate the complete gzip/JSON transfer, root timestamp/version, unique identities, referenced outcomes and structural fields before atomically publishing under a dedicated advisory lock.
+Unexpected semantic shapes stay unsupported; malformed/incomplete input fails publication.
+Parse reduced rows into disk staging and COPY bounded batches.
+Database constraints enforce duplicate/reference integrity.
+A successful unchanged digest/parser/policy check retains the original publication and clears failure status.
+Failure rolls back and retains current/previous views; only safe exception-class status is recorded after settlement.
 
-Positive `COMBO_*` limits default to 128 MiB compressed, 1 GiB decompressed, 2 MiB per record, 30 seconds without progress, 10 seconds to connect, 600 seconds each for download/parse/publication, 1800 seconds total and 2 GiB temporary staging. One monotonic import deadline covers HTTP, digest/decompression/parsing, staging work, hostname resolution, connection/SQL I/O and COMMIT. Timeouts close owned physical work before returning; failure status has a separate finite ten-second connection/SQL budget. No partial publication or immediate retry loop is allowed. Current source research observed 29,095,756 compressed and 683,105,140 decoded bytes, so these defaults admit that recorded publication rather than an assumed small fixture.
+Positive `COMBO_*` limits default to 128 MiB compressed, 1 GiB decompressed, 2 MiB per record, 30 seconds without progress, 10 seconds to connect, 600 seconds each for download/parse/publication, 1800 seconds total and 2 GiB temporary staging.
+One monotonic import deadline covers HTTP, digest/decompression/parsing, staging work, hostname resolution, connection/SQL I/O and COMMIT.
+Timeouts close owned physical work before returning; failure status has a separate finite ten-second connection/SQL budget.
+No partial publication or immediate retry loop is allowed.
+Current source research observed 29,095,756 compressed and 683,105,140 decoded bytes, so these defaults admit that recorded publication rather than an assumed small fixture.
 
 ### Local matcher and three-valued results
 
-`readComboFacts` is transaction-bound and receives complete trusted composition with Entry ID, Printing ID, role, quantity and proven canonical identity, adopted definitions and the fixed source token. It groups requested outcomes by normalized participating roles. One pure `evaluateComboVariants` matcher supplies both `comboOutcome` and `comboParticipant`, including those nested inside aggregate Entry predicates. Participant facts retain Entry identity/role separately from the printing-keyed Catalog fact map. The existing rule depth/node/selection limits and Category work owner apply. Read indexed candidate rows in bounded batches, with complete evaluation inside the existing ten-second/16 MiB work budget. Budget exhaustion is a safe operational failure, never truncation presented as False or semantic Unknown.
+`readComboFacts` is transaction-bound and receives complete trusted composition with Entry ID, Printing ID, role, quantity and proven canonical identity, adopted definitions and the fixed source token.
+It groups requested outcomes by normalized participating roles.
+One pure `evaluateComboVariants` matcher supplies both `comboOutcome` and `comboParticipant`, including those nested inside aggregate Entry predicates.
+Participant facts retain Entry identity/role separately from the printing-keyed Catalog fact map.
+The existing rule depth/node/selection limits and Category work owner apply.
+Read indexed candidate rows in bounded batches, with complete evaluation inside the existing ten-second/16 MiB work budget.
+Budget exhaustion is a safe operational failure, never truncation presented as False or semantic Unknown.
 
-Prune proven mandatory ingredient deficits in indexed SQL before decoding candidate JSON. Per-Oracle and commander-role upper bounds include every possibly matching unproven quantity, so a missing known identity alone does not falsely exclude a candidate. Retain candidates with potentially satisfiable unsupported requirements. This avoids decoding all 13,755 recorded variants for outcome `2244` during an ordinary near miss. Complete absence is established by the proven-deficit query and complete remaining evaluation, never a candidate-page limit.
+Prune proven mandatory ingredient deficits in indexed SQL before decoding candidate JSON.
+Per-Oracle and commander-role upper bounds include every possibly matching unproven quantity, so a missing known identity alone does not falsely exclude a candidate.
+Retain candidates with potentially satisfiable unsupported requirements.
+This avoids decoding all 13,755 recorded variants for outcome `2244` during an ordinary near miss.
+Complete absence is established by the proven-deficit query and complete remaining evaluation, never a candidate-page limit.
 
-For each variant, aggregate required quantities by raw Oracle ID using exact BigInt sums. Aggregate available quantities across selected roles and alternate printings of the same proven raw Oracle ID. Commander-required quantities additionally require the `commander` role and cannot double-count a copy against another requirement. Unproven identities provide conservative possible quantity only, with commander upper bounds restricted to that role. Deck roles are not gameplay zones. Recognized start zones are retained prerequisites, not current game state.
+For each variant, aggregate required quantities by raw Oracle ID using exact BigInt sums.
+Aggregate available quantities across selected roles and alternate printings of the same proven raw Oracle ID.
+Commander-required quantities additionally require the `commander` role and cannot double-count a copy against another requirement.
+Unproven identities provide conservative possible quantity only, with commander upper bounds restricted to that role.
+Deck roles are not gameplay zones.
+Recognized start zones are retained prerequisites, not current game state.
 
-Policy `ingredients-v1` supports approved concrete variants with understood positive quantities, valid Oracle IDs, recognized zones, empty per-card state constraints and no templates or face-specific requirements. It implements the explicit `mustBeCommander` flag. Nonempty template requirements, unknown Oracle IDs, used-face constraints, unsupported card-state/structural fields or unrecognized status cannot establish True. Mana and variant-level prerequisite/step prose are displayed conditions; the matcher does not execute or infer them.
+Policy `ingredients-v1` supports approved concrete variants with understood positive quantities, valid Oracle IDs, recognized zones, empty per-card state constraints and no templates or face-specific requirements.
+It implements the explicit `mustBeCommander` flag.
+Nonempty template requirements, unknown Oracle IDs, used-face constraints, unsupported card-state/structural fields or unrecognized status cannot establish True.
+Mana and variant-level prerequisite/step prose are displayed conditions; the matcher does not execute or infer them.
 
 | Result              | Required evidence                                                                                                                                                                                                                                                    |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -157,24 +420,66 @@ Policy `ingredients-v1` supports approved concrete variants with understood posi
 | False participant   | The Entry is outside participating roles, or no matched/possible variant can use its proven identity.                                                                                                                                                                |
 | Unknown participant | Identity/source or a potentially matching unsupported requirement leaves participation unresolved.                                                                                                                                                                   |
 
-Known mandatory deficits can disprove an otherwise unsupported variant. Unsupported candidates are retained when forming Unknown, rather than silently discarded into absence. Participant proof is role-compatible, without selecting a unique allocation among interchangeable eligible copies. A Main copy cannot contribute to a commander-only ingredient, including nested minimum/percentage counts. Boolean composition and negation preserve existing three-valued semantics. Stable positive evidence records a concrete proving variant for each True Entry participant. Nested aggregate evidence groups the related Entry IDs by their concrete supporting variant; no API promises to enumerate every matching combo. A False means only that this publication has no supported match for the selected outcome, never that no combo exists. A True means documented ingredients are present, never that the combo is executable or wins.
+Known mandatory deficits can disprove an otherwise unsupported variant.
+Unsupported candidates are retained when forming Unknown, rather than silently discarded into absence.
+Participant proof is role-compatible, without selecting a unique allocation among interchangeable eligible copies.
+A Main copy cannot contribute to a commander-only ingredient, including nested minimum/percentage counts.
+Boolean composition and negation preserve existing three-valued semantics.
+Stable positive evidence records a concrete proving variant for each True Entry participant.
+Nested aggregate evidence groups the related Entry IDs by their concrete supporting variant; no API promises to enumerate every matching combo.
+A False means only that this publication has no supported match for the selected outcome, never that no combo exists.
+A True means documented ingredients are present, never that the combo is executable or wins.
 
 ### Source fences, lifecycle and presentation
 
-Extend shared Category source tokens with an optional combo token containing adapter enablement, immutable publication ID and matcher-policy version, only when evaluated adopted rules require combo facts. Non-combo plans retain their existing token shape and do not acquire an unrelated publication fence. Catalog/raw-Oracle facts and the selected combo publication are read coherently within the existing decision transaction. Review/Reset plans and merge consequences bind applicable tokens, including direct whole outcome leaves. Final commit share-lock order is Catalog, Oracle, then the Combo publication advisory lock and singleton row. The advisory lock also fences first publication before the singleton exists; changed publication/configuration/policy requires 409 and a new preview. Original committed receipt replay remains first, including after pruning or Deck deletion. Older uncommitted combo plans without required tokens need explicit renewed review; older non-combo plans and committed receipts remain usable.
+Extend shared Category source tokens with an optional combo token containing adapter enablement, immutable publication ID and matcher-policy version, only when evaluated adopted rules require combo facts.
+Non-combo plans retain their existing token shape and do not acquire an unrelated publication fence.
+Catalog/raw-Oracle facts and the selected combo publication are read coherently within the existing decision transaction.
+Review/Reset plans and merge consequences bind applicable tokens, including direct whole outcome leaves.
+Final commit share-lock order is Catalog, Oracle, then the Combo publication advisory lock and singleton row.
+The advisory lock also fences first publication before the singleton exists; changed publication/configuration/policy requires 409 and a new preview.
+Original committed receipt replay remains first, including after pruning or Deck deletion.
+Older uncommitted combo plans without required tokens need explicit renewed review; older non-combo plans and committed receipts remain usable.
 
-Public refresh alone does not enqueue jobs or rewrite Entry/whole decisions. New assignments and explicit Entry Review/Reset use current composition with adopted rules; existing Entry assignments remain fixed after composition/quantity edits. Existing whole composition jobs use current valid facts and retain generation/lease/composition/decision fences. Manual choices win; Unknown preserves prior-valid whole evidence visibly Pending/stale. Scope, suppression and historical version semantics remain unchanged.
+Public refresh alone does not enqueue jobs or rewrite Entry/whole decisions.
+New assignments and explicit Entry Review/Reset use current composition with adopted rules; existing Entry assignments remain fixed after composition/quantity edits.
+Existing whole composition jobs use current valid facts and retain generation/lease/composition/decision fences.
+Manual choices win; Unknown preserves prior-valid whole evidence visibly Pending/stale.
+Scope, suppression and historical version semantics remain unchanged.
 
-Add optional JSON-safe combo source/evaluation evidence to existing Category DTOs. Copy the exact publication/variant/outcome identity, parser/policy, participating roles, required quantities and prerequisites needed to inspect a saved result. Source availability distinguishes disabled/unavailable from usable prior-valid publication with a failed refresh. Entry Inspector, Whole manager and native/enhanced previews show retained-valid and latest-attempt evidence separately. Labels explicitly say documented ingredients and unchecked prerequisites, with a Commander Spellbook credit/source link. No source refresh may destroy dirty drafts or original retry identities.
+Add optional JSON-safe combo source/evaluation evidence to existing Category DTOs.
+Copy the exact publication/variant/outcome identity, parser/policy, participating roles, required quantities and prerequisites needed to inspect a saved result.
+Source availability distinguishes disabled/unavailable from usable prior-valid publication with a failed refresh.
+Entry Inspector, Whole manager and native/enhanced previews show retained-valid and latest-attempt evidence separately.
+Labels explicitly say documented ingredients and unchecked prerequisites, with a Commander Spellbook credit/source link.
+No source refresh may destroy dirty drafts or original retry identities.
 
-Extend existing authenticated rule choices with bounded outcome search, at most 50 search results and a separate direct list for at most 100 explicit selected IDs per request. Names are presentation, IDs retain meaning. The rule editor can create participant/outcome criteria while preserving old or currently unavailable selected IDs. Choices and proof presentation do not include entire publications or unrelated composition. Existing Library cache/DOM/physical-request limits remain intact; reuse existing controls and native forms without a new widget/dependency.
+Extend existing authenticated rule choices with bounded outcome search, at most 50 search results and a separate direct list for at most 100 explicit selected IDs per request.
+Names are presentation, IDs retain meaning.
+The rule editor can create participant/outcome criteria while preserving old or currently unavailable selected IDs.
+Choices and proof presentation do not include entire publications or unrelated composition.
+Existing Library cache/DOM/physical-request limits remain intact; reuse existing controls and native forms without a new widget/dependency.
 
 ### Required adapter evidence
 
-Record the actual full imported bulk digests/timestamp/version/counts and finite transfer/publication resource evidence. The current public Oak/Denizen variant `2850-4186` uses Oracle IDs `eee6c02b-7d6a-4445-ad27-8b03176147d4` and `a5da5ad6-4ed2-4041-a983-76a8c87fa109`, one each, and produces outcome `2244`, Infinite +1/+1 counters on a creature. Use that imported local row for ingredient-positive and Oak-only near-miss tests; test the exact variant independently of any other outcome variants in the complete publication. Preserve its Hand/Battlefield prerequisites and `{2}{G}` mana caveat.
+Record the actual full imported bulk digests/timestamp/version/counts and finite transfer/publication resource evidence.
+The current public Oak/Denizen variant `2850-4186` uses Oracle IDs `eee6c02b-7d6a-4445-ad27-8b03176147d4` and `a5da5ad6-4ed2-4041-a983-76a8c87fa109`, one each, and produces outcome `2244`, Infinite +1/+1 counters on a creature.
+Use that imported local row for ingredient-positive and Oak-only near-miss tests; test the exact variant independently of any other outcome variants in the complete publication.
+Preserve its Hand/Battlefield prerequisites and `{2}{G}` mana caveat.
 
-Pure cases cover duplicate printings/roles/quantities, commander allocation, excluded roles, missing raw identity, templates/face/state constraints, multiple variants, unrelated participants and nested/not predicates. Both pure and real PostgreSQL cases use Commander A, another Main A with the same Oracle/Printing identity, and Main B: the whole variant matches, Commander A and Main B participate, Main A does not participate or increase nested minimum/percentage counts. Real isolated PostgreSQL also covers complete publication/rejection/unchanged/pruning, prior-valid failures, disabled/missing/removed outcomes, adoption, Manual/historical preservation, both scoped reviews, source change during commit, original replay, composition job generation and refresh silence. Record actual full-source candidate queries/plans and elapsed work for Oak-only, Oak/Denizen and the selected genuine Precon; no universal latency promise is made. Built HTTP covers cookie/bearer isolation, bounded choices, inspected evidence and stale commits; two processes retain current SavedState behavior. Native desktop/360px and no-JavaScript forms inspect real imported prerequisites, retained-valid/Unknown evidence, explicit preview/commit and failed drafts. Record unavailable provider/browser evidence separately. [Verification](../operations/github-automation.md) owns commands; [Worker](./worker.md) and [Deployment](../operations/deployment.md) gain the implemented configuration/recovery details when this slice lands.
+Pure cases cover duplicate printings/roles/quantities, commander allocation, excluded roles, missing raw identity, templates/face/state constraints, multiple variants, unrelated participants and nested/not predicates.
+Both pure and real PostgreSQL cases use Commander A, another Main A with the same Oracle/Printing identity, and Main B: the whole variant matches, Commander A and Main B participate, Main A does not participate or increase nested minimum/percentage counts.
+Real isolated PostgreSQL also covers complete publication/rejection/unchanged/pruning, prior-valid failures, disabled/missing/removed outcomes, adoption, Manual/historical preservation, both scoped reviews, source change during commit, original replay, composition job generation and refresh silence.
+Record actual full-source candidate queries/plans and elapsed work for Oak-only, Oak/Denizen and the selected genuine Precon; no universal latency promise is made.
+Built HTTP covers cookie/bearer isolation, bounded choices, inspected evidence and stale commits; two processes retain current SavedState behavior.
+Native desktop/360px and no-JavaScript forms inspect real imported prerequisites, retained-valid/Unknown evidence, explicit preview/commit and failed drafts.
+Record unavailable provider/browser evidence separately.
+[Verification](../operations/github-automation.md) owns commands; [Worker](./worker.md) and [Deployment](../operations/deployment.md) gain the implemented configuration/recovery details when this slice lands.
 
 ## Acceptance evidence
 
-Use fixed public examples for multipurpose cards, Lands/Ramp, missing traits, custom overlaps, manual Uncategorized, adopted bundles, local rename/new meaning, archive/suppression, stale jobs/previews and destination merges. With the optional adapter enabled, Oak/Denizen and near-miss cases must use its actual local imported source. Typed Jev output is not category-quality evidence. Library filters/counts must preserve unique deck totals across overlapping categories. Run real authorized use-case and browser journeys as each slice lands; record unavailable source evidence and its consequence.
+Use fixed public examples for multipurpose cards, Lands/Ramp, missing traits, custom overlaps, manual Uncategorized, adopted bundles, local rename/new meaning, archive/suppression, stale jobs/previews and destination merges.
+With the optional adapter enabled, Oak/Denizen and near-miss cases must use its actual local imported source.
+Typed Jev output is not category-quality evidence.
+Library filters/counts must preserve unique deck totals across overlapping categories.
+Run real authorized use-case and browser journeys as each slice lands; record unavailable source evidence and its consequence.

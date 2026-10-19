@@ -6,11 +6,23 @@
 - Update Triggers: independent API/web ownership and relocated code references, PWA launch/connect and QR approval/API routes, route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game, paused Scan entrypoints, private Inventory history routes
 - Related Docs: [Product specification](./specification.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Frontend architecture](../architecture/frontend.md), [Catalog](../architecture/catalog.md), [Product index](./README.md)
 
-Scan presentation is paused. The existing `/mtg/scan` route and versioned Scan API are retained, but Navigation, Inventory and Dashboard do not link to Scan. [Mobile and scan](../architecture/mobile-and-scan.md) owns retained capabilities and the later recognition scope.
+Scan presentation is paused.
+The existing `/mtg/scan` route and versioned Scan API are retained, but Navigation, Inventory and Dashboard do not link to Scan.
+[Mobile and scan](../architecture/mobile-and-scan.md) owns retained capabilities and the later recognition scope.
 
-Spellbook supports MTG. Game-specific pages use the `/mtg/` prefix. Public home, authentication, account settings, and legal pages remain shared; versioned integration endpoints keep their existing paths. The header game icon sits immediately before the theme control. It identifies Magic with the Mana Font planeswalker symbol and a tooltip. Cycling is inactive while MTG is the only available game. The `/mtg/` layout owns workspace game identity; the cookie retains the selection for shared pages. Unsupported cookie values reset to MTG. Additional games require their own catalog and workflow implementation before becoming selectable.
+Spellbook supports MTG.
+Game-specific pages use the `/mtg/` prefix.
+Public home, authentication, account settings, and legal pages remain shared; versioned integration endpoints keep their existing paths.
+The header game icon sits immediately before the theme control.
+It identifies Magic with the Mana Font planeswalker symbol and a tooltip.
+Cycling is inactive while MTG is the only available game.
+The `/mtg/` layout owns workspace game identity; the cookie retains the selection for shared pages.
+Unsupported cookie values reset to MTG.
+Additional games require their own catalog and workflow implementation before becoming selectable.
 
-The [web routes](../../frontend/src/routes/) own pages and the same-origin API proxy. The [backend route registry](../../backend/src/http/application.ts) owns API handlers; [server hooks](../../frontend/src/hooks.server.ts) own page protection and redirects. `/openapi.json` exposes authentication, account and versioned MTG API contracts.
+The [web routes](../../frontend/src/routes/) own pages and the same-origin API proxy.
+The [backend route registry](../../backend/src/http/application.ts) owns API handlers; [server hooks](../../frontend/src/hooks.server.ts) own page protection and redirects.
+`/openapi.json` exposes authentication, account and versioned MTG API contracts.
 
 ## Pages and account routes
 
@@ -53,31 +65,69 @@ The [web routes](../../frontend/src/routes/) own pages and the same-origin API p
 | `/agents.md`                            | Permanent same-origin redirect to `/llms.txt`                                     |
 | `/robots.txt`, `/sitemap.xml`           | Search-engine metadata                                                            |
 
-The QR API is integrated. The `/app`, `/app/connect`, `/auth/approve` and login presentation rows describe the accepted delivery; the PWA pages and navigation are implemented. Target verification is recorded with the change. [Frontend](../architecture/frontend.md#pwa-and-qr-presentation) owns presentation, and [Authentication](../architecture/auth.md#pwa-and-qr-sign-in-implementation-contract) owns the QR protocol. All `/auth/*` and `/app*` page responses use `no-store` and `Referrer-Policy: no-referrer`.
+The QR API is integrated.
+The `/app`, `/app/connect`, `/auth/approve` and login presentation rows describe the accepted delivery; the PWA pages and navigation are implemented.
+Target verification is recorded with the change.
+[Frontend](../architecture/frontend.md#pwa-and-qr-presentation) owns presentation, and [Authentication](../architecture/auth.md#pwa-and-qr-sign-in-implementation-contract) owns the QR protocol.
+All `/auth/*` and `/app*` page responses use `no-store` and `Referrer-Policy: no-referrer`.
 
-`GET /llms.txt` provides a public Markdown overview and links to the application and API, with instructions for creating a new account through the existing registration API. The shared HTML head links to it with `rel="describedby"`. Demo deployments instead state that registration is disabled. `/agents.md` returns HTTP 308 to `/llms.txt` without duplicating the guide. This guide does not implement the proposed auth.md protocol.
+`GET /llms.txt` provides a public Markdown overview and links to the application and API, with instructions for creating a new account through the existing registration API.
+The shared HTML head links to it with `rel="describedby"`.
+Demo deployments instead state that registration is disabled.
+`/agents.md` returns HTTP 308 to `/llms.txt` without duplicating the guide.
+This guide does not implement the proposed auth.md protocol.
 
-The font comparison and numbered landing prototype routes are removed. The `review=landing` composition override is removed; `/` is the landing review target for any session. The brand links to `/`. Normal primary Search clicks and Ctrl+K or Cmd+K open the shared catalog overlay above the current page. The landing form opens it with the submitted query. Search links retain `/mtg/search` for modified clicks and no-JavaScript navigation. The visible query URL supports direct visits and reloads as a full page; Full view replaces the overlay entry. Close, Escape and Back return to the background page, and Forward reopens Search. [Frontend architecture](../architecture/frontend.md) owns session, history and page composition. The first navigation item is Dashboard for signed-in users and Home for guests.
+The font comparison and numbered landing prototype routes are removed.
+The `review=landing` composition override is removed; `/` is the landing review target for any session.
+The brand links to `/`.
+Normal primary Search clicks and Ctrl+K or Cmd+K open the shared catalog overlay above the current page.
+The landing form opens it with the submitted query.
+Search links retain `/mtg/search` for modified clicks and no-JavaScript navigation.
+The visible query URL supports direct visits and reloads as a full page; Full view replaces the overlay entry.
+Close, Escape and Back return to the background page, and Forward reopens Search.
+[Frontend architecture](../architecture/frontend.md) owns session, history and page composition.
+The first navigation item is Dashboard for signed-in users and Home for guests.
 
-Public `/mtg/search` native GET state includes `q`, repeated supported filters, `pageSize`, one-based `page` and independent `printing` selection. Numeric modes and native Lazy links read one bounded selected page. [Catalog](../architecture/catalog.md#browser-result-window) owns limits and publication coherence. The reusable native selected-printing panel remains a coordinated Card-stage integration.
+Public `/mtg/search` native GET state includes `q`, repeated supported filters, `pageSize`, one-based `page` and independent `printing` selection.
+Numeric modes and native Lazy links read one bounded selected page.
+[Catalog](../architecture/catalog.md#browser-result-window) owns limits and publication coherence.
+The reusable native selected-printing panel remains a coordinated Card-stage integration.
 
-The Deck page supports `flow=create|edit|import|delete|search` for native task entry. [Frontend](../architecture/frontend.md#shared-deck-ui) owns the form adapters and shared presentation responsibilities. These queries add no API path or method.
+The Deck page supports `flow=create|edit|import|delete|search` for native task entry.
+[Frontend](../architecture/frontend.md#shared-deck-ui) owns the form adapters and shared presentation responsibilities.
+These queries add no API path or method.
 
-Category controls use `localCategory`, `preview` and `previewOffset` for pure native GET selection/paging. Their POST actions delegate to the [Category owner](../architecture/category-rules.md#entry-reviewreset-transactions).
+Category controls use `localCategory`, `preview` and `previewOffset` for pure native GET selection/paging.
+Their POST actions delegate to the [Category owner](../architecture/category-rules.md#entry-reviewreset-transactions).
 
-Signed-out access to protected pages redirects to `/auth/login` with the local path and query preserved. Login and registration default to `/mtg/inventory` when no safe destination is supplied. An explicit safe `returnTo`, including `/` or `/mtg/decks?deck=ID`, remains authoritative. Versioned MTG endpoints accept a bearer session or the authenticated browser session. An Authorization header takes precedence and an invalid bearer token fails without cookie fallback. Unsafe cookie-authenticated requests require same-origin protection. The [authentication document](../architecture/auth.md) owns credential and session rules.
+Signed-out access to protected pages redirects to `/auth/login` with the local path and query preserved.
+Login and registration default to `/mtg/inventory` when no safe destination is supplied.
+An explicit safe `returnTo`, including `/` or `/mtg/decks?deck=ID`, remains authoritative.
+Versioned MTG endpoints accept a bearer session or the authenticated browser session.
+An Authorization header takes precedence and an invalid bearer token fails without cookie fallback.
+Unsafe cookie-authenticated requests require same-origin protection.
+The [authentication document](../architecture/auth.md) owns credential and session rules.
 
-There is no OIDC callback route, game-switching page, play route, public deck page, MTG card camera-capture page or offline workspace. Authorization QR camera scanning belongs to `/app/connect`. The public `offline.html` fallback contains no account workspace.
+There is no OIDC callback route, game-switching page, play route, public deck page, MTG card camera-capture page or offline workspace.
+Authorization QR camera scanning belongs to `/app/connect`.
+The public `offline.html` fallback contains no account workspace.
 
-Public read-only browser endpoints are `GET` and `POST /api/catalog/search`, `GET /api/catalog/cards/{oracleId}/printings` and `GET /api/catalog/printings/{printingId}`. They use the same validated search and printing contracts as their versioned counterparts. Inventory and deck mutations remain authenticated.
+Public read-only browser endpoints are `GET` and `POST /api/catalog/search`, `GET /api/catalog/cards/{oracleId}/printings` and `GET /api/catalog/printings/{printingId}`.
+They use the same validated search and printing contracts as their versioned counterparts.
+Inventory and deck mutations remain authenticated.
 
 ## Web adapter API
 
-`POST /api/web/v1/commands` accepts exactly the nine typed intents owned by [contracts/src/web.ts](../../contracts/src/web.ts). It is a closed mutation adapter, with unchanged source, request-ID, receipt and conflict semantics. `POST /api/web/v1/auth/login`, `/api/web/v1/auth/register` and `/api/web/v1/password` are the selected raw-form routes; the API takes the original auth attempt before decoding. The [implementation contract](../architecture/independent-applications.md#authority-and-compatibility) owns their details. Core form/OpenAPI follow-up and final verification are in progress.
+`POST /api/web/v1/commands` accepts exactly the nine typed intents owned by [contracts/src/web.ts](../../contracts/src/web.ts).
+It is a closed mutation adapter, with unchanged source, request-ID, receipt and conflict semantics.
+`POST /api/web/v1/auth/login`, `/api/web/v1/auth/register` and `/api/web/v1/password` are the selected raw-form routes; the API takes the original auth attempt before decoding.
+The [implementation contract](../architecture/independent-applications.md#authority-and-compatibility) owns their details.
+Core form/OpenAPI follow-up and final verification are in progress.
 
 ## Versioned MTG API
 
-All paths below begin with `/api/mobile/v1/mtg`. The historical `mobile` name does not restrict clients to mobile devices.
+All paths below begin with `/api/mobile/v1/mtg`.
+The historical `mobile` name does not restrict clients to mobile devices.
 
 | Relative path                                              | Purpose                                                        |
 | ---------------------------------------------------------- | -------------------------------------------------------------- |
@@ -116,12 +166,19 @@ All paths below begin with `/api/mobile/v1/mtg`. The historical `mobile` name do
 | `/scan/artifacts/[artifactId]/image`                       | Owned original image retrieval                                 |
 | `/scan/review/commit`                                      | Explicit inventory commit of reviewed candidates               |
 
-`GET /inventory/[entryId]/location` locates an owned entry within a normalized query at an expected revision. [The Inventory HTTP contract](../architecture/mobile-and-scan.md#bounded-inventory-http-reads) records the experimental v1 snapshot-to-page migration and errors.
+`GET /inventory/[entryId]/location` locates an owned entry within a normalized query at an expected revision.
+[The Inventory HTTP contract](../architecture/mobile-and-scan.md#bounded-inventory-http-reads) records the experimental v1 snapshot-to-page migration and errors.
 
-The [product specification](./specification.md) owns import semantics and scan limitations. Refer to the OpenAPI contract for methods, request bodies, response schemas, and error responses rather than inferring them from this route list.
+The [product specification](./specification.md) owns import semantics and scan limitations.
+Refer to the OpenAPI contract for methods, request bodies, response schemas, and error responses rather than inferring them from this route list.
 
 ## Compatibility redirects
 
-Legacy flat paths `/search`, `/inventory`, `/decks`, and `/scan`, including child paths, return HTTP 308 to the same path under `/mtg`. Query strings and request methods are preserved. `/collections` and `/collections/` redirect to `/mtg/inventory`. `/mtg` and `/mtg/` redirect to `/mtg/search`.
+Legacy flat paths `/search`, `/inventory`, `/decks`, and `/scan`, including child paths, return HTTP 308 to the same path under `/mtg`.
+Query strings and request methods are preserved.
+`/collections` and `/collections/` redirect to `/mtg/inventory`.
+`/mtg` and `/mtg/` redirect to `/mtg/search`.
 
-Redirects run before the destination authentication guard. Other game prefixes have no routes until their catalog and workflows are implemented. [ADR-0013](../decisions/0013-game-prefixed-workspaces.md) records this change.
+Redirects run before the destination authentication guard.
+Other game prefixes have no routes until their catalog and workflows are implemented.
+[ADR-0013](../decisions/0013-game-prefixed-workspaces.md) records this change.

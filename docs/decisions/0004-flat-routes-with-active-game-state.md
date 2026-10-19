@@ -10,25 +10,32 @@
 
 ## Supersession Note
 
-ADR-0008 supersedes the multi-game product direction behind this decision. ADR-0013 replaces flat workspace routes with the current `/mtg/` prefix. The decision below records the historical route contract.
+ADR-0008 supersedes the multi-game product direction behind this decision.
+ADR-0013 replaces flat workspace routes with the current `/mtg/` prefix.
+The decision below records the historical route contract.
 
 ## Context
 
-Earlier docs described a `/:game/{search,inventory,decks,play}` URL contract and `/mtg/...` was the only implemented branch. The intent was that future games would each get their own URL prefix.
+Earlier docs described a `/:game/{search,inventory,decks,play}` URL contract and `/mtg/...` was the only implemented branch.
+The intent was that future games would each get their own URL prefix.
 
 In practice:
 
 - Only `mtg` is implemented and only `mtg` is selectable in the GameSwitcher.
 - Carrying the game in the URL forced redirect aliases (`/search` to `/mtg/search`, `/collections` to `/mtg/inventory`) just to keep older links alive.
-- Users never need to be on more than one game's surface at once. Switching games is a deliberate action, not a per-tab navigation.
+- Users never need to be on more than one game's surface at once.
+  Switching games is a deliberate action, not a per-tab navigation.
 - Every data call already scopes to a specific game by argument, so the URL prefix added no enforcement.
 - The mobile bearer-token API is a separate, versioned surface that does need a stable `/:game/...` shape and is not affected by user-facing routing.
 
-The frontend already moved to flat routes with an `activeGameState` store backed by the `spellbook_game` cookie. The docs lagged behind.
+The frontend already moved to flat routes with an `activeGameState` store backed by the `spellbook_game` cookie.
+The docs lagged behind.
 
 ## Decision
 
-Spellbook will keep user-facing routes flat. The active game is held in client state (the `activeGameState` store) and persisted in the `spellbook_game` cookie. The server hook seeds the store from the cookie on each load.
+Spellbook will keep user-facing routes flat.
+The active game is held in client state (the `activeGameState` store) and persisted in the `spellbook_game` cookie.
+The server hook seeds the store from the cookie on each load.
 
 The current user-facing surface is:
 
@@ -51,14 +58,17 @@ The mobile bearer-token API keeps the `/api/mobile/v1/:game/...` shape because i
 
 ### Negative
 
-- The URL no longer encodes which game the user is viewing. A user with two browser windows cannot view two games side by side.
-- Server-side rendering must read the cookie to render the right game-scoped data. The current server hook already does this.
+- The URL no longer encodes which game the user is viewing.
+  A user with two browser windows cannot view two games side by side.
+- Server-side rendering must read the cookie to render the right game-scoped data.
+  The current server hook already does this.
 - Changes to the active game are not reflected in browser history; the user cannot use back/forward to undo a game switch.
 
 ### Guardrails
 
 - Do not reintroduce a `/:game/...` segment for user-facing pages without a documented capability gap.
-- Every data call must continue to take an explicit `game` argument. Do not let any feature implicitly assume `mtg`.
+- Every data call must continue to take an explicit `game` argument.
+  Do not let any feature implicitly assume `mtg`.
 - The mobile API surface keeps its `/:game/...` segment; do not flatten it.
 - If a future product requirement (for example a multi-game comparison view) needs the URL to encode the game, revisit this ADR before re-adding a prefix.
 
