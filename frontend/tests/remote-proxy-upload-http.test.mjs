@@ -5,34 +5,61 @@ import { pathToFileURL } from 'node:url';
 import { test } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
 
+/**
+ * @typedef {{clientAddress: string}} RequestMetadata
+ * @typedef {{
+ *   handle(request: Request, metadata: RequestMetadata): Promise<Response>,
+ *   closeStreams(): Promise<void>
+ * }} HttpApplication
+ * @typedef {{
+ *   createNodeHttpServer(application: HttpApplication, configuration: {
+ *     publicOrigin: string, trustedProxyAddresses: readonly string[]
+ *   }): {
+ *     listen(port: number): Promise<import('node:net').AddressInfo>,
+ *     close(): Promise<void>
+ *   }
+ * }} NodeHttpModule
+ * @typedef {{readJsonObject(request: Request): Promise<Record<string, unknown>>}} RequestModule
+ * @typedef {{handler: import('node:http').RequestListener}} WebHandlerModule
+ * @typedef {{status: number | undefined, body: string, bytesAtResponse: number}} PostResult
+ */
+
 // Native test transform only. The web handler is the actual production build.
 const backendRoot = process.env.TEST_PROXY_BACKEND_ROOT
 	? pathToFileURL(`${process.env.TEST_PROXY_BACKEND_ROOT.replace(/\/$/, '')}/`)
 	: new URL('../../backend/', import.meta.url);
-const { createNodeHttpServer } = await import(new URL('src/http/node.ts', backendRoot));
-const { readJsonObject } = await import(new URL('src/http/request.ts', backendRoot));
+/** @type {NodeHttpModule} */
+const { createNodeHttpServer } = await import(new URL('src/http/node.ts', backendRoot).href);
+/** @type {RequestModule} */
+const { readJsonObject } = await import(new URL('src/http/request.ts', backendRoot).href);
 
 function deferred() {
-	let resolve;
-	const promise = new Promise((done) => {
-		resolve = done;
-	});
-	return { promise, resolve };
+	/** @type {PromiseWithResolvers<void>} */
+	const result = Promise.withResolvers();
+	return result;
 }
+/** @param {Promise<void>} promise */
 async function settled(promise) {
+	/** @type {ReturnType<typeof setTimeout> | undefined} */
 	let timer;
 	try {
-		return await Promise.race([
-			promise,
-			new Promise((_, reject) => {
-				timer = setTimeout(() => reject(new Error('Proxy cancellation did not settle')), 3000);
-			})
-		]);
+		/** @type {Promise<never>} */
+		const timeout = new Promise((_, reject) => {
+			timer = setTimeout(() => reject(new Error('Proxy cancellation did not settle')), 3000);
+		});
+		await Promise.race([promise, timeout]);
 	} finally {
 		clearTimeout(timer);
 	}
 }
 
+/**
+ * @param {string} origin
+ * @param {string} body
+ * @param {boolean} chunked
+ * @param {boolean} slow
+ * @returns {Promise<PostResult>}
+ */
 function post(origin, body, chunked, slow) {
 	return new Promise((resolve, reject) => {
 		let written = 0;
@@ -47,8 +74,9 @@ function post(origin, body, chunked, slow) {
 			},
 			(response) => {
 				const bytesAtResponse = written;
+				/** @type {Buffer[]} */
 				const chunks = [];
-				response.on('data', (chunk) => chunks.push(chunk));
+				response.on('data', (/** @type {Buffer} */ chunk) => chunks.push(chunk));
 				response.on('end', () =>
 					resolve({
 						status: response.statusCode,
@@ -82,14 +110,18 @@ test(
 	'built web preserves upload limits and HTTP stream lifecycle',
 	{ timeout: 20000 },
 	async (t) => {
+		/** @type {import('node:http').RequestListener} */
 		let handler;
 		const web = createServer((request, response) => handler(request, response));
 		web.listen(0, '127.0.0.1');
 		await once(web, 'listening');
-		const webOrigin = `http://127.0.0.1:${web.address().port}`;
+		const webAddress = web.address();
+		assert.ok(webAddress && typeof webAddress !== 'string');
+		const webOrigin = `http://127.0.0.1:${webAddress.port}`;
 		const uploadStarted = deferred();
 		const uploadAborted = deferred();
 		const streamCancelled = deferred();
+		/** @type {Set<() => void>} */
 		const streams = new Set();
 		const api = createNodeHttpServer(
 			{
@@ -111,6 +143,7 @@ test(
 						);
 					}
 					if (path === '/api/proxy-test/events') {
+						/** @type {ReadableStreamDefaultController<Uint8Array>} */
 						let controller;
 						let open = true;
 						const finish = () => {
@@ -122,26 +155,25 @@ test(
 						};
 						request.signal.addEventListener('abort', finish, { once: true });
 						streams.add(finish);
-						return new Response(
-							new ReadableStream({
-								start(value) {
-									controller = value;
-									controller.enqueue(new TextEncoder().encode('event: reset\ndata: {}\n\n'));
-								},
-								cancel() {
-									open = false;
-									streams.delete(finish);
-									streamCancelled.resolve();
-								}
-							}),
-							{
-								headers: {
-									'content-type': 'text/event-stream',
-									'cache-control': 'no-store',
-									'x-accel-buffering': 'no'
-								}
+						/** @type {ReadableStream<Uint8Array>} */
+						const stream = new ReadableStream({
+							start(value) {
+								controller = value;
+								controller.enqueue(new TextEncoder().encode('event: reset\ndata: {}\n\n'));
+							},
+							cancel() {
+								open = false;
+								streams.delete(finish);
+								streamCancelled.resolve();
 							}
-						);
+						});
+						return new Response(stream, {
+							headers: {
+								'content-type': 'text/event-stream',
+								'cache-control': 'no-store',
+								'x-accel-buffering': 'no'
+							}
+						});
 					}
 					if (path === '/api/proxy-test/upload-abort') {
 						request.signal.addEventListener('abort', () => uploadAborted.resolve(), { once: true });
@@ -164,7 +196,10 @@ test(
 		process.env.BODY_SIZE_LIMIT = process.env.TEST_PROXY_WEB_BODY_LIMIT ?? '512K';
 		delete process.env.DATABASE_URL;
 		try {
-			({ handler } = await import('../build/handler.js'));
+			const handlerUrl = new URL('../build/handler.js', import.meta.url);
+			/** @type {WebHandlerModule} */
+			const built = await import(handlerUrl.href);
+			handler = built.handler;
 			for (const slow of [false, true]) {
 				const body = JSON.stringify({
 					operation: 'inventory.add',
@@ -203,6 +238,7 @@ test(
 					assert.equal(response.status, 201);
 					assert.equal(response.headers.get('cache-control'), 'no-store');
 					assert.equal(response.headers.getSetCookie().length, 2);
+					/** @type {{headers: Record<string, string>, clientAddress: string}} */
 					const data = await response.json();
 					assert.equal(data.headers.authorization, 'Bearer invalid');
 					assert.equal(data.headers.cookie, 'spellbook_session=test-cookie');
@@ -217,6 +253,7 @@ test(
 				async () => {
 					const response = await fetch(`${webOrigin}/api/proxy-test/events`);
 					assert.equal(response.headers.get('x-accel-buffering'), 'no');
+					assert.ok(response.body);
 					const reader = response.body.getReader();
 					assert.match(new TextDecoder().decode((await reader.read()).value), /event: reset/);
 					await reader.cancel();
@@ -239,7 +276,12 @@ test(
 				}
 			});
 		} finally {
-			await Promise.all([api.close(), new Promise((resolve) => web.close(resolve))]);
+			await Promise.all([
+				api.close(),
+				new Promise((resolve, reject) =>
+					web.close((cause) => (cause ? reject(cause) : resolve(undefined)))
+				)
+			]);
 		}
 	}
 );
