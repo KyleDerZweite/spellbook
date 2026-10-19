@@ -1,11 +1,11 @@
 import { fixtureAuthRequest } from './fixtures/http-auth.ts';
+import { verifyIndependentHttp } from './fixtures/independent-http.ts';
 import { SESSION_COOKIE } from '@spellbook/backend/auth/session.ts';
 import type { DashboardSummary } from '@spellbook/contracts/dashboard.ts';
 import { seedWideSummary } from './fixtures/wide-summary.ts';
 import { seedAccountScaleInventory } from './fixtures/account-scale.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { ChildProcess } from 'node:child_process';
 import { httpTestOrigin, startHttpApplication, stopHttpApplication } from './http-runtime.ts';
 import type { InventoryPage } from '@spellbook/contracts/inventory.ts';
 import type { CardDocument } from '@spellbook/contracts/catalog.ts';
@@ -34,7 +34,7 @@ const password = 'real-http-test-password';
 const pool = new pg.Pool({ connectionString: databaseUrl });
 const generation = randomUUID();
 const accounts: string[] = [];
-let child: ChildProcess | undefined;
+let child: Awaited<ReturnType<typeof startHttpApplication>> | undefined;
 let previous: { active_generation: string | null; previous_generation: string | null } | undefined;
 let fixtureStarted = false;
 let keepFixture = false;
@@ -52,7 +52,7 @@ async function request(path: string, body?: unknown, headers: Record<string, str
 
 async function catalogFixture() {
 	const cards: CardDocument[] = JSON.parse(
-		await readFile(new URL('../scripts/demo/cards.json', import.meta.url), 'utf8')
+		await readFile(new URL('../../backend/scripts/demo/cards.json', import.meta.url), 'utf8')
 	);
 	const d = cards.find((card) => card.name === 'Sol Ring');
 	assert.ok(d);
@@ -109,6 +109,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 		child = await startHttpApplication(origin, new URL('../', import.meta.url));
 		fixtureStarted = true;
 		const card = await catalogFixture();
+		await verifyIndependentHttp(t, child, pool, card, accounts);
 		await t.test('public Search and bounded printing reads use safe DTOs', async () => {
 			const response = await request('/api/catalog/search', {
 				query: 'Sol Ring',
@@ -624,7 +625,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				const path = '/api/mobile/v1/mtg/inventory';
 				// Real public printings seed this reader-only pagination fixture. Mutation contracts are exercised below.
 				const publicCards: CardDocument[] = JSON.parse(
-					await readFile(new URL('../scripts/demo/cards.json', import.meta.url), 'utf8')
+					await readFile(new URL('../../backend/scripts/demo/cards.json', import.meta.url), 'utf8')
 				);
 				const inventoryId = randomUUID();
 				await pool.query("INSERT INTO inventories(id,account_id,game)VALUES($1,$2,'mtg')", [

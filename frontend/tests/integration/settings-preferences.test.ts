@@ -1,13 +1,19 @@
-import { afterAll, describe, expect, it } from 'vitest';
+import { webHandler, closeWebApplication } from './web-application.ts';
+vi.mock('$app/server', async () => ({
+	getRequestEvent: (await import('./web-application.ts')).getWebRequestEvent
+}));
+import { afterAll, describe, vi, expect, it } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
 import { db, pool } from '../fixtures/database.ts';
 import { userProfiles } from '@spellbook/backend/db/schema.ts';
-import { authenticate } from '../../src/lib/server/auth/local';
-import { validateSession } from '../../src/lib/server/auth/session';
+import { authenticate } from './web-application.ts';
+import { validateSession } from './web-application.ts';
 import { defaultProfileCard } from '../../src/lib/profile/card';
-import { actions } from '../../src/routes/settings/+page.server';
-import { actions as cardActions } from '../../src/routes/settings/profile-card/+page.server';
+import { actions as rawActions } from '../../src/routes/settings/+page.server';
+const actions = { default: webHandler(rawActions.default!) };
+import { actions as rawCardActions } from '../../src/routes/settings/profile-card/+page.server';
 
+const cardActions = { default: webHandler(rawCardActions.default!) };
 const run = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 run('independent account preferences', () => {
 	const accountIds: string[] = [];
@@ -42,6 +48,7 @@ run('independent account preferences', () => {
 	afterAll(async () => {
 		if (accountIds.length)
 			await db.delete(userProfiles).where(inArray(userProfiles.accountId, accountIds));
+		await closeWebApplication();
 		await pool.end();
 	});
 	it('saves trimmed optional contact email only for the current account and leaves login identity, avatar and card intact', async () => {

@@ -1,30 +1,77 @@
 # Spellbook product specification
 
 - Status: Canonical
-- Last Reviewed: 2026-10-17
+- Last Reviewed: 2026-10-19
 - Source of Truth: application code, tests, accepted product requirements
-- Update Triggers: accepted PWA/QR delivery and pending browser/Android acceptance, Inventory metadata filter shortcuts and compact read-only rows, account access and preferences, dashboard summaries, catalog identity, inventory or deck behavior, bounded Inventory loading and scaling evidence, market reference values and personal Inventory history, import formats, API contracts, scan capability and priorities, physical-card integration requirements, supported platforms, release acceptance changes, continuous Lazy browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
+- Update Triggers: independent API/web ownership and relocated code references, accepted PWA/QR delivery and pending browser/Android acceptance, Inventory metadata filter shortcuts and compact read-only rows, account access and preferences, dashboard summaries, catalog identity, inventory or deck behavior, bounded Inventory loading and scaling evidence, market reference values and personal Inventory history, import formats, API contracts, scan capability and priorities, physical-card integration requirements, supported platforms, release acceptance changes, continuous Lazy browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
 - Related Docs: [Domain model](../../GLOSSARY.md), [Routes](./routing-and-games.md), [UI direction](./ui-design-direction.md), [Value tracking](./value-tracking.md), [System architecture](../architecture/system-overview.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Card scanner and sorter](../integrations/card-robot.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [Category rules](../architecture/category-rules.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
 
-Spellbook is an open-source MTG inventory and deck builder for private accounts on a self-hosted instance. Visitors can search the local catalog and inspect printings without an account. Signed-in users record owned printings, edit decklists, and compare deck requirements with inventory. Hosted operation uses the same account boundaries and runtime services.
+Spellbook is an open-source MTG inventory and deck builder for private accounts on a self-hosted instance.
+Visitors can search the local catalog and inspect printings without an account.
+Signed-in users record owned printings, edit decklists, and compare deck requirements with inventory.
+Hosted operation uses the same account boundaries and runtime services.
 
-This document owns product requirements and implementation status. The glossary owns terminology. Architecture documents own internal implementation details, and operations documents own installation and recovery steps. Requirements marked planned are not shipped capabilities.
+This document owns product requirements and implementation status.
+The glossary owns terminology.
+Architecture documents own internal implementation details, and operations documents own installation and recovery steps.
+Requirements marked planned are not shipped capabilities.
 
 ## Scope and users
 
-The primary users are collectors maintaining a private owned-card ledger, players building decks from their inventory, and developers importing or automating that work. MTG is the only supported game. Existing game fields and the versioned API's `mtg` segment do not establish support for other games.
+The primary users are collectors maintaining a private owned-card ledger, players building decks from their inventory, and developers importing or automating that work.
+MTG is the only supported game.
+Existing game fields and the versioned API's `mtg` segment do not establish support for other games.
 
-The core workflow is to find a printing, record its owned quantity, build or import a deck, inspect exact and alternate printing availability, edit the deck, and export it. Inventory ownership and deck requirements remain separate throughout this workflow.
+The core workflow is to find a printing, record its owned quantity, build or import a deck, inspect exact and alternate printing availability, edit the deck, and export it.
+Inventory ownership and deck requirements remain separate throughout this workflow.
 
-Public deck sharing, social feeds, collaborative editing, AI deck recommendations and gameplay simulation remain outside this pass. Marketplace account connections are outside this pass. Acquisition-cost tracking is removed from selected scope; personal Inventory value history is implemented. Current Scryfall references and supplied product links are described in [value tracking](./value-tracking.md#current-reference-presentation). Value-only reporting is described below. The accepted PWA/QR delivery extends this same web application; separate native packaging remains later work. A separate future play application may consume catalog and deck data.
+Public deck sharing, social feeds, collaborative editing, AI deck recommendations and gameplay simulation remain outside this pass.
+Marketplace account connections are outside this pass.
+Acquisition-cost tracking is removed from selected scope; personal Inventory value history is implemented.
+Current Scryfall references and supplied product links are described in [value tracking](./value-tracking.md#current-reference-presentation).
+Value-only reporting is described below.
+The accepted PWA/QR delivery extends this same web application; independent Kotlin/Compose Android delivery is in progress under the [implementation contract](../architecture/independent-applications.md).
+A separate future play application may consume catalog and deck data.
 
-The accepted pass covers clearer frontend/backend modules, shared app-ready contracts, online-first saved-state sync, UI consolidation, bounded Inventory loading, external marketplace links, Deck entry categories and whole-deck categories. Workspace/application foundations, Account/Profile/Dashboard, bounded Inventory reads and retry-safe mutations, Deck backend/shared UI, Scan contracts, SavedState transport and mounted consumers are implemented. Current Scryfall and optional Cardmarket/MTGJSON references, supplied product links and bounded public source history are implemented. Starter primary entry categories and reviewed destination merges are implemented. Rendered acceptance and deployment remain separate evidence.
+The accepted pass covers clearer frontend/backend modules, shared app-ready contracts, online-first saved-state sync, UI consolidation, bounded Inventory loading, external marketplace links, Deck entry categories and whole-deck categories.
+Workspace/application foundations, Account/Profile/Dashboard, bounded Inventory reads and retry-safe mutations, Deck backend/shared UI, Scan contracts, SavedState transport and mounted consumers are implemented.
+Current Scryfall and optional Cardmarket/MTGJSON references, supplied product links and bounded public source history are implemented.
+Starter primary entry categories and reviewed destination merges are implemented.
+Rendered acceptance and deployment remain separate evidence.
 
-Kyle changed value tracking to market reference values and personal Inventory history only on 2026-10-07. [Value tracking](./value-tracking.md) owns current coverage, implemented account summaries, daily history and selected-Deck estimates; [ADR-0020](../decisions/0020-value-only-inventory-history.md) records removal of purchase-cost accounting. The former Costs slice remains excluded; [ADR-0022](../decisions/0022-daily-value-observation-checkpoints.md) defines the implemented replacement. The earlier nineteen-slice Q56 approval does not establish readiness for superseded costs or history dependencies. [Valuation](../architecture/valuation.md) owns implemented reference mechanics and the implemented private history boundary.
+Kyle changed value tracking to market reference values and personal Inventory history only on 2026-10-07.
+[Value tracking](./value-tracking.md) owns current coverage, implemented account summaries, daily history and selected-Deck estimates; [ADR-0020](../decisions/0020-value-only-inventory-history.md) records removal of purchase-cost accounting.
+The former Costs slice remains excluded; [ADR-0022](../decisions/0022-daily-value-observation-checkpoints.md) defines the implemented replacement.
+The earlier nineteen-slice Q56 approval does not establish readiness for superseded costs or history dependencies.
+[Valuation](../architecture/valuation.md) owns implemented reference mechanics and the implemented private history boundary.
 
-Account category rules and entry Review/Reset are implemented. Whole-deck evaluation and bounded Deck Library reads are implemented. The optional local Commander Spellbook adapter evaluates documented ingredients and outcomes from an imported public source. Gameplay prerequisites remain unchecked. [Card grouping](./card-grouping.md#deck-categories) owns Sources/Rules categories, reusable definitions, manual overrides and Review/Reset. Free-text semantic classification and production Jev integration remain outside this pass. Physical locations and sorter integration, automatic scan recognition, gameplay and a separate native app remain later work. Preserve existing workflows and ownership. The [application contract](../architecture/application-contract.md) and [category rules](../architecture/category-rules.md) own their reviewed mechanisms and acceptance evidence.
+Account category rules and entry Review/Reset are implemented.
+Whole-deck evaluation and bounded Deck Library reads are implemented.
+The optional local Commander Spellbook adapter evaluates documented ingredients and outcomes from an imported public source.
+Gameplay prerequisites remain unchecked.
+[Card grouping](./card-grouping.md#deck-categories) owns Sources/Rules categories, reusable definitions, manual overrides and Review/Reset.
+Free-text semantic classification and production Jev integration remain outside this pass.
+Physical locations and sorter integration, automatic scan recognition and gameplay remain later work.
+Native Android implementation and acceptance are tracked separately in the [design handoff](./mobile-app-exploration.md#native-implementation-handoff).
+Preserve existing workflows and ownership.
+The [application contract](../architecture/application-contract.md) and [category rules](../architecture/category-rules.md) own their reviewed mechanisms and acceptance evidence.
 
-Scan UI development is paused for this pass. Navigation, Inventory and Dashboard omit Scan entrypoints; the existing route, sessions and API remain available. The 2026-10-15 scope prioritizes Android. The phone app should offer the website's functions plus QR scanning to authorize a Cardstation account session and synchronization, and individual-card scanning with local recognition. The app should have its own mobile layout/navigation. The shared API must support common functions and app extensions; the ordinary website need not expose every workflow. The accepted 2026-10-16 delivery selects an installable, online-first, same-origin SvelteKit PWA with an `/app` launch/install hub, `/app/connect` camera/manual authorization QR scanning and explicit signed-in approval/denial at `/auth/approve`. Desktop login keeps the password form and adds QR sign-in alongside it. Installed narrow windows gain App, Search, Inventory, Decks and Connect bottom navigation; ordinary browser layouts retain their navigation. Further app-specific ideas are not yet requirements. [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md) records local recognition and the dated client-scope clarification. [Mobile and scan](../architecture/mobile-and-scan.md#client-scope-and-open-responsibilities) owns current status and unresolved contracts. The backend QR API, manifest and public-only service worker are integrated. The PWA pages and navigation are implemented. Target verification is recorded with the change. A native package, MTG card camera capture and production recognition remain unimplemented.
+Scan UI development is paused for this pass.
+Navigation, Inventory and Dashboard omit Scan entrypoints; the existing route, sessions and API remain available.
+The 2026-10-15 scope prioritizes Android.
+The phone app should offer the website's functions plus QR scanning to authorize a Cardstation account session and synchronization, and individual-card scanning with local recognition.
+The app should have its own mobile layout/navigation.
+The shared API must support common functions and app extensions; the ordinary website need not expose every workflow.
+The accepted 2026-10-16 delivery selects an installable, online-first, same-origin SvelteKit PWA with an `/app` launch/install hub, `/app/connect` camera/manual authorization QR scanning and explicit signed-in approval/denial at `/auth/approve`.
+Desktop login keeps the password form and adds QR sign-in alongside it.
+Installed narrow windows gain App, Search, Inventory, Decks and Connect bottom navigation; ordinary browser layouts retain their navigation.
+Further app-specific ideas are not yet requirements.
+[ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md) records local recognition and the dated client-scope clarification.
+[Mobile and scan](../architecture/mobile-and-scan.md#client-scope-and-open-responsibilities) owns current status and unresolved contracts.
+The backend QR API, manifest and public-only service worker are integrated.
+The PWA pages and navigation are implemented.
+Target verification is recorded with the change.
+A native package, MTG card camera capture and production recognition remain unimplemented.
 
 ## Capability status
 
@@ -42,186 +89,441 @@ Scan UI development is paused for this pass. Navigation, Inventory and Dashboard
 | Mobile web             | Accepted online-first SvelteKit PWA with install hub and installed narrow navigation                                    | Public-only offline fallback; final browser/Android acceptance pending             |
 | QR account sign-in     | Integrated five-minute browser/device challenge API; accepted camera/manual approval journey                            | Explicit signed-in decision; one-use redemption; no hardware enrollment            |
 
-Local authentication and the interactive deck workspace are implemented. The deck workspace includes catalog and printing selection, quantity and role editing, per-deck availability, previewed imports, and downloadable exports. Physical scanner and sorter integration is proposed; its preparation does not establish hardware or per-copy tracking support.
+Local authentication and the interactive deck workspace are implemented.
+The deck workspace includes catalog and printing selection, quantity and role editing, per-deck availability, previewed imports, and downloadable exports.
+Physical scanner and sorter integration is proposed; its preparation does not establish hardware or per-copy tracking support.
 
 ## Account access and ownership
 
-The application uses local usernames and passwords. The accepted QR journey lets an already signed-in account explicitly authorize a new browser or a future device client. It issues an ordinary session, not a distinct machine identity. [Authentication](../architecture/auth.md#pwa-and-qr-sign-in-implementation-contract) owns the protocol and [deployment](../operations/deployment.md#pwa-installation-and-qr-use) owns install/use steps. Users can register a local account, sign in, use the private workspace, and sign out without an external identity provider. Registration is public on the instance; there is no invite-only or first-user-only policy. OIDC redirects, discovery, provider tokens, and external identity linking are removed from active authentication.
+The application uses local usernames and passwords.
+The accepted QR journey lets an already signed-in account explicitly authorize a new browser or a future device client.
+It issues an ordinary session, not a distinct machine identity.
+[Authentication](../architecture/auth.md#pwa-and-qr-sign-in-implementation-contract) owns the protocol and [deployment](../operations/deployment.md#pwa-installation-and-qr-use) owns install/use steps.
+Users can register a local account, sign in, use the private workspace, and sign out without an external identity provider.
+Registration is public on the instance; there is no invite-only or first-user-only policy.
+OIDC redirects, discovery, provider tokens, and external identity linking are removed from active authentication.
 
-Signed-in users can choose a local sprite avatar and profile artwork in [Settings](./routing-and-games.md). Both choices persist with their account. Registration also offers the generated artwork library. The private profile card is editable in Settings and can include actual account totals through KPI placeholders. Rank, public profile sharing and set-completion claims are not implemented. Profile photo uploads and language preferences are deferred. The [UI direction](./ui-design-direction.md) owns account menu placement and avatar presentation.
+Signed-in users can choose a local sprite avatar and profile artwork in [Settings](./routing-and-games.md).
+Both choices persist with their account.
+Registration also offers the generated artwork library.
+The private profile card is editable in Settings and can include actual account totals through KPI placeholders.
+Rank, public profile sharing and set-completion claims are not implemented.
+Profile photo uploads and language preferences are deferred.
+The [UI direction](./ui-design-direction.md) owns account menu placement and avatar presentation.
 
-An account's internal identifier owns its inventory, decks, scan sessions, and mutation requests. A username is a login identifier, not a database ownership key. Renaming or recovering credentials must preserve the owning account. Existing accounts require an explicit operator-controlled migration that preserves their internal identifiers.
+An account's internal identifier owns its inventory, decks, scan sessions, and mutation requests.
+A username is a login identifier, not a database ownership key.
+Renaming or recovering credentials must preserve the owning account.
+Existing accounts require an explicit operator-controlled migration that preserves their internal identifiers.
 
-The server derives the account from the authenticated session. A client-supplied account identifier must never grant access. Queries and mutations must constrain the parent object and its children to that account. Knowledge of another account's deck, inventory entry, or scan identifier must not expose or mutate it.
+The server derives the account from the authenticated session.
+A client-supplied account identifier must never grant access.
+Queries and mutations must constrain the parent object and its children to that account.
+Knowledge of another account's deck, inventory entry, or scan identifier must not expose or mutate it.
 
-Passwords require a salted, memory-hard hash. The server stores only hashes of opaque session tokens, checks expiry on each authenticated request, and revokes the session on logout. Browser sessions use an HttpOnly cookie with the appropriate secure and same-site settings. JSON authentication endpoints return a bearer token for API clients without setting a browser cookie. Unsafe cookie-authenticated requests require origin protection. Authentication errors must not reveal whether a username exists.
+Passwords require a salted, memory-hard hash.
+The server stores only hashes of opaque session tokens, checks expiry on each authenticated request, and revokes the session on logout.
+Browser sessions use an HttpOnly cookie with the appropriate secure and same-site settings.
+JSON authentication endpoints return a bearer token for API clients without setting a browser cookie.
+Unsafe cookie-authenticated requests require origin protection.
+Authentication errors must not reveal whether a username exists.
 
-The [authentication architecture](../architecture/auth.md) owns the exact registration policy, credential limits, session duration, rate limits, cookie behavior, bearer-token behavior, and migration procedure. Email verification, email password recovery, MFA, and delegated identity providers are not current features.
+The [authentication architecture](../architecture/auth.md) owns the exact registration policy, credential limits, session duration, rate limits, cookie behavior, bearer-token behavior, and migration procedure.
+Email verification, email password recovery, MFA, and delegated identity providers are not current features.
 
 ## Profile card editor
 
-Settings separates account preferences from card customization. `/settings` owns optional contact email and an Edit avatar dialog; `/settings/profile-card` owns only the card definition and artwork; `/settings/password` owns current-password-confirmed credential changes. One centered layout supplies Profile, Profile Card and Password links within the application Shell. Email is contact data, not a verified login or recovery identity. Avatar cancel discards the dialog draft; each save preserves the other preferences. Password changes revoke old sessions and issue a fresh session for the current browser. Invalid requests do not change credentials or sessions. Demo passwords remain immutable. The [authentication architecture](../architecture/auth.md) owns validation, concurrency and session transaction details.
+Settings separates account preferences from card customization.
+`/settings` owns optional contact email and an Edit avatar dialog; `/settings/profile-card` owns only the card definition and artwork; `/settings/password` owns current-password-confirmed credential changes.
+One centered layout supplies Profile, Profile Card and Password links within the application Shell.
+Email is contact data, not a verified login or recovery identity.
+Avatar cancel discards the dialog draft; each save preserves the other preferences.
+Password changes revoke old sessions and issue a fresh session for the current browser.
+Invalid requests do not change credentials or sessions.
+Demo passwords remain immutable.
+The [authentication architecture](../architecture/auth.md) owns validation, concurrency and session transaction details.
 
-Settings provides a configurable regular MTG profile card with a live preview. Name, mana cost, frame color, legendary frame, rarity, type line, rules text, flavor text and optional paired Power/Toughness are editable. Legendary frame changes presentation without rewriting the free type line. Artwork comes from the existing generated library; sprite selection remains an account preference. Field-specific character limits, rules/flavor line limits and an eight-symbol mana-cost limit are enforced by the shared contract. Power/Toughness accept numeric values, simple card formulas, or one supported KPI, rather than free prose. No upload or specialized card layout is included.
+Settings provides a configurable regular MTG profile card with a live preview.
+Name, mana cost, frame color, legendary frame, rarity, type line, rules text, flavor text and optional paired Power/Toughness are editable.
+Legendary frame changes presentation without rewriting the free type line.
+Artwork comes from the existing generated library; sprite selection remains an account preference.
+Field-specific character limits, rules/flavor line limits and an eight-symbol mana-cost limit are enforced by the shared contract.
+Power/Toughness accept numeric values, simple card formulas, or one supported KPI, rather than free prose.
+No upload or specialized card layout is included.
 
-The card definition stores text templates and presentation fields separately from current inventory totals. Supported placeholders are `{total_owned_cards}`, `{unique_card_names}`, `{owned_printings}`, `{owned_sets}`, `{foil_copies}` and `{total_decks}`. Owned cards means summed physical-copy quantities; represented sets does not mean completed sets. Values resolve from the current authenticated account during rendering and remain unavailable when totals cannot load. They are never saved back into the template.
+The card definition stores text templates and presentation fields separately from current inventory totals.
+Supported placeholders are `{total_owned_cards}`, `{unique_card_names}`, `{owned_printings}`, `{owned_sets}`, `{foil_copies}` and `{total_decks}`.
+Owned cards means summed physical-copy quantities; represented sets does not mean completed sets.
+Values resolve from the current authenticated account during rendering and remain unavailable when totals cannot load.
+They are never saved back into the template.
 
-One shared validator owns allowed fields, limits, mana grammar and placeholder names. Backend Profile owns authenticated persistence through shared web/API use cases; the preview owns no queries or writes. Save must retain all inputs on failure and persist them across reload without changing account identity or visibility. UI and authenticated API clients use the same validated definition. Profile patches change only supplied fields, preserving disjoint edits. Enhanced card saves submit edits; native saves derive edits from the saved card/artwork baseline. Invalid submissions retain inputs, and unchanged card submissions authenticate without writing. [Authentication](../architecture/auth.md#account-http-contract) owns the HTTP and concurrency details. Additional TCG templates, public sharing, image export and rank remain future work.
+One shared validator owns allowed fields, limits, mana grammar and placeholder names.
+Backend Profile owns authenticated persistence through shared web/API use cases; the preview owns no queries or writes.
+Save must retain all inputs on failure and persist them across reload without changing account identity or visibility.
+UI and authenticated API clients use the same validated definition.
+Profile patches change only supplied fields, preserving disjoint edits.
+Enhanced card saves submit edits; native saves derive edits from the saved card/artwork baseline.
+Invalid submissions retain inputs, and unchanged card submissions authenticate without writing.
+[Authentication](../architecture/auth.md#account-http-contract) owns the HTTP and concurrency details.
+Additional TCG templates, public sharing, image export and rank remain future work.
 
 ## Dashboard
 
-The public `/` landing is stable across sessions. Signed-in users open their private account summary at `/mtg/dashboard`; Inventory remains the default destination after login or registration without an explicit safe return path.
+The public `/` landing is stable across sessions.
+Signed-in users open their private account summary at `/mtg/dashboard`; Inventory remains the default destination after login or registration without an explicit safe return path.
 
-Dashboard totals distinguish physical copies, canonical card names, printings, sets, foil copies and decks. Set, finish and condition distributions use owned quantities. The page shows the eight largest sets, an Other sets remainder, and up to eight recently edited inventory entries ordered by their stored update time. Recent edits do not establish an acquisition history.
+Dashboard totals distinguish physical copies, canonical card names, printings, sets, foil copies and decks.
+Set, finish and condition distributions use owned quantities.
+The page shows the eight largest sets, an Other sets remainder, and up to eight recently edited inventory entries ordered by their stored update time.
+Recent edits do not establish an acquisition history.
 
-Each deck reports required, exact, alternate and missing quantities following the existing [availability rules](#deck-availability), independently against the full inventory. The summary does not reserve copies across decks. The API retains pending scan review counts for owned sessions with `pending_review` status; the paused Scan presentation hides them in Dashboard. A failed account load offers retry. Empty inventory and deck states link to their next actions.
+Each deck reports required, exact, alternate and missing quantities following the existing [availability rules](#deck-availability), independently against the full inventory.
+The summary does not reserve copies across decks.
+The API retains pending scan review counts for owned sessions with `pending_review` status; the paused Scan presentation hides them in Dashboard.
+A failed account load offers retry.
+Empty inventory and deck states link to their next actions.
 
-Backend returns account aggregates and at most eight recent entries to both the page and authenticated Dashboard API, without transferring the complete Inventory. The Dashboard also shows current Inventory estimates, coverage and bounded captured personal history. Optional valuation failures preserve other summaries. History uses separate daily checkpoint persistence, never synthetic trends or inferred purchase growth. [Value tracking](./value-tracking.md) owns this reporting contract.
+Backend returns account aggregates and at most eight recent entries to both the page and authenticated Dashboard API, without transferring the complete Inventory.
+The Dashboard also shows current Inventory estimates, coverage and bounded captured personal history.
+Optional valuation failures preserve other summaries.
+History uses separate daily checkpoint persistence, never synthetic trends or inferred purchase growth.
+[Value tracking](./value-tracking.md) owns this reporting contract.
 
 ## Catalog and printing identity
 
-The [domain model](../../GLOSSARY.md) distinguishes the card's canonical identity from its printing identity. Catalog search groups matching printings by canonical card; printing selection retains individual printing identities. The [catalog architecture](../architecture/catalog.md) owns PostgreSQL storage, publication, query contracts, and selection policy.
+The [domain model](../../GLOSSARY.md) distinguishes the card's canonical identity from its printing identity.
+Catalog search groups matching printings by canonical card; printing selection retains individual printing identities.
+The [catalog architecture](../architecture/catalog.md) owns PostgreSQL storage, publication, query contracts, and selection policy.
 
-Search must show a recognizable card name and image and provide useful MTG filters. The printing chooser must expose enough information to distinguish the available set, collector number, and printing. Adding an owned card or deck entry records the selected printing and its canonical identity together.
+Search must show a recognizable card name and image and provide useful MTG filters.
+The printing chooser must expose enough information to distinguish the available set, collector number, and printing.
+Adding an owned card or deck entry records the selected printing and its canonical identity together.
 
-The web Search form reports the local result of adding an owned card. While a request is pending, it prevents repeat submissions, printing changes and inspector dismissal. Completion or failure preserves the selected printing, quantity, finish and condition for review or another explicit action. It retains an unconfirmed request ID for an explicit unchanged retry, including a response lost after commit. A confirmed subsequent Add is a new intent; there is no automatic retry.
+The web Search form reports the local result of adding an owned card.
+While a request is pending, it prevents repeat submissions, printing changes and inspector dismissal.
+Completion or failure preserves the selected printing, quantity, finish and condition for review or another explicit action.
+It retains an unconfirmed request ID for an explicit unchanged retry, including a response lost after commit.
+A confirmed subsequent Add is a new intent; there is no automatic retry.
 
-Matching by display name alone is insufficient for availability. Two printings of one canonical card can be interchangeable for a deck while remaining distinct inventory entries. Two different canonical cards with similar names must remain distinct.
+Matching by display name alone is insufficient for availability.
+Two printings of one canonical card can be interchangeable for a deck while remaining distinct inventory entries.
+Two different canonical cards with similar names must remain distinct.
 
-Catalog data is shared reference data. Owned quantities, notes, and deck membership belong to the account and do not modify the shared catalog. Missing catalog images must not remove the accessible card name or block quantity editing.
+Catalog data is shared reference data.
+Owned quantities, notes, and deck membership belong to the account and do not modify the shared catalog.
+Missing catalog images must not remove the accessible card name or block quantity editing.
 
 ## Owned inventory
 
-Each account has one MTG inventory. Entries group by inventory, printing, finish, and condition. Repeated adds to the same group increase its quantity. Entries retain notes and an ordering position. List sorting does not change that persisted identity or position.
+Each account has one MTG inventory.
+Entries group by inventory, printing, finish, and condition.
+Repeated adds to the same group increase its quantity.
+Entries retain notes and an ordering position.
+List sorting does not change that persisted identity or position.
 
-Supported finishes are `nonfoil` and `foil`. Supported conditions are `NM`, `LP`, `MP`, `HP`, and `DMG`. These are the persisted choices even when the source catalog describes additional finish types.
+Supported finishes are `nonfoil` and `foil`.
+Supported conditions are `NM`, `LP`, `MP`, `HP`, and `DMG`.
+These are the persisted choices even when the source catalog describes additional finish types.
 
-The canonical bulk mutation path accepts add, set, decrement, and remove operations. Positive owned quantities remain stored; setting or decrementing to zero or less removes the entry. Invalid operations, Sources, finishes, conditions and quantities outside the per-entry signed 32-bit range fail validation. Omitted Notes remain unchanged; editing Notes requires its independent revision and stale edits retain the draft for explicit rebase. An error must not leave a partially applied bulk request.
+The canonical bulk mutation path accepts add, set, decrement, and remove operations.
+Positive owned quantities remain stored; setting or decrementing to zero or less removes the entry.
+Invalid operations, Sources, finishes, conditions and quantities outside the per-entry signed 32-bit range fail validation.
+Omitted Notes remain unchanged; editing Notes requires its independent revision and stale edits retain the draft for explicit rebase.
+An error must not leave a partially applied bulk request.
 
-Users can inspect inventory as a compact list. The toolbar contains Search, Filter and Sort, with a count of matching entries and their total copies. Search matches card names, set codes, conditions and notes. Filter opens a shared popover with searchable set names and codes from the owned inventory, plus finish and condition selectors. Set choices combine with OR; search, sets, finish and condition combine with AND. Active set, finish and condition chips open the relevant filter control for editing; their separate clear buttons remove only that value. Clear filters preserves the selected ordering. Row Set badges add that set to the current selection; Finish and Condition badges replace their respective single filter. These shortcuts retain search, ordering and Box scope, start at the first range and support native links. Compact metadata and read-only quantity columns leave more space for card names.
+Users can inspect inventory as a compact list.
+The toolbar contains Search, Filter and Sort, with a count of matching entries and their total copies.
+Search matches card names, set codes, conditions and notes.
+Filter opens a shared popover with searchable set names and codes from the owned inventory, plus finish and condition selectors.
+Set choices combine with OR; search, sets, finish and condition combine with AND.
+Active set, finish and condition chips open the relevant filter control for editing; their separate clear buttons remove only that value.
+Clear filters preserves the selected ordering.
+Row Set badges add that set to the current selection; Finish and Condition badges replace their respective single filter.
+These shortcuts retain search, ordering and Box scope, start at the first range and support native links.
+Compact metadata and read-only quantity columns leave more space for card names.
 
-The list starts in card-name ascending order. Clicking Card selects name ordering or reverses its active direction. Clicking Set groups entries by set code; repeated clicks reverse the set order while names within each set remain ascending. Either base header clears the additional ordering. Finish, Condition and Quantity apply one additional ordering at a time, before names and within sets when set grouping is active. Repeated clicks reverse that ordering. Finish starts with Nonfoil before Foil, Condition with `NM, LP, MP, HP, DMG`, and Quantity uses numeric order. The toolbar Sort menu exposes the same ordering choices, including Newest first by the entry's `createdAt` descending without a time filter. A variant click from that mode returns to name ascending with the chosen variant ordering.
+The list starts in card-name ascending order.
+Clicking Card selects name ordering or reverses its active direction.
+Clicking Set groups entries by set code; repeated clicks reverse the set order while names within each set remain ascending.
+Either base header clears the additional ordering.
+Finish, Condition and Quantity apply one additional ordering at a time, before names and within sets when set grouping is active.
+Repeated clicks reverse that ordering.
+Finish starts with Nonfoil before Foil, Condition with `NM, LP, MP, HP, DMG`, and Quantity uses numeric order.
+The toolbar Sort menu exposes the same ordering choices, including Newest first by the entry's `createdAt` descending without a time filter.
+A variant click from that mode returns to name ascending with the chosen variant ordering.
 
-An entry displays New for seven elapsed days from `createdAt`. The badge explains its creation date and duration. Quantity or note edits, added copies merged into an existing entry and internal reordering do not restart this period. This is an entry-age indicator, not per-copy acquisition history. The page uses its server load time and refreshes badge age every minute while open.
+An entry displays New for seven elapsed days from `createdAt`.
+The badge explains its creation date and duration.
+Quantity or note edits, added copies merged into an existing entry and internal reordering do not restart this period.
+This is an entry-age indicator, not per-copy acquisition history.
+The page uses its server load time and refreshes badge age every minute while open.
 
-Selecting exactly one set reveals owned-name progress. Selecting zero or multiple sets hides it. Progress counts owned canonical cards across that set, ignores other list filters, and reports unavailable catalog totals explicitly. Quantity edits preserve notes and the current filters. The inspector edits quantity and notes for the selected owned entry. Add cards opens Search as an overlay above the unchanged inventory. Add another in the row menu opens Card Details for the same canonical card, starting with the owned printing. Users can select another printing, finish, condition and quantity through the shared addition form. Matching entry identities merge quantities; other combinations create separate entries. Closing returns focus to the row menu and preserves inventory filters and ordering. The decrement control stops at one; the row action menu contains Remove, which opens the shared confirmation dialog without expanding the row. The dialog identifies the entry and quantity, focuses Cancel, blocks dismissal while pending and retains errors for retry. Cancel returns focus to that menu; successful removal focuses a neighboring row menu or Search when no matching rows remain. An empty inventory focuses Find your first card.
+Selecting exactly one set reveals owned-name progress.
+Selecting zero or multiple sets hides it.
+Progress counts owned canonical cards across that set, ignores other list filters, and reports unavailable catalog totals explicitly.
+Quantity edits preserve notes and the current filters.
+The inspector edits quantity and notes for the selected owned entry.
+Add cards opens Search as an overlay above the unchanged inventory.
+Add another in the row menu opens Card Details for the same canonical card, starting with the owned printing.
+Users can select another printing, finish, condition and quantity through the shared addition form.
+Matching entry identities merge quantities; other combinations create separate entries.
+Closing returns focus to the row menu and preserves inventory filters and ordering.
+The decrement control stops at one; the row action menu contains Remove, which opens the shared confirmation dialog without expanding the row.
+The dialog identifies the entry and quantity, focuses Cancel, blocks dismissal while pending and retains errors for retry.
+Cancel returns focus to that menu; successful removal focuses a neighboring row menu or Search when no matching rows remain.
+An empty inventory focuses Find your first card.
 
-The additional Boxes view presents Inventory groups as named selections of inventory entries, with assignment available from the normal row menu. [Card grouping](./card-grouping.md) owns their membership, deletion and future scan-target contract.
+The additional Boxes view presents Inventory groups as named selections of inventory entries, with assignment available from the normal row menu.
+[Card grouping](./card-grouping.md) owns their membership, deletion and future scan-target contract.
 
-The [selected continuous browsing and Card dialog contract](./ui-design-direction.md#selected-hybrid-browsing-and-card-dialog) replaces the affected browser interaction requirements on 2026-10-07. It requires continuous bounded Lazy loading in 200-entry ranges across Search, Inventory and Boxes, one native page scrollbar, contextual Card dialogs and read-only Inventory row quantity. Enhanced browsing exposes no pagination or page-size selector. The API, Shell, result-window foundations and contextual actions are implemented. Uniform Lazy browser-policy and caller integration are implemented. Search, Inventory and Boxes reserve height only for successfully revealed ranges, with no full-count scroll extent. Direct deep links begin at the addressed range; Load earlier preserves the visible anchor. Local composed verification is recorded with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192); earlier evidence applies only to its recorded revision. Physical touch, true 200% zoom and deployment remain unverified.
+The [selected continuous browsing and Card dialog contract](./ui-design-direction.md#selected-hybrid-browsing-and-card-dialog) replaces the affected browser interaction requirements on 2026-10-07.
+It requires continuous bounded Lazy loading in 200-entry ranges across Search, Inventory and Boxes, one native page scrollbar, contextual Card dialogs and read-only Inventory row quantity.
+Enhanced browsing exposes no pagination or page-size selector.
+The API, Shell, result-window foundations and contextual actions are implemented.
+Uniform Lazy browser-policy and caller integration are implemented.
+Search, Inventory and Boxes reserve height only for successfully revealed ranges, with no full-count scroll extent.
+Direct deep links begin at the addressed range; Load earlier preserves the visible anchor.
+Local composed verification is recorded with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192); earlier evidence applies only to its recorded revision.
+Physical touch, true 200% zoom and deployment remain unverified.
 
-Inventory uses bounded server-side loading and a native-window virtual list for continuous enhanced browsing. Filters, sorting, matching counts, Inventory totals and group counts describe the complete owned dataset. Native no-JavaScript GETs alone provide 200-entry Previous/Next navigation. [Frontend architecture](../architecture/frontend.md#inventory-bounded-loading) owns rendering responsibilities; the [application contract](../architecture/application-contract.md#inventory-query-contract) owns revisioned ranges, location reads and server ordering. Drafts, pending operations, inspector selection and keyboard focus belong outside evictable pages. The earlier local browser and representative-scale acceptance is recorded with [slice 3](https://github.com/KyleDerZweite/spellbook/issues/176); it does not establish the replacement's current-head acceptance. Performance on other hardware remains unmeasured.
+Inventory uses bounded server-side loading and a native-window virtual list for continuous enhanced browsing.
+Filters, sorting, matching counts, Inventory totals and group counts describe the complete owned dataset.
+Native no-JavaScript GETs alone provide 200-entry Previous/Next navigation.
+[Frontend architecture](../architecture/frontend.md#inventory-bounded-loading) owns rendering responsibilities; the [application contract](../architecture/application-contract.md#inventory-query-contract) owns revisioned ranges, location reads and server ordering.
+Drafts, pending operations, inspector selection and keyboard focus belong outside evictable pages.
+The earlier local browser and representative-scale acceptance is recorded with [slice 3](https://github.com/KyleDerZweite/spellbook/issues/176); it does not establish the replacement's current-head acceptance.
+Performance on other hardware remains unmeasured.
 
-Physical locations, binder or box assignment, loans, individual copy identifiers, per-copy provenance, and physical movement history are planned. The inventory currently stores aggregate quantities. Catalog printing identity includes language, but there is no separate physical-copy language or location record. Inventory export and CSV exchange require separate implementation; deck text export does not establish inventory export support.
+Physical locations, binder or box assignment, loans, individual copy identifiers, per-copy provenance, and physical movement history are planned.
+The inventory currently stores aggregate quantities.
+Catalog printing identity includes language, but there is no separate physical-copy language or location record.
+Inventory export and CSV exchange require separate implementation; deck text export does not establish inventory export support.
 
 ## Deck builder
 
-The implemented workspace uses `/mtg/decks?deck=ID` to select an owned deck. Catalog queries use `q`, and printing selection uses the canonical card identifier in `printing`. Deck rows support local name filtering and name or quantity sorting. An owned-results filter narrows catalog results without preventing users from adding an unowned card.
+The implemented workspace uses `/mtg/decks?deck=ID` to select an owned deck.
+Catalog queries use `q`, and printing selection uses the canonical card identifier in `printing`.
+Deck rows support local name filtering and name or quantity sorting.
+An owned-results filter narrows catalog results without preventing users from adding an unowned card.
 
-A user must be able to create, select, rename, describe, change the format of, and delete a private deck. A deck entry records printing identity, canonical identity, quantity, and role. The supported roles are main deck, sideboard, commander, and companion.
+A user must be able to create, select, rename, describe, change the format of, and delete a private deck.
+A deck entry records printing identity, canonical identity, quantity, and role.
+The supported roles are main deck, sideboard, commander, and companion.
 
-The editor must search the local catalog and let the user add a chosen printing without first adding it to inventory. It must support changing quantities, removing entries, and moving entries between roles. Adding the same printing to the same role combines quantities. Moving it into an existing matching entry combines quantities without dropping copies.
+The editor must search the local catalog and let the user add a chosen printing without first adding it to inventory.
+It must support changing quantities, removing entries, and moving entries between roles.
+Adding the same printing to the same role combines quantities.
+Moving it into an existing matching entry combines quantities without dropping copies.
 
-Deck loads now contain library summaries and one selected composition with relevant ownership aggregates. [The application contract](../architecture/application-contract.md#implemented-deck-application-boundary) owns shared backend responsibilities and compact mutation replay. Ordinary row decrement stops at one atomically; explicit Remove remains separate. Description saves detect stale text independently of quantities and retain the draft for explicit rebase. Printing replacement keeps the same canonical identity, retaining source identity unless it merges into an existing destination. Shared Deck UI and native task entry are implemented; [Frontend](../architecture/frontend.md#shared-deck-ui) owns their component and form adapters. Primary categories and category-aware destination merging are implemented; [Card grouping](./card-grouping.md#deck-categories) owns current account rules and entry categories, and independent whole-deck scope.
+Deck loads now contain library summaries and one selected composition with relevant ownership aggregates.
+[The application contract](../architecture/application-contract.md#implemented-deck-application-boundary) owns shared backend responsibilities and compact mutation replay.
+Ordinary row decrement stops at one atomically; explicit Remove remains separate.
+Description saves detect stale text independently of quantities and retain the draft for explicit rebase.
+Printing replacement keeps the same canonical identity, retaining source identity unless it merges into an existing destination.
+Shared Deck UI and native task entry are implemented; [Frontend](../architecture/frontend.md#shared-deck-ui) owns their component and form adapters.
+Primary categories and category-aware destination merging are implemented; [Card grouping](./card-grouping.md#deck-categories) owns current account rules and entry categories, and independent whole-deck scope.
 
-The deck workspace must keep the selected deck, card search, role sections, and availability visible or readily accessible. Show card counts and explicit save or mutation feedback. Users must be able to distinguish an unsaved edit, an applied mutation, and a failed request. Format labels guide warnings; they must not silently remove cards or block drafts.
+The deck workspace must keep the selected deck, card search, role sections, and availability visible or readily accessible.
+Show card counts and explicit save or mutation feedback.
+Users must be able to distinguish an unsaved edit, an applied mutation, and a failed request.
+Format labels guide warnings; they must not silently remove cards or block drafts.
 
-Deletion requires an explicit confirmation that names the deck. Routine quantity and role edits must not demand repeated confirmations. Disabled and pending controls must prevent accidental duplicate submissions while preserving visible error recovery.
+Deletion requires an explicit confirmation that names the deck.
+Routine quantity and role edits must not demand repeated confirmations.
+Disabled and pending controls must prevent accidental duplicate submissions while preserving visible error recovery.
 
-Import and export belong in this workspace. The user must review imported text before committing it and see malformed, unresolved, ambiguous, or unsupported lines. An export must be a downloadable or copyable plain-text decklist with supported sections.
+Import and export belong in this workspace.
+The user must review imported text before committing it and see malformed, unresolved, ambiguous, or unsupported lines.
+An export must be a downloadable or copyable plain-text decklist with supported sections.
 
 Drag-and-drop, deck tags, maybeboard persistence, playtesting, deck sharing, collaboration, and a full rules engine are not required for this builder.
 
 ## Deck availability
 
-Availability compares all entries of one deck against the same account's inventory. It must distribute owned quantities across deck entries so one physical copy cannot satisfy multiple required copies within that deck.
+Availability compares all entries of one deck against the same account's inventory.
+It must distribute owned quantities across deck entries so one physical copy cannot satisfy multiple required copies within that deck.
 
-Perform exact-printing matching before alternate-printing matching. Reserve all exact matches before distributing alternate printings, so an early flexible requirement does not consume a copy needed by a later exact requirement. Aggregate finish and condition groups when the deck does not require either attribute.
+Perform exact-printing matching before alternate-printing matching.
+Reserve all exact matches before distributing alternate printings, so an early flexible requirement does not consume a copy needed by a later exact requirement.
+Aggregate finish and condition groups when the deck does not require either attribute.
 
-For each deck entry, expose its required quantity, exact owned quantity used, alternate quantity used, and missing quantity. Totals must agree with entry results. The result must remain deterministic for the same inventory and deck inputs.
+For each deck entry, expose its required quantity, exact owned quantity used, alternate quantity used, and missing quantity.
+Totals must agree with entry results.
+The result must remain deterministic for the same inventory and deck inputs.
 
-For example, two deck entries requiring one copy each of the same canonical card cannot both report available when the account owns only one copy. If the account owns the requested printing for one entry and a different printing for the other, exact matches take precedence.
+For example, two deck entries requiring one copy each of the same canonical card cannot both report available when the account owns only one copy.
+If the account owns the requested printing for one entry and a different printing for the other, exact matches take precedence.
 
-`GET /api/mobile/v1/mtg/decks/{deckId}/availability` exposes this calculation to authenticated clients. It returns `deckId`, `entries` with `entryId`, `required`, `exact`, `alternate`, and `missing`, and matching `totals`. Invalid deck identifiers return 400; absent or foreign decks return 404. The API allocates entries in stable identifier order and marks the response `no-store`.
+`GET /api/mobile/v1/mtg/decks/{deckId}/availability` exposes this calculation to authenticated clients.
+It returns `deckId`, `entries` with `entryId`, `required`, `exact`, `alternate`, and `missing`, and matching `totals`.
+Invalid deck identifiers return 400; absent or foreign decks return 404.
+The API allocates entries in stable identifier order and marks the response `no-store`.
 
-This allocation is a calculation for one deck. It does not reserve, move, or decrement inventory. Comparing a second deck can reuse the same owned copies. Physical assignment across decks, unavailable-because-assigned results, storage locations, and executable build plans remain planned.
+This allocation is a calculation for one deck.
+It does not reserve, move, or decrement inventory.
+Comparing a second deck can reuse the same owned copies.
+Physical assignment across decks, unavailable-because-assigned results, storage locations, and executable build plans remain planned.
 
 ## Import, export, and warnings
 
-The supported input is MTG Arena-style text with quantities, card names, and optional printing hints. The parser recognizes main, sideboard, commander, companion, and maybeboard sections, as well as supported section aliases. Blank lines and comment lines are ignored. Duplicate parsed lines with matching identity hints and role combine quantities.
+The supported input is MTG Arena-style text with quantities, card names, and optional printing hints.
+The parser recognizes main, sideboard, commander, companion, and maybeboard sections, as well as supported section aliases.
+Blank lines and comment lines are ignored.
+Duplicate parsed lines with matching identity hints and role combine quantities.
 
-Preview returns parsed, resolved, unresolved, and ambiguous lines with warnings. Malformed lines remain visible as unresolved input. Resolution uses the local catalog. A successful parse does not establish a resolved printing.
+Preview returns parsed, resolved, unresolved, and ambiguous lines with warnings.
+Malformed lines remain visible as unresolved input.
+Resolution uses the local catalog.
+A successful parse does not establish a resolved printing.
 
-Commit reparses and resolves submitted text on the server. It accepts only resolved lines in supported roles; the client cannot replace server resolution with unverified preview results. Deck imports accept the four persisted roles. Inventory imports accept main-section entries. Maybeboard entries are preview-only and are not persisted.
+Commit reparses and resolves submitted text on the server.
+It accepts only resolved lines in supported roles; the client cannot replace server resolution with unverified preview results.
+Deck imports accept the four persisted roles.
+Inventory imports accept main-section entries.
+Maybeboard entries are preview-only and are not persisted.
 
-The user must see which lines will be committed and which remain uncommitted. Editing the text invalidates the displayed preview. Preview is not a durable catalog snapshot, so catalog changes between preview and commit can change resolution; the commit response is authoritative.
+The user must see which lines will be committed and which remain uncommitted.
+Editing the text invalidates the displayed preview.
+Preview is not a durable catalog snapshot, so catalog changes between preview and commit can change resolution; the commit response is authoritative.
 
-Deck text export preserves quantities and role sections. Exact printing round trips depend on available printing metadata. The exporter enriches entries with collector numbers when the local catalog provides them; fallback text may contain only a name and set. It is not a complete archival export of database state.
+Deck text export preserves quantities and role sections.
+Exact printing round trips depend on available printing metadata.
+The exporter enriches entries with collector numbers when the local catalog provides them; fallback text may contain only a name and set.
+It is not a complete archival export of database state.
 
-Warnings cover basic deck size, commander counts and singleton requirements, constructed copy limits, Vintage restricted-card quantities, and available catalog legality data. Commander size counts main and commander roles. Recognized card-text exceptions adjust copy limits. These checks do not implement all commander eligibility, partner, companion, color-identity, or card-specific rules. Warnings allow users to continue editing and importing drafts.
+Warnings cover basic deck size, commander counts and singleton requirements, constructed copy limits, Vintage restricted-card quantities, and available catalog legality data.
+Commander size counts main and commander roles.
+Recognized card-text exceptions adjust copy limits.
+These checks do not implement all commander eligibility, partner, companion, color-identity, or card-specific rules.
+Warnings allow users to continue editing and importing drafts.
 
-CSV mappings for ManaBox, Moxfield, Archidekt, and generic columns are planned. Integrations should accept user-provided exports before depending on private remote APIs.
+CSV mappings for ManaBox, Moxfield, Archidekt, and generic columns are planned.
+Integrations should accept user-provided exports before depending on private remote APIs.
 
 ## Scan review
 
-Scan presentation is paused. The retained authenticated `/mtg/scan` route creates and reopens account-owned sessions, uploads a JPEG, PNG, or WebP photo, and displays stored images and recognition candidates. The initial workflow uses one photo per session. Users can search the catalog, select a printing manually, set quantity, finish, and condition, then confirm an explicit inventory commit. Draft selections remain local until commit. Committed sessions are read-only.
+Scan presentation is paused.
+The retained authenticated `/mtg/scan` route creates and reopens account-owned sessions, uploads a JPEG, PNG, or WebP photo, and displays stored images and recognition candidates.
+The initial workflow uses one photo per session.
+Users can search the catalog, select a printing manually, set quantity, finish, and condition, then confirm an explicit inventory commit.
+Draft selections remain local until commit.
+Committed sessions are read-only.
 
-Scan APIs list recent owned sessions, accept image artifacts, return candidate matches, serve owned images, and accept externally produced candidate results. External results identify a model version and resolve submitted printing identifiers against the catalog. A result replaces the artifact's current candidates under a session lock; identical retries do not create additional artifacts, review entries, or inventory. Committed and cancelled sessions reject result changes.
+Scan APIs list recent owned sessions, accept image artifacts, return candidate matches, serve owned images, and accept externally produced candidate results.
+External results identify a model version and resolve submitted printing identifiers against the catalog.
+A result replaces the artifact's current candidates under a session lock; identical retries do not create additional artifacts, review entries, or inventory.
+Committed and cancelled sessions reject result changes.
 
-Result submission has no event identifier, payload-digest conflict protocol, or stale-version rejection. A late result can replace a newer result while the session remains reviewable. Session creation and photo upload do not acquire replay safety from the later review commit's request identifier.
+Result submission has no event identifier, payload-digest conflict protocol, or stale-version rejection.
+A late result can replace a newer result while the session remains reviewable.
+Session creation and photo upload do not acquire replay safety from the later review commit's request identifier.
 
-A scan candidate does not count as inventory until the user explicitly commits it. The commit validates ownership of the session and artifact and uses the canonical inventory mutation path. Repeated matching commits do not duplicate quantities. Ambiguous and low-confidence results remain visible and correctable; manual catalog selection permits review without a working recognizer.
+A scan candidate does not count as inventory until the user explicitly commits it.
+The commit validates ownership of the session and artifact and uses the canonical inventory mutation path.
+Repeated matching commits do not duplicate quantities.
+Ambiguous and low-confidence results remain visible and correctable; manual catalog selection permits review without a working recognizer.
 
-The built-in recognizer remains a placeholder. OCR, trained embedding inference, validated automatic recognition, MTG card camera capture, and physical sorting are not implemented. Authorization QR scanning is a separate accepted PWA workflow. Candidate scores must not be presented as verified recognition accuracy.
+The built-in recognizer remains a placeholder.
+OCR, trained embedding inference, validated automatic recognition, MTG card camera capture, and physical sorting are not implemented.
+Authorization QR scanning is a separate accepted PWA workflow.
+Candidate scores must not be presented as verified recognition accuracy.
 
 The [mobile and scan architecture](../architecture/mobile-and-scan.md) owns endpoint bodies, candidate counts and score ranges, supported image signatures, upload limits, session listing limits, storage behavior, and worker boundaries.
 
 ## Physical scanner and sorter preparation
 
-A physical card-scanning, indexing, sorting, and deck-assembly product is a separate later project. Its proposed integration must not make hardware a requirement for the current website.
+A physical card-scanning, indexing, sorting, and deck-assembly product is a separate later project.
+Its proposed integration must not make hardware a requirement for the current website.
 
-A future device may feed individual MTG cards from a stack, capture each card, and sort it into configured output trays. Colour, type and set are candidate sorting rules. Recognition belongs locally to scanner clients. The selected research direction gives the available Jetson Orin Nano Super responsibility for Cardstation capture, recognition, motors and sensors; low-level implementation and hardware choices remain in the separate hardware project. Recognition models and the integration protocol are undecided. The backend owns account access and Inventory/Deck effects, with public reference preparation proposed separately. The phone-mediated machine-login concept and regular Eject workflow are owned by the [sorter integration](../integrations/card-robot.md).
+A future device may feed individual MTG cards from a stack, capture each card, and sort it into configured output trays.
+Colour, type and set are candidate sorting rules.
+Recognition belongs locally to scanner clients.
+The selected research direction gives the available Jetson Orin Nano Super responsibility for Cardstation capture, recognition, motors and sensors; low-level implementation and hardware choices remain in the separate hardware project.
+Recognition models and the integration protocol are undecided.
+The backend owns account access and Inventory/Deck effects, with public reference preparation proposed separately.
+The phone-mediated machine-login concept and regular Eject workflow are owned by the [sorter integration](../integrations/card-robot.md).
 
-The [card scanner and sorter proposal](../integrations/card-robot.md) owns the device concept, candidate protocol, recovery model, and prototype acceptance criteria. Local hardware testing and 3D prototyping are separate preparation work; no hardware test results have been supplied. These are proposed contracts. Current scan and inventory APIs do not establish an implemented robot controller, sorting job, or physical placement record.
+The [card scanner and sorter proposal](../integrations/card-robot.md) owns the device concept, candidate protocol, recovery model, and prototype acceptance criteria.
+Local hardware testing and 3D prototyping are separate preparation work; no hardware test results have been supplied.
+These are proposed contracts.
+Current scan and inventory APIs do not establish an implemented robot controller, sorting job, or physical placement record.
 
-Recognition proposes a printing; user confirmation establishes an intended import. A commanded movement does not establish output placement. A sorter must confirm placement through sensor evidence or operator reconciliation before recording a physical location. Sorting an already owned card must not add its quantity to inventory again.
+Recognition proposes a printing; user confirmation establishes an intended import.
+A commanded movement does not establish output placement.
+A sorter must confirm placement through sensor evidence or operator reconciliation before recording a physical location.
+Sorting an already owned card must not add its quantity to inventory again.
 
-Physical tracking requires a schema decision that preserves individual copy identity or explicit quantity allocations, language, finish, condition, location, and deck assignment. These fields and relationships must be implemented before Spellbook claims to track cards in trays or assembled decks. Current aggregate inventory entries cannot distinguish otherwise identical copies in different places.
+Physical tracking requires a schema decision that preserves individual copy identity or explicit quantity allocations, language, finish, condition, location, and deck assignment.
+These fields and relationships must be implemented before Spellbook claims to track cards in trays or assembled decks.
+Current aggregate inventory entries cannot distinguish otherwise identical copies in different places.
 
-A deck-assembly job selects matching cards only from the stack actually fed into the device. It allocates a presented card at most once, follows an explicit alternate-printing policy, and reports unmet requirements. It cannot retrieve cards from arbitrary storage or treat inventory elsewhere as physically reachable. Deck assembly is separate from AI deck suggestions, which remain outside the implemented product.
+A deck-assembly job selects matching cards only from the stack actually fed into the device.
+It allocates a presented card at most once, follows an explicit alternate-printing policy, and reports unmet requirements.
+It cannot retrieve cards from arbitrary storage or treat inventory elsewhere as physically reachable.
+Deck assembly is separate from AI deck suggestions, which remain outside the implemented product.
 
 ## API and consistency requirements
 
-The [route inventory](./routing-and-games.md) owns supported paths. The [mobile and scan architecture](../architecture/mobile-and-scan.md) links the versioned API contract. Web actions and API handlers must call the same inventory and deck repositories rather than maintain separate mutation semantics.
+The [route inventory](./routing-and-games.md) owns supported paths.
+The [mobile and scan architecture](../architecture/mobile-and-scan.md) links the versioned API contract.
+Web actions and API handlers must call the same inventory and deck repositories rather than maintain separate mutation semantics.
 
-Bulk callers supply a nonempty `requestId` scoped to the account. They must retain it when retrying the same operation and generate a new identifier for a new logical operation. New inventory, deck, deck import, and scan review mutations persist a fingerprint of the normalized mutation. Matching retries apply once; reusing an identifier for a different normalized mutation returns HTTP 409 without applying it. Legacy mutation records with a null fingerprint retain their earlier deduplication behavior and cannot detect changed payloads. Idempotency does not provide optimistic concurrency control or a historical response snapshot.
+Bulk callers supply a nonempty `requestId` scoped to the account.
+They must retain it when retrying the same operation and generate a new identifier for a new logical operation.
+New inventory, deck, deck import, and scan review mutations persist a fingerprint of the normalized mutation.
+Matching retries apply once; reusing an identifier for a different normalized mutation returns HTTP 409 without applying it.
+Legacy mutation records with a null fingerprint retain their earlier deduplication behavior and cannot detect changed payloads.
+Idempotency does not provide optimistic concurrency control or a historical response snapshot.
 
-A bulk request validates its operations before writing, records the mutation request with its writes, and rolls back on failure. Deck imports create the deck, mutation record, and entries in one transaction. Deck mutations serialize writes to the same deck; concurrent retries have one effect. Reusing a deck request identifier for a different deck is rejected. A role move preserves the total quantity, including when its destination already exists.
+A bulk request validates its operations before writing, records the mutation request with its writes, and rolls back on failure.
+Deck imports create the deck, mutation record, and entries in one transaction.
+Deck mutations serialize writes to the same deck; concurrent retries have one effect.
+Reusing a deck request identifier for a different deck is rejected.
+A role move preserves the total quantity, including when its destination already exists.
 
-Quantity validation accepts finite integer numbers within the signed 32-bit range; fractional values and numeric strings are rejected. Additions and decrements require positive quantities. JSON handlers validate scalar types rather than coercing arrays, objects, or booleans into strings or quantities. The [API architecture](../architecture/mobile-and-scan.md) owns body-size, pagination, upload, and field limits.
+Quantity validation accepts finite integer numbers within the signed 32-bit range; fractional values and numeric strings are rejected.
+Additions and decrements require positive quantities.
+JSON handlers validate scalar types rather than coercing arrays, objects, or booleans into strings or quantities.
+The [API architecture](../architecture/mobile-and-scan.md) owns body-size, pagination, upload, and field limits.
 
-Authentication, validation, missing-resource, and unexpected-service failures must remain distinct. Errors shown to users must describe the failed action without exposing passwords, session tokens, SQL internals, or private data. Successful writes return persisted data or trigger a fresh authoritative read.
+Authentication, validation, missing-resource, and unexpected-service failures must remain distinct.
+Errors shown to users must describe the failed action without exposing passwords, session tokens, SQL internals, or private data.
+Successful writes return persisted data or trigger a fresh authoritative read.
 
-The current API does not provide a general ETag or version-based editor conflict protocol. Independently submitted replacement edits can overwrite an earlier edit. Real-time collaboration and explicit stale-editor conflict resolution require additional work.
+The current API does not provide a general ETag or version-based editor conflict protocol.
+Independently submitted replacement edits can overwrite an earlier edit.
+Real-time collaboration and explicit stale-editor conflict resolution require additional work.
 
 ## Interface acceptance
 
-The [UI design direction](./ui-design-direction.md) owns the base design and visual requirements. The release must satisfy these workflow checks:
+The [UI design direction](./ui-design-direction.md) owns the base design and visual requirements.
+The release must satisfy these workflow checks:
 
 1. An authenticated user can find a card, choose a printing, and add an owned quantity with finish and condition.
 2. The user can create a deck, search the catalog, add an unowned card, change its quantity and role, and remove it.
 3. Availability reports exact, alternate, and missing quantities without reusing a copy within one deck.
 4. Import preview shows unresolved and ambiguous input, and commit does not silently include unsupported lines.
 5. A user can export a deck and sign out, and another account cannot see the first account's objects.
-6. A user can upload a scan photo, review an external candidate or select a printing manually, and explicitly import it once. Another account cannot read the image.
+6. A user can upload a scan photo, review an external candidate or select a printing manually, and explicitly import it once.
+   Another account cannot read the image.
 7. The same workflows remain usable on a narrow mobile viewport and through keyboard navigation.
 
-Controls require visible labels or accessible names. Forms associate validation errors with inputs. Pending, empty, success, and failure states need readable text. Focus must be visible, dialogs must return focus appropriately, and meaning must not depend on color alone.
+Controls require visible labels or accessible names.
+Forms associate validation errors with inputs.
+Pending, empty, success, and failure states need readable text.
+Focus must be visible, dialogs must return focus appropriately, and meaning must not depend on color alone.
 
-A dense desktop layout may use columns and tables. Narrow screens must stack essential controls, keep primary actions reachable, and avoid hiding required actions behind hover. Card images supplement readable names and printing identifiers. Reduced motion preferences must be respected.
+A dense desktop layout may use columns and tables.
+Narrow screens must stack essential controls, keep primary actions reachable, and avoid hiding required actions behind hover.
+Card images supplement readable names and printing identifiers.
+Reduced motion preferences must be respected.
 
 ## Runtime and verification
 
-The [system overview](../architecture/system-overview.md) owns the runtime boundaries. The [deployment guide](../operations/deployment.md) owns required services, environment variables, migration, and startup commands. Dependency versions belong to manifests and lockfiles rather than copied version tables in this specification.
+The [system overview](../architecture/system-overview.md) owns the runtime boundaries.
+The [deployment guide](../operations/deployment.md) owns required services, environment variables, migration, and startup commands.
+Dependency versions belong to manifests and lockfiles rather than copied version tables in this specification.
 
-The [repository verification workflow](../operations/github-automation.md) owns local commands, CI coverage, browser checks, and evidence. Apply it against the domain contracts and interface acceptance criteria above. An acceptance requirement does not establish implemented or verified behavior by itself.
+The [repository verification workflow](../operations/github-automation.md) owns local commands, CI coverage, browser checks, and evidence.
+Apply it against the domain contracts and interface acceptance criteria above.
+An acceptance requirement does not establish implemented or verified behavior by itself.

@@ -148,7 +148,7 @@ run('whole Categories persistence, durable jobs and bounded directory', () => {
 		await database.pool.query('DELETE FROM deck_whole_categories WHERE deck_id=$1', [d.id]);
 		// Execute the native migration's snapshot hydration against this owned legacy bundle.
 		const migration = await readFile(
-			new URL('../../drizzle/0022_whole_deck_categories.sql', import.meta.url),
+			new URL('../../../backend/drizzle/0022_whole_deck_categories.sql', import.meta.url),
 			'utf8'
 		);
 		const hydration = migration

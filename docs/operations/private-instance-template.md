@@ -6,7 +6,8 @@
 - Update Triggers: deployment note conventions, recovery and backup procedures
 - Related Docs: [Operations](./README.md), [Deployment](./deployment.md), [Local authentication](./local-auth.md)
 
-Copy this template into the operator's private notes. Record secret storage references, never secret values.
+Copy this template into the operator's private notes.
+Record secret storage references, never secret values.
 
 ## Instance
 

@@ -24,7 +24,7 @@ def test_new_history_publication_prunes_unheld_public_identity_with_bounded_sql(
         try:
             with psycopg.connect(scoped) as conn:
                 conn.execute(
-                    (Path(__file__).parents[2] / "frontend/drizzle/0017_optional_prices.sql")
+                    (Path(__file__).parents[2] / "backend/drizzle/0017_optional_prices.sql")
                     .read_text()
                     .replace('"public".', f'"{schema}".')
                 )

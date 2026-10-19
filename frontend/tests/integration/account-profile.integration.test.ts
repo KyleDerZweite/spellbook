@@ -49,7 +49,7 @@ run('authorized account profile patches', () => {
 		const { createDashboard } = await import('@spellbook/backend');
 		const { readFile } = await import('node:fs/promises');
 		const cards = JSON.parse(
-			await readFile(new URL('../../scripts/demo/cards.json', import.meta.url), 'utf8')
+			await readFile(new URL('../../../backend/scripts/demo/cards.json', import.meta.url), 'utf8')
 		) as import('@spellbook/contracts/catalog.ts').CardDocument[];
 		const a = cards[0],
 			b = cards.find((card) => card.set_code === a.set_code && card.oracle_id !== a.oracle_id)!,

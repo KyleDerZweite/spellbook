@@ -1,9 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-const mocks = vi.hoisted(() => ({ authenticate: vi.fn(), revoke: vi.fn(), cookie: vi.fn() }));
-vi.mock('../../src/lib/server/auth/local.ts', async (importOriginal) => ({
-	...(await importOriginal<object>()),
-	authenticate: mocks.authenticate
-}));
+const mocks = vi.hoisted(() => ({ form: vi.fn(), revoke: vi.fn(), cookie: vi.fn() }));
 vi.mock('../../src/lib/server/auth/session.ts', async (importOriginal) => ({
 	...(await importOriginal<object>()),
 	revokeSession: mocks.revoke,
@@ -38,7 +34,10 @@ describe('browser authentication destinations', () => {
 	it.each(['login', 'register'] as const)(
 		'preserves the destination after successful %s submission',
 		async (mode) => {
-			mocks.authenticate.mockResolvedValue({ session: { token: 'session-token' } });
+			mocks.form.mockResolvedValue({
+				ok: true,
+				data: { token: 'session-token', user: { accountId: 'account' }, expiresAt: 'expiry' }
+			});
 			for (const [query, destination] of [
 				['', '/mtg/inventory'],
 				['?returnTo=%2F', '/'],
@@ -58,6 +57,7 @@ describe('browser authentication destinations', () => {
 								body: new URLSearchParams({ username: 'mage', password: 'long-password' })
 							}),
 							cookies: { get: () => undefined },
+							locals: { api: { form: mocks.form } },
 							getClientAddress: () => crypto.randomUUID()
 						} as never,
 						mode

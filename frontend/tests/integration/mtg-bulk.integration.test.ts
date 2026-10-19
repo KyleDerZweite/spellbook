@@ -1,3 +1,4 @@
+import { createTestApplication } from './application.ts';
 import { ensureDeckCatalogFixture } from '../deck-catalog-fixture.ts';
 import type { AuthUser } from '@spellbook/contracts/auth.ts';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -26,6 +27,7 @@ run('MTG repository bulk operations', () => {
 	});
 
 	afterAll(async () => {
+		await modules?.close();
 		await modules?.pool.end();
 	});
 
@@ -37,15 +39,15 @@ run('MTG repository bulk operations', () => {
 			operations: [inventoryAddOperation('card-1', 2)]
 		};
 
-		await modules.bulkMutateInventory(actor, input);
-		const snapshot = await modules.bulkMutateInventory(actor, input);
+		await modules.application.inventory.bulk(actor, input);
+		const snapshot = await modules.application.inventory.bulk(actor, input);
 
 		expect(snapshot.changes).toHaveLength(1);
 		expect(snapshot.changes[0].quantity).toBe(2);
 	});
 
 	it('inventory bulk set, decrement, and remove update safely', async () => {
-		const added = await modules.bulkMutateInventory(actor, {
+		const added = await modules.application.inventory.bulk(actor, {
 			requestId: crypto.randomUUID(),
 			source: 'mobile' as const,
 			game: 'mtg' as const,
@@ -53,7 +55,7 @@ run('MTG repository bulk operations', () => {
 		});
 		const entryId = added.changes[0].entryId;
 
-		let snapshot = await modules.bulkMutateInventory(actor, {
+		let snapshot = await modules.application.inventory.bulk(actor, {
 			requestId: crypto.randomUUID(),
 			source: 'mobile' as const,
 			game: 'mtg' as const,
@@ -66,7 +68,7 @@ run('MTG repository bulk operations', () => {
 			'binder 1'
 		);
 
-		snapshot = await modules.bulkMutateInventory(actor, {
+		snapshot = await modules.application.inventory.bulk(actor, {
 			requestId: crypto.randomUUID(),
 			source: 'mobile' as const,
 			game: 'mtg' as const,
@@ -75,7 +77,7 @@ run('MTG repository bulk operations', () => {
 		expect(snapshot.removedEntryIds).toEqual([entryId]);
 
 		await expect(
-			modules.bulkMutateInventory(actor, {
+			modules.application.inventory.bulk(actor, {
 				requestId: crypto.randomUUID(),
 				source: 'mobile',
 				operations: [{ op: 'remove', target: { entryId } }]
@@ -84,14 +86,14 @@ run('MTG repository bulk operations', () => {
 	});
 
 	it('deck bulk add merges same card and role', async () => {
-		const [deck] = await modules.createDeck(actor, {
+		const deck = await modules.application.decks.createDeckRecord(actor, {
 			game: 'mtg' as const,
 			name: 'Test Deck',
 			description: '',
 			format: 'Standard'
 		});
 
-		const cards = await modules.bulkMutateDeckCards(actor, {
+		const cards = await modules.application.decks.bulkMutateDeckCards(actor, {
 			requestId: crypto.randomUUID(),
 			source: 'mobile' as const,
 			game: 'mtg' as const,
@@ -99,17 +101,19 @@ run('MTG repository bulk operations', () => {
 			operations: [deckAddOperation(2), deckAddOperation(3)]
 		});
 
-		expect(await modules.getDeckCardsForDeck(actor, deck.id)).toMatchObject([{ quantity: 5 }]);
+		expect(await modules.application.decks.getDeckCardsForDeck(actor, deck.id)).toMatchObject([
+			{ quantity: 5 }
+		]);
 	});
 
 	it('deck bulk set and remove are scoped to the authenticated account', async () => {
-		const [deck] = await modules.createDeck(actor, {
+		const deck = await modules.application.decks.createDeckRecord(actor, {
 			game: 'mtg' as const,
 			name: 'Scoped Deck',
 			description: '',
 			format: 'Standard'
 		});
-		const cards = await modules.bulkMutateDeckCards(actor, {
+		const cards = await modules.application.decks.bulkMutateDeckCards(actor, {
 			requestId: crypto.randomUUID(),
 			source: 'mobile' as const,
 			game: 'mtg' as const,
@@ -118,35 +122,42 @@ run('MTG repository bulk operations', () => {
 		});
 		const entryId = cards.changes[0].entryId;
 
-		await modules.bulkMutateDeckCards(actor, {
+		await modules.application.decks.bulkMutateDeckCards(actor, {
 			requestId: crypto.randomUUID(),
 			source: 'mobile' as const,
 			game: 'mtg' as const,
 			deckId: deck.id,
 			operations: [{ op: 'set', target: { entryId }, quantity: 1 }]
 		});
-		expect((await modules.getDeckCardsForDeck(actor, deck.id))[0].quantity).toBe(1);
+		expect((await modules.application.decks.getDeckCardsForDeck(actor, deck.id))[0].quantity).toBe(
+			1
+		);
 
 		await expect(
-			modules.removeDeckCard(
+			modules.application.decks.removeDeckCard(
 				{ ...actor, accountId: `other-${accountId}` },
 				entryId,
 				crypto.randomUUID()
 			)
 		).rejects.toMatchObject({ kind: 'Unauthenticated' });
-		expect(await modules.getDeckCardsForDeck(actor, deck.id)).toHaveLength(1);
+		expect(await modules.application.decks.getDeckCardsForDeck(actor, deck.id)).toHaveLength(1);
 	});
 });
 
 async function loadModules() {
-	const [{ db, pool }, schema, inventory, decks] = await Promise.all([
+	const [client, schema, lifetime, state] = await Promise.all([
 		import('../fixtures/database.ts'),
 		import('@spellbook/backend/db/schema.ts'),
-		import('../../src/lib/server/data/inventory'),
-		import('../../src/lib/server/data/decks')
+		createTestApplication(),
+		import('../fixtures/inventory-state.ts')
 	]);
-	const { application } = await import('../../src/lib/server/composition.ts');
-	return { db, pool, application, ...schema, ...inventory, ...decks };
+	return {
+		...client,
+		...schema,
+		...state,
+		application: lifetime.application,
+		close: lifetime.close
+	};
 }
 
 function inventoryAddOperation(cardId: string, quantity: number) {

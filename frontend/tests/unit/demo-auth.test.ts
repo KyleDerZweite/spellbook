@@ -19,7 +19,7 @@ import type { CardDocument } from '../../src/lib/search/types';
 
 it('ships demo card records usable by format checks, including cards without rules text', () => {
 	const cards = JSON.parse(
-		readFileSync(new URL('../../scripts/demo/cards.json', import.meta.url), 'utf8')
+		readFileSync(new URL('../../../backend/scripts/demo/cards.json', import.meta.url), 'utf8')
 	) as CardDocument[];
 	expect(() =>
 		generateLegalityWarnings(

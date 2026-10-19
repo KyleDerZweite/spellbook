@@ -60,8 +60,7 @@
 				finish('Signed in. Opening your account...');
 				window.location.assign(returnTo);
 			} else if (result.status === 'pending') {
-				message =
-					'Waiting for confirmation in your Spellbook app. This code expires in five minutes.';
+				message = 'Waiting for approval...';
 			} else {
 				finish(
 					result.status === 'denied'
@@ -108,8 +107,7 @@
 			link = result.verificationUri;
 			image = rendered;
 			phase = 'pending';
-			message =
-				'Waiting for confirmation in your Spellbook app. This code expires in five minutes.';
+			message = 'Waiting for approval...';
 			schedule();
 		} catch {
 			if (current === generation)
@@ -134,24 +132,18 @@
 	});
 </script>
 
-<section
-	class="qr-sign-in space-y-4"
-	aria-label="Sign in with the app"
-	aria-busy={phase === 'loading'}
->
-	<h2 class="text-xl font-semibold">Sign in with the app</h2>
-	<p class="text-sm text-text-secondary">
-		Already signed in on your phone? Open Spellbook, choose Connect device, then scan and approve
-		this request.
-	</p>
-	{#if image}<img
-			src={image}
-			width="256"
-			height="256"
-			alt="QR code for this sign-in request"
-			class="qr-image"
-		/>{/if}
-	<p class="text-sm text-text-secondary" role="status">{message}</p>
+<section class="qr-sign-in" aria-label="Sign in with the app" aria-busy={phase === 'loading'}>
+	<div class="qr-code" class:empty={!image}>
+		{#if image}<img
+				src={image}
+				width="256"
+				height="256"
+				alt="QR code for this sign-in request"
+				class="qr-image"
+			/>{/if}
+	</div>
+	<h2>Sign in with QR code</h2>
+	<p class="qr-status text-xs text-text-secondary" role="status">{message}</p>
 	{#if phase === 'pending'}
 		<details>
 			<summary>Copy sign-in link instead</summary><input
@@ -169,17 +161,45 @@
 </section>
 
 <style>
+	.qr-sign-in {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.75rem;
+		text-align: center;
+	}
+	.qr-code {
+		width: min(100%, 192px);
+		aspect-ratio: 1;
+		margin-bottom: 0.5rem;
+		border-radius: 0.5rem;
+		overflow: hidden;
+		background: white;
+	}
+	.qr-code.empty {
+		border: 1px dashed var(--color-border);
+		background: var(--color-surface);
+	}
 	.qr-image {
 		display: block;
-		width: min(100%, 256px);
+		width: 100%;
 		height: auto;
-		border-radius: 0.75rem;
-		background: white;
+	}
+	h2 {
+		font-size: 1.125rem;
+		font-weight: 600;
+		line-height: 1.4;
+	}
+	.qr-status {
+		min-height: 2lh;
+	}
+	details {
+		width: 100%;
 	}
 	summary {
 		min-height: 44px;
 		align-content: center;
 		cursor: pointer;
-		font-size: 0.875rem;
+		font-size: 0.75rem;
 	}
 </style>

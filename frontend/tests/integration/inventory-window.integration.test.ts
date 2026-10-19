@@ -199,7 +199,7 @@ run('consistent authorized Inventory windows', () => {
 		const generation = randomUUID(),
 			inactiveGeneration = randomUUID();
 		const docs: CardDocument[] = JSON.parse(
-			await readFile(new URL('../../scripts/demo/cards.json', import.meta.url), 'utf8')
+			await readFile(new URL('../../../backend/scripts/demo/cards.json', import.meta.url), 'utf8')
 		);
 		try {
 			await database.pool.query(

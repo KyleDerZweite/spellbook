@@ -11,6 +11,12 @@ import type { CatalogCandidateInput } from '@spellbook/contracts/catalog.ts';
 import { ValidationError } from '../mtg/validation.ts';
 import { parseCatalogSearchRequest, type CatalogSearchInput } from './query.ts';
 
+export class CatalogPrintingNotFoundError extends ValidationError {
+	constructor() {
+		super('Catalog printing not found');
+	}
+}
+
 interface SearchRow {
 	hits: CardDocument[];
 	total: number;
@@ -247,7 +253,7 @@ export function createCatalog(pool: Pool) {
 			`SELECT p.document FROM catalog_printings p JOIN catalog_state s ON s.id=1 AND s.active_generation=p.generation_id WHERE p.id=$1::uuid`,
 			[uuid(id)]
 		);
-		if (!result.rows[0]) throw new ValidationError('Catalog printing not found');
+		if (!result.rows[0]) throw new CatalogPrintingNotFoundError();
 		return printingDto(result.rows[0].document);
 	}
 
