@@ -84,7 +84,8 @@ export function errorResponse(cause: unknown): Response {
 	try {
 		badRequestIfValidation(cause);
 	} catch (failure) {
-		if (failure instanceof HttpError) return json(failure.body, { status: failure.status });
-		return json({ message: 'Internal Server Error' }, { status: 500 });
+		if (failure instanceof HttpError)
+			return json({ ...failure.body, status: failure.status }, { status: failure.status });
+		return json({ status: 500, message: 'Internal Server Error' }, { status: 500 });
 	}
 }

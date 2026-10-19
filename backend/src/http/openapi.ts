@@ -2292,7 +2292,7 @@ const SCHEMA = {
 					status: { type: 'integer', minimum: 400, maximum: 599 },
 					message: { type: 'string' }
 				},
-				required: ['message']
+				required: ['status', 'message']
 			},
 			CardIdentity: {
 				type: 'object',

@@ -332,6 +332,7 @@ test('safe error codec retains text revisions and null quantity without exposing
 	let response = errorResponse(new NotesConflictError(latest));
 	assert.equal(response.status, 409);
 	assert.deepEqual(await response.json(), {
+		status: 409,
 		kind: 'NotesConflict',
 		message: new NotesConflictError(latest).message,
 		...latest
@@ -340,6 +341,7 @@ test('safe error codec retains text revisions and null quantity without exposing
 	response = errorResponse(new DescriptionConflictError(description));
 	assert.equal(response.status, 409);
 	assert.deepEqual(await response.json(), {
+		status: 409,
 		kind: 'DescriptionConflict',
 		message: new DescriptionConflictError(description).message,
 		...description
@@ -353,8 +355,135 @@ test('safe error codec retains text revisions and null quantity without exposing
 		await errorResponse(
 			Object.assign(new Error('SQL and secret'), { status: 409, kind: 'other' })
 		).json(),
-		{ message: 'Internal Server Error' }
+		{ status: 500, message: 'Internal Server Error' }
 	);
+});
+
+test('HTTP error wire status comes from the response status and cannot be replaced by body fields', async () => {
+	for (const status of [400, 401, 403, 404, 409, 413, 415, 429, 503]) {
+		const response = errorResponse(
+			new HttpError(status, { status: 200, message: 'Public failure', kind: 'Known' })
+		);
+		assert.equal(response.status, status);
+		assert.deepEqual(await response.json(), { status, message: 'Public failure', kind: 'Known' });
+	}
+});
+
+test('all web v1 responses disable caching across successful commands, auth, decoding and server failures', async (t) => {
+	const { dependencies } = fixture();
+	const description = { description: 'saved', descriptionRevision: '18' };
+	const handle = createRouter(
+		[
+			{
+				method: 'POST',
+				path: '/api/web/v1/commands',
+				async handle(context) {
+					await requireMobileAuth(context, dependencies);
+					const input = await readJsonObject(context.request);
+					if (input.operation === 'conflict') throw new DescriptionConflictError(description);
+					if (input.operation === 'unavailable') throw new Error('Private infrastructure detail');
+					return json(
+						{ requestId: 'original-receipt' },
+						{ headers: { 'Cache-Control': 'public, max-age=3600' } }
+					);
+				}
+			}
+		],
+		dependencies
+	);
+	const server = createNodeHttpServer(
+		{ handle, async closeStreams() {} },
+		{ publicOrigin: origin }
+	);
+	t.after(() => server.close());
+	const address = await server.listen(0);
+	const base = `http://127.0.0.1:${address.port}`;
+	for (const scenario of [
+		{ headers: bearer, body: '{}', status: 200, expected: { requestId: 'original-receipt' } },
+		{
+			headers: {},
+			body: '{}',
+			status: 401,
+			expected: { status: 401, message: 'Authentication required' }
+		},
+		{
+			headers: bearer,
+			body: '{',
+			status: 400,
+			expected: { status: 400, message: 'Invalid JSON body' }
+		},
+		{
+			headers: bearer,
+			body: '{"operation":"conflict"}',
+			status: 409,
+			expected: {
+				status: 409,
+				kind: 'DescriptionConflict',
+				message: new DescriptionConflictError(description).message,
+				...description
+			}
+		},
+		{
+			headers: bearer,
+			body: '{"operation":"unavailable"}',
+			status: 500,
+			expected: { status: 500, message: 'Internal Server Error' }
+		}
+	]) {
+		const response = await fetch(`${base}/api/web/v1/commands`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json', ...scenario.headers },
+			body: scenario.body
+		});
+		assert.equal(response.status, scenario.status);
+		assert.equal(response.headers.get('cache-control'), 'no-store');
+		assert.deepEqual(await response.json(), scenario.expected);
+	}
+	for (const path of ['/api/web/v1', '/api/web/v1/not-registered']) {
+		const response = await fetch(`${base}${path}`);
+		assert.equal(response.status, 404);
+		assert.equal(response.headers.get('cache-control'), 'no-store');
+	}
+});
+
+test('new Printing read failures disable caching without changing legacy Catalog alias failures', async () => {
+	const { dependencies } = fixture();
+	const handle = createRouter(
+		[
+			{
+				method: 'GET',
+				path: '/api/catalog/printings/:printingId',
+				async handle(context) {
+					requireUuid(context.params.printingId, 'printingId');
+					if (context.params.printingId !== user.accountId) error(404, 'Printing not found');
+					return json({ id: context.params.printingId });
+				}
+			},
+			...['/api/catalog/search', '/api/catalog/cards/:oracleId/printings'].map((path) => ({
+				method: 'GET',
+				path,
+				async handle() {
+					error(400, 'Invalid query');
+				}
+			}))
+		],
+		dependencies
+	);
+	for (const [id, status] of [
+		[user.accountId, 200],
+		['00000000-0000-4000-8000-000000000002', 404],
+		['invalid', 400]
+	] as const) {
+		const response = await handle(request(`/api/catalog/printings/${id}`), metadata);
+		assert.equal(response.status, status);
+		assert.equal(response.headers.get('cache-control'), 'no-store');
+		if (status !== 200) assert.equal((await response.json()).status, status);
+	}
+	for (const path of ['/api/catalog/search', `/api/catalog/cards/${user.accountId}/printings`]) {
+		const response = await handle(request(path), metadata);
+		assert.equal(response.status, 400);
+		assert.equal(response.headers.get('cache-control'), null);
+	}
 });
 
 test('registry retains all 16 methods in this slice and public-origin validation is strict', () => {

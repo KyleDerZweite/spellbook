@@ -11,10 +11,8 @@ function cachePolicy(path: string): string | undefined {
 	)
 		return 'private, no-store';
 	if (path.startsWith('/api/auth/') || path.startsWith('/api/account/')) return 'no-store';
-	if (
-		['/api/web/v1/auth/login', '/api/web/v1/auth/register', '/api/web/v1/password'].includes(path)
-	)
-		return 'no-store';
+	if (path === '/api/web/v1' || path.startsWith('/api/web/v1/')) return 'no-store';
+	if (path.startsWith('/api/catalog/printings/')) return 'no-store';
 	return undefined;
 }
 

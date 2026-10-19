@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { openapi } from '../src/http/openapi.ts';
 import { PROFILE_ARTWORK_IDS, PROFILE_AVATAR_IDS } from '@spellbook/contracts/profile.ts';
+import { errorResponse, HttpError } from '../src/http/errors.ts';
+import { DescriptionConflictError } from '../src/transport.ts';
 
 test('the API schema preserves 82 legacy methods and documents the six new methods', () => {
 	const schema = openapi('https://spellbook.example');
@@ -112,10 +114,32 @@ test('three fixed web form routes preserve form media types, Origin and safe res
 	assert.equal(methods.length, 95);
 });
 
-test('public errors require only the actual message and retain optional legacy status', () => {
+test('public error schema requires status and message from the serialized HTTP response', async () => {
 	const schema = openapi('https://spellbook.example');
-	assert.deepEqual(schema.components.schemas.ErrorResponse.required, ['message']);
+	assert.deepEqual(schema.components.schemas.ErrorResponse.required, ['status', 'message']);
 	assert.equal(schema.components.schemas.ErrorResponse.properties.status.type, 'integer');
 	assert.equal('additionalProperties' in schema.components.schemas.ErrorResponse, false);
 	assert.ok(schema.paths['/api/auth/register'].post.responses[201]);
+	const latest = { description: 'Saved description', descriptionRevision: '7' };
+	for (const cause of [
+		new HttpError(400, { message: 'Invalid query' }),
+		new DescriptionConflictError(latest),
+		new Error('Private database failure')
+	]) {
+		const response = errorResponse(cause);
+		const wire = await response.json();
+		for (const required of schema.components.schemas.ErrorResponse.required)
+			assert.ok(required in wire);
+		assert.equal(wire.status, response.status);
+		assert.equal(typeof wire.message, 'string');
+		if (response.status === 409)
+			assert.deepEqual(wire, {
+				status: 409,
+				kind: 'DescriptionConflict',
+				message: cause.message,
+				...latest
+			});
+		if (response.status === 500)
+			assert.deepEqual(wire, { status: 500, message: 'Internal Server Error' });
+	}
 });
