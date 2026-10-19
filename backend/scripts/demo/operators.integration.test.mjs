@@ -164,7 +164,11 @@ test(
 			);
 			// Percent-encoded database names resolve to this assigned database without a Demo suffix match.
 			const recoveryUrl = new URL(url);
-			recoveryUrl.pathname = recoveryUrl.pathname.slice(0, -1) + '%6e';
+			const databasePath = recoveryUrl.pathname;
+			recoveryUrl.pathname =
+				databasePath.slice(0, -1) +
+				`%${databasePath.charCodeAt(databasePath.length - 1).toString(16)}`;
+			assert.equal(decodeURIComponent(recoveryUrl.pathname), databasePath);
 			const password = 'native-recovery-password';
 			const recovered = await cli(
 				'scripts/set-local-password.mjs',
