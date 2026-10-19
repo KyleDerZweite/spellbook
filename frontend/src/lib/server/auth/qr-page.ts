@@ -1,7 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { validQrCredential } from '@spellbook/contracts/auth.ts';
-import { QrAuthError } from '@spellbook/backend/transport.ts';
+import { QrAuthError } from '#lib/server/remote/errors.ts';
 import { application } from '#lib/server/composition.ts';
 import { requireSameOrigin } from '#lib/server/auth/local.ts';
 import { SESSION_COOKIE } from './session.ts';

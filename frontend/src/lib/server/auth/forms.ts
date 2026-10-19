@@ -1,10 +1,9 @@
 import { fail, redirect, type RequestEvent } from '@sveltejs/kit';
-import { authenticate, requireSameOrigin, sanitizeReturnTo, takeAuthAttempt } from './local';
+import { authenticate, requireSameOrigin, sanitizeReturnTo } from './local';
 import { revokeSession, SESSION_COOKIE, writeSessionCookie } from './session';
 
 export async function submitAuthForm(event: RequestEvent, mode: 'login' | 'register') {
 	requireSameOrigin(event);
-	takeAuthAttempt(event.getClientAddress());
 	const data = await event.request.formData();
 	const username = data.get('username');
 	const artworkId = data.get('artworkId');

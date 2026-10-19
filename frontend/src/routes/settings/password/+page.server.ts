@@ -2,7 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { changePassword } from '#lib/server/auth/change-password.ts';
 import { demoMode } from '#lib/server/auth/demo.ts';
-import { requireSameOrigin, takeAuthAttempt } from '#lib/server/auth/local.ts';
+import { requireSameOrigin } from '#lib/server/auth/local.ts';
 import { validPassword } from '#lib/server/auth/password.ts';
 import { writeSessionCookie } from '#lib/server/auth/session.ts';
 
@@ -22,7 +22,6 @@ export const actions: Actions = {
 				message: 'Password changes are disabled in demo mode.',
 				errors
 			});
-		takeAuthAttempt(event.getClientAddress());
 		const form = await event.request.formData();
 		const currentPassword = form.get('currentPassword');
 		const newPassword = form.get('newPassword');
