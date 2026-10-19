@@ -37,7 +37,7 @@
 		"operator:password": "node --env-file-if-exists=../.env scripts/set-local-password.mjs",
 		"demo:seed": "node --env-file-if-exists=../.env scripts/demo/seed.mjs",
 		"demo:replace-inventory": "node --env-file-if-exists=../.env scripts/demo/replace-inventory.mjs",
-		"test:native": "node --import ./scripts/register-types.mjs --test tests/*.test.ts scripts/*.test.mjs scripts/demo/*.test.mjs",
+		"test:native": "node --import ./scripts/register-types.mjs --test --test-concurrency=1 tests/*.test.ts scripts/*.test.mjs scripts/demo/*.test.mjs",
 		"test:unit": "vitest run --passWithNoTests"
 	}
 }
