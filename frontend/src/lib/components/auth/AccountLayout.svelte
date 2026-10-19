@@ -8,7 +8,7 @@
 <div class="account-layout" class:with-aside={!!aside}>
 	<section class="account-form">
 		<div class="account-heading">
-			<img src={asset('logo.webp')} alt="" width="64" height="64" />
+			{#if !aside}<img src={asset('logo.webp')} alt="" width="64" height="64" />{/if}
 			<h1>{title}</h1>
 		</div>
 		{@render children()}
@@ -18,26 +18,30 @@
 
 <style>
 	.with-aside {
-		max-width: 880px;
+		max-width: 848px;
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		grid-template-columns: minmax(0, 1fr) 240px;
 		gap: 3rem;
 		align-items: center;
+		padding: 2rem;
+		border: 1px solid var(--color-border);
+		border-radius: 1rem;
+		background: var(--color-card);
 	}
+	.account-form,
 	.account-aside {
-		border-left: 1px solid var(--color-border);
-		padding-left: 3rem;
+		min-width: 0;
 	}
 	@media (max-width: 700px) {
 		.with-aside {
 			grid-template-columns: minmax(0, 1fr);
 			gap: 2rem;
 			max-width: 480px;
+			padding: 1.5rem;
 		}
 		.account-aside {
-			border-left: 0;
 			border-top: 1px solid var(--color-border);
-			padding: 2rem 0 0;
+			padding-top: 1.5rem;
 		}
 	}
 	.account-heading {

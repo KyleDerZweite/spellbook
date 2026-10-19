@@ -1,9 +1,9 @@
 # UI design direction
 
 - Status: Canonical
-- Last Reviewed: 2026-10-17
+- Last Reviewed: 2026-10-19
 - Source of Truth: accepted product requirements, application components, selected logo and component choices
-- Update Triggers: PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
+- Update Triggers: combined password and QR sign-in card, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
 - Related Docs: [Product specification](./specification.md), [Routes](./routing-and-games.md), [Domain model](../../GLOSSARY.md), [Selected UI components](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Brand assets](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Value tracking](./value-tracking.md)
 
 Spellbook prioritizes digitizing, indexing and managing a player's own Magic cards, then building decks from that collection. Public search, owned Inventory and Deck editing support this focus. Scan upload/review remains retained compatibility behavior with its presentation paused. Card artwork and working content establish the visual identity. Neutral dark and light surfaces, grayscale controls, colored navigation icons, and separate display and monospace interface fonts support that content. [ADR-0011](../decisions/0011-collector-workspace-design.md) records the decision.
@@ -11,6 +11,8 @@ Spellbook prioritizes digitizing, indexing and managing a player's own Magic car
 Kyle accepted the current Home and Settings design on 2026-10-06. Use these areas as references for the remaining workspaces. A subsequent targeted follow-up replaces the profile-card frame with the regular transparent assets loaded by [CardCraft](https://mtg-card-maker.herokuapp.com/) and supplies a clearer Demo card. Home and the remaining Settings layout retain their accepted design.
 
 ## Current refinement direction
+
+On 2026-10-19, Kyle selected Discord's compact combined sign-in composition as a layout reference. Desktop sign-in uses one shared card with a wider password form on the left and a centered QR code above its heading on the right. Omit explanatory sign-in prose; retain concise status and recovery controls. Narrow layouts stack the password form before QR sign-in. Keep Spellbook's semantic palette, fonts and controls, and the existing password and explicit approval flows. Registration and approval retain their narrow account layout.
 
 A later UI polishing pass should review almost every interface except the public landing page. This broader pass is deferred and does not replace the existing component, action, browsing or dialog contracts below. The [Wayfinder map](https://github.com/KyleDerZweite/spellbook/issues/194) owns its scope question and follow-up decisions.
 
