@@ -4,6 +4,7 @@ import type { Application } from '../application.ts';
 export interface HttpDependencies {
 	application: Application;
 	publicOrigin: string;
+	demoMode?: boolean;
 }
 
 export interface HttpRequestMetadata {
