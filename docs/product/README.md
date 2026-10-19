@@ -12,7 +12,7 @@ Product docs describe Spellbook's requirements, behavior, and user-facing langua
 - [Domain model](../../GLOSSARY.md) owns card, inventory, deck, availability, and review terminology.
 - [Routes](./routing-and-games.md) lists implemented pages, API paths, and compatibility redirects.
 - [UI design direction](./ui-design-direction.md) owns interaction patterns, component choices, and visual requirements.
-- [Website and Android design handoff](./mobile-app-exploration.md) links the Spellbook and Cardstation Figma files, core journeys, revised independent-client direction and remaining implementation decisions.
+- [Website and Android design handoff](./mobile-app-exploration.md) links the Spellbook and Cardstation Figma files, source-backed mobile redesign, guest/account journeys, separate Android-client direction and remaining implementation decisions.
 - [Card grouping](./card-grouping.md) owns Inventory groups and their memberships, implemented starter primary Deck Entry Categories, account rules and entry Review/Reset, and later whole-deck category design.
 - [Value tracking](./value-tracking.md) owns current Scryfall/optional references, public source history and product-link presentation and implemented value-only daily Inventory history and selected-Deck estimates. [Market price research](../integrations/market-prices.md) owns provider facts and evaluation.
 

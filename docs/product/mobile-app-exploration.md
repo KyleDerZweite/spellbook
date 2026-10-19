@@ -1,51 +1,46 @@
 # Spellbook website and Android design handoff
 
-- Status: Design scaffold; independent Android direction selected for exploration, framework and implementation pending
+- Status: Revised design proposal; separate Android application selected, maintainer acceptance and native implementation pending
 - Last Reviewed: 2026-10-19
-- Source of Truth: maintainer's revised Android direction, linked Figma files, website artifact `903b427`, routes and shared API contracts
-- Update Triggers: Figma flow review, native framework selection, API parity, camera/recognition or Cardstation contracts
+- Source of Truth: maintainer's revised Android direction, inspected first-party app images, linked Figma files, website artifact `903b427` and shared API contracts
+- Update Triggers: mobile visual/flow review, framework selection, API parity, native session lifecycle, camera/recognition or Cardstation contracts
 - Related Docs: [UI direction](./ui-design-direction.md), [Routes](./routing-and-games.md), [Mobile and Scan](../architecture/mobile-and-scan.md), [Auth](../architecture/auth.md), [Client evaluation](../integrations/scanner-platform-evaluation.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Product index](./README.md)
 
-The maintainer rejected the earlier PWA-first recommendation and requested a complete website/Android flow scaffold. Design an independent Android app against the shared backend. A failed browser benchmark is not a prerequisite for that product choice. The earlier six-screen PWA exploration is replaced by this handoff; production PWA routes remain implemented.
+The maintainer selected a separate Android application with its own UI and lifecycle against the shared backend. The first mobile visual scaffold was rejected on 2026-10-19. It is not the current design direction. The replacement uses actual mobile-app references, artwork, a useful Dashboard-like Home, public Search and contextual sign-in. The implemented PWA is not the future app design.
 
-## Figma workspaces
+## Figma files and review
 
-| File                                                                                     | Scope                                                                                                      |
-| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| [Spellbook](https://www.figma.com/design/aKZ8f01JvXu68PAOIeevbw?node-id=14-2)            | Cross-client overview, existing website references, independent Android journeys, foundations and handoff. |
-| [Spellbook Cardstation](https://www.figma.com/design/mvLCjFJobIjv1gPKOi6b31?node-id=2-2) | Short handoff and one real website Dashboard reference only. Machine UI and flows stay open.               |
+| File                                                                                     | Scope                                                                                                                                                           |
+| ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Spellbook](https://www.figma.com/design/aKZ8f01JvXu68PAOIeevbw?node-id=42-2)            | Visual overview, revised Android prototype, source references and implementation handoff. Existing website captures remain a separate implementation inventory. |
+| [Spellbook Cardstation](https://www.figma.com/design/mvLCjFJobIjv1gPKOi6b31?node-id=2-2) | Only the real public Landing page and a short handoff. The unfinished Dashboard is not its design reference.                                                    |
 
-Start on `00 Übersicht` for the cross-client map and journey index. Open [the Android prototype](https://www.figma.com/proto/aKZ8f01JvXu68PAOIeevbw?node-id=7-15&page-id=3%3A61&starting-point-node-id=7%3A15&scaling=scale-down) to follow entry and account setup. The other seven flow starts are on `02 Android-Flows`; `03 Website-Referenz` contains the current website.
+Start at `00 Übersicht`, then open the current Android journey. The earlier mobile page is marked rejected. Website typography and routes remain unchanged. Marcellus, IBM Plex Mono and neutral surfaces preserve the brand; the app has its own navigation and composition. Sample data and technical notes belong outside phone screens.
 
-Website references are ten real Demo snapshots at 1440×1000, including light/dark Dashboard, landing, login, Search, Inventory, Deck library/editor, Categories and Settings. They preserve the current website rather than approving a redesign. Mobile frames use Spellbook's Marcellus/IBM Plex Mono and neutral palette with their own navigation and task composition.
+![Revised Android Home, Search, Inventory and contextual Login exported from Figma.](./assets/mobile-app-exploration.png)
 
-![Representative Android entry and Overview frames exported from Figma.](./assets/mobile-app-exploration.png)
+## Visible references
 
-This image shows one journey; the linked Figma file owns the complete design scaffold.
+| Inspected first-party source                                                                       | Adapted pattern                                                            |
+| -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| [Letterboxd Android](https://letterboxd.com/crew/story/huge-update-to-our-android-app-is-out-now/) | Large artwork, neutral dark chrome and readable image grids.               |
+| [ManaBox](https://www.manabox.app/)                                                                | Compact Inventory/Box rows with artwork, counts and adjacent search.       |
+| [Pocket Casts Search](https://blog.pocketcasts.com/2025/11/18/search/)                             | Persistent search, one filter row and concise image/name/metadata results. |
 
-## Flow coverage
+The downloaded product images establish visible design, not conversion or Spellbook usability. Competitor branding, markets, physical-storage semantics and social features are not adopted. Android onboarding illustrations are guidance, not verified real-app login screenshots.
 
-| Journey           | Mobile design scope and existing counterpart                                                                                                                                   |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Entry/account     | Welcome, instance/account entry, login/register and Overview. Website routes and bearer auth exist; native integration is new.                                                 |
-| Find/use a card   | Search, filters, exact Printing details, explicit Inventory or Deck target. Both website Add actions exist.                                                                    |
-| Inventory         | List, edit, Boxes, values/history and import review. Boxes are groups. Text import exists in the API, without a website import dialog; no Inventory-export feature is claimed. |
-| Decks             | Library, creation/metadata, editor, import and Arena export. Keep owned quantities separate from Deck requirements.                                                            |
-| Categories        | Library, criteria and explicit Review/Reset. Entry and whole-deck scopes remain distinct.                                                                                      |
-| Account/settings  | Profile, Profile Card, appearance, password/session state and logout. No invented email-reset or device-management API.                                                        |
-| QR authorization  | Scan/manual input, explicit account/instance review, approve/deny and expiry/retry. Approval permits one-use sign-in; requester redemption creates the session.                |
-| Future extensions | Single-card capture, local recognition, review and authorized save. Cardstation phone status is an identified contract gap, not working synchronization.                       |
+## Main journeys
 
-The scaffold has 34 editable phone frames across eight journeys, plus linked selection, confirmation and recovery panels. These are design/prototype states with sample data. They establish no Android build, live authentication, camera or recognition evidence. Prototype error variants have separate review-board entry points. Dynamic forms, conflict handling and native lifecycle need detailed acceptance before implementation.
+Home, Search, Inventory and Decks are four stable destinations. The signed-in Home shows owned copies, Canonical-card counts, exact/alternate/missing Deck requirements and recently edited cards. A guest gets usable Catalog content and Search. No invented trends or gains appear. Account actions and QR authorization sit behind the avatar.
 
-## App choice and actual effort
+Search and Printing details remain public. A guest selects a Printing and prepares Quantity, Finish and Condition. Save opens Login or Registration. Success returns to the same unsaved draft; the user confirms Save explicitly. Cancel retains the public context. Direct Login opens Home; an explicitly requested private destination resumes that destination. Login never creates an Inventory entry. Invalid credentials and failed or unconfirmed saves retain their inputs. [Android onboarding](https://developer.android.com/design/ui/mobile/guides/patterns/onboarding) and [conditional navigation](https://developer.android.com/guide/navigation/use-graph/conditional) inform this proposal.
 
-Recommend [Kotlin/Jetpack Compose](https://developer.android.com/develop/ui/compose/documentation) for Android-first independent UI, with [CameraX](https://developer.android.com/media/camera/camerax/analyze) as a capture/analysis candidate. Framework selection remains open. A separate [Svelte/Capacitor client](https://capacitorjs.com/docs) is a fair alternative with a dedicated mobile UI, native adapters and bundled assets. Existing SvelteKit server loads/actions do not run inside that client.
+Deck quantities remain requirements, Inventory quantities remain ownership, and Boxes remain groups. QR requires explicit account/instance approval; requester redemption creates the ordinary session. It is not machine enrollment or synchronization. Camera permission belongs at the scan action. Local recognition and Jetson-owned Cardstation execution follow [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md).
 
-A starter and one complete vertical slice are bounded work. Full parity also needs native DTO/HTTP integration, Back/process-restart behavior, secure session storage and QR/App Links. Much of the backend already exists. An individual Printing lookup is internal today but lacks a matching standalone GET in OpenAPI. Existing-entry PATCH changes Quantity/Notes; changing Printing/Finish/Condition needs a separate identity rule. Local recognition/reference assets, offline writes and Cardstation enrollment/jobs/sync require separate contracts. No duration estimate or production recognizer is established here.
+## Implementation handoff
 
-## Review and next handoff
+Recommend [Kotlin/Jetpack Compose](https://developer.android.com/develop/ui/compose/documentation) for Android-first UI, with [CameraX](https://developer.android.com/media/camera/camerax/analyze) as a later capture candidate. Framework selection remains open. The first native slice should cover public Search, exact Printing, contextual Login and acknowledged Inventory addition visible on the website.
 
-Walk through first login, Search-to-Inventory, Deck editing, QR approval and future capture/review/save. Check Back/Cancel, empty/pending/error states, expiry, denied camera, large text and saved-versus-retried changes. Prototype navigation is not product validation.
+The API already supports much of the product. A public single-Printing GET by Printing ID, native session storage/App Links/lifecycle, local reference assets, offline writes and device jobs/sync need separate reviewed contracts. Existing-entry PATCH changes Quantity/Notes; changing Printing/Finish/Condition needs a separate identity rule. Keep [auth authority](../architecture/auth.md) and [Inventory/Deck/category contracts](../architecture/mobile-and-scan.md) in the shared backend.
 
-After flow review, the recommended first native slice is login, Catalog search, exact Printing selection and an acknowledged Inventory add visible on the website. Keep account authority, revisions and mutation replay in the existing backend. Native client state and encrypted token storage need a reviewed interface; [Keystore](https://developer.android.com/privacy-and-security/keystore) protects encryption keys, not a server-side refresh-token mechanism. Recognition remains local under [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), and Cardstation execution remains on Jetson. No production-code implementation starts from this scaffold alone.
+The Figma fields and responses simulate fixture states. Rendered Dark Mode and prototype reactions do not establish native forms, keyboard/Back behavior, Light Mode, real authentication, physical-phone capture or recognition. Product acceptance and native implementation remain separate work.

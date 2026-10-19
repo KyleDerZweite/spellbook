@@ -8,7 +8,7 @@
 
 ## Mobile UX follow-up, 2026-10-19
 
-The maintainer rejected the PWA-first research recommendation and commissioned independent Android app design with a complete website/mobile Figma flow scaffold. [The design handoff](../product/mobile-app-exploration.md) records that direction, the Compose recommendation and still-open framework selection. A separate mobile UX is a valid product reason; a browser benchmark failure is not a prerequisite. Earlier platform facts remain comparison evidence rather than a requirement to retain PWA. The implemented PWA/QR behavior and local-recognition decision are preserved. Separate Android/Brave emulator evidence in [PR 231](https://github.com/KyleDerZweite/spellbook/pull/231) establishes neither physical Honor compatibility nor a native app.
+The maintainer rejected the PWA-first research recommendation and selected a separate Android application against the shared backend, with a complete website/mobile Figma flow scaffold. [The design handoff](../product/mobile-app-exploration.md) records that direction, the Compose recommendation and still-open framework selection. A separate mobile UX is a valid product reason; a browser benchmark failure is not a prerequisite. Earlier platform facts remain comparison evidence rather than a requirement to retain PWA. The implemented PWA/QR behavior and local-recognition decision are preserved. Separate Android/Brave emulator evidence in [PR 231](https://github.com/KyleDerZweite/spellbook/pull/231) establishes neither physical Honor compatibility nor a native app.
 
 ## Implementation update, 2026-10-17
 
