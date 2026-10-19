@@ -3,14 +3,14 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-19
 - Source of Truth: code and explicitly marked accepted design
-- Update Triggers: backend language and worker layout evaluation, independent API/web ownership and relocated code references, schema changes, repository changes, auth flow changes, worker flow changes, service boundaries and reviewed module contracts
-- Related Docs: [System Overview](./system-overview.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Worker](./worker.md), [Catalog](./catalog.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Docs Index](../README.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Category rules](./category-rules.md), [Independent applications](./independent-applications.md), [Backend language evaluation](../integrations/backend-language-evaluation.md)
+- Update Triggers: Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, schema changes, repository changes, auth flow changes, worker flow changes, service boundaries and reviewed module contracts
+- Related Docs: [System Overview](./system-overview.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Worker](./worker.md), [Catalog](./catalog.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Docs Index](../README.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Category rules](./category-rules.md), [Independent applications](./independent-applications.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md)
 
 Architecture documents distinguish implemented boundaries from explicitly marked accepted designs and proposals.
 Use the product specification for requirements and current workflow scope.
 
 [Independent applications](./independent-applications.md) owns the integrated Node HTTP extraction, remote web adapter and first native Android slice; native target acceptance remains pending.
-[Backend language evaluation](../integrations/backend-language-evaluation.md) compares future API languages and worker grouping without selecting a rewrite.
+[ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for the future API and workers; [the evaluation](../integrations/backend-language-evaluation.md) records tradeoffs and pending migration design.
 
 | Owner                                                     | Subject                                                                                                                                                                                                                                                                                                                                                                                        |
 | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

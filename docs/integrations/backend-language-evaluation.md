@@ -1,18 +1,18 @@
 # Backend language and worker layout evaluation
 
-- Status: Proposed, language and migration undecided
+- Status: Python selected, migration design pending
 - Last Reviewed: 2026-10-19
 - Source of Truth: current implementation and linked primary-source research
-- Update Triggers: backend language selection, worker ownership, schema generation, representative measurements
-- Related Docs: [Independent applications](../architecture/independent-applications.md), [Application contract](../architecture/application-contract.md), [Worker](../architecture/worker.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Verification](../operations/github-automation.md), [Decision issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
+- Update Triggers: Python API/worker language selection and migration planning, backend language selection, worker ownership, schema generation, representative measurements
+- Related Docs: [Independent applications](../architecture/independent-applications.md), [Application contract](../architecture/application-contract.md), [Worker](../architecture/worker.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Verification](../operations/github-automation.md), [Decision issue 211](https://github.com/KyleDerZweite/spellbook/issues/211), [Python direction](../decisions/0025-python-api-and-workers.md)
 
-## Recommendation
+## Selected direction
 
-Evaluate a Go API with Python workers first.
-Prefer a Python API if shared Python expertise and maintenance outweigh introducing Go.
-Consider Rust when a specific resource or safety requirement justifies its ownership and async complexity.
-This ranking is an engineering judgment, not a benchmark result or accepted migration.
-The maintainer wants to replace backend TypeScript long term; language and schedule remain open in [issue 211](https://github.com/KyleDerZweite/spellbook/issues/211).
+The maintainer selected Python for both the future HTTP API and server workers in [ADR-0025](../decisions/0025-python-api-and-workers.md).
+The new constraint is one server language, choosing between Go and Python.
+Python retains the existing workers; Go for both would also require porting or replacing them.
+This maintenance tradeoff supersedes the earlier Go-API/Python-worker recommendation.
+Framework, migration boundary and schedule remain open in [issue 211](https://github.com/KyleDerZweite/spellbook/issues/211).
 
 The baseline is the independent TypeScript/Node API, SvelteKit website and Kotlin/Compose app.
 Catalog ingestion already uses Python; the Scan worker returns `no_match` and implements no recognition.
@@ -20,12 +20,12 @@ No measured API capacity failure establishes a need to rewrite.
 
 ## Tradeoffs for Spellbook
 
-| Candidate       | Useful properties                                                                                                 | Cost or limitation                                                                                                                                                      |
-| --------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| TypeScript/Node | Existing use cases, tests, Drizzle queries and shared validators; retaining it avoids a port.                     | TypeScript types do not validate network input. CPU work needs isolation from the event loop. It does not meet the maintainer's preferred long-term language direction. |
-| Go              | Compiled service, standard HTTP streaming and request contexts, goroutines for concurrent I/O and multicore work. | Adds a language beside Python; domain logic, SQL adapters and validators still need porting. Cancellation, limits and transaction cleanup remain explicit.              |
-| Python          | Existing worker expertise, FastAPI/Psycopg ecosystem, proximity to scientific tooling.                            | Blocking calls in async handlers block progress; CPU-heavy Python needs deliberate isolation. Multiple server processes multiply pools, listeners and memory.           |
-| Rust            | Safe Rust checks memory access and thread sharing; axum/Tokio and SQLx support typed concurrent services.         | Ownership, cancellation and build/schema tooling add learning and maintenance work. Memory safety does not bound queues or prove business correctness.                  |
+| Candidate                              | Useful properties                                                                                                 | Cost or limitation                                                                                                                                                      |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TypeScript/Node                        | Existing use cases, tests, Drizzle queries and shared validators; retaining it avoids a port.                     | TypeScript types do not validate network input. CPU work needs isolation from the event loop. It does not meet the maintainer's preferred long-term language direction. |
+| Go                                     | Compiled service, standard HTTP streaming and request contexts, goroutines for concurrent I/O and multicore work. | A Go-only target also needs a worker port. Domain logic, SQL adapters and validators need porting. Cancellation, limits and transaction cleanup remain explicit.        |
+| Python                                 | Existing worker expertise, FastAPI/Psycopg ecosystem, proximity to scientific tooling.                            | Blocking calls in async handlers block progress; CPU-heavy Python needs deliberate isolation. Multiple server processes multiply pools, listeners and memory.           |
+| Rust, excluded from the current choice | Safe Rust checks memory access and thread sharing; axum/Tokio and SQLx support typed concurrent services.         | Ownership, cancellation and build/schema tooling add learning and maintenance work. Memory safety does not bound queues or prove business correctness.                  |
 
 [Node's event-loop guidance](https://nodejs.org/en/learn/asynchronous-work/dont-block-the-event-loop) applies to the current baseline.
 [Go HTTP](https://pkg.go.dev/net/http#ResponseController) and [goroutines](https://go.dev/doc/effective_go#goroutines) suit the extracted service boundary.
@@ -37,7 +37,8 @@ Optional [free-threaded Python](https://docs.python.org/3/howto/free-threading-p
 
 ## Proposed ownership
 
-Group server code under `backend/`, independently of language:
+Group the Python API and server workers under `backend/` as selected in ADR-0025.
+The exact package layout remains proposed:
 
 ```text
 backend/
@@ -62,5 +63,5 @@ Generated TypeScript/Kotlin clients require compatibility tests.
 After grilling criteria and explicitly authorizing an experiment, compare one bounded read, one receipt mutation/readback and SSE against Node using the same PostgreSQL data, SQL and limits.
 Exercise lost responses, replay conflicts, QR races, revocation, rollback, slow consumers and native/enhanced web forms.
 Measure p95/p99, RSS/CPU, connections, build/CI time and change effort.
-Agree rejection criteria, staged ownership and rollback before choosing a language or preparing implementation tickets.
+Agree migration rejection criteria, staged ownership and rollback before preparing implementation tickets.
 No prototype, rewrite, worker move or benchmark was performed for this research.

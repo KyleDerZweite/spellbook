@@ -3,8 +3,8 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-19
 - Source of Truth: code and explicitly marked design requirements
-- Update Triggers: backend language and worker layout evaluation, independent web/backend/Android deployment direction, same-origin PWA delivery and shared QR account-session API, service boundaries, application and operator resource ownership, topology, authentication, data ownership, runtime allocation, hosted capacity requirements, frontend/backend separation, cross-client synchronization and public reference publication, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, proposed Python/OpenAPI and worker ownership evaluation
-- Related Docs: [Architecture](./README.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Worker](./worker.md), [Auth](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Android design handoff](../product/mobile-app-exploration.md), [Deployment](../operations/deployment.md), [Realtime backend evaluation](../integrations/realtime-backends.md), [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md), [Accepted application contract](./application-contract.md), [Valuation](./valuation.md), [Category rules](./category-rules.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Independent applications](./independent-applications.md), [Backend language evaluation](../integrations/backend-language-evaluation.md)
+- Update Triggers: Python API/worker language selection and migration planning, independent web/backend/Android deployment direction, same-origin PWA delivery and shared QR account-session API, service boundaries, application and operator resource ownership, topology, authentication, data ownership, runtime allocation, hosted capacity requirements, frontend/backend separation, cross-client synchronization and public reference publication, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, proposed Python/OpenAPI and worker ownership evaluation
+- Related Docs: [Architecture](./README.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Worker](./worker.md), [Auth](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Android design handoff](../product/mobile-app-exploration.md), [Deployment](../operations/deployment.md), [Realtime backend evaluation](../integrations/realtime-backends.md), [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md), [Accepted application contract](./application-contract.md), [Valuation](./valuation.md), [Category rules](./category-rules.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Independent applications](./independent-applications.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md)
 
 Spellbook has an independent SvelteKit web runtime and TypeScript/Node API.
 The API owns Auth, Profile, Dashboard, Catalog, Inventory/Groups, Deck, Valuation, Scan and SavedState use cases.
@@ -113,7 +113,7 @@ Android source integration is complete; native device and final cross-client tar
 Worker packages retain Catalog/price publication and scan responsibilities.
 A wholesale directory rename or new monorepo orchestrator is not required.
 
-The selected implementation extracts the current TypeScript backend, keeping a possible Go/Python rewrite separate.
+The selected implementation extracts the current TypeScript backend; [ADR-0025](../decisions/0025-python-api-and-workers.md) separately selects Python for the future API and workers.
 The HTTP host owns session authentication and backend use cases.
 SvelteKit retains SSR, native forms and browser cookies, forwarding session credentials through HTTP and preserving public same-origin API paths through the proxy.
 Serialized actor DTOs do not carry authority; the API must reauthenticate credentials.
@@ -127,10 +127,10 @@ Verify real HTTP/PostgreSQL, web SSR/forms, retries and two-process saved-state 
 The [reviewed implementation contract](./independent-applications.md) owns extraction interfaces and acceptance.
 Language migration remains separate from this implemented first slice.
 
-## Planned backend evaluation
+## Selected Python direction
 
-[The language evaluation](../integrations/backend-language-evaluation.md) and [issue 211](https://github.com/KyleDerZweite/spellbook/issues/211) compare Go, Python, Rust and TypeScript, alongside proposed `backend/api/` and `backend/workers/{catalog,scan}/` ownership.
-The maintainer wants to replace backend TypeScript long term; language, migration boundary and schedule remain open.
-This evaluation does not select a rewrite, worker move or additional worker processes.
+[ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for both the future API and server workers, grouped under `backend/`.
+[The evaluation](../integrations/backend-language-evaluation.md) records the tradeoff; [issue 211](https://github.com/KyleDerZweite/spellbook/issues/211) retains framework, schema ownership, exact package layout and migration planning.
+This decision does not implement a rewrite, worker move or additional worker processes.
 The current TypeScript API/SvelteKit HTTP boundary and Python Catalog/Scan packages remain authoritative.
 Review responsibilities, interfaces, dependency directions and compatibility before changing implementation contracts.

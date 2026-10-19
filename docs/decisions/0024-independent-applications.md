@@ -4,8 +4,8 @@
 - Date: 2026-10-19
 - Last Reviewed: 2026-10-19
 - Source of Truth: maintainer-selected implementation direction
-- Update Triggers: backend language and worker layout evaluation, independent API/web ownership and relocated code references, runtime ownership, Android stack, HTTP compatibility, deployment topology
-- Related Docs: [Implementation contract](../architecture/independent-applications.md), [System overview](../architecture/system-overview.md), [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md), [ADR-0023](./0023-local-recognition-in-scanner-clients.md), [Backend language evaluation](../integrations/backend-language-evaluation.md)
+- Update Triggers: Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, runtime ownership, Android stack, HTTP compatibility, deployment topology
+- Related Docs: [Implementation contract](../architecture/independent-applications.md), [System overview](../architecture/system-overview.md), [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md), [ADR-0023](./0023-local-recognition-in-scanner-clients.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](./0025-python-api-and-workers.md)
 
 The shared SvelteKit deployment already separates backend use cases from web presentation, but it cannot independently start the API or deliver the accepted native mobile experience.
 The maintainer selected independent applications in one monorepo and accepted Kotlin/Compose for Android.
@@ -34,4 +34,5 @@ The selected Android toolchain pins SDK 37 and Kotlin/Compose in the [contract](
 Producer build/JVM/lint passed; the root emulator attempt exited 139 before boot.
 Installation/native journeys were not run, and no workaround, hardware or production acceptance is claimed.
 The maintainer subsequently requested a non-TypeScript backend evaluation.
-[Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211) and [the comparison](../integrations/backend-language-evaluation.md) reopen language selection without changing this accepted separation of application responsibilities.
+[ADR-0025](./0025-python-api-and-workers.md) now selects Python for the future API and workers without changing this accepted separation of application responsibilities.
+[Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211) retains migration planning; the TypeScript API remains the implemented baseline.
