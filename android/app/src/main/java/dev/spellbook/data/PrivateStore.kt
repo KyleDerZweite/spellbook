@@ -37,7 +37,7 @@ class PrivateStore(context: Context, private val backend: String) {
             .takeIf { it.backend == backend && it.isLive() }
     }.getOrNull()
     fun saveSession(session: Session?) {
-        if (session == null) { prefs.edit().remove(sessionKey).commit(); return }
+        if (session == null) { check(prefs.edit().remove(sessionKey).commit()); return }
         require(session.backend == backend)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, key())

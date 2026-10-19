@@ -25,7 +25,10 @@ private val roots = listOf("home", "search", "inventory", "decks")
     val stack = rememberNavBackStack(Route("home"))
     val route = stack.last() as Route
     val keyboard = LocalSoftwareKeyboardController.current
-    val back = { keyboard?.hide(); if (stack.size > 1) stack.removeLastOrNull(); Unit }
+    val back = {
+        if (route.screen == "auth") model.cancelAuthentication()
+        keyboard?.hide(); if (stack.size > 1) stack.removeLastOrNull(); Unit
+    }
     val nav: (Route) -> Unit = { next ->
         if (stack.lastOrNull() != next) {
             keyboard?.hide()
@@ -36,7 +39,23 @@ private val roots = listOf("home", "search", "inventory", "decks")
     val root: (String) -> Unit = { screen ->
         keyboard?.hide(); stack.clear(); stack.add(Route(screen))
     }
-    LaunchedEffect(route) { model.navigate(route) }
+    var navigationBackend by rememberSaveable { mutableStateOf(model.backend) }
+    var navigationAccount by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(route, state.identityReady, model.backend, state.session?.user?.accountId) {
+        if (state.identityReady) {
+            val previous = navigationAccount?.let { AccountScope(navigationBackend, it) }
+            val next = state.session?.user?.accountId?.let { AccountScope(model.backend, it) }
+            val reset = resetPrivateNavigation(previous, next)
+            navigationBackend = model.backend
+            navigationAccount = next?.accountId
+            if (reset) {
+                stack.clear(); stack.add(Route("home"))
+                model.navigate(Route("home"))
+                return@LaunchedEffect
+            }
+        }
+        model.navigate(route)
+    }
     val navigationColors = if (MaterialTheme.colorScheme.surface.luminance() > .5f) mapOf("home" to Color(0xFF7443A5), "search" to Color(0xFF24688D), "inventory" to Color(0xFF875521), "decks" to Color(0xFF276C49)) else DestinationColors
     val focused = route.screen in setOf("add", "auth", "entry", "profile", "qr", "connect", "capture")
     val rootView = stack.size == 1 && route.screen in roots

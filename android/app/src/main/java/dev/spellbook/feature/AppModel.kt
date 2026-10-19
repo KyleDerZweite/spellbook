@@ -35,9 +35,22 @@ data class AppState(
     val draft: DraftState = DraftState(), val saving: Boolean = false, val writeError: String? = null,
     val notice: String? = null, val live: String = "", val appearance: String = "system",
     val search: String = "", val color: String = "", val offset: Int = 0,
-    val inventoryQuery: String = "", val inventoryOffset: Int = 0, val inventoryGroup: String = "",
-    val deckQuery: String = "", val deckOffset: Int = 0, val formGeneration: Int = 0,
-)
+    val browsing: PrivateBrowsingContext = PrivateBrowsingContext(), val formGeneration: Int = 0,
+    val identityReady: Boolean = false,
+) {
+    val inventoryQuery get() = browsing.inventoryQuery
+    val inventoryGroup get() = browsing.inventoryGroup
+    val inventoryOffset get() = browsing.inventoryOffset
+    val deckQuery get() = browsing.deckQuery
+    val deckOffset get() = browsing.deckOffset
+
+    fun authExpired(credentialCleared: Boolean = true): AppState = copy(
+        verified = false, checkingSession = false, data = null, loading = false,
+        saving = false, authenticating = false, live = "",
+        notice = "Session expired. Sign in again to resume your account's draft.",
+        error = if (credentialCleared) null else "Local credential removal failed. Private access is disabled; retry removing local sign-in.",
+    )
+}
 
 class AppModel(application: Application) : AndroidViewModel(application) {
     private val configured = runCatching { normalizeBackend(BuildConfig.API_BASE_URL, BuildConfig.DEBUG) }
@@ -53,9 +66,11 @@ class AppModel(application: Application) : AndroidViewModel(application) {
     private var stream: Job? = null
     private var mutation: Job? = null
     private var expiry: Job? = null
+    private var qr: Job? = null
     private var epoch = 0
     private var active = false
     private var sessionLoaded = false
+    private val sessionRequests = SessionRequests { AuthIntentContext(backend, state.value.session?.user?.accountId, epoch) }
     private fun update(block: (AppState) -> AppState) { _state.update(block) }
     private fun scope(): CoroutineScope = CoroutineScope(viewModelScope.coroutineContext + (foreground ?: Job().also { it.cancel() }))
 
@@ -63,6 +78,8 @@ class AppModel(application: Application) : AndroidViewModel(application) {
         if (active == value) return
         active = value
         if (!value) {
+            sessionRequests.cancel()
+            cancelPrivateWork()
             foreground?.cancel(); foreground = null; read = null; validation = null; stream = null
             update { it.copy(data = null, loading = false, saving = false, authenticating = false, checkingSession = false, live = "") }
             return
@@ -71,16 +88,26 @@ class AppModel(application: Application) : AndroidViewModel(application) {
         if (!sessionLoaded) {
             sessionLoaded = true
             val session = store.session()
-            update { it.copy(session = session, draft = store.draft(session?.user?.accountId)) }
+            update { it.copy(session = session, draft = store.draft(session?.user?.accountId), identityReady = true) }
         }
         validateSession()
     }
+    fun cancelAuthentication() {
+        sessionRequests.cancel()
+        update { it.copy(authenticating = false) }
+    }
     fun navigate(next: Route) {
+        if (route.screen == "auth" && next != route) {
+            sessionRequests.cancel()
+            update { it.copy(authenticating = false) }
+        }
+        if (route.screen == "qr" && next != route) qr?.cancel()
         route = next
         update { it.copy(data = null, loading = false, error = null, authError = null) }
         refresh()
     }
     fun validateSession() {
+        sessionRequests.cancel()
         val session = state.value.session
         if (session == null) { update { it.copy(verified = false) }; refresh(); return }
         if (!session.isLive()) { expire(); return }
@@ -92,7 +119,7 @@ class AppModel(application: Application) : AndroidViewModel(application) {
         validation = scope().launch {
             try {
                 val info = apiOrFail().get<SessionInfo>("/api/auth/session", session.token)
-                if (owner != epoch) return@launch
+                if (owner != epoch || !isActive) return@launch
                 val validated = session.copy(user = info.user, expiresAt = info.expiresAt)
                 check(validated.user.accountId == session.user.accountId && validated.isLive())
                 store.saveSession(validated)
@@ -100,7 +127,7 @@ class AppModel(application: Application) : AndroidViewModel(application) {
                 refresh(); startEvents(); startExpiry()
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (cause: Exception) {
-                if (owner != epoch) return@launch
+                if (owner != epoch || !isActive) return@launch
                 if (cause is ApiFailure && cause.status == 401) expire()
                 else update { it.copy(checkingSession = false, error = cause.message ?: "Session check unavailable.") }
             }
@@ -113,11 +140,16 @@ class AppModel(application: Application) : AndroidViewModel(application) {
         check(state.value.verified) { "Sign in again to continue." }
         return session.token
     }
+    private fun cancelPrivateWork() {
+        ++epoch
+        read?.cancel(); validation?.cancel(); stream?.cancel(); mutation?.cancel(); expiry?.cancel(); qr?.cancel()
+    }
     private fun expire() {
-        ++epoch; read?.cancel(); validation?.cancel(); stream?.cancel(); mutation?.cancel(); expiry?.cancel()
+        sessionRequests.cancel()
+        cancelPrivateWork()
         // Keep this account's unsaved draft under its account key, never under guest.
-        store.saveSession(null)
-        update { it.copy(verified = false, checkingSession = false, data = null, loading = false, saving = false, live = "", notice = "Session expired. Sign in again to resume your account's draft.") }
+        val cleared = runCatching { store.saveSession(null) }.isSuccess
+        update { it.authExpired(cleared) }
     }
     fun refresh() {
         if (!active) return
@@ -157,10 +189,10 @@ class AppModel(application: Application) : AndroidViewModel(application) {
                     "qr" -> ScreenData.Qr(api.get("/api/auth/qr/requests/${query(target.id)}", token))
                     else -> error("Unknown screen")
                 }
-                if (owner == epoch && route == target) update { it.copy(data = result, loading = false, error = null) }
+                if (owner == epoch && isActive && route == target) update { it.copy(data = result, loading = false, error = null) }
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (cause: Exception) {
-                if (owner != epoch || route != target) return@launch
+                if (owner != epoch || !isActive || route != target) return@launch
                 if (privateScreen && cause is ApiFailure && cause.status == 401) expire()
                 else update { it.copy(loading = false, data = null, error = cause.message ?: "Read unavailable.") }
             }
@@ -170,10 +202,10 @@ class AppModel(application: Application) : AndroidViewModel(application) {
         update { it.copy(search = value.take(200), color = color, offset = offset) }; refresh()
     }
     fun inventory(value: String = state.value.inventoryQuery, offset: Int = 0, group: String = state.value.inventoryGroup) {
-        update { it.copy(inventoryQuery = value.take(200), inventoryOffset = offset, inventoryGroup = group) }; refresh()
+        update { it.copy(browsing = it.browsing.copy(inventoryQuery = value.take(200), inventoryOffset = offset, inventoryGroup = group)) }; refresh()
     }
     fun decks(value: String = state.value.deckQuery, offset: Int = 0) {
-        update { it.copy(deckQuery = value.take(200), deckOffset = offset) }; refresh()
+        update { it.copy(browsing = it.browsing.copy(deckQuery = value.take(200), deckOffset = offset)) }; refresh()
     }
     fun prepareAdd(printing: Printing) {
         if (state.value.draft.attempt != null) { update { it.copy(writeError = "Resolve the previous save before starting another one.") }; return }
@@ -197,25 +229,33 @@ class AppModel(application: Application) : AndroidViewModel(application) {
     fun authenticate(register: Boolean, username: String, password: String, carryGuestDraft: Boolean, onSuccess: () -> Unit) {
         if (state.value.authenticating) return
         val previousAccount = state.value.session?.user?.accountId
+        val previousScope = previousAccount?.let { AccountScope(backend, it) }
         val guest = if (previousAccount == null && carryGuestDraft) state.value.draft.add else null
         update { it.copy(authenticating = true, authError = null) }
-        scope().launch {
-            try {
-                val result = WireJson.decodeFromString<LoginResult>(apiOrFail().request("/api/auth/${if (register) "register" else "login"}", method = "POST", body = jsonBody { put("username", username); put("password", password) }))
-                val session = Session(backend, result.user, result.token, result.expiresAt)
-                check(session.isLive())
-                store.saveSession(session)
-                ++epoch; read?.cancel(); validation?.cancel(); stream?.cancel(); mutation?.cancel(); expiry?.cancel()
-                var draft = store.draft(session.user.accountId)
-                if (guest != null && draft.attempt == null) {
-                    draft = DraftState(add = guest)
-                    store.saveDraft(session.user.accountId, draft); store.clearDraft(null)
-                }
-                update { it.copy(session = session, verified = true, authenticating = false, authError = null, data = null, saving = false, draft = draft, writeError = null, notice = null) }
-                startEvents(); startExpiry(); onSuccess()
-            } catch (cancelled: CancellationException) { throw cancelled }
-            catch (cause: Exception) { update { it.copy(authenticating = false, authError = cause.message ?: "Sign in unavailable.") } }
-        }
+        sessionRequests.launch(scope(), request = {
+            WireJson.decodeFromString<LoginResult>(apiOrFail().request("/api/auth/${if (register) "register" else "login"}", method = "POST", body = jsonBody { put("username", username); put("password", password) }))
+        }, onSuccess = { result ->
+            val session = Session(backend, result.user, result.token, result.expiresAt)
+            check(session.isLive())
+            val nextScope = AccountScope(backend, session.user.accountId)
+            var draft = store.draft(session.user.accountId)
+            val adoptGuest = guest != null && draft.attempt == null
+            if (adoptGuest) {
+                draft = DraftState(add = guest)
+                store.saveDraft(session.user.accountId, draft)
+            }
+            // All fallible preparation precedes switching the accepted session context.
+            store.saveSession(session)
+            if (adoptGuest) store.clearDraft(null)
+            cancelPrivateWork()
+            update { it.copy(session = session, verified = true, checkingSession = false,
+                authenticating = false, authError = null, error = null, data = null, loading = false,
+                saving = false, draft = draft, writeError = null, notice = null, live = "",
+                browsing = it.browsing.forAccount(previousScope, nextScope), identityReady = true) }
+            startEvents(); startExpiry(); onSuccess()
+        }, onFailure = { cause ->
+            update { it.copy(authenticating = false, authError = cause.message ?: "Sign in unavailable.") }
+        })
     }
     fun saveAdd() {
         val draft = state.value.draft.add ?: return
@@ -233,7 +273,7 @@ class AppModel(application: Application) : AndroidViewModel(application) {
             if (notes != entry.notes) { put("notes", notes); put("notesRevision", entry.notesRevision) }
         } }
     }
-    fun removeEntry(entry: InventoryEntry) = mutate("DELETE", "/api/mobile/v1/mtg/inventory/${entry.id}") { id -> jsonBody { put("requestId", id); put("expectedQuantity", entry.quantity) } }
+    fun removeEntry(review: ReviewedRemoval) = submitMutation(review.attempt)
     fun saveGroups(entryId: String, groups: Set<String>) = mutate("PUT", "/api/mobile/v1/mtg/inventory/$entryId/groups") { id -> jsonBody { put("requestId", id); putJsonArray("groupIds") { groups.sorted().forEach { add(it) } } } }
     fun createGroup(name: String) = mutate("POST", "/api/mobile/v1/mtg/inventory/groups") { id -> jsonBody { put("requestId", id); put("name", name) } }
     private fun mutate(method: String, path: String, body: (String) -> String) {
@@ -241,6 +281,15 @@ class AppModel(application: Application) : AndroidViewModel(application) {
         val account = state.value.session?.user?.accountId ?: return
         val id = UUID.randomUUID().toString()
         val attempt = MutationAttempt(backend, account, method, path, body(id), id)
+        submitMutation(attempt)
+    }
+    private fun submitMutation(attempt: MutationAttempt) {
+        if (state.value.draft.attempt != null || state.value.saving || !state.value.verified) return
+        val account = state.value.session?.user?.accountId ?: return
+        if (runCatching { attempt.retryFor(backend, account) }.isFailure) {
+            update { it.copy(writeError = "This review belongs to another account. Review the entry again.") }
+            return
+        }
         if (setDraft(state.value.draft.copy(attempt = attempt))) retryMutation()
     }
     fun retryMutation() {
@@ -255,7 +304,7 @@ class AppModel(application: Application) : AndroidViewModel(application) {
                 val raw = apiOrFail().request(attempt.path, privateToken(), attempt.method, attempt.body)
                 val receipt = WireJson.decodeFromString<InventoryReceipt>(raw)
                 check(receipt.requestId == attempt.requestId)
-                if (owner != epoch) return@launch
+                if (owner != epoch || !isActive) return@launch
                 val confirmed = state.value.draft.copy(attempt = attempt.confirm(raw))
                 val persisted = setDraft(confirmed)
                 if (!persisted) update { it.copy(draft = confirmed, writeError = "Saved on the server. Local receipt storage is unavailable; keep the original request ID if you restart.") }
@@ -263,8 +312,8 @@ class AppModel(application: Application) : AndroidViewModel(application) {
                 refresh() // This is a read. Its failure never replays the successful write.
             } catch (cancelled: CancellationException) { if (owner == epoch) update { it.copy(saving = false) }; throw cancelled }
             catch (cause: Exception) {
-                if (owner != epoch) return@launch
-                if (cause is ApiFailure && cause.status == 401) expire()
+                if (owner != epoch || !isActive) return@launch
+                if (cause is ApiFailure && cause.status == 401) { expire(); return@launch }
                 // Definitive validation/conflict failures allow correction with a new request ID.
                 val definitive = cause is ApiFailure && cause.isDefinitiveMutationFailure()
                 if (definitive) setDraft(state.value.draft.copy(attempt = null))
@@ -285,26 +334,40 @@ class AppModel(application: Application) : AndroidViewModel(application) {
     fun appearance(value: String) { store.appearance = value; update { it.copy(appearance = value) } }
     fun logout(forgetOnly: Boolean = false, onSuccess: () -> Unit) {
         if (state.value.saving) return
-        scope().launch {
-            try {
-                val session = state.value.session
-                if (!forgetOnly && session != null) apiOrFail().request("/api/auth/logout", session.token, "POST")
-                val account = session?.user?.accountId
-                ++epoch; read?.cancel(); validation?.cancel(); stream?.cancel(); mutation?.cancel(); expiry?.cancel()
-                store.saveSession(null); store.clearDraft(account); store.clearDraft(null)
-                update { AppState(appearance = it.appearance, notice = if (forgetOnly) "Local sign-in removed. The server session was not revoked." else "Signed out.") }
-                onSuccess()
-            } catch (cancelled: CancellationException) { throw cancelled }
-            catch (cause: Exception) { update { it.copy(error = "Logout not confirmed. Retry, or remove local sign-in explicitly.") } }
-        }
+        val session = state.value.session
+        val wasVerified = state.value.verified
+        sessionRequests.cancel()
+        cancelPrivateWork()
+        update { it.copy(authenticating = false, verified = false, checkingSession = false, data = null, loading = false, live = "") }
+        sessionRequests.launch(scope(), request = {
+            if (!forgetOnly && session != null) apiOrFail().request("/api/auth/logout", session.token, "POST")
+            Unit
+        }, onSuccess = {
+            store.saveSession(null); store.clearDraft(session?.user?.accountId); store.clearDraft(null)
+            cancelPrivateWork()
+            update { AppState(identityReady = true, appearance = it.appearance, notice = if (forgetOnly) "Local sign-in removed. The server session was not revoked." else "Signed out.") }
+            onSuccess()
+        }, onFailure = {
+            val restore = wasVerified && session?.isLive() == true
+            update { it.copy(verified = restore, error = "Logout not confirmed. Retry, or remove local sign-in explicitly.") }
+            if (restore) { startEvents(); startExpiry() }
+        })
     }
     fun decideQr(code: String, decision: String) {
-        scope().launch {
+        qr?.cancel()
+        val owner = epoch
+        val target = route
+        qr = scope().launch {
             try {
                 apiOrFail().request("/api/auth/qr/requests/${query(code)}/decision", privateToken(), "POST", jsonBody { put("decision", decision) })
+                if (owner != epoch || !isActive || route != target) return@launch
                 update { it.copy(notice = if (decision == "approve") "Anmeldung freigegeben." else "Request denied.") }; refresh()
             } catch (cancelled: CancellationException) { throw cancelled }
-            catch (cause: Exception) { update { it.copy(error = cause.message) } }
+            catch (cause: Exception) {
+                if (owner != epoch || !isActive || route != target) return@launch
+                if (cause is ApiFailure && cause.status == 401) expire()
+                else update { it.copy(error = cause.message) }
+            }
         }
     }
     private fun startExpiry() {
@@ -328,6 +391,7 @@ class AppModel(application: Application) : AndroidViewModel(application) {
                     update { it.copy(live = "Connecting to saved changes…") }
                     val connectedAt = System.nanoTime()
                     apiOrFail().events(token) { event, _ ->
+                        if (owner != epoch || !isActive) return@events
                         when (event) {
                             "auth-expired" -> { expire(); return@events }
                             "reset", "invalidate" -> { update { it.copy(live = "Live updates connected") }; refresh() }
@@ -337,6 +401,7 @@ class AppModel(application: Application) : AndroidViewModel(application) {
                     if (System.nanoTime() - connectedAt >= 30_000_000_000L) failures = 0
                 } catch (cancelled: CancellationException) { throw cancelled }
                 catch (cause: Exception) {
+                    if (owner != epoch || !isActive) return@launch
                     if (cause is ApiFailure && cause.status == 401) { expire(); break }
                     update { it.copy(live = "Live updates unavailable. Pull current data with Refresh.") }
                 }

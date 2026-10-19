@@ -129,7 +129,7 @@ import kotlin.math.sin
 }
 @Composable fun EntryScreen(data: ScreenData.Entry, original: InventoryEntry, state: AppState, model: AppModel, quantity: String, notes: String, groups: Set<String>, onQuantity: (String) -> Unit, onNotes: (String) -> Unit, onGroups: (Set<String>) -> Unit, useSaved: () -> Unit, nav: (Route) -> Unit) {
     val entry = data.value.entry
-    var confirmRemoval by remember { mutableStateOf(false) }
+    var removal by remember { mutableStateOf<ReviewedRemoval?>(null) }
     val editable = !state.saving && state.draft.attempt == null
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         CardRow(entry.name, "${entry.setCode.uppercase()} · ${entry.finish} · ${entry.condition}", entry.imageUri, entry.quantity) { nav(Route("printing", entry.catalogCardId)) }
@@ -149,10 +149,17 @@ import kotlin.math.sin
             if (data.groups.count > data.groups.groups.size) Muted("Only the first ${data.groups.groups.size} Boxes are shown. Existing memberships outside this page are preserved.")
             Action("Save Box membership", editable) { model.saveGroups(entry.id, groups) }
         }
-        TextButton(onClick = { confirmRemoval = true }, enabled = editable) { Text("Remove entry", color = MaterialTheme.colorScheme.error) }
+        TextButton(onClick = {
+            state.session?.user?.accountId?.let { removal = reviewRemoval(entry, AccountScope(model.backend, it)) }
+        }, enabled = editable && state.verified) { Text("Remove entry", color = MaterialTheme.colorScheme.error) }
     }
-    if (confirmRemoval) AlertDialog(onDismissRequest = { confirmRemoval = false }, title = { Text("Remove owned copies?") }, text = { Text("Remove the reviewed ${entry.quantity} copies of ${entry.name}? A changed saved quantity requires another review.") },
-        confirmButton = { TextButton(onClick = { confirmRemoval = false; model.removeEntry(entry) }) { Text("Remove ${entry.quantity} copies") } }, dismissButton = { TextButton(onClick = { confirmRemoval = false }) { Text("Cancel") } })
+    removal?.let { review ->
+        val sameAccount = state.verified && review.scope == state.session?.user?.accountId?.let { AccountScope(model.backend, it) }
+        AlertDialog(onDismissRequest = { removal = null }, title = { Text("Remove owned copies?") },
+            text = { Text("Remove the reviewed ${review.quantity} copies of ${review.name}? A changed saved quantity requires another review.") },
+            confirmButton = { TextButton(enabled = sameAccount && editable, onClick = { removal = null; model.removeEntry(review) }) { Text("Remove ${review.quantity} copies") } },
+            dismissButton = { TextButton(onClick = { removal = null }) { Text("Cancel") } })
+    }
 }
 @Composable fun DecksScreen(state: AppState, model: AppModel, nav: (Route) -> Unit) {
     var text by rememberSaveable { mutableStateOf(state.deckQuery) }

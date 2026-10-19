@@ -1,6 +1,10 @@
 package dev.spellbook.data
 
 import io.ktor.client.HttpClient
+import io.ktor.client.HttpClientConfig
+import io.ktor.client.plugins.HttpResponseValidator
+import io.ktor.client.plugins.sse.SSEClientException
+import io.ktor.util.AttributeKey
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.sse.SSE
@@ -9,8 +13,8 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.utils.io.*
-import kotlinx.io.readByteArray
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
 import kotlinx.serialization.json.*
 import java.net.URI
@@ -41,39 +45,68 @@ class Api(val base: String, suppliedClient: HttpClient? = null) : AutoCloseable 
         followRedirects = false
         install(HttpTimeout) { requestTimeoutMillis = 20_000; connectTimeoutMillis = 8_000; socketTimeoutMillis = 25_000 }
         install(SSE)
+        guardSavedStateResponses()
         engine { config { retryOnConnectionFailure(false); followRedirects(false); followSslRedirects(false) } }
     }
     suspend fun request(path: String, token: String? = null, method: String = "GET", body: String? = null): String {
         require(path.startsWith("/api/") && !path.contains("#"))
         try {
-            val response = client.request(base + path) {
+            return client.prepareRequest(base + path) {
                 this.method = HttpMethod.parse(method)
                 accept(ContentType.Application.Json)
                 if (token != null) bearerAuth(token)
                 if (body != null) { contentType(ContentType.Application.Json); setBody(body) }
+            }.execute { response ->
+                // Streaming scope prevents Ktor SavedCall from eagerly buffering the whole response.
+                val text = response.readBoundedBytes().decodeToString(throwOnInvalidSequence = true)
+                if (response.status.value !in 200..299) {
+                    val error = runCatching { WireJson.parseToJsonElement(text).jsonObject }.getOrDefault(buildJsonObject { put("message", "Request failed (${response.status.value}).") })
+                    throw ApiFailure(response.status.value, error)
+                }
+                text
             }
-            // No disk or reusable HTTP cache. A bounded current read is the only retained response.
-            val channel = response.bodyAsChannel()
-            val bytes = try { channel.readBuffer(2L * 1024 * 1024 + 1).readByteArray() }
-                finally { channel.cancel() }
-            if (bytes.size > 2 * 1024 * 1024) throw TransportFailure()
-            val text = bytes.decodeToString(throwOnInvalidSequence = true)
-            if (response.status.value !in 200..299) {
-                val error = runCatching { WireJson.parseToJsonElement(text).jsonObject }.getOrDefault(buildJsonObject { put("message", "Request failed (${response.status.value}).") })
-                throw ApiFailure(response.status.value, error)
-            }
-            return text
         } catch (cancelled: CancellationException) { throw cancelled }
         catch (failure: ApiFailure) { throw failure }
         catch (_: Exception) { throw TransportFailure() }
     }
     suspend inline fun <reified T> get(path: String, token: String? = null): T = WireJson.decodeFromString(request(path, token))
     suspend fun events(token: String, onEvent: suspend (String, String?) -> Unit) {
-        client.sse(urlString = base + "/api/account/events", request = { bearerAuth(token) }) {
-            incoming.collect { event -> onEvent(event.event ?: "message", event.data) }
+        try {
+            client.sse(urlString = base + "/api/account/events", request = {
+                bearerAuth(token)
+                attributes.put(SavedStateRequest, Unit)
+            }) {
+                incoming.collect { event -> onEvent(event.event ?: "message", event.data) }
+            }
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (failure: SSEClientException) {
+            (failure.cause as? CancellationException)?.let { throw it }
+            (failure.cause as? ApiFailure)?.let { throw it }
+            if (failure.response?.status == HttpStatusCode.Unauthorized) {
+                throw ApiFailure(401, buildJsonObject { put("message", "Authentication required.") })
+            }
+            throw failure
         }
     }
+
     override fun close() = client.close()
 }
 fun query(value: String): String = value.encodeURLParameter()
 fun jsonBody(block: JsonObjectBuilder.() -> Unit): String = buildJsonObject(block).toString()
+
+private val SavedStateRequest = AttributeKey<Unit>("SpellbookSavedState")
+
+/** SSE's own non-200 handler calls saved(). Reject before that transform can buffer error bodies. */
+internal fun HttpClientConfig<*>.guardSavedStateResponses() {
+    HttpResponseValidator {
+        validateResponse { response ->
+            if (!response.request.attributes.contains(SavedStateRequest)) return@validateResponse
+            if (response.status.value !in setOf(200, 204)) {
+                response.cancel()
+                throw ApiFailure(response.status.value, buildJsonObject {
+                    put("message", if (response.status.value == 401) "Authentication required." else "Saved changes are unavailable.")
+                })
+            }
+        }
+    }
+}

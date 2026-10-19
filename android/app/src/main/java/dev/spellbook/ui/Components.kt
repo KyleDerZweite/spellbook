@@ -22,14 +22,10 @@ import dev.spellbook.data.*
 import io.ktor.client.*
 import io.ktor.client.engine.okhttp.*
 import io.ktor.client.plugins.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.utils.io.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
-import kotlinx.io.readByteArray
 import java.net.URI
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -111,12 +107,7 @@ private object Art {
             try {
                 value = withContext(Dispatchers.IO) {
                     Art.permits.withPermit {
-                        val response = Art.client.get(uri)
-                        if (response.status.value != 200) return@withPermit null
-                        val channel = response.bodyAsChannel()
-                        val bytes = try { channel.readBuffer(2 * 1024 * 1024L + 1).readByteArray() }
-                            finally { channel.cancel() }
-                        if (bytes.size > 2 * 1024 * 1024) return@withPermit null
+                        val bytes = loadArtworkBytes(Art.client, uri) ?: return@withPermit null
                         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
                         if (bounds.outWidth <= 0 || bounds.outHeight <= 0 || bounds.outWidth > 10000 || bounds.outHeight > 10000) return@withPermit null
