@@ -51,6 +51,7 @@ test('web environment excludes database, worker, storage and inherited proxy aut
 			PATH: '/bin',
 			PUBLIC_NAME: 'Spellbook',
 			DEMO_MODE: 'true',
+			BODY_SIZE_LIMIT: '24M',
 			DATABASE_URL: 'private',
 			TEST_DATABASE_URL: 'private',
 			PGHOST: 'private',
@@ -62,8 +63,13 @@ test('web environment excludes database, worker, storage and inherited proxy aut
 			ADDRESS_HEADER: 'x-forwarded-for',
 			NODE_OPTIONS: '--env-file=.env'
 		}),
-		{ PATH: '/bin', DEMO_MODE: 'true', PUBLIC_NAME: 'Spellbook' }
+		{ PATH: '/bin', DEMO_MODE: 'true', PUBLIC_NAME: 'Spellbook', BODY_SIZE_LIMIT: '24M' }
 	);
+});
+
+test('web environment defaults to a Scan-sized transport body limit', () => {
+	assert.deepEqual(webTestEnvironment({}), { BODY_SIZE_LIMIT: '12M' });
+	assert.deepEqual(webTestEnvironment({ BODY_SIZE_LIMIT: '' }), { BODY_SIZE_LIMIT: '12M' });
 });
 
 test('application owns separate API/web children and gives only API private configuration', async () => {
@@ -75,10 +81,12 @@ test('application owns separate API/web children and gives only API private conf
 		DATABASE_URL: process.env.DATABASE_URL,
 		TEST_DATABASE_URL: process.env.TEST_DATABASE_URL,
 		S3_SECRET_ACCESS_KEY: process.env.S3_SECRET_ACCESS_KEY,
-		SCAN_WORKER_URL: process.env.SCAN_WORKER_URL
+		SCAN_WORKER_URL: process.env.SCAN_WORKER_URL,
+		BODY_SIZE_LIMIT: process.env.BODY_SIZE_LIMIT
 	};
 	try {
 		for (const name of Object.keys(prior)) process.env[name] = 'owned-runtime-fixture';
+		delete process.env.BODY_SIZE_LIMIT;
 		application = await startHttpApplication(origin, new URL('../', import.meta.url), entrypoint, {
 			apiOrigin,
 			apiEntrypoint: entrypoint
@@ -101,6 +109,7 @@ test('application owns separate API/web children and gives only API private conf
 			api: false,
 			publicOrigin: origin,
 			apiInternalUrl: apiOrigin,
+			bodySizeLimit: '12M',
 			hasDatabase: false,
 			hasTestDatabase: false,
 			hasStorageSecret: false,
@@ -116,6 +125,29 @@ test('application owns separate API/web children and gives only API private conf
 			if (value === undefined) delete process.env[name];
 			else process.env[name] = value;
 		}
+		if (application) await stopHttpApplication(application);
+	}
+});
+
+test('application preserves the web transport body-limit override', async () => {
+	const origin = await unusedOrigin();
+	const apiOrigin = await unusedOrigin();
+	const entrypoint = new URL('./fixtures/http-runtime-child.mjs', import.meta.url).pathname;
+	const prior = process.env.BODY_SIZE_LIMIT;
+	let application: Awaited<ReturnType<typeof startHttpApplication>> | undefined;
+	try {
+		process.env.BODY_SIZE_LIMIT = '24M';
+		application = await startHttpApplication(origin, new URL('../', import.meta.url), entrypoint, {
+			apiOrigin,
+			apiEntrypoint: entrypoint
+		});
+		const web = await (await fetch(origin)).json();
+		assert.equal(web.bodySizeLimit, '24M');
+		assert.equal(web.hasDatabase, false);
+		assert.equal(web.hasStorageSecret, false);
+	} finally {
+		if (prior === undefined) delete process.env.BODY_SIZE_LIMIT;
+		else process.env.BODY_SIZE_LIMIT = prior;
 		if (application) await stopHttpApplication(application);
 	}
 });

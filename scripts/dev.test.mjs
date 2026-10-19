@@ -16,7 +16,8 @@ async function fixture(
 		appFails = false,
 		webOrigin,
 		apiPort,
-		demoMode = 'false'
+		demoMode = 'false',
+		bodySizeLimit
 	} = {}
 ) {
 	const root = await mkdtemp(join(tmpdir(), 'spellbook-dev-'));
@@ -41,7 +42,7 @@ async function fixture(
 import {appendFileSync} from 'node:fs';
 const name = process.cwd().split('/').at(-1);
 const record = (value) => appendFileSync(process.env.FIXTURE_ROOT + '/events', JSON.stringify(value) + '\\n');
-record({event:'start',name,demo:process.env.DEMO_MODE,api:process.env.API_INTERNAL_URL,host:process.env.API_HOST,port:process.env.API_PORT,trusted:process.env.API_TRUSTED_PROXY_ADDRESSES,database:process.env.DATABASE_URL,s3:process.env.S3_SECRET_ACCESS_KEY,pgPassword:process.env.PGPASSWORD,args:process.argv.slice(2)});
+record({event:'start',name,demo:process.env.DEMO_MODE,bodySizeLimit:process.env.BODY_SIZE_LIMIT,api:process.env.API_INTERNAL_URL,host:process.env.API_HOST,port:process.env.API_PORT,trusted:process.env.API_TRUSTED_PROXY_ADDRESSES,database:process.env.DATABASE_URL,s3:process.env.S3_SECRET_ACCESS_KEY,pgPassword:process.env.PGPASSWORD,args:process.argv.slice(2)});
 console.log('fixture ready ' + name);
 setInterval(() => {}, 1000);
 if (name === 'backend' && process.env.FIXTURE_APP_FAILS === 'true') setTimeout(()=>process.exit(7),150);
@@ -94,7 +95,8 @@ else if (args[0] === 'stop') {
 					S3_SECRET_ACCESS_KEY: 'fixture-only-secret',
 					PGPASSWORD: 'fixture-only-password',
 					DEV_APP_ORIGIN: webOrigin || 'http://localhost:5173',
-					API_PORT: apiPort || '3001'
+					API_PORT: apiPort || '3001',
+					BODY_SIZE_LIMIT: bodySizeLimit
 				},
 				stdio: ['ignore', 'pipe', 'pipe']
 			}
@@ -212,6 +214,8 @@ test('both independent children receive their own runtime configuration and stop
 	assert.equal(api.port, '5320');
 	assert.equal(api.trusted, '127.0.0.1,::1');
 	assert.ok(api.database);
+	assert.equal(api.bodySizeLimit, undefined);
+	assert.equal(web.bodySizeLimit, '12M');
 	assert.equal(web.database, undefined);
 	assert.equal(web.s3, undefined);
 	assert.equal(web.pgPassword, undefined);
@@ -274,5 +278,24 @@ for (const mode of ['argument', 'environment']) {
 		const web = starts.find((event) => event.name === 'frontend');
 		assert.equal(web.demo, 'true');
 		assert.equal(web.database, undefined);
+	});
+}
+
+for (const bodySizeLimit of ['24M', '']) {
+	test(`web body limit ${bodySizeLimit ? 'preserves an operator override' : 'defaults when empty'}`, async (t) => {
+		const f = await fixture(t, { bodySizeLimit });
+		const server = f.launch(['start']);
+		await f.ready(server);
+		assert.equal((await f.launch(['stop']).exited).code, 0);
+		assert.equal((await server.exited).code, 0);
+		const web = (await readFile(join(f.root, 'events'), 'utf8'))
+			.trim()
+			.split('\n')
+			.map((line) => JSON.parse(line))
+			.find((event) => event.event === 'start' && event.name === 'frontend');
+		assert.equal(web.bodySizeLimit, bodySizeLimit || '12M');
+		assert.equal(web.database, undefined);
+		assert.equal(web.s3, undefined);
+		assert.equal(web.pgPassword, undefined);
 	});
 }

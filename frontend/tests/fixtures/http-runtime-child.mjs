@@ -11,6 +11,7 @@ const server = createServer((_, response) => {
 			api,
 			publicOrigin: process.env.APP_ORIGIN,
 			apiInternalUrl: process.env.API_INTERNAL_URL,
+			...(api ? {} : { bodySizeLimit: process.env.BODY_SIZE_LIMIT }),
 			trustedProxies: process.env.API_TRUSTED_PROXY_ADDRESSES,
 			hasDatabase: 'DATABASE_URL' in process.env,
 			hasTestDatabase: 'TEST_DATABASE_URL' in process.env,

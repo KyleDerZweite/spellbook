@@ -26,7 +26,7 @@ export function httpApiTestOrigin(env: NodeJS.ProcessEnv = process.env): string 
 }
 
 export function webTestEnvironment(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv {
-	const result: NodeJS.ProcessEnv = {};
+	const result: NodeJS.ProcessEnv = { BODY_SIZE_LIMIT: env.BODY_SIZE_LIMIT || '12M' };
 	for (const name of [
 		'PATH',
 		'HOME',

@@ -238,14 +238,17 @@ try {
 			);
 		start('pnpm', ['dev'], `${root}backend`);
 		// Web owns rendering and HTTP forwarding. API credentials stay in its process.
-		const webEnv = Object.fromEntries(
-			Object.entries(env).filter(
-				([key]) =>
-					!/^(DATABASE_|TEST_DATABASE_|POSTGRES_|PG[A-Z_]|AWS_|S3_|SCAN_|VALUE_HISTORY_|COMMANDER_SPELLBOOK_)/.test(
-						key
-					)
-			)
-		);
+		const webEnv = {
+			...Object.fromEntries(
+				Object.entries(env).filter(
+					([key]) =>
+						!/^(DATABASE_|TEST_DATABASE_|POSTGRES_|PG[A-Z_]|AWS_|S3_|SCAN_|VALUE_HISTORY_|COMMANDER_SPELLBOOK_)/.test(
+							key
+						)
+				)
+			),
+			BODY_SIZE_LIMIT: process.env.BODY_SIZE_LIMIT || '12M'
+		};
 		start(
 			'pnpm',
 			[
