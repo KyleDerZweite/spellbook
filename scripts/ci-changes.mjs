@@ -3,15 +3,25 @@ import { appendFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const all = () => ({ application: true, worker: true, scan_worker: true, python_backend: true });
+const all = () => ({
+	application: true,
+	worker: true,
+	scan_worker: true,
+	python_backend: true
+});
 
 export function classifyPaths(paths) {
-	const checks = { application: false, worker: false, scan_worker: false, python_backend: false };
+	const checks = {
+		application: false,
+		worker: false,
+		scan_worker: false,
+		python_backend: false
+	};
 	for (const path of paths) {
 		if (
 			path.startsWith('docs/') ||
 			/^[^/]+\.md$/.test(path) ||
-			/^(frontend|backend|contracts|worker|scan-worker|android|backend\/api|backend\/core)\/README\.md$/.test(
+			/^(frontend|backend|contracts|worker|scan-worker|android|backend\/api|backend\/core|backend\/workers\/(catalog|scan|state))\/README\.md$/.test(
 				path
 			) ||
 			['LICENSE', 'NOTICE'].includes(path)
@@ -44,8 +54,9 @@ export function classifyPaths(paths) {
 			checks.worker = true;
 			checks.python_backend = true;
 		} else if (path.startsWith('android/')) continue;
-		else if (path.startsWith('worker/')) checks.worker = true;
-		else if (path.startsWith('scan-worker/')) {
+		else if (path.startsWith('backend/workers/catalog/') || path.startsWith('worker/'))
+			checks.worker = true;
+		else if (path.startsWith('backend/workers/scan/') || path.startsWith('scan-worker/')) {
 			checks.application = true;
 			checks.scan_worker = true;
 		} else if (/^(frontend|backend|contracts|scripts)\//.test(path)) checks.application = true;

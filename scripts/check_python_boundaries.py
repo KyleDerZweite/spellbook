@@ -8,8 +8,6 @@ from pathlib import Path
 SOURCE_ROOTS = (
     ("backend/api/src", "api"),
     ("backend/core/src", "core"),
-    ("worker/src", "worker"),
-    ("scan-worker/src", "worker"),
     ("backend/workers/catalog/src", "worker"),
     ("backend/workers/scan/src", "worker"),
     ("backend/workers/state/src", "worker"),

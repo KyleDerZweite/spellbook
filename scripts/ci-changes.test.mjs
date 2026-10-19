@@ -14,9 +14,24 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { classifyPaths, selectChecks } from './ci-changes.mjs';
 
-const app = { application: true, worker: false, scan_worker: false, python_backend: false };
-const all = { application: true, worker: true, scan_worker: true, python_backend: true };
-const none = { application: false, worker: false, scan_worker: false, python_backend: false };
+const app = {
+	application: true,
+	worker: false,
+	scan_worker: false,
+	python_backend: false
+};
+const all = {
+	application: true,
+	worker: true,
+	scan_worker: true,
+	python_backend: true
+};
+const none = {
+	application: false,
+	worker: false,
+	scan_worker: false,
+	python_backend: false
+};
 
 const workflow = (name) =>
 	readFileSync(new URL(`../.github/workflows/${name}`, import.meta.url), 'utf8');
@@ -44,11 +59,11 @@ test('heavy workflows accept only manual dispatch and keep their complete comman
 	assert.match(integration, /image: postgres:18\.6-bookworm/);
 	assert.match(
 		integration,
-		/uv sync --project \.\.\/scan-worker --frozen --extra dev --python 3\.14\.8/
+		/uv sync --project \.\.\/backend\/workers\/scan --frozen --extra dev --python 3\.14\.8/
 	);
 	assert.match(
 		integration,
-		/uv run --project \.\.\/scan-worker --no-sync uvicorn scan_worker\.main:app/
+		/uv run --project \.\.\/backend\/workers\/scan --no-sync uvicorn scan_worker\.main:app/
 	);
 	for (const command of ['db:migrate', 'test:integration', 'test:http', 'test:scan', 'test:sync'])
 		assert.ok(integration.includes(`- run: pnpm ${command}\n`), command);
@@ -173,6 +188,7 @@ test('shared workflow/toolchain and unknown files select every automatic suite',
 		'scripts/ci-changes.mjs',
 		'scripts/ci-changes.test.mjs',
 		'.dockerignore',
+		'.prettierignore',
 		'podman-compose.yml',
 		'new-package/source.ts'
 	])
@@ -300,13 +316,19 @@ test('native changes stay manual while application consumers retain automatic ch
 	assert.deepEqual(classifyPaths(['backend/src/http/inventory.ts']), app);
 	assert.deepEqual(classifyPaths(['backend/Dockerfile']), app);
 	assert.deepEqual(classifyPaths(['frontend/Dockerfile']), app);
-	assert.deepEqual(classifyPaths(['worker/Dockerfile']), { ...none, worker: true });
+	assert.deepEqual(classifyPaths(['worker/Dockerfile']), {
+		...none,
+		worker: true
+	});
 	assert.deepEqual(classifyPaths(['backend/drizzle/meta/_journal.json']), {
 		...app,
 		worker: true,
 		python_backend: true
 	});
-	assert.deepEqual(classifyPaths(['contracts/src/inventory.ts']), { ...app, python_backend: true });
+	assert.deepEqual(classifyPaths(['contracts/src/inventory.ts']), {
+		...app,
+		python_backend: true
+	});
 });
 
 test('JavaScript manifests do not run unrelated Python or Android suites', () => {
@@ -359,7 +381,10 @@ test('a later Python-only edit selects API/core after their first addition', () 
 
 test('worker-only edits enforce Python boundaries in the existing worker job', () => {
 	const source = workflow('ci.yml').split('  worker-tests:\n')[1];
-	for (const path of ['worker/src/worker/main.py', 'scan-worker/src/scan_worker/main.py']) {
+	for (const path of [
+		'backend/workers/catalog/src/worker/main.py',
+		'backend/workers/scan/src/scan_worker/main.py'
+	]) {
 		const selected = classifyPaths([path]);
 		assert.ok(selected.worker || selected.scan_worker);
 		assert.equal(selected.python_backend, false);
@@ -372,6 +397,46 @@ test('worker-only edits enforce Python boundaries in the existing worker job', (
 		source,
 		/uv run --no-project --python 3\.14\.8 python -m unittest discover -s scripts -p test_python_boundaries.py/
 	);
+});
+
+test('relocated worker package edits select their consumers before generic backend routing', () => {
+	for (const [directory, module, expected] of [
+		['catalog', 'worker', { ...none, worker: true }],
+		['scan', 'scan_worker', { ...app, scan_worker: true }]
+	]) {
+		for (const file of [
+			`src/${module}/main.py`,
+			'tests/test_main.py',
+			'pyproject.toml',
+			'uv.lock',
+			'Dockerfile',
+			'.dockerignore'
+		])
+			assert.deepEqual(classifyPaths([`backend/workers/${directory}/${file}`]), expected, file);
+		assert.deepEqual(classifyPaths([`backend/workers/${directory}/README.md`]), none);
+		repository(({ cwd, write, commit }) => {
+			// The fixture has only the relocated package, with no legacy directories.
+			write(`backend/workers/${directory}/src/${module}/main.py`);
+			let base = commit();
+			for (const file of [
+				'src/main.py',
+				'tests/test_main.py',
+				'pyproject.toml',
+				'uv.lock',
+				'Dockerfile',
+				'README.md'
+			]) {
+				write(`backend/workers/${directory}/${file}`, 'changed\n');
+				const head = commit();
+				assert.deepEqual(
+					selectChecks({ eventName: 'pull_request', base, head, cwd }),
+					file === 'README.md' ? none : expected,
+					file
+				);
+				base = head;
+			}
+		});
+	}
 });
 
 test('main pushes select their actual changed paths as well', () => {

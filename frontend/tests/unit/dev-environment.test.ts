@@ -26,7 +26,7 @@ async function launch(
 		await mkdir(join(root, 'scripts'));
 		await mkdir(backend);
 		await mkdir(bin);
-		await mkdir(join(root, 'scan-worker'));
+		await mkdir(join(root, 'backend/workers/scan'), { recursive: true });
 		await writeFile(
 			join(root, 'scripts/dev.mjs'),
 			await readFile(new URL('../scripts/dev.mjs', frontend))
@@ -82,7 +82,14 @@ process.on('SIGTERM', () => { clearTimeout(timer); process.exit(0); });
 				() => false
 			)
 		).toBe(false);
-		return { children, storage, storageCreated, app, backend, scan: join(root, 'scan-worker') };
+		return {
+			children,
+			storage,
+			storageCreated,
+			app,
+			backend,
+			scan: join(root, 'backend/workers/scan')
+		};
 	} finally {
 		await rm(root, { recursive: true, force: true });
 	}

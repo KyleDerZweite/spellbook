@@ -136,7 +136,7 @@ The script creates accounts with 1,000, 10,000 and 50,000 entries and writes mac
 Keep its protected credential file local.
 These query measurements require separate final-head HTTP and rendered scrolling/focus acceptance; they are not a deployment or scalability claim.
 
-For each changed Python package, run the following from `worker/` or `scan-worker/`.
+For each changed Python package, run the following from `backend/workers/catalog/` or `backend/workers/scan/`.
 The [CI workflow](../../.github/workflows/ci.yml) owns the pinned Python and uv versions.
 
 ```sh
@@ -145,6 +145,7 @@ uv lock --check --python 3.14.8
 uv sync --frozen --extra dev --python 3.14.8
 uv run --no-sync ruff check
 uv run --no-sync ruff format --check
+uv build
 uv run --no-sync pytest
 ```
 
@@ -402,7 +403,7 @@ Paths are NUL-delimited and rename detection is disabled so additions and deleti
 Shared `contracts/` select both Application Checks and Python API/Core, including Discovery compatibility.
 Other `frontend/`, `backend/` and `scripts/` source paths select Application Checks.
 Migration paths under `backend/drizzle/`, including the legacy frontend path, select Application Checks, Python API/Core and Catalog worker tests.
-`worker/` selects Catalog tests; `scan-worker/` selects Application Checks and Scan worker tests.
+`backend/workers/catalog/` selects Catalog tests; `backend/workers/scan/` selects Application Checks and Scan worker tests.
 Android-only changes and known documentation alone select no substantive automatic job.
 JS workspace/lockfile changes select Application Checks without forcing Python.
 CI/workflow files, unknown paths, manual lightweight CI runs or unavailable comparisons select every automatic suite.

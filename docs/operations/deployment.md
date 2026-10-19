@@ -50,7 +50,7 @@ The equivalent frontend command is `pnpm --dir frontend dev:local`.
 The root launcher starts the API on `127.0.0.1:3001` and Vite with Hot Reload on port 5173.
 `API_PORT` and `DEV_APP_ORIGIN` select task-owned API and web ports; the launcher passes matching `APP_ORIGIN` and `API_INTERNAL_URL`.
 Scan UI development is paused.
-To run the retained scaffold explicitly, first prepare its environment with `uv sync --project scan-worker --frozen`, then run `./dev.sh --scan` or `pnpm --dir frontend dev:local --scan`.
+To run the retained scaffold explicitly, first prepare its environment with `uv sync --project backend/workers/scan --frozen`, then run `./dev.sh --scan` or `pnpm --dir frontend dev:local --scan`.
 This adds the scan-worker on loopback port 8087 and local scan storage, defaulting to the ignored `.local/scans` directory.
 Set `SCAN_LOCAL_STORAGE_DIR` in `.env` to retain an existing artifact directory.
 `DEV_APP_ORIGIN` defaults to `http://localhost:5173`; change it only to match the local browser origin used for form submissions.
@@ -66,7 +66,7 @@ Startup does not apply migrations, reset accounts, build containers or start a t
 Only explicit `--demo` publishes the versioned Demo Catalog and seeds missing Demo data.
 The retained scan-worker still returns no matches.
 Existing Scan routes and data remain available, but Navigation, Inventory and Dashboard no longer advertise that workflow.
-`worker/` still owns Catalog ingestion; moving either Python package into `backend/` is deferred.
+`backend/workers/catalog/` owns Catalog ingestion; `backend/workers/scan/` owns the retained Scan scaffold.
 [ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for the future API and workers; the Node API and current deployment commands remain the implemented baseline.
 
 The T3 project uses `./dev.sh` as its Dev server script and `http://localhost:5173/` as its design-review preview URL.
@@ -277,7 +277,7 @@ The tunnel transports requests; local authentication owns login.
 | `S3_FORCE_PATH_STYLE`                               | Defaults to `true` for S3-compatible services                                                                                                             |
 
 Native Python commands do not implicitly load `.env`.
-From `worker/` or `scan-worker/`, use `uv run --env-file ../.env` before the existing command when its configuration should come from that file.
+From `backend/workers/catalog/` or `backend/workers/scan/`, use `uv run --env-file ../../../.env` before the existing command when its configuration should come from that file.
 Compose injects its selected service variables and constructs internal database URLs from `POSTGRES_*`; it forwards the safe `DEMO_MODE` flag to API and web, while `DEV_APP_ORIGIN` remains a native-development setting.
 
 Set `APP_ORIGIN` before building web and starting the API.

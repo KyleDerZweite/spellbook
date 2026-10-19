@@ -30,7 +30,7 @@ services:
 
   worker:
     build:
-      context: ./worker
+      context: ./backend/workers/catalog
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-spellbook}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-spellbook}
       CATALOG_SOURCE: ${CATALOG_SOURCE:-all_cards}
@@ -68,7 +68,7 @@ services:
 
   scan-worker:
     build:
-      context: ./scan-worker
+      context: ./backend/workers/scan
     environment:
       SCAN_STORAGE_DRIVER: ${SCAN_STORAGE_DRIVER:-s3}
       S3_ENDPOINT: ${S3_ENDPOINT}

@@ -50,11 +50,11 @@ jobs:
         with:
           version: '0.12.23'
           enable-cache: true
-      - run: uv sync --project ../scan-worker --frozen --extra dev --python 3.14.8
+      - run: uv sync --project ../backend/workers/scan --frozen --extra dev --python 3.14.8
       - name: Start the actual Scan worker scaffold
         run: |
           printf 'SCAN_LOCAL_STORAGE_DIR=%s/scan-artifacts\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
-          uv run --project ../scan-worker --no-sync uvicorn scan_worker.main:app --host 127.0.0.1 --port 5227 > ../.scan-worker-test.log 2>&1 &
+          uv run --project ../backend/workers/scan --no-sync uvicorn scan_worker.main:app --host 127.0.0.1 --port 5227 > ../.scan-worker-test.log 2>&1 &
           echo "$!" > ../.scan-worker-test.pid
           for attempt in {1..50}; do
             if curl --fail --silent http://127.0.0.1:5227/health > /dev/null; then exit 0; fi

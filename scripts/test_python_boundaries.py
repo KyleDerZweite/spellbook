@@ -1,4 +1,4 @@
-"""Negative fixtures exercise real Python syntax and both worker locations."""
+"""Negative fixtures exercise real Python syntax and the worker package roots."""
 
 import tempfile
 import unittest
@@ -55,10 +55,8 @@ class BoundaryTests(unittest.TestCase):
             "dynamic-import",
         )
 
-    def test_both_worker_locations_reject_http(self) -> None:
+    def test_worker_packages_reject_http(self) -> None:
         for package in (
-            "worker",
-            "scan-worker",
             "backend/workers/catalog",
             "backend/workers/scan",
             "backend/workers/state",
@@ -81,7 +79,7 @@ class BoundaryTests(unittest.TestCase):
                 "import psycopg\nfrom . import numbers",
             ),
             ("backend/workers/state/src/state/main.py", "import spellbook_core"),
-            ("scan-worker/src/scan_worker/main.py", "import fastapi"),
+            ("backend/workers/scan/src/scan_worker/main.py", "import fastapi"),
         ):
             with self.subTest(file=file):
                 self.check(file, code, None)

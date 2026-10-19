@@ -141,19 +141,21 @@ jobs:
           uv run --no-project --python 3.14.8 python -m unittest discover -s scripts -p test_python_boundaries.py
       - name: Catalog worker checks
         if: needs.changes.outputs.worker == 'true'
-        working-directory: worker
+        working-directory: backend/workers/catalog
         run: |
           uv lock --check --python 3.14.8
           uv sync --frozen --extra dev --python 3.14.8
           uv run --no-sync ruff check
           uv run --no-sync ruff format --check
+          uv build
           uv run --no-sync pytest
       - name: Scan worker checks
         if: ${{ !cancelled() && needs.changes.outputs.scan_worker == 'true' }}
-        working-directory: scan-worker
+        working-directory: backend/workers/scan
         run: |
           uv lock --check --python 3.14.8
           uv sync --frozen --extra dev --python 3.14.8
           uv run --no-sync ruff check
           uv run --no-sync ruff format --check
+          uv build
           uv run --no-sync pytest

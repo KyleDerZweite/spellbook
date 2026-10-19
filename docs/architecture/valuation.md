@@ -1,7 +1,7 @@
 # Valuation
 
 - Status: Scryfall and optional provider references/public source history implemented; personal Inventory history and Dashboard/selected-Deck estimates implemented
-- Last Reviewed: 2026-10-08
+- Last Reviewed: 2026-10-20
 - Source of Truth: reference contracts, backend Valuation, Worker publication and accepted value-only scope
 - Update Triggers: source publication, mapping, exact-decimal evaluation, public history, pruning, private checkpoint persistence, capture scheduling, safe summary contracts and acceptance evidence
 - Related Docs: [Architecture](./README.md), [Value tracking](../product/value-tracking.md), [Market price research](../integrations/market-prices.md), [Application contract](./application-contract.md), [Postgres](./postgres.md), [Worker](./worker.md), [ADR-0020](../decisions/0020-value-only-inventory-history.md), [ADR-0022](../decisions/0022-daily-value-observation-checkpoints.md)
@@ -124,12 +124,12 @@ Personal capture copies this trusted evidence before public pruning.
 Ingestion never inspects private holdings.
 Private reference rows retain copied evidence independently of public publications.
 
-[Contracts](../../contracts/src/valuation.ts), [backend Valuation](../../backend/src/valuation/read.ts) and [Worker extraction](../../worker/src/worker/prices.py) own concrete shapes and rules.
+[Contracts](../../contracts/src/valuation.ts), [backend Valuation](../../backend/src/valuation/read.ts) and [Worker extraction](../../backend/workers/catalog/src/worker/prices.py) own concrete shapes and rules.
 [HTTP ownership](./mobile-and-scan.md#reference-price-http-contract) owns routes, limits and errors; [deployment](../operations/deployment.md#catalog-migration-and-recovery) owns paired recovery.
 
 ## Optional references and public source history
 
-The explicit [Cardmarket/MTGJSON adapters](../../worker/src/worker/optional_prices.py) use complete public artifacts through the bounded [artifact reader](../../worker/src/worker/price_artifacts.py).
+The explicit [Cardmarket/MTGJSON adapters](../../backend/workers/catalog/src/worker/optional_prices.py) use complete public artifacts through the bounded [artifact reader](../../backend/workers/catalog/src/worker/price_artifacts.py).
 Cardmarket joins an exact Scryfall `cardmarket_id` to both Product Catalogue and Price Guide `idProduct`.
 Nonfoil selects `trend`; Foil selects `trend-foil`.
 The guide and catalogue retain independent original offset-bearing `createdAt` values, UTC instants, versions and digests.
@@ -144,7 +144,7 @@ All three inputs retain their own digest and `meta.version`.
 Explicit Foil membership remains required, including printings that also support Etched.
 The baseline's versioned, pre-price unique English predicate remains unchanged.
 
-[Optional publication](../../worker/src/worker/optional_publication.py) gives each provider independent opt-in, active/previous pointers, failure health and pruning under the native publication lock.
+[Optional publication](../../backend/workers/catalog/src/worker/optional_publication.py) gives each provider independent opt-in, active/previous pointers, failure health and pruning under the native publication lock.
 It copies validated Scryfall printing/finish/variant and English-match facts into its immutable public view.
 There is no cascading Catalog dependency.
 A complete successful view replaces missing and null amounts; failure rolls back and records safe health separately.

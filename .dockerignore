@@ -37,6 +37,7 @@ venv/
 **/.ruff_cache/
 backend/api/dist/
 backend/core/dist/
+backend/workers/*/dist/
 .pytest_cache/
 
 # SpacetimeDB local

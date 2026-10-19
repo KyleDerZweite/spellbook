@@ -13,7 +13,7 @@
 		"test:unit": "vitest run --project unit",
 		"test:integration": "vitest run --project integration",
 		"test:performance": "vitest run --project performance",
-		"lint": "pnpm --dir .. check:boundaries && pnpm --dir .. test:boundaries && prettier --ignore-path ../.gitignore --config .prettierrc --check . ../backend ../contracts ../scripts ../package.json ../.github/workflows/ci.yml && pnpm --dir ../backend check && pnpm check",
+		"lint": "pnpm --dir .. check:boundaries && pnpm --dir .. test:boundaries && prettier --ignore-path ../.gitignore --ignore-path ../.prettierignore --config .prettierrc --check . ../backend ../contracts ../scripts ../package.json ../.github/workflows/ci.yml && pnpm --dir ../backend check && pnpm check",
 		"format": "prettier --write .",
 		"db:generate": "pnpm --dir ../backend db:generate",
 		"db:migrate": "pnpm --dir ../backend db:migrate",
