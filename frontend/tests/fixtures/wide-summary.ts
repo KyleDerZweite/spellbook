@@ -3,7 +3,7 @@ import type { Pool } from 'pg';
 import type { CardDocument } from '@spellbook/contracts/catalog.ts';
 export async function seedWideSummary(pool: Pool, accountId: string) {
 	const cards = JSON.parse(
-		await readFile(new URL('../../scripts/demo/cards.json', import.meta.url), 'utf8')
+		await readFile(new URL('../../../backend/scripts/demo/cards.json', import.meta.url), 'utf8')
 	) as CardDocument[];
 	const card = cards.find((card) => card.name === 'Sol Ring')!;
 	const missing = cards.find((other) => other.oracle_id !== card.oracle_id)!;

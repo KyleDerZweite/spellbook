@@ -1,1 +1,1 @@
-export * from "@spellbook/contracts/legality.ts";
+export * from '@spellbook/contracts/legality.ts';

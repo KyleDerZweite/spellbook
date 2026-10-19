@@ -390,6 +390,7 @@ run('local accounts and persisted sessions', () => {
 		const cookie = vi.fn();
 		const event = (artworkId: string, username = browserUsername) => ({
 			url: browserUrl,
+			locals: { user: null },
 			request: new Request(browserUrl, {
 				method: 'POST',
 				headers: { origin: browserUrl.origin },

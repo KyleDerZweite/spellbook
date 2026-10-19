@@ -25,10 +25,11 @@ export const actions: Actions = {
 		if (!result.ok) return fail(result.status, result.data);
 		event.locals.api.replaceToken(result.data.token);
 		writeSessionCookie(event.cookies, result.data.token, event.url);
+		const errors: PasswordFormFailure['errors'] = {};
 		return {
 			success: true,
 			message: 'Password changed. Your other sessions were signed out.',
-			errors: {}
+			errors
 		};
 	}
 };

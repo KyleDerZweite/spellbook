@@ -1,1 +1,1 @@
-export * from "@spellbook/contracts/catalog-query.ts";
+export * from '@spellbook/contracts/catalog-query.ts';

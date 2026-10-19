@@ -1,1 +1,1 @@
-export * from "@spellbook/contracts/inventory-query.ts";
+export * from '@spellbook/contracts/inventory-query.ts';

@@ -52,7 +52,7 @@ async function request(path: string, body?: unknown, headers: Record<string, str
 
 async function catalogFixture() {
 	const cards: CardDocument[] = JSON.parse(
-		await readFile(new URL('../scripts/demo/cards.json', import.meta.url), 'utf8')
+		await readFile(new URL('../../backend/scripts/demo/cards.json', import.meta.url), 'utf8')
 	);
 	const d = cards.find((card) => card.name === 'Sol Ring');
 	assert.ok(d);
@@ -625,7 +625,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				const path = '/api/mobile/v1/mtg/inventory';
 				// Real public printings seed this reader-only pagination fixture. Mutation contracts are exercised below.
 				const publicCards: CardDocument[] = JSON.parse(
-					await readFile(new URL('../scripts/demo/cards.json', import.meta.url), 'utf8')
+					await readFile(new URL('../../backend/scripts/demo/cards.json', import.meta.url), 'utf8')
 				);
 				const inventoryId = randomUUID();
 				await pool.query("INSERT INTO inventories(id,account_id,game)VALUES($1,$2,'mtg')", [
