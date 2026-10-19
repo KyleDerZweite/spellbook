@@ -37,6 +37,8 @@ from spellbook_api.http.types import Configuration
         "http://0177.0.0.1",
         "http://example.123",
         "http://127.0.0.1.",
+        "http://xn--a",
+        "http://xn--",
     ],
 )
 def test_invalid_origin_is_rejected_before_start(origin: str) -> None:
@@ -46,7 +48,13 @@ def test_invalid_origin_is_rejected_before_start(origin: str) -> None:
 
 @pytest.mark.parametrize(
     "origin",
-    ["http://127.0.0.1:5173", "http://[::1]:5173", "https://example.com", "http://localhost:5173"],
+    [
+        "http://127.0.0.1:5173",
+        "http://[::1]:5173",
+        "https://example.com",
+        "http://localhost:5173",
+        "https://xn--bcher-kva.example",
+    ],
 )
 def test_canonical_origins_remain_accepted(origin: str) -> None:
     assert Configuration(origin).public_origin == origin

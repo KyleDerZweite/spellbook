@@ -8,6 +8,7 @@ Use Python 3.14.8 and uv 0.12.23, matching CI and the image.
 The exact direct dependency pins and independent `uv.lock` make installation reproducible.
 FastAPI/Uvicorn reuse the selected HTTP framework, Psycopg Pool supports the later bounded async resource owner, and the local `../core` package owns future application/SQL behavior.
 Core pins Psycopg 3 separately.
+Pydantic is already FastAPI's runtime dependency; its pinned URL parser validates trusted startup origins without a second handwritten URL parser or HTTP body coercion.
 Ruff owns lint/format; strict Mypy checks source and tests without requiring a Node-based checker.
 Mypy 2.4.0 is verified with Python 3.14.8.
 Pytest and httpx2 provide host tests and the upstream Starlette TestClient transport already used by Scan.

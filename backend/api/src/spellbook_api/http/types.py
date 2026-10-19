@@ -4,9 +4,9 @@ import ipaddress
 import re
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
-from urllib.parse import urlsplit
 
 from fastapi import FastAPI
+from pydantic import AnyHttpUrl, ValidationError
 
 type AsyncClose = Callable[[], Awaitable[None]]
 
@@ -18,43 +18,21 @@ class Configuration:
     port: int = 3002
 
     def __post_init__(self) -> None:
-        origin = urlsplit(self.public_origin)
-        if (
-            origin.scheme not in {"http", "https"}
-            or not origin.hostname
-            or origin.username is not None
-            or origin.password is not None
-            or origin.path
-            or origin.query
-            or origin.fragment
-            or self.public_origin != f"{origin.scheme}://{origin.netloc}"
-        ):
+        try:
+            origin = AnyHttpUrl(self.public_origin)
+        except ValidationError:
+            raise ValueError(
+                "APP_ORIGIN must be an absolute HTTP(S) origin without a path"
+            ) from None
+        if origin.host is None:
             raise ValueError("APP_ORIGIN must be an absolute HTTP(S) origin without a path")
-        # Validate malformed/out-of-range origin ports before starting a listener.
+        # Compare the parsed canonical origin, as the existing Node host does.
+        # This also rejects changed numeric-host, IDNA, port and escaping spellings.
+        authority = origin.host
         port = origin.port
-        hostname = origin.hostname.encode("idna").decode("ascii")
-        if ":" in hostname:
-            hostname = f"[{ipaddress.IPv6Address(hostname).compressed}]"
-        else:
-            # WHATWG URLs interpret a final numeric label as an IPv4 address,
-            # including shortened, octal and hexadecimal forms. The Node host's
-            # canonical-origin check rejects their changed spelling or invalid value.
-            last_label = hostname.rstrip(".").rsplit(".", 1)[-1]
-            if last_label.isdecimal() or re.fullmatch(r"0[xX][0-9a-fA-F]*", last_label):
-                try:
-                    address = ipaddress.IPv4Address(hostname)
-                except ipaddress.AddressValueError:
-                    raise ValueError("APP_ORIGIN must contain a canonical IPv4 host") from None
-                if str(address) != hostname:
-                    raise ValueError("APP_ORIGIN must contain a canonical IPv4 host")
-        authority = hostname
         if port is not None and port != {"http": 80, "https": 443}[origin.scheme]:
             authority += f":{port}"
-        if (
-            self.public_origin != f"{origin.scheme}://{authority}"
-            or any(ord(character) <= 32 or ord(character) == 127 for character in hostname)
-            or any(character in hostname for character in "\\<>^|%")
-        ):
+        if self.public_origin != f"{origin.scheme}://{authority}":
             raise ValueError("APP_ORIGIN must be a canonical HTTP(S) origin")
         if not ipaddress.ip_address(self.host).is_loopback:
             raise ValueError("The dormant candidate requires a loopback API_HOST")
