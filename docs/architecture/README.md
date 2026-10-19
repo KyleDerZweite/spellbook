@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-20
 - Source of Truth: code and explicitly marked accepted design
-- Update Triggers: P01 neutral contract and evidence baseline, accepted Python migration contract and independent review, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, schema changes, repository changes, auth flow changes, worker flow changes, service boundaries and reviewed module contracts
+- Update Triggers: P01 numeric-gate acceptance and neutral evidence baseline, complete unmerged Python execution scope and operational separation, accepted Python migration contract and independent review, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, schema changes, repository changes, auth flow changes, worker flow changes, service boundaries and reviewed module contracts
 - Related Docs: [System Overview](./system-overview.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Worker](./worker.md), [Catalog](./catalog.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Docs Index](../README.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Category rules](./category-rules.md), [Independent applications](./independent-applications.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md), [Migration evidence](./python-migration-evidence-baseline.md)
 
 Architecture documents distinguish implemented boundaries from explicitly marked accepted designs and proposals.
@@ -11,7 +11,8 @@ Use the product specification for requirements and current workflow scope.
 
 [Independent applications](./independent-applications.md) owns the integrated Node HTTP extraction, remote web adapter and first native Android slice; native target acceptance remains pending.
 [ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for the future API and workers; [the evaluation](../integrations/backend-language-evaluation.md) records tradeoffs and the accepted migration design.
-The [accepted migration contract](./python-backend-migration.md) records framework, wire/SQL ownership, delivery gates and rollback without changing the running baseline.
+The [accepted migration contract](./python-backend-migration.md) records framework, wire/SQL ownership and the authorized complete unmerged implementation, including migrator preparation and Node server source contraction.
+Production cutover, migrator rollout and ending the real rollback window remain separate operations; the running baseline is unchanged by the contract.
 The [P01 evidence baseline](./python-migration-evidence-baseline.md) owns the frozen inventory, executable compatibility transfers and candidate experiment rejection limits.
 
 | Owner                                                                  | Subject                                                                                                                                                                                                                                                                                                                                                                                        |
