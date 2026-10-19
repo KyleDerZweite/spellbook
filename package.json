@@ -11,7 +11,12 @@
 		"check:boundaries": "node scripts/check-boundaries.mjs",
 		"test:boundaries": "node --test scripts/check-boundaries.test.mjs",
 		"lint": "pnpm --dir frontend lint",
-		"build": "pnpm --dir frontend build",
-		"check:client": "node scripts/check-client.mjs"
+		"build": "pnpm --dir backend build && pnpm --dir frontend build",
+		"check:client": "node scripts/check-client.mjs",
+		"dev": "node --env-file-if-exists=.env scripts/dev.mjs",
+		"test:dev": "node --test scripts/dev.test.mjs",
+		"check": "pnpm --dir backend check && pnpm --dir frontend check",
+		"test:tooling": "node --test scripts/check-boundaries.test.mjs scripts/ci-changes.test.mjs scripts/dev.test.mjs scripts/packaging.test.mjs",
+		"test:packaging": "node --test scripts/packaging.test.mjs"
 	}
 }

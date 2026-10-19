@@ -1501,6 +1501,7 @@
 				</div>
 			{:else}
 				{#snippet entryRow(card: InventoryCard)}
+					{@const groupNames = entryGroupNames(card.id)}
 					<div
 						class="inventory-row"
 						data-inventory-row={card.id}
@@ -1525,9 +1526,7 @@
 													>, entry added {addedDate.format(card.createdAt)} UTC, marked new for 7 days</span
 												></span
 											>{/if}</span
-									>{#if entryGroupNames(card.id)}<span
-											class="entry-groups"
-											title={entryGroupNames(card.id)}>{entryGroupNames(card.id)}</span
+									>{#if groupNames}<span class="entry-groups" title={groupNames}>{groupNames}</span
 										>{/if}{#if card.notes}<span class="entry-notes">{card.notes}</span>{/if}</span
 								></button
 							>

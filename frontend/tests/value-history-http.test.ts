@@ -1,7 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import type { ChildProcess } from 'node:child_process';
 import { createDatabase } from '@spellbook/backend/db/client.ts';
 import { createLocalAuth } from '@spellbook/backend/auth/local.ts';
 import { createValuation } from '@spellbook/backend/valuation/read.ts';
@@ -21,7 +20,7 @@ const values = createInventoryValues(database.pool, auth, createValuation(databa
 const origin = httpTestOrigin();
 
 test('private Inventory values through the built application and PostgreSQL', async (t) => {
-	let child: ChildProcess | undefined;
+	let child: Awaited<ReturnType<typeof startHttpApplication>> | undefined;
 	const accounts: string[] = [],
 		publication = randomUUID(),
 		printing = randomUUID(),

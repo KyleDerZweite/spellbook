@@ -72,7 +72,7 @@ def publisher():
         scoped = make_conninfo(url, options=f"-csearch_path={schema},public")
         try:
             migration = (
-                Path(__file__).parents[2] / "frontend/drizzle/0016_deck_entry_categories.sql"
+                Path(__file__).parents[2] / "backend/drizzle/0016_deck_entry_categories.sql"
             ).read_text()
             statements = [
                 statement

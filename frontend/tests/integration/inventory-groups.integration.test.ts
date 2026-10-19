@@ -1,3 +1,4 @@
+import { createTestApplication } from './application.ts';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ensureDeckCatalogFixture } from '../deck-catalog-fixture.ts';
 import type { AuthUser } from '@spellbook/contracts/auth.ts';
@@ -42,6 +43,7 @@ run('Inventory groups persistence and ownership', () => {
 			.where(inArray(modules.userProfiles.accountId, [accountId, otherAccountId]));
 	});
 	afterAll(async () => {
+		await modules?.close();
 		await modules?.pool.end();
 	});
 
@@ -287,18 +289,17 @@ run('Inventory groups persistence and ownership', () => {
 });
 
 async function loadModules() {
-	const [client, schema, inventory, groups] = await Promise.all([
+	const [client, schema, lifetime, state] = await Promise.all([
 		import('../fixtures/database.ts'),
 		import('@spellbook/backend/db/schema.ts'),
-		import('../../src/lib/server/data/inventory'),
-		import('../../src/lib/server/data/inventory-groups')
+		createTestApplication(),
+		import('../fixtures/inventory-state.ts')
 	]);
 	return {
 		...client,
 		...schema,
-		...inventory,
-		...(await import('../fixtures/inventory-state.ts')),
-		...groups,
-		application: (await import('../../src/lib/server/composition.ts')).application
+		...state,
+		application: lifetime.application,
+		close: lifetime.close
 	};
 }

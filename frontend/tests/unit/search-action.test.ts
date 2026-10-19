@@ -7,7 +7,7 @@ vi.mock('#lib/server/composition.ts', () => ({
 	}
 }));
 vi.mock('#lib/server/data/decks.ts', async () => {
-	const actual = await vi.importActual('@spellbook/backend/decks/application.ts');
+	const actual = await vi.importActual('#lib/server/remote/errors.ts');
 	return { DeckNotFoundError: actual.DeckNotFoundError };
 });
 import { actions } from '../../src/routes/mtg/search/+page.server';

@@ -1,1 +1,1 @@
-export { RequestConflictError, mutationFingerprint } from '@spellbook/backend/transport.ts';
+export { RequestConflictError } from '#lib/server/remote/errors.ts';

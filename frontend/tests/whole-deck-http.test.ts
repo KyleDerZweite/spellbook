@@ -6,7 +6,13 @@ import { cp, mkdir, rm, symlink } from 'node:fs/promises';
 import pg from 'pg';
 import { publishCategoryCatalogFixture } from './fixtures/category-catalog.ts';
 import { fixtureAuthRequest } from './fixtures/http-auth.ts';
-import { httpTestOrigin, startHttpApplication, stopHttpApplication } from './http-runtime.ts';
+import {
+	httpApiTestOrigin,
+	httpTestOrigin,
+	startHttpApplication,
+	stopHttpApplication,
+	webTestEnvironment
+} from './http-runtime.ts';
 import type {
 	CategoryPreview,
 	LibraryAcknowledgement,
@@ -57,7 +63,7 @@ test('built whole Categories and bounded Deck Library preserve private saved con
 		if (process.env.TEST_WHOLE_TWO_PROCESS === 'true') {
 			const build = spawnSync('fnm', ['exec', '--using', '26.10.0', 'pnpm', 'build'], {
 				cwd,
-				env: { ...process.env, APP_ORIGIN: replicaOrigin, DEV_APP_ORIGIN: replicaOrigin },
+				env: { ...webTestEnvironment(), APP_ORIGIN: replicaOrigin },
 				stdio: ['ignore', 'pipe', 'pipe']
 			});
 			assert.equal(build.status, 0, 'Replica origin-matched build must pass');
@@ -67,7 +73,8 @@ test('built whole Categories and bounded Deck Library preserve private saved con
 				await startHttpApplication(
 					replicaOrigin,
 					cwd,
-					new URL('replica/index.js', artifacts).pathname
+					new URL('replica/index.js', artifacts).pathname,
+					{ apiOrigin: `http://127.0.0.1:${Number(new URL(httpApiTestOrigin()).port) + 1}` }
 				)
 			);
 		}
@@ -653,7 +660,8 @@ test('built whole Categories and bounded Deck Library preserve private saved con
 	} finally {
 		eventController?.abort();
 		try {
-			for (const child of children) await stopHttpApplication(child);
+			const stopped = await Promise.allSettled(children.map(stopHttpApplication));
+			for (const result of stopped) if (result.status === 'rejected') throw result.reason;
 			if (children.length) {
 				await rm(new URL('build/', cwd), { recursive: true, force: true });
 				await cp(new URL('primary/', artifacts), new URL('build/', cwd), { recursive: true });

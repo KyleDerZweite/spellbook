@@ -1,16 +1,20 @@
+import { webHandler, closeWebApplication } from './web-application.ts';
+vi.mock('$app/server', async () => ({
+	getRequestEvent: (await import('./web-application.ts')).getWebRequestEvent
+}));
+import { hashSessionToken } from '@spellbook/backend/auth/session.ts';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
 import { db, pool } from '../fixtures/database.ts';
 import { authSessions, localCredentials, userProfiles } from '@spellbook/backend/db/schema.ts';
-import { authenticate } from '../../src/lib/server/auth/local';
-import { hashPassword } from '../../src/lib/server/auth/password';
+import { authenticate } from './web-application.ts';
+import { hashPassword } from '@spellbook/backend/auth/password.ts';
+import { createSession, validateSession } from './web-application.ts';
 import {
-	createSession,
-	validateSession,
-	hashSessionToken
-} from '../../src/lib/server/auth/session';
-import { actions, load } from '../../src/routes/settings/password/+page.server';
-import { getProfileCard } from '../../src/lib/server/data/profile';
+	actions as rawActions,
+	load as rawLoad
+} from '../../src/routes/settings/password/+page.server';
+import { application } from './web-application.ts';
 import { defaultProfileCard, demoProfileCard } from '../../src/lib/profile/card';
 
 async function actor(accountId: string) {
@@ -22,6 +26,8 @@ async function actor(accountId: string) {
 	});
 	return (await validateSession(token))!;
 }
+const actions = { default: webHandler(rawActions.default!) };
+const load = webHandler(rawLoad);
 const run =
 	process.env.TEST_DATABASE_URL && process.env.DEMO_MODE === 'true' ? describe : describe.skip;
 run('immutable demo password', () => {
@@ -32,6 +38,7 @@ run('immutable demo password', () => {
 		await db
 			.delete(userProfiles)
 			.where(inArray(userProfiles.accountId, [accountId, cardAccountId, normalAccountId]));
+		await closeWebApplication();
 		await pool.end();
 	});
 	it('supplies the Demo card only as an unsaved demo fallback and retains saved and normal cards', async () => {
@@ -39,8 +46,12 @@ run('immutable demo password', () => {
 			{ accountId: cardAccountId, username: 'demo', artworkId: 'tide' },
 			{ accountId: normalAccountId, username: 'mage' }
 		]);
-		expect(await getProfileCard(await actor(cardAccountId))).toEqual(demoProfileCard());
-		expect(await getProfileCard(await actor(normalAccountId))).toEqual(defaultProfileCard('mage'));
+		expect((await application.profile.get(await actor(cardAccountId))).card).toEqual(
+			demoProfileCard()
+		);
+		expect((await application.profile.get(await actor(normalAccountId))).card).toEqual(
+			defaultProfileCard('mage')
+		);
 		const custom = {
 			...defaultProfileCard('demo'),
 			name: 'Saved demo design',
@@ -50,7 +61,7 @@ run('immutable demo password', () => {
 			.update(userProfiles)
 			.set({ profileCard: custom })
 			.where(eq(userProfiles.accountId, cardAccountId));
-		expect(await getProfileCard(await actor(cardAccountId))).toEqual(custom);
+		expect((await application.profile.get(await actor(cardAccountId))).card).toEqual(custom);
 		const [stored] = await db
 			.select()
 			.from(userProfiles)

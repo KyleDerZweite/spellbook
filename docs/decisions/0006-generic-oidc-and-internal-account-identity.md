@@ -7,11 +7,13 @@
 - Update Triggers: decision applicability, supersession, related document changes
 - Related Docs: [Auth Architecture](../architecture/auth.md), [Postgres](../architecture/postgres.md), [Local authentication](../operations/local-auth.md), [Deployment](../operations/deployment.md)
 
-This record describes the former OIDC design. [ADR-0009](./0009-local-authentication.md) replaces authentication while preserving internal account ownership.
+This record describes the former OIDC design.
+[ADR-0009](./0009-local-authentication.md) replaces authentication while preserving internal account ownership.
 
 ## Context
 
-Spellbook originally integrated directly with Zitadel. That worked for the current deployment, but it made the app shape depend on one identity provider and used the provider subject as the application ownership key.
+Spellbook originally integrated directly with Zitadel.
+That worked for the current deployment, but it made the app shape depend on one identity provider and used the provider subject as the application ownership key.
 
 That coupling creates two problems:
 
@@ -39,7 +41,8 @@ Spellbook now stores provider identity separately from app ownership:
 - `user_profiles.account_id` is the internal Spellbook account key used by app data
 - `auth_identities` maps `provider_type + issuer + subject` to that internal account key
 
-Users are auto-provisioned on first successful OIDC login. Spellbook does not auto-link unrelated providers by email.
+Users are auto-provisioned on first successful OIDC login.
+Spellbook does not auto-link unrelated providers by email.
 
 ## Consequences
 
