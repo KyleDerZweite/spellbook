@@ -1,7 +1,7 @@
 # Accepted application contract
 
 - Status: Accepted design; workspace, trusted Auth, Account/Profile, Dashboard, bounded Inventory reads and mutation contracts, Deck application contracts and shared Deck UI, Scan upload/read/result/review contracts, SavedState transport, process lifetime and mounted workspace consumers, source references, optional public providers, bounded public source history, private daily Inventory history, Dashboard/selected-Deck estimates and starter entry categories plus optional local Combo matching implemented; later feature slices planned
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-10-20
 - Source of Truth: workspace/Catalog/Auth/Profile/Dashboard/Inventory/Deck/Scan/Categories/SavedState/Valuation code and contracts, Worker price/Oracle Tags/Combo publication code, unaffected Q56 contracts and Kyle's value-only and continuous Lazy decisions of 2026-10-07
 - Update Triggers: selected Python API/worker direction, independent API/web ownership and relocated code references, workspace ownership, backend application/transport/operator interfaces and resource cleanup, use-case interfaces, experimental API migration, mutation receipts and revisions, Inventory queries and cache limits, shared UI interfaces and native Deck task entry, synchronization and SavedState process/HMR lifetime, reference publication, value-only history scope, Categories interfaces, immutable entry decisions/manual provenance, Oracle/Combo source and rule lifecycle and acceptance evidence, continuous Lazy browsing/dialog contract and selected versus implemented read limits
 - Related Docs: [Architecture](./README.md), [System overview](./system-overview.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Authentication](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Product specification](../product/specification.md), [UI direction](../product/ui-design-direction.md), [Valuation](./valuation.md), [Category rules](./category-rules.md), [Verification](../operations/github-automation.md), [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md), [ADR-0016](../decisions/0016-postgres-saved-state-invalidation.md), [ADR-0017](../decisions/0017-revisioned-inventory-windows-and-mutation-receipts.md), [Independent applications](./independent-applications.md), [Python direction](../decisions/0025-python-api-and-workers.md)
@@ -116,7 +116,7 @@ The [contraction slice](https://github.com/KyleDerZweite/spellbook/issues/192) e
 [Issue 244](https://github.com/KyleDerZweite/spellbook/issues/244) tracks independent runtimes and Android delivery while preserving existing HTTP contracts.
 Current-head automated, PostgreSQL, HTTP, browser and public-provider acceptance remain separate evidence.
 [ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for the future API and server workers.
-Framework, schema/client generation, worker relocation and migration steps remain separate planning under [issue 211](https://github.com/KyleDerZweite/spellbook/issues/211).
+The [accepted Python migration contract](./python-backend-migration.md) owns framework, wire/SQL ownership, worker relocation and delivery gates; its runtime migration has not started.
 
 [Backend application construction](../../backend/src/application.ts) receives database, build-analysis, Demo, Value-history, Scan and Combo configuration.
 Its asynchronous constructor returns `{ application, start, close }`, with no raw database or pool.

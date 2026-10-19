@@ -1,9 +1,9 @@
 # Decision Records
 
 - Status: Canonical
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-10-20
 - Source of Truth: mixed
-- Update Triggers: Python API/worker language selection and migration planning, major architectural decisions, major product decisions, documentation system changes, supersession of earlier decisions, uniform continuous Lazy browsing, local recognition direction and independent Android design clarification
+- Update Triggers: accepted Python migration framework and delivery contract, Python API/worker language selection and migration planning, major architectural decisions, major product decisions, documentation system changes, supersession of earlier decisions, uniform continuous Lazy browsing, local recognition direction and independent Android design clarification
 - Related Docs: [ADR Template](./ADR-template.md), [ADR-0001](./0001-docs-first-knowledge-system.md), [ADR-0006](./0006-generic-oidc-and-internal-account-identity.md), [ADR-0007](./0007-backend-first-mtg-bulk-import-api.md), [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md), [ADR-0009](./0009-local-authentication.md), [ADR-0014](./0014-public-landing-and-private-workspace.md), [Docs Index](../README.md), [Accepted mechanisms](../architecture/application-contract.md), [ADR-0021](./0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](./0023-local-recognition-in-scanner-clients.md), [Python direction](./0025-python-api-and-workers.md)
 
 This section stores architecture and product decision records.
@@ -30,7 +30,9 @@ Rules:
 
 ## Files
 
-- [ADR-0025: Python for the API and server workers](./0025-python-api-and-workers.md), accepted language direction; framework and migration design pending
+- [ADR-0026: Python migration framework and delivery contract](./0026-python-migration-contract.md), accepted contract after independent Sol/Astra review; migration not started
+
+- [ADR-0025: Python for the API and server workers](./0025-python-api-and-workers.md), accepted language direction; migration design follows ADR-0026
 
 - [ADR-0024: Independent web, API and Android applications](./0024-independent-applications.md), accepted runtime extraction and Kotlin/Compose selection; first slice integrated, native target acceptance pending
 

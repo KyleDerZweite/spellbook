@@ -1,7 +1,7 @@
 # Independent applications implementation contract
 
 - Status: Implemented first slice, native target verification pending
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-10-20
 - Source of Truth: accepted maintainer direction and existing application contracts
 - Update Triggers: Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, HTTP extraction, native delivery, credential forwarding, application ownership, acceptance evidence
 - Related Docs: [System overview](./system-overview.md), [Application contract](./application-contract.md), [Auth](./auth.md), [Mobile handoff](../product/mobile-app-exploration.md), [ADR-0024](../decisions/0024-independent-applications.md), [Verification](../operations/github-automation.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md)
@@ -18,7 +18,8 @@ No web runtime may import backend implementation, PostgreSQL, Drizzle or passwor
 
 The existing TypeScript backend remains the implemented baseline.
 [ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for the future API and server workers, with server code grouped under `backend/`.
-[Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211) retains framework, contract and migration planning.
+[Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211) records framework, contract and migration planning.
+The [accepted Python migration contract](./python-backend-migration.md) owns that design and its independent review; this document continues to describe the implemented extraction.
 This language direction does not implement a rewrite or worker move or change the extraction's application responsibilities.
 A new monorepo orchestrator, hardware control and a complex offline write queue remain outside its scope.
 Existing PWA compatibility remains available, but it is not the Android application.
