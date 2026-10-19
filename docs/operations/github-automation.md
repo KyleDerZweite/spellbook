@@ -84,6 +84,7 @@ Deck range fixtures use genuine Catalog printings and valid signed 32-bit per-en
 
 For SavedState transport verification, use the same migrated disposable database and origin/port rules, then run `pnpm test:sync` from `frontend/`.
 [saved-state-http.test.ts](../../frontend/tests/saved-state-http.test.ts) builds two origin-matched production artifacts, copies them under ignored `.local/saved-state-http/` and runs two web/API pairs.
+Its build subprocess uses the already selected `pnpm` on PATH, without requiring a local Node version manager on CI runners.
 The primary web uses `TEST_HTTP_PORT` or default 5191; replica web uses the next port.
 API uses `TEST_API_PORT` or default 5193 and its next port.
 Set `APP_ORIGIN` to the primary origin and keep all four ports free and distinct.
@@ -341,7 +342,9 @@ Neither has an automatic trigger or a `workflow_call` entry point, and automatic
 Each manual workflow has one job with a thirty-minute timeout and no concurrency cancellation of another manual run.
 Application Integration retains disposable PostgreSQL 18, the actual locked Scan worker, migrations, `test:integration`, the independent API/web build, `test:http`, `test:scan` and `test:sync`.
 Android Build retains explicit SDK 37.0, build-tools 36.0.0, setup-android v4.0.4, JDK 21 and `:app:lintDebug :app:testDebugUnitTest :app:assembleDebug`.
-Dispatch the required workflow against the revision being verified, for example:
+GitHub requires the workflow file to exist on the default branch before manual dispatch is available.
+Before integration into `main`, use the documented local checks.
+Once available, dispatch the required workflow against the revision being verified, for example:
 
 ```sh
 gh workflow run application-integration.yml --ref <branch-or-tag>
