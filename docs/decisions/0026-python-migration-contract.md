@@ -1,12 +1,12 @@
 # ADR-0026: Python migration framework and delivery contract
 
 - Status: Accepted
-- Implementation: Migration not started
+- Implementation: Complete source artifact authorized; production cutover pending
 - Date: 2026-10-19
 - Last Reviewed: 2026-10-20
 - Owners: Kyle
-- Source of Truth: maintainer-accepted migration contract for issue 211 and independent Sol/Astra reviews
-- Update Triggers: independent review, maintainer acceptance, framework or schema ownership changes, migration gates
+- Source of Truth: maintainer-accepted migration contract for issue 211, independent Sol/Astra reviews and Kyle's 2026-10-20 execution direction
+- Update Triggers: complete unmerged implementation scope, integration ownership, source preparation versus production operations, independent review, maintainer acceptance, framework or schema ownership changes, migration gates
 - Related Docs: [Migration contract](../architecture/python-backend-migration.md), [ADR-0025](./0025-python-api-and-workers.md), [Independent applications](../architecture/independent-applications.md), [Postgres](../architecture/postgres.md), [Worker](../architecture/worker.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
 
 ## Context
@@ -22,10 +22,15 @@ Use FastAPI/Uvicorn and Psycopg 3 with explicit SQL and no ORM.
 Reuse libraries already used by the Python workers instead of introducing another web/data framework.
 Django's model/migration ownership and an additional SQLAlchemy/Alembic layer would add competing schema responsibility without a requirement here.
 Keep backend-owned, language-neutral OpenAPI and executable fixtures under `contracts/`; retain handwritten clients initially.
-Retain Drizzle as sole migration owner during the API port, preserve SQL/journal/snapshots and require a separate verified Python migrator handoff.
+Retain Drizzle as sole production migration owner during the API port, preserve SQL/journal/snapshots and require a separate verified Python migrator handoff.
+Prepare and rehearse that handoff as part of the complete unmerged source artifact before production cutover; actual migrator rollout remains a later authorized operation.
 
 Group API, shared application/SQL modules and independent Catalog, Scan and state-runner packages under `backend/` as detailed in the [migration contract](../architecture/python-backend-migration.md).
-Deliver useful PRs against `main`, with Python inactive until complete parity and rollback evidence support one API cutover.
+Deliver useful dormant slice PRs against `main`, with explicitly based stacks allowed.
+Complete source activation, Python migrator preparation and Node server source contraction on `integration/python-backend-migration`; leave the final integration artifact unmerged for review.
+Root orchestrates only and may merge verified slices and reviewed safe Dependabot PRs.
+Before API/worker parallelism, root appoints and records one named shared-file integration writer, distinct from root, for shared CI, manifests, launchers, route registry and lifetime construction.
+Python remains inactive in production until complete parity and rollback evidence support the separately authorized API cutover.
 Preserve one active mutation/publisher/scheduler owner and separate API/worker processes and resources.
 
 ## Consequences
@@ -35,14 +40,20 @@ Separate state runners preserve existing leases and transactional effects while 
 Retaining the Node artifact and compatible data enables rollback after Python writes without discarding accepted changes.
 Kyle accepted the direction on 2026-10-20 subject to the additional GPT-6 Astra Medium review, which found no blockers.
 Design acceptance establishes neither implementation, a performance claim nor release authorization.
+Kyle subsequently authorized complete implementation through GPT-6.1-Sol High subagents, necessary reversible candidate experiments and manually invoked validation on 2026-10-20.
+This authorizes completing and verifying the source artifact without executing P18 production cutover, P19 production migrator rollout or P20 end of the real rollback window.
+Retain the tested Node rollback artifact and compatible data even when the integration branch removes replaced Node server source.
 
 ## Follow-Up
 
-Derive slice-PR tickets from the accepted migration contract and its completed independent reviews.
+Reconcile existing slice-PR tickets to the accepted execution scope before affected implementation, preserving operational acceptance separately from source completion.
 The [implementation epic](https://github.com/KyleDerZweite/spellbook/issues/245) owns native sub-issues, blocking relationships and evidence gates.
 Each ticket must carry its reviewed responsibilities, dependencies, resource limits and acceptance evidence.
 Map tests to the runtime they actually exercise and enable Python CI with the first API/core package.
-Experiments, heavy integration/Android runs and release operations remain separately scoped under the contract.
+Experiments and manually invoked heavy integration/Android validation are within the implementation scope; keep their triggers manual and record unavailable target evidence.
+P19/P20 preparation must not depend on executing production gates or falsely close their operational acceptance.
+Refresh evidence on the final integration head after migrator preparation and source contraction.
+Production release operations retain their separate concrete authorization under the contract.
 
 ## References
 
