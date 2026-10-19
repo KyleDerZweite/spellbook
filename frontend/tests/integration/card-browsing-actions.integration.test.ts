@@ -1,9 +1,18 @@
-import { beforeAll, afterAll, describe, it, expect } from 'vitest';
+import { webHandler, closeWebApplication } from './web-application.ts';
+vi.mock('$app/server', async () => ({
+	getRequestEvent: (await import('./web-application.ts')).getWebRequestEvent
+}));
+import { beforeAll, afterAll, describe, it, expect, vi } from 'vitest';
 import pg from 'pg';
-import { application } from '#lib/server/composition.ts';
-import { addToDeck, addBrowsingToInventory } from '#lib/server/card-browsing-actions.ts';
+import { application, authenticate } from './web-application.ts';
+import {
+	addToDeck as rawAddToDeck,
+	addBrowsingToInventory as rawAddBrowsingToInventory
+} from '#lib/server/card-browsing-actions.ts';
 import { ensureDeckCatalogFixture } from '../deck-catalog-fixture.ts';
 import type { AuthUser } from '@spellbook/contracts/auth.ts';
+const addToDeck = webHandler(rawAddToDeck);
+const addBrowsingToInventory = webHandler(rawAddBrowsingToInventory);
 const run = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 run('shared native action adapters over disposable PostgreSQL', () => {
 	const url = process.env.TEST_DATABASE_URL;
@@ -31,12 +40,12 @@ run('shared native action adapters over disposable PostgreSQL', () => {
 			new URL(url).pathname.slice(1)
 		);
 		await ensureDeckCatalogFixture(pool);
-		const first = await application.auth.authenticate(
+		const first = await authenticate(
 			'register',
 			'sharedpg_' + crypto.randomUUID().slice(0, 8),
 			'shared-pg-fixture-password'
 		);
-		const second = await application.auth.authenticate(
+		const second = await authenticate(
 			'register',
 			'foreignpg_' + crypto.randomUUID().slice(0, 8),
 			'shared-pg-fixture-password'
@@ -70,6 +79,7 @@ run('shared native action adapters over disposable PostgreSQL', () => {
 	afterAll(async () => {
 		for (const account of accounts)
 			await pool.query('DELETE FROM user_profiles WHERE account_id=$1', [account]);
+		await closeWebApplication();
 		await pool.end();
 	});
 	it('actual adapter preserves all four roles and original receipts across replay without duplicate quantities', async () => {

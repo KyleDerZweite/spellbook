@@ -1,3 +1,8 @@
+import { webHandler, closeWebApplication } from './web-application.ts';
+vi.mock('$app/server', async () => ({
+	getRequestEvent: (await import('./web-application.ts')).getWebRequestEvent
+}));
+import { hashSessionToken } from '@spellbook/backend/auth/session.ts';
 import { spawn } from 'node:child_process';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { eq, inArray, sql } from 'drizzle-orm';
@@ -11,29 +16,25 @@ import {
 	localCredentials,
 	userProfiles
 } from '@spellbook/backend/db/schema.ts';
-import { authenticate } from '../../src/lib/server/auth/local';
+import { authenticate } from './web-application.ts';
+import { createSession, revokeSession, validateSession } from './web-application.ts';
+import { submitAuthForm as rawSubmitAuthForm } from '../../src/lib/server/auth/forms';
+import { application, http } from './web-application.ts';
+import { hashPassword } from '@spellbook/backend/auth/password.ts';
 import {
-	createSession,
-	hashSessionToken,
-	revokeSession,
-	validateSession
-} from '../../src/lib/server/auth/session';
-import { POST as login } from '../../src/routes/api/auth/login/+server';
-import { POST as register } from '../../src/routes/api/auth/register/+server';
-import { submitAuthForm } from '../../src/lib/server/auth/forms';
-import { application } from '../../src/lib/server/composition.ts';
-import * as profileData from '../../src/lib/server/data/profile';
-import { POST as logout } from '../../src/routes/api/auth/logout/+server';
-import { hashPassword } from '../../src/lib/server/auth/password';
-import { requireMobileAuth } from '../../src/lib/server/mobile/auth';
-import {
-	actions as settingsActions,
-	load as loadSettings
+	actions as rawSettingsActions,
+	load as rawLoadSettings
 } from '../../src/routes/settings/+page.server';
 import {
-	actions as cardActions,
-	load as loadCard
+	actions as rawCardActions,
+	load as rawLoadCard
 } from '../../src/routes/settings/profile-card/+page.server';
+
+const settingsActions = { default: webHandler(rawSettingsActions.default!) };
+const cardActions = { default: webHandler(rawCardActions.default!) };
+const loadSettings = webHandler(rawLoadSettings);
+const loadCard = webHandler(rawLoadCard);
+const submitAuthForm = webHandler(rawSubmitAuthForm);
 
 async function trustedFixtureActor(accountId: string) {
 	const token = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64url');
@@ -86,6 +87,7 @@ run('local accounts and persisted sessions', () => {
 	afterAll(async () => {
 		if (accountIds.length)
 			await db.delete(userProfiles).where(inArray(userProfiles.accountId, accountIds));
+		await closeWebApplication();
 		await pool.end();
 	});
 	it('requires authentication for settings reads and updates', async () => {
@@ -215,7 +217,7 @@ run('local accounts and persisted sessions', () => {
 			avatarId: 'wizard',
 			artworkId: 'astral'
 		});
-		expect(await profileData.getProfileCard(other!.user)).toEqual(
+		expect((await application.profile.get(other!.user)).card).toEqual(
 			defaultProfileCard(other!.user.username)
 		);
 		expect(await validateSession(other!.session.token)).toMatchObject({
@@ -231,7 +233,7 @@ run('local accounts and persisted sessions', () => {
 				locals: { user: user!.user },
 				request
 			} as never);
-			expect(await profileData.getProfileCard(user!.user)).toEqual(card);
+			expect((await application.profile.get(user!.user)).card).toEqual(card);
 		}
 		expect(await validateSession(user!.session.token)).toMatchObject({
 			avatarId: 'wizard',
@@ -243,7 +245,7 @@ run('local accounts and persisted sessions', () => {
 			message: 'Profile card saved.',
 			savedCard: { card: standard, artworkId: 'astral' }
 		});
-		expect(await profileData.getProfileCard(user!.user)).toEqual(standard);
+		expect((await application.profile.get(user!.user)).card).toEqual(standard);
 	});
 	it('rejects incomplete or invalid card edits before any preference write and retains safe submitted values', async () => {
 		const user = await authenticate(
@@ -307,7 +309,7 @@ run('local accounts and persisted sessions', () => {
 				data: { card: { name: 'Must not save' } }
 			});
 		}
-		expect(await profileData.getProfileCard(user!.user)).toEqual(card);
+		expect((await application.profile.get(user!.user)).card).toEqual(card);
 		expect(await validateSession(user!.session.token)).toMatchObject({
 			avatarId: 'wizard',
 			artworkId: 'grove'
@@ -369,15 +371,14 @@ run('local accounts and persisted sessions', () => {
 		const password = 'correct horse battery';
 		const username = `mage_${crypto.randomUUID().slice(0, 12)}`;
 		const url = new URL('https://spellbook.test/api/auth/register');
-		const response = await register({
-			url,
-			request: new Request(url, {
+		const response = await http.handle(
+			new Request(url, {
 				method: 'POST',
 				headers: { 'content-type': 'application/json' },
 				body: JSON.stringify({ username, password, artworkId: 'tide' })
 			}),
-			getClientAddress: () => crypto.randomUUID()
-		} as never);
+			{ clientAddress: crypto.randomUUID() }
+		);
 		expect(response.status).toBe(201);
 		const body = await response.json();
 		accountIds.push(body.user.accountId);
@@ -534,7 +535,7 @@ run('local accounts and persisted sessions', () => {
 			totals: { total: 14, names: 2, printings: 3, sets: 2, foils: 8, decks: 2 },
 			statsError: null
 		});
-		expect(await profileData.getProfileTotals(await trustedFixtureActor(otherId))).toEqual({
+		expect((await application.profile.get(await trustedFixtureActor(otherId))).totals).toEqual({
 			total: 99,
 			names: 1,
 			printings: 1,
@@ -633,7 +634,7 @@ run('local accounts and persisted sessions', () => {
 		const setPassword = async (password: string) => {
 			const command = spawn(
 				process.execPath,
-				['scripts/set-local-password.mjs', accountId, username],
+				['../backend/scripts/set-local-password.mjs', accountId, username],
 				{
 					env: { ...process.env, DATABASE_URL: process.env.TEST_DATABASE_URL },
 					stdio: ['pipe', 'pipe', 'pipe']
@@ -670,28 +671,31 @@ run('local accounts and persisted sessions', () => {
 		const user = await authenticate('register', username, password);
 		accountIds.push(user!.user.accountId);
 		const url = new URL('https://spellbook.test/api/auth/login');
-		const response = await login({
-			url,
-			request: new Request(url, {
+		const response = await http.handle(
+			new Request(url, {
 				method: 'POST',
 				headers: { 'content-type': 'application/json' },
 				body: JSON.stringify({ username, password })
 			}),
-			getClientAddress: () => crypto.randomUUID()
-		} as never);
+			{ clientAddress: crypto.randomUUID() }
+		);
 		expect(response.headers.get('cache-control')).toBe('no-store');
 		const body = await response.json();
 		expect(body.user.accountId).toBe(user!.user.accountId);
-		const event = {
-			url,
-			request: new Request(url, {
-				method: 'POST',
-				headers: { authorization: `Bearer ${body.token}` }
-			}),
-			locals: {}
-		};
-		expect((await requireMobileAuth(event as never)).user).toEqual(user!.user);
-		expect((await logout(event as never)).status).toBe(204);
-		await expect(requireMobileAuth(event as never)).rejects.toMatchObject({ status: 401 });
+		const headers = { authorization: `Bearer ${body.token}` };
+		const inspect = () =>
+			http.handle(new Request('https://spellbook.test/api/auth/session', { headers }), {
+				clientAddress: crypto.randomUUID()
+			});
+		expect((await (await inspect()).json()).user).toEqual(user!.user);
+		expect(
+			(
+				await http.handle(
+					new Request('https://spellbook.test/api/auth/logout', { method: 'POST', headers }),
+					{ clientAddress: crypto.randomUUID() }
+				)
+			).status
+		).toBe(204);
+		expect((await inspect()).status).toBe(401);
 	});
 });

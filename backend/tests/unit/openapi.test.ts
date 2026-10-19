@@ -1,13 +1,14 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
-import { error, isHttpError } from '@sveltejs/kit';
+import { error, HttpError } from '../../src/http/errors.ts';
 import { describe, expect, it } from 'vitest';
-import { GET } from '../../src/routes/openapi.json/+server';
+import { openapi } from '../../src/http/openapi.ts';
+const GET = () => Response.json(openapi('https://spellbook.test'));
 import {
 	DECK_OPERATION_TYPES,
 	DECK_ROLES,
 	INVENTORY_OPERATION_TYPES
-} from '../../src/lib/server/mtg/validation';
+} from '../../src/mtg/validation.ts';
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 interface Operation {
@@ -21,7 +22,8 @@ interface Document {
 	components: { schemas: Record<string, Json>; securitySchemes: Record<string, Json> };
 }
 
-const routes = new URL('../../src/routes/', import.meta.url).pathname;
+const webRoutes = new URL('../../../frontend/src/routes/', import.meta.url).pathname;
+const apiRoutes = new URL('../../src/http/routes/', import.meta.url).pathname;
 const methods = ['get', 'post', 'put', 'patch', 'delete', 'options', 'head'];
 
 function files(directory: string): string[] {
@@ -32,28 +34,38 @@ function files(directory: string): string[] {
 }
 
 function implementedOperations(): string[] {
-	return files(routes)
-		.flatMap((file) => {
-			const route = relative(routes, file).replaceAll('\\', '/');
-			if (!route.startsWith('api/') && !route.startsWith('auth/')) return [];
-			const path = `/${route.replace(/\/\+[^/]+$/, '').replace(/\[([^\]]+)\]/g, '{$1}')}`;
-			const source = readFileSync(file, 'utf8');
-			if (route.endsWith('/+server.ts')) {
-				return [
-					...source.matchAll(
-						/\bexport\s+(?:async\s+)?(?:const|function)\s+(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)\b/g
-					)
-				].map((match) => `${match[1]?.toLowerCase()} ${path}`);
-			}
-			if (route.endsWith('/+page.server.ts')) {
-				return [
-					...(/export\s+const\s+load\b/.test(source) ? [`get ${path}`] : []),
-					...(/export\s+const\s+actions\b/.test(source) ? [`post ${path}`] : [])
-				];
-			}
-			return [];
-		})
-		.sort();
+	const web = files(webRoutes).flatMap((file) => {
+		const route = relative(webRoutes, file).replaceAll('\\', '/');
+		if (!route.startsWith('auth/')) return [];
+		const path = `/${route.replace(/\/\+[^/]+$/, '').replace(/\[([^\]]+)\]/g, '{$1}')}`;
+		const source = readFileSync(file, 'utf8');
+		if (route.endsWith('/+server.ts')) {
+			return [
+				...source.matchAll(
+					/\bexport\s+(?:async\s+)?(?:const|function)\s+(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)\b/g
+				)
+			].map((match) => `${match[1]?.toLowerCase()} ${path}`);
+		}
+		if (route.endsWith('/+page.server.ts')) {
+			return [
+				...(/export\s+const\s+load\b/.test(source) ? [`get ${path}`] : []),
+				...(/export\s+const\s+actions\b/.test(source) ? [`post ${path}`] : [])
+			];
+		}
+		return [];
+	});
+	const api = files(apiRoutes).flatMap((file) => {
+		const source = readFileSync(file, 'utf8');
+		return [
+			...source.matchAll(
+				/\bmethod:\s*'(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)',\s*path:\s*'([^']+)'/g
+			)
+		].map(
+			(match) =>
+				`${match[1]!.toLowerCase()} ${match[2]!.replace(/:([A-Za-z][A-Za-z0-9]*)/g, '{$1}')}`
+		);
+	});
+	return [...web, ...api].sort();
 }
 
 function visit(value: Json, visitor: (value: Record<string, Json>) => void): void {
@@ -66,6 +78,12 @@ function visit(value: Json, visitor: (value: Record<string, Json>) => void): voi
 }
 
 describe('OpenAPI contract', () => {
+	it('publishes the schema for the configured public origin', () => {
+		const schema = openapi('https://spellbook.example.test');
+		expect(schema.info.title).toBe('Spellbook OpenAPI Schema');
+		expect(schema.servers[0].url).toBe('https://spellbook.example.test');
+		expect(schema.paths['/auth/login']).toBeDefined();
+	});
 	it('documents complete copied combo proof while keeping legacy evidence compatible', async () => {
 		const {
 			components: { schemas }
@@ -223,19 +241,18 @@ describe('OpenAPI contract', () => {
 		expect(pattern.test('0x005')).toBe(false);
 		expect(pattern.test('0.' + '1'.repeat(19))).toBe(false);
 	});
-	it('includes the status and message returned by SvelteKit errors', async () => {
+	it('includes the safe message returned by HTTP errors', async () => {
 		const schema = (await GET().json()) as Document;
 		let body: unknown;
 		try {
 			error(400, 'Invalid request');
 		} catch (cause) {
-			if (!isHttpError(cause)) throw cause;
+			if (!(cause instanceof HttpError)) throw cause;
 			body = cause.body;
 		}
-		expect(body).toEqual({ status: 400, message: 'Invalid request' });
+		expect(body).toEqual({ message: 'Invalid request' });
 		expect(schema.components.schemas.ErrorResponse).toMatchObject({
 			properties: {
-				status: { type: 'integer', minimum: 400, maximum: 599 },
 				message: { type: 'string' }
 			},
 			required: Object.keys(body as object)

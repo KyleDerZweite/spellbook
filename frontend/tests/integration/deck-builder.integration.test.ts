@@ -1,3 +1,4 @@
+import { createTestApplication } from './application.ts';
 import { ensureDeckCatalogFixture } from '../deck-catalog-fixture.ts';
 import type { AuthUser } from '@spellbook/contracts/auth.ts';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
@@ -30,6 +31,7 @@ run('deck builder transactions', () => {
 			.where(eq(modules.userProfiles.accountId, accountId));
 	});
 	afterAll(async () => {
+		await modules?.close();
 		await modules?.pool.end();
 	});
 
@@ -42,42 +44,35 @@ run('deck builder transactions', () => {
 	});
 
 	it('serves owned availability from real deck and inventory data without reserving copies', async () => {
-		const deck = await modules.createDeckRecord(actor, deckInput);
-		await modules.bulkMutateDeckCards(actor, {
+		const deck = await modules.application.decks.createDeckRecord(actor, deckInput);
+		await modules.application.decks.bulkMutateDeckCards(actor, {
 			requestId: crypto.randomUUID(),
 			source: 'web',
 			game: 'mtg',
 			deckId: deck.id,
 			operations: [operation(), operation(1, 'sideboard')]
 		});
-		await modules.bulkMutateInventory(actor, {
+		await modules.application.inventory.bulk(actor, {
 			requestId: crypto.randomUUID(),
 			source: 'web',
 			game: 'mtg',
 			operations: [{ ...operation(), finish: 'nonfoil', condition: 'NM' }]
 		});
-		const { GET } =
-			await import('../../src/routes/api/mobile/v1/mtg/decks/[deckId]/availability/+server');
-		const request = {
-			params: { deckId: deck.id },
-			locals: { user: actor },
-			request: new Request(`http://localhost/api/mobile/v1/mtg/decks/${deck.id}/availability`)
-		} as Parameters<typeof GET>[0];
-		const response = await GET(request);
-		expect(await response.json()).toMatchObject({
+		expect(await modules.application.decks.availability(actor, deck.id)).toMatchObject({
 			deckId: deck.id,
 			entries: expect.any(Array),
 			totals: { required: 2, exact: 1, alternate: 0, missing: 1 }
 		});
 		expect((await modules.getInventorySnapshot(accountId)).cards[0].quantity).toBe(1);
-		request.locals.user = { ...actor, accountId: 'foreign-account' };
-		await expect(GET(request)).rejects.toMatchObject({ status: 401 });
+		await expect(
+			modules.application.decks.availability({ ...actor, accountId: 'foreign-account' }, deck.id)
+		).rejects.toMatchObject({ kind: 'Unauthenticated' });
 	});
 
 	it('returns exact canonical ownership across real printings with valid int32 quantities', async () => {
 		const printings = (await modules.application.catalog.getPrintings(card.canonicalCardId)).hits;
 		expect(printings.length).toBeGreaterThanOrEqual(2);
-		await modules.bulkMutateInventory(actor, {
+		await modules.application.inventory.bulk(actor, {
 			requestId: crypto.randomUUID(),
 			source: 'web',
 			game: 'mtg',
@@ -106,7 +101,7 @@ run('deck builder transactions', () => {
 	});
 
 	it('rejects changed bulk payloads without changing the deck', async () => {
-		const deck = await modules.createDeckRecord(actor, deckInput);
+		const deck = await modules.application.decks.createDeckRecord(actor, deckInput);
 		const input = {
 			requestId: crypto.randomUUID(),
 			source: 'web',
@@ -114,14 +109,16 @@ run('deck builder transactions', () => {
 			deckId: deck.id,
 			operations: [operation(2)]
 		};
-		await modules.bulkMutateDeckCards(actor, input);
+		await modules.application.decks.bulkMutateDeckCards(actor, input);
 		await expect(
-			modules.bulkMutateDeckCards(actor, { ...input, operations: [operation(3)] })
+			modules.application.decks.bulkMutateDeckCards(actor, { ...input, operations: [operation(3)] })
 		).rejects.toMatchObject({ name: 'RequestConflictError' });
 		await expect(
-			modules.bulkMutateDeckCards(actor, { ...input, source: 'mobile' })
+			modules.application.decks.bulkMutateDeckCards(actor, { ...input, source: 'mobile' })
 		).rejects.toMatchObject({ name: 'RequestConflictError' });
-		expect(await modules.getDeckCardsForDeck(actor, deck.id)).toMatchObject([{ quantity: 2 }]);
+		expect(await modules.application.decks.getDeckCardsForDeck(actor, deck.id)).toMatchObject([
+			{ quantity: 2 }
+		]);
 	});
 
 	it('binds import retries to normalized metadata and rejects keys used by bulk mutations', async () => {
@@ -131,10 +128,10 @@ run('deck builder transactions', () => {
 			source: 'import',
 			operations: [operation(2)]
 		};
-		const deck = await modules.importDeck(actor, input);
+		const deck = await modules.application.decks.importDeck(actor, input);
 		expect(
 			(
-				await modules.importDeck(actor, {
+				await modules.application.decks.importDeck(actor, {
 					...input,
 					name: ` ${input.name} `,
 					description: ' ',
@@ -148,32 +145,36 @@ run('deck builder transactions', () => {
 			{ format: 'Legacy' },
 			{ operations: [operation(3)] }
 		]) {
-			await expect(modules.importDeck(actor, { ...input, ...change })).rejects.toMatchObject({
+			await expect(
+				modules.application.decks.importDeck(actor, { ...input, ...change })
+			).rejects.toMatchObject({
 				name: 'RequestConflictError'
 			});
 		}
 		const requestId = crypto.randomUUID();
-		await modules.bulkMutateDeckCards(actor, {
+		await modules.application.decks.bulkMutateDeckCards(actor, {
 			requestId,
 			source: 'import',
 			game: 'mtg',
 			deckId: deck.deckId,
 			operations: [operation()]
 		});
-		await expect(modules.importDeck(actor, { ...input, requestId })).rejects.toMatchObject({
+		await expect(
+			modules.application.decks.importDeck(actor, { ...input, requestId })
+		).rejects.toMatchObject({
 			name: 'RequestConflictError'
 		});
-		const snapshot = await modules.getDeckSnapshot(
+		const snapshot = await modules.application.decks.getDeckSnapshot(
 			actor,
 			'mtg',
-			(await modules.getDeckSnapshot(actor)).decks[0].id
+			(await modules.application.decks.getDeckSnapshot(actor)).decks[0].id
 		);
 		expect(snapshot.decks).toHaveLength(1);
 		expect(snapshot.deckCards).toMatchObject([{ quantity: 3 }]);
 	});
 
 	it('preserves legacy request deduplication for null fingerprints', async () => {
-		const deck = await modules.createDeckRecord(actor, deckInput);
+		const deck = await modules.application.decks.createDeckRecord(actor, deckInput);
 		const input = {
 			requestId: crypto.randomUUID(),
 			source: 'web',
@@ -181,17 +182,22 @@ run('deck builder transactions', () => {
 			deckId: deck.id,
 			operations: [operation(2)]
 		};
-		await modules.bulkMutateDeckCards(actor, input);
+		await modules.application.decks.bulkMutateDeckCards(actor, input);
 		await modules.db
 			.update(modules.deckMutationRequests)
 			.set({ requestHash: null })
 			.where(eq(modules.deckMutationRequests.requestId, input.requestId));
-		await modules.bulkMutateDeckCards(actor, { ...input, operations: [operation(3)] });
-		expect(await modules.getDeckCardsForDeck(actor, deck.id)).toMatchObject([{ quantity: 2 }]);
+		await modules.application.decks.bulkMutateDeckCards(actor, {
+			...input,
+			operations: [operation(3)]
+		});
+		expect(await modules.application.decks.getDeckCardsForDeck(actor, deck.id)).toMatchObject([
+			{ quantity: 2 }
+		]);
 	});
 
 	it('claims concurrent duplicate requests exactly once', async () => {
-		const deck = await modules.createDeckRecord(actor, deckInput);
+		const deck = await modules.application.decks.createDeckRecord(actor, deckInput);
 		const input = {
 			requestId: crypto.randomUUID(),
 			source: 'web',
@@ -199,13 +205,17 @@ run('deck builder transactions', () => {
 			deckId: deck.id,
 			operations: [operation(2)]
 		};
-		await Promise.all(Array.from({ length: 8 }, () => modules.bulkMutateDeckCards(actor, input)));
-		expect(await modules.getDeckCardsForDeck(actor, deck.id)).toMatchObject([{ quantity: 2 }]);
+		await Promise.all(
+			Array.from({ length: 8 }, () => modules.application.decks.bulkMutateDeckCards(actor, input))
+		);
+		expect(await modules.application.decks.getDeckCardsForDeck(actor, deck.id)).toMatchObject([
+			{ quantity: 2 }
+		]);
 	});
 
 	it('serializes concurrent decrements without losing updates', async () => {
-		const deck = await modules.createDeckRecord(actor, deckInput);
-		const acknowledgement = await modules.bulkMutateDeckCards(actor, {
+		const deck = await modules.application.decks.createDeckRecord(actor, deckInput);
+		const acknowledgement = await modules.application.decks.bulkMutateDeckCards(actor, {
 			requestId: crypto.randomUUID(),
 			source: 'web',
 			game: 'mtg',
@@ -214,7 +224,7 @@ run('deck builder transactions', () => {
 		});
 		await Promise.all(
 			Array.from({ length: 8 }, () =>
-				modules.bulkMutateDeckCards(actor, {
+				modules.application.decks.bulkMutateDeckCards(actor, {
 					requestId: crypto.randomUUID(),
 					source: 'web',
 					game: 'mtg',
@@ -229,12 +239,14 @@ run('deck builder transactions', () => {
 				})
 			)
 		);
-		expect(await modules.getDeckCardsForDeck(actor, deck.id)).toMatchObject([{ quantity: 2 }]);
+		expect(await modules.application.decks.getDeckCardsForDeck(actor, deck.id)).toMatchObject([
+			{ quantity: 2 }
+		]);
 	});
 
 	it('merges destination role quantities atomically', async () => {
-		const deck = await modules.createDeckRecord(actor, deckInput);
-		const cards = await modules.bulkMutateDeckCards(actor, {
+		const deck = await modules.application.decks.createDeckRecord(actor, deckInput);
+		const cards = await modules.application.decks.bulkMutateDeckCards(actor, {
 			requestId: crypto.randomUUID(),
 			source: 'web',
 			game: 'mtg',
@@ -249,7 +261,7 @@ run('deck builder transactions', () => {
 			quantity: 4,
 			role: 'sideboard'
 		});
-		await modules.updateDeckCard(
+		await modules.application.decks.updateDeckCard(
 			actor,
 			main.entryId,
 			4,
@@ -259,7 +271,7 @@ run('deck builder transactions', () => {
 			'web',
 			preview.token
 		);
-		expect(await modules.getDeckCardsForDeck(actor, deck.id)).toMatchObject([
+		expect(await modules.application.decks.getDeckCardsForDeck(actor, deck.id)).toMatchObject([
 			{ quantity: 7, role: 'sideboard' }
 		]);
 	});
@@ -272,13 +284,13 @@ run('deck builder transactions', () => {
 			operations: [operation(4)]
 		};
 		const result = await Promise.all(
-			Array.from({ length: 8 }, () => modules.importDeck(actor, input))
+			Array.from({ length: 8 }, () => modules.application.decks.importDeck(actor, input))
 		);
 		expect(new Set(result.map((deck) => deck.deckId)).size).toBe(1);
-		const snapshot = await modules.getDeckSnapshot(
+		const snapshot = await modules.application.decks.getDeckSnapshot(
 			actor,
 			'mtg',
-			(await modules.getDeckSnapshot(actor)).decks[0].id
+			(await modules.application.decks.getDeckSnapshot(actor)).decks[0].id
 		);
 		expect(snapshot.decks).toHaveLength(1);
 		expect(snapshot.deckCards).toMatchObject([{ quantity: 4 }]);
@@ -287,28 +299,28 @@ run('deck builder transactions', () => {
 	it('rolls back new deck and request when a later imported card fails', async () => {
 		const requestId = crypto.randomUUID();
 		await expect(
-			modules.importDeck(actor, {
+			modules.application.decks.importDeck(actor, {
 				...deckInput,
 				requestId,
 				source: 'import',
 				operations: [operation(2147483647), operation()]
 			})
 		).rejects.toThrow();
-		const snapshot = await modules.getDeckSnapshot(actor);
+		const snapshot = await modules.application.decks.getDeckSnapshot(actor);
 		expect(snapshot.decks).toEqual([]);
 		expect(snapshot.deckCards).toEqual([]);
-		await modules.importDeck(actor, {
+		await modules.application.decks.importDeck(actor, {
 			...deckInput,
 			requestId,
 			source: 'import',
 			operations: [operation()]
 		});
-		expect((await modules.getDeckSnapshot(actor)).decks).toHaveLength(1);
+		expect((await modules.application.decks.getDeckSnapshot(actor)).decks).toHaveLength(1);
 	});
 
 	it('rejects request reuse for another deck and cross-account mutations', async () => {
-		const first = await modules.createDeckRecord(actor, deckInput);
-		const second = await modules.createDeckRecord(actor, deckInput);
+		const first = await modules.application.decks.createDeckRecord(actor, deckInput);
+		const second = await modules.application.decks.createDeckRecord(actor, deckInput);
 		const input = {
 			requestId: crypto.randomUUID(),
 			source: 'web',
@@ -316,42 +328,42 @@ run('deck builder transactions', () => {
 			deckId: first.id,
 			operations: [operation()]
 		};
-		await modules.bulkMutateDeckCards(actor, input);
+		await modules.application.decks.bulkMutateDeckCards(actor, input);
 		await expect(
-			modules.bulkMutateDeckCards(actor, { ...input, deckId: second.id })
+			modules.application.decks.bulkMutateDeckCards(actor, { ...input, deckId: second.id })
 		).rejects.toThrow('different mutation');
 		await expect(
-			modules.bulkMutateDeckCards(
+			modules.application.decks.bulkMutateDeckCards(
 				{ ...actor, accountId: 'other' },
 				{ ...input, requestId: crypto.randomUUID() }
 			)
 		).rejects.toMatchObject({ kind: 'Unauthenticated' });
-		expect(await modules.getDeckCardsForDeck(actor, second.id)).toEqual([]);
+		expect(await modules.application.decks.getDeckCardsForDeck(actor, second.id)).toEqual([]);
 	});
 	it('keeps Description revision independent of quantity and unchanged text', async () => {
-		const deck = await modules.createDeckRecord(actor, deckInput);
-		await modules.updateDeck(actor, { deckId: deck.id, name: 'Renamed' });
-		const described = await modules.updateDeck(actor, {
+		const deck = await modules.application.decks.createDeckRecord(actor, deckInput);
+		await modules.application.decks.updateDeck(actor, { deckId: deck.id, name: 'Renamed' });
+		const described = await modules.application.decks.updateDeck(actor, {
 			deckId: deck.id,
 			description: 'My description',
 			descriptionRevision: deck.descriptionRevision
 		});
 		expect(described).toMatchObject({ name: 'Renamed', descriptionRevision: '1' });
-		await modules.bulkMutateDeckCards(actor, {
+		await modules.application.decks.bulkMutateDeckCards(actor, {
 			requestId: crypto.randomUUID(),
 			source: 'web',
 			game: 'mtg',
 			deckId: deck.id,
 			operations: [operation()]
 		});
-		const unchanged = await modules.updateDeck(actor, {
+		const unchanged = await modules.application.decks.updateDeck(actor, {
 			deckId: deck.id,
 			description: 'My description',
 			descriptionRevision: '1'
 		});
 		expect(unchanged?.descriptionRevision).toBe('1');
 		await expect(
-			modules.updateDeck(actor, {
+			modules.application.decks.updateDeck(actor, {
 				deckId: deck.id,
 				description: 'Old draft',
 				descriptionRevision: '0'
@@ -361,8 +373,8 @@ run('deck builder transactions', () => {
 		});
 	});
 	it('keeps concurrent ordinary decrements at one and preserves original no-op acknowledgements', async () => {
-		const deck = await modules.createDeckRecord(actor, deckInput);
-		const added = await modules.bulkMutateDeckCards(actor, {
+		const deck = await modules.application.decks.createDeckRecord(actor, deckInput);
+		const added = await modules.application.decks.bulkMutateDeckCards(actor, {
 			requestId: crypto.randomUUID(),
 			source: 'web',
 			game: 'mtg',
@@ -380,26 +392,47 @@ run('deck builder transactions', () => {
 		const clients = [actor, other.user];
 		const answers = await Promise.all(
 			clients.map((client, index) =>
-				modules.updateDeckCard(client, entryId, undefined, undefined, requestIds[index], -1)
+				modules.application.decks.updateDeckCard(
+					client,
+					entryId,
+					undefined,
+					undefined,
+					requestIds[index],
+					-1
+				)
 			)
 		);
 		expect(answers.map((answer) => answer.changes[0].quantity)).toEqual([1, 1]);
 		expect(answers.map((answer) => answer.revision)).toEqual(['2', '2']);
 		expect(answers.map((answer) => answer.changes[0].delta).sort()).toEqual([-1, 0]);
 		expect(answers.every((answer) => answer.removedEntryIds.length === 0)).toBe(true);
-		expect(await modules.getDeckCardsForDeck(actor, deck.id)).toMatchObject([
+		expect(await modules.application.decks.getDeckCardsForDeck(actor, deck.id)).toMatchObject([
 			{ id: entryId, quantity: 1 }
 		]);
-		await modules.updateDeckCard(actor, entryId, undefined, undefined, crypto.randomUUID(), 1);
+		await modules.application.decks.updateDeckCard(
+			actor,
+			entryId,
+			undefined,
+			undefined,
+			crypto.randomUUID(),
+			1
+		);
 		for (const [index, client] of clients.entries())
 			expect(
-				await modules.updateDeckCard(client, entryId, undefined, undefined, requestIds[index], -1)
+				await modules.application.decks.updateDeckCard(
+					client,
+					entryId,
+					undefined,
+					undefined,
+					requestIds[index],
+					-1
+				)
 			).toEqual(answers[index]);
-		expect(await modules.getDeckCardsForDeck(actor, deck.id)).toMatchObject([
+		expect(await modules.application.decks.getDeckCardsForDeck(actor, deck.id)).toMatchObject([
 			{ id: entryId, quantity: 2 }
 		]);
 		await expect(
-			modules.bulkMutateDeckCards(actor, {
+			modules.application.decks.bulkMutateDeckCards(actor, {
 				requestId: requestIds[0],
 				source: 'web',
 				game: 'mtg',
@@ -410,8 +443,8 @@ run('deck builder transactions', () => {
 	});
 
 	it('validates signed delta bounds and keeps ordinary reductions separate from bulk removal', async () => {
-		const deck = await modules.createDeckRecord(actor, deckInput);
-		const added = await modules.bulkMutateDeckCards(actor, {
+		const deck = await modules.application.decks.createDeckRecord(actor, deckInput);
+		const added = await modules.application.decks.bulkMutateDeckCards(actor, {
 			requestId: crypto.randomUUID(),
 			source: 'web',
 			game: 'mtg',
@@ -419,7 +452,7 @@ run('deck builder transactions', () => {
 			operations: [operation(2)]
 		});
 		const entryId = added.changes[0].entryId;
-		const reduced = await modules.updateDeckCard(
+		const reduced = await modules.application.decks.updateDeckCard(
 			actor,
 			entryId,
 			undefined,
@@ -431,9 +464,16 @@ run('deck builder transactions', () => {
 		expect(reduced.removedEntryIds).toEqual([]);
 		for (const delta of [0, 1.5, NaN, Infinity, 2147483648, -2147483648])
 			await expect(
-				modules.updateDeckCard(actor, entryId, undefined, undefined, crypto.randomUUID(), delta)
+				modules.application.decks.updateDeckCard(
+					actor,
+					entryId,
+					undefined,
+					undefined,
+					crypto.randomUUID(),
+					delta
+				)
 			).rejects.toMatchObject({ kind: 'ValidationFailed' });
-		await modules.updateDeckCard(
+		await modules.application.decks.updateDeckCard(
 			actor,
 			entryId,
 			undefined,
@@ -442,12 +482,19 @@ run('deck builder transactions', () => {
 			2147483646
 		);
 		await expect(
-			modules.updateDeckCard(actor, entryId, undefined, undefined, crypto.randomUUID(), 1)
+			modules.application.decks.updateDeckCard(
+				actor,
+				entryId,
+				undefined,
+				undefined,
+				crypto.randomUUID(),
+				1
+			)
 		).rejects.toMatchObject({ kind: 'ValidationFailed' });
-		expect(await modules.getDeckCardsForDeck(actor, deck.id)).toMatchObject([
+		expect(await modules.application.decks.getDeckCardsForDeck(actor, deck.id)).toMatchObject([
 			{ quantity: 2147483647 }
 		]);
-		const removed = await modules.bulkMutateDeckCards(actor, {
+		const removed = await modules.application.decks.bulkMutateDeckCards(actor, {
 			requestId: crypto.randomUUID(),
 			source: 'web',
 			game: 'mtg',
@@ -455,19 +502,19 @@ run('deck builder transactions', () => {
 			operations: [{ op: 'decrement', target: { entryId }, quantity: 2147483647 }]
 		});
 		expect(removed.removedEntryIds).toEqual([entryId]);
-		expect(await modules.getDeckCardsForDeck(actor, deck.id)).toEqual([]);
+		expect(await modules.application.decks.getDeckCardsForDeck(actor, deck.id)).toEqual([]);
 	});
 
 	it('does not advance Deck composition revision for a quantity no-op', async () => {
-		const deck = await modules.createDeckRecord(actor, deckInput);
-		const first = await modules.bulkMutateDeckCards(actor, {
+		const deck = await modules.application.decks.createDeckRecord(actor, deckInput);
+		const first = await modules.application.decks.bulkMutateDeckCards(actor, {
 			requestId: crypto.randomUUID(),
 			source: 'web',
 			game: 'mtg',
 			deckId: deck.id,
 			operations: [operation(2)]
 		});
-		const noop = await modules.bulkMutateDeckCards(actor, {
+		const noop = await modules.application.decks.bulkMutateDeckCards(actor, {
 			requestId: crypto.randomUUID(),
 			source: 'web',
 			game: 'mtg',
@@ -479,20 +526,17 @@ run('deck builder transactions', () => {
 });
 
 async function loadModules() {
-	const [{ db, pool }, schema, decks, inventory] = await Promise.all([
+	const [client, schema, lifetime, state] = await Promise.all([
 		import('../fixtures/database.ts'),
 		import('@spellbook/backend/db/schema.ts'),
-		import('../../src/lib/server/data/decks'),
-		import('../../src/lib/server/data/inventory')
+		createTestApplication(),
+		import('../fixtures/inventory-state.ts')
 	]);
-	const { application } = await import('../../src/lib/server/composition.ts');
 	return {
-		db,
-		pool,
-		application,
+		...client,
 		...schema,
-		...decks,
-		...inventory,
-		...(await import('../fixtures/inventory-state.ts'))
+		...state,
+		application: lifetime.application,
+		close: lifetime.close
 	};
 }

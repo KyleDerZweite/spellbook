@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createCatalog } from '@spellbook/backend/catalog/search.ts';
 import type { CardDocument } from '../../src/lib/search/types';
-import { parseCatalogSearchRequest } from '../../src/lib/server/catalog/query';
-import { parseArenaDecklist } from '../../src/lib/server/mtg/decklist';
+import { parseCatalogSearchRequest } from '@spellbook/backend/catalog/query.ts';
+import { parseArenaDecklist } from '@spellbook/contracts/decklist.ts';
 
 const run = process.env.TEST_DATABASE_URL ? describe : describe.skip;
 run('PostgreSQL catalog snapshots and search', () => {
@@ -811,9 +811,6 @@ run('PostgreSQL catalog snapshots and search', () => {
 });
 
 async function loadModules() {
-	const [{ pool }, search] = await Promise.all([
-		import('../fixtures/database.ts'),
-		import('../../src/lib/server/catalog/search')
-	]);
-	return { pool, ...search };
+	const { pool } = await import('../fixtures/database.ts');
+	return { pool, ...createCatalog(pool) };
 }

@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, it } from 'vitest';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer } from 'node:http';
-import { savedStateBody } from '../../src/lib/server/saved-state/stream.ts';
+import { savedStateBody } from '@spellbook/backend/http/saved-state.ts';
 import { createDatabase, createLocalAuth, createSavedState } from '@spellbook/backend';
 if (process.env.TEST_DATABASE_URL && process.env.TEST_DATABASE_URL !== process.env.DATABASE_URL)
 	throw Error('SavedState tests require matching disposable database URLs');
@@ -130,7 +130,7 @@ run('committed SavedState account invalidation', () => {
 		accounts.push(a.user.accountId);
 		const sub = await sync.subscribe(a.user);
 		const controller = new AbortController();
-		const reader = savedStateBody(sub, controller.signal).getReader();
+		const reader = savedStateBody(sub, controller.signal).body.getReader();
 		let resume!: () => void;
 		const paused = new Promise<void>((resolve) => {
 			resume = resolve;

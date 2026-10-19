@@ -1,17 +1,25 @@
+import { webHandler, closeWebApplication } from './web-application.ts';
+vi.mock('$app/server', async () => ({
+	getRequestEvent: (await import('./web-application.ts')).getWebRequestEvent
+}));
+import { hashSessionToken } from '@spellbook/backend/auth/session.ts';
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import { eq, inArray } from 'drizzle-orm';
 import { db, pool } from '../fixtures/database.ts';
 import { authSessions, localCredentials, userProfiles } from '@spellbook/backend/db/schema.ts';
-import { authenticate, withPasswordDerivation } from '../../src/lib/server/auth/local';
+import { authenticate, withPasswordDerivation } from './web-application.ts';
 import { changePassword } from '../../src/lib/server/auth/change-password';
-import * as passwords from '../../src/lib/server/auth/password';
+import * as passwords from '@spellbook/backend/auth/password.ts';
+import { createSession, validateSession } from './web-application.ts';
 import {
-	createSession,
-	hashSessionToken,
-	validateSession
-} from '../../src/lib/server/auth/session';
-import { actions, load } from '../../src/routes/settings/password/+page.server';
+	actions as rawActions,
+	load as rawLoad
+} from '../../src/routes/settings/password/+page.server';
 
+import { load as rawSettingsLoad } from '../../src/routes/settings/+page.server';
+const loadSettings = webHandler(rawSettingsLoad);
+const actions = { default: webHandler(rawActions.default!) };
+const load = webHandler(rawLoad);
 const run =
 	process.env.TEST_DATABASE_URL && process.env.DEMO_MODE !== 'true' ? describe : describe.skip;
 run('current-password-confirmed changes', () => {
@@ -50,6 +58,7 @@ run('current-password-confirmed changes', () => {
 	afterAll(async () => {
 		if (accountIds.length)
 			await db.delete(userProfiles).where(inArray(userProfiles.accountId, accountIds));
+		await closeWebApplication();
 		await pool.end();
 	});
 	it('requires authentication for reads and writes', async () => {
@@ -85,6 +94,9 @@ run('current-password-confirmed changes', () => {
 		expect(await validateSession(token)).toEqual(user.user);
 		expect(await validateSession(user.session.token)).toBeNull();
 		expect(await validateSession(extra!.session.token)).toBeNull();
+		expect(await loadSettings(request as never)).toMatchObject({
+			user: { accountId: user.user.accountId }
+		});
 		expect(await validateSession(other.session.token)).toEqual(other.user);
 		const sessions = await db
 			.select()
@@ -220,7 +232,9 @@ run('current-password-confirmed changes', () => {
 		]);
 		const lockerPid = (await locker.query<{ pid: number }>('SELECT pg_backend_pid() AS pid'))
 			.rows[0].pid;
-		const changing = changePassword(user.user, currentPassword, newPassword);
+		const changing = webHandler((_event: { locals: App.Locals }) =>
+			changePassword(user.user, currentPassword, newPassword)
+		)(event(user.user, values) as never);
 		// Observe the actual profile-lock wait before committing operator recovery.
 		try {
 			const deadline = Date.now() + 10000;

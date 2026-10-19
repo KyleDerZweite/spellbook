@@ -1,97 +1,119 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
 	ValidationError,
 	assertInventoryOperation,
 	assertRequestId,
 	normalizeSource,
 	INVENTORY_SOURCES
-} from '../../src/lib/server/mtg/validation';
+} from '../../src/mtg/validation.ts';
 import {
 	readJsonObject,
 	readNumber,
 	readQueryInteger,
 	readString,
 	requireUuid
-} from '../../src/lib/server/http/request';
-import { parseCatalogSearchRequest } from '../../src/lib/server/catalog/query';
+} from '../../src/http/request.ts';
+import { parseCatalogSearchRequest } from '../../src/catalog/query.ts';
 
-const service = vi.hoisted(() => ({
-	createDeckEntry: vi.fn(),
-	updateDeckEntry: vi.fn(),
-	deleteDeckEntry: vi.fn(),
-	updateInventoryEntry: vi.fn(),
-	removeInventoryEntry: vi.fn(),
-	getInventorySnapshotEntry: vi.fn(),
-	batchAddInventory: vi.fn(),
-	bulkMutateInventory: vi.fn(),
-	getDeckSnapshotEntry: vi.fn(),
-	addDeckCardEntry: vi.fn(),
-	bulkMutateDeckCards: vi.fn(),
-	getDeckCardsEntry: vi.fn(),
-	updateDeckCardEntry: vi.fn(),
-	removeDeckCardEntry: vi.fn()
-}));
-const search = vi.hoisted(() => ({
-	searchCatalog: vi.fn(),
-	searchCatalogRequest: vi.fn(),
-	getPrintings: vi.fn()
-}));
-vi.mock('#lib/server/mobile/auth.ts', () => ({
-	requireMobileAuth: vi.fn(async () => ({
-		user: { accountId: 'reviewer', username: 'reviewer', email: '' }
-	}))
-}));
-vi.mock('#lib/server/mobile/mtg-service.ts', () => service);
-vi.mock('#lib/server/catalog/search.ts', () => search);
-
-import { POST as createDeck } from '../../src/routes/api/mobile/v1/mtg/decks/+server';
+import { createDeckRoutes } from '../../src/http/routes/decks.ts';
+import { createInventoryRoutes } from '../../src/http/routes/inventory.ts';
+import { createCatalogRoutes } from '../../src/http/routes/catalog.ts';
 import {
-	PATCH as updateDeck,
-	DELETE as deleteDeck
-} from '../../src/routes/api/mobile/v1/mtg/decks/[deckId]/+server';
-import { POST as addDeckCard } from '../../src/routes/api/mobile/v1/mtg/decks/[deckId]/cards/+server';
-import { POST as bulkDeckCards } from '../../src/routes/api/mobile/v1/mtg/decks/[deckId]/cards/bulk/+server';
-import { PATCH as updateDeckCard } from '../../src/routes/api/mobile/v1/mtg/deck-cards/[entryId]/+server';
-import { GET as exportDeck } from '../../src/routes/api/mobile/v1/mtg/decks/[deckId]/export/+server';
-import { POST as addInventory } from '../../src/routes/api/mobile/v1/mtg/inventory/+server';
-import { POST as batchInventory } from '../../src/routes/api/mobile/v1/mtg/inventory/batch-add/+server';
-import { POST as bulkInventory } from '../../src/routes/api/mobile/v1/mtg/inventory/bulk/+server';
-import { PATCH as updateInventory } from '../../src/routes/api/mobile/v1/mtg/inventory/[entryId]/+server';
-import {
-	GET as searchCards,
-	POST as searchFilteredCards
-} from '../../src/routes/api/mobile/v1/mtg/search/+server';
-import { GET as printings } from '../../src/routes/api/mobile/v1/mtg/cards/[oracleId]/printings/+server';
-
+	createHttpFixture,
+	context,
+	handler,
+	publicOrigin,
+	user,
+	token,
+	emptySearch,
+	acknowledgement
+} from './http-fixture.ts';
+const lifetime = await createHttpFixture();
+const application = lifetime.application;
+afterAll(() => lifetime.close());
+const service = {
+	getDeckSnapshot: vi.spyOn(application.decks, 'getDeckSnapshot').mockResolvedValue({
+		decks: [],
+		deckCards: [],
+		deckTotals: {},
+		deckCovers: {},
+		availability: {},
+		valueEstimates: null,
+		valuationError: null,
+		ownedByCanonical: {},
+		ownedPrintings: []
+	}),
+	createDeckEntry: vi.spyOn(application.decks, 'createDeckRecord'),
+	updateDeckEntry: vi.spyOn(application.decks, 'updateDeck'),
+	deleteDeckEntry: vi.spyOn(application.decks, 'deleteDeck'),
+	updateInventoryEntry: vi.spyOn(application.inventory, 'patchEntry'),
+	removeInventoryEntry: vi.spyOn(application.inventory, 'remove'),
+	batchAddInventory: vi.spyOn(application.inventory, 'bulk'),
+	addDeckCardEntry: vi.spyOn(application.decks, 'addDeckCard'),
+	bulkMutateDeckCards: vi.spyOn(application.decks, 'bulkMutateDeckCards'),
+	updateDeckCardEntry: vi.spyOn(application.decks, 'updateDeckCard')
+};
+const search = {
+	searchCatalogRequest: vi.spyOn(application.catalog, 'searchCatalogRequest'),
+	getPrintings: vi.spyOn(application.catalog, 'getPrintings')
+};
+beforeEach(() => {
+	vi.clearAllMocks();
+	vi.spyOn(application.auth, 'validateSession').mockResolvedValue(user);
+});
+const deps = { application, publicOrigin };
+const routes = [
+	...createDeckRoutes(deps),
+	...createInventoryRoutes(deps),
+	...createCatalogRoutes(deps)
+];
+const mobile = '/api/mobile/v1/mtg';
+const createDeck = handler(routes, 'POST', `${mobile}/decks`);
+const updateDeck = handler(routes, 'PATCH', `${mobile}/decks/:deckId`);
+const deleteDeck = handler(routes, 'DELETE', `${mobile}/decks/:deckId`);
+const addDeckCard = handler(routes, 'POST', `${mobile}/decks/:deckId/cards`);
+const bulkDeckCards = handler(routes, 'POST', `${mobile}/decks/:deckId/cards/bulk`);
+const updateDeckCard = handler(routes, 'PATCH', `${mobile}/deck-cards/:entryId`);
+const exportDeck = handler(routes, 'GET', `${mobile}/decks/:deckId/export`);
+const addInventory = handler(routes, 'POST', `${mobile}/inventory`);
+const batchInventory = handler(routes, 'POST', `${mobile}/inventory/batch-add`);
+const bulkInventory = handler(routes, 'POST', `${mobile}/inventory/bulk`);
+const updateInventory = handler(routes, 'PATCH', `${mobile}/inventory/:entryId`);
+const searchCards = handler(routes, 'GET', `${mobile}/search`);
+const searchFilteredCards = handler(routes, 'POST', `${mobile}/search`);
+const printings = handler(routes, 'GET', `${mobile}/cards/:oracleId/printings`);
 const uuid = '11111111-1111-1111-1111-111111111111';
-function event(body = '{}', contentType = 'application/json') {
-	return {
-		request: new Request('http://localhost/api', {
-			method: 'POST',
-			headers: { 'content-type': contentType },
-			body
-		}),
-		params: { entryId: uuid, deckId: uuid, oracleId: uuid },
-		url: new URL('http://localhost/api')
-	};
+function requestContext(body = '{}', contentType = 'application/json') {
+	return context(
+		'/api',
+		'POST',
+		body,
+		{
+			'content-type': contentType,
+			authorization: `Bearer ${token}`
+		},
+		{ entryId: uuid, deckId: uuid, oracleId: uuid }
+	);
 }
 
 describe('bounded JSON requests', () => {
 	it('reads a JSON object with a media type parameter', async () => {
 		await expect(
-			readJsonObject(event('{"quantity":2}', 'application/json; charset=utf-8').request)
+			readJsonObject(requestContext('{"quantity":2}', 'application/json; charset=utf-8').request)
 		).resolves.toEqual({ quantity: 2 });
 	});
 
 	it.each(['{', '', 'null', '[]', '42', '"text"'])(
 		'rejects invalid object body %s',
 		async (body) => {
-			await expect(readJsonObject(event(body).request)).rejects.toMatchObject({ status: 400 });
+			await expect(readJsonObject(requestContext(body).request)).rejects.toMatchObject({
+				status: 400
+			});
 		}
 	);
 
 	it('rejects a different media type', async () => {
-		await expect(readJsonObject(event('{}', 'text/plain').request)).rejects.toMatchObject({
+		await expect(readJsonObject(requestContext('{}', 'text/plain').request)).rejects.toMatchObject({
 			status: 415
 		});
 	});
@@ -124,8 +146,10 @@ describe('bounded JSON requests', () => {
 	it('accepts the byte limit exactly and counts UTF-8 bytes', async () => {
 		const body = JSON.stringify({ value: 'é' });
 		const size = new TextEncoder().encode(body).byteLength;
-		await expect(readJsonObject(event(body).request, size)).resolves.toEqual({ value: 'é' });
-		await expect(readJsonObject(event(body).request, size - 1)).rejects.toMatchObject({
+		await expect(readJsonObject(requestContext(body).request, size)).resolves.toEqual({
+			value: 'é'
+		});
+		await expect(readJsonObject(requestContext(body).request, size - 1)).rejects.toMatchObject({
 			status: 413
 		});
 	});
@@ -145,10 +169,10 @@ describe('mobile route validation', () => {
 		searchFilteredCards
 	];
 	it.each(mutations)('rejects malformed JSON before mutation', async (handler) => {
-		await expect(handler(event('{') as never)).rejects.toMatchObject({ status: 400 });
+		await expect(handler(requestContext('{'))).rejects.toMatchObject({ status: 400 });
 	});
 	it.each(mutations)('requires JSON media type', async (handler) => {
-		await expect(handler(event('{}', 'text/plain') as never)).rejects.toMatchObject({
+		await expect(handler(requestContext('{}', 'text/plain'))).rejects.toMatchObject({
 			status: 415
 		});
 	});
@@ -162,17 +186,17 @@ describe('mobile route validation', () => {
 		updateInventory,
 		printings
 	])('rejects malformed route UUIDs before database or search access', async (handler) => {
-		const request = event();
+		const request = requestContext();
 		request.params = { entryId: 'invalid', deckId: 'invalid', oracleId: 'bad" OR 1=1' };
-		await expect(handler(request as never)).rejects.toMatchObject({ status: 400 });
+		await expect(handler(request)).rejects.toMatchObject({ status: 400 });
 	});
 
 	it.each(['wat', '-1', '1.5', '1e2', '', '501', '9007199254740992'])(
 		'rejects invalid search limit %s',
 		async (limit) => {
-			const request = event();
+			const request = requestContext();
 			request.url.searchParams.set('limit', limit);
-			await expect(searchCards(request as never)).rejects.toMatchObject({ status: 400 });
+			await expect(searchCards(request)).rejects.toMatchObject({ status: 400 });
 			expect(search.searchCatalogRequest).not.toHaveBeenCalled();
 		}
 	);
@@ -180,20 +204,20 @@ describe('mobile route validation', () => {
 	it.each([0, 20, 50, 100, 101, 200, 500])(
 		'passes expanded search GET limit %i unchanged',
 		async (limit) => {
-			search.searchCatalogRequest.mockResolvedValue({ hits: [] });
-			const request = event();
+			search.searchCatalogRequest.mockResolvedValue(emptySearch);
+			const request = requestContext();
 			request.url.search = `?q=Opt&limit=${limit}&offset=20`;
-			await searchCards(request as never);
+			await searchCards(request);
 			expect(search.searchCatalogRequest).toHaveBeenCalledWith(
 				expect.objectContaining({ limit, offset: 20, query: 'Opt' })
 			);
 		}
 	);
 	it('passes valid bounded search pagination to the catalog', async () => {
-		search.searchCatalogRequest.mockResolvedValue({ hits: [] });
-		const request = event();
+		search.searchCatalogRequest.mockResolvedValue(emptySearch);
+		const request = requestContext();
 		request.url.search = '?q=Opt&limit=0&offset=20';
-		await searchCards(request as never);
+		await searchCards(request);
 		expect(search.searchCatalogRequest).toHaveBeenCalledWith({
 			query: 'Opt',
 			limit: 0,
@@ -205,16 +229,16 @@ describe('mobile route validation', () => {
 	});
 
 	it('passes validated rich search options and disables response caching', async () => {
-		search.searchCatalogRequest.mockResolvedValue({ hits: [], generationId: null });
+		search.searchCatalogRequest.mockResolvedValue(emptySearch);
 		const response = await searchFilteredCards(
-			event(
+			requestContext(
 				JSON.stringify({
 					query: ' Opt ',
 					filters: { colors: ['U'], sets: ['DOM'] },
 					facets: true,
 					limit: 0
 				})
-			) as never
+			)
 		);
 		expect(search.searchCatalogRequest).toHaveBeenLastCalledWith({
 			query: 'Opt',
@@ -230,10 +254,10 @@ describe('mobile route validation', () => {
 	it('rejects rich search validation errors and oversized bodies before catalog access', async () => {
 		search.searchCatalogRequest.mockClear();
 		await expect(
-			searchFilteredCards(event('{"filters":{"toString":["x"]}}') as never)
+			searchFilteredCards(requestContext('{"filters":{"toString":["x"]}}'))
 		).rejects.toMatchObject({ status: 400 });
 		await expect(
-			searchFilteredCards(event(JSON.stringify({ query: 'x'.repeat(1024 * 1024) })) as never)
+			searchFilteredCards(requestContext(JSON.stringify({ query: 'x'.repeat(1024 * 1024) })))
 		).rejects.toMatchObject({ status: 413 });
 		expect(search.searchCatalogRequest).not.toHaveBeenCalled();
 	});
@@ -244,16 +268,16 @@ describe('mobile route validation', () => {
 			new URLSearchParams({ q: 'x'.repeat(301) }),
 			new URLSearchParams({ offset: '1000001' })
 		]) {
-			const request = event();
+			const request = requestContext();
 			request.url.search = query.toString();
-			await expect(searchCards(request as never)).rejects.toMatchObject({ status: 400 });
+			await expect(searchCards(request)).rejects.toMatchObject({ status: 400 });
 		}
 		expect(search.searchCatalogRequest).not.toHaveBeenCalled();
 	});
 
 	it('rejects null inventory batch items before mutation', async () => {
 		await expect(
-			addInventory(event('{"requestId":"review","items":[null]}') as never)
+			addInventory(requestContext('{"requestId":"review","items":[null]}'))
 		).rejects.toMatchObject({ status: 400 });
 		expect(service.batchAddInventory).not.toHaveBeenCalled();
 	});
@@ -261,7 +285,7 @@ describe('mobile route validation', () => {
 	it.each(['name', 'description', 'format'])('rejects malformed deck %s values', async (field) => {
 		for (const value of [null, { toString: null }, {}, [], 123]) {
 			await expect(
-				createDeck(event(JSON.stringify({ name: 'Deck', [field]: value })) as never)
+				createDeck(requestContext(JSON.stringify({ name: 'Deck', [field]: value })))
 			).rejects.toMatchObject({ status: 400 });
 		}
 	});
@@ -271,18 +295,18 @@ describe('mobile route validation', () => {
 		async (field) => {
 			await expect(
 				bulkInventory(
-					event(
+					requestContext(
 						JSON.stringify({ requestId: 'review', [field]: { toString: null }, operations: [] })
-					) as never
+					)
 				)
 			).rejects.toMatchObject({ status: 400 });
-			expect(service.bulkMutateInventory).not.toHaveBeenCalled();
+			expect(service.batchAddInventory).not.toHaveBeenCalled();
 		}
 	);
 
 	it.each(['quantity', 'notes'])('rejects malformed inventory %s values', async (field) => {
 		await expect(
-			updateInventory(event(JSON.stringify({ quantity: 1, [field]: { toString: null } })) as never)
+			updateInventory(requestContext(JSON.stringify({ quantity: 1, [field]: { toString: null } })))
 		).rejects.toMatchObject({ status: 400 });
 		expect(service.updateInventoryEntry).not.toHaveBeenCalled();
 	});
@@ -291,7 +315,7 @@ describe('mobile route validation', () => {
 		'rejects fractional quantities without turning them into removals',
 		async (handler) => {
 			for (const quantity of [1.5, -0.5])
-				await expect(handler(event(JSON.stringify({ quantity })) as never)).rejects.toMatchObject({
+				await expect(handler(requestContext(JSON.stringify({ quantity })))).rejects.toMatchObject({
 					status: 400
 				});
 		}
@@ -300,14 +324,14 @@ describe('mobile route validation', () => {
 	it.each(['quantity', 'notes'])('rejects null inventory %s before mutation', async (field) => {
 		service.updateInventoryEntry.mockClear();
 		await expect(
-			updateInventory(event(JSON.stringify({ quantity: 1, [field]: null })) as never)
+			updateInventory(requestContext(JSON.stringify({ quantity: 1, [field]: null })))
 		).rejects.toMatchObject({ status: 400 });
 		expect(service.updateInventoryEntry).not.toHaveBeenCalled();
 	});
 
 	it('omits untouched Inventory quantity and Notes fields instead of resetting them', async () => {
-		service.updateInventoryEntry.mockResolvedValue(null);
-		await updateInventory(event('{}') as never);
+		service.updateInventoryEntry.mockResolvedValue(acknowledgement);
+		await updateInventory(requestContext('{}'));
 		expect(service.updateInventoryEntry).toHaveBeenLastCalledWith(expect.anything(), {
 			requestId: '',
 			entryId: uuid,
@@ -316,8 +340,8 @@ describe('mobile route validation', () => {
 	});
 
 	it('preserves the zero quantity removal contract', async () => {
-		service.updateInventoryEntry.mockResolvedValue(null);
-		await updateInventory(event('{"quantity":0}') as never);
+		service.updateInventoryEntry.mockResolvedValue(acknowledgement);
+		await updateInventory(requestContext('{"quantity":0}'));
 		expect(service.updateInventoryEntry).toHaveBeenCalledWith(expect.anything(), {
 			requestId: '',
 			entryId: uuid,
@@ -338,9 +362,9 @@ describe('mobile route validation', () => {
 				service[method].mockRejectedValue(new ValidationError('Invalid mutation'));
 			await expect(
 				handler(
-					event(
+					requestContext(
 						JSON.stringify({ name: 'Deck', catalogCardId: uuid, canonicalCardId: uuid })
-					) as never
+					)
 				)
 			).rejects.toMatchObject({ status: 400 });
 		}

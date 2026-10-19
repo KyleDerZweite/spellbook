@@ -1,3 +1,4 @@
+import { createTestApplication } from './application.ts';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ensureDeckCatalogFixture } from '../deck-catalog-fixture.ts';
 import type { AuthUser } from '@spellbook/contracts/auth.ts';
@@ -33,6 +34,7 @@ run('Inventory concurrent mutations', () => {
 			.where(eq(modules.userProfiles.accountId, accountId));
 	});
 	afterAll(async () => {
+		await modules?.close();
 		await modules?.pool.end();
 	});
 
@@ -43,7 +45,9 @@ run('Inventory concurrent mutations', () => {
 			game: 'mtg' as const,
 			operations: [add('retry', 3)]
 		};
-		await Promise.all(Array.from({ length: 12 }, () => modules.bulkMutateInventory(actor, input)));
+		await Promise.all(
+			Array.from({ length: 12 }, () => modules.application.inventory.bulk(actor, input))
+		);
 		const snapshot = await modules.getInventorySnapshot(accountId);
 		expect(snapshot.cards).toHaveLength(1);
 		expect(snapshot.cards[0].quantity).toBe(3);
@@ -57,9 +61,9 @@ run('Inventory concurrent mutations', () => {
 			game: 'mtg' as const,
 			operations: [add('original', 3)]
 		};
-		await modules.bulkMutateInventory(actor, input);
+		await modules.application.inventory.bulk(actor, input);
 		await expect(
-			modules.bulkMutateInventory(actor, { ...input, operations: [add('changed', 5)] })
+			modules.application.inventory.bulk(actor, { ...input, operations: [add('changed', 5)] })
 		).rejects.toThrow('different mutation');
 		const snapshot = await modules.getInventorySnapshot(accountId);
 		expect(snapshot.cards).toHaveLength(1);
@@ -82,7 +86,7 @@ run('Inventory concurrent mutations', () => {
 	it('keeps unique ordered positions when explicit reorder overlaps additions and sparse removals', async () => {
 		const initial = await mutate([add('one', 1), add('two', 1), add('three', 1)]);
 		await Promise.all([
-			modules.reorderInventoryCard(actor, {
+			modules.application.inventory.reorder(actor, {
 				requestId: crypto.randomUUID(),
 				entryId: initial.changes[2].entryId,
 				position: 0
@@ -121,9 +125,9 @@ run('Inventory concurrent mutations', () => {
 	}
 
 	async function mutate(
-		operations: Parameters<typeof modules.bulkMutateInventory>[1]['operations']
+		operations: Parameters<typeof modules.application.inventory.bulk>[1]['operations']
 	) {
-		return modules.bulkMutateInventory(actor, {
+		return modules.application.inventory.bulk(actor, {
 			requestId: crypto.randomUUID(),
 			source: 'mobile' as const,
 			game: 'mtg' as const,
@@ -133,16 +137,17 @@ run('Inventory concurrent mutations', () => {
 });
 
 async function loadModules() {
-	const [client, schema, inventory] = await Promise.all([
+	const [client, schema, lifetime, state] = await Promise.all([
 		import('../fixtures/database.ts'),
 		import('@spellbook/backend/db/schema.ts'),
-		import('../../src/lib/server/data/inventory')
+		createTestApplication(),
+		import('../fixtures/inventory-state.ts')
 	]);
 	return {
 		...client,
 		...schema,
-		...inventory,
-		...(await import('../fixtures/inventory-state.ts')),
-		application: (await import('../../src/lib/server/composition.ts')).application
+		...state,
+		application: lifetime.application,
+		close: lifetime.close
 	};
 }
