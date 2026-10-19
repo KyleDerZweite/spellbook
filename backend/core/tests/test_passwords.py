@@ -9,9 +9,9 @@ from threading import Event
 from typing import Any, ParamSpec, TypeVar
 
 import pytest
-from spellbook_core.errors import AuthError
 
 from spellbook_core import passwords
+from spellbook_core.errors import AuthError
 from spellbook_core.passwords import create_password_verifier, valid_password
 
 _P = ParamSpec("_P")

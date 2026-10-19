@@ -9,25 +9,17 @@ from dataclasses import dataclass
 from threading import Lock
 
 from .errors import AuthError
+from .validation import js_utf8
+from .validation import valid_password as valid_password
 
 _HASH = re.compile(r"scrypt\$[a-f0-9]{32}\$[a-f0-9]{128}")
 _DUMMY_HASH = f"scrypt${'0' * 32}${'0' * 128}"
 _BUSY = "Authentication is busy. Try again shortly."
 
 
-def valid_password(value: object) -> bool:
-    """Keep eventual caller validation separate from verifyPassword semantics."""
-    return (
-        isinstance(value, str)
-        and 12 <= len(value.encode("utf-16-le", "surrogatepass")) // 2 <= 128
-    )
-
-
 def _derive(password: str, salt: str, expected: str, dummy: bool) -> bool:
-    # JS combines valid surrogate pairs and replaces each unpaired surrogate with U+FFFD.
-    encoded = password.encode("utf-16-le", "surrogatepass").decode("utf-16-le", "replace")
     actual = hashlib.scrypt(
-        encoded.encode("utf-8"),
+        js_utf8(password),
         salt=salt.encode("utf-8"),
         n=32768,
         r=8,
