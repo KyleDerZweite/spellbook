@@ -8,7 +8,6 @@ import { eq, inArray } from 'drizzle-orm';
 import { db, pool } from '../fixtures/database.ts';
 import { authSessions, localCredentials, userProfiles } from '@spellbook/backend/db/schema.ts';
 import { authenticate, withPasswordDerivation } from './web-application.ts';
-import { changePassword } from '../../src/lib/server/auth/change-password';
 import * as passwords from '@spellbook/backend/auth/password.ts';
 import { createSession, validateSession } from './web-application.ts';
 import {
@@ -232,9 +231,7 @@ run('current-password-confirmed changes', () => {
 		]);
 		const lockerPid = (await locker.query<{ pid: number }>('SELECT pg_backend_pid() AS pid'))
 			.rows[0].pid;
-		const changing = webHandler((_event: { locals: App.Locals }) =>
-			changePassword(user.user, currentPassword, newPassword)
-		)(event(user.user, values) as never);
+		const changing = Promise.resolve(actions.default(event(user.user, values) as never));
 		// Observe the actual profile-lock wait before committing operator recovery.
 		try {
 			const deadline = Date.now() + 10000;

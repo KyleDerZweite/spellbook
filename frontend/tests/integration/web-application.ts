@@ -1,17 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { AuthUser } from '@spellbook/contracts/auth.ts';
 import { createApplication } from '@spellbook/backend/application.ts';
-import { createRouter } from '@spellbook/backend/http/router.ts';
-import { createAuthRoutes } from '@spellbook/backend/http/routes/auth.ts';
-import { createAccountRoutes } from '@spellbook/backend/http/routes/account.ts';
-import { createSavedStateRoutes } from '@spellbook/backend/http/routes/saved-state.ts';
-import { createCatalogRoutes } from '@spellbook/backend/http/routes/catalog.ts';
-import { createInventoryRoutes } from '@spellbook/backend/http/routes/inventory.ts';
-import { createValuationRoutes } from '@spellbook/backend/http/routes/valuation.ts';
-import { createScanRoutes } from '@spellbook/backend/http/routes/scan.ts';
-import { createDeckRoutes } from '@spellbook/backend/http/routes/decks.ts';
-import { createCategoryRoutes } from '@spellbook/backend/http/routes/categories.ts';
-import { createWebRoutes } from '@spellbook/backend/http/routes/web.ts';
+import { createHttpApplication } from '@spellbook/backend/http/application.ts';
 import { RemoteClient } from '../../src/lib/server/remote/client.ts';
 
 const origin = 'https://spellbook.test';
@@ -23,26 +13,10 @@ const lifetime = await createApplication({
 	commanderSpellbookEnabled: process.env.COMMANDER_SPELLBOOK_ENABLED
 });
 export const application = lifetime.application;
-const dependencies = { application, publicOrigin: origin };
-const savedStateRoutes = createSavedStateRoutes(dependencies);
-export const http = {
-	handle: createRouter(
-		[
-			...createAuthRoutes(dependencies),
-			...createAccountRoutes(dependencies),
-			...savedStateRoutes,
-			...createCatalogRoutes(dependencies),
-			...createInventoryRoutes(dependencies),
-			...createValuationRoutes(dependencies),
-			...createScanRoutes(dependencies),
-			...createDeckRoutes(dependencies),
-			...createCategoryRoutes(dependencies),
-			...createWebRoutes(dependencies)
-		],
-		dependencies
-	),
-	closeStreams: () => savedStateRoutes.closeStreams()
-};
+export const http = createHttpApplication(application, {
+	publicOrigin: origin,
+	demoMode: process.env.DEMO_MODE === 'true'
+});
 const credentials = new WeakMap<AuthUser, string>();
 const requests = new AsyncLocalStorage<{ locals: App.Locals }>();
 
