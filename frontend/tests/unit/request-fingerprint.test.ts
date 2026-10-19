@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	mutationFingerprint,
 	RequestConflictError
-} from '../../src/lib/server/data/request-fingerprint';
+} from '@spellbook/backend/decks/request-fingerprint.ts';
 import { ValidationError } from '../../src/lib/server/mtg/validation';
 
 describe('mutation request fingerprints', () => {

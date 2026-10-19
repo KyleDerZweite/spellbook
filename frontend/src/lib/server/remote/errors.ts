@@ -1,4 +1,5 @@
 import { ValidationError } from '@spellbook/contracts/validation.ts';
+import { SUMMARY_RANGE_MESSAGE } from '@spellbook/contracts/profile.ts';
 import type { DeckEntryCategories, CategoryMergePreview } from '@spellbook/contracts/categories.ts';
 
 export class RemoteError extends Error {
@@ -178,6 +179,19 @@ export function decodeRemoteError(status: number, value: unknown, domain?: Error
 	if (status === 503 && kind === 'CategoryPreviewCapacity')
 		return new CategoryPreviewCapacity(message);
 	if (status === 503 && kind === 'CategoryUnavailable') return new CategoryUnavailable(message);
+	if (status === 503 && (kind === 'SummaryOutOfRange' || message === SUMMARY_RANGE_MESSAGE))
+		return new RemoteError(status, 'SummaryOutOfRange', SUMMARY_RANGE_MESSAGE);
+	if (
+		status === 503 &&
+		(kind === 'PriceReadUnavailable' || message === 'Reference prices are temporarily unavailable.')
+	)
+		return new RemoteError(
+			status,
+			'PriceReadUnavailable',
+			'Reference prices are temporarily unavailable.'
+		);
+	if (status === 500 && message === 'Inventory totals cannot be represented exactly.')
+		return new RemoteError(status, 'InvalidInventoryCount', message);
 	if (status >= 500) return new RemoteUnavailableError();
 	const failure = new RemoteError(status, kind, message);
 	if (record(body.fields)) Object.assign(failure, { fields: body.fields });

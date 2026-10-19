@@ -4,18 +4,15 @@ import {
 	normalizeUsername,
 	validPassword,
 	verifyPassword
-} from '../../src/lib/server/auth/password';
-import {
-	requireSameOrigin,
-	sanitizeReturnTo,
-	takeAuthAttempt
-} from '../../src/lib/server/auth/local';
+} from '@spellbook/backend/auth/password.ts';
+import { requireSameOrigin, sanitizeReturnTo } from '../../src/lib/server/auth/local';
 import {
 	getBearerToken,
-	hashSessionToken,
 	SESSION_COOKIE,
 	writeSessionCookie
 } from '../../src/lib/server/auth/session';
+import { hashSessionToken } from '@spellbook/backend/auth/session.ts';
+import { createLocalAuth } from '@spellbook/backend/auth/local.ts';
 import { NO_INDEX_ROBOTS_TAG } from '../../src/lib/seo/site';
 
 const mocks = vi.hoisted(() => ({ validateSession: vi.fn() }));
@@ -83,6 +80,7 @@ describe('local auth', () => {
 		expect(() => requireSameOrigin({ url, request: new Request(url) }, true)).not.toThrow();
 	});
 	it('bounds auth attempts and resets the window', () => {
+		const { takeAuthAttempt } = createLocalAuth({} as never, { demoMode: false });
 		const address = crypto.randomUUID();
 		for (let i = 0; i < 20; i++) takeAuthAttempt(address, 100);
 		expect(() => takeAuthAttempt(address, 100)).toThrow();
