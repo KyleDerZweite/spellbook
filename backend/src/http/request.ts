@@ -54,7 +54,7 @@ export async function readRequestBytes(
 			if (chunk.done) break;
 			size += chunk.value.byteLength;
 			if (size > maxBytes) {
-				// adapter-node destroys the request socket on cancel, preventing a 413 response.
+				// Leave the socket open for the 413 response; the Node host drains the remainder.
 				error(413, 'Request body exceeds the size limit');
 			}
 			chunks.push(chunk.value);
@@ -69,6 +69,26 @@ export async function readRequestBytes(
 		offset += chunk.byteLength;
 	}
 	return bytes;
+}
+
+/** The API consumes form attempts before calling this bounded decoder. */
+export async function readFormData(
+	request: Request,
+	maxBytes = 12 * 1024 * 1024
+): Promise<FormData> {
+	const contentType = request.headers.get('content-type') ?? '';
+	if (
+		!['application/x-www-form-urlencoded', 'multipart/form-data'].includes(
+			contentType.split(';')[0].trim().toLowerCase()
+		)
+	)
+		error(415, 'Use application/x-www-form-urlencoded or multipart/form-data');
+	const bytes = await readRequestBytes(request, maxBytes);
+	try {
+		return await new Response(bytes, { headers: { 'Content-Type': contentType } }).formData();
+	} catch {
+		error(400, 'Invalid form body');
+	}
 }
 
 export function requireUuid(value: unknown, name = 'id'): string {
