@@ -31,11 +31,25 @@ from spellbook_api.http.types import Configuration
         "http://bad>host",
         "http://bad^host",
         "http://bad\\host",
+        "http://999.999.999.999",
+        "http://127.1",
+        "http://0x7f000001",
+        "http://0177.0.0.1",
+        "http://example.123",
+        "http://127.0.0.1.",
     ],
 )
 def test_invalid_origin_is_rejected_before_start(origin: str) -> None:
     with pytest.raises(ValueError):
         Configuration(origin)
+
+
+@pytest.mark.parametrize(
+    "origin",
+    ["http://127.0.0.1:5173", "http://[::1]:5173", "https://example.com", "http://localhost:5173"],
+)
+def test_canonical_origins_remain_accepted(origin: str) -> None:
+    assert Configuration(origin).public_origin == origin
 
 
 @pytest.mark.parametrize("host", ["0.0.0.0", "::", "192.168.1.1", "example.com"])

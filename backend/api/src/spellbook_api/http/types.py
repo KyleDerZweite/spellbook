@@ -35,6 +35,18 @@ class Configuration:
         hostname = origin.hostname.encode("idna").decode("ascii")
         if ":" in hostname:
             hostname = f"[{ipaddress.IPv6Address(hostname).compressed}]"
+        else:
+            # WHATWG URLs interpret a final numeric label as an IPv4 address,
+            # including shortened, octal and hexadecimal forms. The Node host's
+            # canonical-origin check rejects their changed spelling or invalid value.
+            last_label = hostname.rstrip(".").rsplit(".", 1)[-1]
+            if last_label.isdecimal() or re.fullmatch(r"0[xX][0-9a-fA-F]*", last_label):
+                try:
+                    address = ipaddress.IPv4Address(hostname)
+                except ipaddress.AddressValueError:
+                    raise ValueError("APP_ORIGIN must contain a canonical IPv4 host") from None
+                if str(address) != hostname:
+                    raise ValueError("APP_ORIGIN must contain a canonical IPv4 host")
         authority = hostname
         if port is not None and port != {"http": 80, "https": 443}[origin.scheme]:
             authority += f":{port}"
