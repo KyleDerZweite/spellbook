@@ -2,12 +2,12 @@
 
 - Status: Accepted
 - Date: 2026-10-07
-- Last Reviewed: 2026-10-17
+- Last Reviewed: 2026-10-19
 - Owners: Kyle
-- Source of Truth: maintainer's explicit local-recognition decision of 2026-10-07 and client-scope clarifications of 2026-10-15 and 2026-10-16
-- Update Triggers: PWA/QR delivery clarification and remaining machine/recognition scope, recognition placement, client feature parity and responsibilities, browser scanning, phone-client technology, device access, capture storage, client compatibility, supersession
+- Source of Truth: maintainer's explicit local-recognition decision of 2026-10-07 and client-scope clarifications of 2026-10-15, 2026-10-16 and 2026-10-19
+- Update Triggers: independent Android design direction and Figma handoff, PWA/QR delivery clarification and remaining machine/recognition scope, recognition placement, client feature parity and responsibilities, browser scanning, phone-client technology, device access, capture storage, client compatibility, supersession
 - Supersedes: [ADR-0003](./0003-pwa-first-mobile-and-server-side-scan.md) for future capture and recognition placement only
-- Related Docs: [Mobile and scan](../architecture/mobile-and-scan.md), [System overview](../architecture/system-overview.md), [Product specification](../product/specification.md), [Card scanner and sorter](../integrations/card-robot.md), [Application contract](../architecture/application-contract.md), [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md), [Decision index](./README.md)
+- Related Docs: [Mobile and scan](../architecture/mobile-and-scan.md), [Android design handoff](../product/mobile-app-exploration.md), [System overview](../architecture/system-overview.md), [Product specification](../product/specification.md), [Card scanner and sorter](../integrations/card-robot.md), [Application contract](../architecture/application-contract.md), [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md), [Decision index](./README.md)
 
 ## Context
 
@@ -48,6 +48,14 @@ The phone's primary role during a sort run is login, operation and status. Cards
 The accepted 2026-10-16 delivery selects an installable, online-first, same-origin SvelteKit PWA, an `/app` launch/install hub and a camera/manual QR authorization journey. A signed-in account explicitly approves or denies at `/auth/approve`; desktop login retains passwords alongside QR. Installed narrow windows gain bottom navigation. This narrows the earlier open client-technology question for installation and QR only.
 
 The backend QR API and public-only service worker are integrated. The PWA pages and navigation are implemented. Target verification is recorded with the change. Device-kind requests can supply ordinary bearer sessions to a future Jetson client. This adds no machine enrollment, job/sync protocol, hardware control or MTG recognition. [Mobile and scan](../architecture/mobile-and-scan.md#client-scope-and-open-responsibilities) owns current scope and [Frontend](../architecture/frontend.md#pwa-and-qr-presentation) owns presentation.
+
+## Independent Android design clarification, 2026-10-19
+
+The maintainer rejected the research recommendation to retain PWA as the next phone-app default and requested a new Spellbook Figma workspace with complete website and independent Android flows. The maintainer subsequently reaffirmed a separate Android application with its own presentation and lifecycle against the shared backend. Public Search remains usable before login. A distinct mobile UX is sufficient reason for that client; it need not first demonstrate a browser capability failure. [The design handoff](../product/mobile-app-exploration.md) owns the flow scaffold and framework recommendation. The native framework and production implementation contract remain unselected.
+
+The maintainer subsequently selected completion of the clickable Android Figma prototype before native implementation, with online-first operation and modest account-scoped caches/drafts. The main Spellbook file includes commissioned mobile Cardstation and capture simulations. Those views do not establish device registry, live jobs, recognition or synchronization contracts. The separate Cardstation Figma file remains limited to the public Landing page reference.
+
+The implemented PWA/QR delivery remains available and is not removed by this design work. Existing backend account, Catalog and mutation authority is shared with future clients. Local recognition and Jetson-owned Cardstation execution remain unchanged.
 
 ## Follow-up
 
