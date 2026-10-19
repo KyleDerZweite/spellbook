@@ -196,6 +196,9 @@ jobs:
           distribution: temurin
           java-version: '21'
       - name: Install the target Android SDK
-        run: sdkmanager "platforms;android-37.0"
+        uses: android-actions/setup-android@v4.0.4
+        with:
+          packages: 'platform-tools platforms;android-37.0 build-tools;36.0.0'
+          log-accepted-android-sdk-licenses: false
       - name: Native unit tests and debug artifact
         run: ./gradlew --no-daemon :app:lintDebug :app:testDebugUnitTest :app:assembleDebug
