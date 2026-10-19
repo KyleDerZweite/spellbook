@@ -3,8 +3,8 @@
 - Status: Implemented first slice, native target verification pending
 - Last Reviewed: 2026-10-19
 - Source of Truth: accepted maintainer direction and existing application contracts
-- Update Triggers: independent API/web ownership and relocated code references, HTTP extraction, native delivery, credential forwarding, application ownership, acceptance evidence
-- Related Docs: [System overview](./system-overview.md), [Application contract](./application-contract.md), [Auth](./auth.md), [Mobile handoff](../product/mobile-app-exploration.md), [ADR-0024](../decisions/0024-independent-applications.md), [Verification](../operations/github-automation.md)
+- Update Triggers: backend language and worker layout evaluation, independent API/web ownership and relocated code references, HTTP extraction, native delivery, credential forwarding, application ownership, acceptance evidence
+- Related Docs: [System overview](./system-overview.md), [Application contract](./application-contract.md), [Auth](./auth.md), [Mobile handoff](../product/mobile-app-exploration.md), [ADR-0024](../decisions/0024-independent-applications.md), [Verification](../operations/github-automation.md), [Backend language evaluation](../integrations/backend-language-evaluation.md)
 
 ## Outcome and ownership
 
@@ -16,8 +16,10 @@ Android owns native navigation, presentation, credentials and bounded local stat
 Contracts contain serialized DTOs and pure shared validation/presentation helpers only.
 No web runtime may import backend implementation, PostgreSQL, Drizzle or password hashing.
 
-The existing TypeScript backend remains.
-Python and Go rewrites, a new monorepo orchestrator, hardware control and a complex offline write queue are outside this change.
+The existing TypeScript backend remains the implemented baseline.
+The maintainer wants a different backend language long term; [the evaluation](../integrations/backend-language-evaluation.md) and [issue 211](https://github.com/KyleDerZweite/spellbook/issues/211) compare Go, Python, Rust and proposed worker grouping before migration planning.
+No language choice, rewrite or worker move is selected by this extraction contract.
+A new monorepo orchestrator, hardware control and a complex offline write queue remain outside its scope.
 Existing PWA compatibility remains available, but it is not the Android application.
 
 ## HTTP module interface

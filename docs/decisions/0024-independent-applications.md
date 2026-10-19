@@ -4,8 +4,8 @@
 - Date: 2026-10-19
 - Last Reviewed: 2026-10-19
 - Source of Truth: maintainer-selected implementation direction
-- Update Triggers: independent API/web ownership and relocated code references, runtime ownership, Android stack, HTTP compatibility, deployment topology
-- Related Docs: [Implementation contract](../architecture/independent-applications.md), [System overview](../architecture/system-overview.md), [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md), [ADR-0023](./0023-local-recognition-in-scanner-clients.md)
+- Update Triggers: backend language and worker layout evaluation, independent API/web ownership and relocated code references, runtime ownership, Android stack, HTTP compatibility, deployment topology
+- Related Docs: [Implementation contract](../architecture/independent-applications.md), [System overview](../architecture/system-overview.md), [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md), [ADR-0023](./0023-local-recognition-in-scanner-clients.md), [Backend language evaluation](../integrations/backend-language-evaluation.md)
 
 The shared SvelteKit deployment already separates backend use cases from web presentation, but it cannot independently start the API or deliver the accepted native mobile experience.
 The maintainer selected independent applications in one monorepo and accepted Kotlin/Compose for Android.
@@ -28,7 +28,10 @@ Acceptance of this decision does not imply implementation or deployed verificati
 [PR 243](https://github.com/KyleDerZweite/spellbook/pull/243) merged into [PR 231](https://github.com/KyleDerZweite/spellbook/pull/231), then main at `728703f391bc7d573819ce21ade621d97588b62b`.
 [Issue 244](https://github.com/KyleDerZweite/spellbook/issues/244) tracks delivery from the reviewed `2d640d0` foundation.
 Integrated `ff0b9a1` supplies separate Node API/web ownership and backend migrations/operators without changing SQL or publication history.
-Raw-form/OpenAPI follow-up, Android integration and final acceptance remain in progress.
+Raw forms, OpenAPI, remote web adapters and the first Android slice are now integrated.
+Final native target acceptance remains pending.
 The selected Android toolchain pins SDK 37 and Kotlin/Compose in the [contract](../architecture/independent-applications.md#android-delivery).
 Producer build/JVM/lint passed; the root emulator attempt exited 139 before boot.
 Installation/native journeys were not run, and no workaround, hardware or production acceptance is claimed.
+The maintainer subsequently requested a non-TypeScript backend evaluation.
+[Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211) and [the comparison](../integrations/backend-language-evaluation.md) reopen language selection without changing this accepted separation of application responsibilities.

@@ -3,14 +3,14 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-19
 - Source of Truth: code and explicitly marked design requirements
-- Update Triggers: independent web/backend/Android deployment direction, same-origin PWA delivery and shared QR account-session API, service boundaries, application and operator resource ownership, topology, authentication, data ownership, runtime allocation, hosted capacity requirements, frontend/backend separation, cross-client synchronization and public reference publication, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, proposed Python/OpenAPI and worker ownership evaluation
-- Related Docs: [Architecture](./README.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Worker](./worker.md), [Auth](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Android design handoff](../product/mobile-app-exploration.md), [Deployment](../operations/deployment.md), [Realtime backend evaluation](../integrations/realtime-backends.md), [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md), [Accepted application contract](./application-contract.md), [Valuation](./valuation.md), [Category rules](./category-rules.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Independent applications](./independent-applications.md)
+- Update Triggers: backend language and worker layout evaluation, independent web/backend/Android deployment direction, same-origin PWA delivery and shared QR account-session API, service boundaries, application and operator resource ownership, topology, authentication, data ownership, runtime allocation, hosted capacity requirements, frontend/backend separation, cross-client synchronization and public reference publication, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, proposed Python/OpenAPI and worker ownership evaluation
+- Related Docs: [Architecture](./README.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Worker](./worker.md), [Auth](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Android design handoff](../product/mobile-app-exploration.md), [Deployment](../operations/deployment.md), [Realtime backend evaluation](../integrations/realtime-backends.md), [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md), [Accepted application contract](./application-contract.md), [Valuation](./valuation.md), [Category rules](./category-rules.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Independent applications](./independent-applications.md), [Backend language evaluation](../integrations/backend-language-evaluation.md)
 
 Spellbook has an independent SvelteKit web runtime and TypeScript/Node API.
 The API owns Auth, Profile, Dashboard, Catalog, Inventory/Groups, Deck, Valuation, Scan and SavedState use cases.
 PostgreSQL stores account-owned state and public reference publications.
 Python workers retain ingestion and Scan scaffold responsibilities.
-Kotlin/Compose Android delivery is in progress.
+The first Kotlin/Compose Android slice is integrated; native target acceptance remains pending.
 
 ```text
 Browser -> SvelteKit SSR/forms and same-origin proxy -> Node API -> Postgres
@@ -67,7 +67,7 @@ Frontend feature components must depend on contracts and the application interfa
 Another backend implementation must satisfy the same request, response, error, authentication and mutation semantics; a configurable URL alone does not provide that compatibility.
 
 The review must cover every current web workflow, including capabilities that the versioned external API does not yet expose.
-The [independent applications contract](./independent-applications.md#http-module-interface) adds the concrete parity reads and closed web commands; final parity verification remains in progress.
+The [independent applications contract](./independent-applications.md#http-module-interface) owns the integrated parity reads and closed web commands, verification evidence and remaining native target checks.
 
 The earlier API-preparation pass left app delivery for later.
 The accepted 2026-10-16 PWA/QR delivery extends the shared web client.
@@ -109,7 +109,7 @@ Recognition runtime remains unselected.
 On 2026-10-19, the maintainer requested three separate applications in the same monorepo: the Svelte website, application backend and Android app.
 The integrated Node HTTP host and remote web adapter have separate build/start ownership.
 The layout retains frontend/backend/contracts and adds an independent Android Gradle project.
-Android source integration and final cross-client verification remain in progress.
+Android source integration is complete; native device and final cross-client target acceptance remain pending.
 Worker packages retain Catalog/price publication and scan responsibilities.
 A wholesale directory rename or new monorepo orchestrator is not required.
 
@@ -125,11 +125,12 @@ Verify real HTTP/PostgreSQL, web SSR/forms, retries and two-process saved-state 
 [The mobile handoff](../product/mobile-app-exploration.md#native-implementation-handoff) owns the stack recommendation and first native journeys.
 [ADR-0024](../decisions/0024-independent-applications.md) selects Kotlin/Compose.
 The [reviewed implementation contract](./independent-applications.md) owns extraction interfaces and acceptance.
-Language migration remains separate; implementation is in progress.
+Language migration remains separate from this implemented first slice.
 
 ## Planned backend evaluation
 
-The broader [Wayfinder map](https://github.com/KyleDerZweite/spellbook/issues/194) includes a separate evaluation of a Python/OpenAPI backend and `workers/{scan,catalog,price,tags,combo}` ownership.
-This is planned evaluation, not an adopted migration or a decision to deploy five worker processes.
+[The language evaluation](../integrations/backend-language-evaluation.md) and [issue 211](https://github.com/KyleDerZweite/spellbook/issues/211) compare Go, Python, Rust and TypeScript, alongside proposed `backend/api/` and `backend/workers/{catalog,scan}/` ownership.
+The maintainer wants to replace backend TypeScript long term; language, migration boundary and schedule remain open.
+This evaluation does not select a rewrite, worker move or additional worker processes.
 The current TypeScript API/SvelteKit HTTP boundary and Python Catalog/Scan packages remain authoritative.
 Review responsibilities, interfaces, dependency directions and compatibility before changing implementation contracts.

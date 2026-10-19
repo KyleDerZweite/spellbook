@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-19
 - Source of Truth: mixed
-- Update Triggers: independent API/web ownership and relocated code references, document ownership, product contracts, section changes, documentation health review
+- Update Triggers: sentence-per-line authoring and review-date semantics, independent API/web ownership and relocated code references, document ownership, product contracts, section changes, documentation health review
 - Related Docs: [Product](./product/README.md), [Architecture](./architecture/README.md), [Operations](./operations/README.md), [Integrations](./integrations/README.md), [Decisions](./decisions/README.md), [Reference](./reference/README.md), [Issue labels](./ISSUE_LABELS.md)
 
 Start with the [product specification](./product/specification.md) for current behavior, requirements, and known limits.
@@ -38,7 +38,8 @@ Record significant architectural or product decisions in `decisions/`.
 Keep durable project knowledge in its canonical document, with links from issues or commits rather than leaving that knowledge only there.
 If no owner fits, create a document in the appropriate typed section.
 
-Every touched canonical document needs an updated `Last Reviewed` date, relevant `Update Triggers`, and checked `Related Docs`.
+Content changes require an updated `Last Reviewed` date, relevant `Update Triggers`, and checked `Related Docs`.
+Source-only line-break changes retain review dates because they do not establish a new factual review.
 Repair links affected by moves or renames in the same change.
 Add new files to their section index.
 Remove replaced documentation and rely on git history; do not create an archive or parallel wiki.
@@ -47,3 +48,7 @@ Retain decision records with explicit supersession status.
 Review documentation health at each milestone or release, or monthly during active development.
 Check claims against code, broken links, orphaned documents, duplicate contracts, and superseded decisions.
 Use plain repository Markdown.
+Put each prose sentence on its own source line, preserving paragraph breaks and list continuation indentation.
+Wrap a long sentence at a useful phrase boundary when needed.
+Keep code blocks, URLs and table rows syntactically intact.
+The repository's Markdown Prettier override uses `proseWrap: preserve` so formatting retains these line breaks.

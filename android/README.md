@@ -53,20 +53,20 @@ Signing and distribution remain the release owner's responsibility.
 
 ## Dependencies and responsibilities
 
-| Dependency | Pin | Purpose |
-| --- | --- | --- |
-| AGP | 9.1.1 | Android packaging, built-in Kotlin and Lint |
-| Gradle | 9.6.1 | Independent, reproducible Android build |
-| Kotlin/KGP, Compose compiler, serialization plugin | 2.4.21 | Typed native implementation and generated DTO serializers |
-| Compose BOM | 2026.09.00 | Compatible Compose UI and Material 3 components |
-| Navigation3 | 1.2.0 | Native back stack, saved navigation and system Back |
-| Lifecycle | 2.11.0 | ViewModel/StateFlow, lifecycle collection and foreground ownership |
-| Activity | 1.13.0 | Compose activity and edge-to-edge platform integration |
-| Ktor OkHttp | 3.6.0 | HTTP and SSE with cancellation; no cookie jar or write retry plugin |
-| kotlinx.serialization JSON | 1.11.0 | Explicit serialized HTTP DTOs and bounded draft serialization |
-| JUnit | 4.13.2 | JVM regression tests |
-| Ktor MockEngine | 3.6.0 | Isolated transport failures and wire assertions in JVM tests |
-| coroutines-test | 1.11.0 | Deterministic suspend-function tests |
+| Dependency                                         | Pin        | Purpose                                                             |
+| -------------------------------------------------- | ---------- | ------------------------------------------------------------------- |
+| AGP                                                | 9.1.1      | Android packaging, built-in Kotlin and Lint                         |
+| Gradle                                             | 9.6.1      | Independent, reproducible Android build                             |
+| Kotlin/KGP, Compose compiler, serialization plugin | 2.4.21     | Typed native implementation and generated DTO serializers           |
+| Compose BOM                                        | 2026.09.00 | Compatible Compose UI and Material 3 components                     |
+| Navigation3                                        | 1.2.0      | Native back stack, saved navigation and system Back                 |
+| Lifecycle                                          | 2.11.0     | ViewModel/StateFlow, lifecycle collection and foreground ownership  |
+| Activity                                           | 1.13.0     | Compose activity and edge-to-edge platform integration              |
+| Ktor OkHttp                                        | 3.6.0      | HTTP and SSE with cancellation; no cookie jar or write retry plugin |
+| kotlinx.serialization JSON                         | 1.11.0     | Explicit serialized HTTP DTOs and bounded draft serialization       |
+| JUnit                                              | 4.13.2     | JVM regression tests                                                |
+| Ktor MockEngine                                    | 3.6.0      | Isolated transport failures and wire assertions in JVM tests        |
+| coroutines-test                                    | 1.11.0     | Deterministic suspend-function tests                                |
 
 SSE is in Ktor Client Core and needs no separate SSE dependency.
 The setup follows [AGP built-in Kotlin](https://developer.android.com/build/migrate-to-built-in-kotlin), [Navigation3](https://developer.android.com/guide/navigation/navigation-3/basics) and [Ktor SSE](https://ktor.io/docs/client-server-sent-events.html) and [scoped response streaming](https://ktor.io/docs/client-responses.html#streaming).

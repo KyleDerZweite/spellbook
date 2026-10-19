@@ -1,10 +1,13 @@
 # Integrations
 
 - Status: Canonical
-- Last Reviewed: 2026-10-08
+- Last Reviewed: 2026-10-19
 - Source of Truth: mixed
-- Update Triggers: external system contracts, integration scope, provider evaluations and scanner-platform research
-- Related Docs: [Market price research](./market-prices.md), [Card and deck categorization](./card-categorization.md), [Realtime backend evaluation](./realtime-backends.md), [Proposed card robot](./card-robot.md), [Scanner platform evaluation](./scanner-platform-evaluation.md), [Worker](../architecture/worker.md), [Catalog](../architecture/catalog.md), [Docs index](../README.md), [Application contract](../architecture/application-contract.md), [Category rules](../architecture/category-rules.md)
+- Update Triggers: backend language and worker layout evaluation, external system contracts, integration scope, provider evaluations and scanner-platform research
+- Related Docs: [Market price research](./market-prices.md), [Card and deck categorization](./card-categorization.md), [Realtime backend evaluation](./realtime-backends.md), [Proposed card robot](./card-robot.md), [Scanner platform evaluation](./scanner-platform-evaluation.md), [Worker](../architecture/worker.md), [Catalog](../architecture/catalog.md), [Docs index](../README.md), [Application contract](../architecture/application-contract.md), [Category rules](../architecture/category-rules.md), [Backend language evaluation](./backend-language-evaluation.md)
+
+[Backend language evaluation](./backend-language-evaluation.md) compares Go, Python, Rust and the current TypeScript API, with proposed worker grouping and migration gates.
+Its recommendation is decision support; no language rewrite or worker relocation is selected.
 
 The [card robot proposal](./card-robot.md) owns the future phone/sorter integration, hardware concept, local fast/slow recognition, device-login concept and exploratory simulator.
 [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md) selects local recognition, with public reference preparation proposed centrally.

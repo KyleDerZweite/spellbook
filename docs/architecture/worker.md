@@ -3,10 +3,12 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-19
 - Source of Truth: code
-- Update Triggers: independent API/web ownership and relocated code references, price evidence and paired/optional publication/recovery, public history, resource limits and provider opt-ins, Scryfall formats, synchronization schedule and retries, first publication, source selection, status persistence, Oracle Tags publication, Commander Spellbook publication and raw canonical fact extraction
-- Related Docs: [System overview](./system-overview.md), [Catalog](./catalog.md), [Deployment](../operations/deployment.md), [Category rules](./category-rules.md), [Valuation](./valuation.md), [Independent applications](./independent-applications.md)
+- Update Triggers: backend language and worker layout evaluation, independent API/web ownership and relocated code references, price evidence and paired/optional publication/recovery, public history, resource limits and provider opt-ins, Scryfall formats, synchronization schedule and retries, first publication, source selection, status persistence, Oracle Tags publication, Commander Spellbook publication and raw canonical fact extraction
+- Related Docs: [System overview](./system-overview.md), [Catalog](./catalog.md), [Deployment](../operations/deployment.md), [Category rules](./category-rules.md), [Valuation](./valuation.md), [Independent applications](./independent-applications.md), [Backend language evaluation](../integrations/backend-language-evaluation.md)
 
 The Python worker imports and synchronizes the shared Scryfall catalog in PostgreSQL.
+The [backend language evaluation](../integrations/backend-language-evaluation.md#proposed-ownership) proposes grouping existing Python projects under `backend/workers/` while retaining independent packages and processes.
+That move is unselected; current paths remain `worker/` and `scan-worker/`.
 It is a service-level import, not a per-account operation.
 Compose starts it after database migrations.
 Each process startup attempts a sync.
