@@ -46,7 +46,7 @@ const originalRoutes: [string, string[]][] = [
 
 async function publishRecordedPrinting(pool: pg.Pool) {
 	const documents: CardDocument[] = JSON.parse(
-		await readFile(new URL('../../frontend/scripts/demo/cards.json', import.meta.url), 'utf8')
+		await readFile(new URL('../scripts/demo/cards.json', import.meta.url), 'utf8')
 	);
 	const card = documents.find((document) => document.name === 'Sol Ring');
 	assert.ok(card, 'Recorded public Sol Ring printing must exist');

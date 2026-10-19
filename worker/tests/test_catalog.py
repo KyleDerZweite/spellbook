@@ -23,7 +23,7 @@ def publisher():
     if not url:
         pytest.skip("Set WORKER_TEST_DATABASE_URL to run PostgreSQL publication integration tests")
     schema = "worker_test_" + uuid4().hex
-    migration = next((Path(__file__).parents[2] / "frontend/drizzle").glob("0006*.sql"))
+    migration = next((Path(__file__).parents[2] / "backend/drizzle").glob("0006*.sql"))
     with psycopg.connect(url, autocommit=True) as admin:
         admin.execute("CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public")
         admin.execute(sql.SQL("CREATE SCHEMA {}").format(sql.Identifier(schema)))
@@ -31,7 +31,7 @@ def publisher():
         try:
             with psycopg.connect(scoped) as conn:
                 conn.execute(
-                    (Path(__file__).parents[2] / "frontend/drizzle/0015_scryfall_prices.sql")
+                    (Path(__file__).parents[2] / "backend/drizzle/0015_scryfall_prices.sql")
                     .read_text()
                     .replace('"public".', f'"{schema}".')
                 )
