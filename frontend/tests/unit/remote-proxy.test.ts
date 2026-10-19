@@ -38,10 +38,69 @@ describe('same-origin streaming API proxy', () => {
 		expect(headers.get('x-spellbook-client-address')).toBe('192.0.2.10');
 		expect(headers.has('forwarded')).toBe(false);
 		expect(headers.has('x-forwarded-for')).toBe(false);
-		expect(init?.body).toBe(request.request.body);
+		expect(init?.body).toBeInstanceOf(ReadableStream);
+		expect(request.request.body?.locked).toBe(false);
 		expect(init?.signal).toBe(request.request.signal);
 		expect(response.status).toBe(401);
 	});
+	it('does not cancel the browser body when the upstream stops an upload early', async () => {
+		const cancelled = vi.fn();
+		let reading!: () => void;
+		const started = new Promise<void>((resolve) => {
+			reading = resolve;
+		});
+		const body = new ReadableStream<Uint8Array>(
+			{ pull: reading, cancel: cancelled },
+			{ highWaterMark: 0 }
+		);
+		const request = event('/api/web/v1/commands', {
+			method: 'POST',
+			body,
+			duplex: 'half'
+		} as RequestInit);
+		const send = vi.fn<typeof fetch>().mockImplementation(async (_url, init) => {
+			const reader = (init!.body as ReadableStream<Uint8Array>).getReader();
+			const pending = reader.read();
+			await started;
+			await reader.cancel();
+			await pending;
+			return Response.json({ message: 'Request body exceeds the size limit' }, { status: 413 });
+		});
+		const response = await proxyApi(request, undefined, send);
+		expect(response.status).toBe(413);
+		expect(cancelled).not.toHaveBeenCalled();
+		expect(body.locked).toBe(false);
+	});
+	it.each([413, undefined])(
+		'preserves a source body failure independently of fetch rejection: %s',
+		async (status) => {
+			const cause = Object.assign(new Error('internal adapter details'), { status });
+			const body = new ReadableStream<Uint8Array>({
+				start(controller) {
+					controller.error(cause);
+				}
+			});
+			const request = event('/api/web/v1/commands', {
+				method: 'POST',
+				body,
+				duplex: 'half'
+			} as RequestInit);
+			const send = vi.fn<typeof fetch>().mockImplementation(async (_url, init) => {
+				await expect((init!.body as ReadableStream<Uint8Array>).getReader().read()).rejects.toBe(
+					cause
+				);
+				throw new TypeError('fetch failed');
+			});
+			const response = await proxyApi(request, undefined, send);
+			expect(response.status).toBe(status === 413 ? 413 : 400);
+			expect(await response.json()).toEqual({
+				status: status === 413 ? 413 : 400,
+				message:
+					status === 413 ? 'Request body exceeds the size limit' : 'Unable to read request body'
+			});
+			expect(body.locked).toBe(false);
+		}
+	);
 	it('preserves separate Set-Cookie values and body/cache/status without decoding', async () => {
 		const headers = new Headers({
 			'cache-control': 'no-store',
