@@ -1,0 +1,46 @@
+[build-system]
+requires = ["hatchling==1.32.4"]
+build-backend = "hatchling.build"
+
+[project]
+name = "spellbook-api"
+version = "0.1.0"
+requires-python = "==3.14.8"
+dependencies = [
+    "spellbook-core==0.1.0",
+    "fastapi==0.143.2",
+    "uvicorn==0.54.0",
+    "psycopg-pool==3.3.3",
+]
+
+[project.scripts]
+spellbook-api = "spellbook_api.main:main"
+
+[project.optional-dependencies]
+dev = ["httpx2==2.13.1", "mypy==2.4.0", "pytest==9.1.1", "ruff==0.17.1"]
+
+[tool.uv]
+required-version = "==0.12.23"
+
+[tool.uv.sources]
+spellbook-core = { path = "../core" }
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/spellbook_api"]
+
+[tool.hatch.build.hooks.custom]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+files = ["src", "tests", "../../scripts/check_python_boundaries.py", "../../scripts/test_python_boundaries.py"]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 99
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "B", "SIM", "RUF"]

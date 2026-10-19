@@ -3,15 +3,17 @@ import { appendFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const all = () => ({ application: true, worker: true, scan_worker: true });
+const all = () => ({ application: true, worker: true, scan_worker: true, python_backend: true });
 
 export function classifyPaths(paths) {
-	const checks = { application: false, worker: false, scan_worker: false };
+	const checks = { application: false, worker: false, scan_worker: false, python_backend: false };
 	for (const path of paths) {
 		if (
 			path.startsWith('docs/') ||
 			/^[^/]+\.md$/.test(path) ||
-			/^(frontend|backend|contracts|worker|scan-worker|android)\/README\.md$/.test(path) ||
+			/^(frontend|backend|contracts|worker|scan-worker|android|backend\/api|backend\/core)\/README\.md$/.test(
+				path
+			) ||
 			['LICENSE', 'NOTICE'].includes(path)
 		)
 			continue;
@@ -29,9 +31,18 @@ export function classifyPaths(paths) {
 			checks.application = true;
 			continue;
 		}
-		if (path.startsWith('backend/drizzle/') || path.startsWith('frontend/drizzle/')) {
+		if (
+			/^backend\/(api|core)\//.test(path) ||
+			/^scripts\/(check|test)_python_boundaries\.py$/.test(path)
+		) {
+			checks.python_backend = true;
+		} else if (path.startsWith('contracts/')) {
+			checks.application = true;
+			checks.python_backend = true;
+		} else if (path.startsWith('backend/drizzle/') || path.startsWith('frontend/drizzle/')) {
 			checks.application = true;
 			checks.worker = true;
+			checks.python_backend = true;
 		} else if (path.startsWith('android/')) continue;
 		else if (path.startsWith('worker/')) checks.worker = true;
 		else if (path.startsWith('scan-worker/')) {

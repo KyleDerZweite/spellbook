@@ -14,9 +14,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { classifyPaths, selectChecks } from './ci-changes.mjs';
 
-const app = { application: true, worker: false, scan_worker: false };
-const all = { application: true, worker: true, scan_worker: true };
-const none = { application: false, worker: false, scan_worker: false };
+const app = { application: true, worker: false, scan_worker: false, python_backend: false };
+const all = { application: true, worker: true, scan_worker: true, python_backend: true };
+const none = { application: false, worker: false, scan_worker: false, python_backend: false };
 
 const workflow = (name) =>
 	readFileSync(new URL(`../.github/workflows/${name}`, import.meta.url), 'utf8');
@@ -61,7 +61,7 @@ test('heavy workflows accept only manual dispatch and keep their complete comman
 
 test('automatic CI retains scoped checks without invoking a heavy workflow', () => {
 	const source = workflow('ci.yml');
-	assert.equal([...source.split(/^jobs:\n/m)[1].matchAll(/^  [\w-]+:\n/gm)].length, 3);
+	assert.equal([...source.split(/^jobs:\n/m)[1].matchAll(/^  [\w-]+:\n/gm)].length, 4);
 	assert.equal(
 		triggers(source),
 		'push:\n    branches: [main]\n  pull_request:\n  workflow_dispatch:'
@@ -82,7 +82,7 @@ test('automatic CI retains scoped checks without invoking a heavy workflow', () 
 	])
 		assert.ok(source.includes(`- run: pnpm ${command}\n`), command);
 	assert.doesNotMatch(source, /run: pnpm (test:dev|--dir \.\. test:(dev|packaging|boundaries))/);
-	for (const key of ['application', 'worker', 'scan_worker'])
+	for (const key of ['application', 'worker', 'scan_worker', 'python_backend'])
 		assert.ok(source.includes(`${key}: \${{ steps.scope.outputs.${key} }}`), key);
 	assert.match(
 		source,
@@ -103,7 +103,11 @@ test('automatic CI retains scoped checks without invoking a heavy workflow', () 
 		'ruff format --check',
 		'pytest'
 	])
-		assert.equal(source.split(command).length - 1, 2, command);
+		assert.equal(
+			source.split(command).length - 1,
+			command === 'pytest' ? 3 : command.startsWith('ruff') ? 5 : 4,
+			command
+		);
 });
 
 test('only automatic runs cancel superseded work and every job has a bounded timeout', () => {
@@ -149,13 +153,18 @@ test('source changes select their consumers, including SQL and Scan cross-projec
 	});
 	assert.deepEqual(classifyPaths(['frontend/drizzle/0024.sql']), {
 		...app,
-		worker: true
+		worker: true,
+		python_backend: true
 	});
 	assert.deepEqual(classifyPaths(['frontend/drizzle/meta/_journal.json']), {
 		...app,
-		worker: true
+		worker: true,
+		python_backend: true
 	});
-	assert.deepEqual(classifyPaths(['worker/uv.lock', 'scan-worker/tests/test_scan.py']), all);
+	assert.deepEqual(classifyPaths(['worker/uv.lock', 'scan-worker/tests/test_scan.py']), {
+		...all,
+		python_backend: false
+	});
 });
 
 test('shared workflow/toolchain and unknown files select every automatic suite', () => {
@@ -240,7 +249,8 @@ test('real Git renames expose the deleted source and preserve NUL-delimited file
 		const head = commit();
 		assert.deepEqual(selectChecks({ eventName: 'pull_request', base, head, cwd }), {
 			...app,
-			worker: true
+			worker: true,
+			python_backend: true
 		});
 	});
 });
@@ -279,7 +289,7 @@ test('CLI writes literal booleans to GitHub outputs without dependencies', () =>
 		});
 		assert.equal(
 			readFileSync(output, 'utf8'),
-			'application=false\nworker=false\nscan_worker=false\n'
+			'application=false\nworker=false\nscan_worker=false\npython_backend=false\n'
 		);
 	});
 });
@@ -291,8 +301,12 @@ test('native changes stay manual while application consumers retain automatic ch
 	assert.deepEqual(classifyPaths(['backend/Dockerfile']), app);
 	assert.deepEqual(classifyPaths(['frontend/Dockerfile']), app);
 	assert.deepEqual(classifyPaths(['worker/Dockerfile']), { ...none, worker: true });
-	assert.deepEqual(classifyPaths(['backend/drizzle/meta/_journal.json']), { ...app, worker: true });
-	assert.deepEqual(classifyPaths(['contracts/src/inventory.ts']), app);
+	assert.deepEqual(classifyPaths(['backend/drizzle/meta/_journal.json']), {
+		...app,
+		worker: true,
+		python_backend: true
+	});
+	assert.deepEqual(classifyPaths(['contracts/src/inventory.ts']), { ...app, python_backend: true });
 });
 
 test('JavaScript manifests do not run unrelated Python or Android suites', () => {
@@ -303,6 +317,44 @@ test('JavaScript manifests do not run unrelated Python or Android suites', () =>
 		'frontend/.node-version'
 	])
 		assert.deepEqual(classifyPaths([path]), app, path);
+});
+
+test('Python-only API/core changes and shared contracts select Python compatibility checks', () => {
+	for (const path of [
+		'backend/api/src/spellbook_api/main.py',
+		'backend/api/uv.lock',
+		'backend/api/Dockerfile',
+		'backend/core/src/spellbook_core/inventory.py',
+		'backend/core/pyproject.toml',
+		'backend/core/uv.lock',
+		'scripts/check_python_boundaries.py',
+		'scripts/test_python_boundaries.py'
+	])
+		assert.deepEqual(classifyPaths([path]), { ...none, python_backend: true }, path);
+	for (const path of ['contracts/openapi.json', 'contracts/compatibility/golden.json'])
+		assert.deepEqual(classifyPaths([path]), { ...app, python_backend: true }, path);
+	assert.deepEqual(classifyPaths(['backend/api/README.md', 'backend/core/README.md']), none);
+	const source = workflow('ci.yml');
+	assert.match(source, /name: Python API\/Core/);
+	assert.match(source, /if: needs.changes.outputs.python_backend == 'true'/);
+	assert.equal(source.split('uv run --no-sync mypy').length - 1, 2);
+	assert.match(source, /python scripts\/check_python_boundaries.py/);
+	assert.match(source, /python -m unittest discover -s scripts -p test_python_boundaries.py/);
+});
+
+test('a later Python-only edit selects API/core after their first addition', () => {
+	repository(({ cwd, write, commit }) => {
+		write('backend/core/src/spellbook_core/query.py');
+		commit();
+		write('docs/change.md');
+		const base = commit();
+		write('backend/core/src/spellbook_core/query.py', 'changed\n');
+		const head = commit();
+		assert.deepEqual(selectChecks({ eventName: 'pull_request', base, head, cwd }), {
+			...none,
+			python_backend: true
+		});
+	});
 });
 
 test('main pushes select their actual changed paths as well', () => {

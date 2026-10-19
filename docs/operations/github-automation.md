@@ -1,9 +1,9 @@
 # Repository verification and GitHub automation
 
 - Status: Canonical
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-10-20
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
-- Update Triggers: independent API/web ownership and relocated code references, native initial Deck Search publication regression, conditional CI scope, manual-only heavy workflows and consolidated jobs, native Inventory measurement regression, portable opt-in browsing performance evidence and artifact provenance, PWA worker build harness and tsconfig, QR integration/HTTP and pending target acceptance, Dev launcher lifecycle tests, test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
+- Update Triggers: dormant Python API/core checks and import boundaries, independent API/web ownership and relocated code references, native initial Deck Search publication regression, conditional CI scope, manual-only heavy workflows and consolidated jobs, native Inventory measurement regression, portable opt-in browsing performance evidence and artifact provenance, PWA worker build harness and tsconfig, QR integration/HTTP and pending target acceptance, Dev launcher lifecycle tests, test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
 - Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance), [Application boundaries](../architecture/application-contract.md#implementation-status)
 
 This document owns repository check commands, CI coverage, and verification evidence.
@@ -161,6 +161,44 @@ frontend/node_modules/.bin/prettier --check README.md GLOSSARY.md AGENTS.md CONT
 
 Follow [documentation maintenance](../README.md#maintenance) for links, ownership, metadata, and stale claims.
 Documentation-only changes do not need application tests unless they also change executable behavior.
+
+### Python API and Core
+
+The dormant [API foundation](../../backend/api/README.md) and [Core package](../../backend/core/README.md) use Python 3.14.8 and uv 0.12.23 with separate locks/environments.
+From the repository root, run:
+
+```sh
+uvx --from uv==0.12.23 uv lock --project backend/core --check --python 3.14.8
+uvx --from uv==0.12.23 uv sync --project backend/core --frozen --extra dev --python 3.14.8
+uvx --from uv==0.12.23 uv run --directory backend/core --no-sync ruff check
+uvx --from uv==0.12.23 uv run --directory backend/core --no-sync ruff format --check
+uvx --from uv==0.12.23 uv run --directory backend/core --no-sync mypy
+uvx --from uv==0.12.23 uv lock --project backend/api --check --python 3.14.8
+uvx --from uv==0.12.23 uv sync --project backend/api --frozen --extra dev --python 3.14.8
+uvx --from uv==0.12.23 uv run --directory backend/api --no-sync ruff check
+uvx --from uv==0.12.23 uv run --directory backend/api --no-sync ruff format --check
+uvx --from uv==0.12.23 uv run --directory backend/api --no-sync mypy
+uvx --from uv==0.12.23 uv run --directory backend/api --no-sync pytest
+uvx --from uv==0.12.23 uv run --project backend/api --no-sync ruff check --config backend/api/pyproject.toml scripts/check_python_boundaries.py scripts/test_python_boundaries.py
+uvx --from uv==0.12.23 uv run --project backend/api --no-sync ruff format --check --config backend/api/pyproject.toml scripts/check_python_boundaries.py scripts/test_python_boundaries.py
+uvx --from uv==0.12.23 uv run --project backend/api --no-sync python scripts/check_python_boundaries.py
+uvx --from uv==0.12.23 uv run --project backend/api --no-sync python -m unittest discover -s scripts -p test_python_boundaries.py
+uvx --from uv==0.12.23 uv build --project backend/core
+uvx --from uv==0.12.23 uv build --project backend/api
+```
+
+`--directory` selects the package working directory for checks; `--project` alone does not change pytest discovery or Mypy's configuration lookup directory.
+API tests compare Discovery with the neutral artifact and check original HEAD/OPTIONS/405 behavior, absent business/docs routes, configuration rejection and pre-drain shutdown ordering.
+They also start a real task-owned Uvicorn child on an ephemeral loopback port and verify SIGTERM completion, without loading `.env` or requiring a database.
+The AST boundary checker inspects static/relative imports, type-only imports and literal dynamic imports across API, Core and current/future worker source roots.
+Computed dynamic import calls fail closed; this check is dependency enforcement, not a sandbox for arbitrary Python execution.
+Negative fixtures prove forbidden Core framework/API/worker imports and worker-to-API imports are rejected.
+The existing TypeScript checker remains unchanged and does not inspect Python.
+
+Core currently contains only its marker, so its independent lint/type/build checks run alongside API unit tests and negative import fixtures.
+Actual Core application tests begin with P02b.
+No PostgreSQL, cross-runtime replay, finite pool/LISTEN/admission or measured resource acceptance follows from these P02a checks.
+Heavy application integration and Android remain manually triggered.
 
 ### Portable browsing performance evidence
 
@@ -323,19 +361,20 @@ Check results at the aggregate head; existing fixture/provider tests do not esta
 ## CI coverage
 
 [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs on pull requests, pushes to `main` and manual dispatch.
-It has three jobs.
+It has four jobs.
 The short `CI Scope` job runs the native [routing/workflow ownership tests](../../scripts/ci-changes.test.mjs) and [change classifier](../../scripts/ci-changes.mjs), without installing application dependencies.
-The two substantive jobs depend on successful classification and can run in parallel:
+The three substantive jobs depend on successful classification and can run in parallel:
 
-| Job                | Checks                                                                                                                         | Automatic scope                                                         |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
-| Application Checks | Web/backend types and boundaries through `lint`, web unit tests, root `test:tooling`, backend unit/native tests and `db:check` | App/shared source and Scan worker changes                               |
-| Python Workers     | Lock consistency, Ruff lint/format and pytest for each affected Python project                                                 | Catalog worker, Scan worker, or migrations used by Catalog worker tests |
+| Job                | Checks                                                                                                                              | Automatic scope                                                         |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Application Checks | Web/backend types and boundaries through `lint`, web unit tests, root `test:tooling`, backend unit/native tests and `db:check`      | App/shared source and Scan worker changes                               |
+| Python API/Core    | Independent lock/frozen install, Ruff, strict Mypy, API unit/host/Discovery tests, package builds and negative Python import checks | API, Core, neutral contracts, migrations and shared Python tooling      |
+| Python Workers     | Lock consistency, Ruff lint/format and pytest for each affected Python project                                                      | Catalog worker, Scan worker, or migrations used by Catalog worker tests |
 
 Migration consistency runs in Application Checks using the existing frozen workspace install.
 Root `test:tooling` includes launcher and packaging tests, so CI does not invoke those suites separately.
 Python projects share one job/toolchain setup, retaining separate project environments; its PostgreSQL service starts only when Catalog worker tests are selected.
-The scope job has a five-minute timeout; Application Checks and Python Workers each have fifteen minutes.
+The scope job has a five-minute timeout; Application Checks, Python API/Core and Python Workers each have fifteen minutes.
 
 [Application Integration](../../.github/workflows/application-integration.yml) and [Android Build](../../.github/workflows/android.yml) are separate workflows triggered only by `workflow_dispatch`.
 Neither has an automatic trigger or a `workflow_call` entry point, and automatic CI never invokes them.
@@ -358,8 +397,10 @@ Run the relevant manual or documented local checks before claiming their coverag
 
 PR scope uses the complete local Git merge-base diff between event base/head SHAs; main pushes use the pushed `base..head` diff.
 Paths are NUL-delimited and rename detection is disabled so additions and deletions both count.
-`frontend/`, `backend/`, shared `contracts/` and other `scripts/` select Application Checks.
-Migration paths under `backend/drizzle/`, including the legacy frontend path, select Application Checks and Catalog worker tests.
+`backend/api/`, `backend/core/` and the Python boundary scripts select Python API/Core; Core changes therefore also verify API consumers.
+Shared `contracts/` select both Application Checks and Python API/Core, including Discovery compatibility.
+Other `frontend/`, `backend/` and `scripts/` source paths select Application Checks.
+Migration paths under `backend/drizzle/`, including the legacy frontend path, select Application Checks, Python API/Core and Catalog worker tests.
 `worker/` selects Catalog tests; `scan-worker/` selects Application Checks and Scan worker tests.
 Android-only changes and known documentation alone select no substantive automatic job.
 JS workspace/lockfile changes select Application Checks without forcing Python.
@@ -368,7 +409,7 @@ The classifier has no Android output because Android is always an explicit manua
 The automatic workflow has no path filter and avoids GitHub's path-filter limits.
 New pushes cancel obsolete runs of the same PR or main branch; manual CI dispatches use unique concurrency groups and remain independent.
 
-If repository protection later requires status checks, include `CI Scope` alongside Application Checks and Python Workers.
+If repository protection later requires status checks, include `CI Scope` alongside Application Checks, Python API/Core and Python Workers.
 A failed classifier skips dependent jobs, and [GitHub accepts skipped jobs as successful checks](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-jobs-with-conditions).
 Requiring descendants alone does not establish successful classification.
 This workflow change does not alter repository protection settings.
