@@ -1,20 +1,26 @@
 # Python backend migration contract
 
-- Status: Accepted design, migration not started
+- Status: Accepted execution contract, implementation authorized; production cutover pending
 - Last Reviewed: 2026-10-20
-- Source of Truth: ADR-0025, issue 211, baseline code and independent design analysis
-- Update Triggers: contract acceptance, independent review, framework or schema ownership, delivery gates, parity evidence, rollback
+- Source of Truth: ADR-0025, issue 211, baseline code, independent design analysis and Kyle's 2026-10-20 execution direction
+- Update Triggers: execution scope, integration ownership, source preparation versus production operations, contract acceptance, independent review, framework or schema ownership, delivery gates, parity evidence, rollback
 - Related Docs: [ADR-0025](../decisions/0025-python-api-and-workers.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [Independent applications](./independent-applications.md), [Application contract](./application-contract.md), [Postgres](./postgres.md), [Auth](./auth.md), [Worker](./worker.md), [Deployment](../operations/deployment.md), [Verification](../operations/github-automation.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
 
 ## Scope and status
 
-The verified starting point is `main` at `7d886780c78f1b017d0affa9c77d7069173b20f3` on 2026-10-19.
-The TypeScript/Node API remains the running baseline; no Python API port, worker relocation, benchmark or deployment has started.
+The reviewed runtime baseline is `main` at `7d886780c78f1b017d0affa9c77d7069173b20f3` on 2026-10-19.
+The execution starting point is `b835eee87ff0e92e99df18ab384602e48183a88d`, after accepted documentation PR 259 was squash-merged into `main`.
+The TypeScript/Node API remains the production baseline; this contract amendment claims no implemented Python parity, benchmark or deployment.
 ADR-0025 already selects Python for the HTTP API and every server worker under `backend/`.
 Svelte/TypeScript and Kotlin/Compose remain the clients; phone/Jetson recognition stays local under ADR-0023.
 Kyle accepted this direction on 2026-10-20 subject to an additional GPT-6 Astra Medium review, which found no blockers.
 This document owns the accepted migration choices and delivery order.
-Design acceptance does not establish runtime parity or deployment authority.
+On 2026-10-20, Kyle authorized complete end-to-end Python API and all server-worker implementation by GPT-6.1-Sol High subagents, including necessary reversible candidate experiments and manually invoked validation.
+This accepted scope includes preparing and rehearsing the Python migrator and completing source activation and Node server source contraction on `integration/python-backend-migration`.
+The final complete integration artifact remains unmerged for review.
+Its server runtime and migrator use Python only; Svelte/TypeScript client code and its Node build/runtime requirements remain supported.
+Production cutover, production migrator rollout and ending the real production rollback window remain separately authorized operations.
+Implementation authorization establishes neither runtime parity nor production acceptance.
 An implementation ticket becomes Ready only after its own prerequisites, reviewed contract and evidence requirements are settled.
 
 ## Framework, modules and resources
@@ -86,12 +92,15 @@ Keep `backend/drizzle/0000` through `0024`, journal, snapshots and deployed ledg
 If an unavoidable additive migration occurs, update both runtime compatibility and baseline evidence before dependent work resumes.
 Never recreate tables from Python models, reset data, squash SQL history or run parallel Alembic/Drizzle ownership.
 
-After API parity, a separate reviewed handoff transfers ownership to one Python one-shot migrator using Psycopg and ordered SQL in `backend/drizzle/`.
+Prepare one Python one-shot migrator using Psycopg and ordered SQL in `backend/drizzle/` after the complete candidate is integrated.
+API parity and rollback rehearsal evidence must pass before the source ownership handoff.
+P19 preparation is part of the authorized unmerged integration artifact and does not depend on executing the P18 production cutover.
+Drizzle remains the production migration owner until the separately authorized migrator rollout.
 It must recognize and validate the existing Drizzle ledger, exact SQL hashes, journal order and statement breakpoints without replaying applied SQL or stamping assumed history.
 Unknown, changed or noncontiguous history fails closed; no API/worker auto-migrates on startup.
-The handoff freezes Drizzle generation, makes SQL the future schema owner and retains `schema.ts` only until its consumers are replaced.
+The prepared source handoff freezes Drizzle generation in the integration artifact, makes SQL the future schema owner and retains `schema.ts` only until its consumers are replaced.
 No second live schema definition remains afterward; historical snapshots stay historical.
-One deployment job owns migration execution and concurrency exclusion.
+The prepared one-shot job owns migration execution and concurrency exclusion; its production execution remains a separate operation.
 Verify fresh install, upgrade of a retained database copy, second-run no-op and interrupted/concurrent runner recovery.
 Compare extensions, ICU collation/indexes, generated columns, constraints, functions and notification triggers as well as tables and retained data.
 Worker tests that apply selected SQL subsets do not establish this handoff.
@@ -125,29 +134,38 @@ The documented inventory is 88 API method/path pairs and 95 OpenAPI pairs includ
 
 The [implementation epic](https://github.com/KyleDerZweite/spellbook/issues/245) owns the native sub-issues, blocking relationships and per-slice readiness/evidence.
 [P00](https://github.com/KyleDerZweite/spellbook/issues/246) publishes this documentation; issue 211 retains the original design discussion.
-The reviewed breakdown contains twenty documentation/code PR slices and one separate operational cutover gate.
-Use one PR per useful verified slice against current `main`.
-The shared integration delivery for issue 244 was specific to that extraction and does not govern this migration.
-Merge dormant candidate code only after its checks pass; Node keeps all production API mutation ownership until one final API switch.
+The existing breakdown contains twenty documentation/code slices and the separate P18 operational cutover gate.
+P19 and P20 each distinguish source preparation from their later operational acceptance.
+Use PRs per useful verified slice against current `main`; explicitly based stacks are allowed.
+Root orchestrates delegation, review and sequential integration without writing implementation files.
+Root may merge verified dormant slice PRs and reviewed safe Dependabot PRs.
+Keep final source activation, Python migrator source handoff, Node server source contraction and the complete integration artifact on `integration/python-backend-migration`, unmerged for review.
+These source changes may be built, run and rehearsed against disposable resources before any production operation.
+Node keeps all production API mutation ownership until the separately authorized complete API switch.
 Do not route production subsets between runtimes or shadow writes.
-Existing worker relocations can ship separately with exactly one active publisher/scheduler per responsibility.
+Worker relocation code can merge separately while preserving the production baseline and exactly one active publisher/scheduler per responsibility.
 Isolate delegated writers and runtime resources, integrate sequentially, then refresh dependent evidence.
-Before parallel work starts, name one integration writer for shared CI, manifests, launchers, route registry and application lifetime construction, including the first API package and worker relocation.
+Before API/worker parallelism starts, root appoints and records one named shared-file integration writer, distinct from root.
+That writer alone owns shared CI/path classification, root manifests, launchers, route registry and application lifetime construction, including the first API package and worker relocation.
+Package/domain writers use isolated worktrees and disjoint files; the shared-file writer integrates their shared changes sequentially and refreshes affected evidence.
+Start dependent work only after prerequisite integration has been verified on its declared base, either `main` or the integration branch for final-only work.
 
-| Step | Reviewable result and acceptance evidence                                                                                                                                                                    | Prerequisite                                                     |
-| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
-| 0    | Publish this accepted, independently reviewed contract and ADR-0026. Each future ticket names outcome, owner, interface, dependencies, numeric resource limits and checks.                                   | Design accepted; integrate documentation before dependent work.  |
-| 1    | Freeze route/command/runner inventory, neutral schema and executable Node fixtures. Record same-data SQL, fixture hashes, versions, limits and measurement protocol.                                         | Accepted contract; Node remains operational.                     |
-| 2    | After explicit experiment authorization, build an isolated candidate for one bounded read, authenticated receipt mutation/readback and SSE. Compare against Node sequentially on equivalent disposable data. | Step 1 and reviewed numeric rejection limits.                    |
-| 3    | Complete dormant API domain clusters, auth/QR, storage/operators, all mutations and state runners. Enforce Python import rules and test cross-runtime replay, conflicts and legacy receipts.                 | Successful step 2; cluster-specific dependencies integrated.     |
-| 4    | Relocate existing Python workers and wire separate state-worker entrypoints. Update packaging, Docker contexts, launcher, operators, fixture paths, CI path classification, Dependabot and docs together.    | Relevant core modules integrated; no duplicate active jobs.      |
-| 5    | Manually trigger full PostgreSQL/HTTP/Scan/two-process SSE and rendered-client acceptance, resource measurements and Node-to-Python-to-Node rollback rehearsal after real candidate writes.                  | Steps 3 and 4; exact candidate/build/base recorded.              |
-| 6    | In a separately authorized release, switch the complete API and state-runner ownership, observe and retain the tested Node artifact. Transfer migration tooling separately afterward.                        | All applicable gates pass, owner acceptance and tested rollback. |
+| Step | Reviewable result and acceptance evidence                                                                                                                                                                 | Prerequisite                                                                                  |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| 0    | Publish this accepted, independently reviewed contract and ADR-0026. Each future ticket names outcome, owner, interface, dependencies, numeric resource limits and checks.                                | Design accepted; integrate documentation before dependent work.                               |
+| 1    | Freeze route/command/runner inventory, neutral schema and executable Node fixtures. Record same-data SQL, fixture hashes, versions, limits and measurement protocol.                                      | Accepted contract; Node remains operational.                                                  |
+| 2    | Build the authorized isolated candidate for one bounded read, authenticated receipt mutation/readback and SSE. Compare against Node sequentially on equivalent disposable data.                           | Step 1 and reviewed numeric rejection limits.                                                 |
+| 3    | Complete dormant API domain clusters, auth/QR, storage/operators, all mutations and state runners. Enforce Python import rules and test cross-runtime replay, conflicts and legacy receipts.              | Successful step 2; cluster-specific dependencies integrated.                                  |
+| 4    | Relocate existing Python workers and wire separate state-worker entrypoints. Update packaging, Docker contexts, launcher, operators, fixture paths, CI path classification, Dependabot and docs together. | Relevant core modules integrated; no duplicate active jobs.                                   |
+| 5    | Manually trigger full PostgreSQL/HTTP/Scan/two-process SSE and rendered-client acceptance, resource measurements and Node-to-Python-to-Node rollback rehearsal after real candidate writes.               | Steps 3 and 4; exact candidate/build/base recorded.                                           |
+| 6    | Prepare/rehearse the Python migrator, activate Python in candidate source and remove replaced Node server source on the integration branch. Reverify the complete artifact and leave it unmerged.         | Step 5 API parity/rollback evidence, verified migrator preparation and transferred consumers. |
+| 7    | Separately authorize and execute P18 production cutover, P19 production migrator rollout and P20 end of the real rollback window in operational order.                                                    | Applicable acceptance evidence, concrete release authority and operational observation.       |
 
-Step 2 is a future feasibility experiment, not work authorized or executed by this document.
+Step 2 and necessary manually invoked validation are authorized by Kyle's complete implementation request; they have not been executed by this documentation amendment.
 Measure p95/p99, RSS/CPU, event-loop responsiveness, connections, build/CI time and change effort using identical data, SQL, hardware, concurrency and limits.
 There is no accepted numeric performance threshold at this baseline.
-The experiment ticket must define those thresholds before Ready; do not invent a measured gain or use better averages to excuse tail/resource regressions.
+P01 must record reviewed numeric thresholds before P02 Ready; the existing implementation authorization requires no repeated experiment permission.
+Do not invent a measured gain or use better averages to excuse tail/resource regressions.
 Any unexplained wire difference, duplicate effect, changed original receipt, leaked authority, partial publication or unbounded resource is a rejection.
 
 Reuse [repository verification](../operations/github-automation.md) and existing real PostgreSQL, QR race, receipt, conflict, operator, worker-publication, Scan and two-process SavedState suites.
@@ -170,7 +188,32 @@ Retry ambiguous mutations only with their frozen body and original request ID.
 Never restore a pre-cutover dump over subsequently accepted writes as routine rollback.
 Do not rewind personal history or private state; public Catalog/Price recovery uses the existing paired-pointer procedure separately when needed.
 Keep Node-readable data and additive schema compatibility throughout the rollback window.
-Record the observation window, operational thresholds and owner before release readiness; destructive contraction and Node removal require a later accepted change.
+Record the observation window, operational thresholds and owner before release readiness.
+The authorized P20 source contraction removes replaced Node server implementation/tooling from the unmerged integration artifact after consumer transfer and current-head verification.
+Retain the tested Node rollback build/image, configuration references and compatible SQL/data outside that source contraction for rollback rehearsals and later production recovery.
+Source contraction ends no real rollback window and authorizes no production artifact deletion or destructive SQL.
+Record implementation complete, required evidence unavailable, owner acceptance and production operations separately.
+P18, P19 rollout and P20 operational acceptance remain open until actually authorized and executed; preparing the complete source artifact must not mark them complete.
+
+### Tracker reconciliation
+
+Reconcile issue bodies and native dependencies before affected downstream implementation; this accepted execution direction adds no approval gate.
+The source-delivery outcome for epic 245 is the complete verified, unmerged integration artifact; operational completion remains separately tracked and prevents premature epic closure.
+P00 is complete through merged PR 259; refresh contract links to the integrated amendment and execution base without rewriting its historical evidence.
+P01/P02 retain their numeric resource/rejection and parity gates, with experiment and manual-validation authorization already supplied by the implementation request.
+P13 retains its P01 prerequisite and the shared-file writer requirement.
+Existing domain dependencies and operational acceptance criteria remain in force.
+
+P19/P20 preparation has P16 as its native integrated-code prerequisite.
+Replace the P19 native blocker on P18 with P16, and the P20 native blocker on P19 with P16.
+Their issue bodies carry phase-specific evidence dependencies because an open issue awaiting production acceptance must not block authorized source preparation.
+P19 source handoff additionally requires initial P17 API parity/rollback evidence and the reviewed migrator contract; keep P18 as an explicit production-rollout prerequisite in the body.
+P20 source preparation depends on verified P19 preparation and current candidate parity, rather than elapsed production observation.
+Keep P19 production rollout, accepted observation and explicit end-of-rollback authorization as separate P20 operational prerequisites in the body.
+Neither issue closes while its operational acceptance remains pending.
+P17 initial candidate acceptance precedes the source handoff; final-head revalidation follows migrator preparation and source activation/contraction.
+Record that revalidation as final integration evidence rather than a prerequisite for beginning P19/P20 preparation.
+Earlier candidate evidence alone does not verify the final artifact.
 
 ## Review record
 
@@ -186,3 +229,5 @@ The concrete slice plan also passed Astra Medium review after adding required Ca
 Numeric resource/rejection limits remain prerequisites for the relevant future tickets; architecture acceptance does not settle unmeasured limits.
 Markdown formatting, local documentation links and `git diff --check` pass for this planning change.
 No parity test, experiment, Android/heavy workflow, cutover or deployment is claimed by this planning change.
+The 2026-10-20 execution amendment records Kyle's subsequent complete implementation scope and preserves those historical reviews as evidence of the earlier design.
+It distinguishes authorized source preparation from unexecuted production gates; prior reviews do not establish verification of the completed Python artifact.
