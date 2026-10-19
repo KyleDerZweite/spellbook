@@ -124,7 +124,22 @@ export async function verifyIndependentHttp(
 					proxied = await request(origin, path);
 				assert.equal(proxied.status, direct.status);
 				assert.equal(proxied.headers.get('cache-control'), direct.headers.get('cache-control'));
-				assert.deepEqual(await proxied.json(), await direct.json());
+				const directBody = await direct.json(),
+					proxiedBody = await proxied.json();
+				if (path === '/api/account/dashboard') {
+					// Each real read computes its own evaluation instant. Saved values and history still match.
+					for (const body of [directBody, proxiedBody]) {
+						if (body.inventoryValue) {
+							assert.ok(Number.isFinite(Date.parse(body.inventoryValue.evaluatedAt)));
+							delete body.inventoryValue.evaluatedAt;
+						}
+						if (body.inventoryValueHistory) {
+							assert.ok(Number.isFinite(Date.parse(body.inventoryValueHistory.asOf)));
+							delete body.inventoryValueHistory.asOf;
+						}
+					}
+				}
+				assert.deepEqual(proxiedBody, directBody);
 			}
 		}
 	);
