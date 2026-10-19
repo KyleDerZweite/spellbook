@@ -2,7 +2,7 @@
 
 - Status: Revised design proposal; separate Android application selected, maintainer acceptance and native implementation pending
 - Last Reviewed: 2026-10-19
-- Source of Truth: maintainer's revised Android direction, inspected first-party app images, linked Figma files, website artifact `903b427` and shared API contracts
+- Source of Truth: maintainer's revised Android direction, inspected first-party app images and versioned mobile source, linked Figma files, website artifact `903b427` and shared API contracts
 - Update Triggers: mobile visual/flow review, framework selection, API parity, native session lifecycle, camera/recognition or Cardstation contracts
 - Related Docs: [UI direction](./ui-design-direction.md), [Routes](./routing-and-games.md), [Mobile and Scan](../architecture/mobile-and-scan.md), [Auth](../architecture/auth.md), [Client evaluation](../integrations/scanner-platform-evaluation.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Product index](./README.md)
 
@@ -21,13 +21,26 @@ Start at `00 Übersicht`, then open the current Android journey. The earlier mob
 
 ## Visible references
 
-| Inspected first-party source                                                                       | Adapted pattern                                                            |
-| -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| [Letterboxd Android](https://letterboxd.com/crew/story/huge-update-to-our-android-app-is-out-now/) | Large artwork, neutral dark chrome and readable image grids.               |
-| [ManaBox](https://www.manabox.app/)                                                                | Compact Inventory/Box rows with artwork, counts and adjacent search.       |
-| [Pocket Casts Search](https://blog.pocketcasts.com/2025/11/18/search/)                             | Persistent search, one filter row and concise image/name/metadata results. |
+| Inspected first-party source                                                                       | Adapted pattern                                                                     |
+| -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| [Letterboxd Android](https://letterboxd.com/crew/story/huge-update-to-our-android-app-is-out-now/) | Large artwork, neutral dark chrome and readable image grids.                        |
+| [ManaBox](https://www.manabox.app/)                                                                | Compact Inventory/Box rows with artwork, counts and adjacent search.                |
+| [Pocket Casts Search](https://blog.pocketcasts.com/2025/11/18/search/)                             | Persistent search, one filter row and concise image/name/metadata results.          |
+| [T3 Code Android](https://play.google.com/store/apps/details?id=com.t3tools.t3code)                | Compact headers, content hierarchy, a named primary action and contextual controls. |
 
 The downloaded product images establish visible design, not conversion or Spellbook usability. Competitor branding, markets, physical-storage semantics and social features are not adopted. Android onboarding illustrations are guidance, not verified real-app login screenshots.
+
+## T3 Code Android follow-up
+
+The maintainer requested this additional reference on 2026-10-19. Official Android phone screenshots were inspected alongside source commit `1451e7cb23034d29774338608368a15d8845df36`. T3 has a separate React Native client with a [Compose App Bar](https://github.com/pingdotgg/t3code/blob/1451e7cb23034d29774338608368a15d8845df36/apps/mobile/src/components/ui/NativeAppBar.android.tsx#L1-L40) and [native Material3 navigation](https://github.com/pingdotgg/t3code/blob/1451e7cb23034d29774338608368a15d8845df36/apps/mobile/modules/t3-native-controls/android/src/main/java/expo/modules/t3nativecontrols/T3WorkspaceNavigationModule.kt#L103-L126). This supports a separate mobile presentation without selecting Spellbook's framework.
+
+Propose a compact Inventory header, clear card-row hierarchy, one named Add cards action and contextual entry editing. Keep the four Spellbook destinations, artwork, fonts and public Search contract. The editor changes Quantity and Notes, keeps Printing, Finish and Condition fixed, and requires an explicit Save.
+
+For implementation, specify Keyboard/Back order, retained query/draft context and distinct loading, refresh, error and empty states. T3 implements [keyboard-first Back handling](https://github.com/pingdotgg/t3code/blob/1451e7cb23034d29774338608368a15d8845df36/apps/mobile/src/features/home/ThreadListToolbar.tsx#L53-L86) and [platform-specific sheets](https://github.com/pingdotgg/t3code/blob/1451e7cb23034d29774338608368a15d8845df36/apps/mobile/src/components/ui/Sheet.android.tsx#L9-L28). Its chat gestures, hidden filters and device-connection model are not automatic Spellbook requirements.
+
+The [Figma comparison](https://www.figma.com/design/aKZ8f01JvXu68PAOIeevbw/Spellbook?node-id=58-107) contains two static, editable Spellbook proposals beside the actual T3 references. It does not replace the current flow graph. Store images show Light Mode and have no stated capture commit; they are not revision-matched to the inspected source. Source review and static images establish no Android runtime, gesture, keyboard or performance result.
+
+![T3 Code Android references beside the proposed Spellbook Inventory and explicit entry editor.](./assets/t3-android-ui-comparison.png)
 
 ## Main journeys
 
