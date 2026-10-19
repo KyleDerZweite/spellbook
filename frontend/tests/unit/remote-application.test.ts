@@ -38,6 +38,17 @@ function sent(send: ReturnType<typeof setup>['send'], index = 0) {
 }
 
 describe('flat remote failures', () => {
+	it('retains missing Printing validation semantics without masking API failures', async () => {
+		const { app, send } = setup();
+		send.mockResolvedValueOnce(
+			Response.json({ status: 404, message: 'Catalog printing not found' }, { status: 404 })
+		);
+		await expect(app.catalog.getCatalogPrinting('missing')).rejects.toBeInstanceOf(ValidationError);
+		send.mockResolvedValueOnce(
+			Response.json({ status: 500, message: 'Internal Server Error' }, { status: 500 })
+		);
+		await expect(app.catalog.getCatalogPrinting('missing')).rejects.toBeInstanceOf(RemoteError);
+	});
 	it('reconstructs exact Notes, Quantity and Description conflict values', () => {
 		const notes = decodeRemoteError(409, {
 			kind: 'NotesConflict',

@@ -43,7 +43,15 @@ export function createRemoteApplication(client: () => RemoteClient) {
 			client().request(
 				queryPath(`/api/catalog/cards/${id(oracleId)}/printings`, { limit, offset })
 			),
-		getCatalogPrinting: (printingId) => client().request(`/api/catalog/printings/${id(printingId)}`)
+		async getCatalogPrinting(printingId) {
+			try {
+				return await client().request(`/api/catalog/printings/${id(printingId)}`);
+			} catch (cause) {
+				if (cause instanceof RemoteError && cause.status === 404)
+					throw new ValidationError(cause.message);
+				throw cause;
+			}
+		}
 	};
 	const inventory: Pick<
 		InventoryApplication,

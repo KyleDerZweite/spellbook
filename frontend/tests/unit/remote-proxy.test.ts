@@ -9,6 +9,28 @@ function event(path: string, init: RequestInit = {}) {
 }
 
 describe('same-origin streaming API proxy', () => {
+	it.each([undefined, 'gzip'])(
+		'preserves identity image length and drops encoded length: %s',
+		async (encoding) => {
+			const headers = new Headers({
+				'content-type': 'image/png',
+				'content-length': '8',
+				'cache-control': 'no-store'
+			});
+			if (encoding) headers.set('content-encoding', encoding);
+			const send = vi
+				.fn<typeof fetch>()
+				.mockResolvedValue(new Response(new Uint8Array(8), { headers }));
+			const response = await proxyApi(
+				event('/api/mobile/v1/mtg/scan/artifacts/image'),
+				undefined,
+				send
+			);
+			expect(response.headers.get('content-length')).toBe(encoding ? null : '8');
+			expect(response.headers.has('content-encoding')).toBe(false);
+			expect(new Uint8Array(await response.arrayBuffer())).toHaveLength(8);
+		}
+	);
 	it('preserves raw bearer/cookie/Origin selection and overwrites untrusted client address', async () => {
 		const request = event('/api/auth/qr/token?code=one', {
 			method: 'POST',

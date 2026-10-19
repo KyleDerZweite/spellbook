@@ -126,6 +126,13 @@ export async function verifyIndependentHttp(
 				assert.equal(proxied.headers.get('cache-control'), direct.headers.get('cache-control'));
 				const directBody = await direct.json(),
 					proxiedBody = await proxied.json();
+				if (path.startsWith('/api/catalog/search')) {
+					// Separate database reads report their own measured processing time.
+					for (const body of [directBody, proxiedBody]) {
+						assert.ok(Number.isFinite(body.processingTimeMs) && body.processingTimeMs >= 0);
+						delete body.processingTimeMs;
+					}
+				}
 				if (path === '/api/account/dashboard') {
 					// Each real read computes its own evaluation instant. Saved values and history still match.
 					for (const body of [directBody, proxiedBody]) {

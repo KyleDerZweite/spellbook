@@ -93,8 +93,9 @@ export async function proxyApi(
 		const upstream = await send(new URL(path + event.url.search, apiUrl), init);
 		const responseHeaders = new Headers(upstream.headers);
 		removeHopHeaders(responseHeaders);
+		// Fetch decodes encoded responses; identity image lengths remain valid.
+		if (responseHeaders.has('content-encoding')) responseHeaders.delete('content-length');
 		responseHeaders.delete('content-encoding');
-		responseHeaders.delete('content-length');
 		responseHeaders.delete('set-cookie');
 		for (const cookie of upstream.headers.getSetCookie())
 			responseHeaders.append('set-cookie', cookie);
