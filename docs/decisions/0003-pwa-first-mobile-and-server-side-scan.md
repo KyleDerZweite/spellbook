@@ -2,14 +2,16 @@
 
 - Status: Accepted
 - Date: 2026-04-17
-- Last Reviewed: 2026-10-17
+- Last Reviewed: 2026-10-19
 - Source of Truth: recorded decision
-- Update Triggers: accepted PWA/QR delivery applicability, decision applicability, supersession, related document changes
+- Update Triggers: independent Android design applicability, accepted PWA/QR delivery applicability, decision applicability, supersession, related document changes
 - Supersedes: [ADR-0002](./0002-android-first-mobile-and-server-side-scan.md)
 - Partially Superseded By: [ADR-0023](./0023-local-recognition-in-scanner-clients.md) for future capture and recognition placement
 - Related Docs: [System Overview](../architecture/system-overview.md), [Mobile And Scan Architecture](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Auth](../architecture/auth.md), [Product specification](../product/specification.md), [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md), [Application contract](../architecture/application-contract.md), [ADR-0023](./0023-local-recognition-in-scanner-clients.md)
 
 ## Current applicability
+
+On 2026-10-19, the maintainer rejected PWA-first as the next phone-app planning default and commissioned an independent Android design. [ADR-0023's dated clarification](./0023-local-recognition-in-scanner-clients.md#independent-android-design-clarification-2026-10-19) records that scope. The historical single-client and capability-gap guardrails below do not prohibit this approved design work. Native framework and implementation contracts remain open; the existing PWA is not removed.
 
 On 2026-10-07, [ADR-0023](./0023-local-recognition-in-scanner-clients.md) replaces the fixed capture/recognition allocation below with a local-recognition direction and an open client responsibility review. The historical Decision section remains a record of the earlier choice, not an active server-inference requirement. MTG card camera capture and recognition runtimes remain open. Existing website upload/review behavior remains implemented. The 2026-10-16 install/QR delivery selects a shared SvelteKit PWA; it does not implement MTG recognition.
 

@@ -1,9 +1,9 @@
 # Decision Records
 
 - Status: Canonical
-- Last Reviewed: 2026-10-15
+- Last Reviewed: 2026-10-19
 - Source of Truth: mixed
-- Update Triggers: major architectural decisions, major product decisions, documentation system changes, supersession of earlier decisions, uniform continuous Lazy browsing, local recognition direction
+- Update Triggers: major architectural decisions, major product decisions, documentation system changes, supersession of earlier decisions, uniform continuous Lazy browsing, local recognition direction and independent Android design clarification
 - Related Docs: [ADR Template](./ADR-template.md), [ADR-0001](./0001-docs-first-knowledge-system.md), [ADR-0006](./0006-generic-oidc-and-internal-account-identity.md), [ADR-0007](./0007-backend-first-mtg-bulk-import-api.md), [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md), [ADR-0009](./0009-local-authentication.md), [ADR-0014](./0014-public-landing-and-private-workspace.md), [Docs Index](../README.md), [Accepted mechanisms](../architecture/application-contract.md), [ADR-0021](./0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](./0023-local-recognition-in-scanner-clients.md)
 
 This section stores architecture and product decision records.
@@ -62,4 +62,4 @@ Rules:
 - [ADR-0021: Hybrid browsing and contextual Card dialog](./0021-hybrid-browsing-and-contextual-card-dialog.md), API, Shell, result-window foundations and contextual Card actions implemented; uniform continuous Lazy source implemented; local composed verification recorded with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192); partially supersedes ADR-0014 and ADR-0017 for affected browser UI and read limits
 - [ADR-0022: Daily value observation checkpoints](./0022-daily-value-observation-checkpoints.md), daily observation persistence, runtime and private presentation implemented
 
-- [ADR-0023: Local recognition in scanner clients](./0023-local-recognition-in-scanner-clients.md), local recognition; Android-first app with distinct mobile layout and shared API supporting QR/card scanning; shared PWA or packaged client open; Jetson-owned Cardstation execution
+- [ADR-0023: Local recognition in scanner clients](./0023-local-recognition-in-scanner-clients.md), local recognition; Android-first app with distinct mobile layout and shared API supporting QR/card scanning; initial PWA/QR implemented, later independent Android design selected for exploration with framework open; Jetson-owned Cardstation execution
