@@ -3,12 +3,18 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-20
 - Source of Truth: code
-- Update Triggers: Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, price evidence and paired/optional publication/recovery, public history, resource limits and provider opt-ins, Scryfall formats, synchronization schedule and retries, first publication, source selection, status persistence, Oracle Tags publication, Commander Spellbook publication and raw canonical fact extraction
-- Related Docs: [System overview](./system-overview.md), [Catalog](./catalog.md), [Deployment](../operations/deployment.md), [Category rules](./category-rules.md), [Valuation](./valuation.md), [Independent applications](./independent-applications.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md)
+- Update Triggers: P13 worker source relocation and accepted external resource evidence contract, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, price evidence and paired/optional publication/recovery, public history, resource limits and provider opt-ins, Scryfall formats, synchronization schedule and retries, first publication, source selection, status persistence, Oracle Tags publication, Commander Spellbook publication and raw canonical fact extraction
+- Related Docs: [System overview](./system-overview.md), [Catalog](./catalog.md), [Deployment](../operations/deployment.md), [Category rules](./category-rules.md), [Valuation](./valuation.md), [Independent applications](./independent-applications.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md), [Migration contract](./python-backend-migration.md), [P13 resource contract](https://github.com/KyleDerZweite/spellbook/issues/260)
 
 The Python worker imports and synchronizes the shared Scryfall catalog in PostgreSQL.
 [ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for the future API and workers, grouped under `backend/` while retaining independent processes.
-The [accepted migration contract](./python-backend-migration.md#framework-modules-and-resources) owns the target layout and relocation gates; current paths remain `worker/` and `scan-worker/`.
+Catalog publisher sources and tests reside in `backend/workers/catalog/`; the independent Scan scaffold resides in `backend/workers/scan/`.
+Python imports and entrypoints remain `worker.main` and `scan_worker.main:app`.
+The [accepted migration contract](./python-backend-migration.md#framework-modules-and-resources) owns package responsibilities and relocation gates.
+P13 requires paired packaging, image, launcher and CI integration before the relocated packages are accepted.
+The [independently reviewed resource contract in issue 260](https://github.com/KyleDerZweite/spellbook/issues/260) defines provisional external experiment gates and complete process-tree, storage and database-session evidence.
+Those gates add no runtime caps or algorithm changes and establish no measured resource acceptance.
+Full-source cohorts, peak evidence and actual Scan TCP/application integration remain separate acceptance requirements.
 It is a service-level import, not a per-account operation.
 Compose starts it after database migrations.
 Each process startup attempts a sync.
@@ -36,8 +42,8 @@ The downloaded file lives in a temporary directory under `WORKER_DATA_DIR` and i
 Malformed records, invalid identities, and snapshots without indexable documents fail publication.
 The active catalog remains available when publication fails.
 
-[`transform.py`](../../worker/src/worker/transform.py) owns card document transformation.
-[`catalog.py`](../../worker/src/worker/catalog.py) adds indexed search fields, including printed face text.
+[`transform.py`](../../backend/workers/catalog/src/worker/transform.py) owns card document transformation.
+[`catalog.py`](../../backend/workers/catalog/src/worker/catalog.py) adds indexed search fields, including printed face text.
 The [catalog architecture](./catalog.md) owns generation publication, reader consistency, grouping, and search behavior.
 
 ## Persistence and readiness
@@ -67,7 +73,7 @@ A failed scheduled sync is not retried until the next daily or weekly interval.
 Each scheduled run independently attempts the public `oracle_tags` source after Catalog synchronization.
 Its trusted descriptor supplies source ID/type/time and download URL for that exact payload.
 Filenames and later live metadata never establish an older export's timestamp.
-[oracle_tags.py](../../worker/src/worker/oracle_tags.py) validates complete Oracle records, UUIDs, redundant graph endpoints, cycles, membership weights and every starter mapping root.
+[oracle_tags.py](../../backend/workers/catalog/src/worker/oracle_tags.py) validates complete Oracle records, UUIDs, redundant graph endpoints, cycles, membership weights and every starter mapping root.
 It derives descendant closure, hashes the exact payload and publishes taxonomy/membership/mapping atomically under a dedicated advisory lock.
 Labels are presentation, UUIDs are identity; weights record prominence and do not rank categories.
 
@@ -99,7 +105,7 @@ Ingestion never reads private holdings.
 
 `CARDMARKET_PRICES_ENABLED` and `MTGJSON_PRICES_ENABLED` default to `false`.
 Enabled providers use the fixed official public files on the existing `SYNC_INTERVAL`, without an account, API key, SDK or endpoint override.
-[The explicit coordinator](../../worker/src/worker/optional_sync.py) attempts each provider independently after Scryfall, including when Scryfall fails.
+[The explicit coordinator](../../backend/workers/catalog/src/worker/optional_sync.py) attempts each provider independently after Scryfall, including when Scryfall fails.
 Manual mode exits unsuccessfully after all enabled attempts if any failed.
 Disabled providers are not fetched and do not become readiness dependencies.
 PostgreSQL owns safe per-source status; `state.json` remains only the Scryfall operator report.
@@ -135,7 +141,7 @@ Enabled runs fetch the fixed official public gzip bulk on `SYNC_INTERVAL`, indep
 Manual mode reports failure after every enabled provider has had its attempt; periodic failure waits the usual interval.
 No private Deck information reaches the provider.
 
-[combo.py](../../worker/src/worker/combo.py) streams both `variants` and `aliases`, validates the entire gzip/JSON root, and reduces variants into temporary SQLite staging.
+[combo.py](../../backend/workers/catalog/src/worker/combo.py) streams both `variants` and `aliases`, validates the entire gzip/JSON root, and reduces variants into temporary SQLite staging.
 Validation rejects malformed quantities, duplicate identities, inconsistent outcome definitions and dangling aliases before publication.
 Unsupported semantic constraints retain their known mandatory ingredients, outcome labels, templates, face/commander/zone/state fields and unsupported reasons.
 Parser version 1 and policy `ingredients-v1` identify the reduced format.

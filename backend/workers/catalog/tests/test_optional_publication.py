@@ -34,7 +34,7 @@ def public_database():
                     "0017_optional_prices.sql",
                 ):
                     conn.execute(
-                        (Path(__file__).parents[2] / "backend/drizzle" / name)
+                        (Path(__file__).parents[3] / "drizzle" / name)
                         .read_text()
                         .replace('"public".', f'"{schema}".')
                     )
