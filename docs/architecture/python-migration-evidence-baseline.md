@@ -216,6 +216,37 @@ Worker relocation retains the existing publisher-specific download/parse/publica
 
 The focused Node/schema checks exercise the unchanged structural artifact, actual registry and sanitized compatibility cases.
 They establish neither Python execution nor measured performance.
+Checks used Node 26.10.0 and pnpm 12.8.1 in the isolated P01 worktree.
+The reviewed implementation commit is `224686dec1ee777728f02f76a224b3bc745d3ec3`; the final handoff includes any later documentation-only evidence commit.
+
+| Command                                                                                                                                                                                  | Observed result                                                                                                               |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm install --frozen-lockfile`                                                                                                                                                         | Passed without lockfile changes or new dependencies.                                                                          |
+| `pnpm --dir backend check`                                                                                                                                                               | Passed.                                                                                                                       |
+| `pnpm --dir backend exec vitest run tests/unit/compatibility-golden.test.ts tests/unit/compatibility-http.test.ts tests/unit/compatibility-inventory.test.ts tests/unit/openapi.test.ts` | 86 passed, including 69 new behavioral/fixture/ownership checks.                                                              |
+| `pnpm --dir backend test`                                                                                                                                                                | 231 unit tests passed; 101 native tests passed and eight database-dependent checks skipped.                                   |
+| `pnpm --dir frontend test:unit`                                                                                                                                                          | 837 passed in 96 files.                                                                                                       |
+| `pnpm test:tooling`                                                                                                                                                                      | 41 passed.                                                                                                                    |
+| `pnpm lint`                                                                                                                                                                              | Passed boundaries, formatting, backend types, frontend/service-worker types and Svelte diagnostics with zero errors/warnings. |
+| `APP_ORIGIN=http://127.0.0.1:5191 pnpm build`                                                                                                                                            | Passed both builds, built-client boundary check and PWA worker check.                                                         |
+| `pnpm --dir backend db:check`                                                                                                                                                            | Passed migration consistency; no migration was applied.                                                                       |
+| `frontend/node_modules/.bin/prettier --check README.md GLOSSARY.md AGENTS.md CONTRIBUTING.md docs`                                                                                       | Passed.                                                                                                                       |
+| `node --import ./backend/scripts/register-types.mjs --test backend/tests/openapi.test.ts`                                                                                                | Five passed.                                                                                                                  |
+| Local Markdown link and `git diff --check` checks                                                                                                                                        | Passed for the changed documents and complete Slice diff.                                                                     |
+
+A separate in-memory esbuild probe used the existing `backend/scripts/build.mjs` build options with `src/http/openapi.ts` as its entrypoint.
+Importing its emitted bundle through a data URL reproduced the pinned schema SHA-256, demonstrating that no runtime JSON file copy is required.
+The focused HTTP test additionally exercised Discovery, HEAD, OPTIONS and the original 405 body on the production Node bridge over loopback.
+Two independent GPT-6.1-Sol High reviews used separate T3 worktrees at the implementation commit and found no actionable Standards or Spec issues.
+Standards independently compared the extracted artifact against the original builder; Spec independently exercised production credential, UTF-16, fingerprint and integer functions.
+The reviewers did not rerun the full suites; the commands above remain implementation-worktree evidence.
+The orchestrator retains Slice approval and publication; technical checks do not establish maintainer acceptance.
+Initial fixture development exposed a negative-zero expectation mismatch and parser/type errors in the new test file.
+The final vector asserts the decoder's preserved negative zero separately from its JSON wire representation, and all affected focused/type checks passed after correction.
+The formatting command was rerun with the existing frontend configuration after initial invocation/configuration errors.
+During verification, `origin/main` advanced to `bcc99cd7338fe28c46c9f09a091dcb92b455967e`, an unrelated Ruff update confined to `worker/pyproject.toml` and `worker/uv.lock`.
+The accepted contract and this Slice's fixed base remain unchanged.
+
 The first Python API/core package must add its lock/lint/type/tests/negative import checks and CI path selection immediately, through the designated integration writer.
 Automatic CI remains scoped; Android and heavy database/HTTP/SavedState/application runs stay manually triggered.
 No shared CI, root manifest, launcher or lifetime-construction edits are needed by P01.
