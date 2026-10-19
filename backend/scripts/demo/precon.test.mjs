@@ -30,7 +30,10 @@ test('the shipped English precon retains all 100 copies and the duplicate Mossfi
 		precon.cards.every((e) => e.card.lang === 'en' && ['nec', 'neo'].includes(e.card.set_code))
 	);
 	const snapshot = JSON.parse(
-		await readFile(new URL('../../src/lib/showcase/commander-deck.json', import.meta.url), 'utf8')
+		await readFile(
+			new URL('../../../frontend/src/lib/showcase/commander-deck.json', import.meta.url),
+			'utf8'
+		)
 	);
 	assert.equal(snapshot.source, 'Wizards of the Coast');
 	assert.deepEqual(
@@ -42,12 +45,15 @@ test('the shipped English precon retains all 100 copies and the duplicate Mossfi
 		const card = snapshot.cards.find((e) => e.name === name);
 		assert.equal(card.imageWidth, 488);
 		assert.equal(card.imageHeight, 680);
-		await access(new URL('../../static/showcase/' + card.localImage, import.meta.url));
+		await access(new URL('../../../frontend/static/showcase/' + card.localImage, import.meta.url));
 	}
 	assert.ok(
 		!(
 			await readFile(
-				new URL('../../src/lib/components/showcase/LandingCommander.svelte', import.meta.url),
+				new URL(
+					'../../../frontend/src/lib/components/showcase/LandingCommander.svelte',
+					import.meta.url
+				),
 				'utf8'
 			)
 		).includes('Archidekt')

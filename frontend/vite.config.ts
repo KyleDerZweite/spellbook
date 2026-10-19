@@ -8,20 +8,24 @@ import { defineConfig } from 'vitest/config';
 const mockPath = (relativePath: string) => new URL(relativePath, import.meta.url).pathname;
 
 export default defineConfig(({ mode, command }) => ({
-	envDir: '..',
+	envDir: '.',
 	plugins: [
 		tailwindcss(),
 		sveltekit({
 			preprocess: vitePreprocess(),
 			adapter: adapter(),
-			// The first server hook checks form origins and permits native bearer scan uploads.
+			// The web hook checks form origins; the API validates proxied mutations.
 			csrf: { trustedOrigins: ['*'] },
-			env: { dir: '..' },
+			env: { dir: '.' },
 			paths: {
 				origin:
 					command === 'serve'
-						? loadEnv(mode, '..', '').DEV_APP_ORIGIN?.trim() || 'http://localhost:5173'
-						: loadEnv(mode, '..', '').APP_ORIGIN?.trim() || undefined
+						? process.env.DEV_APP_ORIGIN?.trim() ||
+							loadEnv(mode, '.', '').DEV_APP_ORIGIN?.trim() ||
+							'http://localhost:5173'
+						: process.env.APP_ORIGIN?.trim() ||
+							loadEnv(mode, '.', '').APP_ORIGIN?.trim() ||
+							undefined
 			}
 		})
 	],

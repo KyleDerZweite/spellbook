@@ -6,15 +6,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { classifyPaths, selectChecks } from './ci-changes.mjs';
 
-const app = { application: true, worker: false, scan_worker: false };
-const all = { application: true, worker: true, scan_worker: true };
-const none = { application: false, worker: false, scan_worker: false };
+const app = { application: true, worker: false, scan_worker: false, android: false };
+const all = { application: true, worker: true, scan_worker: true, android: true };
+const none = { application: false, worker: false, scan_worker: false, android: false };
 
 test('source changes select their consumers, including SQL and Scan cross-project consumers', () => {
 	for (const path of [
 		'frontend/src/page.svelte',
 		'backend/src/auth.ts',
-		'contracts/src/deck.ts',
 		'scripts/check-client.mjs'
 	])
 		assert.deepEqual(classifyPaths([path]), app);
@@ -34,7 +33,10 @@ test('source changes select their consumers, including SQL and Scan cross-projec
 		...app,
 		worker: true
 	});
-	assert.deepEqual(classifyPaths(['worker/uv.lock', 'scan-worker/tests/test_scan.py']), all);
+	assert.deepEqual(classifyPaths(['worker/uv.lock', 'scan-worker/tests/test_scan.py']), {
+		...all,
+		android: false
+	});
 });
 
 test('shared workflow/toolchain and unknown files select every suite', () => {
@@ -42,11 +44,6 @@ test('shared workflow/toolchain and unknown files select every suite', () => {
 		'.github/workflows/ci.yml',
 		'scripts/ci-changes.mjs',
 		'scripts/ci-changes.test.mjs',
-		'package.json',
-		'pnpm-lock.yaml',
-		'pnpm-workspace.yaml',
-		'frontend/.node-version',
-		'worker/Dockerfile',
 		'.dockerignore',
 		'podman-compose.yml',
 		'new-package/source.ts'
@@ -163,7 +160,47 @@ test('CLI writes literal booleans to GitHub outputs without dependencies', () =>
 		});
 		assert.equal(
 			readFileSync(output, 'utf8'),
-			'application=false\nworker=false\nscan_worker=false\n'
+			'application=false\nworker=false\nscan_worker=false\nandroid=false\n'
 		);
+	});
+});
+
+test('native and application changes avoid unrelated language suites', () => {
+	assert.deepEqual(classifyPaths(['android/app/src/main/MainActivity.kt']), {
+		...none,
+		android: true
+	});
+	assert.deepEqual(classifyPaths(['android/gradle/libs.versions.toml']), {
+		...none,
+		android: true
+	});
+	assert.deepEqual(classifyPaths(['backend/src/http/inventory.ts']), app);
+	assert.deepEqual(classifyPaths(['backend/Dockerfile']), app);
+	assert.deepEqual(classifyPaths(['frontend/Dockerfile']), app);
+	assert.deepEqual(classifyPaths(['worker/Dockerfile']), { ...none, worker: true });
+	assert.deepEqual(classifyPaths(['backend/drizzle/meta/_journal.json']), { ...app, worker: true });
+	assert.deepEqual(classifyPaths(['contracts/src/inventory.ts']), { ...app, android: true });
+});
+
+test('JavaScript manifests do not run unrelated Python or Android suites', () => {
+	for (const path of [
+		'package.json',
+		'pnpm-lock.yaml',
+		'pnpm-workspace.yaml',
+		'frontend/.node-version'
+	])
+		assert.deepEqual(classifyPaths([path]), app, path);
+});
+
+test('main pushes select their actual changed paths as well', () => {
+	repository(({ cwd, write, commit }) => {
+		write('README.md');
+		const base = commit();
+		write('android/app/src/main/MainActivity.kt');
+		const head = commit();
+		assert.deepEqual(selectChecks({ eventName: 'push', base, head, cwd }), {
+			...none,
+			android: true
+		});
 	});
 });

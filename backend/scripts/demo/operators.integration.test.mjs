@@ -10,11 +10,11 @@ import { precon } from './precon.mjs';
 import { legacyInventory } from './replace-inventory.mjs';
 
 const url = process.env.TEST_DATABASE_URL;
-const frontend = new URL('../../', import.meta.url);
+const backend = new URL('../../', import.meta.url);
 function cli(script, args = [], input = '', databaseUrl = url) {
 	return new Promise((resolve, reject) => {
 		const child = spawn(process.execPath, [script, ...args], {
-			cwd: frontend,
+			cwd: backend,
 			env: { ...process.env, DATABASE_URL: databaseUrl },
 			stdio: ['pipe', 'pipe', 'pipe']
 		});

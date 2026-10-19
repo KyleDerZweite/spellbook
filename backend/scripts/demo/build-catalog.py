@@ -60,7 +60,7 @@ def build(source, output, version):
             size += len(encoded)
             payload_hash.update(encoded)
             compressed.write(encoded)
-    legacy = json.loads((ROOT / 'frontend/scripts/demo/cards.json').read_text())
+    legacy = json.loads((ROOT / 'backend/scripts/demo/cards.json').read_text())
     if any(card['id'] not in ids for card in legacy):
         raise ValueError('Bundle does not contain every starter printing')
     digest = payload_hash.hexdigest()
