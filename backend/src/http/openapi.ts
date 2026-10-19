@@ -84,6 +84,22 @@ const requestBody = (schema: Schema, mediaType = 'application/json') => ({
 	required: true,
 	content: content(schema, mediaType)
 });
+const webFormBody = (schema: Schema) => ({
+	required: true,
+	description:
+		'The original form body is bounded and decoded by the API after its authentication attempt is taken.',
+	content: {
+		...content(schema, 'application/x-www-form-urlencoded'),
+		...content(schema, 'multipart/form-data')
+	}
+});
+const webFormOrigin = {
+	name: 'Origin',
+	in: 'header',
+	required: true,
+	description: 'Must match the public APP_ORIGIN, including for bearer-authenticated requests.',
+	schema: { type: 'string', format: 'uri' }
+};
 const pathParameter = (name: string) => ({
 	name,
 	in: 'path',
@@ -1683,6 +1699,19 @@ const SCHEMA = {
 					newPassword: { type: 'string', minLength: 12, maxLength: 128, writeOnly: true }
 				}),
 				additionalProperties: false
+			},
+			WebLoginFormFailure: object({ message: string, username: string }),
+			WebRegisterFormFailure: object({ message: string, username: string, artworkId: string }),
+			WebPasswordFormFailure: object({
+				success: { const: false },
+				message: string,
+				errors: object(
+					{ currentPassword: string, newPassword: string, confirmPassword: string },
+					[]
+				)
+			}),
+			WebPasswordFormSuccess: {
+				allOf: [ref('PasswordSession'), object({ success: { const: true } })]
 			},
 			PasswordSession: object({
 				token: { type: 'string', pattern: '^[A-Za-z0-9_-]{43}$' },
@@ -3540,6 +3569,102 @@ export function openapi(publicOrigin: string) {
 				get: categoryLibraryOperation('Read the owned current immutable definition', {
 					allOf: [ref('LibraryDefinition'), object({ libraryRevision: inventoryRevision })]
 				})
+			},
+			'/api/web/v1/auth/login': {
+				post: {
+					summary: 'Authenticate the original web login form',
+					tags: ['auth'],
+					security: [],
+					parameters: [webFormOrigin],
+					requestBody: webFormBody(
+						object({ username: string, password: { type: 'string', writeOnly: true } })
+					),
+					description:
+						'The API takes the original authentication attempt exactly once before decoding. Web preserves the native or enhanced form result and redirect.',
+					responses: {
+						...authErrors,
+						200: response('Authenticated session', ref('AuthSession')),
+						400: response(
+							'Original safe form failure with the entered username',
+							ref('WebLoginFormFailure')
+						),
+						413: response('Form body exceeds its bound', ref('ErrorResponse')),
+						415: response(
+							'Use application/x-www-form-urlencoded or multipart/form-data',
+							ref('ErrorResponse')
+						)
+					}
+				}
+			},
+			'/api/web/v1/auth/register': {
+				post: {
+					summary: 'Register using the original web form',
+					tags: ['auth'],
+					security: [],
+					parameters: [webFormOrigin],
+					requestBody: webFormBody(
+						object(
+							{
+								username: string,
+								password: { type: 'string', writeOnly: true },
+								artworkId: { enum: PROFILE_ARTWORK_IDS }
+							},
+							['username', 'password']
+						)
+					),
+					description:
+						'The API takes the original authentication attempt exactly once before decoding. Missing optional artwork stays absent. Web preserves the native or enhanced form result and redirect.',
+					responses: {
+						...authErrors,
+						201: response('Registered account and session', ref('AuthSession')),
+						400: response(
+							'Original safe form failure with entered username and artwork',
+							ref('WebRegisterFormFailure')
+						),
+						413: response('Form body exceeds its bound', ref('ErrorResponse')),
+						415: response(
+							'Use application/x-www-form-urlencoded or multipart/form-data',
+							ref('ErrorResponse')
+						)
+					}
+				}
+			},
+			'/api/web/v1/password': {
+				post: {
+					summary: 'Rotate the password using the original web form',
+					tags: ['auth'],
+					security: authenticated,
+					parameters: [webFormOrigin],
+					requestBody: webFormBody(
+						object({
+							currentPassword: { type: 'string', writeOnly: true },
+							newPassword: { type: 'string', writeOnly: true },
+							confirmPassword: { type: 'string', writeOnly: true }
+						})
+					),
+					description:
+						'Authenticates first and rejects Demo before taking an attempt. The API then takes exactly one attempt before bounded form decoding and validates current, new and confirmation fields. Mismatched confirmation never mutates. Replacement cookies are issued only for cookie authentication; web also replaces its request-bound credential.',
+					responses: {
+						...authErrors,
+						200: response(
+							'Password changed with replacement token and expiry',
+							ref('WebPasswordFormSuccess')
+						),
+						400: response(
+							'Original safe password form failure and field errors',
+							ref('WebPasswordFormFailure')
+						),
+						401: errors[401],
+						403: response('Invalid public Origin or password changes disabled in Demo', {
+							oneOf: [ref('ErrorResponse'), ref('WebPasswordFormFailure')]
+						}),
+						413: response('Form body exceeds its bound', ref('ErrorResponse')),
+						415: response(
+							'Use application/x-www-form-urlencoded or multipart/form-data',
+							ref('ErrorResponse')
+						)
+					}
+				}
 			},
 			'/api/web/v1/commands': {
 				post: {

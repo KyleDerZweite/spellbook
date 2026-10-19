@@ -3,14 +3,14 @@ import test from 'node:test';
 import { openapi } from '../src/http/openapi.ts';
 import { PROFILE_ARTWORK_IDS, PROFILE_AVATAR_IDS } from '@spellbook/contracts/profile.ts';
 
-test('the API schema preserves 82 legacy methods and documents the three new methods', () => {
+test('the API schema preserves 82 legacy methods and documents the six new methods', () => {
 	const schema = openapi('https://spellbook.example');
 	const methods = Object.entries(schema.paths)
 		.filter(([path]) => path.startsWith('/api/'))
 		.flatMap(([, path]) =>
 			Object.keys(path).filter((key) => ['get', 'post', 'patch', 'put', 'delete'].includes(key))
 		);
-	assert.equal(methods.length, 85);
+	assert.equal(methods.length, 88);
 	assert.deepEqual(schema.servers, [{ url: 'https://spellbook.example' }]);
 	assert.deepEqual(schema.paths['/api/catalog/search'].get.security, []);
 	assert.deepEqual(schema.paths['/api/catalog/search'].post.security, []);
@@ -74,4 +74,38 @@ test('all schema references resolve and profile IDs come from pure contracts', (
 	assert.ok('avatarId' in properties && 'artworkId' in properties);
 	assert.deepEqual(properties.avatarId, { enum: PROFILE_AVATAR_IDS });
 	assert.deepEqual(properties.artworkId, { enum: PROFILE_ARTWORK_IDS });
+});
+
+test('three fixed web form routes preserve form media types, Origin and safe response schemas', () => {
+	const schema = openapi('https://spellbook.example');
+	for (const path of [
+		'/api/web/v1/auth/login',
+		'/api/web/v1/auth/register',
+		'/api/web/v1/password'
+	] as const) {
+		const operation = schema.paths[path].post;
+		assert.deepEqual(Object.keys(operation.requestBody.content).sort(), [
+			'application/x-www-form-urlencoded',
+			'multipart/form-data'
+		]);
+		assert.equal(operation.parameters[0].name, 'Origin');
+		assert.equal(operation.parameters[0].required, true);
+		assert.ok(operation.responses[400]);
+		assert.ok(operation.responses[413]);
+		assert.ok(operation.responses[415]);
+	}
+	assert.deepEqual(schema.components.schemas.WebLoginFormFailure.required, ['message', 'username']);
+	assert.deepEqual(schema.components.schemas.WebRegisterFormFailure.required, [
+		'message',
+		'username',
+		'artworkId'
+	]);
+	assert.deepEqual(schema.components.schemas.WebPasswordFormSuccess.allOf, [
+		{ $ref: '#/components/schemas/PasswordSession' },
+		{ type: 'object', properties: { success: { const: true } }, required: ['success'] }
+	]);
+	const methods = Object.values(schema.paths).flatMap((path) =>
+		Object.keys(path).filter((method) => ['get', 'post', 'patch', 'put', 'delete'].includes(method))
+	);
+	assert.equal(methods.length, 95);
 });
