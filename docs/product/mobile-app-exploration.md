@@ -3,8 +3,8 @@
 - Status: Connected Android prototype prepared; maintainer visual acceptance and native implementation pending
 - Last Reviewed: 2026-10-19
 - Source of Truth: maintainer's selected Android structure and Figma-first sequence, inspected first-party app images and versioned mobile source, linked Figma files and shared API contracts
-- Update Triggers: prototype journey review, app navigation or typography, Cardstation/capture contracts, framework selection, API parity, native session lifecycle and cache policy
-- Related Docs: [UI direction](./ui-design-direction.md), [Routes](./routing-and-games.md), [Mobile and Scan](../architecture/mobile-and-scan.md), [Auth](../architecture/auth.md), [Client evaluation](../integrations/scanner-platform-evaluation.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Product index](./README.md)
+- Update Triggers: prototype journey review, colored app navigation and compact Inventory actions, eight-box Cardstation and proposed Filter-Box/physical links, Cardstation/capture contracts, framework selection, API parity, native session lifecycle and cache policy
+- Related Docs: [UI direction](./ui-design-direction.md), [Routes](./routing-and-games.md), [Mobile and Scan](../architecture/mobile-and-scan.md), [Auth](../architecture/auth.md), [Cardstation proposal](../integrations/card-robot.md), [Client evaluation](../integrations/scanner-platform-evaluation.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Product index](./README.md)
 
 The maintainer selected a separate Android application against the shared backend. On 2026-10-19, the maintainer requested a complete clickable Figma prototype before native implementation in a separate application directory. The earlier mobile scaffold and isolated T3 comparisons did not establish the required overall experience. This handoff owns the replacement app structure. Framework selection remains open.
 
@@ -17,7 +17,7 @@ The maintainer selected a separate Android application against the shared backen
 
 The [Android prototype](https://www.figma.com/proto/aKZ8f01JvXu68PAOIeevbw/Spellbook?page-id=61%3A178&node-id=63-128&starting-point-node-id=63%3A128&scaling=scale-down&content-scaling=fixed) starts at guest Home. For the contextual Auth journey, find Sol Ring, choose a Printing and prepare an Inventory Add. Login or Registration returns to the unsaved draft; Save remains explicit.
 
-![Initialized Android Home, Search, Inventory and Cardstation review previews exported from Figma.](./assets/mobile-app-exploration.png)
+![Initialized Android Home, Inventory, circular Cardstation and Filter-Box review previews exported from Figma.](./assets/mobile-app-exploration.png)
 
 These are initialized static review previews. The linked prototype contains the connected frames and state bindings. Cardstation and capture use demo data.
 
@@ -26,6 +26,8 @@ These are initialized static review previews. The linked prototype contains the 
 Home, Search, Inventory and Decks are the four main destinations. Root views use compact toolbars and a directly reachable Settings gear. Search puts its field in the toolbar. Large Spellbook wordmarks, filled avatar buttons and website chrome do not belong in this app. Details have Back, an object title and contextual actions. Focused tasks have explicit finish/cancel controls and omit the tab bar. Settings returns to its originating context.
 
 Home shows compact collection data, recent objects and a Cardstation entry. Settings contains account actions, appearance, QR authorization, Cardstation and About. The mobile design uses Android system typography, restrained neutral surfaces, consistent controls and card artwork within card content. This supersedes the earlier mobile font/avatar treatment. Website fonts and layout remain their own accepted design.
+
+The four tab icons reuse the website's geometry and distinct Home, Search, Inventory and Deck colors in both themes. Inventory has compact Camera, Plus and Settings actions with 48dp targets. Plus opens the existing Add flow; phone capture belongs in Inventory and returns there. Home has no capture shortcut or large Add-cards action.
 
 ## Connected journeys
 
@@ -42,7 +44,9 @@ Meaningful loading, empty, failed-read and unconfirmed-save examples preserve in
 
 ## Cardstation boundary
 
-Home and Settings open the same Cardstation area. Device registry, connection/activity status, jobs and result data are design proposals. A schematic can show Input, Scan, six output trays and Eject as the ordinary seventh output. Processing, stale data and review states must not imply new Inventory ownership. No motor Start/Stop controls are selected.
+Home and Settings open the same Cardstation area. The selected circular view has eight tappable box positions around a central input stack. It shows device name/ID, connection/activity, observation time and each recognized box's coarse Filter and availability. Details distinguish last reported device configuration from a draft. Stale or failed observations remain explicit. Device registry, jobs and result data are proposals; processing never implies new Inventory ownership. No motor Start/Stop controls are selected. Eject's location and routing in this new geometry remain open.
+
+The existing manual Inventory Box flow remains. Separate Filter-Box examples explore card-colour or selected-Deck matching, preview/confirm/cancel, and an optional physical-box ID link. Logical Box ID, physical container ID and device position stay distinct; a Box may remain virtual. Overlapping matches do not add owned copies. Matching Inventory does not prove physical content, and a new filter does not silently activate on the device. [The Cardstation proposal](../integrations/card-robot.md#current-app-geometry-and-box-proposal) owns this extension and its unresolved matching, allocation and activation policies. No automatic grouping service or new API is implemented.
 
 The existing QR contract authorizes an ordinary account session. Success says Anmeldung freigegeben. It does not enroll a device or implement monitoring/synchronization. Sample data and missing integration contracts are annotated outside phone screens. Local recognition and Jetson-owned execution follow [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md). The website's paused Scan presentation does not prohibit this commissioned Android design simulation.
 
