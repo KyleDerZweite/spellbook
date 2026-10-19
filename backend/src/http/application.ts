@@ -16,7 +16,7 @@ import type { HttpApplication, HttpDependencies } from './types.ts';
 
 export function createHttpApplication(
 	application: Application,
-	configuration: { publicOrigin: string }
+	configuration: { publicOrigin: string; demoMode?: boolean }
 ): HttpApplication {
 	const url = new URL(configuration.publicOrigin);
 	if (
@@ -26,7 +26,11 @@ export function createHttpApplication(
 		url.origin !== configuration.publicOrigin
 	)
 		throw new Error('APP_ORIGIN must be an absolute HTTP(S) origin without a path');
-	const dependencies: HttpDependencies = { application, publicOrigin: url.origin };
+	const dependencies: HttpDependencies = {
+		application,
+		publicOrigin: url.origin,
+		demoMode: configuration.demoMode ?? false
+	};
 	const savedStateRoutes = createSavedStateRoutes(dependencies);
 	return {
 		handle: createRouter(

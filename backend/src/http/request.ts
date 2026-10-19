@@ -83,7 +83,7 @@ export async function readFormData(
 		)
 	)
 		error(415, 'Use application/x-www-form-urlencoded or multipart/form-data');
-	const bytes = await readRequestBytes(request, maxBytes);
+	const bytes = request.body ? await readRequestBytes(request, maxBytes) : new Uint8Array();
 	try {
 		return await new Response(bytes, { headers: { 'Content-Type': contentType } }).formData();
 	} catch {

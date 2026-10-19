@@ -30,6 +30,7 @@ import {
 import { ProfileError } from '../src/profile/profile.ts';
 import { SummaryRangeError } from '../src/profile/summary-number.ts';
 import type { SavedStateSubscription } from '@spellbook/contracts/saved-state.ts';
+import type { Authenticated, AuthSession } from '@spellbook/contracts/auth.ts';
 
 const origin = 'https://spellbook.example';
 const token = 'a'.repeat(43);
@@ -56,14 +57,16 @@ function fixture() {
 		takeAuthAttempt(value: string) {
 			seen.push({ address: value });
 		},
-		async authenticate() {
+		async authenticate(...args: unknown[]): Promise<Authenticated | null> {
+			seen.push({ authenticate: args });
 			return { user, session: { token, expiresAt } };
 		},
 		async revokeSession(value: string) {
 			seen.push({ revoke: value });
 		},
-		async changePassword(actor: unknown) {
+		async changePassword(actor: unknown): Promise<AuthSession | null> {
 			assert.equal(actor, user);
+			seen.push('changePassword');
 			return { token: replacement, expiresAt };
 		},
 		qr: {
@@ -135,6 +138,164 @@ const metadata = { clientAddress: '198.51.100.25' };
 const bearer = { Authorization: `Bearer ${token}` };
 const cookie = { Cookie: `spellbook_session=${token}` };
 
+function formRequest(
+	path: string,
+	body: BodyInit = new URLSearchParams(),
+	headers: Record<string, string> = {}
+) {
+	return new Request(`http://internal-api:3001${path}`, {
+		method: 'POST',
+		headers: { Origin: origin, ...headers },
+		body
+	});
+}
+
+test('explicit auth forms decode original fields and take exactly one attempt before malformed-body validation', async () => {
+	const { http, auth, seen } = fixture();
+	let response = await http.handle(
+		formRequest(
+			'/api/web/v1/auth/login',
+			new URLSearchParams({ username: 'reader', password: 'password' })
+		),
+		metadata
+	);
+	assert.equal(response.status, 200);
+	assert.deepEqual(await response.json(), { user, token, expiresAt });
+	assert.equal(response.headers.getSetCookie().length, 0);
+	assert.equal(
+		seen.filter((item) => item && typeof item === 'object' && 'address' in item).length,
+		1
+	);
+	const multipart = new FormData();
+	multipart.set('username', 'reader');
+	multipart.set('password', 'password');
+	multipart.set('artworkId', 'grove');
+	response = await http.handle(formRequest('/api/web/v1/auth/register', multipart), metadata);
+	assert.equal(response.status, 200);
+	assert.ok(
+		seen.some(
+			(item) =>
+				item &&
+				typeof item === 'object' &&
+				'authenticate' in item &&
+				JSON.stringify(item.authenticate) ===
+					JSON.stringify(['register', 'reader', 'password', { artworkId: 'grove' }])
+		)
+	);
+	auth.authenticate = async () => null;
+	response = await http.handle(
+		formRequest('/api/web/v1/auth/register', new URLSearchParams({ username: 'draft' })),
+		metadata
+	);
+	assert.deepEqual(await response.json(), {
+		message: 'Unable to create an account with those details.',
+		username: 'draft',
+		artworkId: ''
+	});
+	response = await http.handle(
+		formRequest('/api/web/v1/auth/login', 'bad multipart', {
+			'Content-Type': 'multipart/form-data'
+		}),
+		metadata
+	);
+	assert.equal(response.status, 400);
+	assert.equal((await response.json()).message, 'Invalid form body');
+	assert.equal(response.headers.get('cache-control'), 'no-store');
+	assert.equal(
+		seen.filter((item) => item && typeof item === 'object' && 'address' in item).length,
+		4
+	);
+	response = await http.handle(
+		request('/api/web/v1/auth/login', 'POST', { Origin: origin }, {}),
+		metadata
+	);
+	assert.equal(response.status, 415);
+	assert.equal(
+		seen.filter((item) => item && typeof item === 'object' && 'address' in item).length,
+		5
+	);
+});
+
+test('password form preserves field DTOs, refuses confirmation mismatch before derivation and excludes Demo attempts', async () => {
+	const { http, application, seen, auth } = fixture();
+	let response = await http.handle(
+		formRequest(
+			'/api/web/v1/password',
+			new URLSearchParams({
+				currentPassword: 'current',
+				newPassword: 'valid-new-password',
+				confirmPassword: 'mismatch'
+			}),
+			cookie
+		),
+		metadata
+	);
+	assert.equal(response.status, 400);
+	assert.deepEqual(await response.json(), {
+		success: false,
+		message: 'Check the password fields and try again.',
+		errors: { confirmPassword: 'The new passwords must match.' }
+	});
+	assert.equal(seen.includes('changePassword'), false);
+	assert.equal(
+		seen.filter((item) => item && typeof item === 'object' && 'address' in item).length,
+		1
+	);
+	response = await http.handle(
+		formRequest(
+			'/api/web/v1/password',
+			new URLSearchParams({
+				currentPassword: 'current',
+				newPassword: 'valid-new-password',
+				confirmPassword: 'valid-new-password'
+			}),
+			cookie
+		),
+		metadata
+	);
+	assert.equal(response.status, 200);
+	assert.deepEqual(await response.json(), { success: true, token: replacement, expiresAt });
+	assert.match(response.headers.getSetCookie()[0], /^spellbook_session=/);
+	auth.changePassword = async () => null;
+	response = await http.handle(
+		formRequest(
+			'/api/web/v1/password',
+			new URLSearchParams({
+				currentPassword: 'wrong',
+				newPassword: 'valid-new-password',
+				confirmPassword: 'valid-new-password'
+			}),
+			bearer
+		),
+		metadata
+	);
+	assert.deepEqual(await response.json(), {
+		success: false,
+		message: 'Your current password could not be verified.',
+		errors: { currentPassword: 'Enter your current password and try again.' }
+	});
+	const demo = createHttpApplication(application, { publicOrigin: origin, demoMode: true });
+	const before = seen.length;
+	response = await demo.handle(
+		formRequest('/api/web/v1/password', 'malformed', {
+			...cookie,
+			'Content-Type': 'multipart/form-data'
+		}),
+		metadata
+	);
+	assert.equal(response.status, 403);
+	assert.deepEqual(await response.json(), {
+		success: false,
+		message: 'Password changes are disabled in demo mode.',
+		errors: {}
+	});
+	assert.equal(
+		seen.slice(before).filter((item) => item && typeof item === 'object' && 'address' in item)
+			.length,
+		0
+	);
+});
+
 test('shared parsers preserve validation and bounded JSON behavior', async () => {
 	assert.equal(readString(undefined, 'name', 'default'), 'default');
 	assert.equal(readNumber(undefined, 'quantity', 1), 1);
@@ -196,10 +357,10 @@ test('safe error codec retains text revisions and null quantity without exposing
 	);
 });
 
-test('registry retains all 13 methods in this slice and public-origin validation is strict', () => {
+test('registry retains all 16 methods in this slice and public-origin validation is strict', () => {
 	const { dependencies, application } = fixture();
-	assert.equal(createAuthRoutes(dependencies).length, 7);
-	assert.equal(createAccountRoutes(dependencies).length, 5);
+	assert.equal(createAuthRoutes(dependencies).length, 9);
+	assert.equal(createAccountRoutes(dependencies).length, 6);
 	assert.equal(createSavedStateRoutes(dependencies).length, 1);
 	for (const publicOrigin of [
 		'https://example.com/',
@@ -255,7 +416,7 @@ test('auth routes preserve statuses, native form guard, address limiting and ses
 		metadata
 	);
 	assert.equal(response.status, 403);
-	auth.authenticate = async () => null as never;
+	auth.authenticate = async () => null;
 	response = await http.handle(request('/api/auth/login', 'POST', {}, {}), metadata);
 	assert.equal(response.status, 401);
 	assert.equal(response.headers.get('cache-control'), 'no-store');

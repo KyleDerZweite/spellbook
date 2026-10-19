@@ -15,11 +15,46 @@ import {
 	writeSessionCookie
 } from '../cookies.ts';
 import { error, json } from '../errors.ts';
-import { readJsonObject } from '../request.ts';
+import { readFormData, readJsonObject } from '../request.ts';
 import type { HttpDependencies, HttpRoute, RouteContext } from '../types.ts';
 
 export function createAuthRoutes(dependencies: HttpDependencies): HttpRoute[] {
 	const { application, publicOrigin } = dependencies;
+	async function authenticateForm(context: RouteContext, mode: 'login' | 'register') {
+		requireSameOrigin(context, dependencies);
+		try {
+			application.auth.takeAuthAttempt(context.clientAddress);
+			const data = await readFormData(context.request);
+			const username = data.get('username');
+			const artworkId = data.get('artworkId');
+			const preferences = data.has('artworkId') ? { artworkId } : {};
+			const authenticated = await application.auth.authenticate(
+				mode,
+				username,
+				data.get('password'),
+				preferences
+			);
+			if (!authenticated)
+				return json(
+					{
+						message:
+							mode === 'login'
+								? 'Invalid username or password.'
+								: 'Unable to create an account with those details.',
+						username: typeof username === 'string' ? username : '',
+						...(mode === 'register'
+							? { artworkId: typeof artworkId === 'string' ? artworkId : '' }
+							: {})
+					},
+					{ status: 400 }
+				);
+			const { user, session } = authenticated;
+			return json({ user, token: session.token, expiresAt: session.expiresAt });
+		} catch (cause) {
+			if (cause instanceof AuthError) error(429, cause.message);
+			throw cause;
+		}
+	}
 	async function authenticate(context: RouteContext, mode: 'login' | 'register') {
 		requireSameOrigin(context, dependencies, true);
 		try {
@@ -151,6 +186,16 @@ export function createAuthRoutes(dependencies: HttpDependencies): HttpRoute[] {
 		}
 	}
 	return [
+		{
+			method: 'POST',
+			path: '/api/web/v1/auth/login',
+			handle: (context) => authenticateForm(context, 'login')
+		},
+		{
+			method: 'POST',
+			path: '/api/web/v1/auth/register',
+			handle: (context) => authenticateForm(context, 'register')
+		},
 		{
 			method: 'POST',
 			path: '/api/auth/login',

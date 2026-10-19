@@ -47,11 +47,17 @@ export async function startApi(env: NodeJS.ProcessEnv = process.env) {
 			}
 		})());
 	try {
-		http = createNodeHttpServer(createHttpApplication(lifetime.application, { publicOrigin }), {
-			publicOrigin,
-			trustedProxyAddresses,
-			maxBodyBytes
-		});
+		http = createNodeHttpServer(
+			createHttpApplication(lifetime.application, {
+				publicOrigin,
+				demoMode: env.DEMO_MODE === 'true'
+			}),
+			{
+				publicOrigin,
+				trustedProxyAddresses,
+				maxBodyBytes
+			}
+		);
 		const address = await http.listen(Number(rawPort), host);
 		lifetime.start();
 		console.log(
