@@ -26,6 +26,11 @@ from spellbook_api.http.types import Configuration
         "https://EXAMPLE.com",
         "https://example.com:443",
         "http://bad host",
+        "http://bad|host",
+        "http://bad<host",
+        "http://bad>host",
+        "http://bad^host",
+        "http://bad\\host",
     ],
 )
 def test_invalid_origin_is_rejected_before_start(origin: str) -> None:

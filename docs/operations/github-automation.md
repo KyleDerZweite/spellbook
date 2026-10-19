@@ -373,7 +373,8 @@ The three substantive jobs depend on successful classification and can run in pa
 
 Migration consistency runs in Application Checks using the existing frozen workspace install.
 Root `test:tooling` includes launcher and packaging tests, so CI does not invoke those suites separately.
-Python projects share one job/toolchain setup, retaining separate project environments; its PostgreSQL service starts only when Catalog worker tests are selected.
+The two worker projects share their existing job/toolchain setup, retaining separate project environments; its PostgreSQL service starts only when Catalog worker tests are selected.
+That worker job also runs the Python import checker and negative fixtures with the pinned interpreter, so worker-only edits cannot bypass dependency rules or require unrelated API tests.
 The scope job has a five-minute timeout; Application Checks, Python API/Core and Python Workers each have fifteen minutes.
 
 [Application Integration](../../.github/workflows/application-integration.yml) and [Android Build](../../.github/workflows/android.yml) are separate workflows triggered only by `workflow_dispatch`.

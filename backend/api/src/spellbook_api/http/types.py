@@ -41,7 +41,7 @@ class Configuration:
         if (
             self.public_origin != f"{origin.scheme}://{authority}"
             or any(ord(character) <= 32 or ord(character) == 127 for character in hostname)
-            or "%" in hostname
+            or any(character in hostname for character in "\\<>^|%")
         ):
             raise ValueError("APP_ORIGIN must be a canonical HTTP(S) origin")
         if not ipaddress.ip_address(self.host).is_loopback:

@@ -357,6 +357,23 @@ test('a later Python-only edit selects API/core after their first addition', () 
 	});
 });
 
+test('worker-only edits enforce Python boundaries in the existing worker job', () => {
+	const source = workflow('ci.yml').split('  worker-tests:\n')[1];
+	for (const path of ['worker/src/worker/main.py', 'scan-worker/src/scan_worker/main.py']) {
+		const selected = classifyPaths([path]);
+		assert.ok(selected.worker || selected.scan_worker);
+		assert.equal(selected.python_backend, false);
+	}
+	assert.match(
+		source,
+		/uv run --no-project --python 3\.14\.8 python scripts\/check_python_boundaries.py/
+	);
+	assert.match(
+		source,
+		/uv run --no-project --python 3\.14\.8 python -m unittest discover -s scripts -p test_python_boundaries.py/
+	);
+});
+
 test('main pushes select their actual changed paths as well', () => {
 	repository(({ cwd, write, commit }) => {
 		write('README.md');
