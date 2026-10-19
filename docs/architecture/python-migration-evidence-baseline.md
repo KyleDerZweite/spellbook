@@ -2,8 +2,8 @@
 
 - Status: Canonical P01 baseline; candidate limits await independent slice review
 - Last Reviewed: 2026-10-20
-- Source of Truth: b835eee Node code, executable neutral fixtures, issue 247 and maintainer implementation brief
-- Update Triggers: route/command/runner ownership, compatibility cases or transfer, measured baseline, experiment limits, independent review, candidate evidence
+- Source of Truth: b835eee Node code, executable neutral fixtures, selected PostgreSQL 18 Node verification, issue 247 and maintainer implementation brief
+- Update Triggers: PostgreSQL baseline verification, route/command/runner ownership, compatibility cases or transfer, measured baseline, experiment limits, independent review, candidate evidence
 - Related Docs: [Migration contract](./python-backend-migration.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [Contracts](../../contracts/README.md), [Independent applications](./independent-applications.md), [Auth](./auth.md), [Postgres](./postgres.md), [Verification](../operations/github-automation.md), [Deployment](../operations/deployment.md), [Issue 247](https://github.com/KyleDerZweite/spellbook/issues/247)
 
 ## Scope and authorization
@@ -253,6 +253,59 @@ No shared CI, root manifest, launcher or lifetime-construction edits are needed 
 
 The P01 handoff records exact commands/results, tested base/head and clean working state with the commit.
 Transient development failures are retained in the handoff, with their fixes and final checks.
-Real PostgreSQL receipt/transaction/race evidence, dual-runtime HTTP, candidate measurements, full Catalog/scale, actual Scan/S3/provider paths, rendered clients, physical Android/Keystore, deployed proxy and scheduled observations remain unexecuted by this Slice.
+The selected Node/PostgreSQL checks below establish additional receipt/transaction/race evidence.
+Complete candidate PostgreSQL acceptance, dual-runtime HTTP, candidate measurements, full Catalog/scale, actual Scan/S3/provider paths, rendered clients, physical Android/Keystore, deployed proxy and scheduled observations remain unexecuted by this Slice.
 Their implementing Slice owners collect them; P17 owns integrated acceptance and rollback evidence, and Kyle owns target acceptance and separately authorized production release.
 No P01 pass should be recorded as any of those target passes.
+
+## PostgreSQL follow-up
+
+The maintainer supplied the disposable PostgreSQL runtime `pg18-0e56d611` after the original P01 handoff.
+This follow-up tested unchanged source at `bc9ebc2d69fbead0a0ad660f9b9e5d150e2b276f` using Node 26.10.0 and pnpm 12.8.1.
+It changes only this evidence document; the numeric choices and their pending independent acceptance remain unchanged.
+No Python package, P02 implementation or performance measurement was added.
+
+Runtime owner `python-migration-verification-b16b9390` retains the disposable PostgreSQL container on loopback port 56560, with 2 CPUs, 2 GiB RAM and 64 cluster connections.
+The P01 task claimed `api_node` exclusively as `spellbook-p01-8e1477c5`, within its 12-connection role budget.
+It used only the runtime's ignored mode-0600 `env/api_node.env`, with matching `DATABASE_URL` and `TEST_DATABASE_URL`.
+The protected root environment was not used.
+`sb_py_0e56d611_baseline` remained the read-only reference; all application writes used `sb_py_0e56d611_api_node`.
+
+A read-only transaction confirmed PostgreSQL 18.6, all 25 unchanged native Drizzle ledger entries and 17 enabled application triggers on the reference.
+The leased Node database had the same ledger before testing.
+No migrations ran during this follow-up.
+The retained ledger JSON digest is `bb6e5f8e8280cc810b4a640279ee388f3a47a4d1b35e647d8111b7a49648a18f`.
+This digest covers the ordered `hash, created_at::text` query result, not a SQL-file or pg_dump hash.
+
+The serial native checks used the existing real public Sol Ring printings from `backend/scripts/demo/cards.json`.
+That tracked file has SHA-256 `af9334071e99a93a7ac5265cd2d2919c8e09774dcdcfb7a639772e9adbf67849`.
+The command set `TEST_HTTP_DOMAIN_DISPOSABLE_DB=sb_py_0e56d611_api_node` and `TEST_HTTP_DOMAIN_CATALOG_PATH` to that tracked file's absolute path.
+No concurrent publisher or scheduler ran.
+
+```sh
+node --import ./backend/scripts/register-types.mjs --test --test-concurrency=1 backend/tests/http-core.integration.test.ts backend/tests/decks-categories-http.integration.test.ts
+pnpm --dir frontend exec vitest run --project integration tests/integration/inventory-contracts.integration.test.ts tests/integration/deck-builder.integration.test.ts tests/integration/qr-auth.integration.test.ts tests/integration/local-auth.test.ts
+```
+
+The native command passed 11 checks with zero failures or skips.
+It exercised original web-command receipts/conflicts, request source/floor semantics, actual TCP Auth/Account routes, original raw forms, password rotation, QR one-use redemption and PostgreSQL invalidation/revocation through two application listeners.
+Those listener instances ran in one test process; this does not establish the separate built two-process SSE/slow-reader suite.
+The frontend integration command passed 50 tests in four files with zero failures or skips.
+It exercised Inventory original/legacy receipts, replay after deletion/recreation, stale Notes and concurrent mutations, Deck legacy fingerprint/retry semantics, persisted credentials/sessions and QR locking/revocation races.
+These direct TypeScript application/web-adapter tests remain Node evidence and do not establish Python or rendered-client coverage.
+The earlier full backend run's eight skips remain a historical result; this targeted follow-up does not claim that every skipped operator/Scan/built-host suite ran.
+
+Cleanup verified zero fixture profiles, sessions, QR authorizations and Deck receipts.
+The existing Deck fixture leaves its two Inventory receipt rows after deleting their profiles, and the public fixture helper retains its Catalog generation.
+Under the exclusive lease, cleanup verified those receipt timestamps against the claim, deleted only those two owned rows, restored the recorded Catalog state and removed the one owned generation with its two tracked printings.
+A read-only snapshot then compared all 58 public tables and the migration ledger against the untouched reference.
+Both matched exactly.
+The snapshot's deterministic per-table JSON-row digest is `6f04debc066cc01fcd645eb88f4e0419a10a00759b5eea4b073d1698d21a88be`; it is distinct from the provisioner's pg_dump digest.
+The lease helper confirmed no database sessions remained, successfully released `api_node` and reported no active leases.
+PostgreSQL remains available to the orchestrator.
+
+Ignored evidence remains in `.local/python-migration-p01/runtime/` in the P01 worktree.
+`node-http.log` and `application-integration.log` contain results; `before.json`, `reference.json`, `pre-cleanup.json`, `cleanup.json`, `baseline-data.json` and `after-data.json` contain sanitized provenance and cleanup evidence.
+`snapshot.mjs` retains the minimal read-only snapshot procedure, and `release.json` records successful release.
+The runtime lease record and credential files remain private; no credential value is checked in or included in this report.
+The original Standards/Spec reviews still cover the unchanged implementation; root's independent numeric/spec review and Slice integration remain pending.
