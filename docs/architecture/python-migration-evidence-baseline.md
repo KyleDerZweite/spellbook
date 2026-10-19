@@ -1,9 +1,9 @@
 # Python migration evidence baseline
 
-- Status: Canonical P01 baseline; candidate limits await independent slice review
+- Status: Canonical P01 baseline; predeclared candidate rejection gates accepted, candidate measurements pending
 - Last Reviewed: 2026-10-20
-- Source of Truth: b835eee Node code, executable neutral fixtures, selected PostgreSQL 18 Node verification, issue 247 and maintainer implementation brief
-- Update Triggers: PostgreSQL baseline verification, route/command/runner ownership, compatibility cases or transfer, measured baseline, experiment limits, independent review, candidate evidence
+- Source of Truth: b835eee Node code, executable neutral fixtures, selected PostgreSQL 18 Node verification, accepted independent numeric/spec review, issue 247 and maintainer implementation brief
+- Update Triggers: numeric-gate acceptance and current-main integration, PostgreSQL baseline verification, route/command/runner ownership, compatibility cases or transfer, measured baseline, experiment limits, independent review, candidate evidence
 - Related Docs: [Migration contract](./python-backend-migration.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [Contracts](../../contracts/README.md), [Independent applications](./independent-applications.md), [Auth](./auth.md), [Postgres](./postgres.md), [Verification](../operations/github-automation.md), [Deployment](../operations/deployment.md), [Issue 247](https://github.com/KyleDerZweite/spellbook/issues/247)
 
 ## Scope and authorization
@@ -17,9 +17,10 @@ The maintainer's 2026-10-20 implementation brief authorizes completing migration
 The complete final integration branch remains unmerged, and production deployment is excluded.
 This later authorization supersedes the earlier issue text's separate experiment-authorization prerequisite for this work.
 No additional permission question is required for that authorized disposable experiment.
-The numeric limits below are explicit engineering choices for independent review, not measurements or a claim that the maintainer individually selected each value.
-P02 starts only after this Slice's independent review accepts those choices and its prerequisites integrate.
-The orchestrator records that review and acceptance with the Slice PR; this document does not fabricate an approval.
+The numeric limits below are predeclared engineering rejection gates accepted after independent review, not measurements or a claim that the maintainer individually selected each value.
+Root accepted the engineering review on 2026-10-20 and authorized recording its conclusion.
+P02 still requires verified P01 integration and its other prerequisites; candidate measurements are not a prerequisite for releasing this baseline.
+The orchestrator will link the full numeric review result in the Slice PR.
 
 The accepted migration contract and ADR-0026 remain owned by the separate contract writer.
 This baseline changes no application ownership, SQL, historical migration, stored data, client contract or active process.
@@ -212,6 +213,30 @@ Do not silently relax a threshold after seeing results.
 Baseline measurement, independent numeric-gate acceptance and candidate acceptance are separate evidence.
 Worker relocation retains the existing publisher-specific download/parse/publication/import budgets; P13 records those exact defaults and total process/storage budgets without borrowing the API's 64 MiB temporary-space allowance.
 
+## Numeric review and integration record
+
+Independent task `spellbook-p01-numeric-acceptance-review-r1` reviewed `bc9ebc2d69fbead0a0ad660f9b9e5d150e2b276f` against `b835eee87ff0e92e99df18ab384602e48183a88d`.
+Its verdict accepted the numeric choices as predeclared rejection gates, with no actionable Standards/Spec findings or missing P01 scope.
+Independent Node probes passed schema hash/deep equality, both credential vectors and wrong-password rejection, four UTF-16 cases, eight fingerprint cases, four integer cases and diff checking.
+The reviewer did not rerun dependency-backed suites and claimed no measurements or Python parity.
+Root accepted this engineering review and authorized P01 release after verified integration.
+The reviewed numeric choices and experiment protocol remain byte-for-byte unchanged from `bc9ebc2`.
+
+The isolated P01 branch locally merged `origin/main` at `488333e6c6b65919e017743192875ca15c59d5e2` through merge commit `ba808ec`.
+This includes PR 268's accepted execution clarification, Prettier 3.9.10 and both worker Ruff updates.
+The Architecture index conflict retained the complete upstream execution/operational-separation text and the P01 evidence link.
+The migration contract, ADR-0026 and Decisions index match that upstream commit exactly.
+The complete final Python integration artifact remains unmerged, production operations remain separate and root appoints the shared-file writer before API/worker parallelism.
+No runtime owner or Python implementation was added by this integration.
+
+Post-merge verification used Node 26.10.0, pnpm 12.8.1 and the newly installed Prettier 3.9.10 from the unchanged upstream lockfile.
+The frozen install, `pnpm --dir backend check`, the same four-file focused Vitest command recorded below and the native OpenAPI command all passed.
+The focused result remains 86 passes; native OpenAPI remains five passes, with no failures or skips.
+Prettier checks passed for Contracts, the OpenAPI adapter, all targeted compatibility tests and the complete repository Markdown scope.
+Local documentation links, the full Slice diff check, upstream-contract byte equality and unchanged protocol/numeric-section checks also passed.
+The runtime adapter, Contracts and compatibility tests are unchanged from the reviewed implementation, so earlier build and PostgreSQL evidence remains identified by its original tested revision rather than claimed as rerun here.
+The only integration conflict was the Architecture index, resolved as described above.
+
 ## P01 verification and remaining evidence
 
 The focused Node/schema checks exercise the unchanged structural artifact, actual registry and sanitized compatibility cases.
@@ -262,7 +287,8 @@ No P01 pass should be recorded as any of those target passes.
 
 The maintainer supplied the disposable PostgreSQL runtime `pg18-0e56d611` after the original P01 handoff.
 This follow-up tested unchanged source at `bc9ebc2d69fbead0a0ad660f9b9e5d150e2b276f` using Node 26.10.0 and pnpm 12.8.1.
-It changes only this evidence document; the numeric choices and their pending independent acceptance remain unchanged.
+That follow-up changed only this evidence document and left the numeric choices unchanged.
+Their subsequent acceptance is recorded above.
 No Python package, P02 implementation or performance measurement was added.
 
 Runtime owner `python-migration-verification-b16b9390` retains the disposable PostgreSQL container on loopback port 56560, with 2 CPUs, 2 GiB RAM and 64 cluster connections.
@@ -308,4 +334,5 @@ Ignored evidence remains in `.local/python-migration-p01/runtime/` in the P01 wo
 `node-http.log` and `application-integration.log` contain results; `before.json`, `reference.json`, `pre-cleanup.json`, `cleanup.json`, `baseline-data.json` and `after-data.json` contain sanitized provenance and cleanup evidence.
 `snapshot.mjs` retains the minimal read-only snapshot procedure, and `release.json` records successful release.
 The runtime lease record and credential files remain private; no credential value is checked in or included in this report.
-The original Standards/Spec reviews still cover the unchanged implementation; root's independent numeric/spec review and Slice integration remain pending.
+The original Standards/Spec reviews still cover the unchanged implementation, and root has accepted the independent numeric/spec review.
+P01 Slice integration remains pending; candidate measurements and Python parity remain future evidence.
