@@ -3,6 +3,7 @@
 import json
 import math
 import re
+from dataclasses import dataclass
 from typing import cast
 from urllib.parse import unquote
 
@@ -122,6 +123,112 @@ def _invalid_constant(value: str) -> object:
     raise ValueError("Invalid JSON constant")
 
 
+@dataclass
+class _JSONFrame:
+    value: dict[str, object] | list[object]
+    state: str
+    key: str = ""
+
+
+def _decode_json(text: str) -> object:
+    try:
+        return cast(
+            object,
+            json.loads(
+                text,
+                parse_int=float,
+                parse_float=float,
+                parse_constant=_invalid_constant,
+            ),
+        )
+    except RecursionError:
+        return _decode_deep_json(text)
+
+
+def _decode_deep_json(text: str) -> object:
+    """Use the stdlib scalar decoder without imposing Python's nesting limit."""
+    decoder = json.JSONDecoder(
+        parse_int=float, parse_float=float, parse_constant=_invalid_constant
+    )
+    frames: list[_JSONFrame] = []
+
+    def space(index: int) -> int:
+        while index < len(text) and text[index] in " \t\r\n":
+            index += 1
+        return index
+
+    def value(index: int) -> tuple[object, int]:
+        index = space(index)
+        if index == len(text):
+            raise ValueError("Missing JSON value")
+        if text[index] == "{":
+            obj: dict[str, object] = {}
+            frames.append(_JSONFrame(obj, "key-or-end"))
+            return obj, index + 1
+        if text[index] == "[":
+            array: list[object] = []
+            frames.append(_JSONFrame(array, "value-or-end"))
+            return array, index + 1
+        scalar: object
+        scalar, end = decoder.raw_decode(text, index)
+        return scalar, end
+
+    root, index = value(0)
+    while frames:
+        frame = frames[-1]
+        index = space(index)
+        if index == len(text):
+            raise ValueError("Incomplete JSON container")
+        char = text[index]
+        if isinstance(frame.value, dict):
+            if frame.state in {"key", "key-or-end"}:
+                if char == "}" and frame.state == "key-or-end":
+                    frames.pop()
+                    index += 1
+                    continue
+                if char != '"':
+                    raise ValueError("Invalid JSON key")
+                key, index = decoder.raw_decode(text, index)
+                assert isinstance(key, str)
+                frame.key = key
+                index = space(index)
+                if index == len(text) or text[index] != ":":
+                    raise ValueError("Missing JSON colon")
+                index += 1
+                frame.state = "value"
+            elif frame.state == "value":
+                child, index = value(index)
+                frame.value[frame.key] = child
+                frame.state = "comma-or-end"
+            elif char == "}":
+                frames.pop()
+                index += 1
+            elif char == ",":
+                frame.state = "key"
+                index += 1
+            else:
+                raise ValueError("Invalid JSON object separator")
+        elif frame.state in {"value", "value-or-end"}:
+            if char == "]" and frame.state == "value-or-end":
+                frames.pop()
+                index += 1
+                continue
+            child, index = value(index)
+            frame.value.append(child)
+            frame.state = "comma-or-end"
+        elif char == "]":
+            frames.pop()
+            index += 1
+        elif char == ",":
+            frame.state = "value"
+            index += 1
+        else:
+            raise ValueError("Invalid JSON array separator")
+    if space(index) != len(text):
+        raise ValueError("Trailing JSON data")
+    return root
+
+
 async def read_json_object(request: Request, max_bytes: int = 1024 * 1024) -> dict[str, object]:
     media = trim((header(request, "content-type") or "").split(";")[0]).lower()
     if media != "application/json":
@@ -129,12 +236,7 @@ async def read_json_object(request: Request, max_bytes: int = 1024 * 1024) -> di
     raw = await read_request_bytes(request, max_bytes)
     try:
         # TextDecoder strips one leading BOM, and JSON.parse uses binary64 for every number.
-        body: object = json.loads(
-            raw.decode("utf-8-sig"),
-            parse_int=float,
-            parse_float=float,
-            parse_constant=_invalid_constant,
-        )
+        body = _decode_json(raw.decode("utf-8-sig"))
     except UnicodeError, ValueError, RecursionError:
         raise HttpError(400, "Invalid JSON body") from None
     if not isinstance(body, dict):

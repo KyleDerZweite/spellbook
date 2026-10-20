@@ -157,6 +157,42 @@ def test_json_binary64_bom_chunk_limit_and_non_json_constants() -> None:
     asyncio.run(scenario())
 
 
+@pytest.mark.parametrize(
+    "raw",
+    [
+        b'{"a":1,}',
+        b'{"a":[1,]}',
+        b'{"a":01}',
+        b'{"a":+1}',
+        b'{"a":.1}',
+        b'{"a":1e}',
+        b'{"a":true false}',
+        b'{"a" 1}',
+        b'{"a":[] ]}',
+        b"{}{}",
+    ],
+)
+def test_json_rejects_invalid_container_and_scalar_grammar(raw: bytes) -> None:
+    with pytest.raises(HttpError, match="Invalid JSON body"):
+        asyncio.run(read_json_object(request(raw, {"content-type": "application/json"})))
+
+
+def test_json_nesting_is_bounded_by_bytes_without_a_python_recursion_limit() -> None:
+    async def scenario() -> None:
+        raw = b'{"ignored":' + b"[" * 2000 + b"0" + b"]" * 2000 + b"}"
+        body = await read_json_object(request(raw, {"content-type": "application/json"}))
+        current = body["ignored"]
+        for _ in range(2000):
+            assert isinstance(current, list) and len(current) == 1
+            current = current[0]
+        assert current == 0
+        for malformed in [raw[:-2], raw[:-2] + b",]}"]:
+            with pytest.raises(HttpError, match="Invalid JSON body"):
+                await read_json_object(request(malformed, {"content-type": "application/json"}))
+
+    asyncio.run(scenario())
+
+
 def test_json_media_presence_and_strict_scalar_types() -> None:
     assert read_string(MISSING, "field", "fallback") == "fallback"
     assert read_number(MISSING, "field", 1) == 1
