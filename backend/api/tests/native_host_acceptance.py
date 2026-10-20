@@ -299,16 +299,10 @@ async def assert_connect_closes_without_response(url: str) -> None:
         reader, writer = await asyncio.open_connection(parsed.hostname, parsed.port)
         try:
             if keep_alive:
-                writer.write(b"GET /openapi.json HTTP/1.1\r\nHost: localhost\r\n\r\n")
+                writer.write(b"HEAD /openapi.json HTTP/1.1\r\nHost: localhost\r\n\r\n")
                 await writer.drain()
                 headers = await asyncio.wait_for(reader.readuntil(b"\r\n\r\n"), 2)
                 assert headers.startswith(b"HTTP/1.1 200")
-                length = next(
-                    int(line.split(b":", 1)[1])
-                    for line in headers.split(b"\r\n")
-                    if line.lower().startswith(b"content-length:")
-                )
-                await asyncio.wait_for(reader.readexactly(length), 2)
             # Split the method across TCP writes so rejection depends on the
             # parsed request rather than the layout of received packets.
             writer.write(b"CON")
