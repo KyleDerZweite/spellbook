@@ -5,6 +5,7 @@ import os
 import socket
 from collections.abc import Callable
 
+import h11
 import uvicorn
 from starlette.responses import Response
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -87,9 +88,16 @@ class NodeHTTPProtocol(H11Protocol):
         # its response cycle. CONNECT must produce no response, including on
         # fragmented and keep-alive requests. ASGI cannot express that close.
         if self.scope["method"] == "CONNECT":
-            self.transport.close()
             return True
         return super()._should_upgrade()
+
+    def handle_websocket_upgrade(self, event: h11.Request) -> None:
+        # The pinned protocol routes all upgrades through this hook. Unsupported
+        # tunnels close here without entering its WebSocket implementation.
+        if event.method == b"CONNECT":
+            self.transport.close()
+            return
+        super().handle_websocket_upgrade(event)
 
 
 class CandidateServer(uvicorn.Server):

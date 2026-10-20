@@ -167,6 +167,12 @@ async def process_host(kind: str, *, api_url: str | None = None) -> AsyncIterato
                 child.send_signal(signal.SIGTERM)
             result = await asyncio.to_thread(child.wait, timeout=15)
             assert result in {0, -signal.SIGTERM}, (kind, result, log_path.name)
+            if kind == "python":
+                log.flush()
+                output = log_path.read_text()
+                assert "Traceback" not in output, log_path.name
+                assert "Fatal error:" not in output, log_path.name
+                assert "ASGI callable returned without" not in output, log_path.name
 
 
 @asynccontextmanager
