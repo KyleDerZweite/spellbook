@@ -18,6 +18,15 @@ def trim(value: str) -> str:
     return js_trim(value)
 
 
+def header(request: Request, name: str) -> str | None:
+    """Match the Node bridge's Fetch Headers append rules for repeated headers."""
+    values = request.headers.getlist(name)
+    if not values:
+        return None
+    separator = "; " if name.lower() == "cookie" else ", "
+    return separator.join(value.strip(" \t\r\n") for value in values)
+
+
 def decode_parameter(value: str) -> str:
     """Decode only a named segment already selected by raw route matching."""
     if re.search(r"%(?![0-9a-fA-F]{2})", value):
@@ -88,7 +97,7 @@ def truthy(value: object) -> bool:
 
 async def read_request_bytes(request: Request, max_bytes: int) -> bytes:
     # The Node bridge exposes no body for unframed or bodyless requests.
-    length = request.headers.get("content-length", "0")
+    length = header(request, "content-length") or "0"
     if request.method in {"GET", "HEAD"} or (
         "transfer-encoding" not in request.headers
         and (not length.isascii() or not length.isdigit() or not length.lstrip("0"))
@@ -114,7 +123,7 @@ def _invalid_constant(value: str) -> object:
 
 
 async def read_json_object(request: Request, max_bytes: int = 1024 * 1024) -> dict[str, object]:
-    media = trim(request.headers.get("content-type", "").split(";")[0]).lower()
+    media = trim((header(request, "content-type") or "").split(";")[0]).lower()
     if media != "application/json":
         raise HttpError(415, "Use application/json")
     raw = await read_request_bytes(request, max_bytes)

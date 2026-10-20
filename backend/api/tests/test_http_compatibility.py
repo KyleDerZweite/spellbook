@@ -32,6 +32,7 @@ from spellbook_api.http.auth import (
 from spellbook_api.http.errors import HttpError, error_response, json_response
 from spellbook_api.http.parsing import (
     decode_parameter,
+    header,
     read_json_object,
     read_number,
     read_query_integer,
@@ -216,6 +217,37 @@ def test_mobile_selection_and_cookie_cleanup_with_mocked_session_provider() -> N
             await require_mobile_auth(request(), auth, "https://spellbook.test")
 
     asyncio.run(scenario())
+
+
+def test_repeated_headers_match_node_fetch_append_semantics() -> None:
+    incoming = request(
+        headers={
+            "authorization": "Bearer " + "a" * 43,
+            "cookie": "other=first",
+            "origin": "https://spellbook.test",
+        }
+    )
+    incoming.scope["headers"].extend(
+        [
+            (b"authorization", b"Basic invalid"),
+            (b"cookie", b"spellbook_session=" + b"b" * 43),
+            (b"origin", b"https://foreign.test"),
+        ]
+    )
+    assert header(incoming, "authorization") == "Bearer " + "a" * 43 + ", Basic invalid"
+    assert selected_token(incoming) is None
+    assert read_cookie(incoming) == "b" * 43
+    with pytest.raises(HttpError, match="Cross-site POST"):
+        require_form_origin(incoming, "https://spellbook.test")
+
+    async def repeated_media() -> None:
+        incoming = request(b"{}", {"content-type": "application/json"})
+        incoming.scope["headers"].append((b"content-type", b"application/json"))
+        with pytest.raises(HttpError) as failure:
+            await read_json_object(incoming)
+        assert failure.value.status == 415
+
+    asyncio.run(repeated_media())
 
 
 @pytest.mark.parametrize("media", [None, "text/plain", "application/x-www-form-urlencoded"])

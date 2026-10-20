@@ -7,7 +7,7 @@ from spellbook_core.models import Actor
 from starlette.requests import Request
 
 from spellbook_api.http.errors import HttpError
-from spellbook_api.http.parsing import decode_parameter, trim
+from spellbook_api.http.parsing import decode_parameter, header, trim
 
 SESSION_COOKIE = "spellbook_session"
 
@@ -15,14 +15,14 @@ SESSION_COOKIE = "spellbook_session"
 def get_bearer_token(request: Request) -> str | None:
     match = re.fullmatch(
         r"Bearer ([A-Za-z0-9_-]{43})",
-        request.headers.get("authorization", ""),
+        header(request, "authorization") or "",
         flags=re.IGNORECASE | re.ASCII,
     )
     return match[1] if match else None
 
 
 def read_cookie(request: Request, name: str = SESSION_COOKIE) -> str | None:
-    for item in request.headers.get("cookie", "").split(";"):
+    for item in (header(request, "cookie") or "").split(";"):
         key, separator, value = item.partition("=")
         if not separator or trim(key) != name:
             continue
@@ -40,7 +40,7 @@ def selected_token(request: Request) -> str | None:
 
 
 def require_same_origin(request: Request, public_origin: str) -> None:
-    if request.headers.get("origin") != public_origin:
+    if header(request, "origin") != public_origin:
         raise HttpError(403, "Invalid request origin")
 
 
@@ -48,7 +48,7 @@ def require_form_origin(request: Request, public_origin: str) -> None:
     """Pre-handler guard for the representative items-add route."""
     if request.method not in {"POST", "PUT", "PATCH", "DELETE"}:
         return
-    media = trim(request.headers.get("content-type", "").split(";")[0]).lower()
+    media = trim((header(request, "content-type") or "").split(";")[0]).lower()
     if media and media not in {
         "application/x-www-form-urlencoded",
         "multipart/form-data",
@@ -56,7 +56,7 @@ def require_form_origin(request: Request, public_origin: str) -> None:
         "application/x-sveltekit-formdata",
     }:
         return
-    if request.headers.get("origin") != public_origin:
+    if header(request, "origin") != public_origin:
         raise HttpError(403, f"Cross-site {request.method} form submissions are forbidden")
 
 
