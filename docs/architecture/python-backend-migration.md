@@ -3,7 +3,7 @@
 - Status: Accepted execution contract, implementation authorized; production cutover pending
 - Last Reviewed: 2026-10-20
 - Source of Truth: ADR-0025, issue 211, baseline code, independent design analysis and Kyle's 2026-10-20 execution direction
-- Update Triggers: dormant P02a host/package foundation, execution scope, integration ownership, source preparation versus production operations, contract acceptance, independent review, framework or schema ownership, delivery gates, parity evidence, rollback
+- Update Triggers: dormant P02b representative host and resource ownership, execution scope, integration ownership, source preparation versus production operations, contract acceptance, independent review, framework or schema ownership, delivery gates, parity evidence, rollback
 - Related Docs: [ADR-0025](../decisions/0025-python-api-and-workers.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [Independent applications](./independent-applications.md), [Application contract](./application-contract.md), [Postgres](./postgres.md), [Auth](./auth.md), [Worker](./worker.md), [Deployment](../operations/deployment.md), [Verification](../operations/github-automation.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
 
 ## Scope and status
@@ -23,8 +23,10 @@ Production cutover, production migrator rollout and ending the real production r
 Implementation authorization establishes neither runtime parity nor production acceptance.
 
 P02a adds the dormant [API host/package foundation](../../backend/api/README.md) and the minimal [Core package](../../backend/core/README.md).
-Only Discovery is implemented; no Python domain, PostgreSQL/session/receipt/SavedState behavior or P01 resource measurement is established.
-The shared writer owns host/lifetime construction and immediate scoped Python CI; P02b supplies disjoint Core/domain and HTTP adapters after verified foundation integration.
+P02b adds the representative session, singleton Catalog, receipt-protected Inventory add/detail and SavedState adapters with explicit pool/admission/listener/executor lifetime construction.
+DATABASE_URL selects this explicitly started candidate workflow; without it, the original resource-free Discovery mode remains available.
+The shared writer owns host/registry/lifetime and immediate scoped Python CI; Core/domain and direct HTTP adapters retain disjoint ownership.
+Full API parity and P01 matched resource/performance acceptance remain pending; this dormant slice releases no downstream readiness gate.
 Node remains the active default in launchers, images and Compose.
 An implementation ticket becomes Ready only after its own prerequisites, reviewed contract and evidence requirements are settled.
 

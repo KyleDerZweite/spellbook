@@ -120,7 +120,7 @@ test('automatic CI retains scoped checks without invoking a heavy workflow', () 
 	])
 		assert.equal(
 			source.split(command).length - 1,
-			command === 'pytest' ? 3 : command.startsWith('ruff') ? 5 : 4,
+			command === 'pytest' ? 4 : command.startsWith('ruff') ? 5 : 4,
 			command
 		);
 });

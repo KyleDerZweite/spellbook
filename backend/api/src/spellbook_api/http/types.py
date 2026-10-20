@@ -3,9 +3,10 @@
 import ipaddress
 import re
 from collections.abc import Awaitable, Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from fastapi import FastAPI
+from psycopg.conninfo import conninfo_to_dict
 from pydantic import AnyHttpUrl, ValidationError
 
 type AsyncClose = Callable[[], Awaitable[None]]
@@ -16,6 +17,7 @@ class Configuration:
     public_origin: str
     host: str = "127.0.0.1"
     port: int = 3002
+    database_url: str | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         try:
@@ -38,6 +40,15 @@ class Configuration:
             raise ValueError("The dormant candidate requires a loopback API_HOST")
         if not 1 <= self.port <= 65535:
             raise ValueError("API_PORT must be between 1 and 65535")
+        if self.database_url is not None:
+            try:
+                if not self.database_url.strip():
+                    raise ValueError("Empty connection configuration")
+                conninfo_to_dict(self.database_url)
+            except Exception:
+                raise ValueError(
+                    "DATABASE_URL must be a valid PostgreSQL connection string"
+                ) from None
 
     @classmethod
     def from_environment(cls, env: Mapping[str, str]) -> Configuration:
@@ -48,6 +59,7 @@ class Configuration:
             public_origin=env.get("APP_ORIGIN", "").strip(),
             host=env.get("API_HOST", "127.0.0.1").strip(),
             port=int(raw_port),
+            database_url=env.get("DATABASE_URL") or None,
         )
 
 
@@ -55,7 +67,7 @@ class Configuration:
 class ApplicationLifetime:
     """The host closes streams before Uvicorn drains, then closes owned resources.
 
-    P02b supplies the actual application, pool and listener composition here.
+    The application factory supplies pool, listener and executor composition.
     Callbacks must be idempotent and settle owned work on cancellation.
     """
 
