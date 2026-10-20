@@ -57,8 +57,7 @@ def _index(key: str) -> int | None:
     return number if number < 4294967295 else None
 
 
-def serialize_mutation(payload: object) -> str:
-    """Recursively sort objects, then apply JSON.stringify enumeration and omission."""
+def _serialize(payload: object, *, canonical: bool) -> str:
     active: set[int] = set()
 
     def encode(value: object) -> str:
@@ -80,7 +79,9 @@ def serialize_mutation(payload: object) -> str:
                     return "[" + ",".join(encode(item) for item in value) + "]"
                 if not all(isinstance(key, str) for key in value):
                     raise ValidationError("Mutation payload must be JSON serializable")
-                keys = sorted(value, key=lambda key: key.encode("utf-16-be", "surrogatepass"))
+                keys = list(value)
+                if canonical:
+                    keys.sort(key=lambda key: key.encode("utf-16-be", "surrogatepass"))
                 indices = sorted((_index(key), key) for key in keys if _index(key) is not None)
                 ordered = [key for _, key in indices] + [
                     key for key in keys if _index(key) is None
@@ -101,6 +102,16 @@ def serialize_mutation(payload: object) -> str:
     if payload is MISSING:
         raise ValidationError("Mutation payload must be JSON serializable")
     return encode(payload)
+
+
+def serialize_mutation(payload: object) -> str:
+    """Recursively sort objects, then apply JSON.stringify enumeration and omission."""
+    return _serialize(payload, canonical=True)
+
+
+def serialize_json(payload: object) -> str:
+    """Serialize DTOs with JSON.stringify numbers and ordinary property order."""
+    return _serialize(payload, canonical=False)
 
 
 def mutation_fingerprint(payload: object) -> str:

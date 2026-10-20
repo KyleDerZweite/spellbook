@@ -347,3 +347,20 @@ def test_known_errors_and_json_surrogate_encoding() -> None:
     ]:
         assert error_response(cause).status_code == status
     assert json_response({"text": "é\ud800"}).body == b'{"text":"\xc3\xa9\\ud800"}'
+
+
+def test_response_uses_node_number_spelling_and_property_order() -> None:
+    response = json_response(
+        {
+            "cmc": 2.0,
+            "rounded": 9007199254740993,
+            "small": 1e-7,
+            "nan": math.nan,
+            "zero": -0.0,
+            "text": "\ud83d\udd2e",
+        }
+    )
+    assert response.body == (
+        b'{"cmc":2,"rounded":9007199254740992,"small":1e-7,'
+        b'"nan":null,"zero":0,"text":"\xf0\x9f\x94\xae"}'
+    )

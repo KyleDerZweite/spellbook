@@ -1,6 +1,5 @@
 """Reviewed public failures and JSON responses for the representative adapters."""
 
-import json
 from collections.abc import Mapping
 
 from spellbook_core.errors import (
@@ -13,6 +12,7 @@ from spellbook_core.errors import (
     RequestConflictError,
     ValidationError,
 )
+from spellbook_core.fingerprint import serialize_json
 from starlette.responses import JSONResponse, Response
 
 
@@ -27,13 +27,7 @@ class HttpError(Exception):
 
 class _JSONResponse(JSONResponse):
     def render(self, content: object) -> bytes:
-        # JSON.stringify emits raw Unicode and escapes unpaired UTF-16 surrogates.
-        return json.dumps(
-            content,
-            ensure_ascii=False,
-            allow_nan=False,
-            separators=(",", ":"),
-        ).encode("utf-8", errors="backslashreplace")
+        return serialize_json(content).encode("utf-8")
 
 
 def json_response(
