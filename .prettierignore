@@ -1,0 +1,2 @@
+# Preserve the original formatting of relocated Python input fixtures.
+backend/workers/*/tests/fixtures/

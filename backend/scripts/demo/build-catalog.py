@@ -10,13 +10,13 @@ import sys
 import uuid
 
 ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(ROOT / 'worker/src'))
+sys.path.insert(0, str(ROOT / 'backend/workers/catalog/src'))
 from worker.transform import transform_card
 
 
 def build(source, output, version):
     # Read the native version without importing the PostgreSQL publisher/dependencies.
-    catalog = ROOT / 'worker/src/worker/catalog.py'
+    catalog = ROOT / 'backend/workers/catalog/src/worker/catalog.py'
     version_node = next(node.value for node in ast.parse(catalog.read_text()).body
                         if isinstance(node, ast.Assign)
                         and any(isinstance(t, ast.Name) and t.id == 'SCHEMA_VERSION' for t in node.targets))
@@ -73,7 +73,7 @@ def build(source, output, version):
         'sourceTimeCaveat': 'Export filename time is not a verified upstream source_updated_at.',
         'selection': 'lang=en, then native worker.transform.transform_card exclusions',
         'catalogTransformVersion': transform_version,
-        'transformSHA256': hashlib.sha256((ROOT / 'worker/src/worker/transform.py').read_bytes()).hexdigest(),
+        'transformSHA256': hashlib.sha256((ROOT / 'backend/workers/catalog/src/worker/transform.py').read_bytes()).hexdigest(),
         'counts': counts, 'canonicalCount': len(oracles), 'starterPrintingCount': len(legacy),
         'jsonlBytes': size, 'jsonlSHA256': digest, 'gzipBytes': output.stat().st_size,
         'gzipSHA256': hashlib.sha256(output.read_bytes()).hexdigest()

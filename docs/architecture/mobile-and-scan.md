@@ -1,10 +1,10 @@
 # Mobile and scan
 
 - Status: Canonical
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-10-20
 - Source of Truth: code, accepted local-recognition direction, maintainer's 2026-10-15 client-scope clarification and accepted 2026-10-16 PWA/QR contract, primary documentation and the 2026-10-19 independent Android design clarification
-- Update Triggers: independent Android design direction and Figma handoff, selected Deck optional Legality projection, accepted online-first PWA and QR delivery status, paused Scan presentation, phone-image evaluation fixtures, private value history queries and calendar refresh boundaries, bounded Deck choice reads, public reference/history exception/private price reads and source precision, manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, Scan contracts and legacy replay, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, Deck wire contracts and revisions, device runtime selection, category initialization/manual decisions/merge previews, whole-deck outcomes and bounded directory revision/location, hybrid browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
-- Related Docs: [Application contract](./application-contract.md), [Frontend](./frontend.md), [Android design handoff](../product/mobile-app-exploration.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../../GLOSSARY.md), [Deployment](../operations/deployment.md), [Category rules](./category-rules.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Independent applications](./independent-applications.md)
+- Update Triggers: P13 Scan source relocation and accepted external resource evidence contract, independent Android design direction and Figma handoff, selected Deck optional Legality projection, accepted online-first PWA and QR delivery status, paused Scan presentation, phone-image evaluation fixtures, private value history queries and calendar refresh boundaries, bounded Deck choice reads, public reference/history exception/private price reads and source precision, manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, Scan contracts and legacy replay, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, Deck wire contracts and revisions, device runtime selection, category initialization/manual decisions/merge previews, whole-deck outcomes and bounded directory revision/location, hybrid browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
+- Related Docs: [Application contract](./application-contract.md), [Frontend](./frontend.md), [Android design handoff](../product/mobile-app-exploration.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../../GLOSSARY.md), [Deployment](../operations/deployment.md), [Category rules](./category-rules.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Independent applications](./independent-applications.md), [Worker](./worker.md), [P13 resource contract](https://github.com/KyleDerZweite/spellbook/issues/260)
 
 Spellbook retains its web client, including the initial installable, online-first, same-origin SvelteKit PWA delivery.
 Its [manifest](../../frontend/static/manifest.webmanifest) launches `/app`; `frontend/src/app.html` links it.
@@ -84,7 +84,7 @@ Scan UI development is paused by the product owner on 2026-10-07.
 Navigation, Inventory and Dashboard no longer expose Scan entrypoints.
 The existing authenticated route, sessions, backend contracts and API remain available to preserve prior work.
 The normal host development launcher starts the Node API and web application; `./dev.sh --scan` explicitly starts the retained Python scaffold.
-Worker relocation and recognition changes are deferred.
+Recognition changes are deferred.
 
 Original phone images for later evaluation belong in `data/phone-scan-examples/`.
 Scan presentation remains paused as described above.
@@ -226,6 +226,11 @@ Invalid pagination returns HTTP 400.
 The [OpenAPI route](../../backend/src/http/openapi.ts) owns endpoint-specific fields and responses.
 
 ## Scan uploads
+
+The independent [Scan scaffold](../../backend/workers/scan/src/scan_worker/main.py) and its tests reside in `backend/workers/scan/`, retaining `scan_worker.main:app`.
+The [accepted P13 resource contract](https://github.com/KyleDerZweite/spellbook/issues/260) defines external experiment gates, including a separate single-process Scan cohort.
+These gates introduce no HTTP admission cap, recognition work or database/storage access in the scaffold.
+Actual TCP/application and resource evidence remain required separately from source relocation and TestClient checks.
 
 Native scanners submit frames with a valid `Authorization: Bearer <token>` header and may omit `Origin`.
 The exact multipart frame endpoint has a narrow exception in the [form-origin guard](./auth.md#entry-points); other form routes do not share it.

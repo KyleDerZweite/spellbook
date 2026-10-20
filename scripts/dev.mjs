@@ -234,7 +234,7 @@ try {
 					'--port',
 					scanPort
 				],
-				`${root}scan-worker`
+				`${root}backend/workers/scan`
 			);
 		start('pnpm', ['dev'], `${root}backend`);
 		// Web owns rendering and HTTP forwarding. API credentials stay in its process.

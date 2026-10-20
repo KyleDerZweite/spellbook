@@ -1,7 +1,7 @@
 # Spellbook client, recognition and sorter research
 
 - Status: Research and decision support; not an accepted architecture
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-10-20
 - Source of Truth: linked primary sources, repository code, maintainer's dated scope clarification and explicitly identified engineering assessments
 - Update Triggers: independent Android direction and complete Figma flow handoff, PWA/QR implementation status without replacing dated research, Android priority, app-specific capabilities, website packaging, Cardstation integration, platform/runtime support, client responsibilities, reference-data use, hardware experiments, recognition measurements, distribution and operating model
 - Related Docs: [Product specification](../product/specification.md), [Mobile exploration](../product/mobile-app-exploration.md), [Clients and Scan](../architecture/mobile-and-scan.md), [Sorter concept](./card-robot.md), [Application contract](../architecture/application-contract.md), [Deployment](../operations/deployment.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Domain glossary](../../GLOSSARY.md), [Integrations index](./README.md)
@@ -99,7 +99,7 @@ The [application contract](../architecture/application-contract.md) owns impleme
 
 Scan UI development is paused.
 Navigation, Inventory and Dashboard no longer expose Scan entrypoints, but the authenticated `/mtg/scan` route, sessions, backend contracts and API remain.
-The [Scan worker](../../scan-worker/src/scan_worker/main.py) still returns `no_match` and `stub-v1`; productive recognition is absent.
+The [Scan worker](../../backend/workers/scan/src/scan_worker/main.py) still returns `no_match` and `stub-v1`; productive recognition is absent.
 At that research baseline, a separate phone client, machine credentials and physical box/placement management were not implemented.
 The implementation update above records the later PWA/QR scope without establishing machine-specific authority or physical placement support.
 Existing UI Boxes are Inventory groups, not physical copy locations.
@@ -333,7 +333,7 @@ Reusing particular code or designs requires separate code/license review.
 
 Current [deployment](../operations/deployment.md#services-and-startup) requires no recognition GPU.
 The Catalog worker imports metadata and image URLs, not a complete image collection.
-The [bulk importer](../../worker/src/worker/bulk.py) supports JSON arrays and JSONL; the [Scryfall client](../../worker/src/worker/scryfall.py) handles compressed downloads.
+The [bulk importer](../../backend/workers/catalog/src/worker/bulk.py) supports JSON arrays and JSONL; the [Scryfall client](../../backend/workers/catalog/src/worker/scryfall.py) handles compressed downloads.
 Public price, Oracle Tags and optional Combo publication are also implemented.
 None of these provides a finished embedding or local recognition-index build.
 

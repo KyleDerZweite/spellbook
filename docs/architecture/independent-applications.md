@@ -8,7 +8,7 @@
 
 ## Outcome and ownership
 
-Retain `frontend/`, `backend/`, `contracts/`, `worker/` and `scan-worker/`.
+Retain `frontend/`, `backend/` and `contracts/`, with independent Catalog and Scan packages under `backend/workers/`.
 Add the independent Gradle project `android/`.
 SvelteKit owns rendering, native form actions and browser presentation.
 The Node API owns credential authentication, PostgreSQL, application use cases, Scan storage, runners and SavedState lifetime.

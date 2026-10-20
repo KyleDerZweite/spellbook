@@ -1,7 +1,7 @@
 # Market price sources
 
 - Status: Scryfall EUR references and supplied links implemented; optional Cardmarket/MTGJSON public adapters and source history implemented
-- Last Reviewed: 2026-10-08
+- Last Reviewed: 2026-10-20
 - Source of Truth: linked provider documentation, public data responses, and repository code
 - Update Triggers: provider access or terms, price fields and freshness, printing identity, reference coverage, public history and accepted value scope
 - Related Docs: [Integrations](./README.md), [Value tracking](../product/value-tracking.md), [Domain glossary](../../GLOSSARY.md), [Product specification](../product/specification.md#dashboard), [Catalog](../architecture/catalog.md), [Worker](../architecture/worker.md), [Postgres](../architecture/postgres.md), [Valuation](../architecture/valuation.md)
@@ -24,9 +24,9 @@ Current optional import and coverage evidence is recorded with Slice 11 acceptan
 ## Current state in Spellbook
 
 The [Worker](../architecture/worker.md) downloads `all_cards` by default and syncs daily.
-[transform_card](../../worker/src/worker/transform.py) does not carry over `prices`, marketplace IDs, or `purchase_uris`.
+[transform_card](../../backend/workers/catalog/src/worker/transform.py) does not carry over `prices`, marketplace IDs, or `purchase_uris`.
 [CardDocument](../../frontend/src/lib/search/types.ts) also lacks these fields.
-The separate [Worker price extractor](../../worker/src/worker/prices.py) now retains these public facts in immutable price publications; Catalog metadata DTOs remain separate.
+The separate [Worker price extractor](../../backend/workers/catalog/src/worker/prices.py) now retains these public facts in immutable price publications; Catalog metadata DTOs remain separate.
 [Valuation](../architecture/valuation.md#implemented-market-references) owns the implemented baseline and conservative language mapping.
 
 The [backend Inventory schema](../../backend/src/db/schema.ts) stores printing, quantity, finish, and condition.
