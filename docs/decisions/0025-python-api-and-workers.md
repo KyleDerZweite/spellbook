@@ -1,12 +1,12 @@
 # ADR-0025: Python for the API and server workers
 
 - Status: Accepted
-- Implementation: Migration not started
+- Implementation: Dormant API/Core and worker relocation slices implemented; production migration pending
 - Date: 2026-10-19
 - Last Reviewed: 2026-10-20
 - Owners: Kyle
 - Source of Truth: maintainer-selected shared API/worker language
-- Update Triggers: Python migration design, framework or schema ownership selection, worker relocation, parity evidence
+- Update Triggers: dormant-slice implementation status, Python migration design, framework or schema ownership selection, worker relocation, parity evidence
 - Related Docs: [Language evaluation](../integrations/backend-language-evaluation.md), [Independent applications](../architecture/independent-applications.md), [Worker](../architecture/worker.md), [ADR-0024](./0024-independent-applications.md), [ADR-0023](./0023-local-recognition-in-scanner-clients.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
 
 ## Context

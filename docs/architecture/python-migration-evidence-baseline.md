@@ -51,7 +51,7 @@ Existing OpenAPI checks independently reconcile browser-auth source methods and 
 | API Auth, including two original-form bridges |                          9 | P03                                                               |
 | Account/Profile/Dashboard/password bridge     |                          6 | P03, Dashboard application extends in P15                         |
 | Public and authenticated Catalog              |                          7 | P04                                                               |
-| Inventory/Groups/imports                      |                         16 | P04 reads, P05 writes and import preview                          |
+| Inventory/Groups/imports                      |                         16 | P04 reads/Groups/membership/reorder, P05 item writes/imports      |
 | Decks/composition/Library                     |                         19 | P08 metadata/reads, P10 composition/imports, P11 Library browsing |
 | Entry/whole Categories and definitions        |                         17 | P07, P09, P11; optional Combo choices P12                         |
 | SavedState                                    |                          1 | P02 host/listener, P17 complete integration                       |

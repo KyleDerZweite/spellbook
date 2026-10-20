@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-20
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
-- Update Triggers: dormant Python API/core checks and import boundaries, independent API/web ownership and relocated code references, native initial Deck Search publication regression, conditional CI scope, manual-only heavy workflows and consolidated jobs, native Inventory measurement regression, portable opt-in browsing performance evidence and artifact provenance, PWA worker build harness and tsconfig, QR integration/HTTP and pending target acceptance, Dev launcher lifecycle tests, test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
+- Update Triggers: dormant Python representative host checks, manual native acceptance and import boundaries, independent API/web ownership and relocated code references, native initial Deck Search publication regression, conditional CI scope, manual-only heavy workflows and consolidated jobs, native Inventory measurement regression, portable opt-in browsing performance evidence and artifact provenance, PWA worker build harness and tsconfig, QR integration/HTTP and pending target acceptance, Dev launcher lifecycle tests, test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
 - Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance), [Application boundaries](../architecture/application-contract.md#implementation-status)
 
 This document owns repository check commands, CI coverage, and verification evidence.
@@ -175,7 +175,8 @@ uvx --from uv==0.12.23 uv run --directory backend/core --no-sync ruff check
 uvx --from uv==0.12.23 uv run --directory backend/core --no-sync ruff format --check
 uvx --from uv==0.12.23 uv run --directory backend/core --no-sync mypy
 uvx --from uv==0.12.23 uv lock --project backend/api --check --python 3.14.8
-uvx --from uv==0.12.23 uv sync --project backend/api --frozen --extra dev --python 3.14.8
+uvx --from uv==0.12.23 uv sync --project backend/api --frozen --extra dev --python 3.14.8 --reinstall-package spellbook-core
+uvx --from uv==0.12.23 uv run --directory backend/core --no-sync pytest
 uvx --from uv==0.12.23 uv run --directory backend/api --no-sync ruff check
 uvx --from uv==0.12.23 uv run --directory backend/api --no-sync ruff format --check
 uvx --from uv==0.12.23 uv run --directory backend/api --no-sync mypy
@@ -189,16 +190,22 @@ uvx --from uv==0.12.23 uv build --project backend/api
 ```
 
 `--directory` selects the package working directory for checks; `--project` alone does not change pytest discovery or Mypy's configuration lookup directory.
-API tests compare Discovery with the neutral artifact and check original HEAD/OPTIONS/405 behavior, absent business/docs routes, configuration rejection and pre-drain shutdown ordering.
+API tests compare Discovery with the neutral artifact and exercise the actual representative registry, strict RAW encoding before Cookie SQL, header/body/error semantics, HEAD/OPTIONS/405, configuration rejection and resource/pre-drain shutdown ordering.
 They also start a real task-owned Uvicorn child on an ephemeral loopback port and verify SIGTERM completion, without loading `.env` or requiring a database.
 The AST boundary checker inspects static/relative imports, type-only imports and literal dynamic imports across API, Core and current/future worker source roots.
 Computed dynamic import calls fail closed; this check is dependency enforcement, not a sandbox for arbitrary Python execution.
 Negative fixtures prove forbidden Core framework/API/worker imports and worker-to-API imports are rejected.
 The existing TypeScript checker remains unchanged and does not inspect Python.
 
-Core currently contains only its marker, so its independent lint/type/build checks run alongside API unit tests and negative import fixtures.
-Actual Core application tests begin with P02b.
-No PostgreSQL, cross-runtime replay, finite pool/LISTEN/admission or measured resource acceptance follows from these P02a checks.
+Core has independent unit/type/lint/build checks; API also verifies consumers of its locally installed Core wheel.
+Existing Core/API native tests require their three explicit P02B_*_NATIVE_DATABASE guards and an exclusive assigned api_python environment.
+The manual `backend/api/tests/native_host_acceptance.py` suite is intentionally outside normal pytest filename discovery.
+It requires an exclusive sse lease, matching DATABASE_URL/TEST_DATABASE_URL, P02B_SHARED_NATIVE_DATABASE, P02B_PUBLIC_ORIGIN, P02B_INSTALLED_PYTHON outside the checkout and P02B_NODE_EXECUTABLE.
+Reserve two max10 request pools, two dedicated listeners and a max2 fixture pool, at most24 of the32 assigned connections.
+Build Node/web with that exact Origin and install fresh Core/API wheels plus frozen production dependencies outside the checkout before explicitly running `uvx --from uv==0.12.23 uv run --project backend/api --no-sync pytest backend/api/tests/native_host_acceptance.py`.
+The suite checks built-Node/installed-Python original receipt replay, real TCP replicas/proxy/revocation/reconnect, physical-close failure without overlap,32-stream admission/pre-drain cleanup, an actual paused TCP reader and the packaged private same-process hook.
+The slow-reader test reduces only its owned socket buffers to exercise kernel backpressure; it establishes no matched resource/performance gate.
+Core/native/host functional results do not replace full P01 cohorts or validated CPU/RSS/storage collectors.
 Heavy application integration and Android remain manually triggered.
 
 ### Portable browsing performance evidence
@@ -366,11 +373,11 @@ It has four jobs.
 The short `CI Scope` job runs the native [routing/workflow ownership tests](../../scripts/ci-changes.test.mjs) and [change classifier](../../scripts/ci-changes.mjs), without installing application dependencies.
 The three substantive jobs depend on successful classification and can run in parallel:
 
-| Job                | Checks                                                                                                                              | Automatic scope                                                         |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Application Checks | Web/backend types and boundaries through `lint`, web unit tests, root `test:tooling`, backend unit/native tests and `db:check`      | App/shared source and Scan worker changes                               |
-| Python API/Core    | Independent lock/frozen install, Ruff, strict Mypy, API unit/host/Discovery tests, package builds and negative Python import checks | API, Core, neutral contracts, migrations and shared Python tooling      |
-| Python Workers     | Lock consistency, Ruff lint/format and pytest for each affected Python project                                                      | Catalog worker, Scan worker, or migrations used by Catalog worker tests |
+| Job                | Checks                                                                                                                                   | Automatic scope                                                         |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Application Checks | Web/backend types and boundaries through `lint`, web unit tests, root `test:tooling`, backend unit/native tests and `db:check`           | App/shared source and Scan worker changes                               |
+| Python API/Core    | Independent lock/frozen install, Ruff, strict Mypy, Core/API unit/host/Discovery tests, package builds and negative Python import checks | API, Core, neutral contracts, migrations and shared Python tooling      |
+| Python Workers     | Lock consistency, Ruff lint/format and pytest for each affected Python project                                                           | Catalog worker, Scan worker, or migrations used by Catalog worker tests |
 
 Migration consistency runs in Application Checks using the existing frozen workspace install.
 Root `test:tooling` includes launcher and packaging tests, so CI does not invoke those suites separately.

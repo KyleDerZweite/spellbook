@@ -89,11 +89,12 @@ jobs:
           uv run --no-sync ruff format --check
           uv run --no-sync mypy
           uv build
+          uv run --no-sync pytest
       - name: API package and compatibility checks
         working-directory: backend/api
         run: |
           uv lock --check --python 3.14.8
-          uv sync --frozen --extra dev --python 3.14.8
+          uv sync --frozen --extra dev --python 3.14.8 --reinstall-package spellbook-core
           uv run --no-sync ruff check
           uv run --no-sync ruff format --check
           uv run --no-sync mypy

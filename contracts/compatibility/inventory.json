@@ -509,7 +509,7 @@
 			"method": "POST",
 			"path": "/api/mobile/v1/mtg/inventory/groups",
 			"owner": "backend/src/http/routes/inventory.ts",
-			"slice": "P05",
+			"slice": "P04",
 			"bodyBytes": 1048576,
 			"transport": "api"
 		},
@@ -517,7 +517,7 @@
 			"method": "PATCH",
 			"path": "/api/mobile/v1/mtg/inventory/groups/{groupId}",
 			"owner": "backend/src/http/routes/inventory.ts",
-			"slice": "P05",
+			"slice": "P04",
 			"bodyBytes": 1048576,
 			"transport": "api"
 		},
@@ -525,7 +525,7 @@
 			"method": "DELETE",
 			"path": "/api/mobile/v1/mtg/inventory/groups/{groupId}",
 			"owner": "backend/src/http/routes/inventory.ts",
-			"slice": "P05",
+			"slice": "P04",
 			"bodyBytes": 1048576,
 			"transport": "api"
 		},
@@ -573,7 +573,7 @@
 			"method": "PUT",
 			"path": "/api/mobile/v1/mtg/inventory/{entryId}/groups",
 			"owner": "backend/src/http/routes/inventory.ts",
-			"slice": "P05",
+			"slice": "P04",
 			"bodyBytes": 1048576,
 			"transport": "api"
 		},
@@ -581,7 +581,7 @@
 			"method": "PATCH",
 			"path": "/api/mobile/v1/mtg/inventory/{entryId}/position",
 			"owner": "backend/src/http/routes/inventory.ts",
-			"slice": "P05",
+			"slice": "P04",
 			"bodyBytes": 1048576,
 			"transport": "api"
 		},
