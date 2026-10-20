@@ -47,7 +47,7 @@ test('heavy workflows accept only manual dispatch and keep their complete comman
 	assert.equal([...android.split(/^jobs:\n/m)[1].matchAll(/^  [\w-]+:\n/gm)].length, 1);
 	assert.match(
 		android,
-		/uses: actions\/setup-java@v5\n\s+with:\n\s+distribution: temurin\n\s+java-version: '21'/
+		/uses: actions\/setup-java@v6\n\s+with:\n\s+distribution: temurin\n\s+java-version: '21'/
 	);
 	assert.match(android, /uses: android-actions\/setup-android@v4\.0\.4/);
 	assert.match(android, /packages: 'platform-tools platforms;android-37\.0 build-tools;36\.0\.0'/);
