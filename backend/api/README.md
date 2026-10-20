@@ -51,7 +51,9 @@ Cookie cleanup precedes handler cookies, including bearer and public Catalog req
 Auth/account/singleton-Catalog responses retain no-store on errors; these Inventory routes receive no additional Cache-Control policy.
 API responses retain Robots headers.
 GET-derived HEAD awaits SSE response closure and creates a separate bodyless response.
-The actual host also retains Node HTTP-parser method rejection and the HTTP-to-Fetch TRACE failure before router dispatch; direct router method tests remain separate. Its pinned Uvicorn H11 transport closes CONNECT tunnels without an HTTP response, matching Node's server without a `connect` listener. A raw TCP comparison covers fragmented CONNECT requests against both installed Python and built Node.
+The actual host also retains Node HTTP-parser method rejection and the HTTP-to-Fetch TRACE failure before router dispatch; direct router method tests remain separate.
+Its pinned Uvicorn H11 transport closes CONNECT tunnels without an HTTP response, matching Node's server without a `connect` listener.
+A raw TCP comparison covers fragmented CONNECT requests against both installed Python and built Node.
 
 One API instance owns a request pool with min 0/max 10, at most 32 pending acquisitions and a 2-second acquisition timeout.
 Non-SSE admission allows 32 active plus 32 waiting requests, waits at most 2 seconds and rejects excess before SQL.
