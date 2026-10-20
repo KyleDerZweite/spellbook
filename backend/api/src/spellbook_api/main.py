@@ -8,6 +8,7 @@ from collections.abc import Callable
 import uvicorn
 from starlette.responses import Response
 from starlette.types import ASGIApp, Receive, Scope, Send
+from uvicorn.protocols.http.h11_impl import H11Protocol
 
 from spellbook_api.application import create_application
 from spellbook_api.http.errors import HttpError, error_response
@@ -78,6 +79,19 @@ class HostRequestPolicy:
         await self.app(scope, receive, send)
 
 
+class NodeHTTPProtocol(H11Protocol):
+    """Close unsupported tunnels before ASGI, as Node without a connect listener does."""
+
+    def _should_upgrade(self) -> bool:
+        # Uvicorn 0.54.0 calls this after parsing each request, before creating
+        # its response cycle. CONNECT must produce no response, including on
+        # fragmented and keep-alive requests. ASGI cannot express that close.
+        if self.scope["method"] == "CONNECT":
+            self.transport.close()
+            return True
+        return super()._should_upgrade()
+
+
 class CandidateServer(uvicorn.Server):
     def __init__(self, lifetime: ApplicationLifetime, configuration: Configuration) -> None:
         self.lifetime = lifetime
@@ -88,6 +102,7 @@ class CandidateServer(uvicorn.Server):
                 host=configuration.host,
                 port=configuration.port,
                 workers=1,
+                http=NodeHTTPProtocol,
                 proxy_headers=False,
                 server_header=False,
                 timeout_graceful_shutdown=15,

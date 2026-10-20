@@ -290,15 +290,49 @@ async def parity_failures(
     return result
 
 
+async def assert_connect_closes_without_response(url: str) -> None:
+    from urllib.parse import urlsplit
+
+    parsed = urlsplit(url)
+    assert parsed.hostname is not None and parsed.port is not None
+    for target, keep_alive in [("/openapi.json", False), ("example.com:443", True)]:
+        reader, writer = await asyncio.open_connection(parsed.hostname, parsed.port)
+        try:
+            if keep_alive:
+                writer.write(b"GET /openapi.json HTTP/1.1\r\nHost: localhost\r\n\r\n")
+                await writer.drain()
+                headers = await asyncio.wait_for(reader.readuntil(b"\r\n\r\n"), 2)
+                assert headers.startswith(b"HTTP/1.1 200")
+                length = next(
+                    int(line.split(b":", 1)[1])
+                    for line in headers.split(b"\r\n")
+                    if line.lower().startswith(b"content-length:")
+                )
+                await asyncio.wait_for(reader.readexactly(length), 2)
+            # Split the method across TCP writes so rejection depends on the
+            # parsed request rather than the layout of received packets.
+            writer.write(b"CON")
+            await writer.drain()
+            await asyncio.sleep(0.01)
+            writer.write(("NECT " + target + " HTTP/1.1\r\nHost: localhost\r\n\r\n").encode())
+            await writer.drain()
+            assert await asyncio.wait_for(reader.read(), 2) == b""
+        finally:
+            writer.close()
+            await writer.wait_closed()
+
+
 def test_built_node_and_installed_python_replay_original_receipts_and_wire_failures() -> None:
     async def exercise() -> None:
         async with world() as w, httpx2.AsyncClient(timeout=5) as client:
             first, second = str(uuid4()), str(uuid4())
             first_body, second_body = payload(w, first, 2), payload(w, second, 3)
             async with process_host("node") as node:
+                await assert_connect_closes_without_response(node.url)
                 node_wire = await parity_failures(client, node.url, w)
                 original = await add(client, node.url, w, first_body)
             async with process_host("python") as candidate:
+                await assert_connect_closes_without_response(candidate.url)
                 assert await parity_failures(client, candidate.url, w) == node_wire
                 assert await add(client, candidate.url, w, first_body) == original
                 python_ack = await lost_reply_add(candidate.url, w, second_body)
