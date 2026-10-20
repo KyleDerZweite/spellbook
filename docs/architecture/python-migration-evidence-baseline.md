@@ -3,7 +3,7 @@
 - Status: Canonical P01 baseline; predeclared candidate rejection gates accepted, candidate measurements pending
 - Last Reviewed: 2026-10-20
 - Source of Truth: b835eee Node code, executable neutral fixtures, selected PostgreSQL 18 Node verification, accepted independent numeric/spec review, issue 247 and maintainer implementation brief
-- Update Triggers: numeric-gate acceptance and current-main integration, PostgreSQL baseline verification, route/command/runner ownership, compatibility cases or transfer, measured baseline, experiment limits, independent review, candidate evidence
+- Update Triggers: selected unmeasured ValueHistory D2 candidate envelope and coexistence accounting, numeric-gate acceptance and current-main integration, PostgreSQL baseline verification, route/command/runner ownership, compatibility cases or transfer, measured baseline, experiment limits, independent review, candidate evidence
 - Related Docs: [Migration contract](./python-backend-migration.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [Contracts](../../contracts/README.md), [Independent applications](./independent-applications.md), [Auth](./auth.md), [Postgres](./postgres.md), [Verification](../operations/github-automation.md), [Deployment](../operations/deployment.md), [Issue 247](https://github.com/KyleDerZweite/spellbook/issues/247)
 
 ## Scope and authorization
@@ -212,6 +212,39 @@ If Node itself exceeds an absolute threshold, record that baseline failure and r
 Do not silently relax a threshold after seeing results.
 Baseline measurement, independent numeric-gate acceptance and candidate acceptance are separate evidence.
 Worker relocation retains the existing publisher-specific download/parse/publication/import budgets; P13 records those exact defaults and total process/storage budgets without borrowing the API's 64 MiB temporary-space allowance.
+
+## ValueHistory D2 candidate measurement envelope
+
+On 2026-10-20, Root independently selected D2 for the planned P15 ValueHistory runner after contract review.
+These are candidate measurement bounds, unallocated and unmeasured; they establish no native fit, Ready status or production setting.
+They transfer no P11 WholeDeckCategory acceptance and alter neither the historical P01 protocol/numeric gates above nor another candidate's budget.
+The [planned P06/P15 interfaces](./python-backend-migration.md#planned-p06p15-query-and-capture-interfaces) own query/capture responsibilities and dependency direction.
+
+| Resource                 | Selected ValueHistory candidate and evidence requirement                                                                                                                                                                                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Process/work             | One installed standalone Python ValueHistory process, one physically unsettled attempt/acquisition, no domain children or HTTP scheduler.                                                                                                  |
+| Own pool                 | Lazy `min_size=0`, `max_size=1`, finite positive native `max_waiting=1`; no hidden backlog, listener, nested checkout or physical overlap. Native `max_waiting=0` does not mean bounded zero.                                              |
+| Timing                   | Preserve the existing 10-second fixed tick, 10-second logical admission and 10-second server statements, plus the 11-second individual query watchdog through complete native receipt.                                                     |
+| Connection establishment | Candidate `connect_timeout=2` seconds sits inside the existing 10-second logical admission. It changes no retained Node/default-production behavior and proves no DNS, retry, cancellation or total native acquisition bound.              |
+| CPU/memory/storage       | One declared CPU core, 512 MiB complete-process peak RSS, 64 MiB finite external temporary storage and zero expected domain file writes. Measure complete holdings/outcome copies, native driver tasks, cache/log spill and every session. |
+| Shutdown                 | One 15-second total observation includes acquisition, query, transaction, lease and pool closure. No renewed stage budget, detached work or forced ownership release on breach.                                                            |
+
+No extra lock timeout, account/batch/cycle deadline, Category decoded-work cap or file/output truncation follows from this envelope.
+If complete legal work cannot fit, retain failed evidence and reconcile the contract; do not shorten source behavior or waive a limit.
+A cancelled waiter or close invocation proves no physical settlement, and a breached observation interval leaves physical work owned.
+Retain one pending native acquisition after logical timeout until its late connection is returned without taking a lease, before another acquisition is allowed.
+
+Coexistence planning sums are one API 11 + ValueHistory 1 + WholeDeckCategory 1 = 13 sessions, or two APIs 22 + ValueHistory 1 + WholeDeckCategory 1 = 24.
+Both exclude publishers, PostgreSQL, collectors/observers/load generators, administration and other support costs, which require separate accounting; the sums allocate nothing.
+Account separately for every process/session, including retained Node, and report complete totals.
+Matched comparison retains unchanged Node with its embedded scheduler and includes the Python API plus separate runners and actual coexistence costs.
+Do not subtract Node polls or helper costs, or count representative API evidence as active-capture acceptance.
+
+P02/P06/P13/P15/P17 and the shared integration writer retain evidence ownership for standalone/coexistence idle, active, failure, admission and shutdown cohorts.
+Required work includes complete 50,000 holdings, 10,000 printing/finish pairs, five conditions and 366 dates, retained-source publication/pruning, complete CPU/RSS/tmp/SQL/session/task/physical-closure accounting and every unchanged P01 API gate.
+All source implementation, native fit, full #248 matched-resource/HTTP/client/parity evidence, actual target acceptance and exact prerequisite integration remain open.
+P15's direct prerequisites and P14 D1 remain as recorded in the migration contract; this selection resolves none of them.
+Android/heavy integration remain manual, and production cutover, migrator rollout and rollback retirement remain separately authorized operations.
 
 ## Numeric review and integration record
 

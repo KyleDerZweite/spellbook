@@ -3,8 +3,8 @@
 - Status: Accepted execution contract, implementation authorized; production cutover pending
 - Last Reviewed: 2026-10-20
 - Source of Truth: ADR-0025, issue 211, baseline code, independent design analysis and Kyle's 2026-10-20 execution direction
-- Update Triggers: dormant P02b representative host and resource ownership, execution scope, integration ownership, source preparation versus production operations, contract acceptance, independent review, framework or schema ownership, delivery gates, parity evidence, rollback
-- Related Docs: [ADR-0025](../decisions/0025-python-api-and-workers.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [Independent applications](./independent-applications.md), [Application contract](./application-contract.md), [Postgres](./postgres.md), [Auth](./auth.md), [Worker](./worker.md), [Deployment](../operations/deployment.md), [Verification](../operations/github-automation.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
+- Update Triggers: planned P06/P15 query and capture ownership, dormant P02b representative host and resource ownership, execution scope, integration ownership, source preparation versus production operations, contract acceptance, independent review, framework or schema ownership, delivery gates, parity evidence, rollback
+- Related Docs: [ADR-0025](../decisions/0025-python-api-and-workers.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [Independent applications](./independent-applications.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Migration evidence](./python-migration-evidence-baseline.md), [Postgres](./postgres.md), [Auth](./auth.md), [Worker](./worker.md), [Deployment](../operations/deployment.md), [Verification](../operations/github-automation.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
 
 ## Scope and status
 
@@ -78,6 +78,65 @@ Password derivation retains its bounded executor and attempt limits; blocking st
 On disconnect, timeout or shutdown, settle owned work and roll back unfinished transactions before releasing connections.
 Cancellation never proves that a commit did not happen.
 The host must close SSE before draining requests, then workers/listeners and pools; FastAPI lifespan teardown alone does not establish this order.
+
+### Planned P06/P15 query and capture interfaces
+
+These accepted interfaces passed independent contract review on 2026-10-20; their Python implementation and native acceptance remain open.
+[Valuation](./valuation.md) and [value tracking](../product/value-tracking.md) retain ownership of implemented Node semantics.
+P06 owns reference SQL, projections, selection, exact estimates and complete frozen outcomes; P15 owns private history, the complete real Dashboard and capture policy.
+HTTP and state workers depend on Core; P06 imports no P15 history policy or runner.
+
+P06 initially delivers the following query seam in its existing earlier [#252](https://github.com/KyleDerZweite/spellbook/issues/252) prerequisite, before P15 consumption:
+
+```python
+type ValuationQuery = Callable[
+    [Transaction, str, Sequence[object]], Awaitable[list[tuple[object, ...]]]]
+
+async def valuation_query(tx: Transaction, sql: str,
+    parameters: Sequence[object]) -> list[tuple[object, ...]]: ...
+
+Valuation.freeze_in_transaction(tx: Transaction, input: object,
+    as_of: datetime, *, query: ValuationQuery | None = None) -> FrozenOutcomeBatch
+```
+
+`Transaction` remains the actual Psycopg connection.
+Only `Valuation.freeze_in_transaction` gains the optional `query=None` keyword; omission or `None` selects P06's ordinary `valuation_query`.
+Ordinary P06/HTTP, P08, `read_in_transaction`, estimates and other read call shapes and deadlines remain unchanged.
+P06 forwards the selected callable unchanged with the identical connection through every baseline-state, printing/observation, optional-state and enabled optional-reference statement and its complete result receipt.
+No direct execute, cursor or fetch path may bypass it.
+Row-producing statements, including empty SELECTs, complete native execute and fetchall before returning tuple rows in database order.
+Commands without rowsets return `[]` only after successful native command completion identified through completed-result metadata.
+Execute, fetch, transport and completion failures propagate; neither swallowed fetch failures nor invented empty results establish success or COMMIT.
+The helper opens no resource and owns no transaction, timeout or capture policy.
+
+P15 owns one resource-free `CaptureQueries(connection)` bound to the actual acquired connection, with read-only `connection` identity and sticky `unusable` state.
+Its `valuation_query(tx, sql, parameters)` verifies connection identity and delegates to its `rows(sql, parameters=())` policy.
+That same policy covers direct capture and holdings SQL, delegated P06 baseline/optional queries, SET, advisory acquisition/unlock, RESET, COMMIT and ROLLBACK.
+The worker owns the connection and session advisory lease; Core owns sequential per-account capture transactions on that connection and snapshot.
+Capture uses neither a nested checkout nor the HTTP `transaction(pool)` wrapper, which reacquires and imposes different deadlines.
+There is no generic executor or backward P06 dependency on P15 delivery or acceptance.
+
+Each capture statement retains the existing 11-second client watchdog from before execute through complete native tuple-row or command receipt, without restarting at fetch.
+The 10-second server statement limit remains separate; no new account, batch or cycle deadline follows.
+Transport loss, watchdog expiry, cancellation with unproven native outcome and failed rollback/cleanup latch `unusable` before P06's `PriceReadUnavailable` translation.
+Every account failure/finally path checks that state before further SQL.
+An unusable connection admits no retry, next-account SQL, rollback, unlock, reset or default-helper fallback.
+Recoverable PostgreSQL errors retain actual rollback and continuation; loss, cancellation and failed cleanup abort traversal.
+Native work remains owned through repeated cancellation until actual settlement or joined physical close/discard, before pool reuse or another attempt.
+A timeout, cancelled waiter or close invocation proves no settlement.
+Confirmed COMMIT stays confirmed; uncertain COMMIT stays uncertain and recovers through a later ordinary leased observation, without blind retry, deletion or an assertion of rollback.
+User mutations retain their original receipts and transactional effects; capture creates no user receipt.
+
+P15's test-only runner construction controls consume `admission_timeout_ms` only in the runner and forward `observation_clock`, `account_ids`, `after_batch` and `before_commit` to the actual Core attempt.
+Normal construction exposes no controls through HTTP, environment or production configuration.
+The repeated 25 ms admission test must settle its blocker while awaiting close and prove physical join; controlled clocks and `run_once` do not prove a genuine scheduled observation.
+The [D2 candidate measurement envelope](./python-migration-evidence-baseline.md#valuehistory-d2-candidate-measurement-envelope) owns separate runner resource requirements.
+
+Publication establishes durable planning context only and makes no ticket Ready.
+P06 retains P03 [#249](https://github.com/KyleDerZweite/spellbook/issues/249) and transitive full P02 [#248](https://github.com/KyleDerZweite/spellbook/issues/248) prerequisites.
+P15 retains direct [#251](https://github.com/KyleDerZweite/spellbook/issues/251), [#252](https://github.com/KyleDerZweite/spellbook/issues/252), [#254](https://github.com/KyleDerZweite/spellbook/issues/254) and [#261](https://github.com/KyleDerZweite/spellbook/issues/261) prerequisites, including exact integrated Inventory/Auth bindings and P14 D1.
+Source delivery, installed-driver receipt/acquisition/cancellation/shutdown, real PostgreSQL/calendar/retention, built direct/proxy HTTP, two-process scheduling/SSE, genuine scheduled observation, matched resources, same-data rollback and client/target/owner acceptance remain open with their implementing owners.
+Node stays active/default; clients and local recognition remain unchanged, final integration stays unmerged and production operations retain separate authorization.
 
 ## Wire schema and SQL ownership
 
