@@ -4,18 +4,19 @@ Multipart parsing uses Starlette's maintained parser. Runtime assembly needs
 python-multipart==0.0.32; the bounded raw body is parsed without FastAPI coercion.
 """
 
+import base64
 import re
 from collections.abc import AsyncGenerator
 
 from spellbook_core.auth import SessionAuth
 from spellbook_core.models import Actor
 from spellbook_core.scan import Scan, ScanError
-from starlette.datastructures import UploadFile
+from starlette.datastructures import FormData, UploadFile
 from starlette.formparsers import MultiPartException, MultiPartParser
 from starlette.requests import Request
 from starlette.responses import Response
 
-from .auth import get_bearer_token, require_mobile_auth
+from .auth import require_mobile_auth
 from .errors import HttpError, json_response
 from .parsing import (
     decode_parameter,
@@ -29,41 +30,66 @@ from .router import HttpRoute
 
 BASE = "/api/mobile/v1/mtg/scan"
 MAX_MULTIPART_BYTES = 12 * 1024 * 1024
+_FILENAME = re.compile(
+    rb'(?:^|;)[ \t]*filename=[ \t]*(?:"([^"\r\n]*)"|([^; \t\r\n]*))', re.IGNORECASE
+)
 
 
-def _form_origin(
-    request: Request, origin: str, *, upload: bool = False, create: bool = False
-) -> None:
-    if request.method not in {"POST", "PUT", "PATCH", "DELETE"}:
-        return
-    media = trim((header(request, "content-type") or "").split(";")[0]).lower()
-    if media and media not in {
-        "application/x-www-form-urlencoded",
-        "multipart/form-data",
-        "text/plain",
-        "application/x-sveltekit-formdata",
-    }:
-        return
-    supplied = header(request, "origin")
-    if supplied == origin:
-        return
-    if supplied is None and get_bearer_token(request):
-        if upload and media == "multipart/form-data":
+class _ScanMultipartParser(MultiPartParser):
+    """Track the closing delimiter and restore Fetch's quoted filename escapes."""
+
+    _complete = False
+
+    def on_end(self) -> None:
+        self._complete = True
+
+    def on_headers_finished(self) -> None:
+        super().on_headers_finished()
+        file = self._current_part.file
+        if file is None:
             return
-        length = header(request, "content-length") or "0"
-        bodyless = "transfer-encoding" not in request.headers and not length.lstrip("0")
-        if create and not media and bodyless:
-            return
-    raise HttpError(403, f"Cross-site {request.method} form submissions are forbidden")
+        # Fetch replaces only these three escapes in quoted disposition values.
+        # In particular, %2F, %25 and unquoted %22 remain literal.
+        matches = list(_FILENAME.finditer(self._current_part.content_disposition or b""))
+        if matches and (quoted := matches[-1][1]) is not None:
+            filename = quoted.decode("utf-8-sig", "replace")
+            file.filename = re.sub(
+                "%0[ad]",
+                lambda m: "\n" if m[0].lower() == "%0a" else "\r",
+                filename,
+                flags=re.IGNORECASE,
+            ).replace("%22", '"')
+
+    async def parse(self) -> FormData:
+        form = await super().parse()
+        if not self._complete:
+            # Starlette's parser can return completed parts before the final
+            # delimiter. Close both those files and any unfinished current file.
+            for file in self._files_to_close_on_error:
+                file.close()
+            raise MultiPartException("Incomplete multipart upload")
+        return form
+
+
+def _file_body(body: bytes, file: UploadFile) -> bytes:
+    encodings = file.headers.getlist("content-transfer-encoding")
+    if not encodings or encodings[-1].strip(" \t") != "base64":
+        return body
+    # Node uses Buffer.from(body.toString(), 'base64'): exact lowercase encoding,
+    # UTF-8 replacement, low UTF-16 bytes, URL-safe alphabet and forgiving padding.
+    encoded = body.decode("utf-8", "replace").encode("utf-16-le")[::2]
+    digits = re.sub(rb"[^A-Za-z0-9+/_-]", b"", encoded.split(b"=", 1)[0])
+    if len(digits) % 4 == 1:
+        digits = digits[:-1]
+    return base64.b64decode(digits + b"=" * (-len(digits) % 4), altchars=b"-_")
 
 
 def create_scan_routes(auth: SessionAuth, scan: Scan, origin: str) -> list[HttpRoute]:
-    async def actor(request: Request, *, upload: bool = False, create: bool = False) -> Actor:
-        _form_origin(request, origin, upload=upload, create=create)
+    async def actor(request: Request) -> Actor:
         return await require_mobile_auth(request, auth, origin)
 
     async def create_session(request: Request, params: dict[str, str]) -> Response:
-        user = await actor(request, create=True)
+        user = await actor(request)
         return json_response(
             {"session": await scan.create_session(user)}, headers={"Cache-Control": "no-store"}
         )
@@ -75,7 +101,7 @@ def create_scan_routes(auth: SessionAuth, scan: Scan, origin: str) -> list[HttpR
         )
 
     async def upload_frame(request: Request, params: dict[str, str]) -> Response:
-        user = await actor(request, upload=True)
+        user = await actor(request)
         session_id = require_uuid(decode_parameter(params["sessionId"]), "sessionId")
         await scan.assert_uploadable(user, session_id)
         media = trim((header(request, "content-type") or "").split(";")[0]).lower()
@@ -86,7 +112,7 @@ def create_scan_routes(auth: SessionAuth, scan: Scan, origin: str) -> list[HttpR
         async def stream() -> AsyncGenerator[bytes]:
             yield body
 
-        parser = MultiPartParser(
+        parser = _ScanMultipartParser(
             request.headers,
             stream(),
             max_files=float("inf"),
@@ -105,7 +131,7 @@ def create_scan_routes(auth: SessionAuth, scan: Scan, origin: str) -> list[HttpR
             result = await scan.upload_frame(
                 user,
                 session_id=session_id,
-                body=await file.read(),
+                body=_file_body(await file.read(), file),
                 content_type=(file.content_type or "application/octet-stream")
                 .strip(" \t\r\n")
                 .lower(),
