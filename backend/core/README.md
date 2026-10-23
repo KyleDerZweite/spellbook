@@ -1,7 +1,14 @@
 # Python application and SQL package
 
-Core owns typed session authority, Catalog browsing, Inventory/Groups reads and mutations with original receipts, SavedState subscriptions/authority/fanout, local credentials/sessions, QR authorization, Profile preferences/cards/totals, Valuation, current and historical Inventory values, Dashboard and shared compatibility rules.
+Core owns typed session authority, Catalog browsing, Inventory/Groups reads and mutations with original receipts, SavedState subscriptions/authority/fanout, local credentials/sessions, QR authorization, Profile preferences/cards/totals, Valuation, current and historical Inventory values, Dashboard, Decks and shared compatibility rules.
 `create_local_auth(pool, passwords, demo_mode=False)` extends `SessionAuth` without changing its trusted Actor methods.
+`create_decks(pool, catalog, auth, valuation=None)` owns Deck CRUD, bounded Library/category/locate/choices reads, selected snapshots, ownership/search, legality, Arena import/export and entry mutations.
+`Decks` exposes the corresponding snake-case application methods, including `add_catalog_card_to_deck`, `change_deck_printing`, `import_into_deck`, `import_deck`, `update_deck_card` and `remove_deck_card` for the web command adapter.
+Its Category transaction uses the integrated initialization, merge-preview and whole-Deck job helpers, with Profile locking and live-session rechecks before receipt replay or writes.
+Original receipts survive subsequent edits and Deck deletion; legacy null receipts suppress repeated writes.
+The API's `create_deck_routes(auth, decks, origin)` supplies all nineteen adapters; shared host registration remains with the assembler.
+`tests/test_decks_postgres.py` is opt-in under `DECK_NATIVE_DATABASE`, requires the protected connection to match Root's exact disposable assignment, and starts no service or migrator.
+Root owns execution of those real PostgreSQL journeys.
 `create_profile(pool, auth, demo_mode=False)` owns Profile reads and atomic partial updates.
 `create_dashboard(pool, auth, values)` owns account aggregates and Deck availability in one repeatable-read snapshot, passing its transaction and PostgreSQL clock to `InventoryValues.current_in_transaction` and `history_in_transaction`.
 Scan and price failures use savepoint recovery while summary overflow remains a typed failure.
