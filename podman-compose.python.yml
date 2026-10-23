@@ -1,0 +1,21 @@
+# Explicit unmerged Python candidate. Include with the base Compose file.
+# Replaces the Node API, whose embedded schedulers must not run beside this owner.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: backend/api/Dockerfile
+
+  state-worker:
+    build:
+      context: .
+      dockerfile: backend/workers/state/Dockerfile
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-spellbook}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-spellbook}
+      VALUE_HISTORY_ENABLED: ${VALUE_HISTORY_ENABLED:-true}
+      VALUE_HISTORY_TIMEZONE: ${VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
+      COMMANDER_SPELLBOOK_ENABLED: ${COMMANDER_SPELLBOOK_ENABLED:-false}
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped

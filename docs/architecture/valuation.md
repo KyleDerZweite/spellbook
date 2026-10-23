@@ -1,9 +1,9 @@
 # Valuation
 
 - Status: Scryfall and optional provider references/public source history implemented; personal Inventory history and Dashboard/selected-Deck estimates implemented
-- Last Reviewed: 2026-10-20
+- Last Reviewed: 2026-10-23
 - Source of Truth: reference contracts, backend Valuation, Worker publication and accepted value-only scope
-- Update Triggers: source publication, mapping, exact-decimal evaluation, public history, pruning, private checkpoint persistence, capture scheduling, safe summary contracts and acceptance evidence
+- Update Triggers: separately packaged Python ValueHistory scheduler, source publication, mapping, exact-decimal evaluation, public history, pruning, private checkpoint persistence, capture scheduling, safe summary contracts and acceptance evidence
 - Related Docs: [Architecture](./README.md), [Value tracking](../product/value-tracking.md), [Market price research](../integrations/market-prices.md), [Application contract](./application-contract.md), [Postgres](./postgres.md), [Worker](./worker.md), [ADR-0020](../decisions/0020-value-only-inventory-history.md), [ADR-0022](../decisions/0022-daily-value-observation-checkpoints.md)
 
 [Value tracking](../product/value-tracking.md) owns reference selection, coverage, reporting calendar, personal history and Deck estimates.
@@ -34,8 +34,10 @@ Migration 0020, Backend Valuation and private Dashboard/history/selected-Deck pr
 [ADR-0022](../decisions/0022-daily-value-observation-checkpoints.md) records the observed end-of-day policy.
 Backend Valuation owns the implementation; source ingestion never reads private holdings.
 
-The application runtime observes accounts in the final 60 seconds before midnight in the configured IANA timezone, default `Europe/Berlin`.
+The selected runtime owner observes accounts in the final 60 seconds before midnight in the configured IANA timezone, default `Europe/Berlin`.
 It attempts another checkpoint every ten seconds while that window is open.
+Node currently owns the embedded scheduler; the Python candidate delegates it to the independent `spellbook-state-worker`, never HTTP.
+The explicit Python Compose override replaces both owners together while default activation remains pending.
 A point means the last successful consistent observation in that window, with its actual `observedAt`, rather than an exact reconstruction at midnight.
 PostgreSQL computes calendar boundaries with timezone conversion, including 23-hour and 25-hour days.
 The first snapshot statement of each capture transaction obtains the actual PostgreSQL observation clock and checks eligibility again.

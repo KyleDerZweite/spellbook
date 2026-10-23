@@ -3,7 +3,7 @@
 - Status: Canonical compatibility baseline; complete Python functional acceptance pending
 - Last Reviewed: 2026-10-23
 - Source of Truth: frozen Node code and executable neutral fixtures, historical PostgreSQL results, ADR-0027 and Kyle's 2026-10-23 direction
-- Update Triggers: compatibility inventory/transfer, functional integration evidence, tested revisions, host/Dashboard/Scan assembly and installed operator assets, migrator rehearsal and source activation
+- Update Triggers: compatibility inventory/transfer, functional integration evidence, tested revisions, Category/state assembly, host/Dashboard/Scan and installed operator assets, migrator rehearsal and source activation
 - Related Docs: [Migration contract](./python-backend-migration.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [Contracts](../../contracts/README.md), [Independent applications](./independent-applications.md), [Auth](./auth.md), [Postgres](./postgres.md), [Verification](../operations/github-automation.md), [Deployment](../operations/deployment.md), [Issue 247](https://github.com/KyleDerZweite/spellbook/issues/247)
 
 ## Scope and authorization
@@ -180,6 +180,38 @@ That run includes installed operator help/metadata, direct-wheel and sdist-rebui
 API Ruff/format and strict Mypy, the frozen API lock check, API sdist/wheel build, the dependency checker and all five boundary unit cases pass.
 Python 3.14.8 and uv 0.12.23 run these checks in this checkout without database or external-provider access; no container build is claimed.
 
+### Latest integrated and installed evidence, 2026-10-23
+
+Root passed nine actual PostgreSQL cases at `33dadbdfdbf48a4aa0907771c8f001cf64d36330`: three Inventory imports, one Dashboard, four Scan and one Categories case.
+These are distinct from the earlier 27 native domain cases, ten native migrator cases and two retained-data cross-runtime replay cases.
+Both initial shared-package reviews reported zero findings, and the original Auth multipart P2 was independently closed.
+The Category repeated-query fix `b3342a94`, integrated as `a0893040`, has an affected review still in progress.
+This shared follow-up leaves `routes_categories.py` and Root's five mechanical Category test import fixes unchanged.
+
+At `e120f5bbba781368e19deb94fd9efd20ba55d6db`, Root installed Core/API wheels with frozen production dependencies into a fresh external environment and passed all four console-help checks.
+Installed `spellbook-migrate` applied all 25 migrations to an exclusively owned empty disposable PostgreSQL 18 database, then reported no pending migrations; the ledger contained 25 rows.
+The installed password operator updated a real credential and revoked sessions.
+Eight native Operator scenarios passed in 53.71 seconds under the assigned database guard.
+Root removed the scratch database after verifying zero sessions and released the worker lease.
+This establishes installed migrator/password execution and scoped native operators, not complete retained-data rollback or later state-worker acceptance.
+
+Root reports Core 494 passed/61 skipped and API 405 passed/6 skipped at `a0893040`, with both packages' Ruff/format/strict Mypy passing after mechanical test import sorting `2622d284`.
+The current-head GitHub Python API/Core job passed there.
+The application job found only Prettier formatting in the transferred Category Combo JSON fixture; Root owns that semantic-preserving formatting correction.
+These results belong to that integration head and do not establish CI for this later state package.
+The retained Node rollback artifact remains the scoped recovery reference; obsolete ignored migration-cycle material is not current authority.
+
+The new package composes all seventeen Category routes and owns optional Combo configuration on API/state pools.
+`spellbook-state-worker` owns ValueHistory and WholeDeckCategory schedulers independently of HTTP.
+An explicit Python Compose override replaces the Node API and selects that state owner together; defaults, Deck APIs, web commands and Node contraction remain later work.
+Installed state-wheel, lifecycle and CI-selection checks do not establish real scheduled observations, durable job execution or container shutdown acceptance.
+The shared follow-up based on `a49b0eab` plus the unchanged Category prerequisite passes 398 API cases with five native skips using `SPELLBOOK_TEST_WHEEL=1`, and 13 state cases without skips using `SPELLBOOK_TEST_STATE_WHEEL=1`.
+State Ruff/format/strict Mypy, API strict Mypy/format and owned-file Ruff, both frozen lock checks, state sdist/wheel builds, API's external wheel test, 19 CI-selection cases and all five boundary cases pass.
+Full API Ruff in this isolated branch still reports the imported `test_categories_http.py` grouping fixed by Root in `2622d284`; those files were deliberately left unchanged here.
+Focused formatting uses the available Prettier 3.9.9 with the repository's non-Svelte options; it does not establish the full Application job.
+No database or external service/provider was used; Compose startup, container builds and actual scheduled state operation remain unexecuted.
+
+
 ### Python migrator, 2026-10-23
 
 The prepared migrator at `21758fe0f82981d2567be47b4b6cd48b7ca589e3` passed both independent source-review axes with no findings.
@@ -194,7 +226,8 @@ The checks used an exclusive temporary database through the protected disposable
 The shared assembly now bundles exact SQL/journal/snapshot bytes in wheels and sdists and registers `spellbook-migrate`.
 Its external installed-wheel check passes without a source `PYTHONPATH`, including a wheel rebuilt from the sdist, asset hashes, missing configuration, explicit override and substituted no-op calls.
 That packaging check does not connect to PostgreSQL.
-Real installed migrator execution and complete retained-data/client integration remain pending with Root.
+Root later executed the installed migrator and password command as recorded above.
+Complete retained-data/client integration and real state-worker acceptance remain pending with Root.
 
 ## Historical verification provenance
 

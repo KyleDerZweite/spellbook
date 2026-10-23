@@ -1,16 +1,16 @@
 # Category persistence and rules
 
 - Status: Account Category Library, entry rules, local category controls and entry Review/Reset implemented; whole-deck evaluation implemented; local combo adapter implemented
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-10-23
 - Source of Truth: Q56 contract, reviewed whole-deck and local combo contracts dated 2026-10-08, Category backend/contracts, Worker raw facts and native/API adapters
-- Update Triggers: backend migration ownership, definition versions, deck-local bundles, rule vocabulary and priority, source publications, composition jobs, Review/Reset, combo constraints and category acceptance evidence, operational work budgets, consequence retention and commit-scoped saved-state invalidation
+- Update Triggers: Python Category HTTP assembly and independent state runner, backend migration ownership, definition versions, deck-local bundles, rule vocabulary and priority, source publications, composition jobs, Review/Reset, combo constraints and category acceptance evidence, operational work budgets, consequence retention and commit-scoped saved-state invalidation
 - Related Docs: [Architecture](./README.md), [Card grouping](../product/card-grouping.md), [Domain glossary](../../GLOSSARY.md), [Classifier research](../integrations/card-categorization.md), [Application contract](./application-contract.md), [Catalog](./catalog.md), [Worker](./worker.md), [ADR-0019](../decisions/0019-versioned-categories-and-local-source-rules.md), [Independent applications](./independent-applications.md)
 
 [Card grouping](../product/card-grouping.md) owns category behavior and manual choices.
 This document owns accepted storage, rule interfaces and evaluation lifecycle.
 Starter entry categories, Oracle Tags ingestion, immutable account definitions and entry Review/Reset are implemented.
 Whole-deck evaluation, scoped Review/Reset and bounded directory reads are implemented.
-The Commander Spellbook matcher remains a later slice.
+The Python candidate composes the existing optional local Combo matcher; public ingestion and deployment remain separately owned.
 
 ## Implemented starter entry decisions
 
@@ -66,6 +66,11 @@ Inspector and native Main-entry forms show provenance and save Manual choices th
 Read failures remain infrastructure failures, never evaluated Unknown.
 The Account Library and entry Review/Reset extend these decisions as described below.
 Whole-deck jobs are implemented separately from entry decisions.
+The Python candidate registers all seventeen Category/Library/whole routes through the existing factory and error mapping.
+`COMMANDER_SPELLBOOK_ENABLED` configures the optional local Combo adapter on each API/state pool.
+Its ordinary ICU dependency preserves Node `en-US` ordering of Unicode witness IDs.
+The independent state worker claims durable whole-deck jobs; Python HTTP starts no scheduler.
+Default Node activation remains unchanged until the later migration stage.
 The optional local combo matcher is described below.
 
 Library version/archive changes, local rename/removal, Manual decisions and reviewed commits publish the existing commit-scoped `decks` invalidation inside the same transaction as their state and original receipt.

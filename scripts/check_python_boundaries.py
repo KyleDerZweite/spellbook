@@ -25,7 +25,7 @@ class Violation:
 def forbidden(owner: str, module: str) -> str | None:
     parts = module.split(".")
     api = parts[0] == "spellbook_api" or parts[:2] == ["backend", "api"]
-    worker = parts[0] in {"worker", "scan_worker"} or parts[:2] == [
+    worker = parts[0] in {"worker", "scan_worker", "spellbook_state"} or parts[:2] == [
         "backend",
         "workers",
     ]

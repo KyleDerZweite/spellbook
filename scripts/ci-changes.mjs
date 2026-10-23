@@ -7,7 +7,8 @@ const all = () => ({
 	application: true,
 	worker: true,
 	scan_worker: true,
-	python_backend: true
+	python_backend: true,
+	state_worker: true
 });
 
 export function classifyPaths(paths) {
@@ -15,7 +16,8 @@ export function classifyPaths(paths) {
 		application: false,
 		worker: false,
 		scan_worker: false,
-		python_backend: false
+		python_backend: false,
+		state_worker: false
 	};
 	for (const path of paths) {
 		if (
@@ -46,6 +48,10 @@ export function classifyPaths(paths) {
 			/^scripts\/(check|test)_python_boundaries\.py$/.test(path)
 		) {
 			checks.python_backend = true;
+			if (path.startsWith('backend/core/')) checks.state_worker = true;
+		} else if (path.startsWith('backend/workers/state/')) {
+			checks.python_backend = true;
+			checks.state_worker = true;
 		} else if (path.startsWith('contracts/')) {
 			checks.application = true;
 			checks.python_backend = true;
@@ -53,6 +59,7 @@ export function classifyPaths(paths) {
 			checks.application = true;
 			checks.worker = true;
 			checks.python_backend = true;
+			checks.state_worker = true;
 		} else if (path.startsWith('android/')) continue;
 		else if (path.startsWith('backend/workers/catalog/') || path.startsWith('worker/'))
 			checks.worker = true;

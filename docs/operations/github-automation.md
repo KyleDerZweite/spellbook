@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-23
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
-- Update Triggers: functional Python migration acceptance and retired P01 proof requirements, setup-java v6 compatibility, Python host/Dashboard/Scan assembly and installed migrator/operator checks, manual native acceptance and import boundaries, independent API/web ownership and relocated code references, native initial Deck Search publication regression, conditional CI scope, manual-only heavy workflows and consolidated jobs, native Inventory measurement regression, portable opt-in browsing performance evidence and artifact provenance, PWA worker build harness and tsconfig, QR integration/HTTP and pending target acceptance, Dev launcher lifecycle tests, test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
+- Update Triggers: functional Python migration acceptance and retired P01 proof requirements, setup-java v6 compatibility, Python Category/state packaging, host/Dashboard/Scan assembly and installed migrator/operator checks, manual native acceptance and import boundaries, independent API/web ownership and relocated code references, native initial Deck Search publication regression, conditional CI scope, manual-only heavy workflows and consolidated jobs, native Inventory measurement regression, portable opt-in browsing performance evidence and artifact provenance, PWA worker build harness and tsconfig, QR integration/HTTP and pending target acceptance, Dev launcher lifecycle tests, test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
 - Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance), [Application boundaries](../architecture/application-contract.md#implementation-status)
 
 This document owns repository check commands, CI coverage, and verification evidence.
@@ -205,6 +205,13 @@ Host tests verify that request cleanup precedes worker/storage shutdown and the 
 Those fixtures do not establish S3 target, proxy, independently installed worker or real Scan transaction acceptance.
 This does not replace a real installed migrator or operator rehearsal.
 The opt-in `backend/core/tests/test_dashboard_postgres.py` case uses the existing `P02B_CORE_NATIVE_DATABASE` guard and assigned target; it verifies account aggregates, exact-first Deck allocation and coherent current/history results.
+
+The state worker owns an independent frozen project at `backend/workers/state`, with the same Ruff/format, strict Mypy, build and pytest commands run from its own working directory.
+Frozen sync also uses `--reinstall-package spellbook-core` after Core changes.
+Its opt-in external installation runs with `SPELLBOOK_TEST_STATE_WHEEL=1` and checks an sdist-built production wheel without API dependencies or a source `PYTHONPATH`.
+Unit lifecycle checks start only injected scheduler/pool seams, never a database service.
+The boundary checker recognizes `spellbook_state` as a worker import and rejects Core/API dependencies on it.
+Actual leased captures and durable job effects remain real integration acceptance.
 
 Core has independent unit/type/lint/build checks; API also verifies consumers of its locally installed Core wheel.
 Existing Core/API native tests require their three explicit P02B_*_NATIVE_DATABASE guards and an exclusive assigned api_python environment.
@@ -423,10 +430,13 @@ Run the relevant manual or documented local checks before claiming their coverag
 
 PR scope uses the complete local Git merge-base diff between event base/head SHAs; main pushes use the pushed `base..head` diff.
 Paths are NUL-delimited and rename detection is disabled so additions and deletions both count.
-`backend/api/`, `backend/core/` and the Python boundary scripts select Python API/Core; Core changes therefore also verify API consumers.
+`backend/api/`, `backend/core/`, `backend/workers/state/` and the Python boundary scripts select Python API/Core.
+State package, Core and SQL changes also select the state package step in that existing job.
+API-only edits keep state checks unselected.
+The job installs ordinary ICU before Core Combo tests and retains all other existing CI ownership; broader CI audit proposals remain unselected.
 Shared `contracts/` select both Application Checks and Python API/Core, including Discovery compatibility.
 Other `frontend/`, `backend/` and `scripts/` source paths select Application Checks.
-Migration paths under `backend/drizzle/`, including the legacy frontend path, select Application Checks, Python API/Core and Catalog worker tests.
+Migration paths under `backend/drizzle/`, including the legacy frontend path, select Application Checks, Python API/Core, the state package step and Catalog worker tests.
 `backend/workers/catalog/` selects Catalog tests; `backend/workers/scan/` selects Application Checks and Scan worker tests.
 Android-only changes and known documentation alone select no substantive automatic job.
 JS workspace/lockfile changes select Application Checks without forcing Python.

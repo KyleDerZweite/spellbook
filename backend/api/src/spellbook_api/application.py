@@ -11,6 +11,7 @@ from psycopg import AsyncConnection
 from psycopg_pool import AsyncConnectionPool
 from spellbook_core.auth import create_local_auth
 from spellbook_core.catalog import create_catalog
+from spellbook_core.categories import configure_combo_adapter, create_categories
 from spellbook_core.dashboard import create_dashboard
 from spellbook_core.inventory import create_inventory
 from spellbook_core.inventory_value import create_inventory_values
@@ -48,6 +49,7 @@ class ApplicationResources:
                 "application_name": f"spellbook-python-api:{os.getpid()}",
             },
         )
+        configure_combo_adapter(self.pool, configuration.commander_spellbook_enabled)
         self.admission = RequestAdmission()
         self.executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="spellbook-scrypt")
         self.passwords = create_password_verifier(self.executor)
@@ -55,6 +57,7 @@ class ApplicationResources:
         self.auth = create_local_auth(self.pool, self.passwords, configuration.demo_mode)
         self.profile = create_profile(self.pool, self.auth, configuration.demo_mode)
         self.catalog = create_catalog(self.pool)
+        self.categories = create_categories(self.pool, self.auth)
         self.valuation = create_valuation(
             self.pool, self.auth, timezone=configuration.value_history_timezone
         )
@@ -161,6 +164,7 @@ def create_application(configuration: Configuration) -> ApplicationLifetime:
             valuation=resources.valuation,
             dashboard=resources.dashboard,
             scan=resources.scan,
+            categories=resources.categories,
             saved_routes=resources.saved_routes,
             admission=resources.admission,
         )

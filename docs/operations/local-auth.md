@@ -125,7 +125,8 @@ The prepared Python API package provides `spellbook-demo-seed` and `spellbook-de
 Demo target guards and preservation rules still apply.
 Installed wheels and sdists bundle unchanged canonical fixtures under `spellbook_api/operators/assets`; source runs use `backend/scripts/demo`, and both retain `--fixtures-dir`.
 The installed CLI help, asset hashes, fixture discovery and bundle validation are tested without connecting to a database.
-Real installed operator execution remains separate integration evidence.
+Root executed the installed password command and eight guarded native Operator scenarios at `e120f5bb`; the migration evidence baseline records their scope.
+Those results do not establish later state-worker or deployment acceptance.
 Deployment remains separate.
 
 ## Replace the original private Demo starter

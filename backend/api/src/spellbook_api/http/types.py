@@ -29,6 +29,7 @@ class Configuration:
     value_history_timezone: str = "Europe/Berlin"
     scan_storage: ScanStorageConfiguration = field(default_factory=ScanStorageConfiguration)
     scan_worker_url: str = "http://scan-worker:8080"
+    commander_spellbook_enabled: bool = False
 
     def __post_init__(self) -> None:
         try:
@@ -86,12 +87,16 @@ class Configuration:
         raw_port = env.get("API_PORT", "3002")
         if not re.fullmatch(r"[0-9]+", raw_port):
             raise ValueError("API_PORT must be between 1 and 65535")
+        combo = env.get("COMMANDER_SPELLBOOK_ENABLED", "false")
+        if combo not in {"true", "false"}:
+            raise ValueError("COMMANDER_SPELLBOOK_ENABLED must be true or false")
         return cls(
             public_origin=env.get("APP_ORIGIN", "").strip(),
             host=env.get("API_HOST", "127.0.0.1").strip(),
             port=int(raw_port),
             database_url=env.get("DATABASE_URL") or None,
             demo_mode=env.get("DEMO_MODE") == "true",
+            commander_spellbook_enabled=combo == "true",
             scan_storage=ScanStorageConfiguration.from_environment(env),
             scan_worker_url=env.get("SCAN_WORKER_URL", "http://scan-worker:8080"),
             value_history_timezone=env.get("VALUE_HISTORY_TIMEZONE", "Europe/Berlin"),

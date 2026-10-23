@@ -23,6 +23,7 @@ jobs:
       worker: ${{ steps.scope.outputs.worker }}
       scan_worker: ${{ steps.scope.outputs.scan_worker }}
       python_backend: ${{ steps.scope.outputs.python_backend }}
+      state_worker: ${{ steps.scope.outputs.state_worker }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -80,6 +81,8 @@ jobs:
           version: '0.12.23'
           enable-cache: true
       - run: uv python install 3.14.8
+      - name: ICU for Core Combo witness ordering
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libicu-dev
       - name: Core package checks
         working-directory: backend/core
         run: |
@@ -92,6 +95,17 @@ jobs:
           uv run --no-sync pytest
       - name: API package and compatibility checks
         working-directory: backend/api
+        run: |
+          uv lock --check --python 3.14.8
+          uv sync --frozen --extra dev --python 3.14.8 --reinstall-package spellbook-core
+          uv run --no-sync ruff check
+          uv run --no-sync ruff format --check
+          uv run --no-sync mypy
+          uv build
+          uv run --no-sync pytest
+      - name: State worker package checks
+        if: needs.changes.outputs.state_worker == 'true'
+        working-directory: backend/workers/state
         run: |
           uv lock --check --python 3.14.8
           uv sync --frozen --extra dev --python 3.14.8 --reinstall-package spellbook-core

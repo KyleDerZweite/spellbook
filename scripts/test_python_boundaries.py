@@ -28,6 +28,7 @@ class BoundaryTests(unittest.TestCase):
             "from backend import api",
             "from worker.catalog import CatalogPublisher",
             "from backend.workers import state",
+            "import spellbook_state.value_history",
             "if TYPE_CHECKING:\n from spellbook_api.http.types import Configuration",
             "from . import uvicorn",
         ):
@@ -84,6 +85,7 @@ class BoundaryTests(unittest.TestCase):
             with self.subTest(file=file):
                 self.check(file, code, None)
         self.check("backend/api/src/spellbook_api/main.py", "import worker", "api-worker")
+        self.check("backend/api/src/spellbook_api/main.py", "import spellbook_state", "api-worker")
 
     def test_syntax_errors_fail_closed(self) -> None:
         with self.assertRaises(SyntaxError):

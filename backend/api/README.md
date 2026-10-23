@@ -1,6 +1,6 @@
 # Dormant Python API candidate
 
-The candidate assembles Auth/QR, Account/Profile/Dashboard, all seven Catalog adapters, sixteen Inventory/Groups/import adapters, five Valuation adapters, seven Scan adapters and SavedState.
+The candidate assembles Auth/QR, Account/Profile/Dashboard, all seven Catalog adapters, sixteen Inventory/Groups/import adapters, five Valuation adapters, seven Scan adapters, seventeen Category adapters and SavedState.
 Node remains the active default in root scripts, Compose and deployment until the remaining domains and activation work integrate.
 The [migration contract](../../docs/architecture/python-backend-migration.md) owns functional acceptance and remaining integration work.
 There are no schedulers or ingestion jobs in this process.
@@ -38,7 +38,7 @@ Generated framework docs/schema are disabled.
 The host uses `create_catalog_routes`, `create_inventory_routes` and `create_valuation_routes` without singleton or item-handler duplicates.
 Auth/Account/session/SavedState remain registered once.
 Inventory import preview/commit routes now use the integrated implementation.
-Categories, Decks and the closed web command endpoint await their owning slices.
+The Category factory and its domain-specific error mapping are active; Decks and the closed web command endpoint await their owning slices.
 
 The host constructs `LocalAuth` with its owned password executor and constructs `Profile` with that same authority.
 `LocalAuth` extends the existing `SessionAuth` actor interface.
@@ -152,3 +152,10 @@ No-DB Discovery startup constructs neither adapter.
 Request settlement precedes adapter close, and both adapters close before the request pool, including after startup or close failures.
 Tests exercise local storage, Boto3 against a task-owned HTTP protocol fixture, the actual scaffold source over TCP, timeout and shutdown.
 Real Scan PostgreSQL, proxy, independently installed worker and S3 target acceptance remain with Root.
+
+`COMMANDER_SPELLBOOK_ENABLED` retains the existing strict `true`/`false` switch and defaults to `false`.
+The host configures the optional local Combo adapter on its owned pool before constructing Categories.
+API and state images install system ICU for the existing Node-compatible Unicode witness ordering; no Python ICU binding or new service is introduced.
+The separate [state worker](../workers/state/README.md) owns ValueHistory and WholeDeckCategory scheduling.
+API startup does not create either scheduler.
+The explicit Python Compose override selects API and state ownership together; default activation remains pending.

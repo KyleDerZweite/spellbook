@@ -13,6 +13,9 @@ COPY contracts/openapi.json contracts/openapi.json
 RUN uv sync --project backend/api --frozen --no-dev --no-editable --python 3.14.8
 
 FROM python:3.14.8-slim-bookworm AS runtime
+# Core uses ordinary ICU en-US collation for opaque Combo variant witness IDs.
+RUN apt-get update && apt-get install -y --no-install-recommends libicu72 \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /app/backend/api/.venv /app/backend/api/.venv
 ENV API_HOST=127.0.0.1

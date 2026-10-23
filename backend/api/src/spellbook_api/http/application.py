@@ -8,6 +8,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from spellbook_core.auth import LocalAuth, SessionAuth
 from spellbook_core.catalog import Catalog
+from spellbook_core.categories import Categories
 from spellbook_core.dashboard import Dashboard
 from spellbook_core.inventory import Inventory
 from spellbook_core.profile import Profile
@@ -20,6 +21,7 @@ from spellbook_api.http import (
     routes_account,
     routes_auth,
     routes_catalog,
+    routes_categories,
     routes_inventory,
     routes_scan,
     routes_valuation,
@@ -48,6 +50,7 @@ def create_http_application(
     valuation: Valuation | None = None,
     dashboard: Dashboard | None = None,
     scan: Scan | None = None,
+    categories: Categories | None = None,
 ) -> FastAPI:
     resource = files("spellbook_api").joinpath("openapi.json")
     schema_text = (
@@ -102,6 +105,12 @@ def create_http_application(
         if auth is None:
             raise ValueError("Scan routes require Auth")
         routes.extend(routes_scan.create_scan_routes(auth, scan, configuration.public_origin))
+    if categories is not None:
+        if auth is None:
+            raise ValueError("Category routes require Auth")
+        routes.extend(
+            routes_categories.create_category_routes(auth, categories, configuration.public_origin)
+        )
     if isinstance(auth, LocalAuth):
         routes.extend(
             routes_auth.create_auth_routes(

@@ -18,19 +18,22 @@ const app = {
 	application: true,
 	worker: false,
 	scan_worker: false,
-	python_backend: false
+	python_backend: false,
+	state_worker: false
 };
 const all = {
 	application: true,
 	worker: true,
 	scan_worker: true,
-	python_backend: true
+	python_backend: true,
+	state_worker: true
 };
 const none = {
 	application: false,
 	worker: false,
 	scan_worker: false,
-	python_backend: false
+	python_backend: false,
+	state_worker: false
 };
 
 const workflow = (name) =>
@@ -97,7 +100,7 @@ test('automatic CI retains scoped checks without invoking a heavy workflow', () 
 	])
 		assert.ok(source.includes(`- run: pnpm ${command}\n`), command);
 	assert.doesNotMatch(source, /run: pnpm (test:dev|--dir \.\. test:(dev|packaging|boundaries))/);
-	for (const key of ['application', 'worker', 'scan_worker', 'python_backend'])
+	for (const key of ['application', 'worker', 'scan_worker', 'python_backend', 'state_worker'])
 		assert.ok(source.includes(`${key}: \${{ steps.scope.outputs.${key} }}`), key);
 	assert.match(
 		source,
@@ -120,7 +123,7 @@ test('automatic CI retains scoped checks without invoking a heavy workflow', () 
 	])
 		assert.equal(
 			source.split(command).length - 1,
-			command === 'pytest' ? 4 : command.startsWith('ruff') ? 5 : 4,
+			command === 'pytest' ? 5 : command.startsWith('ruff') ? 6 : 5,
 			command
 		);
 });
@@ -169,16 +172,19 @@ test('source changes select their consumers, including SQL and Scan cross-projec
 	assert.deepEqual(classifyPaths(['frontend/drizzle/0024.sql']), {
 		...app,
 		worker: true,
-		python_backend: true
+		python_backend: true,
+		state_worker: true
 	});
 	assert.deepEqual(classifyPaths(['frontend/drizzle/meta/_journal.json']), {
 		...app,
 		worker: true,
-		python_backend: true
+		python_backend: true,
+		state_worker: true
 	});
 	assert.deepEqual(classifyPaths(['worker/uv.lock', 'scan-worker/tests/test_scan.py']), {
 		...all,
-		python_backend: false
+		python_backend: false,
+		state_worker: false
 	});
 });
 
@@ -266,7 +272,8 @@ test('real Git renames expose the deleted source and preserve NUL-delimited file
 		assert.deepEqual(selectChecks({ eventName: 'pull_request', base, head, cwd }), {
 			...app,
 			worker: true,
-			python_backend: true
+			python_backend: true,
+			state_worker: true
 		});
 	});
 });
@@ -305,7 +312,7 @@ test('CLI writes literal booleans to GitHub outputs without dependencies', () =>
 		});
 		assert.equal(
 			readFileSync(output, 'utf8'),
-			'application=false\nworker=false\nscan_worker=false\npython_backend=false\n'
+			'application=false\nworker=false\nscan_worker=false\npython_backend=false\nstate_worker=false\n'
 		);
 	});
 });
@@ -323,11 +330,13 @@ test('native changes stay manual while application consumers retain automatic ch
 	assert.deepEqual(classifyPaths(['backend/drizzle/meta/_journal.json']), {
 		...app,
 		worker: true,
-		python_backend: true
+		python_backend: true,
+		state_worker: true
 	});
 	assert.deepEqual(classifyPaths(['contracts/src/inventory.ts']), {
 		...app,
-		python_backend: true
+		python_backend: true,
+		state_worker: false
 	});
 });
 
@@ -352,14 +361,18 @@ test('Python-only API/core changes and shared contracts select Python compatibil
 		'scripts/check_python_boundaries.py',
 		'scripts/test_python_boundaries.py'
 	])
-		assert.deepEqual(classifyPaths([path]), { ...none, python_backend: true }, path);
+		assert.deepEqual(
+			classifyPaths([path]),
+			{ ...none, python_backend: true, state_worker: path.startsWith('backend/core/') },
+			path
+		);
 	for (const path of ['contracts/openapi.json', 'contracts/compatibility/golden.json'])
 		assert.deepEqual(classifyPaths([path]), { ...app, python_backend: true }, path);
 	assert.deepEqual(classifyPaths(['backend/api/README.md', 'backend/core/README.md']), none);
 	const source = workflow('ci.yml');
 	assert.match(source, /name: Python API\/Core/);
 	assert.match(source, /if: needs.changes.outputs.python_backend == 'true'/);
-	assert.equal(source.split('uv run --no-sync mypy').length - 1, 2);
+	assert.equal(source.split('uv run --no-sync mypy').length - 1, 3);
 	assert.match(source, /python scripts\/check_python_boundaries.py/);
 	assert.match(source, /python -m unittest discover -s scripts -p test_python_boundaries.py/);
 });
@@ -374,7 +387,8 @@ test('a later Python-only edit selects API/core after their first addition', () 
 		const head = commit();
 		assert.deepEqual(selectChecks({ eventName: 'pull_request', base, head, cwd }), {
 			...none,
-			python_backend: true
+			python_backend: true,
+			state_worker: true
 		});
 	});
 });
@@ -455,4 +469,31 @@ test('main pushes select their actual changed paths as well', () => {
 			base = head;
 		}
 	});
+});
+
+test('state worker and Core/SQL changes select the packaged state consumer', () => {
+	for (const path of [
+		'backend/workers/state/pyproject.toml',
+		'backend/workers/state/uv.lock',
+		'backend/workers/state/src/spellbook_state/main.py',
+		'backend/core/src/spellbook_core/categories/jobs.py'
+	]) {
+		assert.deepEqual(classifyPaths([path]), { ...none, python_backend: true, state_worker: true });
+	}
+	assert.equal(classifyPaths(['backend/drizzle/0024_qr_authorizations.sql']).state_worker, true);
+	assert.match(workflow('ci.yml'), /working-directory: backend\/workers\/state/);
+});
+
+test('explicit Python Compose candidate replaces embedded Node scheduler ownership', () => {
+	const source = readFileSync(new URL('../podman-compose.python.yml', import.meta.url), 'utf8');
+	assert.match(source, /api:\n\s+build:\n\s+context: \.\n\s+dockerfile: backend\/api\/Dockerfile/);
+	assert.match(
+		source,
+		/state-worker:\n\s+build:\n\s+context: \.\n\s+dockerfile: backend\/workers\/state\/Dockerfile/
+	);
+	assert.match(source, /condition: service_completed_successfully/);
+	assert.doesNotMatch(
+		readFileSync(new URL('../podman-compose.yml', import.meta.url), 'utf8'),
+		/^  state-worker:/m
+	);
 });
