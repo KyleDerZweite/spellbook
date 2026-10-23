@@ -1,0 +1,72 @@
+{
+  "id": "2850-4186",
+  "status": "OK",
+  "ingredients": [
+    {
+      "oracleId": "eee6c02b-7d6a-4445-ad27-8b03176147d4",
+      "name": "Scurry Oak",
+      "quantity": "1",
+      "mustBeCommander": false,
+      "zones": [
+        "H"
+      ],
+      "usedFace": null,
+      "states": {
+        "battlefieldCardState": "",
+        "exileCardState": "",
+        "graveyardCardState": "",
+        "libraryCardState": ""
+      }
+    },
+    {
+      "oracleId": "a5da5ad6-4ed2-4041-a983-76a8c87fa109",
+      "name": "Ivy Lane Denizen",
+      "quantity": "1",
+      "mustBeCommander": false,
+      "zones": [
+        "B"
+      ],
+      "usedFace": null,
+      "states": {
+        "battlefieldCardState": "",
+        "exileCardState": "",
+        "graveyardCardState": "",
+        "libraryCardState": ""
+      }
+    }
+  ],
+  "outcomeIds": [
+    "2244",
+    "21",
+    "4"
+  ],
+  "producedOutcomes": [
+    {
+      "id": "2244",
+      "name": "Infinite +1/+1 counters on a creature",
+      "status": "C",
+      "uncountable": true,
+      "quantity": "1"
+    },
+    {
+      "id": "21",
+      "name": "Infinite creature tokens",
+      "status": "S",
+      "uncountable": true,
+      "quantity": "1"
+    },
+    {
+      "id": "4",
+      "name": "Infinite creature ETB",
+      "status": "H",
+      "uncountable": true,
+      "quantity": "1"
+    }
+  ],
+  "unsupportedReasons": [],
+  "mana": "{2}{G}",
+  "prerequisites": "\n",
+  "steps": "Cast Scurry Oak by paying {2}{G}.\nIvy Lane Denizen triggers, putting a +1/+1 counter on Scurry Oak.\nScurry Oak's last ability triggers, allowing you to create a 1/1 Squirrel token.\nRepeat from step 2.",
+  "notes": "",
+  "templates": []
+}
