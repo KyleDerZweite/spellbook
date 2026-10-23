@@ -124,6 +124,7 @@ HTTP adapters authenticate credentials again rather than accepting a serialized 
 The backend also provides current-password-confirmed rotation and JSON-safe session inspection.
 Rotation checks the verified credential again under the account-row lock, updates the hash, revokes old sessions and creates its replacement in one transaction.
 Web password handling and the account API both call this rotation use case.
+After a successful enhanced password form submission, the browser reloads with the replacement cookie to establish a fresh SavedState workspace after the old session's stream expires.
 Session inspection is exposed through the account HTTP adapter; the entry-point table below lists implemented routes.
 
 ## Credentials and sessions
