@@ -63,7 +63,7 @@ def routes() -> Iterator[tuple[Any, Inventory, TestClient, AsyncMock]]:
         yield auth, inventory, client, prepare
 
 
-def test_factory_matches_neutral_inventory_routes_except_deferred_import() -> None:
+def test_factory_matches_neutral_inventory_routes() -> None:
     inventory = cast(Inventory, create_autospec(Inventory))
     auth = cast(SessionAuth, create_autospec(SessionAuth))
     actual = {
@@ -75,7 +75,6 @@ def test_factory_matches_neutral_inventory_routes_except_deferred_import() -> No
         (route["method"].upper(), re.sub(r"\{(\w+)\}", r":\1", route["path"]))
         for route in oracle["routes"]
         if route["path"].startswith(BASE)
-        and "/import/" not in route["path"]
         and route["path"] not in {BASE + "/prices", BASE + "/value", BASE + "/value-history"}
     }
     assert actual == expected

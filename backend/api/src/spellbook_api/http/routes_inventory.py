@@ -1,4 +1,4 @@
-"""Inventory/Groups HTTP adapters. Import endpoints are owned by the later resolver slice."""
+"""Inventory/Groups HTTP adapters, including Arena import preview and commit."""
 
 import math
 import re
@@ -11,6 +11,8 @@ from spellbook_core.inventory_query import InventoryQuery, normalize_inventory_q
 from spellbook_core.validation import (
     INVENTORY_SOURCES,
     MISSING,
+    assert_condition,
+    assert_finish,
     js_trim,
     normalize_quantity,
     normalize_source,
@@ -323,6 +325,39 @@ def create_inventory_routes(
         )
         return json_response(result, status=409 if result["kind"] == "RevisionChanged" else 200)
 
+    async def preview_import(request: Request, params: dict[str, str]) -> Response:
+        actor = await require_mobile_auth(request, auth, origin)
+        body = await read_json_object(request)
+        finish = body.get("defaultFinish")
+        condition = body.get("defaultCondition")
+        assert_finish("nonfoil" if finish is None else finish)
+        assert_condition("NM" if condition is None else condition)
+        return json_response(
+            await inventory.preview_import(actor, read_string(body.get("text", MISSING), "text"))
+        )
+
+    async def commit_import(request: Request, params: dict[str, str]) -> Response:
+        actor = await require_mobile_auth(request, auth, origin)
+        body = await read_json_object(request)
+        return json_response(
+            await inventory.commit_import(
+                actor,
+                {
+                    "requestId": read_string(body.get("requestId", MISSING), "requestId"),
+                    "text": read_string(body.get("text", MISSING), "text"),
+                    "defaultFinish": read_string(
+                        body.get("defaultFinish", MISSING), "defaultFinish", "nonfoil"
+                    ),
+                    "defaultCondition": read_string(
+                        body.get("defaultCondition", MISSING), "defaultCondition", "NM"
+                    ),
+                    "source": normalize_source(
+                        body.get("source", MISSING), INVENTORY_SOURCES, "import"
+                    ),
+                },
+            )
+        )
+
     base = "/api/mobile/v1/mtg/inventory"
     return [
         HttpRoute("GET", base, list_inventory),
@@ -333,6 +368,8 @@ def create_inventory_routes(
         HttpRoute("POST", base + "/groups", create_group),
         HttpRoute("PATCH", base + "/groups/:groupId", rename_group),
         HttpRoute("DELETE", base + "/groups/:groupId", delete_group),
+        HttpRoute("POST", base + "/import/preview", preview_import),
+        HttpRoute("POST", base + "/import/commit", commit_import),
         HttpRoute("GET", base + "/:entryId", detail),
         HttpRoute("PATCH", base + "/:entryId", patch),
         HttpRoute("DELETE", base + "/:entryId", remove),

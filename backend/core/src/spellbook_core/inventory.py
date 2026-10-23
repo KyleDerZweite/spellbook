@@ -4,7 +4,7 @@ The caller owns pool lifetime and composed transactions. Construction performs n
 """
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from typing import Literal, NotRequired, TypedDict, cast
 from uuid import uuid4
@@ -25,6 +25,12 @@ from .errors import (
     ValidationError,
 )
 from .fingerprint import mutation_fingerprint
+from .inventory_import import (
+    ImportPreview,
+    InventoryImportInput,
+    InventoryImportSummary,
+    preview_inventory_import,
+)
 from .inventory_query import normalize_inventory_query, validate_revision
 from .inventory_read import (
     _ENTRY_COLUMNS,
@@ -146,7 +152,12 @@ class InventoryMembership(TypedDict):
     groupIds: list[str]
 
 
-class InventoryAcknowledgement(TypedDict):
+_ImportAcknowledgement = TypedDict(
+    "_ImportAcknowledgement", {"import": NotRequired[InventoryImportSummary]}
+)
+
+
+class InventoryAcknowledgement(_ImportAcknowledgement):
     requestId: str
     inventoryId: str | None
     revision: str
@@ -163,6 +174,7 @@ class InventoryIntent:
     request_id: str
     source: InventorySource
     operations: tuple[Operation, ...]
+    import_input: InventoryImportInput | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -172,6 +184,7 @@ class PreparedInventoryMutation:
     input: InventoryIntent
     hash: str
     printings: dict[str, CardDocument]
+    import_summary: InventoryImportSummary | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -352,6 +365,32 @@ class Inventory:
             prior = await _receipt(tx, current.account_id, intent, hash)
         if prior is not None:
             return RecordedInventoryMutation(prior)
+        import_summary: InventoryImportSummary | None = None
+        if intent.import_input is not None:
+            imported = intent.import_input
+            preview = await preview_inventory_import(self._catalog, imported["text"])
+            operations: list[Operation] = [
+                normalize_add(
+                    {
+                        "catalogCardId": resolved["card"]["id"],
+                        "quantity": resolved["line"]["quantity"],
+                        "finish": imported["finish"],
+                        "condition": imported["condition"],
+                    }
+                )
+                for resolved in preview["resolved"]
+                if resolved["line"]["role"] == "main"
+            ]
+            if not operations:
+                raise ValidationError("No resolved Inventory lines to commit")
+            if len(operations) > 1000:
+                raise ValidationError("Supply at most 1000 Inventory import lines")
+            import_summary = {
+                "resolvedCount": len(operations),
+                "unresolvedCount": len(preview["unresolved"]),
+                "ambiguousCount": len(preview["ambiguous"]),
+            }
+            intent = replace(intent, operations=tuple(operations))
         printings: dict[str, CardDocument] = {}
         for operation in intent.operations:
             if operation["op"] != "add":
@@ -359,7 +398,9 @@ class Inventory:
             identifier = operation["catalogCardId"]
             if identifier not in printings:
                 printings[identifier] = await self._catalog.get_catalog_printing(identifier)
-        return PreparedInventoryMutation(actor, current.account_id, intent, hash, printings)
+        return PreparedInventoryMutation(
+            actor, current.account_id, intent, hash, printings, import_summary
+        )
 
     async def authorize(self, tx: Transaction, prepared: PreparedInventoryMutation) -> str:
         await tx.execute(
@@ -460,6 +501,8 @@ class Inventory:
             "removedGroupIds": [],
             "memberships": [],
         }
+        if prepared.import_summary is not None:
+            ack["import"] = prepared.import_summary
         changed = False
         for operation in prepared.input.operations:
             changed = (
@@ -751,6 +794,8 @@ class Inventory:
         operations: list[Operation],
         source: object = MISSING,
         game: object = MISSING,
+        *,
+        import_input: InventoryImportInput | None = None,
     ) -> InventoryAcknowledgement:
         if game is not MISSING and game != "mtg":
             raise ValidationError("Only MTG Inventory is supported")
@@ -758,9 +803,12 @@ class Inventory:
             assert_request_id(request_id),
             normalize_source(source, INVENTORY_SOURCES, "web"),
             tuple(operations),
+            import_input,
         )
         hash = mutation_fingerprint(
-            {"kind": "inventory", "source": intent.source, "operations": operations}
+            {"kind": "inventory_import", "source": intent.source, "import": import_input}
+            if import_input is not None
+            else {"kind": "inventory", "source": intent.source, "operations": operations}
         )
         prepared = await self.prepare(actor, intent, hash)
         if isinstance(prepared, RecordedInventoryMutation):
@@ -778,6 +826,35 @@ class Inventory:
             if cause.diag.constraint_name == "inventory_groups_inventory_name_idx":
                 raise ValidationError("A group with this name already exists") from None
             raise
+
+    async def preview_import(self, actor: Actor, text: object) -> ImportPreview:
+        await self._auth.require_actor(actor)
+        return await preview_inventory_import(
+            self._catalog, assert_bounded_text(text, "text", 200000)
+        )
+
+    async def commit_import(self, actor: Actor, input: object) -> InventoryAcknowledgement:
+        item = _record(input)
+        request_id = assert_request_id(item.get("requestId", MISSING))
+        source = item.get("source")
+        normalized_source = normalize_source(
+            "import" if source is None else source, INVENTORY_SOURCES, "web"
+        )
+        text = assert_bounded_text(item.get("text", MISSING), "text", 200000)
+        finish = item.get("defaultFinish")
+        condition = item.get("defaultCondition")
+        imported: InventoryImportInput = {
+            "text": js_trim(re.sub(r"\r\n?", "\n", text)),
+            "finish": assert_finish("nonfoil" if finish is None else finish),
+            "condition": assert_condition("NM" if condition is None else condition),
+        }
+        return await self._mutate(
+            actor,
+            request_id,
+            [],
+            normalized_source,
+            import_input=imported,
+        )
 
     async def add(self, actor: Actor, input: object) -> InventoryAcknowledgement:
         item = _record(input)
