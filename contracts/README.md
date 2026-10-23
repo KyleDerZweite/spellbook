@@ -44,5 +44,6 @@ The inventory checks additionally instantiate production route factories, compar
 The extraction hash pins the original builder's normalized JSON, including property order, at `b835eee87ff0e92e99df18ab384602e48183a88d`.
 Changing that hash is a reviewed contract change, not routine golden regeneration.
 
-The canonical [evidence baseline](../docs/architecture/python-migration-evidence-baseline.md) owns resource gates, experiment protocol, verification provenance and outstanding transfers.
+The canonical [evidence baseline](../docs/architecture/python-migration-evidence-baseline.md) owns compatibility inventory, functional evidence transfer and historical verification provenance.
+[ADR-0027](../docs/decisions/0027-python-functional-migration-acceptance.md) retires strict performance/resource proof prerequisites; real functional compatibility remains required.
 The [accepted migration contract](../docs/architecture/python-backend-migration.md) owns migration architecture and delivery authority.

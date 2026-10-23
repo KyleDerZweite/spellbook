@@ -1,10 +1,10 @@
 # Backend language and worker layout evaluation
 
-- Status: Python and migration contract accepted, implementation not started
-- Last Reviewed: 2026-10-20
+- Status: Python selected; dormant foundation implemented, full migration pending
+- Last Reviewed: 2026-10-23
 - Source of Truth: current implementation and linked primary-source research
-- Update Triggers: Python API/worker language selection and migration planning, backend language selection, worker ownership, schema generation, representative measurements
-- Related Docs: [Independent applications](../architecture/independent-applications.md), [Application contract](../architecture/application-contract.md), [Worker](../architecture/worker.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Verification](../operations/github-automation.md), [Decision issue 211](https://github.com/KyleDerZweite/spellbook/issues/211), [Python direction](../decisions/0025-python-api-and-workers.md)
+- Update Triggers: ADR-0027 functional acceptance and reusable foundation status, Python API/worker language selection and migration planning, backend language selection, worker ownership, schema generation, representative measurements
+- Related Docs: [Independent applications](../architecture/independent-applications.md), [Application contract](../architecture/application-contract.md), [Worker](../architecture/worker.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Verification](../operations/github-automation.md), [Decision issue 211](https://github.com/KyleDerZweite/spellbook/issues/211), [Python direction](../decisions/0025-python-api-and-workers.md), [Functional Python acceptance](../decisions/0027-python-functional-migration-acceptance.md)
 
 ## Selected direction
 
@@ -50,7 +50,7 @@ backend/
     scan/      # Python compatibility scaffold
 ```
 
-This is the accepted destination, not the current layout.
+The dormant API/Core and worker package foundations now use this destination; complete domain migration remains pending.
 Keep separate packages, environments, images and process lifetimes.
 Do not move bulk ingestion into HTTP request tasks.
 Phone/Jetson recognition remains local under ADR-0023; Python tooling does not select server inference.
@@ -59,11 +59,10 @@ Phone/Jetson recognition remains local under ADR-0023; Python tooling does not s
 
 Retain one schema/migration owner and SQL history, one owner per mutation, atomic original receipts/fingerprints, lock order, conflict fields, QR/session authority and bounded SSE revalidation/shutdown.
 Preserve safe integers, decimal/revision strings, absent versus null fields and form throttling before decoding.
-OpenAPI and executable compatibility fixtures must become language-neutral; `contracts/` also contains pure TypeScript validators/presentation helpers that cannot simply be imported into another language.
+OpenAPI and executable compatibility fixtures are language-neutral; `contracts/` also contains pure TypeScript validators/presentation helpers that cannot simply be imported into another language.
 Generated TypeScript/Kotlin clients require compatibility tests.
 
-After grilling criteria and explicitly authorizing an experiment, compare one bounded read, one receipt mutation/readback and SSE against Node using the same PostgreSQL data, SQL and limits.
-Exercise lost responses, replay conflicts, QR races, revocation, rollback, slow consumers and native/enhanced web forms.
-Measure p95/p99, RSS/CPU, connections, build/CI time and change effort.
-Agree migration rejection criteria, staged ownership and rollback before preparing implementation tickets.
-No prototype, rewrite, worker move or benchmark was performed for this research.
+The [current migration contract](../architecture/python-backend-migration.md) and [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md) own functional delivery and supersede strict performance/resource proof prerequisites.
+Exercise lost responses, replay conflicts, QR races, revocation, rollback, slow consumers and native/enhanced web forms against real PostgreSQL and the candidate API.
+Modest performance variance, long asynchronous jobs and controlled retries are acceptable when effects remain correct.
+This evaluation supplies no benchmark or full Python compatibility evidence.

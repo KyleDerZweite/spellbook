@@ -1,30 +1,24 @@
 # Python migration evidence baseline
 
-- Status: Canonical P01 baseline; predeclared candidate rejection gates accepted, candidate measurements pending
-- Last Reviewed: 2026-10-20
-- Source of Truth: b835eee Node code, executable neutral fixtures, selected PostgreSQL 18 Node verification, accepted independent numeric/spec review, issue 247 and maintainer implementation brief
-- Update Triggers: selected unmeasured ValueHistory D2 candidate envelope and coexistence accounting, numeric-gate acceptance and current-main integration, PostgreSQL baseline verification, route/command/runner ownership, compatibility cases or transfer, measured baseline, experiment limits, independent review, candidate evidence
-- Related Docs: [Migration contract](./python-backend-migration.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [Contracts](../../contracts/README.md), [Independent applications](./independent-applications.md), [Auth](./auth.md), [Postgres](./postgres.md), [Verification](../operations/github-automation.md), [Deployment](../operations/deployment.md), [Issue 247](https://github.com/KyleDerZweite/spellbook/issues/247)
+- Status: Canonical compatibility baseline; complete Python functional acceptance pending
+- Last Reviewed: 2026-10-23
+- Source of Truth: frozen Node code and executable neutral fixtures, historical PostgreSQL results, ADR-0027 and Kyle's 2026-10-23 direction
+- Update Triggers: compatibility inventory/transfer, functional integration evidence, tested revisions, migrator rehearsal and source activation
+- Related Docs: [Migration contract](./python-backend-migration.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [Contracts](../../contracts/README.md), [Independent applications](./independent-applications.md), [Auth](./auth.md), [Postgres](./postgres.md), [Verification](../operations/github-automation.md), [Deployment](../operations/deployment.md), [Issue 247](https://github.com/KyleDerZweite/spellbook/issues/247)
 
 ## Scope and authorization
 
-P01 freezes the running Node behavior after documentation PR 259.
-Its verified base is `b835eee87ff0e92e99df18ab384602e48183a88d`.
-The implementation worktree started clean on `t3/python-compatibility-baseline` at that exact commit, matching `origin/main`.
-Local `main` still pointed to `7d886780c78f1b017d0affa9c77d7069173b20f3`; it was not reset or changed.
+P01 extracted the Node compatibility baseline from `b835eee87ff0e92e99df18ab384602e48183a88d`.
+The existing neutral schema, inventories and fixtures remain useful inputs to the Python port.
+The current foundation also includes dormant Python API/Core; its presence establishes no full parity claim.
+The [migration contract](./python-backend-migration.md) owns practical acceptance and delivery.
 
-The maintainer's 2026-10-20 implementation brief authorizes completing migration through High subagents, reviewed Slice PR merges and the necessary bounded disposable representative experiment/manual validation.
-The complete final integration branch remains unmerged, and production deployment is excluded.
-This later authorization supersedes the earlier issue text's separate experiment-authorization prerequisite for this work.
-No additional permission question is required for that authorized disposable experiment.
-The numeric limits below are predeclared engineering rejection gates accepted after independent review, not measurements or a claim that the maintainer individually selected each value.
-Root accepted the engineering review on 2026-10-20 and authorized recording its conclusion.
-P02 still requires verified P01 integration and its other prerequisites; candidate measurements are not a prerequisite for releasing this baseline.
-The orchestrator will link the full numeric review result in the Slice PR.
-
-The accepted migration contract and ADR-0026 remain owned by the separate contract writer.
-This baseline changes no application ownership, SQL, historical migration, stored data, client contract or active process.
-There is no Python API package yet.
+[ADR-0027](../decisions/0027-python-functional-migration-acceptance.md) retires P01 numeric rejection gates, matched-resource cohorts, the D2 measurement envelope and Linux/kernel/Collector proof as prerequisites.
+Modest performance variance, slow background jobs and controlled retries are acceptable when functional behavior is correct.
+No benchmark, resource-verifier implementation or #248 strict proof is required before domain porting.
+The unselected lifecycle/PARKED proposal supplies no requirement.
+Historical protocols and review details remain in the [pre-reconciliation revision](https://github.com/KyleDerZweite/spellbook/blob/1bae6638e9bb521630401a74e6eaeab3eac371f9/docs/architecture/python-migration-evidence-baseline.md).
+They are history, not current acceptance gates.
 
 ## Frozen artifact and implementation contract
 
@@ -126,246 +120,30 @@ Each implementing Slice must list its transferred test names and exact runtime/h
 P17 runs the existing built HTTP suites against both endpoints, actual PostgreSQL, Scan worker and two-process SavedState, plus Node-to-Python-to-Node replay after Python writes.
 A test name containing HTTP does not prove Python if the fixture still constructs or launches Node.
 
-## Representative experiment protocol
+## Functional evidence and remaining transfer
 
-The P02 owner runs the authorized disposable experiment and records raw evidence in the existing ignored `.local/` evidence area.
-Keep credentials in the existing protected environment; reports contain only references and sanitized IDs.
-Use two new task-owned PostgreSQL 18 databases cloned from one migrated, sanitized fixture dump, with identical SQL 0000..0024 and Drizzle ledger.
-Never use a shared database or concurrent publisher.
-Record dump SHA-256, ledger rows/SQL hashes, schema-only dump hash and initial data counts before each cohort.
-Keep the exact same database after each runtime's writes for cross-runtime replay/rollback checks; clone again only to restart a measurement cohort.
+For each implemented domain, transfer the relevant direct application tests and run real PostgreSQL transaction, conflict, receipt/retry and account-isolation scenarios.
+Exercise actual workers and failure/retry paths, correct scheduled effects, direct/proxy HTTP and two-process SavedState.
+Preserve current functional limits such as validation caps and session revalidation; removing comparative performance gates changes none of those behaviors.
+Record exact revision/build, fixture provenance, commands, actual runtime/provider, results and skipped cases.
+Keep secrets in protected stores and report references only.
+Do not use schema/route counts, mocked providers or prior Node passes as proof of full Python compatibility.
 
-Use the tracked English Catalog bundle and its native verifier, recording compressed/decoded SHA-256, generation and manifest counts.
-For the bounded experiment, deterministically publish the existing 1000-Printing real subset and seed one disposable account with 1000 Inventory entries, overlapping/empty Groups and synthetic credentials/receipts.
-Record selected printing IDs, supported finishes, conditions, account fixture seed and deterministic request-body hashes.
-Use no provider network traffic, unrelated accounts or background publisher.
-A subset experiment cannot satisfy later full-Catalog or 50,000-entry acceptance.
+P17 owns complete candidate integration and same-data rollback after Python writes.
+P19 owns fresh/retained-database, no-op, interrupted and concurrent Python migrator rehearsals against unchanged SQL history.
+P16/P20 own packaging/default activation and replaced-server removal with consumer and functional-test transfer.
+Refresh affected evidence on the final unmerged integration head.
+Missing real storage/provider, scheduled observation, rendered client or native-device evidence remains explicitly unexecuted with its owner and consequence.
+Production cutover, productive migrator rollout and rollback retirement require separate operations and acceptance.
 
-Measure one authenticated bounded Inventory read, one receipt-protected quantity mutation plus readback/replay, and SavedState delivery from those writes.
-Use the production Node SQL/transaction/query shape as the candidate reference, not an alternative query or cache.
-Record normalized SQL and parameter-type manifests, query counts, lock/isolation order and analyzed plans with buffers on both implementations.
-Candidate Psycopg placeholders may differ; their SQL semantics, projection, predicates, limits and order may not.
-Verify result identities/counts, original receipt bytes and revision changes before timing.
-Separate original writes from retries, no-ops, stale conflicts and rejected admission.
-Do not hide replay correctness behind average latency.
+## Historical verification provenance
 
-Record CPU model/core count, RAM, kernel, filesystem/storage, governor, container/cgroup limits, PostgreSQL configuration, locale/ICU, Node/Python/uv/driver versions and build digests.
-Pin the API to the same two logical CPUs with a 512 MiB process/cgroup budget; reserve separate fixed CPUs/resources for PostgreSQL and the load generator when available.
-Use one process per runtime, equivalent connection limits and the same machine, storage and loopback network.
-If affinity/cgroups are unavailable, record that limitation and keep placement unchanged; do not claim controlled resource acceptance without its measurements.
-Keep web/proxy, workers, builds and tests outside timed cohorts.
-Disable ValueHistory for both experiment configurations; seed no WholeDeck jobs and report Node's idle WholeDeck polling SQL separately rather than changing that running implementation.
-Later P11/P15 measures the separate active state runners and total deployment budget.
-
-Run Node then candidate sequentially, never competing on the same database or CPU.
-Alternate order across three matched pairs to reduce warm-cache/order bias.
-For each runtime/pair/concurrency, reset the clone, run 60 seconds of warmup, then 180 seconds of samples.
-Use a 70% bounded-read, 20% original mutation/readback and 10% same-ID replay mix with deterministic unique IDs.
-Test closed-loop concurrency 1, 8 and 32, reporting completed/failed operations and achieved throughput.
-Keep 32 authenticated SSE clients open in addition to request concurrency, with one write producer.
-Record client-cache and PostgreSQL buffer state; do not call a warm run buffer-cold.
-Add a separate 128-concurrent-request overload run for 30 seconds, pool exhaustion, disconnect before/after commit, lock wait, slow SSE consumer, listener restart and graceful shutdown scenarios.
-Correctness and bounded overload rejection matter even if the normal cohort is faster.
-
-Collect monotonic per-request latency, pool acquisition/queue wait, SQL duration/rows and end-to-end invalidation delivery latency.
-Sample process CPU/RSS, runnable work, open descriptors and database sessions/transactions/locks each second.
-Capture PostgreSQL statistics deltas and temp-file bytes per isolated cohort, plus peak API temporary-directory bytes.
-Measure event-loop lag with the same 10 ms scheduling probe in both hosts and identify that instrumentation in the result.
-Report p50/p95/p99/max and raw sample counts, not just averages.
-Use nearest-rank percentiles over at least 1000 samples per request class and cohort, and at least 1000 write-to-SSE delivery samples.
-Insufficient samples make that gate unexecuted, not passed.
-Record clean installation/build/check wall time and maximum RSS separately from runtime cohorts, and record source/change effort without inferring speed from lines of code.
-
-## Numeric rejection limits
-
-These limits bound the representative experiment only.
-They are deliberately fixed before measurements and require independent review with P01.
-They are not changes to the running Node configuration, promised production SLOs or measured improvements.
-The baseline API currently constructs a default `pg.Pool` with max 10 and no general finite acquisition queue/deadline.
-Category work already caps pool/lock waits at 2 seconds, statements at 5 seconds and transactions at 10 seconds.
-SavedState already uses 5-second setup/operation deadlines, 10-second revalidation, 15-second heartbeats and 30-second slow-consumer disposal.
-Those implemented limits ground the candidate choices below; the candidate must not copy the baseline's unbounded general wait.
-
-| Resource or observation   | Candidate experiment rejection condition                                                                                                                                                                                                                                                     |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Process/CPU allocation    | More than one Uvicorn API worker or more than two allocated logical CPUs. No in-process publisher, state scheduler or child bulk worker.                                                                                                                                                     |
-| PostgreSQL request pool   | More than 10 checked-out/open request connections; initial min 0, max 10. Exactly one additional dedicated autocommit LISTEN connection, no spare reconnect overlap. Maximum 11 API database sessions.                                                                                       |
-| Request admission         | More than 32 active non-SSE application requests, 32 queued waiters or 64 total admitted/pending non-SSE requests. Reject excess without starting SQL; queue wait over 2000 ms is failure.                                                                                                   |
-| Pool acquisition          | Any acquisition wait over 2000 ms or more than 32 pending acquisitions. A timed-out/cancelled waiter must not later retain a connection.                                                                                                                                                     |
-| SQL/locks/transaction     | Read/write statement timeout 5000 ms, lock timeout 2000 ms, complete transaction timeout 10000 ms. No idle transaction beyond 10000 ms; cancellation must settle rollback/receipt before releasing ownership.                                                                                |
-| Password work             | More than four active scrypt derivations or any password-work backlog. Keep 20 attempts/address/15 minutes and at most 10000 tracked addresses; preserve QR's existing independent budgets.                                                                                                  |
-| SSE admission/queue       | More than 32 experiment subscribers. Keep at most one coalesced invalidation and one reset/recovery control event per subscriber; no document payloads or durable replay. No queued payload over 16 KiB per subscriber.                                                                      |
-| SSE deadlines             | Setup/operation over 5000 ms; skipped 10000 ms revalidation or 15000 ms heartbeat; slow consumer still retained after 30000 ms plus 1000 ms timer tolerance. Admission does not retain a request-pool connection for an idle stream.                                                         |
-| Bounded-read latency      | Any matched cohort p95 over 250 ms or p99 over 750 ms. Also reject p95 over `max(Node p95 * 1.20, Node p95 + 10 ms)` or p99 over `max(Node p99 * 1.25, Node p99 + 20 ms)`.                                                                                                                   |
-| Mutation/readback latency | Any matched cohort p95 over 350 ms or p99 over 1000 ms, including successful original receipt readback. Apply the same relative p95/p99 gates separately to original writes, replays and readbacks.                                                                                          |
-| SSE delivery latency      | Write-commit-to-delivery p95 over 250 ms or p99 over 750 ms, or the same relative p95/p99 gates above. Heartbeat latency alone cannot establish invalidation delivery.                                                                                                                       |
-| Event-loop responsiveness | Scheduling lag p95 over 20 ms or p99 over 50 ms during ordinary cohorts and concurrent scrypt; identify instrumentation overhead separately.                                                                                                                                                 |
-| CPU                       | Average API CPU over 2.0 core-seconds/second or more than 1.25 times matched Node CPU-seconds per completed operation. Reject sustained saturation above 1.9 cores for 30 seconds with growing waiters.                                                                                      |
-| Memory                    | API peak RSS over 512 MiB or over `max(Node peak RSS * 1.25, Node peak RSS + 64 MiB)`. Reject post-warmup retained RSS growth over 32 MiB between first and last measured minute, after equivalent settled workload.                                                                         |
-| API temporary storage     | Peak over 64 MiB, or more than 1 MiB of task-owned transient data remaining 30 seconds after settled completion. This read/mutation/SSE experiment needs no persistent Scan objects.                                                                                                         |
-| PostgreSQL temp/SQL work  | Any spill to PostgreSQL temp files for these bounded requests, any unexplained extra application query per class, or more than 1.25 times matched Node SQL CPU proxy via total execution time per operation. Record actual SQL timing rather than labelling it measured CPU.                 |
-| Errors and recovery       | Any unexpected non-2xx in ordinary cohorts, unexplained wire difference, changed original receipt, duplicate effect, stale authority, cross-account event or unbounded queue is immediate rejection. Expected conflict/admission errors are reported separately, never counted as successes. |
-| Shutdown                  | SSE admission closes first, then requests/work/listener/pool settle within 15000 ms. No task-owned active SQL, leaked session, accepted-but-unrecorded effect or residual listener afterward. Send only graceful shutdown to verified task-owned processes.                                  |
-
-A gate fails if any matched measured cohort exceeds it; do not average a failing run away.
-If Node itself exceeds an absolute threshold, record that baseline failure and revisit the experiment design through review before claiming candidate acceptance.
-Do not silently relax a threshold after seeing results.
-Baseline measurement, independent numeric-gate acceptance and candidate acceptance are separate evidence.
-Worker relocation retains the existing publisher-specific download/parse/publication/import budgets; P13 records those exact defaults and total process/storage budgets without borrowing the API's 64 MiB temporary-space allowance.
-
-## ValueHistory D2 candidate measurement envelope
-
-On 2026-10-20, Root independently selected D2 for the planned P15 ValueHistory runner after contract review.
-These are candidate measurement bounds, unallocated and unmeasured; they establish no native fit, Ready status or production setting.
-They transfer no P11 WholeDeckCategory acceptance and alter neither the historical P01 protocol/numeric gates above nor another candidate's budget.
-The [planned P06/P15 interfaces](./python-backend-migration.md#planned-p06p15-query-and-capture-interfaces) own query/capture responsibilities and dependency direction.
-
-| Resource                 | Selected ValueHistory candidate and evidence requirement                                                                                                                                                                                   |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Process/work             | One installed standalone Python ValueHistory process, one physically unsettled attempt/acquisition, no domain children or HTTP scheduler.                                                                                                  |
-| Own pool                 | Lazy `min_size=0`, `max_size=1`, finite positive native `max_waiting=1`; no hidden backlog, listener, nested checkout or physical overlap. Native `max_waiting=0` does not mean bounded zero.                                              |
-| Timing                   | Preserve the existing 10-second fixed tick, 10-second logical admission and 10-second server statements, plus the 11-second individual query watchdog through complete native receipt.                                                     |
-| Connection establishment | Candidate `connect_timeout=2` seconds sits inside the existing 10-second logical admission. It changes no retained Node/default-production behavior and proves no DNS, retry, cancellation or total native acquisition bound.              |
-| CPU/memory/storage       | One declared CPU core, 512 MiB complete-process peak RSS, 64 MiB finite external temporary storage and zero expected domain file writes. Measure complete holdings/outcome copies, native driver tasks, cache/log spill and every session. |
-| Shutdown                 | One 15-second total observation includes acquisition, query, transaction, lease and pool closure. No renewed stage budget, detached work or forced ownership release on breach.                                                            |
-
-No extra lock timeout, account/batch/cycle deadline, Category decoded-work cap or file/output truncation follows from this envelope.
-If complete legal work cannot fit, retain failed evidence and reconcile the contract; do not shorten source behavior or waive a limit.
-A cancelled waiter or close invocation proves no physical settlement, and a breached observation interval leaves physical work owned.
-Retain one pending native acquisition after logical timeout until its late connection is returned without taking a lease, before another acquisition is allowed.
-
-Coexistence planning sums are one API 11 + ValueHistory 1 + WholeDeckCategory 1 = 13 sessions, or two APIs 22 + ValueHistory 1 + WholeDeckCategory 1 = 24.
-Both exclude publishers, PostgreSQL, collectors/observers/load generators, administration and other support costs, which require separate accounting; the sums allocate nothing.
-Account separately for every process/session, including retained Node, and report complete totals.
-Matched comparison retains unchanged Node with its embedded scheduler and includes the Python API plus separate runners and actual coexistence costs.
-Do not subtract Node polls or helper costs, or count representative API evidence as active-capture acceptance.
-
-P02/P06/P13/P15/P17 and the shared integration writer retain evidence ownership for standalone/coexistence idle, active, failure, admission and shutdown cohorts.
-Required work includes complete 50,000 holdings, 10,000 printing/finish pairs, five conditions and 366 dates, retained-source publication/pruning, complete CPU/RSS/tmp/SQL/session/task/physical-closure accounting and every unchanged P01 API gate.
-All source implementation, native fit, full #248 matched-resource/HTTP/client/parity evidence, actual target acceptance and exact prerequisite integration remain open.
-P15's direct prerequisites and P14 D1 remain as recorded in the migration contract; this selection resolves none of them.
-Android/heavy integration remain manual, and production cutover, migrator rollout and rollback retirement remain separately authorized operations.
-
-## Numeric review and integration record
-
-Independent task `spellbook-p01-numeric-acceptance-review-r1` reviewed `bc9ebc2d69fbead0a0ad660f9b9e5d150e2b276f` against `b835eee87ff0e92e99df18ab384602e48183a88d`.
-Its verdict accepted the numeric choices as predeclared rejection gates, with no actionable Standards/Spec findings or missing P01 scope.
-Independent Node probes passed schema hash/deep equality, both credential vectors and wrong-password rejection, four UTF-16 cases, eight fingerprint cases, four integer cases and diff checking.
-The reviewer did not rerun dependency-backed suites and claimed no measurements or Python parity.
-Root accepted this engineering review and authorized P01 release after verified integration.
-The reviewed numeric choices and experiment protocol remain byte-for-byte unchanged from `bc9ebc2`.
-
-The isolated P01 branch locally merged `origin/main` at `488333e6c6b65919e017743192875ca15c59d5e2` through merge commit `ba808ec`.
-This includes PR 268's accepted execution clarification, Prettier 3.9.10 and both worker Ruff updates.
-The Architecture index conflict retained the complete upstream execution/operational-separation text and the P01 evidence link.
-The migration contract, ADR-0026 and Decisions index match that upstream commit exactly.
-The complete final Python integration artifact remains unmerged, production operations remain separate and root appoints the shared-file writer before API/worker parallelism.
-No runtime owner or Python implementation was added by this integration.
-
-Post-merge verification used Node 26.10.0, pnpm 12.8.1 and the newly installed Prettier 3.9.10 from the unchanged upstream lockfile.
-The frozen install, `pnpm --dir backend check`, the same four-file focused Vitest command recorded below and the native OpenAPI command all passed.
-The focused result remains 86 passes; native OpenAPI remains five passes, with no failures or skips.
-Prettier checks passed for Contracts, the OpenAPI adapter, all targeted compatibility tests and the complete repository Markdown scope.
-Local documentation links, the full Slice diff check, upstream-contract byte equality and unchanged protocol/numeric-section checks also passed.
-The runtime adapter, Contracts and compatibility tests are unchanged from the reviewed implementation, so earlier build and PostgreSQL evidence remains identified by its original tested revision rather than claimed as rerun here.
-The only integration conflict was the Architecture index, resolved as described above.
-
-## P01 verification and remaining evidence
-
-The focused Node/schema checks exercise the unchanged structural artifact, actual registry and sanitized compatibility cases.
-They establish neither Python execution nor measured performance.
-Checks used Node 26.10.0 and pnpm 12.8.1 in the isolated P01 worktree.
-The reviewed implementation commit is `224686dec1ee777728f02f76a224b3bc745d3ec3`; the final handoff includes any later documentation-only evidence commit.
-
-| Command                                                                                                                                                                                  | Observed result                                                                                                               |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm install --frozen-lockfile`                                                                                                                                                         | Passed without lockfile changes or new dependencies.                                                                          |
-| `pnpm --dir backend check`                                                                                                                                                               | Passed.                                                                                                                       |
-| `pnpm --dir backend exec vitest run tests/unit/compatibility-golden.test.ts tests/unit/compatibility-http.test.ts tests/unit/compatibility-inventory.test.ts tests/unit/openapi.test.ts` | 86 passed, including 69 new behavioral/fixture/ownership checks.                                                              |
-| `pnpm --dir backend test`                                                                                                                                                                | 231 unit tests passed; 101 native tests passed and eight database-dependent checks skipped.                                   |
-| `pnpm --dir frontend test:unit`                                                                                                                                                          | 837 passed in 96 files.                                                                                                       |
-| `pnpm test:tooling`                                                                                                                                                                      | 41 passed.                                                                                                                    |
-| `pnpm lint`                                                                                                                                                                              | Passed boundaries, formatting, backend types, frontend/service-worker types and Svelte diagnostics with zero errors/warnings. |
-| `APP_ORIGIN=http://127.0.0.1:5191 pnpm build`                                                                                                                                            | Passed both builds, built-client boundary check and PWA worker check.                                                         |
-| `pnpm --dir backend db:check`                                                                                                                                                            | Passed migration consistency; no migration was applied.                                                                       |
-| `frontend/node_modules/.bin/prettier --check README.md GLOSSARY.md AGENTS.md CONTRIBUTING.md docs`                                                                                       | Passed.                                                                                                                       |
-| `node --import ./backend/scripts/register-types.mjs --test backend/tests/openapi.test.ts`                                                                                                | Five passed.                                                                                                                  |
-| Local Markdown link and `git diff --check` checks                                                                                                                                        | Passed for the changed documents and complete Slice diff.                                                                     |
-
-A separate in-memory esbuild probe used the existing `backend/scripts/build.mjs` build options with `src/http/openapi.ts` as its entrypoint.
-Importing its emitted bundle through a data URL reproduced the pinned schema SHA-256, demonstrating that no runtime JSON file copy is required.
-The focused HTTP test additionally exercised Discovery, HEAD, OPTIONS and the original 405 body on the production Node bridge over loopback.
-Two independent GPT-6.1-Sol High reviews used separate T3 worktrees at the implementation commit and found no actionable Standards or Spec issues.
-Standards independently compared the extracted artifact against the original builder; Spec independently exercised production credential, UTF-16, fingerprint and integer functions.
-The reviewers did not rerun the full suites; the commands above remain implementation-worktree evidence.
-The orchestrator retains Slice approval and publication; technical checks do not establish maintainer acceptance.
-Initial fixture development exposed a negative-zero expectation mismatch and parser/type errors in the new test file.
-The final vector asserts the decoder's preserved negative zero separately from its JSON wire representation, and all affected focused/type checks passed after correction.
-The formatting command was rerun with the existing frontend configuration after initial invocation/configuration errors.
-During verification, `origin/main` advanced to `bcc99cd7338fe28c46c9f09a091dcb92b455967e`, an unrelated Ruff update confined to `worker/pyproject.toml` and `worker/uv.lock`.
-The accepted contract and this Slice's fixed base remain unchanged.
-
-The first Python API/core package must add its lock/lint/type/tests/negative import checks and CI path selection immediately, through the designated integration writer.
-Automatic CI remains scoped; Android and heavy database/HTTP/SavedState/application runs stay manually triggered.
-No shared CI, root manifest, launcher or lifetime-construction edits are needed by P01.
-
-The P01 handoff records exact commands/results, tested base/head and clean working state with the commit.
-Transient development failures are retained in the handoff, with their fixes and final checks.
-The selected Node/PostgreSQL checks below establish additional receipt/transaction/race evidence.
-Complete candidate PostgreSQL acceptance, dual-runtime HTTP, candidate measurements, full Catalog/scale, actual Scan/S3/provider paths, rendered clients, physical Android/Keystore, deployed proxy and scheduled observations remain unexecuted by this Slice.
-Their implementing Slice owners collect them; P17 owns integrated acceptance and rollback evidence, and Kyle owns target acceptance and separately authorized production release.
-No P01 pass should be recorded as any of those target passes.
-
-## PostgreSQL follow-up
-
-The maintainer supplied the disposable PostgreSQL runtime `pg18-0e56d611` after the original P01 handoff.
-This follow-up tested unchanged source at `bc9ebc2d69fbead0a0ad660f9b9e5d150e2b276f` using Node 26.10.0 and pnpm 12.8.1.
-That follow-up changed only this evidence document and left the numeric choices unchanged.
-Their subsequent acceptance is recorded above.
-No Python package, P02 implementation or performance measurement was added.
-
-Runtime owner `python-migration-verification-b16b9390` retains the disposable PostgreSQL container on loopback port 56560, with 2 CPUs, 2 GiB RAM and 64 cluster connections.
-The P01 task claimed `api_node` exclusively as `spellbook-p01-8e1477c5`, within its 12-connection role budget.
-It used only the runtime's ignored mode-0600 `env/api_node.env`, with matching `DATABASE_URL` and `TEST_DATABASE_URL`.
-The protected root environment was not used.
-`sb_py_0e56d611_baseline` remained the read-only reference; all application writes used `sb_py_0e56d611_api_node`.
-
-A read-only transaction confirmed PostgreSQL 18.6, all 25 unchanged native Drizzle ledger entries and 17 enabled application triggers on the reference.
-The leased Node database had the same ledger before testing.
-No migrations ran during this follow-up.
-The retained ledger JSON digest is `bb6e5f8e8280cc810b4a640279ee388f3a47a4d1b35e647d8111b7a49648a18f`.
-This digest covers the ordered `hash, created_at::text` query result, not a SQL-file or pg_dump hash.
-
-The serial native checks used the existing real public Sol Ring printings from `backend/scripts/demo/cards.json`.
-That tracked file has SHA-256 `af9334071e99a93a7ac5265cd2d2919c8e09774dcdcfb7a639772e9adbf67849`.
-The command set `TEST_HTTP_DOMAIN_DISPOSABLE_DB=sb_py_0e56d611_api_node` and `TEST_HTTP_DOMAIN_CATALOG_PATH` to that tracked file's absolute path.
-No concurrent publisher or scheduler ran.
-
-```sh
-node --import ./backend/scripts/register-types.mjs --test --test-concurrency=1 backend/tests/http-core.integration.test.ts backend/tests/decks-categories-http.integration.test.ts
-pnpm --dir frontend exec vitest run --project integration tests/integration/inventory-contracts.integration.test.ts tests/integration/deck-builder.integration.test.ts tests/integration/qr-auth.integration.test.ts tests/integration/local-auth.test.ts
-```
-
-The native command passed 11 checks with zero failures or skips.
-It exercised original web-command receipts/conflicts, request source/floor semantics, actual TCP Auth/Account routes, original raw forms, password rotation, QR one-use redemption and PostgreSQL invalidation/revocation through two application listeners.
-Those listener instances ran in one test process; this does not establish the separate built two-process SSE/slow-reader suite.
-The frontend integration command passed 50 tests in four files with zero failures or skips.
-It exercised Inventory original/legacy receipts, replay after deletion/recreation, stale Notes and concurrent mutations, Deck legacy fingerprint/retry semantics, persisted credentials/sessions and QR locking/revocation races.
-These direct TypeScript application/web-adapter tests remain Node evidence and do not establish Python or rendered-client coverage.
-The earlier full backend run's eight skips remain a historical result; this targeted follow-up does not claim that every skipped operator/Scan/built-host suite ran.
-
-Cleanup verified zero fixture profiles, sessions, QR authorizations and Deck receipts.
-The existing Deck fixture leaves its two Inventory receipt rows after deleting their profiles, and the public fixture helper retains its Catalog generation.
-Under the exclusive lease, cleanup verified those receipt timestamps against the claim, deleted only those two owned rows, restored the recorded Catalog state and removed the one owned generation with its two tracked printings.
-A read-only snapshot then compared all 58 public tables and the migration ledger against the untouched reference.
-Both matched exactly.
-The snapshot's deterministic per-table JSON-row digest is `6f04debc066cc01fcd645eb88f4e0419a10a00759b5eea4b073d1698d21a88be`; it is distinct from the provisioner's pg_dump digest.
-The lease helper confirmed no database sessions remained, successfully released `api_node` and reported no active leases.
-PostgreSQL remains available to the orchestrator.
-
-Ignored evidence remains in `.local/python-migration-p01/runtime/` in the P01 worktree.
-`node-http.log` and `application-integration.log` contain results; `before.json`, `reference.json`, `pre-cleanup.json`, `cleanup.json`, `baseline-data.json` and `after-data.json` contain sanitized provenance and cleanup evidence.
-`snapshot.mjs` retains the minimal read-only snapshot procedure, and `release.json` records successful release.
-The runtime lease record and credential files remain private; no credential value is checked in or included in this report.
-The original Standards/Spec reviews still cover the unchanged implementation, and root has accepted the independent numeric/spec review.
-P01 Slice integration remains pending; candidate measurements and Python parity remain future evidence.
+The P01 implementation record identifies `224686dec1ee777728f02f76a224b3bc745d3ec3` for its initial Node/schema checks.
+The recorded focused compatibility run passed 86 cases and the native OpenAPI run passed five.
+Those checks exercised Node, fixtures and structural ownership, not Python transactions or full compatibility.
+The PostgreSQL follow-up at `bc9ebc2d69fbead0a0ad660f9b9e5d150e2b276f` recorded 11 native Node HTTP checks and 50 direct TypeScript integration tests passing without skips.
+It covered selected receipts, conflicts, Auth/QR and listener behavior on PostgreSQL 18.6 with the 25-entry Drizzle ledger.
+It did not establish separate-process SSE, Python execution, actual Scan/storage/provider integration or production acceptance.
+The linked pre-reconciliation revision retains the detailed commands, fixture hashes, other historical checks and cleanup record.
+These are historical observations, not reruns at the current head.
+No new runtime check or resource measurement is claimed by this reconciliation.

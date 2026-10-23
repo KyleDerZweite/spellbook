@@ -1,13 +1,17 @@
 # ADR-0026: Python migration framework and delivery contract
 
-- Status: Accepted
+- Status: Accepted; performance/resource readiness requirements superseded by ADR-0027
 - Implementation: Complete source artifact authorized; production cutover pending
 - Date: 2026-10-19
-- Last Reviewed: 2026-10-20
+- Last Reviewed: 2026-10-23
 - Owners: Kyle
 - Source of Truth: maintainer-accepted migration contract for issue 211, independent Sol/Astra reviews and Kyle's 2026-10-20 execution direction
-- Update Triggers: complete unmerged implementation scope, integration ownership, source preparation versus production operations, independent review, maintainer acceptance, framework or schema ownership changes, migration gates
-- Related Docs: [Migration contract](../architecture/python-backend-migration.md), [ADR-0025](./0025-python-api-and-workers.md), [Independent applications](../architecture/independent-applications.md), [Postgres](../architecture/postgres.md), [Worker](../architecture/worker.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
+- Update Triggers: explicit partial supersession by ADR-0027, complete unmerged implementation scope, integration ownership, source preparation versus production operations, independent review, maintainer acceptance, framework or schema ownership changes, migration gates
+- Related Docs: [Migration contract](../architecture/python-backend-migration.md), [ADR-0025](./0025-python-api-and-workers.md), [Independent applications](../architecture/independent-applications.md), [Postgres](../architecture/postgres.md), [Worker](../architecture/worker.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211), [Functional Python acceptance](./0027-python-functional-migration-acceptance.md)
+
+[ADR-0027](./0027-python-functional-migration-acceptance.md) supersedes this decision's strict resource/performance readiness requirements and historical execution-model assignments.
+The language, stack, component boundaries, functional compatibility, final unmerged artifact and separate production authority remain accepted.
+The text below records the earlier decision; the [current migration contract](../architecture/python-backend-migration.md) owns delivery requirements.
 
 ## Context
 
@@ -48,7 +52,8 @@ Retain the tested Node rollback artifact and compatible data even when the integ
 
 Reconcile existing slice-PR tickets to the accepted execution scope before affected implementation, preserving operational acceptance separately from source completion.
 The [implementation epic](https://github.com/KyleDerZweite/spellbook/issues/245) owns native sub-issues, blocking relationships and evidence gates.
-Each ticket must carry its reviewed responsibilities, dependencies, resource limits and acceptance evidence.
+The earlier contract required each ticket to carry reviewed responsibilities, dependencies, resource limits and acceptance evidence.
+ADR-0027 replaces the strict resource-proof prerequisite with functional acceptance.
 Map tests to the runtime they actually exercise and enable Python CI with the first API/core package.
 Experiments and manually invoked heavy integration/Android validation are within the implementation scope; keep their triggers manual and record unavailable target evidence.
 P19/P20 preparation must not depend on executing production gates or falsely close their operational acceptance.

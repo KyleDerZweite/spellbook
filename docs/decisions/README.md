@@ -1,10 +1,10 @@
 # Decision Records
 
 - Status: Canonical
-- Last Reviewed: 2026-10-20
+- Last Reviewed: 2026-10-23
 - Source of Truth: mixed
-- Update Triggers: complete unmerged Python execution scope and separate production gates, accepted Python migration framework and delivery contract, Python API/worker language selection and migration planning, major architectural decisions, major product decisions, documentation system changes, supersession of earlier decisions, uniform continuous Lazy browsing, local recognition direction and independent Android design clarification
-- Related Docs: [ADR Template](./ADR-template.md), [ADR-0001](./0001-docs-first-knowledge-system.md), [ADR-0006](./0006-generic-oidc-and-internal-account-identity.md), [ADR-0007](./0007-backend-first-mtg-bulk-import-api.md), [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md), [ADR-0009](./0009-local-authentication.md), [ADR-0014](./0014-public-landing-and-private-workspace.md), [Docs Index](../README.md), [Accepted mechanisms](../architecture/application-contract.md), [ADR-0021](./0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](./0023-local-recognition-in-scanner-clients.md), [Python direction](./0025-python-api-and-workers.md)
+- Update Triggers: ADR-0027 functional migration acceptance and partial supersession, complete unmerged Python execution scope and separate production gates, accepted Python migration framework and delivery contract, Python API/worker language selection and migration planning, major architectural decisions, major product decisions, documentation system changes, supersession of earlier decisions, uniform continuous Lazy browsing, local recognition direction and independent Android design clarification
+- Related Docs: [ADR Template](./ADR-template.md), [ADR-0001](./0001-docs-first-knowledge-system.md), [ADR-0006](./0006-generic-oidc-and-internal-account-identity.md), [ADR-0007](./0007-backend-first-mtg-bulk-import-api.md), [ADR-0008](./0008-mtg-only-self-hosted-inventory-and-deck-availability.md), [ADR-0009](./0009-local-authentication.md), [ADR-0014](./0014-public-landing-and-private-workspace.md), [Docs Index](../README.md), [Accepted mechanisms](../architecture/application-contract.md), [ADR-0021](./0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](./0023-local-recognition-in-scanner-clients.md), [Python direction](./0025-python-api-and-workers.md), [Functional Python acceptance](./0027-python-functional-migration-acceptance.md)
 
 This section stores architecture and product decision records.
 
@@ -30,7 +30,9 @@ Rules:
 
 ## Files
 
-- [ADR-0026: Python migration framework and delivery contract](./0026-python-migration-contract.md), accepted complete unmerged source implementation scope; production cutover, migrator rollout and end of the real rollback window remain separately authorized
+- [ADR-0027: Functional acceptance for the Python migration](./0027-python-functional-migration-acceptance.md), accepted; supersedes strict performance/resource blockers while preserving functional compatibility and separate production operations
+
+- [ADR-0026: Python migration framework and delivery contract](./0026-python-migration-contract.md), accepted complete unmerged source implementation scope, performance/resource readiness superseded by ADR-0027; production cutover, migrator rollout and end of the real rollback window remain separately authorized
 
 - [ADR-0025: Python for the API and server workers](./0025-python-api-and-workers.md), accepted language direction; migration design follows ADR-0026
 
