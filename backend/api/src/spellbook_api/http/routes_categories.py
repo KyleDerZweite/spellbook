@@ -42,10 +42,15 @@ def _fields(body: Document, allowed: list[str], *, whole: bool = False) -> None:
         )
 
 
+def _first_query(request: Request, name: str) -> str | None:
+    """Match URLSearchParams.get while selected IDs retain getlist semantics."""
+    return next(iter(request.query_params.getlist(name)), None)
+
+
 def _page(request: Request) -> Document:
     return dict(
-        offset=read_query_integer(request.query_params.get("offset"), "offset", 0),
-        limit=read_query_integer(request.query_params.get("limit"), "limit", 50, 100, 1),
+        offset=read_query_integer(_first_query(request, "offset"), "offset", 0),
+        limit=read_query_integer(_first_query(request, "limit"), "limit", 50, 100, 1),
     )
 
 
@@ -71,8 +76,9 @@ def create_category_routes(
     async def library(request: Request, params: dict[str, str]) -> object:
         actor = await require_mobile_auth(request, auth, origin)
         page = _page(request)
-        if "scope" in request.query_params:
-            page["scope"] = request.query_params["scope"]
+        scope = _first_query(request, "scope")
+        if scope is not None:
+            page["scope"] = scope
         return await categories.get_library(actor, page)
 
     async def save(request: Request, params: dict[str, str]) -> object:
@@ -85,9 +91,9 @@ def create_category_routes(
         return await categories.get_rule_choices(
             actor,
             dict(
-                tagQuery=query.get("tagQuery", ""),
-                cardQuery=query.get("cardQuery", ""),
-                outcomeQuery=query.get("outcomeQuery", ""),
+                tagQuery=_first_query(request, "tagQuery") or "",
+                cardQuery=_first_query(request, "cardQuery") or "",
+                outcomeQuery=_first_query(request, "outcomeQuery") or "",
                 tagIds=query.getlist("tagId"),
                 oracleIds=query.getlist("oracleId"),
                 outcomeIds=query.getlist("outcomeId"),

@@ -316,3 +316,92 @@ def test_category_route_pairs_equal_the_frozen_openapi_contract() -> None:
         (route.method, re.sub(r":([A-Za-z]+)", r"{\1}", route.path)) for route in Adapters().routes
     }
     assert actual == expected
+
+
+@pytest.mark.parametrize(
+    "path,function,identity",
+    [
+        ("/category-definitions", "get_library", {}),
+        (f"/category-previews/{ID}", "get_category_preview", {"previewId": ID}),
+    ],
+)
+def test_repeated_pagination_uses_first_scalar_values(
+    path: str, function: str, identity: Document
+) -> None:
+    adapters = Adapters()
+    handler = cast(AsyncMock, getattr(adapters.categories, function))
+    handler.return_value = {}
+    with adapters.client() as client:
+        response = client.get(
+            PREFIX + path + "?offset=2&offset=bad&limit=1&limit=101",
+            headers=dict(authorization="Bearer " + TOKEN),
+        )
+    assert response.status_code == 200
+    handler.assert_awaited_once_with(ACTOR, {**identity, "offset": 2, "limit": 1})
+
+
+@pytest.mark.parametrize("path", ["/category-definitions", f"/category-previews/{ID}"])
+@pytest.mark.parametrize("query", ["limit=101&limit=1", "offset=bad&offset=2"])
+def test_later_valid_scalar_does_not_replace_invalid_first_value(path: str, query: str) -> None:
+    adapters = Adapters()
+    with adapters.client() as client:
+        response = client.get(
+            PREFIX + path + "?" + query,
+            headers=dict(authorization="Bearer " + TOKEN),
+        )
+    assert response.status_code == 400
+    cast(AsyncMock, adapters.categories.get_library).assert_not_awaited()
+    cast(AsyncMock, adapters.categories.get_category_preview).assert_not_awaited()
+
+
+@pytest.mark.parametrize("scope", ["entry", ""])
+def test_repeated_scope_preserves_first_value_including_empty(scope: str) -> None:
+    adapters = Adapters()
+    handler = cast(AsyncMock, adapters.categories.get_library)
+    handler.return_value = {}
+    with adapters.client() as client:
+        response = client.get(
+            PREFIX + "/category-definitions?scope=" + scope + "&scope=deck",
+            headers=dict(authorization="Bearer " + TOKEN),
+        )
+    assert response.status_code == 200
+    handler.assert_awaited_once_with(ACTOR, dict(scope=scope, offset=0, limit=50))
+
+
+@pytest.mark.parametrize("search", ["Café", ""])
+def test_repeated_rule_search_uses_first_scalars_and_retains_all_selected_ids(search: str) -> None:
+    adapters = Adapters()
+    handler = cast(AsyncMock, adapters.categories.get_rule_choices)
+    handler.return_value = {}
+    second_id = "00000000-0000-4000-8000-000000000002"
+    with adapters.client() as client:
+        response = client.get(
+            PREFIX + "/category-rule-choices",
+            params=[
+                ("tagQuery", search),
+                ("tagQuery", "later tag"),
+                ("cardQuery", search),
+                ("cardQuery", "later card"),
+                ("outcomeQuery", search),
+                ("outcomeQuery", "later outcome"),
+                ("tagId", ID),
+                ("tagId", second_id),
+                ("oracleId", second_id),
+                ("oracleId", ID),
+                ("outcomeId", "2244"),
+                ("outcomeId", "21"),
+            ],
+            headers=dict(authorization="Bearer " + TOKEN),
+        )
+    assert response.status_code == 200
+    handler.assert_awaited_once_with(
+        ACTOR,
+        dict(
+            tagQuery=search,
+            cardQuery=search,
+            outcomeQuery=search,
+            tagIds=[ID, second_id],
+            oracleIds=[second_id, ID],
+            outcomeIds=["2244", "21"],
+        ),
+    )
