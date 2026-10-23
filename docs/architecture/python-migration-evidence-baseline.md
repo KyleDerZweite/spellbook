@@ -136,6 +136,19 @@ Refresh affected evidence on the final unmerged integration head.
 Missing real storage/provider, scheduled observation, rendered client or native-device evidence remains explicitly unexecuted with its owner and consequence.
 Production cutover, productive migrator rollout and rollback retirement require separate operations and acceptance.
 
+### Python migrator, 2026-10-23
+
+The prepared migrator at `21758fe0f82981d2567be47b4b6cd48b7ca589e3` passed both independent source-review axes with no findings.
+Root ran `pytest -q backend/core/tests/test_migrations_postgres.py backend/core/tests/test_migrations.py backend/api/tests/test_migrate.py` against the checkout sources with Python 3.14.8, Psycopg 3.3.6 and disposable PostgreSQL 18.6: 46 passed, no skips.
+The ten PostgreSQL cases cover fresh installation, no-op, a populated six-migration upgrade prefix, invalid ledger refusal, rollback/restart, concurrent exclusion, cancellation recovery and caller-transaction refusal.
+The populated upgrade preserves a Unicode Profile and legacy null-hash Inventory receipt; it does not establish every retained-data workflow.
+
+Two actual `python -m spellbook_api.migrate` invocations applied all 25 migrations and then reported no pending work.
+The resulting 25 ledger rows match the retained Drizzle-created reference exactly.
+Schema-only dumps of `public` and `drizzle` match after excluding ownership, privileges, comments and dump session markers.
+The checks used an exclusive temporary database through the protected disposable-runtime environment; no production or previous fixture data was changed.
+Installed SQL assets, operator packaging and complete retained-data/client integration remain pending.
+
 ## Historical verification provenance
 
 The P01 implementation record identifies `224686dec1ee777728f02f76a224b3bc745d3ec3` for its initial Node/schema checks.
