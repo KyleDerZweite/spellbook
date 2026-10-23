@@ -188,3 +188,88 @@ def test_private_value_cache_policy_and_actor_forwarding(monkeypatch: pytest.Mon
         values.history.assert_awaited_once_with(ACTOR, {})
 
     asyncio.run(scenario())
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/catalog/search",
+        "/api/mobile/v1/mtg/search",
+        "/api/catalog/cards/:oracleId/printings",
+        "/api/mobile/v1/mtg/cards/:oracleId/printings",
+    ],
+)
+@pytest.mark.parametrize(
+    "query,status,error_field",
+    [
+        ("q=first&q=second&limit=3&limit=20&offset=7&offset=40", 200, None),
+        ("q=first&q=second&limit=3&limit=bad&offset=7&offset=bad", 200, None),
+        ("q=first&q=second&limit=bad&limit=20&offset=7&offset=40", 400, "limit"),
+        ("limit=3&limit=20&offset=bad&offset=7", 400, "offset"),
+        ("limit=bad&limit=20&offset=bad&offset=7", 400, "limit"),
+        ("limit=&limit=20&offset=7&offset=40", 400, "limit"),
+        ("limit=3&limit=20&offset=&offset=7", 400, "offset"),
+    ],
+)
+def test_catalog_get_queries_select_first_repeated_value(
+    path: str, query: str, status: int, error_field: str | None
+) -> None:
+    async def scenario() -> None:
+        auth, catalog, _ = dependencies()
+        route = next(
+            route
+            for route in create_catalog_routes(auth, catalog, ORIGIN)
+            if route.method == "GET" and route.path == path
+        )
+        response = await invoke(
+            route, request(query=query, bearer="Bearer " + "a" * 43), {"oracleId": PRINTING}
+        )
+        assert response.status_code == status
+        if "/mobile/" in path:
+            auth.validate_session.assert_awaited_once_with("a" * 43)
+        else:
+            auth.validate_session.assert_not_awaited()
+        if error_field is not None:
+            assert json.loads(bytes(response.body))["message"].startswith(
+                f"{error_field} must be an integer"
+            )
+            catalog.search_catalog_request.assert_not_awaited()
+            catalog.get_printings.assert_not_awaited()
+        elif path.endswith("/search"):
+            catalog.search_catalog_request.assert_awaited_once_with(
+                {"query": "first", "limit": 3, "offset": 7}
+            )
+        else:
+            catalog.get_printings.assert_awaited_once_with(PRINTING, 3, 7)
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("path", ["/api/catalog/search", "/api/mobile/v1/mtg/search"])
+def test_catalog_search_preserves_first_empty_query_and_post_json_input(path: str) -> None:
+    async def scenario() -> None:
+        auth, catalog, _ = dependencies()
+        routes = create_catalog_routes(auth, catalog, ORIGIN)
+        for method, expected in [
+            ("GET", {"query": "", "limit": 20, "offset": 0}),
+            ("POST", {"query": "from JSON", "limit": 4, "offset": 8}),
+        ]:
+            route = next(
+                route for route in routes if route.path == path and route.method == method
+            )
+            response = await invoke(
+                route,
+                request(
+                    method=method,
+                    query="q=&q=ignored&limit=bad&limit=20"
+                    if method == "POST"
+                    else "q=&q=ignored",
+                    body={"query": "from JSON", "limit": 4, "offset": 8},
+                    bearer="Bearer " + "a" * 43,
+                ),
+            )
+            assert response.status_code == 200
+            catalog.search_catalog_request.assert_awaited_once_with(expected)
+            catalog.search_catalog_request.reset_mock()
+
+    asyncio.run(scenario())

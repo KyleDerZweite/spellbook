@@ -30,7 +30,8 @@ async def get_printing(request: Request, printing_id: str, catalog: Catalog) -> 
 
 def create_catalog_routes(auth: SessionAuth, catalog: Catalog, origin: str) -> list[HttpRoute]:
     async def search_get(request: Request, params: dict[str, str]) -> Response:
-        query = request.query_params
+        # URLSearchParams.get() selects the first value of a repeated key.
+        query = dict(reversed(request.query_params.multi_items()))
         result = await catalog.search_catalog_request(
             {
                 "query": query.get("q", ""),
@@ -45,7 +46,8 @@ def create_catalog_routes(auth: SessionAuth, catalog: Catalog, origin: str) -> l
         return json_response(result, headers={"Cache-Control": "no-store"})
 
     async def printings(request: Request, params: dict[str, str]) -> Response:
-        query = request.query_params
+        # URLSearchParams.get() selects the first value of a repeated key.
+        query = dict(reversed(request.query_params.multi_items()))
         result = await catalog.get_printings(
             require_uuid(decode_parameter(params["oracleId"]), "oracleId"),
             read_query_integer(query.get("limit"), "limit", 100, 100, 1),
