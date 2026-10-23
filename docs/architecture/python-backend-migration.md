@@ -1,7 +1,7 @@
 # Python backend migration contract
 
-- Status: Accepted execution contract; complete candidate and production operations pending
-- Last Reviewed: 2026-10-23
+- Status: Implemented unmerged candidate; owner testing and production operations pending
+- Last Reviewed: 2026-10-24
 - Source of Truth: ADR-0025, ADR-0026, ADR-0027, existing code/tests/contracts and Kyle's 2026-10-23 direction
 - Update Triggers: Python source activation and server contraction, functional migration acceptance, component interfaces, assembled Categories/state, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
 - Related Docs: [ADR-0025](../decisions/0025-python-api-and-workers.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [Independent applications](./independent-applications.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Migration evidence](./python-migration-evidence-baseline.md), [Postgres](./postgres.md), [Auth](./auth.md), [Worker](./worker.md), [Deployment](../operations/deployment.md), [Verification](../operations/github-automation.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)

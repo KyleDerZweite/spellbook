@@ -1,9 +1,9 @@
 # ADR-0026: Python migration framework and delivery contract
 
 - Status: Accepted; performance/resource readiness requirements superseded by ADR-0027
-- Implementation: Complete source artifact authorized; production cutover pending
+- Implementation: Complete source candidate implemented and unmerged; owner testing and production cutover pending
 - Date: 2026-10-19
-- Last Reviewed: 2026-10-23
+- Last Reviewed: 2026-10-24
 - Owners: Kyle
 - Source of Truth: maintainer-accepted migration contract for issue 211, independent Sol/Astra reviews and Kyle's 2026-10-20 execution direction
 - Update Triggers: explicit partial supersession by ADR-0027, complete unmerged implementation scope, integration ownership, source preparation versus production operations, independent review, maintainer acceptance, framework or schema ownership changes, migration gates

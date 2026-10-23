@@ -1,9 +1,9 @@
 # ADR-0027: Functional acceptance for the Python migration
 
 - Status: Accepted
-- Implementation: Documentation reconciled; complete candidate and production operations pending
+- Implementation: Complete source candidate implemented and unmerged; owner testing and production operations pending
 - Date: 2026-10-23
-- Last Reviewed: 2026-10-23
+- Last Reviewed: 2026-10-24
 - Owners: Kyle
 - Source of Truth: Kyle's authoritative 2026-10-23 migration direction
 - Update Triggers: migration acceptance, superseded readiness blockers, functional evidence, source activation and production authority

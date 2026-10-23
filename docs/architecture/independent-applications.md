@@ -1,9 +1,9 @@
 # Independent applications implementation contract
 
-- Status: Implemented first slice, native target verification pending
-- Last Reviewed: 2026-10-23
+- Status: Independent Python API and workers implemented; native target verification pending
+- Last Reviewed: 2026-10-24
 - Source of Truth: accepted maintainer direction and existing application contracts
-- Update Triggers: Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, HTTP extraction, native delivery, credential forwarding, application ownership, acceptance evidence
+- Update Triggers: Python source activation and implementation status, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, HTTP extraction, native delivery, credential forwarding, application ownership, acceptance evidence
 - Related Docs: [System overview](./system-overview.md), [Application contract](./application-contract.md), [Auth](./auth.md), [Mobile handoff](../product/mobile-app-exploration.md), [ADR-0024](../decisions/0024-independent-applications.md), [Verification](../operations/github-automation.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md)
 
 ## Outcome and ownership
