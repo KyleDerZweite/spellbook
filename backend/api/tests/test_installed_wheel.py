@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from zipfile import ZipFile
 
 import pytest
 
@@ -20,7 +21,7 @@ pytestmark = pytest.mark.skipif(
 ROOT = Path(__file__).resolve().parents[3]
 
 
-def test_installed_migrator_and_assets_from_external_cwd(tmp_path: Path) -> None:
+def test_installed_migrator_operators_and_assets_from_external_cwd(tmp_path: Path) -> None:
     uv = shutil.which("uv")
     assert uv is not None
     environment = {
@@ -52,10 +53,33 @@ def test_installed_migrator_and_assets_from_external_cwd(tmp_path: Path) -> None
             "--out-dir",
             str(wheels),
         )
+    operator_assets = {
+        name: hashlib.sha256((ROOT / "backend/scripts/demo" / name).read_bytes()).hexdigest()
+        for name in (
+            "cards.json",
+            "upgrades-unleashed.json",
+            "catalog-default-en-20261007.manifest.json",
+            "catalog-default-en-20261007.jsonl.gz",
+        )
+    }
+
+    def check_operator_assets(wheel: Path) -> None:
+        with ZipFile(wheel) as archive:
+            packaged = {
+                path.removeprefix("spellbook_api/operators/assets/"): hashlib.sha256(
+                    archive.read(path)
+                ).hexdigest()
+                for path in archive.namelist()
+                if path.startswith("spellbook_api/operators/assets/")
+            }
+        assert packaged == operator_assets
+
+    check_operator_assets(next(wheels.glob("spellbook_api-*.whl")))
     # Build again from the sdist to prove both distributions carry the canonical assets.
     run(uv, "build", "--project", str(ROOT / "backend/api"), "--sdist", "--out-dir", str(tmp_path))
     sdist = next(tmp_path.glob("spellbook_api-*.tar.gz"))
     run(uv, "build", str(sdist), "--wheel", "--out-dir", str(wheels))
+    check_operator_assets(next(wheels.glob("spellbook_api-*.whl")))
     requirements = run(
         uv,
         "export",
@@ -84,6 +108,12 @@ def test_installed_migrator_and_assets_from_external_cwd(tmp_path: Path) -> None
         str(next(wheels.glob("spellbook_core-*.whl"))),
         str(next(wheels.glob("spellbook_api-*.whl"))),
     )
+    for command in (
+        "spellbook-operator-password",
+        "spellbook-demo-seed",
+        "spellbook-demo-replace-inventory",
+    ):
+        assert run(str(installed / "bin" / command), "--help").returncode == 0
     cli = str(installed / "bin/spellbook-migrate")
     assert run(cli, "--help").returncode == 0
     missing = run(cli, check=False)
@@ -93,10 +123,23 @@ def test_installed_migrator_and_assets_from_external_cwd(tmp_path: Path) -> None
     script.write_text("""
 import hashlib, json, os
 from contextlib import contextmanager
+from importlib.metadata import distribution
 from pathlib import Path
 import spellbook_api, spellbook_core
 from spellbook_api import migrate as cli
 from spellbook_core.migrations import read_migrations
+from spellbook_core.operators.fixtures import verify_bundle, load_precon, legacy_inventory
+from spellbook_api.operators import local_password, seed, replace_inventory
+from spellbook_api.operators.common import fixture_directory
+entrypoints = {entry.name: entry.value for entry in distribution('spellbook-api').entry_points}
+assert entrypoints['spellbook-operator-password'] == 'spellbook_api.operators.local_password:main'
+assert entrypoints['spellbook-demo-seed'] == 'spellbook_api.operators.seed:main'
+assert entrypoints['spellbook-demo-replace-inventory'] == (
+    'spellbook_api.operators.replace_inventory:main'
+)
+import boto3, python_multipart, httpx2
+from spellbook_api.scan_storage import ScanStorageConfiguration, create_scan_storage
+from spellbook_api.scan_worker import HttpScanWorker
 for package in (spellbook_api, spellbook_core):
     assert '/site-packages/' in package.__file__
 directory = cli._default_directory()
@@ -105,6 +148,17 @@ migrations = read_migrations(directory)
 assert len(migrations) == 25
 print(json.dumps({str(p.relative_to(directory)): hashlib.sha256(p.read_bytes()).hexdigest()
                  for p in directory.rglob('*') if p.is_file()}, sort_keys=True))
+for module in (local_password, seed, replace_inventory):
+    assert '/site-packages/' in module.__file__
+fixtures = fixture_directory()
+assert '/site-packages/' in str(fixtures)
+assert seed.fixture_directory() == replace_inventory.fixture_directory() == fixtures
+bundle = verify_bundle(fixtures)
+assert sum(len(batch) for batch in bundle.batches()) == bundle.manifest.documents == 109393
+assert sum(card['quantity'] for card in load_precon(fixtures).cards) == 100
+assert sum(card['quantity'] for card in legacy_inventory(fixtures)) == 72
+print(json.dumps({p.name: hashlib.sha256(p.read_bytes()).hexdigest()
+                 for p in fixtures.iterdir() if p.is_file()}, sort_keys=True))
 @contextmanager
 def connection(*args, **kwargs):
     assert kwargs == dict(autocommit=True, connect_timeout=10)
@@ -131,4 +185,5 @@ assert seen == [directory, directory]
         if path.is_file()
     }
     assert json.loads(output[0]) == expected
-    assert output[1:] == ["Migrations are up to date."] * 2
+    assert json.loads(output[1]) == operator_assets
+    assert output[2:] == ["Migrations are up to date."] * 2

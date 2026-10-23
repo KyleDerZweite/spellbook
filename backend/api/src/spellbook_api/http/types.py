@@ -12,6 +12,8 @@ from psycopg.conninfo import conninfo_to_dict
 from pydantic import AnyHttpUrl, ValidationError
 from spellbook_core.validation import js_trim
 
+from spellbook_api.scan_storage import ScanStorageConfiguration
+
 type AsyncClose = Callable[[], Awaitable[None]]
 
 
@@ -25,6 +27,8 @@ class Configuration:
     demo_mode: bool = False
     trusted_proxy_addresses: tuple[str, ...] = ()
     value_history_timezone: str = "Europe/Berlin"
+    scan_storage: ScanStorageConfiguration = field(default_factory=ScanStorageConfiguration)
+    scan_worker_url: str = "http://scan-worker:8080"
 
     def __post_init__(self) -> None:
         try:
@@ -88,6 +92,8 @@ class Configuration:
             port=int(raw_port),
             database_url=env.get("DATABASE_URL") or None,
             demo_mode=env.get("DEMO_MODE") == "true",
+            scan_storage=ScanStorageConfiguration.from_environment(env),
+            scan_worker_url=env.get("SCAN_WORKER_URL", "http://scan-worker:8080"),
             value_history_timezone=env.get("VALUE_HISTORY_TIMEZONE", "Europe/Berlin"),
             trusted_proxy_addresses=tuple(
                 part.strip()

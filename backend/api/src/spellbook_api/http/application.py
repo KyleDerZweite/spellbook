@@ -11,6 +11,7 @@ from spellbook_core.catalog import Catalog
 from spellbook_core.dashboard import Dashboard
 from spellbook_core.inventory import Inventory
 from spellbook_core.profile import Profile
+from spellbook_core.scan import Scan
 from spellbook_core.valuation import Valuation
 from starlette.responses import Response
 from starlette.routing import Route
@@ -20,6 +21,7 @@ from spellbook_api.http import (
     routes_auth,
     routes_catalog,
     routes_inventory,
+    routes_scan,
     routes_valuation,
 )
 from spellbook_api.http.admission import RequestAdmission
@@ -45,6 +47,7 @@ def create_http_application(
     profile: Profile | None = None,
     valuation: Valuation | None = None,
     dashboard: Dashboard | None = None,
+    scan: Scan | None = None,
 ) -> FastAPI:
     resource = files("spellbook_api").joinpath("openapi.json")
     schema_text = (
@@ -95,6 +98,10 @@ def create_http_application(
         routes.extend(
             routes_valuation.create_valuation_routes(auth, valuation, configuration.public_origin)
         )
+    if scan is not None:
+        if auth is None:
+            raise ValueError("Scan routes require Auth")
+        routes.extend(routes_scan.create_scan_routes(auth, scan, configuration.public_origin))
     if isinstance(auth, LocalAuth):
         routes.extend(
             routes_auth.create_auth_routes(

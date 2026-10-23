@@ -17,6 +17,7 @@ from spellbook_core.inventory_value import create_inventory_values
 from spellbook_core.passwords import create_password_verifier
 from spellbook_core.profile import create_profile
 from spellbook_core.saved_state import create_saved_state
+from spellbook_core.scan import create_scan
 from spellbook_core.valuation import create_valuation
 
 from spellbook_api.http.admission import RequestAdmission
@@ -24,6 +25,8 @@ from spellbook_api.http.application import create_http_application
 from spellbook_api.http.routes_saved_state import create_saved_state_routes
 from spellbook_api.http.types import ApplicationLifetime, Configuration
 from spellbook_api.listener import SavedStateListener
+from spellbook_api.scan_storage import create_scan_storage
+from spellbook_api.scan_worker import HttpScanWorker
 
 
 async def _close_discovery() -> None:
@@ -60,6 +63,11 @@ class ApplicationResources:
         )
         self.dashboard = create_dashboard(self.pool, self.auth, self.inventory_values)
         self.inventory = create_inventory(self.pool, self.catalog, self.auth)
+        self.scan_storage = create_scan_storage(configuration.scan_storage)
+        self.scan_worker = HttpScanWorker(configuration.scan_worker_url)
+        self.scan = create_scan(
+            self.pool, self.catalog, self.auth, self.inventory, self.scan_storage, self.scan_worker
+        )
         self.saved_state = create_saved_state(
             self.auth,
             ensure_listener=self.listener.ensure_listener,
@@ -106,10 +114,16 @@ class ApplicationResources:
                     await self.saved_state.close()
                 finally:
                     try:
-                        await self.passwords.settle()
-                        self.executor.shutdown(wait=True)
+                        try:
+                            await self.scan_worker.close()
+                        finally:
+                            await self.scan_storage.close()
                     finally:
-                        await self.pool.close()
+                        try:
+                            await self.passwords.settle()
+                            self.executor.shutdown(wait=True)
+                        finally:
+                            await self.pool.close()
 
     async def close(self) -> None:
         if self._close_task is None:
@@ -146,6 +160,7 @@ def create_application(configuration: Configuration) -> ApplicationLifetime:
             inventory=resources.inventory,
             valuation=resources.valuation,
             dashboard=resources.dashboard,
+            scan=resources.scan,
             saved_routes=resources.saved_routes,
             admission=resources.admission,
         )

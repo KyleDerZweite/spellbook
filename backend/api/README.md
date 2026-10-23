@@ -1,7 +1,7 @@
 # Dormant Python API candidate
 
-The candidate assembles Auth/QR, Account/Profile/Dashboard, all seven Catalog adapters, fourteen Inventory/Groups adapters, five Valuation adapters and SavedState.
-Node remains the active default in root scripts, Compose and deployment until the remaining domains and operators integrate.
+The candidate assembles Auth/QR, Account/Profile/Dashboard, all seven Catalog adapters, sixteen Inventory/Groups/import adapters, five Valuation adapters, seven Scan adapters and SavedState.
+Node remains the active default in root scripts, Compose and deployment until the remaining domains and activation work integrate.
 The [migration contract](../../docs/architecture/python-backend-migration.md) owns functional acceptance and remaining integration work.
 There are no schedulers or ingestion jobs in this process.
 
@@ -13,7 +13,9 @@ Pydantic's pinned URL parser validates trusted startup origins, without framewor
 Ruff owns lint/format; strict Mypy checks source and tests.
 Pytest and httpx2 provide component/host tests and Starlette TestClient transport.
 Hatchling embeds the canonical schema and unchanged SQL/journal/snapshot assets in both distributions, including a wheel rebuilt from the sdist.
-This assembly adds no dependency or version change.
+Scan assembly pins `boto3==1.43.118` for maintained S3/SigV4 and `python-multipart==0.0.32` for the existing bounded multipart upload contract.
+The existing `httpx2==2.13.1` pin is now a runtime dependency for the Scan worker adapter.
+The regenerated API lock freezes their transitive dependencies.
 
 From the repository root:
 
@@ -35,7 +37,8 @@ The [neutral artifact](../../contracts/openapi.json) owns the complete structura
 Generated framework docs/schema are disabled.
 The host uses `create_catalog_routes`, `create_inventory_routes` and `create_valuation_routes` without singleton or item-handler duplicates.
 Auth/Account/session/SavedState remain registered once.
-Inventory imports, Categories, Decks, Scan and the closed web command endpoint await their owning slices.
+Inventory import preview/commit routes now use the integrated implementation.
+Categories, Decks and the closed web command endpoint await their owning slices.
 
 The host constructs `LocalAuth` with its owned password executor and constructs `Profile` with that same authority.
 `LocalAuth` extends the existing `SessionAuth` actor interface.
@@ -84,7 +87,7 @@ Functional password occupancy, cancellation, partial startup and shutdown checks
 Multipart credential parsing matches Node transfer encoding: exact lowercase `base64` decodes; quoted-printable, `8bit` and uppercase `BASE64` remain literal.
 First duplicate values, UTF-8 replacement, file bytes and body caps remain covered.
 
-Shutdown closes admission and SSE before Uvicorn drain, then settles listener/Core/native work, joins the dedicated executor and closes the request pool last.
+Shutdown closes admission and SSE before Uvicorn drain, then settles listener/Core work, closes the Scan worker and storage adapters, settles native work, joins the dedicated executor and closes the request pool last.
 All host shutdown phases share the 15-second deadline, including partial startup cleanup.
 A deadline failure is not permission to force termination.
 Cancellation never establishes that a mutation did not commit.
@@ -97,7 +100,7 @@ uvx --from uv==0.12.23 uv build --project backend/api
 podman build -f backend/api/Dockerfile -t localhost/spellbook-python-candidate .
 ```
 
-The image uses the repository context for local Core, the schema and preserved migration assets, and retains only the installed noneditable runtime environment.
+The image uses the repository context for local Core, the schema, preserved migration assets and four canonical Demo fixtures, and retains only the installed noneditable runtime environment.
 It has no default launcher or Compose service.
 For explicit local Linux use, host networking permits its loopback listener; pass only the assigned protected environment reference and task-owned ports.
 
@@ -124,3 +127,28 @@ Production migration ownership and execution remain separately authorized operat
 Run the external install check with `SPELLBOOK_TEST_WHEEL=1 uvx --from uv==0.12.23 uv run --directory backend/api --no-sync pytest tests/test_installed_wheel.py`.
 It builds a wheel directly and through the sdist, installs frozen runtime dependencies in a temporary environment, compares every bundled asset hash, and verifies configuration and substituted no-op/override calls from an external working directory.
 It starts no PostgreSQL connection and establishes no real migrator integration.
+
+The installed API also provides the prepared operator commands:
+
+```sh
+spellbook-operator-password ACCOUNT_ID USERNAME < /secure/path/password-file
+spellbook-demo-seed
+spellbook-demo-replace-inventory
+```
+
+These commands invoke `operators.local_password`, `operators.seed` and `operators.replace_inventory` directly.
+Use the protected caller environment for `DATABASE_URL`; the commands do not load `.env`.
+Password recovery reads bounded stdin and revokes sessions atomically.
+Demo commands retain the `_demo`/`_design` database guard, explicit reset/apply options and read-only replacement preview.
+The existing build hook includes unchanged `cards.json`, `upgrades-unleashed.json`, the versioned Catalog manifest and its `.jsonl.gz` from `backend/scripts/demo` under `spellbook_api/operators/assets` in wheels and sdists.
+Source checkouts keep that canonical fixture owner; `--fixtures-dir` remains available.
+The external wheel test checks all three installed `--help` commands and entrypoint mappings, exact fixture hashes, actual fixture discovery and complete streaming bundle validation after rebuilding from the sdist.
+It performs no database operation.
+
+With `DATABASE_URL`, the host constructs `ScanStorageConfiguration`, `create_scan_storage`, `HttpScanWorker` and Core `create_scan`, then registers `create_scan_routes` once.
+`SCAN_STORAGE_DRIVER`, `SCAN_LOCAL_STORAGE_DIR`, all existing `S3_*` settings and `SCAN_WORKER_URL` retain their current meanings and defaults.
+The worker URL defaults to `http://scan-worker:8080`; local storage defaults to `/app/storage/scans`.
+No-DB Discovery startup constructs neither adapter.
+Request settlement precedes adapter close, and both adapters close before the request pool, including after startup or close failures.
+Tests exercise local storage, Boto3 against a task-owned HTTP protocol fixture, the actual scaffold source over TCP, timeout and shutdown.
+Real Scan PostgreSQL, proxy, independently installed worker and S3 target acceptance remain with Root.

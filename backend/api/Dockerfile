@@ -4,6 +4,11 @@ WORKDIR /app
 COPY backend/core/ backend/core/
 COPY backend/api/ backend/api/
 COPY backend/drizzle/ backend/drizzle/
+COPY backend/scripts/demo/cards.json \
+     backend/scripts/demo/upgrades-unleashed.json \
+     backend/scripts/demo/catalog-default-en-20261007.manifest.json \
+     backend/scripts/demo/catalog-default-en-20261007.jsonl.gz \
+     backend/scripts/demo/
 COPY contracts/openapi.json contracts/openapi.json
 RUN uv sync --project backend/api --frozen --no-dev --no-editable --python 3.14.8
 

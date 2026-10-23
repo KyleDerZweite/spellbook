@@ -1,9 +1,9 @@
 # Local authentication and account recovery
 
 - Status: Canonical
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-10-23
 - Source of Truth: code
-- Update Triggers: independent API/web ownership and relocated code references, single root environment and demo launch configuration, registration policy, credential recovery command and backend operator lifetime, migration, reverse proxy origin, demo mode, versioned English Catalog publication and private starter preservation, original shipped Upgrades Unleashed Inventory and guarded replacement
+- Update Triggers: prepared Python operator entrypoints and bundled canonical fixtures, independent API/web ownership and relocated code references, single root environment and demo launch configuration, registration policy, credential recovery command and backend operator lifetime, migration, reverse proxy origin, demo mode, versioned English Catalog publication and private starter preservation, original shipped Upgrades Unleashed Inventory and guarded replacement
 - Related Docs: [Authentication architecture](../architecture/auth.md), [Deployment](./deployment.md), [Postgres](../architecture/postgres.md), [ADR-0009](../decisions/0009-local-authentication.md), [Catalog](../architecture/catalog.md), [Manual Demo Catalog updates](./deployment.md#manual-demo-catalog-update)
 
 New users register at `/auth/register` and sign in at `/auth/login`.
@@ -42,6 +42,10 @@ It supports the operator's authorized target database, including production, wit
 Owned data remains intact.
 It rejects missing account IDs and usernames already assigned to another local account.
 Successful execution prints `Local credentials saved. Existing sessions revoked.`
+
+The unmerged Python candidate also installs `spellbook-operator-password ACCOUNT_ID USERNAME`, with the same bounded stdin and account/session behavior.
+Run it in the prepared API environment with `DATABASE_URL` supplied by the protected caller environment; it does not load `.env`.
+The current Node launchers and production migration ownership remain unchanged.
 
 For a compose deployment, run the same script in the migration image, which includes the source and inherits the internal database connection.
 From the repository root:
@@ -117,6 +121,11 @@ The existing seed transaction rolls back Catalog and private changes together on
 No external card API is needed to seed; images still require network access.
 Demo publication does not publish Price state or establish provider freshness.
 Guarded local import and preservation of private state are verified and recorded with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192).
+The prepared Python API package provides `spellbook-demo-seed` and `spellbook-demo-replace-inventory` with the same explicit `--reset-users` and `--apply` options.
+Demo target guards and preservation rules still apply.
+Installed wheels and sdists bundle unchanged canonical fixtures under `spellbook_api/operators/assets`; source runs use `backend/scripts/demo`, and both retain `--fixtures-dir`.
+The installed CLI help, asset hashes, fixture discovery and bundle validation are tested without connecting to a database.
+Real installed operator execution remains separate integration evidence.
 Deployment remains separate.
 
 ## Replace the original private Demo starter

@@ -3,7 +3,7 @@
 - Status: Accepted execution contract; complete candidate and production operations pending
 - Last Reviewed: 2026-10-23
 - Source of Truth: ADR-0025, ADR-0026, ADR-0027, existing code/tests/contracts and Kyle's 2026-10-23 direction
-- Update Triggers: functional migration acceptance, component interfaces, assembled Dashboard and packaged migrator, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
+- Update Triggers: functional migration acceptance, component interfaces, assembled Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
 - Related Docs: [ADR-0025](../decisions/0025-python-api-and-workers.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [Independent applications](./independent-applications.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Migration evidence](./python-migration-evidence-baseline.md), [Postgres](./postgres.md), [Auth](./auth.md), [Worker](./worker.md), [Deployment](../operations/deployment.md), [Verification](../operations/github-automation.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
 
 ## Scope and status
@@ -135,10 +135,14 @@ The documented inventory is 88 API method/path pairs and 95 OpenAPI pairs includ
   Publication failure leaves the last complete snapshot active; `state.json` remains operator status.
   Preserve opt-ins, resource limits and all existing private data and Scan objects.
 
-The current candidate host composes the integrated Catalog, Inventory/Groups and Valuation route factories with Auth/QR, Account/Profile, Dashboard and SavedState.
+The current candidate host composes the integrated Catalog, sixteen Inventory/Groups/import, Valuation and seven Scan route factories with Auth/QR, Account/Profile, Dashboard and SavedState.
 Dashboard uses account-scoped aggregates and exact-first Deck allocation in one read-only repeatable-read snapshot, passing the same transaction and database clock to current/history value reads.
 `VALUE_HISTORY_TIMEZONE` configures its calendar and private value routes.
 The build hook bundles unchanged canonical SQL, journal and snapshots in API wheels/sdists; the explicit `spellbook-migrate` command discovers installed assets or honors `--migrations-dir`.
+Three explicit Python operator entrypoints use unchanged bundled canonical Demo fixtures, with external `--fixtures-dir` support.
+The API owns Scan storage/worker construction from existing environment variables, request settlement and adapter close before its pool.
+Boto3 supplies S3/SigV4, python-multipart supplies upload parsing and the existing httpx2 dependency supplies the worker client.
+No-DB Discovery creates neither adapter.
 This source assembly does not activate the remaining domains, change default launchers or establish complete integration acceptance.
 
 ## Delivery, evidence and rollback

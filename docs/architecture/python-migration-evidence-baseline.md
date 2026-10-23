@@ -3,7 +3,7 @@
 - Status: Canonical compatibility baseline; complete Python functional acceptance pending
 - Last Reviewed: 2026-10-23
 - Source of Truth: frozen Node code and executable neutral fixtures, historical PostgreSQL results, ADR-0027 and Kyle's 2026-10-23 direction
-- Update Triggers: compatibility inventory/transfer, functional integration evidence, tested revisions, host/Dashboard assembly and installed assets, migrator rehearsal and source activation
+- Update Triggers: compatibility inventory/transfer, functional integration evidence, tested revisions, host/Dashboard/Scan assembly and installed operator assets, migrator rehearsal and source activation
 - Related Docs: [Migration contract](./python-backend-migration.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [Contracts](../../contracts/README.md), [Independent applications](./independent-applications.md), [Auth](./auth.md), [Postgres](./postgres.md), [Verification](../operations/github-automation.md), [Deployment](../operations/deployment.md), [Issue 247](https://github.com/KyleDerZweite/spellbook/issues/247)
 
 ## Scope and authorization
@@ -144,12 +144,14 @@ The cases comprise six Auth/Profile/QR, six Catalog/Valuation including 23/25-ho
 They cover authentication races, account isolation, concurrent original receipts and transactional LISTEN/rollback/no-op notifications.
 Six additional pure receipt/validation cases passed in the first 22-case sweep; those six are not native PostgreSQL evidence.
 Root released the assigned lease with zero sessions.
+Root also reports Core 300, API 264 and state 3 unit cases passing at the same `6837f79` source; these are distinct from the 27 PostgreSQL cases.
 
 Both independent Auth and Catalog Standards reviews were clean.
 Their Spec reviews found multipart quoted-printable credential decoding and repeated Catalog query selection respectively; passing database tests did not close those adapter findings.
 The shared assembly fixes the multipart behavior against actual Node 26.10.0: `functional=20password` stays literal, exact lowercase `base64` decodes, and `8bit`/uppercase `BASE64` stay literal.
 Credential-route tests cover login/registration, first duplicate values and malformed UTF-8/file bytes.
-The Catalog writer owns its separate query fix and evidence.
+Root integrated the first-query fix as `91f23f281439120ba686bec4e119b11c2108fd24`.
+Root and the independent reviewer report 38 fresh passes for that fix; the repeated-query finding is closed.
 Root owns final-head review and real Dashboard/direct-host/proxy/worker/rollback integration; this earlier domain run does not establish those results.
 
 The shared assembly based on `6837f7966f95eda48f7a12a743ce040f29494636` passes `SPELLBOOK_TEST_WHEEL=1 uvx --from uv==0.12.23 uv run --directory backend/api --no-sync pytest -q`: 267 passed, four native guards skipped.
@@ -157,6 +159,26 @@ Using that API environment after a frozen Core reinstall, `pytest -q ../core/tes
 API/Core Ruff and format checks, strict Mypy, both frozen lock checks, Core/API sdist/wheel builds, the dependency checker and all five boundary unit cases pass.
 These checks use Python 3.14.8, uv 0.12.23 and the checkout's own environment, without database, service or provider access.
 Four pre-existing Core test import blocks and one API test import block were sorted for Ruff without domain behavior changes.
+
+### Scoped retained-runtime compatibility, 2026-10-23
+
+At `91f23f281439120ba686bec4e119b11c2108fd24`, Root reports two real retained-database original-receipt replay cases passing in both Node-to-Python and Python-to-Node directions with Node 26.10.0 and Python 3.14.8.
+Root retained the installed Node artifact and production dependencies at `.local/python-migration-node-rollback` in its checkout.
+Actual built HTTP Discovery/Catalog smoke passed.
+Node logged into Python-created scrypt credentials, Python accepted the Node session, Python password rotation invalidated the old Node session, and Node accepted the replacement session while the old password failed.
+The task-owned Node process exited 0 and its account was cleaned up.
+These are scoped credential/session/receipt compatibility checks, not complete rollback or workflow acceptance.
+
+The shared follow-up assembles the completed sixteen Inventory routes and seven Scan routes, registers three operator entrypoints and packages the unchanged four-file Demo fixture set in API wheels/sdists.
+Source-agent Scan checks cover local file operations, Boto3 HTTP to an owned protocol fixture, actual scaffold source over TCP, timeout and shutdown.
+Real Scan PostgreSQL, API proxy, independently installed worker and operator-owned S3 target evidence remain pending with Root.
+Categories, Decks, state packaging, closed web commands and default activation remain later integration work.
+
+With those prerequisites cherry-picked after `4ca78ad3`, the shared follow-up passes `SPELLBOOK_TEST_WHEEL=1 uvx --from uv==0.12.23 uv run --directory backend/api --no-sync pytest -q`: 366 passed and five native guards skipped.
+That run includes installed operator help/metadata, direct-wheel and sdist-rebuilt fixture hashes, complete packaged bundle validation, Scan protocol/scaffold adapters and host cleanup failure cases.
+`pytest -q ../core/tests/test_operator_fixtures.py ../core/tests/test_inventory_import.py ../core/tests/test_scan.py` in the same frozen-reinstalled API environment passes 121 focused Core cases.
+API Ruff/format and strict Mypy, the frozen API lock check, API sdist/wheel build, the dependency checker and all five boundary unit cases pass.
+Python 3.14.8 and uv 0.12.23 run these checks in this checkout without database or external-provider access; no container build is claimed.
 
 ### Python migrator, 2026-10-23
 

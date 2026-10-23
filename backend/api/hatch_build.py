@@ -1,4 +1,4 @@
-"""Bundle canonical schema and migration assets without a checked-in copy."""
+"""Bundle canonical schema, migration and operator assets without a checked-in copy."""
 
 from pathlib import Path
 from typing import Any
@@ -19,6 +19,16 @@ class CustomBuildHook(BuildHookInterface):
             ),
             (root / "src/spellbook_api/drizzle", root.parent / "drizzle", "drizzle"),
         ]
+        for filename in (
+            "cards.json",
+            "upgrades-unleashed.json",
+            "catalog-default-en-20261007.manifest.json",
+            "catalog-default-en-20261007.jsonl.gz",
+        ):
+            name = f"operators/assets/{filename}"
+            assets.append(
+                (root / "src/spellbook_api" / name, root.parent / "scripts/demo" / filename, name)
+            )
         for bundled, canonical, name in assets:
             if bundled.exists():
                 # An sdist already includes the exact canonical assets.
