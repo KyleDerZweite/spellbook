@@ -3,6 +3,7 @@
 import ipaddress
 import re
 from collections.abc import Awaitable, Callable, Mapping
+from contextlib import suppress
 from dataclasses import dataclass, field
 
 from fastapi import FastAPI
@@ -18,6 +19,9 @@ class Configuration:
     host: str = "127.0.0.1"
     port: int = 3002
     database_url: str | None = field(default=None, repr=False)
+
+    demo_mode: bool = False
+    trusted_proxy_addresses: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         try:
@@ -40,6 +44,20 @@ class Configuration:
             raise ValueError("The dormant candidate requires a loopback API_HOST")
         if not 1 <= self.port <= 65535:
             raise ValueError("API_PORT must be between 1 and 65535")
+        normalized_proxies: list[str] = []
+        for proxy in self.trusted_proxy_addresses:
+            try:
+                ipaddress.ip_address(proxy)
+            except ValueError:
+                raise ValueError(
+                    "API_TRUSTED_PROXY_ADDRESSES accepts comma-separated IP addresses only"
+                ) from None
+            normalized = proxy
+            if proxy.startswith("::ffff:"):
+                with suppress(ValueError):
+                    normalized = str(ipaddress.IPv4Address(proxy[7:]))
+            normalized_proxies.append(normalized)
+        object.__setattr__(self, "trusted_proxy_addresses", tuple(normalized_proxies))
         if self.database_url is not None:
             try:
                 if not self.database_url.strip():
@@ -60,6 +78,12 @@ class Configuration:
             host=env.get("API_HOST", "127.0.0.1").strip(),
             port=int(raw_port),
             database_url=env.get("DATABASE_URL") or None,
+            demo_mode=env.get("DEMO_MODE") == "true",
+            trusted_proxy_addresses=tuple(
+                part.strip()
+                for part in env.get("API_TRUSTED_PROXY_ADDRESSES", "").split(",")
+                if part.strip()
+            ),
         )
 
 

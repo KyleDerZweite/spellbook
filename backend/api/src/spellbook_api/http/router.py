@@ -53,7 +53,14 @@ class RawPathRouting:
 
 
 def cache_policy(path: str) -> str | None:
-    if path.startswith(("/api/auth/", "/api/account/", "/api/catalog/printings/")):
+    if path in {
+        "/api/mobile/v1/mtg/inventory/value",
+        "/api/mobile/v1/mtg/inventory/value-history",
+    }:
+        return "private, no-store"
+    if path == "/api/web/v1" or path.startswith(
+        ("/api/auth/", "/api/account/", "/api/web/v1/", "/api/catalog/printings/")
+    ):
         return "no-store"
     return None
 
@@ -133,8 +140,7 @@ class RouteRegistry:
                             raw
                         )  # Validate early; the handler receives unchanged RAW.
                         params[expected[1:]] = raw
-                if match.path == "/api/mobile/v1/mtg/inventory":
-                    require_form_origin(request, self._origin)
+                require_form_origin(request, self._origin, match.path)
                 if self._auth is not None:
                     cleanup = await stale_session_cookie(request, self._auth, self._origin)
                 response = await match.handle(request, params)

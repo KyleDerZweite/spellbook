@@ -6,13 +6,14 @@ from importlib.resources import files
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from spellbook_core.auth import SessionAuth
+from spellbook_core.auth import LocalAuth, SessionAuth
 from spellbook_core.catalog import Catalog
 from spellbook_core.inventory import Inventory
+from spellbook_core.profile import Profile
 from starlette.responses import Response
 from starlette.routing import Route
 
-from spellbook_api.http import routes_auth, routes_catalog, routes_inventory
+from spellbook_api.http import routes_account, routes_auth, routes_catalog, routes_inventory
 from spellbook_api.http.admission import RequestAdmission
 from spellbook_api.http.errors import json_response
 from spellbook_api.http.router import (
@@ -33,6 +34,7 @@ def create_http_application(
     inventory: Inventory | None = None,
     saved_routes: SavedStateRoutes | None = None,
     admission: RequestAdmission | None = None,
+    profile: Profile | None = None,
 ) -> FastAPI:
     resource = files("spellbook_api").joinpath("openapi.json")
     schema_text = (
@@ -90,6 +92,23 @@ def create_http_application(
                 HttpRoute("GET", "/api/account/events", events),
             ]
         )
+    if isinstance(auth, LocalAuth):
+        routes.extend(
+            routes_auth.create_auth_routes(
+                auth, configuration.public_origin, configuration.trusted_proxy_addresses
+            )
+        )
+        if profile is not None:
+            routes.extend(
+                routes_account.create_account_routes(
+                    auth,
+                    profile,
+                    configuration.public_origin,
+                    configuration.trusted_proxy_addresses,
+                )
+            )
+    elif profile is not None:
+        raise ValueError("Profile routes require LocalAuth")
     declared = {
         re.sub(r"\{([^}]+)\}", r":\1", path): tuple(
             method.upper()

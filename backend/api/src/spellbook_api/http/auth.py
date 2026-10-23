@@ -1,10 +1,12 @@
 """Session selection and request authority at the HTTP boundary."""
 
+import ipaddress
 import re
 
 from spellbook_core.auth import SessionAuth
 from spellbook_core.models import Actor
 from starlette.requests import Request
+from starlette.responses import Response
 
 from spellbook_api.http.errors import HttpError
 from spellbook_api.http.parsing import decode_parameter, header, trim
@@ -39,13 +41,14 @@ def selected_token(request: Request) -> str | None:
     return read_cookie(request)
 
 
-def require_same_origin(request: Request, public_origin: str) -> None:
-    if header(request, "origin") != public_origin:
+def require_same_origin(request: Request, public_origin: str, allow_missing: bool = False) -> None:
+    origin = header(request, "origin")
+    if origin != public_origin and not (allow_missing and origin is None):
         raise HttpError(403, "Invalid request origin")
 
 
-def require_form_origin(request: Request, public_origin: str) -> None:
-    """Pre-handler guard for the representative items-add route."""
+def require_form_origin(request: Request, public_origin: str, route_path: str = "") -> None:
+    """Guard browser form mutations, with the existing narrow native bearer exceptions."""
     if request.method not in {"POST", "PUT", "PATCH", "DELETE"}:
         return
     media = trim((header(request, "content-type") or "").split(";")[0]).lower()
@@ -56,8 +59,30 @@ def require_form_origin(request: Request, public_origin: str) -> None:
         "application/x-sveltekit-formdata",
     }:
         return
-    if header(request, "origin") != public_origin:
-        raise HttpError(403, f"Cross-site {request.method} form submissions are forbidden")
+    origin = header(request, "origin")
+    if origin == public_origin:
+        return
+    if origin is None and get_bearer_token(request):
+        if (
+            request.method == "POST"
+            and media == "multipart/form-data"
+            and route_path == "/api/mobile/v1/mtg/scan/sessions/:sessionId/frames"
+        ):
+            return
+        bodyless = {
+            "DELETE /api/mobile/v1/mtg/decks/:deckId",
+            "DELETE /api/mobile/v1/mtg/deck-cards/:entryId",
+            "DELETE /api/mobile/v1/mtg/inventory/:entryId",
+            "POST /api/mobile/v1/mtg/scan/sessions",
+            "POST /api/auth/logout",
+        }
+        length = header(request, "content-length") or "0"
+        has_body = "transfer-encoding" in request.headers or (
+            length.isascii() and length.isdigit() and bool(length.lstrip("0"))
+        )
+        if not media and not has_body and f"{request.method} {route_path}" in bodyless:
+            return
+    raise HttpError(403, f"Cross-site {request.method} form submissions are forbidden")
 
 
 async def require_mobile_auth(request: Request, auth: SessionAuth, public_origin: str) -> Actor:
@@ -84,3 +109,43 @@ async def stale_session_cookie(
         return None
     secure = "; Secure" if public_origin.startswith("https:") else ""
     return f"{SESSION_COOKIE}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax{secure}"
+
+
+def client_address(request: Request, trusted_proxy_addresses: tuple[str, ...] = ()) -> str:
+    peer = normalize_address(request.client.host if request.client else "unknown")
+    forwarded = header(request, "x-spellbook-client-address")
+    if peer in trusted_proxy_addresses and forwarded:
+        try:
+            ipaddress.ip_address(forwarded)
+        except ValueError:
+            pass
+        else:
+            return normalize_address(forwarded)
+    return peer
+
+
+def normalize_address(address: str) -> str:
+    if address.startswith("::ffff:"):
+        try:
+            return str(ipaddress.IPv4Address(address[7:]))
+        except ValueError:
+            pass
+    return address
+
+
+def write_session_cookie(response: Response, token: str, public_origin: str) -> None:
+    append_cookie(response, SESSION_COOKIE, token, "/", 2592000, public_origin)
+
+
+def append_cookie(
+    response: Response, name: str, value: str, path: str, max_age: int, public_origin: str
+) -> None:
+    secure = "; Secure" if public_origin.startswith("https:") else ""
+    response.raw_headers.append(
+        (
+            b"set-cookie",
+            (
+                f"{name}={value}; Path={path}; Max-Age={max_age}; HttpOnly; SameSite=Lax{secure}"
+            ).encode("ascii"),
+        )
+    )

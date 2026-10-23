@@ -9,10 +9,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from psycopg import AsyncConnection
 from psycopg_pool import AsyncConnectionPool
-from spellbook_core.auth import create_session_auth
+from spellbook_core.auth import create_local_auth
 from spellbook_core.catalog import create_catalog
 from spellbook_core.inventory import create_inventory
 from spellbook_core.passwords import create_password_verifier
+from spellbook_core.profile import create_profile
 from spellbook_core.saved_state import create_saved_state
 
 from spellbook_api.http.admission import RequestAdmission
@@ -56,7 +57,8 @@ class ApplicationResources:
         self.executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="spellbook-scrypt")
         self.passwords = create_password_verifier(self.executor)
         self.listener = SavedStateListener(configuration.database_url)
-        self.auth = create_session_auth(self.pool)
+        self.auth = create_local_auth(self.pool, self.passwords, configuration.demo_mode)
+        self.profile = create_profile(self.pool, self.auth, configuration.demo_mode)
         self.catalog = create_catalog(self.pool)
         self.inventory = create_inventory(self.pool, self.catalog, self.auth)
         self.saved_state = create_saved_state(
@@ -161,6 +163,7 @@ def create_application(
         http = create_http_application(
             configuration,
             auth=resources.auth,
+            profile=resources.profile,
             catalog=resources.catalog,
             inventory=resources.inventory,
             saved_routes=resources.saved_routes,

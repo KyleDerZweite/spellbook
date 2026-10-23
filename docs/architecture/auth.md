@@ -1,14 +1,22 @@
 # Authentication
 
 - Status: Canonical
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-10-23
 - Source of Truth: code
-- Update Triggers: independent API/web ownership and relocated code references, QR challenge lifecycle, session-bound decisions, requester cookies and PWA delivery, credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, summary reporting failures, post-login destinations, agent discovery, workspace ownership, application resource lifetime and native operator ownership, SavedState stream authority and origin policy
-- Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Routes](../product/routing-and-games.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md), [Application contract](./application-contract.md), [Independent applications](./independent-applications.md)
+- Update Triggers: Python Auth/Profile/QR functional port, independent API/web ownership and relocated code references, QR challenge lifecycle, session-bound decisions, requester cookies and PWA delivery, credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, summary reporting failures, post-login destinations, agent discovery, workspace ownership, application resource lifetime and native operator ownership, SavedState stream authority and origin policy
+- Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Routes](../product/routing-and-games.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md), [Application contract](./application-contract.md), [Independent applications](./independent-applications.md), [Python migration](./python-backend-migration.md)
 
 Spellbook authenticates local accounts by username and password.
 `user_profiles.account_id` remains the stable ownership key for inventories, decks, and scans.
 Registration generates a new account ID; operator enrollment preserves an existing account ID.
+
+The dormant Python candidate now implements Auth, QR authorization, Profile preferences and password bridges in [Core Auth](../../backend/core/src/spellbook_core/auth.py), [QR](../../backend/core/src/spellbook_core/qr.py), [Profile](../../backend/core/src/spellbook_core/profile.py) and the production [HTTP registry](../../backend/api/src/spellbook_api/http/application.py).
+The candidate preserves existing scrypt/session storage, trusted Actor methods, API error bodies and native credential forms.
+Registration stores the profile, credential and initial session atomically.
+The guarded [PostgreSQL regression suite](../../backend/core/tests/test_auth_profile_postgres.py) covers the intended transaction and race scenarios; it requires an assigned disposable database.
+Component tests with application doubles establish adapter behavior, not PostgreSQL acceptance.
+Dashboard awaits Valuation integration, and Node remains the active default until the later activation slice.
+The [Python migration contract](./python-backend-migration.md) owns the remaining integration and production authority.
 
 ## PWA and QR sign-in implementation contract
 
@@ -299,7 +307,7 @@ For guarded requests, a foreign or literal `null` origin returns HTTP 403 even w
 Other guarded requests with a missing origin return HTTP 403.
 These checks apply in development and production; JSON handlers retain their own origin checks.
 The three [credential form routes](./independent-applications.md#authority-and-compatibility) stream original form bodies to API-owned validation and consume the original attempt before decoding.
-Core form/schema integration and current-head verification remain in progress.
+Python Core and credential-form adapters are implemented in the dormant candidate; real PostgreSQL, proxy and current-head integration acceptance remain pending.
 `API_INTERNAL_URL` changes only the transport destination, not the public Origin or secure-cookie policy.
 
 Login, registration and password changes share a per-API-process limit of 20 attempts per client address within 15 minutes.

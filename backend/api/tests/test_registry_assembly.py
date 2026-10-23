@@ -357,6 +357,8 @@ def test_outer_host_cap_is_distinct_from_the_inner_json_decoder() -> None:
     app = FastAPI()
     app.router.routes.append(Route("/{path:path}", registry))
     with TestClient(app) as client:
-        response = client.post("/api/body", content=b"x" * (HOST_BODY_BYTES + 1))
+        response = client.post(
+            "/api/body", content=b"x" * (HOST_BODY_BYTES + 1), headers={"Origin": ORIGIN}
+        )
         assert response.status_code == 413
         assert response.json() == {"message": "Request body exceeds the size limit", "status": 413}

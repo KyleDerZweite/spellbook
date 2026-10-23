@@ -1,6 +1,12 @@
 # Python application and SQL package
 
-Core owns typed session authority, bounded singleton Catalog reads, representative Inventory add/detail and original receipts, SavedState subscriptions/authority/fanout, credential verification and shared compatibility rules.
+Core owns typed session authority, bounded singleton Catalog reads, representative Inventory add/detail and original receipts, SavedState subscriptions/authority/fanout, local credentials/sessions, QR authorization, Profile preferences/cards/totals and shared compatibility rules.
+`create_local_auth(pool, passwords, demo_mode=False)` extends `SessionAuth` without changing its trusted Actor methods.
+`create_profile(pool, auth, demo_mode=False)` owns Profile reads and atomic partial updates.
+Password hashing and verification share the lifetime-owned executor and use the existing Node-compatible scrypt encoding.
+Core's `hash_password(password)` is synchronous for operator consumers; async callers use `PasswordVerifier.hash`.
+QR uses existing migration 0024 and preserves requester-channel separation, terminal retries, live-session fencing and one-use redemption.
+
 The [dormant API](../api/README.md) constructs their concrete dependencies and owns runtime resources.
 Core has no process, image, entrypoint, module-global pool or connection owner.
 Constructors open no resources; explicit start/close methods own only the documented Core tasks.

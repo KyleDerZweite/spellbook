@@ -3,7 +3,8 @@
 P02b hosts the representative session, singleton Catalog Printing, Inventory add/detail and SavedState workflow for [issue 248](https://github.com/KyleDerZweite/spellbook/issues/248).
 Node remains the active API in root scripts, Compose and deployment.
 This candidate establishes no complete P02 acceptance, full API parity or P01 performance result.
-Login, registration, QR, complete browsing and other domain routes remain with later slices.
+Python now implements login, registration, logout, QR authorization, Profile preferences and password bridges.
+Complete browsing, Dashboard and other domain routes remain with later slices.
 There are no schedulers or ingestion jobs in this process.
 
 Use Python 3.14.8 and uv 0.12.23, matching CI and the image.
@@ -34,13 +35,32 @@ After changing Core, frozen-reinstall `spellbook-core` because its local path de
 
 The [neutral artifact](../../contracts/openapi.json) owns the complete structural schema; Discovery replaces only `servers` with APP_ORIGIN.
 Generated framework docs/schema are disabled.
-Only these business adapters are installed:
+These business adapters are installed:
 
+- `POST /api/auth/login`, `POST /api/auth/register`, `POST /api/auth/logout`
+- `POST /api/web/v1/auth/login`, `POST /api/web/v1/auth/register`
+- `POST /api/auth/qr/requests`, `GET /api/auth/qr/requests/{code}`
+- `POST /api/auth/qr/requests/{code}/decision`, `POST /api/auth/qr/token`
 - `GET /api/auth/session`
+- `GET /api/account/profile`, `PATCH /api/account/profile`
+- `POST /api/account/password`, `POST /api/web/v1/password`
 - `GET /api/catalog/printings/{printingId}`
 - `POST /api/mobile/v1/mtg/inventory`
 - `GET /api/mobile/v1/mtg/inventory/{entryId}`
 - `GET /api/account/events`
+
+The host constructs `LocalAuth` with its owned password executor and constructs `Profile` with that same authority.
+`LocalAuth` extends the existing `SessionAuth` actor interface.
+Registration persists credentials, profile and initial session in one transaction.
+Password rotation rechecks the verified credential under the Profile lock, replaces credentials and revokes old sessions atomically.
+QR redemption locks Profile, challenge and the original approver session before issuing and consuming a session in one transaction.
+The Core `hash_password` helper creates the existing scrypt encoding for future operator use; async consumers use the bounded executor's `hash` method.
+`DEMO_MODE=true` and `API_TRUSTED_PROXY_ADDRESSES` retain the existing demo and explicit socket-peer trust settings.
+Raw credential forms consume an Auth attempt before the bounded decoder and preserve non-string file inputs and first repeated values.
+Auth/Account adapter tests run against the production registry with isolated application doubles.
+`backend/core/tests/test_auth_profile_postgres.py` adds opt-in transaction, account-isolation, password-race and QR redemption cases under the existing guarded native pool.
+These PostgreSQL cases require the assigned disposable target and do not run during ordinary unit tests.
+Dashboard remains a later integration with Valuation.
 
 Missing business handlers return404.
 Declared literal paths cannot fall through into a named entry parameter.
