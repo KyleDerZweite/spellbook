@@ -3,14 +3,14 @@
 - Status: Canonical compatibility baseline; complete Python functional acceptance pending
 - Last Reviewed: 2026-10-23
 - Source of Truth: frozen Node code and executable neutral fixtures, historical PostgreSQL results, ADR-0027 and Kyle's 2026-10-23 direction
-- Update Triggers: compatibility inventory/transfer, functional integration evidence, tested revisions, Category/state assembly, host/Dashboard/Scan and installed operator assets, migrator rehearsal and source activation
+- Update Triggers: Python source activation and server contraction, compatibility inventory/transfer, functional integration evidence, tested revisions, Category/state assembly, host/Dashboard/Scan and installed operator assets, migrator rehearsal and source activation
 - Related Docs: [Migration contract](./python-backend-migration.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [Contracts](../../contracts/README.md), [Independent applications](./independent-applications.md), [Auth](./auth.md), [Postgres](./postgres.md), [Verification](../operations/github-automation.md), [Deployment](../operations/deployment.md), [Issue 247](https://github.com/KyleDerZweite/spellbook/issues/247)
 
 ## Scope and authorization
 
 P01 extracted the Node compatibility baseline from `b835eee87ff0e92e99df18ab384602e48183a88d`.
 The existing neutral schema, inventories and fixtures remain useful inputs to the Python port.
-The current foundation also includes dormant Python API/Core; its presence establishes no full parity claim.
+The candidate now activates Python API/Core and workers by default; final-head integration acceptance remains pending.
 The [migration contract](./python-backend-migration.md) owns practical acceptance and delivery.
 
 [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md) retires P01 numeric rejection gates, matched-resource cohorts, the D2 measurement envelope and Linux/kernel/Collector proof as prerequisites.
@@ -23,21 +23,21 @@ They are history, not current acceptance gates.
 ## Frozen artifact and implementation contract
 
 [`contracts/openapi.json`](../../contracts/openapi.json) owns the language-neutral structural schema.
-The Node [adapter](../../backend/src/http/openapi.ts) imports that artifact into the normal esbuild bundle and changes only `servers` for the existing public origin.
+The Python [adapter](../../backend/api/src/spellbook_api/http/application.py) reads the bundled artifact and changes only `servers` for the public origin.
 The original builder's `JSON.stringify(openapi('/'))` SHA-256 is `2278d5ffc597f59dde47974b9d4835a849be9abe5f023870c2ccbde801ce6979`.
-The executable extraction check pins that exact object and property order.
-JSON source formatting is not an HTTP byte change; Node still uses its existing response serializer.
+That extraction hash records the original Node schema provenance.
+Python response serialization and golden fixtures preserve the accepted wire semantics.
 
 Backend owns validation and wire semantics.
 Contracts contains schemas and sanitized data, while existing TypeScript helpers and handwritten TypeScript/Kotlin clients remain.
 The API HTTP adapter depends on application modules; persistence, workers and domain validation do not depend on the schema adapter.
 No new runtime dependency, generic fixture engine, generated client or duplicate framework schema owner is introduced.
-Route registration, application lifetime, CI, root manifests and launchers stay with the later integration writer.
+The activation writer owns route assembly, application lifetime, CI, root manifests and launchers.
 
 ## Complete ownership inventory
 
 The canonical [machine-readable inventory](../../contracts/compatibility/inventory.json) enumerates every method/path separately and assigns each to current source and future Slice.
-The check instantiates all ten production route factories rather than relying on historical counts.
+The assembled Python registry is compared directly with every API operation in this neutral baseline.
 Existing OpenAPI checks independently reconcile browser-auth source methods and all local references.
 
 | Registered group                              | Explicit method/path pairs | Migration ownership                                               |
@@ -61,7 +61,7 @@ HEAD maps to each registered GET and discards its body.
 OPTIONS returns 204 and ordered `Allow` for each API/Discovery path, even when its handler requires authentication.
 Unsupported methods return 405 with `{ "message": "Method Not Allowed" }`, without the ordinary error body's `status` field.
 Unknown routes return 404 through the ordinary error serializer.
-The Node router accepts one trailing slash and decodes named path segments after matching.
+The Python router preserves one trailing slash and decodes named path segments after matching.
 These implicit behaviors remain requirements, not extra registered business methods.
 
 The nine closed commands are `inventory.add`, `inventory.patchEntry`, `inventory.remove`, `decks.createRecord`, `decks.addCatalogCard`, `decks.changePrinting`, `decks.updateCard`, `decks.removeCard` and `decks.importInto`.
@@ -82,7 +82,7 @@ WholeDeckCategory polls every second, debounces for 250 ms and uses a 30-second 
 P11/P15 move only scheduled runner ownership to separate state processes; synchronous transaction effects remain with their application owners.
 P13 preserves publisher locks, COPY/publication/pointers/pruning and source-specific limits without changing schema ownership.
 P16 owns password/Demo operator entrypoints and packaging; P19 owns the later one-shot migrator handoff.
-Drizzle remains the only migration runner throughout the API port.
+The default one-shot Python migrator retains the exact 25-entry Drizzle ledger and SQL history.
 
 ## Compatibility and evidence transfer
 
@@ -180,37 +180,51 @@ That run includes installed operator help/metadata, direct-wheel and sdist-rebui
 API Ruff/format and strict Mypy, the frozen API lock check, API sdist/wheel build, the dependency checker and all five boundary unit cases pass.
 Python 3.14.8 and uv 0.12.23 run these checks in this checkout without database or external-provider access; no container build is claimed.
 
-### Latest integrated and installed evidence, 2026-10-23
+### Activation and contraction, 2026-10-23
 
-Root passed nine actual PostgreSQL cases at `33dadbdfdbf48a4aa0907771c8f001cf64d36330`: three Inventory imports, one Dashboard, four Scan and one Categories case.
-These are distinct from the earlier 27 native domain cases, ten native migrator cases and two retained-data cross-runtime replay cases.
-Both initial shared-package reviews reported zero findings, and the original Auth multipart P2 was independently closed.
-The Category repeated-query fix `b3342a94`, integrated as `a0893040`, has an affected review still in progress.
-This shared follow-up leaves `routes_categories.py` and Root's five mechanical Category test import fixes unchanged.
+The activation source starts from `87cc4a3d153616bcce46fad046246b6a3271e563`.
+Root reports fresh Core 515 passed/71 skipped and API 467 passed/8 skipped there, with package Ruff/format/Mypy and 19 CI routing cases passing.
+Both independent Deck review axes and State assembly review axes reported no findings.
+Root ran both Deck PostgreSQL journeys successfully and two selected installed-artifact HTTP checks successfully in 11.50 seconds.
+Those HTTP checks covered retained Node original receipts/lost replies/wire failures, two Python replicas, web proxy, SSE, listener recovery and revoked sessions.
+They establish scoped pre-activation evidence, not final-head acceptance.
 
-At `e120f5bbba781368e19deb94fd9efd20ba55d6db`, Root installed Core/API wheels with frozen production dependencies into a fresh external environment and passed all four console-help checks.
-Installed `spellbook-migrate` applied all 25 migrations to an exclusively owned empty disposable PostgreSQL 18 database, then reported no pending migrations; the ledger contained 25 rows.
-The installed password operator updated a real credential and revoked sessions.
-Eight native Operator scenarios passed in 53.71 seconds under the assigned database guard.
-Root removed the scratch database after verifying zero sessions and released the worker lease.
-This establishes installed migrator/password execution and scoped native operators, not complete retained-data rollback or later state-worker acceptance.
+The source now assembles Deck routes and closed web commands, activates installed Python and all independent workers in normal launch paths, and removes replaced Node server/tooling/tests.
+The complete Python route registry matches the frozen API operation inventory.
+The first installed activation run passed 520 API cases with eight explicit opt-ins skipped, 686 frontend unit cases, and 47 tooling cases.
+Two earlier API tests failed solely because they assumed editable source asset locations; byte comparisons now verify installed SQL and Demo assets against the canonical originals.
+The final ordinary installed run passes 533 API cases with six opt-ins skipped, comprising five real-database cases and the separately selected wheel check.
+The external API wheel/sdist check also passes when explicitly selected.
+Core passes 515 cases with 71 native opt-in skips; State passes all 13 cases including its external installed wheel.
+Frontend passes 686 retained unit cases; 51 tooling cases and eight actual HTTP proxy cases pass.
+Package Ruff/format/Mypy, frozen locks, Core/API/State distributions, the origin-matched frontend/PWA build and import boundaries pass.
+The registry comparison normalizes OpenAPI parameter braces to adapter colon syntax and verifies the complete method/path set.
+These checks describe the final activation working diff; Root must refresh affected checks after sequential integration.
+No database, provider, container, production or GitHub workflow execution was assigned to this implementation owner.
 
-Root reports Core 494 passed/61 skipped and API 405 passed/6 skipped at `a0893040`, with both packages' Ruff/format/strict Mypy passing after mechanical test import sorting `2622d284`.
-The current-head GitHub Python API/Core job passed there.
-The application job found only Prettier formatting in the transferred Category Combo JSON fixture; Root owns that semantic-preserving formatting correction.
-These results belong to that integration head and do not establish CI for this later state package.
-The retained Node rollback artifact remains the scoped recovery reference; obsolete ignored migration-cycle material is not current authority.
+Core/API functional and guarded PostgreSQL suites replace direct Node domain consumers.
+Frontend unit/window/native-action tests, real external HTTP/browser consumers and public Catalog fixtures remain.
+HTTP fixtures launch only the installed Python API; WholeDeckCategory HTTP acceptance starts an independent installed State worker.
+The no-database proxy regression uses the installed Python host/parser/registry behind the actual built web proxy.
+It is transport evidence, not database/domain acceptance.
+Frozen contracts and compatibility inventories remain historical inputs; their Node executor paths are not current runnable source owners.
+The obsolete direct Node-source replay driver is retired after Core replay/legacy tests and retained compiled-artifact HTTP comparisons transfer its coverage.
+Manual built rollback checks require `P02B_NODE_ROLLBACK_ENTRYPOINT`; no Node fallback is selected by ordinary API or HTTP tests.
 
-The new package composes all seventeen Category routes and owns optional Combo configuration on API/state pools.
-`spellbook-state-worker` owns ValueHistory and WholeDeckCategory schedulers independently of HTTP.
-An explicit Python Compose override replaces the Node API and selects that state owner together; defaults, Deck APIs, web commands and Node contraction remain later work.
-Installed state-wheel, lifecycle and CI-selection checks do not establish real scheduled observations, durable job execution or container shutdown acceptance.
-The shared follow-up based on `a49b0eab` plus the unchanged Category prerequisite passes 398 API cases with five native skips using `SPELLBOOK_TEST_WHEEL=1`, and 13 state cases without skips using `SPELLBOOK_TEST_STATE_WHEEL=1`.
-State Ruff/format/strict Mypy, API strict Mypy/format and owned-file Ruff, both frozen lock checks, state sdist/wheel builds, API's external wheel test, 19 CI-selection cases and all five boundary cases pass.
-Full API Ruff in this isolated branch still reports the imported `test_categories_http.py` grouping fixed by Root in `2622d284`; those files were deliberately left unchanged here.
-Focused formatting uses the available Prettier 3.9.9 with the repository's non-Svelte options; it does not establish the full Application job.
-No database or external service/provider was used; Compose startup, container builds and actual scheduled state operation remain unexecuted.
-
+The retained private `.local/python-migration-node-rollback` artifact and private runtime resources remain untouched.
+Root reports removal of 149.5 MB and a further 1.025 GB of obsolete private benchmark/Collector material without effects on retained runtime resources.
+Root integrated the separate password success-reload correction at `a5291c1d`, preserving the existing SavedState architecture.
+Its author verified desktop/narrow registration, wrong-password draft/focus, successful rotation, new login, subsequent Profile write, revoked credentials and foreign Origin.
+The change is outside this activation writer's frontend source ownership; Root's Auth documentation sentence is preserved during integration.
+All four GitHub CI jobs passed at the earlier domain head `87cc4a3d`; this is not final activation-head CI.
+Root's first installed State smoke used `is None` for an absent row where `first()` returns an empty mapping, so its 15-second timeout was a harness error.
+No product defect was established.
+With fresh external production Core/State wheels, the queued Category job completed in 0.67 seconds, disappeared from PostgreSQL and produced an Automatic/True decision.
+The worker remained alive without warnings and exited zero on SIGTERM; Root cleaned fixtures and released the worker lease with zero sessions.
+The separate opt-in test at `e445fbcb09ab7193cb242679f8da363215e6e4db` passed twice in 0.69/0.60 seconds and remains owned by Root during integration.
+This is bounded actual installed Category scheduling evidence, not an actual scheduled daily value observation.
+Root retains final integration, actual scheduled daily value observations, Scan/storage/providers, container builds/shutdown and review of the complete draft PR.
+Production cutover, productive migrator rollout and rollback-window retirement remain separate operations.
 
 ### Python migrator, 2026-10-23
 
@@ -227,7 +241,7 @@ The shared assembly now bundles exact SQL/journal/snapshot bytes in wheels and s
 Its external installed-wheel check passes without a source `PYTHONPATH`, including a wheel rebuilt from the sdist, asset hashes, missing configuration, explicit override and substituted no-op calls.
 That packaging check does not connect to PostgreSQL.
 Root later executed the installed migrator and password command as recorded above.
-Complete retained-data/client integration and real state-worker acceptance remain pending with Root.
+Complete retained-data/client integration, actual daily ValueHistory observation and container acceptance remain pending with Root.
 
 ## Historical verification provenance
 
@@ -239,4 +253,4 @@ It covered selected receipts, conflicts, Auth/QR and listener behavior on Postgr
 It did not establish separate-process SSE, Python execution, actual Scan/storage/provider integration or production acceptance.
 The linked pre-reconciliation revision retains the detailed commands, fixture hashes, other historical checks and cleanup record.
 These are historical observations, not reruns at the current head.
-No new runtime check or resource measurement is claimed by this reconciliation.
+Historical measurements do not establish acceptance of the activation head.

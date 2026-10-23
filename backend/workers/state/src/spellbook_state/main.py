@@ -128,6 +128,7 @@ async def serve(configuration: Configuration, stop: asyncio.Event) -> None:
     resources = StateResources(configuration)
     try:
         await resources.start()
+        logging.info("Spellbook state worker started")
         await stop.wait()
     finally:
         await resources.close()

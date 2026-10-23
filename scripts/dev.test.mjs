@@ -22,7 +22,8 @@ async function fixture(
 ) {
 	const root = await mkdtemp(join(tmpdir(), 'spellbook-dev-'));
 	const id = containerId || root.split('/').at(-1);
-	await mkdir(join(root, 'backend/scripts/demo'), { recursive: true });
+	for (const directory of ['api', 'workers/state', 'workers/catalog', 'workers/scan'])
+		await mkdir(join(root, 'backend', directory), { recursive: true });
 	await mkdir(join(root, 'scripts'));
 	await mkdir(join(root, 'frontend'));
 	await mkdir(join(root, 'bin'));
@@ -32,15 +33,15 @@ async function fixture(
 		new URL('../frontend/scripts/dev.mjs', import.meta.url),
 		join(root, 'frontend/scripts/dev.mjs')
 	);
-	await writeFile(
-		join(root, 'backend/scripts/demo/seed.mjs'),
-		`process.exit(${seedFails ? 1 : 0});`
-	);
+
 	await writeFile(join(root, 'database'), String(running));
 	const executables = {
 		pnpm: `
 import {appendFileSync} from 'node:fs';
-const name = process.cwd().split('/').at(-1);
+const directory = process.cwd().split('/').at(-1);
+const name = directory === 'api' ? 'backend' : directory;
+if (process.argv.includes('spellbook-migrate')) process.exit(0);
+if (process.argv.includes('spellbook-demo-seed')) process.exit(${seedFails ? 1 : 0});
 const record = (value) => appendFileSync(process.env.FIXTURE_ROOT + '/events', JSON.stringify(value) + '\\n');
 record({event:'start',name,demo:process.env.DEMO_MODE,bodySizeLimit:process.env.BODY_SIZE_LIMIT,api:process.env.API_INTERNAL_URL,host:process.env.API_HOST,port:process.env.API_PORT,trusted:process.env.API_TRUSTED_PROXY_ADDRESSES,database:process.env.DATABASE_URL,s3:process.env.S3_SECRET_ACCESS_KEY,pgPassword:process.env.PGPASSWORD,args:process.argv.slice(2)});
 console.log('fixture ready ' + name);
@@ -60,6 +61,7 @@ else if (args[0] === 'stop') {
 }
 `
 	};
+	executables.uvx = executables.pnpm;
 	for (const [name, source] of Object.entries(executables)) {
 		await writeFile(join(root, 'bin', name), `#!${process.execPath}\n${source}`);
 		await chmod(join(root, 'bin', name), 0o700);
@@ -226,7 +228,7 @@ test('both independent children receive their own runtime configuration and stop
 			.filter((event) => event.event === 'stop')
 			.map((event) => event.name)
 			.sort(),
-		['backend', 'frontend']
+		['backend', 'catalog', 'frontend', 'scan', 'state']
 	);
 });
 
@@ -273,7 +275,7 @@ for (const mode of ['argument', 'environment']) {
 			.split('\n')
 			.map((line) => JSON.parse(line))
 			.filter((event) => event.event === 'start');
-		assert.equal(starts.length, 2);
+		assert.equal(starts.length, 5);
 		assert.equal(starts.find((event) => event.name === 'backend').demo, 'true');
 		const web = starts.find((event) => event.name === 'frontend');
 		assert.equal(web.demo, 'true');

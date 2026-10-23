@@ -13,6 +13,7 @@ from spellbook_core.auth import create_local_auth
 from spellbook_core.catalog import create_catalog
 from spellbook_core.categories import configure_combo_adapter, create_categories
 from spellbook_core.dashboard import create_dashboard
+from spellbook_core.decks import create_decks
 from spellbook_core.inventory import create_inventory
 from spellbook_core.inventory_value import create_inventory_values
 from spellbook_core.passwords import create_password_verifier
@@ -66,6 +67,7 @@ class ApplicationResources:
         )
         self.dashboard = create_dashboard(self.pool, self.auth, self.inventory_values)
         self.inventory = create_inventory(self.pool, self.catalog, self.auth)
+        self.decks = create_decks(self.pool, self.catalog, self.auth, self.valuation)
         self.scan_storage = create_scan_storage(configuration.scan_storage)
         self.scan_worker = HttpScanWorker(configuration.scan_worker_url)
         self.scan = create_scan(
@@ -123,8 +125,10 @@ class ApplicationResources:
                             await self.scan_storage.close()
                     finally:
                         try:
-                            await self.passwords.settle()
-                            self.executor.shutdown(wait=True)
+                            try:
+                                await self.passwords.settle()
+                            finally:
+                                self.executor.shutdown(wait=True)
                         finally:
                             await self.pool.close()
 
@@ -165,6 +169,7 @@ def create_application(configuration: Configuration) -> ApplicationLifetime:
             dashboard=resources.dashboard,
             scan=resources.scan,
             categories=resources.categories,
+            decks=resources.decks,
             saved_routes=resources.saved_routes,
             admission=resources.admission,
         )

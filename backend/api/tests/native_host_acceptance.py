@@ -20,11 +20,11 @@ from uuid import uuid4
 
 import httpx2
 import pytest
+from native_inventory import _core_native_helpers
 from psycopg import AsyncConnection
 from psycopg.conninfo import conninfo_to_dict
 from psycopg_pool import AsyncConnectionPool
 from spellbook_core.db import Transaction
-from test_cross_runtime import _core_native_helpers
 
 from spellbook_api.application import ApplicationResources, create_application
 from spellbook_api.http.types import Configuration
@@ -126,7 +126,11 @@ async def process_host(kind: str, *, api_url: str | None = None) -> AsyncIterato
         )
         command = [
             node,
-            str(ROOT / ("backend/dist/main.js" if kind == "node" else "frontend/build/index.js")),
+            str(
+                Path(os.environ["P02B_NODE_ROLLBACK_ENTRYPOINT"]).resolve()
+                if kind == "node"
+                else ROOT / "frontend/build/index.js"
+            ),
         ]
     if kind == "web":
         env = {

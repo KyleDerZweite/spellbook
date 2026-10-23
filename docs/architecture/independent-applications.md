@@ -1,7 +1,7 @@
 # Independent applications implementation contract
 
 - Status: Implemented first slice, native target verification pending
-- Last Reviewed: 2026-10-20
+- Last Reviewed: 2026-10-23
 - Source of Truth: accepted maintainer direction and existing application contracts
 - Update Triggers: Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, HTTP extraction, native delivery, credential forwarding, application ownership, acceptance evidence
 - Related Docs: [System overview](./system-overview.md), [Application contract](./application-contract.md), [Auth](./auth.md), [Mobile handoff](../product/mobile-app-exploration.md), [ADR-0024](../decisions/0024-independent-applications.md), [Verification](../operations/github-automation.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md)
@@ -11,34 +11,31 @@
 Retain `frontend/`, `backend/` and `contracts/`, with independent Catalog and Scan packages under `backend/workers/`.
 Add the independent Gradle project `android/`.
 SvelteKit owns rendering, native form actions and browser presentation.
-The Node API owns credential authentication, PostgreSQL, application use cases, Scan storage, runners and SavedState lifetime.
+The Python API owns credential authentication, PostgreSQL, application use cases, Scan storage and SavedState lifetime.
+The independent Python State process owns ValueHistory and WholeDeckCategory schedulers.
 Android owns native navigation, presentation, credentials and bounded local state.
 Contracts contain serialized DTOs and pure shared validation/presentation helpers only.
 No web runtime may import backend implementation, PostgreSQL, Drizzle or password hashing.
 
-The existing TypeScript backend remains the implemented baseline.
-[ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for the future API and server workers, with server code grouped under `backend/`.
-[Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211) records framework, contract and migration planning.
-The [accepted Python migration contract](./python-backend-migration.md) owns that design and its independent review; this document continues to describe the implemented extraction.
-This language direction does not implement a rewrite or worker move or change the extraction's application responsibilities.
+The unmerged integration candidate uses Python API/Core and workers by default.
+[ADR-0027](../decisions/0027-python-functional-migration-acceptance.md) owns functional acceptance and separate production authority.
+The [migration contract](./python-backend-migration.md) owns retained wire/data compatibility and remaining runtime evidence.
+The replaced TypeScript server is removed after transfer to Python functional tests and installed-Python HTTP consumers.
+Frontend, contracts, Android and unchanged SQL/Demo assets retain their owners.
 A new monorepo orchestrator, hardware control and a complex offline write queue remain outside its scope.
 Existing PWA compatibility remains available, but it is not the Android application.
 
 ## HTTP module interface
 
-`backend/src/http/types.ts` owns `HttpDependencies`, `RouteContext`, `HttpRoute` and `HttpApplication`.
-`createHttpApplication(application, {publicOrigin})` supplies `handle(Request, {clientAddress})` and `closeStreams()`.
-Route factories accept `HttpDependencies` and return `HttpRoute[]`, with colon-prefixed named path segments.
-Factories are `createAuthRoutes`, `createAccountRoutes`, `createSavedStateRoutes`, `createCatalogRoutes`, `createInventoryRoutes`, `createValuationRoutes`, `createScanRoutes`, `createDeckRoutes`, `createCategoryRoutes` and `createWebRoutes`.
-The parent integrates their registry sequentially.
-
-Shared helpers retain the current parser signatures in `http/request.ts`.
-`http/errors.ts` exports `error(status, body): never`, `json(value, init?)`, and `badRequestIfValidation(cause, fallback?): never`.
-The latter preserves existing structured public failures.
-`http/auth.ts` exports `requireMobileAuth(context, dependencies)`, returning the authenticated user as `{user}`.
-Domain handlers use these helpers rather than SvelteKit imports or simulated framework events.
-Dependencies live in factory closures.
-Request context has no application, locals, cookie framework or generic method invocation.
+`backend/api/src/spellbook_api/http/types.py` owns `Configuration` and `ApplicationLifetime`.
+`create_application(configuration)` returns the HTTP app, pre-drain `close_streams` and idempotent `close` callbacks.
+`create_http_application` composes explicitly supplied Auth, Catalog, Inventory, Deck, Category, Scan, Valuation, Profile, Dashboard and SavedState dependencies.
+The ten route factories return `HttpRoute` definitions with colon-prefixed named path segments.
+`RouteRegistry` owns dispatch, method selection, cookie cleanup and reviewed error serialization.
+HTTP parsing remains in `http/parsing.py`; application methods and SQL remain in Core.
+Core imports neither HTTP nor a client framework; workers import Core without importing API.
+The native Python boundary checker enforces those directions.
+Frontend requests use the remote application and carry no serialized actor or database handle.
 
 All 82 existing explicit API methods retain paths, payloads, status, cache policy and error details.
 Add `GET /api/catalog/printings/:printingId` and owned `GET /api/mobile/v1/mtg/category-definitions/:originId` for existing web reads.
@@ -66,7 +63,8 @@ Optional fields are not silently filled.
 ## Authority and compatibility
 
 The API revalidates credentials into the backend's trusted actor for every request.
-API routes preserve bearer-before-cookie selection, including no cookie fallback after an invalid Authorization header.
+Mobile/API routes preserve bearer-before-cookie selection, including no cookie fallback after an invalid Authorization header.
+The closed web command endpoint retains this direct API credential selection; SSR/forms forward only the selected browser cookie.
 SSR and form actions select only the browser cookie identity, even if a page request also supplies a bearer header.
 Cookie mutations retain Origin protection.
 The public `APP_ORIGIN` governs QR URLs, Origin and secure cookies; `API_INTERNAL_URL` only selects the private HTTP destination.
@@ -97,7 +95,7 @@ These concrete form intents are separate from the nine closed mutation commands.
 The API, web adapter and OpenAPI implement this contract.
 The routes preserve invalid-field and malformed-form throttling without a second limiter or an authority-bypassing header.
 
-The Node host owns startup and graceful shutdown.
+The Python host owns startup and graceful shutdown.
 It aborts disconnected requests, respects stream backpressure, closes SSE before waiting for HTTP connections, then closes application resources.
 SSE keeps per-account session revalidation, bounded delivery, heartbeat, no-store and proxy buffering protection.
 The web proxy forwards bodies and SSE without buffering.

@@ -3,7 +3,7 @@
 - Status: Account Category Library, entry rules, local category controls and entry Review/Reset implemented; whole-deck evaluation implemented; local combo adapter implemented
 - Last Reviewed: 2026-10-23
 - Source of Truth: Q56 contract, reviewed whole-deck and local combo contracts dated 2026-10-08, Category backend/contracts, Worker raw facts and native/API adapters
-- Update Triggers: Python Category HTTP assembly and independent state runner, backend migration ownership, definition versions, deck-local bundles, rule vocabulary and priority, source publications, composition jobs, Review/Reset, combo constraints and category acceptance evidence, operational work budgets, consequence retention and commit-scoped saved-state invalidation
+- Update Triggers: Python source activation and server contraction, Python Category HTTP assembly and independent state runner, backend migration ownership, definition versions, deck-local bundles, rule vocabulary and priority, source publications, composition jobs, Review/Reset, combo constraints and category acceptance evidence, operational work budgets, consequence retention and commit-scoped saved-state invalidation
 - Related Docs: [Architecture](./README.md), [Card grouping](../product/card-grouping.md), [Domain glossary](../../GLOSSARY.md), [Classifier research](../integrations/card-categorization.md), [Application contract](./application-contract.md), [Catalog](./catalog.md), [Worker](./worker.md), [ADR-0019](../decisions/0019-versioned-categories-and-local-source-rules.md), [Independent applications](./independent-applications.md)
 
 [Card grouping](../product/card-grouping.md) owns category behavior and manual choices.
@@ -14,7 +14,7 @@ The Python candidate composes the existing optional local Combo matcher; public 
 
 ## Implemented starter entry decisions
 
-The backend [Categories application](../../backend/src/categories/application.ts) owns trusted-actor reads, explicit idempotent initialization and Manual saves.
+The backend [Categories application](../../backend/core/src/spellbook_core/categories/application.py) owns trusted-actor reads, explicit idempotent initialization and Manual saves.
 [Category contracts](../../contracts/src/categories.ts) map only JSON-safe definitions, decisions, evidence, source status, acknowledgements and merge previews.
 Deck writes compose transaction-bound category helpers with their established account/request/Deck lock order.
 Frontend owns form adaptation, draft/focus behavior and presentation.
@@ -29,7 +29,7 @@ New-Deck creation and Deck composition enter the same private finite Category wo
 Web and mobile Main-add callers perform authorization, original receipt replay and Catalog-owned printing resolution inside that original transaction, before any pooled read can escape finite admission.
 Quantity-only edits and additions to existing entries preserve decisions.
 
-[The starter registry](../../backend/src/categories/rules.ts) fixes priority as Lands, Board wipes, Counterspells, Removal, Ramp, Draw, Protection, Recursion.
+[The starter registry](../../backend/core/src/spellbook_core/categories/rules.py) fixes priority as Lands, Board wipes, Counterspells, Removal, Ramp, Draw, Protection, Recursion.
 Lands uses the existing combined-face Catalog type policy; Ramp excludes Lands.
 Other starters match the registry's UUID Oracle Tag roots and descendants at any recorded prominence.
 A higher-priority Unknown stops evaluation and stores Pending within Uncategorized.
@@ -70,7 +70,7 @@ The Python candidate registers all seventeen Category/Library/whole routes throu
 `COMMANDER_SPELLBOOK_ENABLED` configures the optional local Combo adapter on each API/state pool.
 Its ordinary ICU dependency preserves Node `en-US` ordering of Unicode witness IDs.
 The independent state worker claims durable whole-deck jobs; Python HTTP starts no scheduler.
-Default Node activation remains unchanged until the later migration stage.
+Normal Compose and launchers select Python API and the independent State scheduler after successful one-shot migration.
 The optional local combo matcher is described below.
 
 Library version/archive changes, local rename/removal, Manual decisions and reviewed commits publish the existing commit-scoped `decks` invalidation inside the same transaction as their state and original receipt.
@@ -140,9 +140,9 @@ Protected GETs retain nonlocking actor checks and read-only transactions.
 
 ## Entry Review/Reset transactions
 
-The [Library use cases](../../backend/src/categories/library.ts) own scoped pages, current versions and future-adoption archive state.
-The [local change use cases](../../backend/src/categories/changes.ts) own label-only rename and all-role removal/replacement/suppression.
-The [preview use cases](../../backend/src/categories/previews.ts) own complete server plans, stable consequence pages and atomic reviewed commits.
+The [Library use cases](../../backend/core/src/spellbook_core/categories/library.py) own scoped pages, current versions and future-adoption archive state.
+The [local change use cases](../../backend/core/src/spellbook_core/categories/changes.py) own label-only rename and all-role removal/replacement/suppression.
+The [preview use cases](../../backend/core/src/spellbook_core/categories/previews.py) own complete server plans, stable consequence pages and atomic reviewed commits.
 Public contracts are in [category-library.ts](../../contracts/src/category-library.ts).
 `/mtg/categories` supplies native and enhanced criteria forms; Deck controls distinguish local changes from editing reusable meaning.
 Delayed Library reads capture account, scope, offset and limit from one incoming query snapshot before retained-page adoption.
@@ -180,7 +180,7 @@ Expiry is rechecked after locks.
 Source-state share locks protect the final source fence through commit.
 A changed source or revision requires 409 and an explicit new preview.
 
-The [private Category work owner](../../backend/src/categories/work.ts) bounds pool acquisition to 2 seconds, lock waits to 2 seconds, individual SQL to 5 seconds and transaction work to 10 seconds.
+The [private Category work owner](../../backend/core/src/spellbook_core/categories/common.py) bounds pool acquisition to 2 seconds, lock waits to 2 seconds, individual SQL to 5 seconds and transaction work to 10 seconds.
 PostgreSQL 18 transaction and idle deadlines complement application checkpoints.
 A 16 MiB decoded-work budget rejects complete work atomically rather than truncating membership or applying one page.
 Indexed maps and fact-cell preflight checks with 100-row write batches bound repeated lookup and SQL overhead.
@@ -235,7 +235,7 @@ Do not infer a universal Control/Midrange heuristic from names.
 Participating roles are explicit; trait templates use Main.
 Traverse every nested aggregate's Entry predicates to collect its requested Oracle roots.
 
-[The pure aggregate evaluator](../../backend/src/categories/deck-rules.ts) owns exact bounds.
+[The pure aggregate evaluator](../../backend/core/src/spellbook_core/categories/whole.py) owns exact bounds.
 Minimum copies uses proven and possible matching quantity bounds.
 Minimum distinct deduplicates proven raw Oracle identities across printings and roles; a Printing ID never substitutes for unknown canonical identity.
 Percentage compares exact BigInt products.
@@ -274,7 +274,7 @@ Its new adoption explicitly updates or invalidates pending work.
 Changed visible decisions, evidence or Pending state advance decision and directory revisions and publish transaction-only `decks` invalidation.
 No-op, replay and rollback publish nothing.
 
-[The durable job owner](../../backend/src/categories/jobs.ts) owns coalescing, claims and recovery.
+[The durable job owner](../../backend/core/src/spellbook_core/categories/jobs.py) owns coalescing, claims and recovery.
 Runtime owns one timer and one physically unsettled processing promise.
 Start/close are idempotent; build analysis starts nothing.
 Shutdown/HMR stops admission and cancelled publication, retaining ownership until actual work settles.

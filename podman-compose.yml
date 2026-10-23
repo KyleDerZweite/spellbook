@@ -19,8 +19,8 @@ services:
   db-migrate:
     build:
       context: .
-      dockerfile: backend/Dockerfile
-      target: migrator
+      dockerfile: backend/api/Dockerfile
+    command: ["/app/backend/api/.venv/bin/spellbook-migrate"]
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-spellbook}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-spellbook}
     depends_on:
@@ -82,11 +82,10 @@ services:
   api:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: backend/api/Dockerfile
     # Share loopback with web, so private API traffic needs no published port or LAN listener.
     network_mode: service:frontend
     environment:
-      NODE_ENV: production
       API_HOST: 127.0.0.1
       API_PORT: 3001
       API_TRUSTED_PROXY_ADDRESSES: 127.0.0.1,::1
@@ -109,6 +108,20 @@ services:
         condition: service_completed_successfully
       scan-worker:
         condition: service_started
+    restart: unless-stopped
+
+  state-worker:
+    build:
+      context: .
+      dockerfile: backend/workers/state/Dockerfile
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-spellbook}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-spellbook}
+      VALUE_HISTORY_ENABLED: ${VALUE_HISTORY_ENABLED:-true}
+      VALUE_HISTORY_TIMEZONE: ${VALUE_HISTORY_TIMEZONE:-Europe/Berlin}
+      COMMANDER_SPELLBOOK_ENABLED: ${COMMANDER_SPELLBOOK_ENABLED:-false}
+    depends_on:
+      db-migrate:
+        condition: service_completed_successfully
     restart: unless-stopped
 
   frontend:

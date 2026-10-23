@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import type { Deck, DeckSnapshot, LegalityWarning } from '@spellbook/contracts/decks.ts';
 import type { CardDocument } from '@spellbook/contracts/catalog.ts';
-import { SESSION_COOKIE } from '@spellbook/backend/auth/session.ts';
+import { SESSION_COOKIE } from './fixtures/session.ts';
 import { fixtureAuthRequest } from './fixtures/http-auth.ts';
 import { publishCategoryCatalogFixture } from './fixtures/category-catalog.ts';
 import { httpTestOrigin, startHttpApplication, stopHttpApplication } from './http-runtime.ts';

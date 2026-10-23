@@ -16,7 +16,7 @@ Password hashing and verification share the lifetime-owned executor and use the 
 Core's `hash_password(password)` is synchronous for operator consumers; async callers use `PasswordVerifier.hash`.
 QR uses existing migration 0024 and preserves requester-channel separation, terminal retries, live-session fencing and one-use redemption.
 
-The [dormant API](../api/README.md) constructs their concrete dependencies and owns runtime resources.
+The [Python API](../api/README.md) constructs their concrete dependencies and owns runtime resources.
 Core has no process, image, entrypoint, module-global pool or connection owner.
 Constructors open no resources; explicit start/close methods own only the documented Core tasks.
 

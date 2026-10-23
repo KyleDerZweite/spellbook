@@ -1,10 +1,10 @@
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-
 const result = spawnSync(
 	process.execPath,
 	[
-		fileURLToPath(new URL('../../backend/scripts/set-local-password.mjs', import.meta.url)),
+		fileURLToPath(new URL('../../scripts/python.mjs', import.meta.url)),
+		'password',
 		...process.argv.slice(2)
 	],
 	{ stdio: 'inherit', env: process.env }

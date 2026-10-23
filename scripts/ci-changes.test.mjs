@@ -60,15 +60,12 @@ test('heavy workflows accept only manual dispatch and keep their complete comman
 		/run: \.\/gradlew --no-daemon :app:lintDebug :app:testDebugUnitTest :app:assembleDebug/
 	);
 	assert.match(integration, /image: postgres:18\.6-bookworm/);
-	assert.match(
-		integration,
-		/uv sync --project \.\.\/backend\/workers\/scan --frozen --extra dev --python 3\.14\.8/
-	);
+	assert.match(integration, /run: pnpm --dir \.\. setup:python/);
 	assert.match(
 		integration,
 		/uv run --project \.\.\/backend\/workers\/scan --no-sync uvicorn scan_worker\.main:app/
 	);
-	for (const command of ['db:migrate', 'test:integration', 'test:http', 'test:scan', 'test:sync'])
+	for (const command of ['db:migrate', 'test:http', 'test:scan', 'test:sync'])
 		assert.ok(integration.includes(`- run: pnpm ${command}\n`), command);
 	assert.match(
 		integration,
@@ -91,13 +88,7 @@ test('automatic CI retains scoped checks without invoking a heavy workflow', () 
 	assert.match(source, /run: node --test scripts\/ci-changes.test.mjs/);
 	assert.match(source, /run: node scripts\/ci-changes.mjs/);
 	assert.match(source, /needs: changes\n\s+if: needs.changes.outputs.application == 'true'/);
-	for (const command of [
-		'lint',
-		'test:unit',
-		'--dir .. test:tooling',
-		'--dir ../backend test',
-		'db:check'
-	])
+	for (const command of ['lint', 'test:unit', '--dir .. test:tooling'])
 		assert.ok(source.includes(`- run: pnpm ${command}\n`), command);
 	assert.doesNotMatch(source, /run: pnpm (test:dev|--dir \.\. test:(dev|packaging|boundaries))/);
 	for (const key of ['application', 'worker', 'scan_worker', 'python_backend', 'state_worker'])
@@ -484,16 +475,18 @@ test('state worker and Core/SQL changes select the packaged state consumer', () 
 	assert.match(workflow('ci.yml'), /working-directory: backend\/workers\/state/);
 });
 
-test('explicit Python Compose candidate replaces embedded Node scheduler ownership', () => {
-	const source = readFileSync(new URL('../podman-compose.python.yml', import.meta.url), 'utf8');
+test('default Compose uses Python API, migrator and sole state scheduler ownership', () => {
+	const source = readFileSync(new URL('../podman-compose.yml', import.meta.url), 'utf8');
 	assert.match(source, /api:\n\s+build:\n\s+context: \.\n\s+dockerfile: backend\/api\/Dockerfile/);
 	assert.match(
 		source,
 		/state-worker:\n\s+build:\n\s+context: \.\n\s+dockerfile: backend\/workers\/state\/Dockerfile/
 	);
 	assert.match(source, /condition: service_completed_successfully/);
-	assert.doesNotMatch(
-		readFileSync(new URL('../podman-compose.yml', import.meta.url), 'utf8'),
-		/^  state-worker:/m
-	);
+	assert.match(source, /command: \["\/app\/backend\/api\/.venv\/bin\/spellbook-migrate"\]/);
+	assert.doesNotMatch(source, /backend\/Dockerfile|NODE_ENV/);
+});
+
+test('installed Python setup/start changes select every runtime consumer', () => {
+	assert.deepEqual(classifyPaths(['scripts/python.mjs']), all);
 });

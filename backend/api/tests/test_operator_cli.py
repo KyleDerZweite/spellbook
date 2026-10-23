@@ -76,7 +76,15 @@ def test_password_cli_missing_environment_does_not_read_stdin(
 
 
 def test_source_fixture_location_is_canonical() -> None:
-    assert fixture_directory() == Path(__file__).resolve().parents[2] / "scripts/demo"
+    canonical = Path(__file__).resolve().parents[2] / "scripts/demo"
+    actual = fixture_directory()
+    for name in (
+        "cards.json",
+        "upgrades-unleashed.json",
+        "catalog-default-en-20261007.manifest.json",
+        "catalog-default-en-20261007.jsonl.gz",
+    ):
+        assert (actual / name).read_bytes() == (canonical / name).read_bytes()
 
 
 @pytest.mark.skipif(

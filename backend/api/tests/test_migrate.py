@@ -16,7 +16,11 @@ def test_missing_url(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixt
 
 
 def test_source_default() -> None:
-    assert cli._default_directory() == Path(__file__).resolve().parents[2] / "drizzle"
+    canonical = Path(__file__).resolve().parents[2] / "drizzle"
+    actual = cli._default_directory()
+    assert {p.relative_to(actual): p.read_bytes() for p in actual.rglob("*") if p.is_file()} == {
+        p.relative_to(canonical): p.read_bytes() for p in canonical.rglob("*") if p.is_file()
+    }
 
 
 def test_uninstalled_assets(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

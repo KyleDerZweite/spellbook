@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-23
 - Source of Truth: mixed
-- Update Triggers: Python functional migration acceptance and supersession, sentence-per-line authoring and review-date semantics, independent API/web ownership and relocated code references, document ownership, product contracts, section changes, documentation health review
+- Update Triggers: Python runtime activation and Node source/test contraction, Python functional migration acceptance and supersession, sentence-per-line authoring and review-date semantics, independent API/web ownership and relocated code references, document ownership, product contracts, section changes, documentation health review
 - Related Docs: [Product](./product/README.md), [Architecture](./architecture/README.md), [Operations](./operations/README.md), [Integrations](./integrations/README.md), [Decisions](./decisions/README.md), [Reference](./reference/README.md), [Issue labels](./ISSUE_LABELS.md)
 
 Start with the [product specification](./product/specification.md) for current behavior, requirements, and known limits.

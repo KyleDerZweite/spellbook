@@ -1,19 +1,19 @@
 # Postgres
 
 - Status: Canonical
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-10-23
 - Source of Truth: code
-- Update Triggers: independent API/web ownership and relocated code references, QR authorization persistence and migration 0024, schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership, application resource lifetime and native operator ownership, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers, private value checkpoints and frozen evidence, public price publication and retention, Oracle Tags publications and raw facts, entry category bundles/decisions and receipts, immutable account definitions and relational preview retention
+- Update Triggers: Python source activation and server contraction, independent API/web ownership and relocated code references, QR authorization persistence and migration 0024, schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership, application resource lifetime and native operator ownership, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers, private value checkpoints and frozen evidence, public price publication and retention, Oracle Tags publications and raw facts, entry category bundles/decisions and receipts, immutable account definitions and relational preview retention
 - Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Category rules](./category-rules.md), [Independent applications](./independent-applications.md)
 
 PostgreSQL stores account-owned application state, the public Scryfall catalog and public price references.
 
-The backend [schema](../../backend/src/db/schema.ts) owns table definitions, and [database construction](../../backend/src/db/client.ts) owns Drizzle/pg setup.
-The [application constructor](../../backend/src/application.ts) owns the runtime resource and closure.
-The Node API host supplies configuration and owns this application resource.
+The backend [schema](../../backend/drizzle/) owns table definitions, and [database construction](../../backend/core/src/spellbook_core/db.py) owns Psycopg transaction behavior.
+The [application constructor](../../backend/api/src/spellbook_api/application.py) owns the runtime resource and closure.
+The Python API host supplies configuration and owns this application resource.
 Web calls use cases through HTTP and has no database handle or runtime persistence dependency.
-Integration tests use the [test-only database fixture](../../frontend/tests/fixtures/database.ts) and backend schema directly.
-[Drizzle configuration](../../backend/drizzle.config.ts) references the backend schema; the [migration history](../../backend/drizzle/) and native migration commands belong to backend.
+Python Core tests use guarded real PostgreSQL fixtures; external HTTP consumers use test-owned SQL setup against their assigned database.
+The [Python migrator](../../backend/core/src/spellbook_core/migrations.py) reads unchanged canonical SQL and journal assets; the [migration history](../../backend/drizzle/) and native migration commands belong to backend.
 SQL, journal and snapshots retain their original history; frontend migration commands are compatibility forwarders.
 
 The [QR authorization migration 0024](../../backend/drizzle/0024_qr_authorization.sql) adds challenge digests, kind, expiry, decision and approver-session binding.
@@ -85,7 +85,7 @@ Additive migration [0016](../../backend/drizzle/0016_deck_entry_categories.sql) 
 
 ## Current Access Pattern
 
-- backend use cases use Drizzle ORM and `pg` through the owned backend application resource; frontend server adapters reach those use cases through the API
+- backend use cases use explicit Psycopg SQL and transactions through the owned Python application resource; frontend server adapters reach those use cases through the API
 - browser pages load user data through server load functions and route actions
 - direct API clients and web remote adapters reach the same backend use cases
 - backend use cases derive internal Spellbook `accountId` from session-produced trusted actors
@@ -107,12 +107,12 @@ The [application contract](./application-contract.md#inventory-query-contract) o
 Backend page/detail/location reads use one repeatable-read, read-only snapshot scoped to the trusted actor and MTG, including counts, memberships and catalog-derived set metadata.
 An absent Inventory returns empty data without creating a parent.
 
-Inventory SQL counts, copy sums, group totals, set progress and location indexes remain exact text until the shared [integer decoder](../../backend/src/db/numbers.ts) validates a nonnegative safe JSON integer.
+Inventory SQL counts, copy sums, group totals, set progress and location indexes remain exact text until the shared [integer decoder](../../backend/core/src/spellbook_core/db.py) validates a nonnegative safe JSON integer.
 Unsupported ranges fail explicitly instead of narrowing to signed 32-bit values or rounding through floating-point SQL casts.
 [The HTTP contract](./mobile-and-scan.md#bounded-inventory-http-reads) owns the controlled failure response.
 Per-entry quantity limits are unchanged.
 
-The backend [mutation owner](../../backend/src/inventory/mutations.ts) uses the shared [Inventory helper](../../backend/src/inventory/write.ts) after Profile/account locking and session revalidation.
+The backend [mutation owner](../../backend/core/src/spellbook_core/inventory.py) uses the shared [Inventory helper](../../backend/core/src/spellbook_core/inventory.py) after Profile/account locking and session revalidation.
 Scan locks its session before Inventory; sorted target entries precede Groups.
 Catalog resolution uses no nested connection under those locks.
 Semantic changes advance the Inventory revision once per transaction; no-ops and receipt replays do not.
@@ -124,7 +124,7 @@ Ordinary entry changes keep sparse positions; only explicit reorder may scan/rew
 
 ## Dashboard summary reads
 
-The backend [Dashboard use case](../../backend/src/profile/dashboard.ts) revalidates its trusted actor and reads account-scoped MTG summaries in one repeatable-read, read-only transaction.
+The backend [Dashboard use case](../../backend/core/src/spellbook_core/dashboard.py) revalidates its trusted actor and reads account-scoped MTG summaries in one repeatable-read, read-only transaction.
 SQL computes copy/card/printing/set/foil/deck totals and quantity-weighted set, finish and condition distributions.
 Finish/condition results retain explicit zero buckets.
 Per-deck SQL allocates exact printing quantities before alternate copies of the same canonical card, independently for each deck.
@@ -135,7 +135,7 @@ A savepoint isolates unavailable scan-count reads, returning `pendingScanReviews
 Profile totals also remain aggregate reads; unavailable totals do not block profile-card customization.
 
 SQL keeps quantity sums as exact numeric aggregates rather than narrowing account or deck totals to signed 32-bit integers.
-The backend [integer decoder](../../backend/src/db/numbers.ts) converts results to JSON numbers only within the safe integer range; summary counts must also be nonnegative.
+The backend [integer decoder](../../backend/core/src/spellbook_core/db.py) converts results to JSON numbers only within the safe integer range; summary counts must also be nonnegative.
 Larger reporting totals fail explicitly instead of rounding.
 This does not change stored quantities or their per-entry limits.
 [Authentication](./auth.md#account-http-contract) owns the HTTP failure and Profile fallback responses.
@@ -145,11 +145,11 @@ This does not change stored quantities or their per-entry limits.
 [Migration 0012](../../backend/drizzle/0012_deck_contracts.sql) adds independent `description_revision` and `composition_revision` bigint columns to Decks and a JSONB acknowledgement to Deck mutation requests.
 It replaces the request record's Deck foreign key with an account foreign key: records survive Deck deletion and cascade with account deletion.
 
-The backend [Deck application](../../backend/src/decks/application.ts) reads library totals/covers, selected composition and relevant owned-printing aggregates in a repeatable-read, read-only transaction.
+The backend [Deck application](../../backend/core/src/spellbook_core/decks/application.py) reads library totals/covers, selected composition and relevant owned-printing aggregates in a repeatable-read, read-only transaction.
 SQL restricts Inventory aggregation to the selected canonical identities.
 Search/inspector ownership accepts at most 100 canonical identities.
 Exact SQL sums pass through the shared integer decoder with a nonnegative check; unsupported JSON integer ranges fail instead of rounding.
-The backend [canonical quantity helper](../../backend/src/decks/availability.ts) sums across printings with bigint and validates the safe JSON range before returning ownership DTOs to printing selectors, selected Decks or search.
+The backend [canonical quantity helper](../../backend/core/src/spellbook_core/decks/rules.py) sums across printings with bigint and validates the safe JSON range before returning ownership DTOs to printing selectors, selected Decks or search.
 Per-entry limits remain unchanged.
 Dashboard retains its separate backend summary owner.
 

@@ -1,9 +1,9 @@
 # Accepted application contract
 
 - Status: Accepted design; workspace, trusted Auth, Account/Profile, Dashboard, bounded Inventory reads and mutation contracts, Deck application contracts and shared Deck UI, Scan upload/read/result/review contracts, SavedState transport, process lifetime and mounted workspace consumers, source references, optional public providers, bounded public source history, private daily Inventory history, Dashboard/selected-Deck estimates and starter entry categories plus optional local Combo matching implemented; later feature slices planned
-- Last Reviewed: 2026-10-20
+- Last Reviewed: 2026-10-23
 - Source of Truth: workspace/Catalog/Auth/Profile/Dashboard/Inventory/Deck/Scan/Categories/SavedState/Valuation code and contracts, Worker price/Oracle Tags/Combo publication code, unaffected Q56 contracts and Kyle's value-only and continuous Lazy decisions of 2026-10-07
-- Update Triggers: selected Python API/worker direction, independent API/web ownership and relocated code references, workspace ownership, backend application/transport/operator interfaces and resource cleanup, use-case interfaces, experimental API migration, mutation receipts and revisions, Inventory queries and cache limits, shared UI interfaces and native Deck task entry, synchronization and SavedState process/HMR lifetime, reference publication, value-only history scope, Categories interfaces, immutable entry decisions/manual provenance, Oracle/Combo source and rule lifecycle and acceptance evidence, continuous Lazy browsing/dialog contract and selected versus implemented read limits
+- Update Triggers: Python source activation and server contraction, selected Python API/worker direction, independent API/web ownership and relocated code references, workspace ownership, backend application/transport/operator interfaces and resource cleanup, use-case interfaces, experimental API migration, mutation receipts and revisions, Inventory queries and cache limits, shared UI interfaces and native Deck task entry, synchronization and SavedState process/HMR lifetime, reference publication, value-only history scope, Categories interfaces, immutable entry decisions/manual provenance, Oracle/Combo source and rule lifecycle and acceptance evidence, continuous Lazy browsing/dialog contract and selected versus implemented read limits
 - Related Docs: [Architecture](./README.md), [System overview](./system-overview.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Authentication](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Product specification](../product/specification.md), [UI direction](../product/ui-design-direction.md), [Valuation](./valuation.md), [Category rules](./category-rules.md), [Verification](../operations/github-automation.md), [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md), [ADR-0016](../decisions/0016-postgres-saved-state-invalidation.md), [ADR-0017](../decisions/0017-revisioned-inventory-windows-and-mutation-receipts.md), [Independent applications](./independent-applications.md), [Python direction](../decisions/0025-python-api-and-workers.md)
 
 Kyle accepted the original nineteen-slice contract and real HTTP/PostgreSQL/browser acceptance seam in Q56 on 2026-10-06.
@@ -37,11 +37,11 @@ Whole-deck evaluation and bounded directory reads are implemented.
 Optional local Commander Spellbook ingredient matching is implemented.
 
 [`composition.ts`](../../frontend/src/lib/server/composition.ts) exposes the request-bound [remote application](../../frontend/src/lib/server/remote/application.ts).
-The independent [API host](../../backend/src/main.ts) constructs the [backend application](../../backend/src/application.ts) and owns its database, runners, Scan and SavedState resources.
+The independent [API host](../../backend/api/src/spellbook_api/main.py) constructs the [backend application](../../backend/api/src/spellbook_api/application.py) and owns its database, runners, Scan and SavedState resources.
 The [boundary checker](../../scripts/check-boundaries.mjs) forbids web runtime imports of backend implementation and persistence packages.
-Test-only backend dependencies remain permitted.
-[`backend/src/db/schema.ts`](../../backend/src/db/schema.ts), [Drizzle configuration](../../backend/drizzle.config.ts) and [migration history](../../backend/drizzle/) have one backend owner.
-Integration tests use the [test-only database fixture](../../frontend/tests/fixtures/database.ts) and backend schema directly.
+External HTTP tests use installed Python and test-owned SQL fixtures.
+[SQL schema](../../backend/drizzle/), [Python migrator](../../backend/core/src/spellbook_core/migrations.py) and [migration history](../../backend/drizzle/) have one backend owner.
+Python Core suites own direct database/domain checks; frontend HTTP suites exercise independent installed API and built web processes.
 
 [`contracts/src/catalog.ts`](../../contracts/src/catalog.ts), [`auth.ts`](../../contracts/src/auth.ts), [`profile.ts`](../../contracts/src/profile.ts) and [`errors.ts`](../../contracts/src/errors.ts) own the extracted safe shapes.
 Catalog explicitly maps returned printing fields, excluding unknown stored fields.
@@ -77,16 +77,16 @@ Sources/Rules categories and later app delivery retain their accepted contracts.
 
 ## Module ownership
 
-The [backend Scan commit use case](../../backend/src/scan/commit.ts) owns its normalized fingerprint, session/artifact/review persistence and orchestration.
-It reuses the concrete [Inventory writer](../../backend/src/inventory/mutations.ts) for trusted preparation, lock participation, effects, revision and original receipt persistence.
+The [backend Scan commit use case](../../backend/core/src/spellbook_core/scan/commit.py) owns its normalized fingerprint, session/artifact/review persistence and orchestration.
+It reuses the concrete [Inventory writer](../../backend/core/src/spellbook_core/inventory.py) for trusted preparation, lock participation, effects, revision and original receipt persistence.
 This internal transaction seam is unavailable to frontend callers; public composition exposes only actor-based operations.
-The [Scan application](../../backend/src/scan/application.ts) owns complete upload/read/result/review behavior with injected storage/worker configuration.
+The [Scan application](../../backend/core/src/spellbook_core/scan/application.py) owns complete upload/read/result/review behavior with injected storage/worker configuration.
 Its shared JSON-safe DTOs expose neither account identity nor storage keys.
 [Mobile and Scan](./mobile-and-scan.md#selected-reads-and-compact-review-commits) owns bounded reads, the legacy replay bridge and cancellation/uncertain-commit cleanup.
 Scan workspace invalidation uses the mounted frontend resource adapter.
 
-Build and start the SvelteKit web runtime and Node API independently under the [independent applications contract](./independent-applications.md).
-Use root workspace packages `frontend/`, `backend/` and `contracts/` with existing dependencies.
+Build and start the SvelteKit web runtime and Python API independently under the [independent applications contract](./independent-applications.md).
+Use pnpm workspace packages `frontend/` and `contracts/`, with independent Python packages under `backend/`.
 Preserve pinned runtimes, dependency patches, peer rules, migration history and lock/cache ownership.
 Frozen install, development, tests, production package resolution, containers, migrator, operator commands and CI must migrate together.
 
@@ -116,31 +116,27 @@ The [contraction slice](https://github.com/KyleDerZweite/spellbook/issues/192) e
 [Issue 244](https://github.com/KyleDerZweite/spellbook/issues/244) tracks independent runtimes and Android delivery while preserving existing HTTP contracts.
 Current-head automated, PostgreSQL, HTTP, browser and public-provider acceptance remain separate evidence.
 [ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for the future API and server workers.
-The [accepted Python migration contract](./python-backend-migration.md) owns framework, wire/SQL ownership, worker relocation and delivery gates; its runtime migration has not started.
+The [accepted Python migration contract](./python-backend-migration.md) owns framework, wire/SQL ownership, worker relocation and delivery gates; the unmerged candidate now activates Python by default.
 
-[Backend application construction](../../backend/src/application.ts) receives database, build-analysis, Demo, Value-history, Scan and Combo configuration.
-Its asynchronous constructor returns `{ application, start, close }`, with no raw database or pool.
-It validates database presence outside build analysis, timezone and exact Value-history/Combo boolean strings before creating resources.
-One resolved database URL supplies both the pool and SavedState.
-Construction starts no runners or listener connections.
-Unexpected construction failures await cleanup of acquired resources before returning the original error.
+[Backend application construction](../../backend/api/src/spellbook_api/application.py) receives validated database, Demo, timezone, Scan and Combo configuration.
+It returns `ApplicationLifetime(http, close_streams, close)`.
+The one resolved database URL supplies the request pool and dedicated SavedState listener.
+Construction opens no database connection or scheduled runner.
+The lifespan starts pool/listener resources and always closes them after startup failure or shutdown.
 
-The [Node host](../../backend/src/main.ts) supplies configuration, starts runners after listening, and owns SIGINT/SIGTERM cleanup.
-It closes SSE before draining HTTP, then closes application resources.
+The [Python host](../../backend/api/src/spellbook_api/main.py) owns SIGINT/SIGTERM and closes admission and SSE before Uvicorn drains HTTP.
+Cleanup settles requests and listener/Core work, closes Scan adapters, settles password futures and joins the dedicated executor before closing the pool last.
+Concurrent close callers join the same cleanup task.
+The independent State worker owns scheduled ValueHistory and WholeDeckCategory work, with a separate pool and graceful lifetime.
+API shares Core synchronous effects and enqueue operations without starting those schedulers.
 Web HMR and shutdown own no backend resources.
-Start is idempotent, inactive during build analysis and rejects restart after close.
-Close cancels and awaits both runners, SavedState and the Scan application before always attempting the owned pool's closure, even after cleanup failure.
-Concurrent shutdown calls join the same Promise.
-Shutdown failures expose a safe message.
-Backend registers no framework hooks.
-The configured Combo option remains attached to the single database owner.
+The configured Combo option remains attached to each owned pool.
 
-The resource-free [transport facade](../../backend/src/transport.ts) remains available to backend tooling and tests.
 Web native adapters use [local error types](../../frontend/src/lib/server/remote/errors.ts) reconstructed from safe API failures.
-Migration SQL, journal and snapshots moved unchanged to `backend/drizzle/`; [backend scripts](../../backend/package.json) own migration commands.
+Migration SQL, journal and snapshots moved unchanged to `backend/drizzle/`; [backend scripts](../../package.json) own migration commands.
 
-Backend [Demo operators](../../backend/src/operators/demo.ts) own publication, starter replacement, transactions and pool lifetime.
-The [local-password operator](../../backend/src/operators/local-password.ts) owns atomic credential/profile updates and session revocation, including authorized production recovery.
+Backend [Demo operators](../../backend/core/src/spellbook_core/operators/demo.py) own publication, starter replacement, transactions and pool lifetime.
+The [local-password operator](../../backend/core/src/spellbook_core/operators/local_password.py) owns atomic credential/profile updates and session revocation, including authorized production recovery.
 Backend scripts own argv, bounded stdin and public fixture loading.
 Existing frontend command paths remain compatibility forwarders without persistence or fixture ownership.
 Demo target guards, preview-first replacement, explicit reset, parent locks and revisions remain intact.
@@ -203,12 +199,12 @@ Printing replacement is a semantic operation that preserves source identity/prov
 
 ## Implemented Inventory read boundary
 
-The backend [Inventory reader](../../backend/src/inventory/read.ts) authenticates its actor and returns page, detail and location DTOs from [inventory.ts](../../contracts/src/inventory.ts).
+The backend [Inventory reader](../../backend/core/src/spellbook_core/inventory.py) authenticates its actor and returns page, detail and location DTOs from [inventory.ts](../../contracts/src/inventory.ts).
 Reads use a repeatable-read, read-only transaction and never create an Inventory parent.
-The [query normalizer](../../backend/src/inventory/query.ts) validates backend reads; native GET adapters send pure shared request shapes over HTTP.
+The [query normalizer](../../backend/core/src/spellbook_core/inventory_query.py) validates backend reads; native GET adapters send pure shared request shapes over HTTP.
 Metadata retained outside the page cache contains no hidden entry or membership snapshot.
 
-The [Inventory mutation use cases](../../backend/src/inventory/mutations.ts) authenticate a session-produced actor, lock the Profile/account row and revalidate the session before writes.
+The [Inventory mutation use cases](../../backend/core/src/spellbook_core/inventory.py) authenticate a session-produced actor, lock the Profile/account row and revalidate the session before writes.
 Scan commits then lock the owned ScanSession; all writes lock the MTG Inventory parent, sorted existing entry IDs and sorted target Group IDs.
 Catalog resolution runs before parent locking.
 All operations in one bulk/import/Scan commit succeed atomically or roll back together.
@@ -227,7 +223,7 @@ Older non-null fingerprints remain strict and may reject clients migrated to the
 
 ## Implemented Deck application boundary
 
-The backend [Deck application](../../backend/src/decks/application.ts) owns authorization, metadata patches, quantity/role operations, printing replacement, import/export, legality and ownership/availability reads.
+The backend [Deck application](../../backend/core/src/spellbook_core/decks/application.py) owns authorization, metadata patches, quantity/role operations, printing replacement, import/export, legality and ownership/availability reads.
 [Deck contracts](../../contracts/src/decks.ts) explicitly map DTO fields, ISO timestamps and decimal revisions.
 Web actions and HTTP routes call the same trusted-actor interface.
 Frontend owns cookies/origins, native form adaptation, errors and drafts.
@@ -366,11 +362,11 @@ Preserve the accepted Search toolbar, Home, Settings, fonts and brand.
 ## Saved-state synchronization
 
 SavedState transport and Profile synchronization are implemented.
-[saved-state.ts](../../contracts/src/saved-state.ts) owns coarse events and subscriptions; the backend [SavedState application](../../backend/src/saved-state/application.ts) owns account-scoped PostgreSQL LISTEN/NOTIFY fanout.
+[saved-state.ts](../../contracts/src/saved-state.ts) owns coarse events and subscriptions; the backend [SavedState application](../../backend/core/src/spellbook_core/saved_state.py) owns account-scoped PostgreSQL LISTEN/NOTIFY fanout.
 Database commit triggers notify account identity and one coarse topic without documents or credentials.
 Rollbacks produce no notification.
 Each API process lazily opens one dedicated listener on `spellbook_saved_state`, identified by `spellbook_saved_state:<processPID>`.
-The Node host closes SSE before waiting for HTTP connections, then closes the backend application.
+The Python host closes SSE before waiting for HTTP connections, then closes the backend application.
 Backend closure disposes subscriptions, recovery timers and the dedicated listener, awaits runner and Scan cleanup, then ends its owned database pool.
 Web shutdown owns no pool or SavedState listener.
 
@@ -392,10 +388,10 @@ Listener outage replaces stale reservations with current control handling, inclu
 Bytes already delivered to a socket cannot be withdrawn.
 
 Each subscriber retains coalesced topic invalidation and control events, without saved documents.
-The API [stream adapter](../../backend/src/http/saved-state.ts) owns framing and calls backend delivery authorization immediately before writing.
+The API [stream adapter](../../backend/api/src/spellbook_api/http/routes_saved_state.py) owns framing and calls backend delivery authorization immediately before writing.
 It uses a zero high-water mark for socket backpressure, comment heartbeats every fifteen seconds and abort cleanup.
 An undrained queued subscription is disposed after thirty seconds.
-The Node bridge honors socket backpressure and aborts disconnected requests; the web proxy forwards SSE without buffering.
+The Python host honors socket backpressure and aborts disconnected requests; the web proxy forwards SSE without buffering.
 The transport preserves bounded queues during slow-consumer and listener recovery.
 
 Subscription setup accepts the contract's structural cancellation interface, without framework or platform types.

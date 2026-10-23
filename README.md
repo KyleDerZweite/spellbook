@@ -3,7 +3,7 @@
 Spellbook is an open-source, self-hosted Magic: The Gathering inventory and deck builder.
 Search the Scryfall catalog, track owned printings, build decks, and compare required cards with inventory.
 
-The monorepo separates the SvelteKit website, TypeScript/Node API and Kotlin/Compose Android project.
+The monorepo separates the SvelteKit website, Python/FastAPI API and Kotlin/Compose Android project.
 PostgreSQL stores application data; Python workers own public ingestion and the retained Scan scaffold.
 Accounts use local username and password authentication.
 The retained Scan route/API supports image uploads and manual printing selection; Scan UI development and navigation entrypoints are paused.
@@ -15,7 +15,8 @@ No production recognizer is implemented.
 Start the configured local development environment with `./dev.sh`.
 Use `./demo.sh` for Demo mode and `./demo.sh stop` to stop the launcher.
 This starts the API on loopback port 3001 and Vite on port 5173.
-`./dev.sh --scan` additionally starts the retained scan-worker on port 8087.
+Startup applies the installed Python migrator once, then starts the independent State, Catalog and Scan workers.
+Prepare Python environments with `pnpm setup:python` before first startup.
 See [local development setup](docs/operations/deployment.md#local-development) for prerequisites, independent build/start commands and private configuration.
 
 - [Product specification](docs/product/specification.md)

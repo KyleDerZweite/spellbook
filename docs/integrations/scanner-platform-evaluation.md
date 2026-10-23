@@ -1,9 +1,9 @@
 # Spellbook client, recognition and sorter research
 
 - Status: Research and decision support; not an accepted architecture
-- Last Reviewed: 2026-10-20
+- Last Reviewed: 2026-10-23
 - Source of Truth: linked primary sources, repository code, maintainer's dated scope clarification and explicitly identified engineering assessments
-- Update Triggers: independent Android direction and complete Figma flow handoff, PWA/QR implementation status without replacing dated research, Android priority, app-specific capabilities, website packaging, Cardstation integration, platform/runtime support, client responsibilities, reference-data use, hardware experiments, recognition measurements, distribution and operating model
+- Update Triggers: Python source activation and server contraction, independent Android direction and complete Figma flow handoff, PWA/QR implementation status without replacing dated research, Android priority, app-specific capabilities, website packaging, Cardstation integration, platform/runtime support, client responsibilities, reference-data use, hardware experiments, recognition measurements, distribution and operating model
 - Related Docs: [Product specification](../product/specification.md), [Mobile exploration](../product/mobile-app-exploration.md), [Clients and Scan](../architecture/mobile-and-scan.md), [Sorter concept](./card-robot.md), [Application contract](../architecture/application-contract.md), [Deployment](../operations/deployment.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Domain glossary](../../GLOSSARY.md), [Integrations index](./README.md)
 
 ## Mobile UX follow-up, 2026-10-19
@@ -293,8 +293,8 @@ Foil and condition need their own capture and evaluation material and should ini
 No method is selected in the [recognition proposal](../architecture/mobile-and-scan.md#proposed-recognition-pipeline).
 
 Compute-host selection does not solve duplicate counting.
-Current [Inventory data](../../backend/src/db/schema.ts) groups quantities by printing, finish and condition.
-[Scan commit logic](../../backend/src/scan/commit.ts) protects authorized software retries, but cannot establish whether a presented physical card was already owned.
+Current [Inventory data](../../backend/drizzle/) groups quantities by printing, finish and condition.
+[Scan commit logic](../../backend/core/src/spellbook_core/scan/commit.py) protects authorized software retries, but cannot establish whether a presented physical card was already owned.
 Capture ID, content and permanent physical-copy identity differ.
 [Glossary](../../GLOSSARY.md).
 

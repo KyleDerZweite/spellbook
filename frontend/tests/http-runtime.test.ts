@@ -294,7 +294,7 @@ test('owned application must listen before readiness and can be stopped', async 
 });
 
 test(
-	'SavedState listener closes and built Node exits naturally after SSE shutdown',
+	'SavedState listener closes and installed Python exits naturally after SSE shutdown',
 	{
 		skip: !process.env.TEST_DATABASE_URL
 	},

@@ -53,7 +53,8 @@ if (action === 'stop') {
 	throw new Error('Graceful shutdown is still pending. No force termination was used.');
 }
 const demo = args.includes('--demo');
-const scan = args.includes('--scan');
+// Scan is a normal runtime; --scan remains an accepted compatibility flag.
+const scan = true;
 
 if (Number(process.versions.node.split('.')[0]) !== 26) {
 	throw new Error('Use the Node version in frontend/.node-version, or run ./dev.sh.');
@@ -207,24 +208,34 @@ try {
 		}
 		if (!ready) throw new Error('Development database did not become ready.');
 	}
-	if (demo && !stopping) {
+	// Only preparation exits successfully without stopping the runtime siblings.
+	async function prepare(entrypoint) {
+		if (stopping) throw new Error('Development startup interrupted.');
 		await new Promise((resolve, reject) => {
-			const child = start(process.execPath, ['scripts/demo/seed.mjs'], `${root}backend`);
-			// A successful seed is preparation, not a server exit.
+			const child = start(
+				'uvx',
+				['--from', 'uv==0.12.23', 'uv', 'run', '--no-sync', entrypoint],
+				`${root}backend/api`
+			);
 			child.removeAllListeners('exit');
 			child.on('exit', (code) => {
 				children.delete(child);
 				if (code === 0) resolve();
-				else reject(new Error('Demo seed failed.'));
+				else reject(new Error(`${entrypoint} failed.`));
 			});
 			child.on('error', reject);
 		});
 	}
+	await prepare('spellbook-migrate');
+	if (demo) await prepare('spellbook-demo-seed');
 	if (!stopping) {
 		if (scan)
 			start(
-				'uv',
+				'uvx',
 				[
+					'--from',
+					'uv==0.12.23',
+					'uv',
 					'run',
 					'--no-sync',
 					'uvicorn',
@@ -236,7 +247,25 @@ try {
 				],
 				`${root}backend/workers/scan`
 			);
-		start('pnpm', ['dev'], `${root}backend`);
+		for (const [directory, command] of [
+			['api', 'spellbook-api'],
+			['workers/state', 'spellbook-state-worker'],
+			['workers/catalog', 'python']
+		]) {
+			start(
+				'uvx',
+				[
+					'--from',
+					'uv==0.12.23',
+					'uv',
+					'run',
+					'--no-sync',
+					command,
+					...(command === 'python' ? ['-m', 'worker.main'] : [])
+				],
+				`${root}backend/${directory}`
+			);
+		}
 		// Web owns rendering and HTTP forwarding. API credentials stay in its process.
 		const webEnv = {
 			...Object.fromEntries(

@@ -3,7 +3,7 @@
 - Status: Accepted execution contract; complete candidate and production operations pending
 - Last Reviewed: 2026-10-23
 - Source of Truth: ADR-0025, ADR-0026, ADR-0027, existing code/tests/contracts and Kyle's 2026-10-23 direction
-- Update Triggers: functional migration acceptance, component interfaces, assembled Categories/state, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
+- Update Triggers: Python source activation and server contraction, functional migration acceptance, component interfaces, assembled Categories/state, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
 - Related Docs: [ADR-0025](../decisions/0025-python-api-and-workers.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [Independent applications](./independent-applications.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Migration evidence](./python-migration-evidence-baseline.md), [Postgres](./postgres.md), [Auth](./auth.md), [Worker](./worker.md), [Deployment](../operations/deployment.md), [Verification](../operations/github-automation.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
 
 ## Scope and status
@@ -17,7 +17,7 @@ No kernel research, resource-verifier package or formal ownership/receipt layer 
 Existing application mutation receipts remain part of functional compatibility.
 
 The reconciliation base is `1bae6638e9bb521630401a74e6eaeab3eac371f9`.
-It contains dormant Python API/Core and existing Python workers; Node remains the active default.
+That historical base contained dormant Python API/Core and Python workers while Node remained the active default.
 The original neutral compatibility extraction used `b835eee87ff0e92e99df18ab384602e48183a88d`.
 Neither foundation checks nor this contract establish complete Python compatibility.
 
@@ -80,7 +80,7 @@ Domain dependencies such as Auth, Inventory and Scan remain necessary where cons
 ## Wire schema and SQL ownership
 
 Backend owns wire semantics; the checked-in [OpenAPI 3.1 artifact](../../contracts/openapi.json) is the language-neutral structural owner.
-The [Node adapter](../../backend/src/http/openapi.ts) serves that artifact with the configured origin.
+The [Node adapter](../../backend/api/src/spellbook_api/http/application.py) serves that artifact with the configured origin.
 Reconcile Python handlers against it, actual routes/consumers and the executable JSON/raw-HTTP compatibility fixtures.
 Framework-generated OpenAPI is not a competing source of truth.
 Keep client presentation helpers and TypeScript validators in `contracts/src/`; Python cannot import them.
@@ -120,8 +120,8 @@ The documented inventory is 88 API method/path pairs and 95 OpenAPI pairs includ
   Count credential-form attempts exactly once before decoding; preserve password rotation's replacement cookie and request-bound credential.
   Retain QR requester/device separation, HttpOnly secrets, original-session/approval-marker binding, one-use redemption, expiry under lock waits, revocation and separate ordered Set-Cookie headers.
 - Preserve existing scrypt hashes and token digests without re-enrollment.
-  Golden vectors cover Node's textual hex salt passed as UTF-8, scrypt parameters and JavaScript UTF-16 password-length rules from [password.ts](../../backend/src/auth/password.ts).
-- Preserve normalized intent and exact fingerprint bytes from [request-fingerprint.ts](../../backend/src/decks/request-fingerprint.ts), including Unicode, omitted/null fields, JSON number/escaping rules and array order.
+  Golden vectors cover Node's textual hex salt passed as UTF-8, scrypt parameters and JavaScript UTF-16 password-length rules from [password.ts](../../backend/core/src/spellbook_core/passwords.py).
+- Preserve normalized intent and exact fingerprint bytes from [request-fingerprint.ts](../../backend/core/src/spellbook_core/fingerprint.py), including Unicode, omitted/null fields, JSON number/escaping rules and array order.
   Mutation, revisions, original receipt and related effects commit atomically; replay returns the original receipt after later edits/deletion/recreation.
   Legacy null hashes/acknowledgements keep their documented treatment and receive no fabricated backfill.
   Preserve Profile/session fencing, Scan-session-before-Inventory, Inventory-before-entry-before-group and Deck/Category lock order, read snapshots and revision behavior on no-ops.
@@ -135,7 +135,9 @@ The documented inventory is 88 API method/path pairs and 95 OpenAPI pairs includ
   Publication failure leaves the last complete snapshot active; `state.json` remains operator status.
   Preserve opt-ins, resource limits and all existing private data and Scan objects.
 
-The current candidate host composes the integrated Catalog, sixteen Inventory/Groups/import, Valuation seventeen Category and seven Scan route factories with Auth/QR, Account/Profile, Dashboard and SavedState.
+The candidate host composes all 88 API method/path pairs plus Discovery, including nineteen Deck routes and the closed nine-command web endpoint.
+Web commands preserve original Core receipts, revisions and absent optional fields, reject caller authority and retain direct API Bearer-before-cookie selection and cookie-mode Origin protection.
+SSR/forms select only the browser cookie before forwarding.
 Dashboard uses account-scoped aggregates and exact-first Deck allocation in one read-only repeatable-read snapshot, passing the same transaction and database clock to current/history value reads.
 `VALUE_HISTORY_TIMEZONE` configures its calendar and private value routes.
 The build hook bundles unchanged canonical SQL, journal and snapshots in API wheels/sdists; the explicit `spellbook-migrate` command discovers installed assets or honors `--migrations-dir`.
@@ -146,14 +148,21 @@ No-DB Discovery creates neither adapter.
 The independently packaged `spellbook-state-worker` owns WholeDeckCategory and ValueHistory scheduling on its own Core-configured pool.
 HTTP enqueues and performs synchronous effects but starts neither runner.
 API and state images use system ICU for Combo witness collation.
-The explicit `podman-compose.python.yml` override selects the Python API and sole state owner together, leaving default Node launchers unchanged.
-This source assembly does not activate Deck APIs or closed web commands, change default launchers or establish complete integration acceptance.
+Default Compose, `./dev.sh` and `pnpm start` use installed Python API and independent workers after successful one-shot Python migration.
+The temporary Python Compose override is removed.
+The API normally binds loopback port 3001, supports explicit container IP addresses and requires database configuration unless schema-only mode is explicitly selected.
+The replaced Node server, build/operator tooling and coupled domain tests are removed; Python Core/API functional and opt-in PostgreSQL tests own those responsibilities.
+Frontend unit/browser/external HTTP tests remain, with installed Python as the fixed API target.
+The unchanged SQL/journal/snapshots, four canonical Demo assets, contracts and Android remain in source.
+The private retained Node rollback artifact is untouched.
+Source activation establishes neither complete integration acceptance nor production cutover.
 
 ## Delivery, evidence and rollback
 
 The [implementation epic #245](https://github.com/KyleDerZweite/spellbook/issues/245) and P00 through P20 remain implementation context.
 Their existing bodies do not override this accepted direction.
-Use useful verified slice PRs against `main`, with explicitly based stacks allowed, and sequential integration by Root.
+Delivery uses the existing unmerged [integration draft PR 276](https://github.com/KyleDerZweite/spellbook/pull/276) against `main`.
+Root integrates isolated source commits sequentially and owns final runtime verification.
 Root assigns shared CI, manifests, launchers, route registry and host integration to one writer before parallel implementation.
 Keep writers isolated and start dependent work after their functional prerequisites integrate.
 Migration-specific CI/start/packaging updates are required with their owning source slices; no general CI rewrite is selected.
@@ -217,4 +226,4 @@ The 2026-10-19/20 contract and independent Sol/Astra reviews are retained in Git
 They identified credential encoding, fingerprints, embedded runners, publication locks, dependency checks and CI ownership as migration risks.
 They do not verify the completed Python artifact or establish acceptance of this later reconciliation.
 [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md) records Kyle's 2026-10-23 supersession of strict resource/performance blockers.
-This documentation change claims no runtime, native integration, benchmark, deployment or production migration result.
+The evidence baseline distinguishes scoped observed runtime results from unexecuted final-head integration and production operations.

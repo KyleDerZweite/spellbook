@@ -50,7 +50,10 @@ jobs:
         with:
           version: '0.12.23'
           enable-cache: true
-      - run: uv sync --project ../backend/workers/scan --frozen --extra dev --python 3.14.8
+      - name: Install API, Core and independent workers
+        run: pnpm --dir .. setup:python
+      - name: System ICU for Core Combo ordering
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libicu-dev
       - name: Start the actual Scan worker scaffold
         run: |
           printf 'SCAN_LOCAL_STORAGE_DIR=%s/scan-artifacts\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
@@ -62,10 +65,16 @@ jobs:
           done
           exit 1
       - run: pnpm db:migrate
-      - run: pnpm test:integration
       - run: pnpm --dir .. build
         env:
           APP_ORIGIN: http://127.0.0.1:5191
+      - name: Python Category and Deck PostgreSQL consumers
+        working-directory: backend/api
+        env:
+          CATEGORY_NATIVE_DATABASE: spellbook_test
+          CATEGORY_JOB_NATIVE_DATABASE: spellbook_test
+          DECK_NATIVE_DATABASE: spellbook_test
+        run: .venv/bin/python -m pytest ../core/tests/test_categories_postgres.py ../core/tests/test_categories_jobs_postgres.py ../core/tests/test_decks_postgres.py
       - run: pnpm test:http
       - run: pnpm test:scan
       - run: pnpm test:sync

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
 import pg from 'pg';
 import { randomUUID } from 'node:crypto';
-import { SESSION_COOKIE } from '@spellbook/backend/auth/session.ts';
+import { SESSION_COOKIE } from './fixtures/session.ts';
 import { fixtureAuthRequest } from './fixtures/http-auth.ts';
 import { httpTestOrigin, startHttpApplication, stopHttpApplication } from './http-runtime.ts';
 import type { Deck } from '@spellbook/contracts/decks.ts';

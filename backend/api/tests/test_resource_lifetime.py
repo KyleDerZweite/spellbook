@@ -203,3 +203,33 @@ def test_scan_adapters_close_after_request_cleanup_and_before_pool_even_on_failu
         assert resources.scan_storage._closed
 
     asyncio.run(scenario())
+
+
+def test_password_settlement_failure_still_joins_executor_and_closes_pool(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def exercise() -> None:
+        resources = ApplicationResources(Configuration(ORIGIN, database_url=DSN))
+        observed: list[str] = []
+        original_shutdown = resources.executor.shutdown
+        original_pool_close = resources.pool.close
+
+        async def fail_settle() -> None:
+            raise RuntimeError("password settlement failed")
+
+        def shutdown(wait: bool = True) -> None:
+            observed.append("executor")
+            original_shutdown(wait=wait)
+
+        async def pool_close(timeout: float = 5.0) -> None:
+            observed.append("pool")
+            await original_pool_close(timeout)
+
+        monkeypatch.setattr(resources.passwords, "settle", fail_settle)
+        monkeypatch.setattr(resources.executor, "shutdown", shutdown)
+        monkeypatch.setattr(resources.pool, "close", pool_close)
+        with pytest.raises(RuntimeError, match="password settlement failed"):
+            await resources.close()
+        assert observed == ["executor", "pool"]
+
+    asyncio.run(exercise())

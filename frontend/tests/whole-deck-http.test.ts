@@ -11,7 +11,9 @@ import {
 	httpTestOrigin,
 	startHttpApplication,
 	stopHttpApplication,
-	webTestEnvironment
+	webTestEnvironment,
+	startStateWorker,
+	stopHttpProcess
 } from './http-runtime.ts';
 import type {
 	CategoryPreview,
@@ -45,9 +47,11 @@ test('built whole Categories and bounded Deck Library preserve private saved con
 	const pool = new pg.Pool({ connectionString: databaseUrl }),
 		accounts: string[] = [];
 	const children: Awaited<ReturnType<typeof startHttpApplication>>[] = [];
+	let state: Awaited<ReturnType<typeof startStateWorker>> | undefined;
 	let restore: (() => Promise<void>) | undefined, eventController: AbortController | undefined;
 	try {
 		restore = await publishCategoryCatalogFixture(pool);
+		state = await startStateWorker();
 		await mkdir(artifacts, { recursive: true });
 		await rm(new URL('node_modules', artifacts), { force: true });
 		await symlink(
@@ -659,6 +663,7 @@ test('built whole Categories and bounded Deck Library preserve private saved con
 		);
 	} finally {
 		eventController?.abort();
+		if (state) await stopHttpProcess(state);
 		try {
 			const stopped = await Promise.allSettled(children.map(stopHttpApplication));
 			for (const result of stopped) if (result.status === 'rejected') throw result.reason;

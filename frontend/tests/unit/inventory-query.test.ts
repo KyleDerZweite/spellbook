@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	normalizeInventoryQuery,
 	inventoryQueryFromUrl
-} from '@spellbook/backend/inventory/query.ts';
+} from '@spellbook/contracts/inventory-query.ts';
 
 describe('Inventory bounded query', () => {
 	it('normalizes native filters and preserves complete composite ordering', () => {

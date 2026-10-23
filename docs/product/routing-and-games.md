@@ -1,9 +1,9 @@
 # Routes and supported game, paused Scan entrypoints
 
 - Status: Canonical
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-10-23
 - Source of Truth: route handlers and server hooks
-- Update Triggers: independent API/web ownership and relocated code references, PWA launch/connect and QR approval/API routes, route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game, paused Scan entrypoints, private Inventory history routes
+- Update Triggers: Python source activation and server contraction, independent API/web ownership and relocated code references, PWA launch/connect and QR approval/API routes, route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game, paused Scan entrypoints, private Inventory history routes
 - Related Docs: [Product specification](./specification.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Frontend architecture](../architecture/frontend.md), [Catalog](../architecture/catalog.md), [Product index](./README.md)
 
 Scan presentation is paused.
@@ -21,7 +21,7 @@ Unsupported cookie values reset to MTG.
 Additional games require their own catalog and workflow implementation before becoming selectable.
 
 The [web routes](../../frontend/src/routes/) own pages and the same-origin API proxy.
-The [backend route registry](../../backend/src/http/application.ts) owns API handlers; [server hooks](../../frontend/src/hooks.server.ts) own page protection and redirects.
+The [backend route registry](../../backend/api/src/spellbook_api/http/application.py) owns API handlers; [server hooks](../../frontend/src/hooks.server.ts) own page protection and redirects.
 `/openapi.json` exposes authentication, account and versioned MTG API contracts.
 
 ## Pages and account routes

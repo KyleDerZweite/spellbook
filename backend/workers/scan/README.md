@@ -13,7 +13,8 @@ podman build -t spellbook-scan-worker backend/workers/scan
 ```
 
 Use an explicit task-owned loopback port for local verification.
-The root `./dev.sh --scan` launcher owns and gracefully stops its Scan child; default development still starts the Node API and web without Scan.
+The root `./dev.sh` launcher starts the Scan scaffold by default alongside Python API, State, Catalog and web, after successful migration.
+It owns and gracefully stops its Scan child; `--scan` remains an accepted compatibility flag.
 Compose retains the `scan-worker` service, internal port 8080 and existing storage configuration.
 The Scan process uses no database connection.
 Native commands do not load the root `.env` automatically.

@@ -1,6 +1,6 @@
 import { fixtureAuthRequest } from './fixtures/http-auth.ts';
 import { verifyIndependentHttp } from './fixtures/independent-http.ts';
-import { SESSION_COOKIE } from '@spellbook/backend/auth/session.ts';
+import { SESSION_COOKIE } from './fixtures/session.ts';
 import type { DashboardSummary } from '@spellbook/contracts/dashboard.ts';
 import { seedWideSummary } from './fixtures/wide-summary.ts';
 import { seedAccountScaleInventory } from './fixtures/account-scale.ts';

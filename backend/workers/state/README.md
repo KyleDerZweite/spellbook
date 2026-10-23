@@ -31,10 +31,12 @@ SIGTERM/SIGINT stop the process-owned schedulers, await both transaction cleanup
 Startup failure also closes both runners and the pool; repeated or cancelled close waiters retain cleanup ownership.
 Only the ValueHistory enable flag disables a runner; WholeDeckCategory remains active as in Node.
 
-The default Compose file still starts Node and its embedded schedulers.
-The explicit `podman-compose.python.yml` override selects the Python API and this sole state-process owner together.
-Do not run this worker beside an active Node scheduler owner for the same deployment.
-Default activation, production operations and actual scheduled PostgreSQL acceptance remain separate work.
+Default Compose, `pnpm start` and `./dev.sh` start this independent scheduler after the one-shot Python migrator.
+API starts no scheduled runner.
+The previous Python Compose override is folded into the normal topology.
+Root verified a bounded installed Category job through actual polling, persisted decision, job removal and graceful SIGTERM.
+The [migration evidence](../../../docs/architecture/python-migration-evidence-baseline.md#activation-and-contraction-2026-10-23) records that scope.
+Actual scheduled daily ValueHistory observation, container acceptance and production cutover remain separate checks.
 
 Run package Ruff/format, strict Mypy and pytest from this package's working directory using the frozen environment.
 For external production installation, run `SPELLBOOK_TEST_STATE_WHEEL=1 uvx --from uv==0.12.23 uv run --directory backend/workers/state --no-sync pytest`.

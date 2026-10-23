@@ -2,9 +2,20 @@
 
 from collections.abc import Mapping
 
+from spellbook_core.categories.common import (
+    CategoryConflict,
+    CategoryMergeConflict,
+    CategoryNotFound,
+    CategoryPreviewCapacity,
+    CategoryPreviewExpired,
+    CategoryUnavailable,
+    LibraryConflict,
+)
+from spellbook_core.decks import DeckLibraryRevisionChanged
 from spellbook_core.errors import (
     ActorError,
     AuthError,
+    DeckNotFoundError,
     DescriptionConflictError,
     InventoryCountError,
     InventoryNotFoundError,
@@ -39,7 +50,19 @@ def json_response(
 
 
 def error_response(cause: Exception) -> Response:
-    if isinstance(cause, NotesConflictError):
+    if isinstance(cause, DeckLibraryRevisionChanged):
+        cause = HttpError(409, dict(kind="RevisionChanged", message=str(cause)))
+    elif isinstance(cause, (DeckNotFoundError, CategoryNotFound)):
+        cause = HttpError(404, dict(kind="NotFound", message=str(cause)))
+    elif isinstance(cause, CategoryConflict):
+        cause = HttpError(409, dict(kind=cause.kind, message=str(cause), latest=cause.latest))
+    elif isinstance(cause, CategoryMergeConflict):
+        cause = HttpError(409, dict(kind=cause.kind, message=str(cause), preview=cause.preview))
+    elif isinstance(cause, (LibraryConflict, CategoryPreviewExpired)):
+        cause = HttpError(409, dict(kind=cause.kind, message=str(cause)))
+    elif isinstance(cause, (CategoryPreviewCapacity, CategoryUnavailable)):
+        cause = HttpError(503, dict(kind=cause.kind, message=str(cause)))
+    elif isinstance(cause, NotesConflictError):
         cause = HttpError(409, {"kind": "NotesConflict", "message": str(cause), **cause.latest})
     elif isinstance(cause, DescriptionConflictError):
         cause = HttpError(

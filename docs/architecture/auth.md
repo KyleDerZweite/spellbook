@@ -3,19 +3,19 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-23
 - Source of Truth: code
-- Update Triggers: Python Auth/Profile/QR functional port, independent API/web ownership and relocated code references, QR challenge lifecycle, session-bound decisions, requester cookies and PWA delivery, credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, summary reporting failures, post-login destinations, agent discovery, workspace ownership, application resource lifetime and native operator ownership, SavedState stream authority and origin policy
+- Update Triggers: Python source activation and server contraction, Python Auth/Profile/QR functional port, independent API/web ownership and relocated code references, QR challenge lifecycle, session-bound decisions, requester cookies and PWA delivery, credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, summary reporting failures, post-login destinations, agent discovery, workspace ownership, application resource lifetime and native operator ownership, SavedState stream authority and origin policy
 - Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Routes](../product/routing-and-games.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md), [Application contract](./application-contract.md), [Independent applications](./independent-applications.md), [Python migration](./python-backend-migration.md)
 
 Spellbook authenticates local accounts by username and password.
 `user_profiles.account_id` remains the stable ownership key for inventories, decks, and scans.
 Registration generates a new account ID; operator enrollment preserves an existing account ID.
 
-The dormant Python candidate now implements Auth, QR authorization, Profile preferences and password bridges in [Core Auth](../../backend/core/src/spellbook_core/auth.py), [QR](../../backend/core/src/spellbook_core/qr.py), [Profile](../../backend/core/src/spellbook_core/profile.py) and the production [HTTP registry](../../backend/api/src/spellbook_api/http/application.py).
+The Python API implements Auth, QR authorization, Profile preferences and password bridges in [Core Auth](../../backend/core/src/spellbook_core/auth.py), [QR](../../backend/core/src/spellbook_core/qr.py), [Profile](../../backend/core/src/spellbook_core/profile.py) and the production [HTTP registry](../../backend/api/src/spellbook_api/http/application.py).
 The candidate preserves existing scrypt/session storage, trusted Actor methods, API error bodies and native credential forms.
 Registration stores the profile, credential and initial session atomically.
 The guarded [PostgreSQL regression suite](../../backend/core/tests/test_auth_profile_postgres.py) covers the intended transaction and race scenarios; it requires an assigned disposable database.
 Component tests with application doubles establish adapter behavior, not PostgreSQL acceptance.
-Dashboard awaits Valuation integration, and Node remains the active default until the later activation slice.
+Dashboard uses the integrated Valuation dependency; Python is the default API in the unmerged candidate.
 The [Python migration contract](./python-backend-migration.md) owns the remaining integration and production authority.
 
 ## PWA and QR sign-in implementation contract
@@ -26,7 +26,7 @@ The same JSON protocol supports a later Jetson client obtaining an ordinary bear
 This delivers account sign-in, not physical device ownership, motor control, card recognition, complete offline account data or a native Android package.
 
 Backend Auth exposes `auth.qr.create`, `inspect`, `decide` and `redeem` through the shared application interface.
-The [QR module](../../backend/src/auth/qr.ts) owns PostgreSQL-backed authorization; [migration 0024](../../backend/drizzle/0024_qr_authorization.sql) adds challenge persistence without changing existing account or session identities.
+The [QR module](../../backend/core/src/spellbook_core/qr.py) owns PostgreSQL-backed authorization; [migration 0024](../../backend/drizzle/0024_qr_authorization.sql) adds challenge persistence without changing existing account or session identities.
 Contracts owns JSON-safe request/result shapes.
 The API owns API Origin checks, QR handlers and separate Set-Cookie headers.
 Frontend owns HttpOnly browser-cookie delivery, QR rendering, camera scanning, HTML forms and the approval marker.
@@ -100,8 +100,8 @@ Android Studio/emulator testing is attempted only with installed tools; if unava
 
 ## Application ownership
 
-The backend [local-authentication use case](../../backend/src/auth/local.ts) owns credential validation, hashing, rate/derivation limits and database sessions.
-The [Node API host](../../backend/src/main.ts) supplies database and Demo configuration to the [backend application constructor](../../backend/src/application.ts) and owns resource lifetime.
+The backend [local-authentication use case](../../backend/core/src/spellbook_core/auth.py) owns credential validation, hashing, rate/derivation limits and database sessions.
+The [Python API host](../../backend/api/src/spellbook_api/main.py) supplies database and Demo configuration to the [backend application constructor](../../backend/api/src/spellbook_api/application.py) and owns resource lifetime.
 [`contracts/src/auth.ts`](../../contracts/src/auth.ts) owns safe user/session shapes; `expiresAt` is an ISO string.
 Frontend uses a request-bound [remote client](../../frontend/src/lib/server/remote/client.ts), local error types, browser cookies and native form results.
 It selects only the browser cookie for SSR/forms; incoming bearer headers do not replace that identity.
@@ -111,7 +111,7 @@ Existing public response shapes remain unchanged.
 The shared [profile contract](../../contracts/src/profile.ts) owns avatar/artwork IDs, defaults, ID validation, contact-email normalization and profile patch/read types.
 [profile-card.ts](../../contracts/src/profile-card.ts) owns full card validation, limits, mana grammar, defaults and KPI names.
 Frontend owns labels/image paths and current-metric rendering.
-The backend [Profile use case](../../backend/src/profile/profile.ts) owns preference/card persistence and aggregate profile totals.
+The backend [Profile use case](../../backend/core/src/spellbook_core/profile.py) owns preference/card persistence and aggregate profile totals.
 Settings forms and account HTTP adapters call these same use cases.
 Password handling delegates to backend Auth; the removed Settings/Profile persistence imports no longer need boundary exceptions.
 
@@ -164,7 +164,7 @@ It does not require or change an avatar.
 Submitted account IDs never select the update target.
 
 Migration `0009_profile_card.sql` adds nullable `user_profiles.profile_card` JSONB for the private card design.
-The authenticated `/settings` and `/settings/profile-card` loads read it through the account-scoped [Profile use case](../../backend/src/profile/profile.ts), independently of inventory totals.
+The authenticated `/settings` and `/settings/profile-card` loads read it through the account-scoped [Profile use case](../../backend/core/src/spellbook_core/profile.py), independently of inventory totals.
 Missing or invalid stored designs use the shared username-based default without writing it.
 Session and login responses retain their existing user shape.
 
@@ -199,7 +199,7 @@ There is no refresh token or identity-provider callback.
 
 ## Account HTTP contract
 
-The backend [account routes](../../backend/src/http/routes/account.ts) and [OpenAPI](../../backend/src/http/openapi.ts) own HTTP parsing, responses and exact schemas.
+The backend [account routes](../../backend/api/src/spellbook_api/http/routes_account.py) and [OpenAPI](../../backend/api/src/spellbook_api/http/application.py) own HTTP parsing, responses and exact schemas.
 The web proxy forwards these responses without changing authentication or cache policy.
 These routes accept a validated bearer session or browser cookie.
 An explicit Authorization header takes precedence; invalid bearer credentials never fall back to cookies.
@@ -249,7 +249,7 @@ A supplied Origin must match the API's public `APP_ORIGIN`; foreign and literal 
 Missing/invalid sessions return 401 instead of a login redirect.
 Listener startup failures return 503 with `Saved state temporarily unavailable`.
 Responses use `Content-Type: text/event-stream`, `Cache-Control: no-store` and `X-Accel-Buffering: no`.
-[OpenAPI](../../backend/src/http/openapi.ts) owns the additive route and status contract.
+[OpenAPI](../../backend/api/src/spellbook_api/http/application.py) owns the additive route and status contract.
 Existing versioned MTG paths remain unchanged.
 
 Backend Auth `actorSession` derives the bound account and expiry from its private trusted-actor binding and returns a safe session DTO without token/hash.
@@ -293,7 +293,7 @@ JSON login and registration allow a missing origin for non-browser clients but r
 Cookie-authenticated API mutations also require the same origin.
 
 SvelteKit delegates HTML form-origin checks through `csrf.trustedOrigins: ['*']` to its [form guard](../../frontend/src/lib/server/auth/csrf.ts), before page redirects or session handling.
-The API [router guard](../../backend/src/http/auth.ts) owns API requests and matches native exceptions against explicit API paths.
+The API [router guard](../../backend/api/src/spellbook_api/http/auth.py) owns API requests and matches native exceptions against explicit API paths.
 The web API catch-all does not evaluate framework route IDs as native exceptions.
 It requires a matching origin for `POST`, `PUT`, `PATCH`, and `DELETE` requests using URL-encoded, multipart, plain-text, or SvelteKit form data, and requests without a content type.
 
@@ -308,7 +308,7 @@ For guarded requests, a foreign or literal `null` origin returns HTTP 403 even w
 Other guarded requests with a missing origin return HTTP 403.
 These checks apply in development and production; JSON handlers retain their own origin checks.
 The three [credential form routes](./independent-applications.md#authority-and-compatibility) stream original form bodies to API-owned validation and consume the original attempt before decoding.
-Python Core and credential-form adapters are implemented in the dormant candidate; real PostgreSQL, proxy and current-head integration acceptance remain pending.
+Python Core and credential-form adapters are implemented in the activated Python candidate; real PostgreSQL, proxy and current-head integration acceptance remain pending.
 `API_INTERNAL_URL` changes only the transport destination, not the public Origin or secure-cookie policy.
 
 Login, registration and password changes share a per-API-process limit of 20 attempts per client address within 15 minutes.

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { InventoryWindow, matchingNativeInventoryQuery } from '#lib/inventory/window.ts';
 import { WorkspaceSavedState } from '#lib/saved-state/workspace.ts';
-import { inventoryQueryFromUrl, inventoryQueryKey } from '@spellbook/backend/inventory/query.ts';
+import { inventoryQueryFromUrl, inventoryQueryKey } from '@spellbook/contracts/inventory-query.ts';
 import type {
 	InventoryEntry,
 	InventoryPage,

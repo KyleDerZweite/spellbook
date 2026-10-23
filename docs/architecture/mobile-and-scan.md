@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-23
 - Source of Truth: code, accepted local-recognition direction, maintainer's 2026-10-15 client-scope clarification and accepted 2026-10-16 PWA/QR contract, primary documentation and the 2026-10-19 independent Android design clarification
-- Update Triggers: Python Scan host assembly, adapter dependencies and retired resource gates, independent Android design direction and Figma handoff, selected Deck optional Legality projection, accepted online-first PWA and QR delivery status, paused Scan presentation, phone-image evaluation fixtures, private value history queries and calendar refresh boundaries, bounded Deck choice reads, public reference/history exception/private price reads and source precision, manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, Scan contracts and legacy replay, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, Deck wire contracts and revisions, device runtime selection, category initialization/manual decisions/merge previews, whole-deck outcomes and bounded directory revision/location, hybrid browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
+- Update Triggers: Python source activation and server contraction, Python Scan host assembly, adapter dependencies and retired resource gates, independent Android design direction and Figma handoff, selected Deck optional Legality projection, accepted online-first PWA and QR delivery status, paused Scan presentation, phone-image evaluation fixtures, private value history queries and calendar refresh boundaries, bounded Deck choice reads, public reference/history exception/private price reads and source precision, manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, Scan contracts and legacy replay, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, Deck wire contracts and revisions, device runtime selection, category initialization/manual decisions/merge previews, whole-deck outcomes and bounded directory revision/location, hybrid browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
 - Related Docs: [Application contract](./application-contract.md), [Frontend](./frontend.md), [Android design handoff](../product/mobile-app-exploration.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../../GLOSSARY.md), [Deployment](../operations/deployment.md), [Category rules](./category-rules.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Independent applications](./independent-applications.md), [Worker](./worker.md), [Historical P13 resource contract](https://github.com/KyleDerZweite/spellbook/issues/260), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md)
 
 Spellbook retains its web client, including the initial installable, online-first, same-origin SvelteKit PWA delivery.
@@ -103,7 +103,7 @@ Timestamps are ISO strings and revisions are decimal strings.
 `GET /inventory/{entryId}/location` requires the expected revision and returns the matching absolute index or null; drift returns the same 409 shape.
 All relative paths use the versioned MTG prefix.
 Invalid queries return 400; invalid selected groups return 400 in the API and 404 in native page loading.
-[The application contract](./application-contract.md#inventory-query-contract) owns normalization and ordering; [OpenAPI](../../backend/src/http/openapi.ts) owns exact wire schemas.
+[The application contract](./application-contract.md#inventory-query-contract) owns normalization and ordering; [OpenAPI](../../backend/api/src/spellbook_api/http/application.py) owns exact wire schemas.
 
 If Inventory counts or a location index cannot be represented as a nonnegative safe JSON integer, API reads and native page loading return HTTP 500 with `Inventory totals cannot be represented exactly.` They never return rounded counts.
 [Postgres](./postgres.md#inventory-read-and-write-consistency) owns decoding and SQL aggregate rules.
@@ -123,7 +123,7 @@ All relative paths use `/api/mobile/v1/mtg`.
 Unsupported Sources, enums and quantities fail with controlled 400 before SQL.
 Missing owned subjects return 404; changed request intent, stale Notes and reviewed-quantity drift return 409.
 Successful retries consume the original receipt and refetch current bounded page/detail state separately.
-The [application contract](./application-contract.md#inventory-query-contract) owns legacy receipt limitations, atomic lock order and exact replay semantics; [OpenAPI](../../backend/src/http/openapi.ts) owns requests/responses.
+The [application contract](./application-contract.md#inventory-query-contract) owns legacy receipt limitations, atomic lock order and exact replay semantics; [OpenAPI](../../backend/api/src/spellbook_api/http/application.py) owns requests/responses.
 Scan uses the backend-owned module and compact response union described below.
 
 ## Implemented API boundary
@@ -142,7 +142,7 @@ Authenticated clients can read `GET /api/mobile/v1/mtg/decks/{deckId}/availabili
 The route checks deck ownership and reuses the shared allocation function to compare that deck with current aggregate inventory.
 Its response contains entry counts and totals for required, exact, alternate, and missing copies.
 It makes no inventory changes or cross-deck reservations.
-See the [product specification](../product/specification.md#deck-availability) for allocation semantics and [OpenAPI](../../backend/src/http/openapi.ts) for the wire schema.
+See the [product specification](../product/specification.md#deck-availability) for allocation semantics and [OpenAPI](../../backend/api/src/spellbook_api/http/application.py) for the wire schema.
 
 ## Deck HTTP contract
 
@@ -168,7 +168,7 @@ Ordinary negative deltas floor at one; explicit removal and bulk decrement can d
 
 Clients of the former snapshot mutations must retain the request ID for a failed intent, consume the original acknowledgement and fetch current state separately.
 Changed-payload reuse returns 409 `RequestConflict`; Description conflict requires deliberate review/rebase.
-[The application contract](./application-contract.md#implemented-deck-application-boundary) owns replay and semantic replacement; [OpenAPI](../../backend/src/http/openapi.ts) owns exact schemas and validation.
+[The application contract](./application-contract.md#implemented-deck-application-boundary) owns replay and semantic replacement; [OpenAPI](../../backend/api/src/spellbook_api/http/application.py) owns exact schemas and validation.
 Deck aggregate results outside the safe JSON integer range fail explicitly rather than return rounded quantities.
 
 ## Deck choice read
@@ -189,13 +189,13 @@ This is an addressing bound, not a Deck membership cap; the selected owned looku
 Optional UUID `selectedDeckId` has a separate bounded owned lookup, independent of the page and filter; missing and foreign IDs both return `selected: null`.
 Omission never selects a Deck.
 Unknown/repeated parameters and invalid values return 400, and invalid authentication returns 401.
-[OpenAPI](../../backend/src/http/openapi.ts) owns exact wire schemas.
+[OpenAPI](../../backend/api/src/spellbook_api/http/application.py) owns exact wire schemas.
 The Card picker and native Card actions remain planned.
 
 ## Category Library HTTP contract
 
 Authenticated scoped definition pages, immutable version saves, future-adoption archive state, local label/removal and entry Review/Reset use the same trusted backend actor interface as native forms.
-[Routes](../product/routing-and-games.md) lists their paths; [OpenAPI](../../backend/src/http/openapi.ts) owns exact JSON schemas.
+[Routes](../product/routing-and-games.md) lists their paths; [OpenAPI](../../backend/api/src/spellbook_api/http/application.py) owns exact JSON schemas.
 New Library/preview/local commands accept strict streamed 64 KiB objects.
 Existing starter initialization, Manual and merge routes retain their 16 KiB budget.
 Extra authority fields are rejected.
@@ -206,7 +206,7 @@ Whole-deck Review/Reset uses the implemented scoped engine; absent optional comb
 
 ## Request validation
 
-JSON handlers use the shared [request reader](../../backend/src/http/request.ts).
+JSON handlers use the shared [request reader](../../backend/api/src/spellbook_api/http/parsing.py).
 They require `application/json`, valid UTF-8, and a top-level object.
 The reader counts streamed bytes and rejects bodies over 1 MiB, including requests without a trustworthy `Content-Length`.
 Wrong media types return HTTP 415, malformed JSON or non-object bodies return HTTP 400, and oversized bodies return HTTP 413.
@@ -223,7 +223,7 @@ Both offsets default to zero and accept integers through 1,000,000.
 Invalid pagination returns HTTP 400.
 
 [Postgres](./postgres.md#mutation-replay) owns request fingerprint storage and HTTP 409 replay conflicts.
-The [OpenAPI route](../../backend/src/http/openapi.ts) owns endpoint-specific fields and responses.
+The [OpenAPI route](../../backend/api/src/spellbook_api/http/application.py) owns endpoint-specific fields and responses.
 
 ## Scan uploads
 
@@ -285,7 +285,7 @@ Production S3 configuration remains supported; verification against an operator-
 
 ## External scanner results
 
-The [OpenAPI route](../../backend/src/http/openapi.ts) owns wire schemas.
+The [OpenAPI route](../../backend/api/src/spellbook_api/http/application.py) owns wire schemas.
 Current scanner operations include:
 
 | Operation          | Route under `/api/mobile/v1/mtg`                                | Behavior                                                                               |
@@ -537,7 +537,7 @@ Cookie POST keeps the existing same-origin check; bearer authority remains sessi
 Reads return 200 for evaluated Known/Unknown market results and 503 for operational read failures.
 Response-level evaluatedAt/publications are consistent across the batch.
 Coverage counts only requested owned quantities; stale is a subset of covered.
-[OpenAPI](../../backend/src/http/openapi.ts) owns exact schemas and [valuation](./valuation.md#implemented-market-references) owns observation eligibility.
+[OpenAPI](../../backend/api/src/spellbook_api/http/application.py) owns exact schemas and [valuation](./valuation.md#implemented-market-references) owns observation eligibility.
 All responses are JSON-safe and no-store.
 Responses expose enabled optional providers and bounded public market history.
 Account totals and personal history use the private Inventory value contract below.

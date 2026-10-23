@@ -1,9 +1,9 @@
 # Market price sources
 
 - Status: Scryfall EUR references and supplied links implemented; optional Cardmarket/MTGJSON public adapters and source history implemented
-- Last Reviewed: 2026-10-20
+- Last Reviewed: 2026-10-23
 - Source of Truth: linked provider documentation, public data responses, and repository code
-- Update Triggers: provider access or terms, price fields and freshness, printing identity, reference coverage, public history and accepted value scope
+- Update Triggers: Python source activation and server contraction, provider access or terms, price fields and freshness, printing identity, reference coverage, public history and accepted value scope
 - Related Docs: [Integrations](./README.md), [Value tracking](../product/value-tracking.md), [Domain glossary](../../GLOSSARY.md), [Product specification](../product/specification.md#dashboard), [Catalog](../architecture/catalog.md), [Worker](../architecture/worker.md), [Postgres](../architecture/postgres.md), [Valuation](../architecture/valuation.md)
 
 Scryfall supplies the daily baseline for implemented per-printing EUR references and supplied external product links.
@@ -29,9 +29,9 @@ The [Worker](../architecture/worker.md) downloads `all_cards` by default and syn
 The separate [Worker price extractor](../../backend/workers/catalog/src/worker/prices.py) now retains these public facts in immutable price publications; Catalog metadata DTOs remain separate.
 [Valuation](../architecture/valuation.md#implemented-market-references) owns the implemented baseline and conservative language mapping.
 
-The [backend Inventory schema](../../backend/src/db/schema.ts) stores printing, quantity, finish, and condition.
+The [backend Inventory schema](../../backend/drizzle/) stores printing, quantity, finish, and condition.
 It does not store acquisition costs or purchases.
-The [backend Dashboard calculation](../../backend/src/profile/dashboard.ts) uses bounded SQL aggregates for current Inventory and Deck availability.
+The [backend Dashboard calculation](../../backend/core/src/spellbook_core/dashboard.py) uses bounded SQL aggregates for current Inventory and Deck availability.
 The Dashboard also includes coherent optional value estimates and captured personal history.
 The [value-tracking contract](../product/value-tracking.md) owns current reporting and its limits.
 

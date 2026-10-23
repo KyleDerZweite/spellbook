@@ -14,6 +14,7 @@ from spellbook_api.application import ApplicationResources, create_application
 from spellbook_api.http.router import RouteRegistry
 from spellbook_api.http.routes_catalog import create_catalog_routes
 from spellbook_api.http.routes_categories import create_category_routes
+from spellbook_api.http.routes_decks import create_deck_routes
 from spellbook_api.http.routes_inventory import create_inventory_routes
 from spellbook_api.http.routes_scan import create_scan_routes
 from spellbook_api.http.routes_valuation import create_valuation_routes
@@ -46,6 +47,7 @@ def test_production_assembly_registers_and_dispatches_all_integrated_factories(
     assert len(installed) == len(registry._routes)
     for routes, expected in (
         (create_inventory_routes(resources.auth, resources.inventory, ORIGIN), 16),
+        (create_deck_routes(resources.auth, resources.decks, ORIGIN), 19),
         (create_catalog_routes(resources.auth, resources.catalog, ORIGIN), 7),
         (create_valuation_routes(resources.auth, resources.valuation, ORIGIN), 5),
         (create_scan_routes(resources.auth, resources.scan, ORIGIN), 7),
@@ -54,6 +56,8 @@ def test_production_assembly_registers_and_dispatches_all_integrated_factories(
         assert len(routes) == expected
         assert {(route.method, route.path) for route in routes} <= installed
     assert ("GET", "/api/account/dashboard") in installed
+    assert ("POST", "/api/web/v1/commands") in installed
+    assert resources.decks.valuation is resources.valuation
     assert resources.scan._inventory is resources.inventory
     assert resources.scan._storage is resources.scan_storage
     assert resources.scan._worker is resources.scan_worker
@@ -199,3 +203,29 @@ def test_combo_configuration_binds_the_owned_pool(enabled: str) -> None:
         Configuration.from_environment(
             {"APP_ORIGIN": ORIGIN, "COMMANDER_SPELLBOOK_ENABLED": "yes"}
         )
+
+
+def test_complete_registry_matches_every_neutral_api_operation() -> None:
+    import json
+    import re
+    from pathlib import Path
+
+    lifetime = create_application(
+        Configuration(ORIGIN, database_url="postgresql://localhost/unused")
+    )
+    try:
+        registry = cast(RouteRegistry, cast(Route, lifetime.http.router.routes[-1]).app)
+        inventory = json.loads(
+            (
+                Path(__file__).resolve().parents[3] / "contracts/compatibility/inventory.json"
+            ).read_text()
+        )
+        expected = {
+            (row["method"], re.sub(r"\{([^}]+)\}", r":\1", row["path"]))
+            for row in inventory["routes"]
+            if row["transport"] == "api"
+        }
+        actual = {(route.method, route.path) for route in registry._routes}
+        assert actual == expected | {("GET", "/openapi.json")}
+    finally:
+        asyncio.run(lifetime.close())

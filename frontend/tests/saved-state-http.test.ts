@@ -15,7 +15,7 @@ import {
 	httpApiTestOrigin,
 	webTestEnvironment
 } from './http-runtime.ts';
-import { hashSessionToken } from '@spellbook/backend/auth/session.ts';
+import { hashSessionToken } from './fixtures/session.ts';
 const databaseUrl = process.env.TEST_DATABASE_URL;
 if (!databaseUrl || databaseUrl !== process.env.DATABASE_URL)
 	throw Error('SavedState HTTP requires matching disposable database URLs');
@@ -150,7 +150,7 @@ async function delay(ms: number) {
 }
 async function listenerPid(child: (typeof children)[number]) {
 	const result = await pool.query('SELECT pid FROM pg_stat_activity WHERE application_name=$1', [
-		`spellbook_saved_state:${child.api.pid}`
+		`spellbook-python-listener:${child.api.pid}`
 	]);
 	assert.equal(result.rowCount, 1);
 	return result.rows[0].pid;

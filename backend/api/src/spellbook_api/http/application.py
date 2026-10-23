@@ -10,6 +10,7 @@ from spellbook_core.auth import LocalAuth, SessionAuth
 from spellbook_core.catalog import Catalog
 from spellbook_core.categories import Categories
 from spellbook_core.dashboard import Dashboard
+from spellbook_core.decks import Decks
 from spellbook_core.inventory import Inventory
 from spellbook_core.profile import Profile
 from spellbook_core.scan import Scan
@@ -22,9 +23,11 @@ from spellbook_api.http import (
     routes_auth,
     routes_catalog,
     routes_categories,
+    routes_decks,
     routes_inventory,
     routes_scan,
     routes_valuation,
+    routes_web,
 )
 from spellbook_api.http.admission import RequestAdmission
 from spellbook_api.http.errors import json_response
@@ -51,6 +54,7 @@ def create_http_application(
     dashboard: Dashboard | None = None,
     scan: Scan | None = None,
     categories: Categories | None = None,
+    decks: Decks | None = None,
 ) -> FastAPI:
     resource = files("spellbook_api").joinpath("openapi.json")
     schema_text = (
@@ -110,6 +114,13 @@ def create_http_application(
             raise ValueError("Category routes require Auth")
         routes.extend(
             routes_categories.create_category_routes(auth, categories, configuration.public_origin)
+        )
+    if decks is not None:
+        if auth is None or inventory is None:
+            raise ValueError("Deck and web routes require Auth and Inventory")
+        routes.extend(routes_decks.create_deck_routes(auth, decks, configuration.public_origin))
+        routes.extend(
+            routes_web.create_web_routes(auth, inventory, decks, configuration.public_origin)
         )
     if isinstance(auth, LocalAuth):
         routes.extend(

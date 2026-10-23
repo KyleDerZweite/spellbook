@@ -60,10 +60,14 @@ def test_canonical_origins_remain_accepted(origin: str) -> None:
     assert Configuration(origin).public_origin == origin
 
 
-@pytest.mark.parametrize("host", ["0.0.0.0", "::", "192.168.1.1", "example.com"])
-def test_candidate_cannot_bind_outside_loopback(host: str) -> None:
-    with pytest.raises(ValueError):
-        Configuration("http://localhost:5173", host=host)
+@pytest.mark.parametrize("host", ["0.0.0.0", "::", "192.168.1.1", "127.0.0.1"])
+def test_configurable_ip_bind(host: str) -> None:
+    assert Configuration("http://localhost:5173", host=host).host == host
+
+
+def test_invalid_bind_is_rejected() -> None:
+    with pytest.raises(ValueError, match="API_HOST"):
+        Configuration("http://localhost:5173", host="example.com")
 
 
 @pytest.mark.parametrize("port", ["", "0", "65536", "1.5", "-1", "٣٠٠٢"])
@@ -72,10 +76,10 @@ def test_invalid_port_is_rejected_before_start(port: str) -> None:
         Configuration.from_environment({"APP_ORIGIN": "http://localhost:5173", "API_PORT": port})
 
 
-def test_dormant_default_uses_a_separate_loopback_port() -> None:
+def test_default_uses_normal_api_port() -> None:
     configuration = Configuration.from_environment({"APP_ORIGIN": "http://localhost:5173"})
     assert configuration.host == "127.0.0.1"
-    assert configuration.port == 3002
+    assert configuration.port == 3001
 
 
 def test_actual_host_loads_schema_and_exits_gracefully(tmp_path: Path) -> None:
@@ -89,6 +93,7 @@ def test_actual_host_loads_schema_and_exits_gracefully(tmp_path: Path) -> None:
             env={
                 "PATH": os.environ.get("PATH", ""),
                 "APP_ORIGIN": "http://localhost:5173",
+                "API_DISCOVERY_ONLY": "true",
                 "API_HOST": "127.0.0.1",
                 "API_PORT": str(port),
             },

@@ -18,6 +18,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends libicu72 \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /app/backend/api/.venv /app/backend/api/.venv
-ENV API_HOST=127.0.0.1
-ENV API_PORT=3002
+ENV API_HOST=0.0.0.0
+ENV API_PORT=3001
 CMD ["/app/backend/api/.venv/bin/spellbook-api"]

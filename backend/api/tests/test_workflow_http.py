@@ -16,6 +16,7 @@ from uuid import uuid4
 import httpx2
 import pytest
 import uvicorn
+from native_inventory import NATIVE, NativeInventory, native_fixture
 from spellbook_core.auth import SessionAuth
 from spellbook_core.db import transaction
 from spellbook_core.errors import NotesConflictError, RequestConflictError
@@ -24,7 +25,6 @@ from spellbook_core.models import Actor
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
-from test_cross_runtime import NATIVE, NativeInventory, native_fixture
 
 from spellbook_api.http.auth import require_form_origin, stale_session_cookie
 from spellbook_api.http.errors import HttpError, error_response

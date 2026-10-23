@@ -65,8 +65,6 @@ jobs:
       - run: pnpm lint
       - run: pnpm test:unit
       - run: pnpm --dir .. test:tooling
-      - run: pnpm --dir ../backend test
-      - run: pnpm db:check
 
   python-backend:
     name: Python API/Core
@@ -87,7 +85,7 @@ jobs:
         working-directory: backend/core
         run: |
           uv lock --check --python 3.14.8
-          uv sync --frozen --extra dev --python 3.14.8
+          uv sync --frozen --extra dev --python 3.14.8 --no-editable
           uv run --no-sync ruff check
           uv run --no-sync ruff format --check
           uv run --no-sync mypy
@@ -97,7 +95,7 @@ jobs:
         working-directory: backend/api
         run: |
           uv lock --check --python 3.14.8
-          uv sync --frozen --extra dev --python 3.14.8 --reinstall-package spellbook-core
+          uv sync --frozen --extra dev --python 3.14.8 --reinstall-package spellbook-core --no-editable
           uv run --no-sync ruff check
           uv run --no-sync ruff format --check
           uv run --no-sync mypy
@@ -108,7 +106,7 @@ jobs:
         working-directory: backend/workers/state
         run: |
           uv lock --check --python 3.14.8
-          uv sync --frozen --extra dev --python 3.14.8 --reinstall-package spellbook-core
+          uv sync --frozen --extra dev --python 3.14.8 --reinstall-package spellbook-core --no-editable
           uv run --no-sync ruff check
           uv run --no-sync ruff format --check
           uv run --no-sync mypy
@@ -159,7 +157,7 @@ jobs:
         working-directory: backend/workers/catalog
         run: |
           uv lock --check --python 3.14.8
-          uv sync --frozen --extra dev --python 3.14.8
+          uv sync --frozen --extra dev --python 3.14.8 --no-editable
           uv run --no-sync ruff check
           uv run --no-sync ruff format --check
           uv build
@@ -169,7 +167,7 @@ jobs:
         working-directory: backend/workers/scan
         run: |
           uv lock --check --python 3.14.8
-          uv sync --frozen --extra dev --python 3.14.8
+          uv sync --frozen --extra dev --python 3.14.8 --no-editable
           uv run --no-sync ruff check
           uv run --no-sync ruff format --check
           uv build

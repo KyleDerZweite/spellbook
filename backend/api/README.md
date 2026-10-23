@@ -1,7 +1,8 @@
-# Dormant Python API candidate
+# Python API
 
 The candidate assembles Auth/QR, Account/Profile/Dashboard, all seven Catalog adapters, sixteen Inventory/Groups/import adapters, five Valuation adapters, seven Scan adapters, seventeen Category adapters and SavedState.
-Node remains the active default in root scripts, Compose and deployment until the remaining domains and activation work integrate.
+It is the normal API in the unmerged candidate, including nineteen Deck routes and all nine closed web commands.
+Root scripts, Compose and the explicit Python migrator use installed packages.
 The [migration contract](../../docs/architecture/python-backend-migration.md) owns functional acceptance and remaining integration work.
 There are no schedulers or ingestion jobs in this process.
 
@@ -20,15 +21,16 @@ The regenerated API lock freezes their transitive dependencies.
 From the repository root:
 
 ```sh
-uvx --from uv==0.12.23 uv sync --project backend/api --frozen --extra dev --python 3.14.8 --reinstall-package spellbook-core
-APP_ORIGIN=http://localhost:5173 API_HOST=127.0.0.1 API_PORT=3002 \
+uvx --from uv==0.12.23 uv sync --project backend/api --frozen --extra dev --python 3.14.8 --reinstall-package spellbook-core --no-editable
+APP_ORIGIN=http://localhost:5173 API_HOST=127.0.0.1 API_PORT=3001 \
   uvx --from uv==0.12.23 uv run --directory backend/api --no-sync spellbook-api
 ```
 
 Supply `DATABASE_URL` through the existing protected environment to start the assembled API.
-Without it, the original resource-free Discovery foundation remains available.
+The normal host rejects missing database configuration.
+Set `API_DISCOVERY_ONLY=true` explicitly for resource-free Discovery.
 No command implicitly loads `.env`.
-The candidate accepts only literal loopback bind addresses; port 3002 preserves Node's default port 3001.
+The API accepts IP bind addresses, defaults to loopback port 3001 and supports container `API_HOST=0.0.0.0`.
 Send SIGTERM only to a verified task-owned candidate.
 Use `spellbook-api`, rather than bare Uvicorn, to retain pre-drain stream shutdown.
 After changing Core, frozen-reinstall `spellbook-core` because its local path dependency is installed as a wheel.
@@ -38,7 +40,10 @@ Generated framework docs/schema are disabled.
 The host uses `create_catalog_routes`, `create_inventory_routes` and `create_valuation_routes` without singleton or item-handler duplicates.
 Auth/Account/session/SavedState remain registered once.
 Inventory import preview/commit routes now use the integrated implementation.
-The Category factory and its domain-specific error mapping are active; Decks and the closed web command endpoint await their owning slices.
+All factories are assembled, including `create_deck_routes` and `create_web_routes`.
+The complete registry is compared with the neutral operation inventory.
+Web SSR/forms forward only the selected browser cookie; direct API commands retain Bearer-before-cookie selection and cookie-mode Origin protection.
+Commands reject unknown fields and delegate unchanged retry inputs to Core.
 
 The host constructs `LocalAuth` with its owned password executor and constructs `Profile` with that same authority.
 `LocalAuth` extends the existing `SessionAuth` actor interface.
@@ -69,7 +74,7 @@ API responses retain Robots headers.
 GET-derived HEAD awaits SSE response closure and creates a separate bodyless response.
 The actual host also retains Node HTTP-parser method rejection and the HTTP-to-Fetch TRACE failure before router dispatch; direct router method tests remain separate.
 Its pinned Uvicorn H11 transport closes CONNECT tunnels without an HTTP response, matching Node's server without a `connect` listener.
-A raw TCP comparison covers fragmented CONNECT requests against both installed Python and built Node.
+The explicit manual rollback check compares fragmented CONNECT requests against installed Python and the retained external Node artifact.
 
 One API instance owns a request pool with min 0/max 10, at most 32 pending acquisitions and a 2-second acquisition timeout.
 Non-SSE admission allows 32 active plus 32 waiting requests, waits at most 2 seconds and rejects excess before SQL.
@@ -158,4 +163,4 @@ The host configures the optional local Combo adapter on its owned pool before co
 API and state images install system ICU for the existing Node-compatible Unicode witness ordering; no Python ICU binding or new service is introduced.
 The separate [state worker](../workers/state/README.md) owns ValueHistory and WholeDeckCategory scheduling.
 API startup does not create either scheduler.
-The explicit Python Compose override selects API and state ownership together; default activation remains pending.
+Default Compose and launchers select API and independent State ownership together after the Python migrator.

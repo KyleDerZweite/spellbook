@@ -134,6 +134,8 @@ async def serve(configuration: Configuration) -> None:
     try:
         server = CandidateServer(lifetime, configuration)
         await server.serve()
+        if not server.started:
+            raise RuntimeError("API startup failed before listening")
     finally:
         # Also release resources when startup fails before Uvicorn calls shutdown.
         if server is None or not server.shutdown_started:
@@ -142,7 +144,12 @@ async def serve(configuration: Configuration) -> None:
 
 
 def main() -> None:
-    asyncio.run(serve(Configuration.from_environment(os.environ)))
+    configuration = Configuration.from_environment(os.environ)
+    if configuration.database_url is None and os.environ.get("API_DISCOVERY_ONLY") != "true":
+        raise ValueError(
+            "DATABASE_URL is required; API_DISCOVERY_ONLY=true enables schema-only mode"
+        )
+    asyncio.run(serve(configuration))
 
 
 if __name__ == "__main__":

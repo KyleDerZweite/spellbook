@@ -3,11 +3,11 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-23
 - Source of Truth: code
-- Update Triggers: independent Python state package and scheduler ownership, P13 worker source relocation and retired external resource gates, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, price evidence and paired/optional publication/recovery, public history, resource limits and provider opt-ins, Scryfall formats, synchronization schedule and retries, first publication, source selection, status persistence, Oracle Tags publication, Commander Spellbook publication and raw canonical fact extraction
+- Update Triggers: Python default runtime activation, independent Python state package and scheduler ownership, P13 worker source relocation and retired external resource gates, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, price evidence and paired/optional publication/recovery, public history, resource limits and provider opt-ins, Scryfall formats, synchronization schedule and retries, first publication, source selection, status persistence, Oracle Tags publication, Commander Spellbook publication and raw canonical fact extraction
 - Related Docs: [System overview](./system-overview.md), [Catalog](./catalog.md), [Deployment](../operations/deployment.md), [Category rules](./category-rules.md), [Valuation](./valuation.md), [Independent applications](./independent-applications.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md), [Migration contract](./python-backend-migration.md), [P13 resource contract](https://github.com/KyleDerZweite/spellbook/issues/260)
 
 The Python worker imports and synchronizes the shared Scryfall catalog in PostgreSQL.
-[ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for the future API and workers, grouped under `backend/` while retaining independent processes.
+[ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for API and workers, grouped under `backend/` while retaining independent processes.
 Catalog publisher sources and tests reside in `backend/workers/catalog/`; the independent Scan scaffold resides in `backend/workers/scan/`.
 Python imports and entrypoints remain `worker.main` and `scan_worker.main:app`.
 The [accepted migration contract](./python-backend-migration.md#framework-modules-and-resources) owns package responsibilities and relocation gates.
@@ -135,7 +135,7 @@ The paired price publication and price extractor version remain independent.
 
 ## Optional Commander Spellbook synchronization
 
-`COMMANDER_SPELLBOOK_ENABLED` defaults to `false` in Worker and the Node API.
+`COMMANDER_SPELLBOOK_ENABLED` defaults to `false` in Worker and the Python API.
 Disabled runs perform no combo fetch or database operation and add no readiness dependency.
 Enabled runs fetch the fixed official public gzip bulk on `SYNC_INTERVAL`, independently after the other providers, including when those providers fail.
 Manual mode reports failure after every enabled provider has had its attempt; periodic failure waits the usual interval.
@@ -174,6 +174,8 @@ Both start immediately, avoid overlapping their own work, perform controlled ret
 `VALUE_HISTORY_ENABLED`, `VALUE_HISTORY_TIMEZONE` and `COMMANDER_SPELLBOOK_ENABLED` retain their existing defaults and semantics.
 ICU is an ordinary system dependency for Combo witness collation in both API and state images.
 
-The explicit Python Compose override replaces the Node API and selects the state worker together, preventing an additional embedded Node scheduler owner.
-Default Compose and launchers remain Node until the later activation slice.
-State installed-wheel and lifecycle tests establish packaging and local ownership only; actual scheduled PostgreSQL effects and deployment acceptance remain with Root.
+Default Compose and launchers start Python API and the independent State worker after successful one-shot Python migration.
+The replaced Node source and embedded scheduler owner are removed from the candidate.
+State installed-wheel and lifecycle tests establish packaging and local ownership.
+Root separately verified an actual installed Category job; the [migration evidence](./python-migration-evidence-baseline.md#activation-and-contraction-2026-10-23) records its bounded effects and graceful stop.
+Scheduled daily ValueHistory observation and deployment acceptance remain separate.

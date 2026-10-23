@@ -3,7 +3,7 @@
 - Status: Scryfall and optional provider references/public source history implemented; personal Inventory history and Dashboard/selected-Deck estimates implemented
 - Last Reviewed: 2026-10-23
 - Source of Truth: reference contracts, backend Valuation, Worker publication and accepted value-only scope
-- Update Triggers: separately packaged Python ValueHistory scheduler, source publication, mapping, exact-decimal evaluation, public history, pruning, private checkpoint persistence, capture scheduling, safe summary contracts and acceptance evidence
+- Update Triggers: Python source activation and server contraction, separately packaged Python ValueHistory scheduler, source publication, mapping, exact-decimal evaluation, public history, pruning, private checkpoint persistence, capture scheduling, safe summary contracts and acceptance evidence
 - Related Docs: [Architecture](./README.md), [Value tracking](../product/value-tracking.md), [Market price research](../integrations/market-prices.md), [Application contract](./application-contract.md), [Postgres](./postgres.md), [Worker](./worker.md), [ADR-0020](../decisions/0020-value-only-inventory-history.md), [ADR-0022](../decisions/0022-daily-value-observation-checkpoints.md)
 
 [Value tracking](../product/value-tracking.md) owns reference selection, coverage, reporting calendar, personal history and Deck estimates.
@@ -36,7 +36,7 @@ Backend Valuation owns the implementation; source ingestion never reads private 
 
 The selected runtime owner observes accounts in the final 60 seconds before midnight in the configured IANA timezone, default `Europe/Berlin`.
 It attempts another checkpoint every ten seconds while that window is open.
-Node currently owns the embedded scheduler; the Python candidate delegates it to the independent `spellbook-state-worker`, never HTTP.
+The independent `spellbook-state-worker` owns scheduled captures in normal Compose and launchers; Python HTTP starts no scheduler.
 The explicit Python Compose override replaces both owners together while default activation remains pending.
 A point means the last successful consistent observation in that window, with its actual `observedAt`, rather than an exact reconstruction at midnight.
 PostgreSQL computes calendar boundaries with timezone conversion, including 23-hour and 25-hour days.
@@ -126,7 +126,7 @@ Personal capture copies this trusted evidence before public pruning.
 Ingestion never inspects private holdings.
 Private reference rows retain copied evidence independently of public publications.
 
-[Contracts](../../contracts/src/valuation.ts), [backend Valuation](../../backend/src/valuation/read.ts) and [Worker extraction](../../backend/workers/catalog/src/worker/prices.py) own concrete shapes and rules.
+[Contracts](../../contracts/src/valuation.ts), [backend Valuation](../../backend/core/src/spellbook_core/valuation.py) and [Worker extraction](../../backend/workers/catalog/src/worker/prices.py) own concrete shapes and rules.
 [HTTP ownership](./mobile-and-scan.md#reference-price-http-contract) owns routes, limits and errors; [deployment](../operations/deployment.md#catalog-migration-and-recovery) owns paired recovery.
 
 ## Optional references and public source history

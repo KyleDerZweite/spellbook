@@ -21,7 +21,7 @@ type AsyncClose = Callable[[], Awaitable[None]]
 class Configuration:
     public_origin: str
     host: str = "127.0.0.1"
-    port: int = 3002
+    port: int = 3001
     database_url: str | None = field(default=None, repr=False)
 
     demo_mode: bool = False
@@ -48,8 +48,10 @@ class Configuration:
             authority += f":{port}"
         if self.public_origin != f"{origin.scheme}://{authority}":
             raise ValueError("APP_ORIGIN must be a canonical HTTP(S) origin")
-        if not ipaddress.ip_address(self.host).is_loopback:
-            raise ValueError("The dormant candidate requires a loopback API_HOST")
+        try:
+            ipaddress.ip_address(self.host)
+        except ValueError:
+            raise ValueError("API_HOST must be an IP address") from None
         if not 1 <= self.port <= 65535:
             raise ValueError("API_PORT must be between 1 and 65535")
         timezone = js_trim(self.value_history_timezone) or "Europe/Berlin"
@@ -84,7 +86,7 @@ class Configuration:
 
     @classmethod
     def from_environment(cls, env: Mapping[str, str]) -> Configuration:
-        raw_port = env.get("API_PORT", "3002")
+        raw_port = env.get("API_PORT", "3001")
         if not re.fullmatch(r"[0-9]+", raw_port):
             raise ValueError("API_PORT must be between 1 and 65535")
         combo = env.get("COMMANDER_SPELLBOOK_ENABLED", "false")
