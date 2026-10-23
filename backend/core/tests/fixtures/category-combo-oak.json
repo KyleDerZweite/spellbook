@@ -7,9 +7,7 @@
       "name": "Scurry Oak",
       "quantity": "1",
       "mustBeCommander": false,
-      "zones": [
-        "H"
-      ],
+      "zones": ["H"],
       "usedFace": null,
       "states": {
         "battlefieldCardState": "",
@@ -23,9 +21,7 @@
       "name": "Ivy Lane Denizen",
       "quantity": "1",
       "mustBeCommander": false,
-      "zones": [
-        "B"
-      ],
+      "zones": ["B"],
       "usedFace": null,
       "states": {
         "battlefieldCardState": "",
@@ -35,11 +31,7 @@
       }
     }
   ],
-  "outcomeIds": [
-    "2244",
-    "21",
-    "4"
-  ],
+  "outcomeIds": ["2244", "21", "4"],
   "producedOutcomes": [
     {
       "id": "2244",
