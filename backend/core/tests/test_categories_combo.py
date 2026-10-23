@@ -5,6 +5,7 @@ from copy import deepcopy
 from pathlib import Path
 
 import pytest
+
 from spellbook_core.categories.collation import locale_sort_key
 from spellbook_core.categories.combo import ComboFacts, evaluate_combo_variants
 from spellbook_core.categories.common import Document

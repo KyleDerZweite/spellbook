@@ -9,6 +9,7 @@ from typing import cast
 from unittest.mock import AsyncMock, create_autospec, patch
 
 import pytest
+
 from spellbook_core.auth import SessionAuth
 from spellbook_core.categories import create_categories
 from spellbook_core.categories.common import (

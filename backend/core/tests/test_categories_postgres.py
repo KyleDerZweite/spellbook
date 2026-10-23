@@ -15,6 +15,7 @@ from uuid import uuid4
 
 import pytest
 from psycopg.conninfo import conninfo_to_dict
+
 from spellbook_core.auth import create_session_auth, hash_session_token
 from spellbook_core.categories import (
     create_categories,

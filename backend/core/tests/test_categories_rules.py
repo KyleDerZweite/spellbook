@@ -4,6 +4,7 @@ from copy import deepcopy
 from itertools import product
 
 import pytest
+
 from spellbook_core.categories.common import Document, name, page_values
 from spellbook_core.categories.library import assert_unique_names, normalize_definition
 from spellbook_core.categories.persistence import canonical_identity, evaluate_category_fact

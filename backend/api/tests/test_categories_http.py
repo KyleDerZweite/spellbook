@@ -7,9 +7,6 @@ from unittest.mock import AsyncMock, create_autospec
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from spellbook_api.http.admission import RequestAdmission
-from spellbook_api.http.router import RawPathRouting, RouteRegistry
-from spellbook_api.http.routes_categories import create_category_routes
 from spellbook_core.auth import SessionAuth
 from spellbook_core.categories import Categories
 from spellbook_core.categories.common import (
@@ -24,6 +21,10 @@ from spellbook_core.categories.common import (
 )
 from spellbook_core.errors import RequestConflictError, ValidationError
 from spellbook_core.models import Actor
+
+from spellbook_api.http.admission import RequestAdmission
+from spellbook_api.http.router import RawPathRouting, RouteRegistry
+from spellbook_api.http.routes_categories import create_category_routes
 
 ORIGIN = "https://category.example"
 ID = "00000000-0000-4000-8000-000000000001"
