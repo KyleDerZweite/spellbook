@@ -1,4 +1,6 @@
 import { spawn } from 'node:child_process';
+import { mkdir } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -57,6 +59,8 @@ try {
 				'spellbook-core'
 			]);
 	} else if (action === 'start') {
+		process.env.WORKER_DATA_DIR = resolve(root, process.env.WORKER_DATA_DIR || '.local/catalog');
+		await mkdir(process.env.WORKER_DATA_DIR, { recursive: true });
 		process.env.SCAN_WORKER_URL ||= 'http://127.0.0.1:8080';
 		const scanAddress = new URL(process.env.SCAN_WORKER_URL);
 		if (!['127.0.0.1', 'localhost', '[::1]'].includes(scanAddress.hostname))

@@ -17,13 +17,17 @@ async function fixture(
 		webOrigin,
 		apiPort,
 		demoMode = 'false',
-		bodySizeLimit
+		bodySizeLimit,
+		workerDataDir,
+		copiedEnv = false,
+		catalogExit
 	} = {}
 ) {
 	const root = await mkdtemp(join(tmpdir(), 'spellbook-dev-'));
 	const id = containerId || root.split('/').at(-1);
 	for (const directory of ['api', 'workers/state', 'workers/catalog', 'workers/scan'])
 		await mkdir(join(root, 'backend', directory), { recursive: true });
+	await copyFile(new URL('../.env.example', import.meta.url), join(root, '.env'));
 	await mkdir(join(root, 'scripts'));
 	await mkdir(join(root, 'frontend'));
 	await mkdir(join(root, 'bin'));
@@ -37,14 +41,16 @@ async function fixture(
 	await writeFile(join(root, 'database'), String(running));
 	const executables = {
 		pnpm: `
-import {appendFileSync} from 'node:fs';
+import {appendFileSync, writeFileSync} from 'node:fs';
 const directory = process.cwd().split('/').at(-1);
 const name = directory === 'api' ? 'backend' : directory;
 if (process.argv.includes('spellbook-migrate')) process.exit(0);
 if (process.argv.includes('spellbook-demo-seed')) process.exit(${seedFails ? 1 : 0});
 const record = (value) => appendFileSync(process.env.FIXTURE_ROOT + '/events', JSON.stringify(value) + '\\n');
-record({event:'start',name,demo:process.env.DEMO_MODE,bodySizeLimit:process.env.BODY_SIZE_LIMIT,api:process.env.API_INTERNAL_URL,host:process.env.API_HOST,port:process.env.API_PORT,trusted:process.env.API_TRUSTED_PROXY_ADDRESSES,database:process.env.DATABASE_URL,s3:process.env.S3_SECRET_ACCESS_KEY,pgPassword:process.env.PGPASSWORD,args:process.argv.slice(2)});
+record({event:'start',name,demo:process.env.DEMO_MODE,bodySizeLimit:process.env.BODY_SIZE_LIMIT,api:process.env.API_INTERNAL_URL,host:process.env.API_HOST,port:process.env.API_PORT,trusted:process.env.API_TRUSTED_PROXY_ADDRESSES,database:process.env.DATABASE_URL,s3:process.env.S3_SECRET_ACCESS_KEY,pgPassword:process.env.PGPASSWORD,workerDataDir:process.env.WORKER_DATA_DIR,args:process.argv.slice(2)});
+if (name === 'catalog') writeFileSync(process.env.WORKER_DATA_DIR + '/probe', 'writable');
 console.log('fixture ready ' + name);
+if (name === 'catalog' && process.env.SYNC_INTERVAL === 'manual' && process.env.FIXTURE_CATALOG_EXIT) setTimeout(() => {record({event:'complete',name}); process.exit(Number(process.env.FIXTURE_CATALOG_EXIT));},150);
 setInterval(() => {}, 1000);
 if (name === 'backend' && process.env.FIXTURE_APP_FAILS === 'true') setTimeout(()=>process.exit(7),150);
 process.on('SIGTERM', () => {record({event:'stop',name}); process.exit(0);});`,
@@ -81,7 +87,11 @@ else if (args[0] === 'stop') {
 	function launch(args, legacy = false) {
 		const child = spawn(
 			process.execPath,
-			[join(root, legacy ? 'frontend/scripts/dev.mjs' : 'scripts/dev.mjs'), ...args],
+			[
+				...(copiedEnv ? ['--env-file=' + join(root, '.env')] : []),
+				join(root, legacy ? 'frontend/scripts/dev.mjs' : 'scripts/dev.mjs'),
+				...args
+			],
 			{
 				cwd: join(root, 'frontend'),
 				env: {
@@ -94,6 +104,10 @@ else if (args[0] === 'stop') {
 					FIXTURE_STOP_FAIL: String(stopFails),
 					FIXTURE_APP_FAILS: String(appFails),
 					DEMO_MODE: demoMode,
+					WORKER_DATA_DIR:
+						workerDataDir === 'absolute' ? join(root, '.local/absolute') : workerDataDir,
+					SYNC_INTERVAL: catalogExit === undefined ? 'daily' : 'manual',
+					FIXTURE_CATALOG_EXIT: catalogExit === undefined ? '' : String(catalogExit),
 					S3_SECRET_ACCESS_KEY: 'fixture-only-secret',
 					PGPASSWORD: 'fixture-only-password',
 					DEV_APP_ORIGIN: webOrigin || 'http://localhost:5173',
@@ -118,7 +132,8 @@ else if (args[0] === 'stop') {
 		for (let attempt = 0; attempt < 100; attempt++) {
 			if (
 				server.output().includes('fixture ready frontend') &&
-				server.output().includes('fixture ready backend')
+				server.output().includes('fixture ready backend') &&
+				server.output().includes('fixture ready catalog')
 			)
 				return;
 			if (server.child.exitCode !== null) throw new Error(server.output());
@@ -301,3 +316,69 @@ for (const bodySizeLimit of ['24M', '']) {
 		assert.equal(web.pgPassword, undefined);
 	});
 }
+
+for (const [label, options, relative] of [
+	['copied environment', { copiedEnv: true }, '.local/catalog'],
+	['missing setting', {}, '.local/catalog'],
+	['relative override', { copiedEnv: true, workerDataDir: '.local/custom' }, '.local/custom'],
+	['absolute override', { copiedEnv: true, workerDataDir: 'absolute' }, '.local/absolute']
+]) {
+	test(`dev Catalog storage is writable with ${label}`, async (t) => {
+		const f = await fixture(t, options);
+		const server = f.launch(['start']);
+		await f.ready(server);
+		server.child.kill('SIGTERM');
+		assert.equal((await server.exited).code, 0);
+		assert.equal(await readFile(join(f.root, relative, 'probe'), 'utf8'), 'writable');
+	});
+}
+
+test('successful manual Catalog completion leaves every dev sibling running', async (t) => {
+	const f = await fixture(t, { catalogExit: 0 });
+	const server = f.launch(['start']);
+	await f.ready(server);
+	await new Promise((resolve) => setTimeout(resolve, 400));
+	const events = (await readFile(join(f.root, 'events'), 'utf8'))
+		.trim()
+		.split('\n')
+		.map(JSON.parse);
+	assert.ok(events.some((e) => e.event === 'complete' && e.name === 'catalog'));
+	assert.equal(server.child.exitCode, null);
+	assert.equal(events.filter((e) => e.event === 'stop').length, 0);
+	server.child.kill('SIGINT');
+	assert.equal((await server.exited).code, 0);
+	const final = (await readFile(join(f.root, 'events'), 'utf8')).trim().split('\n').map(JSON.parse);
+	assert.deepEqual(
+		final
+			.filter((e) => e.event === 'stop')
+			.map((e) => e.name)
+			.sort(),
+		['backend', 'frontend', 'scan', 'state']
+	);
+});
+
+test('Catalog failure stops dev siblings and releases owned resources', async (t) => {
+	const f = await fixture(t, { catalogExit: 7 });
+	const server = f.launch(['start']);
+	assert.equal((await server.exited).code, 7);
+	assert.equal(await f.database(), 'false');
+	const events = (await readFile(join(f.root, 'events'), 'utf8'))
+		.trim()
+		.split('\n')
+		.map(JSON.parse);
+	assert.deepEqual(
+		events
+			.filter((e) => e.event === 'stop')
+			.map((e) => e.name)
+			.sort(),
+		['backend', 'frontend', 'scan', 'state']
+	);
+});
+
+test('unusable explicit Catalog storage fails startup and releases dev ownership', async (t) => {
+	const f = await fixture(t, { workerDataDir: '.env' });
+	const result = await f.launch(['start']).exited;
+	assert.equal(result.code, 1);
+	assert.equal(await f.database(), 'false');
+	await assert.rejects(readFile(join(f.root, '.local/dev.pid')), { code: 'ENOENT' });
+});

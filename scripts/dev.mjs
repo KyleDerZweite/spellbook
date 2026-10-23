@@ -100,7 +100,8 @@ const env = {
 	API_TRUSTED_PROXY_ADDRESSES: '127.0.0.1,::1',
 	SCAN_STORAGE_DRIVER: 'local',
 	SCAN_LOCAL_STORAGE_DIR: storage,
-	SCAN_WORKER_URL: `http://127.0.0.1:${scanPort}`
+	SCAN_WORKER_URL: `http://127.0.0.1:${scanPort}`,
+	WORKER_DATA_DIR: resolve(root, process.env.WORKER_DATA_DIR || '.local/catalog')
 };
 const children = new Set();
 let stopping = false;
@@ -145,7 +146,7 @@ function stop(code) {
 	void cleanup();
 }
 
-function start(command, args, cwd, childEnv = env) {
+function start(command, args, cwd, childEnv = env, allowSuccess = false) {
 	const child = spawn(command, args, {
 		cwd,
 		env: childEnv,
@@ -160,7 +161,7 @@ function start(command, args, cwd, childEnv = env) {
 		void cleanup();
 	});
 	child.on('exit', (code) => {
-		stop(code ?? 1);
+		if (code !== 0 || !allowSuccess) stop(code ?? 1);
 		children.delete(child);
 		void cleanup();
 	});
@@ -208,7 +209,7 @@ try {
 		}
 		if (!ready) throw new Error('Development database did not become ready.');
 	}
-	// Only preparation exits successfully without stopping the runtime siblings.
+	// Preparation completes before the runtime siblings start.
 	async function prepare(entrypoint) {
 		if (stopping) throw new Error('Development startup interrupted.');
 		await new Promise((resolve, reject) => {
@@ -226,6 +227,7 @@ try {
 			child.on('error', reject);
 		});
 	}
+	await mkdir(env.WORKER_DATA_DIR, { recursive: true });
 	await prepare('spellbook-migrate');
 	if (demo) await prepare('spellbook-demo-seed');
 	if (!stopping) {
@@ -263,7 +265,9 @@ try {
 					command,
 					...(command === 'python' ? ['-m', 'worker.main'] : [])
 				],
-				`${root}backend/${directory}`
+				`${root}backend/${directory}`,
+				env,
+				directory === 'workers/catalog'
 			);
 		}
 		// Web owns rendering and HTTP forwarding. API credentials stay in its process.

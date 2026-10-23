@@ -1,9 +1,9 @@
 # Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-10-23
+- Last Reviewed: 2026-10-24
 - Source of Truth: repo config
-- Update Triggers: Python source activation and server contraction, explicit Python API/state Compose candidate and ICU runtime dependency, dormant representative Python host and protected candidate startup, explicit dormant Python candidate packaging/start, selected Python API/worker direction, native and test web body-limit defaults, independent API/web ownership and relocated code references, PWA HTTPS/install/update operations and QR migration 0024, Catalog set-directory and color-identity projection migrations, price publication/pair and optional recovery, private value history migration and runtime configuration, source opt-ins and ingestion limits, optional local combo publication and recovery, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and graceful shutdown, preview target, single root environment and local/build origins, migrations, storage, workspace ownership, application resource lifetime and native operator ownership, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
+- Update Triggers: native Catalog storage and one-shot lifecycle, Python source activation and server contraction, explicit Python API/state Compose candidate and ICU runtime dependency, dormant representative Python host and protected candidate startup, explicit dormant Python candidate packaging/start, selected Python API/worker direction, native and test web body-limit defaults, independent API/web ownership and relocated code references, PWA HTTPS/install/update operations and QR migration 0024, Catalog set-directory and color-identity projection migrations, price publication/pair and optional recovery, private value history migration and runtime configuration, source opt-ins and ingestion limits, optional local combo publication and recovery, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and graceful shutdown, preview target, single root environment and local/build origins, migrations, storage, workspace ownership, application resource lifetime and native operator ownership, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
 - Related Docs: [Postgres](../architecture/postgres.md), [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Classifier research](../integrations/card-categorization.md), [Catalog](../architecture/catalog.md), [Python direction](../decisions/0025-python-api-and-workers.md)
 
 The canonical service definitions are [`podman-compose.yml`](../../podman-compose.yml) and the local storage override [`podman-compose.dev.yml`](../../podman-compose.dev.yml).
@@ -44,7 +44,12 @@ A migration or explicit Demo preparation failure stops startup.
 The launcher starts API on loopback port 3001, Vite on 5173, the Scan scaffold on 8087, the State scheduler and the Catalog worker.
 `API_PORT`, `DEV_APP_ORIGIN` and `DEV_SCAN_PORT` select matching task-owned ports.
 Catalog performs its ordinary startup refresh and follows `SYNC_INTERVAL`; optional providers retain their opt-in flags.
+With `SYNC_INTERVAL=manual`, successful Catalog completion leaves the other services running.
+A nonzero Catalog exit or startup error stops the process group.
 Use the existing Catalog configuration and observe publication status before assuming content is ready.
+Both native launchers create Catalog storage at ignored `.local/catalog` by default.
+`WORKER_DATA_DIR` preserves an explicit path; relative paths resolve from the repository root before child processes change directory.
+Compose retains its `/app/data` volume.
 
 `./demo.sh` adds `--demo`, seeds the guarded disposable Demo database and preserves private edits.
 `--scan` remains accepted for compatibility; Scan now starts by default.
@@ -233,8 +238,9 @@ The first publication may still be in progress after the frontend starts, so sea
 Check the worker logs and active generation as described in [catalog migration and recovery](#catalog-migration-and-recovery).
 The worker has no HTTP readiness or import-status endpoint.
 
-This automatic import applies to Compose deployment.
-The host [development launcher](#local-development) expects an existing migrated database and does not start the Catalog Worker or seed automatically.
+Compose and the native [development launcher](#local-development) run migrations before starting Catalog.
+The development launcher expects an existing PostgreSQL database and starts the same startup refresh by default.
+It seeds Demo data only with `--demo`.
 Explicit [Demo setup](./local-auth.md#demo-mode) publishes the versioned searchable English bundle without a Scryfall download.
 Its private Precon starter remains separate; [Demo setup](./local-auth.md#demo-mode) owns the selected composition and guarded replacement of the previous fixture.
 Neither workflow downloads Catalog card image files.
