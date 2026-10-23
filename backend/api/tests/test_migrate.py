@@ -16,13 +16,13 @@ def test_missing_url(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixt
 
 
 def test_source_default() -> None:
-    assert cli._source_directory() == Path(__file__).resolve().parents[2] / "drizzle"
+    assert cli._default_directory() == Path(__file__).resolve().parents[2] / "drizzle"
 
 
 def test_uninstalled_assets(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(cli, "__file__", str(tmp_path / "site-packages/spellbook_api/migrate.py"))
     with pytest.raises(MigrationError, match="--migrations-dir"):
-        cli._source_directory()
+        cli._default_directory()
 
 
 @pytest.mark.parametrize("error", [psycopg.OperationalError, psycopg.ProgrammingError, ValueError])
@@ -51,3 +51,41 @@ def test_cli_refuses_url_argument(
         cli.main(["--url", "postgresql://private-user:private-password@private-host/private-db"])
     assert error.value.code == 2
     assert "private" not in capsys.readouterr().err
+
+
+def test_installed_assets_take_precedence_over_source_search(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    package = tmp_path / "spellbook_api"
+    journal = package / "drizzle/meta/_journal.json"
+    journal.parent.mkdir(parents=True)
+    journal.write_text("{}")
+    monkeypatch.setattr(cli, "__file__", str(package / "migrate.py"))
+    assert cli._default_directory() == package / "drizzle"
+
+
+def test_explicit_assets_bypass_default_lookup(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from collections.abc import Iterator
+    from contextlib import contextmanager
+
+    monkeypatch.setenv("DATABASE_URL", "postgresql://fixture/unused")
+
+    def missing() -> Path:
+        raise AssertionError("Default assets must not be inspected")
+
+    @contextmanager
+    def connect(*args: object, **kwargs: object) -> Iterator[object]:
+        yield object()
+
+    def no_op(connection: object, directory: Path) -> tuple[str, ...]:
+        assert directory == tmp_path
+        return ()
+
+    monkeypatch.setattr(cli, "_default_directory", missing)
+    monkeypatch.setattr(psycopg, "connect", connect)
+    monkeypatch.setattr(cli, "migrate", no_op)
+    assert cli.main(["--migrations-dir", str(tmp_path)]) == 0
+    captured = capsys.readouterr()
+    assert captured.out == "Migrations are up to date.\n" and captured.err == ""

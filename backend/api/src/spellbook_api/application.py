@@ -2,7 +2,7 @@
 
 import asyncio
 import os
-from collections.abc import AsyncIterator, Callable
+from collections.abc import AsyncIterator
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 
@@ -11,22 +11,19 @@ from psycopg import AsyncConnection
 from psycopg_pool import AsyncConnectionPool
 from spellbook_core.auth import create_local_auth
 from spellbook_core.catalog import create_catalog
+from spellbook_core.dashboard import create_dashboard
 from spellbook_core.inventory import create_inventory
+from spellbook_core.inventory_value import create_inventory_values
 from spellbook_core.passwords import create_password_verifier
 from spellbook_core.profile import create_profile
 from spellbook_core.saved_state import create_saved_state
+from spellbook_core.valuation import create_valuation
 
 from spellbook_api.http.admission import RequestAdmission
 from spellbook_api.http.application import create_http_application
 from spellbook_api.http.routes_saved_state import create_saved_state_routes
 from spellbook_api.http.types import ApplicationLifetime, Configuration
 from spellbook_api.listener import SavedStateListener
-from spellbook_api.verification import (
-    VerificationPlan,
-    VerificationReport,
-    VerificationRun,
-    start_verification,
-)
 
 
 async def _close_discovery() -> None:
@@ -34,12 +31,7 @@ async def _close_discovery() -> None:
 
 
 class ApplicationResources:
-    def __init__(
-        self,
-        configuration: Configuration,
-        plan: VerificationPlan | None,
-        sink: Callable[[VerificationReport], None] | None,
-    ) -> None:
+    def __init__(self, configuration: Configuration) -> None:
         assert configuration.database_url is not None
         self.pool: AsyncConnectionPool[AsyncConnection[tuple[object, ...]]] = AsyncConnectionPool(
             configuration.database_url,
@@ -60,6 +52,13 @@ class ApplicationResources:
         self.auth = create_local_auth(self.pool, self.passwords, configuration.demo_mode)
         self.profile = create_profile(self.pool, self.auth, configuration.demo_mode)
         self.catalog = create_catalog(self.pool)
+        self.valuation = create_valuation(
+            self.pool, self.auth, timezone=configuration.value_history_timezone
+        )
+        self.inventory_values = create_inventory_values(
+            self.pool, self.valuation, timezone=self.valuation.timezone
+        )
+        self.dashboard = create_dashboard(self.pool, self.auth, self.inventory_values)
         self.inventory = create_inventory(self.pool, self.catalog, self.auth)
         self.saved_state = create_saved_state(
             self.auth,
@@ -69,9 +68,6 @@ class ApplicationResources:
         self.saved_routes = create_saved_state_routes(
             self.auth, self.saved_state, configuration.public_origin
         )
-        self._plan = plan
-        self._sink = sink
-        self._verification: VerificationRun | None = None
         self._close_task: asyncio.Task[None] | None = None
         self._closing = False
         self._started = False
@@ -88,16 +84,11 @@ class ApplicationResources:
             pass
         self.saved_state.start()
         self.listener.start(self.saved_state)
-        if self._plan is not None:
-            assert self._sink is not None
-            self._verification = start_verification(self.passwords, self._plan, self._sink)
 
     async def close_streams(self) -> None:
         self._closing = True
         self.admission.close_admission()
         self.saved_state.close_admission()
-        if self._verification is not None:
-            self._verification.stop_admission()
         self.passwords.close_admission()
         await self.saved_routes.close_streams()
 
@@ -115,14 +106,10 @@ class ApplicationResources:
                     await self.saved_state.close()
                 finally:
                     try:
-                        if self._verification is not None:
-                            await self._verification.settle()
+                        await self.passwords.settle()
+                        self.executor.shutdown(wait=True)
                     finally:
-                        try:
-                            await self.passwords.settle()
-                            self.executor.shutdown(wait=True)
-                        finally:
-                            await self.pool.close()
+                        await self.pool.close()
 
     async def close(self) -> None:
         if self._close_task is None:
@@ -144,21 +131,12 @@ class ApplicationResources:
         self._close_task.result()
 
 
-def create_application(
-    configuration: Configuration,
-    *,
-    verification_plan: VerificationPlan | None = None,
-    verification_sink: Callable[[VerificationReport], None] | None = None,
-) -> ApplicationLifetime:
-    if (verification_plan is None) != (verification_sink is None):
-        raise ValueError("Private verification requires both plan and sink")
+def create_application(configuration: Configuration) -> ApplicationLifetime:
     if configuration.database_url is None:
-        if verification_plan is not None:
-            raise ValueError("Private verification requires the actual database-backed host")
         return ApplicationLifetime(
             create_http_application(configuration), _close_discovery, _close_discovery
         )
-    resources = ApplicationResources(configuration, verification_plan, verification_sink)
+    resources = ApplicationResources(configuration)
     try:
         http = create_http_application(
             configuration,
@@ -166,6 +144,8 @@ def create_application(
             profile=resources.profile,
             catalog=resources.catalog,
             inventory=resources.inventory,
+            valuation=resources.valuation,
+            dashboard=resources.dashboard,
             saved_routes=resources.saved_routes,
             admission=resources.admission,
         )

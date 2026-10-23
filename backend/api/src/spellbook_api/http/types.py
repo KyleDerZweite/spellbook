@@ -5,10 +5,12 @@ import re
 from collections.abc import Awaitable, Callable, Mapping
 from contextlib import suppress
 from dataclasses import dataclass, field
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import FastAPI
 from psycopg.conninfo import conninfo_to_dict
 from pydantic import AnyHttpUrl, ValidationError
+from spellbook_core.validation import js_trim
 
 type AsyncClose = Callable[[], Awaitable[None]]
 
@@ -22,6 +24,7 @@ class Configuration:
 
     demo_mode: bool = False
     trusted_proxy_addresses: tuple[str, ...] = ()
+    value_history_timezone: str = "Europe/Berlin"
 
     def __post_init__(self) -> None:
         try:
@@ -44,6 +47,12 @@ class Configuration:
             raise ValueError("The dormant candidate requires a loopback API_HOST")
         if not 1 <= self.port <= 65535:
             raise ValueError("API_PORT must be between 1 and 65535")
+        timezone = js_trim(self.value_history_timezone) or "Europe/Berlin"
+        try:
+            ZoneInfo(timezone)
+        except ZoneInfoNotFoundError, ValueError:
+            raise ValueError("VALUE_HISTORY_TIMEZONE must be a valid IANA timezone") from None
+        object.__setattr__(self, "value_history_timezone", timezone)
         normalized_proxies: list[str] = []
         for proxy in self.trusted_proxy_addresses:
             try:
@@ -79,6 +88,7 @@ class Configuration:
             port=int(raw_port),
             database_url=env.get("DATABASE_URL") or None,
             demo_mode=env.get("DEMO_MODE") == "true",
+            value_history_timezone=env.get("VALUE_HISTORY_TIMEZONE", "Europe/Berlin"),
             trusted_proxy_addresses=tuple(
                 part.strip()
                 for part in env.get("API_TRUSTED_PROXY_ADDRESSES", "").split(",")

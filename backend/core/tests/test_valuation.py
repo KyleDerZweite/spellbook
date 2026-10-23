@@ -7,6 +7,7 @@ from typing import cast
 from uuid import UUID
 
 import pytest
+
 from spellbook_core.auth import SessionAuth
 from spellbook_core.db import ConnectionPool, Transaction
 from spellbook_core.errors import DatabaseIntegerRangeError, ValidationError

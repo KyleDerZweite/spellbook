@@ -18,6 +18,7 @@ from spellbook_core.validation import MISSING
 
 from spellbook_api.application import ApplicationResources, create_application
 from spellbook_api.http.application import create_http_application
+from spellbook_api.http.errors import HttpError
 from spellbook_api.http.routes_saved_state import SavedStateRoutes
 from spellbook_api.http.types import Configuration
 
@@ -532,3 +533,73 @@ def test_qr_creation_rejects_unknown_fields_and_oversized_inputs(
     assert response.json() == {"status": status, "message": message}
     assert response.headers["cache-control"] == "no-store"
     d.auth.qr.create.assert_not_awaited()
+
+
+@pytest.mark.parametrize("mode", ["login", "register"])
+@pytest.mark.parametrize(
+    "encoding,payload,expected",
+    [
+        ("quoted-printable", b"functional=20password", "functional=20password"),
+        ("base64", b"ZnVuY3Rpb25hbCBwYXNzd29yZA==", "functional password"),
+        ("8bit", b"functional=20password", "functional=20password"),
+        ("BASE64", b"ZnVuY3Rpb25hbCBwYXNzd29yZA==", "ZnVuY3Rpb25hbCBwYXNzd29yZA=="),
+    ],
+)
+def test_multipart_credentials_match_node_transfer_encoding(
+    mode: str, encoding: str, payload: bytes, expected: str
+) -> None:
+    d = Dependencies()
+    raw = (
+        b'--test\r\nContent-Disposition: form-data; name="username"\r\n\r\nalice\r\n'
+        b'--test\r\nContent-Disposition: form-data; name="password"\r\n'
+        b"Content-Transfer-Encoding: " + encoding.encode() + b"\r\n\r\n" + payload + b"\r\n"
+        b'--test\r\nContent-Disposition: form-data; name="password"\r\n\r\nsecond\r\n'
+        b"--test--\r\n"
+    )
+    with TestClient(d.app) as client:
+        response = client.post(
+            "/api/web/v1/auth/" + mode,
+            content=raw,
+            headers={"Origin": ORIGIN, "Content-Type": "multipart/form-data; boundary=test"},
+        )
+    assert response.status_code == 200
+    d.auth.authenticate.assert_awaited_once_with(mode, "alice", expected, {})
+    d.auth.take_auth_attempt.assert_called_once_with("testclient")
+
+
+def test_multipart_literal_bytes_keep_utf8_replacement_and_file_content() -> None:
+    from starlette.requests import Request
+    from starlette.types import Message
+
+    from spellbook_api.http.parsing import FormFile, read_form_data
+
+    async def scenario() -> None:
+        raw = (
+            b'--test\r\nContent-Disposition: form-data; name="text"\r\n'
+            b"Content-Transfer-Encoding: quoted-printable\r\n\r\n\xff=20\r\n"
+            b'--test\r\nContent-Disposition: form-data; name="file"; filename="test.bin"\r\n'
+            b"Content-Transfer-Encoding: 8bit\r\n\r\n\xff=20\r\n--test--\r\n"
+        )
+
+        async def receive() -> Message:
+            return {"type": "http.request", "body": raw}
+
+        request = Request(
+            {
+                "type": "http",
+                "method": "POST",
+                "headers": [
+                    (b"content-type", b"multipart/form-data; boundary=test"),
+                    (b"content-length", str(len(raw)).encode()),
+                ],
+            },
+            receive,
+        )
+        assert await read_form_data(request) == {
+            "text": "\ufffd=20",
+            "file": FormFile("test.bin", b"\xff=20"),
+        }
+        with pytest.raises(HttpError, match="Request body exceeds"):
+            await read_form_data(Request(request.scope, receive), max_bytes=1)
+
+    asyncio.run(scenario())

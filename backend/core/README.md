@@ -1,8 +1,10 @@
 # Python application and SQL package
 
-Core owns typed session authority, bounded singleton Catalog reads, representative Inventory add/detail and original receipts, SavedState subscriptions/authority/fanout, local credentials/sessions, QR authorization, Profile preferences/cards/totals and shared compatibility rules.
+Core owns typed session authority, Catalog browsing, Inventory/Groups reads and mutations with original receipts, SavedState subscriptions/authority/fanout, local credentials/sessions, QR authorization, Profile preferences/cards/totals, Valuation, current and historical Inventory values, Dashboard and shared compatibility rules.
 `create_local_auth(pool, passwords, demo_mode=False)` extends `SessionAuth` without changing its trusted Actor methods.
 `create_profile(pool, auth, demo_mode=False)` owns Profile reads and atomic partial updates.
+`create_dashboard(pool, auth, values)` owns account aggregates and Deck availability in one repeatable-read snapshot, passing its transaction and PostgreSQL clock to `InventoryValues.current_in_transaction` and `history_in_transaction`.
+Scan and price failures use savepoint recovery while summary overflow remains a typed failure.
 Password hashing and verification share the lifetime-owned executor and use the existing Node-compatible scrypt encoding.
 Core's `hash_password(password)` is synchronous for operator consumers; async callers use `PasswordVerifier.hash`.
 QR uses existing migration 0024 and preserves requester-channel separation, terminal retries, live-session fencing and one-use redemption.

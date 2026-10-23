@@ -16,6 +16,7 @@ dependencies = [
 
 [project.scripts]
 spellbook-api = "spellbook_api.main:main"
+spellbook-migrate = "spellbook_api.migrate:main"
 
 [project.optional-dependencies]
 dev = ["httpx2==2.13.1", "mypy==2.4.0", "pytest==9.1.1", "ruff==0.17.1"]

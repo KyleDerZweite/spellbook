@@ -1,8 +1,7 @@
 """Explicit one-shot SQL migrator. DATABASE_URL comes only from the environment.
 
-Run ``python -m spellbook_api.migrate [--migrations-dir PATH]``. This source-mode
-entrypoint finds backend/drizzle relative to its own checkout; installed builds
-must supply --migrations-dir until migration asset packaging is integrated.
+Run ``spellbook-migrate [--migrations-dir PATH]``. Wheels bundle the canonical
+SQL/journal assets; a source checkout reads backend/drizzle without a second copy.
 """
 
 import argparse
@@ -24,7 +23,10 @@ class _Parser(argparse.ArgumentParser):
         self.exit(2, "Invalid migration arguments; use --help.\n")
 
 
-def _source_directory() -> Path:
+def _default_directory() -> Path:
+    bundled = Path(__file__).resolve().parent / "drizzle"
+    if (bundled / "meta/_journal.json").is_file():
+        return bundled
     for parent in Path(__file__).resolve().parents:
         candidate = parent / "backend/drizzle"
         if (candidate / "meta/_journal.json").is_file():
@@ -43,7 +45,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("Migration failed: DATABASE_URL is required in the environment.", file=sys.stderr)
         return 2
     try:
-        directory = args.migrations_dir if args.migrations_dir is not None else _source_directory()
+        directory = (
+            args.migrations_dir if args.migrations_dir is not None else _default_directory()
+        )
         # Dedicated connection, no pool, no environment-file loading or startup hook.
         with psycopg.connect(url, autocommit=True, connect_timeout=10) as connection:
             applied = migrate(connection, directory)

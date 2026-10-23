@@ -3,6 +3,7 @@ COPY --from=ghcr.io/astral-sh/uv:0.12.23 /uv /uvx /bin/
 WORKDIR /app
 COPY backend/core/ backend/core/
 COPY backend/api/ backend/api/
+COPY backend/drizzle/ backend/drizzle/
 COPY contracts/openapi.json contracts/openapi.json
 RUN uv sync --project backend/api --frozen --no-dev --no-editable --python 3.14.8
 

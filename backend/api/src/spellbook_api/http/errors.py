@@ -14,6 +14,7 @@ from spellbook_core.errors import (
     ValidationError,
 )
 from spellbook_core.fingerprint import serialize_json
+from spellbook_core.profile import SummaryRangeError
 from starlette.responses import JSONResponse, Response
 
 
@@ -59,6 +60,8 @@ def error_response(cause: Exception) -> Response:
         cause = HttpError(409, {"kind": "RequestConflict", "message": str(cause)})
     elif isinstance(cause, InventoryCountError):
         cause = HttpError(500, "Inventory totals cannot be represented exactly.")
+    elif isinstance(cause, SummaryRangeError):
+        cause = HttpError(503, str(cause))
     elif isinstance(cause, AuthError):
         cause = HttpError(429, str(cause))
     elif isinstance(cause, ActorError):

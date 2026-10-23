@@ -7,10 +7,6 @@ from unittest.mock import create_autospec
 from urllib.parse import urlencode
 
 import pytest
-from spellbook_api.http.errors import error_response
-from spellbook_api.http.router import HttpRoute
-from spellbook_api.http.routes_catalog import create_catalog_routes
-from spellbook_api.http.routes_valuation import create_valuation_routes
 from spellbook_core.auth import SessionAuth
 from spellbook_core.catalog import Catalog
 from spellbook_core.db import ConnectionPool
@@ -21,6 +17,11 @@ from spellbook_core.valuation import PriceReadUnavailable, Valuation
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import Message
+
+from spellbook_api.http.errors import error_response
+from spellbook_api.http.router import HttpRoute
+from spellbook_api.http.routes_catalog import create_catalog_routes
+from spellbook_api.http.routes_valuation import create_valuation_routes
 
 ORIGIN = "https://spellbook.test"
 PRINTING = "11111111-1111-4111-8111-111111111111"

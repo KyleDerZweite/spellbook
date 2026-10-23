@@ -1,10 +1,7 @@
-"""Host ownership of real native futures and private opt-in instrumentation."""
+"""Host ownership of real native futures."""
 
 import asyncio
-import os
 import threading
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
 from typing import cast
 
 import pytest
@@ -13,7 +10,6 @@ from spellbook_core.errors import AuthError
 
 from spellbook_api.application import ApplicationResources, create_application
 from spellbook_api.http.types import Configuration
-from spellbook_api.verification import VerificationPlan, VerificationReport
 
 ORIGIN = "http://127.0.0.1:5173"
 DSN = "postgresql://localhost/unused-fixture"
@@ -22,18 +18,6 @@ GOLDEN = (
     "815f0e9978809b56ee3dc01448c0fc369bed6caa319a62aee3f98c6794493b3dec76ff0"
     "40562378f160e683d9d181b36bfebc22d97031d754bffd9d8de1825db"
 )
-
-
-def test_private_plan_has_no_environment_or_public_route_switch() -> None:
-    config = Configuration.from_environment({"APP_ORIGIN": ORIGIN, "VERIFICATION_PLAN": "true"})
-    assert config.database_url is None
-    with pytest.raises(ValueError, match="both plan and sink"):
-        create_application(config, verification_plan=VerificationPlan())
-    with pytest.raises(ValueError, match="actual database-backed host"):
-        create_application(
-            config, verification_plan=VerificationPlan(), verification_sink=lambda r: None
-        )
-    assert DSN not in repr(Configuration(ORIGIN, database_url=DSN))
 
 
 def test_native_futures_and_executor_settle_before_the_request_pool_closes(
@@ -55,7 +39,7 @@ def test_native_futures_and_executor_settle_before_the_request_pool_closes(
     monkeypatch.setattr(password_module, "_derive", derive)
 
     async def exercise() -> None:
-        resources = ApplicationResources(Configuration(ORIGIN, database_url=DSN), None, None)
+        resources = ApplicationResources(Configuration(ORIGIN, database_url=DSN))
         native_shutdown = resources.executor.shutdown
 
         def shutdown(wait: bool = True, *, cancel_futures: bool = False) -> None:
@@ -132,45 +116,9 @@ def test_partial_startup_and_cancelled_close_keep_resource_settlement_owned(
     asyncio.run(exercise())
 
 
-def test_private_hook_runs_in_host_process_and_stops_before_native_pool_cleanup(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    async def exercise() -> None:
-        reports: list[VerificationReport] = []
-        lifetime = create_application(
-            Configuration(ORIGIN, database_url=DSN),
-            verification_plan=VerificationPlan(concurrent_scrypt=True),
-            verification_sink=reports.append,
-        )
-        resources = cast(ApplicationResources, lifetime.http.state.resources)
-
-        async def pool_open(wait: bool = False, timeout: float = 30.0) -> None:
-            pass
-
-        @asynccontextmanager
-        async def connection(timeout: float | None = None) -> AsyncIterator[None]:
-            yield None
-
-        monkeypatch.setattr(resources.pool, "open", pool_open)
-        monkeypatch.setattr(resources.pool, "connection", connection)
-        async with lifetime.http.router.lifespan_context(lifetime.http):
-            async with asyncio.timeout(2):
-                while resources.passwords.diagnostics().active != 4:
-                    await asyncio.sleep(0.005)
-            await asyncio.sleep(0.03)
-            await lifetime.close_streams()
-        assert len(reports) == 1 and reports[0].interrupted
-        assert reports[0].pid == os.getpid() and reports[0].active_max == 4
-        assert reports[0].lag_observations > 0
-        assert resources.passwords.diagnostics().active == 0
-        assert all(t.name.startswith("spellbook-scrypt") is False for t in threading.enumerate())
-
-    asyncio.run(exercise())
-
-
 def test_closed_resources_cannot_advertise_a_new_ready_host() -> None:
     async def exercise() -> None:
-        resources = ApplicationResources(Configuration(ORIGIN, database_url=DSN), None, None)
+        resources = ApplicationResources(Configuration(ORIGIN, database_url=DSN))
         await resources.close()
         with pytest.raises(RuntimeError, match="resources are closed"):
             await resources.start()
@@ -184,3 +132,7 @@ def test_invalid_database_configuration_never_exposes_supplied_values(dsn: str) 
     with pytest.raises(ValueError) as failed:
         Configuration(ORIGIN, database_url=dsn)
     assert str(failed.value) == "DATABASE_URL must be a valid PostgreSQL connection string"
+
+
+def test_configuration_repr_redacts_database_url() -> None:
+    assert DSN not in repr(Configuration(ORIGIN, database_url=DSN))

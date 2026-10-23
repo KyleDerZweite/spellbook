@@ -3,7 +3,7 @@
 - Status: Canonical compatibility baseline; complete Python functional acceptance pending
 - Last Reviewed: 2026-10-23
 - Source of Truth: frozen Node code and executable neutral fixtures, historical PostgreSQL results, ADR-0027 and Kyle's 2026-10-23 direction
-- Update Triggers: compatibility inventory/transfer, functional integration evidence, tested revisions, migrator rehearsal and source activation
+- Update Triggers: compatibility inventory/transfer, functional integration evidence, tested revisions, host/Dashboard assembly and installed assets, migrator rehearsal and source activation
 - Related Docs: [Migration contract](./python-backend-migration.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [Contracts](../../contracts/README.md), [Independent applications](./independent-applications.md), [Auth](./auth.md), [Postgres](./postgres.md), [Verification](../operations/github-automation.md), [Deployment](../operations/deployment.md), [Issue 247](https://github.com/KyleDerZweite/spellbook/issues/247)
 
 ## Scope and authorization
@@ -136,6 +136,28 @@ Refresh affected evidence on the final unmerged integration head.
 Missing real storage/provider, scheduled observation, rendered client or native-device evidence remains explicitly unexecuted with its owner and consequence.
 Production cutover, productive migrator rollout and rollback retirement require separate operations and acceptance.
 
+### Integrated domain evidence, 2026-10-23
+
+Root reports 27 unique real PostgreSQL cases passing at integrated source `6837f7966f95eda48f7a12a743ce040f29494636` with the assigned disposable `api_python` target.
+The selected files were `test_auth_profile_postgres.py`, `test_catalog_valuation_postgres.py`, native cases in `test_inventory.py` and `test_inventory_groups.py`, and `test_inventory_groups_postgres.py`.
+The cases comprise six Auth/Profile/QR, six Catalog/Valuation including 23/25-hour DST dates, nine existing Inventory/Groups and six new Inventory/Groups cases.
+They cover authentication races, account isolation, concurrent original receipts and transactional LISTEN/rollback/no-op notifications.
+Six additional pure receipt/validation cases passed in the first 22-case sweep; those six are not native PostgreSQL evidence.
+Root released the assigned lease with zero sessions.
+
+Both independent Auth and Catalog Standards reviews were clean.
+Their Spec reviews found multipart quoted-printable credential decoding and repeated Catalog query selection respectively; passing database tests did not close those adapter findings.
+The shared assembly fixes the multipart behavior against actual Node 26.10.0: `functional=20password` stays literal, exact lowercase `base64` decodes, and `8bit`/uppercase `BASE64` stay literal.
+Credential-route tests cover login/registration, first duplicate values and malformed UTF-8/file bytes.
+The Catalog writer owns its separate query fix and evidence.
+Root owns final-head review and real Dashboard/direct-host/proxy/worker/rollback integration; this earlier domain run does not establish those results.
+
+The shared assembly based on `6837f7966f95eda48f7a12a743ce040f29494636` passes `SPELLBOOK_TEST_WHEEL=1 uvx --from uv==0.12.23 uv run --directory backend/api --no-sync pytest -q`: 267 passed, four native guards skipped.
+Using that API environment after a frozen Core reinstall, `pytest -q ../core/tests` passes 309 cases with 46 guarded skips; the new real Dashboard case is among the unexecuted native checks.
+API/Core Ruff and format checks, strict Mypy, both frozen lock checks, Core/API sdist/wheel builds, the dependency checker and all five boundary unit cases pass.
+These checks use Python 3.14.8, uv 0.12.23 and the checkout's own environment, without database, service or provider access.
+Four pre-existing Core test import blocks and one API test import block were sorted for Ruff without domain behavior changes.
+
 ### Python migrator, 2026-10-23
 
 The prepared migrator at `21758fe0f82981d2567be47b4b6cd48b7ca589e3` passed both independent source-review axes with no findings.
@@ -147,7 +169,10 @@ Two actual `python -m spellbook_api.migrate` invocations applied all 25 migratio
 The resulting 25 ledger rows match the retained Drizzle-created reference exactly.
 Schema-only dumps of `public` and `drizzle` match after excluding ownership, privileges, comments and dump session markers.
 The checks used an exclusive temporary database through the protected disposable-runtime environment; no production or previous fixture data was changed.
-Installed SQL assets, operator packaging and complete retained-data/client integration remain pending.
+The shared assembly now bundles exact SQL/journal/snapshot bytes in wheels and sdists and registers `spellbook-migrate`.
+Its external installed-wheel check passes without a source `PYTHONPATH`, including a wheel rebuilt from the sdist, asset hashes, missing configuration, explicit override and substituted no-op calls.
+That packaging check does not connect to PostgreSQL.
+Real installed migrator execution and complete retained-data/client integration remain pending with Root.
 
 ## Historical verification provenance
 

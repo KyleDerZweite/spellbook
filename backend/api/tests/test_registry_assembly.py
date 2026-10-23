@@ -317,11 +317,16 @@ def test_sse_head_closes_real_subscription_and_has_only_one_receive_consumer() -
 def test_declared_literal_routes_do_not_fall_through_to_an_entry_parameter() -> None:
     d = Dependencies()
     with TestClient(d.application()) as client:
-        for path in ["/api/mobile/v1/mtg/inventory/groups", "/api/mobile/v1/mtg/inventory/value"]:
-            response = client.get(path, headers={"Cookie": "spellbook_session=" + TOKEN})
-            assert response.status_code == 404
-            assert response.json()["message"] == "Not Found"
-    cast(AsyncMock, d.auth.validate_session).assert_not_awaited()
+        response = client.get(
+            "/api/mobile/v1/mtg/inventory/groups", headers={"Cookie": "spellbook_session=" + TOKEN}
+        )
+        assert response.status_code == 401
+        response = client.get(
+            "/api/mobile/v1/mtg/inventory/value", headers={"Cookie": "spellbook_session=" + TOKEN}
+        )
+        assert response.status_code == 404
+        assert response.json()["message"] == "Not Found"
+    cast(AsyncMock, d.inventory.get_entry).assert_not_awaited()
 
 
 def test_actual_host_fetch_method_rejection_is_separate_from_router_405() -> None:

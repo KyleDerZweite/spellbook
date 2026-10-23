@@ -17,6 +17,7 @@ import pytest
 from psycopg import AsyncConnection
 from psycopg.conninfo import conninfo_to_dict
 from psycopg.types.json import Jsonb
+
 from spellbook_core.auth import create_session_auth, hash_session_token
 from spellbook_core.catalog import Catalog, create_catalog
 from spellbook_core.db import ConnectionPool, Transaction, transaction

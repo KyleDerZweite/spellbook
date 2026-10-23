@@ -3,6 +3,7 @@
 import math
 
 import pytest
+
 from spellbook_core.catalog import printing_dto
 from spellbook_core.catalog_query import parse_catalog_search_request, search_sql
 from spellbook_core.errors import ValidationError

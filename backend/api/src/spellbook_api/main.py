@@ -3,7 +3,6 @@
 import asyncio
 import os
 import socket
-from collections.abc import Callable
 
 import h11
 import uvicorn
@@ -14,7 +13,6 @@ from uvicorn.protocols.http.h11_impl import H11Protocol
 from spellbook_api.application import create_application
 from spellbook_api.http.errors import HttpError, error_response
 from spellbook_api.http.types import ApplicationLifetime, Configuration
-from spellbook_api.verification import VerificationPlan, VerificationReport
 
 # Frozen from the retained Node 26.10.0 HTTP parser. Router support is separate.
 NODE_HTTP_METHODS = frozenset(
@@ -130,19 +128,8 @@ class CandidateServer(uvicorn.Server):
                     await self.lifetime.close()
 
 
-async def serve(
-    configuration: Configuration,
-    *,
-    verification_plan: VerificationPlan | None = None,
-    verification_sink: Callable[[VerificationReport], None] | None = None,
-) -> None:
-    lifetime = (
-        create_application(configuration)
-        if verification_plan is None and verification_sink is None
-        else create_application(
-            configuration, verification_plan=verification_plan, verification_sink=verification_sink
-        )
-    )
+async def serve(configuration: Configuration) -> None:
+    lifetime = create_application(configuration)
     server: CandidateServer | None = None
     try:
         server = CandidateServer(lifetime, configuration)

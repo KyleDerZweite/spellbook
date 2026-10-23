@@ -300,6 +300,10 @@ async def read_form_data(
             part_name = part.get_param("name", header="content-disposition")
             if not isinstance(part_name, str):
                 continue
+            # Fetch decodes only the exact lowercase base64 transfer encoding.
+            # MIME quoted-printable and differently cased encodings remain literal.
+            if part.get("Content-Transfer-Encoding") != "base64":
+                del part["Content-Transfer-Encoding"]
             payload = part.get_payload(decode=True)
             if not isinstance(payload, bytes):
                 raise ValueError("Malformed multipart payload")
