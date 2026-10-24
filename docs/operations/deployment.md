@@ -1,9 +1,9 @@
 # Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-10-24
+- Last Reviewed: 2026-10-25
 - Source of Truth: repo config
-- Update Triggers: removal of obsolete Scan opt-in flag, versioned MTG routes and module ownership, native Catalog storage and one-shot lifecycle, Python source activation and server contraction, explicit Python API/state Compose candidate and ICU runtime dependency, dormant representative Python host and protected candidate startup, explicit dormant Python candidate packaging/start, selected Python API/worker direction, native and test web body-limit defaults, independent API/web ownership and relocated code references, PWA HTTPS/install/update operations and QR migration 0024, Catalog set-directory and color-identity projection migrations, price publication/pair and optional recovery, private value history migration and runtime configuration, source opt-ins and ingestion limits, optional local combo publication and recovery, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and graceful shutdown, preview target, single root environment and local/build origins, migrations, storage, workspace ownership, application resource lifetime and native operator ownership, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
+- Update Triggers: State history scheduling ownership, Core-owned PostgreSQL test environment, canonical root operator commands, removal of obsolete Scan opt-in flag, versioned MTG routes and module ownership, native Catalog storage and one-shot lifecycle, Python source activation and server contraction, explicit Python API/state Compose candidate and ICU runtime dependency, dormant representative Python host and protected candidate startup, explicit dormant Python candidate packaging/start, selected Python API/worker direction, native and test web body-limit defaults, independent API/web ownership and relocated code references, PWA HTTPS/install/update operations and QR migration 0024, Catalog set-directory and color-identity projection migrations, price publication/pair and optional recovery, private value history migration and runtime configuration, source opt-ins and ingestion limits, optional local combo publication and recovery, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and graceful shutdown, preview target, single root environment and local/build origins, migrations, storage, workspace ownership, application resource lifetime and native operator ownership, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
 - Related Docs: [Postgres](../architecture/postgres.md), [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Classifier research](../integrations/card-categorization.md), [Catalog](../architecture/catalog.md), [Python direction](../decisions/0025-python-api-and-workers.md)
 
 The canonical service definitions are [`podman-compose.yml`](../../podman-compose.yml) and the local storage override [`podman-compose.dev.yml`](../../podman-compose.dev.yml).
@@ -188,7 +188,7 @@ The implemented publisher retains old Catalog generations and all Price pointers
    Format the manifest with the existing frontend Prettier.
    Keep the compressed bundle and its manifest together.
 3. Verify the protected target is the intended migrated disposable Demo database.
-   From `backend/`, run `pnpm demo:seed` without `--reset-users` to publish while preserving private edits.
+   From the repository root, run `pnpm demo:seed` without `--reset-users` to publish while preserving private edits.
    Inspect the active Catalog generation and verify Search, starter identity coverage and preserved private state.
 
 The importer rejects a compressed hash mismatch before publication.
@@ -277,8 +277,8 @@ The tunnel transports requests; local authentication owns login.
 | `ADDRESS_HEADER`, `XFF_DEPTH`                       | Web ingress client-address configuration; leave the header empty until proxy trust is configured                                                          |
 | `BODY_SIZE_LIMIT`                                   | Web transport limit; launcher, HTTP harness and web image default to `12M`, preserving explicit overrides. API transport defaults to 12 MiB independently |
 | `DEMO_MODE`                                         | Set to `true` only for an explicitly seeded disposable demo. See [demo setup](./local-auth.md#demo-mode).                                                 |
-| `VALUE_HISTORY_TIMEZONE`                            | API reporting timezone, default `Europe/Berlin`; invalid names fail API startup                                                                           |
-| `VALUE_HISTORY_ENABLED`                             | API-only strict `true` or `false`, default `true`; disables only observation scheduling                                                                   |
+| `VALUE_HISTORY_TIMEZONE`                            | API reporting and State observation timezone, default `Europe/Berlin`; invalid names fail API and State startup                                           |
+| `VALUE_HISTORY_ENABLED`                             | State-only strict `true` or `false`, default `true`; disables only observation scheduling                                                                 |
 | `DATABASE_URL`                                      | API, Catalog worker or operator PostgreSQL connection; compose constructs its internal connection from `POSTGRES_*`                                       |
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Database and credentials; replace the example password                                                                                                    |
 | `CATALOG_SOURCE`                                    | Scryfall source: `all_cards` by default, or `default_cards`                                                                                               |
@@ -342,9 +342,11 @@ Web owns no backend resource or shutdown/HMR hook.
 
 Python API owns bounded operator argv/stdin intake and packaged fixtures; Core operator modules own persistence.
 The four canonical Demo assets remain unchanged under `backend/scripts/demo/`.
-Existing `frontend/scripts/` commands remain compatibility forwarders.
+Run operator commands from the repository root through `pnpm db:migrate`, `pnpm operator:password`, `pnpm demo:seed` and `pnpm demo:replace-inventory`.
+These commands invoke the installed Python entrypoints through `scripts/python.mjs`.
+Replaced frontend forwarders and aliases are removed under the [interface replacement policy](../../CONTRIBUTING.md#replacing-interfaces).
 [Local authentication operations](./local-auth.md) owns target guards, enrollment, recovery and starter replacement.
-Migration configuration and unchanged SQL/journal/snapshots belong to backend; frontend database commands forward there.
+Migration configuration and SQL/journal/snapshots belong to backend.
 
 ## Storage and upgrades
 
@@ -573,10 +575,11 @@ It adds private daily checkpoint/evidence tables and `values` notification trigg
 Existing Inventory writes and account rows remain unchanged.
 No historical backfill runs.
 
-The API starts the Backend Valuation runner after listening when `VALUE_HISTORY_ENABLED=true`.
-API development restart and production shutdown close owned work.
-Set the flag to `false` to stop scheduling while retaining existing history and current read routes.
-Configure `VALUE_HISTORY_TIMEZONE` with a valid IANA name.
+The State worker starts the Backend Valuation runner when `VALUE_HISTORY_ENABLED=true`.
+State shutdown closes its schedulers before its pool.
+Set the flag to `false` on State to stop observation scheduling.
+API history reads remain available independently of that flag.
+Configure `VALUE_HISTORY_TIMEZONE` with a valid IANA name for API reporting and State observations.
 Saved observations retain their own timezone and UTC boundaries after configuration changes.
 [Valuation](../architecture/valuation.md#reviewed-personal-history-contract) owns lease, observation window and closure rules.
 

@@ -9,7 +9,15 @@ import test from 'node:test';
 async function fixture(
 	t,
 	fail = '',
-	{ copiedEnv = false, workerDataDir, catalogExit, wrapperArgs } = {}
+	{
+		copiedEnv = false,
+		workerDataDir,
+		catalogExit,
+		operator,
+		args = [],
+		input = '',
+		operatorExit = 0
+	} = {}
 ) {
 	const root = await mkdtemp(join(tmpdir(), 'spellbook-python-start-'));
 	for (const directory of [
@@ -22,20 +30,19 @@ async function fixture(
 	])
 		await mkdir(join(root, directory), { recursive: true });
 	await copyFile(new URL('../.env.example', import.meta.url), join(root, '.env'));
-	await mkdir(join(root, 'frontend/scripts/demo'), { recursive: true });
-	await copyFile(
-		new URL('../frontend/scripts/demo/replace-inventory.mjs', import.meta.url),
-		join(root, 'frontend/scripts/demo/replace-inventory.mjs')
-	);
+	await mkdir(join(root, 'frontend'), { recursive: true });
 	await copyFile(new URL('./python.mjs', import.meta.url), join(root, 'scripts/python.mjs'));
 	await writeFile(
 		join(root, 'bin/uvx'),
 		`#!${process.execPath}
-import { appendFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
 const args = process.argv.slice(2);
 const record = (event) => appendFileSync(process.env.LOG, JSON.stringify({event,args,workerDataDir:process.env.WORKER_DATA_DIR}) + '\\n');
 record('start');
-if (args.includes('spellbook-demo-replace-inventory')) process.exit(0);
+if (process.env.OPERATOR) {
+ appendFileSync(process.env.LOG, JSON.stringify({event:'operator',input:readFileSync(0,'utf8'),cwd:process.cwd()}) + '\\n');
+ process.exit(Number(process.env.OPERATOR_EXIT));
+}
 if (args.includes('worker.main')) {
  writeFileSync(process.env.WORKER_DATA_DIR + '/probe', 'writable');
  if (process.env.SYNC_INTERVAL === 'manual' && process.env.CATALOG_EXIT) setTimeout(() => {record('complete'); process.exit(Number(process.env.CATALOG_EXIT));},150);
@@ -51,9 +58,9 @@ setInterval(() => {}, 1000);
 		process.execPath,
 		[
 			...(copiedEnv ? ['--env-file=' + join(root, '.env')] : []),
-			...(wrapperArgs
-				? [join(root, 'frontend/scripts/demo/replace-inventory.mjs'), ...wrapperArgs]
-				: [join(root, 'scripts/python.mjs'), 'start'])
+			join(root, 'scripts/python.mjs'),
+			operator || 'start',
+			...args
 		],
 		{
 			cwd: join(root, 'frontend'),
@@ -62,15 +69,18 @@ setInterval(() => {}, 1000);
 				PATH: `${join(root, 'bin')}:${process.env.PATH}`,
 				LOG: join(root, 'events'),
 				FAIL: fail,
+				OPERATOR: operator || '',
+				OPERATOR_EXIT: String(operatorExit),
 				WORKER_DATA_DIR:
 					workerDataDir === 'absolute' ? join(root, '.local/absolute') : workerDataDir,
 				SYNC_INTERVAL: catalogExit === undefined ? 'daily' : 'manual',
 				CATALOG_EXIT: catalogExit === undefined ? '' : String(catalogExit),
 				SCAN_WORKER_URL: 'http://127.0.0.1:8080'
 			},
-			stdio: ['ignore', 'pipe', 'pipe']
+			stdio: [operator ? 'pipe' : 'ignore', 'pipe', 'pipe']
 		}
 	);
+	if (operator) child.stdin.end(input);
 	child.stdout.resume();
 	child.stderr.resume();
 	const exited = once(child, 'exit');
@@ -166,19 +176,35 @@ test('Catalog failure stops native start siblings', async (t) => {
 	assert.equal((await f.events()).filter((e) => e.event === 'stop').length, 3);
 });
 
-test('legacy inventory replacement forwards arguments to the installed Python command', async (t) => {
-	const args = ['--help', '--fixtures-dir', '/tmp/fixture directory'];
-	const f = await fixture(t, '', { wrapperArgs: args });
-	assert.equal((await f.exited)[0], 0);
-	assert.deepEqual((await f.events())[0].args, [
-		'--from',
-		'uv==0.12.23',
-		'uv',
-		'run',
-		'--no-sync',
-		'spellbook-demo-replace-inventory',
-		...args
-	]);
+for (const [operator, command] of [
+	['migrate', 'spellbook-migrate'],
+	['password', 'spellbook-operator-password'],
+	['demo', 'spellbook-demo-seed'],
+	['replace-inventory', 'spellbook-demo-replace-inventory']
+]) {
+	test(`root ${operator} forwards arguments and stdin to the installed command`, async (t) => {
+		const args = ['--help', '--fixtures-dir', '/tmp/fixture directory'];
+		const input = 'synthetic operator input\n';
+		const f = await fixture(t, '', { operator, args, input });
+		assert.equal((await f.exited)[0], 0);
+		const events = await f.events();
+		assert.deepEqual(events[0].args, [
+			'--from',
+			'uv==0.12.23',
+			'uv',
+			'run',
+			'--no-sync',
+			command,
+			...args
+		]);
+		assert.equal(events[1].input, input);
+		assert.equal(events[1].cwd, join(f.root, 'backend/api'));
+	});
+}
+
+test('root operator failure returns a failing exit status', async (t) => {
+	const f = await fixture(t, '', { operator: 'password', operatorExit: 7 });
+	assert.equal((await f.exited)[0], 1);
 });
 
 test('unusable explicit Catalog storage prevents native runtime startup', async (t) => {
