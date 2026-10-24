@@ -1,10 +1,10 @@
 # Local authentication and account recovery
 
 - Status: Canonical
-- Last Reviewed: 2026-10-23
+- Last Reviewed: 2026-10-25
 - Source of Truth: code
-- Update Triggers: Python source activation and server contraction, prepared Python operator entrypoints and bundled canonical fixtures, independent API/web ownership and relocated code references, single root environment and demo launch configuration, registration policy, credential recovery command and backend operator lifetime, migration, reverse proxy origin, demo mode, versioned English Catalog publication and private starter preservation, original shipped Upgrades Unleashed Inventory and guarded replacement
-- Related Docs: [Authentication architecture](../architecture/auth.md), [Deployment](./deployment.md), [Postgres](../architecture/postgres.md), [ADR-0009](../decisions/0009-local-authentication.md), [Catalog](../architecture/catalog.md), [Manual Demo Catalog updates](./deployment.md#manual-demo-catalog-update)
+- Update Triggers: canonical root operator commands and pre-release account scope, Python source activation and server contraction, prepared Python operator entrypoints and bundled canonical fixtures, independent API/web ownership and relocated code references, single root environment and demo launch configuration, registration policy, credential recovery command and backend operator lifetime, migration, reverse proxy origin, demo mode, versioned English Catalog publication and private starter preservation, original shipped Upgrades Unleashed Inventory and guarded replacement
+- Related Docs: [Authentication architecture](../architecture/auth.md), [Deployment](./deployment.md), [Postgres](../architecture/postgres.md), [ADR-0009](../decisions/0009-local-authentication.md), [Catalog](../architecture/catalog.md), [Manual Demo Catalog updates](./deployment.md#manual-demo-catalog-update), [Pre-release policy](../../CONTRIBUTING.md#replacing-interfaces)
 
 New users register at `/auth/register` and sign in at `/auth/login`.
 Registration is public.
@@ -12,8 +12,9 @@ The [authentication contract](../architecture/auth.md) defines credential rules,
 
 ## Existing OIDC accounts
 
-Run the database migrations before serving the updated application.
-Existing account IDs and owned data remain intact.
+Use the current database schema before serving the application.
+The [pre-release policy](../../CONTRIBUTING.md#replacing-interfaces) does not guarantee upgrades from historical account or schema formats.
+For an account supported by the current schema, assigning local credentials through the operator preserves its account ID and owned data.
 Old OIDC sessions stop working; historical identity mappings do not provide local credentials.
 
 Enroll each existing account with the operator command below.
@@ -36,7 +37,7 @@ The existing account ID and desired local username are arguments.
 The password is read from standard input, not a process argument.
 Keep the input file private and remove temporary password files after use.
 
-The installed Python command owns arguments and bounded stdin intake; the frontend command path remains a compatibility forwarder.
+The root `operator:password` command invokes the installed Python CLI, which owns arguments and bounded stdin intake.
 It calls the [backend password operator](../../backend/core/src/spellbook_core/operators/local_password.py), which owns the database pool and atomic credential/display-username update and session revocation.
 It supports the operator's authorized target database, including production, without Demo suffix restrictions.
 Owned data remains intact.
@@ -83,10 +84,9 @@ fnm exec --using 26.10.0 pnpm setup:python
 ./demo.sh
 ```
 
-`./demo.sh` seeds the database and runs the one-shot migrator, seeds Demo and starts API, State, Catalog, Scan and Vite with `DEMO_MODE=true`.
+`./demo.sh` runs the one-shot migrator, seeds Demo and starts API, State, Catalog, Scan and Vite with `DEMO_MODE=true`.
 Web receives only its safe presentation flag; API owns Demo authentication enforcement.
 Direct Vite startup alone does not start the API.
-The frontend `dev:demo` command forwards to the root launcher.
 Sign in with username `demo` and password `demo`.
 Public Search uses the versioned English Catalog bundle described by [Catalog](../architecture/catalog.md#storage-and-publication).
 The versioned [Upgrades Unleashed fixture](../../backend/scripts/demo/upgrades-unleashed.json) creates the original English Kamigawa: Neon Dynasty Commander Deck and Inventory with 76 entries and 101 copies, plus an empty Next brew Deck.
@@ -113,7 +113,7 @@ pnpm demo:seed --reset-users
 The installed Python Demo commands load and verify public fixtures, then call the [backend Demo operators](../../backend/core/src/spellbook_core/operators/demo.py) with explicit inputs.
 Backend owns SQL, transactions and pool cleanup.
 Backend owns these native implementations and fixtures.
-Frontend command paths forward compatible arguments to backend.
+Root `pnpm demo:seed` and `pnpm demo:replace-inventory` invoke the installed Python CLI.
 
 Ordinary `pnpm demo:seed` refreshes the versioned public Catalog before returning for an existing Demo account, preserving credentials, Decks, Inventory, revisions, Notes and other private edits.
 Only explicit `--reset-users` deletes private users and revokes their sessions through account deletion.
@@ -141,7 +141,7 @@ pnpm demo:replace-inventory
 
 The command requires a database name ending in `_demo` or `_design`, a sole Demo profile with matching local Demo credentials, one MTG Inventory at its original revision 0 or 1, and the exact old 43-entry, 72-copy fixture.
 It refuses changed entries, Notes, Notes revisions, Boxes, memberships, receipts with a status other than `applied`, receipts from a source other than `web`, or missing active Catalog identities.
-Completed web mutation receipts remain untouched; their original acknowledgements stay available for retries.
+Completed current-version web mutation receipts remain untouched; their original acknowledgements stay available for retries.
 Preview uses a read-only transaction and writes nothing.
 Review the account and Inventory IDs in its output and retain a protected backup before applying:
 

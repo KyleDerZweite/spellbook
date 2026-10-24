@@ -3,8 +3,8 @@
 - Status: Accepted design; workspace, trusted Auth, Account/Profile, Dashboard, bounded Inventory reads and mutation contracts, Deck application contracts and shared Deck UI, Scan upload/read/result/review contracts, SavedState transport, process lifetime and mounted workspace consumers, source references, optional public providers, bounded public source history, private daily Inventory history, Dashboard/selected-Deck estimates and starter entry categories plus optional local Combo matching implemented; later feature slices planned
 - Last Reviewed: 2026-10-25
 - Source of Truth: workspace/Catalog/Auth/Profile/Dashboard/Inventory/Deck/Scan/Categories/SavedState/Valuation code and contracts, Worker price/Oracle Tags/Combo publication code, unaffected Q56 contracts and Kyle's value-only and continuous Lazy decisions of 2026-10-07
-- Update Triggers: native FastAPI HTTP contract and pre-release receipt scope, versioned MTG routes and module ownership, Python source activation and server contraction, selected Python API/worker direction, independent API/web ownership and relocated code references, workspace ownership, backend application/transport/operator interfaces and resource cleanup, use-case interfaces, experimental API migration, mutation receipts and revisions, Inventory queries and cache limits, shared UI interfaces and native Deck task entry, synchronization and SavedState process/HMR lifetime, reference publication, value-only history scope, Categories interfaces, immutable entry decisions/manual provenance, Oracle/Combo source and rule lifecycle and acceptance evidence, continuous Lazy browsing/dialog contract and selected versus implemented read limits
-- Related Docs: [Architecture](./README.md), [System overview](./system-overview.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Authentication](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Product specification](../product/specification.md), [UI direction](../product/ui-design-direction.md), [Valuation](./valuation.md), [Category rules](./category-rules.md), [Verification](../operations/github-automation.md), [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md), [ADR-0016](../decisions/0016-postgres-saved-state-invalidation.md), [ADR-0017](../decisions/0017-revisioned-inventory-windows-and-mutation-receipts.md), [Independent applications](./independent-applications.md), [Python direction](../decisions/0025-python-api-and-workers.md)
+- Update Triggers: current-version Scan/Deck receipt replay and root operator ownership, native FastAPI HTTP contract and pre-release receipt scope, versioned MTG routes and module ownership, Python source activation and server contraction, selected Python API/worker direction, independent API/web ownership and relocated code references, workspace ownership, backend application/transport/operator interfaces and resource cleanup, use-case interfaces, experimental API migration, mutation receipts and revisions, Inventory queries and cache limits, shared UI interfaces and native Deck task entry, synchronization and SavedState process/HMR lifetime, reference publication, value-only history scope, Categories interfaces, immutable entry decisions/manual provenance, Oracle/Combo source and rule lifecycle and acceptance evidence, continuous Lazy browsing/dialog contract and selected versus implemented read limits
+- Related Docs: [Architecture](./README.md), [System overview](./system-overview.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Authentication](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Product specification](../product/specification.md), [UI direction](../product/ui-design-direction.md), [Valuation](./valuation.md), [Category rules](./category-rules.md), [Verification](../operations/github-automation.md), [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md), [ADR-0016](../decisions/0016-postgres-saved-state-invalidation.md), [ADR-0017](../decisions/0017-revisioned-inventory-windows-and-mutation-receipts.md), [Independent applications](./independent-applications.md), [Python direction](../decisions/0025-python-api-and-workers.md), [Pre-release policy](../../CONTRIBUTING.md#replacing-interfaces)
 
 Kyle accepted the original nineteen-slice contract and real HTTP/PostgreSQL/browser acceptance seam in Q56 on 2026-10-06.
 The value-only scope update below supersedes its cost-dependent contracts and dependency ordering.
@@ -82,7 +82,7 @@ It reuses the concrete [Inventory writer](../../backend/core/src/spellbook_core/
 This internal transaction seam is unavailable to frontend callers; public composition exposes only actor-based operations.
 The [Scan application](../../backend/core/src/spellbook_core/mtg/scan/application.py) owns complete upload/read/result/review behavior with injected storage/worker configuration.
 Its shared JSON-safe DTOs expose neither account identity nor storage keys.
-[Mobile and Scan](./mobile-and-scan.md#selected-reads-and-compact-review-commits) owns bounded reads, the legacy replay bridge and cancellation/uncertain-commit cleanup.
+[Mobile and Scan](./mobile-and-scan.md#selected-reads-and-compact-review-commits) owns bounded reads, current-version receipt replay and cancellation/uncertain-commit cleanup.
 Scan workspace invalidation uses the mounted frontend resource adapter.
 
 Build and start the SvelteKit web runtime and Python API independently under the [independent applications contract](./independent-applications.md).
@@ -107,7 +107,7 @@ Check imports with the existing TypeScript compiler API, resolving aliases, type
 Deliberately forbidden imports and built client output verify enforcement.
 The final policy contains no legacy persistence exceptions.
 Web runtime has no backend import exceptions.
-Frontend CLI compatibility wrappers forward to backend-owned operators.
+Root commands invoke installed Python CLIs for backend-owned operators.
 The HTTP adapter preserves current callers; independent Android and aggregate acceptance remain in progress.
 
 ## Implemented application lifecycle and operator ownership
@@ -138,7 +138,7 @@ Migration SQL, journal and snapshots moved unchanged to `backend/drizzle/`; [bac
 Backend [Demo operators](../../backend/core/src/spellbook_core/operators/demo.py) own publication, starter replacement, transactions and pool lifetime.
 The [local-password operator](../../backend/core/src/spellbook_core/operators/local_password.py) owns atomic credential/profile updates and session revocation, including authorized production recovery.
 Backend scripts own argv, bounded stdin and public fixture loading.
-Existing frontend command paths remain compatibility forwarders without persistence or fixture ownership.
+Root commands own environment loading and delegate to installed Python CLIs; frontend runtime owns neither persistence nor fixtures.
 Demo target guards, preview-first replacement, explicit reset, parent locks and revisions remain intact.
 Backend imports no frontend fixtures or framework code.
 [Local authentication operations](../operations/local-auth.md) owns commands and target requirements.
@@ -155,7 +155,7 @@ Distinguish optional provider failures, disabled sources, controlled-clock tests
 ## Adapter and mutation contracts
 
 This section retains the accepted target across features.
-Implemented Inventory/Deck contracts and explicit legacy receipt fallback are distinguished below.
+Implemented Inventory/Deck contracts below require current-version original receipt replay without historical reconstruction.
 
 The web remote adapter and direct API clients reach the same authorized use cases for local authentication/session inspection, preferences, password rotation, Profile Card/artwork, Dashboard, Catalog enrichment, Inventory/Groups, Deck create/edit/import/export/role/printing/availability/search operations, and Scan upload/review/commit.
 Preserve public paths and map safe errors consistently.
@@ -232,7 +232,7 @@ Existing Account Dashboard use cases remain the summary owner.
 Bounded `getDeckLibrary` reads return at most 200 Deck metadata rows, SQL totals, covers and at most three category badges.
 Independent `getDeck` reads load the selected editor without reading its account directory.
 Version-filter options/counts and direct location share a separate account directory revision.
-Legacy public Snapshot reads remain compatible.
+Canonical Snapshot reads remain available to current clients.
 Only the selected Deck composition is loaded, with Inventory quantities aggregated by its canonical identities.
 Contextual search and inspector ownership use bounded identities instead of full Inventory or mutation-request history.
 [Postgres](./postgres.md#deck-persistence-and-reads) owns consistency and supported aggregate ranges; [the HTTP contract](./mobile-and-scan.md#deck-http-contract) records the experimental v1 migration.
@@ -246,7 +246,7 @@ New Deck entry mutations persist compact original acknowledgements atomically wi
 Replays return the original result after later edits, entry recreation or Deck deletion.
 Lookup precedes Catalog resolution, so recorded retries work when Catalog is unavailable.
 Fresh additions and printing replacements resolve authoritative Catalog identity, name, set and image before the transaction; caller presentation fields do not become stored identity.
-Legacy null acknowledgements suppress repeated writes without inventing historical results.
+Historical NULL acknowledgements have no fallback or upgrade guarantee under the [pre-release policy](../../CONTRIBUTING.md#replacing-interfaces).
 
 Ordinary signed negative quantity deltas stop at one inside the transaction.
 A floor no-op returns delta zero without advancing `compositionRevision` or rewriting the entry timestamp.
@@ -267,7 +267,7 @@ Local composed scale/rendered evidence is recorded with [slice 19](https://githu
 Backend accepts normalized filters, the existing composite order, optional group, offset and bounded limit.
 The backend defaults to 50 entries and permits 1 through 500 per request.
 The selected browser policy requests 200-entry Lazy ranges, with no enhanced pagination or page-size selector.
-Native no-JavaScript requests retain 200-entry Previous/Next navigation; legacy API omitted-limit behavior remains 50.
+Native no-JavaScript requests retain 200-entry Previous/Next navigation; the API omitted-limit default remains 50.
 Preserve name/set/newest and variant-order transitions with stable printing/finish/condition/entry-ID ties.
 PostgreSQL ICU root collation makes name/set ordering canonical; UUID ties are byte-stable.
 [Migration 0011](../../backend/drizzle/0011_inventory_windows.sql) creates `inventory_root`, validates the accepted ordering examples and checks the actual ICU version, failing when the required collation is unavailable.
