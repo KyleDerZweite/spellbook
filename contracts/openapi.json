@@ -10531,7 +10531,7 @@
 			"bearerToken": {
 				"type": "http",
 				"scheme": "bearer",
-				"description": "Opaque local session token returned by /api/auth/login or /api/auth/register."
+				"description": "Opaque local session token returned by /api/v1/auth/login or /api/v1/auth/register."
 			}
 		},
 		"responses": {

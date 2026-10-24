@@ -1,9 +1,9 @@
 # Brand artwork and website icons
 
 - Status: Canonical
-- Last Reviewed: 2026-10-07
+- Last Reviewed: 2026-10-24
 - Source of Truth: selected logo, Blender scene and generator, frontend assets and provenance data, browser specifications
-- Update Triggers: Commander precon baseline and source attribution, logo replacement, illustration source, landing artwork and deck sources, showcase manifest or refresh procedure, asset generation, profile frame source or preparation, favicon or manifest changes, installation requirements
+- Update Triggers: current PWA start and shortcut paths, Commander precon baseline and source attribution, logo replacement, illustration source, landing artwork and deck sources, showcase manifest or refresh procedure, asset generation, profile frame source or preparation, favicon or manifest changes, installation requirements
 - Related Docs: [Reference](./README.md), [Design direction](../product/ui-design-direction.md), [Frontend](../architecture/frontend.md), [Original logo](../../logo.png)
 
 The root [logo.png](../../logo.png) is an unchanged copy of the logo supplied by the maintainer.
@@ -27,7 +27,7 @@ Asset conversion is an offline preparation step; the application build does not 
 The [HTML document](../../frontend/src/app.html) declares exact favicon and Apple touch sizes.
 The [manifest](../../frontend/static/manifest.webmanifest) declares exact PNG dimensions and separate ordinary and maskable purposes.
 Its theme and background colors match the neutral dark application background, `#101010`.
-Its start URL and shortcuts use `/search` and `/inventory`, which redirect to their canonical `/mtg/` routes.
+Its start URL is `/app`; shortcuts use the current `/mtg/search` and `/mtg/inventory` routes.
 
 The maskable icon has an opaque `#0d0b0f` background.
 Its complete mark fits inside the centered safe circle with radius 40 percent of the canvas.

@@ -12,8 +12,7 @@ const database = 'postgres://fixture:fixture@localhost/fixture_design';
 async function launch(
 	caller: Record<string, string> = {},
 	devOrigin?: string,
-	scan = false,
-	compatibility = false
+	frontendEntry = false
 ) {
 	const root = await mkdtemp(join(tmpdir(), 'spellbook-dev-env-'));
 	try {
@@ -61,12 +60,12 @@ process.on('SIGTERM', () => { clearTimeout(timer); process.exit(0); });
 			['uvx', 'pnpm'].map((name) => writeFile(join(bin, name), probe, { mode: 0o700 }))
 		);
 		const manifest = JSON.parse(
-			await readFile(new URL(compatibility ? 'package.json' : '../package.json', frontend), 'utf8')
+			await readFile(new URL(frontendEntry ? 'package.json' : '../package.json', frontend), 'utf8')
 		);
-		const [command, ...args] = manifest.scripts[compatibility ? 'dev:local' : 'dev'].split(' ');
+		const [command, ...args] = manifest.scripts[frontendEntry ? 'dev:local' : 'dev'].split(' ');
 		expect(command).toBe('node');
-		await execute(process.execPath, [...args, ...(scan ? ['--scan'] : [])], {
-			cwd: compatibility ? app : root,
+		await execute(process.execPath, args, {
+			cwd: frontendEntry ? app : root,
 			env: { PATH: `${bin}:${process.env.PATH}`, DEV_TEST_LOG: log, ...caller },
 			timeout: 5000,
 			killSignal: 'SIGTERM'
@@ -222,12 +221,8 @@ console.log(JSON.stringify({args: process.argv.slice(2), envDir: config.envDir, 
 		});
 	});
 
-	it('starts Scan as a third process and creates its storage only with explicit opt-in', async () => {
-		const { children, storage, storageCreated, app, backend, scan } = await launch(
-			{},
-			undefined,
-			true
-		);
+	it('starts Scan and creates its storage without an opt-in flag', async () => {
+		const { children, storage, storageCreated, app, backend, scan } = await launch();
 		expect(children).toHaveLength(5);
 		expect(children.map((child) => child.cwd)).toEqual(
 			expect.arrayContaining([app, backend, scan])
@@ -252,7 +247,7 @@ console.log(JSON.stringify({args: process.argv.slice(2), envDir: config.envDir, 
 		expect(storageCreated).toBe(true);
 	});
 
-	it('honors configured dev origin and caller overrides through the frontend compatibility shim', async () => {
+	it('honors configured dev origin and caller overrides through the frontend entry', async () => {
 		const configured = await launch({}, 'http://127.0.0.1:5173');
 		expect(
 			configured.children.every((child) => child.env.APP_ORIGIN === 'http://127.0.0.1:5173')
@@ -265,7 +260,6 @@ console.log(JSON.stringify({args: process.argv.slice(2), envDir: config.envDir, 
 				DEMO_MODE: 'false'
 			},
 			'http://127.0.0.1:5173',
-			false,
 			true
 		);
 		for (const child of overridden.children) {

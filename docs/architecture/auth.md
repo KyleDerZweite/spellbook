@@ -328,7 +328,7 @@ Only a trusted peer may supply `X-Spellbook-Client-Address`; arbitrary Forwarded
 The accepted `/app/connect` and `/auth/approve` pages also require sign-in; `/app` remains a public install/launch hub.
 Catalog browsing at `/mtg/search` and read-only `/api/v1/mtg/catalog/*` endpoints is public.
 Saving inventory or decks still requires authentication.
-Legacy MTG and collection URLs redirect before the guard.
+Replaced flat MTG and collection URLs have no compatibility redirects and return the ordinary not-found response.
 The public root remains the landing after sign-in.
 Login and registration default to `/mtg/inventory`; a safe explicit `returnTo` preserves its path and query, including a deck selection or `/`.
 The guard supplies the protected destination with its query.
