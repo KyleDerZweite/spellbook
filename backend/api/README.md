@@ -46,6 +46,8 @@ Canonical native operations are compared with OpenAPI; replaced paths have no al
 MTG factories live in `spellbook_api.http.mtg`; shared Auth, account preferences, parsing, routing and process lifetime keep their owners.
 Web SSR/forms forward only the selected browser cookie; direct API commands retain Bearer-before-cookie selection and cookie-mode Origin protection.
 Commands reject unknown fields and delegate unchanged retry inputs to Core.
+Psycopg failures use an explicit native exception handler, returning a safe 500 without closing an otherwise reusable HTTP connection.
+Logs record only the exception type and SQLSTATE for those failures; unrelated unexpected exceptions retain the safe 500 and server logging path.
 
 The host constructs `LocalAuth` with its owned password executor and constructs `Profile` with that same authority.
 `LocalAuth` extends the existing `SessionAuth` actor interface.

@@ -1,9 +1,11 @@
 """Reviewed public failures and JSON responses for the representative adapters."""
 
 from collections.abc import Mapping
+from logging import getLogger
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
+from psycopg import Error as PsycopgError
 from spellbook_core.errors import (
     ActorError,
     AuthError,
@@ -35,6 +37,8 @@ from spellbook_core.mtg.valuation import InventoryPriceNotFound, PriceReadUnavai
 from spellbook_core.qr import QrAuthError
 from starlette.exceptions import HTTPException
 from starlette.responses import JSONResponse, Response
+
+logger = getLogger(__name__)
 
 
 class HttpError(Exception):
@@ -118,6 +122,10 @@ def error_response(cause: Exception) -> Response:
 
 def install_error_handlers(http: FastAPI) -> None:
     async def failure(request: Request, cause: Exception) -> Response:
+        if isinstance(cause, PsycopgError):
+            logger.error(
+                "Database request failed: %s (SQLSTATE %s)", type(cause).__name__, cause.sqlstate
+            )
         if isinstance(cause, RequestValidationError):
             response = error_response(HttpError(400, "Invalid request"))
         elif isinstance(cause, HTTPException):
@@ -131,7 +139,8 @@ def install_error_handlers(http: FastAPI) -> None:
         response_policy(request.url.path, response)
         return response
 
-    for exception in (HttpError, RequestValidationError, HTTPException, Exception):
+    # Handled database failures must not escape after sending a response and close keep-alive.
+    for exception in (HttpError, RequestValidationError, HTTPException, PsycopgError, Exception):
         http.add_exception_handler(exception, failure)
     for domain_exception in (
         ActorError,
