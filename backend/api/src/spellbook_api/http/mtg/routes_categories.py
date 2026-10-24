@@ -4,16 +4,7 @@ from collections.abc import Awaitable, Callable
 
 from spellbook_core.auth import SessionAuth
 from spellbook_core.mtg.categories import Categories
-from spellbook_core.mtg.categories.common import (
-    CategoryConflict,
-    CategoryMergeConflict,
-    CategoryNotFound,
-    CategoryPreviewCapacity,
-    CategoryPreviewExpired,
-    CategoryUnavailable,
-    Document,
-    LibraryConflict,
-)
+from spellbook_core.mtg.categories.common import Document
 from spellbook_core.validation import MISSING
 from starlette.requests import Request
 from starlette.responses import Response
@@ -52,22 +43,6 @@ def _page(request: Request) -> Document:
         offset=read_query_integer(_first_query(request, "offset"), "offset", 0),
         limit=read_query_integer(_first_query(request, "limit"), "limit", 50, 100, 1),
     )
-
-
-def category_http_error(cause: Exception) -> HttpError:
-    """Domain-specific mapping stays with this adapter; unknown failures remain private."""
-    body: Document = dict(kind=getattr(cause, "kind", ""), message=str(cause))
-    if isinstance(cause, CategoryNotFound):
-        return HttpError(404, body)
-    if isinstance(cause, CategoryConflict):
-        return HttpError(409, {**body, "latest": cause.latest})
-    if isinstance(cause, CategoryMergeConflict):
-        return HttpError(409, {**body, "preview": cause.preview})
-    if isinstance(cause, (LibraryConflict, CategoryPreviewExpired)):
-        return HttpError(409, body)
-    if isinstance(cause, (CategoryPreviewCapacity, CategoryUnavailable)):
-        return HttpError(503, body)
-    raise cause
 
 
 def create_category_routes(
@@ -232,19 +207,8 @@ def create_category_routes(
 
     def route(method: str, path: str, command: Command) -> HttpRoute:
         async def handle(request: Request, params: dict[str, str]) -> Response:
-            try:
-                decoded = {key: decode_parameter(value) for key, value in params.items()}
-                return json_response(await command(request, decoded))
-            except (
-                CategoryNotFound,
-                CategoryConflict,
-                CategoryMergeConflict,
-                LibraryConflict,
-                CategoryPreviewExpired,
-                CategoryUnavailable,
-                CategoryPreviewCapacity,
-            ) as cause:
-                raise category_http_error(cause) from None
+            decoded = {key: decode_parameter(value) for key, value in params.items()}
+            return json_response(await command(request, decoded))
 
         return HttpRoute(method, "/api/v1/mtg" + path, handle)
 

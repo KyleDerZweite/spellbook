@@ -10,12 +10,14 @@ from fastapi.testclient import TestClient
 from spellbook_core.auth import SessionAuth
 from spellbook_core.errors import RequestConflictError
 from spellbook_core.models import Actor
+from spellbook_core.mtg.categories import CategoryMergeConflict, CategoryUnavailable
 from spellbook_core.mtg.decks import Decks
+from spellbook_core.mtg.errors import DeckNotFoundError
 from spellbook_core.mtg.inventory import Inventory
 from starlette.routing import Route
 
 from spellbook_api.http.admission import RequestAdmission
-from spellbook_api.http.mtg.routes_commands import FIELDS, create_command_routes
+from spellbook_api.http.mtg.routes_commands import create_command_routes
 from spellbook_api.http.router import RouteRegistry
 
 ORIGIN = "https://spellbook.test"
@@ -47,15 +49,41 @@ def target() -> Iterator[tuple[TestClient, Any, Any, Any]]:
         yield client, auth, inventory, decks
 
 
+INPUTS: dict[str, dict[str, object]] = {
+    "inventory.add": dict(
+        requestId="requestId",
+        catalogCardId="catalogCardId",
+        finish="finish",
+        condition="condition",
+        quantity=2,
+    ),
+    "inventory.patchEntry": dict(requestId="requestId", entryId="entryId"),
+    "inventory.remove": dict(requestId="requestId", entryId="entryId", expectedQuantity=2),
+    "decks.createRecord": dict(
+        game="mtg", name="name", description="description", format="format"
+    ),
+    "decks.addCatalogCard": dict(
+        deckId="deckId",
+        catalogCardId="catalogCardId",
+        quantity=2,
+        role="role",
+        requestId="requestId",
+    ),
+    "decks.changePrinting": dict(
+        entryId="entryId",
+        catalogCardId="catalogCardId",
+        quantity=2,
+        role="role",
+        requestId="requestId",
+    ),
+    "decks.updateCard": dict(entryId="entryId", requestId="requestId"),
+    "decks.removeCard": dict(entryId="entryId", requestId="requestId"),
+    "decks.importInto": dict(deckId="deckId", text="text", requestId="requestId"),
+}
+
+
 def input_for(operation: str) -> dict[str, object]:
-    value: dict[str, object] = {
-        key: 2 if kind == "number" else key
-        for key, kind in FIELDS[operation].items()
-        if not kind.endswith("?")
-    }
-    if operation == "decks.createRecord":
-        value["game"] = "mtg"
-    return value
+    return dict(INPUTS[operation])
 
 
 @pytest.mark.parametrize("mode", ["cookie", "bearer"])
@@ -100,7 +128,7 @@ def test_each_command_preserves_original_input_and_receipt(
         handler.assert_awaited_once_with(ACTOR, expected)
 
 
-@pytest.mark.parametrize("operation", FIELDS)
+@pytest.mark.parametrize("operation", INPUTS)
 @pytest.mark.parametrize("field", ["source", "actor", "accountId", "unknown"])
 def test_commands_reject_caller_authority_and_unknown_fields(
     target: tuple[TestClient, Any, Any, Any], operation: str, field: str
@@ -110,7 +138,7 @@ def test_commands_reject_caller_authority_and_unknown_fields(
         PATH, json={"operation": operation, "input": {**input_for(operation), field: "forged"}}
     )
     assert response.status_code == 400
-    assert response.json()["message"] == "Unsupported web command input fields"
+    assert response.json() == {"status": 400, "message": "Invalid web command"}
 
 
 def test_cookie_identity_origin_and_failure_order(
@@ -170,3 +198,146 @@ def test_conflict_mapping_and_cookie_cleanup(target: tuple[TestClient, Any, Any,
     assert response.headers.get_list("set-cookie") == [
         "spellbook_session=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax; Secure"
     ]
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {},
+        {"operation": "unknown", "input": {}},
+        {"operation": 1, "input": {}},
+        {"operation": "inventory.remove"},
+        {"operation": "inventory.remove", "input": []},
+        {"operation": "inventory.remove", "input": None},
+        {"operation": "inventory.remove", "input": INPUTS["inventory.remove"], "actor": "forged"},
+        {
+            "operation": "decks.createRecord",
+            "input": {**INPUTS["decks.createRecord"], "game": "other"},
+        },
+    ],
+)
+def test_invalid_envelopes_use_safe_error_response(
+    target: tuple[TestClient, Any, Any, Any], body: object
+) -> None:
+    client, _, inventory, decks = target
+    response = client.post(PATH, json=body)
+    assert response.status_code == 400
+    assert response.json() == {"status": 400, "message": "Invalid web command"}
+    assert not inventory.mock_calls and not decks.mock_calls
+
+
+@pytest.mark.parametrize(
+    "operation,field",
+    [(operation, field) for operation, fields in INPUTS.items() for field in fields],
+)
+@pytest.mark.parametrize("mode", ["missing", "null", "wrong-type"])
+def test_required_fields_are_strict_and_never_defaulted(
+    target: tuple[TestClient, Any, Any, Any], operation: str, field: str, mode: str
+) -> None:
+    client, _, inventory, decks = target
+    value = input_for(operation)
+    if mode == "missing":
+        del value[field]
+    else:
+        value[field] = None if mode == "null" else False
+    response = client.post(PATH, json={"operation": operation, "input": value})
+    assert response.status_code == 400
+    assert response.json() == {"status": 400, "message": "Invalid web command"}
+    assert not inventory.mock_calls and not decks.mock_calls
+
+
+OPTIONAL_INPUTS: list[tuple[str, str, dict[str, object]]] = [
+    ("inventory.add", "add", dict(notes="", notesRevision="7")),
+    (
+        "inventory.patchEntry",
+        "patch_entry",
+        dict(quantity=0, delta=-2.5, notes="", notesRevision="8"),
+    ),
+    ("decks.changePrinting", "change_deck_printing", dict(categoryPreview="preview")),
+    (
+        "decks.updateCard",
+        "update_deck_card",
+        dict(quantity=0, delta=-2.5, role="", categoryPreview=""),
+    ),
+]
+
+
+@pytest.mark.parametrize("operation,method,optional", OPTIONAL_INPUTS)
+def test_optional_values_reach_core_without_normalization(
+    target: tuple[TestClient, Any, Any, Any],
+    operation: str,
+    method: str,
+    optional: dict[str, object],
+) -> None:
+    client, _, inventory, decks = target
+    handler = getattr(inventory if operation.startswith("inventory.") else decks, method)
+    handler.return_value = {"requestId": "receipt"}
+    value = {**input_for(operation), **optional}
+    response = client.post(PATH, json={"operation": operation, "input": value})
+    assert response.status_code == 200
+    if operation == "decks.updateCard":
+        handler.assert_awaited_once_with(ACTOR, "entryId", 0, "", "requestId", -2.5, "web", "")
+    else:
+        expected = {**value, "source": "web"} if operation.startswith("inventory.") else value
+        handler.assert_awaited_once_with(ACTOR, expected)
+
+
+@pytest.mark.parametrize(
+    "operation,field",
+    [(operation, field) for operation, _, fields in OPTIONAL_INPUTS for field in fields],
+)
+def test_optional_keys_accept_absence_but_reject_null(
+    target: tuple[TestClient, Any, Any, Any], operation: str, field: str
+) -> None:
+    client, _, inventory, decks = target
+    value = {**input_for(operation), field: None}
+    response = client.post(PATH, json={"operation": operation, "input": value})
+    assert response.status_code == 400
+    assert not inventory.mock_calls and not decks.mock_calls
+
+
+@pytest.mark.parametrize("number", ["NaN", "Infinity", "-Infinity", "1e999"])
+def test_nonfinite_command_numbers_are_rejected(
+    target: tuple[TestClient, Any, Any, Any], number: str
+) -> None:
+    client, _, inventory, _ = target
+    response = client.post(
+        PATH,
+        content='{"operation":"inventory.remove","input":'
+        '{"requestId":"r","entryId":"e","expectedQuantity":' + number + "}}",
+        headers={"content-type": "application/json"},
+    )
+    assert response.status_code == 400
+    inventory.remove.assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    "cause,status,body",
+    [
+        (DeckNotFoundError(), 404, {"kind": "NotFound"}),
+        (
+            CategoryMergeConflict({"required": True}),
+            409,
+            {"kind": "CategoryMergeConflict", "preview": {"required": True}},
+        ),
+        (CategoryUnavailable(), 503, {"kind": "CategoryUnavailable"}),
+        (RuntimeError("private database details"), 500, {}),
+    ],
+)
+def test_command_domain_errors_use_central_public_mapping(
+    target: tuple[TestClient, Any, Any, Any],
+    cause: Exception,
+    status: int,
+    body: dict[str, object],
+) -> None:
+    client, _, _, decks = target
+    decks.remove_deck_card.side_effect = cause
+    response = client.post(
+        PATH, json={"operation": "decks.removeCard", "input": input_for("decks.removeCard")}
+    )
+    assert response.status_code == status
+    assert response.json() == {
+        "status": status,
+        "message": "Internal Server Error" if status == 500 else str(cause),
+        **body,
+    }

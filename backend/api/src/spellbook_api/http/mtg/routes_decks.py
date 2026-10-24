@@ -4,14 +4,8 @@ from collections.abc import Awaitable, Callable
 
 from spellbook_core.auth import SessionAuth
 from spellbook_core.errors import ValidationError
-from spellbook_core.mtg.categories import (
-    CategoryMergeConflict,
-    CategoryNotFound,
-    CategoryUnavailable,
-)
-from spellbook_core.mtg.decks import DeckLibraryRevisionChanged, Decks
+from spellbook_core.mtg.decks import Decks
 from spellbook_core.mtg.decks.library import parse_library_input
-from spellbook_core.mtg.errors import DeckNotFoundError
 from spellbook_core.validation import (
     DECK_SOURCES,
     MISSING,
@@ -64,18 +58,6 @@ def library_input(request: Request) -> dict[str, object]:
         return {**result, **normalized}
     except ValidationError, HttpError:
         raise HttpError(400, "Invalid Deck Library query") from None
-
-
-def deck_http_error(cause: Exception) -> HttpError:
-    if isinstance(cause, DeckLibraryRevisionChanged):
-        return HttpError(409, dict(kind="RevisionChanged", message=str(cause)))
-    if isinstance(cause, (DeckNotFoundError, CategoryNotFound)):
-        return HttpError(404, dict(kind="NotFound", message=str(cause)))
-    if isinstance(cause, CategoryMergeConflict):
-        return HttpError(409, dict(kind=cause.kind, message=str(cause), preview=cause.preview))
-    if isinstance(cause, CategoryUnavailable):
-        return HttpError(503, dict(kind=cause.kind, message=str(cause)))
-    raise cause
 
 
 def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> list[HttpRoute]:
@@ -321,21 +303,6 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> list[Htt
             headers={"content-type": "text/plain; charset=utf-8"},
         )
 
-    def handle(handler: Handler) -> Handler:
-        async def wrapped(request: Request, params: dict[str, str]) -> Response:
-            try:
-                return await handler(request, params)
-            except (
-                DeckNotFoundError,
-                DeckLibraryRevisionChanged,
-                CategoryMergeConflict,
-                CategoryNotFound,
-                CategoryUnavailable,
-            ) as cause:
-                raise deck_http_error(cause) from cause
-
-        return wrapped
-
     base = "/api/v1/mtg"
     definitions: list[tuple[str, str, Handler]] = [
         ("GET", "/deck-library", library),
@@ -358,6 +325,4 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> list[Htt
         ("POST", "/decks/:deckId/cards/bulk", bulk),
         ("GET", "/decks/:deckId/export", export),
     ]
-    return [
-        HttpRoute(method, base + path, handle(handler)) for method, path, handler in definitions
-    ]
+    return [HttpRoute(method, base + path, handler) for method, path, handler in definitions]
