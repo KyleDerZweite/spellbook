@@ -20,20 +20,17 @@ from psycopg.conninfo import conninfo_to_dict
 from psycopg.types.json import Jsonb
 
 from spellbook_core.auth import SessionAuth, create_session_auth, hash_session_token
-from spellbook_core.catalog import Catalog, create_catalog
-from spellbook_core.categories import CategoryMergeConflict, create_categories
-from spellbook_core.categories.common import category_transaction
 from spellbook_core.db import ConnectionPool
-from spellbook_core.decks import Decks, create_decks
-from spellbook_core.decks.common import first
-from spellbook_core.decks.library import DeckLibraryRevisionChanged
-from spellbook_core.errors import (
-    ActorError,
-    DeckNotFoundError,
-    DescriptionConflictError,
-    RequestConflictError,
-)
-from spellbook_core.models import Actor, CardDocument
+from spellbook_core.errors import ActorError, RequestConflictError
+from spellbook_core.models import Actor
+from spellbook_core.mtg.catalog import Catalog, create_catalog
+from spellbook_core.mtg.categories import CategoryMergeConflict, create_categories
+from spellbook_core.mtg.categories.common import category_transaction
+from spellbook_core.mtg.decks import Decks, create_decks
+from spellbook_core.mtg.decks.common import first
+from spellbook_core.mtg.decks.library import DeckLibraryRevisionChanged
+from spellbook_core.mtg.errors import DeckNotFoundError, DescriptionConflictError
+from spellbook_core.mtg.models import CardDocument
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("DECK_NATIVE_DATABASE"),

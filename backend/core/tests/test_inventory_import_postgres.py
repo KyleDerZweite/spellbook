@@ -20,7 +20,7 @@ from test_inventory import (
 
 from spellbook_core.db import transaction
 from spellbook_core.errors import ActorError, RequestConflictError, ValidationError
-from spellbook_core.models import CardDocument
+from spellbook_core.mtg.models import CardDocument
 
 
 def exact_line(quantity: int = 2, card: CardDocument = CARD) -> str:

@@ -2,7 +2,9 @@
 
 from collections.abc import Mapping
 
-from spellbook_core.categories.common import (
+from spellbook_core.errors import ActorError, AuthError, RequestConflictError, ValidationError
+from spellbook_core.fingerprint import serialize_json
+from spellbook_core.mtg.categories.common import (
     CategoryConflict,
     CategoryMergeConflict,
     CategoryNotFound,
@@ -11,21 +13,16 @@ from spellbook_core.categories.common import (
     CategoryUnavailable,
     LibraryConflict,
 )
-from spellbook_core.decks import DeckLibraryRevisionChanged
-from spellbook_core.errors import (
-    ActorError,
-    AuthError,
+from spellbook_core.mtg.decks import DeckLibraryRevisionChanged
+from spellbook_core.mtg.errors import (
     DeckNotFoundError,
     DescriptionConflictError,
     InventoryCountError,
     InventoryNotFoundError,
     InventoryQuantityChangedError,
     NotesConflictError,
-    RequestConflictError,
-    ValidationError,
 )
-from spellbook_core.fingerprint import serialize_json
-from spellbook_core.profile import SummaryRangeError
+from spellbook_core.mtg.profile import SummaryRangeError
 from starlette.responses import JSONResponse, Response
 
 

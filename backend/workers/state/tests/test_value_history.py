@@ -6,8 +6,8 @@ from unittest.mock import patch
 
 import pytest
 from spellbook_core.db import ConnectionPool
-from spellbook_core.inventory_value import InventoryValues
-from spellbook_core.value_history import CaptureResult
+from spellbook_core.mtg.inventory_value import InventoryValues
+from spellbook_core.mtg.value_history import CaptureResult
 
 from spellbook_state.value_history import ValueHistoryRunner
 

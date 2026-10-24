@@ -23,17 +23,18 @@ from test_inventory import (
 )
 
 from spellbook_core.auth import SessionAuth
-from spellbook_core.catalog import Catalog
 from spellbook_core.db import ConnectionPool, Transaction
-from spellbook_core.errors import (
+from spellbook_core.errors import ValidationError
+from spellbook_core.fingerprint import mutation_fingerprint
+from spellbook_core.models import Actor
+from spellbook_core.mtg.catalog import Catalog
+from spellbook_core.mtg.errors import (
     InventoryCountError,
     InventoryNotFoundError,
     InventoryQuantityChangedError,
     NotesConflictError,
-    ValidationError,
 )
-from spellbook_core.fingerprint import mutation_fingerprint
-from spellbook_core.inventory import (
+from spellbook_core.mtg.inventory import (
     Inventory,
     InventoryAcknowledgement,
     InventoryIntent,
@@ -43,13 +44,12 @@ from spellbook_core.inventory import (
     normalize_bulk_operation,
     normalize_patch,
 )
-from spellbook_core.inventory_query import (
+from spellbook_core.mtg.inventory_query import (
     inventory_query_key,
     normalize_inventory_query,
     selection,
 )
-from spellbook_core.inventory_read import _EntryRow, count, read_page
-from spellbook_core.models import Actor
+from spellbook_core.mtg.inventory_read import _EntryRow, count, read_page
 
 ACTOR = Actor("inventory-test", "test", "", "", "")
 ENTRY = "11111111-1111-4111-8111-111111111111"
@@ -427,7 +427,7 @@ def test_revision_reset_precedes_group_validation_and_uses_readonly_snapshot() -
             options.append(kwargs)
             yield cast(Transaction, tx)
 
-        with patch("spellbook_core.inventory.transaction", snapshot):
+        with patch("spellbook_core.mtg.inventory.transaction", snapshot):
             assert await inventory.page(ACTOR, {"group": GROUP}, "7") == {
                 "kind": "RevisionChanged",
                 "revision": "8",

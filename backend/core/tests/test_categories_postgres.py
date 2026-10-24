@@ -17,19 +17,19 @@ import pytest
 from psycopg.conninfo import conninfo_to_dict
 
 from spellbook_core.auth import create_session_auth, hash_session_token
-from spellbook_core.categories import (
+from spellbook_core.db import ConnectionPool
+from spellbook_core.models import Actor
+from spellbook_core.mtg.categories import (
     create_categories,
     ensure_entry_category_initialization,
     queue_whole_deck_evaluation,
 )
-from spellbook_core.categories.common import (
+from spellbook_core.mtg.categories.common import (
     CategoryNotFound,
     LibraryConflict,
     category_transaction,
 )
-from spellbook_core.categories.jobs import claim_whole_deck_job, process_whole_deck_job
-from spellbook_core.db import ConnectionPool
-from spellbook_core.models import Actor
+from spellbook_core.mtg.categories.jobs import claim_whole_deck_job, process_whole_deck_job
 
 NATIVE = pytest.mark.skipif(
     not os.environ.get("CATEGORY_NATIVE_DATABASE"),

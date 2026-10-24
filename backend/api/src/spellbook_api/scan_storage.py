@@ -14,8 +14,8 @@ from pathlib import Path
 from threading import Lock
 from typing import Protocol, cast
 
-from spellbook_core.scan import ScanImage
-from spellbook_core.scan.validation import MAX_IMAGE_BYTES, ScanError, check_image
+from spellbook_core.mtg.scan import ScanImage
+from spellbook_core.mtg.scan.validation import MAX_IMAGE_BYTES, ScanError, check_image
 
 _UUID = r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}"
 _KEY = re.compile(rf"scan-sessions/{_UUID}/{_UUID}\.(jpg|png|webp)")

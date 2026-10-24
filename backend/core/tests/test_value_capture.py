@@ -10,9 +10,9 @@ from psycopg.types.json import Jsonb
 
 from spellbook_core.auth import SessionAuth
 from spellbook_core.db import ConnectionPool, Transaction
-from spellbook_core.inventory_value import InventoryValues
-from spellbook_core.valuation import Valuation
-from spellbook_core.value_history import CaptureObservation, capture_account
+from spellbook_core.mtg.inventory_value import InventoryValues
+from spellbook_core.mtg.valuation import Valuation
+from spellbook_core.mtg.value_history import CaptureObservation, capture_account
 
 OBSERVED = datetime(2026, 10, 23, 21, 59, 30, tzinfo=UTC)
 

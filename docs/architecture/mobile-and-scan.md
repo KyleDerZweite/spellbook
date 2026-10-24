@@ -1,9 +1,9 @@
 # Mobile and scan
 
 - Status: Canonical
-- Last Reviewed: 2026-10-23
+- Last Reviewed: 2026-10-24
 - Source of Truth: code, accepted local-recognition direction, maintainer's 2026-10-15 client-scope clarification and accepted 2026-10-16 PWA/QR contract, primary documentation and the 2026-10-19 independent Android design clarification
-- Update Triggers: Python source activation and server contraction, Python Scan host assembly, adapter dependencies and retired resource gates, independent Android design direction and Figma handoff, selected Deck optional Legality projection, accepted online-first PWA and QR delivery status, paused Scan presentation, phone-image evaluation fixtures, private value history queries and calendar refresh boundaries, bounded Deck choice reads, public reference/history exception/private price reads and source precision, manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, Scan contracts and legacy replay, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, Deck wire contracts and revisions, device runtime selection, category initialization/manual decisions/merge previews, whole-deck outcomes and bounded directory revision/location, hybrid browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
+- Update Triggers: versioned MTG routes and module ownership, Python source activation and server contraction, Python Scan host assembly, adapter dependencies and retired resource gates, independent Android design direction and Figma handoff, selected Deck optional Legality projection, accepted online-first PWA and QR delivery status, paused Scan presentation, phone-image evaluation fixtures, private value history queries and calendar refresh boundaries, bounded Deck choice reads, public reference/history exception/private price reads and source precision, manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, Scan contracts and legacy replay, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, Deck wire contracts and revisions, device runtime selection, category initialization/manual decisions/merge previews, whole-deck outcomes and bounded directory revision/location, hybrid browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
 - Related Docs: [Application contract](./application-contract.md), [Frontend](./frontend.md), [Android design handoff](../product/mobile-app-exploration.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../../GLOSSARY.md), [Deployment](../operations/deployment.md), [Category rules](./category-rules.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Independent applications](./independent-applications.md), [Worker](./worker.md), [Historical P13 resource contract](https://github.com/KyleDerZweite/spellbook/issues/260), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md)
 
 Spellbook retains its web client, including the initial installable, online-first, same-origin SvelteKit PWA delivery.
@@ -93,7 +93,7 @@ This directory is not an upload endpoint, Inventory import or active recognition
 
 ## Bounded Inventory HTTP reads
 
-The accepted experimental v1 migration replaces `GET /api/mobile/v1/mtg/inventory` snapshot reads with an InventoryPage DTO.
+The accepted experimental v1 migration replaces `GET /api/v1/mtg/inventory` snapshot reads with an InventoryPage DTO.
 It accepts normalized filters/order/group plus offset and limit, defaulting to 50 with a maximum of 500.
 Supplying `revision` pins the request; drift returns HTTP 409 with `{ kind: 'RevisionChanged', revision }`.
 Entries, loaded memberships, query identity and complete counts/set/group metadata share one snapshot.
@@ -119,7 +119,7 @@ Import commits return compact resolved/unresolved/ambiguous counts; preview reta
 
 New account-scoped Group routes are `GET/POST /inventory/groups`, `PATCH/DELETE /inventory/groups/{groupId}` and `PUT /inventory/{entryId}/groups`; the latter replaces complete whole-entry membership.
 Explicit `PATCH /inventory/{entryId}/position` reorders entries.
-All relative paths use `/api/mobile/v1/mtg`.
+All relative paths use `/api/v1/mtg`.
 Unsupported Sources, enums and quantities fail with controlled 400 before SQL.
 Missing owned subjects return 404; changed request intent, stale Notes and reviewed-quantity drift return 409.
 Successful retries consume the original receipt and refetch current bounded page/detail state separately.
@@ -129,7 +129,7 @@ Scan uses the backend-owned module and compact response union described below.
 ## Implemented API boundary
 
 The independent Node API owns `/api/*` and `/openapi.json`; web forwards their public same-origin paths with streaming bodies and separate Set-Cookie headers.
-The `/api/mobile/v1/mtg/...` API exposes search, inventory, decks, import/export, and scan orchestration.
+The `/api/v1/mtg/...` API exposes search, inventory, decks, import/export, and scan orchestration.
 The account routes expose Profile read/patch, Dashboard summaries, password rotation and session inspection through the same backend use cases as Settings/Dashboard.
 [Authentication](./auth.md#account-http-contract) owns their exact contract; [route inventory](../product/routing-and-games.md) lists their paths.
 External clients authenticate with local session bearer tokens; the `/mtg/scan` workspace uses its browser cookie with origin protection on mutations.
@@ -138,7 +138,7 @@ The [HTTP module interface](./independent-applications.md#http-module-interface)
 Its [credential form contract](./independent-applications.md#authority-and-compatibility) adds three fixed raw-form routes.
 Core form/schema verification remains in progress; these additions preserve existing domain, receipt and cache semantics.
 
-Authenticated clients can read `GET /api/mobile/v1/mtg/decks/{deckId}/availability`.
+Authenticated clients can read `GET /api/v1/mtg/decks/{deckId}/availability`.
 The route checks deck ownership and reuses the shared allocation function to compare that deck with current aggregate inventory.
 Its response contains entry counts and totals for required, exact, alternate, and missing copies.
 It makes no inventory changes or cross-deck reservations.
@@ -147,14 +147,14 @@ See the [product specification](../product/specification.md#deck-availability) f
 ## Deck HTTP contract
 
 Experimental v1 Deck responses now use explicit [Deck DTOs](../../contracts/src/decks.ts), ISO timestamps and decimal revision strings.
-`GET /api/mobile/v1/mtg/decks` returns library metadata, totals and covers; optional `deck=UUID` loads one owned composition and its relevant ownership aggregates.
+`GET /api/v1/mtg/decks` returns library metadata, totals and covers; optional `deck=UUID` loads one owned composition and its relevant ownership aggregates.
 It removes the previous full `inventoryCards` and `mutationRequests` fields.
 `GET /decks/{deckId}` adds legality warnings and resolved safe documents.
 Existing paths, authentication and text export formats remain.
 
 `GET /decks/search?q=...` returns Catalog hits with account-owned aggregates.
 `GET /decks/ownership` accepts repeated `canonicalCardId` values, at most 100, and returns owned-printing quantities.
-Relative paths use `/api/mobile/v1/mtg`.
+Relative paths use `/api/v1/mtg`.
 These reads never transfer full Inventory.
 Availability keeps its existing exact-before-alternate calculation.
 
@@ -173,7 +173,7 @@ Deck aggregate results outside the safe JSON integer range fail explicitly rathe
 
 ## Deck choice read
 
-`GET /api/mobile/v1/mtg/decks/choices` uses the existing cookie or bearer authentication and delegates to backend Decks `getDeckChoices`.
+`GET /api/v1/mtg/decks/choices` uses the existing cookie or bearer authentication and delegates to backend Decks `getDeckChoices`.
 It returns `{ items, nextOffset, selected }`, with only `{ id, name, format }` in each summary and `Cache-Control: no-store`.
 It loads neither Deck entries/Description nor Inventory availability.
 Existing Deck snapshot and mutation routes retain their contracts.
@@ -288,7 +288,7 @@ Production S3 configuration remains supported; verification against an operator-
 The [OpenAPI route](../../backend/api/src/spellbook_api/http/application.py) owns wire schemas.
 Current scanner operations include:
 
-| Operation          | Route under `/api/mobile/v1/mtg`                                | Behavior                                                                               |
+| Operation          | Route under `/api/v1/mtg`                                       | Behavior                                                                               |
 | ------------------ | --------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | List sessions      | `GET /scan/sessions`                                            | Up to 100 owned sessions, newest update first                                          |
 | Read image         | `GET /scan/artifacts/{artifactId}/image`                        | The owned original image, checked as JPEG, PNG, or WebP, with `no-store` and `nosniff` |
@@ -463,7 +463,7 @@ No OCR accuracy, embedding advantage, Jetson compatibility, or robot throughput 
 
 ## Primary Deck entry category HTTP contract
 
-Authenticated `GET /api/mobile/v1/mtg/decks/{deckId}/categories` reads the JSON-safe adopted bundle, decisions and safe source status without mutation.
+Authenticated `GET /api/v1/mtg/decks/{deckId}/categories` reads the JSON-safe adopted bundle, decisions and safe source status without mutation.
 `POST /decks/{deckId}/categories/initialize` accepts only `{requestId}` and returns the original compact initialization acknowledgement.
 `PATCH /deck-cards/{entryId}/category` accepts only `{deckId, categoryId: UUID|null, expectedDecisionRevision, requestId}` and records Manual provenance.
 Ownership comes from the trusted actor; missing/foreign Deck, entry and definition identities return the same 404.
@@ -486,7 +486,7 @@ Copied participant and aggregate witnesses retain concrete variant evidence.
 
 ## Whole-deck categories and bounded directory HTTP contract
 
-Authenticated `GET /api/mobile/v1/mtg/deck-library` accepts `dirQ`, `dirFormat`, repeated `dirCategory` immutable version UUIDs, `dirSort=updated:desc|name:asc|name:desc`, `offset`, `limit=1..200` and optional `expectedRevision`.
+Authenticated `GET /api/v1/mtg/deck-library` accepts `dirQ`, `dirFormat`, repeated `dirCategory` immutable version UUIDs, `dirSort=updated:desc|name:asc|name:desc`, `offset`, `limit=1..200` and optional `expectedRevision`.
 Default limit is 40.
 `revision` is a supported expected-revision alias.
 The directory query is separate from the Web selected Deck's Catalog `q`.
@@ -526,10 +526,11 @@ Commit applies exactly the frozen complete preview after its Library, compositio
 
 ## Reference price HTTP contract
 
-Public `GET /api/mobile/v1/mtg/prices` requires one UUID `printingId` and `finish=nonfoil|foil`.
-This is an explicit public read exception under the otherwise authenticated integration prefix.
+Public `GET /api/v1/mtg/prices` requires one UUID `printingId` and `finish=nonfoil|foil`.
+This and canonical Catalog reads are explicit public operations under the MTG prefix.
+Private MTG reads and mutations retain authentication.
 No public POST batch exists without a caller need.
-Authenticated `POST /api/mobile/v1/mtg/inventory/prices` accepts only `entryIds`, 1 to 100 distinct UUIDs.
+Authenticated `POST /api/v1/mtg/inventory/prices` accepts only `entryIds`, 1 to 100 distinct UUIDs.
 Backend derives printing/finish/quantity from owned entries.
 Any missing/foreign entry produces a sanitized 404; invalid or extra fields, duplicate IDs and over-limit input produce 400.
 Cookie POST keeps the existing same-origin check; bearer authority remains session-produced.
@@ -542,7 +543,7 @@ All responses are JSON-safe and no-store.
 Responses expose enabled optional providers and bounded public market history.
 Account totals and personal history use the private Inventory value contract below.
 
-Public `GET /api/mobile/v1/mtg/prices/history` accepts one printingId/finish, optional days 1 to 90 (default 30) and repeated source filters (at most three distinct configured sources).
+Public `GET /api/v1/mtg/prices/history` accepts one printingId/finish, optional days 1 to 90 (default 30) and repeated source filters (at most three distinct configured sources).
 It returns at most 270 dated public points with actual time precision and immutable source/point digests, never private holdings.
 Invalid/extra queries return 400; operational reads return 503.
 Current reference responses include safe sourceStatuses and distinguish Instant sourceTime from Day sourceDate/asOf/freshnessPolicy.
@@ -550,8 +551,8 @@ Current reference responses include safe sourceStatuses and distinguish Instant 
 
 ## Private Inventory value HTTP contract
 
-Authenticated `GET /api/mobile/v1/mtg/inventory/value` returns the current estimate.
-`GET /api/mobile/v1/mtg/inventory/value-history` accepts `days=1..366`, default 30, or paired `from` and `to` ISO dates for at most 366 closed reporting dates.
+Authenticated `GET /api/v1/mtg/inventory/value` returns the current estimate.
+`GET /api/v1/mtg/inventory/value-history` accepts `days=1..366`, default 30, or paired `from` and `to` ISO dates for at most 366 closed reporting dates.
 These modes are mutually exclusive.
 Optional `printingId` is a UUID; `finish=nonfoil|foil` and `condition=NM|LP|MP|HP|DMG` require that printing.
 Unknown or repeated parameters, invalid dates, reversed windows and future reporting dates produce 400.

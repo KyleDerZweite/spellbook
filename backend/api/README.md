@@ -1,6 +1,6 @@
 # Python API
 
-The candidate assembles Auth/QR, Account/Profile/Dashboard, all seven Catalog adapters, sixteen Inventory/Groups/import adapters, five Valuation adapters, seven Scan adapters, seventeen Category adapters and SavedState.
+The candidate assembles Auth/QR, Account/Profile/Dashboard, four canonical Catalog adapters, sixteen Inventory/Groups/import adapters, five Valuation adapters, seven Scan adapters, seventeen Category adapters and SavedState.
 It is the normal API in the unmerged candidate, including nineteen Deck routes and all nine closed web commands.
 Root scripts, Compose and the explicit Python migrator use installed packages.
 The [migration contract](../../docs/architecture/python-backend-migration.md) owns functional acceptance and remaining integration work.
@@ -40,8 +40,10 @@ Generated framework docs/schema are disabled.
 The host uses `create_catalog_routes`, `create_inventory_routes` and `create_valuation_routes` without singleton or item-handler duplicates.
 Auth/Account/session/SavedState remain registered once.
 Inventory import preview/commit routes now use the integrated implementation.
-All factories are assembled, including `create_deck_routes` and `create_web_routes`.
-The complete registry is compared with the neutral operation inventory.
+All factories are assembled, including `create_deck_routes` and `create_command_routes`.
+Canonical methods are compared with OpenAPI; legacy aliases are compared separately with the frozen neutral inventory.
+The shared compatibility adapter derives aliases from canonical factories and preserves authentication on legacy mobile Catalog reads.
+MTG factories live in `spellbook_api.http.mtg`; shared Auth, account preferences, parsing, routing and process lifetime keep their owners.
 Web SSR/forms forward only the selected browser cookie; direct API commands retain Bearer-before-cookie selection and cookie-mode Origin protection.
 Commands reject unknown fields and delegate unchanged retry inputs to Core.
 
@@ -58,7 +60,7 @@ Auth/Account adapter tests run against the production registry with isolated app
 These PostgreSQL cases require the assigned disposable target and do not run during ordinary unit tests.
 `create_valuation` and `create_inventory_values` supply the real Dashboard dependency.
 `VALUE_HISTORY_TIMEZONE` defaults to `Europe/Berlin`, is validated before resources are constructed and configures private history reads.
-`GET /api/account/dashboard` authenticates and computes account-scoped totals, distributions, recent entries, Deck availability and optional Scan counts in one read-only repeatable-read transaction.
+`GET /api/v1/mtg/dashboard` authenticates and computes account-scoped totals, distributions, recent entries, Deck availability and optional Scan counts in one read-only repeatable-read transaction.
 Current value and thirty-day history reuse that transaction and its PostgreSQL clock.
 Savepoints isolate optional Scan/valuation failures; aggregate overflow retains the existing 503 summary error.
 The opt-in `backend/core/tests/test_dashboard_postgres.py` case covers real aggregates, exact-first Deck allocation, current/history reads and account isolation; Root owns its assigned database execution.

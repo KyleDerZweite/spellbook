@@ -10,21 +10,21 @@ import pytest
 from test_inventory import ACTOR, CARD, GOLDEN
 
 from spellbook_core.auth import SessionAuth
-from spellbook_core.catalog import Catalog
 from spellbook_core.db import ConnectionPool, Transaction
 from spellbook_core.errors import ActorError, RequestConflictError, ValidationError
-from spellbook_core.inventory import (
+from spellbook_core.mtg.catalog import Catalog
+from spellbook_core.mtg.inventory import (
     Inventory,
     InventoryAcknowledgement,
     PreparedInventoryMutation,
     RecordedInventoryMutation,
 )
-from spellbook_core.inventory_import import (
+from spellbook_core.mtg.inventory_import import (
     normalize_card_name,
     parse_arena_decklist,
     preview_inventory_import,
 )
-from spellbook_core.models import CardDocument
+from spellbook_core.mtg.models import CardDocument
 
 ACK: InventoryAcknowledgement = {
     "requestId": "original",
@@ -296,7 +296,7 @@ def test_commit_original_receipt_and_conflict_precede_all_catalog_calls(conflict
         async def stored_receipt(*args: object, **kwargs: object) -> AsyncIterator[Transaction]:
             yield cast(Transaction, tx)
 
-        with patch("spellbook_core.inventory.transaction", stored_receipt):
+        with patch("spellbook_core.mtg.inventory.transaction", stored_receipt):
             if conflict:
                 with pytest.raises(RequestConflictError):
                     await inventory.commit_import(ACTOR, {"requestId": "original", "text": "bad"})
@@ -361,7 +361,7 @@ def test_fresh_commit_uses_preparation_and_the_shared_transaction_seam() -> None
             assert ack is ACK
 
         with (
-            patch("spellbook_core.inventory.transaction", no_receipt),
+            patch("spellbook_core.mtg.inventory.transaction", no_receipt),
             patch.object(inventory, "authorize", authorize),
             patch.object(inventory, "replay", replay),
             patch.object(inventory, "apply", apply),
@@ -401,7 +401,7 @@ def test_fresh_commit_rejects_empty_unsupported_or_oversized_operations(
     async def scenario() -> None:
         inventory, _, _ = application()
         with (
-            patch("spellbook_core.inventory.transaction", no_receipt),
+            patch("spellbook_core.mtg.inventory.transaction", no_receipt),
             pytest.raises(ValidationError, match=message),
         ):
             await inventory.commit_import(ACTOR, {"requestId": "r", "text": text})

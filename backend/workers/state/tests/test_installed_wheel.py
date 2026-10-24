@@ -87,8 +87,8 @@ from importlib.metadata import distribution
 from importlib.util import find_spec
 import spellbook_state, spellbook_core
 from spellbook_state.main import Configuration, StateResources
-from spellbook_core.categories.collation import locale_sort_key
-from spellbook_core.categories.common import combo_enabled
+from spellbook_core.mtg.categories.collation import locale_sort_key
+from spellbook_core.mtg.categories.common import combo_enabled
 for package in (spellbook_state, spellbook_core):
     assert '/site-packages/' in package.__file__
 assert find_spec('spellbook_api') is None and find_spec('fastapi') is None

@@ -10,17 +10,17 @@ from fastapi import FastAPI
 from psycopg import AsyncConnection
 from psycopg_pool import AsyncConnectionPool
 from spellbook_core.auth import create_local_auth
-from spellbook_core.catalog import create_catalog
-from spellbook_core.categories import configure_combo_adapter, create_categories
-from spellbook_core.dashboard import create_dashboard
-from spellbook_core.decks import create_decks
-from spellbook_core.inventory import create_inventory
-from spellbook_core.inventory_value import create_inventory_values
+from spellbook_core.mtg.catalog import create_catalog
+from spellbook_core.mtg.categories import configure_combo_adapter, create_categories
+from spellbook_core.mtg.dashboard import create_dashboard
+from spellbook_core.mtg.decks import create_decks
+from spellbook_core.mtg.inventory import create_inventory
+from spellbook_core.mtg.inventory_value import create_inventory_values
+from spellbook_core.mtg.scan import create_scan
+from spellbook_core.mtg.valuation import create_valuation
 from spellbook_core.passwords import create_password_verifier
 from spellbook_core.profile import create_profile
 from spellbook_core.saved_state import create_saved_state
-from spellbook_core.scan import create_scan
-from spellbook_core.valuation import create_valuation
 
 from spellbook_api.http.admission import RequestAdmission
 from spellbook_api.http.application import create_http_application

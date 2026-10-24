@@ -10,14 +10,14 @@ from unittest.mock import AsyncMock, create_autospec
 import pytest
 from psycopg import AsyncConnection, sql
 
-from spellbook_core import dashboard as module
 from spellbook_core.auth import SessionAuth
-from spellbook_core.dashboard import create_dashboard, summary_number
 from spellbook_core.db import ConnectionPool, Transaction
 from spellbook_core.errors import ActorError
-from spellbook_core.inventory_value import InventoryValues
 from spellbook_core.models import Actor
-from spellbook_core.profile import SummaryRangeError
+from spellbook_core.mtg import dashboard as module
+from spellbook_core.mtg.dashboard import create_dashboard, summary_number
+from spellbook_core.mtg.inventory_value import InventoryValues
+from spellbook_core.mtg.profile import SummaryRangeError
 
 ACTOR = Actor("account-one", "one", "", "wizard", "grove")
 NOW = datetime(2026, 10, 25, 1, 30, tzinfo=UTC)

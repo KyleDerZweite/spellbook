@@ -6,10 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from spellbook_core.categories.collation import locale_sort_key
-from spellbook_core.categories.combo import ComboFacts, evaluate_combo_variants
-from spellbook_core.categories.common import Document
-from spellbook_core.categories.rules import evaluate_deck_rule
+from spellbook_core.mtg.categories.collation import locale_sort_key
+from spellbook_core.mtg.categories.combo import ComboFacts, evaluate_combo_variants
+from spellbook_core.mtg.categories.common import Document
+from spellbook_core.mtg.categories.rules import evaluate_deck_rule
 
 # Exact recorded variant from frontend/tests/unit/combo-matcher.test.ts,
 # official variant 2850-4186, retrieved 2026-10-08.

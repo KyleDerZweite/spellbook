@@ -10,24 +10,7 @@ from unittest.mock import AsyncMock, create_autospec, patch
 import pytest
 
 from spellbook_core.auth import SessionAuth
-from spellbook_core.catalog import Catalog
-from spellbook_core.categories import CategoryMergeConflict
 from spellbook_core.db import ConnectionPool, Transaction
-from spellbook_core.decks import create_decks
-from spellbook_core.decks.common import normalize_operations
-from spellbook_core.decks.library import (
-    DeckLibraryRevisionChanged,
-    next_deck_choice_offset,
-    parse_library_input,
-)
-from spellbook_core.decks.models import DeckAcknowledgement, DeckCard, Document, OwnedPrinting
-from spellbook_core.decks.mutation import apply_operation
-from spellbook_core.decks.rules import (
-    allocate_deck_availability,
-    canonical_quantities,
-    format_arena_decklist,
-    legality_warnings,
-)
 from spellbook_core.errors import (
     ActorError,
     DatabaseIntegerRangeError,
@@ -35,8 +18,26 @@ from spellbook_core.errors import (
     ValidationError,
 )
 from spellbook_core.fingerprint import mutation_fingerprint
-from spellbook_core.models import Actor, CardDocument
-from spellbook_core.valuation import Valuation
+from spellbook_core.models import Actor
+from spellbook_core.mtg.catalog import Catalog
+from spellbook_core.mtg.categories import CategoryMergeConflict
+from spellbook_core.mtg.decks import create_decks
+from spellbook_core.mtg.decks.common import normalize_operations
+from spellbook_core.mtg.decks.library import (
+    DeckLibraryRevisionChanged,
+    next_deck_choice_offset,
+    parse_library_input,
+)
+from spellbook_core.mtg.decks.models import DeckAcknowledgement, DeckCard, Document, OwnedPrinting
+from spellbook_core.mtg.decks.mutation import apply_operation
+from spellbook_core.mtg.decks.rules import (
+    allocate_deck_availability,
+    canonical_quantities,
+    format_arena_decklist,
+    legality_warnings,
+)
+from spellbook_core.mtg.models import CardDocument
+from spellbook_core.mtg.valuation import Valuation
 
 ENTRY = "11111111-1111-4111-8111-111111111111"
 DECK = "22222222-2222-4222-8222-222222222222"
@@ -212,7 +213,7 @@ def test_decrement_floor_is_transactional_and_removal_is_explicit(
     async def scenario() -> None:
         tx = cast(Transaction, AsyncMock())
         entry = dict(id=ENTRY, catalog_card_id=PRINTING, role="main", quantity=2)
-        with patch("spellbook_core.decks.mutation.first", AsyncMock(return_value=entry)):
+        with patch("spellbook_core.mtg.decks.mutation.first", AsyncMock(return_value=entry)):
             applied = await apply_operation(
                 tx,
                 "owner",
@@ -247,10 +248,11 @@ def test_category_merge_requires_current_preview_before_mutating_destination() -
         destination = {**source, "id": "destination", "role": "sideboard", "quantity": 3}
         with (
             patch(
-                "spellbook_core.decks.mutation.first", AsyncMock(side_effect=[source, destination])
+                "spellbook_core.mtg.decks.mutation.first",
+                AsyncMock(side_effect=[source, destination]),
             ),
             patch(
-                "spellbook_core.decks.mutation.require_category_merge_preview",
+                "spellbook_core.mtg.decks.mutation.require_category_merge_preview",
                 AsyncMock(side_effect=CategoryMergeConflict(dict(required=True))),
             ),
             pytest.raises(CategoryMergeConflict),
@@ -268,11 +270,11 @@ def test_category_merge_requires_current_preview_before_mutating_destination() -
         saved = {**destination, "quantity": 5}
         with (
             patch(
-                "spellbook_core.decks.mutation.first",
+                "spellbook_core.mtg.decks.mutation.first",
                 AsyncMock(side_effect=[source, destination, saved]),
             ),
             patch(
-                "spellbook_core.decks.mutation.require_category_merge_preview", AsyncMock()
+                "spellbook_core.mtg.decks.mutation.require_category_merge_preview", AsyncMock()
             ) as preview,
         ):
             result = await apply_operation(
@@ -335,11 +337,11 @@ def test_original_and_legacy_receipts_precede_catalog_and_deck_lookups() -> None
             request_hash=mutation_fingerprint(normalized), acknowledgement=ack, deck_id=DECK
         )
         with (
-            patch("spellbook_core.decks.mutation.category_transaction", context),
-            patch("spellbook_core.decks.mutation.first", AsyncMock(return_value=receipt)),
-            patch("spellbook_core.decks.mutation.require_deck", AsyncMock()) as require,
+            patch("spellbook_core.mtg.decks.mutation.category_transaction", context),
+            patch("spellbook_core.mtg.decks.mutation.first", AsyncMock(return_value=receipt)),
+            patch("spellbook_core.mtg.decks.mutation.require_deck", AsyncMock()) as require,
             patch(
-                "spellbook_core.decks.mutation.read_transaction_catalog_printing", AsyncMock()
+                "spellbook_core.mtg.decks.mutation.read_transaction_catalog_printing", AsyncMock()
             ) as catalog,
         ):
             assert await decks.bulk_mutate_deck_cards(ACTOR, input) == ack
@@ -405,24 +407,24 @@ def test_mutation_receipt_revision_and_category_effects_are_atomic(
 
         entry = dict(id=ENTRY, catalog_card_id=PRINTING, role="main", quantity=2)
         with (
-            patch("spellbook_core.decks.mutation.category_transaction", context),
+            patch("spellbook_core.mtg.decks.mutation.category_transaction", context),
             patch(
-                "spellbook_core.decks.mutation.require_deck",
+                "spellbook_core.mtg.decks.mutation.require_deck",
                 AsyncMock(return_value=dict(id=DECK, composition_revision=1)),
             ),
             patch(
-                "spellbook_core.decks.mutation.first",
+                "spellbook_core.mtg.decks.mutation.first",
                 AsyncMock(side_effect=[{}, entry, dict(decision_revision="4")]),
             ),
             patch(
-                "spellbook_core.decks.mutation.rows",
+                "spellbook_core.mtg.decks.mutation.rows",
                 AsyncMock(return_value=[dict(entry_id=ENTRY)]),
             ),
             patch(
-                "spellbook_core.decks.mutation.queue_whole_deck_evaluation", AsyncMock()
+                "spellbook_core.mtg.decks.mutation.queue_whole_deck_evaluation", AsyncMock()
             ) as queue,
             patch(
-                "spellbook_core.decks.mutation.advance_deck_library_revision", AsyncMock()
+                "spellbook_core.mtg.decks.mutation.advance_deck_library_revision", AsyncMock()
             ) as advance,
         ):
             result = await decks.bulk_mutate_deck_cards(
@@ -476,13 +478,13 @@ def test_optional_deck_valuation_failure_rolls_back_savepoint_and_keeps_snapshot
             updated_at=NOW,
         )
         with (
-            patch("spellbook_core.decks.read.transaction", context),
-            patch("spellbook_core.decks.read.first", AsyncMock(return_value=dict(as_of=NOW))),
-            patch("spellbook_core.decks.read.rows", AsyncMock(side_effect=[[deck], []])),
-            patch("spellbook_core.decks.read.read_cards", AsyncMock(return_value=[])),
-            patch("spellbook_core.decks.read.owned", AsyncMock(return_value=[])),
+            patch("spellbook_core.mtg.decks.read.transaction", context),
+            patch("spellbook_core.mtg.decks.read.first", AsyncMock(return_value=dict(as_of=NOW))),
+            patch("spellbook_core.mtg.decks.read.rows", AsyncMock(side_effect=[[deck], []])),
+            patch("spellbook_core.mtg.decks.read.read_cards", AsyncMock(return_value=[])),
+            patch("spellbook_core.mtg.decks.read.owned", AsyncMock(return_value=[])),
             patch(
-                "spellbook_core.decks.read.deck_value_estimates",
+                "spellbook_core.mtg.decks.read.deck_value_estimates",
                 AsyncMock(side_effect=RuntimeError("optional price SQL failed")),
             ),
         ):
@@ -525,9 +527,9 @@ def test_catalog_add_replay_ignores_caller_presentation_and_skips_catalog_resolu
             requestId="retry", deckId=DECK, revision="1", changes=[], removedEntryIds=[]
         )
         with (
-            patch("spellbook_core.decks.mutation.category_transaction", context),
+            patch("spellbook_core.mtg.decks.mutation.category_transaction", context),
             patch(
-                "spellbook_core.decks.mutation.first",
+                "spellbook_core.mtg.decks.mutation.first",
                 AsyncMock(
                     return_value=dict(
                         request_hash=mutation_fingerprint(intent),
@@ -536,7 +538,7 @@ def test_catalog_add_replay_ignores_caller_presentation_and_skips_catalog_resolu
                 ),
             ),
             patch(
-                "spellbook_core.decks.mutation.read_transaction_catalog_printing", AsyncMock()
+                "spellbook_core.mtg.decks.mutation.read_transaction_catalog_printing", AsyncMock()
             ) as resolver,
         ):
             assert (

@@ -17,23 +17,25 @@ from spellbook_core.auth import (
     hash_session_token,
     valid_session_token,
 )
-from spellbook_core.catalog import create_catalog, printing_dto
 from spellbook_core.db import ConnectionPool, Transaction, database_integer, iso_timestamp
 from spellbook_core.errors import (
     ActorError,
     AuthError,
-    CatalogPrintingNotFoundError,
     DatabaseIntegerRangeError,
-    DeckNotFoundError,
-    DescriptionConflictError,
-    InventoryNotFoundError,
-    InventoryQuantityChangedError,
-    NotesConflictError,
     RequestConflictError,
     ValidationError,
 )
 from spellbook_core.fingerprint import mutation_fingerprint, serialize_mutation
 from spellbook_core.models import Actor, SessionInfo
+from spellbook_core.mtg.catalog import create_catalog, printing_dto
+from spellbook_core.mtg.errors import (
+    CatalogPrintingNotFoundError,
+    DeckNotFoundError,
+    DescriptionConflictError,
+    InventoryNotFoundError,
+    InventoryQuantityChangedError,
+    NotesConflictError,
+)
 from spellbook_core.validation import (
     INVENTORY_SOURCES,
     MISSING,

@@ -7,30 +7,31 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from spellbook_core.auth import LocalAuth, SessionAuth
-from spellbook_core.catalog import Catalog
-from spellbook_core.categories import Categories
-from spellbook_core.dashboard import Dashboard
-from spellbook_core.decks import Decks
-from spellbook_core.inventory import Inventory
+from spellbook_core.mtg.catalog import Catalog
+from spellbook_core.mtg.categories import Categories
+from spellbook_core.mtg.dashboard import Dashboard
+from spellbook_core.mtg.decks import Decks
+from spellbook_core.mtg.inventory import Inventory
+from spellbook_core.mtg.scan import Scan
+from spellbook_core.mtg.valuation import Valuation
 from spellbook_core.profile import Profile
-from spellbook_core.scan import Scan
-from spellbook_core.valuation import Valuation
 from starlette.responses import Response
 from starlette.routing import Route
 
-from spellbook_api.http import (
-    routes_account,
-    routes_auth,
+from spellbook_api.http import routes_account, routes_auth
+from spellbook_api.http.admission import RequestAdmission
+from spellbook_api.http.compatibility import compatibility_methods, compatibility_routes
+from spellbook_api.http.errors import json_response
+from spellbook_api.http.mtg import (
     routes_catalog,
     routes_categories,
+    routes_commands,
+    routes_dashboard,
     routes_decks,
     routes_inventory,
     routes_scan,
     routes_valuation,
-    routes_web,
 )
-from spellbook_api.http.admission import RequestAdmission
-from spellbook_api.http.errors import json_response
 from spellbook_api.http.router import (
     HttpRoute,
     RawPathRouting,
@@ -89,13 +90,11 @@ def create_http_application(
 
         routes.extend(
             [
-                HttpRoute("GET", "/api/auth/session", session),
-                HttpRoute("GET", "/api/account/events", events),
+                HttpRoute("GET", "/api/v1/auth/session", session),
+                HttpRoute("GET", "/api/v1/account/events", events),
             ]
         )
-        routes.extend(
-            routes_catalog.create_catalog_routes(auth, catalog, configuration.public_origin)
-        )
+        routes.extend(routes_catalog.create_catalog_routes(catalog))
         routes.extend(
             routes_inventory.create_inventory_routes(auth, inventory, configuration.public_origin)
         )
@@ -120,7 +119,9 @@ def create_http_application(
             raise ValueError("Deck and web routes require Auth and Inventory")
         routes.extend(routes_decks.create_deck_routes(auth, decks, configuration.public_origin))
         routes.extend(
-            routes_web.create_web_routes(auth, inventory, decks, configuration.public_origin)
+            routes_commands.create_command_routes(
+                auth, inventory, decks, configuration.public_origin
+            )
         )
     if isinstance(auth, LocalAuth):
         routes.extend(
@@ -135,13 +136,18 @@ def create_http_application(
                     profile,
                     configuration.public_origin,
                     configuration.trusted_proxy_addresses,
-                    dashboard=dashboard,
                 )
             )
     elif profile is not None or dashboard is not None:
         raise ValueError("Account routes require LocalAuth")
     if dashboard is not None and profile is None:
         raise ValueError("Dashboard routes require Profile")
+    if dashboard is not None:
+        assert auth is not None
+        routes.extend(
+            routes_dashboard.create_dashboard_routes(auth, dashboard, configuration.public_origin)
+        )
+    routes.extend(compatibility_routes(routes, auth, configuration.public_origin))
     declared = {
         re.sub(r"\{([^}]+)\}", r":\1", path): tuple(
             method.upper()
@@ -150,6 +156,7 @@ def create_http_application(
         )
         for path, item in schema["paths"].items()
     }
+    declared.update(compatibility_methods(declared))
     http.router.routes.append(
         Route(
             "/{path:path}",

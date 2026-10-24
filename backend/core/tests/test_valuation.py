@@ -11,15 +11,15 @@ import pytest
 from spellbook_core.auth import SessionAuth
 from spellbook_core.db import ConnectionPool, Transaction
 from spellbook_core.errors import DatabaseIntegerRangeError, ValidationError
-from spellbook_core.inventory_value import history_request, value_estimate
-from spellbook_core.valuation import (
+from spellbook_core.mtg.inventory_value import history_request, value_estimate
+from spellbook_core.mtg.valuation import (
     PriceReadUnavailable,
     Valuation,
     choose_reference,
     price_requests,
     reference_freshness,
 )
-from spellbook_core.valuation_query import (
+from spellbook_core.mtg.valuation_query import (
     BASELINE_ROWS,
     OPTIONAL_ROWS,
     Document,

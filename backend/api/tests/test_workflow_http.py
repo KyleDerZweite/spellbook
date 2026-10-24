@@ -19,16 +19,17 @@ import uvicorn
 from native_inventory import NATIVE, NativeInventory, native_fixture
 from spellbook_core.auth import SessionAuth
 from spellbook_core.db import transaction
-from spellbook_core.errors import NotesConflictError, RequestConflictError
-from spellbook_core.inventory import Inventory
+from spellbook_core.errors import RequestConflictError
 from spellbook_core.models import Actor
+from spellbook_core.mtg.errors import NotesConflictError
+from spellbook_core.mtg.inventory import Inventory
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from spellbook_api.http.auth import require_form_origin, stale_session_cookie
 from spellbook_api.http.errors import HttpError, error_response
-from spellbook_api.http.routes_inventory import add_items, get_entry
+from spellbook_api.http.mtg.routes_inventory import add_items, get_entry
 
 ORIGIN = "https://spellbook.test"
 ACTOR = Actor("component-account", "component", "", "", "")

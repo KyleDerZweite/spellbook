@@ -22,16 +22,13 @@ from psycopg.conninfo import conninfo_to_dict
 from psycopg.types.json import Jsonb
 
 from spellbook_core.auth import SessionAuth, create_session_auth, hash_session_token
-from spellbook_core.catalog import Catalog, create_catalog
 from spellbook_core.db import ConnectionPool, Transaction, transaction
-from spellbook_core.errors import (
-    ActorError,
-    NotesConflictError,
-    RequestConflictError,
-    ValidationError,
-)
+from spellbook_core.errors import ActorError, RequestConflictError, ValidationError
 from spellbook_core.fingerprint import mutation_fingerprint, serialize_mutation
-from spellbook_core.inventory import (
+from spellbook_core.models import Actor
+from spellbook_core.mtg.catalog import Catalog, create_catalog
+from spellbook_core.mtg.errors import NotesConflictError
+from spellbook_core.mtg.inventory import (
     Inventory,
     InventoryIntent,
     PreparedInventoryMutation,
@@ -39,7 +36,7 @@ from spellbook_core.inventory import (
     create_inventory,
     normalize_add,
 )
-from spellbook_core.models import Actor, CardDocument
+from spellbook_core.mtg.models import CardDocument
 from spellbook_core.validation import MISSING, js_utf8
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -96,7 +93,7 @@ def test_every_golden_receipt_uses_prepare_before_catalog(vector: dict[str, Any]
         intent = InventoryIntent(
             "11111111-1111-4111-8111-111111111111", "web", (normalize_add(operation()),)
         )
-        with patch("spellbook_core.inventory.transaction", unit_transaction):
+        with patch("spellbook_core.mtg.inventory.transaction", unit_transaction):
             if vector.get("conflict"):
                 with pytest.raises(RequestConflictError):
                     await inventory.prepare(ACTOR, intent, vector["incomingHash"])
@@ -673,7 +670,7 @@ def test_native_readback_snapshot_memberships_account_and_no_creation() -> None:
                         await resume.wait()
                     yield tx
 
-            with patch("spellbook_core.inventory.transaction", observed):
+            with patch("spellbook_core.mtg.inventory.transaction", observed):
                 pending = asyncio.create_task(inventory.get_entry(actor, entry_id))
                 try:
                     await asyncio.wait_for(entered.wait(), 2)

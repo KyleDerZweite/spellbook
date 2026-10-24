@@ -1,9 +1,9 @@
 # Spellbook documentation
 
 - Status: Canonical
-- Last Reviewed: 2026-10-23
+- Last Reviewed: 2026-10-24
 - Source of Truth: mixed
-- Update Triggers: Python runtime activation and Node source/test contraction, Python functional migration acceptance and supersession, sentence-per-line authoring and review-date semantics, independent API/web ownership and relocated code references, document ownership, product contracts, section changes, documentation health review
+- Update Triggers: versioned shared/MTG API and module ownership, Python runtime activation and Node source/test contraction, Python functional migration acceptance and supersession, sentence-per-line authoring and review-date semantics, independent API/web ownership and relocated code references, document ownership, product contracts, section changes, documentation health review
 - Related Docs: [Product](./product/README.md), [Architecture](./architecture/README.md), [Operations](./operations/README.md), [Integrations](./integrations/README.md), [Decisions](./decisions/README.md), [Reference](./reference/README.md), [Issue labels](./ISSUE_LABELS.md)
 
 Start with the [product specification](./product/specification.md) for current behavior, requirements, and known limits.
@@ -17,6 +17,7 @@ The code, tests, and configuration resolve implementation questions.
 The [Python migration contract](./architecture/python-backend-migration.md) and [ADR-0027](./decisions/0027-python-functional-migration-acceptance.md) own functional porting acceptance, retired strict resource gates and the complete unmerged candidate.
 Production operations remain separate.
 
+[ADR-0028](./decisions/0028-versioned-game-api.md) owns the canonical versioned shared/MTG API and direct legacy aliases.
 The [independent applications contract](./architecture/independent-applications.md) owns the accepted web/API/Android split and implementation status.
 [Deployment](./operations/deployment.md#independent-build-and-start) owns separate runtime commands; [verification](./operations/github-automation.md) owns current-artifact evidence and unavailable native checks.
 

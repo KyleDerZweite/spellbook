@@ -3,7 +3,7 @@
 	"info": {
 		"title": "Spellbook OpenAPI Schema",
 		"version": "0.1.0",
-		"description": "Spellbook local account authentication and the versioned MTG API. API mutations affect the authenticated account only."
+		"description": "Spellbook shared account authentication and the versioned MTG API. API mutations affect the authenticated account only. Previous API paths remain direct compatibility aliases with their original access policies."
 	},
 	"servers": [
 		{
@@ -11,7 +11,7 @@
 		}
 	],
 	"paths": {
-		"/api/mobile/v1/mtg/prices": {
+		"/api/v1/mtg/prices": {
 			"get": {
 				"summary": "Read a public exact-finish EUR reference and supplied product links",
 				"security": [],
@@ -68,10 +68,10 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/inventory/value": {
+		"/api/v1/mtg/inventory/value": {
 			"get": {
 				"summary": "Read current private Inventory value and coverage",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -134,10 +134,10 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/inventory/value-history": {
+		"/api/v1/mtg/inventory/value-history": {
 			"get": {
 				"summary": "Read saved private Inventory observations and explicit gaps without capture or backfill",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -253,7 +253,7 @@
 				]
 			}
 		},
-		"/api/mobile/v1/mtg/prices/history": {
+		"/api/v1/mtg/prices/history": {
 			"get": {
 				"summary": "Read bounded public source history, never historical holdings",
 				"security": [],
@@ -335,10 +335,10 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/inventory/prices": {
+		"/api/v1/mtg/inventory/prices": {
 			"post": {
 				"summary": "Read references and exact quantity coverage for requested owned entries",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -466,7 +466,7 @@
 				}
 			}
 		},
-		"/api/account/events": {
+		"/api/v1/account/events": {
 			"get": {
 				"summary": "Stream account-scoped saved-state invalidations; reconnect refetches current state",
 				"security": [
@@ -531,10 +531,10 @@
 				}
 			}
 		},
-		"/api/account/profile": {
+		"/api/v1/account/profile": {
 			"get": {
 				"summary": "Read authenticated account profile and aggregate totals",
-				"tags": ["mobile"],
+				"tags": ["account"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -598,7 +598,7 @@
 			},
 			"patch": {
 				"summary": "Patch supplied profile fields atomically; omitted fields remain saved",
-				"tags": ["mobile"],
+				"tags": ["account"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -692,10 +692,10 @@
 				}
 			}
 		},
-		"/api/account/dashboard": {
+		"/api/v1/mtg/dashboard": {
 			"get": {
 				"summary": "Read account aggregates, deck availability totals and eight recent entries",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -768,10 +768,10 @@
 				}
 			}
 		},
-		"/api/auth/session": {
+		"/api/v1/auth/session": {
 			"get": {
 				"summary": "Inspect selected session without exposing its token hash",
-				"tags": ["mobile"],
+				"tags": ["auth"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -834,10 +834,10 @@
 				}
 			}
 		},
-		"/api/account/password": {
+		"/api/v1/account/password": {
 			"post": {
 				"summary": "Rotate password, revoke other sessions and issue a replacement session",
-				"tags": ["mobile"],
+				"tags": ["account"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -1238,7 +1238,7 @@
 				}
 			}
 		},
-		"/api/auth/qr/requests": {
+		"/api/v1/auth/qr/requests": {
 			"post": {
 				"summary": "Create a five-minute QR sign-in request for a browser or device",
 				"description": "The QR contains only verificationUri/public code. Browser requester secrets use an HttpOnly cookie; device secrets are returned only to the initiating device. No-store.",
@@ -1358,7 +1358,7 @@
 				}
 			}
 		},
-		"/api/auth/qr/requests/{code}": {
+		"/api/v1/auth/qr/requests/{code}": {
 			"parameters": [
 				{
 					"name": "code",
@@ -1485,7 +1485,7 @@
 				}
 			}
 		},
-		"/api/auth/qr/requests/{code}/decision": {
+		"/api/v1/auth/qr/requests/{code}/decision": {
 			"parameters": [
 				{
 					"name": "code",
@@ -1622,7 +1622,7 @@
 				}
 			}
 		},
-		"/api/auth/qr/token": {
+		"/api/v1/auth/qr/token": {
 			"post": {
 				"summary": "Poll and redeem a QR request once using its private requester credential",
 				"description": "Poll no faster than the returned interval. Browser success sets the ordinary session cookie without returning a token. Device success returns a bearer token. A consumed request cannot reissue a session; restart after a lost success response.",
@@ -1764,7 +1764,7 @@
 				}
 			}
 		},
-		"/api/auth/login": {
+		"/api/v1/auth/login": {
 			"post": {
 				"summary": "Exchange local credentials for an opaque session token",
 				"tags": ["auth"],
@@ -1863,7 +1863,7 @@
 				}
 			}
 		},
-		"/api/auth/register": {
+		"/api/v1/auth/register": {
 			"post": {
 				"summary": "Create a local account and an opaque session token",
 				"tags": ["auth"],
@@ -1952,7 +1952,7 @@
 				}
 			}
 		},
-		"/api/auth/logout": {
+		"/api/v1/auth/logout": {
 			"post": {
 				"summary": "Revoke the supplied session token",
 				"tags": ["auth"],
@@ -1998,18 +1998,11 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/search": {
+		"/api/v1/mtg/catalog/search": {
 			"get": {
 				"summary": "Search distinct MTG cards",
-				"tags": ["mobile"],
-				"security": [
-					{
-						"sessionCookie": []
-					},
-					{
-						"bearerToken": []
-					}
-				],
+				"tags": ["mtg"],
+				"security": [],
 				"responses": {
 					"200": {
 						"description": "Successful response",
@@ -2096,15 +2089,8 @@
 			},
 			"post": {
 				"summary": "Search distinct MTG cards with filters and optional facets",
-				"tags": ["mobile"],
-				"security": [
-					{
-						"sessionCookie": []
-					},
-					{
-						"bearerToken": []
-					}
-				],
+				"tags": ["mtg"],
+				"security": [],
 				"requestBody": {
 					"required": true,
 					"content": {
@@ -2191,7 +2177,7 @@
 				"description": "Filters apply to printings before deduplication by oracle ID. Results, counts, and facets use one published catalog generation. An unpublished catalog returns an empty result with generationId null."
 			}
 		},
-		"/api/mobile/v1/mtg/cards/{oracleId}/printings": {
+		"/api/v1/mtg/catalog/cards/{oracleId}/printings": {
 			"parameters": [
 				{
 					"name": "oracleId",
@@ -2205,15 +2191,8 @@
 			],
 			"get": {
 				"summary": "List printings of a canonical card",
-				"tags": ["mobile"],
-				"security": [
-					{
-						"sessionCookie": []
-					},
-					{
-						"bearerToken": []
-					}
-				],
+				"tags": ["mtg"],
+				"security": [],
 				"responses": {
 					"200": {
 						"description": "Successful response",
@@ -2290,10 +2269,10 @@
 				]
 			}
 		},
-		"/api/mobile/v1/mtg/inventory": {
+		"/api/v1/mtg/inventory": {
 			"get": {
 				"summary": "Read a bounded Inventory window with complete snapshot metrics",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -2496,7 +2475,7 @@
 			},
 			"post": {
 				"summary": "Add an idempotent inventory batch",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -2600,10 +2579,10 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/inventory/batch-add": {
+		"/api/v1/mtg/inventory/batch-add": {
 			"post": {
 				"summary": "Add an idempotent inventory batch",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -2707,7 +2686,7 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/inventory/{entryId}": {
+		"/api/v1/mtg/inventory/{entryId}": {
 			"parameters": [
 				{
 					"name": "entryId",
@@ -2721,7 +2700,7 @@
 			],
 			"get": {
 				"summary": "Read an authorized entry and memberships",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -2795,7 +2774,7 @@
 			},
 			"patch": {
 				"summary": "Patch independent fields; signed delta floors at one, absolute nonpositive quantity removes",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -2900,7 +2879,7 @@
 			},
 			"delete": {
 				"summary": "Remove reviewed quantity with stable original receipt",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -3004,7 +2983,7 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/inventory/{entryId}/location": {
+		"/api/v1/mtg/inventory/{entryId}/location": {
 			"parameters": [
 				{
 					"name": "entryId",
@@ -3018,7 +2997,7 @@
 			],
 			"get": {
 				"summary": "Locate an authorized entry within this query and revision",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -3221,10 +3200,10 @@
 				]
 			}
 		},
-		"/api/mobile/v1/mtg/inventory/groups": {
+		"/api/v1/mtg/inventory/groups": {
 			"get": {
 				"summary": "Read bounded account Groups",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -3323,7 +3302,7 @@
 			},
 			"post": {
 				"summary": "Create an account Group with an original receipt",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -3427,7 +3406,7 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/inventory/groups/{groupId}": {
+		"/api/v1/mtg/inventory/groups/{groupId}": {
 			"parameters": [
 				{
 					"name": "groupId",
@@ -3441,7 +3420,7 @@
 			],
 			"patch": {
 				"summary": "Rename one owned Group",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -3546,7 +3525,7 @@
 			},
 			"delete": {
 				"summary": "Delete one owned Group without removing entries",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -3656,7 +3635,7 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/inventory/{entryId}/groups": {
+		"/api/v1/mtg/inventory/{entryId}/groups": {
 			"parameters": [
 				{
 					"name": "entryId",
@@ -3670,7 +3649,7 @@
 			],
 			"put": {
 				"summary": "Replace whole-entry Group memberships",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -3788,7 +3767,7 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/inventory/{entryId}/position": {
+		"/api/v1/mtg/inventory/{entryId}/position": {
 			"parameters": [
 				{
 					"name": "entryId",
@@ -3802,7 +3781,7 @@
 			],
 			"patch": {
 				"summary": "Explicitly reorder an owned entry; ordinary mutations preserve sparse positions",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -3917,10 +3896,10 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/inventory/bulk": {
+		"/api/v1/mtg/inventory/bulk": {
 			"post": {
 				"summary": "Apply idempotent inventory operations",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -4024,10 +4003,10 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/inventory/import/preview": {
+		"/api/v1/mtg/inventory/import/preview": {
 			"post": {
 				"summary": "Preview an Arena inventory import",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -4121,10 +4100,10 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/inventory/import/commit": {
+		"/api/v1/mtg/inventory/import/commit": {
 			"post": {
 				"summary": "Commit resolved inventory import lines",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -4228,10 +4207,10 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/decks": {
+		"/api/v1/mtg/decks": {
 			"get": {
 				"summary": "Read Deck library summaries and optional selected Deck",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -4304,7 +4283,7 @@
 			},
 			"post": {
 				"summary": "Create a deck and return the account deck list",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -4401,10 +4380,10 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/decks/choices": {
+		"/api/v1/mtg/decks/choices": {
 			"get": {
 				"summary": "Read bounded owned MTG Deck choices",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -4506,7 +4485,7 @@
 				]
 			}
 		},
-		"/api/mobile/v1/mtg/decks/{deckId}": {
+		"/api/v1/mtg/decks/{deckId}": {
 			"parameters": [
 				{
 					"name": "deckId",
@@ -4520,7 +4499,7 @@
 			],
 			"get": {
 				"summary": "Read an owned Deck Snapshot with optional legality",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -4612,7 +4591,7 @@
 			},
 			"patch": {
 				"summary": "Patch only supplied metadata fields",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -4727,7 +4706,7 @@
 			},
 			"delete": {
 				"summary": "Delete a deck",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -4790,10 +4769,10 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/decks/search": {
+		"/api/v1/mtg/decks/search": {
 			"get": {
 				"summary": "Search Catalog with account-owned aggregates for hits",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -4865,10 +4844,10 @@
 				]
 			}
 		},
-		"/api/mobile/v1/mtg/decks/ownership": {
+		"/api/v1/mtg/decks/ownership": {
 			"get": {
 				"summary": "Read bounded account-owned printing quantities",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -4949,7 +4928,7 @@
 				]
 			}
 		},
-		"/api/mobile/v1/mtg/decks/{deckId}/availability": {
+		"/api/v1/mtg/decks/{deckId}/availability": {
 			"parameters": [
 				{
 					"name": "deckId",
@@ -4963,7 +4942,7 @@
 			],
 			"get": {
 				"summary": "Compare one deck with current owned inventory",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -5037,10 +5016,10 @@
 				"description": "Allocates exact printings first, then alternate printings of the same canonical card. Does not reserve inventory or allocate cards across other decks."
 			}
 		},
-		"/api/mobile/v1/mtg/deck-library": {
+		"/api/v1/mtg/deck-library": {
 			"get": {
 				"summary": "Read revision-fenced bounded Deck metadata",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -5169,10 +5148,10 @@
 				]
 			}
 		},
-		"/api/mobile/v1/mtg/deck-library/categories": {
+		"/api/v1/mtg/deck-library/categories": {
 			"get": {
 				"summary": "Read bounded immutable category versions and unique matching Deck counts",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -5315,10 +5294,10 @@
 				]
 			}
 		},
-		"/api/mobile/v1/mtg/deck-library/locate": {
+		"/api/v1/mtg/deck-library/locate": {
 			"get": {
 				"summary": "Locate an owned Deck with identical directory query and ordering",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -5456,7 +5435,7 @@
 				]
 			}
 		},
-		"/api/mobile/v1/mtg/decks/{deckId}/whole-categories": {
+		"/api/v1/mtg/decks/{deckId}/whole-categories": {
 			"parameters": [
 				{
 					"name": "deckId",
@@ -5470,7 +5449,7 @@
 			],
 			"get": {
 				"summary": "Read version-bound whole-deck outcomes without initialization",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -5563,7 +5542,7 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/decks/{deckId}/whole-categories/{versionId}": {
+		"/api/v1/mtg/decks/{deckId}/whole-categories/{versionId}": {
 			"parameters": [
 				{
 					"name": "deckId",
@@ -5586,7 +5565,7 @@
 			],
 			"patch": {
 				"summary": "Save Manual Include/Exclude or rename an adopted whole-deck local label",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -5750,7 +5729,7 @@
 			},
 			"delete": {
 				"summary": "Suppress an origin including its historical adopted versions",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -5886,10 +5865,10 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/category-rule-choices": {
+		"/api/v1/mtg/category-rule-choices": {
 			"get": {
 				"summary": "Search bounded source choices and look up selected identities",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -6050,10 +6029,10 @@
 				]
 			}
 		},
-		"/api/mobile/v1/mtg/category-definitions": {
+		"/api/v1/mtg/category-definitions": {
 			"get": {
 				"summary": "Read bounded current scoped immutable definitions",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -6175,7 +6154,7 @@
 			},
 			"post": {
 				"summary": "Publish an immutable reusable definition without changing older decks",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -6450,7 +6429,7 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/category-definitions/{originId}/archive": {
+		"/api/v1/mtg/category-definitions/{originId}/archive": {
 			"parameters": [
 				{
 					"name": "originId",
@@ -6464,7 +6443,7 @@
 			],
 			"post": {
 				"summary": "Archive or restore future adoption while retaining immutable older versions",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -6603,7 +6582,7 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/decks/{deckId}/categories/{categoryId}": {
+		"/api/v1/mtg/decks/{deckId}/categories/{categoryId}": {
 			"parameters": [
 				{
 					"name": "deckId",
@@ -6626,7 +6605,7 @@
 			],
 			"patch": {
 				"summary": "Rename only the local label without moving assignments",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -6768,7 +6747,7 @@
 			},
 			"delete": {
 				"summary": "Atomically replace all-role decisions as Manual and suppress the removed origin",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -6915,7 +6894,7 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/decks/{deckId}/category-previews": {
+		"/api/v1/mtg/decks/{deckId}/category-previews": {
 			"parameters": [
 				{
 					"name": "deckId",
@@ -6929,7 +6908,7 @@
 			],
 			"post": {
 				"summary": "Persist the complete reviewed selected-scope plan with original fifteen-minute lease",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -7076,7 +7055,7 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/category-previews/{previewId}": {
+		"/api/v1/mtg/category-previews/{previewId}": {
 			"parameters": [
 				{
 					"name": "previewId",
@@ -7090,7 +7069,7 @@
 			],
 			"get": {
 				"summary": "Read stable relational consequence pages without decoding the full plan",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -7204,7 +7183,7 @@
 				]
 			}
 		},
-		"/api/mobile/v1/mtg/category-previews/{previewId}/commit": {
+		"/api/v1/mtg/category-previews/{previewId}/commit": {
 			"parameters": [
 				{
 					"name": "previewId",
@@ -7218,7 +7197,7 @@
 			],
 			"post": {
 				"summary": "Commit every server-owned consequence atomically after fresh session, expiry and source/revision checks; original replay survives cleanup and deletion",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -7357,7 +7336,7 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/decks/{deckId}/categories": {
+		"/api/v1/mtg/decks/{deckId}/categories": {
 			"parameters": [
 				{
 					"name": "deckId",
@@ -7371,7 +7350,7 @@
 			],
 			"get": {
 				"summary": "Read immutable adopted entry categories without initializing",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -7454,7 +7433,7 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/decks/{deckId}/categories/initialize": {
+		"/api/v1/mtg/decks/{deckId}/categories/initialize": {
 			"parameters": [
 				{
 					"name": "deckId",
@@ -7468,7 +7447,7 @@
 			],
 			"post": {
 				"summary": "Initialize existing Main entries once and replay the original acknowledgement",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -7590,7 +7569,7 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/decks/{deckId}/categories/merge-preview": {
+		"/api/v1/mtg/decks/{deckId}/categories/merge-preview": {
 			"parameters": [
 				{
 					"name": "deckId",
@@ -7604,7 +7583,7 @@
 			],
 			"post": {
 				"summary": "Review complete destination decision before a conflicting merge",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -7736,7 +7715,7 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/deck-cards/{entryId}/category": {
+		"/api/v1/mtg/deck-cards/{entryId}/category": {
 			"parameters": [
 				{
 					"name": "entryId",
@@ -7750,7 +7729,7 @@
 			],
 			"patch": {
 				"summary": "Save a Manual primary category, including deliberate Uncategorized",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -7888,7 +7867,7 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/decks/{deckId}/cards": {
+		"/api/v1/mtg/decks/{deckId}/cards": {
 			"parameters": [
 				{
 					"name": "deckId",
@@ -7902,7 +7881,7 @@
 			],
 			"post": {
 				"summary": "Add a Catalog printing and return the original saved acknowledgement",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -8006,7 +7985,7 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/deck-cards/{entryId}": {
+		"/api/v1/mtg/deck-cards/{entryId}": {
 			"parameters": [
 				{
 					"name": "entryId",
@@ -8020,7 +7999,7 @@
 			],
 			"patch": {
 				"summary": "Apply quantity, atomic delta or role change; nonpositive quantity removes it",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -8125,7 +8104,7 @@
 			},
 			"delete": {
 				"summary": "Remove a Deck entry idempotently",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -8208,7 +8187,7 @@
 				]
 			}
 		},
-		"/api/mobile/v1/mtg/decks/{deckId}/cards/bulk": {
+		"/api/v1/mtg/decks/{deckId}/cards/bulk": {
 			"parameters": [
 				{
 					"name": "deckId",
@@ -8222,7 +8201,7 @@
 			],
 			"post": {
 				"summary": "Apply idempotent Deck card operations and replay original acknowledgement",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -8326,10 +8305,10 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/decks/import/preview": {
+		"/api/v1/mtg/decks/import/preview": {
 			"post": {
 				"summary": "Preview an Arena deck import",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -8423,10 +8402,10 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/decks/import/commit": {
+		"/api/v1/mtg/decks/import/commit": {
 			"post": {
 				"summary": "Create a deck from resolved import lines",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -8530,7 +8509,7 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/decks/{deckId}/export": {
+		"/api/v1/mtg/decks/{deckId}/export": {
 			"parameters": [
 				{
 					"name": "deckId",
@@ -8544,7 +8523,7 @@
 			],
 			"get": {
 				"summary": "Export a deck as Arena text",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -8617,10 +8596,10 @@
 				]
 			}
 		},
-		"/api/mobile/v1/mtg/scan/sessions": {
+		"/api/v1/mtg/scan/sessions": {
 			"get": {
 				"summary": "List the 100 most recently updated scan sessions",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -8703,7 +8682,7 @@
 			},
 			"post": {
 				"summary": "Create a scan session",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -8782,7 +8761,7 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/scan/sessions/{sessionId}/artifacts/{artifactId}/result": {
+		"/api/v1/mtg/scan/sessions/{sessionId}/artifacts/{artifactId}/result": {
 			"parameters": [
 				{
 					"name": "sessionId",
@@ -8805,7 +8784,7 @@
 			],
 			"post": {
 				"summary": "Replace recognition results for an uploaded scan artifact",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -8939,7 +8918,7 @@
 				"description": "Requires an owned artifact in an open or pending-review session. Repeating a result replaces recognition data without creating artifacts or adding inventory. Card identity comes from the catalog. Inventory changes require an explicit review commit."
 			}
 		},
-		"/api/mobile/v1/mtg/scan/artifacts/{artifactId}/image": {
+		"/api/v1/mtg/scan/artifacts/{artifactId}/image": {
 			"parameters": [
 				{
 					"name": "artifactId",
@@ -8953,7 +8932,7 @@
 			],
 			"get": {
 				"summary": "Read the original image for an owned scan artifact",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -9081,7 +9060,7 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/scan/sessions/{sessionId}/frames": {
+		"/api/v1/mtg/scan/sessions/{sessionId}/frames": {
 			"parameters": [
 				{
 					"name": "sessionId",
@@ -9095,7 +9074,7 @@
 			],
 			"post": {
 				"summary": "Upload and process a scan frame",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -9245,7 +9224,7 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/scan/sessions/{sessionId}/result": {
+		"/api/v1/mtg/scan/sessions/{sessionId}/result": {
 			"parameters": [
 				{
 					"name": "sessionId",
@@ -9285,7 +9264,7 @@
 			],
 			"get": {
 				"summary": "Read scan artifacts, review items, and the latest result",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -9368,10 +9347,10 @@
 				}
 			}
 		},
-		"/api/mobile/v1/mtg/scan/review/commit": {
+		"/api/v1/mtg/scan/review/commit": {
 			"post": {
 				"summary": "Commit reviewed printing intent; replay preserves original receipt or explicit legacy no-repeat binding",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -9495,77 +9474,7 @@
 				}
 			}
 		},
-		"/api/catalog/printings/{printingId}": {
-			"parameters": [
-				{
-					"name": "printingId",
-					"in": "path",
-					"required": true,
-					"schema": {
-						"type": "string",
-						"format": "uuid"
-					}
-				}
-			],
-			"get": {
-				"summary": "Read a public Catalog Printing",
-				"tags": ["mobile"],
-				"security": [],
-				"responses": {
-					"200": {
-						"description": "Successful response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/CardDocument"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Invalid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "A valid session cookie or bearer token is required",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Internal server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				}
-			}
-		},
-		"/api/mobile/v1/mtg/category-definitions/{originId}": {
+		"/api/v1/mtg/category-definitions/{originId}": {
 			"parameters": [
 				{
 					"name": "originId",
@@ -9579,7 +9488,7 @@
 			],
 			"get": {
 				"summary": "Read the owned current immutable definition",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -9686,7 +9595,7 @@
 				}
 			}
 		},
-		"/api/web/v1/auth/login": {
+		"/api/v1/web/auth/login": {
 			"post": {
 				"summary": "Authenticate the original web login form",
 				"tags": ["auth"],
@@ -9814,7 +9723,7 @@
 				}
 			}
 		},
-		"/api/web/v1/auth/register": {
+		"/api/v1/web/auth/register": {
 			"post": {
 				"summary": "Register using the original web form",
 				"tags": ["auth"],
@@ -9948,7 +9857,7 @@
 				}
 			}
 		},
-		"/api/web/v1/password": {
+		"/api/v1/web/password": {
 			"post": {
 				"summary": "Rotate the password using the original web form",
 				"tags": ["auth"],
@@ -10110,10 +10019,10 @@
 				}
 			}
 		},
-		"/api/web/v1/commands": {
+		"/api/v1/mtg/commands": {
 			"post": {
 				"summary": "Apply one of nine closed web intents",
-				"tags": ["mobile"],
+				"tags": ["mtg"],
 				"security": [
 					{
 						"sessionCookie": []
@@ -10540,189 +10449,10 @@
 				"description": "Strict objects reject unknown keys, source and authority fields. Optional fields retain absence. JSON is limited to 1 MiB. Responses preserve the existing DTO and structured conflict fields."
 			}
 		},
-		"/api/catalog/search": {
-			"get": {
-				"summary": "Search distinct MTG cards",
-				"tags": ["mobile"],
-				"security": [],
-				"responses": {
-					"200": {
-						"description": "Successful response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/SearchResponse"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Invalid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "A valid session cookie or bearer token is required",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Internal server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				},
-				"parameters": [
-					{
-						"name": "q",
-						"in": "query",
-						"schema": {
-							"type": "string",
-							"maxLength": 300,
-							"default": ""
-						}
-					},
-					{
-						"name": "limit",
-						"in": "query",
-						"schema": {
-							"type": "integer",
-							"default": 20,
-							"minimum": 0,
-							"maximum": 500
-						}
-					},
-					{
-						"name": "offset",
-						"in": "query",
-						"schema": {
-							"type": "integer",
-							"default": 0,
-							"minimum": 0,
-							"maximum": 1000000
-						}
-					}
-				]
-			},
-			"post": {
-				"summary": "Search distinct MTG cards with filters and optional facets",
-				"tags": ["mobile"],
-				"security": [],
-				"requestBody": {
-					"required": true,
-					"content": {
-						"application/json": {
-							"schema": {
-								"$ref": "#/components/schemas/CatalogSearchRequest"
-							}
-						}
-					},
-					"description": "A JSON object, at most 1 MiB. Invalid field types return 400."
-				},
-				"responses": {
-					"200": {
-						"description": "Successful response",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/SearchResponse"
-								}
-							}
-						}
-					},
-					"400": {
-						"description": "Invalid request",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"401": {
-						"description": "A valid session cookie or bearer token is required",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"403": {
-						"description": "Cookie-authenticated mutations require a matching Origin header",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"413": {
-						"description": "JSON request body exceeds 1 MiB",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"415": {
-						"description": "Use application/json",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					},
-					"500": {
-						"description": "Internal server error",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ErrorResponse"
-								}
-							}
-						}
-					}
-				},
-				"description": "Filters apply to printings before deduplication by oracle ID. Results, counts, and facets use one published catalog generation. An unpublished catalog returns an empty result with generationId null."
-			}
-		},
-		"/api/catalog/cards/{oracleId}/printings": {
+		"/api/v1/mtg/catalog/printings/{printingId}": {
 			"parameters": [
 				{
-					"name": "oracleId",
+					"name": "printingId",
 					"in": "path",
 					"required": true,
 					"schema": {
@@ -10732,8 +10462,8 @@
 				}
 			],
 			"get": {
-				"summary": "List printings of a canonical card",
-				"tags": ["mobile"],
+				"summary": "Read a public Catalog Printing",
+				"tags": ["mtg"],
 				"security": [],
 				"responses": {
 					"200": {
@@ -10741,7 +10471,7 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/SearchResponse"
+									"$ref": "#/components/schemas/CardDocument"
 								}
 							}
 						}
@@ -10786,29 +10516,7 @@
 							}
 						}
 					}
-				},
-				"parameters": [
-					{
-						"name": "limit",
-						"in": "query",
-						"schema": {
-							"type": "integer",
-							"default": 100,
-							"minimum": 1,
-							"maximum": 100
-						}
-					},
-					{
-						"name": "offset",
-						"in": "query",
-						"schema": {
-							"type": "integer",
-							"default": 0,
-							"minimum": 0,
-							"maximum": 1000000
-						}
-					}
-				]
+				}
 			}
 		}
 	},
@@ -17489,11 +17197,15 @@
 	"tags": [
 		{
 			"name": "auth",
-			"description": "Build Magic: The Gathering decks, search cards, and organize your inventory."
+			"description": "Shared local credentials, sessions and QR authorization."
 		},
 		{
-			"name": "mobile",
-			"description": "Optional bearer-token mobile API for MTG search, inventory, decks, and scan. Retained for non-browser clients; the PWA uses the standard web session instead."
+			"name": "account",
+			"description": "Shared account preferences, password rotation and SavedState events."
+		},
+		{
+			"name": "mtg",
+			"description": "MTG Catalog and account-owned Inventory, Deck, Category, Valuation, Dashboard and Scan operations. Private routes accept bearer or browser sessions."
 		}
 	]
 }

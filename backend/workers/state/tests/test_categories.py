@@ -5,8 +5,8 @@ from typing import cast
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from spellbook_core.categories.jobs import WholeDeckJobClaim
 from spellbook_core.db import ConnectionPool
+from spellbook_core.mtg.categories.jobs import WholeDeckJobClaim
 
 from spellbook_state.categories import WholeDeckCategoryRunner, run_once
 

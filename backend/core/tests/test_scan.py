@@ -17,21 +17,29 @@ from unittest.mock import AsyncMock, MagicMock, create_autospec, patch
 import pytest
 
 from spellbook_core.auth import SessionAuth
-from spellbook_core.catalog import Catalog
 from spellbook_core.db import ConnectionPool, Transaction
 from spellbook_core.errors import ActorError, RequestConflictError, ValidationError
 from spellbook_core.fingerprint import mutation_fingerprint
-from spellbook_core.inventory import (
+from spellbook_core.models import Actor
+from spellbook_core.mtg.catalog import Catalog
+from spellbook_core.mtg.inventory import (
     Inventory,
     InventoryAcknowledgement,
     PreparedInventoryMutation,
 )
-from spellbook_core.models import Actor, CardDocument
-from spellbook_core.scan import Scan, ScanError, ScanImage, ScanStorage, ScanWorker, create_scan
-from spellbook_core.scan.commit import normalize_commit, probe
-from spellbook_core.scan.read import ArtifactRow, SessionRow, artifact_dto
-from spellbook_core.scan.types import WorkerInput
-from spellbook_core.scan.validation import MAX_IMAGE_BYTES, check_image, worker_result
+from spellbook_core.mtg.models import CardDocument
+from spellbook_core.mtg.scan import (
+    Scan,
+    ScanError,
+    ScanImage,
+    ScanStorage,
+    ScanWorker,
+    create_scan,
+)
+from spellbook_core.mtg.scan.commit import normalize_commit, probe
+from spellbook_core.mtg.scan.read import ArtifactRow, SessionRow, artifact_dto
+from spellbook_core.mtg.scan.types import WorkerInput
+from spellbook_core.mtg.scan.validation import MAX_IMAGE_BYTES, check_image, worker_result
 
 ROOT = Path(__file__).resolve().parents[3]
 CARD: CardDocument = json.loads((ROOT / "backend/scripts/demo/cards.json").read_text())[0]
@@ -135,8 +143,8 @@ def fixture() -> Iterator[tuple[Scan, Any, Any, Any, Any, Any, Any]]:
         yield cast(Transaction, tx)
 
     with (
-        patch("spellbook_core.scan.application.transaction", unit_transaction),
-        patch("spellbook_core.scan.commit.transaction", unit_transaction),
+        patch("spellbook_core.mtg.scan.application.transaction", unit_transaction),
+        patch("spellbook_core.mtg.scan.commit.transaction", unit_transaction),
     ):
         yield scan, auth, catalog, inventory, storage, worker, tx
 
@@ -416,16 +424,16 @@ def test_commit_composes_writer_and_keeps_original_replay_without_catalog(
 
         inventory.record_receipt.side_effect = receipt
         with (
-            patch("spellbook_core.scan.commit.probe", AsyncMock(return_value=None)),
+            patch("spellbook_core.mtg.scan.commit.probe", AsyncMock(return_value=None)),
             patch(
-                "spellbook_core.scan.commit.owned_session",
+                "spellbook_core.mtg.scan.commit.owned_session",
                 AsyncMock(
                     return_value=SessionRow(
                         SESSION, ACTOR.account_id, "mtg", "pending_review", NOW, NOW
                     )
                 ),
             ),
-            patch("spellbook_core.scan.commit.save_review", save),
+            patch("spellbook_core.mtg.scan.commit.save_review", save),
         ):
             result = await scan.commit_review(ACTOR, input)
         assert result == {"kind": "Committed", "sessionId": SESSION, "acknowledgement": ACK}
@@ -457,9 +465,9 @@ def test_closed_review_does_not_apply_inventory(
             ACTOR, ACTOR.account_id, cast(Any, None), "hash", {}
         )
         with (
-            patch("spellbook_core.scan.commit.probe", AsyncMock(return_value=None)),
+            patch("spellbook_core.mtg.scan.commit.probe", AsyncMock(return_value=None)),
             patch(
-                "spellbook_core.scan.commit.owned_session",
+                "spellbook_core.mtg.scan.commit.owned_session",
                 AsyncMock(
                     return_value=SessionRow(SESSION, ACTOR.account_id, "mtg", state, NOW, NOW)
                 ),
@@ -496,7 +504,7 @@ def test_upload_lost_commit_response_discards_before_recovery(
         with (
             patch.object(scan, "assert_uploadable", AsyncMock()),
             patch(
-                "spellbook_core.scan.application.owned_session",
+                "spellbook_core.mtg.scan.application.owned_session",
                 AsyncMock(
                     return_value=SessionRow(SESSION, ACTOR.account_id, "mtg", "open", NOW, NOW)
                 ),
@@ -560,7 +568,8 @@ def test_read_image_checks_ownership_and_revalidates_after_storage(
     async def scenario() -> None:
         scan, auth, _catalog, _inventory, storage, _worker, _tx = fixture
         with patch(
-            "spellbook_core.scan.application.owned_artifact", AsyncMock(return_value=artifact())
+            "spellbook_core.mtg.scan.application.owned_artifact",
+            AsyncMock(return_value=artifact()),
         ):
             assert await scan.read_image(ACTOR, ARTIFACT) == ScanImage(PNG, "image/png")
             auth.require_actor.side_effect = [ACTOR, ActorError()]
@@ -570,7 +579,7 @@ def test_read_image_checks_ownership_and_revalidates_after_storage(
         auth.require_actor.side_effect = None
         with (
             patch(
-                "spellbook_core.scan.application.owned_artifact",
+                "spellbook_core.mtg.scan.application.owned_artifact",
                 AsyncMock(side_effect=ScanError("ScanNotFound", "Scan artifact not found", 404)),
             ),
             pytest.raises(ScanError),
@@ -611,7 +620,7 @@ def test_upload_finishes_external_io_before_recording_and_retains_attached_objec
         with (
             patch.object(scan, "assert_uploadable", AsyncMock()),
             patch(
-                "spellbook_core.scan.application.owned_session",
+                "spellbook_core.mtg.scan.application.owned_session",
                 AsyncMock(
                     return_value=SessionRow(SESSION, ACTOR.account_id, "mtg", "open", NOW, NOW)
                 ),
@@ -639,7 +648,7 @@ def test_upload_revalidates_authority_and_session_after_external_work(
         with (
             patch.object(scan, "assert_uploadable", AsyncMock()),
             patch(
-                "spellbook_core.scan.application.owned_session",
+                "spellbook_core.mtg.scan.application.owned_session",
                 AsyncMock(
                     return_value=SessionRow(
                         SESSION, ACTOR.account_id, "mtg", "pending_review", NOW, NOW

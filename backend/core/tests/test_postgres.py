@@ -24,10 +24,11 @@ from psycopg.errors import LockNotAvailable, ReadOnlySqlTransaction
 from psycopg.types.json import Jsonb
 
 from spellbook_core.auth import create_session_auth, hash_session_token
-from spellbook_core.catalog import create_catalog, read_transaction_catalog_printing
 from spellbook_core.db import ConnectionPool, Transaction, transaction
-from spellbook_core.errors import ActorError, CatalogPrintingNotFoundError, ValidationError
+from spellbook_core.errors import ActorError, ValidationError
 from spellbook_core.models import Actor
+from spellbook_core.mtg.catalog import create_catalog, read_transaction_catalog_printing
+from spellbook_core.mtg.errors import CatalogPrintingNotFoundError
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("P02B_CORE_NATIVE_DATABASE"), reason="Requires exclusive native PG lease"

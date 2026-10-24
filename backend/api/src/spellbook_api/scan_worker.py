@@ -9,7 +9,7 @@ import asyncio
 import json
 
 import httpx2
-from spellbook_core.scan.types import WorkerInput
+from spellbook_core.mtg.scan.types import WorkerInput
 
 
 def _invalid_constant(value: str) -> object:

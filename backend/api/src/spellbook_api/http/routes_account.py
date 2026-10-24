@@ -1,8 +1,8 @@
 """Private Profile and password bridges with the existing account error bodies."""
 
 from spellbook_core.auth import LocalAuth
-from spellbook_core.dashboard import Dashboard
-from spellbook_core.profile import Profile, ProfileError
+from spellbook_core.errors import ProfileError
+from spellbook_core.profile import Profile
 from spellbook_core.validation import utf16_length, valid_password
 from starlette.requests import Request
 from starlette.responses import Response
@@ -23,8 +23,6 @@ def create_account_routes(
     profile: Profile,
     origin: str,
     trusted_proxy_addresses: tuple[str, ...] = (),
-    *,
-    dashboard: Dashboard | None = None,
 ) -> list[HttpRoute]:
     async def get_profile(request: Request, params: dict[str, str]) -> Response:
         actor = await require_mobile_auth(request, auth, origin)
@@ -118,18 +116,9 @@ def create_account_routes(
             write_session_cookie(response, session.token, origin)
         return response
 
-    routes = [
-        HttpRoute("GET", "/api/account/profile", get_profile),
-        HttpRoute("PATCH", "/api/account/profile", patch_profile),
-        HttpRoute("POST", "/api/account/password", password),
-        HttpRoute("POST", "/api/web/v1/password", password_form),
+    return [
+        HttpRoute("GET", "/api/v1/account/profile", get_profile),
+        HttpRoute("PATCH", "/api/v1/account/profile", patch_profile),
+        HttpRoute("POST", "/api/v1/account/password", password),
+        HttpRoute("POST", "/api/v1/web/password", password_form),
     ]
-
-    if dashboard is not None:
-
-        async def get_dashboard(request: Request, params: dict[str, str]) -> Response:
-            actor = await require_mobile_auth(request, auth, origin)
-            return json_response(await dashboard.get(actor), headers={"Cache-Control": "no-store"})
-
-        routes.append(HttpRoute("GET", "/api/account/dashboard", get_dashboard))
-    return routes

@@ -5,11 +5,12 @@ from itertools import product
 
 import pytest
 
-from spellbook_core.categories.common import Document, name, page_values
-from spellbook_core.categories.library import assert_unique_names, normalize_definition
-from spellbook_core.categories.persistence import canonical_identity, evaluate_category_fact
-from spellbook_core.categories.previews import proposed_definitions, release_manual
-from spellbook_core.categories.rules import (
+from spellbook_core.errors import ValidationError
+from spellbook_core.mtg.categories.common import Document, name, page_values
+from spellbook_core.mtg.categories.library import assert_unique_names, normalize_definition
+from spellbook_core.mtg.categories.persistence import canonical_identity, evaluate_category_fact
+from spellbook_core.mtg.categories.previews import proposed_definitions, release_manual
+from spellbook_core.mtg.categories.rules import (
     STARTER_DEFINITIONS,
     collect_deck_rule_predicates,
     evaluate_deck_rule,
@@ -18,8 +19,7 @@ from spellbook_core.categories.rules import (
     rule_roots,
     validate_rule,
 )
-from spellbook_core.categories.whole import apply_whole_evaluation
-from spellbook_core.errors import ValidationError
+from spellbook_core.mtg.categories.whole import apply_whole_evaluation
 
 FLYING: Document = dict(op="keyword", value="Flying")
 LAND: Document = dict(op="type", value="Land")

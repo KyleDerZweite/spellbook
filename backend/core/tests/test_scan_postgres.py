@@ -18,13 +18,13 @@ import pytest
 from test_inventory import CARD, native_account, native_catalog, native_pool
 
 from spellbook_core.auth import create_session_auth
-from spellbook_core.catalog import Catalog, create_catalog
 from spellbook_core.db import ConnectionPool, transaction
 from spellbook_core.errors import ActorError, RequestConflictError, ValidationError
-from spellbook_core.inventory import Inventory, create_inventory
 from spellbook_core.models import Actor
-from spellbook_core.scan import Scan, ScanError, ScanStorage, ScanWorker, create_scan
-from spellbook_core.scan.commit import normalize_commit
+from spellbook_core.mtg.catalog import Catalog, create_catalog
+from spellbook_core.mtg.inventory import Inventory, create_inventory
+from spellbook_core.mtg.scan import Scan, ScanError, ScanStorage, ScanWorker, create_scan
+from spellbook_core.mtg.scan.commit import normalize_commit
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("P02B_SCAN_NATIVE_DATABASE"),

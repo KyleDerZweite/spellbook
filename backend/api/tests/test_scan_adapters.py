@@ -23,8 +23,8 @@ from urllib.error import URLError
 from urllib.request import urlopen
 
 import pytest
-from spellbook_core.scan import ScanError
-from spellbook_core.scan.types import WorkerInput
+from spellbook_core.mtg.scan import ScanError
+from spellbook_core.mtg.scan.types import WorkerInput
 
 from spellbook_api.scan_storage import ScanObjectStorage, ScanStorageConfiguration
 from spellbook_api.scan_worker import HttpScanWorker

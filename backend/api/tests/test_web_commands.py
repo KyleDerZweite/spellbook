@@ -8,20 +8,20 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from spellbook_core.auth import SessionAuth
-from spellbook_core.decks import Decks
 from spellbook_core.errors import RequestConflictError
-from spellbook_core.inventory import Inventory
 from spellbook_core.models import Actor
+from spellbook_core.mtg.decks import Decks
+from spellbook_core.mtg.inventory import Inventory
 from starlette.routing import Route
 
 from spellbook_api.http.admission import RequestAdmission
+from spellbook_api.http.mtg.routes_commands import FIELDS, create_command_routes
 from spellbook_api.http.router import RouteRegistry
-from spellbook_api.http.routes_web import FIELDS, create_web_routes
 
 ORIGIN = "https://spellbook.test"
 TOKEN = "a" * 43
 ACTOR = Actor("account", "test", "", "", "")
-PATH = "/api/web/v1/commands"
+PATH = "/api/v1/mtg/commands"
 
 
 @pytest.fixture
@@ -35,7 +35,10 @@ def target() -> Iterator[tuple[TestClient, Any, Any, Any]]:
         Route(
             "/{path:path}",
             RouteRegistry(
-                create_web_routes(auth, inventory, decks, ORIGIN), ORIGIN, auth, RequestAdmission()
+                create_command_routes(auth, inventory, decks, ORIGIN),
+                ORIGIN,
+                auth,
+                RequestAdmission(),
             ),
         )
     )

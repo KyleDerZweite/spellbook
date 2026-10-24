@@ -9,9 +9,9 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from spellbook_core.auth import SessionAuth
-from spellbook_core.catalog import Catalog
-from spellbook_core.inventory import Inventory
 from spellbook_core.models import Actor, SessionInfo
+from spellbook_core.mtg.catalog import Catalog
+from spellbook_core.mtg.inventory import Inventory
 from spellbook_core.saved_state import create_saved_state
 from starlette.requests import Request
 from starlette.responses import Response
@@ -244,7 +244,8 @@ def test_body_framing_media_utf8_json_and_inner_limit_use_the_shared_host() -> N
     cast(AsyncMock, d.inventory.add_items).assert_not_awaited()
 
 
-def test_sse_head_closes_real_subscription_and_has_only_one_receive_consumer() -> None:
+@pytest.mark.parametrize("path", ["/api/account/events", "/api/v1/account/events"])
+def test_sse_head_closes_real_subscription_and_has_only_one_receive_consumer(path: str) -> None:
     async def exercise() -> None:
         d = Dependencies()
         cast(AsyncMock, d.auth.validate_session).return_value = ACTOR
@@ -292,8 +293,8 @@ def test_sse_head_closes_real_subscription_and_has_only_one_receive_consumer() -
             "http_version": "1.1",
             "method": "HEAD",
             "scheme": "https",
-            "path": "/api/account/events",
-            "raw_path": b"/api/account/events",
+            "path": path,
+            "raw_path": path.encode(),
             "query_string": b"",
             "headers": [(b"authorization", ("Bearer " + TOKEN).encode())],
             "server": ("candidate.example", 443),

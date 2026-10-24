@@ -4,13 +4,9 @@ import pytest
 
 from spellbook_core.auth import normalize_username
 from spellbook_core.auth_attempts import AttemptLimiter
-from spellbook_core.errors import AuthError
-from spellbook_core.profile import (
-    ProfileError,
-    default_profile_card,
-    normalize_contact_email,
-    validate_profile_card,
-)
+from spellbook_core.errors import AuthError, ProfileError
+from spellbook_core.mtg.profile import default_profile_card, validate_profile_card
+from spellbook_core.profile import normalize_contact_email
 
 
 @pytest.mark.parametrize(

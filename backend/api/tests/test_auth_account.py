@@ -8,11 +8,12 @@ import pytest
 from fastapi.testclient import TestClient
 from spellbook_core.auth import Authenticated, LocalAuth, TokenSession
 from spellbook_core.auth_attempts import AttemptLimiter
-from spellbook_core.catalog import Catalog
-from spellbook_core.errors import AuthError
-from spellbook_core.inventory import Inventory
+from spellbook_core.errors import AuthError, ProfileError
 from spellbook_core.models import Actor, SessionInfo
-from spellbook_core.profile import Profile, ProfileError, default_profile_card
+from spellbook_core.mtg.catalog import Catalog
+from spellbook_core.mtg.inventory import Inventory
+from spellbook_core.mtg.profile import default_profile_card
+from spellbook_core.profile import Profile
 from spellbook_core.qr import QrAuth, QrAuthError, Redemption
 from spellbook_core.validation import MISSING
 

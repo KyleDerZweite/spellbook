@@ -16,8 +16,8 @@ import pytest
 from psycopg.conninfo import conninfo_to_dict
 from psycopg_pool import AsyncConnectionPool
 from spellbook_core.auth import create_session_auth, hash_session_token
-from spellbook_core.categories import create_categories
-from spellbook_core.categories.common import category_transaction
+from spellbook_core.mtg.categories import create_categories
+from spellbook_core.mtg.categories.common import category_transaction
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("STATE_NATIVE_DATABASE")

@@ -112,6 +112,9 @@ def create_auth_routes(
 
     async def qr(request: Request, params: dict[str, str], operation: str) -> Response:
         headers = {"Cache-Control": "no-store"}
+        cookie_path = (
+            "/api/v1/auth/qr" if request.url.path.startswith("/api/v1/") else "/api/auth/qr"
+        )
         try:
             require_same_origin(request, origin, allow_missing=True)
             address = client_address(request, trusted_proxy_addresses)
@@ -141,7 +144,7 @@ def create_auth_routes(
                         response,
                         QR_COOKIE,
                         f"{created['code']}.{secret}",
-                        "/api/auth/qr",
+                        cookie_path,
                         300,
                         origin,
                     )
@@ -187,7 +190,7 @@ def create_auth_routes(
             if result.status != "authenticated":
                 response = json_response({"status": result.status}, headers=headers)
                 if result.kind == "browser" and result.status != "pending":
-                    append_cookie(response, QR_COOKIE, "", "/api/auth/qr", 0, origin)
+                    append_cookie(response, QR_COOKIE, "", cookie_path, 0, origin)
                 return response
             assert result.session is not None
             response = json_response(
@@ -200,7 +203,7 @@ def create_auth_routes(
             )
             if result.kind == "browser":
                 write_session_cookie(response, result.session.token, origin)
-                append_cookie(response, QR_COOKIE, "", "/api/auth/qr", 0, origin)
+                append_cookie(response, QR_COOKIE, "", cookie_path, 0, origin)
             return response
         except QrAuthError as cause:
             statuses = {
@@ -229,13 +232,13 @@ def create_auth_routes(
         return await qr(request, params, "token")
 
     return [
-        HttpRoute("POST", "/api/auth/login", login),
-        HttpRoute("POST", "/api/auth/register", register),
-        HttpRoute("POST", "/api/web/v1/auth/login", login_form),
-        HttpRoute("POST", "/api/web/v1/auth/register", register_form),
-        HttpRoute("POST", "/api/auth/logout", logout),
-        HttpRoute("POST", "/api/auth/qr/requests", qr_create),
-        HttpRoute("GET", "/api/auth/qr/requests/:code", qr_inspect),
-        HttpRoute("POST", "/api/auth/qr/requests/:code/decision", qr_decide),
-        HttpRoute("POST", "/api/auth/qr/token", qr_token),
+        HttpRoute("POST", "/api/v1/auth/login", login),
+        HttpRoute("POST", "/api/v1/auth/register", register),
+        HttpRoute("POST", "/api/v1/web/auth/login", login_form),
+        HttpRoute("POST", "/api/v1/web/auth/register", register_form),
+        HttpRoute("POST", "/api/v1/auth/logout", logout),
+        HttpRoute("POST", "/api/v1/auth/qr/requests", qr_create),
+        HttpRoute("GET", "/api/v1/auth/qr/requests/:code", qr_inspect),
+        HttpRoute("POST", "/api/v1/auth/qr/requests/:code/decision", qr_decide),
+        HttpRoute("POST", "/api/v1/auth/qr/token", qr_token),
     ]

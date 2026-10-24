@@ -19,21 +19,25 @@ from psycopg.errors import SerializationFailure
 from test_categories_postgres import account, native_pool
 
 from spellbook_core.auth import create_session_auth
-from spellbook_core.categories import Categories, create_categories, queue_whole_deck_evaluation
-from spellbook_core.categories.common import (
+from spellbook_core.db import ConnectionPool
+from spellbook_core.models import Actor
+from spellbook_core.mtg.categories import (
+    Categories,
+    create_categories,
+    queue_whole_deck_evaluation,
+)
+from spellbook_core.mtg.categories.common import (
     CategoryUnavailable,
     Document,
     category_transaction,
     first,
 )
-from spellbook_core.categories.jobs import (
+from spellbook_core.mtg.categories.jobs import (
     WholeDeckJobClaim,
     backoff_whole_deck_job,
     claim_whole_deck_job,
     process_whole_deck_job,
 )
-from spellbook_core.db import ConnectionPool
-from spellbook_core.models import Actor
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("CATEGORY_JOB_NATIVE_DATABASE"),

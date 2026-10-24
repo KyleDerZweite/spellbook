@@ -16,10 +16,11 @@ from typing import cast
 
 import pytest
 from spellbook_core.auth import SessionAuth, create_session_auth
-from spellbook_core.catalog import create_catalog
 from spellbook_core.db import ConnectionPool
-from spellbook_core.inventory import Inventory, create_inventory
-from spellbook_core.models import Actor, CardDocument
+from spellbook_core.models import Actor
+from spellbook_core.mtg.catalog import create_catalog
+from spellbook_core.mtg.inventory import Inventory, create_inventory
+from spellbook_core.mtg.models import CardDocument
 
 ROOT = Path(__file__).resolve().parents[3]
 NATIVE = pytest.mark.skipif(

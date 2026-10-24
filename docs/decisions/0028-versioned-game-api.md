@@ -1,7 +1,7 @@
 # ADR-0028: Versioned API with game-specific modules
 
 - Status: Accepted
-- Implementation: Selected for PR 276; implementation pending
+- Implementation: Backend routes, compatibility aliases, OpenAPI and MTG modules implemented in the unmerged PR 276 candidate; client integration and final runtime verification pending
 - Date: 2026-10-24
 - Last Reviewed: 2026-10-24
 - Owners: Kyle
@@ -28,3 +28,10 @@ This decision explicitly permits route and module changes in the otherwise compa
 Payloads, SQL history, stored data, original mutation receipts, browser page paths and production authority remain unchanged.
 The existing account Profile payload still includes MTG presentation and metrics; its game dependency remains explicit rather than implying general support for other games.
 Shared business abstractions should follow demonstrated reuse when another TCG is implemented.
+
+Canonical route factories and a small explicit compatibility adapter dispatch to the same application handlers.
+Legacy mobile Catalog wrappers authenticate before validation; canonical Catalog reads remain public.
+Both namespaces retain QR cookie paths, stream receive ownership, response policy and method handling.
+Shared Profile preferences retain an explicit dependency on the MTG card/metric helper without changing their response body.
+Frozen neutral inventory, golden and transfer inputs retain the old API.
+This source implementation establishes neither current-head real-database/client acceptance nor production deployment.

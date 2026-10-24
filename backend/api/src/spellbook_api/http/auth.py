@@ -10,6 +10,7 @@ from starlette.responses import Response
 
 from spellbook_api.http.errors import HttpError
 from spellbook_api.http.parsing import decode_parameter, header, trim
+from spellbook_api.http.paths import canonical_path
 
 SESSION_COOKIE = "spellbook_session"
 
@@ -59,6 +60,7 @@ def require_form_origin(request: Request, public_origin: str, route_path: str = 
         "application/x-sveltekit-formdata",
     }:
         return
+    route_path = canonical_path(route_path)
     origin = header(request, "origin")
     if origin == public_origin:
         return
@@ -66,15 +68,15 @@ def require_form_origin(request: Request, public_origin: str, route_path: str = 
         if (
             request.method == "POST"
             and media == "multipart/form-data"
-            and route_path == "/api/mobile/v1/mtg/scan/sessions/:sessionId/frames"
+            and route_path == "/api/v1/mtg/scan/sessions/:sessionId/frames"
         ):
             return
         bodyless = {
-            "DELETE /api/mobile/v1/mtg/decks/:deckId",
-            "DELETE /api/mobile/v1/mtg/deck-cards/:entryId",
-            "DELETE /api/mobile/v1/mtg/inventory/:entryId",
-            "POST /api/mobile/v1/mtg/scan/sessions",
-            "POST /api/auth/logout",
+            "DELETE /api/v1/mtg/decks/:deckId",
+            "DELETE /api/v1/mtg/deck-cards/:entryId",
+            "DELETE /api/v1/mtg/inventory/:entryId",
+            "POST /api/v1/mtg/scan/sessions",
+            "POST /api/v1/auth/logout",
         }
         length = header(request, "content-length") or "0"
         has_body = "transfer-encoding" in request.headers or (

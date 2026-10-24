@@ -24,12 +24,11 @@ from test_inventory import (
 )
 
 from spellbook_core.db import transaction
-from spellbook_core.errors import (
+from spellbook_core.errors import RequestConflictError, ValidationError
+from spellbook_core.mtg.errors import (
     InventoryNotFoundError,
     InventoryQuantityChangedError,
     NotesConflictError,
-    RequestConflictError,
-    ValidationError,
 )
 
 

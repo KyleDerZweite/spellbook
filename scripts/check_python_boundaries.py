@@ -13,6 +13,23 @@ SOURCE_ROOTS = (
     ("backend/workers/state/src", "worker"),
 )
 
+MTG_MODULES = {
+    "catalog",
+    "catalog_query",
+    "categories",
+    "dashboard",
+    "decks",
+    "inventory",
+    "inventory_import",
+    "inventory_query",
+    "inventory_read",
+    "inventory_value",
+    "scan",
+    "valuation",
+    "valuation_query",
+    "value_history",
+}
+
 
 @dataclass(frozen=True)
 class Violation:
@@ -24,6 +41,25 @@ class Violation:
 
 def forbidden(owner: str, module: str) -> str | None:
     parts = module.split(".")
+    if parts[0] == "spellbook_core" and len(parts) > 1 and parts[1] in MTG_MODULES:
+        return "mtg-namespace"
+    if (
+        parts[:2] == ["spellbook_api", "http"]
+        and len(parts) > 2
+        and parts[2]
+        in {
+            "routes_catalog",
+            "routes_categories",
+            "routes_dashboard",
+            "routes_decks",
+            "routes_inventory",
+            "routes_scan",
+            "routes_valuation",
+            "routes_web",
+            "routes_commands",
+        }
+    ):
+        return "mtg-namespace"
     api = parts[0] == "spellbook_api" or parts[:2] == ["backend", "api"]
     worker = parts[0] in {"worker", "scan_worker", "spellbook_state"} or parts[:2] == [
         "backend",

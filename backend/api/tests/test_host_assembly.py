@@ -6,18 +6,18 @@ from unittest.mock import AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
-from spellbook_core.profile import SUMMARY_RANGE_MESSAGE, SummaryRangeError
+from spellbook_core.mtg.profile import SUMMARY_RANGE_MESSAGE, SummaryRangeError
 from starlette.routing import Route
 from test_auth_account import ACTOR, ORIGIN, TOKEN
 
 from spellbook_api.application import ApplicationResources, create_application
+from spellbook_api.http.mtg.routes_catalog import create_catalog_routes
+from spellbook_api.http.mtg.routes_categories import create_category_routes
+from spellbook_api.http.mtg.routes_decks import create_deck_routes
+from spellbook_api.http.mtg.routes_inventory import create_inventory_routes
+from spellbook_api.http.mtg.routes_scan import create_scan_routes
+from spellbook_api.http.mtg.routes_valuation import create_valuation_routes
 from spellbook_api.http.router import RouteRegistry
-from spellbook_api.http.routes_catalog import create_catalog_routes
-from spellbook_api.http.routes_categories import create_category_routes
-from spellbook_api.http.routes_decks import create_deck_routes
-from spellbook_api.http.routes_inventory import create_inventory_routes
-from spellbook_api.http.routes_scan import create_scan_routes
-from spellbook_api.http.routes_valuation import create_valuation_routes
 from spellbook_api.http.types import Configuration
 
 
@@ -48,7 +48,7 @@ def test_production_assembly_registers_and_dispatches_all_integrated_factories(
     for routes, expected in (
         (create_inventory_routes(resources.auth, resources.inventory, ORIGIN), 16),
         (create_deck_routes(resources.auth, resources.decks, ORIGIN), 19),
-        (create_catalog_routes(resources.auth, resources.catalog, ORIGIN), 7),
+        (create_catalog_routes(resources.catalog), 4),
         (create_valuation_routes(resources.auth, resources.valuation, ORIGIN), 5),
         (create_scan_routes(resources.auth, resources.scan, ORIGIN), 7),
         (create_category_routes(resources.auth, resources.categories, ORIGIN), 17),
@@ -109,7 +109,7 @@ def test_production_assembly_registers_and_dispatches_all_integrated_factories(
             "definitions": []
         }
         library.assert_awaited_once_with(ACTOR, {"offset": 0, "limit": 50})
-        from spellbook_core.categories import CategoryConflict
+        from spellbook_core.mtg.categories import CategoryConflict
 
         library.side_effect = CategoryConflict({"decisionRevision": "2"})
         failure = client.get("/api/mobile/v1/mtg/category-definitions", headers=headers)
@@ -186,7 +186,7 @@ def test_scan_environment_is_typed_and_discovery_constructs_no_scan_adapters(
 
 @pytest.mark.parametrize("enabled", ["true", "false"])
 def test_combo_configuration_binds_the_owned_pool(enabled: str) -> None:
-    from spellbook_core.categories.common import combo_enabled
+    from spellbook_core.mtg.categories.common import combo_enabled
 
     configuration = Configuration.from_environment(
         {
@@ -205,10 +205,12 @@ def test_combo_configuration_binds_the_owned_pool(enabled: str) -> None:
         )
 
 
-def test_complete_registry_matches_every_neutral_api_operation() -> None:
+def test_complete_registry_matches_canonical_schema_and_legacy_inventory() -> None:
     import json
     import re
     from pathlib import Path
+
+    from spellbook_api.http.paths import canonical_path
 
     lifetime = create_application(
         Configuration(ORIGIN, database_url="postgresql://localhost/unused")
@@ -226,6 +228,28 @@ def test_complete_registry_matches_every_neutral_api_operation() -> None:
             if row["transport"] == "api"
         }
         actual = {(route.method, route.path) for route in registry._routes}
-        assert actual == expected | {("GET", "/openapi.json")}
+        canonical_expected = {(method, canonical_path(path)) for method, path in expected}
+        schema = json.loads(
+            (Path(__file__).resolve().parents[3] / "contracts/openapi.json").read_text()
+        )
+        schema_expected = {
+            (method.upper(), re.sub(r"\{([^}]+)\}", r":\1", path))
+            for path, item in schema["paths"].items()
+            if path.startswith("/api/")
+            for method in item
+            if method in {"get", "post", "put", "patch", "delete"}
+        }
+        canonical_actual = {
+            (method, path) for method, path in actual if path.startswith("/api/v1/")
+        }
+        legacy_actual = {
+            (method, path)
+            for method, path in actual
+            if path.startswith("/api/") and not path.startswith("/api/v1/")
+        }
+        assert canonical_actual == canonical_expected == schema_expected
+        assert legacy_actual == expected
+        assert actual == canonical_expected | expected | {("GET", "/openapi.json")}
+        assert len(registry._routes) == len(actual)
     finally:
         asyncio.run(lifetime.close())

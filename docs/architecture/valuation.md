@@ -1,9 +1,9 @@
 # Valuation
 
 - Status: Scryfall and optional provider references/public source history implemented; personal Inventory history and Dashboard/selected-Deck estimates implemented
-- Last Reviewed: 2026-10-23
+- Last Reviewed: 2026-10-24
 - Source of Truth: reference contracts, backend Valuation, Worker publication and accepted value-only scope
-- Update Triggers: Python source activation and server contraction, separately packaged Python ValueHistory scheduler, source publication, mapping, exact-decimal evaluation, public history, pruning, private checkpoint persistence, capture scheduling, safe summary contracts and acceptance evidence
+- Update Triggers: versioned MTG routes and module ownership, Python source activation and server contraction, separately packaged Python ValueHistory scheduler, source publication, mapping, exact-decimal evaluation, public history, pruning, private checkpoint persistence, capture scheduling, safe summary contracts and acceptance evidence
 - Related Docs: [Architecture](./README.md), [Value tracking](../product/value-tracking.md), [Market price research](../integrations/market-prices.md), [Application contract](./application-contract.md), [Postgres](./postgres.md), [Worker](./worker.md), [ADR-0020](../decisions/0020-value-only-inventory-history.md), [ADR-0022](../decisions/0022-daily-value-observation-checkpoints.md)
 
 [Value tracking](../product/value-tracking.md) owns reference selection, coverage, reporting calendar, personal history and Deck estimates.
@@ -65,8 +65,8 @@ If that reporting date already exists in another calendar, it is retained rather
 Empty holdings save a known-zero header.
 Personal retention has no automatic expiry.
 
-Authenticated `GET /api/mobile/v1/mtg/inventory/value` returns a current estimate and coverage.
-`GET /api/mobile/v1/mtg/inventory/value-history` returns closed points and explicit gaps within a validated window of at most 366 calendar dates, default 30.
+Authenticated `GET /api/v1/mtg/inventory/value` returns a current estimate and coverage.
+`GET /api/v1/mtg/inventory/value-history` returns closed points and explicit gaps within a validated window of at most 366 calendar dates, default 30.
 Optional printing/finish/condition filters identify historical holdings independently of a live entry UUID.
 A filtered identity absent from a successfully captured account day returns known zero holdings and value.
 An absent account checkpoint remains a gap.
@@ -126,7 +126,7 @@ Personal capture copies this trusted evidence before public pruning.
 Ingestion never inspects private holdings.
 Private reference rows retain copied evidence independently of public publications.
 
-[Contracts](../../contracts/src/valuation.ts), [backend Valuation](../../backend/core/src/spellbook_core/valuation.py) and [Worker extraction](../../backend/workers/catalog/src/worker/prices.py) own concrete shapes and rules.
+[Contracts](../../contracts/src/valuation.ts), [backend Valuation](../../backend/core/src/spellbook_core/mtg/valuation.py) and [Worker extraction](../../backend/workers/catalog/src/worker/prices.py) own concrete shapes and rules.
 [HTTP ownership](./mobile-and-scan.md#reference-price-http-contract) owns routes, limits and errors; [deployment](../operations/deployment.md#catalog-migration-and-recovery) owns paired recovery.
 
 ## Optional references and public source history

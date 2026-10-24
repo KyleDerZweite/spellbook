@@ -1,9 +1,9 @@
 # Accepted application contract
 
 - Status: Accepted design; workspace, trusted Auth, Account/Profile, Dashboard, bounded Inventory reads and mutation contracts, Deck application contracts and shared Deck UI, Scan upload/read/result/review contracts, SavedState transport, process lifetime and mounted workspace consumers, source references, optional public providers, bounded public source history, private daily Inventory history, Dashboard/selected-Deck estimates and starter entry categories plus optional local Combo matching implemented; later feature slices planned
-- Last Reviewed: 2026-10-23
+- Last Reviewed: 2026-10-24
 - Source of Truth: workspace/Catalog/Auth/Profile/Dashboard/Inventory/Deck/Scan/Categories/SavedState/Valuation code and contracts, Worker price/Oracle Tags/Combo publication code, unaffected Q56 contracts and Kyle's value-only and continuous Lazy decisions of 2026-10-07
-- Update Triggers: Python source activation and server contraction, selected Python API/worker direction, independent API/web ownership and relocated code references, workspace ownership, backend application/transport/operator interfaces and resource cleanup, use-case interfaces, experimental API migration, mutation receipts and revisions, Inventory queries and cache limits, shared UI interfaces and native Deck task entry, synchronization and SavedState process/HMR lifetime, reference publication, value-only history scope, Categories interfaces, immutable entry decisions/manual provenance, Oracle/Combo source and rule lifecycle and acceptance evidence, continuous Lazy browsing/dialog contract and selected versus implemented read limits
+- Update Triggers: versioned MTG routes and module ownership, Python source activation and server contraction, selected Python API/worker direction, independent API/web ownership and relocated code references, workspace ownership, backend application/transport/operator interfaces and resource cleanup, use-case interfaces, experimental API migration, mutation receipts and revisions, Inventory queries and cache limits, shared UI interfaces and native Deck task entry, synchronization and SavedState process/HMR lifetime, reference publication, value-only history scope, Categories interfaces, immutable entry decisions/manual provenance, Oracle/Combo source and rule lifecycle and acceptance evidence, continuous Lazy browsing/dialog contract and selected versus implemented read limits
 - Related Docs: [Architecture](./README.md), [System overview](./system-overview.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Authentication](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Product specification](../product/specification.md), [UI direction](../product/ui-design-direction.md), [Valuation](./valuation.md), [Category rules](./category-rules.md), [Verification](../operations/github-automation.md), [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md), [ADR-0016](../decisions/0016-postgres-saved-state-invalidation.md), [ADR-0017](../decisions/0017-revisioned-inventory-windows-and-mutation-receipts.md), [Independent applications](./independent-applications.md), [Python direction](../decisions/0025-python-api-and-workers.md)
 
 Kyle accepted the original nineteen-slice contract and real HTTP/PostgreSQL/browser acceptance seam in Q56 on 2026-10-06.
@@ -77,10 +77,10 @@ Sources/Rules categories and later app delivery retain their accepted contracts.
 
 ## Module ownership
 
-The [backend Scan commit use case](../../backend/core/src/spellbook_core/scan/commit.py) owns its normalized fingerprint, session/artifact/review persistence and orchestration.
-It reuses the concrete [Inventory writer](../../backend/core/src/spellbook_core/inventory.py) for trusted preparation, lock participation, effects, revision and original receipt persistence.
+The [backend Scan commit use case](../../backend/core/src/spellbook_core/mtg/scan/commit.py) owns its normalized fingerprint, session/artifact/review persistence and orchestration.
+It reuses the concrete [Inventory writer](../../backend/core/src/spellbook_core/mtg/inventory.py) for trusted preparation, lock participation, effects, revision and original receipt persistence.
 This internal transaction seam is unavailable to frontend callers; public composition exposes only actor-based operations.
-The [Scan application](../../backend/core/src/spellbook_core/scan/application.py) owns complete upload/read/result/review behavior with injected storage/worker configuration.
+The [Scan application](../../backend/core/src/spellbook_core/mtg/scan/application.py) owns complete upload/read/result/review behavior with injected storage/worker configuration.
 Its shared JSON-safe DTOs expose neither account identity nor storage keys.
 [Mobile and Scan](./mobile-and-scan.md#selected-reads-and-compact-review-commits) owns bounded reads, the legacy replay bridge and cancellation/uncertain-commit cleanup.
 Scan workspace invalidation uses the mounted frontend resource adapter.
@@ -199,12 +199,12 @@ Printing replacement is a semantic operation that preserves source identity/prov
 
 ## Implemented Inventory read boundary
 
-The backend [Inventory reader](../../backend/core/src/spellbook_core/inventory.py) authenticates its actor and returns page, detail and location DTOs from [inventory.ts](../../contracts/src/inventory.ts).
+The backend [Inventory reader](../../backend/core/src/spellbook_core/mtg/inventory.py) authenticates its actor and returns page, detail and location DTOs from [inventory.ts](../../contracts/src/inventory.ts).
 Reads use a repeatable-read, read-only transaction and never create an Inventory parent.
-The [query normalizer](../../backend/core/src/spellbook_core/inventory_query.py) validates backend reads; native GET adapters send pure shared request shapes over HTTP.
+The [query normalizer](../../backend/core/src/spellbook_core/mtg/inventory_query.py) validates backend reads; native GET adapters send pure shared request shapes over HTTP.
 Metadata retained outside the page cache contains no hidden entry or membership snapshot.
 
-The [Inventory mutation use cases](../../backend/core/src/spellbook_core/inventory.py) authenticate a session-produced actor, lock the Profile/account row and revalidate the session before writes.
+The [Inventory mutation use cases](../../backend/core/src/spellbook_core/mtg/inventory.py) authenticate a session-produced actor, lock the Profile/account row and revalidate the session before writes.
 Scan commits then lock the owned ScanSession; all writes lock the MTG Inventory parent, sorted existing entry IDs and sorted target Group IDs.
 Catalog resolution runs before parent locking.
 All operations in one bulk/import/Scan commit succeed atomically or roll back together.
@@ -223,7 +223,7 @@ Older non-null fingerprints remain strict and may reject clients migrated to the
 
 ## Implemented Deck application boundary
 
-The backend [Deck application](../../backend/core/src/spellbook_core/decks/application.py) owns authorization, metadata patches, quantity/role operations, printing replacement, import/export, legality and ownership/availability reads.
+The backend [Deck application](../../backend/core/src/spellbook_core/mtg/decks/application.py) owns authorization, metadata patches, quantity/role operations, printing replacement, import/export, legality and ownership/availability reads.
 [Deck contracts](../../contracts/src/decks.ts) explicitly map DTO fields, ISO timestamps and decimal revisions.
 Web actions and HTTP routes call the same trusted-actor interface.
 Frontend owns cookies/origins, native form adaptation, errors and drafts.

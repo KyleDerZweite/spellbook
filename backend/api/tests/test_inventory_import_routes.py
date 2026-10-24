@@ -8,21 +8,21 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from spellbook_core.auth import SessionAuth
-from spellbook_core.catalog import Catalog
 from spellbook_core.db import ConnectionPool
-from spellbook_core.inventory import (
+from spellbook_core.models import Actor
+from spellbook_core.mtg.catalog import Catalog
+from spellbook_core.mtg.inventory import (
     Inventory,
     InventoryAcknowledgement,
     RecordedInventoryMutation,
 )
-from spellbook_core.inventory_import import ImportPreview
-from spellbook_core.models import Actor
+from spellbook_core.mtg.inventory_import import ImportPreview
 
 from spellbook_api.http.admission import RequestAdmission
+from spellbook_api.http.mtg.routes_inventory import create_inventory_routes
 from spellbook_api.http.router import RawPathRouting, RouteRegistry
-from spellbook_api.http.routes_inventory import create_inventory_routes
 
-BASE = "/api/mobile/v1/mtg/inventory"
+BASE = "/api/v1/mtg/inventory"
 ORIGIN = "https://spellbook.test"
 TOKEN = "a" * 43
 ACTOR = Actor("import-account", "test", "", "", "")

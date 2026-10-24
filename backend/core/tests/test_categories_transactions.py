@@ -11,28 +11,28 @@ from unittest.mock import AsyncMock, create_autospec, patch
 import pytest
 
 from spellbook_core.auth import SessionAuth
-from spellbook_core.categories import create_categories
-from spellbook_core.categories.common import (
+from spellbook_core.db import Transaction
+from spellbook_core.errors import RequestConflictError, ValidationError
+from spellbook_core.fingerprint import mutation_fingerprint, serialize_json
+from spellbook_core.models import Actor
+from spellbook_core.mtg.categories import create_categories
+from spellbook_core.mtg.categories.common import (
     CategoryConflict,
     CategoryPreviewExpired,
     Document,
     LibraryConflict,
     category_transaction,
 )
-from spellbook_core.categories.jobs import (
+from spellbook_core.mtg.categories.jobs import (
     WholeDeckJobClaim,
     backoff_delay_ms,
     backoff_whole_deck_job,
     claim_whole_deck_job,
     process_whole_deck_job,
 )
-from spellbook_core.categories.library import normalize_definition
-from spellbook_core.categories.merge import validate_merge_token
-from spellbook_core.categories.previews import preview_page
-from spellbook_core.db import Transaction
-from spellbook_core.errors import RequestConflictError, ValidationError
-from spellbook_core.fingerprint import mutation_fingerprint, serialize_json
-from spellbook_core.models import Actor
+from spellbook_core.mtg.categories.library import normalize_definition
+from spellbook_core.mtg.categories.merge import validate_merge_token
+from spellbook_core.mtg.categories.previews import preview_page
 
 ID = "00000000-0000-4000-8000-000000000001"
 ENTRY = "00000000-0000-4000-8000-000000000002"
@@ -243,7 +243,7 @@ def test_entry_manual_noop_and_conflict_expose_exact_latest() -> None:
             ]
         )
         with patch(
-            "spellbook_core.categories.application.read_deck_entry_categories",
+            "spellbook_core.mtg.categories.application.read_deck_entry_categories",
             AsyncMock(return_value=latest),
         ):
             result = await create_categories(ScriptedPool(sql), auth()).set_entry_category(
@@ -258,7 +258,7 @@ def test_entry_manual_noop_and_conflict_expose_exact_latest() -> None:
         )
         with (
             patch(
-                "spellbook_core.categories.application.read_deck_entry_categories",
+                "spellbook_core.mtg.categories.application.read_deck_entry_categories",
                 AsyncMock(return_value={**latest, "decisionRevision": "3"}),
             ),
             pytest.raises(CategoryConflict) as failure,
@@ -317,7 +317,7 @@ def test_merge_consequence_and_optional_combo_source_fences() -> None:
         current,
         serialize_json(dict(consequence="c", sources={**sources, "catalogGenerationId": "prior"})),
     )
-    from spellbook_core.categories.common import CategoryMergeConflict
+    from spellbook_core.mtg.categories.common import CategoryMergeConflict
 
     for token in [None, "[]", "{}", serialize_json(dict(consequence="stale", sources=sources))]:
         with pytest.raises(CategoryMergeConflict):
@@ -386,7 +386,7 @@ def test_job_generation_token_composition_decision_fences(fence: str) -> None:
             bundle["decision_revision"] = "12"
         sql = ScriptedConnection([[deck], [bundle], [job]])
         evaluate = AsyncMock(return_value=dict(changed=False))
-        with patch("spellbook_core.categories.whole.evaluate_whole_deck", evaluate):
+        with patch("spellbook_core.mtg.categories.whole.evaluate_whole_deck", evaluate):
             await process_whole_deck_job(ScriptedPool(sql), claim())
         queries = [q for _, q, _ in sql.calls]
         lock_tables = [
@@ -441,7 +441,7 @@ def test_evaluation_failure_rolls_back_and_backoff_retains_generation_token_guar
         )
         with (
             patch(
-                "spellbook_core.categories.whole.evaluate_whole_deck",
+                "spellbook_core.mtg.categories.whole.evaluate_whole_deck",
                 AsyncMock(side_effect=RuntimeError("database unavailable")),
             ),
             pytest.raises(RuntimeError),
@@ -495,8 +495,8 @@ def test_preview_commit_rejects_stale_fences_and_expiry(expired: bool) -> None:
 
 
 def test_initialization_adopts_current_versions_and_only_missing_main_entries() -> None:
-    from spellbook_core.categories.persistence import ensure_entry_category_initialization
-    from spellbook_core.categories.rules import STARTER_DEFINITIONS
+    from spellbook_core.mtg.categories.persistence import ensure_entry_category_initialization
+    from spellbook_core.mtg.categories.rules import STARTER_DEFINITIONS
 
     async def scenario() -> None:
         generation = "00000000-0000-4000-8000-000000000004"
@@ -560,8 +560,8 @@ def test_initialization_adopts_current_versions_and_only_missing_main_entries() 
 
 @pytest.mark.parametrize("mode", ["Review", "Reset"])
 def test_entry_preview_real_plan_preserves_manual_only_during_review(mode: str) -> None:
-    from spellbook_core.categories.previews import build_entry_plan
-    from spellbook_core.categories.rules import STARTER_DEFINITIONS
+    from spellbook_core.mtg.categories.previews import build_entry_plan
+    from spellbook_core.mtg.categories.rules import STARTER_DEFINITIONS
 
     async def scenario() -> None:
         local = {**STARTER_DEFINITIONS[0], "originId": STARTER_DEFINITIONS[0]["id"], "id": ORIGIN}
@@ -719,7 +719,7 @@ def test_ready_preview_commit_applies_changes_receipt_and_notification_atomicall
 def test_combo_sql_adapter_uses_role_scoped_possible_upper_bounds() -> None:
     from pathlib import Path
 
-    from spellbook_core.categories.combo import read_combo_facts
+    from spellbook_core.mtg.categories.combo import read_combo_facts
 
     async def scenario() -> None:
         variant: Document = json.loads(

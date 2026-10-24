@@ -17,14 +17,15 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from spellbook_core.auth import SessionAuth
 from spellbook_core.models import Actor
-from spellbook_core.scan import Scan, ScanError, ScanImage
-from spellbook_core.scan.validation import check_image
+from spellbook_core.mtg.scan import Scan, ScanError, ScanImage
+from spellbook_core.mtg.scan.validation import check_image
 
 from spellbook_api.http.admission import RequestAdmission
+from spellbook_api.http.mtg.routes_scan import create_scan_routes
+from spellbook_api.http.paths import canonical_path
 from spellbook_api.http.router import RawPathRouting, RouteRegistry
-from spellbook_api.http.routes_scan import create_scan_routes
 
-BASE = "/api/mobile/v1/mtg/scan"
+BASE = "/api/v1/mtg/scan"
 ORIGIN = "https://spellbook.test"
 SESSION = "11111111-1111-4111-8111-111111111111"
 ARTIFACT = "22222222-2222-4222-8222-222222222222"
@@ -320,9 +321,9 @@ def test_scan_factory_matches_neutral_routes() -> None:
     oracle = json.loads((root / "contracts/compatibility/inventory.json").read_text())
     actual = {(route.method, route.path) for route in create_scan_routes(auth, scan, ORIGIN)}
     expected = {
-        (route["method"].upper(), re.sub(r"\{(\w+)\}", r":\1", route["path"]))
+        (route["method"].upper(), canonical_path(re.sub(r"\{(\w+)\}", r":\1", route["path"])))
         for route in oracle["routes"]
-        if route["path"].startswith(BASE)
+        if canonical_path(route["path"]).startswith(BASE)
     }
     assert actual == expected
 

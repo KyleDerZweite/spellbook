@@ -3,13 +3,13 @@
 import asyncio
 import logging
 
-from spellbook_core.categories.jobs import (
+from spellbook_core.db import ConnectionPool
+from spellbook_core.mtg.categories.jobs import (
     POLL_SECONDS,
     backoff_whole_deck_job,
     claim_whole_deck_job,
     process_whole_deck_job,
 )
-from spellbook_core.db import ConnectionPool
 
 log = logging.getLogger(__name__)
 

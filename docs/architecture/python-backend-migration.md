@@ -3,7 +3,7 @@
 - Status: Implemented unmerged candidate; owner testing and production operations pending
 - Last Reviewed: 2026-10-24
 - Source of Truth: ADR-0025, ADR-0026, ADR-0027, existing code/tests/contracts and Kyle's 2026-10-23 direction
-- Update Triggers: Python source activation and server contraction, functional migration acceptance, component interfaces, assembled Categories/state, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
+- Update Triggers: ADR-0028 versioned API and MTG module ownership, Python source activation and server contraction, functional migration acceptance, component interfaces, assembled Categories/state, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
 - Related Docs: [ADR-0025](../decisions/0025-python-api-and-workers.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [Independent applications](./independent-applications.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Migration evidence](./python-migration-evidence-baseline.md), [Postgres](./postgres.md), [Auth](./auth.md), [Worker](./worker.md), [Deployment](../operations/deployment.md), [Verification](../operations/github-automation.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
 
 ## Scope and status
@@ -30,7 +30,10 @@ Production cutover, productive migrator rollout and ending the real production r
 
 Use FastAPI/Uvicorn and Psycopg 3, explicit typed application/SQL modules, no ORM and no new broker.
 HTTP adapters parse existing inputs, authenticate into a trusted actor and map the existing DTOs/errors.
-Core application modules own Auth/Profile/Dashboard, Catalog, Inventory/Groups, Decks, Categories/Library, Valuation/History and Scan behavior.
+Shared Core owns Auth, identity preferences, database, password, QR and SavedState infrastructure.
+`spellbook_core.mtg` owns Catalog, Inventory/Groups, Decks, Categories/Library, Valuation/History, Dashboard, Scan and MTG projections.
+Shared Profile retains its existing wire body and an explicit dependency on `mtg.profile`.
+HTTP game adapters live in `spellbook_api.http.mtg`; Auth, account preferences and transport remain shared.
 SQL modules own parameterized queries, transactions, isolation, lock order and exact numeric decoding.
 Core imports neither FastAPI nor clients; HTTP and workers depend on Core.
 Workers share relevant application/SQL modules without importing HTTP.
@@ -80,7 +83,7 @@ Domain dependencies such as Auth, Inventory and Scan remain necessary where cons
 ## Wire schema and SQL ownership
 
 Backend owns wire semantics; the checked-in [OpenAPI 3.1 artifact](../../contracts/openapi.json) is the language-neutral structural owner.
-The [Node adapter](../../backend/api/src/spellbook_api/http/application.py) serves that artifact with the configured origin.
+The [Python adapter](../../backend/api/src/spellbook_api/http/application.py) serves that artifact with the configured origin.
 Reconcile Python handlers against it, actual routes/consumers and the executable JSON/raw-HTTP compatibility fixtures.
 Framework-generated OpenAPI is not a competing source of truth.
 Keep client presentation helpers and TypeScript validators in `contracts/src/`; Python cannot import them.
@@ -113,8 +116,11 @@ Worker tests that apply selected SQL subsets do not establish this handoff.
 ## Compatibility invariants
 
 The existing [application](./application-contract.md), [HTTP/Auth](./independent-applications.md#authority-and-compatibility), [Postgres](./postgres.md), [Catalog](./catalog.md) and [Worker](./worker.md) documents retain behavioral ownership.
-The port preserves every existing route, method, closed web command and browser form without a new response envelope or product change.
-The documented inventory is 88 API method/path pairs and 95 OpenAPI pairs including seven web-owned browser-auth methods; extract and compare the actual registry instead of trusting counts.
+The port preserves every legacy route as a direct alias, method, closed web command and browser form without a new response envelope.
+[ADR-0028](../decisions/0028-versioned-game-api.md) supersedes path/module immutability for the accepted canonical versioned API and explicit MTG modules.
+Its mapping and ownership contract live in [independent applications](./independent-applications.md#selected-versioned-game-api).
+The frozen inventory/golden/transfer files remain legacy inputs; canonical OpenAPI advertises the new paths.
+Compare actual canonical and legacy registry sets with their respective owners rather than assuming equal counts.
 
 - Preserve bearer-before-cookie selection without fallback after any invalid explicit Authorization, cookie-only SSR/forms, Origin exceptions, trusted client addresses and `APP_ORIGIN` authority.
   Count credential-form attempts exactly once before decoding; preserve password rotation's replacement cookie and request-bound credential.
@@ -135,7 +141,7 @@ The documented inventory is 88 API method/path pairs and 95 OpenAPI pairs includ
   Publication failure leaves the last complete snapshot active; `state.json` remains operator status.
   Preserve opt-ins, resource limits and all existing private data and Scan objects.
 
-The candidate host composes all 88 API method/path pairs plus Discovery, including nineteen Deck routes and the closed nine-command web endpoint.
+The candidate host composes the canonical versioned API, every frozen legacy API alias and unchanged Discovery, including nineteen canonical Deck routes and the closed nine-command MTG endpoint.
 Web commands preserve original Core receipts, revisions and absent optional fields, reject caller authority and retain direct API Bearer-before-cookie selection and cookie-mode Origin protection.
 SSR/forms select only the browser cookie before forwarding.
 Dashboard uses account-scoped aggregates and exact-first Deck allocation in one read-only repeatable-read snapshot, passing the same transaction and database clock to current/history value reads.

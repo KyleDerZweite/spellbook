@@ -15,10 +15,10 @@ from psycopg import AsyncConnection
 from psycopg.conninfo import conninfo_to_dict
 from psycopg_pool import AsyncConnectionPool
 from spellbook_core.auth import create_session_auth
-from spellbook_core.categories import configure_combo_adapter
-from spellbook_core.inventory_value import create_inventory_values
+from spellbook_core.mtg.categories import configure_combo_adapter
+from spellbook_core.mtg.inventory_value import create_inventory_values
+from spellbook_core.mtg.valuation import create_valuation
 from spellbook_core.validation import js_trim
-from spellbook_core.valuation import create_valuation
 
 from spellbook_state.categories import WholeDeckCategoryRunner
 from spellbook_state.value_history import create_value_history_runner

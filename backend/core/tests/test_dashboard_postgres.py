@@ -8,10 +8,10 @@ import pytest
 from test_postgres import native_account, native_pool
 
 from spellbook_core.auth import create_session_auth
-from spellbook_core.dashboard import create_dashboard
 from spellbook_core.db import transaction
-from spellbook_core.inventory_value import create_inventory_values
-from spellbook_core.valuation import create_valuation
+from spellbook_core.mtg.dashboard import create_dashboard
+from spellbook_core.mtg.inventory_value import create_inventory_values
+from spellbook_core.mtg.valuation import create_valuation
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("P02B_CORE_NATIVE_DATABASE"), reason="Requires exclusive native PG lease"

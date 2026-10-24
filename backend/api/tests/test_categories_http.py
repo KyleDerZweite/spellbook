@@ -8,8 +8,10 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from spellbook_core.auth import SessionAuth
-from spellbook_core.categories import Categories
-from spellbook_core.categories.common import (
+from spellbook_core.errors import RequestConflictError, ValidationError
+from spellbook_core.models import Actor
+from spellbook_core.mtg.categories import Categories
+from spellbook_core.mtg.categories.common import (
     CategoryConflict,
     CategoryMergeConflict,
     CategoryNotFound,
@@ -19,16 +21,14 @@ from spellbook_core.categories.common import (
     Document,
     LibraryConflict,
 )
-from spellbook_core.errors import RequestConflictError, ValidationError
-from spellbook_core.models import Actor
 
 from spellbook_api.http.admission import RequestAdmission
+from spellbook_api.http.mtg.routes_categories import create_category_routes
 from spellbook_api.http.router import RawPathRouting, RouteRegistry
-from spellbook_api.http.routes_categories import create_category_routes
 
 ORIGIN = "https://category.example"
 ID = "00000000-0000-4000-8000-000000000001"
-PREFIX = "/api/mobile/v1/mtg"
+PREFIX = "/api/v1/mtg"
 ACTOR = Actor("category-account", "category-user", "", "", "")
 TOKEN = "a" * 43
 
@@ -298,7 +298,7 @@ def test_named_path_decoding_auth_precedence_and_cookie_origin() -> None:
         assert response.status_code == 403
 
 
-def test_category_route_pairs_equal_the_frozen_openapi_contract() -> None:
+def test_category_route_pairs_equal_canonical_openapi_contract() -> None:
     import re
     from pathlib import Path
 

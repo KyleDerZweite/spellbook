@@ -9,14 +9,12 @@ from unittest.mock import AsyncMock, create_autospec
 
 import pytest
 from spellbook_core.auth import SessionAuth
-from spellbook_core.errors import (
-    ActorError,
+from spellbook_core.errors import ActorError, RequestConflictError, ValidationError
+from spellbook_core.mtg.errors import (
     DescriptionConflictError,
     InventoryNotFoundError,
     InventoryQuantityChangedError,
     NotesConflictError,
-    RequestConflictError,
-    ValidationError,
 )
 from spellbook_core.validation import MISSING
 from starlette.requests import Request

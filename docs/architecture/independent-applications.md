@@ -3,7 +3,7 @@
 - Status: Independent Python API and workers implemented; native target verification pending
 - Last Reviewed: 2026-10-24
 - Source of Truth: accepted maintainer direction and existing application contracts
-- Update Triggers: selected versioned game API and compatibility aliases, Python source activation and implementation status, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, HTTP extraction, native delivery, credential forwarding, application ownership, acceptance evidence
+- Update Triggers: versioned MTG routes and module ownership, selected versioned game API and compatibility aliases, Python source activation and implementation status, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, HTTP extraction, native delivery, credential forwarding, application ownership, acceptance evidence
 - Related Docs: [System overview](./system-overview.md), [Application contract](./application-contract.md), [Auth](./auth.md), [Mobile handoff](../product/mobile-app-exploration.md), [ADR-0024](../decisions/0024-independent-applications.md), [Verification](../operations/github-automation.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md)
 
 ## Outcome and ownership
@@ -35,9 +35,13 @@ The latter owns Catalog search/printing reads under `/catalog`, Inventory, Decks
 Raw-form bridges use `/api/v1/web/auth/login`, `/api/v1/web/auth/register` and `/api/v1/web/password`.
 Page paths remain `/mtg/...`, `/auth/...` and `/settings/...`.
 
-MTG-owned HTTP and Core modules belong to explicit `mtg` namespaces.
+MTG-owned HTTP and Core modules live in `spellbook_api.http.mtg` and `spellbook_core.mtg`.
+The factories declare canonical paths; `http/compatibility.py` derives direct legacy dispatch through `http/paths.py`, wrapping only legacy mobile Catalog reads with their original authentication.
+Internal consumers use the new Python modules without legacy re-export shims.
 Common identity/authentication, database, transport and process lifetime retain their shared owners.
-The current Profile response retains its existing MTG card/metrics projection and an explicit MTG dependency.
+The shared Profile interface and response retain their existing body.
+`spellbook_core.mtg.profile` explicitly owns Profile-card validation, presentation and MTG totals; shared `spellbook_core.profile` owns identity preferences and atomic updates.
+MTG printing DTOs and mutation conflicts belong to `spellbook_core.mtg.models` and `.errors`.
 There is no new game registry, generic filter framework, common all-game card schema or implemented second TCG.
 
 Public Catalog reads remain public; private mutations and reads retain their authentication and account scope.
@@ -45,21 +49,22 @@ Old API paths remain direct compatibility aliases, including the authenticated l
 Web and Android switch to canonical paths in the same change.
 OpenAPI describes canonical routes, while the existing frozen compatibility inventory and its cases remain legacy acceptance inputs.
 Canonical and legacy tests must cover dispatch, first-value query parsing, bodies, HEAD/OPTIONS/405, cache/Origin policy, QR cookie paths and SSE.
-The earlier path examples below describe the retained compatibility contracts until reconciled with the implementation.
+The backend implements these canonical routes and direct aliases in the unmerged PR 276 candidate.
+Client migration and current-head production-registry HTTP acceptance remain integration-owner checks.
 
 `backend/api/src/spellbook_api/http/types.py` owns `Configuration` and `ApplicationLifetime`.
 `create_application(configuration)` returns the HTTP app, pre-drain `close_streams` and idempotent `close` callbacks.
 `create_http_application` composes explicitly supplied Auth, Catalog, Inventory, Deck, Category, Scan, Valuation, Profile, Dashboard and SavedState dependencies.
-The ten route factories return `HttpRoute` definitions with colon-prefixed named path segments.
+The route factories return `HttpRoute` definitions with colon-prefixed named path segments.
 `RouteRegistry` owns dispatch, method selection, cookie cleanup and reviewed error serialization.
 HTTP parsing remains in `http/parsing.py`; application methods and SQL remain in Core.
 Core imports neither HTTP nor a client framework; workers import Core without importing API.
 The native Python boundary checker enforces those directions.
 Frontend requests use the remote application and carry no serialized actor or database handle.
 
-All 82 existing explicit API methods retain paths, payloads, status, cache policy and error details.
-Add `GET /api/catalog/printings/:printingId` and owned `GET /api/mobile/v1/mtg/category-definitions/:originId` for existing web reads.
-`POST /api/web/v1/commands` accepts exactly the nine typed intents in `contracts/src/web.ts`.
+The frozen legacy API methods retain direct aliases, payloads, status, cache policy and error details.
+Canonical reads include `GET /api/v1/mtg/catalog/printings/:printingId` and owned `GET /api/v1/mtg/category-definitions/:originId` for existing web reads.
+`POST /api/v1/mtg/commands` accepts exactly the nine typed intents in `contracts/src/web.ts`.
 Its strict object parser rejects unknown keys and authority fields, preserves absent optional fields, limits JSON to 1 MiB and calls the original use case with the original source and request ID.
 Results are the existing DTO directly.
 Domain validators, fingerprints and transactions remain backend-owned.
@@ -100,7 +105,7 @@ A successful mutation is not retried because a later reload fails.
 After password rotation, the web action sets the replacement cookie and replaces the remote adapter's request-bound credential before any subsequent load in the same lifecycle.
 The revoked old token must not authenticate that load.
 
-Three explicit web-form intents preserve rate limits before form decoding: `POST /api/web/v1/auth/login`, `POST /api/web/v1/auth/register` and `POST /api/web/v1/password`.
+Three explicit web-form intents preserve rate limits before form decoding: `POST /api/v1/web/auth/login`, `POST /api/v1/web/auth/register` and `POST /api/v1/web/password`.
 Web streams the original form body/content type, selected cookie, public Origin and trusted client address.
 API bounds and decodes FormData, owns validation and takes the original auth attempt exactly once before decoding.
 These routes require the public Origin.
@@ -159,8 +164,10 @@ Implement on that base using isolated writer worktrees and a shared local integr
 Publish the verified integrated result to main as requested, without deploying a service.
 
 [Issue 244](https://github.com/KyleDerZweite/spellbook/issues/244) tracks implementation and final integration evidence.
-The accepted inventory is 88 API method/path pairs: the original 82, two reads, one endpoint with nine closed command intents and three raw-form routes.
-The accepted OpenAPI inventory is 95 method/path pairs including seven browser-auth methods.
+The frozen legacy inventory contains 88 API method/path pairs and seven browser-auth methods.
+Canonical OpenAPI contains 85 API method/path pairs and those seven unchanged browser-auth methods.
+The three authenticated mobile Catalog aliases converge on existing public Catalog operations.
+Tests compare the canonical registry with OpenAPI and the legacy registry with the unchanged neutral inventory, deriving operation sets instead of assuming matching counts.
 Counts do not establish verified compatibility.
 
 Before integration, independently review this contract against the actual callers.

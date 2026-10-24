@@ -14,18 +14,23 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from spellbook_core.auth import SessionAuth
-from spellbook_core.catalog import Catalog
 from spellbook_core.db import ConnectionPool
-from spellbook_core.errors import InventoryQuantityChangedError, NotesConflictError
-from spellbook_core.inventory import Inventory, InventoryAcknowledgement, RecordedInventoryMutation
 from spellbook_core.models import Actor
+from spellbook_core.mtg.catalog import Catalog
+from spellbook_core.mtg.errors import InventoryQuantityChangedError, NotesConflictError
+from spellbook_core.mtg.inventory import (
+    Inventory,
+    InventoryAcknowledgement,
+    RecordedInventoryMutation,
+)
 
 from spellbook_api.http.admission import RequestAdmission
+from spellbook_api.http.mtg.routes_inventory import create_inventory_routes
+from spellbook_api.http.paths import canonical_path
 from spellbook_api.http.router import RawPathRouting, RouteRegistry
-from spellbook_api.http.routes_inventory import create_inventory_routes
 
 ORIGIN = "https://spellbook.test"
-BASE = "/api/mobile/v1/mtg/inventory"
+BASE = "/api/v1/mtg/inventory"
 ENTRY = "11111111-1111-4111-8111-111111111111"
 GROUP = "22222222-2222-4222-8222-222222222222"
 TOKEN = "a" * 43
@@ -72,10 +77,11 @@ def test_factory_matches_neutral_inventory_routes() -> None:
     root = Path(__file__).resolve().parents[3]
     oracle = json.loads((root / "contracts/compatibility/inventory.json").read_text())
     expected = {
-        (route["method"].upper(), re.sub(r"\{(\w+)\}", r":\1", route["path"]))
+        (route["method"].upper(), canonical_path(re.sub(r"\{(\w+)\}", r":\1", route["path"])))
         for route in oracle["routes"]
-        if route["path"].startswith(BASE)
-        and route["path"] not in {BASE + "/prices", BASE + "/value", BASE + "/value-history"}
+        if canonical_path(route["path"]).startswith(BASE)
+        and canonical_path(route["path"])
+        not in {BASE + "/prices", BASE + "/value", BASE + "/value-history"}
     }
     assert actual == expected
 

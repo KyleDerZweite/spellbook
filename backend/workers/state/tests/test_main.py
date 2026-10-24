@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-from spellbook_core.categories.common import combo_enabled
+from spellbook_core.mtg.categories.common import combo_enabled
 
 from spellbook_state import main as module
 from spellbook_state.main import Configuration, StateResources

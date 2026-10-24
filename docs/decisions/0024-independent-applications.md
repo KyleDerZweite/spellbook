@@ -2,9 +2,9 @@
 
 - Status: Accepted
 - Date: 2026-10-19
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-10-24
 - Source of Truth: maintainer-selected implementation direction
-- Update Triggers: Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, runtime ownership, Android stack, HTTP compatibility, deployment topology
+- Update Triggers: ADR-0028 route/module supersession, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, runtime ownership, Android stack, HTTP compatibility, deployment topology
 - Related Docs: [Implementation contract](../architecture/independent-applications.md), [System overview](../architecture/system-overview.md), [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md), [ADR-0023](./0023-local-recognition-in-scanner-clients.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](./0025-python-api-and-workers.md)
 
 The shared SvelteKit deployment already separates backend use cases from web presentation, but it cannot independently start the API or deliver the accepted native mobile experience.
@@ -36,3 +36,6 @@ Installation/native journeys were not run, and no workaround, hardware or produc
 The maintainer subsequently requested a non-TypeScript backend evaluation.
 [ADR-0025](./0025-python-api-and-workers.md) now selects Python for the future API and workers without changing this accepted separation of application responsibilities.
 [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211) retains migration planning; the TypeScript API remains the implemented baseline.
+
+[ADR-0028](./0028-versioned-game-api.md) supersedes prior API-path and module-location immutability for the versioned shared/MTG API.
+Legacy HTTP aliases retain their original contract; bodies, SQL history, stored data, receipts and separate production authority remain unchanged.

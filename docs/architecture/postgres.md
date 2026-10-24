@@ -1,9 +1,9 @@
 # Postgres
 
 - Status: Canonical
-- Last Reviewed: 2026-10-23
+- Last Reviewed: 2026-10-24
 - Source of Truth: code
-- Update Triggers: Python source activation and server contraction, independent API/web ownership and relocated code references, QR authorization persistence and migration 0024, schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership, application resource lifetime and native operator ownership, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers, private value checkpoints and frozen evidence, public price publication and retention, Oracle Tags publications and raw facts, entry category bundles/decisions and receipts, immutable account definitions and relational preview retention
+- Update Triggers: versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, QR authorization persistence and migration 0024, schema changes, migration changes, repository changes, auth ownership changes, request fingerprints and replay behavior, profile preferences, card definitions and totals, workspace ownership, application resource lifetime and native operator ownership, Inventory revisions, bounded reads and ICU ordering, Deck revisions, acknowledgements and bounded ownership queries, SavedState notification triggers, private value checkpoints and frozen evidence, public price publication and retention, Oracle Tags publications and raw facts, entry category bundles/decisions and receipts, immutable account definitions and relational preview retention
 - Related Docs: [System Overview](./system-overview.md), [Auth](./auth.md), [Mobile And Scan](./mobile-and-scan.md), [Deployment](../operations/deployment.md), [ADR-0005](../decisions/0005-postgres-core-data-and-separated-play-app.md), [Local authentication](../operations/local-auth.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Category rules](./category-rules.md), [Independent applications](./independent-applications.md)
 
 PostgreSQL stores account-owned application state, the public Scryfall catalog and public price references.
@@ -112,7 +112,7 @@ Unsupported ranges fail explicitly instead of narrowing to signed 32-bit values 
 [The HTTP contract](./mobile-and-scan.md#bounded-inventory-http-reads) owns the controlled failure response.
 Per-entry quantity limits are unchanged.
 
-The backend [mutation owner](../../backend/core/src/spellbook_core/inventory.py) uses the shared [Inventory helper](../../backend/core/src/spellbook_core/inventory.py) after Profile/account locking and session revalidation.
+The backend [mutation owner](../../backend/core/src/spellbook_core/mtg/inventory.py) uses the shared [Inventory helper](../../backend/core/src/spellbook_core/mtg/inventory.py) after Profile/account locking and session revalidation.
 Scan locks its session before Inventory; sorted target entries precede Groups.
 Catalog resolution uses no nested connection under those locks.
 Semantic changes advance the Inventory revision once per transaction; no-ops and receipt replays do not.
@@ -124,7 +124,7 @@ Ordinary entry changes keep sparse positions; only explicit reorder may scan/rew
 
 ## Dashboard summary reads
 
-The backend [Dashboard use case](../../backend/core/src/spellbook_core/dashboard.py) revalidates its trusted actor and reads account-scoped MTG summaries in one repeatable-read, read-only transaction.
+The backend [Dashboard use case](../../backend/core/src/spellbook_core/mtg/dashboard.py) revalidates its trusted actor and reads account-scoped MTG summaries in one repeatable-read, read-only transaction.
 SQL computes copy/card/printing/set/foil/deck totals and quantity-weighted set, finish and condition distributions.
 Finish/condition results retain explicit zero buckets.
 Per-deck SQL allocates exact printing quantities before alternate copies of the same canonical card, independently for each deck.
@@ -145,11 +145,11 @@ This does not change stored quantities or their per-entry limits.
 [Migration 0012](../../backend/drizzle/0012_deck_contracts.sql) adds independent `description_revision` and `composition_revision` bigint columns to Decks and a JSONB acknowledgement to Deck mutation requests.
 It replaces the request record's Deck foreign key with an account foreign key: records survive Deck deletion and cascade with account deletion.
 
-The backend [Deck application](../../backend/core/src/spellbook_core/decks/application.py) reads library totals/covers, selected composition and relevant owned-printing aggregates in a repeatable-read, read-only transaction.
+The backend [Deck application](../../backend/core/src/spellbook_core/mtg/decks/application.py) reads library totals/covers, selected composition and relevant owned-printing aggregates in a repeatable-read, read-only transaction.
 SQL restricts Inventory aggregation to the selected canonical identities.
 Search/inspector ownership accepts at most 100 canonical identities.
 Exact SQL sums pass through the shared integer decoder with a nonnegative check; unsupported JSON integer ranges fail instead of rounding.
-The backend [canonical quantity helper](../../backend/core/src/spellbook_core/decks/rules.py) sums across printings with bigint and validates the safe JSON range before returning ownership DTOs to printing selectors, selected Decks or search.
+The backend [canonical quantity helper](../../backend/core/src/spellbook_core/mtg/decks/rules.py) sums across printings with bigint and validates the safe JSON range before returning ownership DTOs to printing selectors, selected Decks or search.
 Per-entry limits remain unchanged.
 Dashboard retains its separate backend summary owner.
 

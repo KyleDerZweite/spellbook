@@ -11,17 +11,18 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from spellbook_core.auth import SessionAuth
-from spellbook_core.categories import CategoryMergeConflict
-from spellbook_core.decks import DeckLibraryRevisionChanged, Decks
-from spellbook_core.errors import DeckNotFoundError, DescriptionConflictError, RequestConflictError
+from spellbook_core.errors import RequestConflictError
 from spellbook_core.models import Actor
+from spellbook_core.mtg.categories import CategoryMergeConflict
+from spellbook_core.mtg.decks import DeckLibraryRevisionChanged, Decks
+from spellbook_core.mtg.errors import DeckNotFoundError, DescriptionConflictError
 
 from spellbook_api.http.admission import RequestAdmission
+from spellbook_api.http.mtg.routes_decks import create_deck_routes
 from spellbook_api.http.router import RawPathRouting, RouteRegistry
-from spellbook_api.http.routes_decks import create_deck_routes
 
 ORIGIN = "https://spellbook.test"
-BASE = "/api/mobile/v1/mtg"
+BASE = "/api/v1/mtg"
 DECK = "22222222-2222-4222-8222-222222222222"
 ENTRY = "11111111-1111-4111-8111-111111111111"
 TOKEN = "a" * 43

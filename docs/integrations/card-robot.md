@@ -1,9 +1,9 @@
 # Card scanner and sorter
 
 - Status: Proposed integration
-- Last Reviewed: 2026-10-23
+- Last Reviewed: 2026-10-24
 - Source of Truth: product requirements, scan API code, maintainer scope brief and supplied hardware concept
-- Update Triggers: Python source activation and server contraction, independent API/web ownership and relocated code references, circular eight-box app prototype, proposed Inventory filters and physical-box links, implemented QR API versus unimplemented machine integration, project responsibilities, integration planning, capture and recognition APIs, physical inventory schema, device protocol, construction choices, prototype results, local scanner recognition and device-login direction, client feature parity, browser scanning and phone computation-core variants
+- Update Triggers: versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, circular eight-box app prototype, proposed Inventory filters and physical-box links, implemented QR API versus unimplemented machine integration, project responsibilities, integration planning, capture and recognition APIs, physical inventory schema, device protocol, construction choices, prototype results, local scanner recognition and device-login direction, client feature parity, browser scanning and phone computation-core variants
 - Related Docs: [Product specification](../product/specification.md), [Domain model](../../GLOSSARY.md), [Android design handoff](../product/mobile-app-exploration.md), [Mobile and scan](../architecture/mobile-and-scan.md), [API routes](../product/routing-and-games.md), [Local authentication](../operations/local-auth.md), [Sorter integration Wayfinder map](https://github.com/KyleDerZweite/spellbook/issues/194), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
 
 The proposed device accepts a stack of MTG cards, separates one card at a time, captures an image, and sorts cards into output trays.
@@ -222,15 +222,15 @@ Direct camera capture, device controllers, sorting jobs, motor protocols, sensor
 
 The existing authenticated API supports:
 
-| Operation                     | Existing route                                                                     |
-| ----------------------------- | ---------------------------------------------------------------------------------- |
-| List recent sessions          | `GET /api/mobile/v1/mtg/scan/sessions`                                             |
-| Read an owned image           | `GET /api/mobile/v1/mtg/scan/artifacts/{artifactId}/image`                         |
-| Submit recognition candidates | `POST /api/mobile/v1/mtg/scan/sessions/{sessionId}/artifacts/{artifactId}/result`  |
-| Create a session              | `POST /api/mobile/v1/mtg/scan/sessions`                                            |
-| Upload an image               | `POST /api/mobile/v1/mtg/scan/sessions/{sessionId}/frames`, multipart field `file` |
-| Read artifacts and candidates | `GET /api/mobile/v1/mtg/scan/sessions/{sessionId}/result`                          |
-| Commit reviewed selections    | `POST /api/mobile/v1/mtg/scan/review/commit`                                       |
+| Operation                     | Existing route                                                              |
+| ----------------------------- | --------------------------------------------------------------------------- |
+| List recent sessions          | `GET /api/v1/mtg/scan/sessions`                                             |
+| Read an owned image           | `GET /api/v1/mtg/scan/artifacts/{artifactId}/image`                         |
+| Submit recognition candidates | `POST /api/v1/mtg/scan/sessions/{sessionId}/artifacts/{artifactId}/result`  |
+| Create a session              | `POST /api/v1/mtg/scan/sessions`                                            |
+| Upload an image               | `POST /api/v1/mtg/scan/sessions/{sessionId}/frames`, multipart field `file` |
+| Read artifacts and candidates | `GET /api/v1/mtg/scan/sessions/{sessionId}/result`                          |
+| Commit reviewed selections    | `POST /api/v1/mtg/scan/review/commit`                                       |
 
 External clients use an opaque local session token in `Authorization: Bearer ...`, following the [authentication contract](../architecture/auth.md).
 Device-specific credentials and permissions are future work.

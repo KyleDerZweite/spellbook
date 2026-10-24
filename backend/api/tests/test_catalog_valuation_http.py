@@ -8,20 +8,21 @@ from urllib.parse import urlencode
 
 import pytest
 from spellbook_core.auth import SessionAuth
-from spellbook_core.catalog import Catalog
 from spellbook_core.db import ConnectionPool
-from spellbook_core.errors import CatalogPrintingNotFoundError
-from spellbook_core.inventory_value import InventoryValues
 from spellbook_core.models import Actor
-from spellbook_core.valuation import PriceReadUnavailable, Valuation
+from spellbook_core.mtg.catalog import Catalog
+from spellbook_core.mtg.errors import CatalogPrintingNotFoundError
+from spellbook_core.mtg.inventory_value import InventoryValues
+from spellbook_core.mtg.valuation import PriceReadUnavailable, Valuation
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import Message
 
+from spellbook_api.http.compatibility import compatibility_routes
 from spellbook_api.http.errors import error_response
+from spellbook_api.http.mtg.routes_catalog import create_catalog_routes
+from spellbook_api.http.mtg.routes_valuation import create_valuation_routes
 from spellbook_api.http.router import HttpRoute
-from spellbook_api.http.routes_catalog import create_catalog_routes
-from spellbook_api.http.routes_valuation import create_valuation_routes
 
 ORIGIN = "https://spellbook.test"
 PRINTING = "11111111-1111-4111-8111-111111111111"
@@ -83,7 +84,8 @@ async def invoke(route: HttpRoute, req: Request, params: dict[str, str] | None =
 def test_catalog_mobile_aliases_authenticate_before_validation_and_public_is_open() -> None:
     async def scenario() -> None:
         auth, catalog, _ = dependencies()
-        routes = create_catalog_routes(auth, catalog, ORIGIN)
+        routes = create_catalog_routes(catalog)
+        routes.extend(compatibility_routes(routes, auth, ORIGIN))
         public = next(r for r in routes if r.method == "GET" and r.path == "/api/catalog/search")
         response = await invoke(public, request(query="q=%C3%84ther&limit=0"))
         assert response.status_code == 200 and response.headers["cache-control"] == "no-store"
@@ -108,7 +110,8 @@ def test_catalog_mobile_aliases_authenticate_before_validation_and_public_is_ope
 def test_catalog_singleton_and_printings_preserve_validation_and_cache() -> None:
     async def scenario() -> None:
         auth, catalog, _ = dependencies()
-        routes = create_catalog_routes(auth, catalog, ORIGIN)
+        routes = create_catalog_routes(catalog)
+        routes.extend(compatibility_routes(routes, auth, ORIGIN))
         singleton = next(r for r in routes if r.path == "/api/catalog/printings/:printingId")
         catalog.get_catalog_printing.side_effect = CatalogPrintingNotFoundError()
         response = await invoke(singleton, request(), {"printingId": PRINTING})
@@ -178,7 +181,8 @@ def test_private_value_cache_policy_and_actor_forwarding(monkeypatch: pytest.Mon
         values.current.return_value = {"estimate": {"coveredValue": "0.00"}}
         values.history.return_value = {"points": []}
         monkeypatch.setattr(
-            "spellbook_api.http.routes_valuation.create_inventory_values", lambda *a, **kw: values
+            "spellbook_api.http.mtg.routes_valuation.create_inventory_values",
+            lambda *a, **kw: values,
         )
         routes = create_valuation_routes(auth, valuation, ORIGIN)
         for route in routes[3:]:
@@ -219,7 +223,7 @@ def test_catalog_get_queries_select_first_repeated_value(
         auth, catalog, _ = dependencies()
         route = next(
             route
-            for route in create_catalog_routes(auth, catalog, ORIGIN)
+            for route in compatibility_routes(create_catalog_routes(catalog), auth, ORIGIN)
             if route.method == "GET" and route.path == path
         )
         response = await invoke(
@@ -250,7 +254,8 @@ def test_catalog_get_queries_select_first_repeated_value(
 def test_catalog_search_preserves_first_empty_query_and_post_json_input(path: str) -> None:
     async def scenario() -> None:
         auth, catalog, _ = dependencies()
-        routes = create_catalog_routes(auth, catalog, ORIGIN)
+        routes = create_catalog_routes(catalog)
+        routes.extend(compatibility_routes(routes, auth, ORIGIN))
         for method, expected in [
             ("GET", {"query": "", "limit": 20, "offset": 0}),
             ("POST", {"query": "from JSON", "limit": 4, "offset": 8}),

@@ -6,7 +6,7 @@
 - Last Reviewed: 2026-10-24
 - Owners: Kyle
 - Source of Truth: maintainer-accepted migration contract for issue 211, independent Sol/Astra reviews and Kyle's 2026-10-20 execution direction
-- Update Triggers: explicit partial supersession by ADR-0027, complete unmerged implementation scope, integration ownership, source preparation versus production operations, independent review, maintainer acceptance, framework or schema ownership changes, migration gates
+- Update Triggers: ADR-0028 route/module supersession, explicit partial supersession by ADR-0027, complete unmerged implementation scope, integration ownership, source preparation versus production operations, independent review, maintainer acceptance, framework or schema ownership changes, migration gates
 - Related Docs: [Migration contract](../architecture/python-backend-migration.md), [ADR-0025](./0025-python-api-and-workers.md), [Independent applications](../architecture/independent-applications.md), [Postgres](../architecture/postgres.md), [Worker](../architecture/worker.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211), [Functional Python acceptance](./0027-python-functional-migration-acceptance.md)
 
 [ADR-0027](./0027-python-functional-migration-acceptance.md) supersedes this decision's strict resource/performance readiness requirements and historical execution-model assignments.
@@ -65,3 +65,6 @@ Production release operations retain their separate concrete authorization under
 - [FastAPI async behavior](https://fastapi.tiangolo.com/async/), [error adapters](https://fastapi.tiangolo.com/tutorial/handling-errors/) and [lifespan](https://fastapi.tiangolo.com/advanced/events/)
 - [Psycopg pools](https://www.psycopg.org/psycopg3/docs/advanced/pool.html) and [cancellation](https://www.psycopg.org/psycopg3/docs/advanced/async.html)
 - [OpenAPI 3.1](https://spec.openapis.org/oas/v3.1.0.html)
+
+[ADR-0028](./0028-versioned-game-api.md) supersedes prior API-path and module-location immutability for the versioned shared/MTG API.
+Legacy HTTP aliases retain their original contract; bodies, SQL history, stored data, receipts and separate production authority remain unchanged.

@@ -1,9 +1,9 @@
 # Market price sources
 
 - Status: Scryfall EUR references and supplied links implemented; optional Cardmarket/MTGJSON public adapters and source history implemented
-- Last Reviewed: 2026-10-23
+- Last Reviewed: 2026-10-24
 - Source of Truth: linked provider documentation, public data responses, and repository code
-- Update Triggers: Python source activation and server contraction, provider access or terms, price fields and freshness, printing identity, reference coverage, public history and accepted value scope
+- Update Triggers: versioned MTG routes and module ownership, Python source activation and server contraction, provider access or terms, price fields and freshness, printing identity, reference coverage, public history and accepted value scope
 - Related Docs: [Integrations](./README.md), [Value tracking](../product/value-tracking.md), [Domain glossary](../../GLOSSARY.md), [Product specification](../product/specification.md#dashboard), [Catalog](../architecture/catalog.md), [Worker](../architecture/worker.md), [Postgres](../architecture/postgres.md), [Valuation](../architecture/valuation.md)
 
 Scryfall supplies the daily baseline for implemented per-printing EUR references and supplied external product links.
@@ -31,7 +31,7 @@ The separate [Worker price extractor](../../backend/workers/catalog/src/worker/p
 
 The [backend Inventory schema](../../backend/drizzle/) stores printing, quantity, finish, and condition.
 It does not store acquisition costs or purchases.
-The [backend Dashboard calculation](../../backend/core/src/spellbook_core/dashboard.py) uses bounded SQL aggregates for current Inventory and Deck availability.
+The [backend Dashboard calculation](../../backend/core/src/spellbook_core/mtg/dashboard.py) uses bounded SQL aggregates for current Inventory and Deck availability.
 The Dashboard also includes coherent optional value estimates and captured personal history.
 The [value-tracking contract](../product/value-tracking.md) owns current reporting and its limits.
 

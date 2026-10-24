@@ -1,6 +1,7 @@
 # Backend wire contracts
 
 [`openapi.json`](./openapi.json) is the checked-in OpenAPI 3.1 structural contract.
+It advertises canonical `/api/v1/auth/...`, `/api/v1/account/...`, `/api/v1/mtg/...` and raw-form `/api/v1/web/...` operations under [ADR-0028](../docs/decisions/0028-versioned-game-api.md).
 Backend owns wire semantics; existing handwritten clients, TypeScript validators and presentation helpers remain under `src/`.
 The Python adapter bundles and reads the artifact and substitutes only `servers[0].url` with `APP_ORIGIN`.
 It does not regenerate schemas, load an external file at deployment, or change existing responses.
@@ -40,7 +41,10 @@ uvx --from uv==0.12.23 uv run --directory backend/core --no-sync pytest tests/te
 uvx --from uv==0.12.23 uv run --directory backend/api --no-sync pytest tests/test_http_compatibility.py tests/test_host_assembly.py tests/test_web_commands.py
 ```
 
-The Python registry test reconciles every API operation with the neutral inventory.
+The Python registry tests reconcile canonical API operations with OpenAPI and legacy aliases with the unchanged neutral inventory.
+Canonical Catalog search and card-printing reads merge the old public/mobile declarations; legacy mobile aliases retain authentication.
+`src/saved-state.ts` exports the canonical shared stream path for current clients.
+The frozen compatibility files remain legacy acceptance inputs and are not rewritten for canonical paths.
 Core golden cases and API parser/serializer tests exercise current Python implementations.
 Real transaction and client integration results remain distinct from these component checks.
 The original Node schema hash records provenance at `b835eee87ff0e92e99df18ab384602e48183a88d` and must not be casually regenerated.

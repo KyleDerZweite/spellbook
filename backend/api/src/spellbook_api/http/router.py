@@ -15,6 +15,7 @@ from spellbook_api.http.admission import RequestAdmission
 from spellbook_api.http.auth import require_form_origin, stale_session_cookie
 from spellbook_api.http.errors import HttpError, error_response, json_response
 from spellbook_api.http.parsing import decode_parameter
+from spellbook_api.http.paths import canonical_path
 from spellbook_api.http.sse import SavedStateResponse
 
 DISCOVERY_PATHS = {"/openapi.json", "/openapi.json/"}
@@ -53,13 +54,19 @@ class RawPathRouting:
 
 
 def cache_policy(path: str) -> str | None:
+    path = canonical_path(path)
     if path in {
-        "/api/mobile/v1/mtg/inventory/value",
-        "/api/mobile/v1/mtg/inventory/value-history",
+        "/api/v1/mtg/inventory/value",
+        "/api/v1/mtg/inventory/value-history",
     }:
         return "private, no-store"
-    if path == "/api/web/v1" or path.startswith(
-        ("/api/auth/", "/api/account/", "/api/web/v1/", "/api/catalog/printings/")
+    if path in {"/api/v1/web", "/api/v1/mtg/dashboard", "/api/v1/mtg/commands"} or path.startswith(
+        (
+            "/api/v1/auth/",
+            "/api/v1/account/",
+            "/api/v1/web/",
+            "/api/v1/mtg/catalog/printings/",
+        )
     ):
         return "no-store"
     return None
@@ -182,7 +189,9 @@ class RouteRegistry:
 
         request = Request(scope, bounded_receive)
         # The SSE adapter owns its sole receive consumer, including setup and HEAD close.
-        stream = scope["path"].removesuffix("/") == "/api/account/events" and request.method in {
+        stream = canonical_path(
+            scope["path"].removesuffix("/")
+        ) == "/api/v1/account/events" and request.method in {
             "GET",
             "HEAD",
         }

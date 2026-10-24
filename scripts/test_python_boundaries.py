@@ -91,6 +91,26 @@ class BoundaryTests(unittest.TestCase):
         with self.assertRaises(SyntaxError):
             self.check("backend/core/src/spellbook_core/query.py", "import (", None)
 
+    def test_mtg_consumers_use_explicit_namespace(self) -> None:
+        for code in (
+            "from spellbook_core.inventory import Inventory",
+            "from spellbook_core import catalog",
+            "import spellbook_core.scan.application",
+            "from spellbook_api.http import routes_decks",
+        ):
+            with self.subTest(code=code):
+                self.check("backend/api/src/spellbook_api/query.py", code, "mtg-namespace")
+        for file, code in (
+            ("backend/core/src/spellbook_core/mtg/decks/query.py", "from ... import inventory"),
+            ("backend/api/src/spellbook_api/query.py", "from spellbook_core.mtg import inventory"),
+            (
+                "backend/workers/state/src/spellbook_state/main.py",
+                "from spellbook_core.mtg.value_history import ValueHistory",
+            ),
+        ):
+            with self.subTest(file=file, code=code):
+                self.check(file, code, "mtg-namespace" if "..." in code else None)
+
 
 if __name__ == "__main__":
     unittest.main()

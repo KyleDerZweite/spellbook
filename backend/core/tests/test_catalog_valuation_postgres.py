@@ -19,12 +19,12 @@ from psycopg.conninfo import conninfo_to_dict
 from psycopg.types.json import Jsonb
 
 from spellbook_core.auth import create_session_auth, hash_session_token
-from spellbook_core.catalog import Catalog, create_catalog
 from spellbook_core.db import ConnectionPool, Transaction, transaction
-from spellbook_core.inventory_value import InventoryValues, create_inventory_values
-from spellbook_core.valuation import InventoryPriceNotFound, Valuation, create_valuation
-from spellbook_core.valuation_query import Document, valuation_query
-from spellbook_core.value_history import LEASE_KEY, capture_value_history
+from spellbook_core.mtg.catalog import Catalog, create_catalog
+from spellbook_core.mtg.inventory_value import InventoryValues, create_inventory_values
+from spellbook_core.mtg.valuation import InventoryPriceNotFound, Valuation, create_valuation
+from spellbook_core.mtg.valuation_query import Document, valuation_query
+from spellbook_core.mtg.value_history import LEASE_KEY, capture_value_history
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("SPELLBOOK_DOMAIN_TEST_DATABASE"),

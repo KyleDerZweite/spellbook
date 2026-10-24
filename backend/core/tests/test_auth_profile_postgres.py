@@ -19,10 +19,10 @@ from spellbook_core.auth import (
     hash_session_token,
 )
 from spellbook_core.db import ConnectionPool, Transaction, transaction
-from spellbook_core.errors import ActorError
+from spellbook_core.errors import ActorError, ProfileError
 from spellbook_core.models import Actor
 from spellbook_core.passwords import create_password_verifier
-from spellbook_core.profile import ProfileError, create_profile
+from spellbook_core.profile import create_profile
 from spellbook_core.qr import QrAuthError, Redemption, Requester
 
 pytestmark = pytest.mark.skipif(

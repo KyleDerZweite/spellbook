@@ -1,9 +1,9 @@
 # Frontend
 
 - Status: Canonical
-- Last Reviewed: 2026-10-23
+- Last Reviewed: 2026-10-24
 - Source of Truth: code, accepted design requirements and upstream runtime documentation
-- Update Triggers: Python API activation, independent API/web ownership and relocated code references, guarded initial Deck Search activation, Inventory row measurement scheduling, topic-aware selected Deck refresh and publication acknowledgement, Library Editor state ownership and production reactivity tests, PWA install/update/cache policy, QR presentation and camera cleanup, installed narrow navigation, private value presentation and boundary refresh, backend application/transport interface and framework lifecycle hooks, routes, authentication, public landing, responsive layout, typography, development review controls, search, Shell window scrolling, Card Detail modal overflow, shared scroll viewports, inventory ordering and filters, Inventory metadata shortcuts and compact read-only rows, bounded inventory loading and scale evidence, deck builder and native task entry, shared control interfaces, uniform continuous browsing and native range fallbacks, workspace saved-state consumers, transient feedback delay, leases and draft baselines, primary Deck entry category forms and provenance, component choices, runtime support and compatibility, root environment and local/build origins, accepted design contracts and implementation evidence, bounded Deck Library metadata and whole-deck drafts, visited result extents and deep-segment prepend, hybrid browsing, native window scroll and contextual Card dialog, bounded Deck choice reads, shared Card addition adapters and retained caller drafts, native Search context hydration and feedback restoration
+- Update Triggers: versioned MTG routes and module ownership, Python API activation, independent API/web ownership and relocated code references, guarded initial Deck Search activation, Inventory row measurement scheduling, topic-aware selected Deck refresh and publication acknowledgement, Library Editor state ownership and production reactivity tests, PWA install/update/cache policy, QR presentation and camera cleanup, installed narrow navigation, private value presentation and boundary refresh, backend application/transport interface and framework lifecycle hooks, routes, authentication, public landing, responsive layout, typography, development review controls, search, Shell window scrolling, Card Detail modal overflow, shared scroll viewports, inventory ordering and filters, Inventory metadata shortcuts and compact read-only rows, bounded inventory loading and scale evidence, deck builder and native task entry, shared control interfaces, uniform continuous browsing and native range fallbacks, workspace saved-state consumers, transient feedback delay, leases and draft baselines, primary Deck entry category forms and provenance, component choices, runtime support and compatibility, root environment and local/build origins, accepted design contracts and implementation evidence, bounded Deck Library metadata and whole-deck drafts, visited result extents and deep-segment prepend, hybrid browsing, native window scroll and contextual Card dialog, bounded Deck choice reads, shared Card addition adapters and retained caller drafts, native Search context hydration and feedback restoration
 - Related Docs: [System overview](./system-overview.md), [Auth](./auth.md), [Routes](../product/routing-and-games.md), [Catalog](./catalog.md), [Selected UI components](../reference/ui-libraries.md), [Design direction](../product/ui-design-direction.md), [Application contract](./application-contract.md), [Category rules](./category-rules.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [Independent applications](./independent-applications.md)
 
 The SvelteKit application renders pages and owns native form presentation and browser cookies.
@@ -299,9 +299,9 @@ A later refetched Deck never substitutes for this acknowledgement, so an interve
 
 ## Catalog presentation
 
-Server loads and actions reach the same backend use cases as `/api/mobile/v1/mtg/...` through HTTP.
+Server loads and actions reach the same backend use cases as `/api/v1/mtg/...` through HTTP.
 Backend derives account authority from validated sessions and scopes mutations and reads accordingly.
-The API keeps its existing MTG path segment for compatibility.
+The API uses the canonical MTG namespace selected by [ADR-0028](../decisions/0028-versioned-game-api.md), retaining the previous paths as direct compatibility aliases.
 
 Public browser search, authenticated import resolution, and external API search use the same API-owned PostgreSQL [catalog](./catalog.md).
 Browser paths retain the same-origin SvelteKit proxy.
@@ -437,7 +437,7 @@ A normal public `values` event can accompany a new Catalog generation.
 It therefore retains Legality/documents, Category source evidence and Search refresh.
 No new transport topic or source-stamp mechanism is selected.
 
-GET `/api/mobile/v1/mtg/decks/{deckId}` adds `includeLegality=false` only with the literal `selectedOnly=true`.
+GET `/api/v1/mtg/decks/{deckId}` adds `includeLegality=false` only with the literal `selectedOnly=true`.
 Invalid values or an invalid narrow combination return 400.
 Missing `includeLegality` or literal `true` preserves the existing response and permissive legacy `selectedOnly` parsing.
 Narrow responses omit Legality/documents rather than inventing empty values.
@@ -670,7 +670,7 @@ Prior source tests and old scale evidence do not establish replacement performan
 The existing Card actions snippet keeps caller context and mutation ownership.
 Shared browsing action modules now support an explicitly selected owned Deck; native/enhanced Search and Inventory caller integration is implemented with separate draft ownership.
 [Deck contracts](../../contracts/src/decks.ts) now provide `DeckChoice` and `DeckChoicePage`; backend `getDeckChoices(actor, { query?, offset?, limit?, selectedDeckId? })` owns authorization, literal name filtering and bounded metadata selection.
-The thin authenticated `GET /api/mobile/v1/mtg/decks/choices` adapter is implemented.
+The thin authenticated `GET /api/v1/mtg/decks/choices` adapter is implemented.
 It returns only ID, name and format, plus pagination and an optional explicitly selected owned summary.
 It does not load Description, Composition or Inventory availability.
 [Mobile and Scan](./mobile-and-scan.md#deck-choice-read) owns its HTTP parameters.
