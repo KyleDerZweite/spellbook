@@ -1,12 +1,25 @@
 """Deck validation, SQL projections and account write authority."""
 
+from typing import cast
+
 from psycopg.rows import dict_row
 
 from spellbook_core.auth import SessionAuth
 from spellbook_core.db import Transaction, database_integer, iso_timestamp
-from spellbook_core.errors import ActorError, DatabaseIntegerRangeError, ValidationError
+from spellbook_core.errors import (
+    ActorError,
+    DatabaseIntegerRangeError,
+    RequestConflictError,
+    ValidationError,
+)
 from spellbook_core.models import Actor
-from spellbook_core.mtg.decks.models import CardIdentity, Deck, DeckCard, Document
+from spellbook_core.mtg.decks.models import (
+    CardIdentity,
+    Deck,
+    DeckAcknowledgement,
+    DeckCard,
+    Document,
+)
 from spellbook_core.mtg.errors import DeckNotFoundError
 from spellbook_core.mtg.models import CardDocument
 from spellbook_core.validation import (
@@ -17,6 +30,47 @@ from spellbook_core.validation import (
     normalize_quantity,
     utf16_length,
 )
+
+
+def read_acknowledgement(
+    value: object, request_id: str, deck_id: str | None = None
+) -> DeckAcknowledgement:
+    """Check the stored current receipt before returning the unchanged original."""
+    if (
+        not isinstance(value, dict)
+        or value.get("requestId") != request_id
+        or not isinstance(value.get("deckId"), str)
+        or (deck_id is not None and value["deckId"] != deck_id)
+        or not isinstance(value.get("revision"), str)
+    ):
+        raise RequestConflictError()
+    changes, removed = value.get("changes"), value.get("removedEntryIds")
+    if (
+        not isinstance(changes, list)
+        or not isinstance(removed, list)
+        or not all(isinstance(identifier, str) for identifier in removed)
+    ):
+        raise RequestConflictError()
+    for change in changes:
+        if (
+            not isinstance(change, dict)
+            or not all(
+                isinstance(change.get(key), str) for key in ("entryId", "catalogCardId", "role")
+            )
+            or type(change.get("quantity")) is not int
+            or type(change.get("delta")) is not int
+        ):
+            raise RequestConflictError()
+    if "categoryDecisionRevision" in value and not isinstance(
+        value["categoryDecisionRevision"], str
+    ):
+        raise RequestConflictError()
+    if "categoryEntryIds" in value and (
+        not isinstance(value["categoryEntryIds"], list)
+        or not all(isinstance(identifier, str) for identifier in value["categoryEntryIds"])
+    ):
+        raise RequestConflictError()
+    return cast(DeckAcknowledgement, value)
 
 
 async def rows(tx: Transaction, sql: str, params: tuple[object, ...] = ()) -> list[Document]:

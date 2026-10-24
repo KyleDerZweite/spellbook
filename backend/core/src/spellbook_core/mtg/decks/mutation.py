@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import cast
 from uuid import uuid4
 
 from spellbook_core.auth import SessionAuth
@@ -25,6 +24,7 @@ from spellbook_core.mtg.decks.common import (
     first,
     game,
     normalize_operations,
+    read_acknowledgement,
     require_deck,
     rows,
     text,
@@ -349,9 +349,11 @@ class DeckMutations:
                 (account, request),
             )
             if previous:
-                if previous["request_hash"] != fingerprint or previous["acknowledgement"] is None:
+                if previous["request_hash"] != fingerprint:
                     raise RequestConflictError()
-                return cast(DeckAcknowledgement, previous["acknowledgement"])
+                return read_acknowledgement(
+                    previous["acknowledgement"], request, str(previous["deck_id"])
+                )
             resolved: dict[str, CardDocument] = {}
             if catalog_add:
                 card = await read_transaction_catalog_printing(tx, catalog_add["catalogCardId"])

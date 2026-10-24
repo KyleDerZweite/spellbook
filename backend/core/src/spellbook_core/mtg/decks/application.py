@@ -1,14 +1,19 @@
 """Concrete Deck application, including idempotent Catalog-resolved text imports."""
 
-from typing import cast
-
 from spellbook_core.auth import SessionAuth
 from spellbook_core.db import ConnectionPool, transaction
 from spellbook_core.errors import RequestConflictError, ValidationError
 from spellbook_core.fingerprint import mutation_fingerprint
 from spellbook_core.models import Actor
 from spellbook_core.mtg.catalog import Catalog
-from spellbook_core.mtg.decks.common import card_identity, first, game, require_deck, text
+from spellbook_core.mtg.decks.common import (
+    card_identity,
+    first,
+    game,
+    read_acknowledgement,
+    require_deck,
+    text,
+)
 from spellbook_core.mtg.decks.library import DeckLibrary
 from spellbook_core.mtg.decks.models import DeckAcknowledgement, Document
 from spellbook_core.mtg.decks.mutation import DeckMutations
@@ -62,12 +67,11 @@ class Decks(DeckReads, DeckLibrary, DeckMutations):
             )
             if not previous:
                 return None
-            if (
-                previous["request_hash"] != mutation_fingerprint(intent)
-                or previous["acknowledgement"] is None
-            ):
+            if previous["request_hash"] != mutation_fingerprint(intent):
                 raise RequestConflictError()
-            return cast(DeckAcknowledgement, previous["acknowledgement"])
+            return read_acknowledgement(
+                previous["acknowledgement"], request_id, intent.get("deckId")
+            )
 
     @staticmethod
     def _import_operations(preview: ImportPreview) -> list[Document]:
