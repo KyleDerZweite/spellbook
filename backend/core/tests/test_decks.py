@@ -22,7 +22,7 @@ from spellbook_core.models import Actor
 from spellbook_core.mtg.catalog import Catalog
 from spellbook_core.mtg.categories import CategoryMergeConflict
 from spellbook_core.mtg.decks import create_decks
-from spellbook_core.mtg.decks.common import normalize_operations
+from spellbook_core.mtg.decks.common import normalize_operations, read_acknowledgement
 from spellbook_core.mtg.decks.library import (
     DeckLibraryRevisionChanged,
     next_deck_choice_offset,
@@ -309,6 +309,12 @@ def test_category_merge_requires_current_preview_before_mutating_destination() -
         ("requestId", "another-request"),
         ("deckId", "another-deck"),
         ("revision", 1),
+        ("revision", "not-a-revision"),
+        ("categoryDecisionRevision", "not-a-revision"),
+        (
+            "changes",
+            [dict(entryId=ENTRY, catalogCardId=PRINTING, role="invalid", quantity=1, delta=1)],
+        ),
         ("changes", {}),
         ("changes", [{}]),
         ("categoryDecisionRevision", 1),
@@ -368,6 +374,12 @@ def test_text_import_replays_original_and_rejects_incomplete_receipts(
         ("requestId", "another-request"),
         ("deckId", "another-deck"),
         ("revision", 1),
+        ("revision", "not-a-revision"),
+        ("categoryDecisionRevision", "not-a-revision"),
+        (
+            "changes",
+            [dict(entryId=ENTRY, catalogCardId=PRINTING, role="invalid", quantity=1, delta=1)],
+        ),
         ("changes", {}),
         ("changes", [{}]),
         ("categoryDecisionRevision", 1),
@@ -533,6 +545,7 @@ def test_mutation_receipt_revision_and_category_effects_are_atomic(
                     operations=[dict(op="set", target=dict(entryId=ENTRY), quantity=quantity)],
                 ),
             )
+        assert read_acknowledgement(result, "atomic", DECK) is result
         assert result["revision"] == revision
         assert result["removedEntryIds"] == ([ENTRY] if changed else [])
         assert result["categoryEntryIds"] == ([ENTRY] if changed else [])

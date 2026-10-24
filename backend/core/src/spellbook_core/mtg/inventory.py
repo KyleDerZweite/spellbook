@@ -51,6 +51,8 @@ from spellbook_core.mtg.models import CardDocument
 from spellbook_core.validation import (
     INVENTORY_SOURCES,
     MISSING,
+    VALID_CONDITIONS,
+    VALID_FINISHES,
     InventorySource,
     assert_bounded_text,
     assert_condition,
@@ -325,6 +327,10 @@ def read_inventory_acknowledgement(value: object, request_id: str) -> InventoryA
         or not isinstance(value.get("revision"), str)
     ):
         raise RequestConflictError()
+    try:
+        validate_revision(value["revision"])
+    except ValidationError:
+        raise RequestConflictError() from None
     changes, groups, memberships = (
         value.get("changes"),
         value.get("groups"),
@@ -343,10 +349,18 @@ def read_inventory_acknowledgement(value: object, request_id: str) -> InventoryA
                 isinstance(change.get(key), str)
                 for key in ("entryId", "catalogCardId", "finish", "condition", "notesRevision")
             )
+            or change["finish"] not in VALID_FINISHES
+            or change["condition"] not in VALID_CONDITIONS
             or type(change.get("quantity")) is not int
+            or change["quantity"] < 0
             or type(change.get("delta")) is not int
         ):
             raise RequestConflictError()
+        try:
+            validate_revision(change["notesRevision"])
+            normalize_quantity(change["quantity"])
+        except ValidationError:
+            raise RequestConflictError() from None
     for group in groups:
         if (
             not isinstance(group, dict)

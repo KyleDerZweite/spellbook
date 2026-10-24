@@ -35,6 +35,7 @@ from spellbook_core.mtg.inventory import (
     RecordedInventoryMutation,
     create_inventory,
     normalize_add,
+    read_inventory_acknowledgement,
 )
 from spellbook_core.mtg.models import CardDocument
 from spellbook_core.validation import MISSING, js_utf8
@@ -112,6 +113,13 @@ def test_every_golden_receipt_uses_prepare_before_catalog(vector: dict[str, Any]
     asyncio.run(scenario())
 
 
+@pytest.mark.parametrize("quantity", [0, 2147483647])
+def test_current_receipt_quantity_boundaries_preserve_original(quantity: int) -> None:
+    original = GOLDEN["receipts"][0]["acknowledgement"]
+    ack = {**original, "changes": [{**original["changes"][0], "quantity": quantity}]}
+    assert read_inventory_acknowledgement(ack, ack["requestId"]) is ack
+
+
 @pytest.mark.parametrize(
     "field,invalid",
     [
@@ -120,6 +128,30 @@ def test_every_golden_receipt_uses_prepare_before_catalog(vector: dict[str, Any]
         (None, False),
         ("requestId", "another-request"),
         ("revision", 1),
+        ("revision", "not-a-revision"),
+        ("revision", "01"),
+        (
+            "changes",
+            [{**GOLDEN["receipts"][0]["acknowledgement"]["changes"][0], "finish": "invalid"}],
+        ),
+        (
+            "changes",
+            [{**GOLDEN["receipts"][0]["acknowledgement"]["changes"][0], "condition": "invalid"}],
+        ),
+        ("changes", [{**GOLDEN["receipts"][0]["acknowledgement"]["changes"][0], "quantity": -1}]),
+        (
+            "changes",
+            [{**GOLDEN["receipts"][0]["acknowledgement"]["changes"][0], "quantity": 2147483648}],
+        ),
+        (
+            "changes",
+            [
+                {
+                    **GOLDEN["receipts"][0]["acknowledgement"]["changes"][0],
+                    "notesRevision": "not-a-revision",
+                }
+            ],
+        ),
         ("changes", {}),
         ("changes", [{}]),
         ("memberships", [{"entryId": "entry", "groupIds": [1]}]),

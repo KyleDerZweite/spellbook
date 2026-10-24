@@ -270,7 +270,15 @@ def test_v3_hash_ignores_display_review_id_and_honors_order_quantity() -> None:
 
 @pytest.mark.parametrize(
     "acknowledgement",
-    [None, {}, [], False, {**ACK, "requestId": "another"}, {**ACK, "changes": [{}]}],
+    [
+        None,
+        {},
+        [],
+        False,
+        {**ACK, "requestId": "another"},
+        {**ACK, "changes": [{}]},
+        {**ACK, "revision": "not-a-revision"},
+    ],
 )
 def test_receipt_replays_original_and_rejects_incomplete_rows(acknowledgement: object) -> None:
     async def scenario() -> None:

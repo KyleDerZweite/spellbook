@@ -1,5 +1,6 @@
 """Deck validation, SQL projections and account write authority."""
 
+import re
 from typing import cast
 
 from psycopg.rows import dict_row
@@ -21,8 +22,10 @@ from spellbook_core.mtg.decks.models import (
     Document,
 )
 from spellbook_core.mtg.errors import DeckNotFoundError
+from spellbook_core.mtg.inventory_query import validate_revision
 from spellbook_core.mtg.models import CardDocument
 from spellbook_core.validation import (
+    DECK_ROLES,
     MISSING,
     assert_deck_role,
     assert_uuid,
@@ -42,6 +45,7 @@ def read_acknowledgement(
         or not isinstance(value.get("deckId"), str)
         or (deck_id is not None and value["deckId"] != deck_id)
         or not isinstance(value.get("revision"), str)
+        or not re.fullmatch(r"[0-9]+", value["revision"])
     ):
         raise RequestConflictError()
     changes, removed = value.get("changes"), value.get("removedEntryIds")
@@ -57,6 +61,7 @@ def read_acknowledgement(
             or not all(
                 isinstance(change.get(key), str) for key in ("entryId", "catalogCardId", "role")
             )
+            or change["role"] not in DECK_ROLES
             or type(change.get("quantity")) is not int
             or type(change.get("delta")) is not int
         ):
@@ -65,6 +70,10 @@ def read_acknowledgement(
         value["categoryDecisionRevision"], str
     ):
         raise RequestConflictError()
+    try:
+        validate_revision(value.get("categoryDecisionRevision"))
+    except ValidationError:
+        raise RequestConflictError() from None
     if "categoryEntryIds" in value and (
         not isinstance(value["categoryEntryIds"], list)
         or not all(isinstance(identifier, str) for identifier in value["categoryEntryIds"])
