@@ -140,7 +140,7 @@ export async function refreshSelectedDeck(input: SelectedDeckRefreshInput): Prom
 			throw new SelectedDeckReadError(phase, cause);
 		}
 	}
-	const base = `/api/mobile/v1/mtg/decks/${encodeURIComponent(context.deckId)}`;
+	const base = `/api/v1/mtg/decks/${encodeURIComponent(context.deckId)}`;
 	let snapshot: SelectedDeckNarrowDTO | null;
 	let optionalLegality: SelectedDeckLegality | undefined;
 	if (categoriesNeeded) {
@@ -174,7 +174,7 @@ export async function refreshSelectedDeck(input: SelectedDeckRefreshInput): Prom
 	if (ownershipNeeded && context.inspector) {
 		ownership = await stage<Ownership>(
 			'ownership',
-			`/api/mobile/v1/mtg/decks/ownership?canonicalCardId=${encodeURIComponent(context.inspector.canonicalCardId)}`,
+			`/api/v1/mtg/decks/ownership?canonicalCardId=${encodeURIComponent(context.inspector.canonicalCardId)}`,
 			inspectorCurrent
 		);
 		if (!current() || (!ownership && inspectorCurrent())) return false;
@@ -182,7 +182,7 @@ export async function refreshSelectedDeck(input: SelectedDeckRefreshInput): Prom
 	if (searchNeeded && context.search) {
 		search = await stage<Search>(
 			'search',
-			`/api/mobile/v1/mtg/decks/search?q=${encodeURIComponent(context.search.query)}`,
+			`/api/v1/mtg/decks/search?q=${encodeURIComponent(context.search.query)}`,
 			searchCurrent
 		);
 		if (!current() || (!search && searchCurrent())) return false;

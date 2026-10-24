@@ -43,7 +43,7 @@ function post(origin, body, chunked, slow) {
 	return new Promise((resolve, reject) => {
 		let written = 0;
 		const request = httpRequest(
-			`${origin}/api/web/v1/commands`,
+			`${origin}/api/v1/mtg/commands`,
 			{
 				method: 'POST',
 				headers: {

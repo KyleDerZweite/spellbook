@@ -20,7 +20,7 @@
 		if (open) {
 			loading = true;
 			fetch(
-				`/api/mobile/v1/mtg/prices/history?${new URLSearchParams({ printingId: id, finish: selectedFinish, days: '30' })}`,
+				`/api/v1/mtg/prices/history?${new URLSearchParams({ printingId: id, finish: selectedFinish, days: '30' })}`,
 				{ signal: controller.signal }
 			)
 				.then(async (response) => {

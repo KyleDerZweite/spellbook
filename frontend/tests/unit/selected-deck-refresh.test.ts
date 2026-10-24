@@ -142,13 +142,13 @@ function initial(): SelectedDeckMergeState {
 		}
 	};
 }
-const base = '/api/mobile/v1/mtg/decks/deck';
+const base = '/api/v1/mtg/decks/deck';
 const full = `${base}?selectedOnly=true`,
 	narrow = `${full}&includeLegality=false`;
 const entries = `${base}/categories`,
 	wholes = `${base}/whole-categories`;
-const ownership = '/api/mobile/v1/mtg/decks/ownership?canonicalCardId=oracle';
-const search = '/api/mobile/v1/mtg/decks/search?q=Opt';
+const ownership = '/api/v1/mtg/decks/ownership?canonicalCardId=oracle';
+const search = '/api/v1/mtg/decks/search?q=Opt';
 function held<T>() {
 	let resolve!: (value: T) => void, reject!: (cause: unknown) => void;
 	const promise = new Promise<T>((yes, no) => {
@@ -548,7 +548,7 @@ describe('production selected Deck optional-read owner', () => {
 		const h = optionalHarness(['inventory']);
 		h.searchInput.query = 'Other';
 		h.owner.searchChanged();
-		const path = '/api/mobile/v1/mtg/decks/search?q=Other';
+		const path = '/api/v1/mtg/decks/search?q=Other';
 		h.replies.set(path, { hits: [document], ownedByCanonical: {} });
 		await refreshSelectedDeck(h.input);
 		expect(h.fetcher.mock.calls.map(([url]) => url)).toContain(path);

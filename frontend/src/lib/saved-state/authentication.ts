@@ -7,7 +7,7 @@ export async function confirmAuthenticatedNavigation(
 ): Promise<boolean> {
 	try {
 		if (!current()) return false;
-		const response = await request('/api/auth/session', { cache: 'no-store', signal });
+		const response = await request('/api/v1/auth/session', { cache: 'no-store', signal });
 		if (!current() || response.status !== 200) return false;
 		const value = await response.json();
 		return current() && value?.user?.accountId === accountId;

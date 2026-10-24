@@ -39,7 +39,7 @@ export async function submitAuthForm(event: RequestEvent, mode: 'login' | 'regis
 	requireSameOrigin(event);
 	const result = await submitCredentialForm<AuthFormSuccess, AuthFormFailure>(
 		event,
-		`/api/web/v1/auth/${mode}`
+		`/api/v1/web/auth/${mode}`
 	);
 	if (!result.ok) return fail(result.status, result.data);
 	await revokeSession(event.cookies.get(SESSION_COOKIE));

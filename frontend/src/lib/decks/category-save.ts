@@ -66,14 +66,11 @@ export async function readCategorySnapshot(
 	deckId: string,
 	signal: AbortSignal
 ): Promise<DeckEntryCategories> {
-	const response = await fetcher(
-		`/api/mobile/v1/mtg/decks/${encodeURIComponent(deckId)}/categories`,
-		{
-			signal,
-			headers: { accept: 'application/json' },
-			cache: 'no-store'
-		}
-	);
+	const response = await fetcher(`/api/v1/mtg/decks/${encodeURIComponent(deckId)}/categories`, {
+		signal,
+		headers: { accept: 'application/json' },
+		cache: 'no-store'
+	});
 	if (!response.ok) throw new Error('Could not read the saved category. Your choice is retained.');
 	const read: DeckEntryCategories = await response.json();
 	if (read.deckId !== deckId)

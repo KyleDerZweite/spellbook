@@ -317,7 +317,7 @@ test(
 					const controller = new AbortController();
 					try {
 						child = await startHttpApplication(origin, new URL('../', import.meta.url));
-						const response = await fetch(origin + '/api/auth/register', {
+						const response = await fetch(origin + '/api/v1/auth/register', {
 							method: 'POST',
 							headers: { 'content-type': 'application/json' },
 							body: JSON.stringify({
@@ -328,7 +328,7 @@ test(
 						assert.equal(response.status, 201);
 						const auth = await response.json();
 						accountId = auth.user.accountId;
-						const stream = await fetch(origin + '/api/account/events', {
+						const stream = await fetch(origin + '/api/v1/account/events', {
 							headers: { authorization: 'Bearer ' + auth.token },
 							signal: controller.signal
 						});
@@ -365,7 +365,7 @@ test(
 							controller.abort();
 							await reader.cancel().catch(() => {});
 							reader = undefined;
-							const logout = await fetch(origin + '/api/auth/logout', {
+							const logout = await fetch(origin + '/api/v1/auth/logout', {
 								method: 'POST',
 								headers: {
 									authorization: 'Bearer ' + auth.token,

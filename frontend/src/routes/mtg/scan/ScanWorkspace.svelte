@@ -92,7 +92,7 @@
 	let sessionInput = $state(untrack(() => initialResult?.session?.id ?? ''));
 	let searchGeneration = 0;
 	let pendingCommit: { key: string; body: string } | null = null;
-	const api = '/api/mobile/v1/mtg';
+	const api = '/api/v1/mtg';
 	let readFailure = $state('');
 	let mounted = true;
 	onDestroy(() => {
@@ -210,7 +210,7 @@
 		hits = [];
 		try {
 			const response = await request<{ hits: CardDocument[] }>(
-				`${api}/search?q=${encodeURIComponent(query.trim())}&limit=20`
+				`${api}/catalog/search?q=${encodeURIComponent(query.trim())}&limit=20`
 			);
 			if (mounted && workspaceSavedState.isActive(accountId) && generation === searchGeneration) {
 				hits = response.hits;
@@ -254,7 +254,7 @@
 		confirmed = false;
 		try {
 			const response = await request<{ hits: CardDocument[]; estimatedTotalHits: number }>(
-				`${api}/cards/${encodeURIComponent(oracleId)}/printings`
+				`${api}/catalog/cards/${encodeURIComponent(oracleId)}/printings`
 			);
 			if (!mounted || !workspaceSavedState.isActive(accountId) || generation !== searchGeneration)
 				return;
@@ -285,7 +285,7 @@
 		failure = '';
 		try {
 			const response = await request<{ hits: CardDocument[]; estimatedTotalHits: number }>(
-				`${api}/cards/${encodeURIComponent(selected.oracleId)}/printings?limit=100&offset=${printings.length}`
+				`${api}/catalog/cards/${encodeURIComponent(selected.oracleId)}/printings?limit=100&offset=${printings.length}`
 			);
 			if (
 				!mounted ||

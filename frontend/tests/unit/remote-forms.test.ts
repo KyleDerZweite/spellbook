@@ -56,7 +56,7 @@ describe('streamed credential forms', () => {
 			});
 			expect(decoding).not.toHaveBeenCalled();
 			expect(String(send.mock.calls[0][0])).toBe(
-				`http://api.internal:4000/api/web/v1/auth/${mode}`
+				`http://api.internal:4000/api/v1/web/auth/${mode}`
 			);
 			const init = send.mock.calls[0][1]!;
 			const headers = new Headers(init.headers);
@@ -109,7 +109,7 @@ describe('streamed credential forms', () => {
 					body: { message: 'Too many attempts. Try again in 15 minutes.' }
 				});
 			expect(send).toHaveBeenCalledOnce();
-			expect(String(send.mock.calls[0][0])).toBe('http://api.internal:4000/api/web/v1/password');
+			expect(String(send.mock.calls[0][0])).toBe('http://api.internal:4000/api/v1/web/password');
 			expect(send.mock.calls[0][1]?.body).toBe(request.body);
 			expect(decoding).not.toHaveBeenCalled();
 			expect(cookies.set).not.toHaveBeenCalled();

@@ -39,7 +39,7 @@ test('built selected Deck refresh projection preserves coherent PostgreSQL state
 		async function register() {
 			const response = await fixtureAuthRequest(
 				origin,
-				'/api/auth/register',
+				'/api/v1/auth/register',
 				{
 					username: 'refresh_http_' + randomUUID().slice(0, 8),
 					password: 'deck-refresh-http-password'
@@ -55,7 +55,7 @@ test('built selected Deck refresh projection preserves coherent PostgreSQL state
 			foreign = await register();
 		const headers = { authorization: `Bearer ${owner.token}` };
 		async function create(token: string, name: string) {
-			const response = await fetch(origin + '/api/mobile/v1/mtg/decks', {
+			const response = await fetch(origin + '/api/v1/mtg/decks', {
 				method: 'POST',
 				headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
 				body: JSON.stringify({ name, format: 'Modern', description: 'Refresh description' })
@@ -140,7 +140,7 @@ test('built selected Deck refresh projection preserves coherent PostgreSQL state
 			[publication]
 		);
 		publishedPrice = true;
-		const path = `/api/mobile/v1/mtg/decks/${selected.id}`;
+		const path = `/api/v1/mtg/decks/${selected.id}`;
 		const read = (query = '', supplied: Record<string, string> = headers, target = path) =>
 			fetch(origin + target + query, { headers: supplied, redirect: 'manual' });
 		async function body(query: string): Promise<FullDeck> {
@@ -255,15 +255,12 @@ test('built selected Deck refresh projection preserves coherent PostgreSQL state
 						404
 					);
 					assert.equal(
-						(await read(query, headers, `/api/mobile/v1/mtg/decks/${foreignDeck.id}`)).status,
+						(await read(query, headers, `/api/v1/mtg/decks/${foreignDeck.id}`)).status,
 						404
 					);
+					assert.equal((await read(query, headers, '/api/v1/mtg/decks/not-a-uuid')).status, 400);
 					assert.equal(
-						(await read(query, headers, '/api/mobile/v1/mtg/decks/not-a-uuid')).status,
-						400
-					);
-					assert.equal(
-						(await read(query, headers, `/api/mobile/v1/mtg/decks/${randomUUID()}`)).status,
+						(await read(query, headers, `/api/v1/mtg/decks/${randomUUID()}`)).status,
 						404
 					);
 					const cookie = await read(query, { cookie: `${SESSION_COOKIE}=${owner.token}` });

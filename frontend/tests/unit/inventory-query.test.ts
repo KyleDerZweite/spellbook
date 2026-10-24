@@ -44,9 +44,7 @@ describe('Inventory bounded query', () => {
 		'accepts Inventory limit %i without changing filters or offsets',
 		(limit) => {
 			const query = inventoryQueryFromUrl(
-				new URL(
-					`http://local/api/mobile/v1/mtg/inventory?limit=${limit}&offset=150&finish=foil&set=DOM`
-				)
+				new URL(`http://local/api/v1/mtg/inventory?limit=${limit}&offset=150&finish=foil&set=DOM`)
 			);
 			expect(query).toMatchObject({ limit, offset: 150, finish: 'foil', sets: ['dom'] });
 		}

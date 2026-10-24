@@ -45,7 +45,7 @@ describe('authenticated catalog client', () => {
 			signal: controller.signal
 		});
 		const [url, options] = fetchMock.mock.calls[0];
-		expect(url).toBe('/api/catalog/search');
+		expect(url).toBe('/api/v1/mtg/catalog/search');
 		expect(options).toMatchObject({
 			method: 'POST',
 			credentials: 'same-origin',
@@ -123,8 +123,8 @@ describe('authenticated catalog client', () => {
 		expect(result.hits).toHaveLength(105);
 		expect(result.estimatedTotalHits).toBe(110);
 		expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-			'/api/catalog/cards/oracle-id/printings?limit=100&offset=0',
-			'/api/catalog/cards/oracle-id/printings?limit=5&offset=100'
+			'/api/v1/mtg/catalog/cards/oracle-id/printings?limit=100&offset=0',
+			'/api/v1/mtg/catalog/cards/oracle-id/printings?limit=5&offset=100'
 		]);
 		expect(fetchMock.mock.calls.every(([, options]) => options?.signal === controller.signal)).toBe(
 			true

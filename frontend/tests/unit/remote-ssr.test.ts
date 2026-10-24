@@ -50,7 +50,7 @@ describe('request-bound SSR credentials', () => {
 		vi.stubGlobal('fetch', send);
 		const fixture = event();
 		await handle({ event: fixture, resolve: async () => new Response('page') } as never);
-		expect(String(send.mock.calls[0][0])).toBe('http://api.internal:4000/api/auth/session');
+		expect(String(send.mock.calls[0][0])).toBe('http://api.internal:4000/api/v1/auth/session');
 		const headers = new Headers(send.mock.calls[0][1]?.headers);
 		expect(headers.get('cookie')).toBe('spellbook_session=cookie-session');
 		expect(headers.has('authorization')).toBe(false);
@@ -78,9 +78,9 @@ describe('request-bound SSR credentials', () => {
 	});
 	it('sets the replacement cookie before the native action reload reads with the new token', async () => {
 		const send = vi.fn<typeof fetch>().mockImplementation(async (url) => {
-			if (String(url).endsWith('/api/auth/session'))
+			if (String(url).endsWith('/api/v1/auth/session'))
 				return Response.json({ user, expiresAt: 'expiry' });
-			if (String(url).endsWith('/api/web/v1/password'))
+			if (String(url).endsWith('/api/v1/web/password'))
 				return Response.json({ success: true, token: 'rotated-session', expiresAt: 'expiry' });
 			return Response.json({ user, card: {}, totals: {} });
 		});

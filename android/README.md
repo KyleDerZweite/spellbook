@@ -1,14 +1,16 @@
 # Spellbook Android
 
 - Status: Implemented client, native acceptance pending integration
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-10-24
 - Source of Truth: this Gradle project and the shared HTTP contracts
-- Update Triggers: native behavior, toolchain, API origin, credential storage, retention, streamed response bounds, reviewed deletion, account intent lifetime and acceptance evidence
+- Update Triggers: canonical versioned API paths, native behavior, toolchain, API origin, credential storage, retention, streamed response bounds, reviewed deletion, account intent lifetime and acceptance evidence
 - Related Docs: [Independent applications](../docs/architecture/independent-applications.md), [Mobile design handoff](../docs/product/mobile-app-exploration.md), [Authentication](../docs/architecture/auth.md), [Mobile HTTP](../docs/architecture/mobile-and-scan.md)
 
-This independent Kotlin/Compose application uses the Node API directly.
+This independent Kotlin/Compose application uses the Python API directly.
 It imports no web or database implementation.
 The API validates authority, Printing identity, Inventory mutations, receipts and availability.
+Shared Auth and account requests use `/api/v1/auth/...` and `/api/v1/account/...`.
+MTG requests use `/api/v1/mtg/...`, including public Catalog reads under `/catalog` and the private Dashboard at `/dashboard`.
 Home, Search, Inventory and Decks follow the accepted compact mobile composition, with the website's icon geometry, distinct tab colors and a Settings gear.
 
 ## Build and configuration
@@ -81,7 +83,7 @@ The launcher uses the existing [Spellbook brand asset](../docs/reference/website
 ## Implemented journeys
 
 Public Catalog Search supports a query, color filters and bounded pagination.
-Printing details load `GET /api/catalog/printings/:printingId` as a direct `CardDocument`, with actual artwork and alternative Printings.
+Printing details load `GET /api/v1/mtg/catalog/printings/:printingId` as a direct `CardDocument`, with actual artwork and alternative Printings.
 All Catalog reads use the configured API.
 Artwork loads from the API's HTTPS image URLs; it carries no session token.
 
@@ -135,6 +137,7 @@ A remote quantity change cannot enlarge that review; HTTP 409 requires another e
 Ambiguous removal retries keep the original body and request ID.
 
 A mutation persists its method, exact serialized body, request ID, backend and account before dispatch.
+New attempts use canonical paths; attempts retained from earlier versions keep their original path through the API's compatibility aliases.
 An ambiguous failure exposes only an explicit retry of that frozen attempt.
 It cannot be replayed for a different account/backend.
 Successful acknowledgement is persisted before current-state refresh.

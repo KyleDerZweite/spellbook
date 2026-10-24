@@ -20,7 +20,7 @@ it('a held Library refresh cannot replace another page, including after returnin
 	const completion = readCategoryLibraryPage(
 		{ scope: 'entry', offset: 0, limit: 50 },
 		async (url) => {
-			expect(url).toBe('/api/mobile/v1/mtg/category-definitions?scope=entry&offset=0&limit=50');
+			expect(url).toBe('/api/v1/mtg/category-definitions?scope=entry&offset=0&limit=50');
 			await response.promise;
 			return new Response(JSON.stringify({ offset: 0, limit: 50, revision: '9', definitions: [] }));
 		},
@@ -129,7 +129,7 @@ it('incoming pagination before retained-page adoption captures one page for requ
 	retained = incoming;
 	response.release();
 	const read = await completion;
-	expect(requested).toBe('/api/mobile/v1/mtg/category-definitions?scope=entry&offset=50&limit=50');
+	expect(requested).toBe('/api/v1/mtg/category-definitions?scope=entry&offset=50&limit=50');
 	expect(query.key).toBe('account:entry:50:50');
 	expect(read?.offset).toBe(50);
 	expect(read?.revision).toBe('12');

@@ -32,7 +32,7 @@ Generate a password with a cryptographically secure random generator. Use at lea
 
 Choose an available agent or user protected credential store before registration. If none is available, ask the user where to store the credentials before creating the account. Store the origin, selected username, and generated password there before submitting registration so a lost response can be recovered. Never print passwords or tokens in chat, tool output, or logs. Never save plaintext secrets in repository files. Use a request mechanism that keeps secret request bodies, responses, and authorization headers out of logs and shell arguments.
 
-Send POST ${origin}/api/auth/register with Content-Type: application/json. The JSON body contains exactly username and password, using the selected username and generated password from the protected store. Native clients may omit Origin. If you send Origin, it must equal ${origin}.
+Send POST ${origin}/api/v1/auth/register with Content-Type: application/json. The JSON body contains exactly username and password, using the selected username and generated password from the protected store. Native clients may omit Origin. If you send Origin, it must equal ${origin}.
 
 HTTP 201 confirms account creation. The JSON response contains user, token, and expiresAt. The user object includes accountId and the normalized username. Save the returned username, accountId, token, and expiresAt in the protected store before reporting success. If storage fails after creation, report the storage failure without exposing secrets or creating a replacement account.
 
@@ -40,19 +40,19 @@ The token is a full-account bearer session with a fixed 30-day lifetime. It has 
 
 - HTTP 400 is a generic registration failure, including invalid credentials or an unavailable username. Check the documented credential rules. Ask the user for another username if the chosen name is unavailable; do not automatically rename the account.
 - HTTP 429 means the authentication limit was reached. Respect Retry-After if present. Otherwise wait for the documented 15-minute attempt window before retrying.
-- A network failure or unexpected response can leave account creation uncertain. Try POST ${origin}/api/auth/login with the same stored username and password before submitting registration again. HTTP 200 verifies access to the account and returns user, token, and expiresAt. Store these securely. If login does not verify the account, report the unresolved outcome before attempting another registration. Do not create a second account under a different name.
+- A network failure or unexpected response can leave account creation uncertain. Try POST ${origin}/api/v1/auth/login with the same stored username and password before submitting registration again. HTTP 200 verifies access to the account and returns user, token, and expiresAt. Store these securely. If login does not verify the account, report the unresolved outcome before attempting another registration. Do not create a second account under a different name.
 
-Use Authorization: Bearer with the stored token for the supported /api/mobile/v1/mtg/ operations. [OpenAPI](${origin}/openapi.json) describes the versioned operations and request schemas. An invalid explicit bearer token fails instead of falling back to a browser cookie. A foreign Origin is rejected by guarded operations; follow the operation's origin and content-type requirements.
+Use Authorization: Bearer with the stored token for the supported /api/v1/mtg/ operations. [OpenAPI](${origin}/openapi.json) describes the versioned operations and request schemas. An invalid explicit bearer token fails instead of falling back to a browser cookie. A foreign Origin is rejected by guarded operations; follow the operation's origin and content-type requirements.
 
-When the token expires, sign in through POST ${origin}/api/auth/login with the stored credentials and protect the replacement token. To revoke the current token, send POST ${origin}/api/auth/logout with its Authorization: Bearer header. HTTP 204 confirms logout. Logout revokes this token, not the account or its other sessions.
+When the token expires, sign in through POST ${origin}/api/v1/auth/login with the stored credentials and protect the replacement token. To revoke the current token, send POST ${origin}/api/v1/auth/logout with its Authorization: Bearer header. HTTP 204 confirms logout. Logout revokes this token, not the account or its other sessions.
 
 Browser access uses its own login cookie; JSON registration does not set that cookie.
 
 ## Account entry points
 
-- [Registration API](${origin}/api/auth/register): POST JSON credentials to create an account and receive HTTP 201.
-- [Login API](${origin}/api/auth/login): POST JSON credentials to receive a session with HTTP 200.
-- [Logout API](${origin}/api/auth/logout): POST with the stored Authorization: Bearer header to revoke the current token.
+- [Registration API](${origin}/api/v1/auth/register): POST JSON credentials to create an account and receive HTTP 201.
+- [Login API](${origin}/api/v1/auth/login): POST JSON credentials to receive a session with HTTP 200.
+- [Logout API](${origin}/api/v1/auth/logout): POST with the stored Authorization: Bearer header to revoke the current token.
 - [Create account](${origin}/auth/register): Browser registration, which starts in Inventory.
 - [Sign in](${origin}/auth/login): Browser login for an existing account.
 `;
@@ -64,7 +64,7 @@ Browser access uses its own login cookie; JSON registration does not set that co
 - [Inventory](${origin}/mtg/inventory): Manage the signed-in account's owned physical cards.
 - [Decks](${origin}/mtg/decks): Manage decklists and compare requirements with owned cards.
 - [Scan review](${origin}/mtg/scan): Upload card images, review candidates, and explicitly confirm inventory additions.
-- [OpenAPI](${origin}/openapi.json): Methods, request schemas, and responses for /api/mobile/v1/mtg/ operations.
+- [OpenAPI](${origin}/openapi.json): Methods, request schemas, and responses for /api/v1/mtg/ operations.
 `,
 		{
 			headers: {

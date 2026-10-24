@@ -45,7 +45,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 	}
 	async function create(kind: 'browser' | 'device') {
 		const response = await request(
-			'/api/auth/qr/requests',
+			'/api/v1/auth/qr/requests',
 			{ kind },
 			kind === 'browser' ? { origin } : {}
 		);
@@ -61,7 +61,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 	async function actor() {
 		const response = await fixtureAuthRequest(
 			origin,
-			'/api/auth/register',
+			'/api/v1/auth/register',
 			{
 				username: `qr_http_${randomUUID().slice(0, 8)}`,
 				password: 'qr-http-original-password'
@@ -101,7 +101,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 				assert.equal(
 					(
 						await (
-							await request(`/api/auth/qr/requests/${result.code}`, undefined, { authorization })
+							await request(`/api/v1/auth/qr/requests/${result.code}`, undefined, { authorization })
 						).json()
 					).status,
 					'pending'
@@ -126,7 +126,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 				assert.match(await switched.text(), /Your sign-in session changed/);
 				const freshLogin = await fixtureAuthRequest(
 					origin,
-					'/api/auth/login',
+					'/api/v1/auth/login',
 					{ username: approver.user.username, password: 'qr-http-original-password' },
 					{}
 				);
@@ -138,7 +138,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 				assert.equal(
 					(
 						await (
-							await request(`/api/auth/qr/requests/${result.code}`, undefined, { authorization })
+							await request(`/api/v1/auth/qr/requests/${result.code}`, undefined, { authorization })
 						).json()
 					).status,
 					'pending'
@@ -147,7 +147,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 				assert.equal(approved.status, 200);
 				assert.match(await approved.text(), /Sign-in approved/);
 				const signedIn = await request(
-					'/api/auth/qr/token',
+					'/api/v1/auth/qr/token',
 					{ code: result.code },
 					{ origin, cookie: cookie(response, requesterCookie).value }
 				);
@@ -188,8 +188,8 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 				assert.match(privateCookie.header, /HttpOnly/i);
 				assert.match(privateCookie.header, /SameSite=Lax/i);
 				assert.match(privateCookie.header, /Max-Age=300/i);
-				assert.match(privateCookie.header, /Path=\/api\/auth\/qr/i);
-				const publicPath = `/api/auth/qr/requests/${result.code}`;
+				assert.match(privateCookie.header, /Path=\/api\/v1\/auth\/qr/i);
+				const publicPath = `/api/v1/auth/qr/requests/${result.code}`;
 				assert.equal((await request(publicPath)).status, 401);
 				const inspected = await request(publicPath, undefined, { authorization });
 				assert.deepEqual(await inspected.json(), {
@@ -199,12 +199,12 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 					expiresAt: result.expiresAt
 				});
 				assert.equal(
-					(await request('/api/auth/qr/token', { code: result.code }, { origin })).status,
+					(await request('/api/v1/auth/qr/token', { code: result.code }, { origin })).status,
 					401
 				);
 				const polling = { origin, cookie: privateCookie.value };
 				assert.deepEqual(
-					await (await request('/api/auth/qr/token', { code: result.code }, polling)).json(),
+					await (await request('/api/v1/auth/qr/token', { code: result.code }, polling)).json(),
 					{ status: 'pending' }
 				);
 				assert.equal(
@@ -212,25 +212,29 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 						.status,
 					200
 				);
-				const authenticated = await request('/api/auth/qr/token', { code: result.code }, polling);
+				const authenticated = await request(
+					'/api/v1/auth/qr/token',
+					{ code: result.code },
+					polling
+				);
 				assert.equal(authenticated.status, 200);
 				const body = await authenticated.json();
 				assert.deepEqual(Object.keys(body).sort(), ['expiresAt', 'status']);
 				assert.equal(body.status, 'authenticated');
 				const sessionCookie = cookie(authenticated, SESSION_COOKIE);
 				assert.match(sessionCookie.header, /HttpOnly/i);
-				const session = await request('/api/auth/session', undefined, {
+				const session = await request('/api/v1/auth/session', undefined, {
 					cookie: sessionCookie.value
 				});
 				assert.equal((await session.json()).user.accountId, approver.user.accountId);
 				assert.deepEqual(
-					await (await request('/api/auth/qr/token', { code: result.code }, polling)).json(),
+					await (await request('/api/v1/auth/qr/token', { code: result.code }, polling)).json(),
 					{ status: 'consumed' }
 				);
 				assert.equal(
 					(
 						await request(
-							'/api/auth/qr/requests',
+							'/api/v1/auth/qr/requests',
 							{ kind: 'browser' },
 							{ origin, cookie: sessionCookie.value }
 						)
@@ -244,10 +248,10 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 			async () => {
 				const { result } = await create('device');
 				assert.match(result.requesterSecret, /^[A-Za-z0-9_-]{43}$/);
-				assert.equal((await request('/api/auth/qr/token', { code: result.code })).status, 401);
+				assert.equal((await request('/api/v1/auth/qr/token', { code: result.code })).status, 401);
 				assert.equal(
 					(
-						await request('/api/auth/qr/token', {
+						await request('/api/v1/auth/qr/token', {
 							code: result.code,
 							requesterSecret: 'x'.repeat(43)
 						})
@@ -255,12 +259,12 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 					401
 				);
 				await request(
-					`/api/auth/qr/requests/${result.code}/decision`,
+					`/api/v1/auth/qr/requests/${result.code}/decision`,
 					{ decision: 'approve' },
 					{ authorization }
 				);
 				const redemption = await request(
-					'/api/auth/qr/token',
+					'/api/v1/auth/qr/token',
 					{ code: result.code, requesterSecret: result.requesterSecret },
 					{ cookie: `${SESSION_COOKIE}=${other.token}` }
 				);
@@ -275,7 +279,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 				assert.equal(
 					(
 						await (
-							await request('/api/auth/session', undefined, {
+							await request('/api/v1/auth/session', undefined, {
 								authorization: `Bearer ${body.token}`
 							})
 						).json()
@@ -289,10 +293,10 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 			async () => {
 				const { response, result } = await create('browser');
 				const privateCookie = cookie(response, requesterCookie).value;
-				const path = `/api/auth/qr/requests/${result.code}`;
+				const path = `/api/v1/auth/qr/requests/${result.code}`;
 				for (const supplied of ['https://foreign.example', 'null', '']) {
 					assert.equal(
-						(await request('/api/auth/qr/requests', { kind: 'device' }, { origin: supplied }))
+						(await request('/api/v1/auth/qr/requests', { kind: 'device' }, { origin: supplied }))
 							.status,
 						403
 					);
@@ -313,7 +317,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 					assert.equal(
 						(
 							await request(
-								'/api/auth/qr/token',
+								'/api/v1/auth/qr/token',
 								{ code: result.code },
 								{ origin: supplied, cookie: privateCookie }
 							)
@@ -321,9 +325,9 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 						403
 					);
 				}
-				assert.equal((await request('/api/auth/qr/requests', { kind: 'browser' })).status, 403);
+				assert.equal((await request('/api/v1/auth/qr/requests', { kind: 'browser' })).status, 403);
 				assert.equal(
-					(await request('/api/auth/qr/token', { code: result.code }, { cookie: privateCookie }))
+					(await request('/api/v1/auth/qr/token', { code: result.code }, { cookie: privateCookie }))
 						.status,
 					403
 				);
@@ -343,7 +347,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 			'Authorization takes precedence and first decision binds the selected session',
 			async () => {
 				const { result } = await create('device');
-				const path = `/api/auth/qr/requests/${result.code}`;
+				const path = `/api/v1/auth/qr/requests/${result.code}`;
 				const browser = { cookie: `${SESSION_COOKIE}=${other.token}`, origin };
 				for (const bad of ['Bearer invalid', 'Basic abc', '']) {
 					assert.equal(
@@ -390,7 +394,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 					409
 				);
 				const body = await (
-					await request('/api/auth/qr/token', {
+					await request('/api/v1/auth/qr/token', {
 						code: result.code,
 						requesterSecret: result.requesterSecret
 					})
@@ -398,7 +402,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 				assert.equal(
 					(
 						await (
-							await request('/api/auth/session', undefined, {
+							await request('/api/v1/auth/session', undefined, {
 								authorization: `Bearer ${body.token}`
 							})
 						).json()
@@ -416,19 +420,19 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 				const secret = decodeURIComponent(privateCookie.split('=')[1]).split('.')[1];
 				const code = first.result.code;
 				await request(
-					`/api/auth/qr/requests/${code}/decision`,
+					`/api/v1/auth/qr/requests/${code}/decision`,
 					{ decision: 'approve' },
 					{ authorization }
 				);
 				assert.equal(
-					(await request('/api/auth/qr/token', { code, requesterSecret: secret }, { origin }))
+					(await request('/api/v1/auth/qr/token', { code, requesterSecret: secret }, { origin }))
 						.status,
 					400
 				);
 				assert.equal(
 					(
 						await request(
-							'/api/auth/qr/token',
+							'/api/v1/auth/qr/token',
 							{ code },
 							{ origin, cookie: cookie(second.response, requesterCookie).value }
 						)
@@ -438,7 +442,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 				assert.equal(
 					(
 						await request(
-							'/api/auth/qr/token',
+							'/api/v1/auth/qr/token',
 							{ code },
 							{
 								origin,
@@ -450,7 +454,8 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 					409
 				);
 				assert.equal(
-					(await request('/api/auth/qr/token', { code }, { origin, cookie: privateCookie })).status,
+					(await request('/api/v1/auth/qr/token', { code }, { origin, cookie: privateCookie }))
+						.status,
 					200
 				);
 			}
@@ -459,11 +464,11 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 			'denied/expired requests remain terminal and JSON fields, size and types are bounded',
 			async () => {
 				const { result } = await create('device');
-				const path = `/api/auth/qr/requests/${result.code}`;
+				const path = `/api/v1/auth/qr/requests/${result.code}`;
 				await request(`${path}/decision`, { decision: 'deny' }, { authorization });
 				assert.deepEqual(
 					await (
-						await request('/api/auth/qr/token', {
+						await request('/api/v1/auth/qr/token', {
 							code: result.code,
 							requesterSecret: result.requesterSecret
 						})
@@ -477,7 +482,7 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 				);
 				assert.deepEqual(
 					await (
-						await request('/api/auth/qr/token', {
+						await request('/api/v1/auth/qr/token', {
 							code: expired.code,
 							requesterSecret: expired.requesterSecret
 						})
@@ -490,9 +495,9 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 					{ kind: 'device', accountId: approver.user.accountId },
 					[]
 				])
-					assert.equal((await request('/api/auth/qr/requests', input)).status, 400);
+					assert.equal((await request('/api/v1/auth/qr/requests', input)).status, 400);
 				assert.equal(
-					(await request('/api/auth/qr/requests', { kind: 'x'.repeat(1100) })).status,
+					(await request('/api/v1/auth/qr/requests', { kind: 'x'.repeat(1100) })).status,
 					413
 				);
 				assert.equal(
@@ -506,12 +511,12 @@ test('built HTTP QR sign-in', { skip: !databaseUrl, timeout: 60_000 }, async (t)
 					400
 				);
 				assert.equal(
-					(await request('/api/auth/qr/token', { code: result.code, requesterSecret: null }))
+					(await request('/api/v1/auth/qr/token', { code: result.code, requesterSecret: null }))
 						.status,
 					400
 				);
 				assert.equal(
-					(await request('/api/auth/qr/token', { code: result.code, kind: 'device' })).status,
+					(await request('/api/v1/auth/qr/token', { code: result.code, kind: 'device' })).status,
 					400
 				);
 			}

@@ -37,7 +37,7 @@ test('built Combo rules preserve native forms, copied proof, source fences and a
 		}
 		const registration = await fixtureAuthRequest(
 			origin,
-			'/api/auth/register',
+			'/api/v1/auth/register',
 			{
 				username: 'combo_http_' + randomUUID().slice(0, 8),
 				password: 'combo-http-fixture-password'
@@ -80,23 +80,18 @@ test('built Combo rules preserve native forms, copied proof, source fences and a
 			'bounded selected outcome choices require authorization and retain source identity',
 			async () => {
 				assert.equal(
-					(await request('/api/mobile/v1/mtg/category-rule-choices', 'GET', undefined, {})).status,
+					(await request('/api/v1/mtg/category-rule-choices', 'GET', undefined, {})).status,
 					401
 				);
 				const choices = await (
-					await request(
-						'/api/mobile/v1/mtg/category-rule-choices?outcomeQuery=Infinite&outcomeId=2244'
-					)
+					await request('/api/v1/mtg/category-rule-choices?outcomeQuery=Infinite&outcomeId=2244')
 				).json();
 				assert.equal(choices.combo.source.publicationId, source!.publicationId);
 				assert.ok(choices.combo.outcomes.length <= 50);
 				assert.ok(choices.combo.selectedOutcomes.some((r: { id: string }) => r.id === '2244'));
 				const excessive = new URLSearchParams();
 				for (let i = 0; i < 101; i++) excessive.append('outcomeId', '2244');
-				assert.equal(
-					(await request('/api/mobile/v1/mtg/category-rule-choices?' + excessive)).status,
-					400
-				);
+				assert.equal((await request('/api/v1/mtg/category-rule-choices?' + excessive)).status, 400);
 			}
 		);
 		const native = {
@@ -118,9 +113,9 @@ test('built Combo rules preserve native forms, copied proof, source fences and a
 			'rule.root.outcomeId': '2244'
 		};
 		assert.equal((await postForm('/mtg/categories?/save', native)).status, 303);
-		const library = await (await request('/api/mobile/v1/mtg/category-definitions')).json();
+		const library = await (await request('/api/v1/mtg/category-definitions')).json();
 		assert.equal(library.definitions[0].current.rule.outcomeId, '2244');
-		const created = await request('/api/mobile/v1/mtg/decks', 'POST', {
+		const created = await request('/api/v1/mtg/decks', 'POST', {
 			name: 'Combo HTTP Deck',
 			format: 'Commander',
 			description: ''
@@ -135,7 +130,7 @@ test('built Combo rules preserve native forms, copied proof, source fences and a
 			)
 		).rows;
 		for (const { document: card } of cards) {
-			const response = await request(`/api/mobile/v1/mtg/decks/${deckId}/cards`, 'POST', {
+			const response = await request(`/api/v1/mtg/decks/${deckId}/cards`, 'POST', {
 				canonicalCardId: card.oracle_id,
 				catalogCardId: card.id,
 				name: card.name,
@@ -148,30 +143,24 @@ test('built Combo rules preserve native forms, copied proof, source fences and a
 			assert.equal(response.status, 200);
 		}
 		const preview = async () => {
-			const response = await request(
-				`/api/mobile/v1/mtg/decks/${deckId}/category-previews`,
-				'POST',
-				{
-					requestId: randomUUID(),
-					scope: 'entry',
-					mode: 'Review',
-					restoreOriginIds: []
-				}
-			);
+			const response = await request(`/api/v1/mtg/decks/${deckId}/category-previews`, 'POST', {
+				requestId: randomUUID(),
+				scope: 'entry',
+				mode: 'Review',
+				restoreOriginIds: []
+			});
 			assert.equal(response.status, 200);
 			return (await response.json()) as CategoryPreview;
 		};
 		const reviewed = await preview();
 		const committedRequest = randomUUID();
-		const committed = await request(
-			`/api/mobile/v1/mtg/category-previews/${reviewed.id}/commit`,
-			'POST',
-			{ requestId: committedRequest }
-		);
+		const committed = await request(`/api/v1/mtg/category-previews/${reviewed.id}/commit`, 'POST', {
+			requestId: committedRequest
+		});
 		assert.equal(committed.status, 200);
 		const receipt = await committed.json();
 		const state = (await (
-			await request(`/api/mobile/v1/mtg/decks/${deckId}/categories`)
+			await request(`/api/v1/mtg/decks/${deckId}/categories`)
 		).json()) as DeckEntryCategories;
 		assert.equal(state.decisions.length, 2);
 		for (const decision of state.decisions) {
@@ -190,7 +179,7 @@ test('built Combo rules preserve native forms, copied proof, source fences and a
 		replacement = await publishComboFixture(pool);
 		assert.equal(
 			(
-				await request(`/api/mobile/v1/mtg/category-previews/${stale.id}/commit`, 'POST', {
+				await request(`/api/v1/mtg/category-previews/${stale.id}/commit`, 'POST', {
 					requestId: randomUUID()
 				})
 			).status,
@@ -198,7 +187,7 @@ test('built Combo rules preserve native forms, copied proof, source fences and a
 		);
 		assert.deepEqual(
 			await (
-				await request(`/api/mobile/v1/mtg/category-previews/${reviewed.id}/commit`, 'POST', {
+				await request(`/api/v1/mtg/category-previews/${reviewed.id}/commit`, 'POST', {
 					requestId: committedRequest
 				})
 			).json(),
@@ -206,7 +195,7 @@ test('built Combo rules preserve native forms, copied proof, source fences and a
 		);
 		const foreignRegistration = await fixtureAuthRequest(
 			origin,
-			'/api/auth/register',
+			'/api/v1/auth/register',
 			{
 				username: 'combo_other_' + randomUUID().slice(0, 8),
 				password: 'combo-http-fixture-password'
@@ -217,7 +206,7 @@ test('built Combo rules preserve native forms, copied proof, source fences and a
 		accounts.push(foreign.user.accountId);
 		assert.equal(
 			(
-				await request(`/api/mobile/v1/mtg/decks/${deckId}/categories`, 'GET', undefined, {
+				await request(`/api/v1/mtg/decks/${deckId}/categories`, 'GET', undefined, {
 					authorization: `Bearer ${foreign.token}`
 				})
 			).status,

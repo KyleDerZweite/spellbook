@@ -306,7 +306,7 @@ test.skipIf(process.env.TEST_BROWSING_PERFORMANCE !== '1')(
 				const password = randomUUID() + 'A7!';
 				const registered = await fixtureAuthRequest(
 					config.origin,
-					'/api/auth/register',
+					'/api/v1/auth/register',
 					{ username, password },
 					{}
 				);
@@ -367,7 +367,7 @@ test.skipIf(process.env.TEST_BROWSING_PERFORMANCE !== '1')(
 					const { data, sample } = await measured<InventoryPage>(
 						'Inventory',
 						step,
-						`/api/mobile/v1/mtg/inventory?${inventoryUrl(input, expectedRevision)}`,
+						`/api/v1/mtg/inventory?${inventoryUrl(input, expectedRevision)}`,
 						{ headers, signal },
 						{ size, offset: input.offset, limit: input.limit, ...(state ? { state } : {}) }
 					);
@@ -422,7 +422,7 @@ test.skipIf(process.env.TEST_BROWSING_PERFORMANCE !== '1')(
 				const defaults = await measured<InventoryPage>(
 					'Inventory',
 					'omitted limit',
-					'/api/mobile/v1/mtg/inventory',
+					'/api/v1/mtg/inventory',
 					{ headers },
 					{ size }
 				);
@@ -448,8 +448,7 @@ test.skipIf(process.env.TEST_BROWSING_PERFORMANCE !== '1')(
 				}
 				await inventory({ ...query, limit: 500 });
 				assert.equal(
-					(await fetch(`${config.origin}/api/mobile/v1/mtg/inventory?limit=501`, { headers }))
-						.status,
+					(await fetch(`${config.origin}/api/v1/mtg/inventory?limit=501`, { headers })).status,
 					400
 				);
 				const filtered = await inventory({ ...query, condition: 'NM', dir: 'desc' });
@@ -589,7 +588,7 @@ test.skipIf(process.env.TEST_BROWSING_PERFORMANCE !== '1')(
 				const receipt = await measured<InventoryAcknowledgement>(
 					'Inventory',
 					'single confirmed receipt',
-					`/api/mobile/v1/mtg/inventory/${entry.id}`,
+					`/api/v1/mtg/inventory/${entry.id}`,
 					{
 						headers: { ...headers, origin: config.origin, 'content-type': 'application/json' },
 						method: 'PATCH',
@@ -631,7 +630,7 @@ test.skipIf(process.env.TEST_BROWSING_PERFORMANCE !== '1')(
 				const { data, sample } = await measured<SearchResult>(
 					'Catalog',
 					step,
-					'/api/catalog/search',
+					'/api/v1/mtg/catalog/search',
 					{
 						method: 'POST',
 						headers: { 'content-type': 'application/json' },
@@ -666,13 +665,13 @@ test.skipIf(process.env.TEST_BROWSING_PERFORMANCE !== '1')(
 			const authenticated = await measured<SearchResult>(
 				'Catalog',
 				'authenticated omitted limit',
-				'/api/mobile/v1/mtg/search',
+				'/api/v1/mtg/catalog/search',
 				{ headers: { cookie: `spellbook_session=${token}` } }
 			);
 			assert.equal(authenticated.data.hits.length, 20);
 			assert.equal(authenticated.data.generationId, manifest.generationId);
 			authenticated.sample.rows = 20;
-			assert.equal((await fetch(config.origin + '/api/mobile/v1/mtg/search')).status, 401);
+			assert.equal((await fetch(config.origin + '/api/v1/mtg/catalog/search')).status, 200);
 			for (const offset of ranges(canonicalCount)) {
 				let ids: string[] | undefined;
 				for (let repetition = 0; repetition < config.repetitions; repetition++) {
@@ -693,7 +692,7 @@ test.skipIf(process.env.TEST_BROWSING_PERFORMANCE !== '1')(
 			await catalog({ query: '', limit: 500 });
 			assert.equal(
 				(
-					await fetch(config.origin + '/api/catalog/search', {
+					await fetch(config.origin + '/api/v1/mtg/catalog/search', {
 						method: 'POST',
 						headers: { 'content-type': 'application/json' },
 						body: JSON.stringify({ query: '', limit: 501 })

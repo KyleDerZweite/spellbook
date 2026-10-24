@@ -55,9 +55,9 @@ describe('framework form Origin protection', () => {
 		expect(mocks.validateSession).not.toHaveBeenCalled();
 	});
 	it.each([
-		['/api/mobile/v1/mtg/scan/sessions/id/frames', 'multipart/form-data; boundary=review'],
-		['/api/auth/logout', null],
-		['/api/mobile/v1/mtg/inventory/id', 'application/json']
+		['/api/v1/mtg/scan/sessions/id/frames', 'multipart/form-data; boundary=review'],
+		['/api/v1/auth/logout', null],
+		['/api/v1/mtg/inventory/id', 'application/json']
 	])(
 		'leaves raw API authority and Origin checks to the backend for %s',
 		async (path, contentType) => {

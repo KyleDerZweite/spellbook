@@ -28,23 +28,26 @@ class ApiTest {
     }
     @Test fun `public reads omit credentials and private reads send only selected bearer`() = runTest {
         val seen = mutableListOf<String?>()
+        val paths = mutableListOf<String>()
         val engine = MockEngine { request ->
             seen += request.headers[HttpHeaders.Authorization]
+            paths += request.url.encodedPath
             assertNull(request.headers[HttpHeaders.Cookie])
             respond("{}", HttpStatusCode.OK, headersOf(HttpHeaders.CacheControl, "no-store"))
         }
         Api("https://api.example.test", HttpClient(engine)).use { api ->
-            api.request("/api/catalog/search")
-            api.request("/api/account/profile", "account-a-token")
-            api.request("/api/account/profile", "account-b-token")
+            api.request("/api/v1/mtg/catalog/search")
+            api.request("/api/v1/account/profile", "account-a-token")
+            api.request("/api/v1/account/profile", "account-b-token")
         }
         assertEquals(listOf(null, "Bearer account-a-token", "Bearer account-b-token"), seen)
+        assertEquals(listOf("/api/v1/mtg/catalog/search", "/api/v1/account/profile", "/api/v1/account/profile"), paths)
     }
     @Test fun `no-store response is never reused`() = runTest {
         var calls = 0
         val engine = MockEngine { calls++; respond("{\"revision\":\"$calls\"}", headers = headersOf(HttpHeaders.CacheControl, "no-store")) }
         Api("https://api.example.test", HttpClient(engine)).use { api ->
-            assertNotEquals(api.request("/api/mobile/v1/mtg/inventory", "a"), api.request("/api/mobile/v1/mtg/inventory", "a"))
+            assertNotEquals(api.request("/api/v1/mtg/inventory", "a"), api.request("/api/v1/mtg/inventory", "a"))
         }
         assertEquals(2, calls)
     }
@@ -52,7 +55,7 @@ class ApiTest {
         val body = """{"message":"Notes changed","kind":"NotesConflict","entryId":"entry-a","notes":"new saved note","notesRevision":"42"}"""
         val engine = MockEngine { respond(body, HttpStatusCode.Conflict) }
         Api("https://api.example.test", HttpClient(engine)).use { api ->
-            try { api.request("/api/mobile/v1/mtg/inventory/entry-a", "a", "PATCH", "{}"); fail("Expected conflict") }
+            try { api.request("/api/v1/mtg/inventory/entry-a", "a", "PATCH", "{}"); fail("Expected conflict") }
             catch (failure: ApiFailure) {
                 assertEquals("NotesConflict", failure.kind)
                 assertEquals("new saved note", failure.detail["notes"]?.jsonPrimitive?.content)
@@ -64,15 +67,17 @@ class ApiTest {
         var calls = 0
         val engine = MockEngine { calls++; throw IOException("response lost") }
         Api("https://api.example.test", HttpClient(engine)).use { api ->
-            try { api.request("/api/mobile/v1/mtg/inventory", "a", "POST", "{}"); fail("Expected failure") }
+            try { api.request("/api/v1/mtg/inventory", "a", "POST", "{}"); fail("Expected failure") }
             catch (_: TransportFailure) { }
         }
         assertEquals(1, calls)
     }
     @Test fun `mutation body and request identity stay frozen across explicit retry`() = runTest {
-        val frozen = MutationAttempt("https://api.example.test", "a", "POST", "/api/mobile/v1/mtg/inventory", "{\"requestId\":\"request-a\",\"items\":[{\"quantity\":2}]}", "request-a")
+        val frozen = MutationAttempt("https://api.example.test", "a", "POST", "/api/v1/mtg/inventory", "{\"requestId\":\"request-a\",\"items\":[{\"quantity\":2}]}", "request-a")
         val seen = mutableListOf<String>()
         val engine = MockEngine { request ->
+            assertEquals("/api/v1/mtg/inventory", request.url.encodedPath)
+            assertEquals(HttpMethod.Post, request.method)
             seen += (request.body as TextContent).text
             if (seen.size == 1) throw IOException("lost acknowledgement")
             respond("""{"requestId":"request-a","revision":"7","changes":[],"removedEntryIds":[]}""")
@@ -88,10 +93,26 @@ class ApiTest {
         assertEquals(listOf(frozen.body, frozen.body), seen)
     }
     @Test fun `frozen retry cannot cross accounts or backends`() {
-        val attempt = MutationAttempt("https://a.example.test", "account-a", "POST", "/api/mobile/v1/mtg/inventory", "{}", "request-a")
+        val attempt = MutationAttempt("https://a.example.test", "account-a", "POST", "/api/v1/mtg/inventory", "{}", "request-a")
         assertThrows(IllegalStateException::class.java) { attempt.retryFor(attempt.backend, "account-b") }
         assertThrows(IllegalStateException::class.java) { attempt.retryFor("https://b.example.test", "account-a") }
         assertThrows(IllegalStateException::class.java) { attempt.confirm("""{"requestId":"another-request","revision":"1","changes":[],"removedEntryIds":[]}""") }
+    }
+    @Test fun `retained legacy attempt retries its original route and body without rewriting`() = runTest {
+        val original = MutationAttempt("https://api.example.test", "a", "POST", "/api/mobile/v1/mtg/inventory", "{\"requestId\":\"old-request\",\"source\":\"mobile\",\"items\":[]}", "old-request")
+        val restored = WireJson.decodeFromString<DraftState>(WireJson.encodeToString(DraftState(attempt = original)))
+        val retry = restored.attempt!!.retryFor(original.backend, original.accountId)
+        val engine = MockEngine { request ->
+            assertEquals(original.path, request.url.encodedPath)
+            assertEquals(original.body, (request.body as TextContent).text)
+            assertEquals(HttpMethod.Post, request.method)
+            respond("""{"requestId":"old-request","revision":"7","changes":[],"removedEntryIds":[]}""")
+        }
+        Api(original.backend, HttpClient(engine)).use { api ->
+            val confirmed = retry.confirm(api.request(retry.path, "a", retry.method, retry.body))
+            assertNotNull(confirmed.confirmedReceipt)
+            assertThrows(IllegalStateException::class.java) { confirmed.retryFor(original.backend, "a") }
+        }
     }
     @Test fun `add body uses printing identity and keeps existing Notes unchanged`() {
         val printing = Printing("printing-a", "canonical-a", "Real server card", is_nonfoil_available = true)
@@ -104,7 +125,7 @@ class ApiTest {
         assertThrows(IllegalArgumentException::class.java) { inventoryAddBody(AddDraft(printing, finish = "foil"), "new-request") }
     }
     @Test fun `draft serialization retains unconfirmed body after process recreation`() {
-        val attempt = MutationAttempt("https://a.example.test", "a", "POST", "/api/mobile/v1/mtg/inventory", "{\"requestId\":\"r\",\"items\":[]}", "r")
+        val attempt = MutationAttempt("https://a.example.test", "a", "POST", "/api/v1/mtg/inventory", "{\"requestId\":\"r\",\"items\":[]}", "r")
         val restored = WireJson.decodeFromString<DraftState>(WireJson.encodeToString(DraftState(attempt = attempt)))
         assertEquals(attempt, restored.attempt)
         assertFalse(ApiFailure(503, buildJsonObject { put("message", "Unavailable") }).isDefinitiveMutationFailure())
@@ -115,7 +136,7 @@ class ApiTest {
         var calls = 0
         val engine = MockEngine { calls++; entered.complete(Unit); awaitCancellation() }
         Api("https://api.example.test", HttpClient(engine)).use { api ->
-            val read = launch { api.request("/api/account/profile", "a") }
+            val read = launch { api.request("/api/v1/account/profile", "a") }
             entered.await()
             read.cancelAndJoin()
             assertTrue(read.isCancelled)
@@ -125,7 +146,7 @@ class ApiTest {
     @Test fun `oversized response is unavailable instead of partially decoded success`() = runTest {
         val engine = MockEngine { respond("x".repeat(2 * 1024 * 1024 + 1)) }
         Api("https://api.example.test", HttpClient(engine)).use { api ->
-            try { api.request("/api/catalog/search"); fail("Expected bounded read failure") }
+            try { api.request("/api/v1/mtg/catalog/search"); fail("Expected bounded read failure") }
             catch (_: TransportFailure) { }
         }
     }

@@ -82,7 +82,7 @@ async def main() -> None:
                     HttpRoute("GET", "/api/proxy-test/headers", headers),
                     HttpRoute("GET", "/api/proxy-test/events", events),
                     HttpRoute("POST", "/api/proxy-test/upload-abort", upload),
-                    HttpRoute("POST", "/api/web/v1/commands", upload),
+                    HttpRoute("POST", "/api/v1/mtg/commands", upload),
                 ],
                 "http://localhost:5173",
                 None,
