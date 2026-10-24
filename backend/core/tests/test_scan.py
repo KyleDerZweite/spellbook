@@ -268,128 +268,36 @@ def test_v3_hash_ignores_display_review_id_and_honors_order_quantity() -> None:
         )
 
 
-@pytest.mark.parametrize("evidence", [None, [], 1, {}, {"version": "unknown", "items": []}])
-def test_invalid_legacy_evidence_retains_original_validation_message(evidence: object) -> None:
-    with pytest.raises(ValidationError, match="Invalid legacy Scan verification evidence"):
-        normalize_commit(intent(legacyVerification=evidence))
+def test_receipt_replays_original_and_rejects_incomplete_rows() -> None:
+    async def scenario() -> None:
+        normalized = normalize_commit(intent())
+        tx = AsyncMock()
+        tx.execute.return_value.fetchone.return_value = ("scan_review", normalized.hash, ACK)
+        result = await probe(cast(Transaction, tx), ACTOR.account_id, normalized)
+        assert result == {"kind": "Committed", "sessionId": SESSION, "acknowledgement": ACK}
+        for row in (("scan_review", None, ACK), ("scan_review", normalized.hash, None)):
+            tx.execute.return_value.fetchone.return_value = row
+            with pytest.raises(RequestConflictError):
+                await probe(cast(Transaction, tx), ACTOR.account_id, normalized)
 
-
-@pytest.mark.parametrize("version", ["scan-v1", "scan-v2"])
-def test_legacy_hash_uses_exact_original_evidence(version: str) -> None:
-    original = intent()
-    old = {
-        **original["items"][0],
-        "id": ARTIFACT,
-        "sessionId": SESSION,
-        "canonicalCardId": CARD["oracle_id"],
-        "oracleId": CARD["oracle_id"],
-        "name": " Original ",
-        "setCode": " OLD ",
-        "imageUri": "",
-        "collectorNumber": "17",
-        "similarityScore": 11,
-        "ocrScore": 21,
-        "finalScore": 31,
-        "matchReason": " original ",
-    }
-    input = {**original, "legacyVerification": {"version": version, "items": [old]}}
-    if version == "scan-v1":
-        envelope: object = {
-            "kind": "scan_review",
-            "sessionId": SESSION,
-            "artifacts": [ARTIFACT],
-            "operations": [
-                {
-                    "op": "add",
-                    "card": {
-                        "catalogCardId": CARD["id"],
-                        "canonicalCardId": CARD["oracle_id"],
-                        "name": "Original",
-                        "setCode": "OLD",
-                        "imageUri": "",
-                    },
-                    "finish": "nonfoil",
-                    "condition": "NM",
-                    "quantity": 2,
-                    "notes": "",
-                }
-            ],
-        }
-    else:
-        envelope = {
-            "kind": "scan_review",
-            "scan": {
-                "sessionId": SESSION,
-                "items": [
-                    {
-                        **original["items"][0],
-                        "id": ARTIFACT,
-                        "sessionId": SESSION,
-                        "similarityScore": 11,
-                        "ocrScore": 21,
-                        "finalScore": 31,
-                        "matchReason": " original ",
-                    }
-                ],
-            },
-            "source": "scan_review",
-            "operations": [
-                {
-                    "op": "add",
-                    **{k: v for k, v in original["items"][0].items() if k != "scanArtifactId"},
-                }
-            ],
-        }
-    assert normalize_commit(input).historical_hash == mutation_fingerprint(envelope)
-    old["quantity"] = 3
-    with pytest.raises(RequestConflictError):
-        normalize_commit(input)
+    asyncio.run(scenario())
 
 
 @pytest.mark.parametrize(
-    "source,hash_value,ack,kind,binding",
-    [
-        ("scan_review", None, ACK, "LegacyNoRepeat", "UnverifiedLegacyHash"),
-        ("scan_review", None, None, "LegacyNoRepeat", "UnverifiedLegacyHash"),
-        ("scan_review", "same", None, "LegacyNoRepeat", "VerifiedLegacyHash"),
-        ("scan_review", "same", ACK, "Committed", None),
-    ],
+    "source,hash_value",
+    [("web", "same"), ("scan_review", "scan-intent-v3:other")],
 )
-def test_receipt_envelopes_preserve_original(
-    source: str, hash_value: str | None, ack: object, kind: str, binding: str | None
-) -> None:
+def test_receipt_conflicts(source: str, hash_value: str) -> None:
     async def scenario() -> None:
         normalized = normalize_commit(intent())
         tx = AsyncMock()
         tx.execute.return_value.fetchone.return_value = (
             source,
             normalized.hash if hash_value == "same" else hash_value,
-            ack,
+            ACK,
         )
-        result = await probe(cast(Transaction, tx), ACTOR.account_id, normalized)
-        assert result is not None and result["kind"] == kind
-        if ack is not None:
-            assert result["acknowledgement"] is ack
-        if result["kind"] == "LegacyNoRepeat":
-            assert result["binding"] == binding
-
-    asyncio.run(scenario())
-
-
-@pytest.mark.parametrize(
-    "source,hash_value,error",
-    [
-        ("web", None, RequestConflictError),
-        ("scan_review", "scan-intent-v3:other", RequestConflictError),
-        ("scan_review", "historical", ScanError),
-    ],
-)
-def test_receipt_conflicts(source: str, hash_value: str | None, error: type[Exception]) -> None:
-    async def scenario() -> None:
-        tx = AsyncMock()
-        tx.execute.return_value.fetchone.return_value = (source, hash_value, ACK)
-        with pytest.raises(error):
-            await probe(cast(Transaction, tx), ACTOR.account_id, normalize_commit(intent()))
+        with pytest.raises(RequestConflictError):
+            await probe(cast(Transaction, tx), ACTOR.account_id, normalized)
 
     asyncio.run(scenario())
 

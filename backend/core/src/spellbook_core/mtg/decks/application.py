@@ -62,11 +62,12 @@ class Decks(DeckReads, DeckLibrary, DeckMutations):
             )
             if not previous:
                 return None
-            if previous["request_hash"] is not None and previous[
-                "request_hash"
-            ] != mutation_fingerprint(intent):
+            if (
+                previous["request_hash"] != mutation_fingerprint(intent)
+                or previous["acknowledgement"] is None
+            ):
                 raise RequestConflictError()
-            return cast(DeckAcknowledgement | None, previous["acknowledgement"])
+            return cast(DeckAcknowledgement, previous["acknowledgement"])
 
     @staticmethod
     def _import_operations(preview: ImportPreview) -> list[Document]:
