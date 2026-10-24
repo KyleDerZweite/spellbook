@@ -48,7 +48,9 @@ Content changes require an updated `Last Reviewed` date, relevant `Update Trigge
 Source-only line-break changes retain review dates because they do not establish a new factual review.
 Repair links affected by moves or renames in the same change.
 Add new files to their section index.
-Remove replaced documentation and rely on git history; do not create an archive or parallel wiki.
+Remove replaced documentation and rely on git history; do not create archives of replaced documents or competing descriptions of the current system.
+`docs/wiki/` may retain dated strategy history with pointers to original sources; current contracts remain with their canonical owners.
+Cite original sources without copying or archiving them in the wiki.
 Retain decision records with explicit supersession status.
 
 Review documentation health at each milestone or release, or monthly during active development.
