@@ -8,6 +8,7 @@
 
 Am 2026-10-24 eröffnete Kyle die Datenbankdiskussion erneut und erinnerte sich an einen SQLite-Nachfolger in Rust.
 Eine Engine oder Migration wählte er nicht; der Anlass seiner Unzufriedenheit blieb offen.
+Diese offene Motivationsfrage wurde durch die [Klarstellung vom 2026-10-24](#klarstellung-vom-2026-10-24) überholt.
 Der Brainstorm änderte weder Readiness noch Product-Scope.
 Quelle: [Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759).
 
@@ -36,3 +37,9 @@ Diese Einzelbefunde erlaubten keine pauschale Reifeaussage.
 Am 2026-10-24 empfahl Root vorläufig SQLite als konservativen Vergleichskandidaten, falls weniger Serverbetrieb das Ziel wäre; Tursos benötigter Mehrprozesspfad hatte dokumentierte Vorbehalte.
 Das blieb eine Empfehlung ohne Wechsel- oder Experimentauftrag.
 Quelle: [Research und nachgereichte Quellenbegrenzung](t3-thread://v1/thread:delegated-task:command%3Amcp%3A9e10a3f5-df85-461c-b846-8bcb828bdbf2%3Adelegate-task%3Aspellbook-database-options-research-20261024-r1), [Roots Einordnung](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759).
+
+## Klarstellung vom 2026-10-24
+
+Am 2026-10-24 bestätigte Kyle als theoretische Wechselmotive den separaten PostgreSQL-Service samt Betrieb, mögliche Ressourcen- oder Hostingkosten und den Wunsch nach einer portablen Datenbankdatei.
+Das motivierte die Prüfung von Alternativen, belegte keine gemessenen PostgreSQL-Mängel oder Kosten und bedeutete weder eine Auswahl von SQLite oder Turso noch einen Migrationsauftrag.
+Quelle: [Kyles Antwort im Strategiedialog vom 2026-10-24](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759).
