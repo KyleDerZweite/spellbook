@@ -3,7 +3,7 @@
 - Status: Historical
 - Last Reviewed: 2026-10-24
 - Source of Truth: datierte Quellen in den verlinkten Themenseiten
-- Update Triggers: dauerhafte Erkenntnisse, Nutzerkorrekturen, strategische Entscheidungen, Wiederaufnahme, Documentation Health Review
+- Update Triggers: dauerhafte Erkenntnisse, Nutzerkorrekturen, strategische Entscheidungen, Wiederaufnahme, Documentation Health Review, Gesamtbackend-Vergleich
 - Related Docs: [Dokumentationsindex](../README.md), [Agent-Anweisungen](../../AGENTS.md)
 
 Am 2026-10-24 beauftragte Kyle diese historische Sammlung unter `docs/wiki/`.
@@ -21,7 +21,7 @@ Vor strategischen Entscheidungen und Wiederaufnahme den Index und relevante Seit
 - [Prioritäten und Zusammenarbeit](./priorities.md): Maintainability vor Simplicity vor Features, Context Pointers und abgelöste Proof-Gates.
 - [Android zuerst](./mobile-direction.md): Bestätigte Plattformpriorität und getrennte Kotlin-Empfehlung.
 - [Interface-Entfernung](./interface-removal.md): Sofortiger Ersatz alter Interfaces und getrennte Production-Autorität.
-- [Datenbankoptionen](./database-options.md): Offener SQLite-/Turso-Brainstorm, theoretische Wechselmotive, PostgreSQL-Historie und bedingte Empfehlung ohne Wechselentscheidung.
+- [Datenbankoptionen](./database-options.md): SQLite-/Turso-Historie, theoretische Wechselmotive und Gesamtbackend-Vergleich mit PostgreSQL-Empfehlung ohne Wechselentscheidung.
 
 ## Tooling und Prüfungen
 
