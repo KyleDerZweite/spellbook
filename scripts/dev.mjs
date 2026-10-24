@@ -8,8 +8,8 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const storage = resolve(root, process.env.SCAN_LOCAL_STORAGE_DIR || '.local/scans');
 const args = process.argv.slice(2);
 const action = args[0] && !args[0].startsWith('--') ? args.shift() : 'start';
-if (!['start', 'stop'].includes(action) || args.some((arg) => !['--scan', '--demo'].includes(arg)))
-	throw new Error('Usage: ./dev.sh [start [--demo] [--scan] | stop]');
+if (!['start', 'stop'].includes(action) || args.some((arg) => arg !== '--demo'))
+	throw new Error('Usage: ./dev.sh [start [--demo] | stop]');
 const statePath = resolve(root, '.local/dev.pid');
 const script = fileURLToPath(import.meta.url);
 async function identity(pid) {
@@ -53,8 +53,6 @@ if (action === 'stop') {
 	throw new Error('Graceful shutdown is still pending. No force termination was used.');
 }
 const demo = args.includes('--demo');
-// Scan is a normal runtime; --scan remains an accepted compatibility flag.
-const scan = true;
 
 if (Number(process.versions.node.split('.')[0]) !== 26) {
 	throw new Error('Use the Node version in frontend/.node-version, or run ./dev.sh.');
@@ -87,7 +85,7 @@ try {
 } finally {
 	await unlink(temporaryState);
 }
-if (scan) await mkdir(storage, { recursive: true });
+await mkdir(storage, { recursive: true });
 
 const env = {
 	...process.env,
@@ -231,24 +229,23 @@ try {
 	await prepare('spellbook-migrate');
 	if (demo) await prepare('spellbook-demo-seed');
 	if (!stopping) {
-		if (scan)
-			start(
-				'uvx',
-				[
-					'--from',
-					'uv==0.12.23',
-					'uv',
-					'run',
-					'--no-sync',
-					'uvicorn',
-					'scan_worker.main:app',
-					'--host',
-					'127.0.0.1',
-					'--port',
-					scanPort
-				],
-				`${root}backend/workers/scan`
-			);
+		start(
+			'uvx',
+			[
+				'--from',
+				'uv==0.12.23',
+				'uv',
+				'run',
+				'--no-sync',
+				'uvicorn',
+				'scan_worker.main:app',
+				'--host',
+				'127.0.0.1',
+				'--port',
+				scanPort
+			],
+			`${root}backend/workers/scan`
+		);
 		for (const [directory, command] of [
 			['api', 'spellbook-api'],
 			['workers/state', 'spellbook-state-worker'],

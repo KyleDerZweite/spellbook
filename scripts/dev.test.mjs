@@ -144,6 +144,14 @@ else if (args[0] === 'stop') {
 	return { root, id, launch, ready, database: () => readFile(join(root, 'database'), 'utf8') };
 }
 
+test('the removed --scan flag is rejected before startup', async (t) => {
+	const f = await fixture(t);
+	const result = await f.launch(['start', '--scan']).exited;
+	assert.equal(result.code, 1);
+	assert.match(result.output, /Usage: \.\/dev\.sh \[start \[--demo\] \| stop\]/);
+	assert.equal(await f.database(), 'false');
+});
+
 test('demo start and stop clean up only their owned database', async (t) => {
 	const f = await fixture(t);
 	const server = f.launch(['start', '--demo']);
