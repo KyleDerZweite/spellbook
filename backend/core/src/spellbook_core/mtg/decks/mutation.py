@@ -349,21 +349,9 @@ class DeckMutations:
                 (account, request),
             )
             if previous:
-                if (
-                    previous["request_hash"] is not None
-                    and previous["request_hash"] != fingerprint
-                ):
+                if previous["request_hash"] != fingerprint or previous["acknowledgement"] is None:
                     raise RequestConflictError()
-                if previous["acknowledgement"] is not None:
-                    return cast(DeckAcknowledgement, previous["acknowledgement"])
-                prior = await require_deck(tx, account, str(previous["deck_id"]), lock=True)
-                return DeckAcknowledgement(
-                    requestId=request,
-                    deckId=str(prior["id"]),
-                    revision=str(prior["composition_revision"]),
-                    changes=[],
-                    removedEntryIds=[],
-                )
+                return cast(DeckAcknowledgement, previous["acknowledgement"])
             resolved: dict[str, CardDocument] = {}
             if catalog_add:
                 card = await read_transaction_catalog_printing(tx, catalog_add["catalogCardId"])

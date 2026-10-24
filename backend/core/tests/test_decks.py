@@ -300,7 +300,43 @@ def test_category_merge_requires_current_preview_before_mutating_destination() -
     asyncio.run(scenario())
 
 
-def test_original_and_legacy_receipts_precede_catalog_and_deck_lookups() -> None:
+def test_text_import_replays_original_and_rejects_incomplete_receipts() -> None:
+    async def scenario() -> None:
+        auth = create_autospec(SessionAuth, instance=True)
+        auth.require_actor.return_value = ACTOR
+        decks = create_decks(create_autospec(ConnectionPool), create_autospec(Catalog), auth)
+        tx: Any = AsyncMock()
+
+        @asynccontextmanager
+        async def context(*args: object, **kwargs: object) -> AsyncIterator[Transaction]:
+            yield tx
+
+        input: Document = dict(deckId=DECK, requestId="retry", text="2 Forest")
+        intent = dict(kind="deck.text", deckId=DECK, text="2 Forest")
+        ack: DeckAcknowledgement = dict(
+            requestId="retry", deckId=DECK, revision="7", changes=[], removedEntryIds=[]
+        )
+        receipt: Document = dict(request_hash=mutation_fingerprint(intent), acknowledgement=ack)
+        with (
+            patch("spellbook_core.mtg.decks.application.transaction", context),
+            patch(
+                "spellbook_core.mtg.decks.application.first", AsyncMock(return_value=receipt)
+            ) as read,
+            patch("spellbook_core.mtg.decks.application.require_deck", AsyncMock()) as require,
+            patch.object(decks, "preview_mtg_import", AsyncMock()) as catalog,
+        ):
+            assert await decks.import_into_deck(ACTOR, input) == ack
+            for field in ("request_hash", "acknowledgement"):
+                read.return_value = {**receipt, field: None}
+                with pytest.raises(RequestConflictError):
+                    await decks.import_into_deck(ACTOR, input)
+            require.assert_not_awaited()
+            catalog.assert_not_awaited()
+
+    asyncio.run(scenario())
+
+
+def test_original_receipts_precede_catalog_and_deck_lookups() -> None:
     async def scenario() -> None:
         auth = create_autospec(SessionAuth, instance=True)
         auth.require_actor_for_write.return_value = ACTOR
@@ -349,13 +385,18 @@ def test_original_and_legacy_receipts_precede_catalog_and_deck_lookups() -> None
             catalog.assert_not_awaited()
             with pytest.raises(RequestConflictError):
                 await decks.bulk_mutate_deck_cards(ACTOR, {**input, "source": "web"})
-            receipt["request_hash"] = None
-            receipt["acknowledgement"] = None
-            require.return_value = dict(id=DECK, composition_revision=9)
-            legacy: DeckAcknowledgement = dict(
-                requestId="request", deckId=DECK, revision="9", changes=[], removedEntryIds=[]
-            )
-            assert await decks.bulk_mutate_deck_cards(ACTOR, input) == legacy
+            for field in ("request_hash", "acknowledgement"):
+                malformed = {**receipt, field: None}
+                with (
+                    patch(
+                        "spellbook_core.mtg.decks.mutation.first",
+                        AsyncMock(return_value=malformed),
+                    ),
+                    pytest.raises(RequestConflictError),
+                ):
+                    await decks.bulk_mutate_deck_cards(ACTOR, input)
+            require.assert_not_awaited()
+            catalog.assert_not_awaited()
             # Rechecking the live session happens under the Profile write lock even on replay.
             auth.require_actor_for_write.side_effect = ActorError()
             with pytest.raises(ActorError):

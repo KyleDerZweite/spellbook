@@ -111,6 +111,35 @@ def test_every_golden_receipt_uses_prepare_before_catalog(vector: dict[str, Any]
     asyncio.run(scenario())
 
 
+def test_incomplete_receipt_fails_before_catalog_or_mutation() -> None:
+    async def scenario() -> None:
+        auth = create_autospec(SessionAuth, instance=True)
+        auth.require_actor.return_value = ACTOR
+        catalog = create_autospec(Catalog, instance=True)
+        inventory = create_inventory(create_autospec(ConnectionPool), catalog, auth)
+        tx = AsyncMock()
+
+        @asynccontextmanager
+        async def context(*args: object, **kwargs: object) -> AsyncIterator[Transaction]:
+            yield cast(Transaction, tx)
+
+        fingerprint = mutation_fingerprint(
+            {"kind": "inventory", "source": "web", "operations": [normalize_add(operation())]}
+        )
+        receipts: tuple[tuple[str | None, object], ...] = ((None, {}), (fingerprint, None))
+        with patch("spellbook_core.mtg.inventory.transaction", context):
+            for row in receipts:
+                tx.execute.return_value.fetchone.return_value = row
+                with pytest.raises(RequestConflictError):
+                    await inventory.add_items(
+                        ACTOR, request_id="incomplete", operations=[operation()]
+                    )
+        catalog.get_catalog_printing.assert_not_awaited()
+        assert all("SELECT" in call.args[0] for call in tx.execute.call_args_list)
+
+    asyncio.run(scenario())
+
+
 @pytest.mark.parametrize(
     ("fields", "message"),
     [
@@ -372,7 +401,7 @@ async def native_inventory(pool: ConnectionPool, token: str) -> tuple[Inventory,
 
 
 @NATIVE
-def test_native_duplicate_replay_edits_deletion_recreation_and_legacy() -> None:
+def test_native_duplicate_replay_edits_deletion_recreation_and_receipts() -> None:
     async def scenario() -> None:
         async with (
             native_pool() as pool,
@@ -443,7 +472,7 @@ def test_native_duplicate_replay_edits_deletion_recreation_and_legacy() -> None:
                 for index, vector in enumerate(GOLDEN["receipts"]):
                     if vector.get("missing"):
                         continue
-                    legacy_id = "legacy-" + str(index)
+                    receipt_id = "receipt-" + str(index)
                     async with transaction(pool) as tx:
                         await tx.execute(
                             (
@@ -454,24 +483,18 @@ def test_native_duplicate_replay_edits_deletion_recreation_and_legacy() -> None:
                             ),
                             (
                                 account,
-                                legacy_id,
+                                receipt_id,
                                 vector["requestHash"],
-                                Jsonb(vector["acknowledgement"])
-                                if vector["acknowledgement"] is not None
-                                else None,
+                                Jsonb(vector["acknowledgement"]),
                             ),
                         )
-                    intent = InventoryIntent(legacy_id, "web", (normalize_add(operation()),))
+                    intent = InventoryIntent(receipt_id, "web", (normalize_add(operation()),))
                     if vector.get("conflict"):
                         with pytest.raises(RequestConflictError):
                             await inventory.prepare(actor, intent, vector["incomingHash"])
                     else:
                         result = await inventory.prepare(actor, intent, vector["incomingHash"])
-                        expected = (
-                            {**vector["expected"], "requestId": legacy_id}
-                            if vector["acknowledgement"] is None
-                            else vector["expected"]
-                        )
+                        expected = vector["expected"]
                         assert (
                             isinstance(result, RecordedInventoryMutation)
                             and result.acknowledgement == expected
@@ -484,7 +507,7 @@ def test_native_duplicate_replay_edits_deletion_recreation_and_legacy() -> None:
                                     "inventory_mutation_requests WHERE account_id=%s AND "
                                     "request_id=%s"
                                 ),
-                                (account, legacy_id),
+                                (account, receipt_id),
                             )
                         ).fetchone() == (vector["requestHash"], vector["acknowledgement"])
             for untrusted in (copy.copy(actor), Actor(account, actor.username, "", "", "")):

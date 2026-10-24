@@ -12,6 +12,7 @@ from test_inventory import ACTOR, CARD, GOLDEN
 from spellbook_core.auth import SessionAuth
 from spellbook_core.db import ConnectionPool, Transaction
 from spellbook_core.errors import ActorError, RequestConflictError, ValidationError
+from spellbook_core.fingerprint import mutation_fingerprint
 from spellbook_core.mtg.catalog import Catalog
 from spellbook_core.mtg.inventory import (
     Inventory,
@@ -290,7 +291,17 @@ def test_commit_original_receipt_and_conflict_precede_all_catalog_calls(conflict
     async def scenario() -> None:
         inventory, auth, catalog = application()
         tx = AsyncMock()
-        tx.execute.return_value.fetchone.return_value = ("different" if conflict else None, ACK)
+        fingerprint = mutation_fingerprint(
+            {
+                "kind": "inventory_import",
+                "source": "import",
+                "import": {"text": "bad", "finish": "nonfoil", "condition": "NM"},
+            }
+        )
+        tx.execute.return_value.fetchone.return_value = (
+            "different" if conflict else fingerprint,
+            ACK,
+        )
 
         @asynccontextmanager
         async def stored_receipt(*args: object, **kwargs: object) -> AsyncIterator[Transaction]:

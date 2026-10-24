@@ -234,68 +234,6 @@
 			}
 		},
 		{
-			"id": "receipt-legacy-null-hash",
-			"requestHash": null,
-			"incomingHash": "different",
-			"acknowledgement": {
-				"requestId": "11111111-1111-4111-8111-111111111111",
-				"inventoryId": "11111111-1111-4111-8111-111111111111",
-				"revision": "7",
-				"changes": [
-					{
-						"entryId": "11111111-1111-4111-8111-111111111111",
-						"catalogCardId": "11111111-1111-4111-8111-111111111111",
-						"finish": "nonfoil",
-						"condition": "NM",
-						"quantity": 2,
-						"delta": 2,
-						"notesRevision": "0"
-					}
-				],
-				"removedEntryIds": [],
-				"groups": [],
-				"removedGroupIds": [],
-				"memberships": []
-			},
-			"expected": {
-				"requestId": "11111111-1111-4111-8111-111111111111",
-				"inventoryId": "11111111-1111-4111-8111-111111111111",
-				"revision": "7",
-				"changes": [
-					{
-						"entryId": "11111111-1111-4111-8111-111111111111",
-						"catalogCardId": "11111111-1111-4111-8111-111111111111",
-						"finish": "nonfoil",
-						"condition": "NM",
-						"quantity": 2,
-						"delta": 2,
-						"notesRevision": "0"
-					}
-				],
-				"removedEntryIds": [],
-				"groups": [],
-				"removedGroupIds": [],
-				"memberships": []
-			}
-		},
-		{
-			"id": "receipt-legacy-null-ack",
-			"requestHash": null,
-			"incomingHash": "different",
-			"acknowledgement": null,
-			"expected": {
-				"requestId": "11111111-1111-4111-8111-111111111111",
-				"inventoryId": null,
-				"revision": "0",
-				"changes": [],
-				"removedEntryIds": [],
-				"groups": [],
-				"removedGroupIds": [],
-				"memberships": [],
-				"legacy": true
-			}
-		},
-		{
 			"id": "receipt-conflicting-intent",
 			"requestHash": "original",
 			"incomingHash": "different",

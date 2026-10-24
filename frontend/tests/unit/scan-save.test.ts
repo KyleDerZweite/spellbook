@@ -55,4 +55,21 @@ describe('confirmed Scan save read recovery', () => {
 		expect(posts).toBe(1);
 		expect(reads).toBe(2);
 	});
+	it('allows the original intent to retry after an uncertain commit and blocks unconfirmed reads', async () => {
+		const attempts: string[] = [];
+		const saved = createScanSave({
+			commit: async (body) => {
+				attempts.push(body);
+				throw Error('Commit response unavailable');
+			},
+			read: async () => {
+				throw Error('Unexpected read before confirmation');
+			}
+		});
+		await expect(saved.read()).rejects.toThrow('A confirmed Scan save is required');
+		await expect(saved.commit('immutable-body')).rejects.toThrow('Commit response unavailable');
+		expect(saved.acknowledgement).toBeNull();
+		await expect(saved.commit('immutable-body')).rejects.toThrow('Commit response unavailable');
+		expect(attempts).toEqual(['immutable-body', 'immutable-body']);
+	});
 });

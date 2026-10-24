@@ -421,7 +421,7 @@ def test_real_crud_import_identity_ownership_library_and_receipt_replay() -> Non
     asyncio.run(scenario())
 
 
-def test_real_rollback_merge_legacy_replay_concurrent_retry_and_session_recheck() -> None:
+def test_real_rollback_merge_replay_concurrent_retry_and_session_recheck() -> None:
     async def scenario() -> None:
         async with fixture() as f:
             deck_id = await create_deck(f)
@@ -505,24 +505,6 @@ def test_real_rollback_merge_legacy_replay_concurrent_retry_and_session_recheck(
             request = str(uuid4())
             removed = await f.decks.remove_deck_card(f.actor, side_id, request)
             assert await f.decks.remove_deck_card(f.actor, side_id, request) == removed
-            legacy_request = str(uuid4())
-            async with category_transaction(f.pool) as tx:
-                await tx.execute(
-                    "INSERT INTO deck_mutation_requests(account_id,request_id,deck_id,"
-                    "source,status) VALUES(%s,%s,%s,'web','applied')",
-                    (f.actor.account_id, legacy_request, deck_id),
-                )
-            legacy = await f.decks.bulk_mutate_deck_cards(
-                f.actor,
-                dict(
-                    deckId=deck_id,
-                    requestId=legacy_request,
-                    source="web",
-                    game="mtg",
-                    operations=[dict(op="remove", target=dict(entryId=side_id))],
-                ),
-            )
-            assert legacy["changes"] == [] and legacy["removedEntryIds"] == []
             async with category_transaction(f.pool) as tx:
                 await tx.execute(
                     "DELETE FROM auth_sessions WHERE token_hash=%s",

@@ -66,50 +66,19 @@ export interface ScanReviewIntent {
 	condition: string;
 	quantity: number;
 }
-/** Original submitted fields are verification evidence only, never fresh identity authority. */
-export interface ScanReviewCommitItem extends ScanReviewIntent {
-	sessionId: string;
-	canonicalCardId?: string;
-	oracleId?: string;
-	name?: string;
-	setCode?: string;
-	collectorNumber?: string;
-	imageUri?: string;
-	similarityScore: number;
-	ocrScore: number;
-	finalScore: number;
-	matchReason: string;
-}
 export interface ScanCommitInput {
 	requestId: string;
 	sessionId: string;
 	items: ScanReviewIntent[];
-	legacyVerification?: {
-		version: 'scan-v1' | 'scan-v2';
-		sessionId?: string;
-		items: ScanReviewCommitItem[];
-	};
 }
-export type ScanCommitAcknowledgement =
-	| {
-			kind: 'Committed';
-			sessionId: string;
-			acknowledgement: InventoryAcknowledgement;
-	  }
-	| {
-			kind: 'LegacyNoRepeat';
-			requestId: string;
-			binding: 'VerifiedLegacyHash' | 'UnverifiedLegacyHash';
-			acknowledgement: InventoryAcknowledgement;
-	  };
+export interface ScanCommitAcknowledgement {
+	kind: 'Committed';
+	sessionId: string;
+	acknowledgement: InventoryAcknowledgement;
+}
 export type ScanFailure = {
 	kind:
-		| 'ScanNotFound'
-		| 'ScanClosed'
-		| 'ScanProcessingFailed'
-		| 'ScanUnavailable'
-		| 'LegacyReplayEvidenceRequired'
-		| 'ScanImageInvalid';
+		'ScanNotFound' | 'ScanClosed' | 'ScanProcessingFailed' | 'ScanUnavailable' | 'ScanImageInvalid';
 	message: string;
 };
 export interface ScanCommitApplication {

@@ -333,13 +333,8 @@
 				};
 			const attemptedQuantity = quantity,
 				attemptedName = selected.name;
-			const acknowledged = await saved.commit(pendingCommit.body);
+			await saved.commit(pendingCommit.body);
 			if (!mounted || !write.current() || session?.id !== sessionId) return;
-			if (acknowledged.kind !== 'Committed') {
-				message =
-					'This earlier request will not be applied again. Reload its saved session to check the result.';
-				return;
-			}
 			pendingCommit = null;
 			result = { ...result!, session: { ...session, status: 'committed' } };
 			confirmed = false;

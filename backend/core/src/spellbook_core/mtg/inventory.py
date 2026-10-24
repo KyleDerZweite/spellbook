@@ -165,7 +165,6 @@ class InventoryAcknowledgement(_ImportAcknowledgement):
     groups: list[InventoryGroup]
     removedGroupIds: list[str]
     memberships: list[InventoryMembership]
-    legacy: NotRequired[Literal[True]]
 
 
 @dataclass(frozen=True, slots=True)
@@ -311,20 +310,6 @@ def _check_notes(entry: _EntryRow, operation: AddOperation | PatchOperation) -> 
         )
 
 
-def _empty(request_id: str) -> InventoryAcknowledgement:
-    return {
-        "requestId": request_id,
-        "inventoryId": None,
-        "revision": "0",
-        "changes": [],
-        "removedEntryIds": [],
-        "groups": [],
-        "removedGroupIds": [],
-        "memberships": [],
-        "legacy": True,
-    }
-
-
 def _sql_text(value: str) -> str:
     # Node's PostgreSQL driver encodes isolated UTF-16 surrogates as U+FFFD.
     return js_utf8(value).decode("utf-8")
@@ -342,12 +327,9 @@ async def _receipt(
     ).fetchone()
     if row is None:
         return None
-    if row[0] and row[0] != fingerprint:
+    if row[0] != fingerprint or row[1] is None:
         raise RequestConflictError()
-    # Stored original receipts are authoritative, including older shapes. Never backfill.
-    return (
-        cast(InventoryAcknowledgement, row[1]) if row[1] is not None else _empty(intent.request_id)
-    )
+    return cast(InventoryAcknowledgement, row[1])
 
 
 class Inventory:

@@ -240,9 +240,9 @@ def test_native_invalid_review_rolls_back_session_inventory_and_receipt() -> Non
     asyncio.run(scenario())
 
 
-def test_native_review_id_cannot_move_between_artifacts_and_legacy_no_repeat() -> None:
+def test_native_review_id_cannot_move_between_artifacts() -> None:
     async def scenario() -> None:
-        async with fixture() as (pool, scan, _inventory, actor, catalog):
+        async with fixture() as (pool, scan, _inventory, actor, _catalog):
             first_session = await scan.create_session(actor)
             first_artifact = await artifact(pool, actor, first_session["id"])
             first = intent(first_session["id"], first_artifact)
@@ -254,22 +254,5 @@ def test_native_review_id_cannot_move_between_artifacts_and_legacy_no_repeat() -
             other["items"][0]["id"] = first["items"][0]["id"]
             with pytest.raises(ValidationError, match="another artifact or session"):
                 await scan.commit_review(actor, other)
-            async with transaction(pool) as tx:
-                await tx.execute(
-                    "UPDATE inventory_mutation_requests "
-                    "SET request_hash=NULL,acknowledgement=NULL "
-                    "WHERE account_id=%s AND request_id=%s",
-                    (actor.account_id, first["requestId"]),
-                )
-            with patch.object(
-                catalog,
-                "get_catalog_printing",
-                AsyncMock(side_effect=AssertionError("Catalog during legacy replay")),
-            ):
-                legacy = await scan.commit_review(actor, first)
-            assert (
-                legacy["kind"] == "LegacyNoRepeat" and legacy["binding"] == "UnverifiedLegacyHash"
-            )
-            assert legacy["acknowledgement"]["legacy"] is True
 
     asyncio.run(scenario())

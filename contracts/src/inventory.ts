@@ -118,7 +118,6 @@ export interface InventoryAcknowledgement {
 		unresolvedCount: number;
 		ambiguousCount: number;
 	};
-	legacy?: true;
 }
 export interface InventoryAdd {
 	requestId: string;
