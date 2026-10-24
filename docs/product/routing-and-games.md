@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-24
 - Source of Truth: route handlers and server hooks
-- Update Triggers: versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, PWA launch/connect and QR approval/API routes, route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game, paused Scan entrypoints, private Inventory history routes
+- Update Triggers: ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, PWA launch/connect and QR approval/API routes, route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game, paused Scan entrypoints, private Inventory history routes
 - Related Docs: [Product specification](./specification.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Frontend architecture](../architecture/frontend.md), [Catalog](../architecture/catalog.md), [Product index](./README.md)
 
 Scan presentation is paused.
@@ -13,7 +13,7 @@ The existing `/mtg/scan` route and versioned Scan API are retained, but Navigati
 Spellbook supports MTG.
 Game-specific pages use the `/mtg/` prefix.
 Public home, authentication, account settings, and legal pages remain shared; canonical API operations use the versioned shared and MTG namespaces selected by [ADR-0028](../decisions/0028-versioned-game-api.md).
-Previous API paths remain direct compatibility aliases with their original access policies.
+Previous API paths return 404 without aliases or redirects under [ADR-0029](../decisions/0029-remove-replaced-interfaces.md).
 The header game icon sits immediately before the theme control.
 It identifies Magic with the Mana Font planeswalker symbol and a tooltip.
 Cycling is inactive while MTG is the only available game.
@@ -114,7 +114,6 @@ Authorization QR camera scanning belongs to `/app/connect`.
 The public `offline.html` fallback contains no account workspace.
 
 Public read-only browser endpoints are `GET` and `POST /api/v1/mtg/catalog/search`, `GET /api/v1/mtg/catalog/cards/{oracleId}/printings` and `GET /api/v1/mtg/catalog/printings/{printingId}`.
-The legacy `/api/catalog/...` aliases use these same public handlers; legacy mobile Catalog aliases continue to require authentication.
 Inventory and deck mutations remain authenticated.
 
 ## Web adapter API
@@ -123,13 +122,13 @@ Inventory and deck mutations remain authenticated.
 It is a closed mutation adapter, with unchanged source, request-ID, receipt and conflict semantics.
 `POST /api/v1/web/auth/login`, `/api/v1/web/auth/register` and `/api/v1/web/password` are the selected raw-form routes; the API takes the original auth attempt before decoding.
 The [implementation contract](../architecture/independent-applications.md#authority-and-compatibility) owns their details.
-The backend form and OpenAPI changes are implemented in the unmerged candidate; final integrated client/runtime verification remains pending.
+The form bridges, OpenAPI and canonical clients are implemented in the unmerged candidate.
+Current-head integration verification remains Root-owned.
 
 ## Versioned MTG API
 
 All paths below begin with `/api/v1/mtg`.
 Canonical Catalog reads are public; private MTG operations accept bearer or browser sessions.
-The previous `/api/mobile/v1/mtg/...` aliases preserve their original access policies.
 
 | Relative path                                              | Purpose                                                        |
 | ---------------------------------------------------------- | -------------------------------------------------------------- |
@@ -143,7 +142,7 @@ The previous `/api/mobile/v1/mtg/...` aliases preserve their original access pol
 | `/inventory/bulk`                                          | Idempotent inventory mutations                                 |
 | `/inventory/import/preview`                                | Text import interpretation                                     |
 | `/inventory/import/commit`                                 | Resolved inventory import                                      |
-| `/inventory/[entryId]`                                     | Owned entry GET and legacy mutation                            |
+| `/inventory/[entryId]`                                     | Owned entry reads and mutations                                |
 | `/decks`                                                   | Account deck list and creation                                 |
 | `/decks/search`                                            | Authenticated Catalog search with bounded ownership aggregates |
 | `/decks/ownership`                                         | Owned-printing aggregates for at most 100 canonical identities |

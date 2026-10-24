@@ -7,17 +7,14 @@ The Python adapter bundles and reads the artifact and substitutes only `servers[
 It does not regenerate schemas, load an external file at deployment, or change existing responses.
 The relative `/` server in the artifact is deployment neutral.
 
-[`compatibility/inventory.json`](./compatibility/inventory.json) records every explicitly registered API and browser-auth method/path, Discovery, closed web command and runtime responsibility at the frozen baseline.
-Each record names its frozen Node baseline owner and migration slice.
-Current Python owners and transferred checks are described in the migration evidence baseline.
-`bodyBytes: null` means no route-specific decoder or a browser-owned decoder, not permission to bypass the host limit.
-The Python host defaults to 12 MiB; the web host and proxy keep their existing configuration.
-GET-derived HEAD and router OPTIONS apply to each API path, including Discovery, without separate registered handlers.
-Browser Auth remains web-owned; the candidate API must preserve the separate API bridge methods those pages call.
-The Scan worker's internal methods are listed separately from the public API contract.
-Its FastAPI-generated documentation remains internal framework behavior, not a competing public contract.
+OpenAPI is the sole current route inventory.
+The API serves 85 canonical operations plus Discovery; seven browser page methods remain web-owned.
+GET-derived HEAD and router OPTIONS apply to API and Discovery paths without separate registered handlers.
+[ADR-0029](../docs/decisions/0029-remove-replaced-interfaces.md) removes previous API paths without aliases, redirects or fallback dispatch; older clients must update.
+Browser Auth pages retain their separate API form bridges.
+The Scan worker's internal methods and generated documentation remain outside the public API contract.
 
-[`compatibility/golden.json`](./compatibility/golden.json) contains synthetic public fixtures, never credentials or receipts copied from an account.
+[`fixtures/wire.json`](./fixtures/wire.json) contains synthetic public fixtures, never credentials or receipts copied from an account.
 `inputJson` and raw form bodies are strings so lexical spellings, negative zero, escaping and CRLF survive other JSON readers.
 Fingerprint vectors include the exact normalized JSON, UTF-8 hex bytes and SHA-256.
 A fingerprint vector describes serialization, not permission for an endpoint to accept that input.
@@ -25,13 +22,12 @@ For example, the serializer can fingerprint null or rounded numbers that domain 
 The receipt fixtures exercise the actual Inventory replay branch through a stubbed select.
 They do not prove PostgreSQL locks, persistence or transaction atomicity.
 The normalized patch/import test crosses the actual mutation normalization seam before replay.
-Deck legacy null acknowledgements have different live-Deck fallback semantics and require the existing Deck integration cases during transfer.
+Deck legacy null acknowledgements have different live-Deck fallback semantics and require the existing Python Deck integration cases.
 
-[`compatibility/transfer.json`](./compatibility/transfer.json) assigns every golden and targeted behavioral test ID to Node-direct evidence, required dual-runtime HTTP evidence and required Python application evidence.
-The `cases` array gives the explicit case-to-transfer mapping.
-Future test runners can read the JSON without importing TypeScript.
-No Python implementation or Python parity is established by this baseline.
-The replaced Node domain tests are retired; Python application and guarded PostgreSQL suites own current domain evidence.
+Python application and guarded PostgreSQL suites own current domain evidence.
+Fixture tests establish parsing, serialization and replay decisions; real PostgreSQL tests establish persistence, locks and atomicity.
+The obsolete Node inventory, transfer map and dual-runtime HTTP comparison are removed.
+Their provenance remains in Git history and creates no obligation to maintain an old baseline.
 
 Run current installed checks from the repository root:
 
@@ -41,14 +37,12 @@ uvx --from uv==0.12.23 uv run --directory backend/core --no-sync pytest tests/te
 uvx --from uv==0.12.23 uv run --directory backend/api --no-sync pytest tests/test_http_compatibility.py tests/test_host_assembly.py tests/test_web_commands.py
 ```
 
-The Python registry tests reconcile canonical API operations with OpenAPI and legacy aliases with the unchanged neutral inventory.
-Canonical Catalog search and card-printing reads merge the old public/mobile declarations; legacy mobile aliases retain authentication.
+The Python registry tests compare the complete current API operation set with OpenAPI and reject extra operations.
+Removed API paths must return 404.
 `src/saved-state.ts` exports the canonical shared stream path for current clients.
-The frozen compatibility files remain legacy acceptance inputs and are not rewritten for canonical paths.
-Core golden cases and API parser/serializer tests exercise current Python implementations.
+Core fixture cases and API parser/serializer tests exercise current Python implementations.
 Real transaction and client integration results remain distinct from these component checks.
-The original Node schema hash records provenance at `b835eee87ff0e92e99df18ab384602e48183a88d` and must not be casually regenerated.
 
-The canonical [evidence baseline](../docs/architecture/python-migration-evidence-baseline.md) owns compatibility inventory, functional evidence transfer and historical verification provenance.
-[ADR-0027](../docs/decisions/0027-python-functional-migration-acceptance.md) retires strict performance/resource proof prerequisites; real functional compatibility remains required.
-The [accepted migration contract](../docs/architecture/python-backend-migration.md) owns migration architecture and delivery authority.
+The [migration evidence](../docs/architecture/python-migration-evidence-baseline.md) owns functional evidence responsibilities and retained fixture ownership.
+[ADR-0027](../docs/decisions/0027-python-functional-migration-acceptance.md) retires strict performance/resource proof prerequisites.
+The [accepted migration contract](../docs/architecture/python-backend-migration.md) owns migration architecture and separate production authority.

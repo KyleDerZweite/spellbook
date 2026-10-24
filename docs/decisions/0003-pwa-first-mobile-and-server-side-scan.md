@@ -2,11 +2,11 @@
 
 - Status: Accepted
 - Date: 2026-04-17
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-10-24
 - Source of Truth: recorded decision
-- Update Triggers: independent Android design applicability, accepted PWA/QR delivery applicability, decision applicability, supersession, related document changes
+- Update Triggers: ADR-0029 old API hook removal, independent Android design applicability, accepted PWA/QR delivery applicability, decision applicability, supersession, related document changes
 - Supersedes: [ADR-0002](./0002-android-first-mobile-and-server-side-scan.md)
-- Partially Superseded By: [ADR-0023](./0023-local-recognition-in-scanner-clients.md) for future capture and recognition placement; [ADR-0024](./0024-independent-applications.md) for independent Android delivery
+- Partially Superseded By: [ADR-0023](./0023-local-recognition-in-scanner-clients.md) for future capture and recognition placement; [ADR-0024](./0024-independent-applications.md) for independent Android delivery; [ADR-0029](./0029-remove-replaced-interfaces.md) for removal of old mobile API hooks
 - Related Docs: [System Overview](../architecture/system-overview.md), [Mobile And Scan Architecture](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Auth](../architecture/auth.md), [Product specification](../product/specification.md), [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md), [Application contract](../architecture/application-contract.md), [ADR-0023](./0023-local-recognition-in-scanner-clients.md)
 
 ## Current applicability
@@ -16,7 +16,9 @@ On 2026-10-19, the maintainer rejected PWA-first as the next phone-app planning 
 The historical single-client and capability-gap guardrails below do not prohibit this selected client direction.
 [ADR-0024](./0024-independent-applications.md) selects Kotlin/Compose and the independent runtime contract.
 This supersedes the future single-client/native exclusion in this record; the existing PWA remains available.
-The historical Decision below is unchanged.
+[ADR-0028](./0028-versioned-game-api.md) and [ADR-0029](./0029-remove-replaced-interfaces.md) supersede retention of the old mobile API hooks below.
+Only current canonical API paths remain.
+The historical Decision below records the earlier choice.
 
 On 2026-10-07, [ADR-0023](./0023-local-recognition-in-scanner-clients.md) replaces the fixed capture/recognition allocation below with a local-recognition direction and an open client responsibility review.
 The historical Decision section remains a record of the earlier choice, not an active server-inference requirement.

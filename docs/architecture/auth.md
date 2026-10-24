@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-24
 - Source of Truth: code
-- Update Triggers: versioned MTG routes and module ownership, Python source activation and server contraction, Python Auth/Profile/QR functional port, independent API/web ownership and relocated code references, QR challenge lifecycle, session-bound decisions, requester cookies and PWA delivery, credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, summary reporting failures, post-login destinations, agent discovery, workspace ownership, application resource lifetime and native operator ownership, SavedState stream authority and origin policy
+- Update Triggers: ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python source activation and server contraction, Python Auth/Profile/QR functional port, independent API/web ownership and relocated code references, QR challenge lifecycle, session-bound decisions, requester cookies and PWA delivery, credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, summary reporting failures, post-login destinations, agent discovery, workspace ownership, application resource lifetime and native operator ownership, SavedState stream authority and origin policy
 - Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Routes](../product/routing-and-games.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md), [Application contract](./application-contract.md), [Independent applications](./independent-applications.md), [Python migration](./python-backend-migration.md)
 
 Spellbook authenticates local accounts by username and password.
@@ -19,9 +19,8 @@ Dashboard uses the integrated Valuation dependency; Python is the default API in
 The [Python migration contract](./python-backend-migration.md) owns the remaining integration and production authority.
 
 Canonical Auth/account operations use `/api/v1/auth/...` and `/api/v1/account/...`; MTG Dashboard uses `/api/v1/mtg/dashboard`.
-The previous paths remain direct compatibility aliases under [ADR-0028](../decisions/0028-versioned-game-api.md).
-Browser QR cookies are created and cleared at the requested namespace: `/api/v1/auth/qr` for canonical flows and `/api/auth/qr` for legacy flows.
-Each complete flow stays in its namespace; the account session cookie remains scoped to `/`.
+[ADR-0029](../decisions/0029-remove-replaced-interfaces.md) removes previous API paths without aliases or redirects.
+Browser QR cookies are created and cleared at `/api/v1/auth/qr`; the account session cookie remains scoped to `/`.
 
 ## PWA and QR sign-in implementation contract
 

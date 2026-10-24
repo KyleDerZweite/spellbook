@@ -3,13 +3,13 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-24
 - Source of Truth: code, reviewed versioned Demo publication and accepted continuous Lazy requirements
-- Update Triggers: versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, catalog source and schema, publication, versioned English Demo bundles, starter samples and display assets, search ranking and query shape, generated color-identity projection and index, filters, facets, browser anchor ranges and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters, internal canonical/type fact provenance, paired reference publication and recovery, continuous Lazy browsing/dialog contract and selected versus implemented read limits
+- Update Triggers: ADR-0029 canonical-only Catalog paths, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, catalog source and schema, publication, versioned English Demo bundles, starter samples and display assets, search ranking and query shape, generated color-identity projection and index, filters, facets, browser anchor ranges and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters, internal canonical/type fact provenance, paired reference publication and recovery, continuous Lazy browsing/dialog contract and selected versus implemented read limits
 - Related Docs: [Domain glossary](../../GLOSSARY.md), [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [Local authentication and demo setup](../operations/local-auth.md), [ADR-0010](../decisions/0010-postgres-catalog.md), [Application contract](./application-contract.md), [Category rules](./category-rules.md), [Independent applications](./independent-applications.md)
 
 PostgreSQL stores the public Scryfall catalog alongside account-owned application data.
 The Python API provides public read-only search and printing lookup through `/api/v1/mtg/catalog/search`, `/api/v1/mtg/catalog/cards/{oracleId}/printings` and `/api/v1/mtg/catalog/printings/{printingId}`.
-The legacy `/api/mobile/v1/mtg/search` and `/api/mobile/v1/mtg/cards/{oracleId}/printings` aliases retain authentication.
-The canonical Catalog routes and their old `/api/catalog/...` aliases remain public.
+Canonical Catalog reads are public.
+[ADR-0029](../decisions/0029-remove-replaced-interfaces.md) removes previous public/mobile Catalog paths without aliases or redirects.
 Web SSR uses its remote adapter; browser API calls use the same-origin proxy.
 Backend owns request validation, HTTP errors and SQL reads.
 Browsers use the application API; they receive no database credential or search-service key.

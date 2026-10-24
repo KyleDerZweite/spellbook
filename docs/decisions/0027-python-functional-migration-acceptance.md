@@ -1,12 +1,12 @@
 # ADR-0027: Functional acceptance for the Python migration
 
-- Status: Accepted
+- Status: Accepted; old-interface acceptance requirements superseded by ADR-0029
 - Implementation: Complete source candidate implemented and unmerged; owner testing and production operations pending
 - Date: 2026-10-23
 - Last Reviewed: 2026-10-24
 - Owners: Kyle
 - Source of Truth: Kyle's authoritative 2026-10-23 migration direction
-- Update Triggers: ADR-0028 route/module supersession, migration acceptance, superseded readiness blockers, functional evidence, source activation and production authority
+- Update Triggers: ADR-0029 interface-removal supersession, ADR-0028 route/module supersession, migration acceptance, superseded readiness blockers, functional evidence, source activation and production authority
 - Related Docs: [ADR-0025](./0025-python-api-and-workers.md), [ADR-0026](./0026-python-migration-contract.md), [Migration contract](../architecture/python-backend-migration.md), [Evidence baseline](../architecture/python-migration-evidence-baseline.md), [Verification](../operations/github-automation.md)
 
 ## Context
@@ -44,4 +44,6 @@ Migration-specific CI/start/packaging changes remain required in their source sl
 Historical numeric protocols and reviews remain in Git history and do not govern current readiness.
 
 [ADR-0028](./0028-versioned-game-api.md) supersedes prior API-path and module-location immutability for the versioned shared/MTG API.
-Legacy HTTP aliases retain their original contract; bodies, SQL history, stored data, receipts and separate production authority remain unchanged.
+[ADR-0029](./0029-remove-replaced-interfaces.md) supersedes requirements to retain old HTTP paths, frozen route inventories and dual-runtime HTTP comparisons.
+Only current canonical routes remain; older clients must update.
+Bodies, SQL history, stored data, receipts and separate production authority remain unchanged.

@@ -2,8 +2,8 @@
 
 - Status: Implemented unmerged candidate; owner testing and production operations pending
 - Last Reviewed: 2026-10-24
-- Source of Truth: ADR-0025, ADR-0026, ADR-0027, existing code/tests/contracts and Kyle's 2026-10-23 direction
-- Update Triggers: ADR-0028 versioned API and MTG module ownership, Python source activation and server contraction, functional migration acceptance, component interfaces, assembled Categories/state, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
+- Source of Truth: ADR-0025, ADR-0026, ADR-0027, existing code/tests/contracts and Kyle's accepted migration and interface-removal direction
+- Update Triggers: ADR-0029 immediate interface removal, ADR-0028 versioned API and MTG module ownership, Python source activation and server contraction, functional migration acceptance, component interfaces, assembled Categories/state, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
 - Related Docs: [ADR-0025](../decisions/0025-python-api-and-workers.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [Independent applications](./independent-applications.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Migration evidence](./python-migration-evidence-baseline.md), [Postgres](./postgres.md), [Auth](./auth.md), [Worker](./worker.md), [Deployment](../operations/deployment.md), [Verification](../operations/github-automation.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
 
 ## Scope and status
@@ -16,10 +16,8 @@ The unselected `linux_owned_lifecycle_v1`/PARKED proposal is superseded and supp
 No kernel research, resource-verifier package or formal ownership/receipt layer is required.
 Existing application mutation receipts remain part of functional compatibility.
 
-The reconciliation base is `1bae6638e9bb521630401a74e6eaeab3eac371f9`.
-That historical base contained dormant Python API/Core and Python workers while Node remained the active default.
-The original neutral compatibility extraction used `b835eee87ff0e92e99df18ab384602e48183a88d`.
-Neither foundation checks nor this contract establish complete Python compatibility.
+Historical foundation and Node extraction evidence remain in Git history.
+Current acceptance exercises the installed Python implementation and canonical interfaces under ADR-0029.
 
 Complete the candidate on `integration/python-backend-migration` and leave it unmerged for review.
 Authorized source work includes Python migrator preparation/rehearsal, Python default activation and removal of the replaced TypeScript server and obsolete server tests after their functional coverage transfers.
@@ -84,7 +82,7 @@ Domain dependencies such as Auth, Inventory and Scan remain necessary where cons
 
 Backend owns wire semantics; the checked-in [OpenAPI 3.1 artifact](../../contracts/openapi.json) is the language-neutral structural owner.
 The [Python adapter](../../backend/api/src/spellbook_api/http/application.py) serves that artifact with the configured origin.
-Reconcile Python handlers against it, actual routes/consumers and the executable JSON/raw-HTTP compatibility fixtures.
+Reconcile Python handlers against it, actual routes/consumers and the retained synthetic JSON/raw-HTTP fixtures.
 Framework-generated OpenAPI is not a competing source of truth.
 Keep client presentation helpers and TypeScript validators in `contracts/src/`; Python cannot import them.
 Initially retain handwritten TypeScript/Kotlin clients and test them against the neutral fixtures.
@@ -92,16 +90,16 @@ Code generation is deferred until a concrete reviewed need exists.
 
 Fixtures preserve absent fields, explicit null, empty strings, unknown-key policy, coercion, Unicode lengths, finite safe JSON numbers, decimal/revision strings and ISO timestamps.
 They include statuses, error bodies, headers, limits and raw forms, not only successful DTOs.
-Explicit compatibility parsing/error adapters prevent FastAPI's default coercion and 422 bodies from changing behavior.
+Explicit parsing/error adapters prevent FastAPI's default coercion and 422 bodies from changing behavior.
 Existing route-specific validation remains authoritative where OpenAPI alone cannot express it.
 
 During the API port, Drizzle remains the sole schema/migration owner and runner.
 Keep `backend/drizzle/0000` through `0024`, journal, snapshots and deployed ledger unchanged, and avoid DDL changes for a language-only port.
-If an unavoidable additive migration occurs, update both runtime compatibility and baseline evidence before dependent work resumes.
+If an unavoidable additive migration occurs, update stored-data compatibility and current Python evidence before dependent work resumes.
 Never recreate tables from Python models, reset data, squash SQL history or run parallel Alembic/Drizzle ownership.
 
 Prepare one Python one-shot migrator using Psycopg and ordered SQL in `backend/drizzle/` after the complete candidate is integrated.
-API parity and rollback rehearsal evidence must pass before the source ownership handoff.
+Current API functional evidence and safe migration/recovery rehearsal must pass before the source ownership handoff.
 P19 preparation is part of the authorized unmerged integration artifact and does not depend on executing the P18 production cutover.
 Drizzle remains the production migration owner until the separately authorized migrator rollout.
 It must recognize and validate the existing Drizzle ledger, exact SQL hashes, journal order and statement breakpoints without replaying applied SQL or stamping assumed history.
@@ -126,8 +124,8 @@ Compare the complete current registry with canonical OpenAPI and exercise curren
   Count credential-form attempts exactly once before decoding; preserve password rotation's replacement cookie and request-bound credential.
   Retain QR requester/device separation, HttpOnly secrets, original-session/approval-marker binding, one-use redemption, expiry under lock waits, revocation and separate ordered Set-Cookie headers.
 - Preserve existing scrypt hashes and token digests without re-enrollment.
-  Golden vectors cover Node's textual hex salt passed as UTF-8, scrypt parameters and JavaScript UTF-16 password-length rules from [password.ts](../../backend/core/src/spellbook_core/passwords.py).
-- Preserve normalized intent and exact fingerprint bytes from [request-fingerprint.ts](../../backend/core/src/spellbook_core/fingerprint.py), including Unicode, omitted/null fields, JSON number/escaping rules and array order.
+  Golden vectors cover Node's textual hex salt passed as UTF-8, scrypt parameters and JavaScript UTF-16 password-length rules from [passwords.py](../../backend/core/src/spellbook_core/passwords.py).
+- Preserve normalized intent and exact fingerprint bytes from [fingerprint.py](../../backend/core/src/spellbook_core/fingerprint.py), including Unicode, omitted/null fields, JSON number/escaping rules and array order.
   Mutation, revisions, original receipt and related effects commit atomically; replay returns the original receipt after later edits/deletion/recreation.
   Legacy null hashes/acknowledgements keep their documented treatment and receive no fabricated backfill.
   Preserve Profile/session fencing, Scan-session-before-Inventory, Inventory-before-entry-before-group and Deck/Category lock order, read snapshots and revision behavior on no-ops.
@@ -173,12 +171,12 @@ Root assigns shared CI, manifests, launchers, route registry and host integratio
 Keep writers isolated and start dependent work after their functional prerequisites integrate.
 Migration-specific CI/start/packaging updates are required with their owning source slices; no general CI rewrite is selected.
 
-1. Reconcile this contract and reuse the neutral schema, compatibility inventory/fixtures and dormant API/Core foundation.
+1. Reconcile this contract and retain the current OpenAPI, useful synthetic fixtures and implemented API/Core boundaries.
    Port domain modules and HTTP adapters now, respecting their actual interfaces and data dependencies.
 2. Complete all routes, operators and workers, including controlled retry/failure behavior and real scheduled effects.
    Transfer functional tests to Python and exercise real PostgreSQL transactions, races, account isolation and idempotency.
 3. Integrate direct API, same-origin web proxy, actual workers/storage/providers, two-process SavedState and rendered client journeys.
-   Rehearse Node-to-Python-to-Node rollback on the same retained disposable data after Python writes.
+   Exercise current Python process/database integration and receipt replay on retained disposable data after writes.
 4. Prepare/rehearse the one-shot Python migrator, make Python the candidate default and remove replaced Node server source and obsolete tests after consumer and coverage transfer.
    Refresh affected checks on the complete integration head and leave the artifact unmerged.
 5. Separately authorize production API cutover, productive migrator rollout and the eventual end of the real rollback window.
@@ -194,20 +192,21 @@ Exercise listener recovery, revoked sessions, slow consumers, transaction rollba
 No matched latency/CPU/RSS/storage threshold, Collector validation or kernel proof is an acceptance prerequisite.
 Observe performance when useful and report functional failures honestly; modest variance and long background jobs do not block the port.
 
-The [evidence baseline](./python-migration-evidence-baseline.md) owns inventory, compatibility transfer and historical provenance.
+The [migration evidence](./python-migration-evidence-baseline.md) owns current functional evidence responsibilities and retained fixture ownership.
 Use [repository verification](../operations/github-automation.md#python-api-and-core) for package and integration checks.
-Tests importing TypeScript remain Node evidence until transferred; route counts, mocks and schema equality alone do not prove Python compatibility.
+Route counts, mocks and schema equality alone do not prove current Python functional correctness.
 Record the tested revision/build, command, actual provider/runtime, result, skips and missing evidence with its owner.
 Verify direct API and proxy separately, actual Scan/storage/provider paths and genuine scheduled observations.
 Substitutes do not establish real integration, rendered clients or physical Android/Keystore acceptance.
 Heavy application integration and Android checks remain manually triggered.
 Refresh affected evidence after migrator, packaging, default activation and server removal changes.
 
-Retain the tested Node build/image, configuration references, migration state, storage paths and compatible data for rollback rehearsal and later operations.
+Retained production artifacts, configuration references, migration state, storage paths and data remain under their operational owner.
+Current source acceptance requires no Node API runtime or old-path comparison.
 Stop only verified task-owned processes gracefully.
 Before a production switch, settle in-flight writes and disable old admission/runners before enabling replacement ownership.
 Resolve uncertain writes through persisted receipts; retry mutations with their original frozen body and request ID.
-Routine rollback restores Node routing/runners on the same compatible data, without overwriting accepted Python writes from a pre-cutover dump.
+Any separately authorized production recovery must preserve accepted writes and must not overwrite them from a pre-cutover dump.
 Do not rewind private history; public Catalog/Price recovery retains its existing paired-pointer procedure.
 Record release observation and recovery conditions with the operational owner before production readiness.
 Source removal authorizes neither production artifact deletion nor destructive SQL.
@@ -221,7 +220,8 @@ No GitHub ticket was changed by this documentation reconciliation.
 Reconcile affected ticket bodies/dependencies to functional outcomes, interfaces and evidence before treating their old Ready labels as authoritative.
 Retain genuine domain dependencies and unexecuted functional acceptance; do not mark them complete.
 P13 worker relocation needs publication compatibility and shared-file coordination, without a P01 benchmark prerequisite.
-P17 owns integrated functional and same-data rollback acceptance.
+P17 owns integrated current-Python functional and same-data receipt acceptance.
+ADR-0029 supersedes old-route parity and dual-runtime HTTP prerequisites.
 P19/P20 source preparation uses integrated P16 code and initial P17 functional evidence, followed by final-head verification.
 P18 production cutover is not a prerequisite for source preparation.
 P19 productive rollout and P20 operational rollback retirement stay open until separately authorized and executed.

@@ -3,7 +3,7 @@
 - Status: Independent Python API and workers implemented; native target verification pending
 - Last Reviewed: 2026-10-24
 - Source of Truth: accepted maintainer direction and existing application contracts
-- Update Triggers: versioned MTG routes and module ownership, selected versioned game API and compatibility aliases, Python source activation and implementation status, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, HTTP extraction, native delivery, credential forwarding, application ownership, acceptance evidence
+- Update Triggers: ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, canonical-only versioned game API and client upgrades, Python source activation and implementation status, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, HTTP extraction, native delivery, credential forwarding, application ownership, acceptance evidence
 - Related Docs: [System overview](./system-overview.md), [Application contract](./application-contract.md), [Auth](./auth.md), [Mobile handoff](../product/mobile-app-exploration.md), [ADR-0024](../decisions/0024-independent-applications.md), [Verification](../operations/github-automation.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md)
 
 ## Outcome and ownership
@@ -20,7 +20,7 @@ No web runtime may import backend implementation, PostgreSQL, Drizzle or passwor
 The unmerged integration candidate uses Python API/Core and workers by default.
 [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md) owns functional acceptance and separate production authority.
 The [migration contract](./python-backend-migration.md) owns retained wire/data compatibility and remaining runtime evidence.
-The replaced TypeScript server is removed after transfer to Python functional tests and installed-Python HTTP consumers.
+The replaced TypeScript server is removed; Python functional tests and installed-Python HTTP consumers own current coverage.
 Frontend, contracts, Android and unchanged SQL/Demo assets retain their owners.
 A new monorepo orchestrator, hardware control and a complex offline write queue remain outside its scope.
 Existing PWA compatibility remains available, but it is not the Android application.
@@ -165,7 +165,7 @@ Implement on that base using isolated writer worktrees and a shared local integr
 Publish the verified integrated result to main as requested, without deploying a service.
 
 [Issue 244](https://github.com/KyleDerZweite/spellbook/issues/244) tracks implementation and final integration evidence.
-Canonical OpenAPI contains 85 API method/path pairs and seven unchanged browser-auth methods.
+Canonical OpenAPI contains 85 API method/path pairs and seven unchanged browser-auth methods; Discovery is served separately.
 Tests compare the complete current registry with OpenAPI, deriving operation sets instead of maintaining a second route inventory.
 Counts do not establish functional correctness.
 
@@ -182,7 +182,9 @@ Build and install Android on the existing task-owned emulator, run guest Search 
 Record exact revision, commands, failures and unavailable evidence.
 Emulator evidence does not establish Honor hardware, camera recognition, production deployment or owner acceptance.
 
-As of 2026-10-19, API registry, raw forms, OpenAPI, web remote adapter, packaging, backend migration/fixture ownership, migrated tests and the first native Android slice are integrated.
+API registry, raw forms, OpenAPI, web remote adapter, packaging, backend migration/fixture ownership, migrated tests and the first native Android slice are integrated.
+Canonical Web/Android clients and explicit MTG modules are implemented and reviewed in the unmerged migration candidate.
+Exact revisions, review findings and current-head checks belong to PR 276.
 Independent review identified and verified fixes for QR replacement-cookie ordering, HTTP error/status parity, upload-limit propagation, bounded native streaming and stale account callbacks.
 [Repository verification](../operations/github-automation.md) records checks and their limits.
 The root-owned emulator attempt exited 139 before boot; no workaround was attempted per maintainer instruction.
