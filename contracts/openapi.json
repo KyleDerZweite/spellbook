@@ -3,7 +3,7 @@
 	"info": {
 		"title": "Spellbook OpenAPI Schema",
 		"version": "0.1.0",
-		"description": "Spellbook shared account authentication and the versioned MTG API. API mutations affect the authenticated account only. Previous API paths remain direct compatibility aliases with their original access policies."
+		"description": "Spellbook shared account authentication and the versioned MTG API. API mutations affect the authenticated account only. Replaced API paths are removed; clients must use the current documented operations."
 	},
 	"servers": [
 		{

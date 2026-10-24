@@ -173,13 +173,12 @@ Canonical Catalog reads are public; private MTG operations accept bearer or brow
 The [product specification](./specification.md) owns import semantics and scan limitations.
 Refer to the OpenAPI contract for methods, request bodies, response schemas, and error responses rather than inferring them from this route list.
 
-## Compatibility redirects
+## Removed page paths and current redirects
 
-Legacy flat paths `/search`, `/inventory`, `/decks`, and `/scan`, including child paths, return HTTP 308 to the same path under `/mtg`.
-Query strings and request methods are preserved.
-`/collections` and `/collections/` redirect to `/mtg/inventory`.
+Replaced flat paths `/search`, `/inventory`, `/decks`, `/scan` and `/collections`, including child paths, have no handlers or compatibility redirects.
+Use the current `/mtg/...` pages; old links return the ordinary not-found response.
 `/mtg` and `/mtg/` redirect to `/mtg/search`.
 
-Redirects run before the destination authentication guard.
+The game index redirect runs before the destination authentication guard.
 Other game prefixes have no routes until their catalog and workflows are implemented.
-[ADR-0013](../decisions/0013-game-prefixed-workspaces.md) records this change.
+[ADR-0013](../decisions/0013-game-prefixed-workspaces.md) owns game-prefixed pages; [ADR-0029](../decisions/0029-remove-replaced-interfaces.md) removes their old aliases.

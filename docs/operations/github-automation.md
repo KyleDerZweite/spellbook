@@ -225,7 +225,7 @@ The harness executes worker behavior with controlled platform doubles, without a
 It verifies the cache allowlist, private/auth/API exclusions, network-error fallback and explicit update activation; it is not browser installation evidence.
 
 [QR integration tests](https://github.com/KyleDerZweite/spellbook/blob/87cc4a3d153616bcce46fad046246b6a3271e563/frontend/tests/integration/qr-auth.integration.test.ts) exercise backend QR transactions with real PostgreSQL.
-[Backend HTTP tests](../../backend/api/tests/test_http_compatibility.py) cover framework-independent transport behavior; built HTTP coverage remains separate.
+[Backend HTTP tests](../../backend/api/tests/test_http_wire.py) cover framework-independent transport behavior; built HTTP coverage remains separate.
 The [QR HTTP suite](../../frontend/tests/qr-auth-http.test.ts) runs through `test:http` against the actual built application.
 Cover browser cookies and device bearer issuance, explicit decisions, wrong credentials, expiry after lock waits, same-session repeated approval including after consumption, conflicting decisions/approvers, revocation and concurrent one-use redemption.
 Failed or skipped cases do not establish those guarantees.

@@ -58,7 +58,7 @@ Rules:
 
 - [ADR-0012: Public catalog browsing](./0012-public-catalog-browsing.md)
 
-- [ADR-0013: Game-prefixed workspaces](./0013-game-prefixed-workspaces.md)
+- [ADR-0013: Game-prefixed workspaces](./0013-game-prefixed-workspaces.md), flat-page compatibility redirects superseded by ADR-0029
 
 - [ADR-0014: Public landing and private workspace](./0014-public-landing-and-private-workspace.md)
 

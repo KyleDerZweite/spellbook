@@ -150,7 +150,7 @@ The deck summary and catalog use that shared value.
 Navigation underlines remain visible when labels collapse to icons.
 Shared CSS retains themed native scrollbars for other scroll containers.
 
-[Routing and games](../product/routing-and-games.md) owns the route list and legacy redirects.
+[Routing and games](../product/routing-and-games.md) owns current routes and removed flat-page aliases.
 [The product specification](../product/specification.md) owns workflow behavior and acceptance criteria.
 
 The shared [error page](../../frontend/src/routes/+error.svelte) uses the existing shell and control styles.
@@ -704,7 +704,7 @@ Installing TypeScript 7 as that API dependency fails because it does not provide
 The compatibility dependency supports those tools; it does not replace the project's TypeScript 7 check.
 The [verification workflow](../operations/github-automation.md#local-checks) owns the commands.
 
-[Root pnpm-workspace.yaml](../../pnpm-workspace.yaml) retains the patched esbuild dependency for Drizzle's legacy loader.
+[Root pnpm-workspace.yaml](../../pnpm-workspace.yaml) allows esbuild's platform-binary installation for Vite.
 Its scoped `runed` peer rule accepts the reviewed Kit 3.1.0 release because Bits UI uses the framework-independent entry point, not `runed/kit`.
 The upstream optional peer still targets Kit 2; its removal requires a compatible upstream peer declaration or removal of that transitive dependency.
 The [root lockfile](../../pnpm-lock.yaml) preserves these choices.

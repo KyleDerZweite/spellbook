@@ -33,8 +33,8 @@ Run current installed checks from the repository root:
 
 ```sh
 pnpm setup:python
-uvx --from uv==0.12.23 uv run --directory backend/core --no-sync pytest tests/test_compatibility.py
-uvx --from uv==0.12.23 uv run --directory backend/api --no-sync pytest tests/test_http_compatibility.py tests/test_host_assembly.py tests/test_web_commands.py
+uvx --from uv==0.12.23 uv run --directory backend/core --no-sync pytest tests/test_wire.py
+uvx --from uv==0.12.23 uv run --directory backend/api --no-sync pytest tests/test_http_wire.py tests/test_host_assembly.py tests/test_web_commands.py
 ```
 
 The Python registry tests compare the complete current API operation set with OpenAPI and reject extra operations.

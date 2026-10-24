@@ -17,6 +17,8 @@ The contribution policy owns this workflow.
 This decision supersedes ADR-0028's legacy API aliases and the migration requirement to keep the previous HTTP paths available.
 The API serves only the current canonical `/api/v1/...` routes and unchanged Discovery.
 Removed API paths return 404 without redirects or alternate dispatch.
+The replaced flat browser routes `/search`, `/inventory`, `/decks`, `/scan` and `/collections` are removed with their compatibility redirects.
+The active `/mtg` index still selects `/mtg/search`; authentication redirects and current guide entrypoints retain their purpose.
 Web and Android use current paths, and Android no longer treats old mutation paths as supported retries.
 OpenAPI defines the current route inventory; obsolete Node route inventories, transfer maps and dual-runtime HTTP comparison runners are removed.
 Useful parsing, authorization, receipt and integration tests continue against current interfaces.
