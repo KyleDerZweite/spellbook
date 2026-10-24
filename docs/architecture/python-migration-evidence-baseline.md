@@ -2,9 +2,9 @@
 
 - Status: Canonical compatibility baseline and verification references
 - Last Reviewed: 2026-10-24
-- Source of Truth: frozen compatibility fixtures, current Python code/tests, PR 276 and ADR-0027
-- Update Triggers: completed source activation and server contraction, current verification references, compatibility inventory and functional test ownership
-- Related Docs: [Migration contract](./python-backend-migration.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [Contracts](../../contracts/README.md), [Independent applications](./independent-applications.md), [Auth](./auth.md), [Postgres](./postgres.md), [Verification](../operations/github-automation.md), [Deployment](../operations/deployment.md), [Issue 247](https://github.com/KyleDerZweite/spellbook/issues/247)
+- Source of Truth: frozen compatibility fixtures, current Python code/tests, PR 276, ADR-0027 and ADR-0028
+- Update Triggers: ADR-0028 canonical routes and legacy inventory distinction, completed source activation and server contraction, current verification references, compatibility inventory and functional test ownership
+- Related Docs: [Migration contract](./python-backend-migration.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [Versioned game API](../decisions/0028-versioned-game-api.md), [Contracts](../../contracts/README.md), [Independent applications](./independent-applications.md), [Auth](./auth.md), [Postgres](./postgres.md), [Verification](../operations/github-automation.md), [Deployment](../operations/deployment.md), [Issue 247](https://github.com/KyleDerZweite/spellbook/issues/247)
 
 ## Scope and authorization
 
@@ -20,7 +20,7 @@ The unselected lifecycle/PARKED proposal supplies no requirement.
 Historical protocols and review details remain in the [pre-reconciliation revision](https://github.com/KyleDerZweite/spellbook/blob/1bae6638e9bb521630401a74e6eaeab3eac371f9/docs/architecture/python-migration-evidence-baseline.md).
 They are history, not current acceptance gates.
 
-## Frozen artifact and implementation contract
+## Schema and frozen compatibility inputs
 
 [`contracts/openapi.json`](../../contracts/openapi.json) owns the language-neutral structural schema.
 The Python [adapter](../../backend/api/src/spellbook_api/http/application.py) reads the bundled artifact and changes only `servers` for the public origin.
@@ -37,10 +37,11 @@ The activation writer owns route assembly, application lifetime, CI, root manife
 ## Complete ownership inventory
 
 The canonical [machine-readable inventory](../../contracts/compatibility/inventory.json) enumerates every method/path separately with its frozen Node owner and migration slice.
-The assembled Python registry is compared directly with every API operation in this neutral baseline.
+Legacy Python dispatch is compared directly with every API operation in this neutral baseline.
+Canonical dispatch is independently compared with the current OpenAPI under [ADR-0028](../decisions/0028-versioned-game-api.md).
 Existing OpenAPI checks independently reconcile browser-auth source methods and all local references.
 
-| Registered group                              | Explicit method/path pairs | Migration ownership                                               |
+| Frozen baseline group                         | Explicit method/path pairs | Migration ownership                                               |
 | --------------------------------------------- | -------------------------: | ----------------------------------------------------------------- |
 | API Auth, including two original-form bridges |                          9 | P03                                                               |
 | Account/Profile/Dashboard/password bridge     |                          6 | P03, Dashboard application extends in P15                         |
@@ -55,8 +56,11 @@ Existing OpenAPI checks independently reconcile browser-auth source methods and 
 | Web-owned browser Auth                        |                          7 | P03 keeps SvelteKit pages, forms and cookies                      |
 | Discovery `/openapi.json`                     |                          1 | P01/P16                                                           |
 
-These are 88 API pairs, seven web-owned browser-auth pairs and one Discovery pair.
-OpenAPI retains the same 95 documented pairs; Discovery has never documented itself.
+The frozen baseline contains 88 API pairs, seven web-owned browser-auth pairs and one Discovery pair.
+All 88 API pairs remain direct compatibility aliases.
+Current OpenAPI describes 85 canonical API pairs under `/api/v1/` and the seven browser-auth pairs, totaling 92 documented pairs.
+The reduction merges three duplicate Catalog access paths; authenticated legacy mobile Catalog aliases retain their original policy.
+Discovery has never documented itself.
 HEAD maps to each registered GET and discards its body.
 OPTIONS returns 204 and ordered `Allow` for each API/Discovery path, even when its handler requires authentication.
 Unsupported methods return 405 with `{ "message": "Method Not Allowed" }`, without the ordinary error body's `status` field.
@@ -130,7 +134,10 @@ Keep transient run totals in that change record instead of parallel per-slice lo
 
 At source `3bcaf54e38e791d100259ec48b13aef7334c7d3f`, all domain implementations, Deck assembly, closed web commands, default Python launchers, independent workers and replaced Node source/test contraction are integrated.
 Independent Standards and Spec reviews accepted the domain and activation changes after correcting native Catalog storage, successful manual completion and the retained operator forwarder.
-SQL history, canonical Demo assets, shared contracts and Android source remain unchanged.
+That source left SQL history, canonical Demo assets, shared contracts and Android source unchanged.
+The subsequent versioned API at `6560440b28add806ed8e59963997ef2d5e8a48e2` moves MTG Core/HTTP modules and updates Web/Android callers plus the current SavedState path constant.
+Payload component schemas, SQL, Demo assets and frozen compatibility inputs remain unchanged.
+ADR-0028 owns the selected namespace change; its current checks and target evidence belong to PR 276.
 The separate password success-reload correction preserves the existing SavedState architecture.
 
 Executed integration includes disposable PostgreSQL transactions, conflicts, account isolation, jobs and publications; installed migrator/operator rehearsal; original receipts and Node-to-Python-to-Node writes on the same data; two Python replicas, proxy SSE and listener recovery.
