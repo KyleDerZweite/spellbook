@@ -7,8 +7,8 @@ Recognition and local recognition are unchanged.
 From the repository root, using Python 3.14.8 and uv 0.12.23:
 
 ```sh
-uv sync --project backend/workers/scan --frozen --extra dev --python 3.14.8
-uv run --project backend/workers/scan --no-sync uvicorn scan_worker.main:app --host 127.0.0.1 --port 8087
+uvx --from uv==0.12.23 uv sync --project backend/workers/scan --frozen --extra dev --python 3.14.8
+uvx --from uv==0.12.23 uv run --project backend/workers/scan --no-sync uvicorn scan_worker.main:app --host 127.0.0.1 --port 8087
 podman build -t spellbook-scan-worker backend/workers/scan
 ```
 

@@ -8,8 +8,8 @@ Production operations remain separately authorized.
 From the repository root, using Python 3.14.8 and uv 0.12.23:
 
 ```sh
-uv sync --project backend/workers/catalog --frozen --extra dev --python 3.14.8
-uv run --project backend/workers/catalog --no-sync python -m worker.main
+uvx --from uv==0.12.23 uv sync --project backend/workers/catalog --frozen --extra dev --python 3.14.8
+uvx --from uv==0.12.23 uv run --project backend/workers/catalog --no-sync python -m worker.main
 podman build -t spellbook-catalog-worker backend/workers/catalog
 ```
 
