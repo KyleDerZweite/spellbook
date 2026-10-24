@@ -124,3 +124,54 @@ def test_limits_validation_headers_and_unexpected_errors_are_safe() -> None:
             "status": 400,
             "message": "Invalid request",
         }
+
+
+@pytest.mark.parametrize("method", ["GET", "PATCH"])
+@pytest.mark.parametrize(
+    "name,second",
+    [
+        ("Origin", "https://other.test"),
+        ("Content-Type", "application/octet-stream"),
+        ("Authorization", "Basic duplicate"),
+    ],
+)
+def test_sensitive_header_duplicates_fail_before_authority_or_effects(
+    method: str,
+    name: str,
+    second: str,
+) -> None:
+    d = Dependencies()
+    headers = [
+        ("Authorization", "Bearer " + TOKEN),
+        ("Origin", ORIGIN),
+        ("Content-Type", "application/json"),
+        (name, second),
+    ]
+    with TestClient(d.app) as client:
+        response = client.request(
+            method, "/api/v1/account/profile", headers=headers, content=b"{}"
+        )
+    assert response.status_code == 400
+    assert response.json() == {
+        "status": 400,
+        "message": "Repeated authority or content headers are not supported",
+    }
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["x-robots-tag"] == "noindex, nofollow"
+    d.auth.validate_session.assert_not_awaited()
+    d.profile.get.assert_not_awaited()
+    d.profile.patch.assert_not_awaited()
+
+
+@pytest.mark.parametrize("method", ["GET", "PATCH"])
+@pytest.mark.parametrize("origin", [None, ORIGIN, "https://other.test"])
+def test_single_bearer_headers_keep_current_origin_exceptions(
+    method: str, origin: str | None
+) -> None:
+    d = Dependencies()
+    headers = {"Authorization": "Bearer " + TOKEN}
+    if origin is not None:
+        headers["Origin"] = origin
+    with TestClient(d.app) as client:
+        response = client.request(method, "/api/v1/account/profile", headers=headers, json={})
+    assert response.status_code == 200 and response.json() == d.settings

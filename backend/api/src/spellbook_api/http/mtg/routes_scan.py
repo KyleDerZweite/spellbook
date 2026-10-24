@@ -20,7 +20,7 @@ from starlette.responses import Response
 from spellbook_api.http.dependencies import UUIDPath, actor_dependency, body_dependency
 from spellbook_api.http.errors import HttpError, json_response
 from spellbook_api.http.multipart import CompleteMultipartParser
-from spellbook_api.http.parsing import header, read_request_bytes, trim
+from spellbook_api.http.parsing import drain_request_body, header, read_request_bytes, trim
 
 BASE = "/api/v1/mtg/scan"
 MAX_MULTIPART_BYTES = 12 * 1024 * 1024
@@ -33,6 +33,7 @@ def create_scan_routes(auth: SessionAuth, scan: Scan, origin: str) -> APIRouter:
     async def create_session(
         request: Request, user: Annotated[Actor, Depends(authenticated)]
     ) -> Response:
+        await drain_request_body(request)
         return json_response(
             {"session": await scan.create_session(user)}, headers={"Cache-Control": "no-store"}
         )
