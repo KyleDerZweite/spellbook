@@ -160,10 +160,26 @@ test('automatic CI retains scoped checks without invoking a heavy workflow', () 
 test('lint only formats while tooling owns the Node boundary fixtures', () => {
 	const manifest = (path) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8'));
 	const frontend = manifest('../frontend/package.json').scripts;
-	assert.equal(
-		frontend.lint,
-		'prettier --ignore-path ../.gitignore --ignore-path ../.prettierignore --config .prettierrc --check . ../backend ../contracts ../scripts ../package.json ../.github/workflows/ci.yml'
-	);
+	const lint = frontend.lint.trim().split(/\s+/);
+	assert.equal(lint[0], 'prettier');
+	assert.ok(lint.includes('--check'));
+	assert.ok(!lint.includes('--write'));
+	assert.doesNotMatch(frontend.lint, /[;&|`$\r\n]/);
+	for (const [option, value] of [
+		['--ignore-path', '../.gitignore'],
+		['--ignore-path', '../.prettierignore'],
+		['--config', '.prettierrc']
+	])
+		assert.ok(lint.some((argument, index) => argument === option && lint[index + 1] === value));
+	for (const path of [
+		'.',
+		'../backend',
+		'../contracts',
+		'../scripts',
+		'../package.json',
+		'../.github/workflows/ci.yml'
+	])
+		assert.ok(lint.includes(path), path);
 	const tooling = manifest('../package.json').scripts['test:tooling'];
 	assert.doesNotMatch(tooling, /ci-changes\.test\.mjs/);
 	for (const file of ['check-boundaries', 'dev', 'python', 'packaging'])
