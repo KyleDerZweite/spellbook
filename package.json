@@ -16,7 +16,7 @@
 		"dev": "node --env-file-if-exists=.env scripts/dev.mjs",
 		"test:dev": "node --test scripts/dev.test.mjs",
 		"check": "pnpm check:python && pnpm --dir frontend check",
-		"test:tooling": "node --test scripts/check-boundaries.test.mjs scripts/ci-changes.test.mjs scripts/dev.test.mjs scripts/python.test.mjs scripts/packaging.test.mjs",
+		"test:tooling": "node --test scripts/check-boundaries.test.mjs scripts/dev.test.mjs scripts/python.test.mjs scripts/packaging.test.mjs",
 		"test:packaging": "node --test scripts/packaging.test.mjs",
 		"check:python": "uvx --from uv==0.12.23 uv run --directory backend/api --no-sync mypy && uvx --from uv==0.12.23 uv run --directory backend/core --no-sync mypy && uvx --from uv==0.12.23 uv run --directory backend/workers/state --no-sync mypy",
 		"setup:python": "node scripts/python.mjs sync",

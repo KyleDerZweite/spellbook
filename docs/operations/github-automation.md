@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-24
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
-- Update Triggers: ADR-0029 immediate removal of replaced API interfaces, canonical-only API operation checks and MTG imports, installed Python activation, Node source/test contraction and transferred HTTP consumers, Python source activation and server contraction, functional Python migration acceptance and retired P01 proof requirements, setup-java v6 compatibility, Python Category/state packaging, host/Dashboard/Scan assembly and installed migrator/operator checks, manual native acceptance and import boundaries, independent API/web ownership and relocated code references, native initial Deck Search publication regression, conditional CI scope, manual-only heavy workflows and consolidated jobs, native Inventory measurement regression, portable opt-in browsing performance evidence and artifact provenance, PWA worker build harness and tsconfig, QR integration/HTTP and pending target acceptance, Dev launcher lifecycle tests, test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
+- Update Triggers: explicit Application checks and conditional Python boundary ownership, ADR-0029 immediate removal of replaced API interfaces, canonical-only API operation checks and MTG imports, installed Python activation, Node source/test contraction and transferred HTTP consumers, Python source activation and server contraction, functional Python migration acceptance and retired P01 proof requirements, setup-java v6 compatibility, Python Category/state packaging, host/Dashboard/Scan assembly and installed migrator/operator checks, manual native acceptance and import boundaries, independent API/web ownership and relocated code references, native initial Deck Search publication regression, conditional CI scope, manual-only heavy workflows and consolidated jobs, native Inventory measurement regression, portable opt-in browsing performance evidence and artifact provenance, PWA worker build harness and tsconfig, QR integration/HTTP and pending target acceptance, Dev launcher lifecycle tests, test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
 - Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance), [Application boundaries](../architecture/application-contract.md#implementation-status)
 
 This document owns repository check commands, CI coverage, and verification evidence.
@@ -20,6 +20,8 @@ Run from the repository root in an isolated worktree:
 pnpm install --frozen-lockfile
 pnpm setup:python
 pnpm lint
+pnpm check:boundaries
+pnpm --dir frontend check
 pnpm --dir frontend test:unit
 pnpm test:tooling
 APP_ORIGIN=http://127.0.0.1:5191 pnpm build
@@ -27,14 +29,19 @@ APP_ORIGIN=http://127.0.0.1:5191 pnpm build
 
 `setup:python` installs the current packages and local Core dependency as wheels with frozen dependencies.
 Rerun it after source changes before testing installed entrypoints.
-`lint` includes TypeScript import boundaries, forbidden-import tests, Prettier and frontend TypeScript/Svelte checks.
+`lint` runs the complete Prettier check only.
+`check:boundaries` scans source import directions; `test:tooling` runs its forbidden-import fixtures.
+`pnpm --dir frontend check` runs frontend TypeScript/Svelte checks without the root `check` command's Python Mypy checks.
 Python package checks remain independent below.
 `build` produces Python Core/API/State distributions and the origin-matched Svelte artifact, including client leakage and PWA checks.
 Adapter-node 6 takes `paths.origin` from build-time `APP_ORIGIN`; runtime `ORIGIN` cannot change that artifact.
 
-`test:tooling` covers boundaries, scoped CI routing, launcher ownership/failures and web packaging.
-These fixtures substitute executables for lifecycle assertions and do not establish real container/database operation.
+`test:tooling` covers boundary fixtures, launcher ownership/failures, Python launcher commands and web packaging.
+Its lifecycle fixtures substitute executables and do not establish real container/database operation.
 Run each affected package's ordinary checks once, then broaden only for changes or unresolved failures.
+
+For local routing or workflow changes, run `node --test scripts/ci-changes.test.mjs` directly.
+Run `CI_EVENT_NAME=pull_request CI_BASE_SHA=<base-sha> CI_HEAD_SHA=<head-sha> node scripts/ci-changes.mjs` to inspect selected scopes.
 
 For genuine client/API acceptance, supply matching `DATABASE_URL` and `TEST_DATABASE_URL` for an exclusively assigned disposable PostgreSQL 18 database.
 Apply migrations explicitly before tests; never let a fixture silently select a live target.
@@ -283,14 +290,17 @@ The three substantive jobs depend on successful classification and can run in pa
 
 | Job                | Checks                                                                                                                                   | Automatic scope                                                         |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Application Checks | Frontend types and boundaries through `lint`, web unit tests and root `test:tooling`                                                     | App/shared source and Scan worker changes                               |
+| Application Checks | Prettier, explicit source boundaries and frontend TypeScript/Svelte checks, web unit tests and root `test:tooling`                       | App/shared source and Scan worker changes                               |
 | Python API/Core    | Independent lock/frozen install, Ruff, strict Mypy, Core/API unit/host/Discovery tests, package builds and negative Python import checks | API, Core, neutral contracts, migrations and shared Python tooling      |
 | Python Workers     | Lock consistency, Ruff lint/format and pytest for each affected Python project                                                           | Catalog worker, Scan worker, or migrations used by Catalog worker tests |
 
 Migration asset/ledger consistency runs in Python Core/API tests.
 Root `test:tooling` includes launcher and packaging tests, so CI does not invoke those suites separately.
 The two worker projects share their existing job/toolchain setup, retaining separate project environments; its PostgreSQL service starts only when Catalog worker tests are selected.
-That worker job also runs the Python import checker and negative fixtures with the pinned interpreter, so worker-only edits cannot bypass dependency rules or require unrelated API tests.
+Python API/Core runs the repository Python import checker and six negative unittest cases.
+The worker job runs the same checker and fixtures with the pinned interpreter only when Python API/Core is unselected.
+Worker-only edits therefore enforce dependency rules without depending on the API/Core job.
+Scope tests run only in CI Scope, and Node boundary fixtures run only through Application Checks tooling.
 The scope job has a five-minute timeout; Application Checks, Python API/Core and Python Workers each have fifteen minutes.
 
 [Application Integration](../../.github/workflows/application-integration.yml) and [Android Build](../../.github/workflows/android.yml) are separate workflows triggered only by `workflow_dispatch`.

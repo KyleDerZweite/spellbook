@@ -63,6 +63,9 @@ jobs:
           cache_dependency_path: pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
+      - run: pnpm --dir .. check:boundaries
+      - run: pnpm --dir frontend check
+        working-directory: .
       - run: pnpm test:unit
       - run: pnpm --dir .. test:tooling
 
@@ -149,6 +152,7 @@ jobs:
           enable-cache: true
       - run: uv python install 3.14.8
       - name: Worker import directions and negative fixtures
+        if: needs.changes.outputs.python_backend != 'true'
         run: |
           uv run --no-project --python 3.14.8 python scripts/check_python_boundaries.py
           uv run --no-project --python 3.14.8 python -m unittest discover -s scripts -p test_python_boundaries.py
