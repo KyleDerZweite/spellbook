@@ -21,6 +21,7 @@ from spellbook_api.http.parsing import decode_parameter, read_form_data, read_js
 from spellbook_api.http.router import HttpRoute
 
 QR_COOKIE = "spellbook_qr_requester"
+QR_COOKIE_PATH = "/api/v1/auth/qr"
 
 
 async def get_session(request: Request, auth: SessionAuth, public_origin: str) -> Response:
@@ -112,9 +113,6 @@ def create_auth_routes(
 
     async def qr(request: Request, params: dict[str, str], operation: str) -> Response:
         headers = {"Cache-Control": "no-store"}
-        cookie_path = (
-            "/api/v1/auth/qr" if request.url.path.startswith("/api/v1/") else "/api/auth/qr"
-        )
         try:
             require_same_origin(request, origin, allow_missing=True)
             address = client_address(request, trusted_proxy_addresses)
@@ -144,7 +142,7 @@ def create_auth_routes(
                         response,
                         QR_COOKIE,
                         f"{created['code']}.{secret}",
-                        cookie_path,
+                        QR_COOKIE_PATH,
                         300,
                         origin,
                     )
@@ -190,7 +188,7 @@ def create_auth_routes(
             if result.status != "authenticated":
                 response = json_response({"status": result.status}, headers=headers)
                 if result.kind == "browser" and result.status != "pending":
-                    append_cookie(response, QR_COOKIE, "", cookie_path, 0, origin)
+                    append_cookie(response, QR_COOKIE, "", QR_COOKIE_PATH, 0, origin)
                 return response
             assert result.session is not None
             response = json_response(
@@ -203,7 +201,7 @@ def create_auth_routes(
             )
             if result.kind == "browser":
                 write_session_cookie(response, result.session.token, origin)
-                append_cookie(response, QR_COOKIE, "", cookie_path, 0, origin)
+                append_cookie(response, QR_COOKIE, "", QR_COOKIE_PATH, 0, origin)
             return response
         except QrAuthError as cause:
             statuses = {

@@ -1,4 +1,4 @@
-"""Public MTG Catalog reads. Legacy authentication belongs to the compatibility adapter."""
+"""Public MTG Catalog reads."""
 
 from spellbook_core.mtg.catalog import Catalog
 from spellbook_core.mtg.errors import CatalogPrintingNotFoundError

@@ -55,8 +55,8 @@ def test_production_assembly_registers_and_dispatches_all_integrated_factories(
     ):
         assert len(routes) == expected
         assert {(route.method, route.path) for route in routes} <= installed
-    assert ("GET", "/api/account/dashboard") in installed
-    assert ("POST", "/api/web/v1/commands") in installed
+    assert ("GET", "/api/v1/mtg/dashboard") in installed
+    assert ("POST", "/api/v1/mtg/commands") in installed
     assert resources.decks.valuation is resources.valuation
     assert resources.scan._inventory is resources.inventory
     assert resources.scan._storage is resources.scan_storage
@@ -85,49 +85,49 @@ def test_production_assembly_registers_and_dispatches_all_integrated_factories(
     monkeypatch.setattr(resources.categories, "get_library", library)
     client = TestClient(lifetime.http)
     try:
-        assert client.get("/api/catalog/search?q=Test").json() == {"catalog": True}
+        assert client.get("/api/v1/mtg/catalog/search?q=Test").json() == {"catalog": True}
         headers = {"Authorization": "Bearer " + TOKEN}
-        assert client.get("/api/mobile/v1/mtg/inventory/groups", headers=headers).json() == {
+        assert client.get("/api/v1/mtg/inventory/groups", headers=headers).json() == {
             "revision": "1",
             "groups": [],
             "count": 0,
         }
         response = client.get(
-            "/api/mobile/v1/mtg/prices?printingId=11111111-1111-4111-8111-111111111111&finish=foil"
+            "/api/v1/mtg/prices?printingId=11111111-1111-4111-8111-111111111111&finish=foil"
         )
         assert response.json() == {"prices": True}
-        response = client.get("/api/account/dashboard", headers=headers)
+        response = client.get("/api/v1/mtg/dashboard", headers=headers)
         assert response.json() == {"summary": True}
         assert response.headers["cache-control"] == "no-store"
         assert response.headers["x-robots-tag"] == "noindex, nofollow"
         dashboard.assert_awaited_once_with(ACTOR)
-        response = client.get("/api/mobile/v1/mtg/scan/sessions", headers=headers)
+        response = client.get("/api/v1/mtg/scan/sessions", headers=headers)
         assert response.status_code == 200 and response.json() == {"sessions": []}
         assert response.headers["cache-control"] == "no-store"
         scans.assert_awaited_once_with(ACTOR)
-        assert client.get("/api/mobile/v1/mtg/category-definitions", headers=headers).json() == {
+        assert client.get("/api/v1/mtg/category-definitions", headers=headers).json() == {
             "definitions": []
         }
         library.assert_awaited_once_with(ACTOR, {"offset": 0, "limit": 50})
         from spellbook_core.mtg.categories import CategoryConflict
 
         library.side_effect = CategoryConflict({"decisionRevision": "2"})
-        failure = client.get("/api/mobile/v1/mtg/category-definitions", headers=headers)
+        failure = client.get("/api/v1/mtg/category-definitions", headers=headers)
         assert failure.status_code == 409 and failure.json()["latest"] == {"decisionRevision": "2"}
 
-        assert client.head("/api/account/dashboard", headers=headers).content == b""
-        options = client.options("/api/account/dashboard")
+        assert client.head("/api/v1/mtg/dashboard", headers=headers).content == b""
+        options = client.options("/api/v1/mtg/dashboard")
         assert options.status_code == 204 and options.headers["allow"] == "GET, HEAD, OPTIONS"
-        assert client.post("/api/account/dashboard", headers=headers).status_code == 405
-        assert client.get("/api/account/dashboard").status_code == 401
+        assert client.post("/api/v1/mtg/dashboard", headers=headers).status_code == 405
+        assert client.get("/api/v1/mtg/dashboard").status_code == 401
         assert (
             client.get(
-                "/api/account/dashboard", headers={**headers, "Origin": "https://foreign.example"}
+                "/api/v1/mtg/dashboard", headers={**headers, "Origin": "https://foreign.example"}
             ).status_code
             == 200
         )
         dashboard.side_effect = SummaryRangeError()
-        failure = client.get("/api/account/dashboard", headers=headers)
+        failure = client.get("/api/v1/mtg/dashboard", headers=headers)
         assert failure.status_code == 503
         assert failure.json() == {"status": 503, "message": SUMMARY_RANGE_MESSAGE}
         assert failure.headers["cache-control"] == "no-store"
@@ -180,7 +180,7 @@ def test_scan_environment_is_typed_and_discovery_constructs_no_scan_adapters(
     lifetime = create_application(config)
     with TestClient(lifetime.http) as client:
         assert client.get("/openapi.json").status_code == 200
-        assert client.get("/api/mobile/v1/mtg/scan/sessions").status_code == 404
+        assert client.get("/api/v1/mtg/scan/sessions").status_code == 404
     asyncio.run(lifetime.close())
 
 
@@ -205,51 +205,29 @@ def test_combo_configuration_binds_the_owned_pool(enabled: str) -> None:
         )
 
 
-def test_complete_registry_matches_canonical_schema_and_legacy_inventory() -> None:
+def test_complete_registry_matches_only_openapi_and_discovery() -> None:
     import json
     import re
     from pathlib import Path
-
-    from spellbook_api.http.paths import canonical_path
 
     lifetime = create_application(
         Configuration(ORIGIN, database_url="postgresql://localhost/unused")
     )
     try:
         registry = cast(RouteRegistry, cast(Route, lifetime.http.router.routes[-1]).app)
-        inventory = json.loads(
-            (
-                Path(__file__).resolve().parents[3] / "contracts/compatibility/inventory.json"
-            ).read_text()
-        )
-        expected = {
-            (row["method"], re.sub(r"\{([^}]+)\}", r":\1", row["path"]))
-            for row in inventory["routes"]
-            if row["transport"] == "api"
-        }
-        actual = {(route.method, route.path) for route in registry._routes}
-        canonical_expected = {(method, canonical_path(path)) for method, path in expected}
         schema = json.loads(
             (Path(__file__).resolve().parents[3] / "contracts/openapi.json").read_text()
         )
-        schema_expected = {
+        expected = {
             (method.upper(), re.sub(r"\{([^}]+)\}", r":\1", path))
             for path, item in schema["paths"].items()
             if path.startswith("/api/")
             for method in item
             if method in {"get", "post", "put", "patch", "delete"}
         }
-        canonical_actual = {
-            (method, path) for method, path in actual if path.startswith("/api/v1/")
-        }
-        legacy_actual = {
-            (method, path)
-            for method, path in actual
-            if path.startswith("/api/") and not path.startswith("/api/v1/")
-        }
-        assert canonical_actual == canonical_expected == schema_expected
-        assert legacy_actual == expected
-        assert actual == canonical_expected | expected | {("GET", "/openapi.json")}
+        actual = {(route.method, route.path) for route in registry._routes}
+        assert actual == expected | {("GET", "/openapi.json")}
+        assert set(registry._declared) == {path for _, path in expected}
         assert len(registry._routes) == len(actual)
     finally:
         asyncio.run(lifetime.close())

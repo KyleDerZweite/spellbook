@@ -15,7 +15,6 @@ from spellbook_api.http.admission import RequestAdmission
 from spellbook_api.http.auth import require_form_origin, stale_session_cookie
 from spellbook_api.http.errors import HttpError, error_response, json_response
 from spellbook_api.http.parsing import decode_parameter
-from spellbook_api.http.paths import canonical_path
 from spellbook_api.http.sse import SavedStateResponse
 
 DISCOVERY_PATHS = {"/openapi.json", "/openapi.json/"}
@@ -54,7 +53,6 @@ class RawPathRouting:
 
 
 def cache_policy(path: str) -> str | None:
-    path = canonical_path(path)
     if path in {
         "/api/v1/mtg/inventory/value",
         "/api/v1/mtg/inventory/value-history",
@@ -189,8 +187,8 @@ class RouteRegistry:
 
         request = Request(scope, bounded_receive)
         # The SSE adapter owns its sole receive consumer, including setup and HEAD close.
-        stream = canonical_path(
-            scope["path"].removesuffix("/")
+        stream = scope["path"].removesuffix(
+            "/"
         ) == "/api/v1/account/events" and request.method in {
             "GET",
             "HEAD",

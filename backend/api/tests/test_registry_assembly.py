@@ -66,7 +66,7 @@ def test_bad_named_encoding_precedes_cookie_sql_but_not_method_selection(
     with TestClient(d.application()) as client:
         response = client.request(
             method,
-            f"/api/catalog/printings/{segment}",
+            f"/api/v1/mtg/catalog/printings/{segment}",
             headers={"Cookie": "spellbook_session=" + TOKEN},
         )
     if method in {"GET", "HEAD"}:
@@ -88,7 +88,7 @@ def test_bad_named_encoding_precedes_cookie_sql_but_not_method_selection(
 def test_named_segments_reach_adapters_as_original_raw_values(segment: str) -> None:
     d = Dependencies()
     with TestClient(d.application()) as client:
-        response = client.get(f"/api/catalog/printings/{segment}")
+        response = client.get(f"/api/v1/mtg/catalog/printings/{segment}")
     assert response.status_code == 400
     assert response.json()["message"] == "printingId must be a UUID"
 
@@ -112,7 +112,14 @@ def test_named_segments_reach_adapters_as_original_raw_values(segment: str) -> N
     asyncio.run(exercise())
 
 
-@pytest.mark.parametrize("prefix", ["/%61pi", "/api%2Fcatalog", "/api/catalog%2Fprintings"])
+@pytest.mark.parametrize(
+    "prefix",
+    [
+        "/%61pi/v1/mtg/catalog/printings",
+        "/api%2Fv1/mtg/catalog/printings",
+        "/api/v1/mtg/catalog%2Fprintings",
+    ],
+)
 def test_encoded_literals_never_alias_registered_routes(prefix: str) -> None:
     with TestClient(Dependencies().application()) as client:
         assert client.get(prefix + "/" + PRINTING).status_code == 404
@@ -122,7 +129,7 @@ def test_form_origin_precedes_cookie_and_cookie_cleanup_precedes_handler_cookie(
     d = Dependencies()
     with TestClient(d.application()) as client:
         response = client.post(
-            "/api/mobile/v1/mtg/inventory",
+            "/api/v1/mtg/inventory",
             content="bad form",
             headers={"content-type": "text/plain", "cookie": "spellbook_session=" + TOKEN},
         )
@@ -139,14 +146,14 @@ def test_form_origin_precedes_cookie_and_cookie_cleanup_precedes_handler_cookie(
             return response
 
         registry = RouteRegistry(
-            [HttpRoute("GET", "/api/auth/session", replace)], ORIGIN, d.auth, RequestAdmission()
+            [HttpRoute("GET", "/api/v1/auth/session", replace)], ORIGIN, d.auth, RequestAdmission()
         )
         response = await registry._handle(
             Request(
                 {
                     "type": "http",
                     "method": "GET",
-                    "path": "/api/auth/session",
+                    "path": "/api/v1/auth/session",
                     "headers": [
                         (b"cookie", ("spellbook_session=" + TOKEN).encode()),
                         (b"authorization", b"Bearer invalid"),
@@ -166,11 +173,11 @@ def test_form_origin_precedes_cookie_and_cookie_cleanup_precedes_handler_cookie(
 @pytest.mark.parametrize(
     "path,allow",
     [
-        ("/api/auth/session", "GET, HEAD, OPTIONS"),
-        ("/api/catalog/printings/" + PRINTING, "GET, HEAD, OPTIONS"),
-        ("/api/mobile/v1/mtg/inventory", "GET, HEAD, POST, OPTIONS"),
-        ("/api/mobile/v1/mtg/inventory/" + PRINTING, "GET, HEAD, PATCH, DELETE, OPTIONS"),
-        ("/api/account/events", "GET, HEAD, OPTIONS"),
+        ("/api/v1/auth/session", "GET, HEAD, OPTIONS"),
+        ("/api/v1/mtg/catalog/printings/" + PRINTING, "GET, HEAD, OPTIONS"),
+        ("/api/v1/mtg/inventory", "GET, HEAD, POST, OPTIONS"),
+        ("/api/v1/mtg/inventory/" + PRINTING, "GET, HEAD, PATCH, DELETE, OPTIONS"),
+        ("/api/v1/account/events", "GET, HEAD, OPTIONS"),
     ],
 )
 def test_trailing_slash_options_and_special_405_do_no_cookie_or_auth_work(
@@ -197,7 +204,7 @@ def test_duplicate_authorization_suppresses_cookie_and_failure_privacy_is_endpoi
 ):
     d = Dependencies()
     with TestClient(d.application()) as client:
-        for path in ["/api/auth/session", "/api/mobile/v1/mtg/inventory/" + PRINTING]:
+        for path in ["/api/v1/auth/session", "/api/v1/mtg/inventory/" + PRINTING]:
             response = client.get(
                 path,
                 headers=[
@@ -208,7 +215,7 @@ def test_duplicate_authorization_suppresses_cookie_and_failure_privacy_is_endpoi
             )
             assert response.status_code == 401
             assert response.json()["message"] == "Invalid bearer token"
-            assert ("cache-control" in response.headers) is path.startswith("/api/auth/")
+            assert ("cache-control" in response.headers) is path.startswith("/api/v1/auth/")
             assert response.headers.get_list("set-cookie")[0].startswith("spellbook_session=;")
 
 
@@ -230,7 +237,7 @@ def test_body_framing_media_utf8_json_and_inner_limit_use_the_shared_host() -> N
     with TestClient(d.application()) as client:
         for body, media, status, message in cases:
             response = client.post(
-                "/api/mobile/v1/mtg/inventory",
+                "/api/v1/mtg/inventory",
                 content=body,
                 headers={
                     "Authorization": "Bearer " + TOKEN,
@@ -244,8 +251,9 @@ def test_body_framing_media_utf8_json_and_inner_limit_use_the_shared_host() -> N
     cast(AsyncMock, d.inventory.add_items).assert_not_awaited()
 
 
-@pytest.mark.parametrize("path", ["/api/account/events", "/api/v1/account/events"])
-def test_sse_head_closes_real_subscription_and_has_only_one_receive_consumer(path: str) -> None:
+def test_sse_head_closes_real_subscription_and_has_only_one_receive_consumer() -> None:
+    path = "/api/v1/account/events"
+
     async def exercise() -> None:
         d = Dependencies()
         cast(AsyncMock, d.auth.validate_session).return_value = ACTOR
@@ -319,11 +327,11 @@ def test_declared_literal_routes_do_not_fall_through_to_an_entry_parameter() -> 
     d = Dependencies()
     with TestClient(d.application()) as client:
         response = client.get(
-            "/api/mobile/v1/mtg/inventory/groups", headers={"Cookie": "spellbook_session=" + TOKEN}
+            "/api/v1/mtg/inventory/groups", headers={"Cookie": "spellbook_session=" + TOKEN}
         )
         assert response.status_code == 401
         response = client.get(
-            "/api/mobile/v1/mtg/inventory/value", headers={"Cookie": "spellbook_session=" + TOKEN}
+            "/api/v1/mtg/inventory/value", headers={"Cookie": "spellbook_session=" + TOKEN}
         )
         assert response.status_code == 404
         assert response.json()["message"] == "Not Found"

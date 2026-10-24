@@ -1,4 +1,4 @@
-"""Python transfer of neutral Golden shared compatibility cases."""
+"""Shared wire, validation, authentication and fingerprint fixtures."""
 
 import asyncio
 import copy
@@ -55,7 +55,7 @@ from spellbook_core.validation import (
 )
 
 GOLDEN = json.loads(
-    (Path(__file__).resolve().parents[3] / "contracts/compatibility/golden.json").read_text()
+    (Path(__file__).resolve().parents[3] / "contracts/fixtures/wire.json").read_text()
 )
 UUID = "11111111-1111-4111-8111-111111111111"
 

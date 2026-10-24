@@ -1,4 +1,4 @@
-"""Canonical and legacy contracts at the production HTTP registry boundary.
+"""Current API contracts at the production HTTP registry boundary.
 
 Application doubles verify adapter policy, not PostgreSQL or client integration.
 """
@@ -21,15 +21,80 @@ from test_auth_account import ACTOR, CODE, EXPIRES, ORIGIN, SECRET, TOKEN, Depen
 
 from spellbook_api.application import create_application
 from spellbook_api.http.application import create_http_application
-from spellbook_api.http.router import RouteRegistry
+from spellbook_api.http.router import HttpRoute, RouteRegistry
 from spellbook_api.http.routes_saved_state import SavedStateRoutes
 from spellbook_api.http.types import Configuration
 
 PRINTING = "11111111-1111-4111-8111-111111111111"
 
 
-@pytest.mark.parametrize("prefix", ["/api/auth", "/api/v1/auth"])
-def test_browser_qr_cookie_jar_completes_flow_and_clears_only_its_namespace(prefix: str) -> None:
+@pytest.mark.parametrize("method", ["GET", "POST", "OPTIONS"])
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/api/auth/session",
+        "/api/auth/login",
+        "/api/auth/qr/requests",
+        "/api/auth/qr/token",
+        "/api/account/profile",
+        "/api/account/dashboard",
+        "/api/account/events",
+        "/api/catalog/search",
+        "/api/catalog/printings/" + PRINTING,
+        "/api/mobile/v1/mtg/search",
+        "/api/mobile/v1/mtg/cards/" + PRINTING + "/printings",
+        "/api/mobile/v1/mtg/inventory",
+        "/api/mobile/v1/mtg/inventory/value",
+        "/api/mobile/v1/mtg/decks",
+        "/api/mobile/v1/mtg/scan/sessions",
+        "/api/web/v1/commands",
+        "/api/web/v1/auth/login",
+        "/api/web/v1/auth/register",
+        "/api/web/v1/password",
+    ],
+)
+def test_removed_paths_return_404_without_dispatch_or_effects(
+    method: str, path: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    lifetime = create_application(
+        Configuration(ORIGIN, database_url="postgresql://localhost/unused")
+    )
+    registry = cast(RouteRegistry, cast(Route, lifetime.http.router.routes[-1]).app)
+    handlers = [AsyncMock(wraps=route.handle) for route in registry._routes]
+    registry._routes = [
+        HttpRoute(route.method, route.path, handler)
+        for route, handler in zip(registry._routes, handlers, strict=True)
+    ]
+    auth = AsyncMock(return_value=ACTOR)
+    monkeypatch.setattr(lifetime.http.state.resources.auth, "validate_session", auth)
+    client = TestClient(lifetime.http)
+    try:
+        for suffix in ["", "/"]:
+            response = client.request(
+                method,
+                path + suffix + "?limit=bad",
+                content="invalid form",
+                headers={
+                    "Authorization": "Bearer " + TOKEN,
+                    "Cookie": "spellbook_session=stale",
+                    "Origin": "https://foreign.example",
+                    "Content-Type": "text/plain",
+                },
+                follow_redirects=False,
+            )
+            assert response.status_code == 404
+            assert response.json() == {"message": "Not Found", "status": 404}
+            assert not {"location", "allow", "set-cookie"} & response.headers.keys()
+        auth.assert_not_awaited()
+        for handler in handlers:
+            handler.assert_not_awaited()
+    finally:
+        client.close()
+        asyncio.run(lifetime.close())
+
+
+def test_browser_qr_cookie_jar_completes_flow_and_clears_requester_cookie() -> None:
+    prefix = "/api/v1/auth"
     d = Dependencies()
     # A real cookie jar exercises Path matching rather than injecting the requester header.
     with (
@@ -76,9 +141,9 @@ def test_browser_qr_cookie_jar_completes_flow_and_clears_only_its_namespace(pref
         assert redeemed.headers["cache-control"] == "no-store"
 
 
-@pytest.mark.parametrize("prefix", ["/api/auth", "/api/v1/auth"])
 @pytest.mark.parametrize("terminal", ["denied", "expired"])
-def test_terminal_qr_result_cleans_namespace_cookie(prefix: str, terminal: str) -> None:
+def test_terminal_qr_result_cleans_requester_cookie(terminal: str) -> None:
+    prefix = "/api/v1/auth"
     d = Dependencies()
     with TestClient(d.app, base_url=ORIGIN) as client:
         client.post(prefix + "/qr/requests", json={"kind": "browser"}, headers={"Origin": ORIGIN})
@@ -91,8 +156,8 @@ def test_terminal_qr_result_cleans_namespace_cookie(prefix: str, terminal: str) 
         assert not list(client.cookies.jar)
 
 
-@pytest.mark.parametrize("prefix", ["/api/auth", "/api/v1/auth"])
-def test_device_qr_and_bearer_selection_keep_credentials_private(prefix: str) -> None:
+def test_device_qr_and_bearer_selection_keep_credentials_private() -> None:
+    prefix = "/api/v1/auth"
     d = Dependencies()
     with TestClient(d.app, base_url=ORIGIN) as client:
         created = client.post(prefix + "/qr/requests", json={"kind": "device"})
@@ -114,8 +179,8 @@ def test_device_qr_and_bearer_selection_keep_credentials_private(prefix: str) ->
         d.auth.validate_session.assert_awaited_with(None)
 
 
-@pytest.mark.parametrize("prefix", ["/api/web/v1", "/api/v1/web"])
-def test_raw_forms_keep_predecode_limits_and_password_cookie_rotation(prefix: str) -> None:
+def test_raw_forms_keep_predecode_limits_and_password_cookie_rotation() -> None:
+    prefix = "/api/v1/web"
     d = Dependencies()
     with TestClient(d.app, base_url=ORIGIN) as client:
         malformed = client.post(
@@ -150,15 +215,7 @@ def test_raw_forms_keep_predecode_limits_and_password_cookie_rotation(prefix: st
         assert changed.headers["cache-control"] == "no-store"
 
 
-@pytest.mark.parametrize(
-    "prefix,authenticated",
-    [
-        ("/api/catalog", False),
-        ("/api/v1/mtg/catalog", False),
-        ("/api/mobile/v1/mtg", True),
-    ],
-)
-def test_catalog_alias_authentication_precedes_parsing(prefix: str, authenticated: bool) -> None:
+def test_public_catalog_parses_first_query_values_without_authentication() -> None:
     d = Dependencies()
     catalog = create_autospec(Catalog, instance=True)
     catalog.search_catalog_request.return_value = {"hits": []}
@@ -170,31 +227,24 @@ def test_catalog_alias_authentication_precedes_parsing(prefix: str, authenticate
         saved_routes=create_autospec(SavedStateRoutes, instance=True),
     )
     with TestClient(app) as client:
-        invalid = client.get(prefix + "/search?limit=bad")
-        assert invalid.status_code == (401 if authenticated else 400)
-        valid = client.get(prefix + "/search?q=first&q=second&limit=3&limit=bad")
-        assert valid.status_code == (401 if authenticated else 200)
-        if authenticated:
-            catalog.search_catalog_request.assert_not_awaited()
-        else:
-            catalog.search_catalog_request.assert_awaited_once_with(
-                {"query": "first", "limit": 3, "offset": 0}
-            )
-        authorized = client.post(
-            prefix + "/search",
-            json={"query": "JSON", "limit": 4},
-            headers={"Authorization": "Bearer " + TOKEN},
+        path = "/api/v1/mtg/catalog/search"
+        assert client.get(path + "?limit=bad").status_code == 400
+        valid = client.get(path + "?q=first&q=second&limit=3&limit=bad")
+        assert valid.status_code == 200
+        catalog.search_catalog_request.assert_awaited_once_with(
+            {"query": "first", "limit": 3, "offset": 0}
         )
-        assert authorized.status_code == 200
+        posted = client.post(path, json={"query": "JSON", "limit": 4})
+        assert posted.status_code == 200
         catalog.search_catalog_request.assert_awaited_with({"query": "JSON", "limit": 4})
-        assert authorized.headers["cache-control"] == "no-store"
-        assert authorized.headers["x-robots-tag"] == "noindex, nofollow"
+        assert posted.headers["cache-control"] == "no-store"
+        assert posted.headers["x-robots-tag"] == "noindex, nofollow"
+        d.auth.validate_session.assert_not_awaited()
 
 
-def test_complete_registry_allow_options_and_405_match_both_contracts_without_auth() -> None:
+def test_complete_registry_allow_options_and_405_match_openapi_without_auth() -> None:
     root = Path(__file__).resolve().parents[3]
     schema = json.loads((root / "contracts/openapi.json").read_text())
-    inventory = json.loads((root / "contracts/compatibility/inventory.json").read_text())
     expected: dict[str, list[str]] = {}
     for path, item in schema["paths"].items():
         if path.startswith("/api/"):
@@ -203,14 +253,6 @@ def test_complete_registry_allow_options_and_405_match_both_contracts_without_au
                 for method in item
                 if method in {"get", "post", "patch", "put", "delete"}
             ]
-    for row in inventory["routes"]:
-        if row["transport"] == "api":
-            expected.setdefault(row["path"], []).append(row["method"])
-    # Frozen extraction rows use registration order; historical Allow uses this method order.
-    order = ["GET", "POST", "PUT", "PATCH", "DELETE"]
-    for path, methods in expected.items():
-        if not path.startswith("/api/v1/"):
-            methods.sort(key=order.index)
     lifetime = create_application(
         Configuration(ORIGIN, database_url="postgresql://localhost/unused")
     )
@@ -245,15 +287,10 @@ def test_complete_registry_allow_options_and_405_match_both_contracts_without_au
 @pytest.mark.parametrize(
     "path,policy",
     [
-        ("/api/auth/session", "no-store"),
         ("/api/v1/auth/session", "no-store"),
-        ("/api/account/profile", "no-store"),
         ("/api/v1/account/profile", "no-store"),
-        ("/api/account/dashboard", "no-store"),
         ("/api/v1/mtg/dashboard", "no-store"),
-        ("/api/mobile/v1/mtg/inventory/value", "private, no-store"),
         ("/api/v1/mtg/inventory/value", "private, no-store"),
-        ("/api/mobile/v1/mtg/inventory/value-history", "private, no-store"),
         ("/api/v1/mtg/inventory/value-history", "private, no-store"),
     ],
 )
@@ -279,10 +316,10 @@ def test_private_policy_is_preserved_on_failures_and_head(
         asyncio.run(lifetime.close())
 
 
-@pytest.mark.parametrize("prefix", ["/api/mobile/v1/mtg", "/api/v1/mtg"])
 def test_bodyless_origin_exception_and_command_retry_inputs_are_unchanged(
-    prefix: str, monkeypatch: pytest.MonkeyPatch
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    prefix = "/api/v1/mtg"
     lifetime = create_application(
         Configuration(ORIGIN, database_url="postgresql://localhost/unused")
     )
@@ -307,7 +344,7 @@ def test_bodyless_origin_exception_and_command_retry_inputs_are_unchanged(
         )
         assert forbidden.status_code == 403
         removed.assert_not_awaited()
-        commands = "/api/v1/mtg/commands" if prefix == "/api/v1/mtg" else "/api/web/v1/commands"
+        commands = "/api/v1/mtg/commands"
         value = {
             "requestId": "original",
             "catalogCardId": PRINTING,
@@ -326,8 +363,8 @@ def test_bodyless_origin_exception_and_command_retry_inputs_are_unchanged(
         asyncio.run(lifetime.close())
 
 
-@pytest.mark.parametrize("path", ["/api/account/events", "/api/v1/account/events"])
-def test_registry_sse_retains_receive_ownership_through_recovery_and_predrain(path: str) -> None:
+def test_registry_sse_retains_receive_ownership_through_recovery_and_predrain() -> None:
+    path = "/api/v1/account/events"
     from starlette.types import Message, Scope
     from test_saved_state_http import ORIGIN as STREAM_ORIGIN
     from test_saved_state_http import TOKEN as STREAM_TOKEN

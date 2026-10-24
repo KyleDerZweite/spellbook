@@ -40,8 +40,8 @@ def test_no_business_routes_or_generated_documentation_are_exposed() -> None:
             "/docs",
             "/redoc",
             "/docs/oauth2-redirect",
-            "/api/auth/session",
-            "/api/account/events",
+            "/api/v1/auth/session",
+            "/api/v1/account/events",
         ):
             response = client.get(path)
             assert response.status_code == 404

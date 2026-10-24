@@ -22,7 +22,6 @@ from spellbook_core.mtg.scan.validation import check_image
 
 from spellbook_api.http.admission import RequestAdmission
 from spellbook_api.http.mtg.routes_scan import create_scan_routes
-from spellbook_api.http.paths import canonical_path
 from spellbook_api.http.router import RawPathRouting, RouteRegistry
 
 BASE = "/api/v1/mtg/scan"
@@ -314,16 +313,19 @@ def routes() -> Iterator[tuple[Any, Any, TestClient]]:
         yield auth, scan, client
 
 
-def test_scan_factory_matches_neutral_routes() -> None:
+def test_scan_factory_matches_openapi_operations() -> None:
     auth = create_autospec(SessionAuth, instance=True)
     scan = create_autospec(Scan, instance=True)
-    root = Path(__file__).resolve().parents[3]
-    oracle = json.loads((root / "contracts/compatibility/inventory.json").read_text())
+    schema = json.loads(
+        (Path(__file__).resolve().parents[3] / "contracts/openapi.json").read_text()
+    )
     actual = {(route.method, route.path) for route in create_scan_routes(auth, scan, ORIGIN)}
     expected = {
-        (route["method"].upper(), canonical_path(re.sub(r"\{(\w+)\}", r":\1", route["path"])))
-        for route in oracle["routes"]
-        if canonical_path(route["path"]).startswith(BASE)
+        (method.upper(), re.sub(r"\{(\w+)\}", r":\1", path))
+        for path, item in schema["paths"].items()
+        if path.startswith(BASE)
+        for method in item
+        if method in {"get", "post", "put", "patch", "delete"}
     }
     assert actual == expected
 

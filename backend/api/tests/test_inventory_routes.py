@@ -26,7 +26,6 @@ from spellbook_core.mtg.inventory import (
 
 from spellbook_api.http.admission import RequestAdmission
 from spellbook_api.http.mtg.routes_inventory import create_inventory_routes
-from spellbook_api.http.paths import canonical_path
 from spellbook_api.http.router import RawPathRouting, RouteRegistry
 
 ORIGIN = "https://spellbook.test"
@@ -68,20 +67,22 @@ def routes() -> Iterator[tuple[Any, Inventory, TestClient, AsyncMock]]:
         yield auth, inventory, client, prepare
 
 
-def test_factory_matches_neutral_inventory_routes() -> None:
+def test_factory_matches_openapi_inventory_operations() -> None:
     inventory = cast(Inventory, create_autospec(Inventory))
     auth = cast(SessionAuth, create_autospec(SessionAuth))
     actual = {
         (route.method, route.path) for route in create_inventory_routes(auth, inventory, ORIGIN)
     }
-    root = Path(__file__).resolve().parents[3]
-    oracle = json.loads((root / "contracts/compatibility/inventory.json").read_text())
+    schema = json.loads(
+        (Path(__file__).resolve().parents[3] / "contracts/openapi.json").read_text()
+    )
     expected = {
-        (route["method"].upper(), canonical_path(re.sub(r"\{(\w+)\}", r":\1", route["path"])))
-        for route in oracle["routes"]
-        if canonical_path(route["path"]).startswith(BASE)
-        and canonical_path(route["path"])
-        not in {BASE + "/prices", BASE + "/value", BASE + "/value-history"}
+        (method.upper(), re.sub(r"\{(\w+)\}", r":\1", path))
+        for path, item in schema["paths"].items()
+        if path.startswith(BASE)
+        and path not in {BASE + "/prices", BASE + "/value", BASE + "/value-history"}
+        for method in item
+        if method in {"get", "post", "put", "patch", "delete"}
     }
     assert actual == expected
 

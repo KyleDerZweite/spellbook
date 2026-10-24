@@ -10,7 +10,6 @@ from starlette.responses import Response
 
 from spellbook_api.http.errors import HttpError
 from spellbook_api.http.parsing import decode_parameter, header, trim
-from spellbook_api.http.paths import canonical_path
 
 SESSION_COOKIE = "spellbook_session"
 
@@ -60,7 +59,6 @@ def require_form_origin(request: Request, public_origin: str, route_path: str = 
         "application/x-sveltekit-formdata",
     }:
         return
-    route_path = canonical_path(route_path)
     origin = header(request, "origin")
     if origin == public_origin:
         return

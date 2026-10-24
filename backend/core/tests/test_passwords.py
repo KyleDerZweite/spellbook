@@ -18,7 +18,7 @@ from spellbook_core.passwords import create_password_verifier, valid_password
 _P = ParamSpec("_P")
 _T = TypeVar("_T")
 _GOLDEN = json.loads(
-    (Path(__file__).resolve().parents[3] / "contracts/compatibility/golden.json").read_text()
+    (Path(__file__).resolve().parents[3] / "contracts/fixtures/wire.json").read_text()
 )
 
 

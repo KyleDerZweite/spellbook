@@ -18,7 +18,6 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import Message
 
-from spellbook_api.http.compatibility import compatibility_routes
 from spellbook_api.http.errors import error_response
 from spellbook_api.http.mtg.routes_catalog import create_catalog_routes
 from spellbook_api.http.mtg.routes_valuation import create_valuation_routes
@@ -81,43 +80,41 @@ async def invoke(route: HttpRoute, req: Request, params: dict[str, str] | None =
         return error_response(cause)
 
 
-def test_catalog_mobile_aliases_authenticate_before_validation_and_public_is_open() -> None:
+def test_catalog_search_is_public_and_preserves_validation_and_cache() -> None:
     async def scenario() -> None:
         auth, catalog, _ = dependencies()
-        routes = create_catalog_routes(catalog)
-        routes.extend(compatibility_routes(routes, auth, ORIGIN))
-        public = next(r for r in routes if r.method == "GET" and r.path == "/api/catalog/search")
-        response = await invoke(public, request(query="q=%C3%84ther&limit=0"))
+        route = next(
+            route
+            for route in create_catalog_routes(catalog)
+            if route.method == "GET" and route.path == "/api/v1/mtg/catalog/search"
+        )
+        response = await invoke(route, request(query="q=%C3%84ther&limit=0"))
         assert response.status_code == 200 and response.headers["cache-control"] == "no-store"
         auth.validate_session.assert_not_awaited()
         catalog.search_catalog_request.assert_awaited_once_with(
             {"query": "Äther", "limit": 0, "offset": 0}
         )
-        auth.validate_session.return_value = None
-        for route in routes:
-            if "/mobile/" in route.path:
-                response = await invoke(
-                    route,
-                    request(method=route.method, query="limit=bad", body=None),
-                    {"oracleId": "bad"},
-                )
-                assert response.status_code == 401
-        catalog.get_printings.assert_not_awaited()
+        response = await invoke(route, request(query="limit=bad"))
+        assert response.status_code == 400
+        catalog.search_catalog_request.assert_awaited_once()
 
     asyncio.run(scenario())
 
 
 def test_catalog_singleton_and_printings_preserve_validation_and_cache() -> None:
     async def scenario() -> None:
-        auth, catalog, _ = dependencies()
+        _auth, catalog, _ = dependencies()
         routes = create_catalog_routes(catalog)
-        routes.extend(compatibility_routes(routes, auth, ORIGIN))
-        singleton = next(r for r in routes if r.path == "/api/catalog/printings/:printingId")
+        singleton = next(
+            r for r in routes if r.path == "/api/v1/mtg/catalog/printings/:printingId"
+        )
         catalog.get_catalog_printing.side_effect = CatalogPrintingNotFoundError()
         response = await invoke(singleton, request(), {"printingId": PRINTING})
         assert response.status_code == 404
         assert json.loads(bytes(response.body))["message"] == "Catalog printing not found"
-        printings = next(r for r in routes if r.path == "/api/catalog/cards/:oracleId/printings")
+        printings = next(
+            r for r in routes if r.path == "/api/v1/mtg/catalog/cards/:oracleId/printings"
+        )
         response = await invoke(printings, request(query="limit=0"), {"oracleId": PRINTING})
         assert response.status_code == 400
         catalog.get_printings.assert_not_awaited()
@@ -198,10 +195,8 @@ def test_private_value_cache_policy_and_actor_forwarding(monkeypatch: pytest.Mon
 @pytest.mark.parametrize(
     "path",
     [
-        "/api/catalog/search",
-        "/api/mobile/v1/mtg/search",
-        "/api/catalog/cards/:oracleId/printings",
-        "/api/mobile/v1/mtg/cards/:oracleId/printings",
+        "/api/v1/mtg/catalog/search",
+        "/api/v1/mtg/catalog/cards/:oracleId/printings",
     ],
 )
 @pytest.mark.parametrize(
@@ -223,17 +218,14 @@ def test_catalog_get_queries_select_first_repeated_value(
         auth, catalog, _ = dependencies()
         route = next(
             route
-            for route in compatibility_routes(create_catalog_routes(catalog), auth, ORIGIN)
+            for route in create_catalog_routes(catalog)
             if route.method == "GET" and route.path == path
         )
         response = await invoke(
             route, request(query=query, bearer="Bearer " + "a" * 43), {"oracleId": PRINTING}
         )
         assert response.status_code == status
-        if "/mobile/" in path:
-            auth.validate_session.assert_awaited_once_with("a" * 43)
-        else:
-            auth.validate_session.assert_not_awaited()
+        auth.validate_session.assert_not_awaited()
         if error_field is not None:
             assert json.loads(bytes(response.body))["message"].startswith(
                 f"{error_field} must be an integer"
@@ -250,12 +242,12 @@ def test_catalog_get_queries_select_first_repeated_value(
     asyncio.run(scenario())
 
 
-@pytest.mark.parametrize("path", ["/api/catalog/search", "/api/mobile/v1/mtg/search"])
-def test_catalog_search_preserves_first_empty_query_and_post_json_input(path: str) -> None:
+def test_catalog_search_preserves_first_empty_query_and_post_json_input() -> None:
+    path = "/api/v1/mtg/catalog/search"
+
     async def scenario() -> None:
-        auth, catalog, _ = dependencies()
+        _auth, catalog, _ = dependencies()
         routes = create_catalog_routes(catalog)
-        routes.extend(compatibility_routes(routes, auth, ORIGIN))
         for method, expected in [
             ("GET", {"query": "", "limit": 20, "offset": 0}),
             ("POST", {"query": "from JSON", "limit": 4, "offset": 8}),

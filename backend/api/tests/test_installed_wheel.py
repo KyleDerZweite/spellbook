@@ -121,9 +121,11 @@ def test_installed_migrator_operators_and_assets_from_external_cwd(tmp_path: Pat
     assert missing.stdout == ""
     script = tmp_path / "check_installed.py"
     script.write_text("""
-import hashlib, json, os
+import asyncio, hashlib, json, os, re
 from contextlib import contextmanager
 from importlib.metadata import distribution
+from importlib.resources import files
+from importlib.util import find_spec
 from pathlib import Path
 import spellbook_api, spellbook_core
 from spellbook_api import migrate as cli
@@ -142,6 +144,28 @@ from spellbook_api.scan_storage import ScanStorageConfiguration, create_scan_sto
 from spellbook_api.scan_worker import HttpScanWorker
 for package in (spellbook_api, spellbook_core):
     assert '/site-packages/' in package.__file__
+assert find_spec('spellbook_api.http.compatibility') is None
+assert find_spec('spellbook_api.http.paths') is None
+from spellbook_api.application import create_application
+from spellbook_api.http.types import Configuration
+lifetime = create_application(Configuration(
+    'https://candidate.example', database_url='postgresql://localhost/unused'
+))
+try:
+    schema = json.loads(files('spellbook_api').joinpath('openapi.json').read_text())
+    expected = {
+        (method.upper(), re.sub(r'\\{([^}]+)\\}', r':\\1', path))
+        for path, item in schema['paths'].items()
+        if path.startswith('/api/')
+        for method in item
+        if method in {'get', 'post', 'put', 'patch', 'delete'}
+    }
+    registry = lifetime.http.router.routes[-1].app
+    assert {(route.method, route.path) for route in registry._routes} == (
+        expected | {('GET', '/openapi.json')}
+    )
+finally:
+    asyncio.run(lifetime.close())
 directory = cli._default_directory()
 assert '/site-packages/' in str(directory)
 migrations = read_migrations(directory)

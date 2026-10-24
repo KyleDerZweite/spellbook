@@ -40,7 +40,7 @@ from spellbook_core.mtg.models import CardDocument
 from spellbook_core.validation import MISSING, js_utf8
 
 ROOT = Path(__file__).resolve().parents[3]
-GOLDEN: dict[str, Any] = json.loads((ROOT / "contracts/compatibility/golden.json").read_text())
+GOLDEN: dict[str, Any] = json.loads((ROOT / "contracts/fixtures/wire.json").read_text())
 PRINTINGS: list[CardDocument] = json.loads((ROOT / "backend/scripts/demo/cards.json").read_text())
 CARD = PRINTINGS[0]
 ACTOR = Actor("unit-account", "unit", "", "", "")

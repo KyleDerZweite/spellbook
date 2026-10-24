@@ -40,7 +40,7 @@ from spellbook_api.http.parsing import (
 )
 
 GOLDEN: dict[str, Any] = json.loads(
-    (Path(__file__).resolve().parents[3] / "contracts/compatibility/golden.json").read_text()
+    (Path(__file__).resolve().parents[3] / "contracts/fixtures/wire.json").read_text()
 )
 
 

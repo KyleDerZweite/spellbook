@@ -20,7 +20,6 @@ from starlette.routing import Route
 
 from spellbook_api.http import routes_account, routes_auth
 from spellbook_api.http.admission import RequestAdmission
-from spellbook_api.http.compatibility import compatibility_methods, compatibility_routes
 from spellbook_api.http.errors import json_response
 from spellbook_api.http.mtg import (
     routes_catalog,
@@ -147,7 +146,6 @@ def create_http_application(
         routes.extend(
             routes_dashboard.create_dashboard_routes(auth, dashboard, configuration.public_origin)
         )
-    routes.extend(compatibility_routes(routes, auth, configuration.public_origin))
     declared = {
         re.sub(r"\{([^}]+)\}", r":\1", path): tuple(
             method.upper()
@@ -155,8 +153,8 @@ def create_http_application(
             if method in {"get", "post", "put", "patch", "delete"}
         )
         for path, item in schema["paths"].items()
+        if path.startswith("/api/")
     }
-    declared.update(compatibility_methods(declared))
     http.router.routes.append(
         Route(
             "/{path:path}",
