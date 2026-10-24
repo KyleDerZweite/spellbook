@@ -21,6 +21,7 @@ Vor strategischen Entscheidungen und Wiederaufnahme den Index und relevante Seit
 - [Prioritäten und Zusammenarbeit](./priorities.md): Maintainability vor Simplicity vor Features, Context Pointers und abgelöste Proof-Gates.
 - [Android zuerst](./mobile-direction.md): Bestätigte Plattformpriorität und getrennte Kotlin-Empfehlung.
 - [Interface-Entfernung](./interface-removal.md): Sofortiger Ersatz alter Interfaces und getrennte Production-Autorität.
+- [Datenbankoptionen](./database-options.md): Offener SQLite-/Turso-Brainstorm, PostgreSQL-Historie und bedingte Empfehlung ohne Wechselentscheidung.
 
 ## Tooling und Prüfungen
 

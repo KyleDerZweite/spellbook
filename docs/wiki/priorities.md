@@ -4,7 +4,7 @@
 - Last Reviewed: 2026-10-24
 - Source of Truth: datierte Quellenverweise; aktuelle Verträge bei den bestehenden Owners
 - Update Triggers: Prioritätswechsel, Agent-Zusammenarbeit, konkrete Environment-Reibung
-- Related Docs: [Index](./index.md), [Wiki-Pflege](./wiki-maintenance.md), [Interface-Entfernung](./interface-removal.md)
+- Related Docs: [Index](./index.md), [Wiki-Pflege](./wiki-maintenance.md), [Interface-Entfernung](./interface-removal.md), [Datenbankoptionen](./database-options.md)
 
 Am 2026-10-24 bekräftigte Kyle die Reihenfolge Long Term Maintainable, Simplicity, Features.
 Er beauftragte Root als DRI mit der Koordination von Background-Main-Agents und knapper Kommunikation über Context Pointers.
