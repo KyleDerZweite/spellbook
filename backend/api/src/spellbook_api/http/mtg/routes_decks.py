@@ -1,4 +1,4 @@
-"""Nineteen Deck adapters preserve the existing HTTP contract without schema coercion."""
+"""Nineteen native Deck routes adapt typed queries and bounded request bodies."""
 
 from typing import Annotated
 
@@ -231,7 +231,10 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> APIRoute
         return json_response(dict(ok=True))
 
     async def detail(
-        request: Request, deckId: UUIDPath, actor: Annotated[Actor, Depends(authenticated)]
+        request: Request,
+        deckId: UUIDPath,
+        actor: Annotated[Actor, Depends(authenticated)],
+        selectedOnly: bool = False,
     ) -> Response:
         deck_id = deckId
         flags = request.query_params.getlist("includeLegality")
@@ -241,16 +244,13 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> APIRoute
             or flag not in (None, "true", "false")
             or (
                 flag == "false"
-                and (
-                    len(request.query_params.getlist("selectedOnly")) != 1
-                    or scalar(request, "selectedOnly") != "true"
-                )
+                and (len(request.query_params.getlist("selectedOnly")) != 1 or not selectedOnly)
             )
         ):
             raise HttpError(400, "includeLegality=false requires selectedOnly=true.")
         state = (
             await decks.get_deck(actor, deck_id)
-            if scalar(request, "selectedOnly") == "true"
+            if selectedOnly
             else await decks.get_deck_snapshot(actor, "mtg", deck_id)
         )
         if flag == "false":

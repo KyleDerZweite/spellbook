@@ -1,4 +1,4 @@
-"""All nineteen Deck adapters exercise the production RAW registry and scalar rules."""
+"""All nineteen Deck routes exercise native dispatch, validation and application calls."""
 
 import json
 from collections.abc import Iterator
@@ -223,11 +223,54 @@ def test_detail_rejects_invalid_legality_flags_before_reading_deck(
     decks.get_deck.assert_not_awaited()
 
 
-def test_selected_only_omits_legality_lookup_and_head_is_rejected(
-    routes: tuple[Any, TestClient],
+@pytest.mark.parametrize(
+    ("query", "selected"),
+    [
+        ("true", True),
+        ("false", False),
+        ("TRUE", True),
+        ("1", True),
+        ("0", False),
+        ("true&selectedOnly=false", False),
+        ("false&selectedOnly=true", True),
+        ("unexpected&selectedOnly=true", True),
+    ],
+)
+def test_selected_only_uses_native_boolean_query_and_last_value(
+    routes: tuple[Any, TestClient], query: str, selected: bool
 ) -> None:
     decks, client = routes
-    response = client.get(BASE + "/decks/" + DECK + "?selectedOnly=true&includeLegality=false")
+    response = client.get(BASE + "/decks/" + DECK + "?selectedOnly=" + query)
+    assert response.status_code == 200
+    if selected:
+        decks.get_deck.assert_awaited_once_with(ACTOR, DECK)
+        decks.get_deck_snapshot.assert_not_awaited()
+    else:
+        decks.get_deck_snapshot.assert_awaited_once_with(ACTOR, "mtg", DECK)
+        decks.get_deck.assert_not_awaited()
+
+
+@pytest.mark.parametrize("query", ["", "unexpected", "true&selectedOnly=unexpected"])
+def test_selected_only_rejects_invalid_boolean_before_deck_read(
+    routes: tuple[Any, TestClient], query: str
+) -> None:
+    decks, client = routes
+    response = client.get(BASE + "/decks/" + DECK + "?selectedOnly=" + query)
+    assert response.status_code == 400
+    assert response.json() == {"status": 400, "message": "Invalid request"}
+    decks.get_deck_snapshot.assert_not_awaited()
+    decks.get_deck.assert_not_awaited()
+    decks.get_deck_legality.assert_not_awaited()
+
+
+@pytest.mark.parametrize("selected", ["true", "TRUE", "1"])
+def test_selected_only_omits_legality_lookup_and_head_is_rejected(
+    routes: tuple[Any, TestClient], selected: str
+) -> None:
+    decks, client = routes
+    response = client.get(
+        BASE + "/decks/" + DECK + "?selectedOnly=" + selected + "&includeLegality=false"
+    )
     assert response.status_code == 200 and response.json() == SNAPSHOT
     decks.get_deck.assert_awaited_once_with(ACTOR, DECK)
     decks.get_deck_snapshot.assert_not_awaited()

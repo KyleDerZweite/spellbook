@@ -4576,7 +4576,7 @@
 							"type": "boolean",
 							"default": false
 						},
-						"description": "true independently loads only the selected Deck; default preserves account directory metadata."
+						"description": "Native boolean query; true independently loads only the selected Deck, false or omission preserves account directory metadata. The last occurrence wins; invalid boolean values return 400."
 					},
 					{
 						"name": "includeLegality",
@@ -4585,7 +4585,7 @@
 							"type": "boolean",
 							"default": true
 						},
-						"description": "Literal false omits warnings and deckDocuments and requires literal selectedOnly=true. Missing or literal true preserves the full response. Invalid values, duplicate occurrences and invalid narrow combinations return 400."
+						"description": "Literal false omits warnings and deckDocuments and requires a single selectedOnly parameter parsed as true. Missing or literal true preserves the full response. Invalid values, duplicate includeLegality occurrences and invalid narrow combinations return 400."
 					}
 				]
 			},

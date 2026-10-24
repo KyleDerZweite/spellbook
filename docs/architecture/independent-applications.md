@@ -3,7 +3,7 @@
 - Status: Independent Python API and workers implemented; native target verification pending
 - Last Reviewed: 2026-10-25
 - Source of Truth: accepted maintainer direction and existing application contracts
-- Update Triggers: native FastAPI HTTP contract and pre-release receipt scope, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, canonical-only versioned game API and client upgrades, Python source activation and implementation status, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, HTTP extraction, native delivery, credential forwarding, application ownership, acceptance evidence
+- Update Triggers: raw Web header multiplicity and native boolean queries, native FastAPI HTTP contract and pre-release receipt scope, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, canonical-only versioned game API and client upgrades, Python source activation and implementation status, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, HTTP extraction, native delivery, credential forwarding, application ownership, acceptance evidence
 - Related Docs: [System overview](./system-overview.md), [Application contract](./application-contract.md), [Auth](./auth.md), [Mobile handoff](../product/mobile-app-exploration.md), [ADR-0024](../decisions/0024-independent-applications.md), [Verification](../operations/github-automation.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md)
 
 ## Outcome and ownership
@@ -69,6 +69,7 @@ Global handlers in `http/errors.py` produce safe 400 validation errors, retain k
 Native JSON responses and Uvicorn/h11 replace Node-specific parsing, number rendering and method emulation.
 Canonical paths have no trailing slash, aliases or redirects; HEAD and OPTIONS return native 405 without opening an SSE subscription.
 Native scalar queries select the last value; declared lists retain all values and endpoint-specific duplicate rejection remains explicit.
+Deck `selectedOnly` uses native Boolean parsing; invalid values return 400 instead of falling back to false.
 Application methods, SQL and the current-version receipt fingerprint serializer remain in Core.
 Core imports neither HTTP nor a client framework; workers import Core without importing API.
 The native Python boundary checker enforces those directions.
@@ -100,6 +101,8 @@ Optional fields are not silently filled.
 
 The API revalidates credentials into the backend's trusted actor for every request.
 Mobile/API routes preserve bearer-before-cookie selection, including no cookie fallback after an invalid Authorization header.
+The shared Web hook rejects repeated Authorization, Origin and Content-Type lines using adapter-node's original `platform.req.rawHeaders`, before proxy, session or form-action work.
+It returns a safe 400 with no-store and noindex headers because normalized Fetch headers can join or discard those duplicates.
 The closed web command endpoint retains this direct API credential selection; SSR/forms forward only the selected browser cookie.
 SSR and form actions select only the browser cookie identity, even if a page request also supplies a bearer header.
 Cookie mutations retain Origin protection.

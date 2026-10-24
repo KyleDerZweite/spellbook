@@ -18,7 +18,7 @@ type FullDeck = DeckSnapshot & {
 	deckDocuments: Record<string, CardDocument>;
 };
 
-test('built selected Deck refresh projection preserves coherent PostgreSQL state and legacy parsing', async (t) => {
+test('built selected Deck refresh projection preserves coherent PostgreSQL state and native queries', async (t) => {
 	const pool = new pg.Pool({ connectionString: databaseUrl });
 	const accounts: string[] = [],
 		publication = randomUUID();
@@ -149,37 +149,28 @@ test('built selected Deck refresh projection preserves coherent PostgreSQL state
 			assert.equal(response.headers.get('cache-control'), 'no-store');
 			return response.json();
 		}
-		await t.test(
-			'default and includeLegality=true preserve the complete old response',
-			async () => {
-				const legacy = await body(''),
-					explicit = await body('?includeLegality=true');
-				assert.equal(legacy.decks.length, 2);
-				assert.deepEqual(Object.keys(explicit).sort(), Object.keys(legacy).sort());
-				assert.deepEqual(explicit.warnings, legacy.warnings);
-				assert.deepEqual(explicit.deckDocuments, legacy.deckDocuments);
-				assert.ok(Array.isArray(legacy.warnings));
-				assert.equal(legacy.deckDocuments[printing.id].id, printing.id);
+		await t.test('default and includeLegality=true return the complete response', async () => {
+			const legacy = await body(''),
+				explicit = await body('?includeLegality=true');
+			assert.equal(legacy.decks.length, 2);
+			assert.deepEqual(Object.keys(explicit).sort(), Object.keys(legacy).sort());
+			assert.deepEqual(explicit.warnings, legacy.warnings);
+			assert.deepEqual(explicit.deckDocuments, legacy.deckDocuments);
+			assert.ok(Array.isArray(legacy.warnings));
+			assert.equal(legacy.deckDocuments[printing.id].id, printing.id);
+		});
+		await t.test('selectedOnly uses native booleans and the last query value', async () => {
+			for (const flag of ['', '&includeLegality=true']) {
+				for (const value of ['false', 'FALSE', '0'])
+					assert.equal((await body(`?selectedOnly=${value}${flag}`)).decks.length, 2);
+				for (const value of ['true', 'TRUE', '1'])
+					assert.equal((await body(`?selectedOnly=${value}${flag}`)).decks.length, 1);
+				for (const value of ['', 'unexpected'])
+					assert.equal((await read(`?selectedOnly=${value}${flag}`)).status, 400);
+				assert.equal((await body(`?selectedOnly=true&selectedOnly=false${flag}`)).decks.length, 2);
+				assert.equal((await body(`?selectedOnly=false&selectedOnly=true${flag}`)).decks.length, 1);
 			}
-		);
-		await t.test(
-			'legacy selectedOnly stays permissive with absent/true includeLegality',
-			async () => {
-				for (const flag of ['', '&includeLegality=true']) {
-					for (const value of ['false', 'TRUE', '1', '', 'unexpected'])
-						assert.equal((await body(`?selectedOnly=${value}${flag}`)).decks.length, 2);
-					assert.equal((await body(`?selectedOnly=true${flag}`)).decks.length, 1);
-					assert.equal(
-						(await body(`?selectedOnly=true&selectedOnly=false${flag}`)).decks.length,
-						1
-					);
-					assert.equal(
-						(await body(`?selectedOnly=false&selectedOnly=true${flag}`)).decks.length,
-						2
-					);
-				}
-			}
-		);
+		});
 		await t.test(
 			'narrow response omits only legality and documents and keeps composition/ownership/availability/values coherent',
 			async () => {
@@ -218,8 +209,6 @@ test('built selected Deck refresh projection preserves coherent PostgreSQL state
 				for (const query of [
 					'?includeLegality=false',
 					'?selectedOnly=false&includeLegality=false',
-					'?selectedOnly=TRUE&includeLegality=false',
-					'?selectedOnly=1&includeLegality=false',
 					'?selectedOnly=&includeLegality=false',
 					'?selectedOnly=true&includeLegality=',
 					'?selectedOnly=true&includeLegality=FALSE',
