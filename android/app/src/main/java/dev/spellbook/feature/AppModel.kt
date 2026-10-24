@@ -326,8 +326,7 @@ class AppModel(application: Application) : AndroidViewModel(application) {
     fun finishReceipt() {
         if (state.value.draft.attempt?.confirmedReceipt == null) return
         val attempt = state.value.draft.attempt ?: return
-        // Retained attempts keep their original path through retry and receipt acknowledgement.
-        val wasAdd = attempt.method == "POST" && attempt.path in setOf("/api/v1/mtg/inventory", "/api/mobile/v1/mtg/inventory")
+        val wasAdd = attempt.method == "POST" && attempt.path == "/api/v1/mtg/inventory"
         if (setDraft(if (wasAdd) DraftState() else state.value.draft.copy(attempt = null))) {
             update { it.copy(notice = null, writeError = null, formGeneration = it.formGeneration + 1) }
         }

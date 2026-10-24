@@ -27,7 +27,7 @@ describe('same-origin streaming API proxy', () => {
 			expect(new Uint8Array(await response.arrayBuffer())).toHaveLength(8);
 		}
 	);
-	it.each(['/api/v1/auth/qr/token', '/api/auth/qr/token'])(
+	it.each(['/api/v1/auth/qr/token'])(
 		'preserves raw bearer/cookie/Origin and client address for %s',
 		async (path) => {
 			const request = event(path + '?code=one', {

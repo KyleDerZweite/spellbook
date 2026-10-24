@@ -3,7 +3,7 @@
 - Status: Implemented client, native acceptance pending integration
 - Last Reviewed: 2026-10-24
 - Source of Truth: this Gradle project and the shared HTTP contracts
-- Update Triggers: canonical versioned API paths, native behavior, toolchain, API origin, credential storage, retention, streamed response bounds, reviewed deletion, account intent lifetime and acceptance evidence
+- Update Triggers: canonical versioned API paths, current-operation mutation recovery, native behavior, toolchain, API origin, credential storage, retention, streamed response bounds, reviewed deletion, account intent lifetime and acceptance evidence
 - Related Docs: [Independent applications](../docs/architecture/independent-applications.md), [Mobile design handoff](../docs/product/mobile-app-exploration.md), [Authentication](../docs/architecture/auth.md), [Mobile HTTP](../docs/architecture/mobile-and-scan.md)
 
 This independent Kotlin/Compose application uses the Python API directly.
@@ -137,9 +137,10 @@ A remote quantity change cannot enlarge that review; HTTP 409 requires another e
 Ambiguous removal retries keep the original body and request ID.
 
 A mutation persists its method, exact serialized body, request ID, backend and account before dispatch.
-New attempts use canonical paths; attempts retained from earlier versions keep their original path through the API's compatibility aliases.
 An ambiguous failure exposes only an explicit retry of that frozen attempt.
 It cannot be replayed for a different account/backend.
+Only current mutation operations can be retained or retried.
+Loading a draft discards an obsolete attempt without changing its add draft or rewriting the operation.
 Successful acknowledgement is persisted before current-state refresh.
 A reload failure keeps the confirmed receipt and offers a read retry.
 It cannot resend a successful write.

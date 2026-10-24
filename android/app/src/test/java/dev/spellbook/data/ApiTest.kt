@@ -98,20 +98,41 @@ class ApiTest {
         assertThrows(IllegalStateException::class.java) { attempt.retryFor("https://b.example.test", "account-a") }
         assertThrows(IllegalStateException::class.java) { attempt.confirm("""{"requestId":"another-request","revision":"1","changes":[],"removedEntryIds":[]}""") }
     }
-    @Test fun `retained legacy attempt retries its original route and body without rewriting`() = runTest {
-        val original = MutationAttempt("https://api.example.test", "a", "POST", "/api/mobile/v1/mtg/inventory", "{\"requestId\":\"old-request\",\"source\":\"mobile\",\"items\":[]}", "old-request")
-        val restored = WireJson.decodeFromString<DraftState>(WireJson.encodeToString(DraftState(attempt = original)))
-        val retry = restored.attempt!!.retryFor(original.backend, original.accountId)
-        val engine = MockEngine { request ->
-            assertEquals(original.path, request.url.encodedPath)
-            assertEquals(original.body, (request.body as TextContent).text)
-            assertEquals(HttpMethod.Post, request.method)
-            respond("""{"requestId":"old-request","revision":"7","changes":[],"removedEntryIds":[]}""")
+    @Test fun `obsolete persisted attempts are discarded without changing the add draft`() {
+        val add = AddDraft(Printing("printing-a", "canonical-a", "Card", is_nonfoil_available = true), "3")
+        val original = MutationAttempt("https://api.example.test", "a", "POST", "/api/mobile/v1/mtg/inventory", "{\"requestId\":\"old-request\",\"items\":[]}", "old-request")
+        for (attempt in listOf(original, original.copy(confirmedReceipt = "saved receipt"))) {
+            val restored = WireJson.decodeFromString<DraftState>(WireJson.encodeToString(DraftState(add, attempt)))
+                .withCurrentAttempt()
+            assertEquals(add, restored.add)
+            assertNull(restored.attempt)
+            assertThrows(IllegalStateException::class.java) { attempt.retryFor(attempt.backend, attempt.accountId) }
         }
-        Api(original.backend, HttpClient(engine)).use { api ->
-            val confirmed = retry.confirm(api.request(retry.path, "a", retry.method, retry.body))
-            assertNotNull(confirmed.confirmedReceipt)
-            assertThrows(IllegalStateException::class.java) { confirmed.retryFor(original.backend, "a") }
+        assertEquals(DraftState(add), DraftState(add).withCurrentAttempt())
+    }
+    @Test fun `only current mutation operations retain frozen attempts`() {
+        val current = listOf(
+            "POST" to "/api/v1/mtg/inventory", "POST" to "/api/v1/mtg/inventory/groups",
+            "PATCH" to "/api/v1/mtg/inventory/entry-a", "DELETE" to "/api/v1/mtg/inventory/entry-a",
+            "PUT" to "/api/v1/mtg/inventory/entry-a/groups",
+        )
+        for ((method, path) in current) {
+            val attempt = MutationAttempt("https://api.example.test", "a", method, path, "frozen body", "request-a")
+            for (retained in listOf(attempt, attempt.copy(confirmedReceipt = "saved receipt"))) {
+                val draft = DraftState(attempt = retained)
+                val restored = WireJson.decodeFromString<DraftState>(WireJson.encodeToString(draft)).withCurrentAttempt()
+                assertEquals(draft, restored)
+            }
+            assertEquals(attempt, attempt.retryFor(attempt.backend, attempt.accountId))
+        }
+        for ((method, path) in listOf(
+            "GET" to "/api/v1/mtg/inventory", "POST" to "/api/v1/mtg/inventory/entry-a",
+            "PATCH" to "/api/v1/mtg/inventory/entry-a/groups", "DELETE" to "/api/v1/mtg/inventory/entry-a?old=true",
+            "PUT" to "/api/v1/mtg/inventory/entry-a/groups/old",
+        )) {
+            val attempt = MutationAttempt("https://api.example.test", "a", method, path, "frozen body", "request-a")
+            assertNull(DraftState(attempt = attempt).withCurrentAttempt().attempt)
+            assertThrows(IllegalStateException::class.java) { attempt.retryFor(attempt.backend, attempt.accountId) }
         }
     }
     @Test fun `add body uses printing identity and keeps existing Notes unchanged`() {

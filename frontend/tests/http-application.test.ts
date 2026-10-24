@@ -183,9 +183,6 @@ test('built HTTP application preserves public Catalog and local account journeys
 				assert.equal(deep.hits.length, 100);
 				assert.equal(deep.estimatedTotalHits, 600);
 				assert.equal(deep.generationId, generation);
-				// Compatibility aliases retain authentication even though canonical Catalog is public.
-				assert.equal((await request('/api/mobile/v1/mtg/search?limit=500')).status, 401);
-				assert.equal((await request('/api/mobile/v1/mtg/search', { limit: 500 })).status, 401);
 				for (const limit of [0, 101, 500, 501])
 					assert.equal(
 						(await request(`/api/v1/mtg/catalog/cards/${card.oracle_id}/printings?limit=${limit}`))
@@ -609,8 +606,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 					}
 				assert.equal((await request('/api/v1/auth/logout', {}, { authorization })).status, 204);
 				assert.equal(
-					(await request('/api/mobile/v1/mtg/search?q=Sol%20Ring', undefined, { authorization }))
-						.status,
+					(await request('/api/v1/mtg/inventory', undefined, { authorization })).status,
 					401
 				);
 				assert.equal((await request('/api/v1/mtg/catalog/search?q=Sol%20Ring')).status, 200);

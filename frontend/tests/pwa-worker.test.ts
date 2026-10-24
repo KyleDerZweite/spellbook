@@ -151,8 +151,6 @@ test('built PWA worker preserves the public-only cache and explicit update bound
 		'/api/v1/account/events',
 		'/api/v1/mtg/catalog/search',
 		'/api/v1/mtg/scan/artifacts/photo.png',
-		'/api/account/profile',
-		'/api/auth/qr/requests/code',
 		'/auth/login',
 		'/app',
 		'/showcase/sol-ring.webp'
