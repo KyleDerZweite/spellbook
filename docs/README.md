@@ -17,7 +17,8 @@ The code, tests, and configuration resolve implementation questions.
 The [Python migration contract](./architecture/python-backend-migration.md) and [ADR-0027](./decisions/0027-python-functional-migration-acceptance.md) own functional porting acceptance, retired strict resource gates and the complete unmerged candidate.
 Production operations remain separate.
 
-[ADR-0028](./decisions/0028-versioned-game-api.md) owns the canonical versioned shared/MTG API and direct legacy aliases.
+[ADR-0028](./decisions/0028-versioned-game-api.md) owns the canonical versioned shared/MTG API.
+[ADR-0029](./decisions/0029-remove-replaced-interfaces.md) selects immediate removal of replaced interfaces; older clients must update.
 The [independent applications contract](./architecture/independent-applications.md) owns the accepted web/API/Android split and implementation status.
 [Deployment](./operations/deployment.md#independent-build-and-start) owns separate runtime commands; [verification](./operations/github-automation.md) owns current-artifact evidence and unavailable native checks.
 

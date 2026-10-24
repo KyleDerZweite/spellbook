@@ -7,6 +7,7 @@
   Apply KISS, YAGNI, DRY, SOLID and Separation of Concerns; avoid broad refactors during feature work.
 - Document the rationale for new dependencies.
   Keep secrets out of code and tool output.
+- When replacing or deprecating an interface, follow [the removal policy](CONTRIBUTING.md#replacing-interfaces).
 - Never use SIGKILL or terminate the user's processes.
   Stop only verified task-owned processes gracefully.
   After a crash, verify repository state, preserved work and runtime ownership yourself before starting subagents.

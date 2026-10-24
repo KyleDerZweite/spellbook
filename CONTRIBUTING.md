@@ -43,6 +43,15 @@ Use the [pull request template](.github/pull_request_template.md) for this discl
 Maintainers evaluate scope and quality regardless of AI use.
 The review and acceptance policy above still applies.
 
+## Replacing interfaces
+
+Replace interfaces and update first-party callers in the same change.
+Delete superseded routes, code, adapters, tests and documentation instead of keeping compatibility aliases, redirects, fallbacks or a deprecation window.
+Older clients must update to the current release; API path versions do not promise support for previous releases.
+Describe removed interfaces and their replacements in the pull request.
+Preserve stored user data and SQL history unless their removal is explicitly part of the requested change.
+See [ADR-0029](docs/decisions/0029-remove-replaced-interfaces.md) for this decision.
+
 ## Security
 
 Do not open public issues for vulnerabilities.

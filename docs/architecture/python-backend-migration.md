@@ -116,11 +116,11 @@ Worker tests that apply selected SQL subsets do not establish this handoff.
 ## Compatibility invariants
 
 The existing [application](./application-contract.md), [HTTP/Auth](./independent-applications.md#authority-and-compatibility), [Postgres](./postgres.md), [Catalog](./catalog.md) and [Worker](./worker.md) documents retain behavioral ownership.
-The port preserves every legacy route as a direct alias, method, closed web command and browser form without a new response envelope.
+The port preserves current application behavior, closed web commands and browser forms without a new response envelope.
 [ADR-0028](../decisions/0028-versioned-game-api.md) supersedes path/module immutability for the accepted canonical versioned API and explicit MTG modules.
 Its mapping and ownership contract live in [independent applications](./independent-applications.md#selected-versioned-game-api).
-The frozen inventory/golden/transfer files remain legacy inputs; canonical OpenAPI advertises the new paths.
-Compare actual canonical and legacy registry sets with their respective owners rather than assuming equal counts.
+[ADR-0029](../decisions/0029-remove-replaced-interfaces.md) removes the previous API paths, alias adapters and obsolete route/transfer inventories.
+Compare the complete current registry with canonical OpenAPI and exercise current interfaces.
 
 - Preserve bearer-before-cookie selection without fallback after any invalid explicit Authorization, cookie-only SSR/forms, Origin exceptions, trusted client addresses and `APP_ORIGIN` authority.
   Count credential-form attempts exactly once before decoding; preserve password rotation's replacement cookie and request-bound credential.
@@ -141,7 +141,7 @@ Compare actual canonical and legacy registry sets with their respective owners r
   Publication failure leaves the last complete snapshot active; `state.json` remains operator status.
   Preserve opt-ins, resource limits and all existing private data and Scan objects.
 
-The candidate host composes the canonical versioned API, every frozen legacy API alias and unchanged Discovery, including nineteen canonical Deck routes and the closed nine-command MTG endpoint.
+The candidate host composes only the canonical versioned API and unchanged Discovery, including nineteen canonical Deck routes and the closed nine-command MTG endpoint.
 Web commands preserve original Core receipts, revisions and absent optional fields, reject caller authority and retain direct API Bearer-before-cookie selection and cookie-mode Origin protection.
 SSR/forms select only the browser cookie before forwarding.
 Dashboard uses account-scoped aggregates and exact-first Deck allocation in one read-only repeatable-read snapshot, passing the same transaction and database clock to current/history value reads.

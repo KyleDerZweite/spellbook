@@ -30,7 +30,9 @@ Rules:
 
 ## Files
 
-- [ADR-0028: Versioned API with game-specific modules](./0028-versioned-game-api.md), accepted canonical API namespaces and explicit MTG ownership, with compatible previous paths
+- [ADR-0029: Remove replaced interfaces immediately](./0029-remove-replaced-interfaces.md), accepted removal policy; supersedes legacy API aliases and requires older clients to update
+
+- [ADR-0028: Versioned API with game-specific modules](./0028-versioned-game-api.md), accepted canonical API namespaces and explicit MTG ownership; legacy aliases superseded by ADR-0029
 
 - [ADR-0027: Functional acceptance for the Python migration](./0027-python-functional-migration-acceptance.md), accepted; supersedes strict performance/resource blockers while preserving functional compatibility and separate production operations
 

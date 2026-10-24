@@ -1,12 +1,12 @@
 # ADR-0028: Versioned API with game-specific modules
 
-- Status: Accepted
-- Implementation: Backend routes, compatibility aliases, OpenAPI and MTG modules implemented in the unmerged PR 276 candidate; client integration and final runtime verification pending
+- Status: Accepted; legacy alias requirements superseded by [ADR-0029](./0029-remove-replaced-interfaces.md)
+- Implementation: Canonical routes, OpenAPI, MTG modules and clients implemented in unmerged PR 276; removal of legacy aliases follows ADR-0029
 - Date: 2026-10-24
 - Last Reviewed: 2026-10-24
 - Owners: Kyle
 - Source of Truth: Kyle's selected API direction on 2026-10-24
-- Update Triggers: API namespaces, compatibility aliases, game-specific module ownership and client migration
+- Update Triggers: ADR-0029 removal policy, API namespaces, game-specific module ownership and client migration
 - Related Docs: [Independent applications](../architecture/independent-applications.md), [Migration contract](../architecture/python-backend-migration.md), [Routes](../product/routing-and-games.md), [ADR-0027](./0027-python-functional-migration-acceptance.md)
 
 Keep one Python API and shared authentication, account identity, database and HTTP infrastructure.
@@ -18,6 +18,9 @@ MTG Catalog uses `/api/v1/mtg/catalog/...`; Dashboard uses `/api/v1/mtg/dashboar
 Existing private MTG resources use `/api/v1/mtg/...` without the client-specific `mobile` segment.
 The nine existing browser mutation commands use `/api/v1/mtg/commands`; raw-form adapters use `/api/v1/web/...`.
 Web and Android use these canonical routes.
+
+The legacy alias requirements below record the original decision and are superseded by ADR-0029.
+Current implementation and acceptance follow the canonical-only contract in [independent applications](../architecture/independent-applications.md#selected-versioned-game-api).
 
 Preserve previous API paths as small direct-dispatch compatibility aliases with their original authorization, bodies, headers and errors.
 In particular, public Catalog and authenticated legacy Catalog aliases retain their distinct access policies.

@@ -29,14 +29,15 @@ Existing PWA compatibility remains available, but it is not the Android applicat
 
 ### Selected versioned game API
 
-[ADR-0028](../decisions/0028-versioned-game-api.md) selects this follow-up in PR 276.
+[ADR-0028](../decisions/0028-versioned-game-api.md) selects versioned game routes in PR 276.
+[ADR-0029](../decisions/0029-remove-replaced-interfaces.md) removes replaced interfaces immediately and requires older clients to update.
 Canonical routes use `/api/v1/auth/...`, `/api/v1/account/...` and `/api/v1/mtg/...`.
 The latter owns Catalog search/printing reads under `/catalog`, Inventory, Decks, Categories, Valuation, Scan, Dashboard and the nine closed mutation commands under `/commands`.
 Raw-form bridges use `/api/v1/web/auth/login`, `/api/v1/web/auth/register` and `/api/v1/web/password`.
 Page paths remain `/mtg/...`, `/auth/...` and `/settings/...`.
 
 MTG-owned HTTP and Core modules live in `spellbook_api.http.mtg` and `spellbook_core.mtg`.
-The factories declare canonical paths; `http/compatibility.py` derives direct legacy dispatch through `http/paths.py`, wrapping only legacy mobile Catalog reads with their original authentication.
+The factories declare only canonical paths, with no legacy dispatch or path translation.
 Internal consumers use the new Python modules without legacy re-export shims.
 Common identity/authentication, database, transport and process lifetime retain their shared owners.
 The shared Profile interface and response retain their existing body.
@@ -45,12 +46,12 @@ MTG printing DTOs and mutation conflicts belong to `spellbook_core.mtg.models` a
 There is no new game registry, generic filter framework, common all-game card schema or implemented second TCG.
 
 Public Catalog reads remain public; private mutations and reads retain their authentication and account scope.
-Old API paths remain direct compatibility aliases, including the authenticated legacy mobile Catalog aliases.
+Old API paths return 404 without aliases or redirects.
 Web and Android switch to canonical paths in the same change.
-OpenAPI describes canonical routes, while the existing frozen compatibility inventory and its cases remain legacy acceptance inputs.
-Canonical and legacy tests must cover dispatch, first-value query parsing, bodies, HEAD/OPTIONS/405, cache/Origin policy, QR cookie paths and SSE.
-The backend implements these canonical routes and direct aliases in the unmerged PR 276 candidate.
-Client migration and current-head production-registry HTTP acceptance remain integration-owner checks.
+OpenAPI owns the current route inventory; the obsolete legacy route inventory and transfer map are removed.
+Current-route tests cover dispatch, first-value query parsing, bodies, HEAD/OPTIONS/405, cache/Origin policy, QR cookies and SSE.
+Registry checks reject extra operations and representative removed paths return 404.
+Current-head production-registry HTTP acceptance remains an integration-owner check.
 
 `backend/api/src/spellbook_api/http/types.py` owns `Configuration` and `ApplicationLifetime`.
 `create_application(configuration)` returns the HTTP app, pre-drain `close_streams` and idempotent `close` callbacks.
@@ -62,7 +63,6 @@ Core imports neither HTTP nor a client framework; workers import Core without im
 The native Python boundary checker enforces those directions.
 Frontend requests use the remote application and carry no serialized actor or database handle.
 
-The frozen legacy API methods retain direct aliases, payloads, status, cache policy and error details.
 Canonical reads include `GET /api/v1/mtg/catalog/printings/:printingId` and owned `GET /api/v1/mtg/category-definitions/:originId` for existing web reads.
 `POST /api/v1/mtg/commands` accepts exactly the nine typed intents in `contracts/src/web.ts`.
 Its strict object parser rejects unknown keys and authority fields, preserves absent optional fields, limits JSON to 1 MiB and calls the original use case with the original source and request ID.
@@ -150,6 +150,7 @@ Namespace private state and drafts by backend and account.
 Cancel old requests and SSE on changes.
 Honor no-store, fixed session expiry and the absence of refresh tokens.
 An ambiguous save can retry only the frozen body and original request ID.
+Android supports pending mutations only for current operations and never rewrites an obsolete path into a new operation.
 Native acceptance includes guest draft through login to explicit Save, lost-response retry, saved-but-reload-failed feedback, account isolation, system Back and keyboard behavior, and real website-to-app SSE refresh.
 
 Card Station uses its accepted name and planned circular eight-box layout.
@@ -164,11 +165,9 @@ Implement on that base using isolated writer worktrees and a shared local integr
 Publish the verified integrated result to main as requested, without deploying a service.
 
 [Issue 244](https://github.com/KyleDerZweite/spellbook/issues/244) tracks implementation and final integration evidence.
-The frozen legacy inventory contains 88 API method/path pairs and seven browser-auth methods.
-Canonical OpenAPI contains 85 API method/path pairs and those seven unchanged browser-auth methods.
-The three authenticated mobile Catalog aliases converge on existing public Catalog operations.
-Tests compare the canonical registry with OpenAPI and the legacy registry with the unchanged neutral inventory, deriving operation sets instead of assuming matching counts.
-Counts do not establish verified compatibility.
+Canonical OpenAPI contains 85 API method/path pairs and seven unchanged browser-auth methods.
+Tests compare the complete current registry with OpenAPI, deriving operation sets instead of maintaining a second route inventory.
+Counts do not establish functional correctness.
 
 Before integration, independently review this contract against the actual callers.
 Writers verify checkout, branch, base, local changes and owned resources.
