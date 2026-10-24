@@ -20,7 +20,6 @@ const PROTECTED_PATH_PREFIXES = [
 	'/app/connect'
 ];
 const NO_INDEX_PATH_PREFIXES = ['/auth/', '/api/', '/mtg/', '/settings', '/app'];
-const LEGACY_PAGE_PATHS = ['/search', '/inventory', '/decks', '/scan'];
 
 function isPublicPath(pathname: string): boolean {
 	return pathname === '/' || PUBLIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
@@ -30,26 +29,6 @@ function isProtectedPath(pathname: string): boolean {
 	return PROTECTED_PATH_PREFIXES.some(
 		(prefix) => pathname === prefix || pathname.startsWith(prefix + '/')
 	);
-}
-
-function resolveLegacyRedirect(pathname: string): string | null {
-	if (pathname === '/mtg' || pathname === '/mtg/') return '/mtg/search';
-	if (pathname === '/collections' || pathname === '/collections/') return '/mtg/inventory';
-	if (LEGACY_PAGE_PATHS.some((path) => pathname === path || pathname.startsWith(path + '/'))) {
-		return `/mtg${pathname}`;
-	}
-	return null;
-}
-
-function buildRedirectResponse(location: string): Response {
-	// 308 preserves methods and bodies while old links move to game-prefixed routes.
-	return new Response(null, {
-		status: 308,
-		headers: {
-			Location: location,
-			'X-Robots-Tag': NO_INDEX_ROBOTS_TAG
-		}
-	});
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -62,11 +41,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 	requireFormOrigin(event);
 
-	// Redirect old page URLs before applying the destination auth guard.
-	const legacyTarget = resolveLegacyRedirect(pathname);
-	if (legacyTarget) {
-		const search = event.url.search;
-		return buildRedirectResponse(`${legacyTarget}${search}`);
+	if (pathname === '/mtg' || pathname === '/mtg/') {
+		return createNoIndexRedirect(`/mtg/search${event.url.search}`, 308);
 	}
 
 	const token = event.cookies.get(SESSION_COOKIE);

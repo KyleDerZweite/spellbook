@@ -78,3 +78,41 @@ describe('framework form Origin protection', () => {
 		expect(() => requireFormOrigin(event('/settings', 'POST', 'application/json'))).not.toThrow();
 	});
 });
+
+describe('page routing', () => {
+	it.each(['/mtg', '/mtg/'])('redirects the game index %s with its query intact', async (path) => {
+		const resolve = vi.fn();
+		const response = await handle({ event: event(path + '?q=Opt', 'GET'), resolve } as never);
+		expect(response.status).toBe(308);
+		expect(response.headers.get('location')).toBe('/mtg/search?q=Opt');
+		expect(response.headers.get('X-Robots-Tag')).toBe('noindex, nofollow');
+		expect(resolve).not.toHaveBeenCalled();
+		expect(mocks.validateSession).not.toHaveBeenCalled();
+	});
+	it.each(
+		['/search', '/inventory', '/decks', '/scan', '/collections'].flatMap((path) => [
+			path,
+			path + '/',
+			path + '/entry?q=Opt'
+		])
+	)('leaves retired page %s to normal route resolution', async (path) => {
+		const fixture = event(path, 'GET');
+		const resolve = vi.fn(async () => new Response('Not found', { status: 404 }));
+		const response = await handle({ event: fixture, resolve } as never);
+		expect(response.status).toBe(404);
+		expect(response.headers.has('location')).toBe(false);
+		expect(resolve).toHaveBeenCalledWith(fixture);
+	});
+	it.each(['/mtg/inventory', '/mtg/decks', '/mtg/scan'])(
+		'keeps the sign-in redirect for %s',
+		async (path) => {
+			const resolve = vi.fn();
+			const response = await handle({ event: event(path + '?page=2', 'GET'), resolve } as never);
+			expect(response.status).toBe(302);
+			expect(response.headers.get('location')).toBe(
+				'/auth/login?returnTo=' + encodeURIComponent(path + '?page=2')
+			);
+			expect(resolve).not.toHaveBeenCalled();
+		}
+	);
+});
