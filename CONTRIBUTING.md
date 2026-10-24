@@ -45,11 +45,16 @@ The review and acceptance policy above still applies.
 
 ## Replacing interfaces
 
+Spellbook is unreleased and changes rapidly.
+Any commit may break APIs or stored data; backward compatibility and automatic upgrades are not guaranteed, and resetting/reimporting data may be required.
+
 Replace interfaces and update first-party callers in the same change.
 Delete superseded routes, code, adapters, tests and documentation instead of keeping compatibility aliases, redirects, fallbacks or a deprecation window.
-Older clients must update to the current release; API path versions do not promise support for previous releases.
+Clients must update to the current implementation; API path versions do not promise compatibility across commits.
 Describe removed interfaces and their replacements in the pull request.
-Preserve stored user data and SQL history unless their removal is explicitly part of the requested change.
+Schema changes may require a fresh database and reimport of downloaded source JSON.
+Keep SQL history needed for fresh installation and tests that verify current behavior; remove obsolete compatibility requirements with their replacements.
+This policy does not authorize unrelated data deletion or resetting an actual database without task-specific authorization.
 See [ADR-0029](docs/decisions/0029-remove-replaced-interfaces.md) for this decision.
 
 ## Security

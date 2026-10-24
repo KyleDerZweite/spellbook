@@ -1,10 +1,10 @@
 # Python backend migration contract
 
 - Status: Implemented unmerged candidate; owner testing and production operations pending
-- Last Reviewed: 2026-10-24
-- Source of Truth: ADR-0025, ADR-0026, ADR-0027, existing code/tests/contracts and Kyle's accepted migration and interface-removal direction
-- Update Triggers: ADR-0029 immediate interface removal, ADR-0028 versioned API and MTG module ownership, Python source activation and server contraction, functional migration acceptance, component interfaces, assembled Categories/state, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
-- Related Docs: [ADR-0025](../decisions/0025-python-api-and-workers.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [Independent applications](./independent-applications.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Migration evidence](./python-migration-evidence-baseline.md), [Postgres](./postgres.md), [Auth](./auth.md), [Worker](./worker.md), [Deployment](../operations/deployment.md), [Verification](../operations/github-automation.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
+- Last Reviewed: 2026-10-25
+- Source of Truth: ADR-0025, ADR-0026, ADR-0027, existing code/tests/contracts and Kyle's accepted migration, native FastAPI/Pydantic and pre-release direction
+- Update Triggers: ADR-0029 pre-release extension, native FastAPI/Pydantic adoption, persistence/auth evaluation, immediate interface removal, ADR-0028 versioned API and MTG module ownership, Python source activation and server contraction, functional migration acceptance, component interfaces, assembled Categories/state, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
+- Related Docs: [ADR-0025](../decisions/0025-python-api-and-workers.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [ADR-0029](../decisions/0029-remove-replaced-interfaces.md), [Independent applications](./independent-applications.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Migration evidence](./python-migration-evidence-baseline.md), [Postgres](./postgres.md), [Auth](./auth.md), [Worker](./worker.md), [Deployment](../operations/deployment.md), [Verification](../operations/github-automation.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
 
 ## Scope and status
 
@@ -14,23 +14,30 @@ Modest performance variance, long asynchronous jobs and ordinary controlled retr
 Functional domain implementation may proceed without #248 matched-resource proof.
 The unselected `linux_owned_lifecycle_v1`/PARKED proposal is superseded and supplies no implementation requirement.
 No kernel research, resource-verifier package or formal ownership/receipt layer is required.
-Existing application mutation receipts remain part of functional compatibility.
+Application mutation receipts and replay within the current version remain required.
 
 Historical foundation and Node extraction evidence remain in Git history.
-Current acceptance exercises the installed Python implementation and canonical interfaces under ADR-0029.
+Current acceptance exercises the installed Python implementation and current interfaces under [ADR-0029](../decisions/0029-remove-replaced-interfaces.md).
+Its 2026-10-25 extension removes backward compatibility and stored-data upgrade guarantees.
+Historical Node parsing, serialization and error-body quirks are not acceptance requirements.
 
 Complete the candidate on `integration/python-backend-migration` and leave it unmerged for review.
 Authorized source work includes Python migrator preparation/rehearsal, Python default activation and removal of the replaced TypeScript server and obsolete server tests after their functional coverage transfers.
-Preserve the Svelte/TypeScript frontend, shared client DTOs/validators, Android, database data and existing SQL migration history.
+Keep the Svelte/TypeScript frontend and Android, updating affected callers and shared contracts with interface changes.
+Schema changes may require reset/reimport; retain SQL needed for fresh installation.
+The pre-release policy does not authorize resetting an actual database or deleting unrelated files.
 Production cutover, productive migrator rollout and ending the real production rollback window remain separate operations.
 
 ## Framework, modules and resources
 
-Use FastAPI/Uvicorn and Psycopg 3, explicit typed application/SQL modules, no ORM and no new broker.
-HTTP adapters parse existing inputs, authenticate into a trusted actor and map the existing DTOs/errors.
+Use native FastAPI routing and Pydantic request models, replacing custom routing/parsing machinery and its obsolete compatibility tests.
+HTTP adapters authenticate into a trusted actor and call typed application modules.
+Psycopg 3 and explicit SQL remain the implemented persistence stack.
+Re-evaluate persistence, ORM/migration ownership and auth/permissions for future internal Admin and ML panels; no replacement library or panel implementation is selected by that evaluation.
+Keep Core framework-free and introduce no generic repository or new broker.
 Shared Core owns Auth, identity preferences, database, password, QR and SavedState infrastructure.
 `spellbook_core.mtg` owns Catalog, Inventory/Groups, Decks, Categories/Library, Valuation/History, Dashboard, Scan and MTG projections.
-Shared Profile retains its existing wire body and an explicit dependency on `mtg.profile`.
+Shared Profile has an explicit dependency on `mtg.profile`.
 HTTP game adapters live in `spellbook_api.http.mtg`; Auth, account preferences and transport remain shared.
 SQL modules own parameterized queries, transactions, isolation, lock order and exact numeric decoding.
 Core imports neither FastAPI nor clients; HTTP and workers depend on Core.
@@ -83,38 +90,26 @@ Domain dependencies such as Auth, Inventory and Scan remain necessary where cons
 Backend owns wire semantics; the checked-in [OpenAPI 3.1 artifact](../../contracts/openapi.json) is the language-neutral structural owner.
 The [Python adapter](../../backend/api/src/spellbook_api/http/application.py) serves that artifact with the configured origin.
 Reconcile Python handlers against it, actual routes/consumers and the retained synthetic JSON/raw-HTTP fixtures.
-Framework-generated OpenAPI is not a competing source of truth.
 Keep client presentation helpers and TypeScript validators in `contracts/src/`; Python cannot import them.
 Initially retain handwritten TypeScript/Kotlin clients and test them against the neutral fixtures.
 Code generation is deferred until a concrete reviewed need exists.
 
-Fixtures preserve absent fields, explicit null, empty strings, unknown-key policy, coercion, Unicode lengths, finite safe JSON numbers, decimal/revision strings and ISO timestamps.
-They include statuses, error bodies, headers, limits and raw forms, not only successful DTOs.
-Explicit parsing/error adapters prevent FastAPI's default coercion and 422 bodies from changing behavior.
-Existing route-specific validation remains authoritative where OpenAPI alone cannot express it.
+Fixtures and adapter tests verify the selected current contract, including missing fields versus explicit null, exact domain numbers, safe errors, conflicts, cookies and limits.
+Native FastAPI/Pydantic behavior may replace historical Node coercion and validation responses; update affected callers, contracts and tests together.
+Remove superseded compatibility adapters instead of adding another compatibility layer.
+The existing checked-in OpenAPI publication remains implemented until its owning HTTP change reconciles publication with native FastAPI.
 
-During the API port, Drizzle remains the sole schema/migration owner and runner.
-Keep `backend/drizzle/0000` through `0024`, journal, snapshots and deployed ledger unchanged, and avoid DDL changes for a language-only port.
-If an unavoidable additive migration occurs, update stored-data compatibility and current Python evidence before dependent work resumes.
-Never recreate tables from Python models, reset data, squash SQL history or run parallel Alembic/Drizzle ownership.
+The installed Python one-shot migrator consumes bundled ordered SQL, journal and snapshots from `backend/drizzle/`.
+Keep a single schema/migration owner and safe execution/concurrency handling.
+Verify fresh installation, a second-run no-op and interrupted/concurrent runner recovery.
+Existing history may remain where needed for fresh installs; retained-data upgrades, unchanged SQL hashes across versions and same-data Node rollback are not acceptance gates.
+Re-evaluate the migration tool with persistence ownership rather than adding a permanent parallel runner.
+Production execution and any actual database reset require their own authorization.
 
-Prepare one Python one-shot migrator using Psycopg and ordered SQL in `backend/drizzle/` after the complete candidate is integrated.
-Current API functional evidence and safe migration/recovery rehearsal must pass before the source ownership handoff.
-P19 preparation is part of the authorized unmerged integration artifact and does not depend on executing the P18 production cutover.
-Drizzle remains the production migration owner until the separately authorized migrator rollout.
-It must recognize and validate the existing Drizzle ledger, exact SQL hashes, journal order and statement breakpoints without replaying applied SQL or stamping assumed history.
-Unknown, changed or noncontiguous history fails closed; no API/worker auto-migrates on startup.
-The prepared source handoff freezes Drizzle generation in the integration artifact, makes SQL the future schema owner and retains `schema.ts` only until its consumers are replaced.
-No second live schema definition remains afterward; historical snapshots stay historical.
-The prepared one-shot job owns migration execution and concurrency exclusion; its production execution remains a separate operation.
-Verify fresh install, upgrade of a retained database copy, second-run no-op and interrupted/concurrent runner recovery.
-Compare extensions, ICU collation/indexes, generated columns, constraints, functions and notification triggers as well as tables and retained data.
-Worker tests that apply selected SQL subsets do not establish this handoff.
-
-## Compatibility invariants
+## Current behavior and safety
 
 The existing [application](./application-contract.md), [HTTP/Auth](./independent-applications.md#authority-and-compatibility), [Postgres](./postgres.md), [Catalog](./catalog.md) and [Worker](./worker.md) documents retain behavioral ownership.
-The port preserves current application behavior, closed web commands and browser forms without a new response envelope.
+Keep accepted application effects, current closed commands and browser forms correct while replacing HTTP mechanics.
 [ADR-0028](../decisions/0028-versioned-game-api.md) supersedes path/module immutability for the accepted canonical versioned API and explicit MTG modules.
 Its mapping and ownership contract live in [independent applications](./independent-applications.md#selected-versioned-game-api).
 [ADR-0029](../decisions/0029-remove-replaced-interfaces.md) removes the previous API paths, alias adapters and obsolete route/transfer inventories.
@@ -123,11 +118,10 @@ Compare the complete current registry with canonical OpenAPI and exercise curren
 - Preserve bearer-before-cookie selection without fallback after any invalid explicit Authorization, cookie-only SSR/forms, Origin exceptions, trusted client addresses and `APP_ORIGIN` authority.
   Count credential-form attempts exactly once before decoding; preserve password rotation's replacement cookie and request-bound credential.
   Retain QR requester/device separation, HttpOnly secrets, original-session/approval-marker binding, one-use redemption, expiry under lock waits, revocation and separate ordered Set-Cookie headers.
-- Preserve existing scrypt hashes and token digests without re-enrollment.
-  Golden vectors cover Node's textual hex salt passed as UTF-8, scrypt parameters and JavaScript UTF-16 password-length rules from [passwords.py](../../backend/core/src/spellbook_core/passwords.py).
-- Preserve normalized intent and exact fingerprint bytes from [fingerprint.py](../../backend/core/src/spellbook_core/fingerprint.py), including Unicode, omitted/null fields, JSON number/escaping rules and array order.
+- Keep secure password hashing, token digests and session revocation correct.
+  Existing credential formats may change under the pre-release policy; Node password-length and encoding quirks are not mandatory.
+- Keep deterministic normalized intent and fingerprints for current-version idempotency.
   Mutation, revisions, original receipt and related effects commit atomically; replay returns the original receipt after later edits/deletion/recreation.
-  Legacy null hashes/acknowledgements keep their documented treatment and receive no fabricated backfill.
   Preserve Profile/session fencing, Scan-session-before-Inventory, Inventory-before-entry-before-group and Deck/Category lock order, read snapshots and revision behavior on no-ops.
 - Preserve Notes, Description, Quantity, Category and merge conflicts with their exact latest-value/revision fields, including `latestQuantity: null`.
   Preserve bounded reads, Catalog generation coherence, Inventory query resets, Classification/Library filters, optional local Combo matching, daily ValueHistory/frozen evidence and Scan storage/commit cleanup.
@@ -137,15 +131,15 @@ Compare the complete current registry with canonical OpenAPI and exercise curren
 - Reuse streaming COPY and atomic Catalog/Price publication, raw Oracle facts, pointer/pruning transaction, original advisory keys and paired recovery.
   Optional prices keep their shared Catalog lock; Oracle Tags and Combo retain their own locks and independent retention/provenance.
   Publication failure leaves the last complete snapshot active; `state.json` remains operator status.
-  Preserve opt-ins, resource limits and all existing private data and Scan objects.
+  Preserve opt-ins, resource limits and safe handling of current private data and Scan objects.
 
 The candidate host composes only the canonical versioned API and unchanged Discovery, including nineteen canonical Deck routes and the closed nine-command MTG endpoint.
 Web commands preserve original Core receipts, revisions and absent optional fields, reject caller authority and retain direct API Bearer-before-cookie selection and cookie-mode Origin protection.
 SSR/forms select only the browser cookie before forwarding.
 Dashboard uses account-scoped aggregates and exact-first Deck allocation in one read-only repeatable-read snapshot, passing the same transaction and database clock to current/history value reads.
 `VALUE_HISTORY_TIMEZONE` configures its calendar and private value routes.
-The build hook bundles unchanged canonical SQL, journal and snapshots in API wheels/sdists; the explicit `spellbook-migrate` command discovers installed assets or honors `--migrations-dir`.
-Three explicit Python operator entrypoints use unchanged bundled canonical Demo fixtures, with external `--fixtures-dir` support.
+The build hook bundles canonical SQL, journal and snapshots in API wheels/sdists; the explicit `spellbook-migrate` command discovers installed assets or honors `--migrations-dir`.
+Three explicit Python operator entrypoints use bundled canonical Demo fixtures, with external `--fixtures-dir` support.
 The API owns Scan storage/worker construction from existing environment variables, request settlement and adapter close before its pool.
 Boto3 supplies S3/SigV4, python-multipart supplies upload parsing and the existing httpx2 dependency supplies the worker client.
 No-DB Discovery creates neither adapter.
@@ -157,8 +151,8 @@ The temporary Python Compose override is removed.
 The API normally binds loopback port 3001, supports explicit container IP addresses and requires database configuration unless schema-only mode is explicitly selected.
 The replaced Node server, build/operator tooling and coupled domain tests are removed; Python Core/API functional and opt-in PostgreSQL tests own those responsibilities.
 Frontend unit/browser/external HTTP tests remain, with installed Python as the fixed API target.
-The unchanged SQL/journal/snapshots, four canonical Demo assets, contracts and Android remain in source.
-The private retained Node rollback artifact is untouched.
+SQL/journal/snapshots, four canonical Demo assets, contracts and Android remain in source.
+Any privately retained Node artifact stays under its operational owner; compatible rollback data is not a source acceptance requirement.
 Source activation establishes neither complete integration acceptance nor production cutover.
 
 ## Delivery, evidence and rollback
@@ -171,12 +165,12 @@ Root assigns shared CI, manifests, launchers, route registry and host integratio
 Keep writers isolated and start dependent work after their functional prerequisites integrate.
 Migration-specific CI/start/packaging updates are required with their owning source slices; no general CI rewrite is selected.
 
-1. Reconcile this contract and retain the current OpenAPI, useful synthetic fixtures and implemented API/Core boundaries.
+1. Reconcile affected contracts, useful synthetic fixtures and implemented API/Core boundaries with native FastAPI/Pydantic.
    Port domain modules and HTTP adapters now, respecting their actual interfaces and data dependencies.
 2. Complete all routes, operators and workers, including controlled retry/failure behavior and real scheduled effects.
    Transfer functional tests to Python and exercise real PostgreSQL transactions, races, account isolation and idempotency.
 3. Integrate direct API, same-origin web proxy, actual workers/storage/providers, two-process SavedState and rendered client journeys.
-   Exercise current Python process/database integration and receipt replay on retained disposable data after writes.
+   Exercise current Python process/database integration and current-version receipt replay on disposable data after writes.
 4. Prepare/rehearse the one-shot Python migrator, make Python the candidate default and remove replaced Node server source and obsolete tests after consumer and coverage transfer.
    Refresh affected checks on the complete integration head and leave the artifact unmerged.
 5. Separately authorize production API cutover, productive migrator rollout and the eventual end of the real rollback window.
@@ -184,8 +178,9 @@ Migration-specific CI/start/packaging updates are required with their owning sou
 
 ### Practical acceptance contract
 
-Preserve the wire schema and route-specific behavior, including malformed input, raw forms, headers, cookies and proxy streaming.
-Preserve authentication/account isolation, stored credentials, data, exact numbers, original receipts, atomic effects and publication correctness.
+Verify the selected current HTTP contract, malformed input, forms, headers, cookies and proxy streaming.
+Require authentication/account isolation, exact domain numbers, current-version receipt replay, atomic effects and publication correctness.
+No retained Node runtime, perfect historical wire parity or cross-version stored-data upgrade is required.
 Prove these with Python application tests and real PostgreSQL/HTTP integration, including conflicts, lost replies, retries and worker failures.
 Jobs may take longer, but must eventually produce the correct effects, recover safely and avoid duplicate publication or mutation.
 Exercise listener recovery, revoked sessions, slow consumers, transaction rollback and graceful shutdown with ordinary functional scenarios.
@@ -220,7 +215,7 @@ No GitHub ticket was changed by this documentation reconciliation.
 Reconcile affected ticket bodies/dependencies to functional outcomes, interfaces and evidence before treating their old Ready labels as authoritative.
 Retain genuine domain dependencies and unexecuted functional acceptance; do not mark them complete.
 P13 worker relocation needs publication compatibility and shared-file coordination, without a P01 benchmark prerequisite.
-P17 owns integrated current-Python functional and same-data receipt acceptance.
+P17 owns integrated current-Python functional and current-version receipt acceptance.
 ADR-0029 supersedes old-route parity and dual-runtime HTTP prerequisites.
 P19/P20 source preparation uses integrated P16 code and initial P17 functional evidence, followed by final-head verification.
 P18 production cutover is not a prerequisite for source preparation.

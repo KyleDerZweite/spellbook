@@ -1,9 +1,9 @@
 # Python migration functional evidence
 
 - Status: Canonical functional evidence responsibilities
-- Last Reviewed: 2026-10-24
-- Source of Truth: current Python code/tests, OpenAPI, retained synthetic fixtures and PR 276
-- Update Triggers: current-route acceptance, installed Python runtime, fixture ownership, stored-data correctness and target evidence
+- Last Reviewed: 2026-10-25
+- Source of Truth: current Python code/tests, OpenAPI, useful synthetic fixtures, ADR-0029 and PR 276
+- Update Triggers: pre-release compatibility supersession, native FastAPI/Pydantic acceptance, current-route acceptance, installed Python runtime, fixture ownership, stored-data correctness and target evidence
 - Related Docs: [Migration contract](./python-backend-migration.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [ADR-0029](../decisions/0029-remove-replaced-interfaces.md), [Contracts](../../contracts/README.md), [Independent applications](./independent-applications.md), [Auth](./auth.md), [Postgres](./postgres.md), [Verification](../operations/github-automation.md), [Deployment](../operations/deployment.md)
 
 ## Scope and authorization
@@ -12,7 +12,8 @@ The unmerged candidate uses Python API/Core and independent workers by default.
 The [migration contract](./python-backend-migration.md) owns functional acceptance and delivery; production operations require separate authorization.
 [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md) retires strict performance/resource, Linux/kernel and Collector proof prerequisites.
 [ADR-0029](../decisions/0029-remove-replaced-interfaces.md) removes replaced interfaces immediately, including old API paths, route inventories, transfer maps and dual-runtime HTTP comparison runners.
-Older clients must update.
+Its 2026-10-25 extension removes cross-version API/stored-data upgrade guarantees and historical Node wire parity requirements.
+Current authentication, account isolation, safe writes and receipt replay within the current version remain required.
 Historical extraction hashes, Node comparisons and superseded proof protocols remain in Git history, not current acceptance inputs.
 
 ## Current contracts and fixture ownership
@@ -25,18 +26,16 @@ The Python adapter reads the bundled artifact and substitutes the configured pub
 Backend owns route-specific validation, authorization, limits and error semantics; client helpers and handwritten TypeScript/Kotlin clients retain their owners.
 
 [`contracts/fixtures/wire.json`](../../contracts/fixtures/wire.json) retains synthetic public parsing, fingerprint, password, conflict and receipt vectors.
-Raw JSON and form strings preserve lexical spelling, escaping and CRLF.
-Fingerprint vectors preserve normalized JSON, exact UTF-8 bytes and SHA-256, including Unicode, omitted/null fields and numeric serialization.
-A serializer vector does not authorize an endpoint to accept an otherwise invalid value.
-Existing password vectors preserve textual hex salt as UTF-8, scrypt parameters and UTF-16 password-length rules without re-enrollment.
+Retain fixtures that verify current parsing, password security, conflicts and receipt replay.
+When native FastAPI/Pydantic replaces a historical Node behavior, update current callers/contracts and remove the superseded fixture assertions and code together.
+Exact Node JSON/UTF-16/encoding quirks and legacy stored-receipt formats are not compatibility obligations.
 Fixtures contain no copied account credentials or private receipts.
 
-Python Core tests exercise these vectors and production normalization/replay decisions.
-API tests exercise current-route parsing, raw forms, ordered cookies, conflicts, strict command keys, first-value query parsing, HEAD/OPTIONS/405, cache/Origin policy and SSE ownership.
+Python Core tests verify current normalization, deterministic fingerprints and replay decisions.
+API tests verify the selected current validation and transport behavior, including ordered cookies, conflicts, command authority, cache/Origin policy and SSE ownership.
 Application doubles establish adapter behavior; they do not establish PostgreSQL locks, persisted acknowledgements or atomicity.
-Real PostgreSQL tests must retain account isolation, transaction races, original acknowledgements after later edits/deletion/recreation, and distinct Inventory/Deck null-receipt behavior.
-Null hashes receive no fabricated backfill; stored acknowledgements retain their existing semantics.
-SQL history, credentials, exact numeric values, private history and accepted writes remain preserved.
+Real PostgreSQL tests must verify account isolation, transaction races and original current-version acknowledgements after later edits/deletion/recreation.
+Safe writes, exact domain numbers and accepted effects remain required; retained-data upgrades and unchanged SQL history across commits do not.
 
 ## Runtime evidence responsibilities
 
@@ -71,4 +70,4 @@ Scan recognition retains the existing `no_match` scaffold.
 Owner acceptance remains separate from technical checks.
 Production API cutover, productive migrator rollout and ending the real rollback window require separate operations.
 Source removal does not authorize deleting retained production artifacts or data.
-Any production recovery must preserve accepted writes, stored receipts and SQL history; obsolete client interfaces are not a support obligation.
+Operational recovery must protect accepted writes under its authorized procedure; cross-version data compatibility and Node rollback are not source acceptance requirements.

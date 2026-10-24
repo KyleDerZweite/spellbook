@@ -1,13 +1,17 @@
 # ADR-0027: Functional acceptance for the Python migration
 
-- Status: Accepted; old-interface acceptance requirements superseded by ADR-0029
+- Status: Accepted; interface and cross-version compatibility requirements superseded by ADR-0029
 - Implementation: Complete source candidate implemented and unmerged; owner testing and production operations pending
 - Date: 2026-10-23
-- Last Reviewed: 2026-10-24
+- Last Reviewed: 2026-10-25
 - Owners: Kyle
 - Source of Truth: Kyle's authoritative 2026-10-23 migration direction
-- Update Triggers: ADR-0029 interface-removal supersession, ADR-0028 route/module supersession, migration acceptance, superseded readiness blockers, functional evidence, source activation and production authority
-- Related Docs: [ADR-0025](./0025-python-api-and-workers.md), [ADR-0026](./0026-python-migration-contract.md), [Migration contract](../architecture/python-backend-migration.md), [Evidence baseline](../architecture/python-migration-evidence-baseline.md), [Verification](../operations/github-automation.md)
+- Update Triggers: ADR-0029 pre-release compatibility supersession, ADR-0028 route/module supersession, migration acceptance, superseded readiness blockers, functional evidence, source activation and production authority
+- Related Docs: [ADR-0029](./0029-remove-replaced-interfaces.md), [ADR-0025](./0025-python-api-and-workers.md), [ADR-0026](./0026-python-migration-contract.md), [Migration contract](../architecture/python-backend-migration.md), [Evidence baseline](../architecture/python-migration-evidence-baseline.md), [Verification](../operations/github-automation.md)
+
+[ADR-0029's 2026-10-25 extension](./0029-remove-replaced-interfaces.md#pre-release-extension-2026-10-25) supersedes the historical requirements below for Node wire parity, stored-data upgrades and compatible Node rollback.
+Native FastAPI/Pydantic may replace compatibility adapters; current-version auth, account isolation, receipt replay and safe writes remain required.
+The historical record below does not override the [current migration contract](../architecture/python-backend-migration.md).
 
 ## Context
 
@@ -46,4 +50,4 @@ Historical numeric protocols and reviews remain in Git history and do not govern
 [ADR-0028](./0028-versioned-game-api.md) supersedes prior API-path and module-location immutability for the versioned shared/MTG API.
 [ADR-0029](./0029-remove-replaced-interfaces.md) supersedes requirements to retain old HTTP paths, frozen route inventories and dual-runtime HTTP comparisons.
 Only current canonical routes remain; older clients must update.
-Bodies, SQL history, stored data, receipts and separate production authority remain unchanged.
+The 2026-10-25 extension above further supersedes cross-version compatibility requirements; separate production authority remains unchanged.

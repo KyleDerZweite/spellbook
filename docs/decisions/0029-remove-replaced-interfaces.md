@@ -2,10 +2,10 @@
 
 - Status: Accepted
 - Date: 2026-10-24
-- Last Reviewed: 2026-10-24
+- Last Reviewed: 2026-10-25
 - Owners: Kyle
-- Source of Truth: Kyle's selected removal policy on 2026-10-24
-- Update Triggers: interface replacement, API removal and client upgrade requirements
+- Source of Truth: Kyle's selected removal policy on 2026-10-24 and pre-release extension on 2026-10-25
+- Update Triggers: interface replacement, API removal, schema changes and pre-release upgrade expectations
 - Related Docs: [Contribution policy](../../CONTRIBUTING.md#replacing-interfaces), [Independent applications](../architecture/independent-applications.md), [ADR-0028](./0028-versioned-game-api.md), [Migration contract](../architecture/python-backend-migration.md)
 
 Spellbook prioritizes a small current implementation and fast changes over support for older clients.
@@ -23,5 +23,15 @@ Web and Android use current paths, and Android no longer treats old mutation pat
 OpenAPI defines the current route inventory; obsolete Node route inventories, transfer maps and dual-runtime HTTP comparison runners are removed.
 Useful parsing, authorization, receipt and integration tests continue against current interfaces.
 
-This interface policy does not authorize deleting user data, rewriting SQL history, merging the candidate or deploying it.
+The 2026-10-24 interface policy did not authorize deleting user data, rewriting SQL history, merging the candidate or deploying it.
 Stored receipts and current-request retry semantics retain their existing owners.
+
+## Pre-release extension 2026-10-25
+
+Spellbook is unreleased and offers no backward compatibility, stored-data compatibility or automatic upgrade guarantee across commits.
+Breaking API/schema changes and reset/reimport of downloaded source JSON are acceptable.
+This supersedes the stored-data and retained Node/Python upgrade/rollback compatibility requirements in ADR-0026, ADR-0027 and the migration contract, including preservation of historical Node wire quirks.
+Remove obsolete compatibility code and tests when replacing them; retain tests for current behavior and SQL needed for fresh installation.
+Current authentication, account isolation, accepted command effects, atomic writes and receipt replay within the current version remain required.
+The [contribution policy](../../CONTRIBUTING.md#replacing-interfaces) owns the brief project notice and replacement workflow.
+This extension authorizes neither unrelated data deletion, an actual database reset, merge nor deployment.
