@@ -10,6 +10,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from spellbook_api.http.admission import RequestAdmission
 from spellbook_api.http.auth import require_form_origin, stale_session_cookie
 from spellbook_api.http.errors import HttpError, error_response, install_error_handlers
+from spellbook_api.http.parsing import header
 
 HOST_BODY_BYTES = 12 * 1024 * 1024
 
@@ -50,6 +51,8 @@ def configure_http(
     http.add_middleware(RequestPolicy, admission=admission or RequestAdmission())
 
     async def authority(request: Request) -> None:
+        for name in ("authorization", "origin", "content-type"):
+            header(request, name)
         route = request.scope.get("route")
         require_form_origin(request, origin, getattr(route, "path", ""))
         if auth is not None:

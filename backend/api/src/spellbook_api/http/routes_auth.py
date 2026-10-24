@@ -21,7 +21,7 @@ from spellbook_api.http.auth import (
     write_session_cookie,
 )
 from spellbook_api.http.errors import HttpError, json_response
-from spellbook_api.http.parsing import read_form_data, read_json_object
+from spellbook_api.http.parsing import drain_request_body, read_form_data, read_json_object
 
 QR_COOKIE = "spellbook_qr_requester"
 QR_COOKIE_PATH = "/api/v1/auth/qr"
@@ -120,6 +120,7 @@ def create_auth_routes(
         token = get_bearer_token(request)
         if not token:
             raise HttpError(401, "Bearer token required")
+        await drain_request_body(request)
         await auth.revoke_session(token)
         return Response(status_code=204, headers={"Cache-Control": "no-store"})
 

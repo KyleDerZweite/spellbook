@@ -103,6 +103,11 @@ async def read_request_bytes(request: Request, max_bytes: int) -> bytes:
     return b"".join(chunks)
 
 
+async def drain_request_body(request: Request) -> None:
+    """Complete an ignored body before disconnect observation takes receive ownership."""
+    await read_request_bytes(request, 12 * 1024 * 1024)
+
+
 class JsonObject(RootModel[dict[str, JsonValue]]):
     model_config = ConfigDict(strict=True, allow_inf_nan=False)
 

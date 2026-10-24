@@ -42,8 +42,7 @@ The host uses `create_catalog_routes`, `create_inventory_routes` and `create_val
 Auth/Account/session/SavedState remain registered once.
 Inventory import preview/commit routes now use the integrated implementation.
 All factories are assembled, including `create_deck_routes` and `create_command_routes`.
-Canonical methods are compared with OpenAPI; legacy aliases are compared separately with the frozen neutral inventory.
-The shared compatibility adapter derives aliases from canonical factories and preserves authentication on legacy mobile Catalog reads.
+Canonical native operations are compared with OpenAPI; replaced paths have no aliases or compatibility adapter.
 MTG factories live in `spellbook_api.http.mtg`; shared Auth, account preferences, parsing, routing and process lifetime keep their owners.
 Web SSR/forms forward only the selected browser cookie; direct API commands retain Bearer-before-cookie selection and cookie-mode Origin protection.
 Commands reject unknown fields and delegate unchanged retry inputs to Core.

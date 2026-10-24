@@ -21,6 +21,7 @@ from starlette.responses import Response
 from spellbook_api.http.dependencies import UUIDPath, actor_dependency, body_dependency
 from spellbook_api.http.errors import HttpError, json_response
 from spellbook_api.http.parsing import (
+    drain_request_body,
     read_number,
     read_query_integer,
     read_string,
@@ -198,6 +199,7 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> APIRoute
         request: Request, entryId: UUIDPath, actor: Annotated[Actor, Depends(authenticated)]
     ) -> Response:
         entry = entryId
+        await drain_request_body(request)
         return json_response(
             await decks.remove_deck_card(
                 actor, entry, scalar(request, "requestId", "") or "", "mobile"
@@ -224,6 +226,7 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> APIRoute
     async def delete(
         request: Request, deckId: UUIDPath, actor: Annotated[Actor, Depends(authenticated)]
     ) -> Response:
+        await drain_request_body(request)
         await decks.delete_deck(actor, deckId)
         return json_response(dict(ok=True))
 
