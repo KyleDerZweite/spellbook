@@ -7,6 +7,7 @@
   Apply KISS, YAGNI, DRY, SOLID and Separation of Concerns; avoid broad refactors during feature work.
 - Document the rationale for new dependencies.
   Keep secrets out of code and tool output.
+- When replacing or deprecating an interface, follow [the removal policy](CONTRIBUTING.md#replacing-interfaces).
 - Never use SIGKILL or terminate the user's processes.
   Stop only verified task-owned processes gracefully.
   After a crash, verify repository state, preserved work and runtime ownership yourself before starting subagents.
@@ -26,6 +27,8 @@
 4. Before preparing a PR, follow [contribution disclosure](CONTRIBUTING.md#pull-request-expectations) for actual AI assistance, review, validation and contributor responsibility.
 
 ## Task-specific references
+
+- Before strategic decisions or resuming strategic work, read the [historical wiki index](docs/wiki/index.md) and relevant pages, then follow its query and ingestion rules.
 
 - Before changing card identity, inventory, deck or scan terminology, read [GLOSSARY.md](GLOSSARY.md).
   Before domain exploration, follow [domain consumer rules](docs/operations/github-automation.md#domain-docs).

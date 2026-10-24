@@ -54,7 +54,7 @@
 					lease.current() && account === page.data.user?.accountId && search === page.url.search;
 				try {
 					const result = await readSavedJSON<InventoryValueHistory>(
-						`/api/mobile/v1/mtg/inventory/value-history${search}`,
+						`/api/v1/mtg/inventory/value-history${search}`,
 						{ signal: lease.signal, current }
 					);
 					if (result && current()) {

@@ -1,19 +1,19 @@
 # Worker
 
 - Status: Canonical
-- Last Reviewed: 2026-10-20
+- Last Reviewed: 2026-10-23
 - Source of Truth: code
-- Update Triggers: P13 worker source relocation and accepted external resource evidence contract, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, price evidence and paired/optional publication/recovery, public history, resource limits and provider opt-ins, Scryfall formats, synchronization schedule and retries, first publication, source selection, status persistence, Oracle Tags publication, Commander Spellbook publication and raw canonical fact extraction
+- Update Triggers: Python default runtime activation, independent Python state package and scheduler ownership, P13 worker source relocation and retired external resource gates, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, price evidence and paired/optional publication/recovery, public history, resource limits and provider opt-ins, Scryfall formats, synchronization schedule and retries, first publication, source selection, status persistence, Oracle Tags publication, Commander Spellbook publication and raw canonical fact extraction
 - Related Docs: [System overview](./system-overview.md), [Catalog](./catalog.md), [Deployment](../operations/deployment.md), [Category rules](./category-rules.md), [Valuation](./valuation.md), [Independent applications](./independent-applications.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md), [Migration contract](./python-backend-migration.md), [P13 resource contract](https://github.com/KyleDerZweite/spellbook/issues/260)
 
 The Python worker imports and synchronizes the shared Scryfall catalog in PostgreSQL.
-[ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for the future API and workers, grouped under `backend/` while retaining independent processes.
+[ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for API and workers, grouped under `backend/` while retaining independent processes.
 Catalog publisher sources and tests reside in `backend/workers/catalog/`; the independent Scan scaffold resides in `backend/workers/scan/`.
 Python imports and entrypoints remain `worker.main` and `scan_worker.main:app`.
 The [accepted migration contract](./python-backend-migration.md#framework-modules-and-resources) owns package responsibilities and relocation gates.
 P13 requires paired packaging, image, launcher and CI integration before the relocated packages are accepted.
-The [independently reviewed resource contract in issue 260](https://github.com/KyleDerZweite/spellbook/issues/260) defines provisional external experiment gates and complete process-tree, storage and database-session evidence.
-Those gates add no runtime caps or algorithm changes and establish no measured resource acceptance.
+The resource protocol in [issue 260](https://github.com/KyleDerZweite/spellbook/issues/260) is historical.
+[ADR-0027](../decisions/0027-python-functional-migration-acceptance.md) retires its strict experiment gates; real functional package and worker evidence remains required.
 Full-source cohorts, peak evidence and actual Scan TCP/application integration remain separate acceptance requirements.
 It is a service-level import, not a per-account operation.
 Compose starts it after database migrations.
@@ -135,7 +135,7 @@ The paired price publication and price extractor version remain independent.
 
 ## Optional Commander Spellbook synchronization
 
-`COMMANDER_SPELLBOOK_ENABLED` defaults to `false` in Worker and the Node API.
+`COMMANDER_SPELLBOOK_ENABLED` defaults to `false` in Worker and the Python API.
 Disabled runs perform no combo fetch or database operation and add no readiness dependency.
 Enabled runs fetch the fixed official public gzip bulk on `SYNC_INTERVAL`, independently after the other providers, including when those providers fail.
 Manual mode reports failure after every enabled provider has had its attempt; periodic failure waits the usual interval.
@@ -164,3 +164,18 @@ The existing PostgreSQL transport helper closes timed-out owned connections.
 Failure status has its separate ten-second connection/SQL budget.
 Temporary artifacts are removed after settlement.
 [Deployment](../operations/deployment.md) owns operator recovery and enablement.
+
+## Private state worker candidate
+
+The unmerged Python [state package](../../backend/workers/state/README.md) owns ValueHistory and WholeDeckCategory scheduling separately from HTTP and public ingestion.
+It uses the same Core application/SQL modules, with its own finite Psycopg pool and no API imports, HTTP listener or broker.
+WholeDeckCategory retains durable coalesced jobs and generation/token/revision fencing; ValueHistory retains the advisory lease, reporting timezone and pre-midnight observation policy.
+Both start immediately, avoid overlapping their own work, perform controlled retries and await cleanup before pool closure.
+`VALUE_HISTORY_ENABLED`, `VALUE_HISTORY_TIMEZONE` and `COMMANDER_SPELLBOOK_ENABLED` retain their existing defaults and semantics.
+ICU is an ordinary system dependency for Combo witness collation in both API and state images.
+
+Default Compose and launchers start Python API and the independent State worker after successful one-shot Python migration.
+The replaced Node source and embedded scheduler owner are removed from the candidate.
+State installed-wheel and lifecycle tests establish packaging and local ownership.
+Root separately verified an actual installed Category job; the [migration evidence](./python-migration-evidence-baseline.md#activation-and-contraction-2026-10-23) records its bounded effects and graceful stop.
+Scheduled daily ValueHistory observation and deployment acceptance remain separate.

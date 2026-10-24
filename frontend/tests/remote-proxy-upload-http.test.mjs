@@ -1,37 +1,16 @@
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { createServer, request as httpRequest } from 'node:http';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
+import { spawn } from 'node:child_process';
+import { createInterface } from 'node:readline';
 import { test } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
 
 /**
- * @typedef {{clientAddress: string}} RequestMetadata
- * @typedef {{
- *   handle(request: Request, metadata: RequestMetadata): Promise<Response>,
- *   closeStreams(): Promise<void>
- * }} HttpApplication
- * @typedef {{
- *   createNodeHttpServer(application: HttpApplication, configuration: {
- *     publicOrigin: string, trustedProxyAddresses: readonly string[]
- *   }): {
- *     listen(port: number): Promise<import('node:net').AddressInfo>,
- *     close(): Promise<void>
- *   }
- * }} NodeHttpModule
- * @typedef {{readJsonObject(request: Request): Promise<Record<string, unknown>>}} RequestModule
  * @typedef {{handler: import('node:http').RequestListener}} WebHandlerModule
  * @typedef {{status: number | undefined, body: string, bytesAtResponse: number}} PostResult
  */
-
-// Native test transform only. The web handler is the actual production build.
-const backendRoot = process.env.TEST_PROXY_BACKEND_ROOT
-	? pathToFileURL(`${process.env.TEST_PROXY_BACKEND_ROOT.replace(/\/$/, '')}/`)
-	: new URL('../../backend/', import.meta.url);
-/** @type {NodeHttpModule} */
-const { createNodeHttpServer } = await import(new URL('src/http/node.ts', backendRoot).href);
-/** @type {RequestModule} */
-const { readJsonObject } = await import(new URL('src/http/request.ts', backendRoot).href);
 
 function deferred() {
 	/** @type {PromiseWithResolvers<void>} */
@@ -64,7 +43,7 @@ function post(origin, body, chunked, slow) {
 	return new Promise((resolve, reject) => {
 		let written = 0;
 		const request = httpRequest(
-			`${origin}/api/web/v1/commands`,
+			`${origin}/api/v1/mtg/commands`,
 			{
 				method: 'POST',
 				headers: {
@@ -121,81 +100,56 @@ test(
 		const uploadStarted = deferred();
 		const uploadAborted = deferred();
 		const streamCancelled = deferred();
-		/** @type {Set<() => void>} */
-		const streams = new Set();
-		const api = createNodeHttpServer(
-			{
-				async handle(request, context) {
-					const path = new URL(request.url).pathname;
-					if (path === '/api/proxy-test/headers') {
-						const headers = new Headers({ 'cache-control': 'no-store' });
-						headers.append('set-cookie', 'one=test; Path=/; HttpOnly');
-						headers.append(
-							'set-cookie',
-							'two=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/api; HttpOnly'
-						);
-						return Response.json(
-							{
-								headers: Object.fromEntries(request.headers),
-								clientAddress: context.clientAddress
-							},
-							{ status: 201, headers }
-						);
-					}
-					if (path === '/api/proxy-test/events') {
-						/** @type {ReadableStreamDefaultController<Uint8Array>} */
-						let controller;
-						let open = true;
-						const finish = () => {
-							if (!open) return;
-							open = false;
-							streams.delete(finish);
-							controller.close();
-							streamCancelled.resolve();
-						};
-						request.signal.addEventListener('abort', finish, { once: true });
-						streams.add(finish);
-						/** @type {ReadableStream<Uint8Array>} */
-						const stream = new ReadableStream({
-							start(value) {
-								controller = value;
-								controller.enqueue(new TextEncoder().encode('event: reset\ndata: {}\n\n'));
-							},
-							cancel() {
-								open = false;
-								streams.delete(finish);
-								streamCancelled.resolve();
-							}
-						});
-						return new Response(stream, {
-							headers: {
-								'content-type': 'text/event-stream',
-								'cache-control': 'no-store',
-								'x-accel-buffering': 'no'
-							}
-						});
-					}
-					if (path === '/api/proxy-test/upload-abort') {
-						request.signal.addEventListener('abort', () => uploadAborted.resolve(), { once: true });
-						uploadStarted.resolve();
-					}
-					await readJsonObject(request);
-					return Response.json({ ok: true });
-				},
-				async closeStreams() {
-					for (const finish of streams) finish();
-				}
-			},
-			{ publicOrigin: webOrigin, trustedProxyAddresses: ['127.0.0.1'] }
+
+		const probe = createServer();
+		probe.listen(0, '127.0.0.1');
+		await once(probe, 'listening');
+		const address = probe.address();
+		assert.ok(address && typeof address !== 'string');
+		await new Promise((resolve, reject) =>
+			probe.close((error) => (error ? reject(error) : resolve(undefined)))
 		);
-		const address = await api.listen(0);
 		const apiOrigin = `http://127.0.0.1:${address.port}`;
-		process.env.API_INTERNAL_URL = apiOrigin;
-		process.env.APP_ORIGIN = webOrigin;
-		process.env.ORIGIN = webOrigin;
-		process.env.BODY_SIZE_LIMIT = process.env.TEST_PROXY_WEB_BODY_LIMIT ?? '512K';
-		delete process.env.DATABASE_URL;
+		const api = spawn(
+			fileURLToPath(new URL('../../backend/api/.venv/bin/python', import.meta.url)),
+			[fileURLToPath(new URL('./fixtures/proxy-api.py', import.meta.url))],
+			{
+				env: { ...process.env, API_PORT: String(address.port) },
+				stdio: ['ignore', 'pipe', 'pipe']
+			}
+		);
+		assert.ok(api.stdout && api.stderr);
+		const events = createInterface({ input: api.stdout });
+		events.on('line', (line) => {
+			if (line === 'upload-started') uploadStarted.resolve();
+			if (line === 'upload-aborted') uploadAborted.resolve();
+			if (line === 'stream-cancelled') streamCancelled.resolve();
+		});
 		try {
+			await new Promise((resolve, reject) => {
+				const reader = createInterface({ input: api.stderr });
+				const fail = () => {
+					clearTimeout(timer);
+					reject(new Error('Installed proxy API fixture failed to start'));
+				};
+				const timer = setTimeout(fail, 10000);
+				api.once('error', fail);
+				api.once('exit', fail);
+				reader.on('line', (line) => {
+					if (!line.includes(`Uvicorn running on ${apiOrigin} `)) return;
+					clearTimeout(timer);
+					reader.close();
+					api.off('error', fail);
+					api.off('exit', fail);
+					resolve(undefined);
+				});
+			});
+			api.stderr.resume();
+
+			process.env.API_INTERNAL_URL = apiOrigin;
+			process.env.APP_ORIGIN = webOrigin;
+			process.env.BODY_SIZE_LIMIT = process.env.TEST_PROXY_WEB_BODY_LIMIT ?? '512K';
+			delete process.env.DATABASE_URL;
 			const handlerUrl = new URL('../build/handler.js', import.meta.url);
 			/** @type {WebHandlerModule} */
 			const built = await import(handlerUrl.href);
@@ -277,7 +231,13 @@ test(
 			});
 		} finally {
 			await Promise.all([
-				api.close(),
+				(async () => {
+					if (!api.pid || api.exitCode !== null || api.signalCode !== null) return;
+					const exited = once(api, 'exit');
+					api.kill('SIGTERM');
+					await settled(exited.then(() => undefined));
+					events.close();
+				})(),
 				new Promise((resolve, reject) =>
 					web.close((cause) => (cause ? reject(cause) : resolve(undefined)))
 				)

@@ -1,9 +1,9 @@
 # Managed authentication evaluation
 
 - Status: Proposal, not implemented
-- Last Reviewed: 2026-10-06
+- Last Reviewed: 2026-10-24
 - Source of Truth: linked vendor documentation and current authentication code
-- Update Triggers: provider selection, SDK compatibility, pricing, hosting requirements, identity migration, agent registration protocol, deployment profiles
+- Update Triggers: current registration API path, provider selection, SDK compatibility, pricing, hosting requirements, identity migration, agent registration protocol, deployment profiles
 - Related Docs: [Architecture index](./README.md), [Authentication](./auth.md), [Local authentication decision](../decisions/0009-local-authentication.md), [Product](../product/specification.md)
 
 Managed authentication is worth evaluating before adding social login, email recovery, or MFA.
@@ -59,7 +59,7 @@ The [Agent verified flow](https://workos.com/auth-md/docs/flows/verified) requir
 Provider examples in the guide do not establish that a particular agent runtime supports that capability.
 
 The [file format](https://workos.com/auth-md/docs/auth-md) and [apps guide](https://workos.com/auth-md/docs/apps) require implemented discovery, registration, claim, token exchange, and revocation behavior.
-Publishing instructions for `/api/auth/register` alone would not implement this protocol.
+Publishing instructions for `/api/v1/auth/register` alone would not implement this protocol.
 Discovery uses [Protected Resource Metadata](https://www.rfc-editor.org/rfc/rfc9728.html) and [Authorization Server Metadata](https://www.rfc-editor.org/rfc/rfc8414.html).
 The claim grant is `urn:workos:agent-auth:grant-type:claim`; it borrows the device ceremony from [RFC 8628](https://datatracker.ietf.org/doc/html/rfc8628) and is distinct from that RFC's `device_code` grant.
 Assertions exchange through [RFC 7523](https://www.rfc-editor.org/rfc/rfc7523.html), and access-token revocation follows [RFC 7009](https://www.rfc-editor.org/rfc/rfc7009.html).

@@ -1,9 +1,9 @@
 # Independent applications implementation contract
 
-- Status: Implemented first slice, native target verification pending
-- Last Reviewed: 2026-10-20
+- Status: Independent Python API and workers implemented; native target verification pending
+- Last Reviewed: 2026-10-24
 - Source of Truth: accepted maintainer direction and existing application contracts
-- Update Triggers: Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, HTTP extraction, native delivery, credential forwarding, application ownership, acceptance evidence
+- Update Triggers: ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, canonical-only versioned game API and client upgrades, Python source activation and implementation status, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, HTTP extraction, native delivery, credential forwarding, application ownership, acceptance evidence
 - Related Docs: [System overview](./system-overview.md), [Application contract](./application-contract.md), [Auth](./auth.md), [Mobile handoff](../product/mobile-app-exploration.md), [ADR-0024](../decisions/0024-independent-applications.md), [Verification](../operations/github-automation.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md)
 
 ## Outcome and ownership
@@ -11,38 +11,60 @@
 Retain `frontend/`, `backend/` and `contracts/`, with independent Catalog and Scan packages under `backend/workers/`.
 Add the independent Gradle project `android/`.
 SvelteKit owns rendering, native form actions and browser presentation.
-The Node API owns credential authentication, PostgreSQL, application use cases, Scan storage, runners and SavedState lifetime.
+The Python API owns credential authentication, PostgreSQL, application use cases, Scan storage and SavedState lifetime.
+The independent Python State process owns ValueHistory and WholeDeckCategory schedulers.
 Android owns native navigation, presentation, credentials and bounded local state.
 Contracts contain serialized DTOs and pure shared validation/presentation helpers only.
 No web runtime may import backend implementation, PostgreSQL, Drizzle or password hashing.
 
-The existing TypeScript backend remains the implemented baseline.
-[ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for the future API and server workers, with server code grouped under `backend/`.
-[Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211) records framework, contract and migration planning.
-The [accepted Python migration contract](./python-backend-migration.md) owns that design and its independent review; this document continues to describe the implemented extraction.
-This language direction does not implement a rewrite or worker move or change the extraction's application responsibilities.
+The unmerged integration candidate uses Python API/Core and workers by default.
+[ADR-0027](../decisions/0027-python-functional-migration-acceptance.md) owns functional acceptance and separate production authority.
+The [migration contract](./python-backend-migration.md) owns retained wire/data compatibility and remaining runtime evidence.
+The replaced TypeScript server is removed; Python functional tests and installed-Python HTTP consumers own current coverage.
+Frontend, contracts, Android and unchanged SQL/Demo assets retain their owners.
 A new monorepo orchestrator, hardware control and a complex offline write queue remain outside its scope.
 Existing PWA compatibility remains available, but it is not the Android application.
 
 ## HTTP module interface
 
-`backend/src/http/types.ts` owns `HttpDependencies`, `RouteContext`, `HttpRoute` and `HttpApplication`.
-`createHttpApplication(application, {publicOrigin})` supplies `handle(Request, {clientAddress})` and `closeStreams()`.
-Route factories accept `HttpDependencies` and return `HttpRoute[]`, with colon-prefixed named path segments.
-Factories are `createAuthRoutes`, `createAccountRoutes`, `createSavedStateRoutes`, `createCatalogRoutes`, `createInventoryRoutes`, `createValuationRoutes`, `createScanRoutes`, `createDeckRoutes`, `createCategoryRoutes` and `createWebRoutes`.
-The parent integrates their registry sequentially.
+### Selected versioned game API
 
-Shared helpers retain the current parser signatures in `http/request.ts`.
-`http/errors.ts` exports `error(status, body): never`, `json(value, init?)`, and `badRequestIfValidation(cause, fallback?): never`.
-The latter preserves existing structured public failures.
-`http/auth.ts` exports `requireMobileAuth(context, dependencies)`, returning the authenticated user as `{user}`.
-Domain handlers use these helpers rather than SvelteKit imports or simulated framework events.
-Dependencies live in factory closures.
-Request context has no application, locals, cookie framework or generic method invocation.
+[ADR-0028](../decisions/0028-versioned-game-api.md) selects versioned game routes in PR 276.
+[ADR-0029](../decisions/0029-remove-replaced-interfaces.md) removes replaced interfaces immediately and requires older clients to update.
+Canonical routes use `/api/v1/auth/...`, `/api/v1/account/...` and `/api/v1/mtg/...`.
+The latter owns Catalog search/printing reads under `/catalog`, Inventory, Decks, Categories, Valuation, Scan, Dashboard and the nine closed mutation commands under `/commands`.
+Raw-form bridges use `/api/v1/web/auth/login`, `/api/v1/web/auth/register` and `/api/v1/web/password`.
+Page paths remain `/mtg/...`, `/auth/...` and `/settings/...`.
 
-All 82 existing explicit API methods retain paths, payloads, status, cache policy and error details.
-Add `GET /api/catalog/printings/:printingId` and owned `GET /api/mobile/v1/mtg/category-definitions/:originId` for existing web reads.
-`POST /api/web/v1/commands` accepts exactly the nine typed intents in `contracts/src/web.ts`.
+MTG-owned HTTP and Core modules live in `spellbook_api.http.mtg` and `spellbook_core.mtg`.
+The factories declare only canonical paths, with no legacy dispatch or path translation.
+Internal consumers use the new Python modules without legacy re-export shims.
+Common identity/authentication, database, transport and process lifetime retain their shared owners.
+The shared Profile interface and response retain their existing body.
+`spellbook_core.mtg.profile` explicitly owns Profile-card validation, presentation and MTG totals; shared `spellbook_core.profile` owns identity preferences and atomic updates.
+MTG printing DTOs and mutation conflicts belong to `spellbook_core.mtg.models` and `.errors`.
+There is no new game registry, generic filter framework, common all-game card schema or implemented second TCG.
+
+Public Catalog reads remain public; private mutations and reads retain their authentication and account scope.
+Old API paths return 404 without aliases or redirects.
+Web and Android switch to canonical paths in the same change.
+OpenAPI owns the current route inventory; the obsolete legacy route inventory and transfer map are removed.
+Current-route tests cover dispatch, first-value query parsing, bodies, HEAD/OPTIONS/405, cache/Origin policy, QR cookies and SSE.
+Registry checks reject extra operations and representative removed paths return 404.
+Current-head production-registry HTTP acceptance remains an integration-owner check.
+
+`backend/api/src/spellbook_api/http/types.py` owns `Configuration` and `ApplicationLifetime`.
+`create_application(configuration)` returns the HTTP app, pre-drain `close_streams` and idempotent `close` callbacks.
+`create_http_application` composes explicitly supplied Auth, Catalog, Inventory, Deck, Category, Scan, Valuation, Profile, Dashboard and SavedState dependencies.
+The route factories return `HttpRoute` definitions with colon-prefixed named path segments.
+`RouteRegistry` owns dispatch, method selection, cookie cleanup and reviewed error serialization.
+HTTP parsing remains in `http/parsing.py`; application methods and SQL remain in Core.
+Core imports neither HTTP nor a client framework; workers import Core without importing API.
+The native Python boundary checker enforces those directions.
+Frontend requests use the remote application and carry no serialized actor or database handle.
+
+Canonical reads include `GET /api/v1/mtg/catalog/printings/:printingId` and owned `GET /api/v1/mtg/category-definitions/:originId` for existing web reads.
+`POST /api/v1/mtg/commands` accepts exactly the nine typed intents in `contracts/src/web.ts`.
 Its strict object parser rejects unknown keys and authority fields, preserves absent optional fields, limits JSON to 1 MiB and calls the original use case with the original source and request ID.
 Results are the existing DTO directly.
 Domain validators, fingerprints and transactions remain backend-owned.
@@ -66,7 +88,8 @@ Optional fields are not silently filled.
 ## Authority and compatibility
 
 The API revalidates credentials into the backend's trusted actor for every request.
-API routes preserve bearer-before-cookie selection, including no cookie fallback after an invalid Authorization header.
+Mobile/API routes preserve bearer-before-cookie selection, including no cookie fallback after an invalid Authorization header.
+The closed web command endpoint retains this direct API credential selection; SSR/forms forward only the selected browser cookie.
 SSR and form actions select only the browser cookie identity, even if a page request also supplies a bearer header.
 Cookie mutations retain Origin protection.
 The public `APP_ORIGIN` governs QR URLs, Origin and secure cookies; `API_INTERNAL_URL` only selects the private HTTP destination.
@@ -82,7 +105,7 @@ A successful mutation is not retried because a later reload fails.
 After password rotation, the web action sets the replacement cookie and replaces the remote adapter's request-bound credential before any subsequent load in the same lifecycle.
 The revoked old token must not authenticate that load.
 
-Three explicit web-form intents preserve rate limits before form decoding: `POST /api/web/v1/auth/login`, `POST /api/web/v1/auth/register` and `POST /api/web/v1/password`.
+Three explicit web-form intents preserve rate limits before form decoding: `POST /api/v1/web/auth/login`, `POST /api/v1/web/auth/register` and `POST /api/v1/web/password`.
 Web streams the original form body/content type, selected cookie, public Origin and trusted client address.
 API bounds and decodes FormData, owns validation and takes the original auth attempt exactly once before decoding.
 These routes require the public Origin.
@@ -97,10 +120,11 @@ These concrete form intents are separate from the nine closed mutation commands.
 The API, web adapter and OpenAPI implement this contract.
 The routes preserve invalid-field and malformed-form throttling without a second limiter or an authority-bypassing header.
 
-The Node host owns startup and graceful shutdown.
+The Python host owns startup and graceful shutdown.
 It aborts disconnected requests, respects stream backpressure, closes SSE before waiting for HTTP connections, then closes application resources.
 SSE keeps per-account session revalidation, bounded delivery, heartbeat, no-store and proxy buffering protection.
 The web proxy forwards bodies and SSE without buffering.
+Malformed path encodings rejected by SvelteKit before proxy dispatch use its native 400 response; well-formed API requests retain API response bodies and policy.
 API schema/OpenAPI and migrations belong to backend; migration SQL, journal and snapshots retain their history.
 
 ## Android delivery
@@ -127,6 +151,7 @@ Namespace private state and drafts by backend and account.
 Cancel old requests and SSE on changes.
 Honor no-store, fixed session expiry and the absence of refresh tokens.
 An ambiguous save can retry only the frozen body and original request ID.
+Android supports pending mutations only for current operations and never rewrites an obsolete path into a new operation.
 Native acceptance includes guest draft through login to explicit Save, lost-response retry, saved-but-reload-failed feedback, account isolation, system Back and keyboard behavior, and real website-to-app SSE refresh.
 
 Card Station uses its accepted name and planned circular eight-box layout.
@@ -141,9 +166,9 @@ Implement on that base using isolated writer worktrees and a shared local integr
 Publish the verified integrated result to main as requested, without deploying a service.
 
 [Issue 244](https://github.com/KyleDerZweite/spellbook/issues/244) tracks implementation and final integration evidence.
-The accepted inventory is 88 API method/path pairs: the original 82, two reads, one endpoint with nine closed command intents and three raw-form routes.
-The accepted OpenAPI inventory is 95 method/path pairs including seven browser-auth methods.
-Counts do not establish verified compatibility.
+Canonical OpenAPI contains 85 API method/path pairs and seven unchanged browser-auth methods; Discovery is served separately.
+Tests compare the complete current registry with OpenAPI, deriving operation sets instead of maintaining a second route inventory.
+Counts do not establish functional correctness.
 
 Before integration, independently review this contract against the actual callers.
 Writers verify checkout, branch, base, local changes and owned resources.
@@ -158,7 +183,9 @@ Build and install Android on the existing task-owned emulator, run guest Search 
 Record exact revision, commands, failures and unavailable evidence.
 Emulator evidence does not establish Honor hardware, camera recognition, production deployment or owner acceptance.
 
-As of 2026-10-19, API registry, raw forms, OpenAPI, web remote adapter, packaging, backend migration/fixture ownership, migrated tests and the first native Android slice are integrated.
+API registry, raw forms, OpenAPI, web remote adapter, packaging, backend migration/fixture ownership, migrated tests and the first native Android slice are integrated.
+Canonical Web/Android clients and explicit MTG modules are implemented and reviewed in the unmerged migration candidate.
+Exact revisions, review findings and current-head checks belong to PR 276.
 Independent review identified and verified fixes for QR replacement-cookie ordering, HTTP error/status parity, upload-limit propagation, bounded native streaming and stale account callbacks.
 [Repository verification](../operations/github-automation.md) records checks and their limits.
 The root-owned emulator attempt exited 139 before boot; no workaround was attempted per maintainer instruction.

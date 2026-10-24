@@ -11,12 +11,19 @@
 		"check:boundaries": "node scripts/check-boundaries.mjs",
 		"test:boundaries": "node --test scripts/check-boundaries.test.mjs",
 		"lint": "pnpm --dir frontend lint",
-		"build": "pnpm --dir backend build && pnpm --dir frontend build",
+		"build": "uvx --from uv==0.12.23 uv build --project backend/core && uvx --from uv==0.12.23 uv build --project backend/api && uvx --from uv==0.12.23 uv build --project backend/workers/state && pnpm --dir frontend build",
 		"check:client": "node scripts/check-client.mjs",
 		"dev": "node --env-file-if-exists=.env scripts/dev.mjs",
 		"test:dev": "node --test scripts/dev.test.mjs",
-		"check": "pnpm --dir backend check && pnpm --dir frontend check",
-		"test:tooling": "node --test scripts/check-boundaries.test.mjs scripts/ci-changes.test.mjs scripts/dev.test.mjs scripts/packaging.test.mjs",
-		"test:packaging": "node --test scripts/packaging.test.mjs"
+		"check": "pnpm check:python && pnpm --dir frontend check",
+		"test:tooling": "node --test scripts/check-boundaries.test.mjs scripts/dev.test.mjs scripts/python.test.mjs scripts/packaging.test.mjs",
+		"test:packaging": "node --test scripts/packaging.test.mjs",
+		"check:python": "uvx --from uv==0.12.23 uv run --directory backend/api --no-sync mypy && uvx --from uv==0.12.23 uv run --directory backend/core --no-sync mypy && uvx --from uv==0.12.23 uv run --directory backend/workers/state --no-sync mypy",
+		"setup:python": "node scripts/python.mjs sync",
+		"start": "node --env-file-if-exists=.env scripts/python.mjs start",
+		"db:migrate": "node --env-file-if-exists=.env scripts/python.mjs migrate",
+		"operator:password": "node --env-file-if-exists=.env scripts/python.mjs password",
+		"demo:seed": "node --env-file-if-exists=.env scripts/python.mjs demo",
+		"demo:replace-inventory": "node --env-file-if-exists=.env scripts/python.mjs replace-inventory"
 	}
 }

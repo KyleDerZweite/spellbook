@@ -1,9 +1,9 @@
 # Spellbook product specification
 
 - Status: Canonical
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-10-24
 - Source of Truth: application code, tests, accepted product requirements
-- Update Triggers: independent API/web ownership and relocated code references, accepted PWA/QR delivery and pending browser/Android acceptance, Inventory metadata filter shortcuts and compact read-only rows, account access and preferences, dashboard summaries, catalog identity, inventory or deck behavior, bounded Inventory loading and scaling evidence, market reference values and personal Inventory history, import formats, API contracts, scan capability and priorities, physical-card integration requirements, supported platforms, release acceptance changes, continuous Lazy browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
+- Update Triggers: versioned MTG routes and module ownership, independent API/web ownership and relocated code references, accepted PWA/QR delivery and pending browser/Android acceptance, Inventory metadata filter shortcuts and compact read-only rows, account access and preferences, dashboard summaries, catalog identity, inventory or deck behavior, bounded Inventory loading and scaling evidence, market reference values and personal Inventory history, import formats, API contracts, scan capability and priorities, physical-card integration requirements, supported platforms, release acceptance changes, continuous Lazy browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
 - Related Docs: [Domain model](../../GLOSSARY.md), [Routes](./routing-and-games.md), [UI direction](./ui-design-direction.md), [Value tracking](./value-tracking.md), [System architecture](../architecture/system-overview.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Card scanner and sorter](../integrations/card-robot.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [Category rules](../architecture/category-rules.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
 
 Spellbook is an open-source MTG inventory and deck builder for private accounts on a self-hosted instance.
@@ -354,7 +354,7 @@ The result must remain deterministic for the same inventory and deck inputs.
 For example, two deck entries requiring one copy each of the same canonical card cannot both report available when the account owns only one copy.
 If the account owns the requested printing for one entry and a different printing for the other, exact matches take precedence.
 
-`GET /api/mobile/v1/mtg/decks/{deckId}/availability` exposes this calculation to authenticated clients.
+`GET /api/v1/mtg/decks/{deckId}/availability` exposes this calculation to authenticated clients.
 It returns `deckId`, `entries` with `entryId`, `required`, `exact`, `alternate`, and `missing`, and matching `totals`.
 Invalid deck identifiers return 400; absent or foreign decks return 404.
 The API allocates entries in stable identifier order and marks the response `no-store`.

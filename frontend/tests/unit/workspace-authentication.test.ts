@@ -5,8 +5,11 @@ it('requires a current authenticated same-account response rather than cached SS
 	const signal = new AbortController().signal;
 	const request =
 		(status: number, accountId = 'a'): typeof fetch =>
-		async () =>
-			new Response(JSON.stringify({ user: { accountId } }), { status });
+		async (path, options) => {
+			expect(path).toBe('/api/v1/auth/session');
+			expect(options).toMatchObject({ cache: 'no-store', signal });
+			return new Response(JSON.stringify({ user: { accountId } }), { status });
+		};
 	expect(await confirmAuthenticatedNavigation('a', signal, () => true, request(401))).toBe(false);
 	expect(await confirmAuthenticatedNavigation('a', signal, () => true, request(503))).toBe(false);
 	expect(await confirmAuthenticatedNavigation('a', signal, () => true, request(200, 'b'))).toBe(

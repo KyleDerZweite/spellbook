@@ -16,19 +16,20 @@ from uuid import uuid4
 import httpx2
 import pytest
 import uvicorn
+from native_inventory import NATIVE, NativeInventory, native_fixture
 from spellbook_core.auth import SessionAuth
 from spellbook_core.db import transaction
-from spellbook_core.errors import NotesConflictError, RequestConflictError
-from spellbook_core.inventory import Inventory
+from spellbook_core.errors import RequestConflictError
 from spellbook_core.models import Actor
+from spellbook_core.mtg.errors import NotesConflictError
+from spellbook_core.mtg.inventory import Inventory
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
-from test_cross_runtime import NATIVE, NativeInventory, native_fixture
 
 from spellbook_api.http.auth import require_form_origin, stale_session_cookie
 from spellbook_api.http.errors import HttpError, error_response
-from spellbook_api.http.routes_inventory import add_items, get_entry
+from spellbook_api.http.mtg.routes_inventory import add_items, get_entry
 
 ORIGIN = "https://spellbook.test"
 ACTOR = Actor("component-account", "component", "", "", "")
@@ -206,9 +207,9 @@ def component(fixture: NativeInventory) -> ASGIApp:
             raw = scope["raw_path"].decode("ascii")
             require_form_origin(req, ORIGIN)
             cleanup = await stale_session_cookie(req, fixture.auth, ORIGIN)
-            if raw == "/api/mobile/v1/mtg/inventory" and req.method == "POST":
+            if raw == "/api/v1/mtg/inventory" and req.method == "POST":
                 response = await add_items(req, fixture.auth, fixture.inventory, ORIGIN)
-            elif raw.startswith("/api/mobile/v1/mtg/inventory/") and req.method == "GET":
+            elif raw.startswith("/api/v1/mtg/inventory/") and req.method == "GET":
                 response = await get_entry(
                     req, raw.rsplit("/", 1)[1], fixture.auth, fixture.inventory, ORIGIN
                 )
@@ -255,7 +256,7 @@ def test_native_tcp_python_component_add_readback_replay_auth_caps_and_failures(
             tcp_component(fixture) as url,
             httpx2.AsyncClient(base_url=url) as client,
         ):
-            path = "/api/mobile/v1/mtg/inventory"
+            path = "/api/v1/mtg/inventory"
             bearer = {"authorization": "Bearer " + fixture.token}
             payload = {
                 "requestId": str(uuid4()),
@@ -368,7 +369,7 @@ def test_native_tcp_disconnect_after_commit_replays_original_receipt() -> None:
                 try:
                     writer.write(
                         (
-                            "POST /api/mobile/v1/mtg/inventory HTTP/1.1\r\n"
+                            "POST /api/v1/mtg/inventory HTTP/1.1\r\n"
                             "Host: 127.0.0.1\r\nContent-Type: application/json\r\n"
                             f"Authorization: Bearer {fixture.token}\r\n"
                             f"Content-Length: {len(raw)}\r\n\r\n"
@@ -387,7 +388,7 @@ def test_native_tcp_disconnect_after_commit_replays_original_receipt() -> None:
                     await writer.wait_closed()
             async with httpx2.AsyncClient(base_url=url) as client:
                 replay = await client.post(
-                    "/api/mobile/v1/mtg/inventory",
+                    "/api/v1/mtg/inventory",
                     json=payload,
                     headers={"authorization": "Bearer " + fixture.token},
                 )

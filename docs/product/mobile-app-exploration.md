@@ -1,9 +1,9 @@
 # Spellbook website and Android design handoff
 
 - Status: Android first slice implemented; native target verification pending
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-10-24
 - Source of Truth: maintainer's selected Android structure and Figma-first sequence, inspected first-party app images and versioned mobile source, linked Figma files and shared API contracts
-- Update Triggers: accepted visual direction and Card Station demo name, independent web/backend/Android delivery, native stack recommendation, prototype journey review, colored app navigation and compact Inventory actions, eight-box Cardstation and proposed Filter-Box/physical links, Cardstation/capture contracts, framework selection, API parity, native session lifecycle and cache policy
+- Update Triggers: Python API activation and canonical client implementation, accepted visual direction and Card Station demo name, independent web/backend/Android delivery, native stack recommendation, prototype journey review, colored app navigation and compact Inventory actions, eight-box Cardstation and proposed Filter-Box/physical links, Cardstation/capture contracts, framework selection, API parity, native session lifecycle and cache policy
 - Related Docs: [UI direction](./ui-design-direction.md), [Routes](./routing-and-games.md), [System overview](../architecture/system-overview.md), [Mobile and Scan](../architecture/mobile-and-scan.md), [Auth](../architecture/auth.md), [Cardstation proposal](../integrations/card-robot.md), [Client evaluation](../integrations/scanner-platform-evaluation.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Product index](./README.md)
 
 The maintainer selected a separate Android application against the shared backend.
@@ -111,8 +111,8 @@ Product images establish visible composition, not conversion, performance or Spe
 The selected next delivery separates the Svelte website, backend and Android application in one monorepo.
 Keep the existing frontend/backend/contracts owners and add a separate Android project.
 [System overview](../architecture/system-overview.md#selected-independent-applications) owns the deployment transition.
-The integrated application backend is an independent TypeScript/Node HTTP process; Python owns the existing worker packages.
-A Go or Python application-backend rewrite is not selected.
+The unmerged migration candidate uses an independent Python API and Python workers under [ADR-0025](../decisions/0025-python-api-and-workers.md).
+Web and Android use the current canonical API; native target acceptance remains pending.
 
 The selected framework is Kotlin with Jetpack Compose for Android-first delivery.
 Use the accepted Figma components, Navigation 3, ViewModel/StateFlow and lifecycle-aware state collection, following [Android's architecture guidance](https://developer.android.com/topic/architecture/recommendations).

@@ -4,9 +4,11 @@ import asyncio
 import hashlib
 import hmac
 import re
+import secrets
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 from threading import Lock
+from typing import cast
 
 from .errors import AuthError
 from .validation import js_utf8
@@ -52,7 +54,7 @@ class PasswordVerifier:
     def __init__(self, executor: ThreadPoolExecutor) -> None:
         self._executor = executor
         self._lock = Lock()
-        self._pending: set[Future[bool]] = set()
+        self._pending: set[Future[object]] = set()
         self._accepting = True
         self._offered = self._completed = self._busy = self._failed = 0
         self._active_max = self._malformed = 0
@@ -78,15 +80,31 @@ class PasswordVerifier:
             except BaseException:
                 self._failed += 1
                 raise
-            self._pending.add(future)
+            self._pending.add(cast(Future[object], future))
             self._active_max = max(self._active_max, len(self._pending))
         # Register outside the lock because an already completed future calls back inline.
         future.add_done_callback(self._completed_native)
         return await _native_waiter(future)
 
-    def _completed_native(self, future: Future[bool]) -> None:
+    async def hash(self, password: str) -> str:
         with self._lock:
-            self._pending.remove(future)
+            if not self._accepting or len(self._pending) >= 4:
+                self._busy += 1
+                raise AuthError(_BUSY)
+            self._offered += 1
+            try:
+                future = self._executor.submit(hash_password, password)
+            except BaseException:
+                self._failed += 1
+                raise
+            self._pending.add(cast(Future[object], future))
+            self._active_max = max(self._active_max, len(self._pending))
+        future.add_done_callback(self._completed_native)
+        return await _native_waiter(future)
+
+    def _completed_native[T](self, future: Future[T]) -> None:
+        with self._lock:
+            self._pending.remove(cast(Future[object], future))
             self._completed += 1
             if future.cancelled() or future.exception() is not None:
                 self._failed += 1
@@ -116,11 +134,11 @@ class PasswordVerifier:
             )
 
 
-def _native_waiter(native: Future[bool]) -> asyncio.Future[bool]:
+def _native_waiter[T](native: Future[T]) -> asyncio.Future[T]:
     # This future has no cancellation link back to the executor. Shield in Python
     # 3.14 reports a late native exception to the loop after caller cancellation.
     loop = asyncio.get_running_loop()
-    waiter: asyncio.Future[bool] = loop.create_future()
+    waiter: asyncio.Future[T] = loop.create_future()
     waiter.add_done_callback(_observe)
 
     def deliver() -> None:
@@ -133,7 +151,7 @@ def _native_waiter(native: Future[bool]) -> asyncio.Future[bool]:
         else:
             waiter.set_result(native.result())
 
-    def completed(future: Future[bool]) -> None:
+    def completed(future: Future[T]) -> None:
         try:
             loop.call_soon_threadsafe(deliver)
         except RuntimeError:
@@ -146,10 +164,25 @@ def _native_waiter(native: Future[bool]) -> asyncio.Future[bool]:
     return waiter
 
 
-def _observe(future: asyncio.Future[bool]) -> None:
+def _observe[T](future: asyncio.Future[T]) -> None:
     if not future.cancelled():
         future.exception()
 
 
 def create_password_verifier(executor: ThreadPoolExecutor) -> PasswordVerifier:
     return PasswordVerifier(executor)
+
+
+def hash_password(password: str) -> str:
+    """Create the existing scrypt encoding. Call off-loop in async applications."""
+    salt = secrets.token_hex(16)
+    key = hashlib.scrypt(
+        js_utf8(password),
+        salt=salt.encode("utf-8"),
+        n=32768,
+        r=8,
+        p=3,
+        dklen=64,
+        maxmem=64 * 1024 * 1024,
+    )
+    return f"scrypt${salt}${key.hex()}"

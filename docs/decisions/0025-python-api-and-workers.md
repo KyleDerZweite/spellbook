@@ -1,13 +1,13 @@
 # ADR-0025: Python for the API and server workers
 
 - Status: Accepted
-- Implementation: Dormant API/Core and worker relocation slices implemented; production migration pending
+- Implementation: Complete Python source candidate implemented and unmerged; owner testing and production migration pending
 - Date: 2026-10-19
-- Last Reviewed: 2026-10-20
+- Last Reviewed: 2026-10-24
 - Owners: Kyle
 - Source of Truth: maintainer-selected shared API/worker language
-- Update Triggers: dormant-slice implementation status, Python migration design, framework or schema ownership selection, worker relocation, parity evidence
-- Related Docs: [Language evaluation](../integrations/backend-language-evaluation.md), [Independent applications](../architecture/independent-applications.md), [Worker](../architecture/worker.md), [ADR-0024](./0024-independent-applications.md), [ADR-0023](./0023-local-recognition-in-scanner-clients.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
+- Update Triggers: functional migration acceptance under ADR-0027, complete unmerged candidate status, Python migration design, framework or schema ownership selection, worker relocation, parity evidence
+- Related Docs: [Language evaluation](../integrations/backend-language-evaluation.md), [Independent applications](../architecture/independent-applications.md), [Worker](../architecture/worker.md), [ADR-0024](./0024-independent-applications.md), [ADR-0023](./0023-local-recognition-in-scanner-clients.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211), [Functional Python acceptance](./0027-python-functional-migration-acceptance.md)
 
 ## Context
 
@@ -42,5 +42,5 @@ The decision favors maintenance consistency; it does not claim a measured speed 
 
 [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211) records the migration design discussion.
 The [accepted migration contract](../architecture/python-backend-migration.md) and [ADR-0026](./0026-python-migration-contract.md) settle framework, language-neutral contracts, schema/migration ownership, staged delivery and rollback separately from this language direction.
-The [evaluation's migration gates](../integrations/backend-language-evaluation.md#migration-gates) define compatibility evidence to retain before replacing production behavior.
+The [functional acceptance decision](./0027-python-functional-migration-acceptance.md) removes strict performance/resource proof prerequisites while preserving compatibility evidence before replacing production behavior.
 Implementation tickets remain unready until their responsibilities, interfaces and acceptance evidence are reviewed.

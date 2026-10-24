@@ -21,7 +21,7 @@ export async function verifyIndependentHttp(
 		const username = `split_${randomUUID().slice(0, 8)}`;
 		const response = await fixtureAuthRequest(
 			origin,
-			'/api/auth/register',
+			'/api/v1/auth/register',
 			{ username, password },
 			{}
 		);
@@ -54,7 +54,7 @@ export async function verifyIndependentHttp(
 		operation: K,
 		input: WebCommandInputs[K]
 	): Promise<WebCommandOutputs[K]> => {
-		const response = await request(apiOrigin, '/api/web/v1/commands', 'POST', { operation, input });
+		const response = await request(apiOrigin, '/api/v1/mtg/commands', 'POST', { operation, input });
 		assert.equal(response.status, 200, `${operation} must succeed against the independent API`);
 		assert.equal(response.headers.get('cache-control'), 'no-store');
 		return response.json();
@@ -67,7 +67,7 @@ export async function verifyIndependentHttp(
 			for (const target of [apiOrigin, origin]) {
 				const printing = await request(
 					target,
-					`/api/catalog/printings/${card.id}`,
+					`/api/v1/mtg/catalog/printings/${card.id}`,
 					'GET',
 					undefined,
 					{}
@@ -76,7 +76,7 @@ export async function verifyIndependentHttp(
 				const document = await printing.json();
 				assert.equal(document.id, card.id);
 				assert.equal(document.privateFixtureField, undefined);
-				const session = await request(target, '/api/auth/session', 'GET', undefined, {
+				const session = await request(target, '/api/v1/auth/session', 'GET', undefined, {
 					cookie,
 					authorization: `Bearer ${b.token}`
 				});
@@ -85,7 +85,7 @@ export async function verifyIndependentHttp(
 				for (const authorization of ['', 'Basic abc', 'Bearer invalid']) {
 					assert.equal(
 						(
-							await request(target, '/api/auth/session', 'GET', undefined, {
+							await request(target, '/api/v1/auth/session', 'GET', undefined, {
 								cookie,
 								authorization
 							})
@@ -97,7 +97,7 @@ export async function verifyIndependentHttp(
 					(
 						await request(
 							target,
-							'/api/account/profile',
+							'/api/v1/account/profile',
 							'PATCH',
 							{ email: 'bad@example.test' },
 							{
@@ -109,15 +109,22 @@ export async function verifyIndependentHttp(
 					403
 				);
 				assert.equal(
-					(await request(target, `/api/catalog/printings/${randomUUID()}`, 'GET', undefined, {}))
-						.status,
+					(
+						await request(
+							target,
+							`/api/v1/mtg/catalog/printings/${randomUUID()}`,
+							'GET',
+							undefined,
+							{}
+						)
+					).status,
 					404
 				);
 			}
 			const paths = [
-				'/api/catalog/search?q=Sol%20Ring',
-				'/api/account/profile',
-				'/api/account/dashboard'
+				'/api/v1/mtg/catalog/search?q=Sol%20Ring',
+				'/api/v1/account/profile',
+				'/api/v1/mtg/dashboard'
 			];
 			for (const path of paths) {
 				const direct = await request(apiOrigin, path),
@@ -126,14 +133,14 @@ export async function verifyIndependentHttp(
 				assert.equal(proxied.headers.get('cache-control'), direct.headers.get('cache-control'));
 				const directBody = await direct.json(),
 					proxiedBody = await proxied.json();
-				if (path.startsWith('/api/catalog/search')) {
+				if (path.startsWith('/api/v1/mtg/catalog/search')) {
 					// Separate database reads report their own measured processing time.
 					for (const body of [directBody, proxiedBody]) {
 						assert.ok(Number.isFinite(body.processingTimeMs) && body.processingTimeMs >= 0);
 						delete body.processingTimeMs;
 					}
 				}
-				if (path === '/api/account/dashboard') {
+				if (path === '/api/v1/mtg/dashboard') {
 					// Each real read computes its own evaluation instant. Saved values and history still match.
 					for (const body of [directBody, proxiedBody]) {
 						if (body.inventoryValue) {
@@ -178,9 +185,9 @@ export async function verifyIndependentHttp(
 					body: new URLSearchParams({ intent: 'email', email })
 				});
 				assert.equal(response.status, 200);
-				const own = await (await request(apiOrigin, '/api/account/profile')).json();
+				const own = await (await request(apiOrigin, '/api/v1/account/profile')).json();
 				const other = await (
-					await request(apiOrigin, '/api/account/profile', 'GET', undefined, {
+					await request(apiOrigin, '/api/v1/account/profile', 'GET', undefined, {
 						authorization: `Bearer ${b.token}`
 					})
 				).json();
@@ -222,7 +229,7 @@ export async function verifyIndependentHttp(
 			};
 			const savedNotes = await command('inventory.patchEntry', notes);
 			for (const target of [apiOrigin, origin]) {
-				const stale = await request(target, '/api/web/v1/commands', 'POST', {
+				const stale = await request(target, '/api/v1/mtg/commands', 'POST', {
 					operation: 'inventory.patchEntry',
 					input: {
 						...notes,
@@ -245,7 +252,7 @@ export async function verifyIndependentHttp(
 				'1',
 				'Absent optional Notes must remain absent'
 			);
-			const staleRemove = await request(apiOrigin, '/api/web/v1/commands', 'POST', {
+			const staleRemove = await request(apiOrigin, '/api/v1/mtg/commands', 'POST', {
 				operation: 'inventory.remove',
 				input: {
 					entryId,
@@ -263,7 +270,7 @@ export async function verifyIndependentHttp(
 			assert.deepEqual(await command('inventory.patchEntry', notes), savedNotes);
 			assert.deepEqual(await command('inventory.patchEntry', delta), changed);
 			assert.deepEqual(await command('inventory.remove', removal), removed);
-			const mobile = await request(origin, '/api/mobile/v1/mtg/inventory', 'POST', {
+			const mobile = await request(origin, '/api/v1/mtg/inventory', 'POST', {
 				requestId: inventory.input.requestId,
 				source: 'mobile',
 				items: [
@@ -315,12 +322,12 @@ export async function verifyIndependentHttp(
 			assert.deepEqual(await command('decks.removeCard', removeCard), cardRemoved);
 			assert.deepEqual(await command('decks.importInto', importCards), imported);
 			for (const target of [apiOrigin, origin]) {
-				const replay = await request(target, '/api/web/v1/commands', 'POST', inventory);
+				const replay = await request(target, '/api/v1/mtg/commands', 'POST', inventory);
 				assert.equal(replay.status, 200);
 				assert.deepEqual(await replay.json(), added);
 				assert.equal(
 					(
-						await request(target, '/api/web/v1/commands', 'POST', {
+						await request(target, '/api/v1/mtg/commands', 'POST', {
 							...inventory,
 							input: { ...inventory.input, quantity: 9 }
 						})
@@ -345,7 +352,7 @@ export async function verifyIndependentHttp(
 			for (const row of deckSources)
 				assert.equal(row.source, row.request_id === importCards.requestId ? 'import' : 'web');
 
-			const path = `/api/mobile/v1/mtg/decks/${deck.id}`;
+			const path = `/api/v1/mtg/decks/${deck.id}`;
 			assert.equal(
 				(
 					await request(apiOrigin, path, 'PATCH', {
@@ -391,7 +398,7 @@ export async function verifyIndependentHttp(
 					input: { entryId: randomUUID(), requestId: randomUUID(), delta: 1, authority: a.user }
 				}
 			])
-				assert.equal((await request(apiOrigin, '/api/web/v1/commands', 'POST', body)).status, 400);
+				assert.equal((await request(apiOrigin, '/api/v1/mtg/commands', 'POST', body)).status, 400);
 			assert.equal(
 				(
 					await pool.query(
@@ -402,7 +409,7 @@ export async function verifyIndependentHttp(
 				0
 			);
 			for (const target of [apiOrigin, origin]) {
-				const oversized = await request(target, '/api/web/v1/commands', 'POST', {
+				const oversized = await request(target, '/api/v1/mtg/commands', 'POST', {
 					operation: 'inventory.add',
 					input: { notes: 'x'.repeat(1024 * 1024) }
 				});
@@ -414,28 +421,23 @@ export async function verifyIndependentHttp(
 	await t.test(
 		'category lookup is owned and native password rotation replaces request credentials',
 		async () => {
-			const definition = await request(
-				apiOrigin,
-				'/api/mobile/v1/mtg/category-definitions',
-				'POST',
-				{
-					requestId: randomUUID(),
-					originId: null,
-					expectedLibraryRevision: '0',
-					scope: 'entry',
-					name: 'Independent artifacts',
-					meaning: 'Artifact cards',
-					priority: 0,
-					displayOrder: 0,
-					roles: ['main'],
-					rule: { op: 'type', value: 'Artifact' },
-					confirmRetainedRule: false
-				}
-			);
+			const definition = await request(apiOrigin, '/api/v1/mtg/category-definitions', 'POST', {
+				requestId: randomUUID(),
+				originId: null,
+				expectedLibraryRevision: '0',
+				scope: 'entry',
+				name: 'Independent artifacts',
+				meaning: 'Artifact cards',
+				priority: 0,
+				displayOrder: 0,
+				roles: ['main'],
+				rule: { op: 'type', value: 'Artifact' },
+				confirmRetainedRule: false
+			});
 			assert.equal(definition.status, 200);
 			const { originId } = await definition.json();
 			for (const target of [apiOrigin, origin]) {
-				const path = `/api/mobile/v1/mtg/category-definitions/${originId}`;
+				const path = `/api/v1/mtg/category-definitions/${originId}`;
 				const own = await request(target, path);
 				assert.equal(own.status, 200);
 				assert.equal((await own.json()).current.name, 'Independent artifacts');
@@ -479,7 +481,7 @@ export async function verifyIndependentHttp(
 				assert.notEqual(replacementCookie.split(';')[0], `spellbook_session=${actor.token}`);
 				assert.equal(
 					(
-						await request(apiOrigin, '/api/auth/session', 'GET', undefined, {
+						await request(apiOrigin, '/api/v1/auth/session', 'GET', undefined, {
 							authorization: `Bearer ${actor.token}`
 						})
 					).status,

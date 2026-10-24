@@ -1,6 +1,7 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { connect, createServer } from 'node:net';
 import { createInterface } from 'node:readline';
+import { fileURLToPath } from 'node:url';
 
 const ownedProcesses = new WeakSet<ChildProcess>();
 
@@ -120,24 +121,26 @@ export async function startHttpProcess(
 	origin: string,
 	cwd: URL,
 	entrypoint: string,
-	env: NodeJS.ProcessEnv
+	env: NodeJS.ProcessEnv,
+	native = false
 ): Promise<ChildProcess> {
 	await requireFreePort(origin);
-	const child = spawn(process.execPath, [entrypoint], {
+	const child = spawn(native ? entrypoint : process.execPath, native ? [] : [entrypoint], {
 		cwd,
 		env,
 		stdio: ['ignore', 'pipe', 'pipe']
 	});
 	ownedProcesses.add(child);
-	child.stderr?.resume();
 	try {
 		const stdout = child.stdout;
 		if (!stdout) throw new Error('Built HTTP application has no startup output.');
 		await new Promise<void>((resolve, reject) => {
-			const lines = createInterface({ input: stdout });
+			const lines = [stdout, child.stderr]
+				.filter(Boolean)
+				.map((input) => createInterface({ input: input! }));
 			const cleanup = () => {
 				clearTimeout(timer);
-				lines.close();
+				for (const reader of lines) reader.close();
 				child.off('error', failed);
 				child.off('exit', exited);
 			};
@@ -155,13 +158,16 @@ export async function startHttpProcess(
 			}, 10000);
 			child.once('error', failed);
 			child.once('exit', exited);
-			lines.on('line', (line) => {
-				if (line !== `Listening on ${origin}`) return;
-				cleanup();
-				resolve();
-			});
+			for (const reader of lines)
+				reader.on('line', (line) => {
+					if (line !== `Listening on ${origin}` && !line.includes(`Uvicorn running on ${origin} `))
+						return;
+					cleanup();
+					resolve();
+				});
 		});
 		stdout.resume();
+		child.stderr?.resume();
 		await new Promise<void>((resolve, reject) => {
 			const address = loopbackAddress(origin);
 			const socket = connect({ host: address.hostname, port: Number(address.port) });
@@ -202,14 +208,16 @@ export async function startHttpApplication(
 	const api = await startHttpProcess(
 		apiOrigin,
 		cwd,
-		options.apiEntrypoint ?? '../backend/dist/main.js',
+		options.apiEntrypoint ??
+			fileURLToPath(new URL('../../backend/api/.venv/bin/spellbook-api', import.meta.url)),
 		{
 			...process.env,
 			APP_ORIGIN: origin,
 			API_HOST: apiAddress.hostname,
 			API_PORT: apiAddress.port,
 			API_TRUSTED_PROXY_ADDRESSES: '127.0.0.1,::1'
-		}
+		},
+		options.apiEntrypoint === undefined
 	);
 	try {
 		const web = await startHttpProcess(origin, cwd, entrypoint, {
@@ -226,6 +234,53 @@ export async function startHttpApplication(
 		return { origin, apiOrigin, api, web };
 	} catch (error) {
 		await stopHttpProcess(api);
+		throw error;
+	}
+}
+
+/** This fixture owns a real independent scheduler, with installed Python and no fallback. */
+export async function startStateWorker(): Promise<ChildProcess> {
+	const child = spawn(
+		fileURLToPath(
+			new URL('../../backend/workers/state/.venv/bin/spellbook-state-worker', import.meta.url)
+		),
+		[],
+		{
+			env: process.env,
+			stdio: ['ignore', 'pipe', 'pipe']
+		}
+	);
+	ownedProcesses.add(child);
+	try {
+		await new Promise<void>((resolve, reject) => {
+			const reader = createInterface({ input: child.stderr! });
+			const cleanup = () => {
+				clearTimeout(timer);
+				reader.close();
+				child.off('exit', failed);
+				child.off('error', failed);
+			};
+			const failed = () => {
+				cleanup();
+				reject(new Error('Installed state worker exited before readiness.'));
+			};
+			const timer = setTimeout(() => {
+				cleanup();
+				reject(new Error('Installed state worker did not become ready.'));
+			}, 10000);
+			child.once('error', failed);
+			child.once('exit', failed);
+			reader.on('line', (line) => {
+				if (!line.endsWith('Spellbook state worker started')) return;
+				cleanup();
+				resolve();
+			});
+		});
+		child.stdout?.resume();
+		child.stderr?.resume();
+		return child;
+	} catch (error) {
+		await stopHttpProcess(child);
 		throw error;
 	}
 }

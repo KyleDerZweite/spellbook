@@ -16,12 +16,15 @@ class AccountPoliciesTest {
         val reviewed = reviewRemoval(saved, account, "00000000-0000-4000-8000-000000000011")
         saved = saved.copy(quantity = 10, name = "Refreshed name")
         val body = WireJson.parseToJsonElement(reviewed.attempt.body).jsonObject
+        assertEquals("/api/v1/mtg/inventory/${saved.id}", reviewed.attempt.path)
+        assertEquals("DELETE", reviewed.attempt.method)
         assertEquals(3L, reviewed.quantity)
         assertEquals("Reviewed card", reviewed.name)
         assertEquals(3L, body.getValue("expectedQuantity").jsonPrimitive.long)
         assertEquals(reviewed.attempt.requestId, body.getValue("requestId").jsonPrimitive.content)
         assertEquals(10L, saved.quantity)
         val retry = reviewed.attempt.retryFor(account.backend, account.accountId)
+        assertEquals(reviewed.attempt.path, retry.path)
         assertEquals(reviewed.attempt.body, retry.body)
         assertThrows(IllegalStateException::class.java) { reviewed.attempt.retryFor(account.backend, "account-b") }
     }

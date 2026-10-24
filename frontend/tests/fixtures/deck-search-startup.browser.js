@@ -7,9 +7,9 @@
 	const previous = Reflect.get(window, '__deckSearchStartup');
 	if (previous) previous.cleanup();
 	const nativeFetch = window.fetch.bind(window);
-	const session = await nativeFetch('/api/auth/session').then((response) => response.json());
+	const session = await nativeFetch('/api/v1/auth/session').then((response) => response.json());
 	if (session.user?.accountId !== config.accountId) throw new Error('Fixture account mismatch.');
-	const path = '/api/mobile/v1/mtg/decks/search?q=' + encodeURIComponent(config.query);
+	const path = '/api/v1/mtg/decks/search?q=' + encodeURIComponent(config.query);
 	const initial = await nativeFetch(path).then((response) => response.json());
 	if (!initial.hits?.some((/** @type {{id:string}} */ card) => card.id === config.catalogCardId))
 		throw new Error('The actual Catalog query must contain the fixture Printing.');
@@ -33,7 +33,7 @@
 		// Preserve initiation order even when the coordinated response arrives first.
 		/** @type {Pending|undefined} */
 		const pending =
-			hold && url.pathname === '/api/mobile/v1/mtg/decks/search'
+			hold && url.pathname === '/api/v1/mtg/decks/search'
 				? {
 						...gate(),
 						signal: options?.signal ?? (input instanceof Request ? input.signal : undefined)
@@ -59,7 +59,7 @@
 	};
 	/** @type {Array<{topics:string[]}>} */
 	const events = [];
-	const source = new EventSource('/api/account/events');
+	const source = new EventSource('/api/v1/account/events');
 	source.addEventListener('invalidate', (event) => events.push(JSON.parse(event.data)));
 	/** @param {number} ms */
 	const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -98,7 +98,7 @@
 			if (mode === 'invalidate') {
 				await until(() => source.readyState === EventSource.OPEN);
 				const start = events.length;
-				const response = await nativeFetch('/api/mobile/v1/mtg/inventory', {
+				const response = await nativeFetch('/api/v1/mtg/inventory', {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({

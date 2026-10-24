@@ -20,7 +20,7 @@ if (
 	throw new Error('Scan HTTP assigned disposable database guard failed');
 const origin = httpTestOrigin();
 const pool = new pg.Pool({ connectionString: url });
-const api = '/api/mobile/v1/mtg/scan';
+const api = '/api/v1/mtg/scan';
 const accounts: string[] = [],
 	sessions: string[] = [];
 let child: Awaited<ReturnType<typeof startHttpApplication>> | undefined;
@@ -30,7 +30,7 @@ async function account() {
 		password = `scan-http-${randomUUID()}`;
 	const response = await fixtureAuthRequest(
 		origin,
-		'/api/auth/register',
+		'/api/v1/auth/register',
 		{ username, password },
 		{ origin }
 	);

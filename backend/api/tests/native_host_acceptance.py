@@ -1,7 +1,7 @@
 """Manual assembled-host acceptance. Not selected by ordinary pytest discovery.
 
 Requires the exclusive sse lease, two 10+1 API budgets and fixture pool2 <=24/32.
-Installed Python and built Node artifacts are explicit inputs, never substituted.
+Installed Python and built web artifacts are explicit inputs, never substituted.
 """
 
 import asyncio
@@ -15,20 +15,20 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, cast
 from uuid import uuid4
 
 import httpx2
 import pytest
+from native_inventory import _core_native_helpers
 from psycopg import AsyncConnection
 from psycopg.conninfo import conninfo_to_dict
 from psycopg_pool import AsyncConnectionPool
 from spellbook_core.db import Transaction
-from test_cross_runtime import _core_native_helpers
 
 from spellbook_api.application import ApplicationResources, create_application
 from spellbook_api.http.types import Configuration
-from spellbook_api.main import NODE_HTTP_METHODS, CandidateServer
+from spellbook_api.main import CandidateServer
 
 ROOT = Path(__file__).resolve().parents[3]
 pytestmark = pytest.mark.skipif(
@@ -94,7 +94,9 @@ class ProcessHost:
 
 
 @asynccontextmanager
-async def process_host(kind: str, *, api_url: str | None = None) -> AsyncIterator[ProcessHost]:
+async def process_host(
+    kind: Literal["python", "web"], *, api_url: str | None = None
+) -> AsyncIterator[ProcessHost]:
     selected = int(ORIGIN.rsplit(":", 1)[1]) if kind == "web" else port()
     env = {
         k: v
@@ -114,20 +116,7 @@ async def process_host(kind: str, *, api_url: str | None = None) -> AsyncIterato
     else:
         node = os.environ["P02B_NODE_EXECUTABLE"]
         assert subprocess.check_output([node, "--version"], text=True).strip() == "v26.10.0"
-        assert (
-            set(
-                json.loads(
-                    subprocess.check_output(
-                        [node, "-p", "JSON.stringify(require('node:http').METHODS)"], text=True
-                    )
-                )
-            )
-            == NODE_HTTP_METHODS
-        )
-        command = [
-            node,
-            str(ROOT / ("backend/dist/main.js" if kind == "node" else "frontend/build/index.js")),
-        ]
+        command = [node, str(ROOT / "frontend/build/index.js")]
     if kind == "web":
         env = {
             k: v
@@ -142,7 +131,7 @@ async def process_host(kind: str, *, api_url: str | None = None) -> AsyncIterato
             BODY_SIZE_LIMIT="12M",
         )
     work = OUT / ("process-cwd-" + uuid4().hex)
-    work.mkdir()
+    work.mkdir(parents=True)
     log_path = OUT / f"{kind}-{uuid4().hex}.log"
     with log_path.open("wb") as log:
         child = subprocess.Popen(command, cwd=work, env=env, stdout=log, stderr=subprocess.STDOUT)
@@ -217,7 +206,7 @@ async def events(
     client: httpx2.AsyncClient, url: str, headers: dict[str, str]
 ) -> AsyncIterator[Callable[[], Awaitable[str]]]:
     async with client.stream(
-        "GET", url + "/api/account/events", headers=headers, timeout=None
+        "GET", url + "/api/v1/account/events", headers=headers, timeout=None
     ) as response:
         assert response.status_code == 200
         lines = response.aiter_lines()
@@ -245,44 +234,78 @@ def payload(w: World, request_id: str, quantity: int) -> dict[str, object]:
 async def add(
     client: httpx2.AsyncClient, url: str, w: World, body: dict[str, object]
 ) -> dict[str, Any]:
-    response = await client.post(
-        url + "/api/mobile/v1/mtg/inventory", json=body, headers=w.headers
-    )
+    response = await client.post(url + "/api/v1/mtg/inventory", json=body, headers=w.headers)
     assert response.status_code == 200, response.text
     return cast(dict[str, Any], response.json())
 
 
-async def parity_failures(
-    client: httpx2.AsyncClient, url: str, w: World
-) -> list[dict[str, object]]:
+async def wire_failures(client: httpx2.AsyncClient, url: str, w: World) -> list[dict[str, object]]:
+    cookie = {"Cookie": "spellbook_session=" + w.token}
     result: list[dict[str, object]] = []
-    for method, path, headers, body in [
-        ("GET", "/api/auth/session", w.headers, None),
-        (
-            "GET",
-            "/api/auth/session",
-            {"Authorization": "", "Cookie": "spellbook_session=" + w.token},
-            None,
-        ),
-        ("GET", "/api/catalog/printings/%C3%28", {"Cookie": "spellbook_session=" + w.token}, None),
-        ("GET", "/api/catalog/printings/%2520", w.headers, None),
+    for method, path, headers, body, status in [
+        ("GET", "/api/v1/auth/session", w.headers, None, 200),
+        ("HEAD", "/api/v1/auth/session", w.headers, None, 200),
+        ("GET", "/api/v1/auth/session", {**cookie, "Authorization": ""}, None, 401),
+        ("GET", "/api/v1/mtg/catalog/printings/%2520", w.headers, None, 400),
         (
             "POST",
-            "/api/mobile/v1/mtg/inventory",
+            "/api/v1/mtg/inventory",
             {**w.headers, "Content-Type": "text/plain", "Origin": ORIGIN},
             b"{}",
+            415,
         ),
         (
             "POST",
-            "/api/mobile/v1/mtg/inventory",
+            "/api/v1/mtg/inventory",
             {**w.headers, "Content-Type": "application/json"},
             b"\xff",
+            400,
         ),
-        ("OPTIONS", "/api/mobile/v1/mtg/inventory/", {}, None),
-        ("TRACE", "/api/mobile/v1/mtg/inventory/" + str(uuid4()), {}, None),
-        ("TRACK", "/api/mobile/v1/mtg/inventory/" + str(uuid4()), {}, None),
+        (
+            "POST",
+            "/api/v1/mtg/inventory",
+            {**cookie, "Content-Type": "application/json"},
+            b"{}",
+            403,
+        ),
+        (
+            "POST",
+            "/api/v1/mtg/inventory",
+            {**cookie, "Content-Type": "application/json", "Origin": "https://other.invalid"},
+            b"{}",
+            403,
+        ),
+        (
+            "POST",
+            "/api/v1/mtg/inventory",
+            {**cookie, "Content-Type": "application/json", "Origin": ORIGIN},
+            b"{}",
+            400,
+        ),
+        ("OPTIONS", "/api/v1/mtg/inventory/", {}, None, 204),
+        ("PUT", "/api/v1/auth/session", {}, None, 405),
+        ("GET", "/api/retired/", {}, None, 404),
+        (
+            "POST",
+            "/api/retired/",
+            {**w.headers, "Content-Type": "application/json"},
+            b"{}",
+            404,
+        ),
+        ("OPTIONS", "/api/retired/", {}, None, 404),
     ]:
         response = await client.request(method, url + path, headers=headers, content=body)
+        assert response.status_code == status, (method, path, response.text)
+        assert "location" not in response.headers
+        assert response.headers.get("x-robots-tag") == "noindex, nofollow"
+        if path.startswith(("/api/v1/auth/", "/api/v1/mtg/catalog/")):
+            assert response.headers.get("cache-control") == "no-store"
+        if method == "HEAD" or status == 204:
+            assert response.content == b""
+        if status in {204, 405}:
+            allowed = set(response.headers["allow"].split(", "))
+            assert {"GET", "HEAD", "OPTIONS"} <= allowed
+            assert method == "OPTIONS" or method not in allowed
         result.append(
             {
                 "status": response.status_code,
@@ -322,27 +345,53 @@ async def assert_connect_closes_without_response(url: str) -> None:
             await writer.wait_closed()
 
 
-def test_built_node_and_installed_python_replay_original_receipts_and_wire_failures() -> None:
+def test_installed_python_original_receipts_and_direct_proxy_wire_acceptance() -> None:
     async def exercise() -> None:
         async with world() as w, httpx2.AsyncClient(timeout=5) as client:
             first, second = str(uuid4()), str(uuid4())
             first_body, second_body = payload(w, first, 2), payload(w, second, 3)
-            async with process_host("node") as node:
-                await assert_connect_closes_without_response(node.url)
-                node_wire = await parity_failures(client, node.url, w)
-                original = await add(client, node.url, w, first_body)
             async with process_host("python") as candidate:
                 await assert_connect_closes_without_response(candidate.url)
-                assert await parity_failures(client, candidate.url, w) == node_wire
+                trace = await client.request("TRACE", candidate.url + "/api/v1/mtg/inventory")
+                assert trace.status_code == 500
+                assert trace.json() == {"status": 500, "message": "Internal Server Error"}
+                track = await client.request("TRACK", candidate.url + "/api/v1/mtg/inventory")
+                assert track.status_code == 400 and track.content == b""
+                malformed_path = "/api/v1/mtg/catalog/printings/%C3%28"
+                malformed = await client.get(
+                    candidate.url + malformed_path,
+                    headers={"Cookie": "spellbook_session=" + w.token},
+                    follow_redirects=False,
+                )
+                assert malformed.status_code == 400
+                assert malformed.json() == {"status": 400, "message": "Invalid path encoding"}
+                assert malformed.headers["cache-control"] == "no-store"
+                assert malformed.headers["x-robots-tag"] == "noindex, nofollow"
+                assert "location" not in malformed.headers
+                direct_wire = await wire_failures(client, candidate.url, w)
+                async with process_host("web", api_url=candidate.url) as proxy:
+                    # SvelteKit rejects malformed UTF-8 before the API proxy runs.
+                    rejected = await client.get(
+                        proxy.url + malformed_path,
+                        headers={"Cookie": "spellbook_session=" + w.token},
+                        follow_redirects=False,
+                    )
+                    assert rejected.status_code == 400
+                    assert "location" not in rejected.headers
+                    assert await wire_failures(client, proxy.url, w) == direct_wire
+                original = await add(client, candidate.url, w, first_body)
+                assert original["changes"][0]["quantity"] == 2
                 assert await add(client, candidate.url, w, first_body) == original
                 python_ack = await lost_reply_add(candidate.url, w, second_body)
                 assert python_ack["changes"][0]["quantity"] == 5
                 altered = await client.post(
-                    candidate.url + "/api/mobile/v1/mtg/inventory",
+                    candidate.url + "/api/v1/mtg/inventory",
                     headers=w.headers,
                     json=payload(w, first, 4),
                 )
                 assert altered.status_code == 409 and altered.json()["kind"] == "RequestConflict"
+                assert await add(client, candidate.url, w, first_body) == original
+                assert await add(client, candidate.url, w, second_body) == python_ack
                 async with w.pool.connection() as tx:
                     receipts = await (
                         await tx.execute(
@@ -358,16 +407,22 @@ def test_built_node_and_installed_python_replay_original_receipts_and_wire_failu
                     await tx.execute(
                         "DELETE FROM inventory_cards WHERE account_id=%s", (w.account_id,)
                     )
-            async with process_host("node") as node:
-                assert await add(client, node.url, w, second_body) == python_ack
-                replacement = await add(client, node.url, w, payload(w, str(uuid4()), 7))
-                assert replacement["changes"][0]["quantity"] == 7
-                assert await add(client, node.url, w, first_body) == original
+                # Replaying after deletion must return receipts without recreating entries.
+                assert await add(client, candidate.url, w, first_body) == original
+                assert await add(client, candidate.url, w, second_body) == python_ack
+                missing = await client.get(
+                    candidate.url + "/api/v1/mtg/inventory/" + original["changes"][0]["entryId"],
+                    headers=w.headers,
+                )
+                assert missing.status_code == 404
             async with process_host("python") as candidate:
                 assert await add(client, candidate.url, w, second_body) == python_ack
+                replacement = await add(client, candidate.url, w, payload(w, str(uuid4()), 7))
+                assert replacement["changes"][0]["quantity"] == 7
+                assert await add(client, candidate.url, w, first_body) == original
                 detail = await client.get(
                     candidate.url
-                    + "/api/mobile/v1/mtg/inventory/"
+                    + "/api/v1/mtg/inventory/"
                     + replacement["changes"][0]["entryId"],
                     headers=w.headers,
                 )
@@ -415,35 +470,42 @@ def test_installed_replicas_proxy_revocation_and_physical_listener_reconnect() -
             await add(client, primary.url, w, payload(w, str(uuid4()), 1))
             assert await one() == "invalidate" and await two() == "invalidate"
             async with process_host("web", api_url=primary.url) as proxy:
-                direct = await client.get(primary.url + "/api/auth/session", headers=w.headers)
-                via = await client.get(proxy.url + "/api/auth/session", headers=w.headers)
+                direct = await client.get(primary.url + "/api/v1/auth/session", headers=w.headers)
+                via = await client.get(proxy.url + "/api/v1/auth/session", headers=w.headers)
                 assert direct.status_code == via.status_code == 200 and direct.json() == via.json()
                 async with events(client, proxy.url, w.headers) as proxied:
                     assert await proxied() == "reset"
-            async with w.pool.connection() as tx:
-                target = next(
-                    row for row in listeners if str(row[1]).endswith(":" + str(primary.child.pid))
-                )
-                await tx.execute("SELECT pg_terminate_backend(%s)", (target[0],))
-            assert await one() == "recovering"
-            assert await one() == "reset"
-            async with w.pool.connection() as tx:
-                current = await (
-                    await tx.execute(
-                        (
-                            "SELECT pid FROM pg_stat_activity "
-                            "WHERE datname=current_database() AND application_name=%s"
-                        ),
-                        ("spellbook-python-listener:" + str(primary.child.pid),),
-                    )
-                ).fetchall()
-                assert len(current) == 1 and current[0][0] != target[0]
-                await tx.execute("DELETE FROM auth_sessions WHERE account_id=%s", (w.account_id,))
-                await tx.execute(
-                    "SELECT pg_notify('spellbook_saved_state',%s)",
-                    (json.dumps({"accountId": w.account_id, "topic": "auth"}),),
-                )
-            assert await one() == "auth-expired" and await two() == "auth-expired"
+                    async with w.pool.connection() as tx:
+                        target = next(
+                            row
+                            for row in listeners
+                            if str(row[1]).endswith(":" + str(primary.child.pid))
+                        )
+                        await tx.execute("SELECT pg_terminate_backend(%s)", (target[0],))
+                    assert await one() == "recovering"
+                    assert await proxied() == "recovering"
+                    assert await one() == "reset"
+                    assert await proxied() == "reset"
+                    async with w.pool.connection() as tx:
+                        current = await (
+                            await tx.execute(
+                                (
+                                    "SELECT pid FROM pg_stat_activity "
+                                    "WHERE datname=current_database() AND application_name=%s"
+                                ),
+                                ("spellbook-python-listener:" + str(primary.child.pid),),
+                            )
+                        ).fetchall()
+                        assert len(current) == 1 and current[0][0] != target[0]
+                        await tx.execute(
+                            "DELETE FROM auth_sessions WHERE account_id=%s", (w.account_id,)
+                        )
+                        await tx.execute(
+                            "SELECT pg_notify('spellbook_saved_state',%s)",
+                            (json.dumps({"accountId": w.account_id, "topic": "auth"}),),
+                        )
+                    assert await one() == "auth-expired" and await two() == "auth-expired"
+                    assert await proxied() == "auth-expired"
 
     asyncio.run(exercise())
 
@@ -513,14 +575,14 @@ def test_actual_sse_head_admission_and_shutdown_with_32_live_streams(
             httpx2.AsyncClient(timeout=5) as client,
             AsyncExitStack() as streams,
         ):
-            head = await client.head(url + "/api/account/events", headers=w.headers)
+            head = await client.head(url + "/api/v1/account/events", headers=w.headers)
             assert head.status_code == 200 and head.content == b""
             assert resources.saved_state.diagnostics()["heldSubscriptions"] == 0
             for _ in range(32):
                 stream = await streams.enter_async_context(events(client, url, w.headers))
                 assert await stream() == "reset"
             assert resources.saved_state.diagnostics()["subscribers"] == 32
-            rejected = await client.get(url + "/api/account/events", headers=w.headers)
+            rejected = await client.get(url + "/api/v1/account/events", headers=w.headers)
             assert rejected.status_code == 503
             assert resources.saved_state.diagnostics()["subscribers"] == 32
             started = time.monotonic()
@@ -549,7 +611,7 @@ def test_actual_tcp_backpressure_disposes_slow_reader_within_30_second_bound() -
             try:
                 await loop.sock_connect(client, ("127.0.0.1", int(url.rsplit(":", 1)[1])))
                 request = (
-                    "GET /api/account/events HTTP/1.1\r\nHost: 127.0.0.1\r\n"
+                    "GET /api/v1/account/events HTTP/1.1\r\nHost: 127.0.0.1\r\n"
                     + "Authorization: Bearer "
                     + w.token
                     + "\r\n\r\n"
@@ -605,81 +667,6 @@ def test_actual_tcp_backpressure_disposes_slow_reader_within_30_second_bound() -
     asyncio.run(exercise())
 
 
-def test_installed_private_hook_owns_same_process_native_lanes_and_shutdown() -> None:
-    async def exercise() -> None:
-        async with world() as w, httpx2.AsyncClient(timeout=5) as client:
-            interpreter = Path(os.environ["P02B_INSTALLED_PYTHON"]).absolute()
-            assert ROOT not in interpreter.parents
-            selected = port()
-            identifier = uuid4().hex
-            wrapper = OUT / ("private-host-" + identifier + ".py")
-            report_file = OUT / ("private-report-" + identifier + ".json")
-            provenance_file = OUT / ("private-provenance-" + identifier + ".json")
-            wrapper.write_text(
-                "import asyncio,json,os,sys\n"
-                "from dataclasses import asdict\n"
-                "from importlib.resources import files\n"
-                "from pathlib import Path\n"
-                "import spellbook_api,spellbook_core\n"
-                "from spellbook_api.main import serve\n"
-                "from spellbook_api.http.types import Configuration\n"
-                "from spellbook_api.verification import VerificationPlan\n"
-                "Path(sys.argv[2]).write_text(json.dumps({'pid':os.getpid(),"
-                "'api':spellbook_api.__file__,'core':spellbook_core.__file__,"
-                "'schemaBytes':len(files('spellbook_api').joinpath('openapi.json').read_bytes())}))\n"
-                "def sink(report):\n"
-                " Path(sys.argv[1]).write_text(json.dumps(asdict(report)))\n"
-                "asyncio.run(serve(Configuration.from_environment(os.environ),"
-                "verification_plan=VerificationPlan(concurrent_scrypt=True),verification_sink=sink))\n"
-            )
-            env = {
-                k: v
-                for k, v in os.environ.items()
-                if not k.startswith("PG") and k not in {"PYTHONHOME", "PYTHONPATH"}
-            }
-            env.update(APP_ORIGIN=ORIGIN, API_HOST="127.0.0.1", API_PORT=str(selected))
-            with (OUT / ("private-host-" + identifier + ".log")).open("wb") as log:
-                child = subprocess.Popen(
-                    [str(interpreter), str(wrapper), str(report_file), str(provenance_file)],
-                    cwd=OUT,
-                    env=env,
-                    stdout=log,
-                    stderr=subprocess.STDOUT,
-                )
-                try:
-
-                    async def healthy() -> bool:
-                        assert child.poll() is None
-                        try:
-                            return (
-                                await client.get(f"http://127.0.0.1:{selected}/openapi.json")
-                            ).status_code == 200
-                        except httpx2.HTTPError:
-                            return False
-
-                    await until(healthy, 10)
-                    response = await client.get(
-                        f"http://127.0.0.1:{selected}/api/auth/session", headers=w.headers
-                    )
-                    assert response.status_code == 200
-                    await asyncio.sleep(0.05)
-                finally:
-                    if child.poll() is None:
-                        child.send_signal(signal.SIGTERM)
-                    assert await asyncio.to_thread(child.wait, timeout=15) in {0, -signal.SIGTERM}
-            report = json.loads(report_file.read_text())
-            provenance = json.loads(provenance_file.read_text())
-            assert report["pid"] == provenance["pid"] == child.pid
-            assert report["phase"] == "warmup" and report["interrupted"]
-            assert report["active_max"] == 4 and report["lag_observations"] > 0
-            assert report["instrumentation"] == "spellbook-p01-monotonic-10ms-now-plus-interval-v1"
-            assert sum(case["completed"] + case["drained"] for case in report["cases"]) >= 4
-            assert all(case["failed"] == case["drain_failed"] == 0 for case in report["cases"])
-            assert all("/site-packages/" in provenance[key] for key in ["api", "core"])
-
-    asyncio.run(exercise())
-
-
 async def lost_reply_add(url: str, w: World, body: dict[str, object]) -> dict[str, Any]:
     wire = json.dumps(body).encode()
     connection = socket.socket()
@@ -690,7 +677,7 @@ async def lost_reply_add(url: str, w: World, body: dict[str, object]) -> dict[st
         await loop.sock_sendall(
             connection,
             (
-                "POST /api/mobile/v1/mtg/inventory HTTP/1.1\r\nHost: 127.0.0.1\r\n"
+                "POST /api/v1/mtg/inventory HTTP/1.1\r\nHost: 127.0.0.1\r\n"
                 + "Authorization: Bearer "
                 + w.token
                 + "\r\nContent-Type: application/json\r\n"
@@ -737,7 +724,7 @@ def test_native_disconnect_before_profile_lock_settles_rollback_and_admission() 
                     await loop.sock_sendall(
                         connection,
                         (
-                            "POST /api/mobile/v1/mtg/inventory HTTP/1.1\r\nHost: 127.0.0.1\r\n"
+                            "POST /api/v1/mtg/inventory HTTP/1.1\r\nHost: 127.0.0.1\r\n"
                             + "Authorization: Bearer "
                             + w.token
                             + "\r\nContent-Type: application/json\r\n"

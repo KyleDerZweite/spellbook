@@ -167,10 +167,9 @@
 		async (input, revision, signal) => {
 			const publication = inventorySubscription?.publication() ?? (() => hydrated);
 			const account = page.data.user?.accountId;
-			const response = await fetch(
-				`/api/mobile/v1/mtg/inventory?${inventoryUrl(input, revision)}`,
-				{ signal }
-			);
+			const response = await fetch(`/api/v1/mtg/inventory?${inventoryUrl(input, revision)}`, {
+				signal
+			});
 			if (response.status === 401) {
 				if (publication() && account === page.data.user?.accountId) workspaceSavedState.expire();
 				throw new Error('Sign in again to load inventory.');
@@ -580,7 +579,7 @@
 				id,
 				async (query, entryId, revision, signal) => {
 					const response = await fetch(
-						`/api/mobile/v1/mtg/inventory/${entryId}/location?${inventoryUrl(query, revision)}`,
+						`/api/v1/mtg/inventory/${entryId}/location?${inventoryUrl(query, revision)}`,
 						{ signal }
 					);
 					if (response.status === 401 && leaseCurrent()) {
@@ -682,7 +681,7 @@
 			]
 		}),
 		async (id) => {
-			const response = await fetch(`/api/mobile/v1/mtg/inventory/${id}`);
+			const response = await fetch(`/api/v1/mtg/inventory/${id}`);
 			return response;
 		},
 		(id, entry) => {

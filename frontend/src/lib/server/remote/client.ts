@@ -13,7 +13,7 @@ export interface RemoteClientOptions {
 }
 
 export type WebFormPath =
-	'/api/web/v1/auth/login' | '/api/web/v1/auth/register' | '/api/web/v1/password';
+	'/api/v1/web/auth/login' | '/api/v1/web/auth/register' | '/api/v1/web/password';
 export type WebFormResult<Success, Failure> =
 	{ ok: true; data: Success } | { ok: false; status: 400 | 403; data: Failure };
 

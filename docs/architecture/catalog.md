@@ -1,14 +1,15 @@
 # Catalog
 
 - Status: Canonical
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-10-24
 - Source of Truth: code, reviewed versioned Demo publication and accepted continuous Lazy requirements
-- Update Triggers: independent API/web ownership and relocated code references, catalog source and schema, publication, versioned English Demo bundles, starter samples and display assets, search ranking and query shape, generated color-identity projection and index, filters, facets, browser anchor ranges and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters, internal canonical/type fact provenance, paired reference publication and recovery, continuous Lazy browsing/dialog contract and selected versus implemented read limits
+- Update Triggers: ADR-0029 canonical-only Catalog paths, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, catalog source and schema, publication, versioned English Demo bundles, starter samples and display assets, search ranking and query shape, generated color-identity projection and index, filters, facets, browser anchor ranges and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters, internal canonical/type fact provenance, paired reference publication and recovery, continuous Lazy browsing/dialog contract and selected versus implemented read limits
 - Related Docs: [Domain glossary](../../GLOSSARY.md), [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [Local authentication and demo setup](../operations/local-auth.md), [ADR-0010](../decisions/0010-postgres-catalog.md), [Application contract](./application-contract.md), [Category rules](./category-rules.md), [Independent applications](./independent-applications.md)
 
 PostgreSQL stores the public Scryfall catalog alongside account-owned application data.
-The Node API provides public read-only search and printing lookup through `/api/catalog/search`, `/api/catalog/cards/{oracleId}/printings` and `/api/catalog/printings/{printingId}`.
-The existing versioned integration routes retain authentication.
+The Python API provides public read-only search and printing lookup through `/api/v1/mtg/catalog/search`, `/api/v1/mtg/catalog/cards/{oracleId}/printings` and `/api/v1/mtg/catalog/printings/{printingId}`.
+Canonical Catalog reads are public.
+[ADR-0029](../decisions/0029-remove-replaced-interfaces.md) removes previous public/mobile Catalog paths without aliases or redirects.
 Web SSR uses its remote adapter; browser API calls use the same-origin proxy.
 Backend owns request validation, HTTP errors and SQL reads.
 Browsers use the application API; they receive no database credential or search-service key.
@@ -70,7 +71,7 @@ Separate paginated requests may observe different generations; the API does not 
 Browser search resets its logical anchor range when the generation changes, and card details reject printing pages from mixed generations.
 Before the first successful publication, search returns an empty result with `generationId: null`.
 
-The [schema](../../backend/src/db/schema.ts), [migration](../../backend/drizzle/0006_postgres_catalog.sql), and [document contract](../../contracts/src/catalog.ts) own field definitions.
+The [schema](../../backend/drizzle/), [migration](../../backend/drizzle/0006_postgres_catalog.sql), and [document contract](../../contracts/src/catalog.ts) own field definitions.
 Backend explicitly maps the known printing DTO fields before returning results; unknown fields in stored catalog documents do not escape this application interface.
 Frontend search types and server handlers retain compatibility exports through the remote adapter.
 Catalog refreshes do not rewrite inventory or deck entries.
@@ -80,7 +81,7 @@ Neither user import process downloads or updates the shared catalog.
 
 ## Search behavior
 
-[`search.ts`](../../backend/src/catalog/search.ts) combines literal name substring matching, PostgreSQL full-text search with the `simple` configuration, and trigram name matching.
+[`search.ts`](../../backend/core/src/spellbook_core/mtg/catalog.py) combines literal name substring matching, PostgreSQL full-text search with the `simple` configuration, and trigram name matching.
 Fuzzy matching applies to queries with at least three characters and a Latin letter.
 Exact English or printed names rank first, followed by name prefixes, full-text matches, substrings, and fuzzy matches.
 This is a defined fallback policy, not a claim of equal relevance across languages.
@@ -131,9 +132,9 @@ A canonical card may occur in more than one bucket, so facet counts need not sum
 Search starts unfiltered.
 The first page supplies facets for the current query and filters; later pages do not replace them.
 
-Authenticated `GET /api/mobile/v1/mtg/search` supports the existing query and pagination contract.
+Public `GET /api/v1/mtg/catalog/search` supports the existing query and pagination contract.
 `POST` on that route accepts structured filters and optional facets and name sorting.
-[OpenAPI](../../backend/src/http/openapi.ts) owns exact field names, accepted values, defaults, and limits.
+[OpenAPI](../../backend/api/src/spellbook_api/http/application.py) owns exact field names, accepted values, defaults, and limits.
 Raw search-engine expressions are not accepted.
 
 ## Browser result window
@@ -172,11 +173,11 @@ The PWA service worker does not cache Catalog responses or card images.
 
 ## Printing and import identity
 
-`GET /api/mobile/v1/mtg/cards/{oracleId}/printings` returns every matching printing in the active generation, ordered by set, collector number, language, and printing ID.
+`GET /api/v1/mtg/catalog/cards/{oracleId}/printings` returns every matching printing in the active generation, ordered by set, collector number, language, and printing ID.
 It does not group by oracle ID.
 Card details paginate this route and display up to 1,000 printings.
 
-The [Inventory reader](../../backend/src/inventory/read.ts) resolves complete owned set choices against the active catalog generation, selecting the first nonblank set name by printing UUID and falling back to the uppercase code.
+The [Inventory reader](../../backend/core/src/spellbook_core/mtg/inventory.py) resolves complete owned set choices against the active catalog generation, selecting the first nonblank set name by printing UUID and falling back to the uppercase code.
 Its first-name lookup uses a scalar active-generation predicate and the generation/set/UUID index added by migration 0018, so each owned code selects its first UUID without scanning unrelated printings.
 The indexed existence check also bounds absent codes.
 The separate nonblank fallback retains set-restricted lookup.

@@ -1,29 +1,30 @@
 # System overview
 
 - Status: Canonical
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-10-23
 - Source of Truth: code and explicitly marked design requirements
-- Update Triggers: Python API/worker language selection and migration planning, independent web/backend/Android deployment direction, same-origin PWA delivery and shared QR account-session API, service boundaries, application and operator resource ownership, topology, authentication, data ownership, runtime allocation, hosted capacity requirements, frontend/backend separation, cross-client synchronization and public reference publication, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, proposed Python/OpenAPI and worker ownership evaluation
+- Update Triggers: Python default activation and source contraction, Python API/worker language selection and migration planning, independent web/backend/Android deployment direction, same-origin PWA delivery and shared QR account-session API, service boundaries, application and operator resource ownership, topology, authentication, data ownership, runtime allocation, hosted capacity requirements, frontend/backend separation, cross-client synchronization and public reference publication, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, proposed Python/OpenAPI and worker ownership evaluation
 - Related Docs: [Architecture](./README.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Worker](./worker.md), [Auth](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Android design handoff](../product/mobile-app-exploration.md), [Deployment](../operations/deployment.md), [Realtime backend evaluation](../integrations/realtime-backends.md), [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md), [Accepted application contract](./application-contract.md), [Valuation](./valuation.md), [Category rules](./category-rules.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Independent applications](./independent-applications.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md)
 
-Spellbook has an independent SvelteKit web runtime and TypeScript/Node API.
+Spellbook has an independent SvelteKit web runtime and Python/FastAPI API.
 The API owns Auth, Profile, Dashboard, Catalog, Inventory/Groups, Deck, Valuation, Scan and SavedState use cases.
 PostgreSQL stores account-owned state and public reference publications.
 Python workers retain ingestion and Scan scaffold responsibilities.
 The first Kotlin/Compose Android slice is integrated; native target acceptance remains pending.
 
 ```text
-Browser -> SvelteKit SSR/forms and same-origin proxy -> Node API -> Postgres
-Android / API client -> Node API using a local session bearer token
+Browser -> SvelteKit SSR/forms and same-origin proxy -> Python API -> Postgres
+Android / API client -> Python API using a local session bearer token
 Scryfall -> Python worker -> Postgres catalog generation -> atomic publication
-Scan upload -> Node API -> Backend Scan -> local or S3 artifact storage
+Scan upload -> Python API -> Backend Scan -> local or S3 artifact storage
                                      -> Python scan-worker scaffold
 ```
 
 The browser and installed web app share one frontend and session cookie.
-Root pnpm workspace packages separate `frontend/`, `backend/` and `contracts/`.
+Root pnpm workspace packages separate `frontend/` and `contracts/`; independent Python packages live under `backend/`.
 Frontend server composition exposes a request-bound remote adapter through `API_INTERNAL_URL`.
-The Node API owns database construction, runners, SavedState and Scan resource lifetime.
+The Python API owns its database pool, SavedState listener/streams, password executor and Scan resource lifetime.
+The independent State worker owns ValueHistory and WholeDeckCategory scheduling.
 Frontend owns SSR, native form presentation, cookies and streaming HTTP forwarding.
 Web runtime imports of backend implementation, pg, Drizzle and password hashing are forbidden.
 Native operators and public Demo fixtures also belong to backend.
@@ -34,7 +35,7 @@ Account-owned data remains scoped by the authenticated account.
 The retained [Scan contracts](./mobile-and-scan.md) accept uploaded images and external candidates; Scan entrypoints and UI development are paused.
 The bundled recognizer remains a scaffold; no vector database is required.
 
-Application requests run in TypeScript and Catalog ingestion runs in the Python worker.
+Application requests run in Python and Catalog ingestion runs in the Python worker.
 [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md) records future local recognition in the Android-first phone app and Jetson-hosted Cardstation.
 The accepted PWA/QR delivery uses the website's same-origin SvelteKit application with installed narrow navigation.
 Backend Auth owns the integrated browser/device QR authorization API; frontend owns QR/camera presentation and cookies.
@@ -51,7 +52,7 @@ Use the [product specification](../product/specification.md) for implemented wor
 
 ## Accepted boundary redesign
 
-On 2026-10-06, the maintainer selected root `frontend/`, `backend/` and `contracts/` ownership with enforced import rules, initially in one SvelteKit deployment.
+On 2026-10-06, the maintainer selected root `frontend/` and `contracts/`; independent Python packages live under `backend/` ownership with enforced import rules, initially in one SvelteKit deployment.
 [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md) records that accepted direction.
 That initial phase retained SvelteKit rendering, native form actions and HTTP routes.
 Backend modules continue to own persistence, account authorization and use cases.
@@ -89,7 +90,7 @@ Self hosting remains the preferred operating mode.
 The maintainer selected PostgreSQL as the source of truth for account state and the MTG catalog, with SavedState transport and mounted Profile/Dashboard/Inventory/Deck/Scan consumers implemented without Convex.
 Rendered workspace acceptance and deployed proxy verification remain separate.
 The [realtime backend evaluation](../integrations/realtime-backends.md) owns the dated provider research and managed-service cost ceiling for any later reconsideration.
-The accepted transport uses the existing PostgreSQL, pg and Node capabilities.
+The accepted transport uses the PostgreSQL LISTEN/NOTIFY, Psycopg and bounded Python streaming.
 No database replacement is selected.
 
 Kyle accepted the earlier nineteen-slice design in Q56 on 2026-10-06.
@@ -107,13 +108,13 @@ Recognition runtime remains unselected.
 ## Selected independent applications
 
 On 2026-10-19, the maintainer requested three separate applications in the same monorepo: the Svelte website, application backend and Android app.
-The integrated Node HTTP host and remote web adapter have separate build/start ownership.
+The integrated Python HTTP host and remote web adapter have separate build/start ownership.
 The layout retains frontend/backend/contracts and adds an independent Android Gradle project.
 Android source integration is complete; native device and final cross-client target acceptance remain pending.
 Worker packages retain Catalog/price publication and scan responsibilities.
 A wholesale directory rename or new monorepo orchestrator is not required.
 
-The selected implementation extracts the current TypeScript backend; [ADR-0025](../decisions/0025-python-api-and-workers.md) separately selects Python for the future API and workers.
+The independent HTTP boundary remains stable while the unmerged candidate activates the Python implementation.
 The HTTP host owns session authentication and backend use cases.
 SvelteKit retains SSR, native forms and browser cookies, forwarding session credentials through HTTP and preserving public same-origin API paths through the proxy.
 Serialized actor DTOs do not carry authority; the API must reauthenticate credentials.
@@ -131,6 +132,8 @@ Language migration remains separate from this implemented first slice.
 
 [ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for both the future API and server workers, grouped under `backend/`.
 [The evaluation](../integrations/backend-language-evaluation.md) records the tradeoff; [issue 211](https://github.com/KyleDerZweite/spellbook/issues/211) retains framework, schema ownership, exact package layout and migration planning.
-This decision does not implement a rewrite, worker move or additional worker processes.
-The current TypeScript API/SvelteKit HTTP boundary and Python Catalog/Scan packages remain authoritative.
+The unmerged candidate now activates Python API/Core and independent State, Catalog and Scan processes.
+Default launchers run the explicit Python migrator before starting runtime owners.
+The replaced Node server is removed while frontend/contracts/Android and unchanged SQL/Demo assets remain.
+[ADR-0027](../decisions/0027-python-functional-migration-acceptance.md) and the [migration contract](./python-backend-migration.md) separate source completion from final integration and production operations.
 Review responsibilities, interfaces, dependency directions and compatibility before changing implementation contracts.

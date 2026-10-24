@@ -1,13 +1,14 @@
 # Operations
 
 - Status: Canonical
-- Last Reviewed: 2026-10-04
+- Last Reviewed: 2026-10-23
 - Source of Truth: mixed
-- Update Triggers: deployment, authentication, environment variables, repository verification and automation
+- Update Triggers: Python functional migration verification, deployment, authentication, environment variables, repository verification and automation
 - Related Docs: [Deployment](./deployment.md), [Local authentication](./local-auth.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Private instance template](./private-instance-template.md), [Repository verification and GitHub automation](./github-automation.md), [Docs index](../README.md)
 
 Use these documents to run Spellbook.
 Keep live instance values and secrets outside this repository.
+[Repository verification](./github-automation.md#python-api-and-core) owns Python functional checks under the [current migration contract](../architecture/python-backend-migration.md); strict P01 resource proof is retired and production operations remain separate.
 
 - [Deployment](./deployment.md)
 - [Local authentication and account recovery](./local-auth.md)

@@ -38,6 +38,44 @@ function sent(send: ReturnType<typeof setup>['send'], index = 0) {
 }
 
 describe('flat remote failures', () => {
+	it('uses canonical shared and MTG paths with encoded identities and cookie-only SSR reads', async () => {
+		const { app, send } = setup();
+		await app.catalog.searchCatalog('Opt');
+		await app.catalog.getPrintings('oracle/id', 5, 10);
+		await app.catalog.getCatalogPrinting('printing/id');
+		await app.profile.get(actor);
+		await app.dashboard.get(actor);
+		await app.auth.qr.inspect(actor, 'request/code', '192.0.2.10');
+		await app.auth.qr.decide(actor, 'request/code', 'approve', '192.0.2.10');
+		await app.inventory.getEntry(actor, 'entry/id');
+		await app.categories.getDefinition(actor, 'origin/id');
+		await app.inventoryValues.current(actor);
+		await app.auth.validateSession('selected-session');
+		await app.auth.revokeSession('selected-session');
+		expect(send.mock.calls.map(([url]) => new URL(String(url)).pathname)).toEqual([
+			'/api/v1/mtg/catalog/search',
+			'/api/v1/mtg/catalog/cards/oracle%2Fid/printings',
+			'/api/v1/mtg/catalog/printings/printing%2Fid',
+			'/api/v1/account/profile',
+			'/api/v1/mtg/dashboard',
+			'/api/v1/auth/qr/requests/request%2Fcode',
+			'/api/v1/auth/qr/requests/request%2Fcode/decision',
+			'/api/v1/mtg/inventory/entry%2Fid',
+			'/api/v1/mtg/category-definitions/origin%2Fid',
+			'/api/v1/mtg/inventory/value',
+			'/api/v1/auth/session',
+			'/api/v1/auth/logout'
+		]);
+		expect(sent(send, 1).url.searchParams.toString()).toBe('limit=5&offset=10');
+		expect(sent(send, 6)).toMatchObject({ method: 'POST', body: { decision: 'approve' } });
+		for (let index = 0; index < 10; index++) {
+			expect(sent(send, index).headers.get('cookie')).toBe('spellbook_session=cookie-session');
+			expect(sent(send, index).headers.has('authorization')).toBe(false);
+		}
+		expect(sent(send, 10).headers.get('cookie')).toBe('spellbook_session=selected-session');
+		expect(sent(send, 11).headers.get('authorization')).toBe('Bearer selected-session');
+		expect(sent(send, 11).headers.has('cookie')).toBe(false);
+	});
 	it('retains missing Printing validation semantics without masking API failures', async () => {
 		const { app, send } = setup();
 		send.mockResolvedValueOnce(
@@ -214,7 +252,7 @@ describe('named remote web use cases', () => {
 		await check('decks.importInto', imported, () => app.decks.importIntoDeck(actor, imported));
 		for (const [index, [operation, input]] of commands.entries()) {
 			const call = sent(send, index);
-			expect(call.url.pathname).toBe('/api/web/v1/commands');
+			expect(call.url.pathname).toBe('/api/v1/mtg/commands');
 			expect(call.method).toBe('POST');
 			expect(call.body).toEqual({ operation, input });
 			expect(call.body).not.toHaveProperty('actor');

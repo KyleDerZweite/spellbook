@@ -23,7 +23,7 @@ const core = new WorkspaceSavedState({
 		};
 	},
 	session: async (signal) =>
-		(await fetch('/api/auth/session', { cache: 'no-store', signal })).status,
+		(await fetch('/api/v1/auth/session', { cache: 'no-store', signal })).status,
 	visible: () => document.visibilityState === 'visible',
 	listen: (resume) => {
 		const visible = () => {

@@ -72,7 +72,7 @@ class Api(val base: String, suppliedClient: HttpClient? = null) : AutoCloseable 
     suspend inline fun <reified T> get(path: String, token: String? = null): T = WireJson.decodeFromString(request(path, token))
     suspend fun events(token: String, onEvent: suspend (String, String?) -> Unit) {
         try {
-            client.sse(urlString = base + "/api/account/events", request = {
+            client.sse(urlString = base + "/api/v1/account/events", request = {
                 bearerAuth(token)
                 attributes.put(SavedStateRequest, Unit)
             }) {

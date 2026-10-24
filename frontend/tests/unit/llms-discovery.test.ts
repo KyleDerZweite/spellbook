@@ -31,9 +31,9 @@ describe('public agent discovery', () => {
 			expect(links).toEqual(
 				expect.arrayContaining(
 					[
-						'/api/auth/register',
-						'/api/auth/login',
-						'/api/auth/logout',
+						'/api/v1/auth/register',
+						'/api/v1/auth/login',
+						'/api/v1/auth/logout',
 						'/auth/register',
 						'/auth/login',
 						'/mtg/search',
@@ -50,7 +50,7 @@ describe('public agent discovery', () => {
 			expect(guide).toContain(
 				'Do not forward credentials or authorization headers to another origin'
 			);
-			expect(guide).toContain(`Try POST ${origin}/api/auth/login`);
+			expect(guide).toContain(`Try POST ${origin}/api/v1/auth/login`);
 			expect(guide).toContain('Do not create a second account under a different name.');
 			expect(guide).toContain('full-account bearer session with a fixed 30-day lifetime');
 		}
@@ -67,7 +67,7 @@ describe('public agent discovery', () => {
 		expect(guide).toContain('shared editable account');
 		expect(guide).toContain('[Demo login](https://demo.test/auth/login)');
 		expect(guide).toContain('[OpenAPI](https://demo.test/openapi.json)');
-		expect(guide).not.toContain('/api/auth/register');
+		expect(guide).not.toContain('/api/v1/auth/register');
 		expect(guide).not.toContain('/auth/register');
 	});
 

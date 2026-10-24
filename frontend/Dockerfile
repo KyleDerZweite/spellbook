@@ -2,7 +2,6 @@ FROM node:26.10.0-bookworm-slim AS builder
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY frontend/package.json ./frontend/package.json
-COPY backend/package.json ./backend/package.json
 COPY contracts/package.json ./contracts/package.json
 RUN npm install --global "$(node --print 'require("./package.json").packageManager')"
 RUN pnpm install --frozen-lockfile --filter spellbook-frontend...

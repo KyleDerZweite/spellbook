@@ -41,3 +41,29 @@ updates:
       time: '06:00'
       timezone: 'UTC'
     open-pull-requests-limit: 5
+  - package-ecosystem: pip
+    directory: '/backend/api'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '05:45'
+      timezone: 'UTC'
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: pip
+    directory: '/backend/core'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '05:45'
+      timezone: 'UTC'
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: pip
+    directory: '/backend/workers/state'
+    schedule:
+      interval: weekly
+      day: monday
+      time: '05:45'
+      timezone: 'UTC'
+    open-pull-requests-limit: 5

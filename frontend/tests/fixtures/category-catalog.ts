@@ -15,10 +15,7 @@ type VerifiedBundle = {
 	manifest: { bundleVersion: string; catalogTransformVersion: number };
 };
 // The native script is JavaScript; keep its test adapter typed without changing that owner.
-const nativeBundleURL = new URL(
-	'../../../backend/scripts/demo/catalog-bundle.mjs',
-	import.meta.url
-);
+const nativeBundleURL = new URL('./catalog-bundle.mjs', import.meta.url);
 const {
 	verifyBundle,
 	bundleBatches

@@ -23,6 +23,7 @@ jobs:
       worker: ${{ steps.scope.outputs.worker }}
       scan_worker: ${{ steps.scope.outputs.scan_worker }}
       python_backend: ${{ steps.scope.outputs.python_backend }}
+      state_worker: ${{ steps.scope.outputs.state_worker }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -62,10 +63,11 @@ jobs:
           cache_dependency_path: pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
+      - run: pnpm --dir .. check:boundaries
+      - run: pnpm --dir frontend check
+        working-directory: .
       - run: pnpm test:unit
       - run: pnpm --dir .. test:tooling
-      - run: pnpm --dir ../backend test
-      - run: pnpm db:check
 
   python-backend:
     name: Python API/Core
@@ -80,11 +82,13 @@ jobs:
           version: '0.12.23'
           enable-cache: true
       - run: uv python install 3.14.8
+      - name: ICU for Core Combo witness ordering
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libicu-dev
       - name: Core package checks
         working-directory: backend/core
         run: |
           uv lock --check --python 3.14.8
-          uv sync --frozen --extra dev --python 3.14.8
+          uv sync --frozen --extra dev --python 3.14.8 --no-editable
           uv run --no-sync ruff check
           uv run --no-sync ruff format --check
           uv run --no-sync mypy
@@ -94,7 +98,18 @@ jobs:
         working-directory: backend/api
         run: |
           uv lock --check --python 3.14.8
-          uv sync --frozen --extra dev --python 3.14.8 --reinstall-package spellbook-core
+          uv sync --frozen --extra dev --python 3.14.8 --reinstall-package spellbook-core --no-editable
+          uv run --no-sync ruff check
+          uv run --no-sync ruff format --check
+          uv run --no-sync mypy
+          uv build
+          uv run --no-sync pytest
+      - name: State worker package checks
+        if: needs.changes.outputs.state_worker == 'true'
+        working-directory: backend/workers/state
+        run: |
+          uv lock --check --python 3.14.8
+          uv sync --frozen --extra dev --python 3.14.8 --reinstall-package spellbook-core --no-editable
           uv run --no-sync ruff check
           uv run --no-sync ruff format --check
           uv run --no-sync mypy
@@ -137,6 +152,7 @@ jobs:
           enable-cache: true
       - run: uv python install 3.14.8
       - name: Worker import directions and negative fixtures
+        if: needs.changes.outputs.python_backend != 'true'
         run: |
           uv run --no-project --python 3.14.8 python scripts/check_python_boundaries.py
           uv run --no-project --python 3.14.8 python -m unittest discover -s scripts -p test_python_boundaries.py
@@ -145,7 +161,7 @@ jobs:
         working-directory: backend/workers/catalog
         run: |
           uv lock --check --python 3.14.8
-          uv sync --frozen --extra dev --python 3.14.8
+          uv sync --frozen --extra dev --python 3.14.8 --no-editable
           uv run --no-sync ruff check
           uv run --no-sync ruff format --check
           uv build
@@ -155,7 +171,7 @@ jobs:
         working-directory: backend/workers/scan
         run: |
           uv lock --check --python 3.14.8
-          uv sync --frozen --extra dev --python 3.14.8
+          uv sync --frozen --extra dev --python 3.14.8 --no-editable
           uv run --no-sync ruff check
           uv run --no-sync ruff format --check
           uv build

@@ -53,7 +53,19 @@ class RawPathRouting:
 
 
 def cache_policy(path: str) -> str | None:
-    if path.startswith(("/api/auth/", "/api/account/", "/api/catalog/printings/")):
+    if path in {
+        "/api/v1/mtg/inventory/value",
+        "/api/v1/mtg/inventory/value-history",
+    }:
+        return "private, no-store"
+    if path in {"/api/v1/web", "/api/v1/mtg/dashboard", "/api/v1/mtg/commands"} or path.startswith(
+        (
+            "/api/v1/auth/",
+            "/api/v1/account/",
+            "/api/v1/web/",
+            "/api/v1/mtg/catalog/printings/",
+        )
+    ):
         return "no-store"
     return None
 
@@ -133,8 +145,7 @@ class RouteRegistry:
                             raw
                         )  # Validate early; the handler receives unchanged RAW.
                         params[expected[1:]] = raw
-                if match.path == "/api/mobile/v1/mtg/inventory":
-                    require_form_origin(request, self._origin)
+                require_form_origin(request, self._origin, match.path)
                 if self._auth is not None:
                     cleanup = await stale_session_cookie(request, self._auth, self._origin)
                 response = await match.handle(request, params)
@@ -176,7 +187,9 @@ class RouteRegistry:
 
         request = Request(scope, bounded_receive)
         # The SSE adapter owns its sole receive consumer, including setup and HEAD close.
-        stream = scope["path"].removesuffix("/") == "/api/account/events" and request.method in {
+        stream = scope["path"].removesuffix(
+            "/"
+        ) == "/api/v1/account/events" and request.method in {
             "GET",
             "HEAD",
         }

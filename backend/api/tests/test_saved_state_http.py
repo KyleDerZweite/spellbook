@@ -89,8 +89,8 @@ def request(
         "http_version": "1.1",
         "method": "GET",
         "scheme": "https",
-        "path": "/api/account/events",
-        "raw_path": b"/api/account/events",
+        "path": "/api/v1/account/events",
+        "raw_path": b"/api/v1/account/events",
         "query_string": query,
         "headers": headers
         if headers is not None

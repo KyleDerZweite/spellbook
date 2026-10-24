@@ -168,7 +168,7 @@ export interface PerformanceBundleSource {
 }
 
 async function nativeBundleSource(): Promise<PerformanceBundleSource> {
-	const url = new URL('../../../backend/scripts/demo/catalog-bundle.mjs', import.meta.url);
+	const url = new URL('./catalog-bundle.mjs', import.meta.url);
 	return import(/* @vite-ignore */ url.href);
 }
 

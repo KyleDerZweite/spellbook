@@ -1,9 +1,9 @@
 # Repository verification and GitHub automation
 
 - Status: Canonical
-- Last Reviewed: 2026-10-20
+- Last Reviewed: 2026-10-24
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
-- Update Triggers: setup-java v6 compatibility, dormant Python representative host checks, manual native acceptance and import boundaries, independent API/web ownership and relocated code references, native initial Deck Search publication regression, conditional CI scope, manual-only heavy workflows and consolidated jobs, native Inventory measurement regression, portable opt-in browsing performance evidence and artifact provenance, PWA worker build harness and tsconfig, QR integration/HTTP and pending target acceptance, Dev launcher lifecycle tests, test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
+- Update Triggers: explicit Application checks and conditional Python boundary ownership, ADR-0029 immediate removal of replaced API interfaces, canonical-only API operation checks and MTG imports, installed Python activation, Node source/test contraction and transferred HTTP consumers, Python source activation and server contraction, functional Python migration acceptance and retired P01 proof requirements, setup-java v6 compatibility, Python Category/state packaging, host/Dashboard/Scan assembly and installed migrator/operator checks, manual native acceptance and import boundaries, independent API/web ownership and relocated code references, native initial Deck Search publication regression, conditional CI scope, manual-only heavy workflows and consolidated jobs, native Inventory measurement regression, portable opt-in browsing performance evidence and artifact provenance, PWA worker build harness and tsconfig, QR integration/HTTP and pending target acceptance, Dev launcher lifecycle tests, test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
 - Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance), [Application boundaries](../architecture/application-contract.md#implementation-status)
 
 This document owns repository check commands, CI coverage, and verification evidence.
@@ -12,201 +12,127 @@ Run checks appropriate to the changed behavior; do not treat a passing command a
 
 ## Local checks
 
-Use the Node version in [`frontend/.node-version`](../../frontend/.node-version) and the package manager in [root package.json](../../package.json).
-Root [workspace policies](../../pnpm-workspace.yaml) and [pnpm-lock.yaml](../../pnpm-lock.yaml) own the frozen install across frontend/backend/contracts.
-Commands run from `frontend/` resolve this same root workspace.
-Before building for browser review, set `APP_ORIGIN` to the origin the browser will use.
-[Deployment configuration](./deployment.md#configuration) owns the build-time origin and rebuild procedure.
-From `frontend/`, run:
-
-Lint, builds and Vitest regenerate SvelteKit files, including environment configuration.
-Run them in an isolated worktree or stop that checkout's dev server first.
-Restart the shared preview with `./dev.sh` from the repository root after the checks, so test configuration cannot enter the running app through HMR.
+Use Node 26.10.0, pnpm 12.8.1, Python 3.14.8 and uv 0.12.23.
+The pnpm workspace owns frontend/contracts; independently locked Python packages own API/Core and workers.
+Run from the repository root in an isolated worktree:
 
 ```sh
 pnpm install --frozen-lockfile
+pnpm setup:python
 pnpm lint
-pnpm test:unit
-pnpm --dir ../backend test
-pnpm --dir .. test:tooling
-pnpm --dir .. build
-pnpm --dir ../backend db:check
+pnpm check:boundaries
+pnpm --dir frontend check
+pnpm --dir frontend test:unit
+pnpm test:tooling
+APP_ORIGIN=http://127.0.0.1:5191 pnpm build
 ```
 
-`pnpm --dir .. test:tooling` runs boundary, CI routing/workflow ownership, root launcher and packaging regression tests.
-Frontend `pnpm test:dev` imports the root launcher suite, so running it or standalone packaging tests again adds no coverage.
-Automatic CI runs the tooling aggregate alongside frontend lint and unit tests.
-These fixtures verify process ownership and cleanup paths; actual Podman and PostgreSQL startup require separate local integration evidence.
+`setup:python` installs the current packages and local Core dependency as wheels with frozen dependencies.
+Rerun it after source changes before testing installed entrypoints.
+`lint` runs the complete Prettier check only.
+`check:boundaries` scans source import directions; `test:tooling` runs its forbidden-import fixtures.
+`pnpm --dir frontend check` runs frontend TypeScript/Svelte checks without the root `check` command's Python Mypy checks.
+Python package checks remain independent below.
+`build` produces Python Core/API/State distributions and the origin-matched Svelte artifact, including client leakage and PWA checks.
+Adapter-node 6 takes `paths.origin` from build-time `APP_ORIGIN`; runtime `ORIGIN` cannot change that artifact.
 
-`lint` includes the root TypeScript import-boundary checker and forbidden-import tests, Prettier, independent backend type checking, SvelteKit synchronization, the TypeScript 7 check and Svelte checking.
-`check:ts` includes the separate [service-worker TypeScript configuration](../../frontend/src/service-worker/tsconfig.json).
-Root `build` builds API and web independently.
-Frontend `build` also checks built client output for backend/persistence leakage and runs `node --test tests/pwa-worker.test.ts` after producing the worker output.
-Running those nested checks again adds no coverage unless isolating a failure.
-Backend `db:check` checks Drizzle migration consistency; frontend database scripts forward there.
-It does not apply migrations or exercise transactions.
+`test:tooling` covers boundary fixtures, launcher ownership/failures, Python launcher commands and web packaging.
+Its lifecycle fixtures substitute executables and do not establish real container/database operation.
+Run each affected package's ordinary checks once, then broaden only for changes or unresolved failures.
 
-For frontend integration tests, set `DATABASE_URL` and `TEST_DATABASE_URL` to the same disposable PostgreSQL 18 database, then run from `frontend/`:
+For local routing or workflow changes, run `node --test scripts/ci-changes.test.mjs` directly.
+Run `CI_EVENT_NAME=pull_request CI_BASE_SHA=<base-sha> CI_HEAD_SHA=<head-sha> node scripts/ci-changes.mjs` to inspect selected scopes.
+
+For genuine client/API acceptance, supply matching `DATABASE_URL` and `TEST_DATABASE_URL` for an exclusively assigned disposable PostgreSQL 18 database.
+Apply migrations explicitly before tests; never let a fixture silently select a live target.
+With installed Python packages and a web build for the exact test Origin, run from the root:
 
 ```sh
-pnpm --dir ../backend db:migrate
-pnpm test:integration
-APP_ORIGIN=http://127.0.0.1:5191 pnpm --dir .. build
-pnpm test:http
+pnpm db:migrate
+APP_ORIGIN=http://127.0.0.1:5191 pnpm --dir frontend build
+pnpm --dir frontend test:http
+pnpm --dir frontend test:scan
+pnpm --dir frontend test:sync
 ```
 
-The [HTTP runtime fixture](../../frontend/tests/http-runtime.ts) starts the built Node API and web application separately and verifies public Catalog DTOs and browser/API Auth/Profile/Dashboard journeys against the same disposable database.
-The default origin is `http://127.0.0.1:5191`; when setting `TEST_HTTP_PORT`, rebuild web with matching `APP_ORIGIN`.
-`TEST_API_PORT` defaults to 5193 and must be a different free loopback port.
-API public Origin matches web, while `API_INTERNAL_URL` points to the owned API child.
-Web receives no database or storage secrets.
-The suite rejects a configured origin/port mismatch and an occupied port before publishing fixtures.
-It requires listening confirmation from both owned child processes before sending requests.
-Direct API and same-origin proxy parity are separate acceptance scenarios.
-The suite also fails without matching `DATABASE_URL` and `TEST_DATABASE_URL`.
-It temporarily publishes a catalog fixture, so do not run it against a shared database or concurrent catalog publisher.
+`test:integration` is an aggregate of those retained external HTTP suites.
+It replaces the removed direct Node domain integration project.
+Tests require their explicit disposable database guards and fail for unavailable configured databases/services.
+A missing optional guard is unexecuted evidence, not a database pass.
+`TEST_HTTP_PORT` defaults to 5191 and `TEST_API_PORT` to 5193; rebuild web when changing its Origin.
+Tests verify free ports before starting children or publishing fixtures.
+The [runtime fixture](../../frontend/tests/http-runtime.ts) launches the installed `backend/api/.venv/bin/spellbook-api` directly, with no Node API fallback, and built web independently.
+Only API receives database/storage credentials.
+Direct API, same-origin proxy, SSR/native actions, original receipts and account isolation retain separate assertions.
 
-`test:http` also runs the [proxy upload regression](../../frontend/tests/remote-proxy-upload-http.test.mjs) through the backend test-only TypeScript loader.
-It uses the actual production web handler and backend Node bridge/parser on owned ephemeral loopback ports, without a database.
-The default 512 KiB web cap verifies source-limit 413 propagation; repeat with `TEST_PROXY_WEB_BODY_LIMIT=12M` for the normal configured allowance.
-Known-length and chunked uploads, early replies, raw credentials, separate cookies, SSE cancellation and upload aborts are separate assertions.
-This parser/transport fixture does not replace the real PostgreSQL application suites.
+The [proxy upload regression](../../frontend/tests/remote-proxy-upload-http.test.mjs) uses the actual built web handler and installed Python host/parser/registry without a database.
+Its small [Python fixture](../../frontend/tests/fixtures/proxy-api.py) supplies transport-only responses; it establishes no domain acceptance.
+Known-length/chunked limits, early 413, forwarded credentials/Origin, separate cookies, SSE cancellation and upload abort remain covered.
+The default web cap is 512 KiB for that regression; `TEST_PROXY_WEB_BODY_LIMIT=12M` selects normal allowance.
 
-The integration project in [vite.config.ts](../../frontend/vite.config.ts) uses `fileParallelism: false` because its files publish one shared Catalog generation in the disposable database.
-Explicit concurrent transactions within a test still run through `Promise.all`.
-[Category preview tests](../../frontend/tests/integration/category-previews.integration.test.ts) and [Library HTTP tests](../../frontend/tests/category-library-http.test.ts) publish their own 1000-printing subset from the tracked versioned public Catalog bundle through the [fixture owner](../../frontend/tests/fixtures/category-catalog.ts).
-The native bundle verifier checks the complete compressed and decoded payload digests and manifest counts before publication.
-Selected printings retain recorded English documents, raw identities and known type facts, including genuine Artifact and Creature printings.
-Preview tests retain their complete 150-entry and 1000-entry/500-definition assertions and run independently of a preseeded Catalog on freshly migrated PostgreSQL.
-Cleanup restores the full previous Catalog state after owned-account cleanup and deletes only the fixture generation.
-The bundle date identifies recorded fixture content, not verified upstream freshness.
-Deck range fixtures use genuine Catalog printings and valid signed 32-bit per-entry quantities; the beyond-safe canonical aggregation boundary is covered by [unit cases](../../frontend/tests/unit/deck-availability.test.ts), without an invalid PostgreSQL quantity fixture.
+The Category and Combo HTTP fixtures verify the complete canonical public bundle, publish owned subsets and restore previous Catalog pointers.
+Do not run them with another publisher on the same target.
+The [WholeDeckCategory HTTP test](../../frontend/tests/whole-deck-http.test.ts) starts and closes its own installed State worker independently of API.
+[SavedState HTTP](../../frontend/tests/saved-state-http.test.ts) builds two origin-matched web artifacts and uses two installed Python API replicas.
+Its listener queries use each API PID's Python application name.
+It covers actual TCP delivery, account isolation, session revocation, listener recovery and graceful shutdown; rendered journeys remain separate.
+Its paused-client fixture requires Python 3 and Linux `ss`.
+The Scan suite requires the actual configured worker and local storage; mocks do not establish S3 or recognizer integration.
 
-For SavedState transport verification, use the same migrated disposable database and origin/port rules, then run `pnpm test:sync` from `frontend/`.
-[saved-state-http.test.ts](../../frontend/tests/saved-state-http.test.ts) builds two origin-matched production artifacts, copies them under ignored `.local/saved-state-http/` and runs two web/API pairs.
-Its build subprocess uses the already selected `pnpm` on PATH, without requiring a local Node version manager on CI runners.
-The primary web uses `TEST_HTTP_PORT` or default 5191; replica web uses the next port.
-API uses `TEST_API_PORT` or default 5193 and its next port.
-Set `APP_ORIGIN` to the primary origin and keep all four ports free and distinct.
-Runtime guards require each owned child's listening confirmation before fixtures.
-
-HTTP test cleanup sends SIGTERM only to its owned API and web children, closing API streams first.
-Cleanup allows fifteen seconds for natural exit, including the PostgreSQL pool's default ten-second idle drain.
-If the child has not exited by then, cleanup fails and leaves it running without force termination.
-
-The test requires the existing Node/pnpm toolchain, `python3` and the Linux `ss` socket-inspection tool on PATH.
-The [paused socket fixture](../../frontend/tests/fixtures/paused-sse-client.py) uses only Python 3 standard-library `socket`, `json` and `sys`; no Python packages or worker environment are required.
-It exercises real TCP backpressure.
-Tests cover commit/rollback, account isolation, recovery, revocation, slow consumers and controlled proxy streaming.
-They do not establish rendered Profile behavior or the deployed proxy/tunnel.
-Record current-head results separately from owner browser and deployment acceptance.
-
-The database role needs schema and extension creation privileges.
-Integration cases write fixtures and remove test data or schemas.
-Without `TEST_DATABASE_URL`, database suites skip; a successful process with skipped suites is not a database verification result.
-
-For optional account-summary scale checks, set `TEST_SCALE_CATALOG_PATH` to an existing transformed public-catalog JSONL file to enable the large-account cases in [account-profile.integration.test.ts](../../frontend/tests/integration/account-profile.integration.test.ts) and [http-application.test.ts](../../frontend/tests/http-application.test.ts).
-The [fixture helper](../../frontend/tests/fixtures/account-scale.ts) requires exactly 10,000 actual printing records.
-Each line has `document` matching the Catalog card contract and `supportedInventoryFinishes` containing a supported finish for that printing.
-Use distinct valid printing IDs and real canonical identities; retain source generation and fixture provenance with the evidence.
-
-The helper creates 50,000 distinct entries by assigning each printing its first supported finish and each of the five allowed conditions, with quantity one.
-It writes only disposable fixture accounts.
-The Dashboard HTTP case makes its eight recent entries deterministic with the longest stored names.
-Its UTF-8 response budgets retain the legacy account summary below 30,000 bytes, separately require successful 30-day Value/history data within 3500 bytes, and cap the combined response at 33,500 bytes.
-These separate budgets account for the approved Value DTO extension without relaxing the original summary bound.
-After the usual isolated database migration/build, run:
-
-```sh
-TEST_SCALE_CATALOG_PATH=/absolute/path/to/public-catalog.jsonl pnpm test:integration
-TEST_SCALE_CATALOG_PATH=/absolute/path/to/public-catalog.jsonl pnpm test:http
-```
-
-Use the same source fixture for both runs.
-Those cases verify aggregate identities, account isolation, bounded recent entries and Dashboard response size.
-They do not establish virtualized Inventory loading or general latency targets.
-Without the variable, optional scale cases skip; normal CI requires no local catalog file.
-Record skipped scale coverage explicitly.
-
-The opt-in [Inventory scale script](../../backend/scripts/inventory-scale.ts) is a local disposable evidence harness, not a normal CI prerequisite.
-Its source declares the isolated database name, public JSONL/manifest path and fixture checks.
-Provision that exact isolated database, apply current migrations, and supply matching `TEST_DATABASE_URL` and `DATABASE_URL` through the existing protected environment.
-From the repository root run `node backend/scripts/inventory-scale.ts`; `--analyze` captures analyzed plans and `--measure-only --final` remeasures existing fixture accounts.
-The script creates accounts with 1,000, 10,000 and 50,000 entries and writes machine/source/implementation hashes, plans and raw timings under ignored `.local/inventory-evidence/`.
-Keep its protected credential file local.
-These query measurements require separate final-head HTTP and rendered scrolling/focus acceptance; they are not a deployment or scalability claim.
-
-For each changed Python package, run the following from `backend/workers/catalog/` or `backend/workers/scan/`.
-The [CI workflow](../../.github/workflows/ci.yml) owns the pinned Python and uv versions.
-
-```sh
-uv python install 3.14.8
-uv lock --check --python 3.14.8
-uv sync --frozen --extra dev --python 3.14.8
-uv run --no-sync ruff check
-uv run --no-sync ruff format --check
-uv build
-uv run --no-sync pytest
-```
-
-Set `WORKER_TEST_DATABASE_URL` to a disposable PostgreSQL 18 database when checking catalog publication.
-Those cases create isolated schemas and skip without the variable.
-The scan-worker tests do not require PostgreSQL.
-A frozen install preserves locked packages; the separate lock check detects a manifest that no longer matches its lockfile.
-
-For Markdown changes, install frontend dependencies and run from the repository root:
-
-```sh
-frontend/node_modules/.bin/prettier --check README.md GLOSSARY.md AGENTS.md CONTRIBUTING.md docs
-```
-
-Follow [documentation maintenance](../README.md#maintenance) for links, ownership, metadata, and stale claims.
-Documentation-only changes do not need application tests unless they also change executable behavior.
+The retained [account-scale fixture](../../frontend/tests/fixtures/account-scale.ts) requires `TEST_SCALE_CATALOG_PATH` with 10,000 genuine Catalog printings for optional large-account HTTP scenarios.
+Without that input, report the scale scenarios skipped.
+The separate portable browsing suite below retains actual client window algorithms and the installed Python HTTP target.
 
 ### Python API and Core
 
-The dormant [API foundation](../../backend/api/README.md) and [Core package](../../backend/core/README.md) use Python 3.14.8 and uv 0.12.23 with separate locks/environments.
-From the repository root, run:
+Run Ruff, format, Mypy and pytest from each owning package directory.
+`--project` alone does not change pytest discovery or Mypy's configuration directory.
+From the repository root:
 
 ```sh
+pnpm setup:python
 uvx --from uv==0.12.23 uv lock --project backend/core --check --python 3.14.8
-uvx --from uv==0.12.23 uv sync --project backend/core --frozen --extra dev --python 3.14.8
 uvx --from uv==0.12.23 uv run --directory backend/core --no-sync ruff check
 uvx --from uv==0.12.23 uv run --directory backend/core --no-sync ruff format --check
 uvx --from uv==0.12.23 uv run --directory backend/core --no-sync mypy
-uvx --from uv==0.12.23 uv lock --project backend/api --check --python 3.14.8
-uvx --from uv==0.12.23 uv sync --project backend/api --frozen --extra dev --python 3.14.8 --reinstall-package spellbook-core
 uvx --from uv==0.12.23 uv run --directory backend/core --no-sync pytest
+uvx --from uv==0.12.23 uv lock --project backend/api --check --python 3.14.8
 uvx --from uv==0.12.23 uv run --directory backend/api --no-sync ruff check
 uvx --from uv==0.12.23 uv run --directory backend/api --no-sync ruff format --check
 uvx --from uv==0.12.23 uv run --directory backend/api --no-sync mypy
 uvx --from uv==0.12.23 uv run --directory backend/api --no-sync pytest
-uvx --from uv==0.12.23 uv run --project backend/api --no-sync ruff check --config backend/api/pyproject.toml scripts/check_python_boundaries.py scripts/test_python_boundaries.py
-uvx --from uv==0.12.23 uv run --project backend/api --no-sync ruff format --check --config backend/api/pyproject.toml scripts/check_python_boundaries.py scripts/test_python_boundaries.py
 uvx --from uv==0.12.23 uv run --project backend/api --no-sync python scripts/check_python_boundaries.py
 uvx --from uv==0.12.23 uv run --project backend/api --no-sync python -m unittest discover -s scripts -p test_python_boundaries.py
-uvx --from uv==0.12.23 uv build --project backend/core
-uvx --from uv==0.12.23 uv build --project backend/api
 ```
 
-`--directory` selects the package working directory for checks; `--project` alone does not change pytest discovery or Mypy's configuration lookup directory.
-API tests compare Discovery with the neutral artifact and exercise the actual representative registry, strict RAW encoding before Cookie SQL, header/body/error semantics, HEAD/OPTIONS/405, configuration rejection and resource/pre-drain shutdown ordering.
-They also start a real task-owned Uvicorn child on an ephemeral loopback port and verify SIGTERM completion, without loading `.env` or requiring a database.
-The AST boundary checker inspects static/relative imports, type-only imports and literal dynamic imports across API, Core and current/future worker source roots.
-Computed dynamic import calls fail closed; this check is dependency enforcement, not a sandbox for arbitrary Python execution.
-Negative fixtures prove forbidden Core framework/API/worker imports and worker-to-API imports are rejected.
-The existing TypeScript checker remains unchanged and does not inspect Python.
+Apply the same lock/Ruff/format/build/pytest checks to each changed worker package; State also uses strict Mypy.
+API tests exercise the complete assembled registry, all nine closed web commands, strict wire parsing, headers/cookies, errors, request/stream/password/adapter/pool ownership and partial startup cleanup.
+The actual no-database host tests use owned ephemeral TCP ports and graceful SIGTERM.
+The registry test compares every API method/path with OpenAPI; that structural comparison does not establish functional correctness by itself.
+Run `SPELLBOOK_TEST_WHEEL=1` for the external installed API wheel/sdist check and `SPELLBOOK_TEST_STATE_WHEEL=1` for State.
+These tests verify bundled assets, console commands and installed production dependencies without connecting to PostgreSQL.
 
-Core has independent unit/type/lint/build checks; API also verifies consumers of its locally installed Core wheel.
-Existing Core/API native tests require their three explicit P02B_*_NATIVE_DATABASE guards and an exclusive assigned api_python environment.
-The manual `backend/api/tests/native_host_acceptance.py` suite is intentionally outside normal pytest filename discovery.
-It requires an exclusive sse lease, matching DATABASE_URL/TEST_DATABASE_URL, P02B_SHARED_NATIVE_DATABASE, P02B_PUBLIC_ORIGIN, P02B_INSTALLED_PYTHON outside the checkout and P02B_NODE_EXECUTABLE.
-Reserve two max10 request pools, two dedicated listeners and a max2 fixture pool, at most24 of the32 assigned connections.
-Build Node/web with that exact Origin and install fresh Core/API wheels plus frozen production dependencies outside the checkout before explicitly running `uvx --from uv==0.12.23 uv run --project backend/api --no-sync pytest backend/api/tests/native_host_acceptance.py`.
-The suite checks built-Node/installed-Python original receipt replay, real TCP replicas/proxy/revocation/reconnect, physical-close failure without overlap,32-stream admission/pre-drain cleanup, an actual paused TCP reader and the packaged private same-process hook.
-The slow-reader test reduces only its owned socket buffers to exercise kernel backpressure; it establishes no matched resource/performance gate.
-Core/native/host functional results do not replace full P01 cohorts or validated CPU/RSS/storage collectors.
-Heavy application integration and Android remain manually triggered.
+Core's real PostgreSQL tests run through the installed API environment, which supplies `psycopg_pool`.
+Read each selected file's explicit target guard before execution.
+The existing `P02B_CORE_NATIVE_DATABASE`, `P02B_INVENTORY_NATIVE_DATABASE` and `P02B_SCAN_NATIVE_DATABASE` cases retain their exclusive assigned target.
+Categories use `CATEGORY_NATIVE_DATABASE` and `CATEGORY_JOB_NATIVE_DATABASE`; Deck uses `DECK_NATIVE_DATABASE`; Catalog/Valuation uses `SPELLBOOK_DOMAIN_TEST_DATABASE`.
+Operator and migration suites have separate guarded disposable-target/reset requirements.
+Selecting a suite without its opt-in reports skipped coverage and establishes no database result.
+
+Canonical registry assertions compare complete method/path sets with OpenAPI and reject extra operations.
+Representative removed API paths must return 404.
+QR cookie-jar flows, Origin/cache policy, raw forms, method handling and SSE receive/HEAD/close regressions cover current routes.
+The Python boundary checker rejects retired generic MTG module paths; internal imports use `spellbook_core.mtg` and `spellbook_api.http.mtg`.
+
+Manual `backend/api/tests/native_host_acceptance.py` remains outside ordinary pytest discovery.
+It exercises the installed Python production registry, real process/database behavior, stored receipts and SSE.
+It requires the existing exclusive sse target, matching protected DSNs, `P02B_SHARED_NATIVE_DATABASE`, `P02B_PUBLIC_ORIGIN` and external `P02B_INSTALLED_PYTHON`.
+`P02B_NODE_EXECUTABLE` selects Node only for built web; no Node rollback entrypoint is required.
+Run `test_installed_python_original_receipts_and_direct_proxy_wire_acceptance` and `test_installed_replicas_proxy_revocation_and_physical_listener_reconnect` through this manual module.
+It does not launch a Node API or compare removed routes; Node is used only for built web where required.
+The obsolete direct Node-source replay driver is removed; guarded Python HTTP fixtures remain shared in `native_inventory.py`.
+Root owns those real runtime checks, scheduled state observations, actual Scan/storage/providers and current-head rendered acceptance.
+Production deployment and rollback retirement remain separately authorized operations.
 
 ### Portable browsing performance evidence
 
@@ -270,7 +196,7 @@ Replace the database confirmation with the exact disposable target name.
 Use a new output directory for every run.
 `TEST_PERFORMANCE_ENTRYPOINT` defaults to frontend `build/index.js` and accepts an absolute saved-artifact entrypoint for comparison runs.
 `TEST_PERFORMANCE_REPETITIONS` defaults to three and permits 1 through 20.
-The runtime fixture also starts `backend/dist/main.js` using `TEST_API_PORT` or default 5193.
+The runtime fixture also starts the installed `backend/api/.venv/bin/spellbook-api` using `TEST_API_PORT` or default 5193.
 A saved web `TEST_PERFORMANCE_ENTRYPOINT` does not select a matching API artifact; record its source revision and artifact digest separately.
 Existing reports that hash only web output do not establish API artifact provenance.
 Without `TEST_BROWSING_PERFORMANCE=1`, the suite skips before fixtures.
@@ -293,7 +219,7 @@ From `frontend/`, run:
 ```sh
 pnpm check
 pnpm test:unit
-pnpm --dir ../backend db:migrate
+pnpm --dir .. db:migrate
 pnpm test:integration
 APP_ORIGIN=http://127.0.0.1:5191 pnpm --dir .. build
 pnpm test:http
@@ -305,8 +231,8 @@ The built [worker harness](../../frontend/tests/pwa-worker.test.ts) requires bui
 The harness executes worker behavior with controlled platform doubles, without a server or database.
 It verifies the cache allowlist, private/auth/API exclusions, network-error fallback and explicit update activation; it is not browser installation evidence.
 
-[QR integration tests](../../frontend/tests/integration/qr-auth.integration.test.ts) exercise backend QR transactions with real PostgreSQL.
-[Backend HTTP tests](../../backend/tests/http-core.test.ts) cover framework-independent transport behavior; built HTTP coverage remains separate.
+[QR integration tests](https://github.com/KyleDerZweite/spellbook/blob/87cc4a3d153616bcce46fad046246b6a3271e563/frontend/tests/integration/qr-auth.integration.test.ts) exercise backend QR transactions with real PostgreSQL.
+[Backend HTTP tests](../../backend/api/tests/test_http_wire.py) cover framework-independent transport behavior; built HTTP coverage remains separate.
 The [QR HTTP suite](../../frontend/tests/qr-auth-http.test.ts) runs through `test:http` against the actual built application.
 Cover browser cookies and device bearer issuance, explicit decisions, wrong credentials, expiry after lock waits, same-session repeated approval including after consumption, conflicting decisions/approvers, revocation and concurrent one-use redemption.
 Failed or skipped cases do not establish those guarantees.
@@ -347,26 +273,13 @@ SDK license acceptance is authorized for this delivery; accepted license text is
 
 ## Application and native operator checks
 
-[Construction cases](../../frontend/tests/unit/application-construction.test.ts), [lifetime cases](../../frontend/tests/unit/application-lifetime.test.ts) and [transport import cases](../../frontend/tests/unit/transport-lifetime.test.ts) run through `pnpm test:unit`.
-They cover configuration validation before acquisition, cleanup after construction failure, build analysis, idempotent start/close, close before start, restart rejection and pool closure after cleanup failure.
-Transport imports require no database configuration and start no resources.
-The [boundary tests](../../scripts/check-boundaries.test.mjs) reject frontend persistence/internal imports and runtime access to operator wrappers.
-Real API development restart, production shutdown and two-replica HTTP behavior require separate runtime checks.
-Web owns no backend lifecycle hooks.
-
-Integration tests consume the [test-only backend database fixture](../../frontend/tests/fixtures/database.ts) and backend schema directly.
-Native operator checks run from `backend/` with the pinned Node toolchain:
-
-```sh
-node --test scripts/demo/operators.test.mjs scripts/demo/precon.test.mjs
-node --test scripts/demo/operators.integration.test.mjs scripts/demo/precon.integration.test.mjs
-```
-
-Set `TEST_DATABASE_URL` for the second command to an empty migrated disposable database ending in `_demo` or `_design`.
-Without it, native database coverage skips.
-These cases cover guarded Demo preservation/replacement, transactional rollback, password recovery and session revocation.
-The disposable target is a verification requirement, not a production restriction on the password recovery command.
-Check results at the aggregate head; existing fixture/provider tests do not establish normal-database refresh, rendered acceptance or deployment.
+Python API lifecycle/resource tests cover validated configuration, unopened construction, partial startup, concurrent close, request settlement, stream drain, Scan adapter cleanup, password work and final pool closure.
+Core owns Demo fixtures/operators and actual credential/session behavior; installed API CLI tests cover argument/stdin handling and bundled asset discovery.
+Run guarded `backend/core/tests/test_operators_postgres.py` with the installed API environment against an empty migrated disposable `_demo` or `_design` target, setting `SPELLBOOK_OPERATORS_NATIVE_DATABASE` to its exact name.
+Those scenarios verify guarded preservation/replacement, rollback, password recovery and session revocation.
+They do not restrict authorized password recovery to disposable targets in actual operations.
+The TypeScript and Python boundary checks enforce frontend/Core/HTTP/worker responsibilities.
+Rendered acceptance and real deployment remain separate evidence.
 
 ## CI coverage
 
@@ -377,20 +290,23 @@ The three substantive jobs depend on successful classification and can run in pa
 
 | Job                | Checks                                                                                                                                   | Automatic scope                                                         |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Application Checks | Web/backend types and boundaries through `lint`, web unit tests, root `test:tooling`, backend unit/native tests and `db:check`           | App/shared source and Scan worker changes                               |
+| Application Checks | Prettier, explicit source boundaries and frontend TypeScript/Svelte checks, web unit tests and root `test:tooling`                       | App/shared source and Scan worker changes                               |
 | Python API/Core    | Independent lock/frozen install, Ruff, strict Mypy, Core/API unit/host/Discovery tests, package builds and negative Python import checks | API, Core, neutral contracts, migrations and shared Python tooling      |
 | Python Workers     | Lock consistency, Ruff lint/format and pytest for each affected Python project                                                           | Catalog worker, Scan worker, or migrations used by Catalog worker tests |
 
-Migration consistency runs in Application Checks using the existing frozen workspace install.
+Migration asset/ledger consistency runs in Python Core/API tests.
 Root `test:tooling` includes launcher and packaging tests, so CI does not invoke those suites separately.
 The two worker projects share their existing job/toolchain setup, retaining separate project environments; its PostgreSQL service starts only when Catalog worker tests are selected.
-That worker job also runs the Python import checker and negative fixtures with the pinned interpreter, so worker-only edits cannot bypass dependency rules or require unrelated API tests.
+Python API/Core runs the repository Python import checker and six negative unittest cases.
+The worker job runs the same checker and fixtures with the pinned interpreter only when Python API/Core is unselected.
+Worker-only edits therefore enforce dependency rules without depending on the API/Core job.
+Scope tests run only in CI Scope, and Node boundary fixtures run only through Application Checks tooling.
 The scope job has a five-minute timeout; Application Checks, Python API/Core and Python Workers each have fifteen minutes.
 
 [Application Integration](../../.github/workflows/application-integration.yml) and [Android Build](../../.github/workflows/android.yml) are separate workflows triggered only by `workflow_dispatch`.
 Neither has an automatic trigger or a `workflow_call` entry point, and automatic CI never invokes them.
 Each manual workflow has one job with a thirty-minute timeout and no concurrency cancellation of another manual run.
-Application Integration retains disposable PostgreSQL 18, the actual locked Scan worker, migrations, `test:integration`, the independent API/web build, `test:http`, `test:scan` and `test:sync`.
+Application Integration retains disposable PostgreSQL 18, the actual locked Scan worker, Python migration and guarded Category/Deck PostgreSQL checks, the independent Python/API and web build, `test:http`, `test:scan` and `test:sync`.
 Android Build retains explicit SDK 37.0, build-tools 36.0.0, setup-android v4.0.4, JDK 21 and `:app:lintDebug :app:testDebugUnitTest :app:assembleDebug`.
 GitHub requires the workflow file to exist on the default branch before manual dispatch is available.
 Before integration into `main`, use the documented local checks.
@@ -408,10 +324,13 @@ Run the relevant manual or documented local checks before claiming their coverag
 
 PR scope uses the complete local Git merge-base diff between event base/head SHAs; main pushes use the pushed `base..head` diff.
 Paths are NUL-delimited and rename detection is disabled so additions and deletions both count.
-`backend/api/`, `backend/core/` and the Python boundary scripts select Python API/Core; Core changes therefore also verify API consumers.
+`backend/api/`, `backend/core/`, `backend/workers/state/` and the Python boundary scripts select Python API/Core.
+State package, Core and SQL changes also select the state package step in that existing job.
+API-only edits keep state checks unselected.
+The job installs ordinary ICU before Core Combo tests and retains all other existing CI ownership; broader CI audit proposals remain unselected.
 Shared `contracts/` select both Application Checks and Python API/Core, including Discovery compatibility.
 Other `frontend/`, `backend/` and `scripts/` source paths select Application Checks.
-Migration paths under `backend/drizzle/`, including the legacy frontend path, select Application Checks, Python API/Core and Catalog worker tests.
+Migration paths under `backend/drizzle/`, including the legacy frontend path, select Application Checks, Python API/Core, the state package step and Catalog worker tests.
 `backend/workers/catalog/` selects Catalog tests; `backend/workers/scan/` selects Application Checks and Scan worker tests.
 Android-only changes and known documentation alone select no substantive automatic job.
 JS workspace/lockfile changes select Application Checks without forcing Python.
@@ -578,20 +497,17 @@ Those checks establish HTTP/resource behavior, not browser draft/focus/anchor ac
 
 ## Value history verification
 
-[History integration tests](../../frontend/tests/integration/inventory-value-history.integration.test.ts), [value summaries](../../frontend/tests/integration/value-summary.integration.test.ts), [value events](../../frontend/tests/integration/inventory-value-events.integration.test.ts) and [value HTTP tests](../../frontend/tests/value-history-http.test.ts) own checkpoint, summary, notification and route evidence.
-Run these against the migrated disposable database using the existing integration/HTTP isolation rules.
-[Scale integration](../../frontend/tests/integration/inventory-value-scale.integration.test.ts) requires `TEST_VALUE_SCALE_ACCOUNT_ID` naming a disposable account already populated with 50,000 real Catalog holdings.
-It uses `TEST_DATABASE_URL`, changes that account's checkpoint fixtures and skips without both variables.
-Record Catalog/fixture provenance and absent coverage.
-
-Record head, migration state and fixture provenance with results.
-Controlled-clock captures prove eligibility and consistency, not an actual scheduled midnight observation.
+Core `test_value_capture.py`, `test_valuation.py`, `test_dashboard_postgres.py` and `test_catalog_valuation_postgres.py` own capture, reference/summary and real-database coverage.
+State package tests own scheduler lifetime/retry behavior.
+The retained Dashboard and Inventory HTTP suites use the installed API.
+Run real guarded cases against the assigned migrated target and record skipped coverage explicitly.
+Controlled-clock captures establish eligibility and consistency; an actual scheduled midnight observation remains a separate Root-owned check.
 Provider refresh, rendered presentation, owner acceptance and deployment remain separate evidence.
-[Valuation](../architecture/valuation.md#reviewed-personal-history-contract) lists relevant failure and lifecycle scenarios.
+[Valuation](../architecture/valuation.md#reviewed-personal-history-contract) owns relevant failure scenarios.
 
 ## Local combo verification
 
-[Matcher cases](../../frontend/tests/unit/combo-matcher.test.ts), [native editor/proof cases](../../frontend/tests/unit/combo-category-ui.test.ts), [transaction cases](../../frontend/tests/integration/combo-categories.integration.test.ts) and [built HTTP cases](../../frontend/tests/combo-http.test.ts) own local Combo evidence.
+[Core matcher cases](../../backend/core/tests/test_categories_combo.py), [native editor/proof cases](../../frontend/tests/unit/combo-category-ui.test.ts), [transaction cases](https://github.com/KyleDerZweite/spellbook/blob/87cc4a3d153616bcce46fad046246b6a3271e563/frontend/tests/integration/combo-categories.integration.test.ts) and [built HTTP cases](../../frontend/tests/combo-http.test.ts) own local Combo evidence.
 The transaction and HTTP fixtures consume the complete verified public Demo bundle and publish the recorded Oak/Denizen subset with proven raw Oracle identities.
 The source fixture retains the recorded official `2850-4186` variant; an explicitly synthetic commander variant tests role authority.
 Fixture cleanup restores the exact preceding Catalog/Combo state.

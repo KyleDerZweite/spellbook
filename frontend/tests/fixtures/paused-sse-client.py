@@ -8,7 +8,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client:
     client.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4096)
     client.connect(("127.0.0.1", config["port"]))
     request = (
-        f"GET /api/account/events HTTP/1.1\r\nHost: 127.0.0.1:{config['port']}\r\n"
+        f"GET /api/v1/account/events HTTP/1.1\r\nHost: 127.0.0.1:{config['port']}\r\n"
         f"Authorization: Bearer {config['token']}\r\nConnection: close\r\n\r\n"
     )
     client.sendall(request.encode())

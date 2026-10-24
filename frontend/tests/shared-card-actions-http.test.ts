@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { writeFile } from 'node:fs/promises';
 import pg from 'pg';
 import { randomUUID } from 'node:crypto';
-import { SESSION_COOKIE } from '@spellbook/backend/auth/session.ts';
+import { SESSION_COOKIE } from './fixtures/session.ts';
 import { fixtureAuthRequest } from './fixtures/http-auth.ts';
 import { httpTestOrigin, startHttpApplication, stopHttpApplication } from './http-runtime.ts';
 import type { Deck } from '@spellbook/contracts/decks.ts';
@@ -23,7 +23,7 @@ test('built fixture route exercises shared native adapters over genuine Catalog 
 		const register = async () => {
 			const response = await fixtureAuthRequest(
 				origin,
-				'/api/auth/register',
+				'/api/v1/auth/register',
 				{ username: 'shared_' + randomUUID().slice(0, 8), password: 'shared-card-proof-password' },
 				{}
 			);
@@ -34,7 +34,7 @@ test('built fixture route exercises shared native adapters over genuine Catalog 
 			foreign = await register();
 		const headers = { accept: 'text/html', cookie: `${SESSION_COOKIE}=${owner.token}`, origin };
 		const create = async (token: string, name: string) => {
-			const response = await fetch(origin + '/api/mobile/v1/mtg/decks', {
+			const response = await fetch(origin + '/api/v1/mtg/decks', {
 				method: 'POST',
 				headers: { authorization: 'Bearer ' + token, 'content-type': 'application/json' },
 				body: JSON.stringify({ name, format: 'Commander', description: '' })

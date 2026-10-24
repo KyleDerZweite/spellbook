@@ -30,5 +30,5 @@ fun reviewRemoval(entry: InventoryEntry, scope: AccountScope, requestId: String 
         put("expectedQuantity", entry.quantity)
     }
     return ReviewedRemoval(entry.id, entry.name, entry.quantity, scope,
-        MutationAttempt(scope.backend, scope.accountId, "DELETE", "/api/mobile/v1/mtg/inventory/${entry.id}", body, requestId))
+        MutationAttempt(scope.backend, scope.accountId, "DELETE", "/api/v1/mtg/inventory/${entry.id}", body, requestId))
 }

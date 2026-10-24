@@ -3,12 +3,21 @@ COPY --from=ghcr.io/astral-sh/uv:0.12.23 /uv /uvx /bin/
 WORKDIR /app
 COPY backend/core/ backend/core/
 COPY backend/api/ backend/api/
+COPY backend/drizzle/ backend/drizzle/
+COPY backend/scripts/demo/cards.json \
+     backend/scripts/demo/upgrades-unleashed.json \
+     backend/scripts/demo/catalog-default-en-20261007.manifest.json \
+     backend/scripts/demo/catalog-default-en-20261007.jsonl.gz \
+     backend/scripts/demo/
 COPY contracts/openapi.json contracts/openapi.json
 RUN uv sync --project backend/api --frozen --no-dev --no-editable --python 3.14.8
 
 FROM python:3.14.8-slim-bookworm AS runtime
+# Core uses ordinary ICU en-US collation for opaque Combo variant witness IDs.
+RUN apt-get update && apt-get install -y --no-install-recommends libicu72 \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /app/backend/api/.venv /app/backend/api/.venv
-ENV API_HOST=127.0.0.1
-ENV API_PORT=3002
+ENV API_HOST=0.0.0.0
+ENV API_PORT=3001
 CMD ["/app/backend/api/.venv/bin/spellbook-api"]

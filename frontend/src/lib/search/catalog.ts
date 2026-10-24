@@ -1,6 +1,6 @@
 import type { CatalogFilters, CatalogSearchRequest, Game, SearchResult } from './types.ts';
 
-const CATALOG_API = '/api/catalog';
+const CATALOG_API = '/api/v1/mtg/catalog';
 
 function ensureSupportedGame(game: Game = 'mtg'): void {
 	if (game !== 'mtg') throw new Error(`${game.toUpperCase()} search is not available yet`);

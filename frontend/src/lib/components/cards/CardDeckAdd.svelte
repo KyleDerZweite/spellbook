@@ -77,10 +77,10 @@
 			if (captured.deckId) params.set('selectedDeckId', captured.deckId);
 			loading = true;
 			try {
-				const value = await readSavedJSON<DeckChoicePage>(
-					'/api/mobile/v1/mtg/decks/choices?' + params,
-					{ signal: lease.signal, current }
-				);
+				const value = await readSavedJSON<DeckChoicePage>('/api/v1/mtg/decks/choices?' + params, {
+					signal: lease.signal,
+					current
+				});
 				if (!current() || !value) return;
 				choices = value;
 				readError = '';

@@ -2,13 +2,14 @@
 
 Independent ingestion package with its own lock, environment, image and process.
 The import and executable entrypoint remains `worker.main`.
-The Node API remains the active baseline; this relocation does not activate the Python API.
+The unmerged candidate now activates Python API, State, Catalog and Scan in normal Compose and launchers after the one-shot Python migrator.
+Production operations remain separately authorized.
 
 From the repository root, using Python 3.14.8 and uv 0.12.23:
 
 ```sh
-uv sync --project backend/workers/catalog --frozen --extra dev --python 3.14.8
-uv run --project backend/workers/catalog --no-sync python -m worker.main
+uvx --from uv==0.12.23 uv sync --project backend/workers/catalog --frozen --extra dev --python 3.14.8
+uvx --from uv==0.12.23 uv run --project backend/workers/catalog --no-sync python -m worker.main
 podman build -t spellbook-catalog-worker backend/workers/catalog
 ```
 

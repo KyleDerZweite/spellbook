@@ -118,7 +118,7 @@ class AppModel(application: Application) : AndroidViewModel(application) {
         validation?.cancel()
         validation = scope().launch {
             try {
-                val info = apiOrFail().get<SessionInfo>("/api/auth/session", session.token)
+                val info = apiOrFail().get<SessionInfo>("/api/v1/auth/session", session.token)
                 if (owner != epoch || !isActive) return@launch
                 val validated = session.copy(user = info.user, expiresAt = info.expiresAt)
                 check(validated.user.accountId == session.user.accountId && validated.isLive())
@@ -166,27 +166,27 @@ class AppModel(application: Application) : AndroidViewModel(application) {
                 val api = apiOrFail()
                 val token = if (privateScreen) privateToken() else null
                 val result: ScreenData = when (target.screen) {
-                    "home" -> ScreenData.Home(api.get("/api/account/dashboard", token))
+                    "home" -> ScreenData.Home(api.get("/api/v1/mtg/dashboard", token))
                     "search" -> {
                         val body = jsonBody {
                             put("query", snapshot.search); put("limit", 30); put("offset", snapshot.offset)
                             if (snapshot.color.isNotEmpty()) putJsonObject("filters") { putJsonArray("colors") { add(snapshot.color) } }
                         }
-                        ScreenData.Search(WireJson.decodeFromString(api.request("/api/catalog/search", method = "POST", body = body)))
+                        ScreenData.Search(WireJson.decodeFromString(api.request("/api/v1/mtg/catalog/search", method = "POST", body = body)))
                     }
                     "printing" -> {
-                        val printing = api.get<Printing>("/api/catalog/printings/${target.id}")
-                        val printings = api.get<SearchResult>("/api/catalog/cards/${printing.oracle_id}/printings?limit=30&offset=0")
+                        val printing = api.get<Printing>("/api/v1/mtg/catalog/printings/${target.id}")
+                        val printings = api.get<SearchResult>("/api/v1/mtg/catalog/cards/${printing.oracle_id}/printings?limit=30&offset=0")
                         ScreenData.PrintingDetail(printing, printings)
                     }
-                    "inventory" -> ScreenData.Inventory(api.get("/api/mobile/v1/mtg/inventory?limit=40&offset=${snapshot.inventoryOffset}&q=${query(snapshot.inventoryQuery)}${if (snapshot.inventoryGroup.isNotEmpty()) "&group=${query(snapshot.inventoryGroup)}" else ""}", token))
-                    "groups" -> ScreenData.Groups(api.get("/api/mobile/v1/mtg/inventory/groups?limit=40&offset=${snapshot.inventoryOffset}", token))
-                    "entry" -> ScreenData.Entry(api.get("/api/mobile/v1/mtg/inventory/${target.id}", token), api.get("/api/mobile/v1/mtg/inventory/groups?limit=500", token))
-                    "decks" -> ScreenData.Decks(api.get("/api/mobile/v1/mtg/deck-library?limit=30&offset=${snapshot.deckOffset}&dirQ=${query(snapshot.deckQuery)}", token))
-                    "deck" -> ScreenData.Selected(api.get("/api/mobile/v1/mtg/decks/${target.id}?selectedOnly=true", token))
-                    "availability" -> ScreenData.Available(api.get("/api/mobile/v1/mtg/decks/${target.id}/availability", token))
-                    "profile" -> ScreenData.Account(api.get("/api/account/profile", token))
-                    "qr" -> ScreenData.Qr(api.get("/api/auth/qr/requests/${query(target.id)}", token))
+                    "inventory" -> ScreenData.Inventory(api.get("/api/v1/mtg/inventory?limit=40&offset=${snapshot.inventoryOffset}&q=${query(snapshot.inventoryQuery)}${if (snapshot.inventoryGroup.isNotEmpty()) "&group=${query(snapshot.inventoryGroup)}" else ""}", token))
+                    "groups" -> ScreenData.Groups(api.get("/api/v1/mtg/inventory/groups?limit=40&offset=${snapshot.inventoryOffset}", token))
+                    "entry" -> ScreenData.Entry(api.get("/api/v1/mtg/inventory/${target.id}", token), api.get("/api/v1/mtg/inventory/groups?limit=500", token))
+                    "decks" -> ScreenData.Decks(api.get("/api/v1/mtg/deck-library?limit=30&offset=${snapshot.deckOffset}&dirQ=${query(snapshot.deckQuery)}", token))
+                    "deck" -> ScreenData.Selected(api.get("/api/v1/mtg/decks/${target.id}?selectedOnly=true", token))
+                    "availability" -> ScreenData.Available(api.get("/api/v1/mtg/decks/${target.id}/availability", token))
+                    "profile" -> ScreenData.Account(api.get("/api/v1/account/profile", token))
+                    "qr" -> ScreenData.Qr(api.get("/api/v1/auth/qr/requests/${query(target.id)}", token))
                     else -> error("Unknown screen")
                 }
                 if (owner == epoch && isActive && route == target) update { it.copy(data = result, loading = false, error = null) }
@@ -233,7 +233,7 @@ class AppModel(application: Application) : AndroidViewModel(application) {
         val guest = if (previousAccount == null && carryGuestDraft) state.value.draft.add else null
         update { it.copy(authenticating = true, authError = null) }
         sessionRequests.launch(scope(), request = {
-            WireJson.decodeFromString<LoginResult>(apiOrFail().request("/api/auth/${if (register) "register" else "login"}", method = "POST", body = jsonBody { put("username", username); put("password", password) }))
+            WireJson.decodeFromString<LoginResult>(apiOrFail().request("/api/v1/auth/${if (register) "register" else "login"}", method = "POST", body = jsonBody { put("username", username); put("password", password) }))
         }, onSuccess = { result ->
             val session = Session(backend, result.user, result.token, result.expiresAt)
             check(session.isLive())
@@ -261,21 +261,21 @@ class AppModel(application: Application) : AndroidViewModel(application) {
         val draft = state.value.draft.add ?: return
         try {
             inventoryAddBody(draft, "validate")
-            mutate("POST", "/api/mobile/v1/mtg/inventory") { id -> inventoryAddBody(draft, id) }
+            mutate("POST", "/api/v1/mtg/inventory") { id -> inventoryAddBody(draft, id) }
         } catch (cause: IllegalArgumentException) { update { it.copy(writeError = cause.message) } }
     }
 
     fun patchEntry(entry: InventoryEntry, quantity: String, notes: String) {
         val count = quantity.toLongOrNull()
         if (count == null || count !in 1..2_147_483_647) { update { it.copy(writeError = "Enter a positive Quantity.") }; return }
-        mutate("PATCH", "/api/mobile/v1/mtg/inventory/${entry.id}") { id -> jsonBody {
+        mutate("PATCH", "/api/v1/mtg/inventory/${entry.id}") { id -> jsonBody {
             put("requestId", id); put("quantity", count)
             if (notes != entry.notes) { put("notes", notes); put("notesRevision", entry.notesRevision) }
         } }
     }
     fun removeEntry(review: ReviewedRemoval) = submitMutation(review.attempt)
-    fun saveGroups(entryId: String, groups: Set<String>) = mutate("PUT", "/api/mobile/v1/mtg/inventory/$entryId/groups") { id -> jsonBody { put("requestId", id); putJsonArray("groupIds") { groups.sorted().forEach { add(it) } } } }
-    fun createGroup(name: String) = mutate("POST", "/api/mobile/v1/mtg/inventory/groups") { id -> jsonBody { put("requestId", id); put("name", name) } }
+    fun saveGroups(entryId: String, groups: Set<String>) = mutate("PUT", "/api/v1/mtg/inventory/$entryId/groups") { id -> jsonBody { put("requestId", id); putJsonArray("groupIds") { groups.sorted().forEach { add(it) } } } }
+    fun createGroup(name: String) = mutate("POST", "/api/v1/mtg/inventory/groups") { id -> jsonBody { put("requestId", id); put("name", name) } }
     private fun mutate(method: String, path: String, body: (String) -> String) {
         if (state.value.draft.attempt != null || state.value.saving || !state.value.verified) return
         val account = state.value.session?.user?.accountId ?: return
@@ -326,7 +326,7 @@ class AppModel(application: Application) : AndroidViewModel(application) {
     fun finishReceipt() {
         if (state.value.draft.attempt?.confirmedReceipt == null) return
         val attempt = state.value.draft.attempt ?: return
-        val wasAdd = attempt.method == "POST" && attempt.path == "/api/mobile/v1/mtg/inventory"
+        val wasAdd = attempt.method == "POST" && attempt.path == "/api/v1/mtg/inventory"
         if (setDraft(if (wasAdd) DraftState() else state.value.draft.copy(attempt = null))) {
             update { it.copy(notice = null, writeError = null, formGeneration = it.formGeneration + 1) }
         }
@@ -340,7 +340,7 @@ class AppModel(application: Application) : AndroidViewModel(application) {
         cancelPrivateWork()
         update { it.copy(authenticating = false, verified = false, checkingSession = false, data = null, loading = false, live = "") }
         sessionRequests.launch(scope(), request = {
-            if (!forgetOnly && session != null) apiOrFail().request("/api/auth/logout", session.token, "POST")
+            if (!forgetOnly && session != null) apiOrFail().request("/api/v1/auth/logout", session.token, "POST")
             Unit
         }, onSuccess = {
             store.saveSession(null); store.clearDraft(session?.user?.accountId); store.clearDraft(null)
@@ -359,7 +359,7 @@ class AppModel(application: Application) : AndroidViewModel(application) {
         val target = route
         qr = scope().launch {
             try {
-                apiOrFail().request("/api/auth/qr/requests/${query(code)}/decision", privateToken(), "POST", jsonBody { put("decision", decision) })
+                apiOrFail().request("/api/v1/auth/qr/requests/${query(code)}/decision", privateToken(), "POST", jsonBody { put("decision", decision) })
                 if (owner != epoch || !isActive || route != target) return@launch
                 update { it.copy(notice = if (decision == "approve") "Anmeldung freigegeben." else "Request denied.") }; refresh()
             } catch (cancelled: CancellationException) { throw cancelled }

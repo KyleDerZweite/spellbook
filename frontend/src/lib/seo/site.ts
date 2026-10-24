@@ -28,15 +28,7 @@ export const PUBLIC_METADATA_PAGES = [
 ] as const;
 
 export const PUBLIC_INDEXABLE_PATHS = PUBLIC_METADATA_PAGES.map((page) => page.path);
-export const ROBOTS_DISALLOWED_PATHS = [
-	'/auth/',
-	'/mtg/',
-	'/search',
-	'/inventory',
-	'/decks',
-	'/scan',
-	'/api/'
-];
+export const ROBOTS_DISALLOWED_PATHS = ['/auth/', '/mtg/', '/api/'];
 
 export interface PageMetadataInput {
 	origin: string;

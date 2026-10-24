@@ -2,17 +2,27 @@
 
 from collections.abc import Mapping
 
-from spellbook_core.errors import (
-    ActorError,
+from spellbook_core.errors import ActorError, AuthError, RequestConflictError, ValidationError
+from spellbook_core.fingerprint import serialize_json
+from spellbook_core.mtg.categories.common import (
+    CategoryConflict,
+    CategoryMergeConflict,
+    CategoryNotFound,
+    CategoryPreviewCapacity,
+    CategoryPreviewExpired,
+    CategoryUnavailable,
+    LibraryConflict,
+)
+from spellbook_core.mtg.decks import DeckLibraryRevisionChanged
+from spellbook_core.mtg.errors import (
+    DeckNotFoundError,
     DescriptionConflictError,
     InventoryCountError,
     InventoryNotFoundError,
     InventoryQuantityChangedError,
     NotesConflictError,
-    RequestConflictError,
-    ValidationError,
 )
-from spellbook_core.fingerprint import serialize_json
+from spellbook_core.mtg.profile import SummaryRangeError
 from starlette.responses import JSONResponse, Response
 
 
@@ -37,7 +47,19 @@ def json_response(
 
 
 def error_response(cause: Exception) -> Response:
-    if isinstance(cause, NotesConflictError):
+    if isinstance(cause, DeckLibraryRevisionChanged):
+        cause = HttpError(409, dict(kind="RevisionChanged", message=str(cause)))
+    elif isinstance(cause, (DeckNotFoundError, CategoryNotFound)):
+        cause = HttpError(404, dict(kind="NotFound", message=str(cause)))
+    elif isinstance(cause, CategoryConflict):
+        cause = HttpError(409, dict(kind=cause.kind, message=str(cause), latest=cause.latest))
+    elif isinstance(cause, CategoryMergeConflict):
+        cause = HttpError(409, dict(kind=cause.kind, message=str(cause), preview=cause.preview))
+    elif isinstance(cause, (LibraryConflict, CategoryPreviewExpired)):
+        cause = HttpError(409, dict(kind=cause.kind, message=str(cause)))
+    elif isinstance(cause, (CategoryPreviewCapacity, CategoryUnavailable)):
+        cause = HttpError(503, dict(kind=cause.kind, message=str(cause)))
+    elif isinstance(cause, NotesConflictError):
         cause = HttpError(409, {"kind": "NotesConflict", "message": str(cause), **cause.latest})
     elif isinstance(cause, DescriptionConflictError):
         cause = HttpError(
@@ -58,6 +80,10 @@ def error_response(cause: Exception) -> Response:
         cause = HttpError(409, {"kind": "RequestConflict", "message": str(cause)})
     elif isinstance(cause, InventoryCountError):
         cause = HttpError(500, "Inventory totals cannot be represented exactly.")
+    elif isinstance(cause, SummaryRangeError):
+        cause = HttpError(503, str(cause))
+    elif isinstance(cause, AuthError):
+        cause = HttpError(429, str(cause))
     elif isinstance(cause, ActorError):
         cause = HttpError(401, "Authentication required")
     elif isinstance(cause, ValidationError):

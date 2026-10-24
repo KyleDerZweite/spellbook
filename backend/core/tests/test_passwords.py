@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import hmac
 import json
+import secrets
 from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
@@ -17,7 +18,7 @@ from spellbook_core.passwords import create_password_verifier, valid_password
 _P = ParamSpec("_P")
 _T = TypeVar("_T")
 _GOLDEN = json.loads(
-    (Path(__file__).resolve().parents[3] / "contracts/compatibility/golden.json").read_text()
+    (Path(__file__).resolve().parents[3] / "contracts/fixtures/wire.json").read_text()
 )
 
 
@@ -275,6 +276,65 @@ def test_cancelled_caller_observes_late_native_failure_and_releases_slot(
         assert verifier.diagnostics().failed == 1
         assert executor.submitted[0].done()
         assert not executor.submitted[0].cancelled()
+
+    with RecordingExecutor() as executor:
+        asyncio.run(exercise(executor))
+
+
+def test_hash_creation_uses_existing_salt_encoding_and_roundtrips(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(secrets, "token_hex", lambda count: "0123456789abcdef" * 2)
+
+    async def exercise(executor: RecordingExecutor) -> None:
+        verifier = create_password_verifier(executor)
+        vector = _GOLDEN["credentials"][0]
+        encoded = await verifier.hash(vector["password"])
+        assert encoded == vector["hash"]
+        assert await verifier.verify(vector["password"], encoded)
+        assert not await verifier.verify("wrong password", encoded)
+        verifier.close_admission()
+        with pytest.raises(AuthError):
+            await verifier.hash("another password")
+        await verifier.settle()
+        assert verifier.diagnostics().active == 0
+
+    with RecordingExecutor() as executor:
+        asyncio.run(exercise(executor))
+
+
+def test_hashes_share_verification_capacity_and_survive_caller_cancellation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    release = Event()
+
+    def hash_password(password: str) -> str:
+        if not release.wait(10):
+            raise TimeoutError("test hash gate was not released")
+        return str(_GOLDEN["credentials"][0]["hash"])
+
+    monkeypatch.setattr(passwords, "hash_password", hash_password)
+
+    async def exercise(executor: RecordingExecutor) -> None:
+        verifier = create_password_verifier(executor)
+        callers = [asyncio.create_task(verifier.hash("test password")) for _ in range(4)]
+        try:
+            await asyncio.sleep(0)
+            assert verifier.diagnostics().active == 4
+            callers[0].cancel()
+            await asyncio.gather(callers[0], return_exceptions=True)
+            with pytest.raises(AuthError):
+                await verifier.verify("test password", None)
+            with pytest.raises(AuthError):
+                await verifier.hash("test password")
+            verifier.close_admission()
+        finally:
+            release.set()
+            await asyncio.gather(*callers, return_exceptions=True)
+            await verifier.settle()
+        assert verifier.diagnostics().active == 0
+        assert len(executor.submitted) == 4
+        assert all(not future.cancelled() for future in executor.submitted)
 
     with RecordingExecutor() as executor:
         asyncio.run(exercise(executor))

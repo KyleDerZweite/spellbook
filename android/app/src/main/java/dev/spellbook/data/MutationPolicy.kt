@@ -14,7 +14,17 @@ fun inventoryAddBody(draft: AddDraft, requestId: String): String {
         } }
     }
 }
+fun MutationAttempt.isCurrentOperation(): Boolean = when (method) {
+    "POST" -> path in setOf("/api/v1/mtg/inventory", "/api/v1/mtg/inventory/groups")
+    "PATCH", "DELETE" -> Regex("/api/v1/mtg/inventory/[^/?#]+").matches(path)
+    "PUT" -> Regex("/api/v1/mtg/inventory/[^/?#]+/groups").matches(path)
+    else -> false
+}
+fun DraftState.withCurrentAttempt(): DraftState =
+    if (attempt == null || attempt.isCurrentOperation()) this else copy(attempt = null)
+
 fun MutationAttempt.retryFor(backend: String, accountId: String): MutationAttempt {
+    check(isCurrentOperation()) { "This save uses an unsupported operation." }
     check(this.backend == backend && this.accountId == accountId) { "This save belongs to a different backend or account." }
     check(confirmedReceipt == null) { "The save is already confirmed. Retry only its read." }
     return this

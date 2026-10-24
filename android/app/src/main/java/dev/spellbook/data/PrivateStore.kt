@@ -48,7 +48,7 @@ class PrivateStore(context: Context, private val backend: String) {
     fun draft(accountId: String?): DraftState {
         val raw = prefs.getString("$namespace.${accountId ?: "guest"}.draft", null) ?: return DraftState()
         if (raw.toByteArray(Charsets.UTF_8).size > 64 * 1024) return DraftState()
-        return runCatching { WireJson.decodeFromString<DraftState>(raw) }.getOrDefault(DraftState())
+        return runCatching { WireJson.decodeFromString<DraftState>(raw).withCurrentAttempt() }.getOrDefault(DraftState())
     }
     fun saveDraft(accountId: String?, draft: DraftState) {
         val raw = WireJson.encodeToString(draft)

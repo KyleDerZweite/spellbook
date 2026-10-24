@@ -54,7 +54,7 @@ test('Inventory hybrid native routes and real HTTP over genuine 1k/10k/50k accou
 				password = randomUUID() + 'A7!';
 			const registered = await fixtureAuthRequest(
 				origin,
-				'/api/auth/register',
+				'/api/v1/auth/register',
 				{ username, password },
 				{}
 			);
@@ -95,7 +95,7 @@ test('Inventory hybrid native routes and real HTTP over genuine 1k/10k/50k accou
 						rows
 					});
 					const api: Response = await fetch(
-						`${origin}/api/mobile/v1/mtg/inventory?limit=${limit}&offset=${(page - 1) * limit}`,
+						`${origin}/api/v1/mtg/inventory?limit=${limit}&offset=${(page - 1) * limit}`,
 						{ headers }
 					);
 					assert.equal(api.status, 200);
@@ -123,7 +123,7 @@ test('Inventory hybrid native routes and real HTTP over genuine 1k/10k/50k accou
 				const groups = await fetch(`${origin}/mtg/inventory?view=groups&pageSize=500`, { headers });
 				assert.equal(groups.status, 200);
 				assert.match(await groups.text(), /No groups yet/);
-				const wire = await fetch(`${origin}/api/mobile/v1/mtg/inventory`, { headers });
+				const wire = await fetch(`${origin}/api/v1/mtg/inventory`, { headers });
 				const legacy: InventoryPage = await wire.json();
 				assert.equal(legacy.entries.length, 50);
 				const detail = await fetch(

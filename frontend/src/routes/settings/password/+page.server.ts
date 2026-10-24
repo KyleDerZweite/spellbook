@@ -20,7 +20,7 @@ export const actions: Actions = {
 		requireSameOrigin(event);
 		const result = await submitCredentialForm<PasswordFormSuccess, PasswordFormFailure>(
 			event,
-			'/api/web/v1/password'
+			'/api/v1/web/password'
 		);
 		if (!result.ok) return fail(result.status, result.data);
 		event.locals.api.replaceToken(result.data.token);

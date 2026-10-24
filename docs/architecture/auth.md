@@ -1,14 +1,26 @@
 # Authentication
 
 - Status: Canonical
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-10-24
 - Source of Truth: code
-- Update Triggers: independent API/web ownership and relocated code references, QR challenge lifecycle, session-bound decisions, requester cookies and PWA delivery, credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, summary reporting failures, post-login destinations, agent discovery, workspace ownership, application resource lifetime and native operator ownership, SavedState stream authority and origin policy
-- Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Routes](../product/routing-and-games.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md), [Application contract](./application-contract.md), [Independent applications](./independent-applications.md)
+- Update Triggers: ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python source activation and server contraction, Python Auth/Profile/QR functional port, independent API/web ownership and relocated code references, QR challenge lifecycle, session-bound decisions, requester cookies and PWA delivery, credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, summary reporting failures, post-login destinations, agent discovery, workspace ownership, application resource lifetime and native operator ownership, SavedState stream authority and origin policy
+- Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Routes](../product/routing-and-games.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md), [Application contract](./application-contract.md), [Independent applications](./independent-applications.md), [Python migration](./python-backend-migration.md)
 
 Spellbook authenticates local accounts by username and password.
 `user_profiles.account_id` remains the stable ownership key for inventories, decks, and scans.
 Registration generates a new account ID; operator enrollment preserves an existing account ID.
+
+The Python API implements Auth, QR authorization, Profile preferences and password bridges in [Core Auth](../../backend/core/src/spellbook_core/auth.py), [QR](../../backend/core/src/spellbook_core/qr.py), [Profile](../../backend/core/src/spellbook_core/profile.py) and the production [HTTP registry](../../backend/api/src/spellbook_api/http/application.py).
+The candidate preserves existing scrypt/session storage, trusted Actor methods, API error bodies and native credential forms.
+Registration stores the profile, credential and initial session atomically.
+The guarded [PostgreSQL regression suite](../../backend/core/tests/test_auth_profile_postgres.py) covers the intended transaction and race scenarios; it requires an assigned disposable database.
+Component tests with application doubles establish adapter behavior, not PostgreSQL acceptance.
+Dashboard uses the integrated Valuation dependency; Python is the default API in the unmerged candidate.
+The [Python migration contract](./python-backend-migration.md) owns the remaining integration and production authority.
+
+Canonical Auth/account operations use `/api/v1/auth/...` and `/api/v1/account/...`; MTG Dashboard uses `/api/v1/mtg/dashboard`.
+[ADR-0029](../decisions/0029-remove-replaced-interfaces.md) removes previous API paths without aliases or redirects.
+Browser QR cookies are created and cleared at `/api/v1/auth/qr`; the account session cookie remains scoped to `/`.
 
 ## PWA and QR sign-in implementation contract
 
@@ -18,7 +30,7 @@ The same JSON protocol supports a later Jetson client obtaining an ordinary bear
 This delivers account sign-in, not physical device ownership, motor control, card recognition, complete offline account data or a native Android package.
 
 Backend Auth exposes `auth.qr.create`, `inspect`, `decide` and `redeem` through the shared application interface.
-The [QR module](../../backend/src/auth/qr.ts) owns PostgreSQL-backed authorization; [migration 0024](../../backend/drizzle/0024_qr_authorization.sql) adds challenge persistence without changing existing account or session identities.
+The [QR module](../../backend/core/src/spellbook_core/qr.py) owns PostgreSQL-backed authorization; [migration 0024](../../backend/drizzle/0024_qr_authorization.sql) adds challenge persistence without changing existing account or session identities.
 Contracts owns JSON-safe request/result shapes.
 The API owns API Origin checks, QR handlers and separate Set-Cookie headers.
 Frontend owns HttpOnly browser-cookie delivery, QR rendering, camera scanning, HTML forms and the approval marker.
@@ -27,21 +39,21 @@ No external identity provider is introduced.
 
 The protocol is:
 
-- `POST /api/auth/qr/requests` accepts only `{ kind: 'browser' | 'device' }`.
+- `POST /api/v1/auth/qr/requests` accepts only `{ kind: 'browser' | 'device' }`.
   It creates a five-minute request with independent random 32-byte public `code` and private `requesterSecret`.
   Only their digests persist.
   Response includes `code`, `kind`, `expiresAt`, `interval: 3` and same-instance `verificationUri`.
-  Browser requests store the code-bound private credential in the five-minute `spellbook_qr_requester` HttpOnly, SameSite=Lax cookie scoped to `/api/auth/qr`, use Secure over HTTPS, and omit the secret from JSON.
+  Browser requests store the code-bound private credential in the five-minute `spellbook_qr_requester` HttpOnly, SameSite=Lax cookie scoped to `/api/v1/auth/qr`, use Secure over HTTPS, and omit the secret from JSON.
   Device requests return the secret to that requester.
   Browser JavaScript never receives the account session token.
-- `GET /api/auth/qr/requests/{code}` requires an authenticated actor and returns only `code`, `kind`, `status` and `expiresAt`.
+- `GET /api/v1/auth/qr/requests/{code}` requires an authenticated actor and returns only `code`, `kind`, `status` and `expiresAt`.
   An owned account is not selected by client input.
   The approval page displays the signed-in username, same-instance origin and request code prefix, with a warning before explicit Approve or Deny.
   Scanning never approves automatically.
-- `POST /api/auth/qr/requests/{code}/decision` accepts only `{ decision: 'approve' | 'deny' }` from an authenticated actor.
+- `POST /api/v1/auth/qr/requests/{code}/decision` accepts only `{ decision: 'approve' | 'deny' }` from an authenticated actor.
   The first decision is immutable and bound to the approver's exact live session.
   Identical repeats from that session remain idempotent after consumption and never issue another session; conflicting decisions or a different approver return 409.
-- `POST /api/auth/qr/token` accepts `code` and the device requester's secret, or the matching browser secret cookie.
+- `POST /api/v1/auth/qr/token` accepts `code` and the device requester's secret, or the matching browser secret cookie.
   Pending requests return `{ status: 'pending' }`.
   Denied, expired and consumed requests return their explicit terminal status.
   Approved requests issue and consume at most one new session in one transaction.
@@ -92,8 +104,8 @@ Android Studio/emulator testing is attempted only with installed tools; if unava
 
 ## Application ownership
 
-The backend [local-authentication use case](../../backend/src/auth/local.ts) owns credential validation, hashing, rate/derivation limits and database sessions.
-The [Node API host](../../backend/src/main.ts) supplies database and Demo configuration to the [backend application constructor](../../backend/src/application.ts) and owns resource lifetime.
+The backend [local-authentication use case](../../backend/core/src/spellbook_core/auth.py) owns credential validation, hashing, rate/derivation limits and database sessions.
+The [Python API host](../../backend/api/src/spellbook_api/main.py) supplies database and Demo configuration to the [backend application constructor](../../backend/api/src/spellbook_api/application.py) and owns resource lifetime.
 [`contracts/src/auth.ts`](../../contracts/src/auth.ts) owns safe user/session shapes; `expiresAt` is an ISO string.
 Frontend uses a request-bound [remote client](../../frontend/src/lib/server/remote/client.ts), local error types, browser cookies and native form results.
 It selects only the browser cookie for SSR/forms; incoming bearer headers do not replace that identity.
@@ -103,7 +115,7 @@ Existing public response shapes remain unchanged.
 The shared [profile contract](../../contracts/src/profile.ts) owns avatar/artwork IDs, defaults, ID validation, contact-email normalization and profile patch/read types.
 [profile-card.ts](../../contracts/src/profile-card.ts) owns full card validation, limits, mana grammar, defaults and KPI names.
 Frontend owns labels/image paths and current-metric rendering.
-The backend [Profile use case](../../backend/src/profile/profile.ts) owns preference/card persistence and aggregate profile totals.
+The backend [Profile use case](../../backend/core/src/spellbook_core/profile.py) owns preference/card persistence and aggregate profile totals.
 Settings forms and account HTTP adapters call these same use cases.
 Password handling delegates to backend Auth; the removed Settings/Profile persistence imports no longer need boundary exceptions.
 
@@ -116,6 +128,7 @@ HTTP adapters authenticate credentials again rather than accepting a serialized 
 The backend also provides current-password-confirmed rotation and JSON-safe session inspection.
 Rotation checks the verified credential again under the account-row lock, updates the hash, revokes old sessions and creates its replacement in one transaction.
 Web password handling and the account API both call this rotation use case.
+After a successful enhanced password form submission, the browser reloads with the replacement cookie to establish a fresh SavedState workspace after the old session's stream expires.
 Session inspection is exposed through the account HTTP adapter; the entry-point table below lists implemented routes.
 
 ## Credentials and sessions
@@ -155,7 +168,7 @@ It does not require or change an avatar.
 Submitted account IDs never select the update target.
 
 Migration `0009_profile_card.sql` adds nullable `user_profiles.profile_card` JSONB for the private card design.
-The authenticated `/settings` and `/settings/profile-card` loads read it through the account-scoped [Profile use case](../../backend/src/profile/profile.ts), independently of inventory totals.
+The authenticated `/settings` and `/settings/profile-card` loads read it through the account-scoped [Profile use case](../../backend/core/src/spellbook_core/profile.py), independently of inventory totals.
 Missing or invalid stored designs use the shared username-based default without writing it.
 Session and login responses retain their existing user shape.
 
@@ -190,14 +203,14 @@ There is no refresh token or identity-provider callback.
 
 ## Account HTTP contract
 
-The backend [account routes](../../backend/src/http/routes/account.ts) and [OpenAPI](../../backend/src/http/openapi.ts) own HTTP parsing, responses and exact schemas.
+The backend [account routes](../../backend/api/src/spellbook_api/http/routes_account.py) and [OpenAPI](../../backend/api/src/spellbook_api/http/application.py) own HTTP parsing, responses and exact schemas.
 The web proxy forwards these responses without changing authentication or cache policy.
 These routes accept a validated bearer session or browser cookie.
 An explicit Authorization header takes precedence; invalid bearer credentials never fall back to cookies.
 Cookie mutations require matching Origin.
 Successful account responses use HTTP 200 and `Cache-Control: no-store`.
 
-`GET /api/account/profile` returns `{ user, card, totals, statsError }`.
+`GET /api/v1/account/profile` returns `{ user, card, totals, statsError }`.
 Totals are aggregate profile metrics, or null with a visible `statsError` when unavailable.
 `PATCH` accepts optional `email`, `avatarId`, `artworkId` and partial `profileCard` fields.
 Omitted fields retain their saved values.
@@ -215,9 +228,9 @@ If concurrent changes make the merged card invalid, native and enhanced saves re
 This includes changes committed between the adapter's read and the backend write.
 The editor keeps the submitted fields available for correction and retry.
 
-`GET /api/account/dashboard` returns the [DashboardSummary](../../contracts/src/dashboard.ts) contract.
-`GET /api/auth/session` returns `{ user, expiresAt }` for the selected validated session, without its token or stored hash.
-`POST /api/account/password` accepts only `currentPassword` and `newPassword`, rotates through backend Auth and returns `{ token, expiresAt }`.
+`GET /api/v1/mtg/dashboard` returns the [DashboardSummary](../../contracts/src/dashboard.ts) contract.
+`GET /api/v1/auth/session` returns `{ user, expiresAt }` for the selected validated session, without its token or stored hash.
+`POST /api/v1/account/password` accepts only `currentPassword` and `newPassword`, rotates through backend Auth and returns `{ token, expiresAt }`.
 Expiry is an ISO string.
 Cookie callers receive a replacement cookie; bearer callers receive the replacement token without a cookie.
 Incorrect passwords or invalid fields return HTTP 400; revoked/expired sessions return HTTP 401 and rate limits return HTTP 429.
@@ -230,7 +243,7 @@ Per-entry quantity limits remain unchanged.
 
 ## Saved-state stream
 
-`GET /api/account/events` uses the canonical Authorization-before-cookie authentication rule.
+`GET /api/v1/account/events` uses the canonical Authorization-before-cookie authentication rule.
 Malformed or invalid explicit Authorization never falls back to cookies.
 Native EventSource uses same-origin cookies; header-capable clients use bearer authentication.
 The route rejects all query parameters and supports no URL credentials or client-selected account identity.
@@ -240,7 +253,7 @@ A supplied Origin must match the API's public `APP_ORIGIN`; foreign and literal 
 Missing/invalid sessions return 401 instead of a login redirect.
 Listener startup failures return 503 with `Saved state temporarily unavailable`.
 Responses use `Content-Type: text/event-stream`, `Cache-Control: no-store` and `X-Accel-Buffering: no`.
-[OpenAPI](../../backend/src/http/openapi.ts) owns the additive route and status contract.
+[OpenAPI](../../backend/api/src/spellbook_api/http/application.py) owns the additive route and status contract.
 Existing versioned MTG paths remain unchanged.
 
 Backend Auth `actorSession` derives the bound account and expiry from its private trusted-actor binding and returns a safe session DTO without token/hash.
@@ -251,32 +264,32 @@ Request cancellation reaches subscription setup before attachment and prevents a
 
 ## Entry points
 
-| Endpoint                                                 | Behavior                                                              |
-| -------------------------------------------------------- | --------------------------------------------------------------------- |
-| `/settings`                                              | Contact email and avatar load and separate form intents               |
-| `/settings/profile-card`                                 | Private card definition and artwork load and form action              |
-| `/settings/password`                                     | Current-password-confirmed change and fresh browser session           |
-| `/auth/register`                                         | Local account registration page and form action                       |
-| `/auth/login`                                            | Local password form and accepted QR sign-in presentation              |
-| `/auth/approve?code=CODE`                                | Accepted signed-in explicit QR approval/denial page                   |
-| `POST /api/auth/qr/requests`                             | Create a browser or device authorization request                      |
-| `GET /api/auth/qr/requests/{code}`                       | Inspect a request as a signed-in actor                                |
-| `POST /api/auth/qr/requests/{code}/decision`             | Explicit signed-in approval or denial                                 |
-| `POST /api/auth/qr/token`                                | Redeem with the private browser cookie or device secret               |
-| `POST /auth/logout`                                      | Revoke the browser session and redirect to `/`                        |
-| `POST /api/auth/register`                                | Accept JSON credentials and return a session token with HTTP 201      |
-| `POST /api/auth/login`                                   | Accept JSON credentials and return a session token with HTTP 200      |
-| `GET /api/account/profile`, `PATCH /api/account/profile` | Read current profile and patch supplied preference/card fields        |
-| `GET /api/account/dashboard`                             | Read account aggregates, deck availability and bounded recent entries |
-| `POST /api/account/password`                             | Rotate credentials and return a replacement session                   |
-| `GET /api/account/events`                                | Session-bound SavedState event stream                                 |
-| `GET /api/auth/session`                                  | Inspect the selected authenticated session                            |
-| `POST /api/auth/logout`                                  | Revoke the supplied bearer token and return HTTP 204                  |
+| Endpoint                                                       | Behavior                                                              |
+| -------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `/settings`                                                    | Contact email and avatar load and separate form intents               |
+| `/settings/profile-card`                                       | Private card definition and artwork load and form action              |
+| `/settings/password`                                           | Current-password-confirmed change and fresh browser session           |
+| `/auth/register`                                               | Local account registration page and form action                       |
+| `/auth/login`                                                  | Local password form and accepted QR sign-in presentation              |
+| `/auth/approve?code=CODE`                                      | Accepted signed-in explicit QR approval/denial page                   |
+| `POST /api/v1/auth/qr/requests`                                | Create a browser or device authorization request                      |
+| `GET /api/v1/auth/qr/requests/{code}`                          | Inspect a request as a signed-in actor                                |
+| `POST /api/v1/auth/qr/requests/{code}/decision`                | Explicit signed-in approval or denial                                 |
+| `POST /api/v1/auth/qr/token`                                   | Redeem with the private browser cookie or device secret               |
+| `POST /auth/logout`                                            | Revoke the browser session and redirect to `/`                        |
+| `POST /api/v1/auth/register`                                   | Accept JSON credentials and return a session token with HTTP 201      |
+| `POST /api/v1/auth/login`                                      | Accept JSON credentials and return a session token with HTTP 200      |
+| `GET /api/v1/account/profile`, `PATCH /api/v1/account/profile` | Read current profile and patch supplied preference/card fields        |
+| `GET /api/v1/mtg/dashboard`                                    | Read account aggregates, deck availability and bounded recent entries |
+| `POST /api/v1/account/password`                                | Rotate credentials and return a replacement session                   |
+| `GET /api/v1/account/events`                                   | Session-bound SavedState event stream                                 |
+| `GET /api/v1/auth/session`                                     | Inspect the selected authenticated session                            |
+| `POST /api/v1/auth/logout`                                     | Revoke the supplied bearer token and return HTTP 204                  |
 
 JSON credentials have `username` and `password` fields.
 Registration also accepts the optional `artworkId` preference.
 Successful responses contain `user`, `token`, and `expiresAt`; JSON login does not set a cookie.
-`/api/mobile/v1/mtg/...` accepts `Authorization: Bearer <token>` or a browser session.
+`/api/v1/mtg/...` accepts `Authorization: Bearer <token>` or a browser session.
 An explicit invalid bearer header fails instead of falling back to a cookie.
 
 Browser mutations require a matching request origin.
@@ -284,14 +297,14 @@ JSON login and registration allow a missing origin for non-browser clients but r
 Cookie-authenticated API mutations also require the same origin.
 
 SvelteKit delegates HTML form-origin checks through `csrf.trustedOrigins: ['*']` to its [form guard](../../frontend/src/lib/server/auth/csrf.ts), before page redirects or session handling.
-The API [router guard](../../backend/src/http/auth.ts) owns API requests and matches native exceptions against explicit API paths.
+The API [router guard](../../backend/api/src/spellbook_api/http/auth.py) owns API requests and matches native exceptions against explicit API paths.
 The web API catch-all does not evaluate framework route IDs as native exceptions.
 It requires a matching origin for `POST`, `PUT`, `PATCH`, and `DELETE` requests using URL-encoded, multipart, plain-text, or SvelteKit form data, and requests without a content type.
 
 Native clients may omit `Origin` when they carry a well-formed bearer token in these narrow cases:
 
 - Multipart `POST` to the exact scan-frame upload route.
-- Requests with no body and no content type for deck, deck-entry, or inventory-entry `DELETE`, scan-session creation, and `/api/auth/logout`.
+- Requests with no body and no content type for deck, deck-entry, or inventory-entry `DELETE`, scan-session creation, and `/api/v1/auth/logout`.
 
 The route then validates the token against the session database.
 An invalid token returns HTTP 401 even if a valid browser cookie is present.
@@ -299,7 +312,7 @@ For guarded requests, a foreign or literal `null` origin returns HTTP 403 even w
 Other guarded requests with a missing origin return HTTP 403.
 These checks apply in development and production; JSON handlers retain their own origin checks.
 The three [credential form routes](./independent-applications.md#authority-and-compatibility) stream original form bodies to API-owned validation and consume the original attempt before decoding.
-Core form/schema integration and current-head verification remain in progress.
+Python Core and credential-form adapters are implemented in the activated Python candidate; real PostgreSQL, proxy and current-head integration acceptance remain pending.
 `API_INTERNAL_URL` changes only the transport destination, not the public Origin or secure-cookie policy.
 
 Login, registration and password changes share a per-API-process limit of 20 attempts per client address within 15 minutes.
@@ -313,9 +326,9 @@ Only a trusted peer may supply `X-Spellbook-Client-Address`; arbitrary Forwarded
 
 `/mtg/dashboard`, `/mtg/inventory`, `/mtg/decks`, `/mtg/scan`, and `/settings`, including their child routes, require authentication.
 The accepted `/app/connect` and `/auth/approve` pages also require sign-in; `/app` remains a public install/launch hub.
-Catalog browsing at `/mtg/search` and read-only `/api/catalog/*` endpoints is public.
+Catalog browsing at `/mtg/search` and read-only `/api/v1/mtg/catalog/*` endpoints is public.
 Saving inventory or decks still requires authentication.
-Legacy MTG and collection URLs redirect before the guard.
+Replaced flat MTG and collection URLs have no compatibility redirects and return the ordinary not-found response.
 The public root remains the landing after sign-in.
 Login and registration default to `/mtg/inventory`; a safe explicit `returnTo` preserves its path and query, including a deck selection or `/`.
 The guard supplies the protected destination with its query.

@@ -4,8 +4,10 @@ import json
 import math
 import re
 from dataclasses import dataclass
+from email.parser import BytesParser
+from email.policy import default as email_policy
 from typing import cast
-from urllib.parse import unquote
+from urllib.parse import parse_qsl, unquote
 
 from spellbook_core.validation import MISSING, js_trim
 from starlette.requests import ClientDisconnect, Request
@@ -242,3 +244,76 @@ async def read_json_object(request: Request, max_bytes: int = 1024 * 1024) -> di
     if not isinstance(body, dict):
         raise HttpError(400, "A JSON object is required")
     return cast(dict[str, object], body)
+
+
+@dataclass(frozen=True)
+class FormFile:
+    """File entries remain non-string credential inputs, matching Fetch FormData."""
+
+    filename: str
+    content: bytes
+
+
+async def read_form_data(
+    request: Request, max_bytes: int = 12 * 1024 * 1024
+) -> dict[str, str | FormFile]:
+    content_type = header(request, "content-type") or ""
+    media = trim(content_type.split(";")[0]).lower()
+    if media not in {"application/x-www-form-urlencoded", "multipart/form-data"}:
+        raise HttpError(415, "Use application/x-www-form-urlencoded or multipart/form-data")
+    framed = "transfer-encoding" in request.headers or bool(
+        (header(request, "content-length") or "0").lstrip("0")
+    )
+    raw = await read_request_bytes(request, max_bytes) if framed else b""
+    result: dict[str, str | FormFile] = {}
+    if media == "application/x-www-form-urlencoded":
+        for name, value in parse_qsl(
+            raw.decode("utf-8", "replace"),
+            keep_blank_values=True,
+            encoding="utf-8",
+            errors="replace",
+        ):
+            result.setdefault(name, value)
+        return result
+    try:
+        message = BytesParser(policy=email_policy).parsebytes(
+            b"Content-Type: "
+            + content_type.encode("latin-1")
+            + b"\r\nMIME-Version: 1.0\r\n\r\n"
+            + raw
+        )
+        boundary = message.get_boundary()
+        if (
+            boundary is not None
+            and raw.rstrip(b"\r\n") == b"--" + boundary.encode("ascii") + b"--"
+        ):
+            return result
+        if not message.is_multipart() or message.defects:
+            raise ValueError("Malformed multipart body")
+        for part in message.iter_parts():
+            if (
+                part.defects
+                or part.is_multipart()
+                or part.get_content_disposition() != "form-data"
+            ):
+                raise ValueError("Malformed multipart part")
+            part_name = part.get_param("name", header="content-disposition")
+            if not isinstance(part_name, str):
+                continue
+            # Fetch decodes only the exact lowercase base64 transfer encoding.
+            # MIME quoted-printable and differently cased encodings remain literal.
+            if part.get("Content-Transfer-Encoding") != "base64":
+                del part["Content-Transfer-Encoding"]
+            payload = part.get_payload(decode=True)
+            if not isinstance(payload, bytes):
+                raise ValueError("Malformed multipart payload")
+            filename = part.get_filename()
+            entry: str | FormFile = (
+                FormFile(filename, payload)
+                if filename is not None
+                else payload.decode("utf-8", "replace")
+            )
+            result.setdefault(part_name, entry)
+    except UnicodeError, ValueError, TypeError:
+        raise HttpError(400, "Invalid form body") from None
+    return result

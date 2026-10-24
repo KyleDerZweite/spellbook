@@ -33,12 +33,16 @@
 		saveError = '';
 		return async ({ result, update }) => {
 			try {
+				if (result.type === 'success') {
+					// Rotation replaces the session, so rebuild the workspace before checking the old write.
+					window.location.reload();
+					return;
+				}
 				if (!write.current()) return;
 				if (result.type === 'error') saveError = 'Could not change your password. Try again.';
 				else {
 					await update({ reset: false, refreshAll: false, navigate: false });
 					if (!write.current()) return;
-					if (result.type === 'success') passwordForm.reset();
 				}
 			} finally {
 				write.complete();
