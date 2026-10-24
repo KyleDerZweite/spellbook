@@ -341,12 +341,12 @@ test('JavaScript manifests do not run unrelated Python or Android suites', () =>
 		assert.deepEqual(classifyPaths([path]), app, path);
 });
 
-test('Python-only API/core changes and shared contracts select Python compatibility checks', () => {
+test('Python-only API/core changes and shared contracts select Python checks', () => {
 	for (const path of [
 		'backend/api/src/spellbook_api/main.py',
 		'backend/api/uv.lock',
 		'backend/api/Dockerfile',
-		'backend/core/src/spellbook_core/inventory.py',
+		'backend/core/src/spellbook_core/mtg/inventory.py',
 		'backend/core/pyproject.toml',
 		'backend/core/uv.lock',
 		'scripts/check_python_boundaries.py',
@@ -357,7 +357,7 @@ test('Python-only API/core changes and shared contracts select Python compatibil
 			{ ...none, python_backend: true, state_worker: path.startsWith('backend/core/') },
 			path
 		);
-	for (const path of ['contracts/openapi.json', 'contracts/compatibility/golden.json'])
+	for (const path of ['contracts/openapi.json', 'contracts/fixtures/wire.json'])
 		assert.deepEqual(classifyPaths([path]), { ...app, python_backend: true }, path);
 	assert.deepEqual(classifyPaths(['backend/api/README.md', 'backend/core/README.md']), none);
 	const source = workflow('ci.yml');
