@@ -225,7 +225,7 @@ test('built native Category Library and API preserve immutable adoption and comp
 				};
 				try {
 					await pool.query(
-						`CREATE FUNCTION ${trigger}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.request_id='${requestId}' THEN PERFORM pg_sleep(6); END IF; RETURN NEW; END $$`
+						`CREATE FUNCTION ${trigger}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.request_id='${requestId}' THEN RAISE EXCEPTION USING ERRCODE='57014', MESSAGE='Category recovery fixture cancellation'; END IF; RETURN NEW; END $$`
 					);
 					await pool.query(
 						`CREATE TRIGGER ${trigger} BEFORE INSERT ON category_mutation_requests FOR EACH ROW EXECUTE FUNCTION ${trigger}()`
