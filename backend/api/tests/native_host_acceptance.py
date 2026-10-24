@@ -246,7 +246,6 @@ async def wire_failures(client: httpx2.AsyncClient, url: str, w: World) -> list[
         ("GET", "/api/v1/auth/session", w.headers, None, 200),
         ("HEAD", "/api/v1/auth/session", w.headers, None, 200),
         ("GET", "/api/v1/auth/session", {**cookie, "Authorization": ""}, None, 401),
-        ("GET", "/api/v1/mtg/catalog/printings/%C3%28", cookie, None, 400),
         ("GET", "/api/v1/mtg/catalog/printings/%2520", w.headers, None, 400),
         (
             "POST",
@@ -285,15 +284,25 @@ async def wire_failures(client: httpx2.AsyncClient, url: str, w: World) -> list[
         ),
         ("OPTIONS", "/api/v1/mtg/inventory/", {}, None, 204),
         ("PUT", "/api/v1/auth/session", {}, None, 405),
+        ("GET", "/api/retired/", {}, None, 404),
+        (
+            "POST",
+            "/api/retired/",
+            {**w.headers, "Content-Type": "application/json"},
+            b"{}",
+            404,
+        ),
+        ("OPTIONS", "/api/retired/", {}, None, 404),
     ]:
         response = await client.request(method, url + path, headers=headers, content=body)
         assert response.status_code == status, (method, path, response.text)
+        assert "location" not in response.headers
         assert response.headers.get("x-robots-tag") == "noindex, nofollow"
         if path.startswith(("/api/v1/auth/", "/api/v1/mtg/catalog/")):
             assert response.headers.get("cache-control") == "no-store"
         if method == "HEAD" or status == 204:
             assert response.content == b""
-        if method == "OPTIONS" or status == 405:
+        if status in {204, 405}:
             allowed = set(response.headers["allow"].split(", "))
             assert {"GET", "HEAD", "OPTIONS"} <= allowed
             assert method == "OPTIONS" or method not in allowed
@@ -348,8 +357,27 @@ def test_installed_python_original_receipts_and_direct_proxy_wire_acceptance() -
                 assert trace.json() == {"status": 500, "message": "Internal Server Error"}
                 track = await client.request("TRACK", candidate.url + "/api/v1/mtg/inventory")
                 assert track.status_code == 400 and track.content == b""
+                malformed_path = "/api/v1/mtg/catalog/printings/%C3%28"
+                malformed = await client.get(
+                    candidate.url + malformed_path,
+                    headers={"Cookie": "spellbook_session=" + w.token},
+                    follow_redirects=False,
+                )
+                assert malformed.status_code == 400
+                assert malformed.json() == {"status": 400, "message": "Invalid path encoding"}
+                assert malformed.headers["cache-control"] == "no-store"
+                assert malformed.headers["x-robots-tag"] == "noindex, nofollow"
+                assert "location" not in malformed.headers
                 direct_wire = await wire_failures(client, candidate.url, w)
                 async with process_host("web", api_url=candidate.url) as proxy:
+                    # SvelteKit rejects malformed UTF-8 before the API proxy runs.
+                    rejected = await client.get(
+                        proxy.url + malformed_path,
+                        headers={"Cookie": "spellbook_session=" + w.token},
+                        follow_redirects=False,
+                    )
+                    assert rejected.status_code == 400
+                    assert "location" not in rejected.headers
                     assert await wire_failures(client, proxy.url, w) == direct_wire
                 original = await add(client, candidate.url, w, first_body)
                 assert original["changes"][0]["quantity"] == 2
