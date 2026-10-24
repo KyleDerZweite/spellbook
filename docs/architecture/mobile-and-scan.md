@@ -1,10 +1,10 @@
 # Mobile and scan
 
 - Status: Canonical
-- Last Reviewed: 2026-10-24
+- Last Reviewed: 2026-10-25
 - Source of Truth: code, accepted local-recognition direction, maintainer's 2026-10-15 client-scope clarification and accepted 2026-10-16 PWA/QR contract, primary documentation and the 2026-10-19 independent Android design clarification
-- Update Triggers: unconditional Scan startup with the Python API, versioned MTG routes and module ownership, Python source activation and server contraction, Python Scan host assembly, adapter dependencies and retired resource gates, independent Android design direction and Figma handoff, selected Deck optional Legality projection, accepted online-first PWA and QR delivery status, paused Scan presentation, phone-image evaluation fixtures, private value history queries and calendar refresh boundaries, bounded Deck choice reads, public reference/history exception/private price reads and source precision, manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, Scan contracts and legacy replay, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, Deck wire contracts and revisions, device runtime selection, category initialization/manual decisions/merge previews, whole-deck outcomes and bounded directory revision/location, hybrid browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
-- Related Docs: [Application contract](./application-contract.md), [Frontend](./frontend.md), [Android design handoff](../product/mobile-app-exploration.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../../GLOSSARY.md), [Deployment](../operations/deployment.md), [Category rules](./category-rules.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Independent applications](./independent-applications.md), [Worker](./worker.md), [Historical P13 resource contract](https://github.com/KyleDerZweite/spellbook/issues/260), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md)
+- Update Triggers: current-version Scan receipt replay and removal of historical compatibility promises, unconditional Scan startup with the Python API, versioned MTG routes and module ownership, Python source activation and server contraction, Python Scan host assembly, adapter dependencies and retired resource gates, independent Android design direction and Figma handoff, selected Deck optional Legality projection, accepted online-first PWA and QR delivery status, paused Scan presentation, phone-image evaluation fixtures, private value history queries and calendar refresh boundaries, bounded Deck choice reads, public reference/history exception/private price reads and source precision, manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, Scan contracts and current-version replay, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, Deck wire contracts and revisions, device runtime selection, category initialization/manual decisions/merge previews, whole-deck outcomes and bounded directory revision/location, hybrid browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
+- Related Docs: [Application contract](./application-contract.md), [Frontend](./frontend.md), [Android design handoff](../product/mobile-app-exploration.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../../GLOSSARY.md), [Deployment](../operations/deployment.md), [Category rules](./category-rules.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Independent applications](./independent-applications.md), [Worker](./worker.md), [Historical P13 resource contract](https://github.com/KyleDerZweite/spellbook/issues/260), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [Pre-release policy](../../CONTRIBUTING.md#replacing-interfaces)
 
 Spellbook retains its web client, including the initial installable, online-first, same-origin SvelteKit PWA delivery.
 Its [manifest](../../frontend/static/manifest.webmanifest) launches `/app`; `frontend/src/app.html` links it.
@@ -103,13 +103,13 @@ Timestamps are ISO strings and revisions are decimal strings.
 `GET /inventory/{entryId}/location` requires the expected revision and returns the matching absolute index or null; drift returns the same 409 shape.
 All relative paths use the versioned MTG prefix.
 Invalid queries return 400; invalid selected groups return 400 in the API and 404 in native page loading.
-[The application contract](./application-contract.md#inventory-query-contract) owns normalization and ordering; [OpenAPI](../../backend/api/src/spellbook_api/http/application.py) owns exact wire schemas.
+[The application contract](./application-contract.md#inventory-query-contract) owns normalization and ordering; [OpenAPI](../../contracts/openapi.json) owns exact wire schemas.
 
 If Inventory counts or a location index cannot be represented as a nonnegative safe JSON integer, API reads and native page loading return HTTP 500 with `Inventory totals cannot be represented exactly.` They never return rounded counts.
 [Postgres](./postgres.md#inventory-read-and-write-consistency) owns decoding and SQL aggregate rules.
 
 Inventory POST/batch-add, PATCH/DELETE, bulk and import commit now return `InventoryAcknowledgement`, replacing snapshots, nullable current entries and `{ ok: true }` removals in experimental v1.
-Scan review wraps that original acknowledgement in its explicit committed/legacy union below.
+Scan review wraps that original acknowledgement in the `Committed` result described below.
 Every mutation requires a caller-retained request ID.
 PATCH supplies quantity or signed delta and/or Notes; omitted fields remain unchanged.
 Notes requires `notesRevision`.
@@ -123,8 +123,8 @@ All relative paths use `/api/v1/mtg`.
 Unsupported Sources, enums and quantities fail with controlled 400 before SQL.
 Missing owned subjects return 404; changed request intent, stale Notes and reviewed-quantity drift return 409.
 Successful retries consume the original receipt and refetch current bounded page/detail state separately.
-The [application contract](./application-contract.md#inventory-query-contract) owns legacy receipt limitations, atomic lock order and exact replay semantics; [OpenAPI](../../backend/api/src/spellbook_api/http/application.py) owns requests/responses.
-Scan uses the backend-owned module and compact response union described below.
+The [application contract](./application-contract.md#inventory-query-contract) owns current-version receipt replay, atomic lock order and exact replay semantics; [OpenAPI](../../contracts/openapi.json) owns requests/responses.
+Scan uses the backend-owned module and compact `Committed` response described below.
 
 ## Implemented API boundary
 
@@ -142,7 +142,7 @@ Authenticated clients can read `GET /api/v1/mtg/decks/{deckId}/availability`.
 The route checks deck ownership and reuses the shared allocation function to compare that deck with current aggregate inventory.
 Its response contains entry counts and totals for required, exact, alternate, and missing copies.
 It makes no inventory changes or cross-deck reservations.
-See the [product specification](../product/specification.md#deck-availability) for allocation semantics and [OpenAPI](../../backend/api/src/spellbook_api/http/application.py) for the wire schema.
+See the [product specification](../product/specification.md#deck-availability) for allocation semantics and [OpenAPI](../../contracts/openapi.json) for the wire schema.
 
 ## Deck HTTP contract
 
@@ -168,7 +168,7 @@ Ordinary negative deltas floor at one; explicit removal and bulk decrement can d
 
 Clients of the former snapshot mutations must retain the request ID for a failed intent, consume the original acknowledgement and fetch current state separately.
 Changed-payload reuse returns 409 `RequestConflict`; Description conflict requires deliberate review/rebase.
-[The application contract](./application-contract.md#implemented-deck-application-boundary) owns replay and semantic replacement; [OpenAPI](../../backend/api/src/spellbook_api/http/application.py) owns exact schemas and validation.
+[The application contract](./application-contract.md#implemented-deck-application-boundary) owns replay and semantic replacement; [OpenAPI](../../contracts/openapi.json) owns exact schemas and validation.
 Deck aggregate results outside the safe JSON integer range fail explicitly rather than return rounded quantities.
 
 ## Deck choice read
@@ -189,13 +189,13 @@ This is an addressing bound, not a Deck membership cap; the selected owned looku
 Optional UUID `selectedDeckId` has a separate bounded owned lookup, independent of the page and filter; missing and foreign IDs both return `selected: null`.
 Omission never selects a Deck.
 Unknown/repeated parameters and invalid values return 400, and invalid authentication returns 401.
-[OpenAPI](../../backend/api/src/spellbook_api/http/application.py) owns exact wire schemas.
+[OpenAPI](../../contracts/openapi.json) owns exact wire schemas.
 The Card picker and native Card actions remain planned.
 
 ## Category Library HTTP contract
 
 Authenticated scoped definition pages, immutable version saves, future-adoption archive state, local label/removal and entry Review/Reset use the same trusted backend actor interface as native forms.
-[Routes](../product/routing-and-games.md) lists their paths; [OpenAPI](../../backend/api/src/spellbook_api/http/application.py) owns exact JSON schemas.
+[Routes](../product/routing-and-games.md) lists their paths; [OpenAPI](../../contracts/openapi.json) owns exact JSON schemas.
 New Library/preview/local commands accept strict streamed 64 KiB objects.
 Existing starter initialization, Manual and merge routes retain their 16 KiB budget.
 Extra authority fields are rejected.
@@ -331,19 +331,13 @@ Later choices and unmounted session lifetimes cannot be overwritten.
 Workspace synchronization refreshes only bounded recent sessions and the selected result; remote closure disables commit without discarding review choices.
 A changed saved artifact requires explicit review before another commit; native no-JavaScript Scan entry is not implemented.
 
-New receipts use the `scan-intent-v3` fingerprint and return `{kind:'Committed',sessionId,acknowledgement}` containing the original compact Inventory acknowledgement.
+Current Scan receipts use the `scan-intent-v3` fingerprint and return `{kind:'Committed',sessionId,acknowledgement}` containing the original compact Inventory acknowledgement.
 Scan persists selections, Inventory effects/revision, receipt and committed state atomically with lock order Profile/account, ScanSession, Inventory parent, sorted entries, then sorted groups.
 No full Inventory snapshot or unrelated position reflow occurs.
 
-Historical v1 and `scan-v2` hashes/acknowledgements remain unchanged.
-To retry a non-null legacy hash, provide bounded `legacyVerification` with its exact original version and original submitted items; this evidence verifies the old hash and never authorizes new Inventory effects or re-resolves old metadata.
-Missing evidence returns 409 `LegacyReplayEvidenceRequired`; changed evidence returns the existing request conflict.
-A verified original acknowledgement returns `Committed` with the verified session and unchanged acknowledgement.
-If the original acknowledgement is null, the retry returns `{kind:'LegacyNoRepeat',requestId,binding:'VerifiedLegacyHash',acknowledgement}`.
-Null legacy hashes return the same union with `UnverifiedLegacyHash`: they prevent another quantity effect but cannot establish payload/session equality.
-A null original acknowledgement retains the parent's exact compact legacy no-repeat acknowledgement.
-This response does not claim the requested session became committed.
-Replay always follows account locking and current authority revalidation, including after Catalog pruning or later Inventory changes.
+Within the current version, replay returns the original `Committed` result after account locking and current authority revalidation, including after Catalog pruning or later Inventory changes.
+The client retries its frozen original body and request ID; changed intent returns a request conflict.
+Historical hashes, NULL acknowledgements and verification adapters have no fallback or upgrade guarantee under the [pre-release policy](../../CONTRIBUTING.md#replacing-interfaces).
 
 ## Data boundaries
 
@@ -538,7 +532,7 @@ Cookie POST keeps the existing same-origin check; bearer authority remains sessi
 Reads return 200 for evaluated Known/Unknown market results and 503 for operational read failures.
 Response-level evaluatedAt/publications are consistent across the batch.
 Coverage counts only requested owned quantities; stale is a subset of covered.
-[OpenAPI](../../backend/api/src/spellbook_api/http/application.py) owns exact schemas and [valuation](./valuation.md#implemented-market-references) owns observation eligibility.
+[OpenAPI](../../contracts/openapi.json) owns exact schemas and [valuation](./valuation.md#implemented-market-references) owns observation eligibility.
 All responses are JSON-safe and no-store.
 Responses expose enabled optional providers and bounded public market history.
 Account totals and personal history use the private Inventory value contract below.
