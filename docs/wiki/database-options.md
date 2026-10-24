@@ -1,13 +1,14 @@
 # Datenbankoptionen ohne Wechselentscheidung
 
 - Status: Historical
-- Last Reviewed: 2026-10-24
+- Last Reviewed: 2026-10-25
 - Source of Truth: datierte Primärquellen und verlinkte Research-Befunde
-- Update Triggers: geklärte Wechselmotivation, Datenbankentscheidung, neue belegte Engine-Eigenschaften, Gesamtbackend-Vergleich
-- Related Docs: [Index](./index.md), [Prioritäten](./priorities.md), [Postgres-Owner](../architecture/postgres.md)
+- Update Triggers: geklärte Wechselmotivation, Datenbankentscheidung, neue belegte Engine-Eigenschaften, Gesamtbackend-Vergleich, ausdrückliche Stack-Bestätigung
+- Related Docs: [Index](./index.md), [Prioritäten](./priorities.md), [Postgres-Owner](../architecture/postgres.md), [Python-Standardisierung](./python-backend-standardization.md)
 
 Am 2026-10-24 eröffnete Kyle die Datenbankdiskussion erneut und erinnerte sich an einen SQLite-Nachfolger in Rust.
 Eine Engine oder Migration wählte er nicht; der Anlass seiner Unzufriedenheit blieb offen.
+Die damalige offene Engine-Auswahl wurde durch die [Bestätigung vom 2026-10-25](#bestätigung-vom-2026-10-25) überholt.
 Diese offene Motivationsfrage wurde durch die [Klarstellung vom 2026-10-24](#klarstellung-vom-2026-10-24) überholt.
 Der Brainstorm änderte weder Readiness noch Product-Scope.
 Quelle: [Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759).
@@ -52,6 +53,7 @@ Die Motive blieben theoretisch; gemessene Kosten-/Ressourcenmängel, ein Engine-
 Quelle: [Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759).
 Root empfahl für Spellbooks Gesamtanforderungen und [Maintainability-Priorität](./priorities.md), Python/FastAPI mit PostgreSQL als gemeinsamem Dienst beizubehalten.
 Das war eine Empfehlung, keine neue Entscheidung oder Implementierungsfreigabe.
+Der damalige Empfehlungsvorbehalt zur bevorzugten Python-/PostgreSQL-Richtung wurde durch die [Bestätigung vom 2026-10-25](#bestätigung-vom-2026-10-25) überholt; konkrete Moduländerungen blieben davon getrennt.
 Grundlage waren [Repository-Audit](t3-thread://v1/thread:delegated-task:command%3Amcp%3A9e10a3f5-df85-461c-b846-8bcb828bdbf2%3Adelegate-task%3Aspellbook-db-total-code-20261024-r1), [SQLite-Vergleich](t3-thread://v1/thread:delegated-task:command%3Amcp%3A9e10a3f5-df85-461c-b846-8bcb828bdbf2%3Adelegate-task%3Aspellbook-db-total-sqlite-20261024-r1) und [PostgreSQL-/Backend-Vergleich](t3-thread://v1/thread:delegated-task:command%3Amcp%3A9e10a3f5-df85-461c-b846-8bcb828bdbf2%3Adelegate-task%3Aspellbook-db-total-postgres-20261024-r1).
 
 Bei `KyleDerZweite/spellbook@1f914e3bacbd9ef692c7826c3c899281d8d325b3` konfigurierte [Compose](https://github.com/KyleDerZweite/spellbook/blob/1f914e3bacbd9ef692c7826c3c899281d8d325b3/podman-compose.yml#L4) keinen Redis-, Search-, Broker- oder Cron-Service.
@@ -82,3 +84,13 @@ Als breitere Alternativen bündelte [Django](https://docs.djangoproject.com/en/6
 [PocketBase](https://pocketbase.io/docs/) mit SQLite/Go oder [Convex](https://docs.convex.dev/understanding/overview) mit TypeScript und eigenem Datenmodell verlangten erhebliche Domain-Portierung.
 Diese am 2026-10-24 geprüften Fähigkeiten beseitigten Spellbooks Fachlogik nicht; Framework-/BaaS-Wechsel blieben weitergehende Optionen ohne Auftrag.
 Laufzeit, Suchqualität und Einsparungen wurden nicht gemessen.
+
+## Bestätigung vom 2026-10-25
+
+Am 2026-10-25 bestätigte Kyle ausdrücklich Python und PostgreSQL und äußerte seine Abneigung gegen Django.
+Er beauftragte die Bewertung möglicher Vereinfachungen anhand eines externen modularen Stack-Vorschlags.
+Quelle: [Nutzerauftrag im Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759).
+Damit ist die bevorzugte Stack-Richtung bestätigt; die frühere offene Auswahl ist historischer Kontext.
+Die Bestätigung ändert den bereits akzeptierten Python-/PostgreSQL-Vertrag nicht.
+Sie wählt weder Litestar, SQLAlchemy, Alembic, Authlib oder SQLAdmin noch erteilt sie einen Rewrite-Auftrag.
+Die [Standardisierungsbewertung vom 2026-10-25](./python-backend-standardization.md) hält statische Befunde und Roots getrennte Vorschläge fest.

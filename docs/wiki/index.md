@@ -1,9 +1,9 @@
 # Historisches Strategie-Wiki
 
 - Status: Historical
-- Last Reviewed: 2026-10-24
+- Last Reviewed: 2026-10-25
 - Source of Truth: datierte Quellen in den verlinkten Themenseiten
-- Update Triggers: dauerhafte Erkenntnisse, Nutzerkorrekturen, strategische Entscheidungen, Wiederaufnahme, Documentation Health Review, Gesamtbackend-Vergleich
+- Update Triggers: dauerhafte Erkenntnisse, Nutzerkorrekturen, strategische Entscheidungen, Wiederaufnahme, Documentation Health Review, Gesamtbackend-Vergleich, Python-/PostgreSQL-Bestätigung und Standardisierungsbewertung
 - Related Docs: [Dokumentationsindex](../README.md), [Agent-Anweisungen](../../AGENTS.md)
 
 Am 2026-10-24 beauftragte Kyle diese historische Sammlung unter `docs/wiki/`.
@@ -21,7 +21,8 @@ Vor strategischen Entscheidungen und Wiederaufnahme den Index und relevante Seit
 - [Prioritäten und Zusammenarbeit](./priorities.md): Maintainability vor Simplicity vor Features, Context Pointers und abgelöste Proof-Gates.
 - [Android zuerst](./mobile-direction.md): Bestätigte Plattformpriorität und getrennte Kotlin-Empfehlung.
 - [Interface-Entfernung](./interface-removal.md): Sofortiger Ersatz alter Interfaces und getrennte Production-Autorität.
-- [Datenbankoptionen](./database-options.md): SQLite-/Turso-Historie, theoretische Wechselmotive und Gesamtbackend-Vergleich mit PostgreSQL-Empfehlung ohne Wechselentscheidung.
+- [Datenbankoptionen](./database-options.md): SQLite-/Turso-Historie, theoretische Wechselmotive, Gesamtbackend-Vergleich und spätere Bestätigung von Python und PostgreSQL.
+- [Python-Backend standardisieren](./python-backend-standardization.md): Bestätigter Python-/PostgreSQL-Stack und getrennte Vorschläge für HTTP, Persistence, Auth und Operations.
 
 ## Tooling und Prüfungen
 
