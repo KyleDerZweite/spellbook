@@ -20,6 +20,7 @@ const PROTECTED_PATH_PREFIXES = [
 	'/app/connect'
 ];
 const NO_INDEX_PATH_PREFIXES = ['/auth/', '/api/', '/mtg/', '/settings', '/app'];
+const SINGLE_HEADERS = new Set(['authorization', 'origin', 'content-type']);
 
 function isPublicPath(pathname: string): boolean {
 	return pathname === '/' || PUBLIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
@@ -32,6 +33,23 @@ function isProtectedPath(pathname: string): boolean {
 }
 
 export const handle: Handle = async ({ event, resolve }) => {
+	// Adapter-node retains raw lines here even when Fetch has joined or discarded duplicates.
+	const rawHeaders = event.platform?.req?.rawHeaders ?? [];
+	const seen = new Set<string>();
+	for (let index = 0; index < rawHeaders.length; index += 2) {
+		const name = rawHeaders[index].toLowerCase();
+		if (!SINGLE_HEADERS.has(name)) continue;
+		if (seen.has(name)) {
+			return Response.json(
+				{ status: 400, message: 'Invalid request' },
+				{
+					status: 400,
+					headers: { 'Cache-Control': 'no-store', 'X-Robots-Tag': NO_INDEX_ROBOTS_TAG }
+				}
+			);
+		}
+		seen.add(name);
+	}
 	const pathname = event.url.pathname;
 	// The API authenticates the raw request and owns its Origin and cache policy.
 	if (pathname.startsWith('/api/') || pathname === '/openapi.json') {
