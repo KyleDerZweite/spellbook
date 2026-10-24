@@ -10,13 +10,12 @@ export function createScanSave(transport: {
 			return acknowledgement;
 		},
 		async commit(body: string) {
-			if (acknowledgement?.kind === 'Committed') return acknowledgement;
+			if (acknowledgement) return acknowledgement;
 			acknowledgement = await transport.commit(body);
 			return acknowledgement;
 		},
 		async read() {
-			if (acknowledgement?.kind !== 'Committed')
-				throw new Error('A confirmed Scan save is required');
+			if (!acknowledgement) throw new Error('A confirmed Scan save is required');
 			return transport.read(acknowledgement.sessionId);
 		}
 	};

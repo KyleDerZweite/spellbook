@@ -165,7 +165,6 @@ class InventoryAcknowledgement(_ImportAcknowledgement):
     groups: list[InventoryGroup]
     removedGroupIds: list[str]
     memberships: list[InventoryMembership]
-    legacy: NotRequired[Literal[True]]
 
 
 @dataclass(frozen=True, slots=True)

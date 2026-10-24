@@ -85,20 +85,10 @@ class ReviewIntent(TypedDict):
     quantity: int
 
 
-class Committed(TypedDict):
+class ScanCommitAcknowledgement(TypedDict):
     kind: Literal["Committed"]
     sessionId: str
     acknowledgement: InventoryAcknowledgement
-
-
-class LegacyNoRepeat(TypedDict):
-    kind: Literal["LegacyNoRepeat"]
-    requestId: str
-    binding: Literal["VerifiedLegacyHash", "UnverifiedLegacyHash"]
-    acknowledgement: InventoryAcknowledgement
-
-
-type ScanCommitAcknowledgement = Committed | LegacyNoRepeat
 
 
 class WorkerInput(TypedDict):
