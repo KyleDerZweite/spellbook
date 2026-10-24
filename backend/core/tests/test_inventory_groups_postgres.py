@@ -1,9 +1,9 @@
 """Real Inventory/Groups journeys against an exclusively leased api_python database.
 
 After loading the protected api_python environment and claiming its lease, run:
-P02B_INVENTORY_NATIVE_DATABASE=sb_py_0e56d611_api_python PYTHONPATH=backend/core/src \
-    uvx --from uv==0.12.23 uv run --project backend/api --no-sync python -m pytest -q \
-    backend/core/tests/test_inventory_groups_postgres.py
+P02B_INVENTORY_NATIVE_DATABASE=sb_py_0e56d611_api_python \
+    uvx --from uv==0.12.23 uv run --directory backend/core --no-sync pytest -q \
+    tests/test_inventory_groups_postgres.py
 Without the native guard these cases skip. The shared helpers own fixture cleanup.
 Expected behavior follows Node inventory/read.ts and inventory/mutations.ts.
 """
