@@ -22,7 +22,7 @@ from spellbook_core.models import Actor
 from spellbook_core.mtg.catalog import Catalog
 from spellbook_core.mtg.categories import CategoryMergeConflict
 from spellbook_core.mtg.decks import create_decks
-from spellbook_core.mtg.decks.common import normalize_operations
+from spellbook_core.mtg.decks.common import normalize_operations, read_acknowledgement
 from spellbook_core.mtg.decks.library import (
     DeckLibraryRevisionChanged,
     next_deck_choice_offset,
@@ -300,7 +300,30 @@ def test_category_merge_requires_current_preview_before_mutating_destination() -
     asyncio.run(scenario())
 
 
-def test_text_import_replays_original_and_rejects_incomplete_receipts() -> None:
+@pytest.mark.parametrize(
+    "field,invalid",
+    [
+        (None, {}),
+        (None, []),
+        (None, False),
+        ("requestId", "another-request"),
+        ("deckId", "another-deck"),
+        ("revision", 1),
+        ("revision", "not-a-revision"),
+        ("categoryDecisionRevision", "not-a-revision"),
+        (
+            "changes",
+            [dict(entryId=ENTRY, catalogCardId=PRINTING, role="invalid", quantity=1, delta=1)],
+        ),
+        ("changes", {}),
+        ("changes", [{}]),
+        ("categoryDecisionRevision", 1),
+        ("categoryEntryIds", [1]),
+    ],
+)
+def test_text_import_replays_original_and_rejects_incomplete_receipts(
+    field: str | None, invalid: object
+) -> None:
     async def scenario() -> None:
         auth = create_autospec(SessionAuth, instance=True)
         auth.require_actor.return_value = ACTOR
@@ -325,9 +348,15 @@ def test_text_import_replays_original_and_rejects_incomplete_receipts() -> None:
             patch("spellbook_core.mtg.decks.application.require_deck", AsyncMock()) as require,
             patch.object(decks, "preview_mtg_import", AsyncMock()) as catalog,
         ):
-            assert await decks.import_into_deck(ACTOR, input) == ack
-            for field in ("request_hash", "acknowledgement"):
-                read.return_value = {**receipt, field: None}
+            assert await decks.import_into_deck(ACTOR, input) is ack
+            read.return_value = {
+                **receipt,
+                "acknowledgement": invalid if field is None else {**ack, field: invalid},
+            }
+            with pytest.raises(RequestConflictError):
+                await decks.import_into_deck(ACTOR, input)
+            for missing_field in ("request_hash", "acknowledgement"):
+                read.return_value = {**receipt, missing_field: None}
                 with pytest.raises(RequestConflictError):
                     await decks.import_into_deck(ACTOR, input)
             require.assert_not_awaited()
@@ -336,7 +365,30 @@ def test_text_import_replays_original_and_rejects_incomplete_receipts() -> None:
     asyncio.run(scenario())
 
 
-def test_original_receipts_precede_catalog_and_deck_lookups() -> None:
+@pytest.mark.parametrize(
+    "field,invalid",
+    [
+        (None, {}),
+        (None, []),
+        (None, False),
+        ("requestId", "another-request"),
+        ("deckId", "another-deck"),
+        ("revision", 1),
+        ("revision", "not-a-revision"),
+        ("categoryDecisionRevision", "not-a-revision"),
+        (
+            "changes",
+            [dict(entryId=ENTRY, catalogCardId=PRINTING, role="invalid", quantity=1, delta=1)],
+        ),
+        ("changes", {}),
+        ("changes", [{}]),
+        ("categoryDecisionRevision", 1),
+        ("categoryEntryIds", [1]),
+    ],
+)
+def test_original_receipts_precede_catalog_and_deck_lookups(
+    field: str | None, invalid: object
+) -> None:
     async def scenario() -> None:
         auth = create_autospec(SessionAuth, instance=True)
         auth.require_actor_for_write.return_value = ACTOR
@@ -380,13 +432,28 @@ def test_original_receipts_precede_catalog_and_deck_lookups() -> None:
                 "spellbook_core.mtg.decks.mutation.read_transaction_catalog_printing", AsyncMock()
             ) as catalog,
         ):
-            assert await decks.bulk_mutate_deck_cards(ACTOR, input) == ack
+            assert await decks.bulk_mutate_deck_cards(ACTOR, input) is ack
+            with (
+                patch(
+                    "spellbook_core.mtg.decks.mutation.first",
+                    AsyncMock(
+                        return_value={
+                            **receipt,
+                            "acknowledgement": invalid
+                            if field is None
+                            else {**ack, field: invalid},
+                        }
+                    ),
+                ),
+                pytest.raises(RequestConflictError),
+            ):
+                await decks.bulk_mutate_deck_cards(ACTOR, input)
             require.assert_not_awaited()
             catalog.assert_not_awaited()
             with pytest.raises(RequestConflictError):
                 await decks.bulk_mutate_deck_cards(ACTOR, {**input, "source": "web"})
-            for field in ("request_hash", "acknowledgement"):
-                malformed = {**receipt, field: None}
+            for missing_field in ("request_hash", "acknowledgement"):
+                malformed = {**receipt, missing_field: None}
                 with (
                     patch(
                         "spellbook_core.mtg.decks.mutation.first",
@@ -478,6 +545,7 @@ def test_mutation_receipt_revision_and_category_effects_are_atomic(
                     operations=[dict(op="set", target=dict(entryId=ENTRY), quantity=quantity)],
                 ),
             )
+        assert read_acknowledgement(result, "atomic", DECK) is result
         assert result["revision"] == revision
         assert result["removedEntryIds"] == ([ENTRY] if changed else [])
         assert result["categoryEntryIds"] == ([ENTRY] if changed else [])
@@ -575,6 +643,7 @@ def test_catalog_add_replay_ignores_caller_presentation_and_skips_catalog_resolu
                     return_value=dict(
                         request_hash=mutation_fingerprint(intent),
                         acknowledgement=ack,
+                        deck_id=DECK,
                     )
                 ),
             ),

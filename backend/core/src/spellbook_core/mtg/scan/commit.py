@@ -6,7 +6,6 @@ intent verification and the review/session effects in the same transaction.
 
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import cast
 from uuid import uuid4
 
 from spellbook_core.auth import SessionAuth
@@ -16,11 +15,11 @@ from spellbook_core.fingerprint import mutation_fingerprint
 from spellbook_core.models import Actor
 from spellbook_core.mtg.inventory import (
     Inventory,
-    InventoryAcknowledgement,
     InventoryIntent,
     PreparedInventoryMutation,
     RecordedInventoryMutation,
     normalize_add,
+    read_inventory_acknowledgement,
 )
 from spellbook_core.mtg.scan.read import assert_reviewable, owned_artifact, owned_session
 from spellbook_core.mtg.scan.types import ReviewIntent, ScanCommitAcknowledgement
@@ -117,12 +116,12 @@ async def probe(
     if row is None:
         return None
     source, fingerprint, acknowledgement = row
-    if source != "scan_review" or fingerprint != intent.hash or acknowledgement is None:
+    if source != "scan_review" or fingerprint != intent.hash:
         raise RequestConflictError()
     return {
         "kind": "Committed",
         "sessionId": intent.session_id,
-        "acknowledgement": cast(InventoryAcknowledgement, acknowledgement),
+        "acknowledgement": read_inventory_acknowledgement(acknowledgement, intent.request_id),
     }
 
 

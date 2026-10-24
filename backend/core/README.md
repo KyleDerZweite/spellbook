@@ -7,7 +7,8 @@ MTG application modules retain the original receipt, transaction, read and valua
 `create_decks(pool, catalog, auth, valuation=None)` owns Deck CRUD, bounded Library/category/locate/choices reads, selected snapshots, ownership/search, legality, Arena import/export and entry mutations.
 `Decks` exposes the corresponding snake-case application methods, including `add_catalog_card_to_deck`, `change_deck_printing`, `import_into_deck`, `import_deck`, `update_deck_card` and `remove_deck_card` for the web command adapter.
 Its Category transaction uses the integrated initialization, merge-preview and whole-Deck job helpers, with Profile locking and live-session rechecks before receipt replay or writes.
-Original receipts survive subsequent edits and Deck deletion; legacy null receipts suppress repeated writes.
+Original acknowledgements replay after subsequent edits and Deck deletion.
+Unsupported or malformed stored receipts raise a request conflict.
 The API's `create_deck_routes(auth, decks, origin)` supplies all nineteen adapters; shared host registration remains with the assembler.
 `tests/test_decks_postgres.py` is opt-in under `DECK_NATIVE_DATABASE`, requires the protected connection to match Root's exact disposable assignment, and starts no service or migrator.
 Root owns execution of those real PostgreSQL journeys.

@@ -51,6 +51,8 @@ from spellbook_core.mtg.models import CardDocument
 from spellbook_core.validation import (
     INVENTORY_SOURCES,
     MISSING,
+    VALID_CONDITIONS,
+    VALID_FINISHES,
     InventorySource,
     assert_bounded_text,
     assert_condition,
@@ -315,6 +317,81 @@ def _sql_text(value: str) -> str:
     return js_utf8(value).decode("utf-8")
 
 
+def read_inventory_acknowledgement(value: object, request_id: str) -> InventoryAcknowledgement:
+    """Check a stored current receipt without changing its original contents."""
+    if (
+        not isinstance(value, dict)
+        or value.get("requestId") != request_id
+        or "inventoryId" not in value
+        or (value["inventoryId"] is not None and not isinstance(value["inventoryId"], str))
+        or not isinstance(value.get("revision"), str)
+    ):
+        raise RequestConflictError()
+    try:
+        validate_revision(value["revision"])
+    except ValidationError:
+        raise RequestConflictError() from None
+    changes, groups, memberships = (
+        value.get("changes"),
+        value.get("groups"),
+        value.get("memberships"),
+    )
+    if (
+        not isinstance(changes, list)
+        or not isinstance(groups, list)
+        or not isinstance(memberships, list)
+    ):
+        raise RequestConflictError()
+    for change in changes:
+        if (
+            not isinstance(change, dict)
+            or not all(
+                isinstance(change.get(key), str)
+                for key in ("entryId", "catalogCardId", "finish", "condition", "notesRevision")
+            )
+            or change["finish"] not in VALID_FINISHES
+            or change["condition"] not in VALID_CONDITIONS
+            or type(change.get("quantity")) is not int
+            or change["quantity"] < 0
+            or type(change.get("delta")) is not int
+        ):
+            raise RequestConflictError()
+        try:
+            validate_revision(change["notesRevision"])
+            normalize_quantity(change["quantity"])
+        except ValidationError:
+            raise RequestConflictError() from None
+    for group in groups:
+        if (
+            not isinstance(group, dict)
+            or not isinstance(group.get("groupId"), str)
+            or ("name" in group and not isinstance(group["name"], str))
+        ):
+            raise RequestConflictError()
+    for membership in memberships:
+        if (
+            not isinstance(membership, dict)
+            or not isinstance(membership.get("entryId"), str)
+            or not isinstance(membership.get("groupIds"), list)
+            or not all(isinstance(identifier, str) for identifier in membership["groupIds"])
+        ):
+            raise RequestConflictError()
+    for key in ("removedEntryIds", "removedGroupIds"):
+        identifiers = value.get(key)
+        if not isinstance(identifiers, list) or not all(
+            isinstance(identifier, str) for identifier in identifiers
+        ):
+            raise RequestConflictError()
+    if "import" in value:
+        summary = value["import"]
+        if not isinstance(summary, dict) or not all(
+            type(summary.get(key)) is int
+            for key in ("resolvedCount", "unresolvedCount", "ambiguousCount")
+        ):
+            raise RequestConflictError()
+    return cast(InventoryAcknowledgement, value)
+
+
 async def _receipt(
     tx: Transaction, account_id: str, intent: InventoryIntent, fingerprint: str
 ) -> InventoryAcknowledgement | None:
@@ -327,9 +404,9 @@ async def _receipt(
     ).fetchone()
     if row is None:
         return None
-    if row[0] != fingerprint or row[1] is None:
+    if row[0] != fingerprint:
         raise RequestConflictError()
-    return cast(InventoryAcknowledgement, row[1])
+    return read_inventory_acknowledgement(row[1], intent.request_id)
 
 
 class Inventory:

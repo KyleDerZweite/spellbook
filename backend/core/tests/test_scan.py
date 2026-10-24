@@ -268,14 +268,27 @@ def test_v3_hash_ignores_display_review_id_and_honors_order_quantity() -> None:
         )
 
 
-def test_receipt_replays_original_and_rejects_incomplete_rows() -> None:
+@pytest.mark.parametrize(
+    "acknowledgement",
+    [
+        None,
+        {},
+        [],
+        False,
+        {**ACK, "requestId": "another"},
+        {**ACK, "changes": [{}]},
+        {**ACK, "revision": "not-a-revision"},
+    ],
+)
+def test_receipt_replays_original_and_rejects_incomplete_rows(acknowledgement: object) -> None:
     async def scenario() -> None:
         normalized = normalize_commit(intent())
         tx = AsyncMock()
         tx.execute.return_value.fetchone.return_value = ("scan_review", normalized.hash, ACK)
         result = await probe(cast(Transaction, tx), ACTOR.account_id, normalized)
         assert result == {"kind": "Committed", "sessionId": SESSION, "acknowledgement": ACK}
-        for row in (("scan_review", None, ACK), ("scan_review", normalized.hash, None)):
+        assert result is not None and result["acknowledgement"] is ACK
+        for row in (("scan_review", None, ACK), ("scan_review", normalized.hash, acknowledgement)):
             tx.execute.return_value.fetchone.return_value = row
             with pytest.raises(RequestConflictError):
                 await probe(cast(Transaction, tx), ACTOR.account_id, normalized)
