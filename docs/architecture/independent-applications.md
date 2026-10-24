@@ -124,6 +124,7 @@ The Python host owns startup and graceful shutdown.
 It aborts disconnected requests, respects stream backpressure, closes SSE before waiting for HTTP connections, then closes application resources.
 SSE keeps per-account session revalidation, bounded delivery, heartbeat, no-store and proxy buffering protection.
 The web proxy forwards bodies and SSE without buffering.
+Malformed path encodings rejected by SvelteKit before proxy dispatch use its native 400 response; well-formed API requests retain API response bodies and policy.
 API schema/OpenAPI and migrations belong to backend; migration SQL, journal and snapshots retain their history.
 
 ## Android delivery
