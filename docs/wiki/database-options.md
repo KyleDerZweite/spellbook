@@ -25,7 +25,8 @@ Für aktuelle Wahrheit die bestehenden Owners und Code prüfen.
 Am 2026-10-24 beschrieben die offiziellen [SQLite-Einsatzgebiete](https://sqlite.org/whentouse.html) und [WAL-Dokumentation](https://sqlite.org/wal.html), abgerufen an diesem Tag, lokale Servernutzung mit parallelen Lesern, einem Writer und gemeinsamem Host.
 Root sah SQLite deshalb bedingt als Kandidaten hinter der zentralen Python-API.
 Kurze, gestaffelte Catalog-Schreibphasen müssten private Inventory-Writes vor langen Blockaden schützen.
-Langsame Background-Jobs und kontrollierte Retries waren gemäß [Prioritäten](./priorities.md) akzeptiert, ohne neue Enterprise-Performance-Gates.
+Kyle akzeptierte am 2026-10-23 lange Background-Jobs und kontrollierte Retries und löste strikte Performance-/Ressourcen-Proofs als Implementierungsvoraussetzung ab.
+Quelle: [ADR-0027 bei KyleDerZweite/spellbook@5e062585](https://github.com/KyleDerZweite/spellbook/blob/5e062585156292a8f2ef688bf176bb038dc8307f/docs/decisions/0027-python-functional-migration-acceptance.md).
 
 Am 2026-10-24 ordnete Root den erinnerten Rust-Nachfolger vermutlich als Turso Database, zuvor Limbo, ein.
 Bei `tursodatabase/turso@607bff9fd0e547a25a97b3bf06e83bcc5d99d53c` unterschied das [README](https://github.com/tursodatabase/turso/blob/607bff9fd0e547a25a97b3bf06e83bcc5d99d53c/README.md#how-is-turso-database-different-from-tursos-libsql) den Rewrite vom SQLite-Fork libSQL.
