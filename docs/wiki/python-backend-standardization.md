@@ -2,8 +2,8 @@
 
 - Status: Historical
 - Last Reviewed: 2026-10-25
-- Source of Truth: datierter Nutzerauftrag und vier unabhängige statische Audits bei `KyleDerZweite/spellbook@740b4d4c434234d19b1b87f928552d069860a604`
-- Update Triggers: Stack-Bestätigung, ausgewählter Vereinfachungsschnitt, geänderte Modulverantwortung, neue Audit-Evidenz
+- Source of Truth: datierte Nutzerentscheidungen, verlinkte Designbewertungen und vier unabhängige statische Audits bei `KyleDerZweite/spellbook@740b4d4c434234d19b1b87f928552d069860a604`
+- Update Triggers: Stack-Bestätigung, ausgewählter Vereinfachungsschnitt, geänderte Modulverantwortung, neue Audit-Evidenz, native FastAPI-Freigabe, Admin-/ML-Neubewertung
 - Related Docs: [Index](./index.md), [Datenbankoptionen](./database-options.md), [Prioritäten](./priorities.md), [Python-Vertrag](../architecture/python-backend-migration.md), [Verification](../operations/github-automation.md)
 
 ## Bestätigung vom 2026-10-25
@@ -20,6 +20,7 @@ Root empfahl FastAPI, Psycopg und PostgreSQL mit frameworkfreiem Core sowie best
 Reife Bibliotheksfunktionen sollen eigene Mechanik tatsächlich löschen.
 Ein generisches Repository, ein eigenes Framework oder zusätzliche CI-Policy-Werkzeuge sind keine ausgewählten Ziele.
 Alle folgenden Änderungen bleiben Vorschläge.
+Diese anfängliche Einordnung wurde später am selben Tag durch die [ausgewählte Umsetzung](#ausgewählte-umsetzung-und-neubewertung-vom-2026-10-25) teilweise überholt.
 
 Am untersuchten Commit hostete [FastAPI einen Starlette-Catch-all](https://github.com/KyleDerZweite/spellbook/blob/740b4d4c434234d19b1b87f928552d069860a604/backend/api/src/spellbook_api/http/application.py#L44).
 Die eigene [RouteRegistry](https://github.com/KyleDerZweite/spellbook/blob/740b4d4c434234d19b1b87f928552d069860a604/backend/api/src/spellbook_api/http/router.py#L73) übernahm weiterhin Routing, Methoden, Parsing und Fehlerbehandlung.
@@ -62,3 +63,28 @@ Der größere native HTTP-Vertrag folgt erst als entworfener und ausgewählter S
 
 Grundlage waren die unabhängigen statischen Audits [HTTP](t3-thread://v1/thread:delegated-task:command%3Amcp%3A9e10a3f5-df85-461c-b846-8bcb828bdbf2%3Adelegate-task%3Aspellbook-standardization-http-20261025-r1), [Persistence](t3-thread://v1/thread:delegated-task:command%3Amcp%3A9e10a3f5-df85-461c-b846-8bcb828bdbf2%3Adelegate-task%3Aspellbook-standardization-persistence-20261025-r1), [Auth](t3-thread://v1/thread:delegated-task:command%3Amcp%3A9e10a3f5-df85-461c-b846-8bcb828bdbf2%3Adelegate-task%3Aspellbook-standardization-auth-20261025-r1) und [Operations](t3-thread://v1/thread:delegated-task:command%3Amcp%3A9e10a3f5-df85-461c-b846-8bcb828bdbf2%3Adelegate-task%3Aspellbook-standardization-operations-20261025-r1).
 Sie belegten weder Runtime-/Deployment-Akzeptanz noch gemessene Einsparungen, Benchmarks oder risikofreien Aufwand.
+
+## Ausgewählte Umsetzung und Neubewertung vom 2026-10-25
+
+Später am 2026-10-25 akzeptierte Kyle native FastAPI-Router und Pydantic sowie die vorgeschlagenen Workflow-Vereinfachungen zur Umsetzung.
+Python und PostgreSQL bleiben ausgewählt.
+Quelle: [Nutzerentscheidungen](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759).
+Der [native HTTP-Entwurf](t3-thread://v1/thread:delegated-task:command%3Amcp%3A9e10a3f5-df85-461c-b846-8bcb828bdbf2%3Adelegate-task%3Aspellbook-native-http-design-20261025-r1) und seine [Review-Korrektur](t3-thread://v1/thread:delegated-task:command%3Amcp%3A9e10a3f5-df85-461c-b846-8bcb828bdbf2%3Adelegate-task%3Aspellbook-native-http-design-review-20261025-r1) halten die ausgewählten Verantwortlichkeiten fest, einschließlich Valuation vor Inventory.
+Bei `KyleDerZweite/spellbook@14d0b9b10b96f9975d332fc8b0df123979e79ddd` sind Pydantic für [neun Commands](https://github.com/KyleDerZweite/spellbook/blob/14d0b9b10b96f9975d332fc8b0df123979e79ddd/backend/api/src/spellbook_api/http/mtg/routes_commands.py) und die [zentrale Fehlerbehandlung](https://github.com/KyleDerZweite/spellbook/blob/14d0b9b10b96f9975d332fc8b0df123979e79ddd/backend/api/src/spellbook_api/http/errors.py) integriert.
+Die vollständige native Router-Umstellung und Bereinigung öffentlicher Legacy-Typen liefen noch; dieser Eintrag bestätigt keinen Abschluss.
+
+Kyle bekräftigte ein späteres AdminPanel für Benutzer, DB-Prüfungen und Worker sowie ein späteres MLPanel.
+Das veranlasste eine Neubewertung von Persistence und Auth, keine Freigabe zur Implementierung von Panels, ORM oder Auth.
+Die [Admin-/ML-Bewertung](t3-thread://v1/thread:delegated-task:command%3Amcp%3A9e10a3f5-df85-461c-b846-8bcb828bdbf2%3Adelegate-task%3Aspellbook-admin-ml-reevaluation-20261025-r1) enthält folgende Vorschläge, keinen neuen Vertrag.
+Ein AdminPanel macht SQLAdmin und wenige Staff-Permissions zu konkreten Kandidaten.
+Benutzerverwaltung und Worker-Operationen brauchen jedoch Core-Commands mit fachlichen Prüfungen.
+Für ML betreffen Metadaten, Experimente und Review eigene Abläufe; generisches DB-CRUD beschreibt diese Aufgaben unvollständig.
+Die vorläufige Empfehlung bleibt deshalb ein auf Aufgaben ausgerichtetes FastAPI-/Psycopg-Panel.
+Ein Hybrid mit SQLAlchemy, Alembic und SQLAdmin kommt erst infrage, wenn tatsächliche CRUD-Anforderungen den zusätzlichen Persistence-Stack rechtfertigen.
+Bei ausgewähltem Alembic-Cutover erlaubt die [Pre-release-Policy](./interface-removal.md#erweiterter-verzicht-vom-2026-10-25) eine neue Baseline ohne Adapter für das alte Migration-Ledger.
+Das ist eine Option für einen späteren Schnitt, kein bereits ausgewählter Wechsel.
+Auth sollte beim späteren Panel dieselbe Identity mit wenigen Staff-Permissions und auditierten Commands verwenden.
+Authlib bleibt für künftige Federation denkbar.
+Ein neues JWT-System, ein TypeScript-Service oder ein allgemeines Rollenframework sind dadurch nicht ausgewählt.
+Die optionale Klärung des ML-Workflows blieb offen; Kyle wählte weder Training als Schwerpunkt noch MLflow.
+Diese Empfehlungen brauchen vor Umsetzung einen ausgewählten Umfang und konkrete Panel-Anforderungen.
