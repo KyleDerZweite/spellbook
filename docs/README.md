@@ -3,10 +3,11 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-24
 - Source of Truth: mixed
-- Update Triggers: versioned shared/MTG API and module ownership, Python runtime activation and Node source/test contraction, Python functional migration acceptance and ADR-0029 interface-removal supersession, sentence-per-line authoring and review-date semantics, independent API/web ownership and relocated code references, document ownership, product contracts, section changes, documentation health review
+- Update Triggers: historical strategy wiki discovery, versioned shared/MTG API and module ownership, Python runtime activation and Node source/test contraction, Python functional migration acceptance and ADR-0029 interface-removal supersession, sentence-per-line authoring and review-date semantics, independent API/web ownership and relocated code references, document ownership, product contracts, section changes, documentation health review
 - Related Docs: [Product](./product/README.md), [Architecture](./architecture/README.md), [Operations](./operations/README.md), [Integrations](./integrations/README.md), [Decisions](./decisions/README.md), [Reference](./reference/README.md), [Issue labels](./ISSUE_LABELS.md)
 
 Start with the [product specification](./product/specification.md) for current behavior, requirements, and known limits.
+Use the [historical strategy wiki](./wiki/index.md) for dated decisions and preferences; current contracts remain with the owners below.
 Use the [domain glossary](../GLOSSARY.md) for precise MTG and ownership terms.
 The code, tests, and configuration resolve implementation questions.
 

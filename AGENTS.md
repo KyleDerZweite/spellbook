@@ -28,6 +28,8 @@
 
 ## Task-specific references
 
+- Before strategic decisions or resuming strategic work, read the [historical wiki index](docs/wiki/index.md) and relevant pages, then follow its query and ingestion rules.
+
 - Before changing card identity, inventory, deck or scan terminology, read [GLOSSARY.md](GLOSSARY.md).
   Before domain exploration, follow [domain consumer rules](docs/operations/github-automation.md#domain-docs).
 - Before GitHub tracker operations, read [engineering skill configuration](docs/operations/github-automation.md#engineering-skill-configuration).
