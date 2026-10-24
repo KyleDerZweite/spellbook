@@ -3,7 +3,7 @@
 - Status: Independent Python API and workers implemented; native target verification pending
 - Last Reviewed: 2026-10-24
 - Source of Truth: accepted maintainer direction and existing application contracts
-- Update Triggers: Python source activation and implementation status, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, HTTP extraction, native delivery, credential forwarding, application ownership, acceptance evidence
+- Update Triggers: selected versioned game API and compatibility aliases, Python source activation and implementation status, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, HTTP extraction, native delivery, credential forwarding, application ownership, acceptance evidence
 - Related Docs: [System overview](./system-overview.md), [Application contract](./application-contract.md), [Auth](./auth.md), [Mobile handoff](../product/mobile-app-exploration.md), [ADR-0024](../decisions/0024-independent-applications.md), [Verification](../operations/github-automation.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md)
 
 ## Outcome and ownership
@@ -26,6 +26,26 @@ A new monorepo orchestrator, hardware control and a complex offline write queue 
 Existing PWA compatibility remains available, but it is not the Android application.
 
 ## HTTP module interface
+
+### Selected versioned game API
+
+[ADR-0028](../decisions/0028-versioned-game-api.md) selects this follow-up in PR 276.
+Canonical routes use `/api/v1/auth/...`, `/api/v1/account/...` and `/api/v1/mtg/...`.
+The latter owns Catalog search/printing reads under `/catalog`, Inventory, Decks, Categories, Valuation, Scan, Dashboard and the nine closed mutation commands under `/commands`.
+Raw-form bridges use `/api/v1/web/auth/login`, `/api/v1/web/auth/register` and `/api/v1/web/password`.
+Page paths remain `/mtg/...`, `/auth/...` and `/settings/...`.
+
+MTG-owned HTTP and Core modules belong to explicit `mtg` namespaces.
+Common identity/authentication, database, transport and process lifetime retain their shared owners.
+The current Profile response retains its existing MTG card/metrics projection and an explicit MTG dependency.
+There is no new game registry, generic filter framework, common all-game card schema or implemented second TCG.
+
+Public Catalog reads remain public; private mutations and reads retain their authentication and account scope.
+Old API paths remain direct compatibility aliases, including the authenticated legacy mobile Catalog aliases.
+Web and Android switch to canonical paths in the same change.
+OpenAPI describes canonical routes, while the existing frozen compatibility inventory and its cases remain legacy acceptance inputs.
+Canonical and legacy tests must cover dispatch, first-value query parsing, bodies, HEAD/OPTIONS/405, cache/Origin policy, QR cookie paths and SSE.
+The earlier path examples below describe the retained compatibility contracts until reconciled with the implementation.
 
 `backend/api/src/spellbook_api/http/types.py` owns `Configuration` and `ApplicationLifetime`.
 `create_application(configuration)` returns the HTTP app, pre-drain `close_streams` and idempotent `close` callbacks.
