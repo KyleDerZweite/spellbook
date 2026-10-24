@@ -1,7 +1,7 @@
 """Shared guarded PostgreSQL fixture for installed Python HTTP acceptance.
 
-Core owns replay/legacy transaction cases; native_host_acceptance.py compares the
-retained compiled Node artifact explicitly. No current TypeScript source is used.
+Core owns transaction cases; native_host_acceptance.py exercises the installed
+Python API and built web through canonical HTTP routes.
 """
 
 import importlib.util
