@@ -1,38 +1,26 @@
 """Existing public reference and private Inventory value HTTP contracts."""
 
 import re
+from typing import Annotated
 
+from fastapi import APIRouter, Depends
 from spellbook_core.auth import SessionAuth
-from spellbook_core.errors import ActorError, ValidationError
+from spellbook_core.models import Actor
 from spellbook_core.mtg.inventory_value import create_inventory_values
-from spellbook_core.mtg.valuation import InventoryPriceNotFound, Valuation
+from spellbook_core.mtg.valuation import Valuation
 from starlette.requests import Request
 from starlette.responses import Response
 
-from spellbook_api.http.auth import require_mobile_auth
+from spellbook_api.http.dependencies import actor_dependency, body_dependency
 from spellbook_api.http.errors import HttpError, json_response
-from spellbook_api.http.parsing import read_json_object
-from spellbook_api.http.router import Handler, HttpRoute
 
 
-def price_read_error(cause: Exception) -> HttpError:
-    if isinstance(cause, HttpError):
-        return cause
-    if isinstance(cause, ActorError):
-        return HttpError(401, "Authentication required")
-    if isinstance(cause, InventoryPriceNotFound):
-        return HttpError(404, "Inventory entry not found.")
-    if isinstance(cause, ValidationError):
-        return HttpError(400, str(cause))
-    return HttpError(503, "Reference prices are temporarily unavailable.")
-
-
-def create_valuation_routes(
-    auth: SessionAuth, valuation: Valuation, origin: str
-) -> list[HttpRoute]:
+def create_valuation_routes(auth: SessionAuth, valuation: Valuation, origin: str) -> APIRouter:
+    router = APIRouter()
+    authenticated = actor_dependency(auth, origin)
     values = create_inventory_values(valuation.pool, valuation, timezone=valuation.timezone)
 
-    async def prices(request: Request, params: dict[str, str]) -> Response:
+    async def prices(request: Request) -> Response:
         query = request.query_params
         if set(query) - {"printingId", "finish"} or any(
             len(query.getlist(key)) != 1 for key in ("printingId", "finish")
@@ -43,7 +31,7 @@ def create_valuation_routes(
         )
         return json_response(response, headers={"Cache-Control": "no-store"})
 
-    async def history(request: Request, params: dict[str, str]) -> Response:
+    async def history(request: Request) -> Response:
         query = request.query_params
         if (
             set(query) - {"printingId", "finish", "days", "source"}
@@ -61,21 +49,26 @@ def create_valuation_routes(
         response = await valuation.printing_history(input)
         return json_response(response, headers={"Cache-Control": "no-store"})
 
-    async def inventory_prices(request: Request, params: dict[str, str]) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
-        response = await valuation.inventory_references(actor, await read_json_object(request))
+    async def inventory_prices(
+        request: Request,
+        body: Annotated[dict[str, object], Depends(body_dependency(authenticated, 1048576))],
+        actor: Annotated[Actor, Depends(authenticated)],
+    ) -> Response:
+        response = await valuation.inventory_references(actor, body)
         return json_response(response, headers={"Cache-Control": "no-store"})
 
-    async def current_value(request: Request, params: dict[str, str]) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
+    async def current_value(
+        request: Request, actor: Annotated[Actor, Depends(authenticated)]
+    ) -> Response:
         if request.scope.get("query_string"):
             raise HttpError(400, "Current value accepts no query parameters")
         return json_response(
             await values.current(actor), headers={"Cache-Control": "private, no-store"}
         )
 
-    async def value_history(request: Request, params: dict[str, str]) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
+    async def value_history(
+        request: Request, actor: Annotated[Actor, Depends(authenticated)]
+    ) -> Response:
         query = request.query_params
         allowed = {"days", "from", "to", "printingId", "finish", "condition"}
         if set(query) - allowed or any(len(query.getlist(key)) > 1 for key in allowed):
@@ -89,19 +82,17 @@ def create_valuation_routes(
             await values.history(actor, input), headers={"Cache-Control": "private, no-store"}
         )
 
-    def mapped(handler: Handler) -> Handler:
-        async def handle(request: Request, params: dict[str, str]) -> Response:
-            try:
-                return await handler(request, params)
-            except Exception as cause:
-                raise price_read_error(cause) from None
-
-        return handle
-
-    return [
-        HttpRoute("GET", "/api/v1/mtg/prices", mapped(prices)),
-        HttpRoute("GET", "/api/v1/mtg/prices/history", mapped(history)),
-        HttpRoute("POST", "/api/v1/mtg/inventory/prices", mapped(inventory_prices)),
-        HttpRoute("GET", "/api/v1/mtg/inventory/value", mapped(current_value)),
-        HttpRoute("GET", "/api/v1/mtg/inventory/value-history", mapped(value_history)),
-    ]
+    router.add_api_route("/api/v1/mtg/prices", prices, methods=["GET"], response_model=None)
+    router.add_api_route(
+        "/api/v1/mtg/prices/history", history, methods=["GET"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/mtg/inventory/prices", inventory_prices, methods=["POST"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/mtg/inventory/value", current_value, methods=["GET"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/mtg/inventory/value-history", value_history, methods=["GET"], response_model=None
+    )
+    return router

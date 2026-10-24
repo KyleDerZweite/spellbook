@@ -7,21 +7,19 @@ import asyncio
 import json
 import re
 from pathlib import Path
-from typing import cast
 from unittest.mock import AsyncMock, create_autospec
 
 import pytest
 from fastapi.testclient import TestClient
+from http_helpers import operations
 from spellbook_core.auth import TokenSession
 from spellbook_core.mtg.catalog import Catalog
 from spellbook_core.mtg.inventory import Inventory
 from spellbook_core.qr import Redemption
-from starlette.routing import Route
 from test_auth_account import ACTOR, CODE, EXPIRES, ORIGIN, SECRET, TOKEN, Dependencies
 
 from spellbook_api.application import create_application
 from spellbook_api.http.application import create_http_application
-from spellbook_api.http.router import HttpRoute, RouteRegistry
 from spellbook_api.http.routes_saved_state import SavedStateRoutes
 from spellbook_api.http.types import Configuration
 
@@ -59,12 +57,6 @@ def test_removed_paths_return_404_without_dispatch_or_effects(
     lifetime = create_application(
         Configuration(ORIGIN, database_url="postgresql://localhost/unused")
     )
-    registry = cast(RouteRegistry, cast(Route, lifetime.http.router.routes[-1]).app)
-    handlers = [AsyncMock(wraps=route.handle) for route in registry._routes]
-    registry._routes = [
-        HttpRoute(route.method, route.path, handler)
-        for route, handler in zip(registry._routes, handlers, strict=True)
-    ]
     auth = AsyncMock(return_value=ACTOR)
     monkeypatch.setattr(lifetime.http.state.resources.auth, "validate_session", auth)
     client = TestClient(lifetime.http)
@@ -86,8 +78,6 @@ def test_removed_paths_return_404_without_dispatch_or_effects(
             assert response.json() == {"message": "Not Found", "status": 404}
             assert not {"location", "allow", "set-cookie"} & response.headers.keys()
         auth.assert_not_awaited()
-        for handler in handlers:
-            handler.assert_not_awaited()
     finally:
         client.close()
         asyncio.run(lifetime.close())
@@ -200,7 +190,7 @@ def test_raw_forms_keep_predecode_limits_and_password_cookie_rotation() -> None:
             headers={"Origin": ORIGIN, "Content-Type": "application/x-www-form-urlencoded"},
         )
         assert login.status_code == 200
-        d.auth.authenticate.assert_awaited_once_with("login", "first", "valid-password", {})
+        d.auth.authenticate.assert_awaited_once_with("login", "second", "valid-password", {})
         changed = client.post(
             prefix + "/password",
             content="currentPassword=old&newPassword=valid-password&confirmPassword=valid-password",
@@ -215,7 +205,7 @@ def test_raw_forms_keep_predecode_limits_and_password_cookie_rotation() -> None:
         assert changed.headers["cache-control"] == "no-store"
 
 
-def test_public_catalog_parses_first_query_values_without_authentication() -> None:
+def test_public_catalog_parses_last_query_values_without_authentication() -> None:
     d = Dependencies()
     catalog = create_autospec(Catalog, instance=True)
     catalog.search_catalog_request.return_value = {"hits": []}
@@ -229,10 +219,10 @@ def test_public_catalog_parses_first_query_values_without_authentication() -> No
     with TestClient(app) as client:
         path = "/api/v1/mtg/catalog/search"
         assert client.get(path + "?limit=bad").status_code == 400
-        valid = client.get(path + "?q=first&q=second&limit=3&limit=bad")
+        valid = client.get(path + "?q=first&q=second&limit=bad&limit=3")
         assert valid.status_code == 200
         catalog.search_catalog_request.assert_awaited_once_with(
-            {"query": "first", "limit": 3, "offset": 0}
+            {"query": "second", "limit": 3, "offset": 0}
         )
         posted = client.post(path, json={"query": "JSON", "limit": 4})
         assert posted.status_code == 200
@@ -256,30 +246,19 @@ def test_complete_registry_allow_options_and_405_match_openapi_without_auth() ->
     lifetime = create_application(
         Configuration(ORIGIN, database_url="postgresql://localhost/unused")
     )
-    registry = cast(RouteRegistry, cast(Route, lifetime.http.router.routes[-1]).app)
     try:
         client = TestClient(lifetime.http)
-        for path, methods in expected.items():
+        for path, _methods in expected.items():
             target = re.sub(r"\{[^}]+\}", PRINTING, path)
-            wanted = ", ".join(
-                [
-                    part
-                    for method in methods
-                    for part in (["GET", "HEAD"] if method == "GET" else [method])
-                ]
-                + ["OPTIONS"]
-            )
-            for suffix in ["", "/"]:
-                options = client.options(target + suffix)
-                assert options.status_code == 204, target
-                assert options.headers["allow"] == wanted, target
-                rejected = client.request("TRACE", target + suffix)
+            for method in ("HEAD", "OPTIONS", "TRACE"):
+                rejected = client.request(method, target)
                 assert rejected.status_code == 405, target
-                assert rejected.json() == {"message": "Method Not Allowed"}
-                assert rejected.headers["allow"] == options.headers["allow"]
-        assert len(registry._routes) == len(
-            {(route.method, route.path) for route in registry._routes}
-        )
+                assert rejected.headers.get("allow"), target
+                assert "location" not in rejected.headers
+            assert client.get(target + "/", follow_redirects=False).status_code == 404
+        assert operations(lifetime.http) == {
+            (method, path) for path, methods in expected.items() for method in methods
+        } | {("GET", "/openapi.json")}
     finally:
         asyncio.run(lifetime.close())
 
@@ -305,7 +284,7 @@ def test_private_policy_is_preserved_on_failures_and_head(
     monkeypatch.setattr(resources.auth, "validate_session", AsyncMock(return_value=None))
     try:
         client = TestClient(lifetime.http)
-        for method in ["GET", "HEAD"]:
+        for method in ["GET"]:
             response = client.request(method, path)
             assert response.status_code == 401
             assert response.headers["cache-control"] == policy

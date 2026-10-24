@@ -3,7 +3,7 @@
 - Status: Implemented unmerged candidate; owner testing and production operations pending
 - Last Reviewed: 2026-10-25
 - Source of Truth: ADR-0025, ADR-0026, ADR-0027, existing code/tests/contracts and Kyle's accepted migration, native FastAPI/Pydantic and pre-release direction
-- Update Triggers: ADR-0029 pre-release extension, native FastAPI/Pydantic adoption, persistence/auth evaluation, immediate interface removal, ADR-0028 versioned API and MTG module ownership, Python source activation and server contraction, functional migration acceptance, component interfaces, assembled Categories/state, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
+- Update Triggers: native FastAPI HTTP contract and pre-release receipt scope, ADR-0029 pre-release extension, native FastAPI/Pydantic adoption, persistence/auth evaluation, immediate interface removal, ADR-0028 versioned API and MTG module ownership, Python source activation and server contraction, functional migration acceptance, component interfaces, assembled Categories/state, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
 - Related Docs: [ADR-0025](../decisions/0025-python-api-and-workers.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [ADR-0029](../decisions/0029-remove-replaced-interfaces.md), [Independent applications](./independent-applications.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Migration evidence](./python-migration-evidence-baseline.md), [Postgres](./postgres.md), [Auth](./auth.md), [Worker](./worker.md), [Deployment](../operations/deployment.md), [Verification](../operations/github-automation.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
 
 ## Scope and status
@@ -31,6 +31,9 @@ Production cutover, productive migrator rollout and ending the real production r
 ## Framework, modules and resources
 
 Use native FastAPI routing and Pydantic request models, replacing custom routing/parsing machinery and its obsolete compatibility tests.
+The [native HTTP contract](./independent-applications.md#selected-versioned-game-api) owns APIRouter composition, Pydantic dependencies, validation errors, Multipart limits and method/slash policy.
+Valuation is included before Inventory to preserve literal value-read dispatch.
+The checked-in OpenAPI artifact remains the published owner; it does not drive dispatch.
 HTTP adapters authenticate into a trusted actor and call typed application modules.
 Psycopg 3 and explicit SQL remain the implemented persistence stack.
 Re-evaluate persistence, ORM/migration ownership and auth/permissions for future internal Admin and ML panels; no replacement library or panel implementation is selected by that evaluation.
@@ -161,7 +164,7 @@ The [implementation epic #245](https://github.com/KyleDerZweite/spellbook/issues
 Their existing bodies do not override this accepted direction.
 Delivery uses the existing unmerged [integration draft PR 276](https://github.com/KyleDerZweite/spellbook/pull/276) against `main`.
 Root integrates isolated source commits sequentially and owns final runtime verification.
-Root assigns shared CI, manifests, launchers, route registry and host integration to one writer before parallel implementation.
+Root assigns shared CI, manifests, launchers, native routers and host integration to one writer before parallel implementation.
 Keep writers isolated and start dependent work after their functional prerequisites integrate.
 Migration-specific CI/start/packaging updates are required with their owning source slices; no general CI rewrite is selected.
 

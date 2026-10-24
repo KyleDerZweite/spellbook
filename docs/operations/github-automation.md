@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-25
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
-- Update Triggers: State history scheduling ownership, Core-owned PostgreSQL test environment, canonical root operator commands, explicit Application checks and conditional Python boundary ownership, ADR-0029 immediate removal of replaced API interfaces, canonical-only API operation checks and MTG imports, installed Python activation, Node source/test contraction and transferred HTTP consumers, Python source activation and server contraction, functional Python migration acceptance and retired P01 proof requirements, setup-java v6 compatibility, Python Category/state packaging, host/Dashboard/Scan assembly and installed migrator/operator checks, manual native acceptance and import boundaries, independent API/web ownership and relocated code references, native initial Deck Search publication regression, conditional CI scope, manual-only heavy workflows and consolidated jobs, native Inventory measurement regression, portable opt-in browsing performance evidence and artifact provenance, PWA worker build harness and tsconfig, QR integration/HTTP and pending target acceptance, Dev launcher lifecycle tests, test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
+- Update Triggers: native FastAPI HTTP contract and pre-release receipt scope, State history scheduling ownership, Core-owned PostgreSQL test environment, canonical root operator commands, explicit Application checks and conditional Python boundary ownership, ADR-0029 immediate removal of replaced API interfaces, canonical-only API operation checks and MTG imports, installed Python activation, Node source/test contraction and transferred HTTP consumers, Python source activation and server contraction, functional Python migration acceptance and retired P01 proof requirements, setup-java v6 compatibility, Python Category/state packaging, host/Dashboard/Scan assembly and installed migrator/operator checks, manual native acceptance and import boundaries, independent API/web ownership and relocated code references, native initial Deck Search publication regression, conditional CI scope, manual-only heavy workflows and consolidated jobs, native Inventory measurement regression, portable opt-in browsing performance evidence and artifact provenance, PWA worker build harness and tsconfig, QR integration/HTTP and pending target acceptance, Dev launcher lifecycle tests, test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
 - Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance), [Application boundaries](../architecture/application-contract.md#implementation-status)
 
 This document owns repository check commands, CI coverage, and verification evidence.
@@ -65,7 +65,7 @@ The [runtime fixture](../../frontend/tests/http-runtime.ts) launches the install
 Only API receives database/storage credentials.
 Direct API, same-origin proxy, SSR/native actions, original receipts and account isolation retain separate assertions.
 
-The [proxy upload regression](../../frontend/tests/remote-proxy-upload-http.test.mjs) uses the actual built web handler and installed Python host/parser/registry without a database.
+The [proxy upload regression](../../frontend/tests/remote-proxy-upload-http.test.mjs) uses the actual built web handler and installed Python native host, dependencies and request policy without a database.
 Its small [Python fixture](../../frontend/tests/fixtures/proxy-api.py) supplies transport-only responses; it establishes no domain acceptance.
 Known-length/chunked limits, early 413, forwarded credentials/Origin, separate cookies, SSE cancellation and upload abort remain covered.
 The default web cap is 512 KiB for that regression; `TEST_PROXY_WEB_BODY_LIMIT=12M` selects normal allowance.
@@ -106,9 +106,9 @@ uvx --from uv==0.12.23 uv run --project backend/api --no-sync python -m unittest
 ```
 
 Apply the same lock/Ruff/format/build/pytest checks to each changed worker package; State also uses strict Mypy.
-API tests exercise the complete assembled registry, all nine closed web commands, strict wire parsing, headers/cookies, errors, request/stream/password/adapter/pool ownership and partial startup cleanup.
+API tests exercise the complete native route assembly, all nine closed web commands, strict wire parsing, headers/cookies, errors, request/stream/password/adapter/pool ownership and partial startup cleanup.
 The actual no-database host tests use owned ephemeral TCP ports and graceful SIGTERM.
-The registry test compares every API method/path with OpenAPI; that structural comparison does not establish functional correctness by itself.
+The native operation-set test compares every API method/path with OpenAPI; that structural comparison does not establish functional correctness by itself.
 Run `SPELLBOOK_TEST_WHEEL=1` for the external installed API wheel/sdist check and `SPELLBOOK_TEST_STATE_WHEEL=1` for State.
 These tests verify bundled assets, console commands and installed production dependencies without connecting to PostgreSQL.
 
@@ -120,13 +120,17 @@ Categories use `CATEGORY_NATIVE_DATABASE` and `CATEGORY_JOB_NATIVE_DATABASE`; De
 Operator and migration suites have separate guarded disposable-target/reset requirements.
 Selecting a suite without its opt-in reports skipped coverage and establishes no database result.
 
-Canonical registry assertions compare complete method/path sets with OpenAPI and reject extra operations.
+`test_host_assembly.py::test_composed_value_literals_and_inventory_detail_dispatch_to_their_owners` verifies both literal Value reads and genuine Inventory detail through the same composed app.
+`test_native_policy.py` covers predecode authority/throttling, byte limits, safe failures and native method/slash behavior.
+Obsolete Node method/CONNECT/TRACE emulation, raw-path/dot normalization, deep JSON, binary64/number spelling and Fetch Multipart differential tests are retired.
+The former registry assembly/discovery modules are replaced by native-policy/discovery acceptance; meaningful domain, cookie, receipt, file cleanup and SSE scenarios remain.
+Canonical native route assertions compare complete method/path sets with OpenAPI and reject extra operations.
 Representative removed API paths must return 404.
-QR cookie-jar flows, Origin/cache policy, raw forms, method handling and SSE receive/HEAD/close regressions cover current routes.
+QR cookie-jar flows, Origin/cache policy, raw forms, method handling and SSE receive/close regressions and HEAD/OPTIONS rejection cover current routes.
 The Python boundary checker rejects retired generic MTG module paths; internal imports use `spellbook_core.mtg` and `spellbook_api.http.mtg`.
 
 Manual `backend/api/tests/native_host_acceptance.py` remains outside ordinary pytest discovery.
-It exercises the installed Python production registry, real process/database behavior, stored receipts and SSE.
+It exercises the installed Python production app, real process/database behavior, stored receipts and SSE.
 It requires the existing exclusive sse target, matching protected DSNs, `P02B_SHARED_NATIVE_DATABASE`, `P02B_PUBLIC_ORIGIN` and external `P02B_INSTALLED_PYTHON`.
 `P02B_NODE_EXECUTABLE` selects Node only for built web; no Node rollback entrypoint is required.
 Run `test_installed_python_original_receipts_and_direct_proxy_wire_acceptance` and `test_installed_replicas_proxy_revocation_and_physical_listener_reconnect` through this manual module.

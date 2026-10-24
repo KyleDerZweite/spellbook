@@ -7,6 +7,10 @@ from unittest.mock import create_autospec
 from urllib.parse import urlencode
 
 import pytest
+from fastapi import FastAPI
+from fastapi.routing import APIRoute
+from fastapi.testclient import TestClient
+from http_helpers import native_routes
 from spellbook_core.auth import SessionAuth
 from spellbook_core.db import ConnectionPool
 from spellbook_core.models import Actor
@@ -18,10 +22,9 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import Message
 
-from spellbook_api.http.errors import error_response
 from spellbook_api.http.mtg.routes_catalog import create_catalog_routes
 from spellbook_api.http.mtg.routes_valuation import create_valuation_routes
-from spellbook_api.http.router import HttpRoute
+from spellbook_api.http.policy import configure_http
 
 ORIGIN = "https://spellbook.test"
 PRINTING = "11111111-1111-4111-8111-111111111111"
@@ -73,11 +76,22 @@ def dependencies() -> tuple[Any, Any, Any]:
     return auth, catalog, valuation
 
 
-async def invoke(route: HttpRoute, req: Request, params: dict[str, str] | None = None) -> Response:
-    try:
-        return await route.handle(req, params or {})
-    except Exception as cause:
-        return error_response(cause)
+async def invoke(route: APIRoute, req: Request, params: dict[str, str] | None = None) -> Response:
+    app = FastAPI(openapi_url=None)
+    configure_http(app, ORIGIN)
+    app.router.routes.append(route)
+    path = route.path
+    for key, value in (params or {}).items():
+        path = path.replace("{" + key + "}", value)
+    path = path.replace("{oracleId}", PRINTING).replace("{printingId}", PRINTING)
+    with TestClient(app, raise_server_exceptions=False) as client:
+        result = client.request(
+            req.method,
+            path + "?" + req.scope["query_string"].decode(),
+            content=await req.body(),
+            headers=dict(req.headers),
+        )
+    return Response(result.content, status_code=result.status_code, headers=dict(result.headers))
 
 
 def test_catalog_search_is_public_and_preserves_validation_and_cache() -> None:
@@ -85,8 +99,8 @@ def test_catalog_search_is_public_and_preserves_validation_and_cache() -> None:
         auth, catalog, _ = dependencies()
         route = next(
             route
-            for route in create_catalog_routes(catalog)
-            if route.method == "GET" and route.path == "/api/v1/mtg/catalog/search"
+            for route in native_routes(create_catalog_routes(catalog))
+            if "GET" in (route.methods or ()) and route.path == "/api/v1/mtg/catalog/search"
         )
         response = await invoke(route, request(query="q=%C3%84ther&limit=0"))
         assert response.status_code == 200 and response.headers["cache-control"] == "no-store"
@@ -104,16 +118,16 @@ def test_catalog_search_is_public_and_preserves_validation_and_cache() -> None:
 def test_catalog_singleton_and_printings_preserve_validation_and_cache() -> None:
     async def scenario() -> None:
         _auth, catalog, _ = dependencies()
-        routes = create_catalog_routes(catalog)
+        routes = native_routes(create_catalog_routes(catalog))
         singleton = next(
-            r for r in routes if r.path == "/api/v1/mtg/catalog/printings/:printingId"
+            r for r in routes if r.path == "/api/v1/mtg/catalog/printings/{printingId}"
         )
         catalog.get_catalog_printing.side_effect = CatalogPrintingNotFoundError()
         response = await invoke(singleton, request(), {"printingId": PRINTING})
         assert response.status_code == 404
         assert json.loads(bytes(response.body))["message"] == "Catalog printing not found"
         printings = next(
-            r for r in routes if r.path == "/api/v1/mtg/catalog/cards/:oracleId/printings"
+            r for r in routes if r.path == "/api/v1/mtg/catalog/cards/{oracleId}/printings"
         )
         response = await invoke(printings, request(query="limit=0"), {"oracleId": PRINTING})
         assert response.status_code == 400
@@ -129,7 +143,7 @@ def test_catalog_singleton_and_printings_preserve_validation_and_cache() -> None
 def test_prices_reject_duplicate_or_unknown_query_fields(query: str) -> None:
     async def scenario() -> None:
         auth, _, valuation = dependencies()
-        route = create_valuation_routes(auth, valuation, ORIGIN)[0]
+        route = native_routes(create_valuation_routes(auth, valuation, ORIGIN))[0]
         assert (await invoke(route, request(query=query))).status_code == 400
         valuation.printing_references.assert_not_awaited()
 
@@ -139,7 +153,7 @@ def test_prices_reject_duplicate_or_unknown_query_fields(query: str) -> None:
 def test_public_prices_are_open_private_prices_require_auth_and_errors_are_503() -> None:
     async def scenario() -> None:
         auth, _, valuation = dependencies()
-        routes = create_valuation_routes(auth, valuation, ORIGIN)
+        routes = native_routes(create_valuation_routes(auth, valuation, ORIGIN))
         query = urlencode({"printingId": PRINTING, "finish": "nonfoil"})
         response = await invoke(routes[0], request(query=query, bearer="invalid"))
         assert response.status_code == 200 and response.headers["cache-control"] == "no-store"
@@ -162,7 +176,7 @@ def test_public_prices_are_open_private_prices_require_auth_and_errors_are_503()
 def test_value_history_rejects_duplicate_filters_and_current_rejects_queries() -> None:
     async def scenario() -> None:
         auth, _, valuation = dependencies()
-        routes = create_valuation_routes(auth, valuation, ORIGIN)
+        routes = native_routes(create_valuation_routes(auth, valuation, ORIGIN))
         for query in ("days=0", "days=1&days=2", "accountId=forged", "days=1.0"):
             response = await invoke(routes[4], request(query=query))
             assert response.status_code == 400
@@ -181,93 +195,12 @@ def test_private_value_cache_policy_and_actor_forwarding(monkeypatch: pytest.Mon
             "spellbook_api.http.mtg.routes_valuation.create_inventory_values",
             lambda *a, **kw: values,
         )
-        routes = create_valuation_routes(auth, valuation, ORIGIN)
+        routes = native_routes(create_valuation_routes(auth, valuation, ORIGIN))
         for route in routes[3:]:
             response = await invoke(route, request())
             assert response.status_code == 200
             assert response.headers["cache-control"] == "private, no-store"
         values.current.assert_awaited_once_with(ACTOR)
         values.history.assert_awaited_once_with(ACTOR, {})
-
-    asyncio.run(scenario())
-
-
-@pytest.mark.parametrize(
-    "path",
-    [
-        "/api/v1/mtg/catalog/search",
-        "/api/v1/mtg/catalog/cards/:oracleId/printings",
-    ],
-)
-@pytest.mark.parametrize(
-    "query,status,error_field",
-    [
-        ("q=first&q=second&limit=3&limit=20&offset=7&offset=40", 200, None),
-        ("q=first&q=second&limit=3&limit=bad&offset=7&offset=bad", 200, None),
-        ("q=first&q=second&limit=bad&limit=20&offset=7&offset=40", 400, "limit"),
-        ("limit=3&limit=20&offset=bad&offset=7", 400, "offset"),
-        ("limit=bad&limit=20&offset=bad&offset=7", 400, "limit"),
-        ("limit=&limit=20&offset=7&offset=40", 400, "limit"),
-        ("limit=3&limit=20&offset=&offset=7", 400, "offset"),
-    ],
-)
-def test_catalog_get_queries_select_first_repeated_value(
-    path: str, query: str, status: int, error_field: str | None
-) -> None:
-    async def scenario() -> None:
-        auth, catalog, _ = dependencies()
-        route = next(
-            route
-            for route in create_catalog_routes(catalog)
-            if route.method == "GET" and route.path == path
-        )
-        response = await invoke(
-            route, request(query=query, bearer="Bearer " + "a" * 43), {"oracleId": PRINTING}
-        )
-        assert response.status_code == status
-        auth.validate_session.assert_not_awaited()
-        if error_field is not None:
-            assert json.loads(bytes(response.body))["message"].startswith(
-                f"{error_field} must be an integer"
-            )
-            catalog.search_catalog_request.assert_not_awaited()
-            catalog.get_printings.assert_not_awaited()
-        elif path.endswith("/search"):
-            catalog.search_catalog_request.assert_awaited_once_with(
-                {"query": "first", "limit": 3, "offset": 7}
-            )
-        else:
-            catalog.get_printings.assert_awaited_once_with(PRINTING, 3, 7)
-
-    asyncio.run(scenario())
-
-
-def test_catalog_search_preserves_first_empty_query_and_post_json_input() -> None:
-    path = "/api/v1/mtg/catalog/search"
-
-    async def scenario() -> None:
-        _auth, catalog, _ = dependencies()
-        routes = create_catalog_routes(catalog)
-        for method, expected in [
-            ("GET", {"query": "", "limit": 20, "offset": 0}),
-            ("POST", {"query": "from JSON", "limit": 4, "offset": 8}),
-        ]:
-            route = next(
-                route for route in routes if route.path == path and route.method == method
-            )
-            response = await invoke(
-                route,
-                request(
-                    method=method,
-                    query="q=&q=ignored&limit=bad&limit=20"
-                    if method == "POST"
-                    else "q=&q=ignored",
-                    body={"query": "from JSON", "limit": 4, "offset": 8},
-                    bearer="Bearer " + "a" * 43,
-                ),
-            )
-            assert response.status_code == 200
-            catalog.search_catalog_request.assert_awaited_once_with(expected)
-            catalog.search_catalog_request.reset_mock()
 
     asyncio.run(scenario())

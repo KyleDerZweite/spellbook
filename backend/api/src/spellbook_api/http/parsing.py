@@ -1,15 +1,17 @@
-"""Explicit Node-compatible request parsing, without framework coercion."""
+"""Bounded native body reading and transport validation."""
 
-import json
 import math
 import re
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
-from email.parser import BytesParser
-from email.policy import default as email_policy
 from typing import cast
-from urllib.parse import parse_qsl, unquote
+from urllib.parse import unquote
 
+from pydantic import ConfigDict, JsonValue, RootModel
+from pydantic import ValidationError as PydanticValidationError
 from spellbook_core.validation import MISSING, js_trim
+from starlette.datastructures import UploadFile
+from starlette.formparsers import FormParser, MultiPartException
 from starlette.requests import ClientDisconnect, Request
 
 from spellbook_api.http.errors import HttpError
@@ -22,16 +24,14 @@ def trim(value: str) -> str:
 
 
 def header(request: Request, name: str) -> str | None:
-    """Match the Node bridge's Fetch Headers append rules for repeated headers."""
     values = request.headers.getlist(name)
-    if not values:
-        return None
-    separator = "; " if name.lower() == "cookie" else ", "
-    return separator.join(value.strip(" \t\r\n") for value in values)
+    if len(values) > 1 and name.lower() in {"authorization", "origin", "content-type"}:
+        raise HttpError(400, "Repeated authority or content headers are not supported")
+    return request.headers.get(name)
 
 
 def decode_parameter(value: str) -> str:
-    """Decode only a named segment already selected by raw route matching."""
+    """Decode percent-escaped cookie values; route parameters are already decoded."""
     if re.search(r"%(?![0-9a-fA-F]{2})", value):
         raise HttpError(400, "Invalid path encoding")
     try:
@@ -87,25 +87,7 @@ def read_query_integer(
     return number
 
 
-def truthy(value: object) -> bool:
-    """JS truthiness for parsed JSON, where empty arrays and objects are true."""
-    if value is MISSING or value is None or value is False:
-        return False
-    if isinstance(value, str):
-        return bool(value)
-    if isinstance(value, int | float):
-        return value != 0 and not (isinstance(value, float) and math.isnan(value))
-    return True
-
-
 async def read_request_bytes(request: Request, max_bytes: int) -> bytes:
-    # The Node bridge exposes no body for unframed or bodyless requests.
-    length = header(request, "content-length") or "0"
-    if request.method in {"GET", "HEAD"} or (
-        "transfer-encoding" not in request.headers
-        and (not length.isascii() or not length.isdigit() or not length.lstrip("0"))
-    ):
-        raise HttpError(400, "A request body is required")
     chunks: list[bytes] = []
     size = 0
     try:
@@ -121,134 +103,26 @@ async def read_request_bytes(request: Request, max_bytes: int) -> bytes:
     return b"".join(chunks)
 
 
-def _invalid_constant(value: str) -> object:
-    raise ValueError("Invalid JSON constant")
-
-
-@dataclass
-class _JSONFrame:
-    value: dict[str, object] | list[object]
-    state: str
-    key: str = ""
-
-
-def _decode_json(text: str) -> object:
-    try:
-        return cast(
-            object,
-            json.loads(
-                text,
-                parse_int=float,
-                parse_float=float,
-                parse_constant=_invalid_constant,
-            ),
-        )
-    except RecursionError:
-        return _decode_deep_json(text)
-
-
-def _decode_deep_json(text: str) -> object:
-    """Use the stdlib scalar decoder without imposing Python's nesting limit."""
-    decoder = json.JSONDecoder(
-        parse_int=float, parse_float=float, parse_constant=_invalid_constant
-    )
-    frames: list[_JSONFrame] = []
-
-    def space(index: int) -> int:
-        while index < len(text) and text[index] in " \t\r\n":
-            index += 1
-        return index
-
-    def value(index: int) -> tuple[object, int]:
-        index = space(index)
-        if index == len(text):
-            raise ValueError("Missing JSON value")
-        if text[index] == "{":
-            obj: dict[str, object] = {}
-            frames.append(_JSONFrame(obj, "key-or-end"))
-            return obj, index + 1
-        if text[index] == "[":
-            array: list[object] = []
-            frames.append(_JSONFrame(array, "value-or-end"))
-            return array, index + 1
-        scalar: object
-        scalar, end = decoder.raw_decode(text, index)
-        return scalar, end
-
-    root, index = value(0)
-    while frames:
-        frame = frames[-1]
-        index = space(index)
-        if index == len(text):
-            raise ValueError("Incomplete JSON container")
-        char = text[index]
-        if isinstance(frame.value, dict):
-            if frame.state in {"key", "key-or-end"}:
-                if char == "}" and frame.state == "key-or-end":
-                    frames.pop()
-                    index += 1
-                    continue
-                if char != '"':
-                    raise ValueError("Invalid JSON key")
-                key, index = decoder.raw_decode(text, index)
-                assert isinstance(key, str)
-                frame.key = key
-                index = space(index)
-                if index == len(text) or text[index] != ":":
-                    raise ValueError("Missing JSON colon")
-                index += 1
-                frame.state = "value"
-            elif frame.state == "value":
-                child, index = value(index)
-                frame.value[frame.key] = child
-                frame.state = "comma-or-end"
-            elif char == "}":
-                frames.pop()
-                index += 1
-            elif char == ",":
-                frame.state = "key"
-                index += 1
-            else:
-                raise ValueError("Invalid JSON object separator")
-        elif frame.state in {"value", "value-or-end"}:
-            if char == "]" and frame.state == "value-or-end":
-                frames.pop()
-                index += 1
-                continue
-            child, index = value(index)
-            frame.value.append(child)
-            frame.state = "comma-or-end"
-        elif char == "]":
-            frames.pop()
-            index += 1
-        elif char == ",":
-            frame.state = "value"
-            index += 1
-        else:
-            raise ValueError("Invalid JSON array separator")
-    if space(index) != len(text):
-        raise ValueError("Trailing JSON data")
-    return root
+class JsonObject(RootModel[dict[str, JsonValue]]):
+    model_config = ConfigDict(strict=True, allow_inf_nan=False)
 
 
 async def read_json_object(request: Request, max_bytes: int = 1024 * 1024) -> dict[str, object]:
-    media = trim((header(request, "content-type") or "").split(";")[0]).lower()
-    if media != "application/json":
+    media = (header(request, "content-type") or "").split(";", 1)[0].strip().lower()
+    if media != "application/json" and not (
+        media.startswith("application/") and media.endswith("+json")
+    ):
         raise HttpError(415, "Use application/json")
     raw = await read_request_bytes(request, max_bytes)
     try:
-        # TextDecoder strips one leading BOM, and JSON.parse uses binary64 for every number.
-        body = _decode_json(raw.decode("utf-8-sig"))
-    except UnicodeError, ValueError, RecursionError:
+        return cast(dict[str, object], JsonObject.model_validate_json(raw).root)
+    except PydanticValidationError:
         raise HttpError(400, "Invalid JSON body") from None
-    if not isinstance(body, dict):
-        raise HttpError(400, "A JSON object is required")
-    return cast(dict[str, object], body)
 
 
 @dataclass(frozen=True)
 class FormFile:
-    """File entries remain non-string credential inputs, matching Fetch FormData."""
+    """File entries remain non-string credential inputs, without coercing credentials."""
 
     filename: str
     content: bytes
@@ -261,59 +135,31 @@ async def read_form_data(
     media = trim(content_type.split(";")[0]).lower()
     if media not in {"application/x-www-form-urlencoded", "multipart/form-data"}:
         raise HttpError(415, "Use application/x-www-form-urlencoded or multipart/form-data")
-    framed = "transfer-encoding" in request.headers or bool(
-        (header(request, "content-length") or "0").lstrip("0")
-    )
-    raw = await read_request_bytes(request, max_bytes) if framed else b""
-    result: dict[str, str | FormFile] = {}
-    if media == "application/x-www-form-urlencoded":
-        for name, value in parse_qsl(
-            raw.decode("utf-8", "replace"),
-            keep_blank_values=True,
-            encoding="utf-8",
-            errors="replace",
-        ):
-            result.setdefault(name, value)
-        return result
-    try:
-        message = BytesParser(policy=email_policy).parsebytes(
-            b"Content-Type: "
-            + content_type.encode("latin-1")
-            + b"\r\nMIME-Version: 1.0\r\n\r\n"
-            + raw
+    raw = await read_request_bytes(request, max_bytes)
+
+    async def stream() -> AsyncGenerator[bytes]:
+        yield raw
+        yield b""
+
+    from spellbook_api.http.multipart import CompleteMultipartParser
+
+    parser = (
+        FormParser(request.headers, stream(), max_fields=32, max_part_size=max_bytes)
+        if media == "application/x-www-form-urlencoded"
+        else CompleteMultipartParser(
+            request.headers, stream(), max_files=4, max_fields=32, max_part_size=max_bytes
         )
-        boundary = message.get_boundary()
-        if (
-            boundary is not None
-            and raw.rstrip(b"\r\n") == b"--" + boundary.encode("ascii") + b"--"
-        ):
-            return result
-        if not message.is_multipart() or message.defects:
-            raise ValueError("Malformed multipart body")
-        for part in message.iter_parts():
-            if (
-                part.defects
-                or part.is_multipart()
-                or part.get_content_disposition() != "form-data"
-            ):
-                raise ValueError("Malformed multipart part")
-            part_name = part.get_param("name", header="content-disposition")
-            if not isinstance(part_name, str):
-                continue
-            # Fetch decodes only the exact lowercase base64 transfer encoding.
-            # MIME quoted-printable and differently cased encodings remain literal.
-            if part.get("Content-Transfer-Encoding") != "base64":
-                del part["Content-Transfer-Encoding"]
-            payload = part.get_payload(decode=True)
-            if not isinstance(payload, bytes):
-                raise ValueError("Malformed multipart payload")
-            filename = part.get_filename()
-            entry: str | FormFile = (
-                FormFile(filename, payload)
-                if filename is not None
-                else payload.decode("utf-8", "replace")
-            )
-            result.setdefault(part_name, entry)
-    except UnicodeError, ValueError, TypeError:
+    )
+    try:
+        form = await parser.parse()
+    except MultiPartException:
         raise HttpError(400, "Invalid form body") from None
-    return result
+    try:
+        return {
+            key: FormFile(value.filename or "", await value.read())
+            if isinstance(value, UploadFile)
+            else value
+            for key, value in form.multi_items()
+        }
+    finally:
+        await form.close()

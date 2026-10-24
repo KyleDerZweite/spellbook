@@ -66,13 +66,13 @@ def require_form_origin(request: Request, public_origin: str, route_path: str = 
         if (
             request.method == "POST"
             and media == "multipart/form-data"
-            and route_path == "/api/v1/mtg/scan/sessions/:sessionId/frames"
+            and route_path == "/api/v1/mtg/scan/sessions/{sessionId}/frames"
         ):
             return
         bodyless = {
-            "DELETE /api/v1/mtg/decks/:deckId",
-            "DELETE /api/v1/mtg/deck-cards/:entryId",
-            "DELETE /api/v1/mtg/inventory/:entryId",
+            "DELETE /api/v1/mtg/decks/{deckId}",
+            "DELETE /api/v1/mtg/deck-cards/{entryId}",
+            "DELETE /api/v1/mtg/inventory/{entryId}",
             "POST /api/v1/mtg/scan/sessions",
             "POST /api/v1/auth/logout",
         }
@@ -103,7 +103,7 @@ async def stale_session_cookie(
     auth: SessionAuth,
     public_origin: str,
 ) -> str | None:
-    """The shared registry prepends this cleanup even with explicit bearer auth."""
+    """Request policy prepends cleanup before any replacement cookie."""
     cookie = read_cookie(request)
     if not cookie or await auth.validate_session(cookie) is not None:
         return None

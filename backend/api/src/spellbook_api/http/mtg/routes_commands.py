@@ -1,29 +1,36 @@
 """Closed browser commands delegate unchanged retry payloads to Core."""
 
+from typing import Annotated
+
+from fastapi import APIRouter, Depends
 from pydantic import ValidationError
 from spellbook_core.auth import SessionAuth
+from spellbook_core.models import Actor
 from spellbook_core.mtg.decks import Decks
 from spellbook_core.mtg.inventory import Inventory
 from starlette.requests import Request
 from starlette.responses import Response
 
-from spellbook_api.http.auth import require_mobile_auth
+from spellbook_api.http.dependencies import actor_dependency, body_dependency
 from spellbook_api.http.errors import HttpError, json_response
 from spellbook_api.http.mtg.command_models import COMMAND
-from spellbook_api.http.parsing import read_json_object
-from spellbook_api.http.router import HttpRoute
 
 
 def create_command_routes(
     auth: SessionAuth, inventory: Inventory, decks: Decks, origin: str
-) -> list[HttpRoute]:
-    async def command(request: Request, params: dict[str, str]) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
+) -> APIRouter:
+    router = APIRouter()
+    authenticated = actor_dependency(auth, origin)
+
+    async def command(
+        request: Request,
+        body: Annotated[dict[str, object], Depends(body_dependency(authenticated, 1024 * 1024))],
+        actor: Annotated[Actor, Depends(authenticated)],
+    ) -> Response:
         try:
-            parsed = COMMAND.validate_python(await read_json_object(request, 1024 * 1024))
+            parsed = COMMAND.validate_python(body)
         except ValidationError:
             raise HttpError(400, "Invalid web command") from None
-        # TypedDict inputs preserve omitted keys and original scalar types without defaults.
         value = parsed.model_dump()["input"]
         result: object
         match parsed.operation:
@@ -60,4 +67,5 @@ def create_command_routes(
                 raise AssertionError("Validated command has no handler")
         return json_response(result)
 
-    return [HttpRoute("POST", "/api/v1/mtg/commands", command)]
+    router.add_api_route("/api/v1/mtg/commands", command, methods=["POST"], response_model=None)
+    return router

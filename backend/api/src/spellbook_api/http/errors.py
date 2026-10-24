@@ -2,8 +2,15 @@
 
 from collections.abc import Mapping
 
-from spellbook_core.errors import ActorError, AuthError, RequestConflictError, ValidationError
-from spellbook_core.fingerprint import serialize_json
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from spellbook_core.errors import (
+    ActorError,
+    AuthError,
+    ProfileError,
+    RequestConflictError,
+    ValidationError,
+)
 from spellbook_core.mtg.categories.common import (
     CategoryConflict,
     CategoryMergeConflict,
@@ -23,6 +30,10 @@ from spellbook_core.mtg.errors import (
     NotesConflictError,
 )
 from spellbook_core.mtg.profile import SummaryRangeError
+from spellbook_core.mtg.scan import ScanError
+from spellbook_core.mtg.valuation import InventoryPriceNotFound, PriceReadUnavailable
+from spellbook_core.qr import QrAuthError
+from starlette.exceptions import HTTPException
 from starlette.responses import JSONResponse, Response
 
 
@@ -35,19 +46,31 @@ class HttpError(Exception):
         super().__init__(str(self.body["message"]))
 
 
-class _JSONResponse(JSONResponse):
-    def render(self, content: object) -> bytes:
-        return serialize_json(content).encode("utf-8")
-
-
 def json_response(
     value: object, *, status: int = 200, headers: Mapping[str, str] | None = None
 ) -> Response:
-    return _JSONResponse(value, status_code=status, headers=headers, media_type="application/json")
+    return JSONResponse(value, status_code=status, headers=headers, media_type="application/json")
 
 
 def error_response(cause: Exception) -> Response:
-    if isinstance(cause, DeckLibraryRevisionChanged):
+    if isinstance(cause, QrAuthError):
+        status = {
+            "ValidationFailed": 400,
+            "Unauthenticated": 401,
+            "NotFound": 404,
+            "Conflict": 409,
+            "RateLimited": 429,
+        }[cause.kind]
+        cause = HttpError(status, dict(kind=cause.kind, message=str(cause)))
+    elif isinstance(cause, ProfileError):
+        cause = HttpError(400, dict(kind=cause.kind, message=str(cause), fields=cause.fields))
+    elif isinstance(cause, PriceReadUnavailable):
+        cause = HttpError(503, str(cause))
+    elif isinstance(cause, InventoryPriceNotFound):
+        cause = HttpError(404, str(cause))
+    elif isinstance(cause, ScanError):
+        cause = HttpError(cause.status, dict(kind=cause.kind, message=str(cause)))
+    elif isinstance(cause, DeckLibraryRevisionChanged):
         cause = HttpError(409, dict(kind="RevisionChanged", message=str(cause)))
     elif isinstance(cause, (DeckNotFoundError, CategoryNotFound)):
         cause = HttpError(404, dict(kind="NotFound", message=str(cause)))
@@ -91,3 +114,49 @@ def error_response(cause: Exception) -> Response:
     if isinstance(cause, HttpError):
         return json_response({**cause.body, "status": cause.status}, status=cause.status)
     return json_response({"status": 500, "message": "Internal Server Error"}, status=500)
+
+
+def install_error_handlers(http: FastAPI) -> None:
+    async def failure(request: Request, cause: Exception) -> Response:
+        if isinstance(cause, RequestValidationError):
+            response = error_response(HttpError(400, "Invalid request"))
+        elif isinstance(cause, HTTPException):
+            response = error_response(HttpError(cause.status_code, str(cause.detail)))
+            response.headers.update(cause.headers or {})
+        else:
+            response = error_response(cause)
+        # ServerErrorMiddleware renders unexpected errors outside user middleware.
+        from spellbook_api.http.policy import response_policy
+
+        response_policy(request.url.path, response)
+        return response
+
+    for exception in (HttpError, RequestValidationError, HTTPException, Exception):
+        http.add_exception_handler(exception, failure)
+    for domain_exception in (
+        ActorError,
+        AuthError,
+        ValidationError,
+        RequestConflictError,
+        DeckLibraryRevisionChanged,
+        DeckNotFoundError,
+        CategoryNotFound,
+        CategoryConflict,
+        CategoryMergeConflict,
+        LibraryConflict,
+        CategoryPreviewExpired,
+        CategoryPreviewCapacity,
+        CategoryUnavailable,
+        NotesConflictError,
+        DescriptionConflictError,
+        InventoryQuantityChangedError,
+        InventoryNotFoundError,
+        InventoryCountError,
+        SummaryRangeError,
+        ScanError,
+        QrAuthError,
+        ProfileError,
+        PriceReadUnavailable,
+        InventoryPriceNotFound,
+    ):
+        http.add_exception_handler(domain_exception, failure)

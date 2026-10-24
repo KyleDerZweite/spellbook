@@ -1,9 +1,9 @@
 # Accepted application contract
 
 - Status: Accepted design; workspace, trusted Auth, Account/Profile, Dashboard, bounded Inventory reads and mutation contracts, Deck application contracts and shared Deck UI, Scan upload/read/result/review contracts, SavedState transport, process lifetime and mounted workspace consumers, source references, optional public providers, bounded public source history, private daily Inventory history, Dashboard/selected-Deck estimates and starter entry categories plus optional local Combo matching implemented; later feature slices planned
-- Last Reviewed: 2026-10-24
+- Last Reviewed: 2026-10-25
 - Source of Truth: workspace/Catalog/Auth/Profile/Dashboard/Inventory/Deck/Scan/Categories/SavedState/Valuation code and contracts, Worker price/Oracle Tags/Combo publication code, unaffected Q56 contracts and Kyle's value-only and continuous Lazy decisions of 2026-10-07
-- Update Triggers: versioned MTG routes and module ownership, Python source activation and server contraction, selected Python API/worker direction, independent API/web ownership and relocated code references, workspace ownership, backend application/transport/operator interfaces and resource cleanup, use-case interfaces, experimental API migration, mutation receipts and revisions, Inventory queries and cache limits, shared UI interfaces and native Deck task entry, synchronization and SavedState process/HMR lifetime, reference publication, value-only history scope, Categories interfaces, immutable entry decisions/manual provenance, Oracle/Combo source and rule lifecycle and acceptance evidence, continuous Lazy browsing/dialog contract and selected versus implemented read limits
+- Update Triggers: native FastAPI HTTP contract and pre-release receipt scope, versioned MTG routes and module ownership, Python source activation and server contraction, selected Python API/worker direction, independent API/web ownership and relocated code references, workspace ownership, backend application/transport/operator interfaces and resource cleanup, use-case interfaces, experimental API migration, mutation receipts and revisions, Inventory queries and cache limits, shared UI interfaces and native Deck task entry, synchronization and SavedState process/HMR lifetime, reference publication, value-only history scope, Categories interfaces, immutable entry decisions/manual provenance, Oracle/Combo source and rule lifecycle and acceptance evidence, continuous Lazy browsing/dialog contract and selected versus implemented read limits
 - Related Docs: [Architecture](./README.md), [System overview](./system-overview.md), [Frontend](./frontend.md), [Postgres](./postgres.md), [Authentication](./auth.md), [Mobile and scan](./mobile-and-scan.md), [Product specification](../product/specification.md), [UI direction](../product/ui-design-direction.md), [Valuation](./valuation.md), [Category rules](./category-rules.md), [Verification](../operations/github-automation.md), [ADR-0015](../decisions/0015-shared-backend-use-cases-and-client-contracts.md), [ADR-0016](../decisions/0016-postgres-saved-state-invalidation.md), [ADR-0017](../decisions/0017-revisioned-inventory-windows-and-mutation-receipts.md), [Independent applications](./independent-applications.md), [Python direction](../decisions/0025-python-api-and-workers.md)
 
 Kyle accepted the original nineteen-slice contract and real HTTP/PostgreSQL/browser acceptance seam in Q56 on 2026-10-06.
@@ -177,7 +177,7 @@ The account-scoped fingerprint binds the normalized payload and rejects changed-
 Persist the minimal original acknowledgement in the writing transaction, including request identity, affected stable entity identities, applied change, revision and removed identities.
 Replay returns this original acknowledgement after later edits or deletion/recreation.
 Clients fetch current state separately.
-Keep the documented legacy treatment of null fingerprints.
+Retry correctness applies within the current version; historical NULL fingerprints and acknowledgements have no fallback or upgrade guarantee.
 
 Patch only supplied fields.
 Avatar and selection fields use the last successful save.
@@ -218,8 +218,8 @@ The account/request journal atomically stores normalized fingerprints and the or
 Authenticated replay precedes Catalog lookup, subject existence and current preconditions, surviving later edits, entry deletion/recreation and Group deletion.
 Changed normalized intent returns 409.
 Imports fingerprint normalized source text, defaults and source before resolution.
-Legacy null fingerprints retain no-repeat behavior; missing historical receipts return an explicit empty `legacy: true` acknowledgement, never reconstructed current state.
-Older non-null fingerprints remain strict and may reject clients migrated to the new normalized shape; callers must not replace an uncertain old request with a fresh ID merely to bypass that conflict.
+The pre-release policy permits replacing stored receipt formats without cross-version adapters.
+Within the current version, callers retry uncertain mutations with their frozen original body and request ID.
 
 ## Implemented Deck application boundary
 
@@ -311,7 +311,7 @@ Current controls/window evidence below remains tied to its implementation.
 [Frontend](./frontend.md#selected-hybrid-browsing-contract) owns the replacement interfaces; current Deck editing and backend authority remain unchanged.
 
 InventoryWindow owns query/range-aware private cache identity, cancellation, stale-response guards, revision coherence and bounded cache eviction.
-The legacy wire queryKey remains unchanged.
+The wire queryKey identifies the current normalized query contract.
 Admission is hard at four contexts, twenty pages and 1,000 resident entry records, including the current Kit SSR page by its original array reference until Kit replaces it or the owner is destroyed.
 Three physical request slots remain occupied through fetch/body decode settlement, including aborted transports that ignore their signal.
 Continuous Lazy plans the visible 200-entry ranges and finite neighbors that fit admission, with at most 200 rendered rows and pruned measurement maps.

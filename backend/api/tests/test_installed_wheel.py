@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 def test_installed_migrator_operators_and_assets_from_external_cwd(tmp_path: Path) -> None:
-    uv = shutil.which("uv")
+    uv = shutil.which("uvx")
     assert uv is not None
     environment = {
         key: value
@@ -32,6 +32,8 @@ def test_installed_migrator_operators_and_assets_from_external_cwd(tmp_path: Pat
     }
 
     def run(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
+        if args and args[0] == uv:
+            args = (uv, "--from", "uv==0.12.23", "uv", *args[1:])
         return subprocess.run(
             args,
             cwd=tmp_path,
@@ -154,16 +156,19 @@ lifetime = create_application(Configuration(
 try:
     schema = json.loads(files('spellbook_api').joinpath('openapi.json').read_text())
     expected = {
-        (method.upper(), re.sub(r'\\{([^}]+)\\}', r':\\1', path))
+        (method.upper(), path)
         for path, item in schema['paths'].items()
         if path.startswith('/api/')
         for method in item
         if method in {'get', 'post', 'put', 'patch', 'delete'}
     }
-    registry = lifetime.http.router.routes[-1].app
-    assert {(route.method, route.path) for route in registry._routes} == (
-        expected | {('GET', '/openapi.json')}
-    )
+    from fastapi.routing import iter_route_contexts
+    actual = {
+        (method, route.path)
+        for route in iter_route_contexts(lifetime.http.routes)
+        for method in route.methods or ()
+    }
+    assert actual == expected | {('GET', '/openapi.json')}
 finally:
     asyncio.run(lifetime.close())
 directory = cli._default_directory()

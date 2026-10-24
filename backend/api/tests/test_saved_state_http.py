@@ -122,8 +122,8 @@ async def invoke(routes: SavedStateRoutes, req: Request) -> Response:
         (
             [(b"origin", ORIGIN.encode()), (b"origin", ORIGIN.encode())],
             b"",
-            403,
-            "Same-origin connection required",
+            400,
+            "Repeated authority or content headers are not supported",
             [],
         ),
         ([], b"token=secret", 400, "Stream query parameters are not supported", []),
@@ -142,9 +142,9 @@ async def invoke(routes: SavedStateRoutes, req: Request) -> Response:
                 (b"authorization", f"Bearer {TOKEN}".encode()),
             ],
             b"",
-            401,
-            "Invalid bearer token",
-            [None],
+            400,
+            "Repeated authority or content headers are not supported",
+            [],
         ),
     ],
 )
@@ -167,10 +167,10 @@ def test_origin_query_auth_order(
 
 
 @pytest.mark.parametrize("cookie", [False, True])
-def test_cookie_or_bearer_setup_headers_and_explicit_head_close(cookie: bool) -> None:
+def test_cookie_or_bearer_setup_headers_and_explicit_close(cookie: bool) -> None:
     async def scenario() -> None:
         async with harness() as (routes, sync, auth):
-            headers = [(b"origin", f" \t{ORIGIN}\t ".encode())]
+            headers = [(b"origin", ORIGIN.encode())]
             headers += (
                 [(b"cookie", f"spellbook_session={TOKEN}".encode())]
                 if cookie

@@ -5,8 +5,8 @@ from typing import Any
 from unittest.mock import AsyncMock, create_autospec, patch
 
 import pytest
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from http_helpers import application
 from spellbook_core.auth import SessionAuth
 from spellbook_core.db import ConnectionPool
 from spellbook_core.models import Actor
@@ -18,9 +18,7 @@ from spellbook_core.mtg.inventory import (
 )
 from spellbook_core.mtg.inventory_import import ImportPreview
 
-from spellbook_api.http.admission import RequestAdmission
 from spellbook_api.http.mtg.routes_inventory import create_inventory_routes
-from spellbook_api.http.router import RawPathRouting, RouteRegistry
 
 BASE = "/api/v1/mtg/inventory"
 ORIGIN = "https://spellbook.test"
@@ -52,12 +50,7 @@ def routes() -> Iterator[tuple[Any, Inventory, TestClient, AsyncMock]]:
     auth.validate_session.return_value = ACTOR
     auth.require_actor.return_value = ACTOR
     inventory = Inventory(create_autospec(ConnectionPool), create_autospec(Catalog), auth)
-    registry = RouteRegistry(
-        create_inventory_routes(auth, inventory, ORIGIN), ORIGIN, auth, RequestAdmission()
-    )
-    http = FastAPI(openapi_url=None)
-    http.mount("/", registry)
-    http.add_middleware(RawPathRouting)
+    http = application(create_inventory_routes(auth, inventory, ORIGIN), ORIGIN, auth)
     with (
         patch.object(
             inventory, "prepare", AsyncMock(return_value=RecordedInventoryMutation(ACK))
@@ -70,7 +63,7 @@ def routes() -> Iterator[tuple[Any, Inventory, TestClient, AsyncMock]]:
 @pytest.mark.parametrize(
     "body", [{}, {"text": ""}, {"text": "1 Opt", "defaultFinish": None, "defaultCondition": None}]
 )
-def test_preview_defaults_and_null_defaults_match_node(
+def test_preview_preserves_current_import_defaults(
     routes: tuple[Any, Inventory, TestClient, AsyncMock], body: dict[str, object]
 ) -> None:
     auth, inventory, client, prepare = routes

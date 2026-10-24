@@ -3,7 +3,7 @@
 	"info": {
 		"title": "Spellbook OpenAPI Schema",
 		"version": "0.1.0",
-		"description": "Spellbook shared account authentication and the versioned MTG API. API mutations affect the authenticated account only. Replaced API paths are removed; clients must use the current documented operations."
+		"description": "Spellbook shared account authentication and the versioned MTG API. API mutations affect the authenticated account only. Replaced API paths are removed; clients must use the current documented operations. Native FastAPI routing accepts canonical paths without trailing slashes or redirects. HEAD and OPTIONS are not registered and return 405 on known paths. Scalar queries select the last value; list parameters retain all values. Request validation uses safe 400 errors. This pre-release API provides no cross-version compatibility or stored-data upgrade guarantee."
 	},
 	"servers": [
 		{
@@ -2537,7 +2537,7 @@
 						}
 					},
 					"409": {
-						"description": "requestId was already used with another payload, source, or context. Legacy mutation records without a requestHash retain their earlier deduplication behavior.",
+						"description": "requestId was already used with another payload, source, or context.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -2644,7 +2644,7 @@
 						}
 					},
 					"409": {
-						"description": "requestId was already used with another payload, source, or context. Legacy mutation records without a requestHash retain their earlier deduplication behavior.",
+						"description": "requestId was already used with another payload, source, or context.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -2836,7 +2836,7 @@
 						}
 					},
 					"409": {
-						"description": "requestId was already used with another payload, source, or context. Legacy mutation records without a requestHash retain their earlier deduplication behavior.",
+						"description": "requestId was already used with another payload, source, or context.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -2941,7 +2941,7 @@
 						}
 					},
 					"409": {
-						"description": "requestId was already used with another payload, source, or context. Legacy mutation records without a requestHash retain their earlier deduplication behavior.",
+						"description": "requestId was already used with another payload, source, or context.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -3364,7 +3364,7 @@
 						}
 					},
 					"409": {
-						"description": "requestId was already used with another payload, source, or context. Legacy mutation records without a requestHash retain their earlier deduplication behavior.",
+						"description": "requestId was already used with another payload, source, or context.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -3482,7 +3482,7 @@
 						}
 					},
 					"409": {
-						"description": "requestId was already used with another payload, source, or context. Legacy mutation records without a requestHash retain their earlier deduplication behavior.",
+						"description": "requestId was already used with another payload, source, or context.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -3593,7 +3593,7 @@
 						}
 					},
 					"409": {
-						"description": "requestId was already used with another payload, source, or context. Legacy mutation records without a requestHash retain their earlier deduplication behavior.",
+						"description": "requestId was already used with another payload, source, or context.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -3725,7 +3725,7 @@
 						}
 					},
 					"409": {
-						"description": "requestId was already used with another payload, source, or context. Legacy mutation records without a requestHash retain their earlier deduplication behavior.",
+						"description": "requestId was already used with another payload, source, or context.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -3854,7 +3854,7 @@
 						}
 					},
 					"409": {
-						"description": "requestId was already used with another payload, source, or context. Legacy mutation records without a requestHash retain their earlier deduplication behavior.",
+						"description": "requestId was already used with another payload, source, or context.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -3961,7 +3961,7 @@
 						}
 					},
 					"409": {
-						"description": "requestId was already used with another payload, source, or context. Legacy mutation records without a requestHash retain their earlier deduplication behavior.",
+						"description": "requestId was already used with another payload, source, or context.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -4165,7 +4165,7 @@
 						}
 					},
 					"409": {
-						"description": "requestId was already used with another payload, source, or context. Legacy mutation records without a requestHash retain their earlier deduplication behavior.",
+						"description": "requestId was already used with another payload, source, or context.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -7943,7 +7943,7 @@
 						}
 					},
 					"409": {
-						"description": "requestId was already used with another payload, source, or context. Legacy mutation records without a requestHash retain their earlier deduplication behavior.",
+						"description": "requestId was already used with another payload, source, or context.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -8061,7 +8061,7 @@
 						}
 					},
 					"409": {
-						"description": "requestId was already used with another payload, source, or context. Legacy mutation records without a requestHash retain their earlier deduplication behavior.",
+						"description": "requestId was already used with another payload, source, or context.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -8155,7 +8155,7 @@
 						}
 					},
 					"409": {
-						"description": "requestId was already used with another payload, source, or context. Legacy mutation records without a requestHash retain their earlier deduplication behavior.",
+						"description": "requestId was already used with another payload, source, or context.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -8263,7 +8263,7 @@
 						}
 					},
 					"409": {
-						"description": "requestId was already used with another payload, source, or context. Legacy mutation records without a requestHash retain their earlier deduplication behavior.",
+						"description": "requestId was already used with another payload, source, or context.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -8467,7 +8467,7 @@
 						}
 					},
 					"409": {
-						"description": "requestId was already used with another payload, source, or context. Legacy mutation records without a requestHash retain their earlier deduplication behavior.",
+						"description": "requestId was already used with another payload, source, or context.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -9349,7 +9349,7 @@
 		},
 		"/api/v1/mtg/scan/review/commit": {
 			"post": {
-				"summary": "Commit reviewed printing intent; replay preserves original receipt or explicit legacy no-repeat binding",
+				"summary": "Commit reviewed printing intent; current-version replay preserves the original receipt",
 				"tags": ["mtg"],
 				"security": [
 					{
@@ -9422,7 +9422,7 @@
 						}
 					},
 					"409": {
-						"description": "Closed session, changed request intent or LegacyReplayEvidenceRequired for a non-null historical hash lacking original evidence",
+						"description": "Closed session or changed request intent; current-version replay returns the original committed receipt",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -10406,7 +10406,7 @@
 						}
 					},
 					"409": {
-						"description": "requestId was already used with another payload, source, or context. Legacy mutation records without a requestHash retain their earlier deduplication behavior.",
+						"description": "requestId was already used with another payload, source, or context.",
 						"content": {
 							"application/json": {
 								"schema": {
@@ -11865,10 +11865,6 @@
 							"required": ["entryId", "groupIds"]
 						}
 					},
-					"legacy": {
-						"const": true,
-						"description": "Historical request without a stored original acknowledgement: no current state is substituted."
-					},
 					"import": {
 						"type": "object",
 						"properties": {
@@ -12495,90 +12491,6 @@
 				},
 				"required": ["scanArtifactId", "catalogCardId", "finish", "condition", "quantity"]
 			},
-			"ScanLegacyVerification": {
-				"type": "object",
-				"properties": {
-					"version": {
-						"enum": ["scan-v1", "scan-v2"]
-					},
-					"sessionId": {
-						"type": "string",
-						"format": "uuid"
-					},
-					"items": {
-						"type": "array",
-						"minItems": 1,
-						"maxItems": 100,
-						"items": {
-							"allOf": [
-								{
-									"$ref": "#/components/schemas/ScanReviewIntent"
-								},
-								{
-									"type": "object",
-									"properties": {
-										"sessionId": {
-											"type": "string",
-											"format": "uuid"
-										},
-										"canonicalCardId": {
-											"type": "string",
-											"maxLength": 36
-										},
-										"oracleId": {
-											"type": "string",
-											"maxLength": 36
-										},
-										"name": {
-											"type": "string",
-											"maxLength": 500
-										},
-										"setCode": {
-											"type": "string",
-											"maxLength": 100
-										},
-										"collectorNumber": {
-											"type": "string",
-											"maxLength": 100
-										},
-										"imageUri": {
-											"type": "string",
-											"maxLength": 2000
-										},
-										"similarityScore": {
-											"type": "integer",
-											"minimum": 0,
-											"maximum": 100
-										},
-										"ocrScore": {
-											"type": "integer",
-											"minimum": 0,
-											"maximum": 100
-										},
-										"finalScore": {
-											"type": "integer",
-											"minimum": 0,
-											"maximum": 100
-										},
-										"matchReason": {
-											"type": "string",
-											"maxLength": 500
-										}
-									},
-									"required": [
-										"sessionId",
-										"similarityScore",
-										"ocrScore",
-										"finalScore",
-										"matchReason"
-									]
-								}
-							]
-						}
-					}
-				},
-				"required": ["version", "items"]
-			},
 			"ScanReviewCommitRequest": {
 				"type": "object",
 				"properties": {
@@ -12598,50 +12510,25 @@
 						},
 						"minItems": 1,
 						"maxItems": 100
-					},
-					"legacyVerification": {
-						"$ref": "#/components/schemas/ScanLegacyVerification"
 					}
 				},
 				"required": ["requestId", "sessionId", "items"]
 			},
 			"ScanCommitAcknowledgement": {
-				"oneOf": [
-					{
-						"type": "object",
-						"properties": {
-							"kind": {
-								"const": "Committed"
-							},
-							"sessionId": {
-								"type": "string",
-								"format": "uuid"
-							},
-							"acknowledgement": {
-								"$ref": "#/components/schemas/InventoryAcknowledgement"
-							}
-						},
-						"required": ["kind", "sessionId", "acknowledgement"]
+				"type": "object",
+				"properties": {
+					"kind": {
+						"const": "Committed"
 					},
-					{
-						"type": "object",
-						"properties": {
-							"kind": {
-								"const": "LegacyNoRepeat"
-							},
-							"requestId": {
-								"type": "string"
-							},
-							"binding": {
-								"enum": ["VerifiedLegacyHash", "UnverifiedLegacyHash"]
-							},
-							"acknowledgement": {
-								"$ref": "#/components/schemas/InventoryAcknowledgement"
-							}
-						},
-						"required": ["kind", "requestId", "binding", "acknowledgement"]
+					"sessionId": {
+						"type": "string",
+						"format": "uuid"
+					},
+					"acknowledgement": {
+						"$ref": "#/components/schemas/InventoryAcknowledgement"
 					}
-				]
+				},
+				"required": ["kind", "sessionId", "acknowledgement"]
 			},
 			"ErrorResponse": {
 				"type": "object",
@@ -12653,6 +12540,10 @@
 					},
 					"message": {
 						"type": "string"
+					},
+					"kind": {
+						"type": "string",
+						"description": "Reviewed domain failure kind when applicable."
 					}
 				},
 				"required": ["status", "message"]
@@ -14203,8 +14094,8 @@
 						"type": "string"
 					},
 					"requestHash": {
-						"type": ["string", "null"],
-						"description": "Normalized mutation fingerprint. Legacy records may be null."
+						"type": "string",
+						"description": "Normalized current-version mutation fingerprint."
 					},
 					"source": {
 						"type": "string"

@@ -1,13 +1,12 @@
 """Production assembly exercises each integrated factory and the account dashboard."""
 
 import asyncio
-from typing import cast
 from unittest.mock import AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
+from http_helpers import operations
 from spellbook_core.mtg.profile import SUMMARY_RANGE_MESSAGE, SummaryRangeError
-from starlette.routing import Route
 from test_auth_account import ACTOR, ORIGIN, TOKEN
 
 from spellbook_api.application import ApplicationResources, create_application
@@ -17,7 +16,6 @@ from spellbook_api.http.mtg.routes_decks import create_deck_routes
 from spellbook_api.http.mtg.routes_inventory import create_inventory_routes
 from spellbook_api.http.mtg.routes_scan import create_scan_routes
 from spellbook_api.http.mtg.routes_valuation import create_valuation_routes
-from spellbook_api.http.router import RouteRegistry
 from spellbook_api.http.types import Configuration
 
 
@@ -42,9 +40,7 @@ def test_production_assembly_registers_and_dispatches_all_integrated_factories(
         )
     )
     resources: ApplicationResources = lifetime.http.state.resources
-    registry = cast(RouteRegistry, cast(Route, lifetime.http.router.routes[-1]).app)
-    installed = {(route.method, route.path) for route in registry._routes}
-    assert len(installed) == len(registry._routes)
+    installed = operations(lifetime.http)
     for routes, expected in (
         (create_inventory_routes(resources.auth, resources.inventory, ORIGIN), 16),
         (create_deck_routes(resources.auth, resources.decks, ORIGIN), 19),
@@ -53,8 +49,8 @@ def test_production_assembly_registers_and_dispatches_all_integrated_factories(
         (create_scan_routes(resources.auth, resources.scan, ORIGIN), 7),
         (create_category_routes(resources.auth, resources.categories, ORIGIN), 17),
     ):
-        assert len(routes) == expected
-        assert {(route.method, route.path) for route in routes} <= installed
+        assert len(operations(routes)) == expected
+        assert operations(routes) <= installed
     assert ("GET", "/api/v1/mtg/dashboard") in installed
     assert ("POST", "/api/v1/mtg/commands") in installed
     assert resources.decks.valuation is resources.valuation
@@ -117,7 +113,7 @@ def test_production_assembly_registers_and_dispatches_all_integrated_factories(
 
         assert client.head("/api/v1/mtg/dashboard", headers=headers).content == b""
         options = client.options("/api/v1/mtg/dashboard")
-        assert options.status_code == 204 and options.headers["allow"] == "GET, HEAD, OPTIONS"
+        assert options.status_code == 405 and options.headers["allow"] == "GET"
         assert client.post("/api/v1/mtg/dashboard", headers=headers).status_code == 405
         assert client.get("/api/v1/mtg/dashboard").status_code == 401
         assert (
@@ -207,27 +203,62 @@ def test_combo_configuration_binds_the_owned_pool(enabled: str) -> None:
 
 def test_complete_registry_matches_only_openapi_and_discovery() -> None:
     import json
-    import re
     from pathlib import Path
 
     lifetime = create_application(
         Configuration(ORIGIN, database_url="postgresql://localhost/unused")
     )
     try:
-        registry = cast(RouteRegistry, cast(Route, lifetime.http.router.routes[-1]).app)
         schema = json.loads(
             (Path(__file__).resolve().parents[3] / "contracts/openapi.json").read_text()
         )
         expected = {
-            (method.upper(), re.sub(r"\{([^}]+)\}", r":\1", path))
+            (method.upper(), path)
             for path, item in schema["paths"].items()
             if path.startswith("/api/")
             for method in item
             if method in {"get", "post", "put", "patch", "delete"}
         }
-        actual = {(route.method, route.path) for route in registry._routes}
+        actual = operations(lifetime.http)
         assert actual == expected | {("GET", "/openapi.json")}
-        assert set(registry._declared) == {path for _, path in expected}
-        assert len(registry._routes) == len(actual)
     finally:
+        asyncio.run(lifetime.close())
+
+
+def test_composed_value_literals_and_inventory_detail_dispatch_to_their_owners(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from types import SimpleNamespace
+
+    from test_auth_account import ACTOR, TOKEN
+
+    values = SimpleNamespace(
+        current=AsyncMock(return_value={"owner": "current-value"}),
+        history=AsyncMock(return_value={"owner": "value-history"}),
+    )
+    monkeypatch.setattr(
+        "spellbook_api.http.mtg.routes_valuation.create_inventory_values", lambda *a, **kw: values
+    )
+    lifetime = create_application(
+        Configuration(ORIGIN, database_url="postgresql://localhost/unused")
+    )
+    resources = lifetime.http.state.resources
+    monkeypatch.setattr(resources.auth, "validate_session", AsyncMock(return_value=ACTOR))
+    detail = AsyncMock(return_value={"owner": "inventory-detail"})
+    monkeypatch.setattr(resources.inventory, "get_entry", detail)
+    entry = "11111111-1111-4111-8111-111111111111"
+    client = TestClient(lifetime.http, headers={"Authorization": "Bearer " + TOKEN})
+    try:
+        for suffix, owner in (
+            ("value", "current-value"),
+            ("value-history", "value-history"),
+            (entry, "inventory-detail"),
+        ):
+            response = client.get("/api/v1/mtg/inventory/" + suffix)
+            assert response.status_code == 200 and response.json() == {"owner": owner}
+        values.current.assert_awaited_once_with(ACTOR)
+        values.history.assert_awaited_once_with(ACTOR, {})
+        detail.assert_awaited_once_with(ACTOR, entry)
+    finally:
+        client.close()
         asyncio.run(lifetime.close())

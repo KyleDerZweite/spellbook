@@ -40,7 +40,7 @@ class Configuration:
             ) from None
         if origin.host is None:
             raise ValueError("APP_ORIGIN must be an absolute HTTP(S) origin without a path")
-        # Compare the parsed canonical origin, as the existing Node host does.
+        # Require a canonical public origin for credential and cookie authority.
         # This also rejects changed numeric-host, IDNA, port and escaping spellings.
         authority = origin.host
         port = origin.port

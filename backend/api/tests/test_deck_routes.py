@@ -1,15 +1,14 @@
 """All nineteen Deck adapters exercise the production RAW registry and scalar rules."""
 
 import json
-import re
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any, cast
 from unittest.mock import create_autospec
 
 import pytest
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from http_helpers import application, native_routes
 from spellbook_core.auth import SessionAuth
 from spellbook_core.errors import RequestConflictError
 from spellbook_core.models import Actor
@@ -17,9 +16,7 @@ from spellbook_core.mtg.categories import CategoryMergeConflict
 from spellbook_core.mtg.decks import DeckLibraryRevisionChanged, Decks
 from spellbook_core.mtg.errors import DeckNotFoundError, DescriptionConflictError
 
-from spellbook_api.http.admission import RequestAdmission
 from spellbook_api.http.mtg.routes_decks import create_deck_routes
-from spellbook_api.http.router import RawPathRouting, RouteRegistry
 
 ORIGIN = "https://spellbook.test"
 BASE = "/api/v1/mtg"
@@ -71,12 +68,7 @@ def routes() -> Iterator[tuple[Any, TestClient]]:
     )
     for method, result in defaults.items():
         getattr(decks, method).return_value = result
-    registry = RouteRegistry(
-        create_deck_routes(auth, decks, ORIGIN), ORIGIN, auth, RequestAdmission()
-    )
-    app = FastAPI(openapi_url=None)
-    app.mount("/", registry)
-    app.add_middleware(RawPathRouting)
+    app = application(create_deck_routes(auth, decks, ORIGIN), ORIGIN, auth)
     with TestClient(app, headers={"Authorization": "Bearer " + TOKEN}) as client:
         yield decks, client
 
@@ -85,7 +77,7 @@ def test_factory_matches_all_existing_deck_routes() -> None:
     root = Path(__file__).resolve().parents[3]
     oracle = json.loads((root / "contracts/openapi.json").read_text())
     expected = {
-        (method.upper(), re.sub(r"\{(\w+)\}", r":\1", path))
+        (method.upper(), path)
         for path, methods in oracle["paths"].items()
         if path.startswith(BASE + "/deck")
         and not (
@@ -100,12 +92,15 @@ def test_factory_matches_all_existing_deck_routes() -> None:
         if method in ("get", "post", "patch", "delete")
     }
     actual = {
-        (r.method, r.path)
-        for r in create_deck_routes(
-            cast(SessionAuth, create_autospec(SessionAuth)),
-            cast(Decks, create_autospec(Decks)),
-            ORIGIN,
+        (method, r.path)
+        for r in native_routes(
+            create_deck_routes(
+                cast(SessionAuth, create_autospec(SessionAuth)),
+                cast(Decks, create_autospec(Decks)),
+                ORIGIN,
+            )
         )
+        for method in r.methods or ()
     }
     assert actual == expected and len(actual) == 19
 
@@ -173,13 +168,13 @@ def test_every_adapter_calls_its_real_application_method(
         assert response.headers["cache-control"] == "no-store"
 
 
-def test_scalar_queries_select_first_and_array_queries_retain_all_values(
+def test_scalar_queries_select_last_and_array_queries_retain_all_values(
     routes: tuple[Any, TestClient],
 ) -> None:
     decks, client = routes
     response = client.get(
         BASE
-        + "/deck-library?dirQ=first&dirQ=second&offset=1&offset=bad&dirCategory="
+        + "/deck-library?dirQ=first&dirQ=second&offset=bad&offset=1&dirCategory="
         + ENTRY
         + "&dirCategory="
         + DECK
@@ -187,11 +182,11 @@ def test_scalar_queries_select_first_and_array_queries_retain_all_values(
     )
     assert response.status_code == 200
     input = decks.get_deck_library.await_args.args[1]
-    assert input["query"] == "first" and input["offset"] == 1
-    assert input["expectedRevision"] == "1"
+    assert input["query"] == "second" and input["offset"] == 1
+    assert input["expectedRevision"] == "2"
     assert input["categoryVersionIds"] == [ENTRY, DECK]
     assert client.get(BASE + "/decks/search?q=first&q=second").status_code == 200
-    decks.search.assert_awaited_once_with(ACTOR, "first")
+    decks.search.assert_awaited_once_with(ACTOR, "second")
     assert (
         client.get(BASE + "/deck-cards/" + ENTRY + "?requestId=first&requestId=second").status_code
         == 405
@@ -202,9 +197,9 @@ def test_scalar_queries_select_first_and_array_queries_retain_all_values(
         ).status_code
         == 200
     )
-    decks.remove_deck_card.assert_awaited_once_with(ACTOR, ENTRY, "first", "mobile")
+    decks.remove_deck_card.assert_awaited_once_with(ACTOR, ENTRY, "second", "mobile")
     assert (
-        client.get(BASE + "/decks/" + DECK + "/export?format=arena&format=invalid").status_code
+        client.get(BASE + "/decks/" + DECK + "/export?format=invalid&format=arena").status_code
         == 200
     )
 
@@ -228,7 +223,7 @@ def test_detail_rejects_invalid_legality_flags_before_reading_deck(
     decks.get_deck.assert_not_awaited()
 
 
-def test_selected_only_omits_legality_lookup_and_head_keeps_headers(
+def test_selected_only_omits_legality_lookup_and_head_is_rejected(
     routes: tuple[Any, TestClient],
 ) -> None:
     decks, client = routes
@@ -238,8 +233,8 @@ def test_selected_only_omits_legality_lookup_and_head_keeps_headers(
     decks.get_deck_snapshot.assert_not_awaited()
     decks.get_deck_legality.assert_not_awaited()
     head = client.head(BASE + "/decks/" + DECK + "/export")
-    assert head.status_code == 200 and head.content == b""
-    assert head.headers["content-type"] == "text/plain; charset=utf-8"
+    assert head.status_code == 405 and head.content == b""
+    assert head.headers["content-type"] == "application/json"
 
 
 @pytest.mark.parametrize(

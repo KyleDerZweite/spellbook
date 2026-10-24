@@ -1,9 +1,11 @@
 """Nineteen Deck adapters preserve the existing HTTP contract without schema coercion."""
 
-from collections.abc import Awaitable, Callable
+from typing import Annotated
 
+from fastapi import APIRouter, Depends
 from spellbook_core.auth import SessionAuth
 from spellbook_core.errors import ValidationError
+from spellbook_core.models import Actor
 from spellbook_core.mtg.decks import Decks
 from spellbook_core.mtg.decks.library import parse_library_input
 from spellbook_core.validation import (
@@ -16,42 +18,35 @@ from spellbook_core.validation import (
 from starlette.requests import Request
 from starlette.responses import Response
 
-from spellbook_api.http.auth import require_mobile_auth
+from spellbook_api.http.dependencies import UUIDPath, actor_dependency, body_dependency
 from spellbook_api.http.errors import HttpError, json_response
 from spellbook_api.http.parsing import (
-    decode_parameter,
-    read_json_object,
     read_number,
     read_query_integer,
     read_string,
     require_uuid,
-    truthy,
 )
-from spellbook_api.http.router import HttpRoute
-
-type Handler = Callable[[Request, dict[str, str]], Awaitable[Response]]
 
 
-def first(request: Request, key: str, fallback: str | None = None) -> str | None:
+def scalar(request: Request, key: str, fallback: str | None = None) -> str | None:
     values = request.query_params.getlist(key)
-    return values[0] if values else fallback
+    return values[-1] if values else fallback
 
 
 def library_input(request: Request) -> dict[str, object]:
     try:
         result: dict[str, object] = dict(
-            query=first(request, "dirQ", ""),
-            format=first(request, "dirFormat", ""),
+            query=scalar(request, "dirQ", ""),
+            format=scalar(request, "dirFormat", ""),
             categoryVersionIds=request.query_params.getlist("dirCategory"),
-            sort=first(request, "dirSort", "updated:desc"),
-            offset=read_query_integer(first(request, "offset"), "offset", 0),
-            limit=read_query_integer(first(request, "limit"), "limit", 40),
+            sort=scalar(request, "dirSort", "updated:desc"),
+            offset=read_query_integer(scalar(request, "offset"), "offset", 0),
+            limit=read_query_integer(scalar(request, "limit"), "limit", 40),
         )
-        expected = first(request, "expectedRevision")
-        expected = first(request, "revision") if expected is None else expected
+        expected = scalar(request, "expectedRevision")
+        expected = scalar(request, "revision") if expected is None else expected
         if expected is not None:
             result["expectedRevision"] = expected
-        # URL parsing normalizes query fields; paging/revision validation belongs to Core.
         normalized = parse_library_input(
             {k: v for k, v in result.items() if k not in ("offset", "limit", "expectedRevision")}
         )["query"]
@@ -60,13 +55,18 @@ def library_input(request: Request) -> dict[str, object]:
         raise HttpError(400, "Invalid Deck Library query") from None
 
 
-def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> list[HttpRoute]:
-    async def library(request: Request, params: dict[str, str]) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
+def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> APIRouter:
+    router = APIRouter()
+    authenticated = actor_dependency(auth, origin)
+
+    async def library(
+        request: Request, actor: Annotated[Actor, Depends(authenticated)]
+    ) -> Response:
         return json_response(await decks.get_deck_library(actor, library_input(request)))
 
-    async def categories(request: Request, params: dict[str, str]) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
+    async def categories(
+        request: Request, actor: Annotated[Actor, Depends(authenticated)]
+    ) -> Response:
         return json_response(
             await decks.get_deck_library_categories(
                 actor,
@@ -77,22 +77,26 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> list[Htt
             )
         )
 
-    async def locate(request: Request, params: dict[str, str]) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
+    async def locate(
+        request: Request, actor: Annotated[Actor, Depends(authenticated)]
+    ) -> Response:
         return json_response(
             await decks.locate_deck(
-                actor, require_uuid(first(request, "deckId")), library_input(request)
+                actor, require_uuid(scalar(request, "deckId")), library_input(request)
             )
         )
 
-    async def snapshot(request: Request, params: dict[str, str]) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
-        return json_response(await decks.get_deck_snapshot(actor, "mtg", first(request, "deck")))
+    async def snapshot(
+        request: Request, actor: Annotated[Actor, Depends(authenticated)]
+    ) -> Response:
+        return json_response(await decks.get_deck_snapshot(actor, "mtg", scalar(request, "deck")))
 
-    async def create(request: Request, params: dict[str, str]) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
-        body = await read_json_object(request)
-        if not truthy(body.get("name", MISSING)):
+    async def create(
+        request: Request,
+        body: Annotated[dict[str, object], Depends(body_dependency(authenticated, 1048576))],
+        actor: Annotated[Actor, Depends(authenticated)],
+    ) -> Response:
+        if not body.get("name"):
             raise HttpError(400, "name is required")
         input = dict(
             game="mtg",
@@ -103,8 +107,9 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> list[Htt
         existing = await decks.get_deck_snapshot(actor, "mtg")
         return json_response([*existing["decks"], await decks.create_deck_record(actor, input)])
 
-    async def choices(request: Request, params: dict[str, str]) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
+    async def choices(
+        request: Request, actor: Annotated[Actor, Depends(authenticated)]
+    ) -> Response:
         for key in request.query_params:
             if (
                 key not in ("query", "offset", "limit", "selectedDeckId")
@@ -112,20 +117,22 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> list[Htt
             ):
                 raise HttpError(400, "Invalid Deck choice query")
         input: dict[str, object] = dict(
-            offset=read_query_integer(first(request, "offset"), "offset", 0, 1000000),
-            limit=read_query_integer(first(request, "limit"), "limit", 20, 50, 1),
+            offset=read_query_integer(scalar(request, "offset"), "offset", 0, 1000000),
+            limit=read_query_integer(scalar(request, "limit"), "limit", 20, 50, 1),
         )
         for key in ("query", "selectedDeckId"):
-            value = first(request, key)
+            value = scalar(request, key)
             if value is not None:
                 input[key] = value
         return json_response(
             await decks.get_deck_choices(actor, input), headers={"cache-control": "no-store"}
         )
 
-    async def import_commit(request: Request, params: dict[str, str]) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
-        body = await read_json_object(request)
+    async def import_commit(
+        request: Request,
+        body: Annotated[dict[str, object], Depends(body_dependency(authenticated, 1048576))],
+        actor: Annotated[Actor, Depends(authenticated)],
+    ) -> Response:
         input: dict[str, object] = dict(game="mtg")
         for key, fallback in (
             ("requestId", ""),
@@ -138,9 +145,11 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> list[Htt
             input[key] = read_string(body.get(key, MISSING), key, fallback)
         return json_response(await decks.import_text_deck(actor, input))
 
-    async def import_preview(request: Request, params: dict[str, str]) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
-        body = await read_json_object(request)
+    async def import_preview(
+        request: Request,
+        body: Annotated[dict[str, object], Depends(body_dependency(authenticated, 1048576))],
+        actor: Annotated[Actor, Depends(authenticated)],
+    ) -> Response:
         return json_response(
             await decks.preview_mtg_import(
                 actor,
@@ -149,20 +158,25 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> list[Htt
             )
         )
 
-    async def ownership(request: Request, params: dict[str, str]) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
+    async def ownership(
+        request: Request, actor: Annotated[Actor, Depends(authenticated)]
+    ) -> Response:
         return json_response(
             await decks.ownership(actor, request.query_params.getlist("canonicalCardId"))
         )
 
-    async def search(request: Request, params: dict[str, str]) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
-        return json_response(await decks.search(actor, first(request, "q") or ""))
+    async def search(
+        request: Request, actor: Annotated[Actor, Depends(authenticated)]
+    ) -> Response:
+        return json_response(await decks.search(actor, scalar(request, "q") or ""))
 
-    async def patch_card(request: Request, params: dict[str, str]) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
-        entry = require_uuid(decode_parameter(params["entryId"]), "entryId")
-        body = await read_json_object(request)
+    async def patch_card(
+        request: Request,
+        entryId: UUIDPath,
+        body: Annotated[dict[str, object], Depends(body_dependency(authenticated, 1048576))],
+        actor: Annotated[Actor, Depends(authenticated)],
+    ) -> Response:
+        entry = entryId
         return json_response(
             await decks.update_deck_card(
                 actor,
@@ -180,19 +194,23 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> list[Htt
             )
         )
 
-    async def remove_card(request: Request, params: dict[str, str]) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
-        entry = require_uuid(decode_parameter(params["entryId"]), "entryId")
+    async def remove_card(
+        request: Request, entryId: UUIDPath, actor: Annotated[Actor, Depends(authenticated)]
+    ) -> Response:
+        entry = entryId
         return json_response(
             await decks.remove_deck_card(
-                actor, entry, first(request, "requestId", "") or "", "mobile"
+                actor, entry, scalar(request, "requestId", "") or "", "mobile"
             )
         )
 
-    async def patch(request: Request, params: dict[str, str]) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
-        deck_id = require_uuid(decode_parameter(params["deckId"]), "deckId")
-        body = await read_json_object(request)
+    async def patch(
+        request: Request,
+        deckId: UUIDPath,
+        body: Annotated[dict[str, object], Depends(body_dependency(authenticated, 1048576))],
+        actor: Annotated[Actor, Depends(authenticated)],
+    ) -> Response:
+        deck_id = deckId
         input: dict[str, object] = dict(deckId=deck_id)
         for key in ("name", "description", "format"):
             if key in body:
@@ -203,14 +221,16 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> list[Htt
             )
         return json_response(await decks.update_deck(actor, input))
 
-    async def delete(request: Request, params: dict[str, str]) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
-        await decks.delete_deck(actor, require_uuid(decode_parameter(params["deckId"]), "deckId"))
+    async def delete(
+        request: Request, deckId: UUIDPath, actor: Annotated[Actor, Depends(authenticated)]
+    ) -> Response:
+        await decks.delete_deck(actor, deckId)
         return json_response(dict(ok=True))
 
-    async def detail(request: Request, params: dict[str, str]) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
-        deck_id = require_uuid(decode_parameter(params["deckId"]), "deckId")
+    async def detail(
+        request: Request, deckId: UUIDPath, actor: Annotated[Actor, Depends(authenticated)]
+    ) -> Response:
+        deck_id = deckId
         flags = request.query_params.getlist("includeLegality")
         flag = flags[0] if flags else None
         if (
@@ -220,14 +240,14 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> list[Htt
                 flag == "false"
                 and (
                     len(request.query_params.getlist("selectedOnly")) != 1
-                    or first(request, "selectedOnly") != "true"
+                    or scalar(request, "selectedOnly") != "true"
                 )
             )
         ):
             raise HttpError(400, "includeLegality=false requires selectedOnly=true.")
         state = (
             await decks.get_deck(actor, deck_id)
-            if first(request, "selectedOnly") == "true"
+            if scalar(request, "selectedOnly") == "true"
             else await decks.get_deck_snapshot(actor, "mtg", deck_id)
         )
         if flag == "false":
@@ -235,22 +255,22 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> list[Htt
         legality = await decks.get_deck_legality(actor, deck_id)
         return json_response({**state, **legality}, headers={"cache-control": "no-store"})
 
-    async def availability(request: Request, params: dict[str, str]) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
+    async def availability(
+        request: Request, deckId: UUIDPath, actor: Annotated[Actor, Depends(authenticated)]
+    ) -> Response:
         return json_response(
-            await decks.availability(
-                actor, require_uuid(decode_parameter(params["deckId"]), "deckId")
-            ),
+            await decks.availability(actor, deckId),
             headers={"cache-control": "no-store"},
         )
 
-    async def add_card(request: Request, params: dict[str, str]) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
-        deck_id = require_uuid(decode_parameter(params["deckId"]), "deckId")
-        body = await read_json_object(request)
-        if any(
-            not truthy(body.get(k, MISSING)) for k in ("catalogCardId", "canonicalCardId", "name")
-        ):
+    async def add_card(
+        request: Request,
+        deckId: UUIDPath,
+        body: Annotated[dict[str, object], Depends(body_dependency(authenticated, 1048576))],
+        actor: Annotated[Actor, Depends(authenticated)],
+    ) -> Response:
+        deck_id = deckId
+        if any(not body.get(k) for k in ("catalogCardId", "canonicalCardId", "name")):
             raise HttpError(400, "deckId, catalogCardId, canonicalCardId, and name are required")
         input: dict[str, object] = dict(
             deckId=deck_id,
@@ -268,10 +288,13 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> list[Htt
             input[key] = read_string(body.get(key, MISSING), key, fallback)
         return json_response(await decks.add_deck_card(actor, input))
 
-    async def bulk(request: Request, params: dict[str, str]) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
-        deck_id = require_uuid(decode_parameter(params["deckId"]), "deckId")
-        body = await read_json_object(request)
+    async def bulk(
+        request: Request,
+        deckId: UUIDPath,
+        body: Annotated[dict[str, object], Depends(body_dependency(authenticated, 1048576))],
+        actor: Annotated[Actor, Depends(authenticated)],
+    ) -> Response:
+        deck_id = deckId
         return json_response(
             await decks.bulk_mutate_deck_cards(
                 actor,
@@ -293,36 +316,67 @@ def create_deck_routes(auth: SessionAuth, decks: Decks, origin: str) -> list[Htt
             )
         )
 
-    async def export(request: Request, params: dict[str, str]) -> Response:
-        actor = await require_mobile_auth(request, auth, origin)
-        deck_id = require_uuid(decode_parameter(params["deckId"]), "deckId")
-        if first(request, "format", "arena") != "arena":
+    async def export(
+        request: Request, deckId: UUIDPath, actor: Annotated[Actor, Depends(authenticated)]
+    ) -> Response:
+        deck_id = deckId
+        if scalar(request, "format", "arena") != "arena":
             raise HttpError(400, "Only arena export is supported")
         return Response(
             await decks.export_decklist(actor, deck_id),
             headers={"content-type": "text/plain; charset=utf-8"},
         )
 
-    base = "/api/v1/mtg"
-    definitions: list[tuple[str, str, Handler]] = [
-        ("GET", "/deck-library", library),
-        ("GET", "/deck-library/categories", categories),
-        ("GET", "/deck-library/locate", locate),
-        ("GET", "/decks", snapshot),
-        ("POST", "/decks", create),
-        ("GET", "/decks/choices", choices),
-        ("POST", "/decks/import/commit", import_commit),
-        ("POST", "/decks/import/preview", import_preview),
-        ("GET", "/decks/ownership", ownership),
-        ("GET", "/decks/search", search),
-        ("PATCH", "/deck-cards/:entryId", patch_card),
-        ("DELETE", "/deck-cards/:entryId", remove_card),
-        ("PATCH", "/decks/:deckId", patch),
-        ("DELETE", "/decks/:deckId", delete),
-        ("GET", "/decks/:deckId", detail),
-        ("GET", "/decks/:deckId/availability", availability),
-        ("POST", "/decks/:deckId/cards", add_card),
-        ("POST", "/decks/:deckId/cards/bulk", bulk),
-        ("GET", "/decks/:deckId/export", export),
-    ]
-    return [HttpRoute(method, base + path, handler) for method, path, handler in definitions]
+    router.add_api_route("/api/v1/mtg/deck-library", library, methods=["GET"], response_model=None)
+    router.add_api_route(
+        "/api/v1/mtg/deck-library/categories", categories, methods=["GET"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/mtg/deck-library/locate", locate, methods=["GET"], response_model=None
+    )
+    router.add_api_route("/api/v1/mtg/decks", snapshot, methods=["GET"], response_model=None)
+    router.add_api_route("/api/v1/mtg/decks", create, methods=["POST"], response_model=None)
+    router.add_api_route(
+        "/api/v1/mtg/decks/choices", choices, methods=["GET"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/mtg/decks/import/commit", import_commit, methods=["POST"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/mtg/decks/import/preview", import_preview, methods=["POST"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/mtg/decks/ownership", ownership, methods=["GET"], response_model=None
+    )
+    router.add_api_route("/api/v1/mtg/decks/search", search, methods=["GET"], response_model=None)
+    router.add_api_route(
+        "/api/v1/mtg/deck-cards/{entryId}", patch_card, methods=["PATCH"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/mtg/deck-cards/{entryId}", remove_card, methods=["DELETE"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/mtg/decks/{deckId}", patch, methods=["PATCH"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/mtg/decks/{deckId}", delete, methods=["DELETE"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/mtg/decks/{deckId}", detail, methods=["GET"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/mtg/decks/{deckId}/availability",
+        availability,
+        methods=["GET"],
+        response_model=None,
+    )
+    router.add_api_route(
+        "/api/v1/mtg/decks/{deckId}/cards", add_card, methods=["POST"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/mtg/decks/{deckId}/cards/bulk", bulk, methods=["POST"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/mtg/decks/{deckId}/export", export, methods=["GET"], response_model=None
+    )
+    return router

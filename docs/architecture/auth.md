@@ -1,9 +1,9 @@
 # Authentication
 
 - Status: Canonical
-- Last Reviewed: 2026-10-24
+- Last Reviewed: 2026-10-25
 - Source of Truth: code
-- Update Triggers: ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python source activation and server contraction, Python Auth/Profile/QR functional port, independent API/web ownership and relocated code references, QR challenge lifecycle, session-bound decisions, requester cookies and PWA delivery, credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, summary reporting failures, post-login destinations, agent discovery, workspace ownership, application resource lifetime and native operator ownership, SavedState stream authority and origin policy
+- Update Triggers: native HTTP validation and safe error responses, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python source activation and server contraction, Python Auth/Profile/QR functional port, independent API/web ownership and relocated code references, QR challenge lifecycle, session-bound decisions, requester cookies and PWA delivery, credentials, sessions, trusted actor authority, protected routes, bearer tokens, origin checks, demo mode, account preferences, profile card validation, password changes, summary reporting failures, post-login destinations, agent discovery, workspace ownership, application resource lifetime and native operator ownership, SavedState stream authority and origin policy
 - Related Docs: [Postgres](./postgres.md), [Frontend](./frontend.md), [Routes](../product/routing-and-games.md), [Local authentication operations](../operations/local-auth.md), [Deployment](../operations/deployment.md), [ADR-0009](../decisions/0009-local-authentication.md), [Application contract](./application-contract.md), [Independent applications](./independent-applications.md), [Python migration](./python-backend-migration.md)
 
 Spellbook authenticates local accounts by username and password.
@@ -110,7 +110,9 @@ The [Python API host](../../backend/api/src/spellbook_api/main.py) supplies data
 Frontend uses a request-bound [remote client](../../frontend/src/lib/server/remote/client.ts), local error types, browser cookies and native form results.
 It selects only the browser cookie for SSR/forms; incoming bearer headers do not replace that identity.
 Public API paths retain Authorization-before-cookie selection.
-Existing public response shapes remain unchanged.
+Successful identity/session response shapes remain unchanged.
+The native HTTP adapter returns safe structured errors with numeric HTTP `status`, `message`, optional `kind` and the reviewed conflict or field details.
+It uses 400 for request validation and never exposes raw Pydantic inputs.
 
 The shared [profile contract](../../contracts/src/profile.ts) owns avatar/artwork IDs, defaults, ID validation, contact-email normalization and profile patch/read types.
 [profile-card.ts](../../contracts/src/profile-card.ts) owns full card validation, limits, mana grammar, defaults and KPI names.

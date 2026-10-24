@@ -1,9 +1,9 @@
 # Independent applications implementation contract
 
 - Status: Independent Python API and workers implemented; native target verification pending
-- Last Reviewed: 2026-10-24
+- Last Reviewed: 2026-10-25
 - Source of Truth: accepted maintainer direction and existing application contracts
-- Update Triggers: ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, canonical-only versioned game API and client upgrades, Python source activation and implementation status, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, HTTP extraction, native delivery, credential forwarding, application ownership, acceptance evidence
+- Update Triggers: native FastAPI HTTP contract and pre-release receipt scope, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, canonical-only versioned game API and client upgrades, Python source activation and implementation status, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, HTTP extraction, native delivery, credential forwarding, application ownership, acceptance evidence
 - Related Docs: [System overview](./system-overview.md), [Application contract](./application-contract.md), [Auth](./auth.md), [Mobile handoff](../product/mobile-app-exploration.md), [ADR-0024](../decisions/0024-independent-applications.md), [Verification](../operations/github-automation.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md)
 
 ## Outcome and ownership
@@ -19,7 +19,7 @@ No web runtime may import backend implementation, PostgreSQL, Drizzle or passwor
 
 The unmerged integration candidate uses Python API/Core and workers by default.
 [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md) owns functional acceptance and separate production authority.
-The [migration contract](./python-backend-migration.md) owns retained wire/data compatibility and remaining runtime evidence.
+The [migration contract](./python-backend-migration.md) owns the pre-release policy, current-version correctness and remaining runtime evidence.
 The replaced TypeScript server is removed; Python functional tests and installed-Python HTTP consumers own current coverage.
 Frontend, contracts, Android and unchanged SQL/Demo assets retain their owners.
 A new monorepo orchestrator, hardware control and a complex offline write queue remain outside its scope.
@@ -49,23 +49,34 @@ Public Catalog reads remain public; private mutations and reads retain their aut
 Old API paths return 404 without aliases or redirects.
 Web and Android switch to canonical paths in the same change.
 OpenAPI owns the current route inventory; the obsolete legacy route inventory and transfer map are removed.
-Current-route tests cover dispatch, first-value query parsing, bodies, HEAD/OPTIONS/405, cache/Origin policy, QR cookies and SSE.
-Registry checks reject extra operations and representative removed paths return 404.
-Current-head production-registry HTTP acceptance remains an integration-owner check.
+Current-route tests cover native dispatch, last-value scalar queries, bodies, 405 method rejection, cache/Origin policy, QR cookies and SSE.
+Native route checks reject extra operations and representative removed paths return 404.
+Current-head production-app HTTP acceptance remains an integration-owner check.
 
 `backend/api/src/spellbook_api/http/types.py` owns `Configuration` and `ApplicationLifetime`.
 `create_application(configuration)` returns the HTTP app, pre-drain `close_streams` and idempotent `close` callbacks.
 `create_http_application` composes explicitly supplied Auth, Catalog, Inventory, Deck, Category, Scan, Valuation, Profile, Dashboard and SavedState dependencies.
-The route factories return `HttpRoute` definitions with colon-prefixed named path segments.
-`RouteRegistry` owns dispatch, method selection, cookie cleanup and reviewed error serialization.
-HTTP parsing remains in `http/parsing.py`; application methods and SQL remain in Core.
+The route factories return native `APIRouter` instances with `{parameter}` segments.
+`http/application.py` includes Valuation before Inventory so `/inventory/value` and `/inventory/value-history` precede `/inventory/{entryId}`.
+Literal routes precede parameter routes within each router.
+FastAPI owns routing, method selection and dependency execution; no custom route registry, catch-all or OpenAPI dispatch remains.
+Typed Path/Query parameters and Pydantic-backed body dependencies validate transport inputs.
+Body dependencies authenticate before reading; credential dependencies count attempts before form decoding, and Scan checks upload authority before Multipart parsing.
+Declarative Body/Form/File parameters are avoided where FastAPI would read the body before those guards.
+`http/policy.py` owns finite request admission, the 12 MiB host cap, response policy, ordered cookie cleanup and ordinary-request disconnect settlement.
+`http/parsing.py` retains bounded reads and the explicit smaller JSON limits; Starlette/python-multipart owns forms with a small completion/cleanup guard.
+Global handlers in `http/errors.py` produce safe 400 validation errors, retain known conflict fields and headers, and hide unexpected 500 details.
+Native JSON responses and Uvicorn/h11 replace Node-specific parsing, number rendering and method emulation.
+Canonical paths have no trailing slash, aliases or redirects; HEAD and OPTIONS return native 405 without opening an SSE subscription.
+Native scalar queries select the last value; declared lists retain all values and endpoint-specific duplicate rejection remains explicit.
+Application methods, SQL and the current-version receipt fingerprint serializer remain in Core.
 Core imports neither HTTP nor a client framework; workers import Core without importing API.
 The native Python boundary checker enforces those directions.
 Frontend requests use the remote application and carry no serialized actor or database handle.
 
-Canonical reads include `GET /api/v1/mtg/catalog/printings/:printingId` and owned `GET /api/v1/mtg/category-definitions/:originId` for existing web reads.
+Canonical reads include `GET /api/v1/mtg/catalog/printings/{printingId}` and owned `GET /api/v1/mtg/category-definitions/{originId}` for existing web reads.
 `POST /api/v1/mtg/commands` accepts exactly the nine typed intents in `contracts/src/web.ts`.
-Its strict object parser rejects unknown keys and authority fields, preserves absent optional fields, limits JSON to 1 MiB and calls the original use case with the original source and request ID.
+Its strict Pydantic command models reject unknown keys and authority fields, preserve absent optional fields, limit JSON to 1 MiB and call the original use case with the original source and request ID.
 Results are the existing DTO directly.
 Domain validators, fingerprints and transactions remain backend-owned.
 

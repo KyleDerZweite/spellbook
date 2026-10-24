@@ -10,7 +10,8 @@ Use Python 3.14.8 and uv 0.12.23, matching CI and the image.
 The exact direct dependency pins and independent `uv.lock` preserve reproducible installation.
 FastAPI/Uvicorn own HTTP, Psycopg Pool owns finite connection acquisition, and the local `../core` package owns typed application/SQL behavior.
 Core pins Psycopg 3 separately.
-Pydantic's pinned URL parser validates trusted startup origins, without framework request-body coercion.
+Pydantic validates trusted startup origins, native Path/Query inputs, bounded JSON objects and the nine strict command models.
+Body dependencies preserve authority and throttle ordering before decoding.
 Ruff owns lint/format; strict Mypy checks source and tests.
 Pytest and httpx2 provide component/host tests and Starlette TestClient transport.
 Hatchling embeds the canonical schema and unchanged SQL/journal/snapshot assets in both distributions, including a wheel rebuilt from the sdist.
@@ -54,8 +55,8 @@ Password rotation rechecks the verified credential under the Profile lock, repla
 QR redemption locks Profile, challenge and the original approver session before issuing and consuming a session in one transaction.
 The Core `hash_password` helper creates the existing scrypt encoding for future operator use; async consumers use the bounded executor's `hash` method.
 `DEMO_MODE=true` and `API_TRUSTED_PROXY_ADDRESSES` retain the existing demo and explicit socket-peer trust settings.
-Raw credential forms consume an Auth attempt before the bounded decoder and preserve non-string file inputs and first repeated values.
-Auth/Account adapter tests run against the production registry with isolated application doubles.
+Raw credential forms consume an Auth attempt before the bounded decoder and preserve non-string file inputs and native last scalar values.
+Auth/Account adapter tests run against the native production app with isolated application doubles.
 `backend/core/tests/test_auth_profile_postgres.py` adds opt-in transaction, account-isolation, password-race and QR redemption cases under the existing guarded native pool.
 These PostgreSQL cases require the assigned disposable target and do not run during ordinary unit tests.
 `create_valuation` and `create_inventory_values` supply the real Dashboard dependency.
@@ -65,18 +66,18 @@ Current value and thirty-day history reuse that transaction and its PostgreSQL c
 Savepoints isolate optional Scan/valuation failures; aggregate overflow retains the existing 503 summary error.
 The opt-in `backend/core/tests/test_dashboard_postgres.py` case covers real aggregates, exact-first Deck allocation, current/history reads and account isolation; Root owns its assigned database execution.
 
-Missing business handlers return 404.
-Declared literal paths cannot fall through into a named entry parameter.
-For implemented paths, OPTIONS and ordered Allow retain the neutral method inventory, including later-slice methods without fabricated business handlers.
-The router normalizes URL dot segments, matches RAW literals, validates named encoding before form-Origin/Cookie SQL and passes the unchanged RAW segment to each adapter.
-Duplicate headers, absent/null fields, body framing, the 1-MiB JSON decoder and 12-MiB outer cap retain explicit compatibility handling.
-Cookie cleanup precedes handler cookies, including bearer and public Catalog requests.
-Auth/account/singleton-Catalog responses retain no-store on errors; these Inventory routes receive no additional Cache-Control policy.
-API responses retain Robots headers.
-GET-derived HEAD awaits SSE response closure and creates a separate bodyless response.
-The actual host also retains Node HTTP-parser method rejection and the HTTP-to-Fetch TRACE failure before router dispatch; direct router method tests remain separate.
-Its pinned Uvicorn H11 transport closes CONNECT tunnels without an HTTP response, matching Node's server without a `connect` listener.
-The explicit manual rollback check compares fragmented CONNECT requests against installed Python and the retained external Node artifact.
+Native APIRouter factories register the 85 canonical operations and Discovery directly.
+Valuation precedes Inventory so literal value reads do not match the Inventory entry parameter.
+Slashless paths are canonical; unknown paths and trailing slashes return 404 without redirects.
+HEAD and OPTIONS are unregistered and return 405 on known paths, with native Allow headers.
+Pydantic validates transport values; request failures return safe 400 JSON without raw validation inputs.
+Body dependencies authenticate before decoding; Auth forms count attempts first and Scan checks upload authority first.
+The 1 MiB default JSON limit, smaller QR/Category limits and 12 MiB host/form/Multipart cap remain.
+Starlette/python-multipart parses forms with finite part counts; a small completion guard rejects incomplete uploads and closes files.
+Cookie cleanup precedes replacement cookies, and cache/Robots policy applies to errors.
+Uvicorn uses its standard h11 protocol with no Node method, path, number or Fetch MIME emulation.
+The checked-in OpenAPI artifact is published without generating a competing schema.
+The project is pre-release; current-version receipt replay matters, but historical wire/stored-data compatibility is not promised.
 
 One API instance owns a request pool with min 0/max 10, at most 32 pending acquisitions and a 2-second acquisition timeout.
 Non-SSE admission allows 32 active plus 32 waiting requests, waits at most 2 seconds and rejects excess before SQL.
@@ -91,8 +92,8 @@ The lifetime owns one dedicated four-thread password executor.
 Core reserves at most four actual native futures, without backlog, retaining occupancy after waiter cancellation until native completion.
 The retired private `VerificationPlan` injection and performance instrumentation are removed under ADR-0027.
 Functional password occupancy, cancellation, partial startup and shutdown checks remain.
-Multipart credential parsing matches Node transfer encoding: exact lowercase `base64` decodes; quoted-printable, `8bit` and uppercase `BASE64` remain literal.
-First duplicate values, UTF-8 replacement, file bytes and body caps remain covered.
+Multipart credentials use the maintained Starlette/python-multipart parser with native MIME behavior.
+Last scalar values, binary image bytes, body limits, incomplete-upload rejection and file closure remain covered.
 
 Shutdown closes admission and SSE before Uvicorn drain, then settles listener/Core work, closes the Scan worker and storage adapters, settles native work, joins the dedicated executor and closes the request pool last.
 All host shutdown phases share the 15-second deadline, including partial startup cleanup.
@@ -111,7 +112,7 @@ The image uses the repository context for local Core, the schema, preserved migr
 It has no default launcher or Compose service.
 For explicit local Linux use, host networking permits its loopback listener; pass only the assigned protected environment reference and task-owned ports.
 
-The shared writer owns manifests, host, registry, resource construction, listener supervisor, admission and their tests.
+The shared writer owns manifests, host, native route assembly, resource construction, listener supervisor, admission and their tests.
 Core/domain and direct HTTP adapters retain their separate ownership.
 [Repository verification](../../docs/operations/github-automation.md#python-api-and-core) owns commands and manual native-host prerequisites.
 Real PostgreSQL, direct/proxy HTTP, two-process SavedState and same-data rollback remain integration evidence owned by Root.

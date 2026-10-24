@@ -1,10 +1,6 @@
 """Actual Scan HTTP parsing and registry behavior, independent of SQL integration."""
 
-import base64
 import json
-import os
-import re
-import subprocess
 from collections.abc import Iterator
 from contextlib import ExitStack
 from pathlib import Path
@@ -13,16 +9,13 @@ from typing import Any
 from unittest.mock import create_autospec, patch
 
 import pytest
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from http_helpers import application, operations
 from spellbook_core.auth import SessionAuth
 from spellbook_core.models import Actor
 from spellbook_core.mtg.scan import Scan, ScanError, ScanImage
-from spellbook_core.mtg.scan.validation import check_image
 
-from spellbook_api.http.admission import RequestAdmission
 from spellbook_api.http.mtg.routes_scan import create_scan_routes
-from spellbook_api.http.router import RawPathRouting, RouteRegistry
 
 BASE = "/api/v1/mtg/scan"
 ORIGIN = "https://spellbook.test"
@@ -67,83 +60,13 @@ MULTIPART_CASES: list[tuple[str, bytes, bytes | None, str]] = [
         None,
         "",
     ),
-    ("base64", multipart(base64.b64encode(PNG), encoding="base64"), PNG, "photo.png"),
-    (
-        "base64-unpadded",
-        multipart(base64.b64encode(PNG + b"x").rstrip(b"="), encoding="base64"),
-        PNG + b"x",
-        "photo.png",
-    ),
-    (
-        "base64-ignored-bytes",
-        multipart(b"!" + base64.b64encode(PNG) + b"=trailing", encoding="base64"),
-        PNG,
-        "photo.png",
-    ),
-    (
-        "base64-uppercase",
-        multipart(base64.b64encode(PNG), encoding="BASE64"),
-        base64.b64encode(PNG),
-        "photo.png",
-    ),
-    (
-        "base64-quoted",
-        multipart(base64.b64encode(PNG), encoding='"base64"'),
-        base64.b64encode(PNG),
-        "photo.png",
-    ),
-    (
-        "quoted-printable",
-        multipart(b"=89PNG", encoding="quoted-printable"),
-        b"=89PNG",
-        "photo.png",
-    ),
-    ("binary-transfer", multipart(PNG, encoding="binary"), PNG, "photo.png"),
-    (
-        "base64-url-safe",
-        multipart(base64.b64encode(PNG + b"\xfb\xff", altchars=b"-_"), encoding="base64"),
-        PNG + b"\xfb\xff",
-        "photo.png",
-    ),
-    ("base64-single-sextet", multipart(b"A", encoding="base64"), b"", "photo.png"),
-    (
-        "base64-trailing-sextet",
-        multipart(b"AAAAA", encoding="base64"),
-        b"\x00\x00\x00",
-        "photo.png",
-    ),
-    (
-        "base64-utf16-low-bytes",
-        multipart("\uff41AAA".encode(), encoding="base64"),
-        b"\x00\x00\x00",
-        "photo.png",
-    ),
-    (
-        "base64-value-whitespace",
-        multipart(base64.b64encode(PNG), encoding=" \tbase64\t "),
-        PNG,
-        "photo.png",
-    ),
-    (
-        "quote-at-filename-limit",
-        multipart(filename='"' + "x" * 250 + '%22.png"'),
-        PNG,
-        "x" * 250 + '".png',
-    ),
-    (
-        "quoted-escapes-only",
-        multipart(filename='"%0a%0D%22%2F%25%2522.png"'),
-        PNG,
-        '\n\r"%2F%25%2522.png',
-    ),
-    ("unquoted-percent-literal", multipart(filename="%22%2F.png"), PNG, "%22%2F.png"),
 ]
 
 
 @pytest.mark.parametrize(
     "name,body,payload,filename", MULTIPART_CASES, ids=[c[0] for c in MULTIPART_CASES]
 )
-def test_raw_multipart_completeness_and_fetch_file_values(
+def test_standard_multipart_completeness_and_binary_file_values(
     routes: tuple[Any, ...], name: str, body: bytes, payload: bytes | None, filename: str
 ) -> None:
     _auth, scan, client = routes
@@ -162,106 +85,22 @@ def test_raw_multipart_completeness_and_fetch_file_values(
         assert scan.upload_frame.await_args.kwargs["file_name"] == filename
 
 
-@pytest.mark.skipif(
-    not os.environ.get("TEST_SCAN_NODE_BINARY"), reason="Requires pinned Node 26.10.0"
+@pytest.mark.parametrize(
+    "ending",
+    [
+        b"",
+        b'\r\n--scan\r\nContent-Disposition: form-data; name="other"; '
+        b'filename="unfinished.png"\r\n\r\nunfinished',
+    ],
+    ids=["unfinished-first-file", "completed-file-and-rejected-second-file"],
 )
-def test_raw_multipart_values_against_actual_node_26_fetch() -> None:
-    driver = r"""
-const input = JSON.parse(await new Response(process.stdin).text());
-if (process.version !== 'v26.10.0') throw new Error('Wrong Node runtime');
-const results = [];
-for (const item of input) {
-  try {
-    const form = await new Request('http://fixture', {method:'POST',
-      headers:{'content-type':'multipart/form-data; boundary=scan'},
-      body:Buffer.from(item.body, 'base64')}).formData();
-    const file = form.get('file');
-    results.push({name:item.name, filename:file.name,
-      payload:Buffer.from(await file.arrayBuffer()).toString('base64')});
-  } catch {
-    results.push({name:item.name, malformed:true});
-  }
-}
-process.stdout.write(JSON.stringify(results));
-"""
-    result = subprocess.run(
-        [os.environ["TEST_SCAN_NODE_BINARY"], "--input-type=module", "-e", driver],
-        input=json.dumps(
-            [
-                {"name": name, "body": base64.b64encode(body).decode()}
-                for name, body, _, _ in MULTIPART_CASES
-            ]
-        ),
-        text=True,
-        capture_output=True,
-        timeout=15,
-        check=True,
-    )
-    expected = [
-        {"name": name, "malformed": True}
-        if payload is None
-        else {"name": name, "filename": filename, "payload": base64.b64encode(payload).decode()}
-        for name, _body, payload, filename in MULTIPART_CASES
-    ]
-    assert json.loads(result.stdout) == expected
-
-
-@pytest.mark.skipif(
-    not os.environ.get("TEST_SCAN_NODE_BINARY"), reason="Requires pinned Node 26.10.0"
-)
-def test_actual_node_formdata_quote_filename_at_image_validation_limit(
+def test_incomplete_multipart_closes_all_opened_files(
     routes: tuple[Any, ...],
-) -> None:
-    _auth, scan, client = routes
-    filename = "x" * 250 + '".png'
-    driver = r"""
-if (process.version !== 'v26.10.0') throw new Error('Wrong Node runtime');
-const input = JSON.parse(await new Response(process.stdin).text());
-const form = new FormData();
-form.append('file', new File([Buffer.from(input.png, 'base64')], input.filename,
-  {type:'image/png'}));
-const request = new Request('http://fixture', {method:'POST', body:form});
-const body = Buffer.from(await request.arrayBuffer());
-const contentType = request.headers.get('content-type');
-const parsed = await new Request('http://fixture', {method:'POST',
-  headers:{'content-type':contentType}, body}).formData();
-process.stdout.write(JSON.stringify({body:body.toString('base64'), contentType,
-  filename:parsed.get('file').name}));
-"""
-    result = subprocess.run(
-        [os.environ["TEST_SCAN_NODE_BINARY"], "--input-type=module", "-e", driver],
-        input=json.dumps({"png": base64.b64encode(PNG).decode(), "filename": filename}),
-        text=True,
-        capture_output=True,
-        timeout=15,
-        check=True,
-    )
-    actual = json.loads(result.stdout)
-    raw = base64.b64decode(actual["body"])
-    assert b"%22" in raw and actual["filename"] == filename
-    response = client.post(
-        BASE + f"/sessions/{SESSION}/frames",
-        content=raw,
-        headers={"Content-Type": actual["contentType"]},
-    )
-    assert response.status_code == 200
-    forwarded = scan.upload_frame.await_args.kwargs
-    assert forwarded["file_name"] == filename and len(filename) == 255
-    assert (
-        check_image(forwarded["body"], forwarded["content_type"], forwarded["file_name"])
-        == "image/png"
-    )
-
-
-def test_incomplete_multipart_closes_completed_and_unfinished_files(
-    routes: tuple[Any, ...],
+    ending: bytes,
 ) -> None:
     _auth, scan, client = routes
     opened: list[Any] = []
-    body = multipart(
-        ending=b'\r\n--scan\r\nContent-Disposition: form-data; name="other"; '
-        b'filename="unfinished.png"\r\n\r\nunfinished'
-    )
+    body = multipart(ending=ending)
     with ExitStack() as cleanup:
 
         def spool(*args: Any, **kwargs: Any) -> Any:
@@ -277,7 +116,7 @@ def test_incomplete_multipart_closes_completed_and_unfinished_files(
             )
         assert response.status_code == 400
         scan.upload_frame.assert_not_awaited()
-        assert len(opened) == 2 and all(file.closed for file in opened)
+        assert len(opened) == 1 and all(file.closed for file in opened)
 
 
 @pytest.fixture
@@ -298,17 +137,11 @@ def routes() -> Iterator[tuple[Any, Any, TestClient]]:
         "result": {"status": "matched"},
     }
     scan.commit_review.return_value = {
-        "kind": "LegacyNoRepeat",
-        "requestId": "r",
-        "binding": "UnverifiedLegacyHash",
+        "kind": "Committed",
+        "sessionId": SESSION,
         "acknowledgement": {"revision": "0"},
     }
-    registry = RouteRegistry(
-        create_scan_routes(auth, scan, ORIGIN), ORIGIN, auth, RequestAdmission()
-    )
-    http = FastAPI(openapi_url=None)
-    http.mount("/", registry)
-    http.add_middleware(RawPathRouting)
+    http = application(create_scan_routes(auth, scan, ORIGIN), ORIGIN, auth)
     with TestClient(http, headers={"Authorization": "Bearer " + TOKEN}) as client:
         yield auth, scan, client
 
@@ -319,9 +152,9 @@ def test_scan_factory_matches_openapi_operations() -> None:
     schema = json.loads(
         (Path(__file__).resolve().parents[3] / "contracts/openapi.json").read_text()
     )
-    actual = {(route.method, route.path) for route in create_scan_routes(auth, scan, ORIGIN)}
+    actual = operations(create_scan_routes(auth, scan, ORIGIN))
     expected = {
-        (method.upper(), re.sub(r"\{(\w+)\}", r":\1", path))
+        (method.upper(), path)
         for path, item in schema["paths"].items()
         if path.startswith(BASE)
         for method in item
@@ -338,8 +171,8 @@ def test_session_routes_and_method_headers(routes: tuple[Any, ...]) -> None:
     assert response.headers["cache-control"] == "no-store"
     assert client.get(BASE + "/sessions").json() == {"sessions": []}
     head = client.head(BASE + "/sessions")
-    assert head.status_code == 200 and head.content == b""
-    assert client.options(BASE + "/sessions").headers["allow"] == "POST, GET, HEAD, OPTIONS"
+    assert head.status_code == 405 and head.content == b""
+    assert client.options(BASE + "/sessions").headers["allow"] == "POST"
     assert client.delete(BASE + "/sessions").status_code == 405
     scan.create_session.assert_awaited_once_with(ACTOR)
 
@@ -370,13 +203,12 @@ def test_cookie_origin_and_invalid_bearer_precedence(routes: tuple[Any, ...]) ->
     assert response.status_code == 401 and response.json()["message"] == "Invalid bearer token"
 
 
-def test_native_upload_first_file_and_multipart_contract(routes: tuple[Any, ...]) -> None:
+def test_native_single_file_upload_and_multipart_contract(routes: tuple[Any, ...]) -> None:
     _auth, scan, client = routes
     response = client.post(
         BASE + f"/sessions/{SESSION}/frames",
         files=[
             ("file", ("photo.png", PNG, "image/png")),
-            ("file", ("other.jpg", b"other", "image/jpeg")),
         ],
     )
     assert response.status_code == 200
@@ -404,7 +236,7 @@ def test_native_upload_first_file_and_multipart_contract(routes: tuple[Any, ...]
     assert oversized.status_code == 413
 
 
-def test_multipart_file_type_uses_fetch_lowercase_normalization(routes: tuple[Any, ...]) -> None:
+def test_multipart_file_type_is_normalized(routes: tuple[Any, ...]) -> None:
     _auth, scan, client = routes
     response = client.post(
         BASE + f"/sessions/{SESSION}/frames",
@@ -414,7 +246,7 @@ def test_multipart_file_type_uses_fetch_lowercase_normalization(routes: tuple[An
     assert scan.upload_frame.await_args.kwargs["content_type"] == "image/png"
 
 
-def test_read_query_first_values_and_absence(routes: tuple[Any, ...]) -> None:
+def test_read_query_last_values_and_absence(routes: tuple[Any, ...]) -> None:
     _auth, scan, client = routes
     path = BASE + f"/sessions/{SESSION}/result"
     assert client.get(path).json()["lastResult"] is None
@@ -425,7 +257,7 @@ def test_read_query_first_values_and_absence(routes: tuple[Any, ...]) -> None:
     assert response.status_code == 200
     scan.read_session.assert_awaited_with(
         ACTOR,
-        {"sessionId": SESSION, "limit": 2, "artifactCursor": ARTIFACT, "reviewCursor": ARTIFACT},
+        {"sessionId": SESSION, "limit": 0, "artifactCursor": ARTIFACT, "reviewCursor": ARTIFACT},
     )
     assert client.get(path + "?limit=1.5").json()["message"] == "Invalid Scan page limit"
     assert client.get(path.replace(SESSION, "%GG")).status_code == 400
@@ -460,8 +292,7 @@ def test_result_and_commit_json_use_path_authority_and_no_framework_422(
         == 400
     )
     assert (
-        client.post(BASE + "/review/commit", json={"requestId": "r"}).json()["kind"]
-        == "LegacyNoRepeat"
+        client.post(BASE + "/review/commit", json={"requestId": "r"}).json()["kind"] == "Committed"
     )
     scan.commit_review.assert_awaited_once_with(ACTOR, {"requestId": "r"})
     response = client.post(

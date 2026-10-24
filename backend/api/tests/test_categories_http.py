@@ -5,8 +5,8 @@ from typing import cast
 from unittest.mock import AsyncMock, create_autospec
 
 import pytest
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from http_helpers import application, native_routes
 from spellbook_core.auth import SessionAuth
 from spellbook_core.errors import RequestConflictError, ValidationError
 from spellbook_core.models import Actor
@@ -22,9 +22,7 @@ from spellbook_core.mtg.categories.common import (
     LibraryConflict,
 )
 
-from spellbook_api.http.admission import RequestAdmission
 from spellbook_api.http.mtg.routes_categories import create_category_routes
-from spellbook_api.http.router import RawPathRouting, RouteRegistry
 
 ORIGIN = "https://category.example"
 ID = "00000000-0000-4000-8000-000000000001"
@@ -41,11 +39,8 @@ class Adapters:
         self.routes = create_category_routes(self.auth, self.categories, ORIGIN)
 
     def client(self) -> TestClient:
-        http = FastAPI(openapi_url=None, docs_url=None, redoc_url=None)
-        http.mount(
-            "/", RawPathRouting(RouteRegistry(self.routes, ORIGIN, self.auth, RequestAdmission()))
-        )
-        return TestClient(http)
+        http = application(self.routes, ORIGIN, self.auth)
+        return TestClient(http, raise_server_exceptions=False)
 
 
 CASES: list[tuple[str, str, Document | None, str, object]] = [
@@ -188,7 +183,7 @@ def test_every_route_forwards_native_contract_and_preserves_response(
     assert response.status_code == 200
     assert response.json() == wire
     handler.assert_awaited_once_with(ACTOR, expected)
-    assert len(adapters.routes) == 17
+    assert len(adapters.routes.routes) == 17
 
 
 @pytest.mark.parametrize(
@@ -314,7 +309,9 @@ def test_category_route_pairs_equal_canonical_openapi_contract() -> None:
         and not path.startswith(PREFIX + "/deck-library/")
     }
     actual = {
-        (route.method, re.sub(r":([A-Za-z]+)", r"{\1}", route.path)) for route in Adapters().routes
+        (method, re.sub(r":([A-Za-z]+)", r"{\1}", route.path))
+        for route in native_routes(Adapters().routes)
+        for method in route.methods or ()
     }
     assert actual == expected
 
@@ -326,7 +323,7 @@ def test_category_route_pairs_equal_canonical_openapi_contract() -> None:
         (f"/category-previews/{ID}", "get_category_preview", {"previewId": ID}),
     ],
 )
-def test_repeated_pagination_uses_first_scalar_values(
+def test_repeated_pagination_uses_last_scalar_values(
     path: str, function: str, identity: Document
 ) -> None:
     adapters = Adapters()
@@ -334,7 +331,7 @@ def test_repeated_pagination_uses_first_scalar_values(
     handler.return_value = {}
     with adapters.client() as client:
         response = client.get(
-            PREFIX + path + "?offset=2&offset=bad&limit=1&limit=101",
+            PREFIX + path + "?offset=bad&offset=2&limit=101&limit=1",
             headers=dict(authorization="Bearer " + TOKEN),
         )
     assert response.status_code == 200
@@ -342,8 +339,8 @@ def test_repeated_pagination_uses_first_scalar_values(
 
 
 @pytest.mark.parametrize("path", ["/category-definitions", f"/category-previews/{ID}"])
-@pytest.mark.parametrize("query", ["limit=101&limit=1", "offset=bad&offset=2"])
-def test_later_valid_scalar_does_not_replace_invalid_first_value(path: str, query: str) -> None:
+@pytest.mark.parametrize("query", ["limit=1&limit=101", "offset=2&offset=bad"])
+def test_invalid_last_scalar_rejects_earlier_valid_value(path: str, query: str) -> None:
     adapters = Adapters()
     with adapters.client() as client:
         response = client.get(
@@ -356,7 +353,7 @@ def test_later_valid_scalar_does_not_replace_invalid_first_value(path: str, quer
 
 
 @pytest.mark.parametrize("scope", ["entry", ""])
-def test_repeated_scope_preserves_first_value_including_empty(scope: str) -> None:
+def test_repeated_scope_uses_last_scalar_value(scope: str) -> None:
     adapters = Adapters()
     handler = cast(AsyncMock, adapters.categories.get_library)
     handler.return_value = {}
@@ -366,11 +363,11 @@ def test_repeated_scope_preserves_first_value_including_empty(scope: str) -> Non
             headers=dict(authorization="Bearer " + TOKEN),
         )
     assert response.status_code == 200
-    handler.assert_awaited_once_with(ACTOR, dict(scope=scope, offset=0, limit=50))
+    handler.assert_awaited_once_with(ACTOR, dict(scope="deck", offset=0, limit=50))
 
 
 @pytest.mark.parametrize("search", ["Café", ""])
-def test_repeated_rule_search_uses_first_scalars_and_retains_all_selected_ids(search: str) -> None:
+def test_repeated_rule_search_uses_last_scalars_and_retains_all_selected_ids(search: str) -> None:
     adapters = Adapters()
     handler = cast(AsyncMock, adapters.categories.get_rule_choices)
     handler.return_value = {}
@@ -398,9 +395,9 @@ def test_repeated_rule_search_uses_first_scalars_and_retains_all_selected_ids(se
     handler.assert_awaited_once_with(
         ACTOR,
         dict(
-            tagQuery=search,
-            cardQuery=search,
-            outcomeQuery=search,
+            tagQuery="later tag",
+            cardQuery="later card",
+            outcomeQuery="later outcome",
             tagIds=[ID, second_id],
             oracleIds=[second_id, ID],
             outcomeIds=["2244", "21"],

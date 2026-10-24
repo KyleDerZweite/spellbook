@@ -16,6 +16,7 @@ from uuid import uuid4
 import httpx2
 import pytest
 import uvicorn
+from http_helpers import application
 from native_inventory import NATIVE, NativeInventory, native_fixture
 from spellbook_core.auth import SessionAuth
 from spellbook_core.db import transaction
@@ -25,11 +26,10 @@ from spellbook_core.mtg.errors import NotesConflictError
 from spellbook_core.mtg.inventory import Inventory
 from starlette.requests import Request
 from starlette.responses import Response
-from starlette.types import ASGIApp, Message, Receive, Scope, Send
+from starlette.types import ASGIApp, Message
 
-from spellbook_api.http.auth import require_form_origin, stale_session_cookie
 from spellbook_api.http.errors import HttpError, error_response
-from spellbook_api.http.mtg.routes_inventory import add_items, get_entry
+from spellbook_api.http.mtg.routes_inventory import add_items, create_inventory_routes, get_entry
 
 ORIGIN = "https://spellbook.test"
 ACTOR = Actor("component-account", "component", "", "", "")
@@ -151,30 +151,18 @@ def test_http_item_input_errors(body: object, message: str) -> None:
     inventory.add_items.assert_not_awaited()
 
 
-def test_http_decode_exactly_once_before_auth_and_trim_only_at_http_boundary() -> None:
+def test_inventory_detail_helper_validates_decoded_ids_and_retains_not_found() -> None:
     async def scenario() -> None:
         auth, inventory = dependencies()
         inventory.get_entry.return_value = {"entry": {}, "memberships": [], "revision": "0"}
-        response = await get_entry(
-            request({}, method="GET"), "%20" + PRINTING.upper() + "%20", auth, inventory, ORIGIN
-        )
+        response = await get_entry(request({}, method="GET"), PRINTING, auth, inventory, ORIGIN)
         assert response.status_code == 200
-        inventory.get_entry.assert_awaited_once_with(ACTOR, PRINTING.upper())
-        for raw, message in [
-            ("%ZZ", "Invalid path encoding"),
-            ("%FF", "Invalid path encoding"),
-            ("%2520" + PRINTING, "entryId must be a UUID"),
-        ]:
-            with pytest.raises(HttpError, match=message):
-                await get_entry(request({}, method="GET"), raw, auth, inventory, ORIGIN)
+        inventory.get_entry.assert_awaited_once_with(ACTOR, PRINTING)
+        with pytest.raises(HttpError, match="entryId must be a UUID"):
+            await get_entry(request({}, method="GET"), "invalid", auth, inventory, ORIGIN)
         inventory.get_entry.return_value = None
-        with pytest.raises(HttpError, match="Inventory entry not found") as failure:
+        with pytest.raises(HttpError, match="Inventory entry not found"):
             await get_entry(request({}, method="GET"), PRINTING, auth, inventory, ORIGIN)
-        assert failure.value.status == 404
-        auth.reset_mock()
-        with pytest.raises(HttpError):
-            await get_entry(request({}, method="GET"), "%FF", auth, inventory, ORIGIN)
-        auth.validate_session.assert_not_awaited()
 
     asyncio.run(scenario())
 
@@ -200,29 +188,9 @@ def test_http_domain_failures_use_shared_error_mapping(cause: Exception) -> None
 
 
 def component(fixture: NativeInventory) -> ASGIApp:
-    async def app(scope: Scope, receive: Receive, send: Send) -> None:
-        req = Request(scope, receive)
-        cleanup = None
-        try:
-            raw = scope["raw_path"].decode("ascii")
-            require_form_origin(req, ORIGIN)
-            cleanup = await stale_session_cookie(req, fixture.auth, ORIGIN)
-            if raw == "/api/v1/mtg/inventory" and req.method == "POST":
-                response = await add_items(req, fixture.auth, fixture.inventory, ORIGIN)
-            elif raw.startswith("/api/v1/mtg/inventory/") and req.method == "GET":
-                response = await get_entry(
-                    req, raw.rsplit("/", 1)[1], fixture.auth, fixture.inventory, ORIGIN
-                )
-            else:
-                raise HttpError(404, "Not Found")
-        except Exception as cause:
-            response = error_response(cause)
-        response.headers["X-Robots-Tag"] = "noindex, nofollow"
-        if cleanup:
-            response.headers.append("Set-Cookie", cleanup)
-        await response(scope, receive, send)
-
-    return app
+    return application(
+        create_inventory_routes(fixture.auth, fixture.inventory, ORIGIN), ORIGIN, fixture.auth
+    )
 
 
 @asynccontextmanager

@@ -11,13 +11,11 @@ from collections.abc import AsyncIterator
 from fastapi import FastAPI
 from starlette.requests import Request
 from starlette.responses import Response, StreamingResponse
-from starlette.routing import Route
 
-from spellbook_api.http.admission import RequestAdmission
 from spellbook_api.http.auth import client_address
 from spellbook_api.http.errors import json_response
 from spellbook_api.http.parsing import read_json_object
-from spellbook_api.http.router import HttpRoute, RouteRegistry
+from spellbook_api.http.policy import configure_http
 from spellbook_api.http.types import ApplicationLifetime, Configuration
 from spellbook_api.main import CandidateServer
 
@@ -25,7 +23,7 @@ from spellbook_api.main import CandidateServer
 async def main() -> None:
     stop = asyncio.Event()
 
-    async def headers(request: Request, params: dict[str, str]) -> Response:
+    async def headers(request: Request) -> Response:
         response = json_response(
             {
                 "headers": dict(request.headers),
@@ -45,7 +43,7 @@ async def main() -> None:
         )
         return response
 
-    async def events(request: Request, params: dict[str, str]) -> StreamingResponse:
+    async def events(request: Request) -> StreamingResponse:
         async def stream() -> AsyncIterator[bytes]:
             try:
                 yield b"event: reset\ndata: {}\n\n"
@@ -62,7 +60,7 @@ async def main() -> None:
             },
         )
 
-    async def upload(request: Request, params: dict[str, str]) -> Response:
+    async def upload(request: Request) -> Response:
         aborted = request.url.path.endswith("upload-abort")
         if aborted:
             print("upload-started", flush=True)
@@ -74,22 +72,11 @@ async def main() -> None:
                 print("upload-aborted", flush=True)
 
     app = FastAPI()
-    app.router.routes.append(
-        Route(
-            "/{path:path}",
-            RouteRegistry(
-                [
-                    HttpRoute("GET", "/api/proxy-test/headers", headers),
-                    HttpRoute("GET", "/api/proxy-test/events", events),
-                    HttpRoute("POST", "/api/proxy-test/upload-abort", upload),
-                    HttpRoute("POST", "/api/v1/mtg/commands", upload),
-                ],
-                "http://localhost:5173",
-                None,
-                RequestAdmission(),
-            ),
-        )
-    )
+    configure_http(app, "http://localhost:5173")
+    app.add_api_route("/api/proxy-test/headers", headers, methods=["GET"])
+    app.add_api_route("/api/proxy-test/events", events, methods=["GET"])
+    app.add_api_route("/api/proxy-test/upload-abort", upload, methods=["POST"])
+    app.add_api_route("/api/v1/mtg/commands", upload, methods=["POST"])
 
     async def close() -> None:
         stop.set()

@@ -1,7 +1,6 @@
 """Explicit integrated routes; the neutral artifact remains the schema owner."""
 
 import json
-import re
 from importlib.resources import files
 from pathlib import Path
 
@@ -16,7 +15,6 @@ from spellbook_core.mtg.scan import Scan
 from spellbook_core.mtg.valuation import Valuation
 from spellbook_core.profile import Profile
 from starlette.responses import Response
-from starlette.routing import Route
 
 from spellbook_api.http import routes_account, routes_auth
 from spellbook_api.http.admission import RequestAdmission
@@ -31,12 +29,7 @@ from spellbook_api.http.mtg import (
     routes_scan,
     routes_valuation,
 )
-from spellbook_api.http.router import (
-    HttpRoute,
-    RawPathRouting,
-    RouteRegistry,
-    install_error_handlers,
-)
+from spellbook_api.http.policy import configure_http
 from spellbook_api.http.routes_saved_state import SavedStateRoutes
 from spellbook_api.http.types import Configuration
 
@@ -67,69 +60,71 @@ def create_http_application(
     schema = json.loads(schema_text)
     schema["servers"] = [{"url": configuration.public_origin}]
     http = FastAPI(openapi_url=None, docs_url=None, redoc_url=None, redirect_slashes=False)
-    http.add_middleware(RawPathRouting)
-    install_error_handlers(http)
+    configure_http(http, configuration.public_origin, auth, admission)
 
-    async def discovery(request: Request, params: dict[str, str]) -> Response:
+    async def discovery(request: Request) -> Response:
         return json_response(schema, headers={"Cache-Control": "public, max-age=3600"})
 
-    routes = [HttpRoute("GET", "/openapi.json", discovery)]
+    http.add_api_route("/openapi.json", discovery, methods=["GET"], response_model=None)
     dependencies = (auth, catalog, inventory, saved_routes)
     if any(item is not None for item in dependencies):
         if auth is None or catalog is None or inventory is None or saved_routes is None:
             raise ValueError("The HTTP dependencies must be supplied together")
 
-        async def session(request: Request, params: dict[str, str]) -> Response:
+        async def session(request: Request) -> Response:
             assert auth is not None
             return await routes_auth.get_session(request, auth, configuration.public_origin)
 
-        async def events(request: Request, params: dict[str, str]) -> Response:
+        async def events(request: Request) -> Response:
             assert saved_routes is not None
             return await saved_routes.handle(request)
 
-        routes.extend(
-            [
-                HttpRoute("GET", "/api/v1/auth/session", session),
-                HttpRoute("GET", "/api/v1/account/events", events),
-            ]
-        )
-        routes.extend(routes_catalog.create_catalog_routes(catalog))
-        routes.extend(
-            routes_inventory.create_inventory_routes(auth, inventory, configuration.public_origin)
-        )
+        http.add_api_route("/api/v1/auth/session", session, methods=["GET"], response_model=None)
+        http.add_api_route("/api/v1/account/events", events, methods=["GET"], response_model=None)
+        http.include_router(routes_catalog.create_catalog_routes(catalog))
     if valuation is not None:
         if auth is None:
             raise ValueError("Valuation routes require Auth")
-        routes.extend(
+        http.include_router(
             routes_valuation.create_valuation_routes(auth, valuation, configuration.public_origin)
+        )
+    # Literal value reads must be registered before Inventory's {entryId} route.
+    if inventory is not None:
+        assert auth is not None
+        http.include_router(
+            routes_inventory.create_inventory_routes(auth, inventory, configuration.public_origin)
         )
     if scan is not None:
         if auth is None:
             raise ValueError("Scan routes require Auth")
-        routes.extend(routes_scan.create_scan_routes(auth, scan, configuration.public_origin))
+        http.include_router(
+            routes_scan.create_scan_routes(auth, scan, configuration.public_origin)
+        )
     if categories is not None:
         if auth is None:
             raise ValueError("Category routes require Auth")
-        routes.extend(
+        http.include_router(
             routes_categories.create_category_routes(auth, categories, configuration.public_origin)
         )
     if decks is not None:
         if auth is None or inventory is None:
             raise ValueError("Deck and web routes require Auth and Inventory")
-        routes.extend(routes_decks.create_deck_routes(auth, decks, configuration.public_origin))
-        routes.extend(
+        http.include_router(
+            routes_decks.create_deck_routes(auth, decks, configuration.public_origin)
+        )
+        http.include_router(
             routes_commands.create_command_routes(
                 auth, inventory, decks, configuration.public_origin
             )
         )
     if isinstance(auth, LocalAuth):
-        routes.extend(
+        http.include_router(
             routes_auth.create_auth_routes(
                 auth, configuration.public_origin, configuration.trusted_proxy_addresses
             )
         )
         if profile is not None:
-            routes.extend(
+            http.include_router(
                 routes_account.create_account_routes(
                     auth,
                     profile,
@@ -143,28 +138,7 @@ def create_http_application(
         raise ValueError("Dashboard routes require Profile")
     if dashboard is not None:
         assert auth is not None
-        routes.extend(
+        http.include_router(
             routes_dashboard.create_dashboard_routes(auth, dashboard, configuration.public_origin)
         )
-    declared = {
-        re.sub(r"\{([^}]+)\}", r":\1", path): tuple(
-            method.upper()
-            for method in item
-            if method in {"get", "post", "put", "patch", "delete"}
-        )
-        for path, item in schema["paths"].items()
-        if path.startswith("/api/")
-    }
-    http.router.routes.append(
-        Route(
-            "/{path:path}",
-            RouteRegistry(
-                routes,
-                configuration.public_origin,
-                auth,
-                admission or RequestAdmission(),
-                declared,
-            ),
-        )
-    )
     return http

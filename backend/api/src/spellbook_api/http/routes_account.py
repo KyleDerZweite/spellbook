@@ -1,7 +1,7 @@
 """Private Profile and password bridges with the existing account error bodies."""
 
+from fastapi import APIRouter
 from spellbook_core.auth import LocalAuth
-from spellbook_core.errors import ProfileError
 from spellbook_core.profile import Profile
 from spellbook_core.validation import utf16_length, valid_password
 from starlette.requests import Request
@@ -15,43 +15,34 @@ from spellbook_api.http.auth import (
 )
 from spellbook_api.http.errors import HttpError, json_response
 from spellbook_api.http.parsing import read_form_data, read_json_object
-from spellbook_api.http.router import HttpRoute
 
 
 def create_account_routes(
-    auth: LocalAuth,
-    profile: Profile,
-    origin: str,
-    trusted_proxy_addresses: tuple[str, ...] = (),
-) -> list[HttpRoute]:
-    async def get_profile(request: Request, params: dict[str, str]) -> Response:
+    auth: LocalAuth, profile: Profile, origin: str, trusted_proxy_addresses: tuple[str, ...] = ()
+) -> APIRouter:
+    router = APIRouter()
+
+    async def get_profile(request: Request) -> Response:
         actor = await require_mobile_auth(request, auth, origin)
         return json_response(await profile.get(actor), headers={"Cache-Control": "no-store"})
 
-    async def patch_profile(request: Request, params: dict[str, str]) -> Response:
+    async def patch_profile(request: Request) -> Response:
         actor = await require_mobile_auth(request, auth, origin)
         body = await read_json_object(request)
-        try:
-            result = await profile.patch(actor, body)
-        except ProfileError as cause:
-            return json_response(
-                {"kind": cause.kind, "message": str(cause), "fields": cause.fields},
-                status=400,
-                headers={"Cache-Control": "no-store"},
-            )
+        result = await profile.patch(actor, body)
         return json_response(result, headers={"Cache-Control": "no-store"})
 
-    async def password(request: Request, params: dict[str, str]) -> Response:
+    async def password(request: Request) -> Response:
         actor = await require_mobile_auth(request, auth, origin)
         auth.take_auth_attempt(client_address(request, trusted_proxy_addresses))
         body = await read_json_object(request)
         if (
             body.keys() - {"currentPassword", "newPassword"}
             or not isinstance(body.get("currentPassword"), str)
-            or not isinstance(body.get("newPassword"), str)
+            or (not isinstance(body.get("newPassword"), str))
         ):
             raise HttpError(400, "Invalid password fields")
-        current, new = body["currentPassword"], body["newPassword"]
+        current, new = (body["currentPassword"], body["newPassword"])
         assert isinstance(current, str) and isinstance(new, str)
         session = await auth.change_password(actor, current, new)
         if session is None:
@@ -61,7 +52,7 @@ def create_account_routes(
             write_session_cookie(response, session.token, origin)
         return response
 
-    async def password_form(request: Request, params: dict[str, str]) -> Response:
+    async def password_form(request: Request) -> Response:
         require_same_origin(request, origin)
         actor = await require_mobile_auth(request, auth, origin)
         errors: dict[str, str] = {}
@@ -90,8 +81,8 @@ def create_account_routes(
         if (
             errors
             or not isinstance(current, str)
-            or not isinstance(new, str)
-            or not valid_password(new)
+            or (not isinstance(new, str))
+            or (not valid_password(new))
         ):
             return json_response(
                 {
@@ -116,9 +107,16 @@ def create_account_routes(
             write_session_cookie(response, session.token, origin)
         return response
 
-    return [
-        HttpRoute("GET", "/api/v1/account/profile", get_profile),
-        HttpRoute("PATCH", "/api/v1/account/profile", patch_profile),
-        HttpRoute("POST", "/api/v1/account/password", password),
-        HttpRoute("POST", "/api/v1/web/password", password_form),
-    ]
+    router.add_api_route(
+        "/api/v1/account/profile", get_profile, methods=["GET"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/account/profile", patch_profile, methods=["PATCH"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/account/password", password, methods=["POST"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/web/password", password_form, methods=["POST"], response_model=None
+    )
+    return router

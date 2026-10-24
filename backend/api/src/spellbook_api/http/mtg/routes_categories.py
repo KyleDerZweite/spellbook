@@ -1,26 +1,18 @@
 """The existing seventeen Category/Library/whole HTTP routes, without schema coercion."""
 
-from collections.abc import Awaitable, Callable
+from typing import Annotated
 
+from fastapi import APIRouter, Depends
 from spellbook_core.auth import SessionAuth
+from spellbook_core.models import Actor
 from spellbook_core.mtg.categories import Categories
 from spellbook_core.mtg.categories.common import Document
 from spellbook_core.validation import MISSING
 from starlette.requests import Request
-from starlette.responses import Response
 
-from spellbook_api.http.auth import require_mobile_auth
-from spellbook_api.http.errors import HttpError, json_response
-from spellbook_api.http.parsing import (
-    decode_parameter,
-    read_json_object,
-    read_query_integer,
-    read_string,
-    require_uuid,
-)
-from spellbook_api.http.router import HttpRoute
-
-type Command = Callable[[Request, dict[str, str]], Awaitable[object]]
+from spellbook_api.http.dependencies import UUIDPath, actor_dependency, body_dependency
+from spellbook_api.http.errors import HttpError
+from spellbook_api.http.parsing import read_query_integer, read_string, require_uuid
 
 
 def _fields(body: Document, allowed: list[str], *, whole: bool = False) -> None:
@@ -33,124 +25,140 @@ def _fields(body: Document, allowed: list[str], *, whole: bool = False) -> None:
         )
 
 
-def _first_query(request: Request, name: str) -> str | None:
+def _scalar_query(request: Request, name: str) -> str | None:
     """Match URLSearchParams.get while selected IDs retain getlist semantics."""
-    return next(iter(request.query_params.getlist(name)), None)
+    return request.query_params.get(name)
 
 
 def _page(request: Request) -> Document:
     return dict(
-        offset=read_query_integer(_first_query(request, "offset"), "offset", 0),
-        limit=read_query_integer(_first_query(request, "limit"), "limit", 50, 100, 1),
+        offset=read_query_integer(_scalar_query(request, "offset"), "offset", 0),
+        limit=read_query_integer(_scalar_query(request, "limit"), "limit", 50, 100, 1),
     )
 
 
-def create_category_routes(
-    auth: SessionAuth, categories: Categories, origin: str
-) -> list[HttpRoute]:
-    async def library(request: Request, params: dict[str, str]) -> object:
-        actor = await require_mobile_auth(request, auth, origin)
+def create_category_routes(auth: SessionAuth, categories: Categories, origin: str) -> APIRouter:
+    router = APIRouter()
+    authenticated = actor_dependency(auth, origin)
+
+    async def library(request: Request, actor: Annotated[Actor, Depends(authenticated)]) -> object:
         page = _page(request)
-        scope = _first_query(request, "scope")
+        scope = _scalar_query(request, "scope")
         if scope is not None:
             page["scope"] = scope
         return await categories.get_library(actor, page)
 
-    async def save(request: Request, params: dict[str, str]) -> object:
-        actor = await require_mobile_auth(request, auth, origin)
-        return await categories.save_definition(actor, await read_json_object(request, 65536))
+    async def save(
+        request: Request,
+        body: Annotated[dict[str, object], Depends(body_dependency(authenticated, 65536))],
+        actor: Annotated[Actor, Depends(authenticated)],
+    ) -> object:
+        return await categories.save_definition(actor, body)
 
-    async def choices(request: Request, params: dict[str, str]) -> object:
-        actor = await require_mobile_auth(request, auth, origin)
+    async def choices(request: Request, actor: Annotated[Actor, Depends(authenticated)]) -> object:
         query = request.query_params
         return await categories.get_rule_choices(
             actor,
             dict(
-                tagQuery=_first_query(request, "tagQuery") or "",
-                cardQuery=_first_query(request, "cardQuery") or "",
-                outcomeQuery=_first_query(request, "outcomeQuery") or "",
+                tagQuery=_scalar_query(request, "tagQuery") or "",
+                cardQuery=_scalar_query(request, "cardQuery") or "",
+                outcomeQuery=_scalar_query(request, "outcomeQuery") or "",
                 tagIds=query.getlist("tagId"),
                 oracleIds=query.getlist("oracleId"),
                 outcomeIds=query.getlist("outcomeId"),
             ),
         )
 
-    async def definition(request: Request, params: dict[str, str]) -> object:
-        actor = await require_mobile_auth(request, auth, origin)
-        return await categories.get_definition(actor, require_uuid(params["originId"]))
+    async def definition(
+        request: Request, originId: UUIDPath, actor: Annotated[Actor, Depends(authenticated)]
+    ) -> object:
+        return await categories.get_definition(actor, originId)
 
-    async def archive(request: Request, params: dict[str, str]) -> object:
-        actor = await require_mobile_auth(request, auth, origin)
-        body = await read_json_object(request, 65536)
+    async def archive(
+        request: Request,
+        originId: UUIDPath,
+        body: Annotated[dict[str, object], Depends(body_dependency(authenticated, 65536))],
+        actor: Annotated[Actor, Depends(authenticated)],
+    ) -> object:
         _fields(body, ["requestId", "expectedLibraryRevision", "archived"])
-        return await categories.archive_definition(
-            actor, {**body, "originId": require_uuid(params["originId"])}
-        )
+        return await categories.archive_definition(actor, {**body, "originId": originId})
 
-    async def get_preview(request: Request, params: dict[str, str]) -> object:
-        actor = await require_mobile_auth(request, auth, origin)
+    async def get_preview(
+        request: Request, previewId: UUIDPath, actor: Annotated[Actor, Depends(authenticated)]
+    ) -> object:
         return await categories.get_category_preview(
-            actor, dict(previewId=require_uuid(params["previewId"]), **_page(request))
+            actor, dict(previewId=previewId, **_page(request))
         )
 
-    async def commit(request: Request, params: dict[str, str]) -> object:
-        actor = await require_mobile_auth(request, auth, origin)
-        body = await read_json_object(request, 65536)
+    async def commit(
+        request: Request,
+        previewId: UUIDPath,
+        body: Annotated[dict[str, object], Depends(body_dependency(authenticated, 65536))],
+        actor: Annotated[Actor, Depends(authenticated)],
+    ) -> object:
         _fields(body, ["requestId"])
-        return await categories.commit_category_change(
-            actor, {**body, "previewId": require_uuid(params["previewId"])}
-        )
+        return await categories.commit_category_change(actor, {**body, "previewId": previewId})
 
-    async def set_entry(request: Request, params: dict[str, str]) -> object:
-        actor = await require_mobile_auth(request, auth, origin)
-        body = await read_json_object(request, 16384)
+    async def set_entry(
+        request: Request,
+        entryId: UUIDPath,
+        body: Annotated[dict[str, object], Depends(body_dependency(authenticated, 16384))],
+        actor: Annotated[Actor, Depends(authenticated)],
+    ) -> object:
         _fields(body, ["deckId", "categoryId", "expectedDecisionRevision", "requestId"])
-        return await categories.set_entry_category(
-            actor, {**body, "entryId": require_uuid(params["entryId"])}
-        )
+        return await categories.set_entry_category(actor, {**body, "entryId": entryId})
 
-    async def get_entries(request: Request, params: dict[str, str]) -> object:
-        actor = await require_mobile_auth(request, auth, origin)
-        return await categories.get_deck_entry_categories(actor, require_uuid(params["deckId"]))
+    async def get_entries(
+        request: Request, deckId: UUIDPath, actor: Annotated[Actor, Depends(authenticated)]
+    ) -> object:
+        return await categories.get_deck_entry_categories(actor, deckId)
 
-    async def initialize(request: Request, params: dict[str, str]) -> object:
-        actor = await require_mobile_auth(request, auth, origin)
-        body = await read_json_object(request, 16384)
+    async def initialize(
+        request: Request,
+        deckId: UUIDPath,
+        body: Annotated[dict[str, object], Depends(body_dependency(authenticated, 16384))],
+        actor: Annotated[Actor, Depends(authenticated)],
+    ) -> object:
         _fields(body, ["requestId"])
-        return await categories.initialize_deck_categories(
-            actor, {**body, "deckId": require_uuid(params["deckId"])}
-        )
+        return await categories.initialize_deck_categories(actor, {**body, "deckId": deckId})
 
-    async def merge(request: Request, params: dict[str, str]) -> object:
-        actor = await require_mobile_auth(request, auth, origin)
-        body = await read_json_object(request, 16384)
+    async def merge(
+        request: Request,
+        deckId: UUIDPath,
+        body: Annotated[dict[str, object], Depends(body_dependency(authenticated, 16384))],
+        actor: Annotated[Actor, Depends(authenticated)],
+    ) -> object:
         _fields(body, ["entryId", "catalogCardId", "role", "quantity"])
-        return await categories.preview_entry_merge(
-            actor, {**body, "deckId": require_uuid(params["deckId"])}
-        )
+        return await categories.preview_entry_merge(actor, {**body, "deckId": deckId})
 
-    async def preview(request: Request, params: dict[str, str]) -> object:
-        actor = await require_mobile_auth(request, auth, origin)
-        body = await read_json_object(request, 65536)
+    async def preview(
+        request: Request,
+        deckId: UUIDPath,
+        body: Annotated[dict[str, object], Depends(body_dependency(authenticated, 65536))],
+        actor: Annotated[Actor, Depends(authenticated)],
+    ) -> object:
         _fields(body, ["requestId", "scope", "mode", "restoreOriginIds"])
-        return await categories.preview_category_change(
-            actor, {**body, "deckId": require_uuid(params["deckId"])}
-        )
+        return await categories.preview_category_change(actor, {**body, "deckId": deckId})
 
-    async def get_whole(request: Request, params: dict[str, str]) -> object:
-        actor = await require_mobile_auth(request, auth, origin)
-        return await categories.get_deck_whole_categories(actor, require_uuid(params["deckId"]))
+    async def get_whole(
+        request: Request, deckId: UUIDPath, actor: Annotated[Actor, Depends(authenticated)]
+    ) -> object:
+        return await categories.get_deck_whole_categories(actor, deckId)
 
-    async def patch_whole(request: Request, params: dict[str, str]) -> object:
-        actor = await require_mobile_auth(request, auth, origin)
-        body = await read_json_object(request, 65536)
+    async def patch_whole(
+        request: Request,
+        deckId: UUIDPath,
+        versionId: UUIDPath,
+        body: Annotated[dict[str, object], Depends(body_dependency(authenticated, 65536))],
+        actor: Annotated[Actor, Depends(authenticated)],
+    ) -> object:
         _fields(body, ["requestId", "expectedDecisionRevision", "name", "manual"], whole=True)
         if "name" in body and "manual" in body:
             raise HttpError(400, "Unsupported whole-deck category fields")
         value = dict(
             requestId=require_uuid(body.get("requestId")),
-            deckId=require_uuid(params["deckId"]),
-            versionId=require_uuid(params["versionId"]),
+            deckId=deckId,
+            versionId=versionId,
             expectedDecisionRevision=read_string(
                 body.get("expectedDecisionRevision", MISSING), "expectedDecisionRevision"
             ),
@@ -163,71 +171,138 @@ def create_category_routes(
             raise HttpError(400, "Select Include or Exclude")
         return await categories.set_whole_category(actor, {**value, "manual": body["manual"]})
 
-    async def delete_whole(request: Request, params: dict[str, str]) -> object:
-        actor = await require_mobile_auth(request, auth, origin)
-        body = await read_json_object(request, 65536)
+    async def delete_whole(
+        request: Request,
+        deckId: UUIDPath,
+        versionId: UUIDPath,
+        body: Annotated[dict[str, object], Depends(body_dependency(authenticated, 65536))],
+        actor: Annotated[Actor, Depends(authenticated)],
+    ) -> object:
         _fields(body, ["requestId", "expectedDecisionRevision"], whole=True)
         return await categories.remove_whole_category(
             actor,
             dict(
                 requestId=require_uuid(body.get("requestId")),
-                deckId=require_uuid(params["deckId"]),
-                versionId=require_uuid(params["versionId"]),
+                deckId=deckId,
+                versionId=versionId,
                 expectedDecisionRevision=read_string(
                     body.get("expectedDecisionRevision", MISSING), "expectedDecisionRevision"
                 ),
             ),
         )
 
-    async def rename_local(request: Request, params: dict[str, str]) -> object:
-        actor = await require_mobile_auth(request, auth, origin)
-        body = await read_json_object(request, 65536)
+    async def rename_local(
+        request: Request,
+        deckId: UUIDPath,
+        categoryId: UUIDPath,
+        body: Annotated[dict[str, object], Depends(body_dependency(authenticated, 65536))],
+        actor: Annotated[Actor, Depends(authenticated)],
+    ) -> object:
         _fields(body, ["requestId", "expectedDecisionRevision", "name"])
         return await categories.rename_local_category(
-            actor,
-            {
-                **body,
-                "deckId": require_uuid(params["deckId"]),
-                "categoryId": require_uuid(params["categoryId"]),
-            },
+            actor, {**body, "deckId": deckId, "categoryId": categoryId}
         )
 
-    async def remove_local(request: Request, params: dict[str, str]) -> object:
-        actor = await require_mobile_auth(request, auth, origin)
-        body = await read_json_object(request, 65536)
+    async def remove_local(
+        request: Request,
+        deckId: UUIDPath,
+        categoryId: UUIDPath,
+        body: Annotated[dict[str, object], Depends(body_dependency(authenticated, 65536))],
+        actor: Annotated[Actor, Depends(authenticated)],
+    ) -> object:
         _fields(body, ["requestId", "expectedDecisionRevision", "replacementCategoryId"])
         return await categories.remove_local_category(
-            actor,
-            {
-                **body,
-                "deckId": require_uuid(params["deckId"]),
-                "categoryId": require_uuid(params["categoryId"]),
-            },
+            actor, {**body, "deckId": deckId, "categoryId": categoryId}
         )
 
-    def route(method: str, path: str, command: Command) -> HttpRoute:
-        async def handle(request: Request, params: dict[str, str]) -> Response:
-            decoded = {key: decode_parameter(value) for key, value in params.items()}
-            return json_response(await command(request, decoded))
-
-        return HttpRoute(method, "/api/v1/mtg" + path, handle)
-
-    return [
-        route("GET", "/category-definitions", library),
-        route("POST", "/category-definitions", save),
-        route("GET", "/category-rule-choices", choices),
-        route("POST", "/category-definitions/:originId/archive", archive),
-        route("GET", "/category-previews/:previewId", get_preview),
-        route("POST", "/category-previews/:previewId/commit", commit),
-        route("PATCH", "/deck-cards/:entryId/category", set_entry),
-        route("GET", "/decks/:deckId/categories", get_entries),
-        route("POST", "/decks/:deckId/categories/initialize", initialize),
-        route("POST", "/decks/:deckId/categories/merge-preview", merge),
-        route("POST", "/decks/:deckId/category-previews", preview),
-        route("GET", "/decks/:deckId/whole-categories", get_whole),
-        route("GET", "/category-definitions/:originId", definition),
-        route("PATCH", "/decks/:deckId/whole-categories/:versionId", patch_whole),
-        route("DELETE", "/decks/:deckId/whole-categories/:versionId", delete_whole),
-        route("PATCH", "/decks/:deckId/categories/:categoryId", rename_local),
-        route("DELETE", "/decks/:deckId/categories/:categoryId", remove_local),
-    ]
+    router.add_api_route(
+        "/api/v1/mtg/category-definitions", library, methods=["GET"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/mtg/category-definitions", save, methods=["POST"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/mtg/category-rule-choices", choices, methods=["GET"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/mtg/category-definitions/{originId}/archive",
+        archive,
+        methods=["POST"],
+        response_model=None,
+    )
+    router.add_api_route(
+        "/api/v1/mtg/category-previews/{previewId}",
+        get_preview,
+        methods=["GET"],
+        response_model=None,
+    )
+    router.add_api_route(
+        "/api/v1/mtg/category-previews/{previewId}/commit",
+        commit,
+        methods=["POST"],
+        response_model=None,
+    )
+    router.add_api_route(
+        "/api/v1/mtg/deck-cards/{entryId}/category",
+        set_entry,
+        methods=["PATCH"],
+        response_model=None,
+    )
+    router.add_api_route(
+        "/api/v1/mtg/decks/{deckId}/categories", get_entries, methods=["GET"], response_model=None
+    )
+    router.add_api_route(
+        "/api/v1/mtg/decks/{deckId}/categories/initialize",
+        initialize,
+        methods=["POST"],
+        response_model=None,
+    )
+    router.add_api_route(
+        "/api/v1/mtg/decks/{deckId}/categories/merge-preview",
+        merge,
+        methods=["POST"],
+        response_model=None,
+    )
+    router.add_api_route(
+        "/api/v1/mtg/decks/{deckId}/category-previews",
+        preview,
+        methods=["POST"],
+        response_model=None,
+    )
+    router.add_api_route(
+        "/api/v1/mtg/decks/{deckId}/whole-categories",
+        get_whole,
+        methods=["GET"],
+        response_model=None,
+    )
+    router.add_api_route(
+        "/api/v1/mtg/category-definitions/{originId}",
+        definition,
+        methods=["GET"],
+        response_model=None,
+    )
+    router.add_api_route(
+        "/api/v1/mtg/decks/{deckId}/whole-categories/{versionId}",
+        patch_whole,
+        methods=["PATCH"],
+        response_model=None,
+    )
+    router.add_api_route(
+        "/api/v1/mtg/decks/{deckId}/whole-categories/{versionId}",
+        delete_whole,
+        methods=["DELETE"],
+        response_model=None,
+    )
+    router.add_api_route(
+        "/api/v1/mtg/decks/{deckId}/categories/{categoryId}",
+        rename_local,
+        methods=["PATCH"],
+        response_model=None,
+    )
+    router.add_api_route(
+        "/api/v1/mtg/decks/{deckId}/categories/{categoryId}",
+        remove_local,
+        methods=["DELETE"],
+        response_model=None,
+    )
+    return router

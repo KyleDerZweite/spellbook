@@ -5,8 +5,8 @@ from typing import Any
 from unittest.mock import create_autospec
 
 import pytest
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from http_helpers import application
 from spellbook_core.auth import SessionAuth
 from spellbook_core.errors import RequestConflictError
 from spellbook_core.models import Actor
@@ -14,11 +14,8 @@ from spellbook_core.mtg.categories import CategoryMergeConflict, CategoryUnavail
 from spellbook_core.mtg.decks import Decks
 from spellbook_core.mtg.errors import DeckNotFoundError
 from spellbook_core.mtg.inventory import Inventory
-from starlette.routing import Route
 
-from spellbook_api.http.admission import RequestAdmission
 from spellbook_api.http.mtg.routes_commands import create_command_routes
-from spellbook_api.http.router import RouteRegistry
 
 ORIGIN = "https://spellbook.test"
 TOKEN = "a" * 43
@@ -32,19 +29,8 @@ def target() -> Iterator[tuple[TestClient, Any, Any, Any]]:
     auth.validate_session.side_effect = lambda token: ACTOR if token == TOKEN else None
     inventory = create_autospec(Inventory, instance=True)
     decks = create_autospec(Decks, instance=True)
-    app = FastAPI()
-    app.router.routes.append(
-        Route(
-            "/{path:path}",
-            RouteRegistry(
-                create_command_routes(auth, inventory, decks, ORIGIN),
-                ORIGIN,
-                auth,
-                RequestAdmission(),
-            ),
-        )
-    )
-    with TestClient(app) as client:
+    app = application(create_command_routes(auth, inventory, decks, ORIGIN), ORIGIN, auth)
+    with TestClient(app, raise_server_exceptions=False) as client:
         client.headers.update({"origin": ORIGIN, "cookie": "spellbook_session=" + TOKEN})
         yield client, auth, inventory, decks
 
