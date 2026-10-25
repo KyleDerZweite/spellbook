@@ -6,7 +6,12 @@ import { seedWideSummary } from './fixtures/wide-summary.ts';
 import { seedAccountScaleInventory } from './fixtures/account-scale.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { httpTestOrigin, startHttpApplication, stopHttpApplication } from './http-runtime.ts';
+import {
+	httpProcessDiagnostics,
+	httpTestOrigin,
+	startHttpApplication,
+	stopHttpApplication
+} from './http-runtime.ts';
 import type { InventoryPage } from '@spellbook/contracts/inventory.ts';
 import type { CardDocument } from '@spellbook/contracts/catalog.ts';
 import { randomUUID } from 'node:crypto';
@@ -463,6 +468,10 @@ test('built HTTP application preserves public Catalog and local account journeys
 					});
 					assert.equal(saved.status, 200);
 					assert.equal((await saved.json()).type, 'success');
+					const api = child!.api;
+					const priorErrors = httpProcessDiagnostics(api).filter(
+						(event) => event.lifecycle === 'error'
+					).length;
 					await pool.query('ALTER TABLE inventory_groups RENAME TO http_missing_inventory_groups');
 					try {
 						assert.ok((await request('/api/v1/mtg/inventory', undefined, headers)).status >= 500);
@@ -471,6 +480,24 @@ test('built HTTP application preserves public Catalog and local account journeys
 						const currentPrice = await afterFailedWindow.json();
 						assert.equal(currentPrice.results[0].quantity, 5);
 						assert.equal(currentPrice.coverage.coveredQuantity, 5);
+						await t.waitFor(
+							() =>
+								assert.deepEqual(
+									httpProcessDiagnostics(api)
+										.filter((event) => event.lifecycle === 'error')
+										.slice(priorErrors),
+									[
+										{
+											role: 'api',
+											pid: api.pid,
+											lifecycle: 'error',
+											errorType: 'UndefinedTable',
+											sqlstate: '42P01'
+										}
+									]
+								),
+							{ interval: 20, timeout: 2000 }
+						);
 					} finally {
 						await pool.query(
 							'ALTER TABLE http_missing_inventory_groups RENAME TO inventory_groups'
