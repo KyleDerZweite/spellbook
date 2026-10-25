@@ -7,8 +7,9 @@ import { mkdtemp, writeFile, access, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { ChildProcess } from 'node:child_process';
+import { spawn, ChildProcess } from 'node:child_process';
 import {
+	httpProcessDiagnostics,
 	httpApiTestOrigin,
 	httpTestOrigin,
 	startHttpApplication,
@@ -289,6 +290,135 @@ test('owned application must listen before readiness and can be stopped', async 
 		assert.notEqual(child.exitCode, null);
 	} finally {
 		if (child) await stopHttpProcess(child);
+		await rm(folder, { recursive: true, force: true });
+	}
+});
+
+test('safe process diagnostics survive readiness, split lines, overflow and exit', async () => {
+	const folder = await mkdtemp(join(tmpdir(), 'spellbook-http-runtime-'));
+	const origin = await unusedOrigin();
+	const approved = 'Database request failed: UndefinedTable (SQLSTATE 42P01)';
+	await writeFile(
+		join(folder, 'entry.mjs'),
+		`
+import {createServer} from 'node:http';
+process.stderr.write(${JSON.stringify(approved + '\n')});
+const server=createServer((_,response)=>{
+ process.stderr.write('synthetic-secret Authorization: Bearer secret https://private/?token=secret\\n');
+ process.stderr.write('x'.repeat(2048));
+ setTimeout(()=>{
+  process.stderr.write(${JSON.stringify(approved + '\n')});
+  process.stderr.write('Database request failed: UndefinedTable (SQLSTATE TOKEN)\\n');
+  process.stderr.write('Database request failed: SyntheticSecret (SQLSTATE 42P01)\\n');
+  process.stderr.write('Database request failed: Query');
+  setTimeout(()=>{process.stderr.write('Canceled (SQLSTATE 57014)\\n');response.end();},10);
+ },10);
+});
+server.listen(${new URL(origin).port},'127.0.0.1',()=>console.log('Listening on ${origin}'));
+process.on('SIGTERM',()=>{console.error(${JSON.stringify(approved)});server.close();});`
+	);
+	let child;
+	try {
+		child = await startHttpProcess(
+			origin,
+			pathToFileURL(folder + '/'),
+			'entry.mjs',
+			{},
+			false,
+			'api'
+		);
+		assert.equal(
+			httpProcessDiagnostics(child).filter((event) => event.errorType === 'UndefinedTable').length,
+			1
+		);
+		await fetch(origin);
+		await new Promise((resolve) => setTimeout(resolve, 30));
+		const events = httpProcessDiagnostics(child);
+		assert.equal(
+			events.filter((event) => event.errorType === 'UndefinedTable').length,
+			1,
+			'overflow tail cannot forge an event'
+		);
+		assert.equal(events.filter((event) => event.errorType === 'QueryCanceled').length, 1);
+		assert.doesNotMatch(JSON.stringify(events), /secret|TOKEN|Synthetic|https|Authorization/);
+		for (let i = 0; i < 36; i++) await fetch(origin);
+		const closed = new Promise((resolve) => child!.once('close', resolve));
+		await stopHttpProcess(child);
+		await closed;
+		const retained = httpProcessDiagnostics(child);
+		assert.equal(retained.length, 32);
+		assert.equal(retained.at(-1)?.lifecycle, 'exit');
+		assert.equal(
+			retained.filter((event) => event.errorType === 'UndefinedTable').length,
+			1,
+			'shutdown output is captured'
+		);
+		assert.ok(retained.every((event) => event.role === 'api' && event.pid === child!.pid));
+	} finally {
+		if (child) await stopHttpProcess(child);
+		await rm(folder, { recursive: true, force: true });
+	}
+});
+
+test('startup failure includes safe events but never raw output', async () => {
+	const folder = await mkdtemp(join(tmpdir(), 'spellbook-http-runtime-'));
+	try {
+		await writeFile(
+			join(folder, 'entry.mjs'),
+			`console.error('synthetic-secret');console.error('Database request failed: UndefinedTable (SQLSTATE 42P01)');process.exit(7);`
+		);
+		await assert.rejects(
+			startHttpProcess(
+				await unusedOrigin(),
+				pathToFileURL(folder + '/'),
+				'entry.mjs',
+				{},
+				false,
+				'api'
+			),
+			(error: Error) => {
+				assert.match(error.message, /42P01/);
+				assert.match(error.message, /"exitCode":7/);
+				assert.doesNotMatch(error.message, /synthetic-secret/);
+				return true;
+			}
+		);
+	} finally {
+		await rm(folder, { recursive: true, force: true });
+	}
+});
+
+test('ordinary failed tests receive retained fixture diagnostics automatically', async () => {
+	const folder = await mkdtemp(join(tmpdir(), 'spellbook-http-runtime-'));
+	try {
+		const runtime = new URL('./http-runtime.ts', import.meta.url).href;
+		const origin = await unusedOrigin();
+		await writeFile(
+			join(folder, 'entry.mjs'),
+			`import {createServer} from 'node:http';const s=createServer((_,r)=>{console.error('synthetic-secret');console.error('Database request failed: UndefinedTable (SQLSTATE 42P01)');r.end();});s.listen(${new URL(origin).port},'127.0.0.1',()=>console.log('Listening on ${origin}'));process.on('SIGTERM',()=>s.close());`
+		);
+		await writeFile(
+			join(folder, 'failure.test.mjs'),
+			`import {test} from 'node:test';import {startHttpProcess,stopHttpProcess} from ${JSON.stringify(runtime)};test('synthetic failure',async()=>{const child=await startHttpProcess(${JSON.stringify(origin)},new URL('./',import.meta.url),'entry.mjs',{},false,'api');try{await fetch(${JSON.stringify(origin)});await new Promise(r=>setTimeout(r,30));throw new Error('expected assertion failure');}finally{await stopHttpProcess(child);}});`
+		);
+		const result = await new Promise<{ code: number | null; output: string }>((resolve, reject) => {
+			const runner = spawn(process.execPath, ['--test', join(folder, 'failure.test.mjs')], {
+				stdio: ['ignore', 'pipe', 'pipe'],
+				env: Object.fromEntries(
+					Object.entries(process.env).filter(([name]) => name !== 'NODE_TEST_CONTEXT')
+				)
+			});
+			let output = '';
+			runner.stdout.on('data', (chunk) => (output += chunk));
+			runner.stderr.on('data', (chunk) => (output += chunk));
+			runner.once('error', reject);
+			runner.once('close', (code) => resolve({ code, output }));
+		});
+		assert.equal(result.code, 1);
+		assert.match(result.output, /42P01/);
+		assert.match(result.output, /"lifecycle":"exit"/);
+		assert.doesNotMatch(result.output, /synthetic-secret/);
+	} finally {
 		await rm(folder, { recursive: true, force: true });
 	}
 });

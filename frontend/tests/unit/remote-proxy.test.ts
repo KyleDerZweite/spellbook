@@ -1,8 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { proxyApi } from '#lib/server/remote/proxy.ts';
 
-beforeEach(() => vi.stubEnv('API_INTERNAL_URL', 'http://127.0.0.1:4000'));
-afterEach(() => vi.unstubAllEnvs());
+beforeEach(() => {
+	vi.stubEnv('API_INTERNAL_URL', 'http://127.0.0.1:4000');
+	vi.spyOn(console, 'error').mockImplementation(() => {});
+});
+afterEach(() => {
+	vi.unstubAllEnvs();
+	vi.restoreAllMocks();
+});
 function event(path: string, init: RequestInit = {}) {
 	const url = new URL(path, 'https://spellbook.test');
 	return { url, request: new Request(url, init), getClientAddress: () => '192.0.2.10' };
@@ -113,6 +119,7 @@ describe('same-origin streaming API proxy', () => {
 				throw new TypeError('fetch failed');
 			});
 			const response = await proxyApi(request, undefined, send);
+			expect(console.error).not.toHaveBeenCalled();
 			expect(response.status).toBe(status === 413 ? 413 : 400);
 			expect(await response.json()).toEqual({
 				status: status === 413 ? 413 : 400,
@@ -179,6 +186,42 @@ describe('same-origin streaming API proxy', () => {
 		await proxyApi(event('/openapi.json'), '/openapi.json', send);
 		expect(String(send.mock.calls[0][0])).toBe('http://127.0.0.1:4000/openapi.json');
 		expect(new Headers(send.mock.calls[0][1]?.headers).has('origin')).toBe(false);
+	});
+	it.each(['ECONNREFUSED', 'private-token', 'TOKEN_MATCHES_A_REGEX'])(
+		'emits only fixed diagnostics for %s',
+		async (code) => {
+			const send = vi.fn<typeof fetch>().mockRejectedValue(
+				new TypeError('secret URL?token=secret', {
+					cause: { code, message: 'secret body', stack: 'secret stack' }
+				})
+			);
+			const response = await proxyApi(
+				event('/api/v1/account/profile?token=secret', {
+					headers: { authorization: 'Bearer secret', cookie: 'secret' }
+				}),
+				undefined,
+				send
+			);
+			expect(response.status).toBe(503);
+			expect(send).toHaveBeenCalledOnce();
+			expect(console.error).toHaveBeenCalledExactlyOnceWith(
+				JSON.stringify({
+					event: 'proxy_failure',
+					errorType: 'UpstreamUnavailable',
+					...(code === 'ECONNREFUSED' ? { networkCode: code } : {})
+				})
+			);
+		}
+	);
+	it('does not emit unavailable diagnostics for an aborted request', async () => {
+		const abort = new AbortController();
+		const reason = new Error('private abort reason');
+		abort.abort(reason);
+		const send = vi.fn<typeof fetch>().mockRejectedValue(reason);
+		await expect(
+			proxyApi(event('/api/v1/account/events', { signal: abort.signal }), undefined, send)
+		).rejects.toBe(reason);
+		expect(console.error).not.toHaveBeenCalled();
 	});
 	it('returns safe unavailable errors without leaking connection details', async () => {
 		const send = vi

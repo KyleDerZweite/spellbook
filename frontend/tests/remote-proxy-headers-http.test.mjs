@@ -2,7 +2,12 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { createServer, request } from 'node:http';
 import { test } from 'node:test';
-import { startHttpProcess, stopHttpProcess, webTestEnvironment } from './http-runtime.ts';
+import {
+	httpProcessDiagnostics,
+	startHttpProcess,
+	stopHttpProcess,
+	webTestEnvironment
+} from './http-runtime.ts';
 
 /** @typedef {{status: number | undefined, headers: import('node:http').IncomingHttpHeaders, body: string}} Result */
 
@@ -196,4 +201,67 @@ test('built Web rejects duplicate sensitive raw headers before any upstream work
 			)
 		);
 	}
+});
+
+test('standalone built proxy retains coded unavailable diagnostics without request secrets', async () => {
+	const probe = createServer();
+	const apiOrigin = await listen(probe);
+	await new Promise((resolve, reject) =>
+		probe.close((error) => (error ? reject(error) : resolve(undefined)))
+	);
+	const webProbe = createServer();
+	const origin = await listen(webProbe);
+	await new Promise((resolve, reject) =>
+		webProbe.close((error) => (error ? reject(error) : resolve(undefined)))
+	);
+	const child = await startHttpProcess(
+		origin,
+		new URL('../', import.meta.url),
+		'build/index.js',
+		{
+			...webTestEnvironment(),
+			APP_ORIGIN: origin,
+			API_INTERNAL_URL: apiOrigin,
+			HOST: '127.0.0.1',
+			PORT: new URL(origin).port,
+			SOCKET_PATH: '',
+			LISTEN_PID: '0',
+			LISTEN_FDS: '0',
+			SHUTDOWN_TIMEOUT: '1'
+		},
+		false,
+		'web'
+	);
+	try {
+		const response = await fetch(origin + '/api/v1/account/profile?token=synthetic-secret', {
+			headers: {
+				authorization: 'Bearer synthetic-secret',
+				cookie: 'spellbook_session=synthetic-secret'
+			}
+		});
+		assert.equal(response.status, 503);
+		assert.equal(response.headers.get('cache-control'), 'no-store');
+		assert.deepEqual(await response.json(), {
+			message: 'The API is temporarily unavailable. Try again.'
+		});
+	} finally {
+		await stopHttpProcess(child);
+	}
+	const events = httpProcessDiagnostics(child);
+	assert.deepEqual(
+		events.filter((event) => event.lifecycle === 'error'),
+		[
+			{
+				role: 'web',
+				pid: child.pid,
+				lifecycle: 'error',
+				errorType: 'UpstreamUnavailable',
+				networkCode: 'ECONNREFUSED'
+			}
+		]
+	);
+	assert.doesNotMatch(
+		JSON.stringify(events),
+		/synthetic-secret|authorization|cookie|https?:|token=/
+	);
 });
