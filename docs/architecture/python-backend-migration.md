@@ -3,7 +3,7 @@
 - Status: Implemented unmerged candidate; owner testing and production operations pending
 - Last Reviewed: 2026-10-25
 - Source of Truth: ADR-0025, ADR-0026, ADR-0027, existing code/tests/contracts and Kyle's accepted migration, native FastAPI/Pydantic and pre-release direction
-- Update Triggers: completed native routing, legacy adapter removal and retired rollback-window prerequisite, native FastAPI HTTP contract and pre-release receipt scope, ADR-0029 pre-release extension, native FastAPI/Pydantic adoption, persistence/auth evaluation, immediate interface removal, ADR-0028 versioned API and MTG module ownership, Python source activation and server contraction, functional migration acceptance, component interfaces, assembled Categories/state, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
+- Update Triggers: completed native routing, legacy adapter removal and retired rollback-window prerequisite, native FastAPI HTTP contract and pre-release receipt scope, ADR-0029 pre-release extension, native FastAPI/Pydantic adoption, persistence/auth evaluation and Admin/ML clarification, immediate interface removal, ADR-0028 versioned API and MTG module ownership, Python source activation and server contraction, functional migration acceptance, component interfaces, assembled Categories/state, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
 - Related Docs: [ADR-0025](../decisions/0025-python-api-and-workers.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [ADR-0029](../decisions/0029-remove-replaced-interfaces.md), [Independent applications](./independent-applications.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Migration evidence](./python-migration-evidence-baseline.md), [Postgres](./postgres.md), [Auth](./auth.md), [Worker](./worker.md), [Deployment](../operations/deployment.md), [Verification](../operations/github-automation.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
 
 ## Scope and status
@@ -37,7 +37,8 @@ Valuation is included before Inventory to preserve literal value-read dispatch.
 The checked-in OpenAPI artifact remains the published owner; it does not drive dispatch.
 HTTP adapters authenticate into a trusted actor and call typed application modules.
 Psycopg 3 and explicit SQL remain the implemented persistence stack.
-Re-evaluate persistence, ORM/migration ownership and auth/permissions for future internal Admin and ML panels; no replacement library or panel implementation is selected by that evaluation.
+Re-evaluate persistence, ORM/migration ownership and auth/permissions for the future internal Admin panel; a separate ML panel remains undecided following the [2026-10-25 clarification](../wiki/python-backend-standardization.md#admin-klarstellung-vom-2026-10-25).
+No replacement library or panel implementation is selected by that evaluation.
 Core remains framework-free with current-version fingerprints and receipts.
 Historical NULL-hash/acknowledgement and ScanLegacyNoRepeat adapters, public legacy DTOs and client branches are removed.
 Introduce no generic repository or new broker.

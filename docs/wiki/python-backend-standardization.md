@@ -3,7 +3,7 @@
 - Status: Historical
 - Last Reviewed: 2026-10-25
 - Source of Truth: datierte Nutzerentscheidungen, verlinkte Audits und Reviews sowie immutable Codebelege bis `KyleDerZweite/spellbook@ad5a468f1ee3f5ded26e081979693c34051300ed`
-- Update Triggers: native Implementierung, datierte Runtime-Evidenz und abgeschlossene HTTP-Lifecycle-Prüfung, Stack-Bestätigung, ausgewählter Vereinfachungsschnitt, geänderte Modulverantwortung, neue Audit-Evidenz, native FastAPI-Freigabe, Admin-/ML-Neubewertung
+- Update Triggers: native Implementierung, datierte Runtime-Evidenz und abgeschlossene HTTP-Lifecycle-Prüfung, Stack-Bestätigung, ausgewählter Vereinfachungsschnitt, geänderte Modulverantwortung, neue Audit-Evidenz, native FastAPI-Freigabe, Admin-/ML-Neubewertung, Admin-Klarstellung und Voice-to-Text-Korrektur
 - Related Docs: [Index](./index.md), [Datenbankoptionen](./database-options.md), [Prioritäten](./priorities.md), [Python-Vertrag](../architecture/python-backend-migration.md), [Verification](../operations/github-automation.md)
 
 ## Bestätigung vom 2026-10-25
@@ -74,7 +74,8 @@ Bei `KyleDerZweite/spellbook@14d0b9b10b96f9975d332fc8b0df123979e79ddd` sind Pyda
 Die vollständige native Router-Umstellung und Bereinigung öffentlicher Legacy-Typen liefen damals noch.
 Diesen Zwischenstand überholt der [Implementierungsstand](#implementierungsstand-und-evidenz-vom-2026-10-25) vom selben Tag.
 
-Kyle bekräftigte ein späteres AdminPanel für Benutzer, DB-Prüfungen und Worker sowie ein späteres MLPanel.
+Kyle bekräftigte nach damaliger Interpretation ein späteres AdminPanel für Benutzer, DB-Prüfungen und Worker sowie ein späteres MLPanel.
+Die sichere ML-Zuordnung ist durch die [spätere Klarstellung](#admin-klarstellung-vom-2026-10-25) überholt; die folgenden ML-Vorschläge sind keine bestätigten Anforderungen.
 Das veranlasste eine Neubewertung von Persistence und Auth, keine Freigabe zur Implementierung von Panels, ORM oder Auth.
 Die [Admin-/ML-Bewertung](t3-thread://v1/thread:delegated-task:command%3Amcp%3A9e10a3f5-df85-461c-b846-8bcb828bdbf2%3Adelegate-task%3Aspellbook-admin-ml-reevaluation-20261025-r1) enthält folgende Vorschläge, keinen neuen Vertrag.
 Ein AdminPanel macht SQLAdmin und wenige Staff-Permissions zu konkreten Kandidaten.
@@ -89,6 +90,15 @@ Authlib bleibt für künftige Federation denkbar.
 Ein neues JWT-System, ein TypeScript-Service oder ein allgemeines Rollenframework sind dadurch nicht ausgewählt.
 Die optionale Klärung des ML-Workflows blieb offen; Kyle wählte weder Training als Schwerpunkt noch MLflow.
 Diese Empfehlungen brauchen vor Umsetzung einen ausgewählten Umfang und konkrete Panel-Anforderungen.
+
+## Admin-Klarstellung vom 2026-10-25
+
+Später am 2026-10-25 erklärte Kyle, mit ML-Panel vermutlich das Admin-Panel gemeint zu haben.
+Die konkrete Zukunftsabsicht betrifft Benutzerverwaltung, DB-Prüfungen und Worker.
+Ein separates ML-Panel bleibt unentschieden und ist nicht zur Umsetzung beauftragt.
+Roots frühere Erklärung zu Trainingsdaten, Modellversionen und Evaluationen beschrieb seine Interpretation, keine akzeptierte ML-Anforderung.
+Quelle: [Nutzerkorrektur im Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759).
+Zur Zusammenarbeit gilt die [Voice-to-Text-Präferenz](./priorities.md#voice-to-text-präferenz-vom-2026-10-25).
 
 ## Implementierungsstand und Evidenz vom 2026-10-25
 
