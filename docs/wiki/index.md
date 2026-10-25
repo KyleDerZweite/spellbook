@@ -3,7 +3,7 @@
 - Status: Historical
 - Last Reviewed: 2026-10-25
 - Source of Truth: datierte Quellen in den verlinkten Themenseiten
-- Update Triggers: dauerhafte Erkenntnisse, Nutzerkorrekturen, strategische Entscheidungen, Wiederaufnahme, Documentation Health Review, Gesamtbackend-Vergleich, Python-/PostgreSQL-Bestätigung, native FastAPI-Freigabe, Pre-release-Verzicht, Admin-Bestätigung und vorerst kein ML-Panel, Voice-to-Text-Präferenz, Admin-/ML-Neubewertung und native Implementierungs-/Runtime-Evidenz
+- Update Triggers: akzeptierte Retro-Maßnahmen, Themenbündelung und präzise Quellenpositionen, dauerhafte Erkenntnisse, Nutzerkorrekturen, strategische Entscheidungen, Wiederaufnahme, Documentation Health Review, Gesamtbackend-Vergleich, Python-/PostgreSQL-Bestätigung, native FastAPI-Freigabe, Pre-release-Verzicht, Admin-Bestätigung und vorerst kein ML-Panel, Voice-to-Text-Präferenz, Admin-/ML-Neubewertung und native Implementierungs-/Runtime-Evidenz
 - Related Docs: [Dokumentationsindex](../README.md), [Agent-Anweisungen](../../AGENTS.md)
 
 Am 2026-10-24 beauftragte Kyle diese historische Sammlung unter `docs/wiki/`.
@@ -14,15 +14,15 @@ Vor strategischen Entscheidungen und Wiederaufnahme den Index und relevante Seit
 ## Orientierung und Pflege
 
 - [Index](./index.md): Einstieg und vollständiges Seitenverzeichnis.
-- [Wiki-Pflege](./wiki-maintenance.md): Ortswahl, Quellenregeln, Query, Ingest und periodischer Lint.
+- [Wiki-Pflege](./wiki-maintenance.md): Ortswahl, Quellenregeln, Query, Ingest, akzeptierte Themenbündelung und präzise Quellenpositionen.
 
 ## Prioritäten und Entscheidungen
 
-- [Prioritäten und Zusammenarbeit](./priorities.md): Maintainability vor Simplicity vor Features, Context Pointers, Voice-to-Text-Präferenz und abgelöste Proof-Gates.
+- [Prioritäten und Zusammenarbeit](./priorities.md): Maintainability vor Simplicity vor Features, Context Pointers, Voice-to-Text-Präferenz, Themenbündelung und abgelöste Proof-Gates.
 - [Android zuerst](./mobile-direction.md): Bestätigte Plattformpriorität und getrennte Kotlin-Empfehlung.
 - [Interface-Entfernung](./interface-removal.md): Sofortiger Ersatz alter Interfaces, erweiterter Pre-release-Verzicht und getrennte Production-Autorität.
 - [Datenbankoptionen](./database-options.md): SQLite-/Turso-Historie, theoretische Wechselmotive, Gesamtbackend-Vergleich und spätere Bestätigung von Python und PostgreSQL.
-- [Python-Backend standardisieren](./python-backend-standardization.md): Nativer FastAPI-/Pydantic-Stand bei B388, bestandener HTTP-Neulauf bei AD5 und bestätigte Admin-Absicht ohne vorerst geplantes ML-Panel.
+- [Python-Backend standardisieren](./python-backend-standardization.md): Nativer FastAPI-/Pydantic-Stand bei B388, bestandener HTTP-Neulauf bei AD5, bestätigte Admin-Absicht ohne vorerst geplantes ML-Panel und ausgewählte Retro-Maßnahmen mit Implementierungsbelegen.
 
 ## Tooling und Prüfungen
 

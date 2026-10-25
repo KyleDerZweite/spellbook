@@ -1,9 +1,9 @@
 # Spellbook documentation
 
 - Status: Canonical
-- Last Reviewed: 2026-10-24
+- Last Reviewed: 2026-10-25
 - Source of Truth: mixed
-- Update Triggers: historical strategy wiki discovery, versioned shared/MTG API and module ownership, Python runtime activation and Node source/test contraction, Python functional migration acceptance and ADR-0029 interface-removal supersession, sentence-per-line authoring and review-date semantics, independent API/web ownership and relocated code references, document ownership, product contracts, section changes, documentation health review
+- Update Triggers: implemented migration source and PR-owned merge status, historical strategy wiki discovery, versioned shared/MTG API and module ownership, Python runtime activation and Node source/test contraction, Python functional migration acceptance and ADR-0029 interface-removal supersession, sentence-per-line authoring and review-date semantics, independent API/web ownership and relocated code references, document ownership, product contracts, section changes, documentation health review
 - Related Docs: [Product](./product/README.md), [Architecture](./architecture/README.md), [Operations](./operations/README.md), [Integrations](./integrations/README.md), [Decisions](./decisions/README.md), [Reference](./reference/README.md), [Issue labels](./ISSUE_LABELS.md)
 
 Start with the [product specification](./product/specification.md) for current behavior, requirements, and known limits.
@@ -15,7 +15,8 @@ The code, tests, and configuration resolve implementation questions.
 [Valuation](./architecture/valuation.md) owns implemented reference mechanics, public source history and private daily checkpoints.
 [ADR-0020](./decisions/0020-value-only-inventory-history.md) records the value-only scope and supersedes the cost-dependent history design.
 
-The [Python migration contract](./architecture/python-backend-migration.md) and [ADR-0027](./decisions/0027-python-functional-migration-acceptance.md) own functional porting acceptance, retired strict resource gates and the complete unmerged candidate.
+The [Python migration contract](./architecture/python-backend-migration.md) and [ADR-0027](./decisions/0027-python-functional-migration-acceptance.md) own functional porting acceptance, retired strict resource gates and the implemented Python source.
+[PR 276](https://github.com/KyleDerZweite/spellbook/pull/276) records current merge status and owner acceptance.
 Production operations remain separate.
 
 [ADR-0028](./decisions/0028-versioned-game-api.md) owns the canonical versioned shared/MTG API.

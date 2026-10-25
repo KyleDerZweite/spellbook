@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-25
 - Source of Truth: package scripts, Python project files, CI workflow, contribution policy
-- Update Triggers: native listener lifecycle assertions and evidence ownership, raw Web header rejection and deterministic Category recovery, native FastAPI HTTP contract and pre-release receipt scope, State history scheduling ownership, Core-owned PostgreSQL test environment, canonical root operator commands, explicit Application checks and conditional Python boundary ownership, ADR-0029 immediate removal of replaced API interfaces, canonical-only API operation checks and MTG imports, installed Python activation, Node source/test contraction and transferred HTTP consumers, Python source activation and server contraction, functional Python migration acceptance and retired P01 proof requirements, setup-java v6 compatibility, Python Category/state packaging, host/Dashboard/Scan assembly and installed migrator/operator checks, manual native acceptance and import boundaries, independent API/web ownership and relocated code references, native initial Deck Search publication regression, conditional CI scope, manual-only heavy workflows and consolidated jobs, native Inventory measurement regression, portable opt-in browsing performance evidence and artifact provenance, PWA worker build harness and tsconfig, QR integration/HTTP and pending target acceptance, Dev launcher lifecycle tests, test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
+- Update Triggers: frozen package test refresh, bounded safe diagnostics and focused shutdown ordering, native listener lifecycle assertions and evidence ownership, raw Web header rejection and deterministic Category recovery, native FastAPI HTTP contract and pre-release receipt scope, State history scheduling ownership, Core-owned PostgreSQL test environment, canonical root operator commands, explicit Application checks and conditional Python boundary ownership, ADR-0029 immediate removal of replaced API interfaces, canonical-only API operation checks and MTG imports, installed Python activation, Node source/test contraction and transferred HTTP consumers, Python source activation and server contraction, functional Python migration acceptance and retired P01 proof requirements, setup-java v6 compatibility, Python Category/state packaging, host/Dashboard/Scan assembly and installed migrator/operator checks, manual native acceptance and import boundaries, independent API/web ownership and relocated code references, native initial Deck Search publication regression, conditional CI scope, manual-only heavy workflows and consolidated jobs, native Inventory measurement regression, portable opt-in browsing performance evidence and artifact provenance, PWA worker build harness and tsconfig, QR integration/HTTP and pending target acceptance, Dev launcher lifecycle tests, test commands, workflow coverage, runtime pins, browser verification, tool output and evidence handling, child-task context, PR policy, Dependabot policy, engineering skill tracker and domain layout, Wayfinder sub-issues and native dependencies, self-contained planning evidence, proposed runtime/evidence manifests and integration closeout, optional account-summary and Inventory scale fixtures, integration file serialization and graceful HTTP child shutdown, recorded Category Catalog fixture isolation and range fixtures, optional local Combo fixtures and source-fenced HTTP evidence, SavedState two-process HTTP and Python socket prerequisites, Scan actual-worker tests and replay fixtures, private value observation/calendar/API and invalidation checks, application/transport lifecycle and native operator persistence checks
 - Related Docs: [Operations](./README.md), [Product acceptance](../product/specification.md#interface-acceptance), [Frontend](../architecture/frontend.md), [Deployment](./deployment.md), [Contributing](../../CONTRIBUTING.md), [Docs maintenance](../README.md#maintenance), [Application boundaries](../architecture/application-contract.md#implementation-status)
 
 This document owns repository check commands, CI coverage, and verification evidence.
@@ -50,10 +50,15 @@ With installed Python packages and a web build for the exact test Origin, run fr
 ```sh
 pnpm db:migrate
 APP_ORIGIN=http://127.0.0.1:5191 pnpm --dir frontend build
+pnpm --dir frontend exec node --test --test-name-pattern='SavedState listener closes and installed Python exits naturally after SSE shutdown' tests/http-runtime.test.ts
 pnpm --dir frontend test:http
 pnpm --dir frontend test:scan
 pnpm --dir frontend test:sync
 ```
+
+Run the focused physical shutdown selector first, including both closed-SSE and active-SSE cases, then the full HTTP suite.
+It retains the installed-wheel, origin-matched build and exclusive migrated PostgreSQL prerequisites above.
+A skipped database guard or name-filtered case establishes no physical shutdown result.
 
 `test:integration` is an aggregate of those retained external HTTP suites.
 It replaces the removed direct Node domain integration project.
@@ -90,7 +95,14 @@ The separate portable browsing suite below retains actual client window algorith
 
 ### Python API and Core
 
-Run Ruff, format, Mypy and pytest from each owning package directory.
+Use `pnpm test:python <core|api|workers/state|workers/catalog|workers/scan> [...pytestArgs]` from the root for package tests.
+The [existing launcher](../../scripts/python.mjs) refreshes only the selected package environment with frozen dependencies, the development extra and noneditable installation before pytest.
+It reinstalls the selected package and, for API and State, the required local Core wheel in that environment.
+Pytest runs from the package directory with the supplied arguments; a failed refresh prevents pytest from starting.
+This refresh does not upgrade dependencies or replace external installed-wheel acceptance below.
+CI keeps its existing native `uv sync` and `uv run` steps, which already refresh their environments; Python CI needs no Node wrapper.
+
+Run Ruff, format and Mypy from each owning package directory.
 `--project` alone does not change pytest discovery or Mypy's configuration directory.
 From the repository root:
 
@@ -100,12 +112,12 @@ uvx --from uv==0.12.23 uv lock --project backend/core --check --python 3.14.8
 uvx --from uv==0.12.23 uv run --directory backend/core --no-sync ruff check
 uvx --from uv==0.12.23 uv run --directory backend/core --no-sync ruff format --check
 uvx --from uv==0.12.23 uv run --directory backend/core --no-sync mypy
-uvx --from uv==0.12.23 uv run --directory backend/core --no-sync pytest
+pnpm test:python core
 uvx --from uv==0.12.23 uv lock --project backend/api --check --python 3.14.8
 uvx --from uv==0.12.23 uv run --directory backend/api --no-sync ruff check
 uvx --from uv==0.12.23 uv run --directory backend/api --no-sync ruff format --check
 uvx --from uv==0.12.23 uv run --directory backend/api --no-sync mypy
-uvx --from uv==0.12.23 uv run --directory backend/api --no-sync pytest
+pnpm test:python api
 uvx --from uv==0.12.23 uv run --project backend/api --no-sync python scripts/check_python_boundaries.py
 uvx --from uv==0.12.23 uv run --project backend/api --no-sync python -m unittest discover -s scripts -p test_python_boundaries.py
 ```
@@ -117,7 +129,7 @@ The native operation-set test compares every API method/path with OpenAPI; that 
 Run `SPELLBOOK_TEST_WHEEL=1` for the external installed API wheel/sdist check and `SPELLBOOK_TEST_STATE_WHEEL=1` for State.
 These tests verify bundled assets, console commands and installed production dependencies without connecting to PostgreSQL.
 
-Run Core's real PostgreSQL tests from its own frozen development environment with `uvx --from uv==0.12.23 uv run --directory backend/core --no-sync pytest <selected-tests>`.
+Run Core's real PostgreSQL tests from its own frozen development environment with `pnpm test:python core <selected-tests>`.
 Core's development extra includes `psycopg-pool` for test fixtures; runtime pools remain owned by API and State.
 Read each selected file's explicit target guard before execution.
 The existing `P02B_CORE_NATIVE_DATABASE`, `P02B_INVENTORY_NATIVE_DATABASE` and `P02B_SCAN_NATIVE_DATABASE` cases retain their exclusive assigned target.
@@ -392,6 +404,13 @@ When a tool returns both structured data and serialized text, inspect one repres
 Summarize findings instead of printing both or repeating full payloads.
 Retain necessary full logs in the existing evidence location, keep credentials and private payloads protected, and record the command or artifact URL plus the relevant commit, base and working diff.
 Short output does not replace required checks or establish skipped acceptance evidence.
+
+The [HTTP runtime fixture](../../frontend/tests/http-runtime.ts) retains at most 32 safe events per process through readiness and child exit.
+Each unfinished output line is limited to 1 KiB; overflow is discarded through its newline and unknown lines are dropped.
+Only fixed permitted role, PID, lifecycle, exit code, signal, error type, SQLSTATE and network code metadata survives.
+Failed tests automatically emit the safe snapshot through their `TestContext` diagnostics.
+The normal [Web proxy](../../frontend/src/lib/server/remote/proxy.ts) emits `proxy_failure` with fixed `UpstreamUnavailable` error type and an optional permitted network code; the [API error owner](../../backend/api/src/spellbook_api/http/errors.py) retains its existing type/SQLSTATE logger.
+These diagnostics exclude raw output, request data, headers, bodies, tokens, queries, stacks and error messages.
 
 Give child tasks the accepted outcome, responsibilities, interfaces, dependencies, unresolved objections and exact workspace/revision.
 Link required canonical owners and request concise findings with evidence references instead of repeating the full parent context.

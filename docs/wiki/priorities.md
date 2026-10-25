@@ -3,7 +3,7 @@
 - Status: Historical
 - Last Reviewed: 2026-10-25
 - Source of Truth: datierte Quellenverweise; aktuelle Verträge bei den bestehenden Owners
-- Update Triggers: Prioritätswechsel, Agent-Zusammenarbeit, konkrete Environment-Reibung, Voice-to-Text-Korrekturen
+- Update Triggers: akzeptierte Themenbündelung und präzise Quellenpositionen, Prioritätswechsel, Agent-Zusammenarbeit, konkrete Environment-Reibung, Voice-to-Text-Korrekturen
 - Related Docs: [Index](./index.md), [Wiki-Pflege](./wiki-maintenance.md), [Interface-Entfernung](./interface-removal.md), [Datenbankoptionen](./database-options.md), [Admin-Klarstellung](./python-backend-standardization.md#admin-klarstellung-vom-2026-10-25)
 
 Am 2026-10-24 bekräftigte Kyle die Reihenfolge Long Term Maintainable, Simplicity, Features.
@@ -22,4 +22,10 @@ Funktionale Korrektheit und separate Production-Autorität behielten ihre eigene
 Am 2026-10-25 bat Kyle darum, offensichtliche Voice-to-Text-Ungenauigkeiten aus dem Kontext zu interpretieren.
 Nur folgenreiche Mehrdeutigkeiten sollen Rückfragen auslösen; einzelne transkribierte Begriffe begründen keine neue Anforderung.
 Anlass war die [Admin-/ML-Korrektur](./python-backend-standardization.md#admin-klarstellung-vom-2026-10-25).
-Quelle: [Nutzerpräferenz im Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759).
+Quelle: [Nutzerpräferenz im Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759), Position 3772.
+
+## Themenbündelung vom 2026-10-25
+
+Am 2026-10-25 bestätigte Kyle die sofortige Aufnahme von Erkenntnissen mit gebündelter Formatierung, Integration und Commit pro Thema.
+Die [Wiki-Pflege](./wiki-maintenance.md#akzeptierte-pflegepräzisierung-vom-2026-10-25) beschreibt den Ablauf und die präziseren Quellenangaben.
+Quelle: [Zustimmung im Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759), Position 3859, ItemID `turn-item:message:9a5d5a04-14a9-49ed-b27a-1a51c27e0c2e`, zu den Empfehlungen an Position 3854.

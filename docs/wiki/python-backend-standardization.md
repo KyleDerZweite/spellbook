@@ -2,8 +2,8 @@
 
 - Status: Historical
 - Last Reviewed: 2026-10-25
-- Source of Truth: datierte Nutzerentscheidungen, verlinkte Audits und Reviews sowie immutable Codebelege bis `KyleDerZweite/spellbook@ad5a468f1ee3f5ded26e081979693c34051300ed`
-- Update Triggers: native Implementierung, datierte Runtime-Evidenz und abgeschlossene HTTP-Lifecycle-Prüfung, Stack-Bestätigung, ausgewählter Vereinfachungsschnitt, geänderte Modulverantwortung, neue Audit-Evidenz, native FastAPI-Freigabe, Admin-/ML-Neubewertung, Admin-Bestätigung, vorerst kein ML-Panel und Voice-to-Text-Korrektur
+- Source of Truth: datierte Nutzerentscheidungen, verlinkte Audits und Reviews sowie immutable Codebelege bis `KyleDerZweite/spellbook@214137ec7f790a328659edf5eb84c1dc879d5121`
+- Update Triggers: akzeptierte Retro-Maßnahmen und implementierte Diagnose-/Testaufrufe, präzise Quellenpositionen, native Implementierung, datierte Runtime-Evidenz und abgeschlossene HTTP-Lifecycle-Prüfung, Stack-Bestätigung, ausgewählter Vereinfachungsschnitt, geänderte Modulverantwortung, neue Audit-Evidenz, native FastAPI-Freigabe, Admin-/ML-Neubewertung, Admin-Bestätigung, vorerst kein ML-Panel und Voice-to-Text-Korrektur
 - Related Docs: [Index](./index.md), [Datenbankoptionen](./database-options.md), [Prioritäten](./priorities.md), [Python-Vertrag](../architecture/python-backend-migration.md), [Verification](../operations/github-automation.md)
 
 ## Bestätigung vom 2026-10-25
@@ -96,9 +96,9 @@ Diese Empfehlungen brauchen vor Umsetzung einen ausgewählten Umfang und konkret
 Später am 2026-10-25 erklärte Kyle, mit ML-Panel vermutlich das Admin-Panel gemeint zu haben.
 Die konkrete Zukunftsabsicht betrifft Benutzerverwaltung, DB-Prüfungen und Worker.
 Ein separates ML-Panel blieb zu diesem Zeitpunkt unentschieden und war nicht zur Umsetzung beauftragt.
-Diese Einordnung überholt die [anschließende Bestätigung](#admin-bestätigung-und-ml-zurückstellung-vom-2026-10-25).
+Diese Einordnung wird durch die [anschließende Bestätigung](#admin-bestätigung-und-ml-zurückstellung-vom-2026-10-25) überholt.
 Roots frühere Erklärung zu Trainingsdaten, Modellversionen und Evaluationen beschrieb seine Interpretation, keine akzeptierte ML-Anforderung.
-Quelle: [Nutzerkorrektur im Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759).
+Quelle: [Nutzerkorrektur im Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759), Position 3772.
 Zur Zusammenarbeit gilt die [Voice-to-Text-Präferenz](./priorities.md#voice-to-text-präferenz-vom-2026-10-25).
 
 ## Admin-Bestätigung und ML-Zurückstellung vom 2026-10-25
@@ -108,7 +108,7 @@ Ein separates ML-Panel ist vorerst nicht geplant; dies ersetzt die [zuvor offene
 Erst konkrete Erkennungs-, Scanning- oder Jetson-Anforderungen wären Anlass zur Neubewertung.
 Jetson ist die kontextuelle Deutung der Voice-to-Text-Eingabe, keine Hardware-Roadmap.
 Die Klarstellung beauftragt weder Panel-Implementierung noch ORM, Auth-Umbau oder ML-Service.
-Quelle: [Erneute Nutzerklarstellung im Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759).
+Quelle: [Erneute Nutzerklarstellung im Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759), Position 3792, ItemID `turn-item:message:73b69307-b5cd-46e7-8622-84b6f0a2c644`.
 
 ## Implementierungsstand und Evidenz vom 2026-10-25
 
@@ -131,6 +131,7 @@ D08 bestätigte physisches LISTEN-Ende und HTTP-Schließung; eine alte Prozess-E
 [AD5](https://github.com/KyleDerZweite/spellbook/commit/ad5a468f1ee3f5ded26e081979693c34051300ed) korrigierte diese Assertion ohne Production-Änderung; der vollständige Stage-5-Neulauf bestand 117 von 121 Tests bei null Fehlern und vier Skips.
 Beide PostgreSQL-Shutdown-Fälle bestätigten Listener-Ende, HTTP-Schließung, SIGTERM und keine verbleibenden PID-Verbindungen.
 Dieser Pass überholt die betroffenen Fehler; Stage-2-/3-/4-Fehlhistorie bleibt im Originalrecord erhalten.
+Quellenpositionen im Runtime-Record: 235 für die alte Listener-Assertion, 279 für den Exit-Fehler und 299 für den AD5-Pass, zuletzt ItemID `turn-item:provider:codex:native-item:msg_01ad806c69c0226d016add4f97692c81918dbd5a4d96d18b38`.
 Android-Lint, 32 JVM-Tests und Assemble bestanden bei D08; Geräteprüfungen blieben unausgeführt.
 Frühere Core-/Receipt-, Scan- und Sync-Evidenz stammt von [11f](https://github.com/KyleDerZweite/spellbook/commit/11fca691810530fb228fb3cdb4dc64047452023d) mit unverändertem relevantem Source und wurde nicht als neuer Gesamtlauf ausgegeben.
 Exakte Transient-Ergebnisse und CI-Evidenz gehören in [PR 276](https://github.com/KyleDerZweite/spellbook/pull/276) und den Runtime-Record.
@@ -145,4 +146,21 @@ Stage 5 stellte Tabellenbaseline, Catalog-Zustand und Migration-Hashes wieder he
 Die frühere Stage-2-Abweichung durch abgelaufene QR-Zeilen bleibt als Cleanup-Grenze dokumentiert.
 Die [Evidenzverantwortung](../architecture/python-migration-evidence-baseline.md#native-implementation-evidence-2026-10-25) verweist auf die Originalrecords und fehlende Target-Prüfungen.
 Die [Pre-release-Policy](./interface-removal.md#erweiterter-verzicht-vom-2026-10-25) ist bereits kanonisch; historische Daten-Upgrades sind kein Acceptance-Gate.
-Merge und Production-Deployment wurden nicht ausgeführt; Integration und Acceptance bleiben bei [Root](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759).
+Zum damaligen Evidenzstand wurden Merge und Production-Deployment nicht ausgeführt; die spätere Merge-Freigabe steht im [Retro-Nachtrag](#ausgewählte-retro-maßnahmen-und-implementierung-vom-2026-10-25).
+Integration und Acceptance bleiben bei [Root](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759).
+
+## Ausgewählte Retro-Maßnahmen und Implementierung vom 2026-10-25
+
+Später am 2026-10-25 akzeptierte Kyle alle drei Empfehlungen des Interviews und damit den Umsetzungsschnitt der fünf Retro-Maßnahmen.
+Ausgewählt sind sichere Diagnosen im Test und normalen Betrieb, gezielte Shutdown-Prüfung vor dem vollständigen HTTP-Lauf, automatischer Paket-Refresh vor Python-Tests sowie gebündelte Wiki-Pflege mit präzisen Quellenangaben.
+Quelle: [Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759), Retro Position 3843, Interview Positionen 3845 und 3854, Zustimmung Position 3859, ItemID `turn-item:message:9a5d5a04-14a9-49ed-b27a-1a51c27e0c2e`.
+Die Zustimmung autorisiert Commit und Merge von PR 276 nach Verifikation und überholt die frühere Vorgabe, den Integrationsstand ungemergt zu belassen.
+Production-Deployment bleibt eine getrennte Operation.
+
+Der [Design-Review](t3-thread://v1/thread:delegated-task:command%3Amcp%3A9e10a3f5-df85-461c-b846-8bcb828bdbf2%3Adelegate-task%3Aspellbook-retro-remedy-design-review-20261025-r1), Position 15, meldete PASS für diesen begrenzten Schnitt.
+[Commit 4d83ac3](https://github.com/KyleDerZweite/spellbook/commit/4d83ac3766be0e590246669fbaf24d1b41b1b545) implementiert den paketbezogenen Testaufruf mit Frozen-Refresh und präzisiert den nativen SIGTERM-Vertrag.
+[Commit 214137e](https://github.com/KyleDerZweite/spellbook/commit/214137ec7f790a328659edf5eb84c1dc879d5121) implementiert begrenzte sichere Prozessdiagnosen nach Readiness und die normale Web-Proxy-Fehlermeldung.
+[Repository verification](../operations/github-automation.md#python-api-and-core) beschreibt Testaufruf und getrennte Installed-Wheel-Acceptance; die [HTTP-Anleitung](../operations/github-automation.md#local-checks) besitzt Shutdown-Reihenfolge und Voraussetzungen, der [Evidenzabschnitt](../operations/github-automation.md#tool-output-and-evidence) den Diagnosevertrag.
+Die [Wiki-Pflege](./wiki-maintenance.md#akzeptierte-pflegepräzisierung-vom-2026-10-25) beschreibt die ausgewählte Themenbündelung.
+Neue Laufzeitprüfungen dieser Änderungen und finale Integration bleiben bei Root; [PR 276](https://github.com/KyleDerZweite/spellbook/pull/276) besitzt deren genaue Commands, Ergebnisse, fehlende Target-Evidenz und aktuellen Merge-Status.
+Die älteren Runtime-Pässe oben belegen keinen neuen CI-, PostgreSQL- oder Browserlauf.

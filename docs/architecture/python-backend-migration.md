@@ -1,9 +1,9 @@
 # Python backend migration contract
 
-- Status: Implemented unmerged candidate; owner testing and production operations pending
+- Status: Implemented source; PR 276 owns merge status and owner acceptance; production operations pending
 - Last Reviewed: 2026-10-25
 - Source of Truth: ADR-0025, ADR-0026, ADR-0027, existing code/tests/contracts and Kyle's accepted migration, native FastAPI/Pydantic and pre-release direction
-- Update Triggers: completed native routing, legacy adapter removal and retired rollback-window prerequisite, native FastAPI HTTP contract and pre-release receipt scope, ADR-0029 pre-release extension, native FastAPI/Pydantic adoption, persistence/auth evaluation and Admin confirmation and ML deferral, immediate interface removal, ADR-0028 versioned API and MTG module ownership, Python source activation and server contraction, functional migration acceptance, component interfaces, assembled Categories/state, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
+- Update Triggers: accepted retrospective remedies and merge preparation, completed native routing, legacy adapter removal and retired rollback-window prerequisite, native FastAPI HTTP contract and pre-release receipt scope, ADR-0029 pre-release extension, native FastAPI/Pydantic adoption, persistence/auth evaluation and Admin confirmation and ML deferral, immediate interface removal, ADR-0028 versioned API and MTG module ownership, Python source activation and server contraction, functional migration acceptance, component interfaces, assembled Categories/state, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
 - Related Docs: [ADR-0025](../decisions/0025-python-api-and-workers.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [ADR-0029](../decisions/0029-remove-replaced-interfaces.md), [Independent applications](./independent-applications.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Migration evidence](./python-migration-evidence-baseline.md), [Postgres](./postgres.md), [Auth](./auth.md), [Worker](./worker.md), [Deployment](../operations/deployment.md), [Verification](../operations/github-automation.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
 
 ## Scope and status
@@ -21,7 +21,9 @@ Current acceptance exercises the installed Python implementation and current int
 Its 2026-10-25 extension removes backward compatibility and stored-data upgrade guarantees.
 Historical Node parsing, serialization and error-body quirks are not acceptance requirements.
 
-Complete the candidate on `integration/python-backend-migration` and leave it unmerged for review.
+The Python implementation is delivered through `integration/python-backend-migration` and [PR 276](https://github.com/KyleDerZweite/spellbook/pull/276).
+Kyle authorized commit and merge after verification on 2026-10-25; the [dated acceptance record](../wiki/python-backend-standardization.md#ausgewählte-retro-maßnahmen-und-implementierung-vom-2026-10-25) supersedes the earlier instruction to leave the artifact unmerged.
+Use the PR for current merge status and owner acceptance.
 Authorized source work includes Python migrator preparation/rehearsal, Python default activation and removal of the replaced TypeScript server and obsolete server tests after their functional coverage transfers.
 Keep the Svelte/TypeScript frontend and Android, updating affected callers and shared contracts with interface changes.
 Schema changes may require reset/reimport; retain SQL needed for fresh installation.
@@ -30,7 +32,7 @@ Production cutover and productive migrator rollout have not been performed.
 
 ## Framework, modules and resources
 
-The candidate implements native FastAPI routing and strict Pydantic models for all nine closed commands.
+The source implements native FastAPI routing and strict Pydantic models for all nine closed commands.
 Custom RouteRegistry/catch-all dispatch, the FIELDS interpreter and Node HTTP/JSON/Fetch emulation are removed.
 The [native HTTP contract](./independent-applications.md#selected-versioned-game-api) owns APIRouter composition, Pydantic dependencies, validation errors, Multipart limits and method/slash policy.
 Valuation is included before Inventory to preserve literal value-read dispatch.
@@ -166,7 +168,7 @@ Source activation establishes neither complete integration acceptance nor produc
 
 The [implementation epic #245](https://github.com/KyleDerZweite/spellbook/issues/245) and P00 through P20 remain implementation context.
 Their existing bodies do not override this accepted direction.
-Delivery uses the existing unmerged [integration draft PR 276](https://github.com/KyleDerZweite/spellbook/pull/276) against `main`.
+Delivery uses the existing [integration PR 276](https://github.com/KyleDerZweite/spellbook/pull/276) against `main`.
 Root integrates isolated source commits sequentially and owns final runtime verification.
 Root assigns shared CI, manifests, launchers, native routers and host integration to one writer before parallel implementation.
 Keep writers isolated and start dependent work after their functional prerequisites integrate.
@@ -179,7 +181,7 @@ Migration-specific CI/start/packaging updates are required with their owning sou
 3. Integrate direct API, same-origin web proxy, actual workers/storage/providers, two-process SavedState and rendered client journeys.
    Exercise current Python process/database integration and current-version receipt replay on disposable data after writes.
 4. Prepare/rehearse the one-shot Python migrator, make Python the candidate default and remove replaced Node server source and obsolete tests after consumer and coverage transfer.
-   Refresh affected checks on the complete integration head and leave the artifact unmerged.
+   Refresh affected checks on the complete integration head before the authorized merge.
 5. Treat production API cutover and productive migrator rollout as separate operations.
    Source preparation does not perform a deployment; historical backward-upgrade and rollback-window prerequisites are superseded by the pre-release policy.
 
