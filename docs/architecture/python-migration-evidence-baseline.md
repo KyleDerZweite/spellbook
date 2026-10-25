@@ -3,7 +3,7 @@
 - Status: Canonical functional evidence responsibilities
 - Last Reviewed: 2026-10-25
 - Source of Truth: current Python code/tests, OpenAPI, useful synthetic fixtures, ADR-0029 and PR 276
-- Update Triggers: pre-release compatibility supersession, native FastAPI/Pydantic acceptance, current-route acceptance, installed Python runtime, fixture ownership, stored-data correctness and target evidence
+- Update Triggers: native implementation and evidence ownership, pre-release compatibility supersession, native FastAPI/Pydantic acceptance, current-route acceptance, installed Python runtime, fixture ownership, stored-data correctness and target evidence
 - Related Docs: [Migration contract](./python-backend-migration.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [ADR-0029](../decisions/0029-remove-replaced-interfaces.md), [Contracts](../../contracts/README.md), [Independent applications](./independent-applications.md), [Auth](./auth.md), [Postgres](./postgres.md), [Verification](../operations/github-automation.md), [Deployment](../operations/deployment.md)
 
 ## Scope and authorization
@@ -20,7 +20,7 @@ Historical extraction hashes, Node comparisons and superseded proof protocols re
 
 [`contracts/openapi.json`](../../contracts/openapi.json) is the sole current route inventory and structural wire contract.
 The API serves 85 canonical operations plus Discovery; seven browser page methods remain web-owned.
-Registry tests compare complete operation sets, reject extra operations and assert representative removed paths return 404.
+Native route tests compare complete operation sets, reject extra operations and assert representative removed paths return 404.
 Route counts alone establish no functional result.
 The Python adapter reads the bundled artifact and substitutes the configured public origin.
 Backend owns route-specific validation, authorization, limits and error semantics; client helpers and handwritten TypeScript/Kotlin clients retain their owners.
@@ -40,7 +40,7 @@ Safe writes, exact domain numbers and accepted effects remain required; retained
 ## Runtime evidence responsibilities
 
 [Repository verification](../operations/github-automation.md#python-api-and-core) owns pinned setup, package checks, installed-wheel checks and guarded database procedures.
-Manual `backend/api/tests/native_host_acceptance.py` exercises the installed Python production registry using `P02B_INSTALLED_PYTHON` and the existing exclusive target guard.
+Manual `backend/api/tests/native_host_acceptance.py` exercises the installed Python production app using `P02B_INSTALLED_PYTHON` and the existing exclusive target guard.
 It retains actual process, database, receipt and SSE scenarios without launching a Node API or comparing removed paths.
 Node is used only where a built web process is required.
 Direct API and same-origin proxy need separate evidence for authentication, raw forms, request limits, QR cookies and streaming.
@@ -62,12 +62,19 @@ A multipart upload reached local storage and the Scan scaffold over TCP.
 An installed State worker completed an enqueued Category job and stopped cleanly on SIGTERM.
 These observations establish their recorded scope, not current-head acceptance or production deployment.
 
+## Native implementation evidence 2026-10-25
+
+The candidate implements all canonical operations plus Discovery through native FastAPI routing, dependencies and global exception handlers.
+Strict Pydantic command models and current-version Core fingerprints/receipts replace the removed custom dispatch and historical compatibility adapters.
+The [dated wiki summary](../wiki/python-backend-standardization.md#implementierungsstand-und-evidenz-vom-2026-10-25) links immutable implementation and review sources.
+Use [PR 276](https://github.com/KyleDerZweite/spellbook/pull/276) and the [runtime record](t3-thread://v1/thread:delegated-task:command%3Amcp%3A9e10a3f5-df85-461c-b846-8bcb828bdbf2%3Adelegate-task%3Aspellbook-native-functional-verification-stage1-20261025-r1) for exact tested revisions, transferred evidence, failed attempts, cleanup limits and final integrated results.
+
 ## Remaining target evidence
 
 Operator-owned S3 and live external-provider refreshes, a naturally scheduled daily value observation and physical Android/Keystore journeys remain target-owner checks.
 Local storage, protocol fixtures and PostgreSQL capture/DST tests do not establish those target results.
 Scan recognition retains the existing `no_match` scaffold.
 Owner acceptance remains separate from technical checks.
-Production API cutover, productive migrator rollout and ending the real rollback window require separate operations.
+Production API cutover and productive migrator rollout have not been performed.
 Source removal does not authorize deleting retained production artifacts or data.
 Operational recovery must protect accepted writes under its authorized procedure; cross-version data compatibility and Node rollback are not source acceptance requirements.

@@ -2,8 +2,8 @@
 
 - Status: Historical
 - Last Reviewed: 2026-10-25
-- Source of Truth: datierte Nutzerentscheidungen, verlinkte Designbewertungen und vier unabhängige statische Audits bei `KyleDerZweite/spellbook@740b4d4c434234d19b1b87f928552d069860a604`
-- Update Triggers: Stack-Bestätigung, ausgewählter Vereinfachungsschnitt, geänderte Modulverantwortung, neue Audit-Evidenz, native FastAPI-Freigabe, Admin-/ML-Neubewertung
+- Source of Truth: datierte Nutzerentscheidungen, verlinkte Audits und Reviews sowie immutable Codebelege bis `KyleDerZweite/spellbook@ad5a468f1ee3f5ded26e081979693c34051300ed`
+- Update Triggers: native Implementierung, datierte Runtime-Evidenz und abgeschlossene HTTP-Lifecycle-Prüfung, Stack-Bestätigung, ausgewählter Vereinfachungsschnitt, geänderte Modulverantwortung, neue Audit-Evidenz, native FastAPI-Freigabe, Admin-/ML-Neubewertung
 - Related Docs: [Index](./index.md), [Datenbankoptionen](./database-options.md), [Prioritäten](./priorities.md), [Python-Vertrag](../architecture/python-backend-migration.md), [Verification](../operations/github-automation.md)
 
 ## Bestätigung vom 2026-10-25
@@ -71,7 +71,8 @@ Python und PostgreSQL bleiben ausgewählt.
 Quelle: [Nutzerentscheidungen](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759).
 Der [native HTTP-Entwurf](t3-thread://v1/thread:delegated-task:command%3Amcp%3A9e10a3f5-df85-461c-b846-8bcb828bdbf2%3Adelegate-task%3Aspellbook-native-http-design-20261025-r1) und seine [Review-Korrektur](t3-thread://v1/thread:delegated-task:command%3Amcp%3A9e10a3f5-df85-461c-b846-8bcb828bdbf2%3Adelegate-task%3Aspellbook-native-http-design-review-20261025-r1) halten die ausgewählten Verantwortlichkeiten fest, einschließlich Valuation vor Inventory.
 Bei `KyleDerZweite/spellbook@14d0b9b10b96f9975d332fc8b0df123979e79ddd` sind Pydantic für [neun Commands](https://github.com/KyleDerZweite/spellbook/blob/14d0b9b10b96f9975d332fc8b0df123979e79ddd/backend/api/src/spellbook_api/http/mtg/routes_commands.py) und die [zentrale Fehlerbehandlung](https://github.com/KyleDerZweite/spellbook/blob/14d0b9b10b96f9975d332fc8b0df123979e79ddd/backend/api/src/spellbook_api/http/errors.py) integriert.
-Die vollständige native Router-Umstellung und Bereinigung öffentlicher Legacy-Typen liefen noch; dieser Eintrag bestätigt keinen Abschluss.
+Die vollständige native Router-Umstellung und Bereinigung öffentlicher Legacy-Typen liefen damals noch.
+Diesen Zwischenstand überholt der [Implementierungsstand](#implementierungsstand-und-evidenz-vom-2026-10-25) vom selben Tag.
 
 Kyle bekräftigte ein späteres AdminPanel für Benutzer, DB-Prüfungen und Worker sowie ein späteres MLPanel.
 Das veranlasste eine Neubewertung von Persistence und Auth, keine Freigabe zur Implementierung von Panels, ORM oder Auth.
@@ -88,3 +89,40 @@ Authlib bleibt für künftige Federation denkbar.
 Ein neues JWT-System, ein TypeScript-Service oder ein allgemeines Rollenframework sind dadurch nicht ausgewählt.
 Die optionale Klärung des ML-Workflows blieb offen; Kyle wählte weder Training als Schwerpunkt noch MLflow.
 Diese Empfehlungen brauchen vor Umsetzung einen ausgewählten Umfang und konkrete Panel-Anforderungen.
+
+## Implementierungsstand und Evidenz vom 2026-10-25
+
+Am 2026-10-25 implementierte der ungemergte Kandidat bei `KyleDerZweite/spellbook@b38820c90d092fc423ee05509eb0239012c76acd` alle 85 kanonischen API-Operationen plus Discovery mit nativen FastAPI-Routern, Dependencies und globalen Exception-Handlern.
+Die [Assembly](https://github.com/KyleDerZweite/spellbook/blob/b38820c90d092fc423ee05509eb0239012c76acd/backend/api/src/spellbook_api/http/application.py) und [neun strikten Pydantic-Commands](https://github.com/KyleDerZweite/spellbook/blob/b38820c90d092fc423ee05509eb0239012c76acd/backend/api/src/spellbook_api/http/mtg/command_models.py) ersetzen RouteRegistry/Catch-all und FIELDS-Interpreter.
+Node-HTTP-/JSON-/Fetch-Emulation sowie historische NULL-Hash-/Acknowledgement- und ScanLegacyNoRepeat-Adapter, öffentliche Legacy-DTOs und Client-Zweige sind entfernt.
+Der frameworkfreie Core behält aktuelle Fingerprints und Receipts.
+Quelle: [Implementierungsowner](t3-thread://v1/thread:delegated-task:command%3Amcp%3A9e10a3f5-df85-461c-b846-8bcb828bdbf2%3Adelegate-task%3Aspellbook-native-http-design-20261025-r1).
+
+Die [Workflow-Konfiguration](https://github.com/KyleDerZweite/spellbook/blob/b38820c90d092fc423ee05509eb0239012c76acd/.github/workflows/ci.yml) und [Core-Dev-Abhängigkeiten](https://github.com/KyleDerZweite/spellbook/blob/b38820c90d092fc423ee05509eb0239012c76acd/backend/core/pyproject.toml) verwenden das eigene Core-Testenvironment samt bereits genutztem Pool-Paket.
+State besitzt `VALUE_HISTORY_ENABLED`; drei Frontend-Operator-Forwarder entfallen, Root-Commands bleiben.
+Mypy, Boundary-Prüfungen und die frühere CI-Reduktion bleiben erhalten.
+Django, ORM, Auth-Plattform und neue Framework-Abhängigkeiten wurden nicht implementiert.
+Die [Admin-/ML-Neubewertung](#ausgewählte-umsetzung-und-neubewertung-vom-2026-10-25) bleibt eine spätere Option ohne ausgewähltes Panel oder MLflow.
+
+Unabhängige finale [Standards](t3-thread://v1/thread:delegated-task:command%3Amcp%3A9e10a3f5-df85-461c-b846-8bcb828bdbf2%3Adelegate-task%3Aspellbook-native-live-standards-20261025-r3)- und [Spec-Reviews](t3-thread://v1/thread:delegated-task:command%3Amcp%3A9e10a3f5-df85-461c-b846-8bcb828bdbf2%3Adelegate-task%3Aspellbook-native-live-spec-20261025-r3) meldeten Source-PASS bei B388.
+Der [Runtime-Owner](t3-thread://v1/thread:delegated-task:command%3Amcp%3A9e10a3f5-df85-461c-b846-8bcb828bdbf2%3Adelegate-task%3Aspellbook-native-functional-verification-stage1-20261025-r1) bestätigte betroffene Recovery-Fälle, echte Host-/Header-Proben und Desktop-/Narrow-Browserabläufe.
+Die vollständigen HTTP-Läufe bei B388 und [D08](https://github.com/KyleDerZweite/spellbook/commit/d08f82f578af0c2a9675a4df13dac43f327b515d) hatten jeweils 114 Pass, drei Fail und vier Skip.
+D08 bestätigte physisches LISTEN-Ende und HTTP-Schließung; eine alte Prozess-Exit-Assertion verursachte weiterhin den Fehler.
+[AD5](https://github.com/KyleDerZweite/spellbook/commit/ad5a468f1ee3f5ded26e081979693c34051300ed) korrigierte diese Assertion ohne Production-Änderung; der vollständige Stage-5-Neulauf bestand 117 von 121 Tests bei null Fehlern und vier Skips.
+Beide PostgreSQL-Shutdown-Fälle bestätigten Listener-Ende, HTTP-Schließung, SIGTERM und keine verbleibenden PID-Verbindungen.
+Dieser Pass überholt die betroffenen Fehler; Stage-2-/3-/4-Fehlhistorie bleibt im Originalrecord erhalten.
+Android-Lint, 32 JVM-Tests und Assemble bestanden bei D08; Geräteprüfungen blieben unausgeführt.
+Frühere Core-/Receipt-, Scan- und Sync-Evidenz stammt von [11f](https://github.com/KyleDerZweite/spellbook/commit/11fca691810530fb228fb3cdb4dc64047452023d) mit unverändertem relevantem Source und wurde nicht als neuer Gesamtlauf ausgegeben.
+Exakte Transient-Ergebnisse und CI-Evidenz gehören in [PR 276](https://github.com/KyleDerZweite/spellbook/pull/276) und den Runtime-Record.
+
+Node/Fetch kann doppelte Header vor der API verwerfen; deshalb prüft Web die Raw-Header vor Proxy und Session-Verarbeitung.
+Erwartete Psycopg-Fehler brauchen einen bekannten nativen Handler, weil die generische ServerErrorMiddleware nach der Antwort erneut wirft und gepoolte HTTP-Verbindungen schließen kann.
+Deterministische SQLSTATE-57014-Injektion ersetzt `pg_sleep`-Zeitgrenzen und erhält den Rollback-/Retry-Nachweis.
+Historisches First-Duplicate-Boolean-Verhalten begründet keine aktuelle Acceptance.
+Die Listener-Tests prüfen tatsächliches LISTEN und Prozessende über PID statt interner Application-Name-Formate.
+Uvicorn 0.54.0 wirft nach graceful shutdown SIGTERM erneut; korrekt sind null ExitCode und genau dieses Signal.
+Stage 5 stellte Tabellenbaseline, Catalog-Zustand und Migration-Hashes wieder her, gab die Lease frei und beendete eigene Prozesse und Container; Benchmark-Daten blieben unberührt.
+Die frühere Stage-2-Abweichung durch abgelaufene QR-Zeilen bleibt als Cleanup-Grenze dokumentiert.
+Die [Evidenzverantwortung](../architecture/python-migration-evidence-baseline.md#native-implementation-evidence-2026-10-25) verweist auf die Originalrecords und fehlende Target-Prüfungen.
+Die [Pre-release-Policy](./interface-removal.md#erweiterter-verzicht-vom-2026-10-25) ist bereits kanonisch; historische Daten-Upgrades sind kein Acceptance-Gate.
+Merge und Production-Deployment wurden nicht ausgeführt; Integration und Acceptance bleiben bei [Root](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759).

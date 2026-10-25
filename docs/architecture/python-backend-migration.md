@@ -3,7 +3,7 @@
 - Status: Implemented unmerged candidate; owner testing and production operations pending
 - Last Reviewed: 2026-10-25
 - Source of Truth: ADR-0025, ADR-0026, ADR-0027, existing code/tests/contracts and Kyle's accepted migration, native FastAPI/Pydantic and pre-release direction
-- Update Triggers: native FastAPI HTTP contract and pre-release receipt scope, ADR-0029 pre-release extension, native FastAPI/Pydantic adoption, persistence/auth evaluation, immediate interface removal, ADR-0028 versioned API and MTG module ownership, Python source activation and server contraction, functional migration acceptance, component interfaces, assembled Categories/state, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
+- Update Triggers: completed native routing, legacy adapter removal and retired rollback-window prerequisite, native FastAPI HTTP contract and pre-release receipt scope, ADR-0029 pre-release extension, native FastAPI/Pydantic adoption, persistence/auth evaluation, immediate interface removal, ADR-0028 versioned API and MTG module ownership, Python source activation and server contraction, functional migration acceptance, component interfaces, assembled Categories/state, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
 - Related Docs: [ADR-0025](../decisions/0025-python-api-and-workers.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [ADR-0029](../decisions/0029-remove-replaced-interfaces.md), [Independent applications](./independent-applications.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Migration evidence](./python-migration-evidence-baseline.md), [Postgres](./postgres.md), [Auth](./auth.md), [Worker](./worker.md), [Deployment](../operations/deployment.md), [Verification](../operations/github-automation.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
 
 ## Scope and status
@@ -26,18 +26,21 @@ Authorized source work includes Python migrator preparation/rehearsal, Python de
 Keep the Svelte/TypeScript frontend and Android, updating affected callers and shared contracts with interface changes.
 Schema changes may require reset/reimport; retain SQL needed for fresh installation.
 The pre-release policy does not authorize resetting an actual database or deleting unrelated files.
-Production cutover, productive migrator rollout and ending the real production rollback window remain separate operations.
+Production cutover and productive migrator rollout have not been performed.
 
 ## Framework, modules and resources
 
-Use native FastAPI routing and Pydantic request models, replacing custom routing/parsing machinery and its obsolete compatibility tests.
+The candidate implements native FastAPI routing and strict Pydantic models for all nine closed commands.
+Custom RouteRegistry/catch-all dispatch, the FIELDS interpreter and Node HTTP/JSON/Fetch emulation are removed.
 The [native HTTP contract](./independent-applications.md#selected-versioned-game-api) owns APIRouter composition, Pydantic dependencies, validation errors, Multipart limits and method/slash policy.
 Valuation is included before Inventory to preserve literal value-read dispatch.
 The checked-in OpenAPI artifact remains the published owner; it does not drive dispatch.
 HTTP adapters authenticate into a trusted actor and call typed application modules.
 Psycopg 3 and explicit SQL remain the implemented persistence stack.
 Re-evaluate persistence, ORM/migration ownership and auth/permissions for future internal Admin and ML panels; no replacement library or panel implementation is selected by that evaluation.
-Keep Core framework-free and introduce no generic repository or new broker.
+Core remains framework-free with current-version fingerprints and receipts.
+Historical NULL-hash/acknowledgement and ScanLegacyNoRepeat adapters, public legacy DTOs and client branches are removed.
+Introduce no generic repository or new broker.
 Shared Core owns Auth, identity preferences, database, password, QR and SavedState infrastructure.
 `spellbook_core.mtg` owns Catalog, Inventory/Groups, Decks, Categories/Library, Valuation/History, Dashboard, Scan and MTG projections.
 Shared Profile has an explicit dependency on `mtg.profile`.
@@ -116,7 +119,7 @@ Keep accepted application effects, current closed commands and browser forms cor
 [ADR-0028](../decisions/0028-versioned-game-api.md) supersedes path/module immutability for the accepted canonical versioned API and explicit MTG modules.
 Its mapping and ownership contract live in [independent applications](./independent-applications.md#selected-versioned-game-api).
 [ADR-0029](../decisions/0029-remove-replaced-interfaces.md) removes the previous API paths, alias adapters and obsolete route/transfer inventories.
-Compare the complete current registry with canonical OpenAPI and exercise current interfaces.
+Compare the complete native operation set with canonical OpenAPI and exercise current interfaces.
 
 - Preserve bearer-before-cookie selection without fallback after any invalid explicit Authorization, cookie-only SSR/forms, Origin exceptions, trusted client addresses and `APP_ORIGIN` authority.
   Count credential-form attempts exactly once before decoding; preserve password rotation's replacement cookie and request-bound credential.
@@ -176,8 +179,8 @@ Migration-specific CI/start/packaging updates are required with their owning sou
    Exercise current Python process/database integration and current-version receipt replay on disposable data after writes.
 4. Prepare/rehearse the one-shot Python migrator, make Python the candidate default and remove replaced Node server source and obsolete tests after consumer and coverage transfer.
    Refresh affected checks on the complete integration head and leave the artifact unmerged.
-5. Separately authorize production API cutover, productive migrator rollout and the eventual end of the real rollback window.
-   Source preparation does not close those operations.
+5. Treat production API cutover and productive migrator rollout as separate operations.
+   Source preparation does not perform a deployment; historical backward-upgrade and rollback-window prerequisites are superseded by the pre-release policy.
 
 ### Practical acceptance contract
 
@@ -222,7 +225,8 @@ P17 owns integrated current-Python functional and current-version receipt accept
 ADR-0029 supersedes old-route parity and dual-runtime HTTP prerequisites.
 P19/P20 source preparation uses integrated P16 code and initial P17 functional evidence, followed by final-head verification.
 P18 production cutover is not a prerequisite for source preparation.
-P19 productive rollout and P20 operational rollback retirement stay open until separately authorized and executed.
+P19 productive rollout remains a separate operation.
+P20's former rollback-window retirement prerequisite is superseded by the pre-release policy; no backward-upgrade guarantee remains.
 
 ## Review record
 
