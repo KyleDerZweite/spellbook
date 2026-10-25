@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import pg from 'pg';
 import { randomUUID } from 'node:crypto';
-import { SESSION_COOKIE } from '@spellbook/backend/auth/session.ts';
+import { SESSION_COOKIE } from './fixtures/session.ts';
 import { fixtureAuthRequest } from './fixtures/http-auth.ts';
 import { httpTestOrigin, startHttpApplication, stopHttpApplication } from './http-runtime.ts';
 import type { Deck, DeckChoicePage } from '@spellbook/contracts/decks.ts';
@@ -12,7 +12,7 @@ if (!databaseUrl || databaseUrl !== process.env.DATABASE_URL)
 	throw Error('Deck choice HTTP checks require matching disposable DB references');
 const pool = new pg.Pool({ connectionString: databaseUrl });
 const origin = httpTestOrigin();
-const path = '/api/mobile/v1/mtg/decks/choices';
+const path = '/api/v1/mtg/decks/choices';
 const accounts: string[] = [];
 let child: Awaited<ReturnType<typeof startHttpApplication>> | undefined;
 
@@ -26,7 +26,7 @@ test('built bounded Deck choice HTTP contract', async (t) => {
 		const register = async () => {
 			const response = await fixtureAuthRequest(
 				origin,
-				'/api/auth/register',
+				'/api/v1/auth/register',
 				{
 					username: 'choicehttp_' + randomUUID().slice(0, 8),
 					password: 'choices-http-fixture-password'
@@ -43,7 +43,7 @@ test('built bounded Deck choice HTTP contract', async (t) => {
 		const bearer = { authorization: `Bearer ${owner.token}` },
 			cookie = { cookie: `${SESSION_COOKIE}=${owner.token}` };
 		const create = async (token: string, name: string) => {
-			const response = await fetch(origin + '/api/mobile/v1/mtg/decks', {
+			const response = await fetch(origin + '/api/v1/mtg/decks', {
 				method: 'POST',
 				headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
 				body: JSON.stringify({
@@ -134,7 +134,7 @@ test('built bounded Deck choice HTTP contract', async (t) => {
 						nextOffset: null,
 						selected: null
 					});
-				const removed = await fetch(origin + '/api/mobile/v1/mtg/decks/' + owned[60].id, {
+				const removed = await fetch(origin + '/api/v1/mtg/decks/' + owned[60].id, {
 					method: 'DELETE',
 					headers: bearer
 				});

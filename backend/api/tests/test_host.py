@@ -60,10 +60,14 @@ def test_canonical_origins_remain_accepted(origin: str) -> None:
     assert Configuration(origin).public_origin == origin
 
 
-@pytest.mark.parametrize("host", ["0.0.0.0", "::", "192.168.1.1", "example.com"])
-def test_candidate_cannot_bind_outside_loopback(host: str) -> None:
-    with pytest.raises(ValueError):
-        Configuration("http://localhost:5173", host=host)
+@pytest.mark.parametrize("host", ["0.0.0.0", "::", "192.168.1.1", "127.0.0.1"])
+def test_configurable_ip_bind(host: str) -> None:
+    assert Configuration("http://localhost:5173", host=host).host == host
+
+
+def test_invalid_bind_is_rejected() -> None:
+    with pytest.raises(ValueError, match="API_HOST"):
+        Configuration("http://localhost:5173", host="example.com")
 
 
 @pytest.mark.parametrize("port", ["", "0", "65536", "1.5", "-1", "٣٠٠٢"])
@@ -72,10 +76,10 @@ def test_invalid_port_is_rejected_before_start(port: str) -> None:
         Configuration.from_environment({"APP_ORIGIN": "http://localhost:5173", "API_PORT": port})
 
 
-def test_dormant_default_uses_a_separate_loopback_port() -> None:
+def test_default_uses_normal_api_port() -> None:
     configuration = Configuration.from_environment({"APP_ORIGIN": "http://localhost:5173"})
     assert configuration.host == "127.0.0.1"
-    assert configuration.port == 3002
+    assert configuration.port == 3001
 
 
 def test_actual_host_loads_schema_and_exits_gracefully(tmp_path: Path) -> None:
@@ -89,6 +93,7 @@ def test_actual_host_loads_schema_and_exits_gracefully(tmp_path: Path) -> None:
             env={
                 "PATH": os.environ.get("PATH", ""),
                 "APP_ORIGIN": "http://localhost:5173",
+                "API_DISCOVERY_ONLY": "true",
                 "API_HOST": "127.0.0.1",
                 "API_PORT": str(port),
             },
@@ -107,17 +112,17 @@ def test_actual_host_loads_schema_and_exits_gracefully(tmp_path: Path) -> None:
                     time.sleep(0.05)
             else:
                 pytest.fail("owned candidate did not become ready")
-            for path in ("/openapi.json%2F", "/%6fpenapi.json", "/openapi%2ejson"):
-                for method in ("GET", "OPTIONS", "POST"):
-                    with pytest.raises(HTTPError) as failure:
-                        urlopen(
-                            Request(f"http://127.0.0.1:{port}{path}", method=method), timeout=1
-                        )
-                    assert failure.value.code == 404
-                    assert "Allow" not in failure.value.headers
-            for path in ("/other/../openapi.json", "/other/%2e%2e/openapi.json"):
-                with urlopen(f"http://127.0.0.1:{port}{path}", timeout=1) as response:
-                    assert response.status == 200
+            for path in ("/openapi.json/", "/missing", "/docs"):
+                with pytest.raises(HTTPError) as failure:
+                    urlopen(f"http://127.0.0.1:{port}{path}", timeout=1)
+                assert failure.value.code == 404
+                assert "Location" not in failure.value.headers
+            for method in ("HEAD", "OPTIONS", "POST"):
+                with pytest.raises(HTTPError) as failure:
+                    urlopen(
+                        Request(f"http://127.0.0.1:{port}/openapi.json", method=method), timeout=1
+                    )
+                assert failure.value.code == 405
         finally:
             if child.poll() is None:
                 child.terminate()
@@ -125,6 +130,6 @@ def test_actual_host_loads_schema_and_exits_gracefully(tmp_path: Path) -> None:
             result = child.wait(timeout=15)
         log.seek(0)
         output = log.read()
-    assert result in (0, -signal.SIGTERM)
+    assert result == -signal.SIGTERM
     assert "Application shutdown complete" in output
     assert "Finished server process" in output

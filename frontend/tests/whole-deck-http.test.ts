@@ -11,7 +11,9 @@ import {
 	httpTestOrigin,
 	startHttpApplication,
 	stopHttpApplication,
-	webTestEnvironment
+	webTestEnvironment,
+	startStateWorker,
+	stopHttpProcess
 } from './http-runtime.ts';
 import type {
 	CategoryPreview,
@@ -29,7 +31,7 @@ if (
 	throw Error('Whole Deck HTTP requires matching owned disposable database URLs');
 const origin = httpTestOrigin(),
 	cwd = new URL('../', import.meta.url),
-	base = '/api/mobile/v1/mtg';
+	base = '/api/v1/mtg';
 const replicaOrigin = `http://127.0.0.1:${Number(new URL(origin).port) + 1}`;
 const artifacts = new URL('../../.local/whole-deck-http/', import.meta.url);
 const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -45,9 +47,11 @@ test('built whole Categories and bounded Deck Library preserve private saved con
 	const pool = new pg.Pool({ connectionString: databaseUrl }),
 		accounts: string[] = [];
 	const children: Awaited<ReturnType<typeof startHttpApplication>>[] = [];
+	let state: Awaited<ReturnType<typeof startStateWorker>> | undefined;
 	let restore: (() => Promise<void>) | undefined, eventController: AbortController | undefined;
 	try {
 		restore = await publishCategoryCatalogFixture(pool);
+		state = await startStateWorker();
 		await mkdir(artifacts, { recursive: true });
 		await rm(new URL('node_modules', artifacts), { force: true });
 		await symlink(
@@ -82,7 +86,7 @@ test('built whole Categories and bounded Deck Library preserve private saved con
 			const username = 'whole_http_' + randomUUID().slice(0, 8);
 			const response = await fixtureAuthRequest(
 				origin,
-				'/api/auth/register',
+				'/api/v1/auth/register',
 				{ username, password: 'whole-category-http-password' },
 				{}
 			);
@@ -423,7 +427,7 @@ test('built whole Categories and bounded Deck Library preserve private saved con
 				const streamingDeck = await makeDeck('Streaming automatic');
 				await settled(streamingDeck);
 				eventController = new AbortController();
-				const stream = await fetch(origin + '/api/account/events', {
+				const stream = await fetch(origin + '/api/v1/account/events', {
 					headers: { authorization: `Bearer ${a.token}` },
 					signal: eventController.signal
 				});
@@ -601,7 +605,7 @@ test('built whole Categories and bounded Deck Library preserve private saved con
 			async () => {
 				const login = await fixtureAuthRequest(
 					origin,
-					'/api/auth/login',
+					'/api/v1/auth/login',
 					{ username: a.username, password: 'whole-category-http-password' },
 					{}
 				);
@@ -632,7 +636,7 @@ test('built whole Categories and bounded Deck Library preserve private saved con
 						1500
 					);
 					assert.equal(
-						(await request('/api/auth/logout', 'POST', {}, disposable.token)).status,
+						(await request('/api/v1/auth/logout', 'POST', {}, disposable.token)).status,
 						204
 					);
 					await held.query('COMMIT');
@@ -659,6 +663,7 @@ test('built whole Categories and bounded Deck Library preserve private saved con
 		);
 	} finally {
 		eventController?.abort();
+		if (state) await stopHttpProcess(state);
 		try {
 			const stopped = await Promise.allSettled(children.map(stopHttpApplication));
 			for (const result of stopped) if (result.status === 'rejected') throw result.reason;

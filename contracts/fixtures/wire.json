@@ -1,0 +1,492 @@
+{
+	"provenance": "Synthetic public test values only. These passwords, salts, tokens and account IDs belong to no account.",
+	"credentials": [
+		{
+			"id": "credential-ascii",
+			"password": "baseline password 123",
+			"salt": "0123456789abcdef0123456789abcdef",
+			"hash": "scrypt$0123456789abcdef0123456789abcdef$815f0e9978809b56ee3dc01448c0fc369bed6caa319a62aee3f98c6794493b3dec76ff040562378f160e683d9d181b36bfebc22d97031d754bffd9d8de1825db"
+		},
+		{
+			"id": "credential-unicode",
+			"password": "six\ud83d\udd2eastral\ud83d\udd2esymbols\ud83d\udd2e",
+			"salt": "0123456789abcdef0123456789abcdef",
+			"hash": "scrypt$0123456789abcdef0123456789abcdef$ab6d7ba3e62d19af2b8d6cf6ac6cd3e05b0b582a2af720576ef594dfcfc52eb96bf7dc53743a5b751fbb2a04f4a7b61dd5bc0fca8670c36001d02ae2f385f964"
+		}
+	],
+	"fingerprints": [
+		{
+			"id": "fingerprint-nested",
+			"inputJson": "{\"z\":1,\"a\":{\"z\":2,\"a\":3},\"operations\":[{\"quantity\":2,\"op\":\"set\"},{\"op\":\"remove\"}]}",
+			"serialized": "{\"a\":{\"a\":3,\"z\":2},\"operations\":[{\"op\":\"set\",\"quantity\":2},{\"op\":\"remove\"}],\"z\":1}",
+			"utf8Hex": "7b2261223a7b2261223a332c227a223a327d2c226f7065726174696f6e73223a5b7b226f70223a22736574222c227175616e74697479223a327d2c7b226f70223a2272656d6f7665227d5d2c227a223a317d",
+			"sha256": "4df93521127d6f470a0c30d200824a831bca834503e80c8f9487a3e016bb65fc"
+		},
+		{
+			"id": "fingerprint-array-order",
+			"inputJson": "{\"operations\":[{\"op\":\"remove\"},{\"op\":\"set\",\"quantity\":2}]}",
+			"serialized": "{\"operations\":[{\"op\":\"remove\"},{\"op\":\"set\",\"quantity\":2}]}",
+			"utf8Hex": "7b226f7065726174696f6e73223a5b7b226f70223a2272656d6f7665227d2c7b226f70223a22736574222c227175616e74697479223a327d5d7d",
+			"sha256": "05ab447a540a7337aea9aa9335ca500640fd635b471739f7a0e7123656d2bb96"
+		},
+		{
+			"id": "fingerprint-absent",
+			"inputJson": "{\"kind\":\"inventory\",\"source\":\"web\",\"operations\":[{\"op\":\"patch\",\"entryId\":\"11111111-1111-4111-8111-111111111111\",\"quantity\":2,\"floor\":1}]}",
+			"serialized": "{\"kind\":\"inventory\",\"operations\":[{\"entryId\":\"11111111-1111-4111-8111-111111111111\",\"floor\":1,\"op\":\"patch\",\"quantity\":2}],\"source\":\"web\"}",
+			"utf8Hex": "7b226b696e64223a22696e76656e746f7279222c226f7065726174696f6e73223a5b7b22656e7472794964223a2231313131313131312d313131312d343131312d383131312d313131313131313131313131222c22666c6f6f72223a312c226f70223a227061746368222c227175616e74697479223a327d5d2c22736f75726365223a22776562227d",
+			"sha256": "9c9f6ec2aa562228a387385719ec335ff24bd0c7f02e72cebed6b867c4f681fd"
+		},
+		{
+			"id": "fingerprint-null",
+			"inputJson": "{\"kind\":\"inventory\",\"source\":\"web\",\"operations\":[{\"op\":\"patch\",\"entryId\":\"11111111-1111-4111-8111-111111111111\",\"quantity\":2,\"floor\":1,\"notes\":null}]}",
+			"serialized": "{\"kind\":\"inventory\",\"operations\":[{\"entryId\":\"11111111-1111-4111-8111-111111111111\",\"floor\":1,\"notes\":null,\"op\":\"patch\",\"quantity\":2}],\"source\":\"web\"}",
+			"utf8Hex": "7b226b696e64223a22696e76656e746f7279222c226f7065726174696f6e73223a5b7b22656e7472794964223a2231313131313131312d313131312d343131312d383131312d313131313131313131313131222c22666c6f6f72223a312c226e6f746573223a6e756c6c2c226f70223a227061746368222c227175616e74697479223a327d5d2c22736f75726365223a22776562227d",
+			"sha256": "2adaa51f75a14aac7b2c312ecc4f9303f2dcbd87206921a6ecb831daa661d1ea"
+		},
+		{
+			"id": "fingerprint-unicode",
+			"inputJson": "{\"text\":\"\u00e9 e\u0301 \ud83d\udd2e \\n\\t\\\"\\\\\",\"\\ud800\":\"lone\",\"\ue000\":1,\"\ud83d\ude00\":2}",
+			"serialized": "{\"text\":\"\u00e9 e\u0301 \ud83d\udd2e \\n\\t\\\"\\\\\",\"\\ud800\":\"lone\",\"\ud83d\ude00\":2,\"\ue000\":1}",
+			"utf8Hex": "7b2274657874223a22c3a92065cc8120f09f94ae205c6e5c745c225c5c222c225c7564383030223a226c6f6e65222c22f09f9880223a322c22ee8080223a317d",
+			"sha256": "4dfec012f48ada3baeff9e8d7df03ef65601acb14852bb1349d29bf98625183d"
+		},
+		{
+			"id": "fingerprint-number-format",
+			"inputJson": "{\"small\":1e-7,\"plain\":0.000001,\"large\":1e21,\"negativeZero\":-0,\"safe\":9007199254740991,\"rounded\":9007199254740993}",
+			"serialized": "{\"large\":1e+21,\"negativeZero\":0,\"plain\":0.000001,\"rounded\":9007199254740992,\"safe\":9007199254740991,\"small\":1e-7}",
+			"utf8Hex": "7b226c61726765223a31652b32312c226e656761746976655a65726f223a302c22706c61696e223a302e3030303030312c22726f756e646564223a393030373139393235343734303939322c2273616665223a393030373139393235343734303939312c22736d616c6c223a31652d377d",
+			"sha256": "faf5a15a54bce9cce1782407004b75cb33235b89d3165d3a78eeea08a65b99ba"
+		},
+		{
+			"id": "fingerprint-numeric-keys",
+			"inputJson": "{\"2\":\"second\",\"10\":\"tenth\",\"01\":\"leading\",\"a\":1}",
+			"serialized": "{\"2\":\"second\",\"10\":\"tenth\",\"01\":\"leading\",\"a\":1}",
+			"utf8Hex": "7b2232223a227365636f6e64222c223130223a2274656e7468222c223031223a226c656164696e67222c2261223a317d",
+			"sha256": "a11c84527ee25ee32aea9c44074920ccdd322b3c9d23f637e244a43d8ca054ce"
+		},
+		{
+			"id": "fingerprint-import-normalized",
+			"inputJson": "{\"kind\":\"inventory_import\",\"source\":\"import\",\"import\":{\"text\":\"2 Forest\\n1 Island\",\"finish\":\"nonfoil\",\"condition\":\"NM\"}}",
+			"serialized": "{\"import\":{\"condition\":\"NM\",\"finish\":\"nonfoil\",\"text\":\"2 Forest\\n1 Island\"},\"kind\":\"inventory_import\",\"source\":\"import\"}",
+			"utf8Hex": "7b22696d706f7274223a7b22636f6e646974696f6e223a224e4d222c2266696e697368223a226e6f6e666f696c222c2274657874223a223220466f726573745c6e312049736c616e64227d2c226b696e64223a22696e76656e746f72795f696d706f7274222c22736f75726365223a22696d706f7274227d",
+			"sha256": "88afd9e5894ebabc16401d53c6117c6d0cad7c5873dd8d9ee4edcef9a07ff209"
+		}
+	],
+	"conflicts": [
+		{
+			"id": "conflict-notes",
+			"status": 409,
+			"body": {
+				"kind": "NotesConflict",
+				"message": "Notes changed. Your draft has been retained. Review the latest saved Notes before retrying.",
+				"entryId": "11111111-1111-4111-8111-111111111111",
+				"notes": "\u00e9 \ud83d\udd2e",
+				"notesRevision": "9007199254740993",
+				"status": 409
+			}
+		},
+		{
+			"id": "conflict-description",
+			"status": 409,
+			"body": {
+				"kind": "DescriptionConflict",
+				"message": "Description changed. Your draft has been retained. Review the latest saved description before retrying.",
+				"description": "saved",
+				"descriptionRevision": "8",
+				"status": 409
+			}
+		},
+		{
+			"id": "conflict-quantity-absent",
+			"status": 409,
+			"body": {
+				"kind": "QuantityChanged",
+				"message": "This entry changed. Review its quantity before removing it.",
+				"latestQuantity": null,
+				"status": 409
+			}
+		},
+		{
+			"id": "conflict-quantity-present",
+			"status": 409,
+			"body": {
+				"kind": "QuantityChanged",
+				"message": "This entry changed. Review its quantity before removing it.",
+				"latestQuantity": 3,
+				"status": 409
+			}
+		},
+		{
+			"id": "conflict-request",
+			"status": 409,
+			"body": {
+				"kind": "RequestConflict",
+				"message": "Request ID was already used for a different mutation",
+				"status": 409
+			}
+		},
+		{
+			"id": "conflict-category",
+			"status": 409,
+			"body": {
+				"kind": "CategoryConflict",
+				"message": "Category decision changed. Review the latest saved decision.",
+				"latest": {
+					"deckId": "11111111-1111-4111-8111-111111111111",
+					"initialized": false,
+					"decisionRevision": "9007199254740993",
+					"definitions": [],
+					"decisions": [],
+					"sourceStatus": {
+						"kind": "NeverAttempted",
+						"sourceTime": null
+					}
+				},
+				"status": 409
+			}
+		},
+		{
+			"id": "conflict-merge",
+			"status": 409,
+			"body": {
+				"kind": "CategoryMergeConflict",
+				"message": "Review the destination category and resulting quantity before merging.",
+				"preview": {
+					"required": true,
+					"token": "sanitized-consequence",
+					"source": null,
+					"destination": null,
+					"destinationEntryId": null,
+					"resultingQuantity": 2,
+					"compositionRevision": "7",
+					"decisionRevision": "8",
+					"sourceTokens": {
+						"catalogGenerationId": null,
+						"oraclePublicationId": null,
+						"policy": "baseline"
+					}
+				},
+				"status": 409
+			}
+		},
+		{
+			"id": "conflict-library",
+			"status": 409,
+			"body": {
+				"kind": "RequestConflict",
+				"message": "Category Library changed. Read the latest Library and retry.",
+				"status": 409
+			}
+		},
+		{
+			"id": "error-private",
+			"status": 500,
+			"body": {
+				"status": 500,
+				"message": "Internal Server Error"
+			}
+		}
+	],
+	"receipts": [
+		{
+			"id": "receipt-original",
+			"requestHash": "same",
+			"incomingHash": "same",
+			"acknowledgement": {
+				"requestId": "11111111-1111-4111-8111-111111111111",
+				"inventoryId": "11111111-1111-4111-8111-111111111111",
+				"revision": "7",
+				"changes": [
+					{
+						"entryId": "11111111-1111-4111-8111-111111111111",
+						"catalogCardId": "11111111-1111-4111-8111-111111111111",
+						"finish": "nonfoil",
+						"condition": "NM",
+						"quantity": 2,
+						"delta": 2,
+						"notesRevision": "0"
+					}
+				],
+				"removedEntryIds": [],
+				"groups": [],
+				"removedGroupIds": [],
+				"memberships": []
+			},
+			"expected": {
+				"requestId": "11111111-1111-4111-8111-111111111111",
+				"inventoryId": "11111111-1111-4111-8111-111111111111",
+				"revision": "7",
+				"changes": [
+					{
+						"entryId": "11111111-1111-4111-8111-111111111111",
+						"catalogCardId": "11111111-1111-4111-8111-111111111111",
+						"finish": "nonfoil",
+						"condition": "NM",
+						"quantity": 2,
+						"delta": 2,
+						"notesRevision": "0"
+					}
+				],
+				"removedEntryIds": [],
+				"groups": [],
+				"removedGroupIds": [],
+				"memberships": []
+			}
+		},
+		{
+			"id": "receipt-conflicting-intent",
+			"requestHash": "original",
+			"incomingHash": "different",
+			"acknowledgement": {
+				"requestId": "11111111-1111-4111-8111-111111111111",
+				"inventoryId": "11111111-1111-4111-8111-111111111111",
+				"revision": "7",
+				"changes": [
+					{
+						"entryId": "11111111-1111-4111-8111-111111111111",
+						"catalogCardId": "11111111-1111-4111-8111-111111111111",
+						"finish": "nonfoil",
+						"condition": "NM",
+						"quantity": 2,
+						"delta": 2,
+						"notesRevision": "0"
+					}
+				],
+				"removedEntryIds": [],
+				"groups": [],
+				"removedGroupIds": [],
+				"memberships": []
+			},
+			"conflict": true
+		},
+		{
+			"id": "receipt-absent",
+			"missing": true,
+			"expected": null
+		}
+	],
+	"forms": [
+		{
+			"id": "form-repeated-first-plus",
+			"contentType": "application/x-www-form-urlencoded",
+			"body": "username=First&username=second&password=a+b%2Bc&artworkId=",
+			"entries": [
+				["username", "First"],
+				["username", "second"],
+				["password", "a b+c"],
+				["artworkId", ""]
+			]
+		},
+		{
+			"id": "form-percent-unicode",
+			"contentType": "application/x-www-form-urlencoded; charset=UTF-8",
+			"body": "username=%F0%9F%94%AE&password=%ZZ%FF",
+			"entries": [
+				["username", "\ud83d\udd2e"],
+				["password", "%ZZ\ufffd"]
+			]
+		},
+		{
+			"id": "form-multipart",
+			"contentType": "multipart/form-data; boundary=baseline",
+			"body": "--baseline\r\nContent-Disposition: form-data; name=\"username\"\r\n\r\nFirst\r\n--baseline\r\nContent-Disposition: form-data; name=\"username\"\r\n\r\nsecond\r\n--baseline--\r\n",
+			"entries": [
+				["username", "First"],
+				["username", "second"]
+			]
+		},
+		{
+			"id": "form-malformed-multipart",
+			"contentType": "multipart/form-data",
+			"body": "broken",
+			"status": 400,
+			"message": "Invalid form body"
+		},
+		{
+			"id": "form-wrong-media",
+			"contentType": "text/plain",
+			"body": "username=a",
+			"status": 415,
+			"message": "Use application/x-www-form-urlencoded or multipart/form-data"
+		}
+	],
+	"jsonBodies": [
+		{
+			"id": "json-unknown-absent-null",
+			"body": "{\"unknown\":1,\"notes\":null,\"quantity\":-0}",
+			"contentType": "Application/JSON; charset=UTF-8",
+			"expected": {
+				"unknown": 1,
+				"notes": null,
+				"quantity": 0
+			},
+			"negativeZero": true
+		},
+		{
+			"id": "json-nonfinite-exponent",
+			"body": "{\"quantity\":1e999}",
+			"contentType": "application/json",
+			"nonfinite": true
+		},
+		{
+			"id": "json-array",
+			"body": "[]",
+			"contentType": "application/json",
+			"status": 400,
+			"message": "A JSON object is required"
+		},
+		{
+			"id": "json-null",
+			"body": "null",
+			"contentType": "application/json",
+			"status": 400,
+			"message": "A JSON object is required"
+		},
+		{
+			"id": "json-malformed",
+			"body": "{",
+			"contentType": "application/json",
+			"status": 400,
+			"message": "Invalid JSON body"
+		},
+		{
+			"id": "json-wrong-media",
+			"body": "{}",
+			"contentType": "text/plain",
+			"status": 415,
+			"message": "Use application/json"
+		},
+		{
+			"id": "json-invalid-utf8",
+			"hex": "7b2278223a22ff227d",
+			"contentType": "application/json",
+			"status": 400,
+			"message": "Invalid JSON body"
+		}
+	],
+	"headers": [
+		{
+			"id": "header-cookie",
+			"headers": {
+				"cookie": "spellbook_session=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+			},
+			"selected": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+		},
+		{
+			"id": "header-bearer-case",
+			"headers": {
+				"authorization": "bEaReR bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+				"cookie": "spellbook_session=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+			},
+			"selected": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+		},
+		{
+			"id": "header-invalid-explicit",
+			"headers": {
+				"authorization": "Basic invalid",
+				"cookie": "spellbook_session=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+			},
+			"selected": null
+		},
+		{
+			"id": "header-empty-explicit",
+			"headers": {
+				"authorization": "",
+				"cookie": "spellbook_session=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+			},
+			"selected": null
+		},
+		{
+			"id": "header-duplicate-cookie-first",
+			"headers": {
+				"cookie": "spellbook_session=first; spellbook_session=second"
+			},
+			"selected": "first"
+		},
+		{
+			"id": "header-malformed-cookie",
+			"headers": {
+				"cookie": "spellbook_session=%ZZ; spellbook_session=second"
+			},
+			"selected": null
+		}
+	],
+	"numbers": [
+		{
+			"id": "number-safe-max",
+			"value": "9007199254740991",
+			"expected": 9007199254740991
+		},
+		{
+			"id": "number-unsafe",
+			"value": "9007199254740992",
+			"invalid": true
+		},
+		{
+			"id": "number-decimal",
+			"value": "1.0",
+			"invalid": true
+		},
+		{
+			"id": "number-signed",
+			"value": "-42",
+			"expected": -42
+		}
+	],
+	"tokens": [
+		{
+			"id": "token-utf8-digest",
+			"token": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			"sha256": "66d34fba71f8f450f7e45598853e53bfc23bbd129027cbb131a2f4ffd7878cd0"
+		}
+	],
+	"text": [
+		{
+			"id": "text-password-utf16-min",
+			"value": "\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e",
+			"valid": true
+		},
+		{
+			"id": "text-password-utf16-max",
+			"value": "\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e",
+			"valid": true
+		},
+		{
+			"id": "text-password-utf16-over",
+			"value": "\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e\ud83d\udd2e",
+			"valid": false
+		},
+		{
+			"id": "text-password-short",
+			"value": "xxxxxxxxxxx",
+			"valid": false
+		}
+	],
+	"queries": [
+		{
+			"id": "query-leading-zero",
+			"value": "0002",
+			"expected": 2
+		},
+		{
+			"id": "query-empty",
+			"value": "",
+			"status": 400
+		},
+		{
+			"id": "query-exponent",
+			"value": "1e2",
+			"status": 400
+		},
+		{
+			"id": "query-safe-overflow",
+			"value": "9007199254740992",
+			"status": 400
+		},
+		{
+			"id": "query-absent",
+			"value": null,
+			"expected": 20
+		}
+	]
+}

@@ -30,7 +30,7 @@ test('built native Category Library and API preserve immutable adoption and comp
 		child = await startHttpApplication(origin, new URL('../', import.meta.url));
 		const registered = await fixtureAuthRequest(
 			origin,
-			'/api/auth/register',
+			'/api/v1/auth/register',
 			{
 				username: 'library_http_' + randomUUID().slice(0, 8),
 				password: 'category-library-http-test-password'
@@ -70,15 +70,13 @@ test('built native Category Library and API preserve immutable adoption and comp
 				redirect: 'manual'
 			});
 		const library = async () =>
-			(await (
-				await request('/api/mobile/v1/mtg/category-definitions')
-			).json()) as CategoryLibraryPage;
+			(await (await request('/api/v1/mtg/category-definitions')).json()) as CategoryLibraryPage;
 		const state = async (deckId: string) =>
 			(await (
-				await request(`/api/mobile/v1/mtg/decks/${deckId}/categories`)
+				await request(`/api/v1/mtg/decks/${deckId}/categories`)
 			).json()) as DeckEntryCategories;
 		const makeDeck = async (name: string) => {
-			const response = await request('/api/mobile/v1/mtg/decks', 'POST', {
+			const response = await request('/api/v1/mtg/decks', 'POST', {
 				name,
 				format: 'Modern',
 				description: ''
@@ -127,7 +125,7 @@ test('built native Category Library and API preserve immutable adoption and comp
 		const card = await ensureDeckCatalogFixture(pool);
 		const entryIds: string[] = [];
 		for (const role of ['main', 'companion']) {
-			const added = await request(`/api/mobile/v1/mtg/decks/${a}/cards`, 'POST', {
+			const added = await request(`/api/v1/mtg/decks/${a}/cards`, 'POST', {
 				...card,
 				quantity: 1,
 				role,
@@ -138,16 +136,12 @@ test('built native Category Library and API preserve immutable adoption and comp
 		}
 		const manual = async (categoryId: string | null) => {
 			for (const entryId of entryIds) {
-				const response = await request(
-					`/api/mobile/v1/mtg/deck-cards/${entryId}/category`,
-					'PATCH',
-					{
-						requestId: randomUUID(),
-						deckId: a,
-						categoryId,
-						expectedDecisionRevision: (await state(a)).decisionRevision
-					}
-				);
+				const response = await request(`/api/v1/mtg/deck-cards/${entryId}/category`, 'PATCH', {
+					requestId: randomUUID(),
+					deckId: a,
+					categoryId,
+					expectedDecisionRevision: (await state(a)).decisionRevision
+				});
 				assert.equal(response.status, 200);
 			}
 		};
@@ -231,7 +225,7 @@ test('built native Category Library and API preserve immutable adoption and comp
 				};
 				try {
 					await pool.query(
-						`CREATE FUNCTION ${trigger}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.request_id='${requestId}' THEN PERFORM pg_sleep(6); END IF; RETURN NEW; END $$`
+						`CREATE FUNCTION ${trigger}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.request_id='${requestId}' THEN RAISE EXCEPTION USING ERRCODE='57014', MESSAGE='Category recovery fixture cancellation'; END IF; RETURN NEW; END $$`
 					);
 					await pool.query(
 						`CREATE TRIGGER ${trigger} BEFORE INSERT ON category_mutation_requests FOR EACH ROW EXECUTE FUNCTION ${trigger}()`
@@ -336,7 +330,7 @@ test('built native Category Library and API preserve immutable adoption and comp
 					)
 				).rows[0]?.document;
 				assert.ok(creature);
-				const added = await request(`/api/mobile/v1/mtg/decks/${a}/cards`, 'POST', {
+				const added = await request(`/api/v1/mtg/decks/${a}/cards`, 'POST', {
 					catalogCardId: creature.id,
 					canonicalCardId: creature.oracle_id,
 					name: creature.name,
@@ -380,7 +374,7 @@ test('built native Category Library and API preserve immutable adoption and comp
 				assert.match(html, /Before: Creatures \(Automatic\)\. After: New creatures \(Automatic\)/);
 				assert.match(html, /Before: Creatures \(Manual\)\. After: Creatures \(Manual\)/);
 				assert.match(html, /New creatures/);
-				const replay = await request(`/api/mobile/v1/mtg/decks/${a}/category-previews`, 'POST', {
+				const replay = await request(`/api/v1/mtg/decks/${a}/category-previews`, 'POST', {
 					requestId: previewRequest,
 					scope: 'entry',
 					mode: 'Review',
@@ -404,11 +398,9 @@ test('built native Category Library and API preserve immutable adoption and comp
 					(await state(a)).decisions.filter((d) => entryIds.includes(d.entryId)),
 					preservedManual
 				);
-				const ack = await request(
-					`/api/mobile/v1/mtg/category-previews/${preview.id}/commit`,
-					'POST',
-					{ requestId: commitRequest }
-				);
+				const ack = await request(`/api/v1/mtg/category-previews/${preview.id}/commit`, 'POST', {
+					requestId: commitRequest
+				});
 				assert.equal(ack.status, 200);
 			}
 		);
@@ -416,7 +408,7 @@ test('built native Category Library and API preserve immutable adoption and comp
 		await t.test(
 			'native commit retains its authoritative receipt and draft controls when actual PG evidence and full page follow-up reads fail',
 			async () => {
-				const response = await request(`/api/mobile/v1/mtg/decks/${a}/category-previews`, 'POST', {
+				const response = await request(`/api/v1/mtg/decks/${a}/category-previews`, 'POST', {
 					requestId: randomUUID(),
 					scope: 'entry',
 					mode: 'Review',
@@ -466,11 +458,9 @@ test('built native Category Library and API preserve immutable adoption and comp
 					await pool.query(`DROP TRIGGER IF EXISTS ${trigger} ON category_mutation_requests`);
 					await pool.query(`DROP FUNCTION IF EXISTS ${trigger}()`);
 				}
-				const replay = await request(
-					`/api/mobile/v1/mtg/category-previews/${preview.id}/commit`,
-					'POST',
-					{ requestId }
-				);
+				const replay = await request(`/api/v1/mtg/category-previews/${preview.id}/commit`, 'POST', {
+					requestId
+				});
 				assert.equal(replay.status, 200);
 				assert.equal((await replay.json()).requestId, requestId);
 			}
@@ -615,7 +605,7 @@ test('built native Category Library and API preserve immutable adoption and comp
 					).status,
 					200
 				);
-				const reset = await request(`/api/mobile/v1/mtg/decks/${a}/category-previews`, 'POST', {
+				const reset = await request(`/api/v1/mtg/decks/${a}/category-previews`, 'POST', {
 					requestId: resetId,
 					scope: 'entry',
 					mode: 'Reset',
@@ -641,7 +631,7 @@ test('built native Category Library and API preserve immutable adoption and comp
 					);
 				assert.ok(!(await state(a)).definitions.some((d) => d.originId === first.originId));
 				await manual(null);
-				const restore = await request(`/api/mobile/v1/mtg/decks/${a}/category-previews`, 'POST', {
+				const restore = await request(`/api/v1/mtg/decks/${a}/category-previews`, 'POST', {
 					requestId: randomUUID(),
 					scope: 'entry',
 					mode: 'Review',
@@ -651,7 +641,7 @@ test('built native Category Library and API preserve immutable adoption and comp
 				const restored = (await restore.json()) as CategoryPreview;
 				assert.equal(
 					(
-						await request(`/api/mobile/v1/mtg/category-previews/${restored.id}/commit`, 'POST', {
+						await request(`/api/v1/mtg/category-previews/${restored.id}/commit`, 'POST', {
 							requestId: randomUUID()
 						})
 					).status,
@@ -762,18 +752,14 @@ test('built native Category Library and API preserve immutable adoption and comp
 					restoreOriginIds: []
 				};
 				const before = await state(a);
-				const reviewed = await request(
-					`/api/mobile/v1/mtg/decks/${a}/category-previews`,
-					'POST',
-					body
-				);
+				const reviewed = await request(`/api/v1/mtg/decks/${a}/category-previews`, 'POST', body);
 				assert.equal(reviewed.status, 200);
 				const wholePreview = (await reviewed.json()) as CategoryPreview;
 				assert.equal(wholePreview.scope, 'deck');
 				assert.equal(wholePreview.status, 'Ready');
 				assert.equal(wholePreview.total, 0);
 				assert.deepEqual(wholePreview.differences, []);
-				const commitPath = `/api/mobile/v1/mtg/category-previews/${wholePreview.id}/commit`,
+				const commitPath = `/api/v1/mtg/category-previews/${wholePreview.id}/commit`,
 					commitInput = { requestId: randomUUID() };
 				const committed = await request(commitPath, 'POST', commitInput);
 				assert.equal(committed.status, 200);
@@ -793,7 +779,7 @@ test('built native Category Library and API preserve immutable adoption and comp
 				for (let i = 0; i < 4; i++)
 					assert.equal(
 						(
-							await request(`/api/mobile/v1/mtg/decks/${a}/category-previews`, 'POST', {
+							await request(`/api/v1/mtg/decks/${a}/category-previews`, 'POST', {
 								...body,
 								requestId: randomUUID(),
 								scope: 'entry'
@@ -801,7 +787,7 @@ test('built native Category Library and API preserve immutable adoption and comp
 						).status,
 						200
 					);
-				const full = await request(`/api/mobile/v1/mtg/decks/${a}/category-previews`, 'POST', {
+				const full = await request(`/api/v1/mtg/decks/${a}/category-previews`, 'POST', {
 					...body,
 					requestId: randomUUID(),
 					scope: 'entry'
@@ -810,16 +796,16 @@ test('built native Category Library and API preserve immutable adoption and comp
 				assert.equal((await full.json()).kind, 'CategoryPreviewCapacity');
 				assert.equal(
 					(
-						await request('/api/mobile/v1/mtg/category-definitions', 'POST', {
+						await request('/api/v1/mtg/category-definitions', 'POST', {
 							accountId: session.user.accountId
 						})
 					).status,
 					400
 				);
-				const logout = await request('/api/auth/logout', 'POST');
+				const logout = await request('/api/v1/auth/logout', 'POST');
 				assert.equal(logout.status, 204);
 				assert.equal((await request(commitPath, 'POST', commitInput)).status, 401);
-				assert.equal((await request('/api/mobile/v1/mtg/category-definitions')).status, 401);
+				assert.equal((await request('/api/v1/mtg/category-definitions')).status, 401);
 			}
 		);
 	} finally {

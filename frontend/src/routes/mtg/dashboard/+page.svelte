@@ -34,7 +34,7 @@
 			},
 			refresh: async (lease) => {
 				const current = await readSavedJSON<NonNullable<typeof dashboard>>(
-					'/api/account/dashboard',
+					'/api/v1/mtg/dashboard',
 					lease
 				);
 				if (current && lease.current()) {

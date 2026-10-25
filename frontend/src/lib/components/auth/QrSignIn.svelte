@@ -54,7 +54,7 @@
 		const current = generation;
 		polling = true;
 		try {
-			const result = await post('/api/auth/qr/token', { code });
+			const result = await post('/api/v1/auth/qr/token', { code });
 			if (current !== generation) return;
 			if (result.status === 'authenticated') {
 				finish('Signed in. Opening your account...');
@@ -85,7 +85,7 @@
 		link = '';
 		message = 'Preparing a sign-in code...';
 		try {
-			const result = await post('/api/auth/qr/requests', { kind: 'browser' });
+			const result = await post('/api/v1/auth/qr/requests', { kind: 'browser' });
 			if (current !== generation) return;
 			if (
 				!validQrCredential(result.code) ||

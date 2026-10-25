@@ -12,19 +12,20 @@ const database = 'postgres://fixture:fixture@localhost/fixture_design';
 async function launch(
 	caller: Record<string, string> = {},
 	devOrigin?: string,
-	scan = false,
-	compatibility = false
+	frontendEntry = false
 ) {
 	const root = await mkdtemp(join(tmpdir(), 'spellbook-dev-env-'));
 	try {
 		const app = join(root, 'frontend');
-		const backend = join(root, 'backend');
+		const backend = join(root, 'backend/api');
 		const bin = join(root, 'bin');
 		const log = join(root, 'children.jsonl');
 		const storage = join(root, 'scan-artifacts');
 		await mkdir(join(app, 'scripts'), { recursive: true });
 		await mkdir(join(root, 'scripts'));
-		await mkdir(backend);
+		await mkdir(backend, { recursive: true });
+		for (const name of ['state', 'catalog'])
+			await mkdir(join(root, 'backend/workers', name), { recursive: true });
 		await mkdir(bin);
 		await mkdir(join(root, 'backend/workers/scan'), { recursive: true });
 		await writeFile(
@@ -51,19 +52,20 @@ async function launch(
 import { appendFileSync } from 'node:fs';
 const keys = ['DATABASE_URL', 'APP_ORIGIN', 'DEV_APP_ORIGIN', 'DEMO_MODE', 'S3_SECRET_ACCESS_KEY', 'PGPASSWORD', 'API_HOST', 'API_PORT', 'API_INTERNAL_URL', 'API_TRUSTED_PROXY_ADDRESSES', 'SCAN_LOCAL_STORAGE_DIR', 'SCAN_STORAGE_DRIVER', 'SCAN_WORKER_URL'];
 appendFileSync(process.env.DEV_TEST_LOG, JSON.stringify({cwd: process.cwd(), args: process.argv.slice(2), env: Object.fromEntries(keys.map(key => [key, process.env[key]]))}) + '\\n');
+if (process.argv.includes('spellbook-migrate') || process.argv.includes('spellbook-demo-seed')) process.exit(0);
 const timer = setTimeout(() => process.exit(0), 300);
 process.on('SIGTERM', () => { clearTimeout(timer); process.exit(0); });
 `;
 		await Promise.all(
-			['uv', 'pnpm'].map((name) => writeFile(join(bin, name), probe, { mode: 0o700 }))
+			['uvx', 'pnpm'].map((name) => writeFile(join(bin, name), probe, { mode: 0o700 }))
 		);
 		const manifest = JSON.parse(
-			await readFile(new URL(compatibility ? 'package.json' : '../package.json', frontend), 'utf8')
+			await readFile(new URL(frontendEntry ? 'package.json' : '../package.json', frontend), 'utf8')
 		);
-		const [command, ...args] = manifest.scripts[compatibility ? 'dev:local' : 'dev'].split(' ');
+		const [command, ...args] = manifest.scripts[frontendEntry ? 'dev:local' : 'dev'].split(' ');
 		expect(command).toBe('node');
-		await execute(process.execPath, [...args, ...(scan ? ['--scan'] : [])], {
-			cwd: compatibility ? app : root,
+		await execute(process.execPath, args, {
+			cwd: frontendEntry ? app : root,
 			env: { PATH: `${bin}:${process.env.PATH}`, DEV_TEST_LOG: log, ...caller },
 			timeout: 5000,
 			killSignal: 'SIGTERM'
@@ -71,7 +73,11 @@ process.on('SIGTERM', () => { clearTimeout(timer); process.exit(0); });
 		const children = (await readFile(log, 'utf8'))
 			.trim()
 			.split('\n')
-			.map((line) => JSON.parse(line));
+			.map((line) => JSON.parse(line))
+			.filter(
+				(child) =>
+					!child.args.includes('spellbook-migrate') && !child.args.includes('spellbook-demo-seed')
+			);
 		const storageCreated = await access(storage).then(
 			() => true,
 			() => false
@@ -182,12 +188,12 @@ console.log(JSON.stringify({args: process.argv.slice(2), envDir: config.envDir, 
 
 	it('loads the single root env into API and keeps deployment origin and secrets out of web', async () => {
 		const { children, storage, storageCreated, app, backend } = await launch();
-		expect(children).toHaveLength(2);
-		expect(children.map((child) => child.cwd).sort()).toEqual([app, backend].sort());
-		expect(storageCreated).toBe(false);
+		expect(children).toHaveLength(5);
+		expect(children.map((child) => child.cwd)).toEqual(expect.arrayContaining([app, backend]));
+		expect(storageCreated).toBe(true);
 		const api = children.find((child) => child.cwd === backend);
 		const web = children.find((child) => child.cwd === app);
-		expect(api.args).toEqual(['dev']);
+		expect(api.args).toEqual(['--from', 'uv==0.12.23', 'uv', 'run', '--no-sync', 'spellbook-api']);
 		expect(api.env).toEqual({
 			DATABASE_URL: database,
 			APP_ORIGIN: 'http://localhost:5173',
@@ -215,15 +221,16 @@ console.log(JSON.stringify({args: process.argv.slice(2), envDir: config.envDir, 
 		});
 	});
 
-	it('starts Scan as a third process and creates its storage only with explicit opt-in', async () => {
-		const { children, storage, storageCreated, app, backend, scan } = await launch(
-			{},
-			undefined,
-			true
+	it('starts Scan and creates its storage without an opt-in flag', async () => {
+		const { children, storage, storageCreated, app, backend, scan } = await launch();
+		expect(children).toHaveLength(5);
+		expect(children.map((child) => child.cwd)).toEqual(
+			expect.arrayContaining([app, backend, scan])
 		);
-		expect(children).toHaveLength(3);
-		expect(children.map((child) => child.cwd).sort()).toEqual([app, backend, scan].sort());
 		expect(children.find((child) => child.cwd === scan).args).toEqual([
+			'--from',
+			'uv==0.12.23',
+			'uv',
 			'run',
 			'--no-sync',
 			'uvicorn',
@@ -240,12 +247,11 @@ console.log(JSON.stringify({args: process.argv.slice(2), envDir: config.envDir, 
 		expect(storageCreated).toBe(true);
 	});
 
-	it('honors configured dev origin and caller overrides through the frontend compatibility shim', async () => {
+	it('honors configured dev origin and caller overrides through the frontend entry', async () => {
 		const configured = await launch({}, 'http://127.0.0.1:5173');
-		expect(configured.children.map((child) => child.env.APP_ORIGIN)).toEqual([
-			'http://127.0.0.1:5173',
-			'http://127.0.0.1:5173'
-		]);
+		expect(
+			configured.children.every((child) => child.env.APP_ORIGIN === 'http://127.0.0.1:5173')
+		).toBe(true);
 		const overridden = await launch(
 			{
 				DATABASE_URL: 'postgres://caller:caller@localhost/caller_design',
@@ -254,7 +260,6 @@ console.log(JSON.stringify({args: process.argv.slice(2), envDir: config.envDir, 
 				DEMO_MODE: 'false'
 			},
 			'http://127.0.0.1:5173',
-			false,
 			true
 		);
 		for (const child of overridden.children) {

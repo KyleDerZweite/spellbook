@@ -21,7 +21,7 @@ test('built category HTTP and native forms share authorized commands and reviewe
 		const card = await ensureDeckCatalogFixture(pool);
 		const registration = await fixtureAuthRequest(
 			origin,
-			'/api/auth/register',
+			'/api/v1/auth/register',
 			{
 				username: 'category_http_' + randomUUID().slice(0, 8),
 				password: 'category-http-test-password'
@@ -65,7 +65,7 @@ test('built category HTTP and native forms share authorized commands and reviewe
 			"INSERT INTO decks(id,account_id,game,name,format) VALUES($1,$2,'mtg','Legacy category HTTP','Modern')",
 			[deckId, session.user.accountId]
 		);
-		const categoriesPath = `/api/mobile/v1/mtg/decks/${deckId}/categories`;
+		const categoriesPath = `/api/v1/mtg/decks/${deckId}/categories`;
 		const state = async () => (await (await request(categoriesPath)).json()) as DeckEntryCategories;
 		await t.test(
 			'GET and prefetch stay pure while native initialization is an explicit POST',
@@ -114,7 +114,7 @@ test('built category HTTP and native forms share authorized commands and reviewe
 		);
 		const add = async (role: string, quantity: number) =>
 			(await (
-				await request(`/api/mobile/v1/mtg/decks/${deckId}/cards`, 'POST', {
+				await request(`/api/v1/mtg/decks/${deckId}/cards`, 'POST', {
 					...card,
 					quantity,
 					role,
@@ -142,7 +142,7 @@ test('built category HTTP and native forms share authorized commands and reviewe
 				assert.equal(native.status, 200);
 				const latest = await state();
 				assert.equal(latest.decisions.find((d) => d.entryId === main)?.state, 'Manual');
-				const stale = await request(`/api/mobile/v1/mtg/deck-cards/${main}/category`, 'PATCH', {
+				const stale = await request(`/api/v1/mtg/deck-cards/${main}/category`, 'PATCH', {
 					deckId,
 					categoryId: null,
 					expectedDecisionRevision: before.decisionRevision,
@@ -152,21 +152,17 @@ test('built category HTTP and native forms share authorized commands and reviewe
 				const categoryFailure = await stale.json();
 				assert.equal(categoryFailure.kind, 'CategoryConflict');
 				assert.deepEqual(categoryFailure.latest, latest);
-				const unsupported = await request(
-					`/api/mobile/v1/mtg/deck-cards/${main}/category`,
-					'PATCH',
-					{
-						deckId,
-						categoryId: null,
-						expectedDecisionRevision: latest.decisionRevision,
-						requestId: randomUUID(),
-						accountId: session.user.accountId
-					}
-				);
+				const unsupported = await request(`/api/v1/mtg/deck-cards/${main}/category`, 'PATCH', {
+					deckId,
+					categoryId: null,
+					expectedDecisionRevision: latest.decisionRevision,
+					requestId: randomUUID(),
+					accountId: session.user.accountId
+				});
 				assert.equal(unsupported.status, 400);
 				const foreign = await fixtureAuthRequest(
 					origin,
-					'/api/auth/register',
+					'/api/v1/auth/register',
 					{
 						username: 'category_foreign_' + randomUUID().slice(0, 8),
 						password: 'category-http-test-password'
@@ -187,7 +183,7 @@ test('built category HTTP and native forms share authorized commands and reviewe
 				assert.ok(draw);
 				assert.equal(
 					(
-						await request(`/api/mobile/v1/mtg/deck-cards/${main}/category`, 'PATCH', {
+						await request(`/api/v1/mtg/deck-cards/${main}/category`, 'PATCH', {
 							deckId,
 							categoryId: draw.id,
 							expectedDecisionRevision: latest.decisionRevision,
@@ -222,7 +218,7 @@ test('built category HTTP and native forms share authorized commands and reviewe
 					200
 				);
 				const preservedManual = (await state()).decisions.find((d) => d.entryId === main);
-				await request(`/api/mobile/v1/mtg/deck-cards/${main}`, 'PATCH', {
+				await request(`/api/v1/mtg/deck-cards/${main}`, 'PATCH', {
 					quantity: 4,
 					requestId: randomUUID()
 				});
@@ -263,7 +259,7 @@ test('built category HTTP and native forms share authorized commands and reviewe
 				assert.equal(result.type, 'success');
 				assert.match(result.data, /acknowledgement/);
 				const originalReceipt = await (
-					await request(`/api/mobile/v1/mtg/deck-cards/${main}/category`, 'PATCH', {
+					await request(`/api/v1/mtg/deck-cards/${main}/category`, 'PATCH', {
 						deckId,
 						categoryId: draw.id,
 						expectedDecisionRevision: before.decisionRevision,
@@ -294,14 +290,14 @@ test('built category HTTP and native forms share authorized commands and reviewe
 				);
 				assert.equal(recovered.decisions.find((d) => d.entryId === main)?.categoryId, draw.id);
 				assert.equal(recovered.decisions.find((d) => d.entryId === main)?.state, 'Manual');
-				const retry = await request(`/api/mobile/v1/mtg/deck-cards/${main}/category`, 'PATCH', {
+				const retry = await request(`/api/v1/mtg/deck-cards/${main}/category`, 'PATCH', {
 					deckId,
 					categoryId: draw.id,
 					expectedDecisionRevision: before.decisionRevision,
 					requestId
 				});
 				assert.deepEqual(await retry.json(), originalReceipt);
-				await request(`/api/mobile/v1/mtg/deck-cards/${main}/category`, 'PATCH', {
+				await request(`/api/v1/mtg/deck-cards/${main}/category`, 'PATCH', {
 					deckId,
 					categoryId: null,
 					expectedDecisionRevision: recovered.decisionRevision,
@@ -315,7 +311,7 @@ test('built category HTTP and native forms share authorized commands and reviewe
 				const before = await state();
 				const draw = before.definitions.find((d) => d.origin === 'draw');
 				assert.ok(draw);
-				const saved = await request(`/api/mobile/v1/mtg/deck-cards/${side}/category`, 'PATCH', {
+				const saved = await request(`/api/v1/mtg/deck-cards/${side}/category`, 'PATCH', {
 					deckId,
 					categoryId: draw.id,
 					expectedDecisionRevision: before.decisionRevision,
@@ -346,11 +342,11 @@ test('built category HTTP and native forms share authorized commands and reviewe
 						role: 'sideboard'
 					})
 				).json()) as CategoryMergePreview;
-				await request(`/api/mobile/v1/mtg/deck-cards/${side}`, 'PATCH', {
+				await request(`/api/v1/mtg/deck-cards/${side}`, 'PATCH', {
 					quantity: 5,
 					requestId: randomUUID()
 				});
-				const stale = await request(`/api/mobile/v1/mtg/deck-cards/${main}`, 'PATCH', {
+				const stale = await request(`/api/v1/mtg/deck-cards/${main}`, 'PATCH', {
 					role: 'sideboard',
 					requestId: randomUUID(),
 					categoryPreview: preview.token
@@ -378,7 +374,7 @@ test('built category HTTP and native forms share authorized commands and reviewe
 				assert.equal(confirmation.status, 200);
 				const after = await state();
 				assert.deepEqual(after.decisions, [destination]);
-				const snapshot = await (await request(`/api/mobile/v1/mtg/decks?deck=${deckId}`)).json();
+				const snapshot = await (await request(`/api/v1/mtg/decks?deck=${deckId}`)).json();
 				assert.equal(snapshot.deckCards.length, 1);
 				assert.equal(snapshot.deckCards[0].quantity, 9);
 				assert.equal(snapshot.deckCards[0].id, side);

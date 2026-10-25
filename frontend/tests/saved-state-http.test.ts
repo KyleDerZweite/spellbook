@@ -15,7 +15,7 @@ import {
 	httpApiTestOrigin,
 	webTestEnvironment
 } from './http-runtime.ts';
-import { hashSessionToken } from '@spellbook/backend/auth/session.ts';
+import { hashSessionToken } from './fixtures/session.ts';
 const databaseUrl = process.env.TEST_DATABASE_URL;
 if (!databaseUrl || databaseUrl !== process.env.DATABASE_URL)
 	throw Error('SavedState HTTP requires matching disposable database URLs');
@@ -122,7 +122,7 @@ class Stream {
 }
 async function stream(origin: string, token: string) {
 	const controller = new AbortController();
-	const response = await fetch(origin + '/api/account/events', {
+	const response = await fetch(origin + '/api/v1/account/events', {
 		headers: { authorization: `Bearer ${token}` },
 		signal: controller.signal
 	});
@@ -139,7 +139,10 @@ async function stream(origin: string, token: string) {
 async function register() {
 	const username = `sync_http_${crypto.randomUUID().slice(0, 8)}`,
 		password = 'saved-state-http-password';
-	const response = await request(primary, '/api/auth/register', undefined, { username, password });
+	const response = await request(primary, '/api/v1/auth/register', undefined, {
+		username,
+		password
+	});
 	assert.equal(response.status, 201);
 	const value = await response.json();
 	accounts.push(value.user.accountId);
@@ -150,7 +153,7 @@ async function delay(ms: number) {
 }
 async function listenerPid(child: (typeof children)[number]) {
 	const result = await pool.query('SELECT pid FROM pg_stat_activity WHERE application_name=$1', [
-		`spellbook_saved_state:${child.api.pid}`
+		`spellbook-python-listener:${child.api.pid}`
 	]);
 	assert.equal(result.rowCount, 1);
 	return result.rows[0].pid;
@@ -184,7 +187,7 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 		const a = await register(),
 			b = await register();
 		const login = await (
-			await request(primary, '/api/auth/login', undefined, {
+			await request(primary, '/api/v1/auth/login', undefined, {
 				username: a.username,
 				password: a.password
 			})
@@ -197,16 +200,16 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 			'auth handshake, explicit bearer precedence, origin policy and no URL credentials',
 			async () => {
 				for (const authorization of ['', 'Basic abc', 'Bearer wrong', 'Bearer ' + 'a'.repeat(43)]) {
-					const result = await fetch(primary + '/api/account/events', {
+					const result = await fetch(primary + '/api/v1/account/events', {
 						headers: { authorization, cookie: `spellbook_session=${a.token}` }
 					});
 					assert.equal(result.status, 401);
 				}
-				assert.equal((await fetch(primary + '/api/account/events')).status, 401);
+				assert.equal((await fetch(primary + '/api/v1/account/events')).status, 401);
 				for (const origin of ['https://foreign.example', 'null'])
 					assert.equal(
 						(
-							await fetch(primary + '/api/account/events', {
+							await fetch(primary + '/api/v1/account/events', {
 								headers: { origin, authorization: `Bearer ${a.token}` }
 							})
 						).status,
@@ -214,18 +217,18 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 					);
 				assert.equal(
 					(
-						await fetch(primary + '/api/account/events?token=forbidden-url-credential', {
+						await fetch(primary + '/api/v1/account/events?token=forbidden-url-credential', {
 							headers: { authorization: `Bearer ${a.token}` }
 						})
 					).status,
 					400
 				);
-				const cookieResponse = await fetch(primary + '/api/account/events', {
+				const cookieResponse = await fetch(primary + '/api/v1/account/events', {
 					headers: { cookie: `spellbook_session=${a.token}`, origin: primary }
 				});
 				assert.equal(cookieResponse.status, 200);
 				await cookieResponse.body?.cancel();
-				const bearer = await fetch(primary + '/api/account/events', {
+				const bearer = await fetch(primary + '/api/v1/account/events', {
 					headers: { cookie: `spellbook_session=${b.token}`, authorization: `Bearer ${a.token}` }
 				});
 				assert.equal(bearer.status, 200);
@@ -264,7 +267,7 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 						assert.ok(event.at - committedAt < 2000);
 					}
 					assert.equal(other.events.length, 0);
-					const saved = await (await request(secondary, '/api/account/profile', a.token)).json();
+					const saved = await (await request(secondary, '/api/v1/account/profile', a.token)).json();
 					assert.equal(saved.user.email, 'committed-private-marker@example.test');
 				} finally {
 					tx.release();
@@ -281,7 +284,7 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 					(
 						await request(
 							secondary,
-							'/api/account/profile',
+							'/api/v1/account/profile',
 							a.token,
 							{ avatarId: 'dragon', artworkId: 'tide' },
 							'PATCH'
@@ -290,7 +293,7 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 					200
 				);
 				await one.next('invalidate');
-				const saved = await (await request(primary, '/api/account/profile', a.token)).json();
+				const saved = await (await request(primary, '/api/v1/account/profile', a.token)).json();
 				assert.equal(saved.user.avatarId, 'dragon');
 				assert.equal(saved.user.artworkId, 'tide');
 				assert.ok(performance.now() - at < 2000);
@@ -317,7 +320,7 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 					source: () => bridge,
 					session: async (signal) =>
 						(
-							await fetch(primary + '/api/auth/session', {
+							await fetch(primary + '/api/v1/auth/session', {
 								headers: { authorization: `Bearer ${a.token}` },
 								signal
 							})
@@ -338,7 +341,7 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 					},
 					refresh: async (lease) => {
 						reads++;
-						const response = await fetch(primary + '/api/account/profile', {
+						const response = await fetch(primary + '/api/v1/account/profile', {
 							headers: { authorization: `Bearer ${a.token}` },
 							signal: lease.signal
 						});
@@ -358,7 +361,7 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 				await wait(() => reads > 0);
 				const card = await ensureDeckCatalogFixture(pool);
 				const inventoryAt = performance.now();
-				const receipt = await request(secondary, '/api/mobile/v1/mtg/inventory', a.token, {
+				const receipt = await request(secondary, '/api/v1/mtg/inventory', a.token, {
 					requestId: crypto.randomUUID(),
 					source: 'mobile',
 					items: [
@@ -370,7 +373,7 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 				assert.ok(performance.now() - inventoryAt < 2000);
 
 				const deckAt = performance.now();
-				const deck = await request(secondary, '/api/mobile/v1/mtg/decks', a.token, {
+				const deck = await request(secondary, '/api/v1/mtg/decks', a.token, {
 					requestId: crypto.randomUUID(),
 					name: 'Streaming owned deck',
 					format: 'Commander',
@@ -387,7 +390,7 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 				assert.ok(selectedDeck);
 				const added = await request(
 					secondary,
-					`/api/mobile/v1/mtg/decks/${selectedDeck.id}/cards/bulk`,
+					`/api/v1/mtg/decks/${selectedDeck.id}/cards/bulk`,
 					a.token,
 					{
 						requestId: crypto.randomUUID(),
@@ -409,7 +412,7 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 						categoryReads++;
 						const response = await request(
 							primary,
-							`/api/mobile/v1/mtg/decks/${selectedDeck.id}/categories`,
+							`/api/v1/mtg/decks/${selectedDeck.id}/categories`,
 							a.token
 						);
 						assert.equal(response.status, 200);
@@ -423,7 +426,7 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 					}
 				});
 				await wait(() => !!categoryRevision);
-				const categoryPath = `/api/mobile/v1/mtg/deck-cards/${entryId}/category`;
+				const categoryPath = `/api/v1/mtg/deck-cards/${entryId}/category`;
 				const categoryIntent = {
 					deckId: selectedDeck.id,
 					categoryId: null,
@@ -484,14 +487,14 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 					},
 					refresh: async (lease) => {
 						const id = scanId;
-						const list = await request(primary, '/api/mobile/v1/mtg/scan/sessions', a.token);
+						const list = await request(primary, '/api/v1/mtg/scan/sessions', a.token);
 						assert.equal(list.status, 200);
 						const value = await list.json();
 						if (lease.current()) scanCount = value.sessions.length;
 						if (id) {
 							const response = await request(
 								primary,
-								`/api/mobile/v1/mtg/scan/sessions/${id}/result`,
+								`/api/v1/mtg/scan/sessions/${id}/result`,
 								a.token
 							);
 							assert.equal(response.status, 200);
@@ -501,7 +504,7 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 					}
 				});
 				const scanAt = performance.now();
-				const created = await request(secondary, '/api/mobile/v1/mtg/scan/sessions', a.token, {});
+				const created = await request(secondary, '/api/v1/mtg/scan/sessions', a.token, {});
 				assert.equal(created.status, 200);
 				scanId = (await created.json()).session.id;
 				scanResource.invalidate();
@@ -512,10 +515,11 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 					new Blob([Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10])], { type: 'image/png' }),
 					'workspace.png'
 				);
-				const uploaded = await fetch(
-					secondary + `/api/mobile/v1/mtg/scan/sessions/${scanId}/frames`,
-					{ method: 'POST', headers: { authorization: `Bearer ${a.token}` }, body: image }
-				);
+				const uploaded = await fetch(secondary + `/api/v1/mtg/scan/sessions/${scanId}/frames`, {
+					method: 'POST',
+					headers: { authorization: `Bearer ${a.token}` },
+					body: image
+				});
 				assert.equal(uploaded.status, 200);
 				await wait(() => scanStatus === 'no_match');
 				assert.ok(performance.now() - scanAt < 2000);
@@ -537,7 +541,7 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 			'paused TCP consumption reaches backpressure without blocking healthy fanout',
 			async () => {
 				const credentials = await (
-					await request(primary, '/api/auth/login', undefined, {
+					await request(primary, '/api/v1/auth/login', undefined, {
 						username: a.username,
 						password: a.password
 					})
@@ -605,7 +609,7 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 						(
 							await request(
 								secondary,
-								'/api/account/profile',
+								'/api/v1/account/profile',
 								a.token,
 								{ artworkId: 'astral' },
 								'PATCH'
@@ -649,7 +653,7 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 					assert.equal(terminal.postRevocationTopic, false);
 
 					assert.equal(
-						(await request(primary, '/api/account/events', credentials.token)).status,
+						(await request(primary, '/api/v1/account/events', credentials.token)).status,
 						401
 					);
 					t.diagnostic(
@@ -683,9 +687,9 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 				assert.deepEqual((await two.next('auth-expired')).data, {});
 				await independent.next('reset');
 				assert.equal(one.events.filter((e) => e.event === 'invalidate').length, 0);
-				assert.equal((await request(primary, '/api/account/events', a.token)).status, 401);
+				assert.equal((await request(primary, '/api/v1/account/events', a.token)).status, 401);
 				assert.notEqual(await listenerPid(children[0]), pid);
-				const saved = await (await request(primary, '/api/account/profile', login.token)).json();
+				const saved = await (await request(primary, '/api/v1/account/profile', login.token)).json();
 				assert.equal(saved.user.avatarId, 'knight');
 			}
 		);
@@ -693,7 +697,7 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 			'expiry, logout, password rotation and replica reconnect preserve independent authority',
 			async () => {
 				const short = await (
-					await request(primary, '/api/auth/login', undefined, {
+					await request(primary, '/api/v1/auth/login', undefined, {
 						username: a.username,
 						password: a.password
 					})
@@ -704,24 +708,24 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 				);
 				const expiring = await stream(secondary, short.token);
 				await expiring.next('auth-expired');
-				assert.equal((await request(primary, '/api/account/events', short.token)).status, 401);
+				assert.equal((await request(primary, '/api/v1/account/events', short.token)).status, 401);
 				const third = await (
-					await request(primary, '/api/auth/login', undefined, {
+					await request(primary, '/api/v1/auth/login', undefined, {
 						username: a.username,
 						password: a.password
 					})
 				).json();
 				const loggedOut = await stream(secondary, third.token);
-				assert.equal((await request(primary, '/api/auth/logout', third.token, {})).status, 204);
+				assert.equal((await request(primary, '/api/v1/auth/logout', third.token, {})).status, 204);
 				await loggedOut.next('auth-expired');
-				assert.equal((await request(primary, '/api/auth/session', login.token)).status, 200);
+				assert.equal((await request(primary, '/api/v1/auth/session', login.token)).status, 200);
 				const oldReplica = await stream(secondary, login.token);
-				const failed = await request(primary, '/api/account/password', login.token, {
+				const failed = await request(primary, '/api/v1/account/password', login.token, {
 					currentPassword: 'wrong-password',
 					newPassword: 'saved-state-new-password'
 				});
 				assert.equal(failed.status, 400);
-				const rotation = await request(secondary, '/api/account/password', login.token, {
+				const rotation = await request(secondary, '/api/v1/account/password', login.token, {
 					currentPassword: a.password,
 					newPassword: 'saved-state-new-password'
 				});
@@ -735,7 +739,7 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 					(
 						await request(
 							secondary,
-							'/api/account/profile',
+							'/api/v1/account/profile',
 							replacement.token,
 							{ artworkId: 'ember' },
 							'PATCH'
@@ -745,7 +749,7 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 				);
 				const switched = await stream(secondary, replacement.token);
 				const latest = await (
-					await request(secondary, '/api/account/profile', replacement.token)
+					await request(secondary, '/api/v1/account/profile', replacement.token)
 				).json();
 				assert.equal(latest.user.artworkId, 'ember');
 				assert.equal(other.ended, false);
@@ -812,7 +816,7 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 						(
 							await request(
 								secondary,
-								'/api/account/profile',
+								'/api/v1/account/profile',
 								b.token,
 								{ avatarId: 'ranger' },
 								'PATCH'
@@ -822,7 +826,7 @@ test('real two-process saved Profile streaming and session lifecycle', async (t)
 					);
 					assert.deepEqual((await forwarded.next('invalidate')).data, { topics: ['profile'] });
 					assert.ok(performance.now() - at < 2000);
-					const cookie = await fetch(proxyOrigin + '/api/account/events', {
+					const cookie = await fetch(proxyOrigin + '/api/v1/account/events', {
 						headers: { cookie: `spellbook_session=${b.token}` }
 					});
 					assert.equal(cookie.status, 200);

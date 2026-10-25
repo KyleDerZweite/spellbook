@@ -78,7 +78,7 @@
 			new DeckLibraryWindow(
 				async (query, offset, limit, revision, signal, owned) =>
 					readDeckLibraryJSON<DeckLibraryPage | { kind: 'RevisionChanged'; revision: string }>(
-						`/api/mobile/v1/mtg/deck-library?${deckLibraryParams(query, offset, limit, revision)}`,
+						`/api/v1/mtg/deck-library?${deckLibraryParams(query, offset, limit, revision)}`,
 						signal,
 						() => owned() && alive && !terminal,
 						() => workspaceSavedState.expire()
@@ -146,7 +146,7 @@
 				params.set('deckId', id);
 				return readDeckLibraryJSON<
 					DeckLibraryLocation | { kind: 'RevisionChanged'; revision: string }
-				>(`/api/mobile/v1/mtg/deck-library/locate?${params}`, signal, current, () =>
+				>(`/api/v1/mtg/deck-library/locate?${params}`, signal, current, () =>
 					workspaceSavedState.expire()
 				);
 			},
@@ -534,7 +534,7 @@
 		const value = await library.read(
 			async (signal, owned) =>
 				readDeckLibraryJSON<DeckLibraryCategories | { kind: 'RevisionChanged'; revision: string }>(
-					`/api/mobile/v1/mtg/deck-library/categories?${deckLibraryParams(page.query, offset, 200, page.revision)}`,
+					`/api/v1/mtg/deck-library/categories?${deckLibraryParams(page.query, offset, 200, page.revision)}`,
 					signal,
 					() => owned() && alive && !terminal,
 					() => workspaceSavedState.expire()

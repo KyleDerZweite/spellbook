@@ -7,8 +7,9 @@ import { mkdtemp, writeFile, access, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { ChildProcess } from 'node:child_process';
+import { spawn, ChildProcess } from 'node:child_process';
 import {
+	httpProcessDiagnostics,
 	httpApiTestOrigin,
 	httpTestOrigin,
 	startHttpApplication,
@@ -293,8 +294,137 @@ test('owned application must listen before readiness and can be stopped', async 
 	}
 });
 
+test('safe process diagnostics survive readiness, split lines, overflow and exit', async () => {
+	const folder = await mkdtemp(join(tmpdir(), 'spellbook-http-runtime-'));
+	const origin = await unusedOrigin();
+	const approved = 'Database request failed: UndefinedTable (SQLSTATE 42P01)';
+	await writeFile(
+		join(folder, 'entry.mjs'),
+		`
+import {createServer} from 'node:http';
+process.stderr.write(${JSON.stringify(approved + '\n')});
+const server=createServer((_,response)=>{
+ process.stderr.write('synthetic-secret Authorization: Bearer secret https://private/?token=secret\\n');
+ process.stderr.write('x'.repeat(2048));
+ setTimeout(()=>{
+  process.stderr.write(${JSON.stringify(approved + '\n')});
+  process.stderr.write('Database request failed: UndefinedTable (SQLSTATE TOKEN)\\n');
+  process.stderr.write('Database request failed: SyntheticSecret (SQLSTATE 42P01)\\n');
+  process.stderr.write('Database request failed: Query');
+  setTimeout(()=>{process.stderr.write('Canceled (SQLSTATE 57014)\\n');response.end();},10);
+ },10);
+});
+server.listen(${new URL(origin).port},'127.0.0.1',()=>console.log('Listening on ${origin}'));
+process.on('SIGTERM',()=>{console.error(${JSON.stringify(approved)});server.close();});`
+	);
+	let child;
+	try {
+		child = await startHttpProcess(
+			origin,
+			pathToFileURL(folder + '/'),
+			'entry.mjs',
+			{},
+			false,
+			'api'
+		);
+		assert.equal(
+			httpProcessDiagnostics(child).filter((event) => event.errorType === 'UndefinedTable').length,
+			1
+		);
+		await fetch(origin);
+		await new Promise((resolve) => setTimeout(resolve, 30));
+		const events = httpProcessDiagnostics(child);
+		assert.equal(
+			events.filter((event) => event.errorType === 'UndefinedTable').length,
+			1,
+			'overflow tail cannot forge an event'
+		);
+		assert.equal(events.filter((event) => event.errorType === 'QueryCanceled').length, 1);
+		assert.doesNotMatch(JSON.stringify(events), /secret|TOKEN|Synthetic|https|Authorization/);
+		for (let i = 0; i < 36; i++) await fetch(origin);
+		const closed = new Promise((resolve) => child!.once('close', resolve));
+		await stopHttpProcess(child);
+		await closed;
+		const retained = httpProcessDiagnostics(child);
+		assert.equal(retained.length, 32);
+		assert.equal(retained.at(-1)?.lifecycle, 'exit');
+		assert.equal(
+			retained.filter((event) => event.errorType === 'UndefinedTable').length,
+			1,
+			'shutdown output is captured'
+		);
+		assert.ok(retained.every((event) => event.role === 'api' && event.pid === child!.pid));
+	} finally {
+		if (child) await stopHttpProcess(child);
+		await rm(folder, { recursive: true, force: true });
+	}
+});
+
+test('startup failure includes safe events but never raw output', async () => {
+	const folder = await mkdtemp(join(tmpdir(), 'spellbook-http-runtime-'));
+	try {
+		await writeFile(
+			join(folder, 'entry.mjs'),
+			`console.error('synthetic-secret');console.error('Database request failed: UndefinedTable (SQLSTATE 42P01)');process.exit(7);`
+		);
+		await assert.rejects(
+			startHttpProcess(
+				await unusedOrigin(),
+				pathToFileURL(folder + '/'),
+				'entry.mjs',
+				{},
+				false,
+				'api'
+			),
+			(error: Error) => {
+				assert.match(error.message, /42P01/);
+				assert.match(error.message, /"exitCode":7/);
+				assert.doesNotMatch(error.message, /synthetic-secret/);
+				return true;
+			}
+		);
+	} finally {
+		await rm(folder, { recursive: true, force: true });
+	}
+});
+
+test('ordinary failed tests receive retained fixture diagnostics automatically', async () => {
+	const folder = await mkdtemp(join(tmpdir(), 'spellbook-http-runtime-'));
+	try {
+		const runtime = new URL('./http-runtime.ts', import.meta.url).href;
+		const origin = await unusedOrigin();
+		await writeFile(
+			join(folder, 'entry.mjs'),
+			`import {createServer} from 'node:http';const s=createServer((_,r)=>{console.error('synthetic-secret');console.error('Database request failed: UndefinedTable (SQLSTATE 42P01)');r.end();});s.listen(${new URL(origin).port},'127.0.0.1',()=>console.log('Listening on ${origin}'));process.on('SIGTERM',()=>s.close());`
+		);
+		await writeFile(
+			join(folder, 'failure.test.mjs'),
+			`import {test} from 'node:test';import {startHttpProcess,stopHttpProcess} from ${JSON.stringify(runtime)};test('synthetic failure',async()=>{const child=await startHttpProcess(${JSON.stringify(origin)},new URL('./',import.meta.url),'entry.mjs',{},false,'api');try{await fetch(${JSON.stringify(origin)});await new Promise(r=>setTimeout(r,30));throw new Error('expected assertion failure');}finally{await stopHttpProcess(child);}});`
+		);
+		const result = await new Promise<{ code: number | null; output: string }>((resolve, reject) => {
+			const runner = spawn(process.execPath, ['--test', join(folder, 'failure.test.mjs')], {
+				stdio: ['ignore', 'pipe', 'pipe'],
+				env: Object.fromEntries(
+					Object.entries(process.env).filter(([name]) => name !== 'NODE_TEST_CONTEXT')
+				)
+			});
+			let output = '';
+			runner.stdout.on('data', (chunk) => (output += chunk));
+			runner.stderr.on('data', (chunk) => (output += chunk));
+			runner.once('error', reject);
+			runner.once('close', (code) => resolve({ code, output }));
+		});
+		assert.equal(result.code, 1);
+		assert.match(result.output, /42P01/);
+		assert.match(result.output, /"lifecycle":"exit"/);
+		assert.doesNotMatch(result.output, /synthetic-secret/);
+	} finally {
+		await rm(folder, { recursive: true, force: true });
+	}
+});
+
 test(
-	'SavedState listener closes and built Node exits naturally after SSE shutdown',
+	'SavedState listener closes and installed Python exits naturally after SSE shutdown',
 	{
 		skip: !process.env.TEST_DATABASE_URL
 	},
@@ -317,7 +447,7 @@ test(
 					const controller = new AbortController();
 					try {
 						child = await startHttpApplication(origin, new URL('../', import.meta.url));
-						const response = await fetch(origin + '/api/auth/register', {
+						const response = await fetch(origin + '/api/v1/auth/register', {
 							method: 'POST',
 							headers: { 'content-type': 'application/json' },
 							body: JSON.stringify({
@@ -328,7 +458,7 @@ test(
 						assert.equal(response.status, 201);
 						const auth = await response.json();
 						accountId = auth.user.accountId;
-						const stream = await fetch(origin + '/api/account/events', {
+						const stream = await fetch(origin + '/api/v1/account/events', {
 							headers: { authorization: 'Bearer ' + auth.token },
 							signal: controller.signal
 						});
@@ -341,31 +471,19 @@ test(
 							assert.equal(chunk.done, false);
 							frames += new TextDecoder().decode(chunk.value);
 						}
-						const listenerName = 'spellbook_saved_state:' + child.api.pid;
-						assert.equal(
-							(
-								await pool.query(
-									'SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname=current_database() AND application_name=$1',
-									[listenerName]
-								)
-							).rows[0].n,
-							1
-						);
-						assert.equal(
-							(
-								await pool.query(
-									'SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname=current_database() AND application_name=$1',
-									['spellbook_saved_state:' + child.web.pid]
-								)
-							).rows[0].n,
-							0,
-							'The web process must not own the private SavedState listener'
-						);
+						const listeners = (
+							await pool.query(
+								'SELECT pid FROM pg_stat_activity WHERE datname=current_database() AND query=$1',
+								['LISTEN spellbook_saved_state']
+							)
+						).rows;
+						assert.equal(listeners.length, 1, 'SSE requires one physical SavedState listener');
+						const listenerPid = listeners[0].pid;
 						if (!keepOpen) {
 							controller.abort();
 							await reader.cancel().catch(() => {});
 							reader = undefined;
-							const logout = await fetch(origin + '/api/auth/logout', {
+							const logout = await fetch(origin + '/api/v1/auth/logout', {
 								method: 'POST',
 								headers: {
 									authorization: 'Bearer ' + auth.token,
@@ -388,8 +506,8 @@ test(
 						const naturalExit = await exited;
 						const listenerRows = (
 							await pool.query(
-								`SELECT pid,state,CASE WHEN query='LISTEN spellbook_saved_state' THEN query ELSE 'other' END AS query_kind FROM pg_stat_activity WHERE datname=current_database() AND application_name=$1`,
-								[listenerName]
+								`SELECT pid,state,CASE WHEN query='LISTEN spellbook_saved_state' THEN query ELSE 'other' END AS query_kind FROM pg_stat_activity WHERE datname=current_database() AND pid=$1`,
+								[listenerPid]
 							)
 						).rows;
 						t.diagnostic(
@@ -406,18 +524,18 @@ test(
 							fetch(child.apiOrigin, { signal: AbortSignal.timeout(1000) }),
 							'Owned HTTP listener must be closed'
 						);
-						assert.equal(naturalExit, true, 'Owned Node process must exit naturally within15s');
+						assert.equal(naturalExit, true, 'Owned Python process must exit naturally within 15s');
 						assert.equal(
 							child.api.exitCode,
-							0,
-							'Forced cleanup or signal termination is not success'
+							null,
+							'Uvicorn re-raises the captured shutdown signal after graceful shutdown'
 						);
-						assert.equal(child.api.signalCode, null);
+						assert.equal(child.api.signalCode, 'SIGTERM');
 						assert.equal(
 							(
 								await pool.query(
-									'SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname=current_database() AND application_name=$1',
-									[listenerName]
+									'SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname=current_database() AND pid=$1',
+									[listenerPid]
 								)
 							).rows[0].n,
 							0

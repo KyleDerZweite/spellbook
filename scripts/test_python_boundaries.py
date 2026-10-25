@@ -28,6 +28,7 @@ class BoundaryTests(unittest.TestCase):
             "from backend import api",
             "from worker.catalog import CatalogPublisher",
             "from backend.workers import state",
+            "import spellbook_state.value_history",
             "if TYPE_CHECKING:\n from spellbook_api.http.types import Configuration",
             "from . import uvicorn",
         ):
@@ -84,10 +85,31 @@ class BoundaryTests(unittest.TestCase):
             with self.subTest(file=file):
                 self.check(file, code, None)
         self.check("backend/api/src/spellbook_api/main.py", "import worker", "api-worker")
+        self.check("backend/api/src/spellbook_api/main.py", "import spellbook_state", "api-worker")
 
     def test_syntax_errors_fail_closed(self) -> None:
         with self.assertRaises(SyntaxError):
             self.check("backend/core/src/spellbook_core/query.py", "import (", None)
+
+    def test_mtg_consumers_use_explicit_namespace(self) -> None:
+        for code in (
+            "from spellbook_core.inventory import Inventory",
+            "from spellbook_core import catalog",
+            "import spellbook_core.scan.application",
+            "from spellbook_api.http import routes_decks",
+        ):
+            with self.subTest(code=code):
+                self.check("backend/api/src/spellbook_api/query.py", code, "mtg-namespace")
+        for file, code in (
+            ("backend/core/src/spellbook_core/mtg/decks/query.py", "from ... import inventory"),
+            ("backend/api/src/spellbook_api/query.py", "from spellbook_core.mtg import inventory"),
+            (
+                "backend/workers/state/src/spellbook_state/main.py",
+                "from spellbook_core.mtg.value_history import ValueHistory",
+            ),
+        ):
+            with self.subTest(file=file, code=code):
+                self.check(file, code, "mtg-namespace" if "..." in code else None)
 
 
 if __name__ == "__main__":

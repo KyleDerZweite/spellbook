@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit
 class StreamingResponseTest {
     @Test fun `API cancels an unknown length oversized response before full consumption`() = runBlocking {
         assertBoundedStream { client ->
-            Api("https://api.example.test", client).request("/api/catalog/search")
+            Api("https://api.example.test", client).request("/api/v1/mtg/catalog/search")
         }
     }
 
@@ -34,7 +34,7 @@ class StreamingResponseTest {
 
     @Test fun `oversized API error body is stopped before full consumption`() = runBlocking {
         assertBoundedStream(HttpStatusCode.ServiceUnavailable) { client ->
-            Api("https://api.example.test", client).request("/api/account/profile", "session")
+            Api("https://api.example.test", client).request("/api/v1/account/profile", "session")
         }
     }
 
@@ -49,7 +49,7 @@ class StreamingResponseTest {
         val finished = CountDownLatch(1)
         val total = 16 * 1024 * 1024
         val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
-        server.createContext("/api/account/events") { exchange ->
+        server.createContext("/api/v1/account/events") { exchange ->
             try {
                 exchange.responseHeaders.set("Content-Type", "application/json")
                 exchange.sendResponseHeaders(401, 0)
@@ -131,7 +131,7 @@ internal suspend fun assertBoundedStream(status: HttpStatusCode = HttpStatusCode
 private suspend fun withSseResponse(status: Int, test: suspend (Api, AtomicReference<String?>) -> Unit) {
     val authorization = AtomicReference<String?>()
     val server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
-    server.createContext("/api/account/events") { exchange ->
+    server.createContext("/api/v1/account/events") { exchange ->
         authorization.set(exchange.requestHeaders.getFirst("Authorization"))
         exchange.responseHeaders.set("Content-Type", "application/json")
         exchange.responseHeaders.set("Cache-Control", "no-store")

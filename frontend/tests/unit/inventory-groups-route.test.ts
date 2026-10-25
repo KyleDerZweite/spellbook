@@ -28,7 +28,7 @@ vi.mock('#lib/server/data/inventory-groups.ts', () => ({
 	InventoryGroupNotFoundError: class InventoryGroupNotFoundError extends Error {}
 }));
 vi.mock('#lib/server/data/inventory-window.ts', async () => {
-	const { inventoryQueryFromUrl } = await import('@spellbook/backend/inventory/query.ts');
+	const { inventoryQueryFromUrl } = await import('@spellbook/contracts/inventory-query.ts');
 	return { inventoryQueryFromUrl, inventoryApplication: { page: mocks.page } };
 });
 vi.mock('#lib/server/catalog/search.ts', () => ({ getCatalogSetNames: mocks.setNames }));

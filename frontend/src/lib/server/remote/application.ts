@@ -19,13 +19,13 @@ import { ValidationError } from '@spellbook/contracts/validation.ts';
 import { RemoteError } from './errors.ts';
 import { queryPath, type RemoteClient } from './client.ts';
 
-const base = '/api/mobile/v1/mtg';
+const base = '/api/v1/mtg';
 const id = encodeURIComponent;
 
 /** Named web use cases map to REST or the closed receipt-compatible web commands. */
 export function createRemoteApplication(client: () => RemoteClient) {
 	function command<K extends keyof WebCommandInputs>(operation: K, input: WebCommandInputs[K]) {
-		return client().request<WebCommandOutputs[K]>('/api/web/v1/commands', {
+		return client().request<WebCommandOutputs[K]>('/api/v1/mtg/commands', {
 			method: 'POST',
 			body: { operation, input },
 			domain: operation.startsWith('inventory.') ? 'inventory' : 'decks'
@@ -38,14 +38,14 @@ export function createRemoteApplication(client: () => RemoteClient) {
 		searchCatalog: (query, limit = 20, offset = 0) =>
 			catalog.searchCatalogRequest(parseCatalogSearchRequest({ query, limit, offset })),
 		searchCatalogRequest: (input) =>
-			client().request('/api/catalog/search', { method: 'POST', body: input }),
+			client().request('/api/v1/mtg/catalog/search', { method: 'POST', body: input }),
 		getPrintings: (oracleId, limit = 100, offset = 0) =>
 			client().request(
-				queryPath(`/api/catalog/cards/${id(oracleId)}/printings`, { limit, offset })
+				queryPath(`/api/v1/mtg/catalog/cards/${id(oracleId)}/printings`, { limit, offset })
 			),
 		async getCatalogPrinting(printingId) {
 			try {
-				return await client().request(`/api/catalog/printings/${id(printingId)}`);
+				return await client().request(`/api/v1/mtg/catalog/printings/${id(printingId)}`);
 			} catch (cause) {
 				if (cause instanceof RemoteError && cause.status === 404)
 					throw new ValidationError(cause.message);
@@ -336,11 +336,11 @@ export function createRemoteApplication(client: () => RemoteClient) {
 			})
 	};
 	const profile: ProfileApplication = {
-		get: () => client().request('/api/account/profile'),
+		get: () => client().request('/api/v1/account/profile'),
 		patch: (_actor, input) =>
-			client().request('/api/account/profile', { method: 'PATCH', body: input })
+			client().request('/api/v1/account/profile', { method: 'PATCH', body: input })
 	};
-	const dashboard: DashboardApplication = { get: () => client().request('/api/account/dashboard') };
+	const dashboard: DashboardApplication = { get: () => client().request('/api/v1/mtg/dashboard') };
 	const inventoryValues: InventoryValueApplication = {
 		current: () => client().request(`${base}/inventory/value`),
 		history: (_actor, input) =>
@@ -348,9 +348,9 @@ export function createRemoteApplication(client: () => RemoteClient) {
 	};
 	const qr: Pick<QrAuthApplication, 'inspect' | 'decide'> = {
 		inspect: (_actor, code) =>
-			client().request(`/api/auth/qr/requests/${id(code)}`, { domain: 'qr' }),
+			client().request(`/api/v1/auth/qr/requests/${id(code)}`, { domain: 'qr' }),
 		decide: (_actor, code, decision) =>
-			client().request(`/api/auth/qr/requests/${id(code)}/decision`, {
+			client().request(`/api/v1/auth/qr/requests/${id(code)}/decision`, {
 				method: 'POST',
 				body: { decision },
 				domain: 'qr'
@@ -361,7 +361,7 @@ export function createRemoteApplication(client: () => RemoteClient) {
 		async validateSession(token: string | undefined): Promise<AuthUser | null> {
 			if (!token) return null;
 			try {
-				return (await client().request<SessionInfo>('/api/auth/session', { token })).user;
+				return (await client().request<SessionInfo>('/api/v1/auth/session', { token })).user;
 			} catch (cause) {
 				if (cause instanceof RemoteError && cause.status === 401) return null;
 				throw cause;
@@ -369,7 +369,7 @@ export function createRemoteApplication(client: () => RemoteClient) {
 		},
 		async revokeSession(token: string | undefined): Promise<void> {
 			if (token)
-				await client().request('/api/auth/logout', { method: 'POST', token, bearer: true });
+				await client().request('/api/v1/auth/logout', { method: 'POST', token, bearer: true });
 		}
 	};
 	return { catalog, inventory, decks, categories, profile, dashboard, inventoryValues, auth };

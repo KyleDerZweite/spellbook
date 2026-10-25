@@ -20,7 +20,7 @@ const PROTECTED_PATH_PREFIXES = [
 	'/app/connect'
 ];
 const NO_INDEX_PATH_PREFIXES = ['/auth/', '/api/', '/mtg/', '/settings', '/app'];
-const LEGACY_PAGE_PATHS = ['/search', '/inventory', '/decks', '/scan'];
+const SINGLE_HEADERS = new Set(['authorization', 'origin', 'content-type']);
 
 function isPublicPath(pathname: string): boolean {
 	return pathname === '/' || PUBLIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
@@ -32,27 +32,24 @@ function isProtectedPath(pathname: string): boolean {
 	);
 }
 
-function resolveLegacyRedirect(pathname: string): string | null {
-	if (pathname === '/mtg' || pathname === '/mtg/') return '/mtg/search';
-	if (pathname === '/collections' || pathname === '/collections/') return '/mtg/inventory';
-	if (LEGACY_PAGE_PATHS.some((path) => pathname === path || pathname.startsWith(path + '/'))) {
-		return `/mtg${pathname}`;
-	}
-	return null;
-}
-
-function buildRedirectResponse(location: string): Response {
-	// 308 preserves methods and bodies while old links move to game-prefixed routes.
-	return new Response(null, {
-		status: 308,
-		headers: {
-			Location: location,
-			'X-Robots-Tag': NO_INDEX_ROBOTS_TAG
-		}
-	});
-}
-
 export const handle: Handle = async ({ event, resolve }) => {
+	// Adapter-node retains raw lines here even when Fetch has joined or discarded duplicates.
+	const rawHeaders = event.platform?.req?.rawHeaders ?? [];
+	const seen = new Set<string>();
+	for (let index = 0; index < rawHeaders.length; index += 2) {
+		const name = rawHeaders[index].toLowerCase();
+		if (!SINGLE_HEADERS.has(name)) continue;
+		if (seen.has(name)) {
+			return Response.json(
+				{ status: 400, message: 'Invalid request' },
+				{
+					status: 400,
+					headers: { 'Cache-Control': 'no-store', 'X-Robots-Tag': NO_INDEX_ROBOTS_TAG }
+				}
+			);
+		}
+		seen.add(name);
+	}
 	const pathname = event.url.pathname;
 	// The API authenticates the raw request and owns its Origin and cache policy.
 	if (pathname.startsWith('/api/') || pathname === '/openapi.json') {
@@ -62,11 +59,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 	requireFormOrigin(event);
 
-	// Redirect old page URLs before applying the destination auth guard.
-	const legacyTarget = resolveLegacyRedirect(pathname);
-	if (legacyTarget) {
-		const search = event.url.search;
-		return buildRedirectResponse(`${legacyTarget}${search}`);
+	if (pathname === '/mtg' || pathname === '/mtg/') {
+		return createNoIndexRedirect(`/mtg/search${event.url.search}`, 308);
 	}
 
 	const token = event.cookies.get(SESSION_COOKIE);

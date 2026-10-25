@@ -146,9 +146,11 @@ test('built PWA worker preserves the public-only cache and explicit update bound
 	}
 	const size = stored.size;
 	for (const path of [
-		'/api/account/profile',
-		'/api/auth/qr/requests/code',
-		'/api/mtg/scan/artifacts/photo.png',
+		'/api/v1/account/profile',
+		'/api/v1/auth/qr/requests/code',
+		'/api/v1/account/events',
+		'/api/v1/mtg/catalog/search',
+		'/api/v1/mtg/scan/artifacts/photo.png',
 		'/auth/login',
 		'/app',
 		'/showcase/sol-ring.webp'

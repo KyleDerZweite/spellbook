@@ -1,12 +1,17 @@
 import { fixtureAuthRequest } from './fixtures/http-auth.ts';
 import { verifyIndependentHttp } from './fixtures/independent-http.ts';
-import { SESSION_COOKIE } from '@spellbook/backend/auth/session.ts';
+import { SESSION_COOKIE } from './fixtures/session.ts';
 import type { DashboardSummary } from '@spellbook/contracts/dashboard.ts';
 import { seedWideSummary } from './fixtures/wide-summary.ts';
 import { seedAccountScaleInventory } from './fixtures/account-scale.ts';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { httpTestOrigin, startHttpApplication, stopHttpApplication } from './http-runtime.ts';
+import {
+	httpProcessDiagnostics,
+	httpTestOrigin,
+	startHttpApplication,
+	stopHttpApplication
+} from './http-runtime.ts';
 import type { InventoryPage } from '@spellbook/contracts/inventory.ts';
 import type { CardDocument } from '@spellbook/contracts/catalog.ts';
 import { randomUUID } from 'node:crypto';
@@ -40,7 +45,7 @@ let fixtureStarted = false;
 let keepFixture = false;
 
 async function request(path: string, body?: unknown, headers: Record<string, string> = {}) {
-	if (path === '/api/auth/login' || path === '/api/auth/register')
+	if (path === '/api/v1/auth/login' || path === '/api/v1/auth/register')
 		return fixtureAuthRequest(origin, path, body, headers);
 	return fetch(`${origin}${path}`, {
 		method: body === undefined ? 'GET' : 'POST',
@@ -111,7 +116,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 		const card = await catalogFixture();
 		await verifyIndependentHttp(t, child, pool, card, accounts);
 		await t.test('public Search and bounded printing reads use safe DTOs', async () => {
-			const response = await request('/api/catalog/search', {
+			const response = await request('/api/v1/mtg/catalog/search', {
 				query: 'Sol Ring',
 				limit: 20,
 				facets: true
@@ -122,14 +127,14 @@ test('built HTTP application preserves public Catalog and local account journeys
 			assert.equal(search.generationId, generation);
 			assert.equal(search.hits[0].privateFixtureField, undefined);
 			const printings = await (
-				await request(`/api/catalog/cards/${card.oracle_id}/printings?limit=1`)
+				await request(`/api/v1/mtg/catalog/cards/${card.oracle_id}/printings?limit=1`)
 			).json();
 			assert.equal(printings.hits[0].id, card.id);
 			const page = await request('/mtg/search?q=Sol%20Ring');
 			assert.equal(page.status, 200);
 			assert.match(await page.text(), /Search/);
 			assert.equal(
-				(await request('/api/catalog/search', { query: 'Sol Ring', limit: 501 })).status,
+				(await request('/api/v1/mtg/catalog/search', { query: 'Sol Ring', limit: 501 })).status,
 				400
 			);
 		});
@@ -140,14 +145,14 @@ test('built HTTP application preserves public Catalog and local account journeys
 					for (const method of ['GET', 'POST']) {
 						const response =
 							method === 'GET'
-								? await request(`/api/catalog/search?q=Limit%20fixture&limit=${limit}`)
-								: await request('/api/catalog/search', { query: 'Limit fixture', limit });
+								? await request(`/api/v1/mtg/catalog/search?q=Limit%20fixture&limit=${limit}`)
+								: await request('/api/v1/mtg/catalog/search', { query: 'Limit fixture', limit });
 						assert.equal(response.status, limit === 501 ? 400 : 200);
 						if (limit === 501)
 							t.diagnostic(
 								JSON.stringify({
 									boundary:
-										method === 'GET' && response.url.includes('/api/catalog/')
+										method === 'GET' && response.url.includes('/api/v1/mtg/catalog/')
 											? 'public-search'
 											: 'search',
 									method,
@@ -173,23 +178,24 @@ test('built HTTP application preserves public Catalog and local account journeys
 							);
 						}
 					}
-				const defaults = await (await request('/api/catalog/search?q=Limit%20fixture')).json();
+				const defaults = await (
+					await request('/api/v1/mtg/catalog/search?q=Limit%20fixture')
+				).json();
 				assert.equal(defaults.hits.length, 20);
 				const deep = await (
-					await request('/api/catalog/search?q=Limit%20fixture&limit=500&offset=500')
+					await request('/api/v1/mtg/catalog/search?q=Limit%20fixture&limit=500&offset=500')
 				).json();
 				assert.equal(deep.hits.length, 100);
 				assert.equal(deep.estimatedTotalHits, 600);
 				assert.equal(deep.generationId, generation);
-				assert.equal((await request('/api/mobile/v1/mtg/search?limit=500')).status, 401);
-				assert.equal((await request('/api/mobile/v1/mtg/search', { limit: 500 })).status, 401);
 				for (const limit of [0, 101, 500, 501])
 					assert.equal(
-						(await request(`/api/catalog/cards/${card.oracle_id}/printings?limit=${limit}`)).status,
+						(await request(`/api/v1/mtg/catalog/cards/${card.oracle_id}/printings?limit=${limit}`))
+							.status,
 						400
 					);
 				assert.equal(
-					(await request(`/api/catalog/cards/${card.oracle_id}/printings?limit=100`)).status,
+					(await request(`/api/v1/mtg/catalog/cards/${card.oracle_id}/printings?limit=100`)).status,
 					200
 				);
 			}
@@ -242,7 +248,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				assert.equal(filteredLocation.searchParams.get('type'), 'Artifact');
 				assert.equal(filteredLocation.searchParams.get('rarity'), 'uncommon');
 				assert.equal(filteredLocation.searchParams.get('page'), '1');
-				const registered = await request('/api/auth/register', {
+				const registered = await request('/api/v1/auth/register', {
 					username: `native_clamp_${randomUUID().slice(0, 8)}`,
 					password
 				});
@@ -373,7 +379,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 						[card.id, fixtureDay, fixtureInstant, publication]
 					);
 					// The full native source may already have this printing on earlier days.
-					const historyPath = `/api/mobile/v1/mtg/prices/history?printingId=${card.id}&finish=nonfoil&days=1&source=Scryfall`;
+					const historyPath = `/api/v1/mtg/prices/history?printingId=${card.id}&finish=nonfoil&days=1&source=Scryfall`;
 					const historyResponse = await request(historyPath);
 					assert.equal(historyResponse.status, 200);
 					const history = await historyResponse.json();
@@ -397,7 +403,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 					} finally {
 						await pool.query('ALTER TABLE http_unavailable_history RENAME TO price_source_history');
 					}
-					const path = `/api/mobile/v1/mtg/prices?printingId=${card.id}&finish=nonfoil`;
+					const path = `/api/v1/mtg/prices?printingId=${card.id}&finish=nonfoil`;
 					const publicResponse = await request(path);
 					assert.equal(publicResponse.status, 200);
 					assert.equal(publicResponse.headers.get('cache-control'), 'no-store');
@@ -405,9 +411,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 					assert.equal(price.results[0].amount, '0.005');
 					assert.equal(price.results[0].provenance, 'Exact');
 					assert.equal(price.publications[0].id, publication);
-					const unknown = await request(
-						`/api/mobile/v1/mtg/prices?printingId=${card.id}&finish=foil`
-					);
+					const unknown = await request(`/api/v1/mtg/prices?printingId=${card.id}&finish=foil`);
 					assert.equal(unknown.status, 200);
 					const unavailable = await unknown.json();
 					assert.equal(unavailable.results[0].kind, 'Unknown');
@@ -416,10 +420,10 @@ test('built HTTP application preserves public Catalog and local account journeys
 					for (const query of ['&accountId=forged', '&printingId=' + card.id, '&extra=1'])
 						assert.equal((await request(path + query)).status, 400);
 					assert.equal(
-						(await request(`/api/mobile/v1/mtg/prices?printingId=invalid&finish=foil`)).status,
+						(await request(`/api/v1/mtg/prices?printingId=invalid&finish=foil`)).status,
 						400
 					);
-					const registered = await request('/api/auth/register', {
+					const registered = await request('/api/v1/auth/register', {
 						username: `prices_${randomUUID().slice(0, 8)}`,
 						password
 					});
@@ -435,7 +439,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 						`INSERT INTO inventory_cards(id,inventory_id,account_id,game,catalog_card_id,canonical_card_id,name,set_code,image_uri,quantity,finish,condition,notes,spellbook_position) VALUES($1,$2,$3,'mtg',$4,$5,'Sol Ring','cmm','',3,'nonfoil','NM','',0)`,
 						[ownedEntry, inventory, account.user.accountId, card.id, card.oracle_id]
 					);
-					const ownedPath = '/api/mobile/v1/mtg/inventory/prices';
+					const ownedPath = '/api/v1/mtg/inventory/prices';
 					assert.equal((await request(ownedPath, { entryIds: [ownedEntry] })).status, 401);
 					const owned = await request(ownedPath, { entryIds: [ownedEntry] }, headers);
 					assert.equal(owned.status, 200);
@@ -464,16 +468,36 @@ test('built HTTP application preserves public Catalog and local account journeys
 					});
 					assert.equal(saved.status, 200);
 					assert.equal((await saved.json()).type, 'success');
+					const api = child!.api;
+					const priorErrors = httpProcessDiagnostics(api).filter(
+						(event) => event.lifecycle === 'error'
+					).length;
 					await pool.query('ALTER TABLE inventory_groups RENAME TO http_missing_inventory_groups');
 					try {
-						assert.ok(
-							(await request('/api/mobile/v1/mtg/inventory', undefined, headers)).status >= 500
-						);
+						assert.ok((await request('/api/v1/mtg/inventory', undefined, headers)).status >= 500);
 						const afterFailedWindow = await request(ownedPath, { entryIds: [ownedEntry] }, headers);
 						assert.equal(afterFailedWindow.status, 200);
 						const currentPrice = await afterFailedWindow.json();
 						assert.equal(currentPrice.results[0].quantity, 5);
 						assert.equal(currentPrice.coverage.coveredQuantity, 5);
+						await t.waitFor(
+							() =>
+								assert.deepEqual(
+									httpProcessDiagnostics(api)
+										.filter((event) => event.lifecycle === 'error')
+										.slice(priorErrors),
+									[
+										{
+											role: 'api',
+											pid: api.pid,
+											lifecycle: 'error',
+											errorType: 'UndefinedTable',
+											sqlstate: '42P01'
+										}
+									]
+								),
+							{ interval: 20, timeout: 2000 }
+						);
 					} finally {
 						await pool.query(
 							'ALTER TABLE http_missing_inventory_groups RENAME TO inventory_groups'
@@ -527,7 +551,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 		await t.test(
 			'API registration, bearer validation, wrong credentials and revocation',
 			async () => {
-				const registration = await request('/api/auth/register', { username, password });
+				const registration = await request('/api/v1/auth/register', { username, password });
 				assert.equal(registration.status, 201);
 				const registered = await registration.json();
 				accounts.push(registered.user.accountId);
@@ -536,21 +560,21 @@ test('built HTTP application preserves public Catalog and local account journeys
 				assert.equal(typeof registered.expiresAt, 'string');
 				assert.equal(new Date(registered.expiresAt).toISOString(), registered.expiresAt);
 				assert.equal(
-					(await request('/api/auth/login', { username, password: 'wrong-password' })).status,
+					(await request('/api/v1/auth/login', { username, password: 'wrong-password' })).status,
 					401
 				);
-				assert.equal((await request('/api/auth/register', { username, password })).status, 400);
+				assert.equal((await request('/api/v1/auth/register', { username, password })).status, 400);
 				assert.equal(
 					(
 						await request(
-							'/api/auth/login',
+							'/api/v1/auth/login',
 							{ username, password },
 							{ origin: 'https://foreign.test' }
 						)
 					).status,
 					403
 				);
-				const login = await request('/api/auth/login', {
+				const login = await request('/api/v1/auth/login', {
 					username: username.toUpperCase(),
 					password
 				});
@@ -558,7 +582,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				const authenticated = await login.json();
 				const authorization = `Bearer ${authenticated.token}`;
 				assert.equal(
-					(await request('/api/mobile/v1/mtg/search?q=Sol%20Ring', undefined, { authorization }))
+					(await request('/api/v1/mtg/catalog/search?q=Sol%20Ring', undefined, { authorization }))
 						.status,
 					200
 				);
@@ -567,12 +591,12 @@ test('built HTTP application preserves public Catalog and local account journeys
 						const response =
 							method === 'GET'
 								? await request(
-										`/api/mobile/v1/mtg/search?q=Limit%20fixture&limit=${limit}`,
+										`/api/v1/mtg/catalog/search?q=Limit%20fixture&limit=${limit}`,
 										undefined,
 										{ authorization }
 									)
 								: await request(
-										'/api/mobile/v1/mtg/search',
+										'/api/v1/mtg/catalog/search',
 										{ query: 'Limit fixture', limit },
 										{ authorization }
 									);
@@ -581,7 +605,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 							t.diagnostic(
 								JSON.stringify({
 									boundary:
-										method === 'GET' && response.url.includes('/api/catalog/')
+										method === 'GET' && response.url.includes('/api/v1/mtg/catalog/')
 											? 'public-search'
 											: 'search',
 									method,
@@ -607,22 +631,22 @@ test('built HTTP application preserves public Catalog and local account journeys
 							);
 						}
 					}
-				assert.equal((await request('/api/auth/logout', {}, { authorization })).status, 204);
+				assert.equal((await request('/api/v1/auth/logout', {}, { authorization })).status, 204);
 				assert.equal(
-					(await request('/api/mobile/v1/mtg/search?q=Sol%20Ring', undefined, { authorization }))
-						.status,
+					(await request('/api/v1/mtg/inventory', undefined, { authorization })).status,
 					401
 				);
+				assert.equal((await request('/api/v1/mtg/catalog/search?q=Sol%20Ring')).status, 200);
 			}
 		);
 		await t.test(
 			'Inventory windows stay bounded and coherent under concurrent writes',
 			async () => {
-				const loginResponse = await request('/api/auth/login', { username, password });
+				const loginResponse = await request('/api/v1/auth/login', { username, password });
 				assert.equal(loginResponse.status, 200);
 				const login = await loginResponse.json();
 				const headers = { authorization: `Bearer ${login.token}` };
-				const path = '/api/mobile/v1/mtg/inventory';
+				const path = '/api/v1/mtg/inventory';
 				// Real public printings seed this reader-only pagination fixture. Mutation contracts are exercised below.
 				const publicCards: CardDocument[] = JSON.parse(
 					await readFile(new URL('../../backend/scripts/demo/cards.json', import.meta.url), 'utf8')
@@ -752,7 +776,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				);
 				assert.equal((await request(path + '?limit=501', undefined, headers)).status, 400);
 				const other = await (
-					await request('/api/auth/register', {
+					await request('/api/v1/auth/register', {
 						username: `other_${randomUUID().slice(0, 8)}`,
 						password
 					})
@@ -782,7 +806,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 		await t.test(
 			'Inventory receipts, Notes, Groups and native recovery share authorized retry-safe writes',
 			async () => {
-				const register = await request('/api/auth/register', {
+				const register = await request('/api/v1/auth/register', {
 					username: `inventory_${randomUUID().slice(0, 8)}`,
 					password
 				});
@@ -791,7 +815,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				accounts.push(actor.user.accountId);
 				const headers = { authorization: `Bearer ${actor.token}` };
 				const cookie = `spellbook_session=${actor.token}`;
-				const path = '/api/mobile/v1/mtg/inventory';
+				const path = '/api/v1/mtg/inventory';
 				const change = async (
 					url: string,
 					method: string,
@@ -1064,7 +1088,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 						generation
 					]);
 				}
-				const foreignResponse = await request('/api/auth/register', {
+				const foreignResponse = await request('/api/v1/auth/register', {
 					username: `inventory_other_${randomUUID().slice(0, 8)}`,
 					password
 				});
@@ -1132,9 +1156,11 @@ test('built HTTP application preserves public Catalog and local account journeys
 			'account profile patches, session inspection and password rotation use the authenticated actor',
 			async () => {
 				const name = `account_${randomUUID().slice(0, 8)}`;
-				const a = await (await request('/api/auth/register', { username: name, password })).json();
+				const a = await (
+					await request('/api/v1/auth/register', { username: name, password })
+				).json();
 				const b = await (
-					await request('/api/auth/register', {
+					await request('/api/v1/auth/register', {
 						username: `other_${randomUUID().slice(0, 8)}`,
 						password
 					})
@@ -1142,13 +1168,13 @@ test('built HTTP application preserves public Catalog and local account journeys
 				accounts.push(a.user.accountId, b.user.accountId);
 				const headers = { authorization: `Bearer ${a.token}` };
 				const patch = (body: unknown, extra: Record<string, string> = {}) =>
-					fetch(`${origin}/api/account/profile`, {
+					fetch(`${origin}/api/v1/account/profile`, {
 						method: 'PATCH',
 						headers: { 'content-type': 'application/json', ...headers, ...extra },
 						body: JSON.stringify(body)
 					});
-				assert.equal((await request('/api/account/profile')).status, 401);
-				const inspected = await (await request('/api/auth/session', undefined, headers)).json();
+				assert.equal((await request('/api/v1/account/profile')).status, 401);
+				const inspected = await (await request('/api/v1/auth/session', undefined, headers)).json();
 				assert.equal(inspected.expiresAt, a.expiresAt);
 				assert.equal(inspected.token, undefined);
 				assert.equal(inspected.user.accountId, a.user.accountId);
@@ -1160,7 +1186,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				]);
 				assert.ok(saves.every((response) => response.status === 200));
 				assert.equal((await patch({ artworkId: 'tide' })).status, 200);
-				const saved = await (await request('/api/account/profile', undefined, headers)).json();
+				const saved = await (await request('/api/v1/account/profile', undefined, headers)).json();
 				assert.equal(saved.user.email, 'owner@example.test');
 				assert.equal(saved.user.avatarId, 'dragon');
 				assert.equal(saved.user.artworkId, 'tide');
@@ -1176,26 +1202,28 @@ test('built HTTP application preserves public Catalog and local account journeys
 				])
 					assert.equal((await patch(body)).status, 400);
 				const other = await (
-					await request('/api/account/profile', undefined, { authorization: `Bearer ${b.token}` })
+					await request('/api/v1/account/profile', undefined, {
+						authorization: `Bearer ${b.token}`
+					})
 				).json();
 				assert.equal(other.user.email, '');
 				assert.notEqual(other.card.name, 'HTTP Collector');
-				const secondResponse = await request('/api/auth/login', { username: name, password });
+				const secondResponse = await request('/api/v1/auth/login', { username: name, password });
 				assert.equal(secondResponse.status, 200);
 				const second = await secondResponse.json();
 				assert.equal(
 					(
 						await request(
-							'/api/account/password',
+							'/api/v1/account/password',
 							{ currentPassword: 'wrong-password', newPassword: 'new-profile-account-password' },
 							headers
 						)
 					).status,
 					400
 				);
-				assert.equal((await request('/api/auth/session', undefined, headers)).status, 200);
+				assert.equal((await request('/api/v1/auth/session', undefined, headers)).status, 200);
 				const rotated = await request(
-					'/api/account/password',
+					'/api/v1/account/password',
 					{ currentPassword: password, newPassword: 'new-profile-account-password' },
 					headers
 				);
@@ -1203,14 +1231,17 @@ test('built HTTP application preserves public Catalog and local account journeys
 				const replacement = await rotated.json();
 				for (const token of [a.token, second.token])
 					assert.equal(
-						(await request('/api/auth/session', undefined, { authorization: `Bearer ${token}` }))
+						(await request('/api/v1/auth/session', undefined, { authorization: `Bearer ${token}` }))
 							.status,
 						401
 					);
-				assert.equal((await request('/api/auth/login', { username: name, password })).status, 401);
+				assert.equal(
+					(await request('/api/v1/auth/login', { username: name, password })).status,
+					401
+				);
 				assert.equal(
 					(
-						await request('/api/auth/login', {
+						await request('/api/v1/auth/login', {
 							username: name,
 							password: 'new-profile-account-password'
 						})
@@ -1218,8 +1249,8 @@ test('built HTTP application preserves public Catalog and local account journeys
 					200
 				);
 				const next = { authorization: `Bearer ${replacement.token}` };
-				assert.equal((await request('/api/account/profile', undefined, next)).status, 200);
-				const dashboard = await request('/api/account/dashboard', undefined, next);
+				assert.equal((await request('/api/v1/account/profile', undefined, next)).status, 200);
+				const dashboard = await request('/api/v1/mtg/dashboard', undefined, next);
 				assert.equal(dashboard.status, 200);
 				const summary = await dashboard.json();
 				assert.deepEqual(summary.recentEntries, []);
@@ -1227,7 +1258,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				const cookie = `spellbook_session=${replacement.token}`;
 				assert.equal(
 					(
-						await request('/api/account/profile', undefined, {
+						await request('/api/v1/account/profile', undefined, {
 							cookie,
 							authorization: 'Bearer invalid'
 						})
@@ -1243,14 +1274,14 @@ test('built HTTP application preserves public Catalog and local account journeys
 					).status,
 					401
 				);
-				const csrf = await fetch(`${origin}/api/account/profile`, {
+				const csrf = await fetch(`${origin}/api/v1/account/profile`, {
 					method: 'PATCH',
 					headers: { cookie, origin: 'https://foreign.test', 'content-type': 'application/json' },
 					body: JSON.stringify({ email: 'bad@example.test' })
 				});
 				assert.equal(csrf.status, 403);
 				const cookieRotation = await request(
-					'/api/account/password',
+					'/api/v1/account/password',
 					{
 						currentPassword: 'new-profile-account-password',
 						newPassword: 'final-profile-account-password'
@@ -1269,7 +1300,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 			'native and enhanced Profile Card forms preserve disjoint changes, no-op saves and unchecked legendary state',
 			async () => {
 				const account = await (
-					await request('/api/auth/register', {
+					await request('/api/v1/auth/register', {
 						username: `forms_${randomUUID().slice(0, 8)}`,
 						password
 					})
@@ -1340,7 +1371,9 @@ test('built HTTP application preserves public Catalog and local account journeys
 					).status,
 					200
 				);
-				const saved = await (await request('/api/account/profile', undefined, { cookie })).json();
+				const saved = await (
+					await request('/api/v1/account/profile', undefined, { cookie })
+				).json();
 				assert.equal(saved.card.name, 'Native Collector');
 				assert.equal(saved.card.flavorText, 'Saved in the other tab');
 				assert.equal(saved.card.legendary, false);
@@ -1360,13 +1393,13 @@ test('built HTTP application preserves public Catalog and local account journeys
 				assert.equal((await post(partial())).status, 200);
 				assert.equal((await post(partial('on'))).status, 200);
 				assert.equal(
-					(await (await request('/api/account/profile', undefined, { cookie })).json()).card
+					(await (await request('/api/v1/account/profile', undefined, { cookie })).json()).card
 						.legendary,
 					true
 				);
 				assert.equal((await post(partial('off'))).status, 200);
 				assert.equal(
-					(await (await request('/api/account/profile', undefined, { cookie })).json()).card
+					(await (await request('/api/v1/account/profile', undefined, { cookie })).json()).card
 						.legendary,
 					false
 				);
@@ -1384,7 +1417,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 			{ skip: !process.env.TEST_SCALE_CATALOG_PATH },
 			async () => {
 				const account = await (
-					await request('/api/auth/register', {
+					await request('/api/v1/auth/register', {
 						username: `scale_${randomUUID().slice(0, 8)}`,
 						password
 					})
@@ -1401,7 +1434,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 					 ORDER BY octet_length(name) DESC,id LIMIT 8)`,
 					[account.user.accountId]
 				);
-				const response = await request('/api/account/dashboard', undefined, {
+				const response = await request('/api/v1/mtg/dashboard', undefined, {
 					authorization: `Bearer ${account.token}`
 				});
 				assert.equal(response.status, 200);
@@ -1437,7 +1470,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 			'Profile Card stale native and enhanced merges return field errors and retain submitted drafts',
 			async () => {
 				const account = await (
-					await request('/api/auth/register', {
+					await request('/api/v1/auth/register', {
 						username: `merge_${randomUUID().slice(0, 8)}`,
 						password
 					})
@@ -1445,7 +1478,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				accounts.push(account.user.accountId);
 				const cookie = `spellbook_session=${account.token}`;
 				const patch = (profileCard: unknown) =>
-					fetch(`${origin}/api/account/profile`, {
+					fetch(`${origin}/api/v1/account/profile`, {
 						method: 'PATCH',
 						headers: {
 							'content-type': 'application/json',
@@ -1561,7 +1594,9 @@ test('built HTTP application preserves public Catalog and local account journeys
 					locker.release();
 					await pending.catch(() => {});
 				}
-				const saved = await (await request('/api/account/profile', undefined, { cookie })).json();
+				const saved = await (
+					await request('/api/v1/account/profile', undefined, { cookie })
+				).json();
 				assert.equal(saved.card.power, '');
 				assert.equal(saved.card.toughness, '');
 			}
@@ -1570,7 +1605,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 			'large permitted entry quantities produce exact aggregate JSON numbers',
 			async () => {
 				const account = await (
-					await request('/api/auth/register', {
+					await request('/api/v1/auth/register', {
 						username: `wide_${randomUUID().slice(0, 8)}`,
 						password
 					})
@@ -1578,7 +1613,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				accounts.push(account.user.accountId);
 				const { setCode } = await seedWideSummary(pool, account.user.accountId);
 				const headers = { authorization: `Bearer ${account.token}` };
-				const response = await request('/api/account/dashboard', undefined, headers);
+				const response = await request('/api/v1/mtg/dashboard', undefined, headers);
 				assert.equal(response.status, 200);
 				const summary = (await response.json()) as DashboardSummary;
 				assert.equal(summary.totals.total, 4294967294);
@@ -1608,13 +1643,13 @@ test('built HTTP application preserves public Catalog and local account journeys
 						{ name: 'Owned', required: 4294967294, exact: 4294967294, alternate: 0, missing: 0 }
 					]
 				);
-				const settings = await request('/api/account/profile', undefined, headers);
+				const settings = await request('/api/v1/account/profile', undefined, headers);
 				assert.equal(settings.status, 200);
 				assert.equal((await settings.json()).totals.total, 4294967294);
 			}
 		);
 		// Deck domain fixtures do not share Inventory state or session lifecycle with Account journeys.
-		const deckRegistration = await request('/api/auth/register', {
+		const deckRegistration = await request('/api/v1/auth/register', {
 			username: `deck_http_${randomUUID().slice(0, 8)}`,
 			password
 		});
@@ -1748,7 +1783,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				});
 				assert.equal(commit.status, 200);
 				const snapshot = await (
-					await request(`/api/mobile/v1/mtg/decks?deck=${deckId}`, undefined, {
+					await request(`/api/v1/mtg/decks?deck=${deckId}`, undefined, {
 						authorization: `Bearer ${deckSession.token}`
 					})
 				).json();
@@ -1781,7 +1816,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				});
 				assert.equal(decremented.status, 200);
 				const afterDecrement = await (
-					await request(`/api/mobile/v1/mtg/decks?deck=${deckId}`, undefined, {
+					await request(`/api/v1/mtg/decks?deck=${deckId}`, undefined, {
 						authorization: `Bearer ${deckSession.token}`
 					})
 				).json();
@@ -1796,7 +1831,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 			async () => {
 				const authorization = `Bearer ${deckSession.token}`;
 				const created = await request(
-					'/api/mobile/v1/mtg/decks',
+					'/api/v1/mtg/decks',
 					{ name: 'Retry deck', format: 'Modern' },
 					{ authorization }
 				);
@@ -1820,7 +1855,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 						}
 					]
 				};
-				const path = `/api/mobile/v1/mtg/decks/${deck.id}/cards/bulk`;
+				const path = `/api/v1/mtg/decks/${deck.id}/cards/bulk`;
 				const first = await request(path, input, { authorization });
 				assert.equal(first.status, 200);
 				const acknowledgement = await first.json();
@@ -1882,7 +1917,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				const deck = (
 					await (
 						await request(
-							'/api/mobile/v1/mtg/decks',
+							'/api/v1/mtg/decks',
 							{ name: 'Atomic deltas', format: 'Modern' },
 							{ authorization }
 						)
@@ -1896,14 +1931,14 @@ test('built HTTP application preserves public Catalog and local account journeys
 					quantity: 2,
 					role: 'main'
 				};
-				const added = await request(`/api/mobile/v1/mtg/decks/${deck.id}/cards`, add, {
+				const added = await request(`/api/v1/mtg/decks/${deck.id}/cards`, add, {
 					authorization
 				});
 				assert.equal(added.status, 200);
 				const ack = await added.json();
 				const entryId = ack.changes[0].entryId;
 				const patch = async (body: unknown) =>
-					fetch(`${origin}/api/mobile/v1/mtg/deck-cards/${entryId}`, {
+					fetch(`${origin}/api/v1/mtg/deck-cards/${entryId}`, {
 						method: 'PATCH',
 						headers: { authorization, 'content-type': 'application/json' },
 						body: JSON.stringify(body)
@@ -1920,19 +1955,19 @@ test('built HTTP application preserves public Catalog and local account journeys
 				assert.ok(parallel.every((response) => response.status === 200));
 				assert.deepEqual(await (await patch(input)).json(), original);
 				const snapshot = await (
-					await request(`/api/mobile/v1/mtg/decks?deck=${deck.id}`, undefined, { authorization })
+					await request(`/api/v1/mtg/decks?deck=${deck.id}`, undefined, { authorization })
 				).json();
 				assert.equal(snapshot.deckCards[0].quantity, 11);
 				assert.equal(snapshot.deckCards[0].name, card.name);
 				const removalId = randomUUID();
 				const removed = await fetch(
-					`${origin}/api/mobile/v1/mtg/deck-cards/${entryId}?requestId=${removalId}`,
+					`${origin}/api/v1/mtg/deck-cards/${entryId}?requestId=${removalId}`,
 					{ method: 'DELETE', headers: { authorization } }
 				);
 				assert.equal(removed.status, 200);
 				const removalAck = await removed.json();
 				const recreated = await request(
-					`/api/mobile/v1/mtg/decks/${deck.id}/cards`,
+					`/api/v1/mtg/decks/${deck.id}/cards`,
 					{ ...add, requestId: randomUUID() },
 					{ authorization }
 				);
@@ -1941,10 +1976,10 @@ test('built HTTP application preserves public Catalog and local account journeys
 				assert.deepEqual(await (await patch(input)).json(), original);
 				assert.deepEqual(
 					await (
-						await fetch(
-							`${origin}/api/mobile/v1/mtg/deck-cards/${entryId}?requestId=${removalId}`,
-							{ method: 'DELETE', headers: { authorization } }
-						)
+						await fetch(`${origin}/api/v1/mtg/deck-cards/${entryId}?requestId=${removalId}`, {
+							method: 'DELETE',
+							headers: { authorization }
+						})
 					).json(),
 					removalAck
 				);
@@ -1957,13 +1992,13 @@ test('built HTTP application preserves public Catalog and local account journeys
 				const authorization = `Bearer ${deckSession.token}`;
 				const list = await (
 					await request(
-						'/api/mobile/v1/mtg/decks',
+						'/api/v1/mtg/decks',
 						{ name: 'Concurrent', description: 'Original', format: 'Modern' },
 						{ authorization }
 					)
 				).json();
 				const deck = list.at(-1);
-				const path = `/api/mobile/v1/mtg/decks/${deck.id}`;
+				const path = `/api/v1/mtg/decks/${deck.id}`;
 				const patch = (body: unknown, token = authorization) =>
 					fetch(origin + path, {
 						method: 'PATCH',
@@ -1994,13 +2029,13 @@ test('built HTTP application preserves public Catalog and local account journeys
 					descriptionRevision: '1'
 				});
 				const unrelated = `other_${randomUUID().slice(0, 8)}`;
-				const other = await request('/api/auth/register', { username: unrelated, password });
+				const other = await request('/api/v1/auth/register', { username: unrelated, password });
 				assert.equal(other.status, 201);
 				const otherSession = await other.json();
 				accounts.push(otherSession.user.accountId);
 				assert.equal((await patch({ name: 'stolen' }, `Bearer ${otherSession.token}`)).status, 404);
 				const snapshot = await (
-					await request(`/api/mobile/v1/mtg/decks?deck=${deck.id}`, undefined, { authorization })
+					await request(`/api/v1/mtg/decks?deck=${deck.id}`, undefined, { authorization })
 				).json();
 				assert.equal(snapshot.decks.find((d: { id: string }) => d.id === deck.id).format, 'Legacy');
 				assert.equal('inventoryCards' in snapshot, false);
@@ -2015,13 +2050,13 @@ test('built HTTP application preserves public Catalog and local account journeys
 				const deck = (
 					await (
 						await request(
-							'/api/mobile/v1/mtg/decks',
+							'/api/v1/mtg/decks',
 							{ name: 'Original name', format: 'Modern' },
 							{ authorization }
 						)
 					).json()
 				).at(-1);
-				const changed = await fetch(`${origin}/api/mobile/v1/mtg/decks/${deck.id}`, {
+				const changed = await fetch(`${origin}/api/v1/mtg/decks/${deck.id}`, {
 					method: 'PATCH',
 					headers: { authorization, 'content-type': 'application/json' },
 					body: JSON.stringify({
@@ -2085,7 +2120,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				assert.equal(rebased.status, 200);
 				assert.doesNotMatch(await rebased.text(), /data-deck-draft-recovery/);
 				const saved = await (
-					await request(`/api/mobile/v1/mtg/decks?deck=${deck.id}`, undefined, { authorization })
+					await request(`/api/v1/mtg/decks?deck=${deck.id}`, undefined, { authorization })
 				).json();
 				assert.equal(
 					saved.decks.find((entry: { id: string }) => entry.id === deck.id).name,
@@ -2104,13 +2139,13 @@ test('built HTTP application preserves public Catalog and local account journeys
 				const authorization = `Bearer ${deckSession.token}`;
 				const list = await (
 					await request(
-						'/api/mobile/v1/mtg/decks',
+						'/api/v1/mtg/decks',
 						{ name: 'Removed subject', format: 'Modern' },
 						{ authorization }
 					)
 				).json();
 				const deck = list.at(-1);
-				const path = `/api/mobile/v1/mtg/decks/${deck.id}/cards/bulk`;
+				const path = `/api/v1/mtg/decks/${deck.id}/cards/bulk`;
 				const input = {
 					requestId: randomUUID(),
 					operations: [
@@ -2157,7 +2192,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				assert.deepEqual(await (await request(path, input, { authorization })).json(), ack);
 				assert.equal(
 					(
-						await fetch(`${origin}/api/mobile/v1/mtg/decks/${deck.id}`, {
+						await fetch(`${origin}/api/v1/mtg/decks/${deck.id}`, {
 							method: 'DELETE',
 							headers: { authorization }
 						})
@@ -2178,24 +2213,22 @@ test('built HTTP application preserves public Catalog and local account journeys
 					format: 'Modern',
 					text: 'Deck\n2 Sol Ring\n1 Unknown Card\nMaybeboard\n1 Sol Ring'
 				};
-				const preview = await request('/api/mobile/v1/mtg/decks/import/preview', body, {
+				const preview = await request('/api/v1/mtg/decks/import/preview', body, {
 					authorization
 				});
 				assert.equal(preview.status, 200);
 				assert.equal((await preview.json()).unresolved.length, 1);
-				const commit = await request('/api/mobile/v1/mtg/decks/import/commit', body, {
+				const commit = await request('/api/v1/mtg/decks/import/commit', body, {
 					authorization
 				});
 				assert.equal(commit.status, 200);
 				const ack = await commit.json();
 				assert.equal(ack.changes[0].quantity, 2);
 				assert.deepEqual(
-					await (
-						await request('/api/mobile/v1/mtg/decks/import/commit', body, { authorization })
-					).json(),
+					await (await request('/api/v1/mtg/decks/import/commit', body, { authorization })).json(),
 					ack
 				);
-				const exported = await request(`/api/mobile/v1/mtg/decks/${ack.deckId}/export`, undefined, {
+				const exported = await request(`/api/v1/mtg/decks/${ack.deckId}/export`, undefined, {
 					authorization
 				});
 				assert.equal(exported.status, 200);
@@ -2211,15 +2244,14 @@ test('built HTTP application preserves public Catalog and local account journeys
 					text: 'Deck\n2147483647 Sol Ring\n2147483647 Sol Ring'
 				};
 				const before = await (
-					await request('/api/mobile/v1/mtg/decks', undefined, { authorization })
+					await request('/api/v1/mtg/decks', undefined, { authorization })
 				).json();
 				assert.equal(
-					(await request('/api/mobile/v1/mtg/decks/import/commit', invalid, { authorization }))
-						.status,
+					(await request('/api/v1/mtg/decks/import/commit', invalid, { authorization })).status,
 					400
 				);
 				const after = await (
-					await request('/api/mobile/v1/mtg/decks', undefined, { authorization })
+					await request('/api/v1/mtg/decks', undefined, { authorization })
 				).json();
 				assert.equal(after.decks.length, before.decks.length);
 			}
@@ -2288,13 +2320,13 @@ test('built HTTP application preserves public Catalog and local account journeys
 				const deck = (
 					await (
 						await request(
-							'/api/mobile/v1/mtg/decks',
+							'/api/v1/mtg/decks',
 							{ name: 'Printing provenance', format: 'Modern' },
 							{ authorization }
 						)
 					).json()
 				).at(-1);
-				const path = `/api/mobile/v1/mtg/decks/${deck.id}/cards/bulk`;
+				const path = `/api/v1/mtg/decks/${deck.id}/cards/bulk`;
 				const add = (document: CardDocument, quantity: number, role = 'main') => ({
 					op: 'add',
 					card: {
@@ -2317,7 +2349,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				const entryId = initial.changes[0].entryId;
 				const before = (
 					await (
-						await request(`/api/mobile/v1/mtg/decks?deck=${deck.id}`, undefined, { authorization })
+						await request(`/api/v1/mtg/decks?deck=${deck.id}`, undefined, { authorization })
 					).json()
 				).deckCards[0];
 				const replace = {
@@ -2336,7 +2368,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				assert.equal(changed.status, 200);
 				const after = (
 					await (
-						await request(`/api/mobile/v1/mtg/decks?deck=${deck.id}`, undefined, { authorization })
+						await request(`/api/v1/mtg/decks?deck=${deck.id}`, undefined, { authorization })
 					).json()
 				).deckCards[0];
 				assert.equal(after.id, before.id);
@@ -2351,7 +2383,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				).json();
 				const mergingId = added.changes[0].entryId;
 				const previewResponse = await request(
-					`/api/mobile/v1/mtg/decks/${deck.id}/categories/merge-preview`,
+					`/api/v1/mtg/decks/${deck.id}/categories/merge-preview`,
 					{
 						entryId: mergingId,
 						catalogCardId: destination.id,
@@ -2387,7 +2419,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				assert.equal(merged.changes[0].quantity, 5);
 				const final = (
 					await (
-						await request(`/api/mobile/v1/mtg/decks?deck=${deck.id}`, undefined, { authorization })
+						await request(`/api/v1/mtg/decks?deck=${deck.id}`, undefined, { authorization })
 					).json()
 				).deckCards;
 				assert.equal(final.length, 1);
@@ -2414,7 +2446,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 		await t.test(
 			'aggregate quantities exceed int32 without overflowing supported entries',
 			async () => {
-				const response = await request('/api/auth/register', {
+				const response = await request('/api/v1/auth/register', {
 					username: `aggregate_${randomUUID().slice(0, 8)}`,
 					password
 				});
@@ -2446,7 +2478,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				const deck = (
 					await (
 						await request(
-							'/api/mobile/v1/mtg/decks',
+							'/api/v1/mtg/decks',
 							{ name: 'Large aggregate', format: 'Modern' },
 							{ authorization }
 						)
@@ -2467,25 +2499,23 @@ test('built HTTP application preserves public Catalog and local account journeys
 				assert.equal(
 					(
 						await request(
-							`/api/mobile/v1/mtg/decks/${deck.id}/cards/bulk`,
+							`/api/v1/mtg/decks/${deck.id}/cards/bulk`,
 							{ requestId: randomUUID(), operations },
 							{ authorization }
 						)
 					).status,
 					200
 				);
-				const read = await request(`/api/mobile/v1/mtg/decks?deck=${deck.id}`, undefined, {
+				const read = await request(`/api/v1/mtg/decks?deck=${deck.id}`, undefined, {
 					authorization
 				});
 				assert.equal(read.status, 200);
 				const snapshot = await read.json();
 				assert.equal(snapshot.deckTotals[deck.id], 4294967294);
 				assert.equal(snapshot.ownedByCanonical[card.oracle_id], 4294967294);
-				const availability = await request(
-					`/api/mobile/v1/mtg/decks/${deck.id}/availability`,
-					undefined,
-					{ authorization }
-				);
+				const availability = await request(`/api/v1/mtg/decks/${deck.id}/availability`, undefined, {
+					authorization
+				});
 				assert.equal(availability.status, 200);
 				assert.deepEqual((await availability.json()).totals, {
 					required: 4294967294,
@@ -2513,7 +2543,10 @@ test('built HTTP application preserves public Catalog and local account journeys
 				const results: unknown[] = [];
 				for (const size of [1000, 10000, 50000]) {
 					const fixtureUser = `scale_${size}_${randomUUID().slice(0, 8)}`;
-					const response = await request('/api/auth/register', { username: fixtureUser, password });
+					const response = await request('/api/v1/auth/register', {
+						username: fixtureUser,
+						password
+					});
 					assert.equal(response.status, 201);
 					const session = await response.json();
 					accounts.push(session.user.accountId);
@@ -2554,7 +2587,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 					const deck = (
 						await (
 							await request(
-								'/api/mobile/v1/mtg/decks',
+								'/api/v1/mtg/decks',
 								{ name: `Scale ${size}`, format: 'Modern' },
 								{ authorization }
 							)
@@ -2591,7 +2624,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 					};
 					assert.equal(
 						(
-							await request(`/api/mobile/v1/mtg/decks/${deck.id}/cards/bulk`, input, {
+							await request(`/api/v1/mtg/decks/${deck.id}/cards/bulk`, input, {
 								authorization
 							})
 						).status,
@@ -2601,11 +2634,9 @@ test('built HTTP application preserves public Catalog and local account journeys
 					let bytes = 0;
 					for (let repetition = 0; repetition < 5; repetition++) {
 						const start = performance.now();
-						const read = await request(
-							`/api/mobile/v1/mtg/decks/${deck.id}/availability`,
-							undefined,
-							{ authorization }
-						);
+						const read = await request(`/api/v1/mtg/decks/${deck.id}/availability`, undefined, {
+							authorization
+						});
 						const raw = await read.text();
 						assert.equal(read.status, 200);
 						const body = JSON.parse(raw);
@@ -2633,11 +2664,9 @@ test('built HTTP application preserves public Catalog and local account journeys
 						bytes = Buffer.byteLength(raw);
 						samples.push(Number((performance.now() - start).toFixed(2)));
 					}
-					const snapshotResponse = await request(
-						`/api/mobile/v1/mtg/decks?deck=${deck.id}`,
-						undefined,
-						{ authorization }
-					);
+					const snapshotResponse = await request(`/api/v1/mtg/decks?deck=${deck.id}`, undefined, {
+						authorization
+					});
 					const raw = await snapshotResponse.text();
 					const snapshot = JSON.parse(raw);
 					assert.equal(snapshot.deckCards.length, 2);
@@ -2654,7 +2683,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 						const target = rows[index];
 						const patch = { requestId: randomUUID(), delta: 1 };
 						let started = performance.now();
-						const response = await fetch(`${origin}/api/mobile/v1/mtg/inventory/${target.id}`, {
+						const response = await fetch(`${origin}/api/v1/mtg/inventory/${target.id}`, {
 							method: 'PATCH',
 							headers: { authorization, 'content-type': 'application/json' },
 							body: JSON.stringify(patch)
@@ -2666,19 +2695,16 @@ test('built HTTP application preserves public Catalog and local account journeys
 						const quantityMs = performance.now() - started;
 						const removal = { requestId: randomUUID(), expectedQuantity: 2 };
 						started = performance.now();
-						const removedResponse = await fetch(
-							`${origin}/api/mobile/v1/mtg/inventory/${target.id}`,
-							{
-								method: 'DELETE',
-								headers: { authorization, 'content-type': 'application/json' },
-								body: JSON.stringify(removal)
-							}
-						);
+						const removedResponse = await fetch(`${origin}/api/v1/mtg/inventory/${target.id}`, {
+							method: 'DELETE',
+							headers: { authorization, 'content-type': 'application/json' },
+							body: JSON.stringify(removal)
+						});
 						const removeRaw = await removedResponse.text();
 						assert.equal(removedResponse.status, 200);
 						assert.deepEqual(JSON.parse(removeRaw).removedEntryIds, [target.id]);
 						const removeMs = performance.now() - started;
-						const replay = await fetch(`${origin}/api/mobile/v1/mtg/inventory/${target.id}`, {
+						const replay = await fetch(`${origin}/api/v1/mtg/inventory/${target.id}`, {
 							method: 'PATCH',
 							headers: { authorization, 'content-type': 'application/json' },
 							body: JSON.stringify(patch)
@@ -2762,7 +2788,7 @@ test('built HTTP application preserves public Catalog and local account journeys
 				const deck = (
 					await (
 						await request(
-							'/api/mobile/v1/mtg/decks',
+							'/api/v1/mtg/decks',
 							{ name: 'Trusted printing identity', format: 'Modern' },
 							{ authorization }
 						)
@@ -2785,12 +2811,12 @@ test('built HTTP application preserves public Catalog and local account journeys
 						}
 					]
 				};
-				const path = `/api/mobile/v1/mtg/decks/${deck.id}/cards/bulk`;
+				const path = `/api/v1/mtg/decks/${deck.id}/cards/bulk`;
 				const added = await request(path, input, { authorization });
 				assert.equal(added.status, 200);
 				const ack = await added.json();
 				const snapshot = await (
-					await request(`/api/mobile/v1/mtg/decks?deck=${deck.id}`, undefined, { authorization })
+					await request(`/api/v1/mtg/decks?deck=${deck.id}`, undefined, { authorization })
 				).json();
 				assert.deepEqual(
 					{

@@ -78,7 +78,7 @@ it('reads the bounded category endpoint without navigating, rejects an unavailab
 	await expect(readCategorySnapshot(fetcher, 'owned-deck', controller.signal)).rejects.toThrow(
 		'Could not read the saved category'
 	);
-	expect(seen).toBe('/api/mobile/v1/mtg/decks/owned-deck/categories');
+	expect(seen).toBe('/api/v1/mtg/decks/owned-deck/categories');
 	expect(signal).toBe(controller.signal);
 	const current = await readCategorySnapshot(
 		async () => Response.json(saved),

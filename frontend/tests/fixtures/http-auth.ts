@@ -5,7 +5,7 @@ const addresses = new Map<string, string>();
 /** Separate fixture clients use real, stable loopback source addresses, including failed attempts. */
 export async function fixtureAuthRequest(
 	origin: string,
-	path: '/api/auth/login' | '/api/auth/register',
+	path: '/api/v1/auth/login' | '/api/v1/auth/register',
 	body: unknown,
 	headers: Record<string, string>
 ): Promise<Response> {

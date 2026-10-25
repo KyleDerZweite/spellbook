@@ -1,118 +1,128 @@
 # Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-10-20
+- Last Reviewed: 2026-10-25
 - Source of Truth: repo config
-- Update Triggers: dormant representative Python host and protected candidate startup, explicit dormant Python candidate packaging/start, selected Python API/worker direction, native and test web body-limit defaults, independent API/web ownership and relocated code references, PWA HTTPS/install/update operations and QR migration 0024, Catalog set-directory and color-identity projection migrations, price publication/pair and optional recovery, private value history migration and runtime configuration, source opt-ins and ingestion limits, optional local combo publication and recovery, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and graceful shutdown, preview target, single root environment and local/build origins, migrations, storage, workspace ownership, application resource lifetime and native operator ownership, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
+- Update Triggers: State history scheduling ownership, Core-owned PostgreSQL test environment, canonical root operator commands, removal of obsolete Scan opt-in flag, versioned MTG routes and module ownership, native Catalog storage and one-shot lifecycle, Python source activation and server contraction, explicit Python API/state Compose candidate and ICU runtime dependency, dormant representative Python host and protected candidate startup, explicit dormant Python candidate packaging/start, selected Python API/worker direction, native and test web body-limit defaults, independent API/web ownership and relocated code references, PWA HTTPS/install/update operations and QR migration 0024, Catalog set-directory and color-identity projection migrations, price publication/pair and optional recovery, private value history migration and runtime configuration, source opt-ins and ingestion limits, optional local combo publication and recovery, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and graceful shutdown, preview target, single root environment and local/build origins, migrations, storage, workspace ownership, application resource lifetime and native operator ownership, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
 - Related Docs: [Postgres](../architecture/postgres.md), [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Classifier research](../integrations/card-categorization.md), [Catalog](../architecture/catalog.md), [Python direction](../decisions/0025-python-api-and-workers.md)
 
 The canonical service definitions are [`podman-compose.yml`](../../podman-compose.yml) and the local storage override [`podman-compose.dev.yml`](../../podman-compose.dev.yml).
 Keep live domains, account details, and secret references in private operator notes.
 
+The unmerged candidate uses the Python API image and an explicit one-shot `spellbook-migrate` service.
+API, Catalog and State wait for successful migration; Scan remains an independent service.
+State is the sole scheduled ValueHistory and WholeDeckCategory owner.
+API performs synchronous effects and enqueues work but starts no schedulers.
+Both API and State images include system ICU for Combo witness collation.
+Source activation does not authorize a production cutover or retire the retained Node rollback artifact.
+
 ## Local development
 
-[`dev.sh`](../../dev.sh) starts the host development environment.
-It uses the pinned Node version through `fnm` when available; otherwise activate that version before launching.
-Install the root workspace dependencies with `pnpm install --frozen-lockfile` from the repository root.
-The default development loop does not require Python or either Worker.
-An existing PostgreSQL database with migrations applied is required.
-[Demo setup](./local-auth.md#demo-mode) owns the explicit initial migration and seed commands.
-
-Copy [`.env.example`](../../.env.example) to the ignored root `.env` and set `DATABASE_URL` to an existing local database.
-This is the single environment file for native development, operator commands and Compose configuration.
-Enable `DEMO_MODE` only for the prepared disposable demo.
-The launcher, database commands and explicit demo seed read `.env`; variables already supplied by the caller take precedence.
-The launcher filters database, storage and worker secrets from web children.
-Vite and framework env directories are `frontend/`, so web does not read the root `.env` directly.
-The old `.env.local` is no longer part of setup.
-Run from the repository root:
+Use Node 26.10.0, pnpm 12.8.1, Python 3.14.8 and uv 0.12.23.
+The root wrapper selects pinned uv through `uvx`.
+Prepare all installed Python packages and the frontend from the repository root:
 
 ```sh
-./demo.sh
-# From a second terminal:
-./demo.sh stop
+fnm exec --using 26.10.0 pnpm install --frozen-lockfile
+fnm exec --using 26.10.0 pnpm setup:python
 ```
 
-[`demo.sh`](../../demo.sh) forwards to `dev.sh` with `--demo`, including optional `start`, `stop` and `--scan` arguments.
-Both entrypoints share the same launcher ownership record.
-The `start` command runs in the foreground.
-`--demo` seeds the disposable Demo database without resetting private edits and enables Demo mode.
-Without `--demo`, `./dev.sh` and `./dev.sh start` retain the ordinary development behavior.
-Set `DEV_DATABASE_CONTAINER` in the ignored root `.env` to an existing Podman PostgreSQL container name if the launcher should start it and wait for readiness.
-The launcher stops that container only when it started it; an already-running database remains running.
-`stop` verifies the recorded launcher PID and Linux process identity before sending SIGTERM.
-Runtime ownership is published atomically in ignored `.local/dev.pid`.
-A per-container lease under `~/.cache/spellbook/dev-containers/` prevents concurrent managed use across worktrees.
-After a crash or failed cleanup, inspect the retained records and verify that their processes and resources have stopped before removing them.
-Cleanup failures retain records and return a failure rather than reporting a successful stop.
+Copy [`.env.example`](../../.env.example) to ignored root `.env` and configure an existing local PostgreSQL database through `DATABASE_URL`.
+Use the existing protected configuration for credentials and provider settings.
+The launcher reads this file once and filters database, storage and worker secrets from the web child.
+Caller environment values take precedence.
+Vite reads frontend environment configuration, not the root secret file.
 
-The equivalent frontend command is `pnpm --dir frontend dev:local`.
-The root launcher starts the API on `127.0.0.1:3001` and Vite with Hot Reload on port 5173.
-`API_PORT` and `DEV_APP_ORIGIN` select task-owned API and web ports; the launcher passes matching `APP_ORIGIN` and `API_INTERNAL_URL`.
-Scan UI development is paused.
-To run the retained scaffold explicitly, first prepare its environment with `uv sync --project backend/workers/scan --frozen`, then run `./dev.sh --scan` or `pnpm --dir frontend dev:local --scan`.
-This adds the scan-worker on loopback port 8087 and local scan storage, defaulting to the ignored `.local/scans` directory.
-Set `SCAN_LOCAL_STORAGE_DIR` in `.env` to retain an existing artifact directory.
-`DEV_APP_ORIGIN` defaults to `http://localhost:5173`; change it only to match the local browser origin used for form submissions.
-The launcher passes this value to web and uses it as the API public Origin.
-A direct Vite start also needs a separately running API and `API_INTERNAL_URL`.
-Keep `APP_ORIGIN` for origin-matched production builds; a configured deployment origin does not change local form origins.
+```sh
+./dev.sh
+# From another terminal:
+./dev.sh stop
+```
 
-Stopping the launcher sends SIGTERM to its own API, frontend and, when selected, scan-worker process groups.
-It does not escalate to SIGKILL.
-An error or occupied port shuts down the other owned child process too.
-Existing services and an already-running database are not stopped.
-Startup does not apply migrations, reset accounts, build containers or start a tunnel.
-Only explicit `--demo` publishes the versioned Demo Catalog and seeds missing Demo data.
-The retained scan-worker still returns no matches.
-Existing Scan routes and data remain available, but Navigation, Inventory and Dashboard no longer advertise that workflow.
-`backend/workers/catalog/` owns Catalog ingestion; `backend/workers/scan/` owns the retained Scan scaffold.
-[ADR-0025](../decisions/0025-python-api-and-workers.md) selects Python for the future API and workers; the Node API and current deployment commands remain the implemented baseline.
+Startup runs the installed Python migrator once before any API or worker starts.
+A migration or explicit Demo preparation failure stops startup.
+The launcher starts API on loopback port 3001, Vite on 5173, the Scan scaffold on 8087, the State scheduler and the Catalog worker.
+`API_PORT`, `DEV_APP_ORIGIN` and `DEV_SCAN_PORT` select matching task-owned ports.
+Catalog performs its ordinary startup refresh and follows `SYNC_INTERVAL`; optional providers retain their opt-in flags.
+With `SYNC_INTERVAL=manual`, successful Catalog completion leaves the other services running.
+A nonzero Catalog exit or startup error stops the process group.
+Use the existing Catalog configuration and observe publication status before assuming content is ready.
+Both native launchers create Catalog storage at ignored `.local/catalog` by default.
+`WORKER_DATA_DIR` preserves an explicit path; relative paths resolve from the repository root before child processes change directory.
+Compose retains its `/app/data` volume.
 
-The T3 project uses `./dev.sh` as its Dev server script and `http://localhost:5173/` as its design-review preview URL.
-The root always shows the public landing, including with a signed-in demo session.
-Open `/mtg/dashboard` to review the private account summary.
-The removed `review=landing` override is no longer needed.
-The preview URL is a local app setting, not deployment configuration.
+`./demo.sh` adds `--demo`, seeds the guarded disposable Demo database and preserves private edits.
+Scan starts unconditionally with the normal development runtime.
+Local scan storage defaults to ignored `.local/scans`; `SCAN_LOCAL_STORAGE_DIR` preserves an existing directory.
+The retained worker still returns no matches and does not establish production recognition.
+The frontend `dev:local` and `dev:demo` commands forward to this launcher.
 
-The Compose base file starts the built stack on port 3000.
-Its `podman-compose.dev.yml` override selects a shared local scan-storage volume instead of S3; it does not run Vite or enable Hot Reload.
+`DEV_APP_ORIGIN` defaults to `http://localhost:5173` and controls local form origins.
+The launcher supplies the same public `APP_ORIGIN` to API and web, with `API_INTERNAL_URL` pointing to its private API child.
+A configured production origin does not replace the local development origin.
+A direct Vite start requires separately running backend services and the matching private URL.
+
+`DEV_DATABASE_CONTAINER` optionally names an existing PostgreSQL container.
+The launcher acquires a cross-worktree lease, starts it only if stopped and waits for readiness.
+It stops the container only if this launcher started it.
+Its ignored `.local/dev.pid` record contains the verified launcher PID and Linux process identity.
+`stop` checks that identity and sends SIGTERM to the launcher, which stops only its child process groups.
+It never uses SIGKILL.
+Cleanup failures retain ownership records and return failure.
+After a crash, verify recorded resources before removing stale records.
+No launcher command builds containers or starts a tunnel.
+
+The T3 Dev server remains `./dev.sh`, with preview `http://localhost:5173/`.
+Open `/mtg/dashboard` for the private account summary.
+Compose runs built web on loopback port 3000; `podman-compose.dev.yml` selects shared local Scan storage and does not enable Vite.
 
 ## Independent build and start
 
-The API and web build independently.
-From the root with the frozen workspace installed:
+Python distributions and web build independently:
 
 ```sh
-fnm exec --using 26.10.0 pnpm --dir backend build
+uvx --from uv==0.12.23 uv build --project backend/core
+uvx --from uv==0.12.23 uv build --project backend/api
+uvx --from uv==0.12.23 uv build --project backend/workers/state
 APP_ORIGIN=http://127.0.0.1:3000 fnm exec --using 26.10.0 pnpm --dir frontend build
 ```
 
-The API artifact is `backend/dist/main.js`; web is `frontend/build/index.js`.
+API wheels and sdists bundle the unchanged 25 SQL migrations, journal, historical snapshots, OpenAPI and four canonical Demo assets.
+Installed console entrypoints need neither the checkout's TypeScript source nor Node server tooling.
 Web builds without database credentials or a running API.
-Start the API with the protected database/storage configuration, then start web in another terminal:
+Svelte adapter-node 6 uses Vite's build-time `paths.origin` from `APP_ORIGIN`.
+Build with the exact public scheme, host and port; rebuild when it changes.
+Runtime `ORIGIN` cannot correct a mismatched build and is not part of this procedure.
+
+With protected database/storage configuration in root `.env`, start the backend process group, then web in another terminal:
 
 ```sh
 APP_ORIGIN=http://127.0.0.1:3000 API_HOST=127.0.0.1 API_PORT=3001 \
 API_TRUSTED_PROXY_ADDRESSES=127.0.0.1,::1 \
-fnm exec --using 26.10.0 pnpm --dir backend start
+fnm exec --using 26.10.0 pnpm start
 
 APP_ORIGIN=http://127.0.0.1:3000 API_INTERNAL_URL=http://127.0.0.1:3001 \
 HOST=127.0.0.1 PORT=3000 BODY_SIZE_LIMIT=12M fnm exec --using 26.10.0 node frontend/build/index.js
 ```
 
-Use free task-owned ports and the matching public Origin for isolated work.
-Backend `start` loads root `.env`; the web command needs only its selected presentation/proxy variables.
-The API defaults to loopback and trusts no forwarded client address unless configured.
-[Configuration](#configuration) owns proxy trust and public-origin policy.
-Android uses the separate Gradle project and [native delivery contract](../architecture/independent-applications.md#android-delivery); the [Android README](../../android/README.md) owns its build/run instructions.
+`pnpm start` runs the migrator before API, State, Catalog and Scan.
+Its local Scan URL defaults to `http://127.0.0.1:8080` and must identify a loopback worker owned by that process group.
+Use independent service commands when the worker is remote.
+For separately managed services, run `spellbook-migrate` once, then `spellbook-api`, `spellbook-state-worker`, `python -m worker.main` and `uvicorn scan_worker.main:app` from their installed package environments.
+Those Python commands do not load `.env` implicitly.
+Never start a second scheduler owner alongside an active Node runtime during a production transition.
 
-The dormant [Python API foundation](../../backend/api/README.md) has a separate image and explicit loopback start command.
-It remains excluded from the default launcher and Compose topology.
-With DATABASE_URL from an explicitly assigned protected environment, it hosts the representative session/Catalog/Inventory/SavedState slice; without it, only resource-free Discovery starts.
-The candidate retains finite request/pool/SSE limits, one LISTEN consumer, a dedicated password executor and pre-drain shutdown as documented in its package README.
-This does not activate production ingress or establish full parity/performance acceptance.
-It does not replace the Node API, migrator or embedded state runners.
+API defaults to `127.0.0.1:3001`; `API_HOST` accepts explicit IP bind addresses, including container `0.0.0.0`.
+Its image defaults to `0.0.0.0`, while Compose shares web's network namespace and explicitly selects loopback.
+The host requires `DATABASE_URL`; only explicit `API_DISCOVERY_ONLY=true` starts resource-free schema discovery.
+Use `spellbook-api` to retain admission closure and SSE shutdown before Uvicorn drain.
+The host settles requests, streams, password work and Scan adapters before closing its pool.
+It trusts forwarded client addresses only from `API_TRUSTED_PROXY_ADDRESSES`.
+
+[Repository verification](./github-automation.md#python-api-and-core) owns package and real integration checks.
+Final-head PostgreSQL/HTTP/browser, scheduled worker, S3/provider and container shutdown evidence remains with Root and the operational owner.
+Source builds do not establish deployment.
+Android retains its [separate build and run instructions](../../android/README.md).
 
 ## PWA installation and QR use
 
@@ -174,11 +184,11 @@ The implemented publisher retains old Catalog generations and all Price pointers
    ```
 
 2. Review source hash, native transform version, count/exclusion provenance, all starter identities and artifact integrity tests.
-   Update the manifest filename selected by `backend/scripts/demo/catalog-bundle.mjs` and the pinned baseline test counts deliberately.
+   Update the manifest filename in Core `operators/fixtures.py`, API packaging inputs and the frontend test fixture, plus pinned fixture counts deliberately.
    Format the manifest with the existing frontend Prettier.
    Keep the compressed bundle and its manifest together.
 3. Verify the protected target is the intended migrated disposable Demo database.
-   From `backend/`, run `pnpm demo:seed` without `--reset-users` to publish while preserving private edits.
+   From the repository root, run `pnpm demo:seed` without `--reset-users` to publish while preserving private edits.
    Inspect the active Catalog generation and verify Search, starter identity coverage and preserved private state.
 
 The importer rejects a compressed hash mismatch before publication.
@@ -195,24 +205,26 @@ Keep the root manifests and `frontend/`, `backend/`, `contracts/` and `scripts/`
 The [frontend Dockerfile](../../frontend/Dockerfile) builds only web and contracts sources and checks client output.
 Its production dependency graph excludes backend, pg, Drizzle and AWS; web receives no database or storage secrets.
 Runtime starts `node frontend/build/index.js` from `/app`.
-The [backend Dockerfile](../../backend/Dockerfile) builds the API and starts `node backend/dist/main.js`.
-Its `migrator` and `operator` targets use `/app/backend`; the migrator runs `pnpm db:migrate` against unchanged `backend/drizzle/` history.
-Compose build contexts remain the repository root.
+The [API Dockerfile](../../backend/api/Dockerfile) installs frozen Python API/Core wheels and starts `spellbook-api`.
+Compose's one-shot `db-migrate` service uses that same image with the explicit `spellbook-migrate` entrypoint.
+The independent [State image](../../backend/workers/state/Dockerfile) owns only state scheduling.
+API/State image contexts are the repository root; Catalog/Scan retain package-root contexts.
 
 ## Services and startup
 
-| Service       | Responsibility                                                      |
-| ------------- | ------------------------------------------------------------------- |
-| `postgres`    | Accounts, inventory, decks, scan metadata, and the public catalog   |
-| `db-migrate`  | One-shot Drizzle migrations                                         |
-| `worker`      | Scryfall catalog ingestion and synchronization                      |
-| `frontend`    | SvelteKit rendering, forms and same-origin streaming API proxy      |
-| `api`         | Node HTTP authentication, use cases, database and resource lifetime |
-| `scan-worker` | Scan API scaffold that returns no matches                           |
-| `newt`        | Optional Pangolin tunnel, enabled by the `tunnel` profile           |
+| Service        | Responsibility                                                        |
+| -------------- | --------------------------------------------------------------------- |
+| `postgres`     | Accounts, inventory, decks, scan metadata, and the public catalog     |
+| `db-migrate`   | One-shot Python migrator with preserved SQL/ledger                    |
+| `worker`       | Scryfall catalog ingestion and synchronization                        |
+| `frontend`     | SvelteKit rendering, forms and same-origin streaming API proxy        |
+| `api`          | Python HTTP authentication, use cases, database and resource lifetime |
+| `state-worker` | Scheduled ValueHistory and WholeDeckCategory jobs                     |
+| `scan-worker`  | Scan API scaffold that returns no matches                             |
+| `newt`         | Optional Pangolin tunnel, enabled by the `tunnel` profile             |
 
 `postgres` has a compose health check.
-`db-migrate` waits for healthy Postgres, and the API and catalog worker wait for successful migration completion.
+`db-migrate` waits for healthy Postgres, and the API, State and Catalog workers wait for successful migration completion.
 Web can start before API readiness and returns explicit unavailable responses while it is absent.
 Other dependencies require service startup, not readiness.
 The catalog worker also retries database schema readiness with backoff.
@@ -226,8 +238,9 @@ The first publication may still be in progress after the frontend starts, so sea
 Check the worker logs and active generation as described in [catalog migration and recovery](#catalog-migration-and-recovery).
 The worker has no HTTP readiness or import-status endpoint.
 
-This automatic import applies to Compose deployment.
-The host [development launcher](#local-development) expects an existing migrated database and does not start the Catalog Worker or seed automatically.
+Compose and the native [development launcher](#local-development) run migrations before starting Catalog.
+The development launcher expects an existing PostgreSQL database and starts the same startup refresh by default.
+It seeds Demo data only with `--demo`.
 Explicit [Demo setup](./local-auth.md#demo-mode) publishes the versioned searchable English bundle without a Scryfall download.
 Its private Precon starter remains separate; [Demo setup](./local-auth.md#demo-mode) owns the selected composition and guarded replacement of the previous fixture.
 Neither workflow downloads Catalog card image files.
@@ -264,8 +277,8 @@ The tunnel transports requests; local authentication owns login.
 | `ADDRESS_HEADER`, `XFF_DEPTH`                       | Web ingress client-address configuration; leave the header empty until proxy trust is configured                                                          |
 | `BODY_SIZE_LIMIT`                                   | Web transport limit; launcher, HTTP harness and web image default to `12M`, preserving explicit overrides. API transport defaults to 12 MiB independently |
 | `DEMO_MODE`                                         | Set to `true` only for an explicitly seeded disposable demo. See [demo setup](./local-auth.md#demo-mode).                                                 |
-| `VALUE_HISTORY_TIMEZONE`                            | API reporting timezone, default `Europe/Berlin`; invalid names fail API startup                                                                           |
-| `VALUE_HISTORY_ENABLED`                             | API-only strict `true` or `false`, default `true`; disables only observation scheduling                                                                   |
+| `VALUE_HISTORY_TIMEZONE`                            | API reporting and State observation timezone, default `Europe/Berlin`; invalid names fail API and State startup                                           |
+| `VALUE_HISTORY_ENABLED`                             | State-only strict `true` or `false`, default `true`; disables only observation scheduling                                                                 |
 | `DATABASE_URL`                                      | API, Catalog worker or operator PostgreSQL connection; compose constructs its internal connection from `POSTGRES_*`                                       |
 | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | Database and credentials; replace the example password                                                                                                    |
 | `CATALOG_SOURCE`                                    | Scryfall source: `all_cards` by default, or `default_cards`                                                                                               |
@@ -318,17 +331,22 @@ A production classifier integration remains unselected.
 
 ## Application and native operator ownership
 
-The [Node API host](../../backend/src/main.ts) supplies configuration to the [backend application constructor](../../backend/src/application.ts).
-API owns database construction, runners, SavedState and Scan resources.
-It validates database presence, timezone and exact Value-history/Combo boolean strings before acquisition.
+The [Python API host](../../backend/api/src/spellbook_api/main.py) supplies configuration to the [backend application constructor](../../backend/api/src/spellbook_api/application.py).
+API owns its database pool, SavedState, password executor and Scan resources.
+State owns scheduled runners and its independent pool.
+It validates database presence, timezone and Combo configuration before acquisition.
+The State configuration validates its history enable flag independently.
 SIGINT/SIGTERM close SSE before draining HTTP, then await application cleanup and pool closure, including after cleanup failure.
 Web owns no backend resource or shutdown/HMR hook.
 [The application contract](../architecture/application-contract.md#implemented-application-lifecycle-and-operator-ownership) owns these interfaces.
 
-Native Demo/password implementations, public fixtures and bounded argv/stdin intake belong to `backend/scripts/`, with persistence and pool lifetime in backend operator modules.
-Existing `frontend/scripts/` commands remain compatibility forwarders.
+Python API owns bounded operator argv/stdin intake and packaged fixtures; Core operator modules own persistence.
+The four canonical Demo assets remain unchanged under `backend/scripts/demo/`.
+Run operator commands from the repository root through `pnpm db:migrate`, `pnpm operator:password`, `pnpm demo:seed` and `pnpm demo:replace-inventory`.
+These commands invoke the installed Python entrypoints through `scripts/python.mjs`.
+Replaced frontend forwarders and aliases are removed under the [interface replacement policy](../../CONTRIBUTING.md#replacing-interfaces).
 [Local authentication operations](./local-auth.md) owns target guards, enrollment, recovery and starter replacement.
-Migration configuration and unchanged SQL/journal/snapshots belong to backend; frontend database commands forward there.
+Migration configuration and SQL/journal/snapshots belong to backend.
 
 ## Storage and upgrades
 
@@ -364,7 +382,7 @@ podman-compose -f podman-compose.yml -f podman-compose.dev.yml up --build -d
 The override shares the `scan_artifacts` volume at `/app/storage/scans` between the API and scan-worker.
 For S3 storage, provision the bucket separately and configure its lifecycle policy.
 Scan upload bytes remain outside Postgres; PostgreSQL stores their account and review metadata.
-The backend Scan application owns storage and worker calls; the Node host injects existing configuration.
+The backend Scan application owns storage and worker calls; the Python host injects existing configuration.
 Failed uploads remove only confirmed unattached objects.
 If COMMIT outcome cannot be established, retain the object for operator inspection rather than risking deletion of a committed artifact.
 Cleanup logs contain no object keys or credentials.
@@ -408,7 +426,7 @@ Reserve one additional PostgreSQL listener connection per API process beyond req
 Web has no database connection.
 No new synchronization provider or sticky-session configuration is required.
 
-The public proxy, web forwarding and API `/api/account/events` path must pass cookies/Authorization, disable response buffering and caching, permit long-lived streaming and use an idle timeout longer than the fifteen-second heartbeat.
+The public proxy, web forwarding and API `/api/v1/account/events` path must pass cookies/Authorization, disable response buffering and caching, permit long-lived streaming and use an idle timeout longer than the fifteen-second heartbeat.
 Changing public `APP_ORIGIN` still requires origin-matched builds.
 Keep credentials out of URLs.
 Test a live stream through the actual proxy/tunnel before rollout.
@@ -557,10 +575,11 @@ It adds private daily checkpoint/evidence tables and `values` notification trigg
 Existing Inventory writes and account rows remain unchanged.
 No historical backfill runs.
 
-The API starts the Backend Valuation runner after listening when `VALUE_HISTORY_ENABLED=true`.
-API development restart and production shutdown close owned work.
-Set the flag to `false` to stop scheduling while retaining existing history and current read routes.
-Configure `VALUE_HISTORY_TIMEZONE` with a valid IANA name.
+The State worker starts the Backend Valuation runner when `VALUE_HISTORY_ENABLED=true`.
+State shutdown closes its schedulers before its pool.
+Set the flag to `false` on State to stop observation scheduling.
+API history reads remain available independently of that flag.
+Configure `VALUE_HISTORY_TIMEZONE` with a valid IANA name for API reporting and State observations.
 Saved observations retain their own timezone and UTC boundaries after configuration changes.
 [Valuation](../architecture/valuation.md#reviewed-personal-history-contract) owns lease, observation window and closure rules.
 

@@ -8,7 +8,7 @@ export type SavedStateEvent =
 	  }
 	| { event: 'invalidate'; data: { topics: SavedStateTopic[] } };
 export const SAVED_STATE_HEARTBEAT_MS = 15000;
-export const SAVED_STATE_PATH = '/api/account/events';
+export const SAVED_STATE_PATH = '/api/v1/account/events';
 
 export interface SavedStateSubscription {
 	next(): Promise<SavedStateEvent | null>;

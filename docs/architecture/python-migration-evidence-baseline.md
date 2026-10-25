@@ -1,371 +1,80 @@
-# Python migration evidence baseline
+# Python migration functional evidence
 
-- Status: Canonical P01 baseline; predeclared candidate rejection gates accepted, candidate measurements pending
-- Last Reviewed: 2026-10-20
-- Source of Truth: b835eee Node code, executable neutral fixtures, selected PostgreSQL 18 Node verification, accepted independent numeric/spec review, issue 247 and maintainer implementation brief
-- Update Triggers: selected unmeasured ValueHistory D2 candidate envelope and coexistence accounting, numeric-gate acceptance and current-main integration, PostgreSQL baseline verification, route/command/runner ownership, compatibility cases or transfer, measured baseline, experiment limits, independent review, candidate evidence
-- Related Docs: [Migration contract](./python-backend-migration.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [Contracts](../../contracts/README.md), [Independent applications](./independent-applications.md), [Auth](./auth.md), [Postgres](./postgres.md), [Verification](../operations/github-automation.md), [Deployment](../operations/deployment.md), [Issue 247](https://github.com/KyleDerZweite/spellbook/issues/247)
+- Status: Canonical functional evidence responsibilities
+- Last Reviewed: 2026-10-25
+- Source of Truth: current Python code/tests, OpenAPI, useful synthetic fixtures, ADR-0029 and PR 276
+- Update Triggers: native implementation and evidence ownership, pre-release compatibility supersession, native FastAPI/Pydantic acceptance, current-route acceptance, installed Python runtime, fixture ownership, stored-data correctness and target evidence
+- Related Docs: [Migration contract](./python-backend-migration.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [ADR-0029](../decisions/0029-remove-replaced-interfaces.md), [Contracts](../../contracts/README.md), [Independent applications](./independent-applications.md), [Auth](./auth.md), [Postgres](./postgres.md), [Verification](../operations/github-automation.md), [Deployment](../operations/deployment.md)
 
 ## Scope and authorization
 
-P01 freezes the running Node behavior after documentation PR 259.
-Its verified base is `b835eee87ff0e92e99df18ab384602e48183a88d`.
-The implementation worktree started clean on `t3/python-compatibility-baseline` at that exact commit, matching `origin/main`.
-Local `main` still pointed to `7d886780c78f1b017d0affa9c77d7069173b20f3`; it was not reset or changed.
+The unmerged candidate uses Python API/Core and independent workers by default.
+The [migration contract](./python-backend-migration.md) owns functional acceptance and delivery; production operations require separate authorization.
+[ADR-0027](../decisions/0027-python-functional-migration-acceptance.md) retires strict performance/resource, Linux/kernel and Collector proof prerequisites.
+[ADR-0029](../decisions/0029-remove-replaced-interfaces.md) removes replaced interfaces immediately, including old API paths, route inventories, transfer maps and dual-runtime HTTP comparison runners.
+Its 2026-10-25 extension removes cross-version API/stored-data upgrade guarantees and historical Node wire parity requirements.
+Current authentication, account isolation, safe writes and receipt replay within the current version remain required.
+Historical extraction hashes, Node comparisons and superseded proof protocols remain in Git history, not current acceptance inputs.
 
-The maintainer's 2026-10-20 implementation brief authorizes completing migration through High subagents, reviewed Slice PR merges and the necessary bounded disposable representative experiment/manual validation.
-The complete final integration branch remains unmerged, and production deployment is excluded.
-This later authorization supersedes the earlier issue text's separate experiment-authorization prerequisite for this work.
-No additional permission question is required for that authorized disposable experiment.
-The numeric limits below are predeclared engineering rejection gates accepted after independent review, not measurements or a claim that the maintainer individually selected each value.
-Root accepted the engineering review on 2026-10-20 and authorized recording its conclusion.
-P02 still requires verified P01 integration and its other prerequisites; candidate measurements are not a prerequisite for releasing this baseline.
-The orchestrator will link the full numeric review result in the Slice PR.
+## Current contracts and fixture ownership
 
-The accepted migration contract and ADR-0026 remain owned by the separate contract writer.
-This baseline changes no application ownership, SQL, historical migration, stored data, client contract or active process.
-There is no Python API package yet.
+[`contracts/openapi.json`](../../contracts/openapi.json) is the sole current route inventory and structural wire contract.
+The API serves 85 canonical operations plus Discovery; seven browser page methods remain web-owned.
+Native route tests compare complete operation sets, reject extra operations and assert representative removed paths return 404.
+Route counts alone establish no functional result.
+The Python adapter reads the bundled artifact and substitutes the configured public origin.
+Backend owns route-specific validation, authorization, limits and error semantics; client helpers and handwritten TypeScript/Kotlin clients retain their owners.
 
-## Frozen artifact and implementation contract
+[`contracts/fixtures/wire.json`](../../contracts/fixtures/wire.json) retains synthetic public parsing, fingerprint, password, conflict and receipt vectors.
+Retain fixtures that verify current parsing, password security, conflicts and receipt replay.
+When native FastAPI/Pydantic replaces a historical Node behavior, update current callers/contracts and remove the superseded fixture assertions and code together.
+Exact Node JSON/UTF-16/encoding quirks and legacy stored-receipt formats are not compatibility obligations.
+Fixtures contain no copied account credentials or private receipts.
 
-[`contracts/openapi.json`](../../contracts/openapi.json) owns the language-neutral structural schema.
-The Node [adapter](../../backend/src/http/openapi.ts) imports that artifact into the normal esbuild bundle and changes only `servers` for the existing public origin.
-The original builder's `JSON.stringify(openapi('/'))` SHA-256 is `2278d5ffc597f59dde47974b9d4835a849be9abe5f023870c2ccbde801ce6979`.
-The executable extraction check pins that exact object and property order.
-JSON source formatting is not an HTTP byte change; Node still uses its existing response serializer.
+Python Core tests verify current normalization, deterministic fingerprints and replay decisions.
+API tests verify the selected current validation and transport behavior, including ordered cookies, conflicts, command authority, cache/Origin policy and SSE ownership.
+Application doubles establish adapter behavior; they do not establish PostgreSQL locks, persisted acknowledgements or atomicity.
+Real PostgreSQL tests must verify account isolation, transaction races and original current-version acknowledgements after later edits/deletion/recreation.
+Safe writes, exact domain numbers and accepted effects remain required; retained-data upgrades and unchanged SQL history across commits do not.
 
-Backend owns validation and wire semantics.
-Contracts contains schemas and sanitized data, while existing TypeScript helpers and handwritten TypeScript/Kotlin clients remain.
-The API HTTP adapter depends on application modules; persistence, workers and domain validation do not depend on the schema adapter.
-No new runtime dependency, generic fixture engine, generated client or duplicate framework schema owner is introduced.
-Route registration, application lifetime, CI, root manifests and launchers stay with the later integration writer.
+## Runtime evidence responsibilities
 
-## Complete ownership inventory
+[Repository verification](../operations/github-automation.md#python-api-and-core) owns pinned setup, package checks, installed-wheel checks and guarded database procedures.
+Manual `backend/api/tests/native_host_acceptance.py` exercises the installed Python production app using `P02B_INSTALLED_PYTHON` and the existing exclusive target guard.
+It retains actual process, database, receipt and SSE scenarios without launching a Node API or comparing removed paths.
+Node is used only where a built web process is required.
+Direct API and same-origin proxy need separate evidence for authentication, raw forms, request limits, QR cookies and streaming.
+Real workers/storage/providers, two-process SavedState, listener recovery, safe transaction cleanup and graceful shutdown retain their functional acceptance requirements.
+Rendered web and native journeys remain separate from HTTP/component tests.
 
-The canonical [machine-readable inventory](../../contracts/compatibility/inventory.json) enumerates every method/path separately and assigns each to current source and future Slice.
-The check instantiates all ten production route factories rather than relying on historical counts.
-Existing OpenAPI checks independently reconcile browser-auth source methods and all local references.
+Use [integration PR 276](https://github.com/KyleDerZweite/spellbook/pull/276) for exact tested revisions, commands, results, skips, review findings and unresolved target evidence.
+Refresh affected evidence on the integrated head after source changes.
+Keep transient counts and revisions in that change record.
 
-| Registered group                              | Explicit method/path pairs | Migration ownership                                               |
-| --------------------------------------------- | -------------------------: | ----------------------------------------------------------------- |
-| API Auth, including two original-form bridges |                          9 | P03                                                               |
-| Account/Profile/Dashboard/password bridge     |                          6 | P03, Dashboard application extends in P15                         |
-| Public and authenticated Catalog              |                          7 | P04                                                               |
-| Inventory/Groups/imports                      |                         16 | P04 reads/Groups/membership/reorder, P05 item writes/imports      |
-| Decks/composition/Library                     |                         19 | P08 metadata/reads, P10 composition/imports, P11 Library browsing |
-| Entry/whole Categories and definitions        |                         17 | P07, P09, P11; optional Combo choices P12                         |
-| SavedState                                    |                          1 | P02 host/listener, P17 complete integration                       |
-| Public prices/private values                  |                          5 | P06 references, P15 private value/history                         |
-| Scan                                          |                          7 | P14                                                               |
-| Closed web command endpoint                   |                          1 | P05/P08/P10 application owners                                    |
-| Web-owned browser Auth                        |                          7 | P03 keeps SvelteKit pages, forms and cookies                      |
-| Discovery `/openapi.json`                     |                          1 | P01/P16                                                           |
+## Activation and contraction 2026-10-23
 
-These are 88 API pairs, seven web-owned browser-auth pairs and one Discovery pair.
-OpenAPI retains the same 95 documented pairs; Discovery has never documented itself.
-HEAD maps to each registered GET and discards its body.
-OPTIONS returns 204 and ordered `Allow` for each API/Discovery path, even when its handler requires authentication.
-Unsupported methods return 405 with `{ "message": "Method Not Allowed" }`, without the ordinary error body's `status` field.
-Unknown routes return 404 through the ordinary error serializer.
-The Node router accepts one trailing slash and decodes named path segments after matching.
-These implicit behaviors remain requirements, not extra registered business methods.
+Python domain implementations, Deck assembly, closed web commands, default launchers, independent workers and removal of replaced Node source/tests are integrated in the unmerged candidate.
+Canonical routes, OpenAPI, explicit MTG modules and Web/Android clients are implemented.
+Independent Standards and Spec reviews covered domain implementation, activation and canonical clients; current removal changes require integrated review and verification.
+The historical acceptance runs exercised disposable PostgreSQL transactions, jobs/publications, installed migrator/operators, original receipts, two Python replicas, proxy SSE and listener recovery.
+Built web journeys covered registration, Search, Inventory addition, Deck composition and Dashboard at desktop and narrow layouts.
+A multipart upload reached local storage and the Scan scaffold over TCP.
+An installed State worker completed an enqueued Category job and stopped cleanly on SIGTERM.
+These observations establish their recorded scope, not current-head acceptance or production deployment.
 
-The nine closed commands are `inventory.add`, `inventory.patchEntry`, `inventory.remove`, `decks.createRecord`, `decks.addCatalogCard`, `decks.changePrinting`, `decks.updateCard`, `decks.removeCard` and `decks.importInto`.
-The inventory assigns each command individually; strict command/input keys reject supplied actor, account, source and application authority.
-The adapter supplies `source: web` for Inventory and preserves absent optional input fields.
-The web-owned Auth rows cover GET/POST login, register and approve, plus POST logout.
-The independent web proxy, SSR/forms and original-form bridge retain their existing cookie-only identity and origin authority.
+## Native implementation evidence 2026-10-25
 
-The inventory also lists the internal Scan worker's two explicitly declared methods, `GET /health` and `POST /v1/scan/process`.
-Its existing FastAPI defaults additionally expose internal `/openapi.json`, `/docs`, `/docs/oauth2-redirect` and `/redoc` documentation handlers.
-They remain Scan-package framework behavior under P13, outside the public 95-operation schema.
-Catalog has no HTTP health/status endpoint.
+The candidate implements all canonical operations plus Discovery through native FastAPI routing, dependencies and global exception handlers.
+Strict Pydantic command models and current-version Core fingerprints/receipts replace the removed custom dispatch and historical compatibility adapters.
+The [dated wiki summary](../wiki/python-backend-standardization.md#implementierungsstand-und-evidenz-vom-2026-10-25) links immutable implementation and review sources.
+Use [PR 276](https://github.com/KyleDerZweite/spellbook/pull/276) and the [runtime record](t3-thread://v1/thread:delegated-task:command%3Amcp%3A9e10a3f5-df85-461c-b846-8bcb828bdbf2%3Adelegate-task%3Aspellbook-native-functional-verification-stage1-20261025-r1) for exact tested revisions, transferred evidence, failed attempts, cleanup limits and final integrated results.
 
-All ten runtime responsibilities have explicit inventory rows, including the API host, dedicated SavedState LISTEN owner, embedded ValueHistory and WholeDeckCategory runners, independent Catalog scheduler, Catalog/paired Price publisher, optional prices, Oracle Tags, Combo and Scan scaffold.
-The four publisher responsibilities run serially under the Catalog scheduler's existing process, not four new processes.
-ValueHistory polls every 10 seconds under advisory lease `78173020462008`.
-WholeDeckCategory polls every second, debounces for 250 ms and uses a 30-second lease with generation/token/revision fences and up to 60-second backoff.
-P11/P15 move only scheduled runner ownership to separate state processes; synchronous transaction effects remain with their application owners.
-P13 preserves publisher locks, COPY/publication/pointers/pruning and source-specific limits without changing schema ownership.
-P16 owns password/Demo operator entrypoints and packaging; P19 owns the later one-shot migrator handoff.
-Drizzle remains the only migration runner throughout the API port.
+## Remaining target evidence
 
-## Compatibility and evidence transfer
-
-The [golden data](../../contracts/compatibility/golden.json) contains only synthetic public values.
-The [transfer map](../../contracts/compatibility/transfer.json) explicitly lists every case ID and its Node-direct executor, required dual-runtime HTTP scenario and required Python application transfer.
-Its completeness check rejects unmapped or duplicate fixture IDs.
-The targeted tests use existing production decoders, conflict serializers, Auth selection, command handlers and Inventory replay/normalization seams.
-The local HTTP Discovery check uses the production Node bridge on an owned ephemeral TCP port.
-HTTP adapter tests use the real router with stubbed application methods.
-Receipt tests stub only the Drizzle select seam and establish replay decisions, not transactions or PostgreSQL behavior.
-
-| Invariant                  | Baseline case and transfer requirement                                                                                                                                                                                                                                                                                                                 |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Existing credentials       | Exact scrypt vectors retain textual hex salt as UTF-8, N=32768, r=8, p=3, 64-byte key and 64 MiB maxmem. Port verification without re-enrollment. Preserve 12..128 UTF-16 code-unit password bounds, dummy work and four active derivations.                                                                                                           |
-| Fingerprint bytes          | Vectors pin recursive key ordering, numeric object-key enumeration, array order, omitted/null fields, JS-only undefined, raw Unicode, combining marks, lone surrogates, escaping, negative zero, exponent spelling and safe-number rounding. Actual patch/import normalization must reproduce the stored hash.                                         |
-| Original/legacy receipts   | Inventory returns original acknowledgements independently of current target state; null hashes do not invent a hash, and null acknowledgements return `legacy: true`. Deck null-ack fallback reads the live Deck/revision with empty changes. Port distinct branches and execute both-runtime lost-reply replay after later edits/deletion/recreation. |
-| Conflict data              | Golden bodies cover Request, Notes, Description, Quantity including `latestQuantity: null`, Category, Merge and Library conflicts, plus private 500 sanitization. Real PostgreSQL stale-revision/lock/race failures must retain no effects and exact original receipts.                                                                                |
-| Numbers and strings        | HTTP finite-number parsing is distinct from signed 32-bit quantity validation and exact safe-integer aggregate decoding. Revisions above 2^53 and decimal amounts remain strings. ISO timestamp strings retain their UTC spelling/precision. Never make every number a string or accept framework coercion.                                            |
-| Absence and unknown keys   | An absent optional Notes field stays absent; null is rejected where a string is required. General JSON decoding retains unknown keys while closed commands/QR and individual domains reject their own keys. Preserve endpoint-specific policy.                                                                                                         |
-| Raw forms and limits       | Preserve first duplicate form value, plus/percent decoding, malformed UTF-8 replacement in forms, strict UTF-8 rejection for JSON, multipart CRLF and invalid media/body errors. Count credential attempts once before body decoding.                                                                                                                  |
-| HTTP authority and headers | Invalid or empty explicit Authorization suppresses cookie fallback. Preserve cookie-first duplicate selection, malformed cookie behavior, cookie mutation Origin checks and foreign/null Origin rejection. Cleanup Set-Cookie precedes session replacement, followed by QR cleanup as separate ordered headers.                                        |
-
-The inventory's `bodyBytes` records route decoder caps.
-The host default is 12 MiB; ordinary JSON is 1 MiB, QR JSON is 1024 bytes, Category JSON is 16/64 KiB, original forms and multipart Scan requests are 12 MiB.
-Scan image validation separately caps an image at 10 MiB and retains accepted formats.
-The web host's own limit and streaming proxy rules remain independent; compare direct API and proxy with the existing production 12 MiB configuration and default-cap rejection cases.
-Schema declarations do not replace current route-specific validation.
-
-Existing test transfer is larger than the new golden set.
-All TypeScript direct-import cases in `backend/tests/`, `frontend/tests/unit/` and `frontend/tests/integration/` remain Node evidence, including application calls inside nominal HTTP suites.
-P03 transfers Auth/session/Profile/QR transaction/race tests; P04/P05 transfer Catalog, Inventory, Groups, receipt and conflict tests.
-P06/P15 transfer public/private Valuation/history/Dashboard/capture; P07/P09/P11/P12 transfer entry/Library/whole/Combo evaluation and jobs.
-P08/P10 transfer Deck reads/availability/metadata/composition/imports; P14 transfers Scan persistence/storage/commit cleanup; P16 transfers operators.
-Each implementing Slice must list its transferred test names and exact runtime/head in its own evidence record.
-P17 runs the existing built HTTP suites against both endpoints, actual PostgreSQL, Scan worker and two-process SavedState, plus Node-to-Python-to-Node replay after Python writes.
-A test name containing HTTP does not prove Python if the fixture still constructs or launches Node.
-
-## Representative experiment protocol
-
-The P02 owner runs the authorized disposable experiment and records raw evidence in the existing ignored `.local/` evidence area.
-Keep credentials in the existing protected environment; reports contain only references and sanitized IDs.
-Use two new task-owned PostgreSQL 18 databases cloned from one migrated, sanitized fixture dump, with identical SQL 0000..0024 and Drizzle ledger.
-Never use a shared database or concurrent publisher.
-Record dump SHA-256, ledger rows/SQL hashes, schema-only dump hash and initial data counts before each cohort.
-Keep the exact same database after each runtime's writes for cross-runtime replay/rollback checks; clone again only to restart a measurement cohort.
-
-Use the tracked English Catalog bundle and its native verifier, recording compressed/decoded SHA-256, generation and manifest counts.
-For the bounded experiment, deterministically publish the existing 1000-Printing real subset and seed one disposable account with 1000 Inventory entries, overlapping/empty Groups and synthetic credentials/receipts.
-Record selected printing IDs, supported finishes, conditions, account fixture seed and deterministic request-body hashes.
-Use no provider network traffic, unrelated accounts or background publisher.
-A subset experiment cannot satisfy later full-Catalog or 50,000-entry acceptance.
-
-Measure one authenticated bounded Inventory read, one receipt-protected quantity mutation plus readback/replay, and SavedState delivery from those writes.
-Use the production Node SQL/transaction/query shape as the candidate reference, not an alternative query or cache.
-Record normalized SQL and parameter-type manifests, query counts, lock/isolation order and analyzed plans with buffers on both implementations.
-Candidate Psycopg placeholders may differ; their SQL semantics, projection, predicates, limits and order may not.
-Verify result identities/counts, original receipt bytes and revision changes before timing.
-Separate original writes from retries, no-ops, stale conflicts and rejected admission.
-Do not hide replay correctness behind average latency.
-
-Record CPU model/core count, RAM, kernel, filesystem/storage, governor, container/cgroup limits, PostgreSQL configuration, locale/ICU, Node/Python/uv/driver versions and build digests.
-Pin the API to the same two logical CPUs with a 512 MiB process/cgroup budget; reserve separate fixed CPUs/resources for PostgreSQL and the load generator when available.
-Use one process per runtime, equivalent connection limits and the same machine, storage and loopback network.
-If affinity/cgroups are unavailable, record that limitation and keep placement unchanged; do not claim controlled resource acceptance without its measurements.
-Keep web/proxy, workers, builds and tests outside timed cohorts.
-Disable ValueHistory for both experiment configurations; seed no WholeDeck jobs and report Node's idle WholeDeck polling SQL separately rather than changing that running implementation.
-Later P11/P15 measures the separate active state runners and total deployment budget.
-
-Run Node then candidate sequentially, never competing on the same database or CPU.
-Alternate order across three matched pairs to reduce warm-cache/order bias.
-For each runtime/pair/concurrency, reset the clone, run 60 seconds of warmup, then 180 seconds of samples.
-Use a 70% bounded-read, 20% original mutation/readback and 10% same-ID replay mix with deterministic unique IDs.
-Test closed-loop concurrency 1, 8 and 32, reporting completed/failed operations and achieved throughput.
-Keep 32 authenticated SSE clients open in addition to request concurrency, with one write producer.
-Record client-cache and PostgreSQL buffer state; do not call a warm run buffer-cold.
-Add a separate 128-concurrent-request overload run for 30 seconds, pool exhaustion, disconnect before/after commit, lock wait, slow SSE consumer, listener restart and graceful shutdown scenarios.
-Correctness and bounded overload rejection matter even if the normal cohort is faster.
-
-Collect monotonic per-request latency, pool acquisition/queue wait, SQL duration/rows and end-to-end invalidation delivery latency.
-Sample process CPU/RSS, runnable work, open descriptors and database sessions/transactions/locks each second.
-Capture PostgreSQL statistics deltas and temp-file bytes per isolated cohort, plus peak API temporary-directory bytes.
-Measure event-loop lag with the same 10 ms scheduling probe in both hosts and identify that instrumentation in the result.
-Report p50/p95/p99/max and raw sample counts, not just averages.
-Use nearest-rank percentiles over at least 1000 samples per request class and cohort, and at least 1000 write-to-SSE delivery samples.
-Insufficient samples make that gate unexecuted, not passed.
-Record clean installation/build/check wall time and maximum RSS separately from runtime cohorts, and record source/change effort without inferring speed from lines of code.
-
-## Numeric rejection limits
-
-These limits bound the representative experiment only.
-They are deliberately fixed before measurements and require independent review with P01.
-They are not changes to the running Node configuration, promised production SLOs or measured improvements.
-The baseline API currently constructs a default `pg.Pool` with max 10 and no general finite acquisition queue/deadline.
-Category work already caps pool/lock waits at 2 seconds, statements at 5 seconds and transactions at 10 seconds.
-SavedState already uses 5-second setup/operation deadlines, 10-second revalidation, 15-second heartbeats and 30-second slow-consumer disposal.
-Those implemented limits ground the candidate choices below; the candidate must not copy the baseline's unbounded general wait.
-
-| Resource or observation   | Candidate experiment rejection condition                                                                                                                                                                                                                                                     |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Process/CPU allocation    | More than one Uvicorn API worker or more than two allocated logical CPUs. No in-process publisher, state scheduler or child bulk worker.                                                                                                                                                     |
-| PostgreSQL request pool   | More than 10 checked-out/open request connections; initial min 0, max 10. Exactly one additional dedicated autocommit LISTEN connection, no spare reconnect overlap. Maximum 11 API database sessions.                                                                                       |
-| Request admission         | More than 32 active non-SSE application requests, 32 queued waiters or 64 total admitted/pending non-SSE requests. Reject excess without starting SQL; queue wait over 2000 ms is failure.                                                                                                   |
-| Pool acquisition          | Any acquisition wait over 2000 ms or more than 32 pending acquisitions. A timed-out/cancelled waiter must not later retain a connection.                                                                                                                                                     |
-| SQL/locks/transaction     | Read/write statement timeout 5000 ms, lock timeout 2000 ms, complete transaction timeout 10000 ms. No idle transaction beyond 10000 ms; cancellation must settle rollback/receipt before releasing ownership.                                                                                |
-| Password work             | More than four active scrypt derivations or any password-work backlog. Keep 20 attempts/address/15 minutes and at most 10000 tracked addresses; preserve QR's existing independent budgets.                                                                                                  |
-| SSE admission/queue       | More than 32 experiment subscribers. Keep at most one coalesced invalidation and one reset/recovery control event per subscriber; no document payloads or durable replay. No queued payload over 16 KiB per subscriber.                                                                      |
-| SSE deadlines             | Setup/operation over 5000 ms; skipped 10000 ms revalidation or 15000 ms heartbeat; slow consumer still retained after 30000 ms plus 1000 ms timer tolerance. Admission does not retain a request-pool connection for an idle stream.                                                         |
-| Bounded-read latency      | Any matched cohort p95 over 250 ms or p99 over 750 ms. Also reject p95 over `max(Node p95 * 1.20, Node p95 + 10 ms)` or p99 over `max(Node p99 * 1.25, Node p99 + 20 ms)`.                                                                                                                   |
-| Mutation/readback latency | Any matched cohort p95 over 350 ms or p99 over 1000 ms, including successful original receipt readback. Apply the same relative p95/p99 gates separately to original writes, replays and readbacks.                                                                                          |
-| SSE delivery latency      | Write-commit-to-delivery p95 over 250 ms or p99 over 750 ms, or the same relative p95/p99 gates above. Heartbeat latency alone cannot establish invalidation delivery.                                                                                                                       |
-| Event-loop responsiveness | Scheduling lag p95 over 20 ms or p99 over 50 ms during ordinary cohorts and concurrent scrypt; identify instrumentation overhead separately.                                                                                                                                                 |
-| CPU                       | Average API CPU over 2.0 core-seconds/second or more than 1.25 times matched Node CPU-seconds per completed operation. Reject sustained saturation above 1.9 cores for 30 seconds with growing waiters.                                                                                      |
-| Memory                    | API peak RSS over 512 MiB or over `max(Node peak RSS * 1.25, Node peak RSS + 64 MiB)`. Reject post-warmup retained RSS growth over 32 MiB between first and last measured minute, after equivalent settled workload.                                                                         |
-| API temporary storage     | Peak over 64 MiB, or more than 1 MiB of task-owned transient data remaining 30 seconds after settled completion. This read/mutation/SSE experiment needs no persistent Scan objects.                                                                                                         |
-| PostgreSQL temp/SQL work  | Any spill to PostgreSQL temp files for these bounded requests, any unexplained extra application query per class, or more than 1.25 times matched Node SQL CPU proxy via total execution time per operation. Record actual SQL timing rather than labelling it measured CPU.                 |
-| Errors and recovery       | Any unexpected non-2xx in ordinary cohorts, unexplained wire difference, changed original receipt, duplicate effect, stale authority, cross-account event or unbounded queue is immediate rejection. Expected conflict/admission errors are reported separately, never counted as successes. |
-| Shutdown                  | SSE admission closes first, then requests/work/listener/pool settle within 15000 ms. No task-owned active SQL, leaked session, accepted-but-unrecorded effect or residual listener afterward. Send only graceful shutdown to verified task-owned processes.                                  |
-
-A gate fails if any matched measured cohort exceeds it; do not average a failing run away.
-If Node itself exceeds an absolute threshold, record that baseline failure and revisit the experiment design through review before claiming candidate acceptance.
-Do not silently relax a threshold after seeing results.
-Baseline measurement, independent numeric-gate acceptance and candidate acceptance are separate evidence.
-Worker relocation retains the existing publisher-specific download/parse/publication/import budgets; P13 records those exact defaults and total process/storage budgets without borrowing the API's 64 MiB temporary-space allowance.
-
-## ValueHistory D2 candidate measurement envelope
-
-On 2026-10-20, Root independently selected D2 for the planned P15 ValueHistory runner after contract review.
-These are candidate measurement bounds, unallocated and unmeasured; they establish no native fit, Ready status or production setting.
-They transfer no P11 WholeDeckCategory acceptance and alter neither the historical P01 protocol/numeric gates above nor another candidate's budget.
-The [planned P06/P15 interfaces](./python-backend-migration.md#planned-p06p15-query-and-capture-interfaces) own query/capture responsibilities and dependency direction.
-
-| Resource                 | Selected ValueHistory candidate and evidence requirement                                                                                                                                                                                   |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Process/work             | One installed standalone Python ValueHistory process, one physically unsettled attempt/acquisition, no domain children or HTTP scheduler.                                                                                                  |
-| Own pool                 | Lazy `min_size=0`, `max_size=1`, finite positive native `max_waiting=1`; no hidden backlog, listener, nested checkout or physical overlap. Native `max_waiting=0` does not mean bounded zero.                                              |
-| Timing                   | Preserve the existing 10-second fixed tick, 10-second logical admission and 10-second server statements, plus the 11-second individual query watchdog through complete native receipt.                                                     |
-| Connection establishment | Candidate `connect_timeout=2` seconds sits inside the existing 10-second logical admission. It changes no retained Node/default-production behavior and proves no DNS, retry, cancellation or total native acquisition bound.              |
-| CPU/memory/storage       | One declared CPU core, 512 MiB complete-process peak RSS, 64 MiB finite external temporary storage and zero expected domain file writes. Measure complete holdings/outcome copies, native driver tasks, cache/log spill and every session. |
-| Shutdown                 | One 15-second total observation includes acquisition, query, transaction, lease and pool closure. No renewed stage budget, detached work or forced ownership release on breach.                                                            |
-
-No extra lock timeout, account/batch/cycle deadline, Category decoded-work cap or file/output truncation follows from this envelope.
-If complete legal work cannot fit, retain failed evidence and reconcile the contract; do not shorten source behavior or waive a limit.
-A cancelled waiter or close invocation proves no physical settlement, and a breached observation interval leaves physical work owned.
-Retain one pending native acquisition after logical timeout until its late connection is returned without taking a lease, before another acquisition is allowed.
-
-Coexistence planning sums are one API 11 + ValueHistory 1 + WholeDeckCategory 1 = 13 sessions, or two APIs 22 + ValueHistory 1 + WholeDeckCategory 1 = 24.
-Both exclude publishers, PostgreSQL, collectors/observers/load generators, administration and other support costs, which require separate accounting; the sums allocate nothing.
-Account separately for every process/session, including retained Node, and report complete totals.
-Matched comparison retains unchanged Node with its embedded scheduler and includes the Python API plus separate runners and actual coexistence costs.
-Do not subtract Node polls or helper costs, or count representative API evidence as active-capture acceptance.
-
-P02/P06/P13/P15/P17 and the shared integration writer retain evidence ownership for standalone/coexistence idle, active, failure, admission and shutdown cohorts.
-Required work includes complete 50,000 holdings, 10,000 printing/finish pairs, five conditions and 366 dates, retained-source publication/pruning, complete CPU/RSS/tmp/SQL/session/task/physical-closure accounting and every unchanged P01 API gate.
-All source implementation, native fit, full #248 matched-resource/HTTP/client/parity evidence, actual target acceptance and exact prerequisite integration remain open.
-P15's direct prerequisites and P14 D1 remain as recorded in the migration contract; this selection resolves none of them.
-Android/heavy integration remain manual, and production cutover, migrator rollout and rollback retirement remain separately authorized operations.
-
-## Numeric review and integration record
-
-Independent task `spellbook-p01-numeric-acceptance-review-r1` reviewed `bc9ebc2d69fbead0a0ad660f9b9e5d150e2b276f` against `b835eee87ff0e92e99df18ab384602e48183a88d`.
-Its verdict accepted the numeric choices as predeclared rejection gates, with no actionable Standards/Spec findings or missing P01 scope.
-Independent Node probes passed schema hash/deep equality, both credential vectors and wrong-password rejection, four UTF-16 cases, eight fingerprint cases, four integer cases and diff checking.
-The reviewer did not rerun dependency-backed suites and claimed no measurements or Python parity.
-Root accepted this engineering review and authorized P01 release after verified integration.
-The reviewed numeric choices and experiment protocol remain byte-for-byte unchanged from `bc9ebc2`.
-
-The isolated P01 branch locally merged `origin/main` at `488333e6c6b65919e017743192875ca15c59d5e2` through merge commit `ba808ec`.
-This includes PR 268's accepted execution clarification, Prettier 3.9.10 and both worker Ruff updates.
-The Architecture index conflict retained the complete upstream execution/operational-separation text and the P01 evidence link.
-The migration contract, ADR-0026 and Decisions index match that upstream commit exactly.
-The complete final Python integration artifact remains unmerged, production operations remain separate and root appoints the shared-file writer before API/worker parallelism.
-No runtime owner or Python implementation was added by this integration.
-
-Post-merge verification used Node 26.10.0, pnpm 12.8.1 and the newly installed Prettier 3.9.10 from the unchanged upstream lockfile.
-The frozen install, `pnpm --dir backend check`, the same four-file focused Vitest command recorded below and the native OpenAPI command all passed.
-The focused result remains 86 passes; native OpenAPI remains five passes, with no failures or skips.
-Prettier checks passed for Contracts, the OpenAPI adapter, all targeted compatibility tests and the complete repository Markdown scope.
-Local documentation links, the full Slice diff check, upstream-contract byte equality and unchanged protocol/numeric-section checks also passed.
-The runtime adapter, Contracts and compatibility tests are unchanged from the reviewed implementation, so earlier build and PostgreSQL evidence remains identified by its original tested revision rather than claimed as rerun here.
-The only integration conflict was the Architecture index, resolved as described above.
-
-## P01 verification and remaining evidence
-
-The focused Node/schema checks exercise the unchanged structural artifact, actual registry and sanitized compatibility cases.
-They establish neither Python execution nor measured performance.
-Checks used Node 26.10.0 and pnpm 12.8.1 in the isolated P01 worktree.
-The reviewed implementation commit is `224686dec1ee777728f02f76a224b3bc745d3ec3`; the final handoff includes any later documentation-only evidence commit.
-
-| Command                                                                                                                                                                                  | Observed result                                                                                                               |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm install --frozen-lockfile`                                                                                                                                                         | Passed without lockfile changes or new dependencies.                                                                          |
-| `pnpm --dir backend check`                                                                                                                                                               | Passed.                                                                                                                       |
-| `pnpm --dir backend exec vitest run tests/unit/compatibility-golden.test.ts tests/unit/compatibility-http.test.ts tests/unit/compatibility-inventory.test.ts tests/unit/openapi.test.ts` | 86 passed, including 69 new behavioral/fixture/ownership checks.                                                              |
-| `pnpm --dir backend test`                                                                                                                                                                | 231 unit tests passed; 101 native tests passed and eight database-dependent checks skipped.                                   |
-| `pnpm --dir frontend test:unit`                                                                                                                                                          | 837 passed in 96 files.                                                                                                       |
-| `pnpm test:tooling`                                                                                                                                                                      | 41 passed.                                                                                                                    |
-| `pnpm lint`                                                                                                                                                                              | Passed boundaries, formatting, backend types, frontend/service-worker types and Svelte diagnostics with zero errors/warnings. |
-| `APP_ORIGIN=http://127.0.0.1:5191 pnpm build`                                                                                                                                            | Passed both builds, built-client boundary check and PWA worker check.                                                         |
-| `pnpm --dir backend db:check`                                                                                                                                                            | Passed migration consistency; no migration was applied.                                                                       |
-| `frontend/node_modules/.bin/prettier --check README.md GLOSSARY.md AGENTS.md CONTRIBUTING.md docs`                                                                                       | Passed.                                                                                                                       |
-| `node --import ./backend/scripts/register-types.mjs --test backend/tests/openapi.test.ts`                                                                                                | Five passed.                                                                                                                  |
-| Local Markdown link and `git diff --check` checks                                                                                                                                        | Passed for the changed documents and complete Slice diff.                                                                     |
-
-A separate in-memory esbuild probe used the existing `backend/scripts/build.mjs` build options with `src/http/openapi.ts` as its entrypoint.
-Importing its emitted bundle through a data URL reproduced the pinned schema SHA-256, demonstrating that no runtime JSON file copy is required.
-The focused HTTP test additionally exercised Discovery, HEAD, OPTIONS and the original 405 body on the production Node bridge over loopback.
-Two independent GPT-6.1-Sol High reviews used separate T3 worktrees at the implementation commit and found no actionable Standards or Spec issues.
-Standards independently compared the extracted artifact against the original builder; Spec independently exercised production credential, UTF-16, fingerprint and integer functions.
-The reviewers did not rerun the full suites; the commands above remain implementation-worktree evidence.
-The orchestrator retains Slice approval and publication; technical checks do not establish maintainer acceptance.
-Initial fixture development exposed a negative-zero expectation mismatch and parser/type errors in the new test file.
-The final vector asserts the decoder's preserved negative zero separately from its JSON wire representation, and all affected focused/type checks passed after correction.
-The formatting command was rerun with the existing frontend configuration after initial invocation/configuration errors.
-During verification, `origin/main` advanced to `bcc99cd7338fe28c46c9f09a091dcb92b455967e`, an unrelated Ruff update confined to `worker/pyproject.toml` and `worker/uv.lock`.
-The accepted contract and this Slice's fixed base remain unchanged.
-
-The first Python API/core package must add its lock/lint/type/tests/negative import checks and CI path selection immediately, through the designated integration writer.
-Automatic CI remains scoped; Android and heavy database/HTTP/SavedState/application runs stay manually triggered.
-No shared CI, root manifest, launcher or lifetime-construction edits are needed by P01.
-
-The P01 handoff records exact commands/results, tested base/head and clean working state with the commit.
-Transient development failures are retained in the handoff, with their fixes and final checks.
-The selected Node/PostgreSQL checks below establish additional receipt/transaction/race evidence.
-Complete candidate PostgreSQL acceptance, dual-runtime HTTP, candidate measurements, full Catalog/scale, actual Scan/S3/provider paths, rendered clients, physical Android/Keystore, deployed proxy and scheduled observations remain unexecuted by this Slice.
-Their implementing Slice owners collect them; P17 owns integrated acceptance and rollback evidence, and Kyle owns target acceptance and separately authorized production release.
-No P01 pass should be recorded as any of those target passes.
-
-## PostgreSQL follow-up
-
-The maintainer supplied the disposable PostgreSQL runtime `pg18-0e56d611` after the original P01 handoff.
-This follow-up tested unchanged source at `bc9ebc2d69fbead0a0ad660f9b9e5d150e2b276f` using Node 26.10.0 and pnpm 12.8.1.
-That follow-up changed only this evidence document and left the numeric choices unchanged.
-Their subsequent acceptance is recorded above.
-No Python package, P02 implementation or performance measurement was added.
-
-Runtime owner `python-migration-verification-b16b9390` retains the disposable PostgreSQL container on loopback port 56560, with 2 CPUs, 2 GiB RAM and 64 cluster connections.
-The P01 task claimed `api_node` exclusively as `spellbook-p01-8e1477c5`, within its 12-connection role budget.
-It used only the runtime's ignored mode-0600 `env/api_node.env`, with matching `DATABASE_URL` and `TEST_DATABASE_URL`.
-The protected root environment was not used.
-`sb_py_0e56d611_baseline` remained the read-only reference; all application writes used `sb_py_0e56d611_api_node`.
-
-A read-only transaction confirmed PostgreSQL 18.6, all 25 unchanged native Drizzle ledger entries and 17 enabled application triggers on the reference.
-The leased Node database had the same ledger before testing.
-No migrations ran during this follow-up.
-The retained ledger JSON digest is `bb6e5f8e8280cc810b4a640279ee388f3a47a4d1b35e647d8111b7a49648a18f`.
-This digest covers the ordered `hash, created_at::text` query result, not a SQL-file or pg_dump hash.
-
-The serial native checks used the existing real public Sol Ring printings from `backend/scripts/demo/cards.json`.
-That tracked file has SHA-256 `af9334071e99a93a7ac5265cd2d2919c8e09774dcdcfb7a639772e9adbf67849`.
-The command set `TEST_HTTP_DOMAIN_DISPOSABLE_DB=sb_py_0e56d611_api_node` and `TEST_HTTP_DOMAIN_CATALOG_PATH` to that tracked file's absolute path.
-No concurrent publisher or scheduler ran.
-
-```sh
-node --import ./backend/scripts/register-types.mjs --test --test-concurrency=1 backend/tests/http-core.integration.test.ts backend/tests/decks-categories-http.integration.test.ts
-pnpm --dir frontend exec vitest run --project integration tests/integration/inventory-contracts.integration.test.ts tests/integration/deck-builder.integration.test.ts tests/integration/qr-auth.integration.test.ts tests/integration/local-auth.test.ts
-```
-
-The native command passed 11 checks with zero failures or skips.
-It exercised original web-command receipts/conflicts, request source/floor semantics, actual TCP Auth/Account routes, original raw forms, password rotation, QR one-use redemption and PostgreSQL invalidation/revocation through two application listeners.
-Those listener instances ran in one test process; this does not establish the separate built two-process SSE/slow-reader suite.
-The frontend integration command passed 50 tests in four files with zero failures or skips.
-It exercised Inventory original/legacy receipts, replay after deletion/recreation, stale Notes and concurrent mutations, Deck legacy fingerprint/retry semantics, persisted credentials/sessions and QR locking/revocation races.
-These direct TypeScript application/web-adapter tests remain Node evidence and do not establish Python or rendered-client coverage.
-The earlier full backend run's eight skips remain a historical result; this targeted follow-up does not claim that every skipped operator/Scan/built-host suite ran.
-
-Cleanup verified zero fixture profiles, sessions, QR authorizations and Deck receipts.
-The existing Deck fixture leaves its two Inventory receipt rows after deleting their profiles, and the public fixture helper retains its Catalog generation.
-Under the exclusive lease, cleanup verified those receipt timestamps against the claim, deleted only those two owned rows, restored the recorded Catalog state and removed the one owned generation with its two tracked printings.
-A read-only snapshot then compared all 58 public tables and the migration ledger against the untouched reference.
-Both matched exactly.
-The snapshot's deterministic per-table JSON-row digest is `6f04debc066cc01fcd645eb88f4e0419a10a00759b5eea4b073d1698d21a88be`; it is distinct from the provisioner's pg_dump digest.
-The lease helper confirmed no database sessions remained, successfully released `api_node` and reported no active leases.
-PostgreSQL remains available to the orchestrator.
-
-Ignored evidence remains in `.local/python-migration-p01/runtime/` in the P01 worktree.
-`node-http.log` and `application-integration.log` contain results; `before.json`, `reference.json`, `pre-cleanup.json`, `cleanup.json`, `baseline-data.json` and `after-data.json` contain sanitized provenance and cleanup evidence.
-`snapshot.mjs` retains the minimal read-only snapshot procedure, and `release.json` records successful release.
-The runtime lease record and credential files remain private; no credential value is checked in or included in this report.
-The original Standards/Spec reviews still cover the unchanged implementation, and root has accepted the independent numeric/spec review.
-P01 Slice integration remains pending; candidate measurements and Python parity remain future evidence.
+Operator-owned S3 and live external-provider refreshes, a naturally scheduled daily value observation and physical Android/Keystore journeys remain target-owner checks.
+Local storage, protocol fixtures and PostgreSQL capture/DST tests do not establish those target results.
+Scan recognition retains the existing `no_match` scaffold.
+Owner acceptance remains separate from technical checks.
+Production API cutover and productive migrator rollout have not been performed.
+Source removal does not authorize deleting retained production artifacts or data.
+Operational recovery must protect accepted writes under its authorized procedure; cross-version data compatibility and Node rollback are not source acceptance requirements.

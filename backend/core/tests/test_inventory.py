@@ -22,28 +22,26 @@ from psycopg.conninfo import conninfo_to_dict
 from psycopg.types.json import Jsonb
 
 from spellbook_core.auth import SessionAuth, create_session_auth, hash_session_token
-from spellbook_core.catalog import Catalog, create_catalog
 from spellbook_core.db import ConnectionPool, Transaction, transaction
-from spellbook_core.errors import (
-    ActorError,
-    NotesConflictError,
-    RequestConflictError,
-    ValidationError,
-)
+from spellbook_core.errors import ActorError, RequestConflictError, ValidationError
 from spellbook_core.fingerprint import mutation_fingerprint, serialize_mutation
-from spellbook_core.inventory import (
+from spellbook_core.models import Actor
+from spellbook_core.mtg.catalog import Catalog, create_catalog
+from spellbook_core.mtg.errors import NotesConflictError
+from spellbook_core.mtg.inventory import (
     Inventory,
     InventoryIntent,
     PreparedInventoryMutation,
     RecordedInventoryMutation,
     create_inventory,
     normalize_add,
+    read_inventory_acknowledgement,
 )
-from spellbook_core.models import Actor, CardDocument
+from spellbook_core.mtg.models import CardDocument
 from spellbook_core.validation import MISSING, js_utf8
 
 ROOT = Path(__file__).resolve().parents[3]
-GOLDEN: dict[str, Any] = json.loads((ROOT / "contracts/compatibility/golden.json").read_text())
+GOLDEN: dict[str, Any] = json.loads((ROOT / "contracts/fixtures/wire.json").read_text())
 PRINTINGS: list[CardDocument] = json.loads((ROOT / "backend/scripts/demo/cards.json").read_text())
 CARD = PRINTINGS[0]
 ACTOR = Actor("unit-account", "unit", "", "", "")
@@ -96,7 +94,7 @@ def test_every_golden_receipt_uses_prepare_before_catalog(vector: dict[str, Any]
         intent = InventoryIntent(
             "11111111-1111-4111-8111-111111111111", "web", (normalize_add(operation()),)
         )
-        with patch("spellbook_core.inventory.transaction", unit_transaction):
+        with patch("spellbook_core.mtg.inventory.transaction", unit_transaction):
             if vector.get("conflict"):
                 with pytest.raises(RequestConflictError):
                     await inventory.prepare(ACTOR, intent, vector["incomingHash"])
@@ -108,8 +106,91 @@ def test_every_golden_receipt_uses_prepare_before_catalog(vector: dict[str, Any]
                 else:
                     assert isinstance(result, RecordedInventoryMutation)
                     assert result.acknowledgement == vector["expected"]
+                    assert result.acknowledgement is vector["acknowledgement"]
                     catalog.get_catalog_printing.assert_not_awaited()
         auth.require_actor.assert_awaited_once_with(ACTOR)
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("quantity", [0, 2147483647])
+def test_current_receipt_quantity_boundaries_preserve_original(quantity: int) -> None:
+    original = GOLDEN["receipts"][0]["acknowledgement"]
+    ack = {**original, "changes": [{**original["changes"][0], "quantity": quantity}]}
+    assert read_inventory_acknowledgement(ack, ack["requestId"]) is ack
+
+
+@pytest.mark.parametrize(
+    "field,invalid",
+    [
+        (None, {}),
+        (None, []),
+        (None, False),
+        ("requestId", "another-request"),
+        ("revision", 1),
+        ("revision", "not-a-revision"),
+        ("revision", "01"),
+        (
+            "changes",
+            [{**GOLDEN["receipts"][0]["acknowledgement"]["changes"][0], "finish": "invalid"}],
+        ),
+        (
+            "changes",
+            [{**GOLDEN["receipts"][0]["acknowledgement"]["changes"][0], "condition": "invalid"}],
+        ),
+        ("changes", [{**GOLDEN["receipts"][0]["acknowledgement"]["changes"][0], "quantity": -1}]),
+        (
+            "changes",
+            [{**GOLDEN["receipts"][0]["acknowledgement"]["changes"][0], "quantity": 2147483648}],
+        ),
+        (
+            "changes",
+            [
+                {
+                    **GOLDEN["receipts"][0]["acknowledgement"]["changes"][0],
+                    "notesRevision": "not-a-revision",
+                }
+            ],
+        ),
+        ("changes", {}),
+        ("changes", [{}]),
+        ("memberships", [{"entryId": "entry", "groupIds": [1]}]),
+        ("import", {}),
+    ],
+)
+def test_incomplete_receipt_fails_before_catalog_or_mutation(
+    field: str | None, invalid: object
+) -> None:
+    async def scenario() -> None:
+        auth = create_autospec(SessionAuth, instance=True)
+        auth.require_actor.return_value = ACTOR
+        catalog = create_autospec(Catalog, instance=True)
+        inventory = create_inventory(create_autospec(ConnectionPool), catalog, auth)
+        tx = AsyncMock()
+
+        @asynccontextmanager
+        async def context(*args: object, **kwargs: object) -> AsyncIterator[Transaction]:
+            yield cast(Transaction, tx)
+
+        fingerprint = mutation_fingerprint(
+            {"kind": "inventory", "source": "web", "operations": [normalize_add(operation())]}
+        )
+        ack = {**GOLDEN["receipts"][0]["acknowledgement"], "requestId": "incomplete"}
+        malformed = invalid if field is None else {**ack, field: invalid}
+        receipts: tuple[tuple[str | None, object], ...] = (
+            (None, ack),
+            (fingerprint, None),
+            (fingerprint, malformed),
+        )
+        with patch("spellbook_core.mtg.inventory.transaction", context):
+            for row in receipts:
+                tx.execute.return_value.fetchone.return_value = row
+                with pytest.raises(RequestConflictError):
+                    await inventory.add_items(
+                        ACTOR, request_id="incomplete", operations=[operation()]
+                    )
+        catalog.get_catalog_printing.assert_not_awaited()
+        assert all("SELECT" in call.args[0] for call in tx.execute.call_args_list)
 
     asyncio.run(scenario())
 
@@ -375,7 +456,7 @@ async def native_inventory(pool: ConnectionPool, token: str) -> tuple[Inventory,
 
 
 @NATIVE
-def test_native_duplicate_replay_edits_deletion_recreation_and_legacy() -> None:
+def test_native_duplicate_replay_edits_deletion_recreation_and_receipts() -> None:
     async def scenario() -> None:
         async with (
             native_pool() as pool,
@@ -446,7 +527,8 @@ def test_native_duplicate_replay_edits_deletion_recreation_and_legacy() -> None:
                 for index, vector in enumerate(GOLDEN["receipts"]):
                     if vector.get("missing"):
                         continue
-                    legacy_id = "legacy-" + str(index)
+                    receipt_id = "receipt-" + str(index)
+                    stored_ack = {**vector["acknowledgement"], "requestId": receipt_id}
                     async with transaction(pool) as tx:
                         await tx.execute(
                             (
@@ -457,24 +539,18 @@ def test_native_duplicate_replay_edits_deletion_recreation_and_legacy() -> None:
                             ),
                             (
                                 account,
-                                legacy_id,
+                                receipt_id,
                                 vector["requestHash"],
-                                Jsonb(vector["acknowledgement"])
-                                if vector["acknowledgement"] is not None
-                                else None,
+                                Jsonb(stored_ack),
                             ),
                         )
-                    intent = InventoryIntent(legacy_id, "web", (normalize_add(operation()),))
+                    intent = InventoryIntent(receipt_id, "web", (normalize_add(operation()),))
                     if vector.get("conflict"):
                         with pytest.raises(RequestConflictError):
                             await inventory.prepare(actor, intent, vector["incomingHash"])
                     else:
                         result = await inventory.prepare(actor, intent, vector["incomingHash"])
-                        expected = (
-                            {**vector["expected"], "requestId": legacy_id}
-                            if vector["acknowledgement"] is None
-                            else vector["expected"]
-                        )
+                        expected = {**vector["expected"], "requestId": receipt_id}
                         assert (
                             isinstance(result, RecordedInventoryMutation)
                             and result.acknowledgement == expected
@@ -487,9 +563,9 @@ def test_native_duplicate_replay_edits_deletion_recreation_and_legacy() -> None:
                                     "inventory_mutation_requests WHERE account_id=%s AND "
                                     "request_id=%s"
                                 ),
-                                (account, legacy_id),
+                                (account, receipt_id),
                             )
-                        ).fetchone() == (vector["requestHash"], vector["acknowledgement"])
+                        ).fetchone() == (vector["requestHash"], stored_ack)
             for untrusted in (copy.copy(actor), Actor(account, actor.username, "", "", "")):
                 with pytest.raises(ActorError):
                     await inventory.add_items(untrusted, **args)
@@ -673,7 +749,7 @@ def test_native_readback_snapshot_memberships_account_and_no_creation() -> None:
                         await resume.wait()
                     yield tx
 
-            with patch("spellbook_core.inventory.transaction", observed):
+            with patch("spellbook_core.mtg.inventory.transaction", observed):
                 pending = asyncio.create_task(inventory.get_entry(actor, entry_id))
                 try:
                     await asyncio.wait_for(entered.wait(), 2)

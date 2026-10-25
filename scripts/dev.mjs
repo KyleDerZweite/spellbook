@@ -8,8 +8,8 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const storage = resolve(root, process.env.SCAN_LOCAL_STORAGE_DIR || '.local/scans');
 const args = process.argv.slice(2);
 const action = args[0] && !args[0].startsWith('--') ? args.shift() : 'start';
-if (!['start', 'stop'].includes(action) || args.some((arg) => !['--scan', '--demo'].includes(arg)))
-	throw new Error('Usage: ./dev.sh [start [--demo] [--scan] | stop]');
+if (!['start', 'stop'].includes(action) || args.some((arg) => arg !== '--demo'))
+	throw new Error('Usage: ./dev.sh [start [--demo] | stop]');
 const statePath = resolve(root, '.local/dev.pid');
 const script = fileURLToPath(import.meta.url);
 async function identity(pid) {
@@ -53,7 +53,6 @@ if (action === 'stop') {
 	throw new Error('Graceful shutdown is still pending. No force termination was used.');
 }
 const demo = args.includes('--demo');
-const scan = args.includes('--scan');
 
 if (Number(process.versions.node.split('.')[0]) !== 26) {
 	throw new Error('Use the Node version in frontend/.node-version, or run ./dev.sh.');
@@ -86,7 +85,7 @@ try {
 } finally {
 	await unlink(temporaryState);
 }
-if (scan) await mkdir(storage, { recursive: true });
+await mkdir(storage, { recursive: true });
 
 const env = {
 	...process.env,
@@ -99,7 +98,8 @@ const env = {
 	API_TRUSTED_PROXY_ADDRESSES: '127.0.0.1,::1',
 	SCAN_STORAGE_DRIVER: 'local',
 	SCAN_LOCAL_STORAGE_DIR: storage,
-	SCAN_WORKER_URL: `http://127.0.0.1:${scanPort}`
+	SCAN_WORKER_URL: `http://127.0.0.1:${scanPort}`,
+	WORKER_DATA_DIR: resolve(root, process.env.WORKER_DATA_DIR || '.local/catalog')
 };
 const children = new Set();
 let stopping = false;
@@ -144,7 +144,7 @@ function stop(code) {
 	void cleanup();
 }
 
-function start(command, args, cwd, childEnv = env) {
+function start(command, args, cwd, childEnv = env, allowSuccess = false) {
 	const child = spawn(command, args, {
 		cwd,
 		env: childEnv,
@@ -159,7 +159,7 @@ function start(command, args, cwd, childEnv = env) {
 		void cleanup();
 	});
 	child.on('exit', (code) => {
-		stop(code ?? 1);
+		if (code !== 0 || !allowSuccess) stop(code ?? 1);
 		children.delete(child);
 		void cleanup();
 	});
@@ -207,36 +207,66 @@ try {
 		}
 		if (!ready) throw new Error('Development database did not become ready.');
 	}
-	if (demo && !stopping) {
+	// Preparation completes before the runtime siblings start.
+	async function prepare(entrypoint) {
+		if (stopping) throw new Error('Development startup interrupted.');
 		await new Promise((resolve, reject) => {
-			const child = start(process.execPath, ['scripts/demo/seed.mjs'], `${root}backend`);
-			// A successful seed is preparation, not a server exit.
+			const child = start(
+				'uvx',
+				['--from', 'uv==0.12.23', 'uv', 'run', '--no-sync', entrypoint],
+				`${root}backend/api`
+			);
 			child.removeAllListeners('exit');
 			child.on('exit', (code) => {
 				children.delete(child);
 				if (code === 0) resolve();
-				else reject(new Error('Demo seed failed.'));
+				else reject(new Error(`${entrypoint} failed.`));
 			});
 			child.on('error', reject);
 		});
 	}
+	await mkdir(env.WORKER_DATA_DIR, { recursive: true });
+	await prepare('spellbook-migrate');
+	if (demo) await prepare('spellbook-demo-seed');
 	if (!stopping) {
-		if (scan)
-			start(
+		start(
+			'uvx',
+			[
+				'--from',
+				'uv==0.12.23',
 				'uv',
+				'run',
+				'--no-sync',
+				'uvicorn',
+				'scan_worker.main:app',
+				'--host',
+				'127.0.0.1',
+				'--port',
+				scanPort
+			],
+			`${root}backend/workers/scan`
+		);
+		for (const [directory, command] of [
+			['api', 'spellbook-api'],
+			['workers/state', 'spellbook-state-worker'],
+			['workers/catalog', 'python']
+		]) {
+			start(
+				'uvx',
 				[
+					'--from',
+					'uv==0.12.23',
+					'uv',
 					'run',
 					'--no-sync',
-					'uvicorn',
-					'scan_worker.main:app',
-					'--host',
-					'127.0.0.1',
-					'--port',
-					scanPort
+					command,
+					...(command === 'python' ? ['-m', 'worker.main'] : [])
 				],
-				`${root}backend/workers/scan`
+				`${root}backend/${directory}`,
+				env,
+				directory === 'workers/catalog'
 			);
-		start('pnpm', ['dev'], `${root}backend`);
+		}
 		// Web owns rendering and HTTP forwarding. API credentials stay in its process.
 		const webEnv = {
 			...Object.fromEntries(

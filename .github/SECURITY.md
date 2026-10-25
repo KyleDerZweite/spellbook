@@ -2,7 +2,8 @@
 
 ## Supported Versions
 
-This is an actively developed project on the `main` branch.
+Security fixes target current development on `main`; older commits have no support guarantee.
+Spellbook is unreleased; see the [pre-release policy](../CONTRIBUTING.md#replacing-interfaces).
 
 ## Reporting a Vulnerability
 

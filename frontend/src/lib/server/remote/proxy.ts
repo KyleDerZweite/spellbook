@@ -104,7 +104,7 @@ export async function proxyApi(
 			statusText: upstream.statusText,
 			headers: responseHeaders
 		});
-	} catch {
+	} catch (cause) {
 		if (event.request.signal.aborted) throw event.request.signal.reason;
 		const failure = upload?.failure();
 		if (failure) {
@@ -119,6 +119,27 @@ export async function proxyApi(
 				{ status: limited ? 413 : 400, headers: { 'cache-control': 'no-store' } }
 			);
 		}
+		const networkCodes = new Set([
+			'ECONNREFUSED',
+			'ECONNRESET',
+			'ETIMEDOUT',
+			'ENOTFOUND',
+			'EAI_AGAIN',
+			'UND_ERR_CONNECT_TIMEOUT',
+			'UND_ERR_SOCKET'
+		]);
+		const failureCause = cause instanceof Error ? cause.cause : undefined;
+		const code =
+			failureCause && typeof failureCause === 'object' && 'code' in failureCause
+				? failureCause.code
+				: undefined;
+		console.error(
+			JSON.stringify({
+				event: 'proxy_failure',
+				errorType: 'UpstreamUnavailable',
+				...(typeof code === 'string' && networkCodes.has(code) ? { networkCode: code } : {})
+			})
+		);
 		return Response.json(
 			{ message: 'The API is temporarily unavailable. Try again.' },
 			{ status: 503, headers: { 'cache-control': 'no-store' } }

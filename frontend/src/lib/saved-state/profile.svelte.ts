@@ -21,7 +21,7 @@ class SavedProfile {
 				authState.user = null;
 			},
 			refresh: async (lease) => {
-				const response = await fetch('/api/account/profile', {
+				const response = await fetch('/api/v1/account/profile', {
 					cache: 'no-store',
 					signal: lease.signal
 				});

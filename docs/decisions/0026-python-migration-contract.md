@@ -1,13 +1,21 @@
 # ADR-0026: Python migration framework and delivery contract
 
-- Status: Accepted
-- Implementation: Complete source artifact authorized; production cutover pending
+- Status: Accepted; performance/resource readiness requirements superseded by ADR-0027; interface and cross-version compatibility requirements superseded by ADR-0029
+- Implementation: Complete source candidate implemented and unmerged; owner testing and production cutover pending
 - Date: 2026-10-19
-- Last Reviewed: 2026-10-20
+- Last Reviewed: 2026-10-25
 - Owners: Kyle
 - Source of Truth: maintainer-accepted migration contract for issue 211, independent Sol/Astra reviews and Kyle's 2026-10-20 execution direction
-- Update Triggers: complete unmerged implementation scope, integration ownership, source preparation versus production operations, independent review, maintainer acceptance, framework or schema ownership changes, migration gates
-- Related Docs: [Migration contract](../architecture/python-backend-migration.md), [ADR-0025](./0025-python-api-and-workers.md), [Independent applications](../architecture/independent-applications.md), [Postgres](../architecture/postgres.md), [Worker](../architecture/worker.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
+- Update Triggers: ADR-0029 pre-release compatibility supersession, ADR-0028 route/module supersession, explicit partial supersession by ADR-0027, complete unmerged implementation scope, integration ownership, source preparation versus production operations, independent review, maintainer acceptance, framework or schema ownership changes, migration gates
+- Related Docs: [ADR-0029](./0029-remove-replaced-interfaces.md), [Migration contract](../architecture/python-backend-migration.md), [ADR-0025](./0025-python-api-and-workers.md), [Independent applications](../architecture/independent-applications.md), [Postgres](../architecture/postgres.md), [Worker](../architecture/worker.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211), [Functional Python acceptance](./0027-python-functional-migration-acceptance.md)
+
+[ADR-0027](./0027-python-functional-migration-acceptance.md) supersedes this decision's strict resource/performance readiness requirements and historical execution-model assignments.
+The language, component boundaries, final unmerged artifact and separate production authority remain accepted; current stack and acceptance requirements follow the migration contract.
+The text below records the earlier decision; the [current migration contract](../architecture/python-backend-migration.md) owns delivery requirements.
+
+[ADR-0029's 2026-10-25 extension](./0029-remove-replaced-interfaces.md#pre-release-extension-2026-10-25) supersedes the historical requirements below for Node wire parity, stored-data upgrades and compatible Node rollback.
+Native FastAPI/Pydantic may replace compatibility adapters; current-version auth, account isolation, receipt replay and safe writes remain required.
+The historical record below does not override the [current migration contract](../architecture/python-backend-migration.md).
 
 ## Context
 
@@ -48,7 +56,8 @@ Retain the tested Node rollback artifact and compatible data even when the integ
 
 Reconcile existing slice-PR tickets to the accepted execution scope before affected implementation, preserving operational acceptance separately from source completion.
 The [implementation epic](https://github.com/KyleDerZweite/spellbook/issues/245) owns native sub-issues, blocking relationships and evidence gates.
-Each ticket must carry its reviewed responsibilities, dependencies, resource limits and acceptance evidence.
+The earlier contract required each ticket to carry reviewed responsibilities, dependencies, resource limits and acceptance evidence.
+ADR-0027 replaces the strict resource-proof prerequisite with functional acceptance.
 Map tests to the runtime they actually exercise and enable Python CI with the first API/core package.
 Experiments and manually invoked heavy integration/Android validation are within the implementation scope; keep their triggers manual and record unavailable target evidence.
 P19/P20 preparation must not depend on executing production gates or falsely close their operational acceptance.
@@ -60,3 +69,8 @@ Production release operations retain their separate concrete authorization under
 - [FastAPI async behavior](https://fastapi.tiangolo.com/async/), [error adapters](https://fastapi.tiangolo.com/tutorial/handling-errors/) and [lifespan](https://fastapi.tiangolo.com/advanced/events/)
 - [Psycopg pools](https://www.psycopg.org/psycopg3/docs/advanced/pool.html) and [cancellation](https://www.psycopg.org/psycopg3/docs/advanced/async.html)
 - [OpenAPI 3.1](https://spec.openapis.org/oas/v3.1.0.html)
+
+[ADR-0028](./0028-versioned-game-api.md) supersedes prior API-path and module-location immutability for the versioned shared/MTG API.
+[ADR-0029](./0029-remove-replaced-interfaces.md) supersedes requirements to retain old HTTP paths, frozen route inventories and dual-runtime HTTP comparisons.
+Only current canonical routes remain; older clients must update.
+The 2026-10-25 extension above further supersedes cross-version compatibility requirements; separate production authority remains unchanged.

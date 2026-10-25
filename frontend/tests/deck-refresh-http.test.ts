@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 import type { Deck, DeckSnapshot, LegalityWarning } from '@spellbook/contracts/decks.ts';
 import type { CardDocument } from '@spellbook/contracts/catalog.ts';
-import { SESSION_COOKIE } from '@spellbook/backend/auth/session.ts';
+import { SESSION_COOKIE } from './fixtures/session.ts';
 import { fixtureAuthRequest } from './fixtures/http-auth.ts';
 import { publishCategoryCatalogFixture } from './fixtures/category-catalog.ts';
 import { httpTestOrigin, startHttpApplication, stopHttpApplication } from './http-runtime.ts';
@@ -18,7 +18,7 @@ type FullDeck = DeckSnapshot & {
 	deckDocuments: Record<string, CardDocument>;
 };
 
-test('built selected Deck refresh projection preserves coherent PostgreSQL state and legacy parsing', async (t) => {
+test('built selected Deck refresh projection preserves coherent PostgreSQL state and native queries', async (t) => {
 	const pool = new pg.Pool({ connectionString: databaseUrl });
 	const accounts: string[] = [],
 		publication = randomUUID();
@@ -39,7 +39,7 @@ test('built selected Deck refresh projection preserves coherent PostgreSQL state
 		async function register() {
 			const response = await fixtureAuthRequest(
 				origin,
-				'/api/auth/register',
+				'/api/v1/auth/register',
 				{
 					username: 'refresh_http_' + randomUUID().slice(0, 8),
 					password: 'deck-refresh-http-password'
@@ -55,7 +55,7 @@ test('built selected Deck refresh projection preserves coherent PostgreSQL state
 			foreign = await register();
 		const headers = { authorization: `Bearer ${owner.token}` };
 		async function create(token: string, name: string) {
-			const response = await fetch(origin + '/api/mobile/v1/mtg/decks', {
+			const response = await fetch(origin + '/api/v1/mtg/decks', {
 				method: 'POST',
 				headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
 				body: JSON.stringify({ name, format: 'Modern', description: 'Refresh description' })
@@ -140,7 +140,7 @@ test('built selected Deck refresh projection preserves coherent PostgreSQL state
 			[publication]
 		);
 		publishedPrice = true;
-		const path = `/api/mobile/v1/mtg/decks/${selected.id}`;
+		const path = `/api/v1/mtg/decks/${selected.id}`;
 		const read = (query = '', supplied: Record<string, string> = headers, target = path) =>
 			fetch(origin + target + query, { headers: supplied, redirect: 'manual' });
 		async function body(query: string): Promise<FullDeck> {
@@ -149,37 +149,28 @@ test('built selected Deck refresh projection preserves coherent PostgreSQL state
 			assert.equal(response.headers.get('cache-control'), 'no-store');
 			return response.json();
 		}
-		await t.test(
-			'default and includeLegality=true preserve the complete old response',
-			async () => {
-				const legacy = await body(''),
-					explicit = await body('?includeLegality=true');
-				assert.equal(legacy.decks.length, 2);
-				assert.deepEqual(Object.keys(explicit).sort(), Object.keys(legacy).sort());
-				assert.deepEqual(explicit.warnings, legacy.warnings);
-				assert.deepEqual(explicit.deckDocuments, legacy.deckDocuments);
-				assert.ok(Array.isArray(legacy.warnings));
-				assert.equal(legacy.deckDocuments[printing.id].id, printing.id);
+		await t.test('default and includeLegality=true return the complete response', async () => {
+			const legacy = await body(''),
+				explicit = await body('?includeLegality=true');
+			assert.equal(legacy.decks.length, 2);
+			assert.deepEqual(Object.keys(explicit).sort(), Object.keys(legacy).sort());
+			assert.deepEqual(explicit.warnings, legacy.warnings);
+			assert.deepEqual(explicit.deckDocuments, legacy.deckDocuments);
+			assert.ok(Array.isArray(legacy.warnings));
+			assert.equal(legacy.deckDocuments[printing.id].id, printing.id);
+		});
+		await t.test('selectedOnly uses native booleans and the last query value', async () => {
+			for (const flag of ['', '&includeLegality=true']) {
+				for (const value of ['false', 'FALSE', '0'])
+					assert.equal((await body(`?selectedOnly=${value}${flag}`)).decks.length, 2);
+				for (const value of ['true', 'TRUE', '1'])
+					assert.equal((await body(`?selectedOnly=${value}${flag}`)).decks.length, 1);
+				for (const value of ['', 'unexpected'])
+					assert.equal((await read(`?selectedOnly=${value}${flag}`)).status, 400);
+				assert.equal((await body(`?selectedOnly=true&selectedOnly=false${flag}`)).decks.length, 2);
+				assert.equal((await body(`?selectedOnly=false&selectedOnly=true${flag}`)).decks.length, 1);
 			}
-		);
-		await t.test(
-			'legacy selectedOnly stays permissive with absent/true includeLegality',
-			async () => {
-				for (const flag of ['', '&includeLegality=true']) {
-					for (const value of ['false', 'TRUE', '1', '', 'unexpected'])
-						assert.equal((await body(`?selectedOnly=${value}${flag}`)).decks.length, 2);
-					assert.equal((await body(`?selectedOnly=true${flag}`)).decks.length, 1);
-					assert.equal(
-						(await body(`?selectedOnly=true&selectedOnly=false${flag}`)).decks.length,
-						1
-					);
-					assert.equal(
-						(await body(`?selectedOnly=false&selectedOnly=true${flag}`)).decks.length,
-						2
-					);
-				}
-			}
-		);
+		});
 		await t.test(
 			'narrow response omits only legality and documents and keeps composition/ownership/availability/values coherent',
 			async () => {
@@ -218,8 +209,6 @@ test('built selected Deck refresh projection preserves coherent PostgreSQL state
 				for (const query of [
 					'?includeLegality=false',
 					'?selectedOnly=false&includeLegality=false',
-					'?selectedOnly=TRUE&includeLegality=false',
-					'?selectedOnly=1&includeLegality=false',
 					'?selectedOnly=&includeLegality=false',
 					'?selectedOnly=true&includeLegality=',
 					'?selectedOnly=true&includeLegality=FALSE',
@@ -255,15 +244,12 @@ test('built selected Deck refresh projection preserves coherent PostgreSQL state
 						404
 					);
 					assert.equal(
-						(await read(query, headers, `/api/mobile/v1/mtg/decks/${foreignDeck.id}`)).status,
+						(await read(query, headers, `/api/v1/mtg/decks/${foreignDeck.id}`)).status,
 						404
 					);
+					assert.equal((await read(query, headers, '/api/v1/mtg/decks/not-a-uuid')).status, 400);
 					assert.equal(
-						(await read(query, headers, '/api/mobile/v1/mtg/decks/not-a-uuid')).status,
-						400
-					);
-					assert.equal(
-						(await read(query, headers, `/api/mobile/v1/mtg/decks/${randomUUID()}`)).status,
+						(await read(query, headers, `/api/v1/mtg/decks/${randomUUID()}`)).status,
 						404
 					);
 					const cookie = await read(query, { cookie: `${SESSION_COOKIE}=${owner.token}` });

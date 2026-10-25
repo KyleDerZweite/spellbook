@@ -1,9 +1,9 @@
 # Card grouping
 
 - Status: Canonical, Inventory groups and starter primary Deck Entry Categories implemented; account rules and entry Review/Reset implemented; whole-deck evaluation implemented
-- Last Reviewed: 2026-10-08
+- Last Reviewed: 2026-10-24
 - Source of Truth: maintainer grouping decision, inventory and deck implementations
-- Update Triggers: Inventory Box labels, inventory groups, memberships, scan targets, deck entry and whole-deck categories, automatic classification, account category definitions and manual overrides, accepted design contracts and implementation evidence
+- Update Triggers: versioned MTG routes and module ownership, Python source activation and server contraction, Inventory Box labels, inventory groups, memberships, scan targets, deck entry and whole-deck categories, automatic classification, account category definitions and manual overrides, accepted design contracts and implementation evidence
 - Related Docs: [Product specification](./specification.md), [Domain model](../../GLOSSARY.md), [Classifier research](../integrations/card-categorization.md), [Frontend](../architecture/frontend.md), [Postgres](../architecture/postgres.md), [Mobile and scan](../architecture/mobile-and-scan.md), [UI direction](./ui-design-direction.md), [Product index](./README.md), [Category rules](../architecture/category-rules.md)
 
 ## Inventory groups
@@ -45,7 +45,7 @@ Removing a membership never removes owned cards.
 The label change preserves existing `group` query parameters, action names, DTO fields and persistence.
 It adds no physical-copy allocation or worker integration.
 
-The shared backend [Inventory mutation use cases](../../backend/src/inventory/mutations.ts) own Group CRUD and whole-entry membership replacement.
+The shared backend [Inventory mutation use cases](../../backend/core/src/spellbook_core/mtg/inventory.py) own Group CRUD and whole-entry membership replacement.
 Web forms and public Group HTTP routes delegate with a trusted session-produced actor, caller-stable request IDs and compact original receipts.
 Backend page reads own bounded directory pages, group counts and loaded memberships.
 Unknown or foreign entry/group IDs fail atomically.

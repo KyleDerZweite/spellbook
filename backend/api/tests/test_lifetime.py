@@ -71,3 +71,36 @@ def test_startup_failure_closes_owned_resources(monkeypatch: pytest.MonkeyPatch)
     with pytest.raises(RuntimeError, match="test startup failure"):
         asyncio.run(main.serve(Configuration("http://localhost:5173")))
     assert observed == ["resources"]
+
+
+def test_default_entrypoint_rejects_missing_database_before_resource_construction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("APP_ORIGIN", "http://localhost:5173")
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.delenv("API_DISCOVERY_ONLY", raising=False)
+    with pytest.raises(ValueError, match="DATABASE_URL is required"):
+        main.main()
+
+
+def test_uvicorn_lifespan_failure_is_a_failed_entrypoint(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    observed: list[str] = []
+
+    async def close() -> None:
+        observed.append("closed")
+
+    async def startup_refused(self: uvicorn.Server) -> None:
+        # Uvicorn reports a failed lifespan by returning without setting started.
+        assert not self.started
+
+    monkeypatch.setattr(
+        main,
+        "create_application",
+        lambda configuration: ApplicationLifetime(FastAPI(), close, close),
+    )
+    monkeypatch.setattr(uvicorn.Server, "serve", startup_refused)
+    with pytest.raises(RuntimeError, match="startup failed before listening"):
+        asyncio.run(main.serve(Configuration("http://localhost:5173")))
+    assert observed == ["closed"]

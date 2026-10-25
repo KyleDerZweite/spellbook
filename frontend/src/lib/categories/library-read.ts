@@ -17,7 +17,7 @@ export async function readCategoryLibraryPage(
 	current: () => boolean
 ): Promise<CategoryLibraryPage | null> {
 	const response = await request(
-		`/api/mobile/v1/mtg/category-definitions?scope=${query.scope}&offset=${query.offset}&limit=${query.limit}`,
+		`/api/v1/mtg/category-definitions?scope=${query.scope}&offset=${query.offset}&limit=${query.limit}`,
 		{ headers: { accept: 'application/json' }, cache: 'no-store', signal: query.signal }
 	);
 	if (!current()) return null;

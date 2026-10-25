@@ -20,8 +20,8 @@ export async function loadReferencePrice(
 	if (!current()) return;
 	const response = await request(
 		input.entryId
-			? '/api/mobile/v1/mtg/inventory/prices'
-			: `/api/mobile/v1/mtg/prices?${new URLSearchParams({ printingId: input.printingId, finish: input.finish })}`,
+			? '/api/v1/mtg/inventory/prices'
+			: `/api/v1/mtg/prices?${new URLSearchParams({ printingId: input.printingId, finish: input.finish })}`,
 		{
 			signal,
 			...(input.entryId

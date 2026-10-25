@@ -99,7 +99,7 @@ class SessionRequestsTest {
     @Test fun `expiry gates private state immediately even if credential cleanup fails`() {
         val user = User("account-a", "alice")
         val session = Session("https://api.example.test", user, "session-a", "2026-10-20T12:00:00Z")
-        val draft = DraftState(attempt = MutationAttempt(session.backend, user.accountId, "DELETE", "/api/mobile/v1/mtg/inventory/entry-a", "{}", "request-a"))
+        val draft = DraftState(attempt = MutationAttempt(session.backend, user.accountId, "DELETE", "/api/v1/mtg/inventory/entry-a", "{}", "request-a"))
         val before = AppState(session = session, verified = true,
             data = ScreenData.Account(Profile(user, buildJsonObject { }, null, null)), draft = draft,
             authenticating = true, saving = true, loading = true, live = "Live updates connected")

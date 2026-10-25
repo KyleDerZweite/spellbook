@@ -8,7 +8,7 @@ from spellbook_core.models import Actor
 from spellbook_core.saved_state import Cancellation, SavedState, SavedStateEvent, Subscription
 from starlette.requests import Request
 from starlette.responses import Response
-from starlette.types import Receive, Scope, Send
+from starlette.types import Message, Receive, Scope, Send
 
 SAVED_STATE_HEARTBEAT_SECONDS = 15.0
 SAVED_STATE_SEND_SECONDS = 30.0
@@ -17,7 +17,6 @@ SAVED_STATE_SEND_SECONDS = 30.0
 class SavedStateResponse(Response):
     """Own setup, disconnect, pull and body tasks, including before ASGI starts.
 
-    The registry must await close() when discarding this response for HEAD.
     Pre-drain close_streams() also closes responses never invoked by ASGI.
     """
 
@@ -44,6 +43,7 @@ class SavedStateResponse(Response):
         self._closed = False
         self._notified = False
         self._called = False
+        self._disconnected = False
 
     async def open(self, saved_state: SavedState, actor: Actor) -> None:
         self._disconnect = asyncio.create_task(self._watch(), name="saved-state-disconnect")
@@ -59,6 +59,7 @@ class SavedStateResponse(Response):
         while True:
             message = await self._request.receive()
             if message["type"] == "http.disconnect":
+                self._disconnected = True
                 self._cancellation.abort()
                 return
 
@@ -126,7 +127,17 @@ class SavedStateResponse(Response):
         if self._called or self._closed:
             return
         self._called = True
-        self._body = asyncio.create_task(self._stream(send), name="saved-state-body")
+        started = complete = False
+
+        async def stream_send(message: Message) -> None:
+            nonlocal started, complete
+            await send(message)
+            if message["type"] == "http.response.start":
+                started = True
+            elif message["type"] == "http.response.body" and not message.get("more_body", False):
+                complete = True
+
+        self._body = asyncio.create_task(self._stream(stream_send), name="saved-state-body")
         assert self._disconnect is not None
         try:
             await asyncio.wait({self._body, self._disconnect}, return_when=asyncio.FIRST_COMPLETED)
@@ -136,3 +147,7 @@ class SavedStateResponse(Response):
                 self._disconnect.result()
         finally:
             await self.close()
+            if started and not complete and not self._disconnected:
+                await self._send(
+                    send, {"type": "http.response.body", "body": b"", "more_body": False}
+                )

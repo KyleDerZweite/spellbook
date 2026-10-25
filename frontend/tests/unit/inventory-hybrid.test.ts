@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { InventoryWindow, matchingNativeInventoryQuery } from '#lib/inventory/window.ts';
 import { WorkspaceSavedState } from '#lib/saved-state/workspace.ts';
-import { inventoryQueryFromUrl, inventoryQueryKey } from '@spellbook/backend/inventory/query.ts';
+import { inventoryQueryFromUrl, inventoryQueryKey } from '@spellbook/contracts/inventory-query.ts';
 import type {
 	InventoryEntry,
 	InventoryPage,
@@ -9,7 +9,7 @@ import type {
 } from '@spellbook/contracts/inventory.ts';
 vi.mock('#lib/server/data/inventory-window.ts', () => ({ inventoryQueryFromUrl }));
 import { inventoryBrowseQuery } from '#lib/server/data/inventory-browsing.ts';
-const query = inventoryQueryFromUrl(new URL('http://local/api/mobile/v1/mtg/inventory?limit=200'));
+const query = inventoryQueryFromUrl(new URL('http://local/api/v1/mtg/inventory?limit=200'));
 function result(input: InventoryQuery, notes = ''): InventoryPage {
 	const entries: InventoryEntry[] = Array.from({ length: input.limit }, (_, index) => ({
 		id: String(input.offset + index),
@@ -72,9 +72,10 @@ describe('Inventory hybrid browser addressing', () => {
 		expect(
 			inventoryBrowseQuery(new URL('http://local/mtg/inventory?offset=999&limit=1')).query
 		).toMatchObject({ offset: 0, limit: 200 });
-		expect(
-			inventoryQueryFromUrl(new URL('http://local/api/mobile/v1/mtg/inventory'))
-		).toMatchObject({ offset: 0, limit: 50 });
+		expect(inventoryQueryFromUrl(new URL('http://local/api/v1/mtg/inventory'))).toMatchObject({
+			offset: 0,
+			limit: 50
+		});
 	});
 });
 it('keeps numeric size and mode separate despite unchanged legacy wire query keys', async () => {

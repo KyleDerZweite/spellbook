@@ -1,8 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { proxyApi } from '#lib/server/remote/proxy.ts';
 
-beforeEach(() => vi.stubEnv('API_INTERNAL_URL', 'http://127.0.0.1:4000'));
-afterEach(() => vi.unstubAllEnvs());
+beforeEach(() => {
+	vi.stubEnv('API_INTERNAL_URL', 'http://127.0.0.1:4000');
+	vi.spyOn(console, 'error').mockImplementation(() => {});
+});
+afterEach(() => {
+	vi.unstubAllEnvs();
+	vi.restoreAllMocks();
+});
 function event(path: string, init: RequestInit = {}) {
 	const url = new URL(path, 'https://spellbook.test');
 	return { url, request: new Request(url, init), getClientAddress: () => '192.0.2.10' };
@@ -21,50 +27,49 @@ describe('same-origin streaming API proxy', () => {
 			const send = vi
 				.fn<typeof fetch>()
 				.mockResolvedValue(new Response(new Uint8Array(8), { headers }));
-			const response = await proxyApi(
-				event('/api/mobile/v1/mtg/scan/artifacts/image'),
-				undefined,
-				send
-			);
+			const response = await proxyApi(event('/api/v1/mtg/scan/artifacts/image'), undefined, send);
 			expect(response.headers.get('content-length')).toBe(encoding ? null : '8');
 			expect(response.headers.has('content-encoding')).toBe(false);
 			expect(new Uint8Array(await response.arrayBuffer())).toHaveLength(8);
 		}
 	);
-	it('preserves raw bearer/cookie/Origin selection and overwrites untrusted client address', async () => {
-		const request = event('/api/auth/qr/token?code=one', {
-			method: 'POST',
-			headers: {
-				authorization: 'Bearer invalid',
-				cookie: 'spellbook_session=cookie-token; spellbook_qr_requester=secret',
-				origin: 'https://foreign.test',
-				forwarded: 'for=evil',
-				'x-forwarded-for': 'evil',
-				'x-spellbook-client-address': 'evil',
-				'content-type': 'application/json'
-			},
-			body: '{"code":"one"}'
-		});
-		const send = vi
-			.fn<typeof fetch>()
-			.mockResolvedValue(Response.json({ message: 'Invalid bearer token' }, { status: 401 }));
-		const response = await proxyApi(request, undefined, send);
-		const [url, init] = send.mock.calls[0];
-		const headers = new Headers(init?.headers);
-		expect(String(url)).toBe('http://127.0.0.1:4000/api/auth/qr/token?code=one');
-		expect(headers.get('authorization')).toBe('Bearer invalid');
-		expect(headers.get('cookie')).toBe(
-			'spellbook_session=cookie-token; spellbook_qr_requester=secret'
-		);
-		expect(headers.get('origin')).toBe('https://foreign.test');
-		expect(headers.get('x-spellbook-client-address')).toBe('192.0.2.10');
-		expect(headers.has('forwarded')).toBe(false);
-		expect(headers.has('x-forwarded-for')).toBe(false);
-		expect(init?.body).toBeInstanceOf(ReadableStream);
-		expect(request.request.body?.locked).toBe(false);
-		expect(init?.signal).toBe(request.request.signal);
-		expect(response.status).toBe(401);
-	});
+	it.each(['/api/v1/auth/qr/token'])(
+		'preserves raw bearer/cookie/Origin and client address for %s',
+		async (path) => {
+			const request = event(path + '?code=one', {
+				method: 'POST',
+				headers: {
+					authorization: 'Bearer invalid',
+					cookie: 'spellbook_session=cookie-token; spellbook_qr_requester=secret',
+					origin: 'https://foreign.test',
+					forwarded: 'for=evil',
+					'x-forwarded-for': 'evil',
+					'x-spellbook-client-address': 'evil',
+					'content-type': 'application/json'
+				},
+				body: '{"code":"one"}'
+			});
+			const send = vi
+				.fn<typeof fetch>()
+				.mockResolvedValue(Response.json({ message: 'Invalid bearer token' }, { status: 401 }));
+			const response = await proxyApi(request, undefined, send);
+			const [url, init] = send.mock.calls[0];
+			const headers = new Headers(init?.headers);
+			expect(String(url)).toBe('http://127.0.0.1:4000' + path + '?code=one');
+			expect(headers.get('authorization')).toBe('Bearer invalid');
+			expect(headers.get('cookie')).toBe(
+				'spellbook_session=cookie-token; spellbook_qr_requester=secret'
+			);
+			expect(headers.get('origin')).toBe('https://foreign.test');
+			expect(headers.get('x-spellbook-client-address')).toBe('192.0.2.10');
+			expect(headers.has('forwarded')).toBe(false);
+			expect(headers.has('x-forwarded-for')).toBe(false);
+			expect(init?.body).toBeInstanceOf(ReadableStream);
+			expect(request.request.body?.locked).toBe(false);
+			expect(init?.signal).toBe(request.request.signal);
+			expect(response.status).toBe(401);
+		}
+	);
 	it('does not cancel the browser body when the upstream stops an upload early', async () => {
 		const cancelled = vi.fn();
 		let reading!: () => void;
@@ -75,7 +80,7 @@ describe('same-origin streaming API proxy', () => {
 			{ pull: reading, cancel: cancelled },
 			{ highWaterMark: 0 }
 		);
-		const request = event('/api/web/v1/commands', {
+		const request = event('/api/v1/mtg/commands', {
 			method: 'POST',
 			body,
 			duplex: 'half'
@@ -102,7 +107,7 @@ describe('same-origin streaming API proxy', () => {
 					controller.error(cause);
 				}
 			});
-			const request = event('/api/web/v1/commands', {
+			const request = event('/api/v1/mtg/commands', {
 				method: 'POST',
 				body,
 				duplex: 'half'
@@ -114,6 +119,7 @@ describe('same-origin streaming API proxy', () => {
 				throw new TypeError('fetch failed');
 			});
 			const response = await proxyApi(request, undefined, send);
+			expect(console.error).not.toHaveBeenCalled();
 			expect(response.status).toBe(status === 413 ? 413 : 400);
 			expect(await response.json()).toEqual({
 				status: status === 413 ? 413 : 400,
@@ -131,12 +137,12 @@ describe('same-origin streaming API proxy', () => {
 		headers.append('set-cookie', 'spellbook_session=token; Path=/; HttpOnly; SameSite=Lax');
 		headers.append(
 			'set-cookie',
-			'spellbook_qr_requester=; Path=/api/auth/qr; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly'
+			'spellbook_qr_requester=; Path=/api/v1/auth/qr; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly'
 		);
 		const upstream = new Response('{"status":"authenticated"}', { status: 201, headers });
 		const body = upstream.body;
 		const send = vi.fn<typeof fetch>().mockResolvedValue(upstream);
-		const response = await proxyApi(event('/api/auth/qr/token'), undefined, send);
+		const response = await proxyApi(event('/api/v1/auth/qr/token'), undefined, send);
 		expect(response.body).toBe(body);
 		expect(response.status).toBe(201);
 		expect(response.headers.get('cache-control')).toBe('no-store');
@@ -162,7 +168,7 @@ describe('same-origin streaming API proxy', () => {
 			}
 		);
 		const abort = new AbortController();
-		const request = event('/api/account/events', { signal: abort.signal });
+		const request = event('/api/v1/account/events', { signal: abort.signal });
 		const send = vi.fn<typeof fetch>().mockResolvedValue(upstream);
 		const response = await proxyApi(request, undefined, send);
 		expect(response.body).toBe(upstream.body);
@@ -181,11 +187,47 @@ describe('same-origin streaming API proxy', () => {
 		expect(String(send.mock.calls[0][0])).toBe('http://127.0.0.1:4000/openapi.json');
 		expect(new Headers(send.mock.calls[0][1]?.headers).has('origin')).toBe(false);
 	});
+	it.each(['ECONNREFUSED', 'private-token', 'TOKEN_MATCHES_A_REGEX'])(
+		'emits only fixed diagnostics for %s',
+		async (code) => {
+			const send = vi.fn<typeof fetch>().mockRejectedValue(
+				new TypeError('secret URL?token=secret', {
+					cause: { code, message: 'secret body', stack: 'secret stack' }
+				})
+			);
+			const response = await proxyApi(
+				event('/api/v1/account/profile?token=secret', {
+					headers: { authorization: 'Bearer secret', cookie: 'secret' }
+				}),
+				undefined,
+				send
+			);
+			expect(response.status).toBe(503);
+			expect(send).toHaveBeenCalledOnce();
+			expect(console.error).toHaveBeenCalledExactlyOnceWith(
+				JSON.stringify({
+					event: 'proxy_failure',
+					errorType: 'UpstreamUnavailable',
+					...(code === 'ECONNREFUSED' ? { networkCode: code } : {})
+				})
+			);
+		}
+	);
+	it('does not emit unavailable diagnostics for an aborted request', async () => {
+		const abort = new AbortController();
+		const reason = new Error('private abort reason');
+		abort.abort(reason);
+		const send = vi.fn<typeof fetch>().mockRejectedValue(reason);
+		await expect(
+			proxyApi(event('/api/v1/account/events', { signal: abort.signal }), undefined, send)
+		).rejects.toBe(reason);
+		expect(console.error).not.toHaveBeenCalled();
+	});
 	it('returns safe unavailable errors without leaking connection details', async () => {
 		const send = vi
 			.fn<typeof fetch>()
 			.mockRejectedValue(new Error('private internal URL and password'));
-		const response = await proxyApi(event('/api/catalog/search'), undefined, send);
+		const response = await proxyApi(event('/api/v1/mtg/catalog/search'), undefined, send);
 		expect(response.status).toBe(503);
 		expect(response.headers.get('cache-control')).toBe('no-store');
 		expect(await response.json()).toEqual({

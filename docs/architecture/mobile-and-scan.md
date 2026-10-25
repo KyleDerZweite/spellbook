@@ -1,10 +1,10 @@
 # Mobile and scan
 
 - Status: Canonical
-- Last Reviewed: 2026-10-20
+- Last Reviewed: 2026-10-25
 - Source of Truth: code, accepted local-recognition direction, maintainer's 2026-10-15 client-scope clarification and accepted 2026-10-16 PWA/QR contract, primary documentation and the 2026-10-19 independent Android design clarification
-- Update Triggers: P13 Scan source relocation and accepted external resource evidence contract, independent Android design direction and Figma handoff, selected Deck optional Legality projection, accepted online-first PWA and QR delivery status, paused Scan presentation, phone-image evaluation fixtures, private value history queries and calendar refresh boundaries, bounded Deck choice reads, public reference/history exception/private price reads and source precision, manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, Scan contracts and legacy replay, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, Deck wire contracts and revisions, device runtime selection, category initialization/manual decisions/merge previews, whole-deck outcomes and bounded directory revision/location, hybrid browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
-- Related Docs: [Application contract](./application-contract.md), [Frontend](./frontend.md), [Android design handoff](../product/mobile-app-exploration.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../../GLOSSARY.md), [Deployment](../operations/deployment.md), [Category rules](./category-rules.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Independent applications](./independent-applications.md), [Worker](./worker.md), [P13 resource contract](https://github.com/KyleDerZweite/spellbook/issues/260)
+- Update Triggers: current-version Scan receipt replay and removal of historical compatibility promises, unconditional Scan startup with the Python API, versioned MTG routes and module ownership, Python source activation and server contraction, Python Scan host assembly, adapter dependencies and retired resource gates, independent Android design direction and Figma handoff, selected Deck optional Legality projection, accepted online-first PWA and QR delivery status, paused Scan presentation, phone-image evaluation fixtures, private value history queries and calendar refresh boundaries, bounded Deck choice reads, public reference/history exception/private price reads and source precision, manifest, service worker, API authentication, request validation and limits, deck availability, artifact storage, Scan contracts and current-version replay, scan processing, recognition evaluation, owned-card search, bounded Inventory wire migration, Deck wire contracts and revisions, device runtime selection, category initialization/manual decisions/merge previews, whole-deck outcomes and bounded directory revision/location, hybrid browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
+- Related Docs: [Application contract](./application-contract.md), [Frontend](./frontend.md), [Android design handoff](../product/mobile-app-exploration.md), [Auth](./auth.md), [Postgres](./postgres.md), [Catalog](./catalog.md), [Domain model](../../GLOSSARY.md), [Deployment](../operations/deployment.md), [Category rules](./category-rules.md), [Proposed card robot](../integrations/card-robot.md), [ADR-0003](../decisions/0003-pwa-first-mobile-and-server-side-scan.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Independent applications](./independent-applications.md), [Worker](./worker.md), [Historical P13 resource contract](https://github.com/KyleDerZweite/spellbook/issues/260), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [Pre-release policy](../../CONTRIBUTING.md#replacing-interfaces)
 
 Spellbook retains its web client, including the initial installable, online-first, same-origin SvelteKit PWA delivery.
 Its [manifest](../../frontend/static/manifest.webmanifest) launches `/app`; `frontend/src/app.html` links it.
@@ -83,7 +83,7 @@ Its recommendations and experiments do not settle this open split.
 Scan UI development is paused by the product owner on 2026-10-07.
 Navigation, Inventory and Dashboard no longer expose Scan entrypoints.
 The existing authenticated route, sessions, backend contracts and API remain available to preserve prior work.
-The normal host development launcher starts the Node API and web application; `./dev.sh --scan` explicitly starts the retained Python scaffold.
+The normal development launcher starts the installed Python API, web application and independent workers, including the retained Scan scaffold.
 Recognition changes are deferred.
 
 Original phone images for later evaluation belong in `data/phone-scan-examples/`.
@@ -93,7 +93,7 @@ This directory is not an upload endpoint, Inventory import or active recognition
 
 ## Bounded Inventory HTTP reads
 
-The accepted experimental v1 migration replaces `GET /api/mobile/v1/mtg/inventory` snapshot reads with an InventoryPage DTO.
+The accepted experimental v1 migration replaces `GET /api/v1/mtg/inventory` snapshot reads with an InventoryPage DTO.
 It accepts normalized filters/order/group plus offset and limit, defaulting to 50 with a maximum of 500.
 Supplying `revision` pins the request; drift returns HTTP 409 with `{ kind: 'RevisionChanged', revision }`.
 Entries, loaded memberships, query identity and complete counts/set/group metadata share one snapshot.
@@ -103,13 +103,13 @@ Timestamps are ISO strings and revisions are decimal strings.
 `GET /inventory/{entryId}/location` requires the expected revision and returns the matching absolute index or null; drift returns the same 409 shape.
 All relative paths use the versioned MTG prefix.
 Invalid queries return 400; invalid selected groups return 400 in the API and 404 in native page loading.
-[The application contract](./application-contract.md#inventory-query-contract) owns normalization and ordering; [OpenAPI](../../backend/src/http/openapi.ts) owns exact wire schemas.
+[The application contract](./application-contract.md#inventory-query-contract) owns normalization and ordering; [OpenAPI](../../contracts/openapi.json) owns exact wire schemas.
 
 If Inventory counts or a location index cannot be represented as a nonnegative safe JSON integer, API reads and native page loading return HTTP 500 with `Inventory totals cannot be represented exactly.` They never return rounded counts.
 [Postgres](./postgres.md#inventory-read-and-write-consistency) owns decoding and SQL aggregate rules.
 
 Inventory POST/batch-add, PATCH/DELETE, bulk and import commit now return `InventoryAcknowledgement`, replacing snapshots, nullable current entries and `{ ok: true }` removals in experimental v1.
-Scan review wraps that original acknowledgement in its explicit committed/legacy union below.
+Scan review wraps that original acknowledgement in the `Committed` result described below.
 Every mutation requires a caller-retained request ID.
 PATCH supplies quantity or signed delta and/or Notes; omitted fields remain unchanged.
 Notes requires `notesRevision`.
@@ -119,17 +119,17 @@ Import commits return compact resolved/unresolved/ambiguous counts; preview reta
 
 New account-scoped Group routes are `GET/POST /inventory/groups`, `PATCH/DELETE /inventory/groups/{groupId}` and `PUT /inventory/{entryId}/groups`; the latter replaces complete whole-entry membership.
 Explicit `PATCH /inventory/{entryId}/position` reorders entries.
-All relative paths use `/api/mobile/v1/mtg`.
+All relative paths use `/api/v1/mtg`.
 Unsupported Sources, enums and quantities fail with controlled 400 before SQL.
 Missing owned subjects return 404; changed request intent, stale Notes and reviewed-quantity drift return 409.
 Successful retries consume the original receipt and refetch current bounded page/detail state separately.
-The [application contract](./application-contract.md#inventory-query-contract) owns legacy receipt limitations, atomic lock order and exact replay semantics; [OpenAPI](../../backend/src/http/openapi.ts) owns requests/responses.
-Scan uses the backend-owned module and compact response union described below.
+The [application contract](./application-contract.md#inventory-query-contract) owns current-version receipt replay, atomic lock order and exact replay semantics; [OpenAPI](../../contracts/openapi.json) owns requests/responses.
+Scan uses the backend-owned module and compact `Committed` response described below.
 
 ## Implemented API boundary
 
 The independent Node API owns `/api/*` and `/openapi.json`; web forwards their public same-origin paths with streaming bodies and separate Set-Cookie headers.
-The `/api/mobile/v1/mtg/...` API exposes search, inventory, decks, import/export, and scan orchestration.
+The `/api/v1/mtg/...` API exposes search, inventory, decks, import/export, and scan orchestration.
 The account routes expose Profile read/patch, Dashboard summaries, password rotation and session inspection through the same backend use cases as Settings/Dashboard.
 [Authentication](./auth.md#account-http-contract) owns their exact contract; [route inventory](../product/routing-and-games.md) lists their paths.
 External clients authenticate with local session bearer tokens; the `/mtg/scan` workspace uses its browser cookie with origin protection on mutations.
@@ -138,23 +138,23 @@ The [HTTP module interface](./independent-applications.md#http-module-interface)
 Its [credential form contract](./independent-applications.md#authority-and-compatibility) adds three fixed raw-form routes.
 Core form/schema verification remains in progress; these additions preserve existing domain, receipt and cache semantics.
 
-Authenticated clients can read `GET /api/mobile/v1/mtg/decks/{deckId}/availability`.
+Authenticated clients can read `GET /api/v1/mtg/decks/{deckId}/availability`.
 The route checks deck ownership and reuses the shared allocation function to compare that deck with current aggregate inventory.
 Its response contains entry counts and totals for required, exact, alternate, and missing copies.
 It makes no inventory changes or cross-deck reservations.
-See the [product specification](../product/specification.md#deck-availability) for allocation semantics and [OpenAPI](../../backend/src/http/openapi.ts) for the wire schema.
+See the [product specification](../product/specification.md#deck-availability) for allocation semantics and [OpenAPI](../../contracts/openapi.json) for the wire schema.
 
 ## Deck HTTP contract
 
 Experimental v1 Deck responses now use explicit [Deck DTOs](../../contracts/src/decks.ts), ISO timestamps and decimal revision strings.
-`GET /api/mobile/v1/mtg/decks` returns library metadata, totals and covers; optional `deck=UUID` loads one owned composition and its relevant ownership aggregates.
+`GET /api/v1/mtg/decks` returns library metadata, totals and covers; optional `deck=UUID` loads one owned composition and its relevant ownership aggregates.
 It removes the previous full `inventoryCards` and `mutationRequests` fields.
 `GET /decks/{deckId}` adds legality warnings and resolved safe documents.
 Existing paths, authentication and text export formats remain.
 
 `GET /decks/search?q=...` returns Catalog hits with account-owned aggregates.
 `GET /decks/ownership` accepts repeated `canonicalCardId` values, at most 100, and returns owned-printing quantities.
-Relative paths use `/api/mobile/v1/mtg`.
+Relative paths use `/api/v1/mtg`.
 These reads never transfer full Inventory.
 Availability keeps its existing exact-before-alternate calculation.
 
@@ -168,12 +168,12 @@ Ordinary negative deltas floor at one; explicit removal and bulk decrement can d
 
 Clients of the former snapshot mutations must retain the request ID for a failed intent, consume the original acknowledgement and fetch current state separately.
 Changed-payload reuse returns 409 `RequestConflict`; Description conflict requires deliberate review/rebase.
-[The application contract](./application-contract.md#implemented-deck-application-boundary) owns replay and semantic replacement; [OpenAPI](../../backend/src/http/openapi.ts) owns exact schemas and validation.
+[The application contract](./application-contract.md#implemented-deck-application-boundary) owns replay and semantic replacement; [OpenAPI](../../contracts/openapi.json) owns exact schemas and validation.
 Deck aggregate results outside the safe JSON integer range fail explicitly rather than return rounded quantities.
 
 ## Deck choice read
 
-`GET /api/mobile/v1/mtg/decks/choices` uses the existing cookie or bearer authentication and delegates to backend Decks `getDeckChoices`.
+`GET /api/v1/mtg/decks/choices` uses the existing cookie or bearer authentication and delegates to backend Decks `getDeckChoices`.
 It returns `{ items, nextOffset, selected }`, with only `{ id, name, format }` in each summary and `Cache-Control: no-store`.
 It loads neither Deck entries/Description nor Inventory availability.
 Existing Deck snapshot and mutation routes retain their contracts.
@@ -189,13 +189,13 @@ This is an addressing bound, not a Deck membership cap; the selected owned looku
 Optional UUID `selectedDeckId` has a separate bounded owned lookup, independent of the page and filter; missing and foreign IDs both return `selected: null`.
 Omission never selects a Deck.
 Unknown/repeated parameters and invalid values return 400, and invalid authentication returns 401.
-[OpenAPI](../../backend/src/http/openapi.ts) owns exact wire schemas.
+[OpenAPI](../../contracts/openapi.json) owns exact wire schemas.
 The Card picker and native Card actions remain planned.
 
 ## Category Library HTTP contract
 
 Authenticated scoped definition pages, immutable version saves, future-adoption archive state, local label/removal and entry Review/Reset use the same trusted backend actor interface as native forms.
-[Routes](../product/routing-and-games.md) lists their paths; [OpenAPI](../../backend/src/http/openapi.ts) owns exact JSON schemas.
+[Routes](../product/routing-and-games.md) lists their paths; [OpenAPI](../../contracts/openapi.json) owns exact JSON schemas.
 New Library/preview/local commands accept strict streamed 64 KiB objects.
 Existing starter initialization, Manual and merge routes retain their 16 KiB budget.
 Extra authority fields are rejected.
@@ -206,7 +206,7 @@ Whole-deck Review/Reset uses the implemented scoped engine; absent optional comb
 
 ## Request validation
 
-JSON handlers use the shared [request reader](../../backend/src/http/request.ts).
+JSON handlers use the shared [request reader](../../backend/api/src/spellbook_api/http/parsing.py).
 They require `application/json`, valid UTF-8, and a top-level object.
 The reader counts streamed bytes and rejects bodies over 1 MiB, including requests without a trustworthy `Content-Length`.
 Wrong media types return HTTP 415, malformed JSON or non-object bodies return HTTP 400, and oversized bodies return HTTP 413.
@@ -223,14 +223,17 @@ Both offsets default to zero and accept integers through 1,000,000.
 Invalid pagination returns HTTP 400.
 
 [Postgres](./postgres.md#mutation-replay) owns request fingerprint storage and HTTP 409 replay conflicts.
-The [OpenAPI route](../../backend/src/http/openapi.ts) owns endpoint-specific fields and responses.
+The [OpenAPI route](../../backend/api/src/spellbook_api/http/application.py) owns endpoint-specific fields and responses.
 
 ## Scan uploads
 
 The independent [Scan scaffold](../../backend/workers/scan/src/scan_worker/main.py) and its tests reside in `backend/workers/scan/`, retaining `scan_worker.main:app`.
-The [accepted P13 resource contract](https://github.com/KyleDerZweite/spellbook/issues/260) defines external experiment gates, including a separate single-process Scan cohort.
-These gates introduce no HTTP admission cap, recognition work or database/storage access in the scaffold.
-Actual TCP/application and resource evidence remain required separately from source relocation and TestClient checks.
+[ADR-0027](../decisions/0027-python-functional-migration-acceptance.md) retires strict resource/benchmark experiment gates.
+Real functional integration remains separate from source relocation and TestClient checks.
+The Python candidate composes all seven Scan routes with Core `create_scan`, API-owned local/S3 storage and its HTTP worker client.
+It retains existing environment variables and defaults, constructs adapters only for the database-backed host, and closes them after request settlement and before its pool.
+Boto3 owns S3/SigV4, python-multipart owns multipart parsing and httpx2 owns worker HTTP.
+Owned HTTP protocol/scaffold fixtures verify adapter behavior; real PostgreSQL, proxy, independently installed worker and S3 target acceptance remain pending with Root.
 
 Native scanners submit frames with a valid `Authorization: Bearer <token>` header and may omit `Origin`.
 The exact multipart frame endpoint has a narrow exception in the [form-origin guard](./auth.md#entry-points); other form routes do not share it.
@@ -282,10 +285,10 @@ Production S3 configuration remains supported; verification against an operator-
 
 ## External scanner results
 
-The [OpenAPI route](../../backend/src/http/openapi.ts) owns wire schemas.
+The [OpenAPI route](../../backend/api/src/spellbook_api/http/application.py) owns wire schemas.
 Current scanner operations include:
 
-| Operation          | Route under `/api/mobile/v1/mtg`                                | Behavior                                                                               |
+| Operation          | Route under `/api/v1/mtg`                                       | Behavior                                                                               |
 | ------------------ | --------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | List sessions      | `GET /scan/sessions`                                            | Up to 100 owned sessions, newest update first                                          |
 | Read image         | `GET /scan/artifacts/{artifactId}/image`                        | The owned original image, checked as JPEG, PNG, or WebP, with `no-store` and `nosniff` |
@@ -328,19 +331,13 @@ Later choices and unmounted session lifetimes cannot be overwritten.
 Workspace synchronization refreshes only bounded recent sessions and the selected result; remote closure disables commit without discarding review choices.
 A changed saved artifact requires explicit review before another commit; native no-JavaScript Scan entry is not implemented.
 
-New receipts use the `scan-intent-v3` fingerprint and return `{kind:'Committed',sessionId,acknowledgement}` containing the original compact Inventory acknowledgement.
+Current Scan receipts use the `scan-intent-v3` fingerprint and return `{kind:'Committed',sessionId,acknowledgement}` containing the original compact Inventory acknowledgement.
 Scan persists selections, Inventory effects/revision, receipt and committed state atomically with lock order Profile/account, ScanSession, Inventory parent, sorted entries, then sorted groups.
 No full Inventory snapshot or unrelated position reflow occurs.
 
-Historical v1 and `scan-v2` hashes/acknowledgements remain unchanged.
-To retry a non-null legacy hash, provide bounded `legacyVerification` with its exact original version and original submitted items; this evidence verifies the old hash and never authorizes new Inventory effects or re-resolves old metadata.
-Missing evidence returns 409 `LegacyReplayEvidenceRequired`; changed evidence returns the existing request conflict.
-A verified original acknowledgement returns `Committed` with the verified session and unchanged acknowledgement.
-If the original acknowledgement is null, the retry returns `{kind:'LegacyNoRepeat',requestId,binding:'VerifiedLegacyHash',acknowledgement}`.
-Null legacy hashes return the same union with `UnverifiedLegacyHash`: they prevent another quantity effect but cannot establish payload/session equality.
-A null original acknowledgement retains the parent's exact compact legacy no-repeat acknowledgement.
-This response does not claim the requested session became committed.
-Replay always follows account locking and current authority revalidation, including after Catalog pruning or later Inventory changes.
+Within the current version, replay returns the original `Committed` result after account locking and current authority revalidation, including after Catalog pruning or later Inventory changes.
+The client retries its frozen original body and request ID; changed intent returns a request conflict.
+Historical hashes, NULL acknowledgements and verification adapters have no fallback or upgrade guarantee under the [pre-release policy](../../CONTRIBUTING.md#replacing-interfaces).
 
 ## Data boundaries
 
@@ -460,7 +457,7 @@ No OCR accuracy, embedding advantage, Jetson compatibility, or robot throughput 
 
 ## Primary Deck entry category HTTP contract
 
-Authenticated `GET /api/mobile/v1/mtg/decks/{deckId}/categories` reads the JSON-safe adopted bundle, decisions and safe source status without mutation.
+Authenticated `GET /api/v1/mtg/decks/{deckId}/categories` reads the JSON-safe adopted bundle, decisions and safe source status without mutation.
 `POST /decks/{deckId}/categories/initialize` accepts only `{requestId}` and returns the original compact initialization acknowledgement.
 `PATCH /deck-cards/{entryId}/category` accepts only `{deckId, categoryId: UUID|null, expectedDecisionRevision, requestId}` and records Manual provenance.
 Ownership comes from the trusted actor; missing/foreign Deck, entry and definition identities return the same 404.
@@ -483,7 +480,7 @@ Copied participant and aggregate witnesses retain concrete variant evidence.
 
 ## Whole-deck categories and bounded directory HTTP contract
 
-Authenticated `GET /api/mobile/v1/mtg/deck-library` accepts `dirQ`, `dirFormat`, repeated `dirCategory` immutable version UUIDs, `dirSort=updated:desc|name:asc|name:desc`, `offset`, `limit=1..200` and optional `expectedRevision`.
+Authenticated `GET /api/v1/mtg/deck-library` accepts `dirQ`, `dirFormat`, repeated `dirCategory` immutable version UUIDs, `dirSort=updated:desc|name:asc|name:desc`, `offset`, `limit=1..200` and optional `expectedRevision`.
 Default limit is 40.
 `revision` is a supported expected-revision alias.
 The directory query is separate from the Web selected Deck's Catalog `q`.
@@ -523,10 +520,11 @@ Commit applies exactly the frozen complete preview after its Library, compositio
 
 ## Reference price HTTP contract
 
-Public `GET /api/mobile/v1/mtg/prices` requires one UUID `printingId` and `finish=nonfoil|foil`.
-This is an explicit public read exception under the otherwise authenticated integration prefix.
+Public `GET /api/v1/mtg/prices` requires one UUID `printingId` and `finish=nonfoil|foil`.
+This and canonical Catalog reads are explicit public operations under the MTG prefix.
+Private MTG reads and mutations retain authentication.
 No public POST batch exists without a caller need.
-Authenticated `POST /api/mobile/v1/mtg/inventory/prices` accepts only `entryIds`, 1 to 100 distinct UUIDs.
+Authenticated `POST /api/v1/mtg/inventory/prices` accepts only `entryIds`, 1 to 100 distinct UUIDs.
 Backend derives printing/finish/quantity from owned entries.
 Any missing/foreign entry produces a sanitized 404; invalid or extra fields, duplicate IDs and over-limit input produce 400.
 Cookie POST keeps the existing same-origin check; bearer authority remains session-produced.
@@ -534,12 +532,12 @@ Cookie POST keeps the existing same-origin check; bearer authority remains sessi
 Reads return 200 for evaluated Known/Unknown market results and 503 for operational read failures.
 Response-level evaluatedAt/publications are consistent across the batch.
 Coverage counts only requested owned quantities; stale is a subset of covered.
-[OpenAPI](../../backend/src/http/openapi.ts) owns exact schemas and [valuation](./valuation.md#implemented-market-references) owns observation eligibility.
+[OpenAPI](../../contracts/openapi.json) owns exact schemas and [valuation](./valuation.md#implemented-market-references) owns observation eligibility.
 All responses are JSON-safe and no-store.
 Responses expose enabled optional providers and bounded public market history.
 Account totals and personal history use the private Inventory value contract below.
 
-Public `GET /api/mobile/v1/mtg/prices/history` accepts one printingId/finish, optional days 1 to 90 (default 30) and repeated source filters (at most three distinct configured sources).
+Public `GET /api/v1/mtg/prices/history` accepts one printingId/finish, optional days 1 to 90 (default 30) and repeated source filters (at most three distinct configured sources).
 It returns at most 270 dated public points with actual time precision and immutable source/point digests, never private holdings.
 Invalid/extra queries return 400; operational reads return 503.
 Current reference responses include safe sourceStatuses and distinguish Instant sourceTime from Day sourceDate/asOf/freshnessPolicy.
@@ -547,8 +545,8 @@ Current reference responses include safe sourceStatuses and distinguish Instant 
 
 ## Private Inventory value HTTP contract
 
-Authenticated `GET /api/mobile/v1/mtg/inventory/value` returns the current estimate.
-`GET /api/mobile/v1/mtg/inventory/value-history` accepts `days=1..366`, default 30, or paired `from` and `to` ISO dates for at most 366 closed reporting dates.
+Authenticated `GET /api/v1/mtg/inventory/value` returns the current estimate.
+`GET /api/v1/mtg/inventory/value-history` accepts `days=1..366`, default 30, or paired `from` and `to` ISO dates for at most 366 closed reporting dates.
 These modes are mutually exclusive.
 Optional `printingId` is a UUID; `finish=nonfoil|foil` and `condition=NM|LP|MP|HP|DMG` require that printing.
 Unknown or repeated parameters, invalid dates, reversed windows and future reporting dates produce 400.

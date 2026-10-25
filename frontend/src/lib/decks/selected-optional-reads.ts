@@ -142,7 +142,7 @@ export class SelectedDeckOptionalReads {
 		this.options.ownershipStatus(true, '');
 		try {
 			const value = await this.options.read<NonNullable<SelectedDeckPublication['ownership']>>(
-				`/api/mobile/v1/mtg/decks/ownership?canonicalCardId=${encodeURIComponent(context.inspector.canonicalCardId)}`,
+				`/api/v1/mtg/decks/ownership?canonicalCardId=${encodeURIComponent(context.inspector.canonicalCardId)}`,
 				{ signal: request.controller.signal, current }
 			);
 			if (value && current()) this.acceptOwnership(value, context.inspector);
@@ -172,7 +172,7 @@ export class SelectedDeckOptionalReads {
 		this.options.searchStatus(true, '');
 		try {
 			const value = await this.options.read<NonNullable<SelectedDeckPublication['search']>>(
-				`/api/mobile/v1/mtg/decks/search?q=${encodeURIComponent(context.search.query)}`,
+				`/api/v1/mtg/decks/search?q=${encodeURIComponent(context.search.query)}`,
 				{ signal: request.controller.signal, current }
 			);
 			if (value && current()) this.acceptSearch(value, context.search);

@@ -1,10 +1,10 @@
 # ADR-0024: Independent web, API and Android applications
 
-- Status: Accepted
+- Status: Accepted; Node host selection superseded by ADR-0025, old-interface retention superseded by ADR-0029
 - Date: 2026-10-19
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-10-24
 - Source of Truth: maintainer-selected implementation direction
-- Update Triggers: Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, runtime ownership, Android stack, HTTP compatibility, deployment topology
+- Update Triggers: ADR-0029 immediate interface removal and current Python implementation, ADR-0028 route/module supersession, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, runtime ownership, Android stack, HTTP compatibility, deployment topology
 - Related Docs: [Implementation contract](../architecture/independent-applications.md), [System overview](../architecture/system-overview.md), [ADR-0015](./0015-shared-backend-use-cases-and-client-contracts.md), [ADR-0023](./0023-local-recognition-in-scanner-clients.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](./0025-python-api-and-workers.md)
 
 The shared SvelteKit deployment already separates backend use cases from web presentation, but it cannot independently start the API or deliver the accepted native mobile experience.
@@ -35,4 +35,9 @@ Producer build/JVM/lint passed; the root emulator attempt exited 139 before boot
 Installation/native journeys were not run, and no workaround, hardware or production acceptance is claimed.
 The maintainer subsequently requested a non-TypeScript backend evaluation.
 [ADR-0025](./0025-python-api-and-workers.md) now selects Python for the future API and workers without changing this accepted separation of application responsibilities.
-[Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211) retains migration planning; the TypeScript API remains the implemented baseline.
+[Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211) retains migration context.
+The unmerged integration candidate now implements Python API/Core and workers; the Node host selection above is historical.
+
+[ADR-0028](./0028-versioned-game-api.md) supersedes prior API-path and module-location immutability for the versioned shared/MTG API.
+[ADR-0029](./0029-remove-replaced-interfaces.md) removes replaced API paths and supersedes old-interface retention.
+Bodies, SQL history, stored data, receipts and separate production authority remain unchanged.
