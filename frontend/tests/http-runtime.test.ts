@@ -397,10 +397,10 @@ test(
 						assert.equal(naturalExit, true, 'Owned Python process must exit naturally within 15s');
 						assert.equal(
 							child.api.exitCode,
-							0,
-							'Forced cleanup or signal termination is not success'
+							null,
+							'Uvicorn re-raises the captured shutdown signal after graceful shutdown'
 						);
-						assert.equal(child.api.signalCode, null);
+						assert.equal(child.api.signalCode, 'SIGTERM');
 						assert.equal(
 							(
 								await pool.query(
