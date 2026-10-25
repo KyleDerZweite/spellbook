@@ -130,6 +130,6 @@ def test_actual_host_loads_schema_and_exits_gracefully(tmp_path: Path) -> None:
             result = child.wait(timeout=15)
         log.seek(0)
         output = log.read()
-    assert result in (0, -signal.SIGTERM)
+    assert result == -signal.SIGTERM
     assert "Application shutdown complete" in output
     assert "Finished server process" in output

@@ -42,22 +42,34 @@ function run(directory, commandArgs) {
 		});
 	});
 }
+function refresh(directory) {
+	const project = packages[directory];
+	return run(directory, [
+		'sync',
+		'--frozen',
+		'--extra',
+		'dev',
+		'--python',
+		'3.14.8',
+		'--no-editable',
+		'--reinstall-package',
+		project,
+		...(['api', 'workers/state'].includes(directory)
+			? ['--reinstall-package', 'spellbook-core']
+			: [])
+	]);
+}
 try {
 	if (action === 'sync') {
-		for (const [directory, project] of Object.entries(packages))
-			await run(directory, [
-				'sync',
-				'--frozen',
-				'--extra',
-				'dev',
-				'--python',
-				'3.14.8',
-				'--no-editable',
-				'--reinstall-package',
-				project,
-				'--reinstall-package',
-				'spellbook-core'
-			]);
+		for (const directory of Object.keys(packages)) await refresh(directory);
+	} else if (action === 'test') {
+		const [directory, ...pytestArgs] = args;
+		if (!Object.hasOwn(packages, directory))
+			throw new Error(
+				'Usage: python.mjs test <' + Object.keys(packages).join('|') + '> [...pytestArgs]'
+			);
+		await refresh(directory);
+		await run(directory, ['run', '--no-sync', 'pytest', ...pytestArgs]);
 	} else if (action === 'start') {
 		process.env.WORKER_DATA_DIR = resolve(root, process.env.WORKER_DATA_DIR || '.local/catalog');
 		await mkdir(process.env.WORKER_DATA_DIR, { recursive: true });
@@ -85,7 +97,10 @@ try {
 		]);
 	} else if (Object.hasOwn(commands, action)) {
 		await run('api', ['run', '--no-sync', commands[action], ...args]);
-	} else throw new Error('Usage: python.mjs sync|start|migrate|password|demo|replace-inventory');
+	} else
+		throw new Error(
+			'Usage: python.mjs sync|test <package> [...pytestArgs]|start|migrate|password|demo|replace-inventory'
+		);
 } catch (error) {
 	console.error(error.message);
 	process.exitCode = 1;
