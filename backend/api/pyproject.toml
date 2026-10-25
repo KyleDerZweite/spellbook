@@ -8,7 +8,7 @@ version = "0.1.0"
 requires-python = "==3.14.8"
 dependencies = [
     "spellbook-core==0.1.0",
-    "fastapi==0.143.2",
+    "fastapi==0.159.1",
     "pydantic==2.14.1",
     "uvicorn==0.54.0",
     "psycopg-pool==3.3.3",
