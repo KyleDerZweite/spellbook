@@ -3,7 +3,7 @@
 - Status: Historical
 - Last Reviewed: 2026-10-25
 - Source of Truth: datierte Nutzerentscheidungen, verlinkte Audits und Reviews sowie immutable Codebelege bis `KyleDerZweite/spellbook@ad5a468f1ee3f5ded26e081979693c34051300ed`
-- Update Triggers: native Implementierung, datierte Runtime-Evidenz und abgeschlossene HTTP-Lifecycle-Prüfung, Stack-Bestätigung, ausgewählter Vereinfachungsschnitt, geänderte Modulverantwortung, neue Audit-Evidenz, native FastAPI-Freigabe, Admin-/ML-Neubewertung, Admin-Klarstellung und Voice-to-Text-Korrektur
+- Update Triggers: native Implementierung, datierte Runtime-Evidenz und abgeschlossene HTTP-Lifecycle-Prüfung, Stack-Bestätigung, ausgewählter Vereinfachungsschnitt, geänderte Modulverantwortung, neue Audit-Evidenz, native FastAPI-Freigabe, Admin-/ML-Neubewertung, Admin-Bestätigung, vorerst kein ML-Panel und Voice-to-Text-Korrektur
 - Related Docs: [Index](./index.md), [Datenbankoptionen](./database-options.md), [Prioritäten](./priorities.md), [Python-Vertrag](../architecture/python-backend-migration.md), [Verification](../operations/github-automation.md)
 
 ## Bestätigung vom 2026-10-25
@@ -95,10 +95,20 @@ Diese Empfehlungen brauchen vor Umsetzung einen ausgewählten Umfang und konkret
 
 Später am 2026-10-25 erklärte Kyle, mit ML-Panel vermutlich das Admin-Panel gemeint zu haben.
 Die konkrete Zukunftsabsicht betrifft Benutzerverwaltung, DB-Prüfungen und Worker.
-Ein separates ML-Panel bleibt unentschieden und ist nicht zur Umsetzung beauftragt.
+Ein separates ML-Panel blieb zu diesem Zeitpunkt unentschieden und war nicht zur Umsetzung beauftragt.
+Diese Einordnung überholt die [anschließende Bestätigung](#admin-bestätigung-und-ml-zurückstellung-vom-2026-10-25).
 Roots frühere Erklärung zu Trainingsdaten, Modellversionen und Evaluationen beschrieb seine Interpretation, keine akzeptierte ML-Anforderung.
 Quelle: [Nutzerkorrektur im Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759).
 Zur Zusammenarbeit gilt die [Voice-to-Text-Präferenz](./priorities.md#voice-to-text-präferenz-vom-2026-10-25).
+
+## Admin-Bestätigung und ML-Zurückstellung vom 2026-10-25
+
+Anschließend bestätigte Kyle am 2026-10-25 ausdrücklich die Zukunftsabsicht eines Admin-Panels für Benutzerverwaltung, DB-Prüfungen und Worker.
+Ein separates ML-Panel ist vorerst nicht geplant; dies ersetzt die [zuvor offene Einordnung](#admin-klarstellung-vom-2026-10-25).
+Erst konkrete Erkennungs-, Scanning- oder Jetson-Anforderungen wären Anlass zur Neubewertung.
+Jetson ist die kontextuelle Deutung der Voice-to-Text-Eingabe, keine Hardware-Roadmap.
+Die Klarstellung beauftragt weder Panel-Implementierung noch ORM, Auth-Umbau oder ML-Service.
+Quelle: [Erneute Nutzerklarstellung im Strategiedialog](t3-thread://v1/6a511157-806c-4627-afee-58aaf9a7a759).
 
 ## Implementierungsstand und Evidenz vom 2026-10-25
 
