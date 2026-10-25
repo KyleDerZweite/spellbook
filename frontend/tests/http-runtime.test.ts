@@ -341,26 +341,14 @@ test(
 							assert.equal(chunk.done, false);
 							frames += new TextDecoder().decode(chunk.value);
 						}
-						const listenerName = 'spellbook_saved_state:' + child.api.pid;
-						assert.equal(
-							(
-								await pool.query(
-									'SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname=current_database() AND application_name=$1',
-									[listenerName]
-								)
-							).rows[0].n,
-							1
-						);
-						assert.equal(
-							(
-								await pool.query(
-									'SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname=current_database() AND application_name=$1',
-									['spellbook_saved_state:' + child.web.pid]
-								)
-							).rows[0].n,
-							0,
-							'The web process must not own the private SavedState listener'
-						);
+						const listeners = (
+							await pool.query(
+								'SELECT pid FROM pg_stat_activity WHERE datname=current_database() AND query=$1',
+								['LISTEN spellbook_saved_state']
+							)
+						).rows;
+						assert.equal(listeners.length, 1, 'SSE requires one physical SavedState listener');
+						const listenerPid = listeners[0].pid;
 						if (!keepOpen) {
 							controller.abort();
 							await reader.cancel().catch(() => {});
@@ -388,8 +376,8 @@ test(
 						const naturalExit = await exited;
 						const listenerRows = (
 							await pool.query(
-								`SELECT pid,state,CASE WHEN query='LISTEN spellbook_saved_state' THEN query ELSE 'other' END AS query_kind FROM pg_stat_activity WHERE datname=current_database() AND application_name=$1`,
-								[listenerName]
+								`SELECT pid,state,CASE WHEN query='LISTEN spellbook_saved_state' THEN query ELSE 'other' END AS query_kind FROM pg_stat_activity WHERE datname=current_database() AND pid=$1`,
+								[listenerPid]
 							)
 						).rows;
 						t.diagnostic(
@@ -406,7 +394,7 @@ test(
 							fetch(child.apiOrigin, { signal: AbortSignal.timeout(1000) }),
 							'Owned HTTP listener must be closed'
 						);
-						assert.equal(naturalExit, true, 'Owned Node process must exit naturally within15s');
+						assert.equal(naturalExit, true, 'Owned Python process must exit naturally within 15s');
 						assert.equal(
 							child.api.exitCode,
 							0,
@@ -416,8 +404,8 @@ test(
 						assert.equal(
 							(
 								await pool.query(
-									'SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname=current_database() AND application_name=$1',
-									[listenerName]
+									'SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname=current_database() AND pid=$1',
+									[listenerPid]
 								)
 							).rows[0].n,
 							0
