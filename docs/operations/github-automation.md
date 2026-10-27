@@ -466,34 +466,10 @@ The `pip` ecosystem can update `pyproject.toml` alone, leaving the committed uv 
 These pull requests require passing CI and review; agent merges require explicit owner authorization.
 No repository workflow auto-merges them.
 
-### One-time maintenance on 2026-10-27
-
-The `$repository-maintenance` invocation targets `KyleDerZweite/spellbook`, starting from clean `main` at `b7b5c5a50f2d8b5212a23fe248369ebdccedd89b`.
-This local run is limited to twenty minutes, one dependency-automation repair and two repair attempts for that defect.
-The check set covers current issues/PRs/schedules and recent CI, frozen workspace installation, formatting, frontend type/unit checks, tooling/routing tests, import boundaries and all five Python lock checks.
-Authority covers inspection, focused reversible local edits and reporting in the invoking thread.
-Issue/PR changes, merge, deployment and new recurring execution are outside this run.
-Production data, protected credentials and user-owned processes remain outside its target.
-No app maintenance schedule exists; the existing Dependabot weekly schedules retain their cadence and PR limits.
-On budget exhaustion or a second failed repair, preserve the diff and report the cause, attempts and next action here and in the invoking thread.
-An exhausted repair remains suspended until its cause is resolved or the owner revises the scope.
-The owner can stop this one-time run in the invoking thread; there is no maintenance scheduler job to cancel.
-
-Current `main` passed [CI run 40187443699](https://github.com/KyleDerZweite/spellbook/actions/runs/40187443699).
-The Scan Ruff and API FastAPI update PRs changed only their `pyproject.toml` files; their [Scan](https://github.com/KyleDerZweite/spellbook/actions/runs/40280637029) and [API](https://github.com/KyleDerZweite/spellbook/actions/runs/40277618873) CI runs failed at `uv lock --check`.
-The local repair selects `uv` for all five Python entries without changing package versions, schedules or PR limits.
-On `chore/repository-maintenance-20261027`, verification uses the base revision above plus the working diff in `.github/dependabot.yml` and this document.
-With Node 26.10.0 and pnpm 12.8.1, frozen installation, `pnpm lint`, `pnpm check:boundaries`, frontend `check`, frontend `test:unit` (713 tests), `pnpm test:tooling` (68 tests) and `node --test scripts/ci-changes.test.mjs` (21 tests) passed.
-All five `uv lock --check --python 3.14.8` checks passed through pinned uv 0.12.23; Python import directions and six negative fixtures also passed.
-Parsed YAML comparison confirmed exactly five ecosystem changes, valid project/lock paths and unchanged schedules, limits and non-Python entries.
-Root `pnpm exec prettier` could not find the frontend-owned executable; the corrected `pnpm --dir frontend exec prettier --config .prettierrc --check ../.github/dependabot.yml ../docs/operations/github-automation.md` passed.
-`git diff --check` passed; no application source or dependency versions changed, so package builds, Python package suites, database/HTTP/browser acceptance and deployment were not run.
-Actual Dependabot generation after integration remains unverified; existing dependency PRs retain their current owners and require separate refresh/review.
-
 ### Authorized maintenance continuation on 2026-10-27
 
 The owner extended the same invocation to commit, push, open and merge the maintenance repair, address the thirteen existing Dependabot PRs and assess relevant vulnerability alerts.
-This supersedes the initial local-only authority and twenty-minute limit above for the continuation.
+This supersedes the initial local-only authority and twenty-minute limit recorded in the invoking thread.
 The continuation is limited to sixty minutes, the current dependency PR inventory and relevant security fixes, with at most two repair/refresh attempts per defect before preserving evidence and suspending that repair.
 Root owns integration and final verification; independent read-only reviews may run in child tasks.
 Before merging, inspect the actual diff and dependency compatibility, check the current PR revision and complete the checks required for its changed behavior.
