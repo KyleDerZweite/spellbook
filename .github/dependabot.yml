@@ -24,7 +24,7 @@ updates:
           - minor
           - patch
 
-  - package-ecosystem: pip
+  - package-ecosystem: uv
     directory: '/backend/workers/catalog'
     schedule:
       interval: weekly
@@ -33,7 +33,7 @@ updates:
       timezone: 'UTC'
     open-pull-requests-limit: 5
 
-  - package-ecosystem: pip
+  - package-ecosystem: uv
     directory: '/backend/workers/scan'
     schedule:
       interval: weekly
@@ -41,7 +41,7 @@ updates:
       time: '06:00'
       timezone: 'UTC'
     open-pull-requests-limit: 5
-  - package-ecosystem: pip
+  - package-ecosystem: uv
     directory: '/backend/api'
     schedule:
       interval: weekly
@@ -50,7 +50,7 @@ updates:
       timezone: 'UTC'
     open-pull-requests-limit: 5
 
-  - package-ecosystem: pip
+  - package-ecosystem: uv
     directory: '/backend/core'
     schedule:
       interval: weekly
@@ -59,7 +59,7 @@ updates:
       timezone: 'UTC'
     open-pull-requests-limit: 5
 
-  - package-ecosystem: pip
+  - package-ecosystem: uv
     directory: '/backend/workers/state'
     schedule:
       interval: weekly
