@@ -24,6 +24,7 @@ updates:
           - minor
           - patch
 
+  # Supported updater tools: docs/operations/github-automation.md#dependabot
   - package-ecosystem: uv
     directory: '/backend/workers/catalog'
     schedule:
