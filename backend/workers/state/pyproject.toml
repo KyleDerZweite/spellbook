@@ -12,7 +12,7 @@ dependencies = ["spellbook-core==0.1.0", "psycopg-pool==3.3.3"]
 spellbook-state-worker = "spellbook_state.main:main"
 
 [project.optional-dependencies]
-dev = ["mypy==2.4.0", "pytest==9.1.1", "ruff==0.17.1"]
+dev = ["mypy==2.4.0", "pytest==9.1.1", "ruff==0.17.2"]
 
 [tool.uv]
 required-version = ">=0.12.23,<0.14"
