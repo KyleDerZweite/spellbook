@@ -13,7 +13,7 @@ dependencies = ["psycopg[binary]==3.3.6"]
 dev = ["mypy==2.4.0", "psycopg-pool==3.3.3", "pytest==9.1.1", "ruff==0.17.1"]
 
 [tool.uv]
-required-version = "==0.12.23"
+required-version = ">=0.12.23,<0.14"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/spellbook_core"]
