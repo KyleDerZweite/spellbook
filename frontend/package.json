@@ -23,7 +23,7 @@
 	"dependencies": {
 		"@spellbook/contracts": "workspace:*",
 		"@zxing/browser": "^0.2.1",
-		"bits-ui": "^2.19.5",
+		"bits-ui": "^2.20.2",
 		"mana-font": "^1.18.0",
 		"qrcode": "^1.5.4"
 	},
