@@ -1,9 +1,9 @@
 # Python backend migration contract
 
-- Status: Implemented source; PR 276 owns merge status and owner acceptance; production operations pending
-- Last Reviewed: 2026-10-25
+- Status: Source merged through PR 276; owner acceptance and production operations remain separate
+- Last Reviewed: 2026-10-28
 - Source of Truth: ADR-0025, ADR-0026, ADR-0027, existing code/tests/contracts and Kyle's accepted migration, native FastAPI/Pydantic and pre-release direction
-- Update Triggers: accepted retrospective remedies and merge preparation, completed native routing, legacy adapter removal and retired rollback-window prerequisite, native FastAPI HTTP contract and pre-release receipt scope, ADR-0029 pre-release extension, native FastAPI/Pydantic adoption, persistence/auth evaluation and Admin confirmation and ML deferral, immediate interface removal, ADR-0028 versioned API and MTG module ownership, Python source activation and server contraction, functional migration acceptance, component interfaces, assembled Categories/state, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
+- Update Triggers: merged PR 276 and local tracker reconciliation, accepted retrospective remedies and merge preparation, completed native routing, legacy adapter removal and retired rollback-window prerequisite, native FastAPI HTTP contract and pre-release receipt scope, ADR-0029 pre-release extension, native FastAPI/Pydantic adoption, persistence/auth evaluation and Admin confirmation and ML deferral, immediate interface removal, ADR-0028 versioned API and MTG module ownership, Python source activation and server contraction, functional migration acceptance, component interfaces, assembled Categories/state, Dashboard/Scan and packaged migrator/operators, compatibility transfer, migrator rehearsal, source activation, Node server removal, production authority
 - Related Docs: [ADR-0025](../decisions/0025-python-api-and-workers.md), [ADR-0026](../decisions/0026-python-migration-contract.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [ADR-0029](../decisions/0029-remove-replaced-interfaces.md), [Independent applications](./independent-applications.md), [Application contract](./application-contract.md), [Valuation](./valuation.md), [Migration evidence](./python-migration-evidence-baseline.md), [Postgres](./postgres.md), [Auth](./auth.md), [Worker](./worker.md), [Deployment](../operations/deployment.md), [Verification](../operations/github-automation.md), [Issue 211](https://github.com/KyleDerZweite/spellbook/issues/211)
 
 ## Scope and status
@@ -21,7 +21,7 @@ Current acceptance exercises the installed Python implementation and current int
 Its 2026-10-25 extension removes backward compatibility and stored-data upgrade guarantees.
 Historical Node parsing, serialization and error-body quirks are not acceptance requirements.
 
-The Python implementation is delivered through `integration/python-backend-migration` and [PR 276](https://github.com/KyleDerZweite/spellbook/pull/276).
+The Python implementation merged into `main` through [PR 276](https://github.com/KyleDerZweite/spellbook/pull/276) on 2026-10-25 at `b7b5c5a50f2d8b5212a23fe248369ebdccedd89b`.
 Kyle authorized commit and merge after verification on 2026-10-25; the [dated acceptance record](../wiki/python-backend-standardization.md#ausgewählte-retro-maßnahmen-und-implementierung-vom-2026-10-25) supersedes the earlier instruction to leave the artifact unmerged.
 Use the PR for current merge status and owner acceptance.
 Authorized source work includes Python migrator preparation/rehearsal, Python default activation and removal of the replaced TypeScript server and obsolete server tests after their functional coverage transfers.
@@ -142,7 +142,7 @@ Compare the complete native operation set with canonical OpenAPI and exercise cu
   Publication failure leaves the last complete snapshot active; `state.json` remains operator status.
   Preserve opt-ins, resource limits and safe handling of current private data and Scan objects.
 
-The candidate host composes only the canonical versioned API and unchanged Discovery, including nineteen canonical Deck routes and the closed nine-command MTG endpoint.
+The Python host composes only the canonical versioned API and unchanged Discovery, including nineteen canonical Deck routes and the closed nine-command MTG endpoint.
 Web commands preserve original Core receipts, revisions and absent optional fields, reject caller authority and retain direct API Bearer-before-cookie selection and cookie-mode Origin protection.
 SSR/forms select only the browser cookie before forwarding.
 Dashboard uses account-scoped aggregates and exact-first Deck allocation in one read-only repeatable-read snapshot, passing the same transaction and database clock to current/history value reads.
@@ -168,11 +168,13 @@ Source activation establishes neither complete integration acceptance nor produc
 
 The [implementation epic #245](https://github.com/KyleDerZweite/spellbook/issues/245) and P00 through P20 remain implementation context.
 Their existing bodies do not override this accepted direction.
-Delivery uses the existing [integration PR 276](https://github.com/KyleDerZweite/spellbook/pull/276) against `main`.
+[Integration PR 276](https://github.com/KyleDerZweite/spellbook/pull/276) delivered the source to `main`; its recorded checks establish only their tested revisions and targets.
 Root integrates isolated source commits sequentially and owns final runtime verification.
 Root assigns shared CI, manifests, launchers, native routers and host integration to one writer before parallel implementation.
 Keep writers isolated and start dependent work after their functional prerequisites integrate.
 Migration-specific CI/start/packaging updates are required with their owning source slices; no general CI rewrite is selected.
+
+The implementation sequence below describes the delivered source and the evidence required for affected follow-ups; it does not describe a still-unmerged candidate.
 
 1. Reconcile affected contracts, useful synthetic fixtures and implemented API/Core boundaries with native FastAPI/Pydantic.
    Port domain modules and HTTP adapters now, respecting their actual interfaces and data dependencies.
@@ -217,6 +219,12 @@ Source removal authorizes neither production artifact deletion nor destructive S
 Distinguish implemented code, passed/failed/unexecuted checks, owner acceptance and production operations.
 
 ### Tracker reconciliation
+
+As checked on 2026-10-28, [epic #245](https://github.com/KyleDerZweite/spellbook/issues/245) still describes PR 276 as unmerged, and [P13 #260](https://github.com/KyleDerZweite/spellbook/issues/260) retains pre-merge relocation/readiness instructions.
+The source is merged and Catalog/Scan packages live under `backend/workers/`; those historical delivery instructions do not require another relocation or source activation.
+Issue state was not changed by this local documentation repair.
+Reconcile each child against its own recorded functional evidence before changing acceptance or closure status; merge alone does not complete owner testing, provider/device checks or production operations.
+[Issue #217](https://github.com/KyleDerZweite/spellbook/issues/217) remains the existing owner for the proposed acceptance evidence manifest; this repair creates no parallel manifest or tracking issue.
 
 Withdraw obsolete performance-only blockers and any readiness claim based on the former P01/P02 strict gates, including #248 and transitive resource-proof dependencies.
 These blockers no longer prevent domain implementation under this contract while ticket reconciliation is pending.

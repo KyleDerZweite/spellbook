@@ -1,14 +1,15 @@
 # Python migration functional evidence
 
 - Status: Canonical functional evidence responsibilities
-- Last Reviewed: 2026-10-25
+- Last Reviewed: 2026-10-28
 - Source of Truth: current Python code/tests, OpenAPI, useful synthetic fixtures, ADR-0029 and PR 276
-- Update Triggers: native implementation and evidence ownership, pre-release compatibility supersession, native FastAPI/Pydantic acceptance, current-route acceptance, installed Python runtime, fixture ownership, stored-data correctness and target evidence
+- Update Triggers: merged PR 276 and preserved target evidence ownership, native implementation and evidence ownership, pre-release compatibility supersession, native FastAPI/Pydantic acceptance, current-route acceptance, installed Python runtime, fixture ownership, stored-data correctness and target evidence
 - Related Docs: [Migration contract](./python-backend-migration.md), [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md), [ADR-0029](../decisions/0029-remove-replaced-interfaces.md), [Contracts](../../contracts/README.md), [Independent applications](./independent-applications.md), [Auth](./auth.md), [Postgres](./postgres.md), [Verification](../operations/github-automation.md), [Deployment](../operations/deployment.md)
 
 ## Scope and authorization
 
-The unmerged candidate uses Python API/Core and independent workers by default.
+The source merged through [PR 276](https://github.com/KyleDerZweite/spellbook/pull/276) on 2026-10-25 uses Python API/Core and independent workers by default.
+Merge does not establish owner acceptance or production deployment.
 The [migration contract](./python-backend-migration.md) owns functional acceptance and delivery; production operations require separate authorization.
 [ADR-0027](../decisions/0027-python-functional-migration-acceptance.md) retires strict performance/resource, Linux/kernel and Collector proof prerequisites.
 [ADR-0029](../decisions/0029-remove-replaced-interfaces.md) removes replaced interfaces immediately, including old API paths, route inventories, transfer maps and dual-runtime HTTP comparison runners.
@@ -50,10 +51,12 @@ Rendered web and native journeys remain separate from HTTP/component tests.
 Use [integration PR 276](https://github.com/KyleDerZweite/spellbook/pull/276) for exact tested revisions, commands, results, skips, review findings and unresolved target evidence.
 Refresh affected evidence on the integrated head after source changes.
 Keep transient counts and revisions in that change record.
+[Issue #217](https://github.com/KyleDerZweite/spellbook/issues/217) owns the proposed acceptance evidence manifest; no new manifest format is selected here.
 
 ## Activation and contraction 2026-10-23
 
-Python domain implementations, Deck assembly, closed web commands, default launchers, independent workers and removal of replaced Node source/tests are integrated in the unmerged candidate.
+At the 2026-10-23 checkpoint, Python domain implementations, Deck assembly, closed web commands, default launchers, independent workers and removal of replaced Node source/tests were integrated in the then-unmerged candidate.
+PR 276 subsequently merged that source on 2026-10-25; the observations below retain their original tested scope.
 Canonical routes, OpenAPI, explicit MTG modules and Web/Android clients are implemented.
 Independent Standards and Spec reviews covered domain implementation, activation and canonical clients; current removal changes require integrated review and verification.
 The historical acceptance runs exercised disposable PostgreSQL transactions, jobs/publications, installed migrator/operators, original receipts, two Python replicas, proxy SSE and listener recovery.
