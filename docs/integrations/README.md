@@ -1,9 +1,9 @@
 # Integrations
 
 - Status: Canonical
-- Last Reviewed: 2026-10-23
+- Last Reviewed: 2026-10-29
 - Source of Truth: mixed
-- Update Triggers: functional Python acceptance and current migration status, Python API/worker language selection and migration planning, external system contracts, integration scope, provider evaluations and scanner-platform research
+- Update Triggers: PostgreSQL and semantic search evaluation, functional Python acceptance and current migration status, Python API/worker language selection and migration planning, external system contracts, integration scope, provider evaluations and scanner-platform research
 - Related Docs: [Market price research](./market-prices.md), [Card and deck categorization](./card-categorization.md), [Realtime backend evaluation](./realtime-backends.md), [Proposed card robot](./card-robot.md), [Scanner platform evaluation](./scanner-platform-evaluation.md), [Worker](../architecture/worker.md), [Catalog](../architecture/catalog.md), [Docs index](../README.md), [Application contract](../architecture/application-contract.md), [Category rules](../architecture/category-rules.md), [Backend language evaluation](./backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md), [Functional Python acceptance](../decisions/0027-python-functional-migration-acceptance.md)
 
 [Backend language evaluation](./backend-language-evaluation.md) compares Go, Python, Rust and the current TypeScript API, with worker grouping and migration gates.
@@ -16,6 +16,9 @@ These decisions are not implemented hardware or phone-client support.
 
 [Scanner platform evaluation](./scanner-platform-evaluation.md) is the research report on website/phone options, local recognition hosts, controller separation, OSS operation, self-hosting and hardware reproduction.
 Its recommendations and proposed experiments are decision support, not accepted implementation contracts.
+
+[Global search evaluation](./search-evaluation.md) investigates Autocomplete, PostgreSQL lexical ranking, static route targets, pgvector and a possible derived search projection.
+These remain proposals; [UI direction](../product/ui-design-direction.md#proposed-global-command-menu) owns the shortcut-only entry requirement.
 
 Scryfall ingestion belongs to the [worker architecture](../architecture/worker.md), and PostgreSQL catalog contracts belong to [catalog architecture](../architecture/catalog.md).
 
