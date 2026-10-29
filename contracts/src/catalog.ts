@@ -73,7 +73,14 @@ export interface FacetResponse {
 	set_code: Record<string, number>;
 }
 
+export interface ColorMatch {
+	field: 'color' | 'identity';
+	any: ManaColor[];
+	all: ManaColor[];
+}
+
 export interface CatalogFilters {
+	colorMatch?: ColorMatch;
 	colors?: ManaColor[];
 	colorIdentity?: ManaColor[];
 	rarities?: Rarity[];

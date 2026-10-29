@@ -44,8 +44,8 @@ export function getActiveFilters(filters: SearchFilterState) {
 	return [
 		...MANA_COLORS.filter((option) => filters.selectedColors.has(option.id)).map((option) => ({
 			key: `color-${option.id}`,
-			label: option.label,
-			remove: () => filters.toggleColor(option.id)
+			label: `${option.label} ${filters.colorAll.has(option.id) ? 'AND' : 'OR'}`,
+			remove: () => filters.removeColor(option.id)
 		})),
 		...RARITIES.filter((option) => filters.selectedRarities.has(option.id)).map((option) => ({
 			key: `rarity-${option.id}`,

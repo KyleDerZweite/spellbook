@@ -1,4 +1,4 @@
-import type { CatalogFilters } from './catalog.ts';
+import type { CatalogFilters, ColorMatch, ManaColor } from './catalog.ts';
 import { ValidationError } from './validation.ts';
 
 export type { CatalogSearchInput } from './catalog.ts';
@@ -22,6 +22,32 @@ const allowedValues = {
 	legalities: ['standard', 'pioneer', 'modern', 'legacy', 'vintage', 'commander', 'pauper', 'brawl']
 };
 
+export function parseColorMatch(value: unknown): ColorMatch {
+	if (!value || typeof value !== 'object' || Array.isArray(value))
+		throw new ValidationError('colorMatch must be an object');
+	const match = value as Record<string, unknown>;
+	if (
+		Object.keys(match).some((key) => !['field', 'any', 'all'].includes(key)) ||
+		(match.field !== 'color' && match.field !== 'identity')
+	)
+		throw new ValidationError('Invalid colorMatch field');
+	const colors = (key: 'any' | 'all'): ManaColor[] => {
+		const values = match[key];
+		if (
+			!Array.isArray(values) ||
+			values.length > 6 ||
+			values.some((color) => typeof color !== 'string' || !allowedValues.colors.includes(color))
+		)
+			throw new ValidationError(`colorMatch.${key} must contain at most 6 known colors`);
+		return [...new Set(values)] as ManaColor[];
+	};
+	const any = colors('any'),
+		all = colors('all');
+	if (any.some((color) => all.includes(color)))
+		throw new ValidationError('A color cannot be both OR and AND');
+	return { field: match.field, any, all };
+}
+
 export function parseCatalogSearchRequest(value: unknown): CatalogSearchInput {
 	if (!value || typeof value !== 'object' || Array.isArray(value))
 		throw new ValidationError('Search request must be an object');
@@ -40,6 +66,10 @@ export function parseCatalogSearchRequest(value: unknown): CatalogSearchInput {
 		if (!body.filters || typeof body.filters !== 'object' || Array.isArray(body.filters))
 			throw new ValidationError('filters must be an object');
 		for (const [key, values] of Object.entries(body.filters)) {
+			if (key === 'colorMatch') {
+				filters.colorMatch = parseColorMatch(values);
+				continue;
+			}
 			if (!Object.hasOwn(allowedValues, key) && key !== 'sets')
 				throw new ValidationError(`Unknown filter: ${key}`);
 			if (

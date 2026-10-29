@@ -664,3 +664,82 @@ def test_native_optional_selection_and_public_history_provenance() -> None:
                         )
 
     asyncio.run(scenario())
+
+
+def test_native_color_expression_or_and_fields_colorless_and_facets() -> None:
+    async def scenario() -> None:
+        async with native_fixture() as f:
+            async with transaction(f.pool) as tx:
+                for name, colors, identity in [
+                    ("White-blue", ["W", "U"], ["W", "U"]),
+                    ("White-black", ["W", "B"], ["W", "B"]),
+                    ("Blue-black", ["U", "B"], ["U", "B"]),
+                    ("Four colors", ["W", "U", "B", "R"], ["W", "U", "B", "R"]),
+                    ("Black", ["B"], ["B"]),
+                    ("Colorless with red identity", [], ["R"]),
+                ]:
+                    printing, oracle = str(uuid4()), str(uuid4())
+                    document = {
+                        "id": printing,
+                        "oracle_id": oracle,
+                        "name": name,
+                        "lang": "en",
+                        "released_at": "2026-01-01",
+                        "colors": colors,
+                        "color_identity": identity,
+                    }
+                    await tx.execute(
+                        """INSERT INTO catalog_printings(generation_id,id,oracle_id,name,
+                           normalized_name,printed_name,lang,set_code,collector_number,rarity,
+                           cmc,colors,card_types,legalities,search_name,search_text,document)
+                           VALUES(%s,%s,%s,%s,%s,'','en','tst','4','common',0,%s,'{}','{}',%s,'',%s)""",
+                        (
+                            f.generation,
+                            printing,
+                            oracle,
+                            name,
+                            name.lower(),
+                            colors,
+                            name.lower(),
+                            Jsonb(document),
+                        ),
+                    )
+
+            async def find(
+                field: str, any_colors: list[str], all_colors: list[str], **options: object
+            ) -> Document:
+                return await f.catalog.search_catalog_request(
+                    {
+                        "filters": {
+                            "colorMatch": {"field": field, "any": any_colors, "all": all_colors}
+                        },
+                        "limit": 100,
+                        "facets": True,
+                        **options,
+                    }
+                )
+
+            def names(response: Document) -> set[str]:
+                return {card["name"] for card in response["hits"]}
+
+            mixed = await find("color", ["W", "U"], ["B"])
+            assert names(mixed) == {"White-black", "Blue-black", "Four colors"}
+            assert mixed["estimatedTotalHits"] == 3 and mixed["generationId"] == f.generation
+            assert mixed["facets"]["colors"] == {"W": 2, "U": 2, "B": 3, "R": 1}
+            page = await find("color", ["W", "U"], ["B"], limit=1, offset=1)
+            assert len(page["hits"]) == 1 and page["estimatedTotalHits"] == 3
+            assert names(await find("color", [], ["W", "U"])) == {"White-blue", "Four colors"}
+            assert names(await find("color", ["R"], [])) == {"Four colors"}
+            assert names(await find("identity", ["R"], [])) == {
+                "Four colors",
+                "Colorless with red identity",
+            }
+            assert names(await find("color", ["C"], [])) == {
+                "Zero Test",
+                "Colorless with red identity",
+            }
+            assert names(await find("identity", ["C"], [])) == {"Zero Test"}
+            for field in ["color", "identity"]:
+                assert (await find(field, [], ["W", "C"]))["estimatedTotalHits"] == 0
+
+    asyncio.run(scenario())

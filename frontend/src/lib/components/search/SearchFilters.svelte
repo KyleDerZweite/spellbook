@@ -20,6 +20,14 @@
 	let rarityOpen = $state(true);
 	let typesOpen = $state(false);
 	let legalityOpen = $state(false);
+	const orColors = $derived(MANA_COLORS.filter((color) => filters.colorAny.has(color.id)));
+	const andColors = $derived(MANA_COLORS.filter((color) => filters.colorAll.has(color.id)));
+	const expressionText = $derived(
+		[
+			...(orColors.length ? [`(${orColors.map((color) => color.label).join(' OR ')})`] : []),
+			...andColors.map((color) => color.label)
+		].join(' AND ') || 'Any color'
+	);
 </script>
 
 {#snippet groupLabel(label: string, open: boolean, selected: number)}
@@ -52,33 +60,51 @@
 	</div>
 	<Collapsible.Root bind:open={colorsOpen}>
 		<Collapsible.Trigger class="filter-trigger">
-			{@render groupLabel('Deck colors', colorsOpen, filters.selectedColors.size)}
+			{@render groupLabel('Colors', colorsOpen, filters.selectedColors.size)}
 		</Collapsible.Trigger>
 		<Collapsible.Content>
-			<p id={descriptionId} class="sr-only">
-				Choose the allowed color identity. Includes colorless cards and cards using only your
-				selected colors. Colorless alone shows only colorless identities. Format legality is a
-				separate filter.
-			</p>
+			<fieldset class="color-mode">
+				<legend class="sr-only">Match colors by</legend>
+				{#each [{ value: 'color', label: 'Color' }, { value: 'identity', label: 'Identity' }] as mode}
+					<label
+						><input
+							type="radio"
+							name={`${descriptionId}-color-mode`}
+							checked={filters.colorField === mode.value}
+							onchange={() => filters.setColorField(mode.value as 'color' | 'identity')}
+						/>{mode.label}</label
+					>
+				{/each}
+			</fieldset>
+			<p id={descriptionId} class="sr-only">Click to cycle OR, AND, then off.</p>
 			<div
 				class="filter-colors"
 				role="group"
-				aria-label="Allowed deck colors"
+				aria-label="Card colors"
 				aria-describedby={descriptionId}
 			>
 				{#each MANA_COLORS as color}
+					{@const logic = filters.colorAll.has(color.id)
+						? 'AND'
+						: filters.colorAny.has(color.id)
+							? 'OR'
+							: 'off'}
 					<button
 						type="button"
 						onclick={() => filters.toggleColor(color.id)}
 						class="filter-color"
-						aria-label={color.label}
-						title={color.id === 'C' ? 'Colorless only' : color.label}
-						aria-pressed={filters.selectedColors.has(color.id)}
+						data-logic={logic}
+						aria-label={`${color.label}: ${logic}. Next click: ${logic === 'off' ? 'OR' : logic === 'OR' ? 'AND' : 'off'}`}
+						title={`${color.label}: ${logic}`}
+						aria-pressed={logic !== 'off'}
 					>
 						<i class="ms ms-cost {color.msClass}" aria-hidden="true"></i>
 					</button>
 				{/each}
 			</div>
+			<span class="sr-only" role="status" aria-label="Color filter expression"
+				>{expressionText}</span
+			>
 		</Collapsible.Content>
 	</Collapsible.Root>
 	<Collapsible.Root bind:open={rarityOpen}>
@@ -209,6 +235,29 @@
 	.filter-chevron.expanded {
 		transform: rotate(180deg);
 	}
+	.color-mode {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		margin-top: 0.5rem;
+		border: 0;
+		padding: 0;
+	}
+	.color-mode label {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		min-height: 36px;
+		font-size: 0.75rem;
+		cursor: pointer;
+	}
+	.color-mode input {
+		accent-color: var(--color-text-primary);
+	}
+	.filter-color[data-logic='AND'] i {
+		outline: 1px solid var(--color-text-primary);
+		outline-offset: 3px;
+	}
 	.filter-colors {
 		display: grid;
 		grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -217,7 +266,7 @@
 	}
 	.filter-color {
 		display: flex;
-		height: 40px;
+		min-height: 44px;
 		min-width: 0;
 		align-items: center;
 		justify-content: center;
@@ -228,8 +277,8 @@
 	}
 	.filter-color i {
 		display: grid;
-		width: 34px;
-		height: 34px;
+		width: 30px;
+		height: 30px;
 		place-items: center;
 		border: 1px solid transparent;
 		border-radius: 50%;

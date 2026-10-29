@@ -271,7 +271,26 @@
 			<details class="w-full">
 				<summary>Filters</summary>
 				<div class="grid gap-4 sm:grid-cols-4">
-					{#each [{ name: 'color', label: 'Deck colors', options: MANA_COLORS, selected: input.filters.colorIdentity }, { name: 'rarity', label: 'Rarity', options: RARITIES, selected: input.filters.rarities }, { name: 'type', label: 'Card type', options: CARD_TYPES, selected: input.filters.types }, { name: 'legal', label: 'Legality', options: LEGALITY_FORMATS, selected: input.filters.legalities }] as group}
+					<fieldset>
+						<legend>Match colors by</legend>
+						<label class="mr-3"
+							><input
+								type="radio"
+								name="colorMode"
+								value="color"
+								checked={input.filters.colorMatch?.field !== 'identity'}
+							/> Color</label
+						>
+						<label
+							><input
+								type="radio"
+								name="colorMode"
+								value="identity"
+								checked={input.filters.colorMatch?.field === 'identity'}
+							/> Identity</label
+						>
+					</fieldset>
+					{#each [{ name: 'color', label: 'Colors · OR', options: MANA_COLORS, selected: input.filters.colorMatch?.any }, { name: 'colorAnd', label: 'Colors · AND', options: MANA_COLORS, selected: input.filters.colorMatch?.all }, { name: 'rarity', label: 'Rarity', options: RARITIES, selected: input.filters.rarities }, { name: 'type', label: 'Card type', options: CARD_TYPES, selected: input.filters.types }, { name: 'legal', label: 'Legality', options: LEGALITY_FORMATS, selected: input.filters.legalities }] as group}
 						<fieldset>
 							<legend>{group.label}</legend>{#each group.options as option}<label
 									class="flex items-center gap-2"

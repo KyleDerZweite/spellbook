@@ -1,72 +1,72 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { SearchFilterState } from '../../src/lib/search/filters.svelte.ts';
 
 describe('SearchFilterState', () => {
-	it('starts with the complete catalog and no implicit legality restriction', () => {
+	it('starts unfiltered with printed Color selected', () => {
 		const state = new SearchFilterState();
 		expect(state.catalogFilters).toEqual({
-			colorIdentity: [],
+			colorMatch: { field: 'color', any: [], all: [] },
 			rarities: [],
 			types: [],
 			legalities: []
 		});
 		expect(state.hasFilters).toBe(false);
 	});
-
-	it('toggles every category without changing the other categories', () => {
+	it('cycles every color off to OR to AND to off, with one change notification per click', () => {
+		const changed = vi.fn(),
+			state = new SearchFilterState(changed);
+		for (const color of ['W', 'U', 'B', 'R', 'G', 'C'] as const) {
+			state.toggleColor(color);
+			expect(state.catalogFilters.colorMatch).toEqual({ field: 'color', any: [color], all: [] });
+			state.toggleColor(color);
+			expect(state.catalogFilters.colorMatch).toEqual({ field: 'color', any: [], all: [color] });
+			state.toggleColor(color);
+			expect(state.hasFilters).toBe(false);
+		}
+		expect(changed).toHaveBeenCalledTimes(18);
+	});
+	it('represents (White OR Blue) AND Black and preserves selections when switching fields', () => {
 		const state = new SearchFilterState();
-		state.clear();
+		state.toggleColor('W');
+		state.toggleColor('U');
+		state.toggleColor('B');
+		state.toggleColor('B');
+		state.setColorField('identity');
+		expect(state.catalogFilters.colorMatch).toEqual({
+			field: 'identity',
+			any: ['W', 'U'],
+			all: ['B']
+		});
+		state.removeColor('W');
+		expect(state.catalogFilters.colorMatch?.any).toEqual(['U']);
+		state.removeColor('B');
+		expect(state.catalogFilters.colorMatch?.all).toEqual([]);
+	});
+	it('keeps other categories independent and clears selections without changing the chosen field', () => {
+		const state = new SearchFilterState();
 		state.toggleColor('R');
 		state.toggleRarity('rare');
 		state.toggleType('Creature');
 		state.toggleLegality('modern');
 		expect(state.catalogFilters).toEqual({
-			colorIdentity: ['R'],
+			colorMatch: { field: 'color', any: ['R'], all: [] },
 			rarities: ['rare'],
 			types: ['Creature'],
 			legalities: ['modern']
 		});
-		state.toggleColor('R');
-		state.toggleRarity('rare');
-		state.toggleType('Creature');
-		state.toggleLegality('modern');
-		expect(state.hasFilters).toBe(false);
-	});
-
-	it('preserves colorless as an explicit option for identity palette filtering', () => {
-		const state = new SearchFilterState();
+		state.setColorField('identity');
 		state.clear();
-		state.toggleColor('C');
-		expect(state.catalogFilters.colorIdentity).toEqual(['C']);
-		state.toggleColor('R');
-		expect(state.catalogFilters.colorIdentity).toEqual(['C', 'R']);
-		state.toggleColor('C');
-		expect(state.catalogFilters.colorIdentity).toEqual(['R']);
+		expect(state.hasFilters).toBe(false);
+		expect(state.colorField).toBe('identity');
 	});
-
-	it('takes independent filter snapshots for in-flight requests', () => {
+	it('takes independent snapshots for in-flight requests', () => {
 		const state = new SearchFilterState();
+		state.toggleColor('G');
 		const before = state.catalogFilters;
 		state.toggleColor('G');
+		before.colorMatch!.any.push('W');
 		before.legalities?.push('legacy');
-		expect(before.colorIdentity).toEqual([]);
-		expect(state.catalogFilters.colorIdentity).toEqual(['G']);
+		expect(state.catalogFilters.colorMatch).toEqual({ field: 'color', any: [], all: ['G'] });
 		expect(state.catalogFilters.legalities).toEqual([]);
-	});
-
-	it('clears all selected categories', () => {
-		const state = new SearchFilterState();
-		state.toggleColor('G');
-		state.toggleRarity('uncommon');
-		state.toggleType('Instant');
-		state.toggleLegality('commander');
-		state.clear();
-		expect(state.catalogFilters).toEqual({
-			colorIdentity: [],
-			rarities: [],
-			types: [],
-			legalities: []
-		});
-		expect(state.hasFilters).toBe(false);
 	});
 });
