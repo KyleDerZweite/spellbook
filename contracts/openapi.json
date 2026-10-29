@@ -296,9 +296,10 @@
 							"maxItems": 3,
 							"uniqueItems": true,
 							"items": {
-								"enum": ["Scryfall", "Cardmarket", "MTGJSON"]
+								"enum": ["Scryfall", "Cardmarket", "MTGJSON", "Demo"]
 							}
-						}
+						},
+						"description": "Filter source. Demo is accepted only in explicit Demo deployments."
 					}
 				],
 				"responses": {
@@ -12718,6 +12719,53 @@
 							"mappingVersion",
 							"ingestedAt"
 						]
+					},
+					{
+						"type": "object",
+						"properties": {
+							"id": {
+								"type": "string",
+								"format": "uuid"
+							},
+							"source": {
+								"const": "Demo"
+							},
+							"bulkType": {
+								"type": "string"
+							},
+							"timePrecision": {
+								"const": "Instant"
+							},
+							"sourceTime": {
+								"type": "string",
+								"format": "date-time"
+							},
+							"payloadDigest": {
+								"type": "string"
+							},
+							"extractorVersion": {
+								"type": "integer"
+							},
+							"mappingVersion": {
+								"type": "integer"
+							},
+							"ingestedAt": {
+								"type": "string",
+								"format": "date-time"
+							}
+						},
+						"required": [
+							"id",
+							"source",
+							"bulkType",
+							"timePrecision",
+							"sourceTime",
+							"payloadDigest",
+							"extractorVersion",
+							"mappingVersion",
+							"ingestedAt"
+						],
+						"description": "Explicit Demo deployments only. A static fixture, not a current or historical market observation."
 					}
 				]
 			},
@@ -13041,6 +13089,87 @@
 							}
 						},
 						"required": ["kind", "printingId", "finish", "links", "reason"]
+					},
+					{
+						"type": "object",
+						"properties": {
+							"kind": {
+								"const": "Known"
+							},
+							"printingId": {
+								"type": "string",
+								"format": "uuid"
+							},
+							"finish": {
+								"enum": ["nonfoil", "foil"]
+							},
+							"links": {
+								"type": "array",
+								"items": {
+									"$ref": "#/components/schemas/ProductLink"
+								}
+							},
+							"amount": {
+								"type": "string",
+								"maxLength": 128,
+								"pattern": "^(0|[1-9][0-9]*)(\\.[0-9]{1,18})?$"
+							},
+							"currency": {
+								"const": "EUR"
+							},
+							"freshness": {
+								"const": "Static"
+							},
+							"publicationId": {
+								"type": "string",
+								"format": "uuid"
+							},
+							"observationId": {
+								"type": "string"
+							},
+							"matchedPrintingId": {
+								"type": "string",
+								"format": "uuid"
+							},
+							"matchedFinish": {
+								"enum": ["nonfoil", "foil"]
+							},
+							"provenance": {
+								"const": "Exact"
+							},
+							"source": {
+								"const": "Demo"
+							},
+							"measure": {
+								"enum": ["fixture.eur", "fixture.eur_foil"]
+							},
+							"timePrecision": {
+								"const": "Instant"
+							},
+							"sourceTime": {
+								"type": "string",
+								"format": "date-time"
+							}
+						},
+						"required": [
+							"kind",
+							"printingId",
+							"finish",
+							"links",
+							"amount",
+							"currency",
+							"freshness",
+							"publicationId",
+							"observationId",
+							"matchedPrintingId",
+							"matchedFinish",
+							"provenance",
+							"source",
+							"measure",
+							"timePrecision",
+							"sourceTime"
+						],
+						"description": "Explicit Demo deployments only. A static fixture, not a current or historical market observation."
 					}
 				]
 			},
@@ -13048,7 +13177,7 @@
 				"type": "object",
 				"properties": {
 					"source": {
-						"enum": ["Scryfall", "Cardmarket", "MTGJSON"]
+						"enum": ["Scryfall", "Cardmarket", "MTGJSON", "Demo"]
 					},
 					"enabled": {
 						"type": "boolean"
@@ -13330,6 +13459,89 @@
 							"pointArtifact",
 							"pointPayloadDigest"
 						]
+					},
+					{
+						"type": "object",
+						"properties": {
+							"source": {
+								"const": "Demo"
+							},
+							"measure": {
+								"enum": ["fixture.eur", "fixture.eur_foil"]
+							},
+							"timePrecision": {
+								"const": "Instant"
+							},
+							"sourceTime": {
+								"type": "string",
+								"format": "date-time"
+							},
+							"printingId": {
+								"type": "string",
+								"format": "uuid"
+							},
+							"finish": {
+								"enum": ["nonfoil", "foil"]
+							},
+							"day": {
+								"type": "string",
+								"format": "date"
+							},
+							"amount": {
+								"type": "string",
+								"maxLength": 128,
+								"pattern": "^(0|[1-9][0-9]*)(\\.[0-9]{1,18})?$"
+							},
+							"currency": {
+								"const": "EUR"
+							},
+							"publicationId": {
+								"type": "string",
+								"format": "uuid"
+							},
+							"observationId": {
+								"type": "string"
+							},
+							"matchedPrintingId": {
+								"type": "string",
+								"format": "uuid"
+							},
+							"matchedFinish": {
+								"enum": ["nonfoil", "foil"]
+							},
+							"provenance": {
+								"const": "Exact"
+							},
+							"mappingVersion": {
+								"type": "integer"
+							},
+							"pointArtifact": {
+								"const": "DemoFixture"
+							},
+							"pointPayloadDigest": {
+								"type": "string"
+							}
+						},
+						"required": [
+							"source",
+							"measure",
+							"timePrecision",
+							"sourceTime",
+							"printingId",
+							"finish",
+							"day",
+							"amount",
+							"currency",
+							"publicationId",
+							"observationId",
+							"matchedPrintingId",
+							"matchedFinish",
+							"provenance",
+							"mappingVersion",
+							"pointArtifact",
+							"pointPayloadDigest"
+						],
+						"description": "Explicit Demo deployments only. A static fixture, not a current or historical market observation."
 					}
 				]
 			},

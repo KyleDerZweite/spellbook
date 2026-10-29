@@ -114,6 +114,7 @@ services:
       context: .
       dockerfile: backend/workers/state/Dockerfile
     environment:
+      DEMO_MODE: ${DEMO_MODE:-false}
       DATABASE_URL: postgres://${POSTGRES_USER:-spellbook}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-spellbook}
       VALUE_HISTORY_ENABLED: ${VALUE_HISTORY_ENABLED:-true}
       VALUE_HISTORY_TIMEZONE: ${VALUE_HISTORY_TIMEZONE:-Europe/Berlin}

@@ -7,6 +7,7 @@ import {
 	estimateLabel,
 	hasPlottableValue,
 	historyChart,
+	historyOverview,
 	observationTime
 } from '#lib/valuation/history-chart.ts';
 import { formatValueEUR } from '#lib/valuation/money.ts';
@@ -82,5 +83,34 @@ describe('personal Inventory history presentation', () => {
 	it('shows the actual observation clock in its saved calendar across DST changes', () => {
 		expect(observationTime('2026-10-24T21:59:30Z', 'Europe/Berlin')).toContain('23:59:30');
 		expect(observationTime('2026-10-25T22:59:30Z', 'Europe/Berlin')).toContain('23:59:30');
+	});
+});
+
+describe('history overview', () => {
+	it('uses only priced days and keeps exact negative changes beyond Number precision', () => {
+		const result = historyOverview([
+			captured('2026-10-01', { coveredValue: '9007199254740993.99' }),
+			{ kind: 'Gap', day: '2026-10-02' },
+			captured('2026-10-03', { coveredValue: '9007199254740993.98' }),
+			captured('2026-10-04', {
+				coveredValue: '0.00',
+				coveredQuantity: 0,
+				unknownQuantity: 2,
+				complete: false
+			})
+		]);
+		expect(result.latest?.day).toBe('2026-10-03');
+		expect(result.change).toBe(-1n);
+		expect(result.changeAmount).toBe('0.01');
+		expect(result.captured).toBe(3);
+		expect(result.gaps).toBe(1);
+	});
+	it('does not invent a change with no comparison and retains a known empty zero', () => {
+		expect(historyOverview([]).change).toBeNull();
+		const result = historyOverview([
+			captured('2026-10-01', { coveredValue: '0.00', coveredQuantity: 0, totalQuantity: 0 })
+		]);
+		expect(result.latest?.estimate.coveredValue).toBe('0.00');
+		expect(result.change).toBeNull();
 	});
 });

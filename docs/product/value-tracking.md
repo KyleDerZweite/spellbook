@@ -1,9 +1,9 @@
 # Value tracking
 
 - Status: Market references, public source history, personal daily history, Dashboard and selected-Deck estimates implemented
-- Last Reviewed: 2026-10-08
+- Last Reviewed: 2026-10-29
 - Source of Truth: implemented reference contracts and Kyle's value-only scope decision of 2026-10-07
-- Update Triggers: price providers and fallback policy, value coverage, daily history, reporting currency and timezone, retention, valuation UI and API contracts
+- Update Triggers: explicit static Demo valuation and simplified History presentation, price providers and fallback policy, value coverage, daily history, reporting currency and timezone, retention, valuation UI and API contracts
 - Related Docs: [Product index](./README.md), [Specification](./specification.md), [Domain glossary](../../GLOSSARY.md), [Market price research](../integrations/market-prices.md), [Valuation](../architecture/valuation.md), [Application contract](../architecture/application-contract.md), [ADR-0020](../decisions/0020-value-only-inventory-history.md)
 
 ## Selected scope
@@ -89,6 +89,9 @@ History starts when valid capture records exist.
 Missing days remain visible gaps.
 Restart must not reconstruct an uncaptured day from today's holdings.
 Historical values use their captured references and quantities, never today's price presented as an older observation.
+The explicitly selected disposable Demo is the sole exception for illustrative scenario data.
+Its labelled static card references and seeded history use the ordinary value calculations and history storage, without claiming market history or former private actions.
+[Demo operation](../operations/local-auth.md#demo-mode) owns the fixture and preservation contract.
 Empty captured holdings are known zero; a missing capture is a gap.
 
 Retain personal daily holdings history and its captured reference evidence indefinitely, without automatic expiry.
@@ -114,7 +117,8 @@ Sources/Rules categories, reusable definitions, manual overrides, Review/Reset a
 The former Costs slice 12 remains excluded.
 Personal history and account/selected-Deck estimates are implemented.
 Automated tests do not establish owner acceptance, deployment, a real midnight observation or live provider refresh.
-The normal development launcher does not publish price sources automatically.
+The Demo launcher uses explicitly static fixture prices rather than live source publication.
+Normal development starts the configured Catalog/Price worker; its schedule owns repeated refreshes.
 Operator refresh and owner verification remain tracked with [integration acceptance](https://github.com/KyleDerZweite/spellbook/issues/192).
 
 ## Current reference presentation

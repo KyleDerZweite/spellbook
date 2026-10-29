@@ -185,9 +185,11 @@
 		</p>
 		{#if reference.kind === 'Known'}
 			<p class="text-text-muted">
-				{reference.source} EUR · {reference.measure} · {reference.freshness === 'Stale'
-					? 'Stale reference'
-					: 'Fresh reference'} · Source {reference.timePrecision === 'Instant'
+				{reference.source} EUR · {reference.measure} · {reference.freshness === 'Static'
+					? 'Static Demo reference'
+					: reference.freshness === 'Stale'
+						? 'Stale reference'
+						: 'Fresh reference'} · Source {reference.timePrecision === 'Instant'
 					? new Date(reference.sourceTime).toLocaleString()
 					: `${reference.sourceDate} (day precision)`}
 			</p>

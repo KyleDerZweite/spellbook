@@ -1,7 +1,6 @@
 <script lang="ts">
 	import WorkspaceHeader from '#lib/components/layout/WorkspaceHeader.svelte';
 	import { historyBoundaryTimer } from '#lib/valuation/history-boundary.ts';
-	import Select from '#lib/components/ui/select/Select.svelte';
 	import { onMount, untrack } from 'svelte';
 	import { page } from '$app/state';
 	import type { InventoryValueHistory } from '@spellbook/contracts/inventory-value.ts';
@@ -69,6 +68,15 @@
 		});
 		return () => subscription?.dispose();
 	});
+	function periodURL(days: number) {
+		const query = new URLSearchParams();
+		for (const key of ['printingId', 'finish', 'condition'] as const) {
+			const value = data.query[key];
+			if (value) query.set(key, value);
+		}
+		query.set('days', String(days));
+		return `/mtg/history?${query}`;
+	}
 </script>
 
 <svelte:head
@@ -85,60 +93,144 @@
 				'all conditions'}.
 			<a href="/mtg/history" class="underline">Full Inventory</a>
 		</p>{/if}
-	<form method="GET" class="flex flex-wrap items-end gap-3">
-		{#each ['printingId', 'finish', 'condition'] as key}{#if data.query[key as keyof typeof data.query]}<input
-					type="hidden"
-					name={key}
-					value={data.query[key as keyof typeof data.query]}
-				/>{/if}{/each}
-		<label class="flex flex-col gap-1 text-sm"
-			>Window <Select
-				native
-				name="days"
-				label="History window"
-				value={String(data.query.days ?? 30)}
-				options={[
-					{ value: '30', label: '30 days' },
-					{ value: '90', label: '90 days' },
-					{ value: '366', label: '366 days' }
-				]}
-			/></label
-		>
-		<button class="btn btn-secondary" type="submit">Show history</button>
-	</form>
-	<details>
-		<summary class="cursor-pointer text-sm">Choose calendar dates</summary>
-		<form method="GET" class="mt-3 flex flex-wrap items-end gap-3">
-			{#each ['printingId', 'finish', 'condition'] as key}{#if data.query[key as keyof typeof data.query]}<input
-						type="hidden"
-						name={key}
-						value={data.query[key as keyof typeof data.query]}
-					/>{/if}{/each}
-			<label class="flex flex-col gap-1 text-sm"
-				>From <input
-					type="date"
-					name="from"
-					required
-					value={data.query.from ?? history?.window.from}
-					class="rounded border border-border bg-stone p-2"
-				/></label
-			>
-			<label class="flex flex-col gap-1 text-sm"
-				>To <input
-					type="date"
-					name="to"
-					required
-					value={data.query.to ?? history?.window.to}
-					class="rounded border border-border bg-stone p-2"
-				/></label
-			>
-			<button class="btn btn-secondary" type="submit">Show dates</button>
-			<p class="text-xs text-text-muted">Up to 366 closed reporting dates.</p>
-		</form>
-	</details>
+	<div class="history-toolbar">
+		<nav class="period-switch" aria-label="History period">
+			{#each [{ days: 30, label: '30 days' }, { days: 90, label: '90 days' }, { days: 366, label: '1 year' }] as period}
+				<a
+					href={periodURL(period.days)}
+					aria-current={!data.query.from && (data.query.days ?? 30) === period.days
+						? 'page'
+						: undefined}>{period.label}</a
+				>
+			{/each}
+		</nav>
+		<details class="custom-period" open={!!data.query.from}>
+			<summary>Custom dates</summary>
+			<form method="GET" class="date-fields">
+				{#each ['printingId', 'finish', 'condition'] as key}
+					{#if data.query[key as keyof typeof data.query]}<input
+							type="hidden"
+							name={key}
+							value={data.query[key as keyof typeof data.query]}
+						/>{/if}
+				{/each}
+				<label
+					>From <input
+						type="date"
+						name="from"
+						required
+						value={data.query.from ?? history?.window.from}
+					/></label
+				>
+				<label
+					>To <input
+						type="date"
+						name="to"
+						required
+						value={data.query.to ?? history?.window.to}
+					/></label
+				>
+				<button class="btn btn-secondary" type="submit">Apply dates</button>
+			</form>
+		</details>
+	</div>
 	<InventoryValueHistoryView
 		{history}
 		error={historyError}
 		onRetry={() => subscription?.invalidate()}
+		demo={data.demoMode}
 	/>
 </div>
+
+<style>
+	.history-toolbar {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: start;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+	.period-switch {
+		display: flex;
+		gap: 0.25rem;
+		border: 1px solid var(--color-border);
+		border-radius: 0.75rem;
+		padding: 0.25rem;
+		background: var(--color-card);
+	}
+	.period-switch a {
+		display: grid;
+		place-items: center;
+		min-height: 40px;
+		padding: 0 1rem;
+		border-radius: 0.5rem;
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+	}
+	.period-switch a[aria-current='page'] {
+		color: var(--color-text-primary);
+		background: var(--color-stone);
+		box-shadow: inset 0 0 0 1px var(--color-border);
+	}
+	.period-switch a:hover {
+		color: var(--color-text-primary);
+	}
+	.custom-period {
+		margin-left: auto;
+	}
+	.custom-period summary {
+		cursor: pointer;
+		min-height: 48px;
+		align-content: center;
+		font-size: 0.75rem;
+		color: var(--color-text-secondary);
+		text-align: right;
+	}
+	.date-fields {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+		align-items: end;
+		padding: 0.75rem 0;
+	}
+	.date-fields label {
+		display: grid;
+		gap: 0.4rem;
+		font-size: 0.6875rem;
+	}
+	.date-fields input {
+		min-height: 44px;
+		padding: 0.5rem;
+		border-radius: 0.5rem;
+		border: 1px solid var(--color-border);
+		background: var(--color-card);
+		color: var(--color-text-primary);
+	}
+	@media (max-width: 540px) {
+		.history-toolbar {
+			gap: 0.5rem;
+		}
+		.period-switch {
+			flex: 1;
+		}
+		.period-switch a {
+			flex: 1;
+			padding-inline: 0.65rem;
+		}
+		.custom-period {
+			width: 100%;
+		}
+		.custom-period summary {
+			min-height: 40px;
+			text-align: left;
+		}
+		.date-fields label {
+			flex: 1;
+			min-width: 0;
+		}
+		.date-fields input {
+			width: 100%;
+			min-width: 0;
+		}
+	}
+</style>

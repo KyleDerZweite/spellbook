@@ -170,7 +170,16 @@ def insert_precon(client: Client, account: str, inventory: str, precon: Precon) 
     return deck
 
 
-def seed_demo(url: str, bundle: DemoBundle, precon: Precon, *, reset: bool = False) -> Record:
+def seed_demo(
+    url: str,
+    bundle: DemoBundle,
+    precon: Precon,
+    *,
+    reset: bool = False,
+    timezone: str = "Europe/Berlin",
+) -> Record:
+    from .demo_history import seed_demo_history
+
     with _client(url) as client:
         try:
             with client.transaction():
@@ -182,6 +191,7 @@ def seed_demo(url: str, bundle: DemoBundle, precon: Precon, *, reset: bool = Fal
                 if reset:
                     client.execute("DELETE FROM user_profiles")
                 elif any(u["username"] == "demo" for u in users):
+                    seed_demo_history(client, str(users[0]["account_id"]), precon, timezone)
                     return {
                         "status": "preserved",
                         "message": "Demo is already seeded. Existing edits preserved.",
@@ -207,6 +217,7 @@ def seed_demo(url: str, bundle: DemoBundle, precon: Precon, *, reset: bool = Fal
                 )
                 client.execute("SELECT id FROM inventories WHERE id=%s FOR UPDATE", (inventory,))
                 insert_precon(client, account, inventory, precon)
+                seed_demo_history(client, account, precon, timezone)
         except OperatorError, psycopg.Error, ValueError, OSError:
             raise OperatorError("Demo seed failed; transaction rolled back.") from None
     return {"status": "seeded", "message": "Demo ready. Username: demo. Password: demo."}

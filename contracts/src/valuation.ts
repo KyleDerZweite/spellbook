@@ -8,10 +8,11 @@ export function isReferenceDecimal(value: unknown): value is string {
 // Foil selects Scryfall eur_foil with an explicit foil finish, even alongside etched.
 // Etched-only printings are unsupported; this API does not accept an etched request.
 export type PriceFinish = 'nonfoil' | 'foil';
-export type PriceSource = 'Cardmarket' | 'Scryfall' | 'MTGJSON';
+export type PriceSource = 'Cardmarket' | 'Scryfall' | 'MTGJSON' | 'Demo';
 export type PriceTime =
 	{ timePrecision: 'Instant'; sourceTime: string } | { timePrecision: 'Day'; sourceDate: string };
 export type PriceOrigin =
+	| { source: 'Demo'; measure: 'fixture.eur' | 'fixture.eur_foil' }
 	| { source: 'Scryfall'; measure: 'prices.eur' | 'prices.eur_foil' }
 	| {
 			source: 'Cardmarket';
@@ -55,7 +56,7 @@ export type PriceReference = PriceRequest & { links: ProductLink[] } & (
 				kind: 'Known';
 				amount: string;
 				currency: 'EUR';
-				freshness: 'Fresh' | 'Stale';
+				freshness: 'Fresh' | 'Stale' | 'Static';
 				publicationId: string;
 				observationId: string;
 				matchedPrintingId: string;
@@ -115,7 +116,7 @@ export type PriceHistoryPoint = PriceRequest &
 		matchedFinish: PriceFinish;
 		provenance: 'Exact' | 'EnglishFallback';
 		mappingVersion: number;
-		pointArtifact: 'ScryfallBulk' | 'CardmarketGuide' | 'AllPrices';
+		pointArtifact: 'ScryfallBulk' | 'CardmarketGuide' | 'AllPrices' | 'DemoFixture';
 		pointPayloadDigest: string;
 	};
 export type PriceHistoryResponse = {
