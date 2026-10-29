@@ -63,19 +63,6 @@
 			{@render groupLabel('Colors', colorsOpen, filters.selectedColors.size)}
 		</Collapsible.Trigger>
 		<Collapsible.Content>
-			<fieldset class="color-mode">
-				<legend class="sr-only">Match colors by</legend>
-				{#each [{ value: 'color', label: 'Color' }, { value: 'identity', label: 'Identity' }] as mode}
-					<label
-						><input
-							type="radio"
-							name={`${descriptionId}-color-mode`}
-							checked={filters.colorField === mode.value}
-							onchange={() => filters.setColorField(mode.value as 'color' | 'identity')}
-						/>{mode.label}</label
-					>
-				{/each}
-			</fieldset>
 			<p id={descriptionId} class="sr-only">Click to cycle OR, AND, then off.</p>
 			<div
 				class="filter-colors"
@@ -102,6 +89,19 @@
 					</button>
 				{/each}
 			</div>
+			<fieldset class="color-mode">
+				<legend class="sr-only">Match colors by</legend>
+				{#each [{ value: 'color', label: 'Color' }, { value: 'identity', label: 'Identity' }] as mode}
+					<label
+						><input
+							type="radio"
+							name={`${descriptionId}-color-mode`}
+							checked={filters.colorField === mode.value}
+							onchange={() => filters.setColorField(mode.value as 'color' | 'identity')}
+						/>{mode.label}</label
+					>
+				{/each}
+			</fieldset>
 			<span class="sr-only" role="status" aria-label="Color filter expression"
 				>{expressionText}</span
 			>
@@ -239,7 +239,7 @@
 		display: flex;
 		align-items: center;
 		gap: 1rem;
-		margin-top: 0.5rem;
+		margin-top: 0;
 		border: 0;
 		padding: 0;
 	}
@@ -283,6 +283,7 @@
 		border: 1px solid transparent;
 		border-radius: 50%;
 		font-size: 25px;
+		line-height: 1;
 		opacity: 0.72;
 	}
 	.filter-color:hover i,
