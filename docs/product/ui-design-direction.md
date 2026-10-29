@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-29
 - Source of Truth: accepted product requirements, application components, selected logo and component choices
-- Update Triggers: landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
+- Update Triggers: Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
 - Related Docs: [Product specification](./specification.md), [Mobile exploration](./mobile-app-exploration.md), [Routes](./routing-and-games.md), [Domain model](../../GLOSSARY.md), [Selected UI components](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Brand assets](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Value tracking](./value-tracking.md)
 
 Spellbook prioritizes digitizing, indexing and managing a player's own Magic cards, then building decks from that collection.
@@ -57,6 +57,16 @@ D3 owns scales and path construction; Svelte owns responsive SVG, focus, state a
 Keep native forms, account scoping, SavedState leases, bounded browsing and current mutation behavior.
 Do not invent price observations, connect gaps or convert unknown references into zero.
 The landing page remains the reference; further page-specific redesign and paused Scan presentation retain their existing scope.
+
+The Dashboard follow-up uses the maintainer-supplied [Figma Dashboard gallery](https://www.figma.com/templates/dashboard-designs/) as a composition reference, reviewed on 2026-10-29.
+The gallery previews for Simple dashboard mockup, Purity UI dashboard and Admin dashboard template demonstrate compact metric rows, a dominant analysis module and smaller supporting modules.
+Adapt those hierarchy and density patterns with Spellbook's existing fonts, semantic palette, navigation and native scrolling.
+Use four linked metric tiles, combine the current Inventory estimate and its history, and keep Deck availability actionable beside it.
+Use horizontal Set comparisons, a Finish ring with textual counts, and a compact Condition breakdown with zero-count conditions still available.
+Present recent owned entries as a gallery of full card frames linked to their Inventory details.
+Compact valuation views disclose coverage, reporting-calendar and gap explanations through native details rather than repeating prose across the overview.
+No copied template assets, new theme system, synthetic trends or new backend aggregates belong to this refinement.
+
 The [Wayfinder map](https://github.com/KyleDerZweite/spellbook/issues/194) owns its scope question and follow-up decisions.
 
 On 2026-10-06, Kyle selected Home, Search and Inventory as references for this refinement.
