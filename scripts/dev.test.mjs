@@ -20,7 +20,8 @@ async function fixture(
 		bodySizeLimit,
 		workerDataDir,
 		copiedEnv = false,
-		catalogExit
+		catalogExit,
+		catalogStartDelay = 0
 	} = {}
 ) {
 	const root = await mkdtemp(join(tmpdir(), 'spellbook-dev-'));
@@ -48,6 +49,7 @@ if (process.argv.includes('spellbook-migrate')) process.exit(0);
 if (process.argv.includes('spellbook-demo-seed')) process.exit(${seedFails ? 1 : 0});
 const record = (value) => appendFileSync(process.env.FIXTURE_ROOT + '/events', JSON.stringify(value) + '\\n');
 record({event:'start',name,demo:process.env.DEMO_MODE,bodySizeLimit:process.env.BODY_SIZE_LIMIT,api:process.env.API_INTERNAL_URL,host:process.env.API_HOST,port:process.env.API_PORT,trusted:process.env.API_TRUSTED_PROXY_ADDRESSES,database:process.env.DATABASE_URL,s3:process.env.S3_SECRET_ACCESS_KEY,pgPassword:process.env.PGPASSWORD,workerDataDir:process.env.WORKER_DATA_DIR,args:process.argv.slice(2)});
+if (name === 'catalog' && ${catalogStartDelay} > 0) await new Promise(resolve => setTimeout(resolve, ${catalogStartDelay}));
 if (name === 'catalog') writeFileSync(process.env.WORKER_DATA_DIR + '/probe', 'writable');
 console.log('fixture ready ' + name);
 if (name === 'catalog' && process.env.SYNC_INTERVAL === 'manual' && process.env.FIXTURE_CATALOG_EXIT) setTimeout(() => {record({event:'complete',name}); process.exit(Number(process.env.FIXTURE_CATALOG_EXIT));},150);
@@ -128,14 +130,9 @@ else if (args[0] === 'stop') {
 		const exited = once(child, 'exit').then(([code]) => ({ code, output }));
 		return { child, exited, output: () => output };
 	}
-	async function ready(server) {
+	async function ready(server, owners = ['frontend', 'backend', 'state']) {
 		for (let attempt = 0; attempt < 100; attempt++) {
-			if (
-				server.output().includes('fixture ready frontend') &&
-				server.output().includes('fixture ready backend') &&
-				server.output().includes('fixture ready state')
-			)
-				return;
+			if (owners.every((owner) => server.output().includes('fixture ready ' + owner))) return;
 			if (server.child.exitCode !== null) throw new Error(server.output());
 			await new Promise((resolve) => setTimeout(resolve, 20));
 		}
@@ -343,13 +340,18 @@ for (const bodySizeLimit of ['24M', '']) {
 for (const [label, options, relative] of [
 	['copied environment', { copiedEnv: true }, '.local/catalog'],
 	['missing setting', {}, '.local/catalog'],
-	['relative override', { copiedEnv: true, workerDataDir: '.local/custom' }, '.local/custom'],
+	[
+		'relative override',
+		{ copiedEnv: true, workerDataDir: '.local/custom', catalogStartDelay: 500 },
+		'.local/custom'
+	],
 	['absolute override', { copiedEnv: true, workerDataDir: 'absolute' }, '.local/absolute']
 ]) {
 	test(`dev Catalog storage is writable with ${label}`, async (t) => {
 		const f = await fixture(t, options);
 		const server = f.launch(['start']);
-		await f.ready(server);
+		// Catalog writes the probe before announcing readiness.
+		await f.ready(server, ['frontend', 'backend', 'state', 'catalog']);
 		server.child.kill('SIGTERM');
 		assert.equal((await server.exited).code, 0);
 		assert.equal(await readFile(join(f.root, relative, 'probe'), 'utf8'), 'writable');
