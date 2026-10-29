@@ -1,9 +1,9 @@
 # Local authentication and account recovery
 
 - Status: Canonical
-- Last Reviewed: 2026-10-25
+- Last Reviewed: 2026-10-28
 - Source of Truth: code
-- Update Triggers: canonical root operator commands and pre-release account scope, Python source activation and server contraction, prepared Python operator entrypoints and bundled canonical fixtures, independent API/web ownership and relocated code references, single root environment and demo launch configuration, registration policy, credential recovery command and backend operator lifetime, migration, reverse proxy origin, demo mode, versioned English Catalog publication and private starter preservation, original shipped Upgrades Unleashed Inventory and guarded replacement
+- Update Triggers: local Demo Catalog preservation, canonical root operator commands and pre-release account scope, Python source activation and server contraction, prepared Python operator entrypoints and bundled canonical fixtures, independent API/web ownership and relocated code references, single root environment and demo launch configuration, registration policy, credential recovery command and backend operator lifetime, migration, reverse proxy origin, demo mode, versioned English Catalog publication and private starter preservation, original shipped Upgrades Unleashed Inventory and guarded replacement
 - Related Docs: [Authentication architecture](../architecture/auth.md), [Deployment](./deployment.md), [Postgres](../architecture/postgres.md), [ADR-0009](../decisions/0009-local-authentication.md), [Catalog](../architecture/catalog.md), [Manual Demo Catalog updates](./deployment.md#manual-demo-catalog-update), [Pre-release policy](../../CONTRIBUTING.md#replacing-interfaces)
 
 New users register at `/auth/register` and sign in at `/auth/login`.
@@ -84,7 +84,8 @@ fnm exec --using 26.10.0 pnpm setup:python
 ./demo.sh
 ```
 
-`./demo.sh` runs the one-shot migrator, seeds Demo and starts API, State, Catalog, Scan and Vite with `DEMO_MODE=true`.
+`./demo.sh` runs the one-shot migrator, seeds Demo and starts API, State, Scan and Vite with `DEMO_MODE=true`.
+The local launcher omits the live Catalog worker in Demo mode to preserve the bundled Catalog; remote card images still require network access.
 Web receives only its safe presentation flag; API owns Demo authentication enforcement.
 Direct Vite startup alone does not start the API.
 Sign in with username `demo` and password `demo`.

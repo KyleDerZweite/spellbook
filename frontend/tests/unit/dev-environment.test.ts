@@ -188,7 +188,8 @@ console.log(JSON.stringify({args: process.argv.slice(2), envDir: config.envDir, 
 
 	it('loads the single root env into API and keeps deployment origin and secrets out of web', async () => {
 		const { children, storage, storageCreated, app, backend } = await launch();
-		expect(children).toHaveLength(5);
+		expect(children).toHaveLength(4);
+		expect(children.some((child) => child.cwd.endsWith('/workers/catalog'))).toBe(false);
 		expect(children.map((child) => child.cwd)).toEqual(expect.arrayContaining([app, backend]));
 		expect(storageCreated).toBe(true);
 		const api = children.find((child) => child.cwd === backend);
@@ -223,7 +224,8 @@ console.log(JSON.stringify({args: process.argv.slice(2), envDir: config.envDir, 
 
 	it('starts Scan and creates its storage without an opt-in flag', async () => {
 		const { children, storage, storageCreated, app, backend, scan } = await launch();
-		expect(children).toHaveLength(5);
+		expect(children).toHaveLength(4);
+		expect(children.some((child) => child.cwd.endsWith('/workers/catalog'))).toBe(false);
 		expect(children.map((child) => child.cwd)).toEqual(
 			expect.arrayContaining([app, backend, scan])
 		);

@@ -23,7 +23,7 @@
 			src={card.image_uri || card.image_uri_small}
 			alt={card.name}
 			loading="lazy"
-			class="block h-full w-full object-cover"
+			class="block h-full w-full object-contain"
 		/>
 		<!-- Foil shimmer overlay -->
 		{#if card.is_foil_available}
@@ -34,7 +34,7 @@
 	</div>
 
 	<!-- Card info -->
-	<div class="px-0.5 py-2">
+	<div class="px-2 py-2">
 		<p class="truncate text-sm font-medium leading-tight text-text-primary" title={card.name}>
 			{card.name}
 		</p>

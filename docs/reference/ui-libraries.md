@@ -1,9 +1,9 @@
 # Selected UI components
 
 - Status: Canonical
-- Last Reviewed: 2026-10-07
+- Last Reviewed: 2026-10-29
 - Source of Truth: accepted product decision, current application, upstream documentation
-- Update Triggers: component adoption, generated source ownership, Svelte or Tailwind compatibility, interaction requirements, shared scrolling, Search native window/modal hosts and hybrid pagination, filter editing and destructive confirmation
+- Update Triggers: shared D3 analytics charts, component adoption, generated source ownership, Svelte or Tailwind compatibility, interaction requirements, shared scrolling, Search native window/modal hosts and hybrid pagination, filter editing and destructive confirmation
 - Related Docs: [Reference](./README.md), [Bits UI](./bits-ui.md), [Frontend](../architecture/frontend.md), [Catalog](../architecture/catalog.md), [Design direction](../product/ui-design-direction.md), [Product specification](../product/specification.md)
 
 Spellbook uses shadcn-svelte source components with Bits UI, Svelte, and Tailwind.
@@ -78,3 +78,18 @@ The [Kit installation guide](https://github.com/huntabyte/shadcn-svelte/blob/mai
 Read the [local Bits UI index](./bits-ui.md) before changing its controls.
 
 Future component changes must satisfy the [interface acceptance criteria](../product/specification.md#interface-acceptance) and follow the [verification workflow](../operations/github-automation.md#browser-verification-and-evidence).
+
+## Analytics charts
+
+The shared `frontend/src/lib/components/charts/` components use `d3-scale` for zero-based quantitative scales and calendar positioning and `d3-shape` for value-history paths.
+These small, framework-independent modules supply chart mathematics without adding a second component or theme system.
+Svelte renders server-compatible SVG and native controls using the existing semantic palette.
+The [D3 scale documentation](https://d3js.org/d3-scale/linear) and [line documentation](https://d3js.org/d3-shape/line) own the upstream APIs.
+`@types/d3-scale` and `@types/d3-shape` supply development-only declarations.
+
+Distribution rows expose the count and share as text and support pointer, focus and tap inspection.
+Stacked Deck availability retains its exact, alternate and missing labels and counts.
+Value history uses the existing exact-value normalizer before D3 positioning; it never converts arbitrary decimal amounts into floating-point money.
+The native observation slider supports keyboard and touch inspection; the observations table retains full values, coverage and reporting times without JavaScript.
+Missing dates and wholly unknown observations break lines, while captured known zero remains a plotted value.
+Shared [design direction](../product/ui-design-direction.md) and [frontend ownership](../architecture/frontend.md#private-value-presentation) govern composition and data semantics.

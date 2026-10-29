@@ -19,6 +19,7 @@ Start the configured local development environment with `./dev.sh`.
 Use `./demo.sh` for Demo mode and `./demo.sh stop` to stop the launcher.
 This starts the API on loopback port 3001 and Vite on port 5173.
 Startup applies the installed Python migrator once, then starts the independent State, Catalog and Scan workers.
+Demo mode uses the bundled Catalog and omits the live Catalog worker.
 Prepare Python environments with `pnpm setup:python` before first startup.
 See [local development setup](docs/operations/deployment.md#local-development) for prerequisites, independent build/start commands and private configuration.
 

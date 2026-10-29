@@ -1,4 +1,7 @@
 <script lang="ts">
+	import WorkspaceHeader from '#lib/components/layout/WorkspaceHeader.svelte';
+	import DistributionChart from '#lib/components/charts/DistributionChart.svelte';
+	import StackedBar from '#lib/components/charts/StackedBar.svelte';
 	import { historyBoundaryTimer } from '#lib/valuation/history-boundary.ts';
 	import ValueSummary from '#lib/components/valuation/ValueSummary.svelte';
 	import InventoryValueHistory from '#lib/components/valuation/InventoryValueHistory.svelte';
@@ -58,8 +61,24 @@
 	const otherSets = $derived(
 		dashboard?.sets.slice(8).reduce((sum, set) => sum + set.quantity, 0) ?? 0
 	);
-	const setScale = $derived(Math.max(1, otherSets, ...topSets.map((set) => set.quantity)));
-	const percent = new Intl.NumberFormat(undefined, { style: 'percent', maximumFractionDigits: 1 });
+	const setItems = $derived([
+		...topSets.map((set) => ({
+			label: set.label.toUpperCase(),
+			value: set.quantity,
+			share: set.share
+		})),
+		...(otherSets > 0 && dashboard
+			? [
+					{
+						label: `Other · ${otherSetCount} sets`,
+						value: otherSets,
+						share: otherSets / dashboard.totals.total,
+						color: 'var(--color-text-muted)'
+					}
+				]
+			: [])
+	]);
+
 	async function retry() {
 		retrying = true;
 		try {
@@ -75,13 +94,10 @@
 >
 <div class="workspace-container dashboard-page">
 	<SavedStateStatus resource={subscription} />
-	<header class="dashboard-header">
-		<div class="page-title"><h1>Dashboard</h1></div>
-		<div class="dashboard-actions">
-			<a href="/mtg/history" class="btn btn-secondary btn-sm">Inventory history</a>
-			<a href="/mtg/search" class="btn btn-primary btn-sm">Add cards</a>
-		</div>
-	</header>
+	<WorkspaceHeader title="Dashboard">
+		{#snippet actions()}<a href="/mtg/history" class="btn btn-secondary btn-sm">Inventory history</a
+			><a href="/mtg/search" class="btn btn-primary btn-sm">Add cards</a>{/snippet}
+	</WorkspaceHeader>
 	{#if loadError}
 		<div class="dashboard-empty" role="alert">
 			<p>{loadError}</p>
@@ -90,7 +106,15 @@
 			>
 		</div>
 	{:else if dashboard}
-		<div class="my-5 grid gap-4 lg:grid-cols-[1fr_2fr]">
+		<dl class="dashboard-totals">
+			{#each [{ label: 'Cards owned', value: dashboard.totals.total }, { label: 'Card names', value: dashboard.totals.names }, { label: 'Printings', value: dashboard.totals.printings }, { label: 'Sets', value: dashboard.totals.sets }] as stat}
+				<div>
+					<dt>{stat.label}</dt>
+					<dd>{stat.value.toLocaleString()}</dd>
+				</div>
+			{/each}
+		</dl>
+		<div class="value-overview">
 			<ValueSummary
 				estimate={dashboard.inventoryValue?.estimate ?? null}
 				evaluatedAt={dashboard.inventoryValue?.evaluatedAt}
@@ -103,25 +127,14 @@
 				onRetry={() => subscription?.invalidate()}
 			/>
 		</div>
-		<dl class="dashboard-totals">
-			<div class="owned-total">
-				<dd>{dashboard.totals.total.toLocaleString()}</dd>
-				<dt>Cards owned</dt>
-			</div>
-			{#each [{ label: 'Card names', value: dashboard.totals.names }, { label: 'Printings', value: dashboard.totals.printings }, { label: 'Sets', value: dashboard.totals.sets }] as stat}<div
-				>
-					<dd>{stat.value.toLocaleString()}</dd>
-					<dt>{stat.label}</dt>
-				</div>{/each}
-		</dl>
 		{#if dashboard.totals.total === 0}
 			<div class="dashboard-empty">
 				<p>Your inventory is empty. Add cards from Search.</p>
 				<a href="/mtg/search" class="btn btn-primary btn-sm">Add cards</a>
 			</div>
 		{/if}
-		<div class="dashboard-overview" class:empty-inventory={dashboard.totals.total === 0}>
-			<section aria-labelledby="decks-heading">
+		<div class="dashboard-overview">
+			<section class="analytics-panel" aria-labelledby="decks-heading">
 				<div class="section-heading">
 					<h2 id="decks-heading">
 						Deck availability <span>{dashboard.totals.decks.toLocaleString()}</span>
@@ -140,119 +153,68 @@
 									>
 								</div>
 								{#if deck.required > 0}
-									<div class="deck-required">{deck.required.toLocaleString()} required</div>
-									<div class="composition-bar" aria-hidden="true">
-										<span class="exact" style:width={`${(deck.exact / deck.required) * 100}%`}
-										></span><span
-											class="alternate"
-											style:width={`${(deck.alternate / deck.required) * 100}%`}
-										></span><span
-											class="missing"
-											style:width={`${(deck.missing / deck.required) * 100}%`}
-										></span>
-									</div>
+									<p class="deck-required">{deck.required.toLocaleString()} required</p>
+									<StackedBar
+										label={`${deck.name} availability`}
+										segments={[
+											{ label: 'Exact', value: deck.exact, color: 'var(--color-success)' },
+											{ label: 'Alternate', value: deck.alternate, color: 'var(--color-violet)' },
+											{ label: 'Missing', value: deck.missing, color: 'var(--color-warning)' }
+										]}
+									/>
 									<dl class="deck-values">
-										<div class="exact">
-											<dt><span class="legend-mark"></span>Exact</dt>
-											<dd>{deck.exact.toLocaleString()}</dd>
-										</div>
-										<div class="alternate">
-											<dt><span class="legend-mark"></span>Alternate</dt>
-											<dd>{deck.alternate.toLocaleString()}</dd>
-										</div>
-										<div class="missing">
-											<dt><span class="legend-mark"></span>Missing</dt>
-											<dd>{deck.missing.toLocaleString()}</dd>
-										</div>
+										{#each [{ label: 'Exact', value: deck.exact, color: 'var(--color-success)' }, { label: 'Alternate', value: deck.alternate, color: 'var(--color-violet)' }, { label: 'Missing', value: deck.missing, color: 'var(--color-warning)' }] as part}<div
+											>
+												<dt><span style:background={part.color}></span>{part.label}</dt>
+												<dd>{part.value.toLocaleString()}</dd>
+											</div>{/each}
 									</dl>
-								{:else}<p class="dashboard-note empty-deck">No cards yet.</p>{/if}
+								{:else}<p class="dashboard-note">No cards yet.</p>{/if}
 							</li>{/each}
 					</ul>
 				{:else}<p class="dashboard-note">No decks yet.</p>
 					<a href="/mtg/decks" class="btn btn-secondary btn-sm">Create a deck</a>{/if}
 			</section>
 			{#if dashboard.totals.total > 0}
-				<section aria-labelledby="sets-heading">
+				<section class="analytics-panel" aria-labelledby="sets-heading">
 					<div class="section-heading">
 						<h2 id="sets-heading">Sets</h2>
 						<span class="unit-label">Copies · Share</span>
 					</div>
-					<dl
-						class="set-distribution"
-						style:--set-count-width={`${Math.max(3, setScale.toLocaleString().length)}ch`}
-					>
-						{#each topSets as set}<div>
-								<dt>{set.label.toUpperCase()}</dt>
-								<dd>
-									<span class="set-bar" aria-hidden="true"
-										><span style:width={`${(set.quantity / setScale) * 100}%`}></span></span
-									><span>{set.quantity.toLocaleString()}</span><span class="set-share"
-										>{percent.format(set.share)}</span
-									>
-								</dd>
-							</div>{/each}
-						{#if otherSets > 0}<div class="other-sets">
-								<dt>Other sets <small>{otherSetCount.toLocaleString()} sets</small></dt>
-								<dd>
-									<span class="set-bar" aria-hidden="true"
-										><span style:width={`${(otherSets / setScale) * 100}%`}></span></span
-									><span>{otherSets.toLocaleString()}</span><span class="set-share"
-										>{percent.format(otherSets / dashboard.totals.total)}</span
-									>
-								</dd>
-							</div>{/if}
-					</dl>
+					<DistributionChart label="Owned copies by set" items={setItems} />
 				</section>
 			{/if}
 		</div>
 		{#if dashboard.totals.total > 0}
 			<div class="inventory-profile">
-				<section aria-labelledby="finish-heading">
+				<section class="analytics-panel" aria-labelledby="finish-heading">
 					<div class="section-heading">
 						<h2 id="finish-heading">Finish</h2>
 						<span class="unit-label">{dashboard.totals.foils.toLocaleString()} foil copies</span>
 					</div>
-					<div class="composition-bar" aria-hidden="true">
-						{#each dashboard.finishes as finish}<span
-								data-finish={finish.label}
-								style:width={`${finish.share * 100}%`}
-							></span>{/each}
-					</div>
-					<dl class="profile-values">
-						{#each dashboard.finishes as finish}<div data-finish={finish.label}>
-								<dt>
-									<span class="legend-mark"></span>{finishLabels[finish.label] ?? finish.label}
-								</dt>
-								<dd>
-									{finish.quantity.toLocaleString()} <span>{percent.format(finish.share)}</span>
-								</dd>
-							</div>{/each}
-					</dl>
+					<DistributionChart
+						label="Owned copies by finish"
+						items={dashboard.finishes.map((item) => ({
+							label: finishLabels[item.label] ?? item.label,
+							value: item.quantity,
+							share: item.share,
+							color: item.label === 'foil' ? 'var(--color-violet)' : 'var(--color-chart-primary)'
+						}))}
+					/>
 				</section>
-				<section aria-labelledby="condition-heading">
-					<h2 id="condition-heading">Condition</h2>
-					<div class="composition-bar" aria-hidden="true">
-						{#each dashboard.conditions as condition}<span
-								data-condition={condition.label}
-								style:width={`${condition.share * 100}%`}
-							></span>{/each}
-					</div>
-					<dl class="profile-values condition-values">
-						{#each dashboard.conditions as condition}<div data-condition={condition.label}>
-								<dt>
-									<span class="legend-mark"></span><span
-										>{conditionLabels[condition.label] ?? condition.label}</span
-									>
-								</dt>
-								<dd>
-									{condition.quantity.toLocaleString()}
-									<span>{percent.format(condition.share)}</span>
-								</dd>
-							</div>{/each}
-					</dl>
+				<section class="analytics-panel" aria-labelledby="condition-heading">
+					<div class="section-heading"><h2 id="condition-heading">Condition</h2></div>
+					<DistributionChart
+						label="Owned copies by condition"
+						items={dashboard.conditions.map((item) => ({
+							label: conditionLabels[item.label] ?? item.label,
+							value: item.quantity,
+							share: item.share
+						}))}
+					/>
 				</section>
 			</div>
-		{:else}<p class="dashboard-note">{dashboard.totals.foils.toLocaleString()} foil copies</p>{/if}
+		{/if}
 		<section class="recent-section" aria-labelledby="recent-heading">
 			<div class="section-heading">
 				<h2 id="recent-heading">Recently edited inventory</h2>
@@ -260,14 +222,15 @@
 			</div>
 			<ul class="recent-entries">
 				{#each dashboard.recentEntries as entry}<li>
-						<a href={`/mtg/search?q=${encodeURIComponent(entry.name)}`}>
+						<a href={`/mtg/inventory/${encodeURIComponent(entry.id)}`}>
 							{#if entry.imageUri}<img
 									src={entry.imageUri}
 									alt=""
-									width="34"
-									height="48"
+									width="64"
+									height="90"
 									loading="lazy"
-								/>{/if}<span class="entry-info"
+								/>{/if}
+							<span class="entry-info"
 								><strong>{entry.name}</strong><small
 									>{entry.setCode.toUpperCase()} · {finishLabels[entry.finish] ?? entry.finish} · {entry.condition}</small
 								></span
@@ -280,82 +243,71 @@
 </div>
 
 <style>
-	.dashboard-header,
-	.dashboard-actions,
-	.section-heading,
-	.deck-heading {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 1rem;
-	}
-	.dashboard-actions {
-		flex-wrap: wrap;
-		gap: 0.5rem;
-	}
 	.dashboard-totals {
 		display: grid;
-		grid-template-columns: 1.35fr repeat(3, 1fr);
-		align-items: end;
-		gap: 1.5rem;
-		margin: 1.5rem 0 2rem;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: 1rem;
+		margin: 2.5rem 0;
 	}
-	dd {
-		font-variant-numeric: tabular-nums;
-	}
-	.dashboard-totals dd {
-		font-size: 1.5rem;
-		line-height: 1.3;
-	}
-	.dashboard-totals .owned-total dd {
-		font-size: 2.5rem;
-	}
-	.dashboard-totals dt,
-	.dashboard-note,
-	.unit-label,
-	small,
-	.deck-required,
-	.deck-heading span {
+	.dashboard-totals dt {
 		color: var(--color-text-secondary);
 		font-size: 0.75rem;
 	}
-	h2 {
+	.dashboard-totals dd {
 		font-family: var(--font-display);
-		font-size: 1.35rem;
-		font-weight: 400;
-		margin-bottom: 1rem;
+		font-size: clamp(2rem, 3vw, 3rem);
+		font-variant-numeric: tabular-nums;
+		margin-top: 0.5rem;
+		line-height: 1.2;
 	}
-	h2 span {
-		margin-left: 0.5rem;
-		font: 0.875rem var(--font-body);
-		color: var(--color-text-secondary);
-	}
-	.dashboard-overview {
+	.value-overview {
 		display: grid;
-		grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-		gap: 3rem;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+		gap: 1.5rem;
+		margin-bottom: 2rem;
 	}
-	.dashboard-overview.empty-inventory {
-		grid-template-columns: 1fr;
+	.dashboard-overview,
+	.inventory-profile {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		gap: 1.5rem;
+		margin-bottom: 1.5rem;
 	}
 	section {
 		min-width: 0;
 	}
-	.section-heading {
+	.section-heading,
+	.deck-heading {
+		display: flex;
 		align-items: baseline;
+		justify-content: space-between;
 		flex-wrap: wrap;
 		gap: 0.5rem;
-		margin-bottom: 1rem;
 	}
-	.section-heading h2 {
-		margin-bottom: 0;
+	.section-heading {
+		margin-bottom: 1.25rem;
 	}
-	.section-heading a {
-		font-size: 0.75rem;
+	h2 {
+		font-family: var(--font-display);
+		font-size: 1.25rem;
+		font-weight: 400;
+	}
+	h2 span {
+		margin-left: 0.5rem;
+		color: var(--color-text-muted);
+		font: 0.75rem var(--font-body);
+	}
+	.section-heading a,
+	.unit-label,
+	.dashboard-note,
+	.deck-heading span,
+	.deck-required {
+		font-size: 0.7rem;
+		color: var(--color-text-secondary);
 	}
 	.dashboard-note {
-		line-height: 1.7;
-		margin-bottom: 1rem;
+		line-height: 1.8;
+		margin-bottom: 1.25rem;
 	}
 	.deck-list,
 	.recent-entries {
@@ -364,195 +316,64 @@
 		margin: 0;
 	}
 	.deck-list li + li {
-		margin-top: 1.25rem;
-		padding-top: 1.25rem;
+		margin-top: 1.5rem;
+		padding-top: 1.5rem;
 		border-top: 1px solid var(--color-border);
 	}
-	.deck-heading {
-		align-items: baseline;
-		flex-wrap: wrap;
-		gap: 0.4rem 0.75rem;
-	}
 	.deck-heading a {
-		font-size: 0.875rem;
+		font-size: 0.8rem;
 		overflow-wrap: anywhere;
 	}
 	.deck-required {
-		margin: 0.4rem 0 0.75rem;
-	}
-	.composition-bar {
-		display: flex;
-		width: 100%;
-		height: 12px;
-		overflow: hidden;
-		border-radius: 3px;
-	}
-	.composition-bar > span {
-		height: 100%;
-		background: var(--segment-color);
-	}
-	.exact {
-		--segment-color: var(--color-success);
-	}
-	.alternate,
-	[data-finish='foil'] {
-		--segment-color: var(--color-violet);
-	}
-	.missing {
-		--segment-color: var(--color-warning);
-	}
-	.composition-bar .missing,
-	.missing .legend-mark {
-		background-image: repeating-linear-gradient(
-			135deg,
-			transparent 0 3px,
-			var(--color-background) 3px 4px
-		);
-	}
-	[data-finish='nonfoil'] {
-		--segment-color: var(--color-text-muted);
-	}
-	[data-condition='NM'] {
-		--segment-color: var(--color-success);
-	}
-	[data-condition='LP'] {
-		--segment-color: var(--color-info);
-	}
-	[data-condition='MP'] {
-		--segment-color: var(--color-warning);
-	}
-	[data-condition='HP'] {
-		--segment-color: var(--color-violet);
-	}
-	[data-condition='DMG'] {
-		--segment-color: var(--color-error);
+		margin: 0.5rem 0 0.75rem;
 	}
 	.deck-values {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: 0.5rem;
-		margin-top: 0.6rem;
-		font-size: 0.75rem;
+		margin-top: 0.75rem;
 	}
-	.deck-values dt,
-	.profile-values dt {
+	.deck-values dt {
 		display: flex;
 		align-items: center;
 		gap: 0.4rem;
 		color: var(--color-text-secondary);
+		font-size: 0.65rem;
 	}
-	.condition-values dt {
-		align-items: baseline;
-		overflow-wrap: anywhere;
+	.deck-values dt span {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
 	}
 	.deck-values dd {
-		margin-top: 0.35rem;
+		font-variant-numeric: tabular-nums;
 		font-size: 1rem;
-	}
-	.legend-mark {
-		display: inline-block;
-		width: 8px;
-		height: 8px;
-		border-radius: 1px;
-		background: var(--segment-color);
-		flex-shrink: 0;
-	}
-	.empty-deck {
-		margin: 0.5rem 0 0;
-	}
-	.set-distribution {
-		font-size: 0.8rem;
-	}
-	.set-distribution > div {
-		display: grid;
-		grid-template-columns: 7rem minmax(0, 1fr);
-		align-items: center;
-		gap: 1rem;
-		min-height: 32px;
-	}
-	.set-distribution dt {
-		overflow-wrap: anywhere;
-	}
-	.set-distribution dd {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) var(--set-count-width) 4rem;
-		align-items: center;
-		gap: 0.75rem;
-		text-align: right;
-	}
-	.set-bar {
-		height: 12px;
-	}
-	.set-bar > span {
-		display: block;
-		height: 100%;
-		background: var(--color-info);
-		border-radius: 2px;
-	}
-	.set-share {
-		color: var(--color-text-secondary);
-		font-size: 0.75rem;
-	}
-	.set-distribution .other-sets {
-		margin-top: 0.4rem;
-		padding-top: 0.6rem;
-		border-top: 1px solid var(--color-border);
-	}
-	.other-sets small {
-		display: block;
-		margin-top: 0.2rem;
-	}
-	.other-sets .set-bar > span {
-		background: var(--color-text-muted);
-	}
-	.inventory-profile {
-		display: grid;
-		grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-		gap: 3rem;
-		margin-top: 2rem;
-	}
-	.profile-values {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.75rem 2rem;
-		margin-top: 0.75rem;
-		font-size: 0.75rem;
-	}
-	.profile-values dd {
-		margin-top: 0.35rem;
-	}
-	.profile-values dd span {
-		margin-left: 0.5rem;
-		color: var(--color-text-secondary);
-	}
-	.condition-values {
-		display: grid;
-		grid-template-columns: repeat(5, minmax(0, 1fr));
-		gap: 0.75rem;
+		margin-top: 0.25rem;
 	}
 	.recent-section {
-		margin-top: 2rem;
+		margin-top: 2.5rem;
 	}
 	.recent-entries {
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 0 3rem;
+		gap: 0.5rem 2rem;
 	}
 	.recent-entries a {
 		display: flex;
 		align-items: center;
-		gap: 0.75rem;
-		padding: 0.6rem 0;
-		text-decoration: none;
+		gap: 1rem;
+		padding: 0.75rem;
+		border-radius: 0.75rem;
 		color: var(--color-text-primary);
+		text-decoration: none;
 	}
-	.recent-entries a:hover strong {
-		text-decoration: underline;
-		text-underline-offset: 3px;
+	.recent-entries a:hover,
+	.recent-entries a:focus-visible {
+		background: var(--color-surface);
 	}
 	.recent-entries img {
-		object-fit: cover;
-		border-radius: 3px;
+		object-fit: contain;
+		border-radius: 5px;
 		flex-shrink: 0;
 	}
 	.entry-info {
@@ -561,70 +382,46 @@
 	.recent-entries strong {
 		display: block;
 		font-size: 0.8rem;
-		font-weight: 400;
+		font-weight: 500;
 		overflow-wrap: anywhere;
 	}
-	.recent-entries small {
+	small {
 		display: block;
-		margin-top: 0.25rem;
+		margin-top: 0.5rem;
+		color: var(--color-text-secondary);
+		font-size: 0.65rem;
 	}
 	.entry-quantity {
 		margin-left: auto;
-		font-size: 0.8rem;
 		flex-shrink: 0;
+		font-size: 0.8rem;
 	}
 	.dashboard-empty {
-		padding: 1rem 0 2rem;
+		padding: 2rem 0;
 		font-size: 0.85rem;
 		line-height: 1.8;
 	}
 	.dashboard-empty p {
-		max-width: 45rem;
 		margin-bottom: 1rem;
 	}
 	@media (max-width: 900px) {
+		.value-overview,
 		.dashboard-overview,
 		.inventory-profile {
 			grid-template-columns: 1fr;
-			gap: 2rem;
-		}
-		.recent-entries {
-			gap: 0 1.5rem;
 		}
 	}
 	@media (max-width: 600px) {
-		.dashboard-header {
-			align-items: flex-start;
-			flex-direction: column;
-		}
 		.dashboard-totals {
-			grid-template-columns: repeat(3, minmax(0, 1fr));
-			gap: 1rem;
-		}
-		.dashboard-totals .owned-total {
-			grid-column: 1/-1;
-		}
-		.dashboard-totals .owned-total dd {
-			font-size: 2.25rem;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+			gap: 1.5rem;
+			margin: 2rem 0;
 		}
 		.recent-entries {
 			grid-template-columns: 1fr;
 		}
-		.set-distribution > div {
-			grid-template-columns: 5.5rem minmax(0, 1fr);
-			gap: 0.5rem;
-		}
-		.set-distribution dd {
-			grid-template-columns: minmax(0, 1fr) var(--set-count-width) 3.5rem;
-			gap: 0.5rem;
-		}
-		.condition-values {
-			grid-template-columns: repeat(3, minmax(0, 1fr));
-		}
-	}
-	@media (max-width: 360px) {
-		.condition-values {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
+		.recent-entries a {
+			padding-inline: 0;
 		}
 	}
 </style>

@@ -72,7 +72,10 @@ const webPort = webOrigin.port || '80';
 const scanPort = process.env.DEV_SCAN_PORT?.trim() || '8087';
 
 await mkdir(resolve(root, '.local'), { recursive: true });
-const state = JSON.stringify({ pid: process.pid, identity: await identity(process.pid) });
+const state = JSON.stringify({
+	pid: process.pid,
+	identity: await identity(process.pid)
+});
 const temporaryState = `${statePath}.${process.pid}.tmp`;
 await writeFile(temporaryState, state, { flag: 'wx', mode: 0o600 });
 try {
@@ -251,6 +254,8 @@ try {
 			['workers/state', 'spellbook-state-worker'],
 			['workers/catalog', 'python']
 		]) {
+			// Demo owns its versioned Catalog; a live import would replace that fixture.
+			if (directory === 'workers/catalog' && env.DEMO_MODE === 'true') continue;
 			start(
 				'uvx',
 				[
