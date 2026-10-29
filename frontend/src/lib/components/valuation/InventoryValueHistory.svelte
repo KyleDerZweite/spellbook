@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import ValueHistoryChart from '#lib/components/charts/ValueHistoryChart.svelte';
 	import type { InventoryValueHistory } from '@spellbook/contracts/inventory-value.ts';
 	import { formatValueEUR } from '#lib/valuation/money.ts';
@@ -12,13 +13,15 @@
 		loading = false,
 		error = '',
 		onRetry,
-		compact = false
+		compact = false,
+		summary
 	}: {
 		history: InventoryValueHistory | null;
 		loading?: boolean;
 		error?: string;
 		onRetry?: () => void;
 		compact?: boolean;
+		summary?: Snippet;
 	} = $props();
 	let chart = $derived(historyChart(history?.points ?? []));
 	let captured = $derived(history?.points.filter((point) => point.kind === 'Captured').length ?? 0);
@@ -29,9 +32,9 @@
 	aria-label={history?.identity ? 'Card value history' : 'Inventory value history'}
 	aria-busy={loading}
 >
-	<h2 class="analytics-title">
-		{history?.identity ? 'Card value history' : 'Inventory value history'}
-	</h2>
+	{#if summary}{@render summary()}{:else}<h2 class="analytics-title">
+			{history?.identity ? 'Card value history' : 'Inventory value history'}
+		</h2>{/if}
 	{#if loading}<p class="mt-3 text-sm" role="status">Loading Inventory history…</p>
 	{:else if error}
 		<p class="mt-3 text-sm" role="alert">{error}</p>
@@ -39,34 +42,56 @@
 				>Retry history</button
 			>{/if}
 	{:else if history}
-		<p class="mt-1 text-xs text-text-muted">
-			{history.window.from} to {history.window.to} · Reporting calendar {history.timezone}
+		<p class="history-window">
+			{#if compact}{history.timezone} reporting calendar{:else}{history.window.from} to {history
+					.window.to} · Reporting calendar {history.timezone}{/if}
 		</p>
-		<p class="mt-2 text-sm text-text-muted">
-			Daily estimates captured near midnight. Missing days remain gaps.
-		</p>
-		{#if captured === 0}<p class="mt-3 text-sm">No captured observations in this window.</p>
-		{:else if chart.segments.length === 0}<p class="mt-3 text-sm">
-				All captured quantities have unknown references. No value can be plotted.
-			</p>
+		{#if !compact}<p class="mt-2 text-sm text-text-muted">
+				Daily estimates captured near midnight. Missing days remain gaps.
+			</p>{/if}
+		{#if captured === 0 || chart.segments.length === 0}
+			<div class="history-empty">
+				<svg
+					viewBox="0 0 24 24"
+					width="24"
+					height="24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="1.5"
+					aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 3v6h6M12 7v5l3 2" /></svg
+				>
+				<strong
+					>{captured === 0 ? 'No daily observations yet' : 'No priced observations yet'}</strong
+				>
+				<p>
+					{captured === 0
+						? 'Closed reporting dates will appear here after capture.'
+						: 'Captured copies have no known price references. Values remain unknown.'}
+				</p>
+			</div>
 		{:else}
 			<ValueHistoryChart
 				points={history.points}
 				from={history.window.from}
 				to={history.window.to}
 			/>
-			<p class="break-words text-xs text-text-muted">
-				Highest captured covered value: {formatValueEUR(
-					`${chart.maximum / 100n}.${(chart.maximum % 100n).toString().padStart(2, '0')}`
-				)}.
-			</p>
-			<p class="text-xs text-text-muted">
-				Filled points have complete coverage. Outlined points have partial coverage. Gaps and wholly
-				unknown observations break the line.
-			</p>
+			{#if !compact}<p class="break-words text-xs text-text-muted">
+					Highest captured covered value: {formatValueEUR(
+						`${chart.maximum / 100n}.${(chart.maximum % 100n).toString().padStart(2, '0')}`
+					)}.
+				</p>
+				<p class="text-xs text-text-muted">
+					Filled points have complete coverage. Outlined points have partial coverage. Gaps and
+					wholly unknown observations break the line.
+				</p>{/if}
 		{/if}
 		<details class="mt-3" open={!compact}>
 			<summary class="cursor-pointer text-sm">Daily observations and coverage</summary>
+			{#if compact}<p class="history-notes">
+					{history.window.from} to {history.window.to}. Daily estimates are captured near midnight.
+					Filled points have complete coverage; outlined points have partial coverage. Missing dates
+					and wholly unknown observations break the line.
+				</p>{/if}
 			<!-- svelte-ignore a11y_no_noninteractive_tabindex (The overflow region needs keyboard focus for horizontal scrolling.) -->
 			<div
 				class="mt-2 overflow-x-auto"
@@ -119,3 +144,42 @@
 		</details>
 	{:else}<p class="mt-3 text-sm text-text-muted">History unavailable.</p>{/if}
 </section>
+
+<style>
+	.history-window {
+		margin: 1rem 0 0.25rem;
+		font-size: 0.6875rem;
+		color: var(--color-text-muted);
+	}
+	.history-empty {
+		display: flex;
+		min-height: 156px;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0.65rem;
+		padding: 1.5rem 0.5rem;
+		text-align: center;
+		border-block: 1px dashed var(--color-border);
+		margin-top: 1rem;
+	}
+	.history-empty svg {
+		color: var(--color-text-muted);
+	}
+	.history-empty strong {
+		font-weight: 500;
+		font-size: 0.8125rem;
+	}
+	.history-empty p {
+		font-size: 0.6875rem;
+		line-height: 1.7;
+		color: var(--color-text-muted);
+		max-width: 40ch;
+	}
+	.history-notes {
+		margin-top: 0.75rem;
+		font-size: 0.6875rem;
+		line-height: 1.7;
+		color: var(--color-text-secondary);
+	}
+</style>

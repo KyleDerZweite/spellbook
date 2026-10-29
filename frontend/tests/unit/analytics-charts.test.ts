@@ -1,5 +1,7 @@
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
+import CompositionRing from '#lib/components/charts/CompositionRing.svelte';
+import ValueSummary from '#lib/components/valuation/ValueSummary.svelte';
 import DistributionChart from '#lib/components/charts/DistributionChart.svelte';
 import ValueHistoryChart from '#lib/components/charts/ValueHistoryChart.svelte';
 import type { InventoryValueHistoryPoint } from '@spellbook/contracts/inventory-value.ts';
@@ -66,5 +68,63 @@ describe('shared analytics charts', () => {
 			expect(body).not.toMatch(/NaN|Infinity/);
 			expect(body).toContain(value === '0.00' ? '€0.00' : '.99');
 		}
+	});
+});
+
+describe('compact collection composition', () => {
+	it('exposes all finish quantities including zero without inventing a ring segment', async () => {
+		const { body } = await render(CompositionRing, {
+			props: {
+				label: 'Owned copies by finish',
+				items: [
+					{ label: 'Nonfoil', value: 0, share: 0, color: 'blue' },
+					{ label: 'Foil', value: 0, share: 0, color: 'violet' }
+				]
+			}
+		});
+		expect(body).toContain('0 copies');
+		expect(body).toContain('Nonfoil: 0 copies, 0%');
+		expect(body).not.toContain('<path');
+		expect(body).not.toMatch(/NaN|Infinity/);
+	});
+	it('retains known and unknown coverage in a compact current estimate', async () => {
+		const { body } = await render(ValueSummary, {
+			props: {
+				compact: true,
+				estimate: {
+					currency: 'EUR',
+					coveredValue: '0.00',
+					coveredQuantity: 0,
+					staleQuantity: 0,
+					unknownQuantity: 101,
+					totalQuantity: 101,
+					complete: false
+				}
+			}
+		});
+		expect(body).toContain('Unknown');
+		expect(body).toContain('101 unknown');
+		expect(body).toContain('Coverage details');
+		expect(body).toContain('Copies with known price references');
+		expect(body).not.toContain('€0.00');
+	});
+	it('keeps a captured empty inventory as a known zero rather than unknown', async () => {
+		const { body } = await render(ValueSummary, {
+			props: {
+				compact: true,
+				estimate: {
+					currency: 'EUR',
+					coveredValue: '0.00',
+					coveredQuantity: 0,
+					staleQuantity: 0,
+					unknownQuantity: 0,
+					totalQuantity: 0,
+					complete: true
+				}
+			}
+		});
+		expect(body).toContain('€0.00');
+		expect(body).not.toContain('>Unknown<');
+		expect(body).not.toContain('<progress');
 	});
 });

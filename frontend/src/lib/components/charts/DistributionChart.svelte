@@ -14,15 +14,13 @@
 			.nice(4)
 			.range([0, 100])
 	);
-	const ticks = $derived(scale.ticks(4));
+	const ticks = $derived(scale.ticks(4).filter(Number.isInteger));
+	const tickFormat = $derived(scale.tickFormat(4, '~s'));
 	const percent = new Intl.NumberFormat(undefined, { style: 'percent', maximumFractionDigits: 1 });
 	const active = $derived(items.find((item) => item.label === selected));
 </script>
 
 <div class="distribution-chart" role="group" aria-label={label}>
-	<div class="chart-axis" aria-hidden="true">
-		{#each ticks as tick}<span style:left={`${scale(tick)}%`}>{tick.toLocaleString()}</span>{/each}
-	</div>
 	{#each items as item (item.label)}
 		<button
 			type="button"
@@ -34,61 +32,43 @@
 			onfocus={() => (selected = item.label)}
 			onpointerenter={() => (selected = item.label)}
 		>
-			<span class="chart-label">{item.label}</span>
-			<svg viewBox="0 0 100 24" preserveAspectRatio="none" aria-hidden="true">
-				{#each ticks as tick}<line
-						x1={scale(tick)}
-						x2={scale(tick)}
-						y1="0"
-						y2="24"
-						class="chart-grid"
-					/>{/each}
+			<span class="chart-row-heading"
+				><span class="chart-label">{item.label}</span><span class="chart-value"
+					>{item.value.toLocaleString()} <small>{percent.format(item.share)}</small></span
+				></span
+			>
+			<svg viewBox="0 0 100 12" preserveAspectRatio="none" aria-hidden="true">
+				<rect width="100" height="12" rx="1" class="chart-track" />
 				<rect
 					x="0"
-					y="4"
+					y="0"
 					width={scale(item.value)}
-					height="16"
+					height="12"
 					rx="1"
 					fill={item.color ?? 'var(--color-chart-primary)'}
 				/>
 			</svg>
-			<span class="chart-value"
-				>{item.value.toLocaleString()}<small>{percent.format(item.share)}</small></span
-			>
 		</button>
 	{/each}
+	<div class="chart-axis" aria-hidden="true">
+		{#each ticks as tick}<span style:left={`${scale(tick)}%`}>{tickFormat(tick)}</span>{/each}
+	</div>
 	<p class="chart-readout" aria-live="polite">
 		{active
 			? `${active.label} · ${active.value.toLocaleString()} copies · ${percent.format(active.share)} of inventory`
-			: 'Select a bar to inspect its share of your inventory.'}
+			: label}
 	</p>
 </div>
 
 <style>
-	.distribution-chart {
-		--label-width: 7rem;
-		--value-width: 4.25rem;
-	}
-	.chart-axis {
-		position: relative;
-		height: 1.5rem;
-		margin: 0 var(--value-width) 0 var(--label-width);
-		color: var(--color-text-muted);
-		font-size: 0.65rem;
-	}
-	.chart-axis span {
-		position: absolute;
-		transform: translateX(-50%);
-	}
 	.chart-row {
-		display: grid;
-		grid-template-columns: var(--label-width) minmax(0, 1fr) var(--value-width);
-		align-items: center;
-		width: 100%;
-		min-height: 48px;
-		padding: 0.25rem 0;
+		display: block;
+		min-height: 58px;
+		padding: 0.5rem;
+		margin-inline: -0.5rem;
+		width: calc(100% + 1rem);
 		border: 0;
-		border-radius: 0.375rem;
+		border-radius: 0.5rem;
 		background: transparent;
 		color: var(--color-text-primary);
 		text-align: left;
@@ -98,42 +78,61 @@
 	.chart-row.active {
 		background: var(--color-surface);
 	}
+	.chart-row-heading {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1rem;
+		margin-bottom: 0.6rem;
+	}
 	.chart-label {
 		overflow-wrap: anywhere;
-		padding-right: 0.75rem;
 		font-size: 0.75rem;
 	}
-	svg {
-		width: 100%;
-		height: 24px;
-		overflow: visible;
-	}
-	.chart-grid {
-		stroke: var(--color-border);
-		stroke-width: 0.2;
-		stroke-dasharray: 1 2;
-	}
 	.chart-value {
-		text-align: right;
-		font-size: 0.8rem;
+		flex-shrink: 0;
+		font-size: 0.8125rem;
 		font-variant-numeric: tabular-nums;
 	}
 	small {
-		display: block;
+		display: inline-block;
+		margin-left: 0.75rem;
+		width: 3.5rem;
 		color: var(--color-text-muted);
-		font-size: 0.65rem;
+		font-size: 0.6875rem;
+		text-align: right;
+	}
+	svg {
+		display: block;
+		width: 100%;
+		height: 8px;
+	}
+	.chart-track {
+		fill: var(--color-muted);
+		opacity: 0.6;
+	}
+	.chart-axis {
+		position: relative;
+		height: 1.25rem;
+		margin-top: 0.5rem;
+		color: var(--color-text-muted);
+		font-size: 0.6875rem;
+	}
+	.chart-axis span {
+		position: absolute;
+		transform: translateX(-50%);
+	}
+	.chart-axis span:first-child {
+		transform: none;
+	}
+	.chart-axis span:last-child {
+		transform: translateX(-100%);
 	}
 	.chart-readout {
-		min-height: 2.5em;
-		margin-top: 0.75rem;
+		margin-top: 0.5rem;
+		min-height: 1.6em;
 		color: var(--color-text-secondary);
-		font-size: 0.7rem;
+		font-size: 0.6875rem;
 		line-height: 1.6;
-	}
-	@media (max-width: 600px) {
-		.distribution-chart {
-			--label-width: 5.25rem;
-			--value-width: 3.5rem;
-		}
 	}
 </style>
