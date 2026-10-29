@@ -68,3 +68,28 @@ export function observationTime(instant: string, timezone: string): string {
 		timeZone: timezone
 	}).format(new Date(instant));
 }
+
+/** Compare captured subtotals; holdings and coverage may also have changed. */
+export function historyOverview(points: InventoryValueHistoryPoint[]) {
+	const priced = points.filter(
+		(point): point is Extract<InventoryValueHistoryPoint, { kind: 'Captured' }> =>
+			point.kind === 'Captured' && hasPlottableValue(point.estimate)
+	);
+	const first = priced[0],
+		latest = priced.at(-1);
+	const change =
+		first && latest && priced.length > 1
+			? cents(latest.estimate.coveredValue) - cents(first.estimate.coveredValue)
+			: null;
+	const magnitude = change === null ? null : change < 0n ? -change : change;
+	return {
+		latest,
+		change,
+		changeAmount:
+			magnitude === null
+				? null
+				: `${magnitude / 100n}.${(magnitude % 100n).toString().padStart(2, '0')}`,
+		captured: points.filter((point) => point.kind === 'Captured').length,
+		gaps: points.filter((point) => point.kind === 'Gap').length
+	};
+}

@@ -1,0 +1,388 @@
+{
+	"version": "demo-prices-v1",
+	"source": "Scryfall EUR snapshot",
+	"sourceURL": "https://api.scryfall.com/cards/collection",
+	"retrievedAt": "2026-10-29T16:58:12.732907+00:00",
+	"note": "Frozen illustrative Demo references. The sample history factors are a scenario, not historical market observations.",
+	"historyFactors": [
+		936, 940, 931, 946, 952, 948, 961, 958, 970, 977, 965, 962, 975, 981, 972, 986, 992, 988, 1003,
+		995, 1009, 1015, 1006, 1019, 1011, 1007, 1016, 1009, 1004, 1000
+	],
+	"cards": {
+		"00c46d18-064e-403a-bf39-ec655d78390a": {
+			"name": "Ox of Agonas",
+			"nonfoil": "0.72",
+			"foil": null
+		},
+		"0442b365-c970-478b-b418-ae02d83ca8e1": {
+			"name": "Rampant Growth",
+			"nonfoil": "0.35",
+			"foil": null
+		},
+		"106d17d6-5ef2-4634-8dd6-790b12574042": {
+			"name": "Snake Umbra",
+			"nonfoil": "0.88",
+			"foil": null
+		},
+		"13ecbd14-bf93-4beb-afb0-6355fe9092a6": {
+			"name": "Forgotten Ancient",
+			"nonfoil": "0.34",
+			"foil": null
+		},
+		"15ab4c3b-323a-47c6-b675-447d16def3d5": {
+			"name": "Primeval Protector",
+			"nonfoil": "0.55",
+			"foil": null
+		},
+		"16b06b17-f256-428f-9bed-f115af270f27": {
+			"name": "Rampant Rejuvenator",
+			"nonfoil": "0.93",
+			"foil": null
+		},
+		"1dcd904c-fac6-490d-a9dd-ccdf39cbe597": {
+			"name": "Vastwood Surge",
+			"nonfoil": "0.24",
+			"foil": null
+		},
+		"1f539604-8847-45c7-9934-532583c42eab": {
+			"name": "Temple of Abandon",
+			"nonfoil": "0.25",
+			"foil": null
+		},
+		"20ca3527-b3e8-4d9b-8a0b-0c7d61fc6d39": {
+			"name": "Gruul Turf",
+			"nonfoil": "0.14",
+			"foil": null
+		},
+		"2fe601b0-0398-47f0-9e4f-9f841ad79b9b": {
+			"name": "Mountain",
+			"nonfoil": "0.15",
+			"foil": "0.20"
+		},
+		"3917f744-b876-47ae-94ad-f72b215ff1e7": {
+			"name": "Sol Ring",
+			"nonfoil": "0.99",
+			"foil": null
+		},
+		"3cb8fc57-6c2b-45bf-93d3-c573e31cf158": {
+			"name": "Oran-Rief, the Vastwood",
+			"nonfoil": "0.47",
+			"foil": null
+		},
+		"3e639915-9c9c-482f-ad9b-b8158f2971e1": {
+			"name": "Opal Palace",
+			"nonfoil": "0.25",
+			"foil": null
+		},
+		"451eb0dd-f3e8-4504-9de0-0bdf124e9ae2": {
+			"name": "Genesis Hydra",
+			"nonfoil": "0.34",
+			"foil": null
+		},
+		"45ea5ead-9fd8-4909-96aa-d4e970891c93": {
+			"name": "Tanuki Transplanter",
+			"nonfoil": "0.56",
+			"foil": null
+		},
+		"467033f7-8d59-4b80-8c2e-c36f3ad93438": {
+			"name": "Kaima, the Fractured Calm",
+			"nonfoil": "0.22",
+			"foil": "0.37"
+		},
+		"491c77ae-ccd9-4eb5-a0f0-bae85b82d50a": {
+			"name": "Chain Reaction",
+			"nonfoil": "0.22",
+			"foil": null
+		},
+		"49618217-1bbb-498a-a6f0-f269ce7166a6": {
+			"name": "Collision of Realms",
+			"nonfoil": "0.26",
+			"foil": null
+		},
+		"4b5882ab-d9c7-4d85-98c4-7edfb19980b0": {
+			"name": "Rishkar's Expertise",
+			"nonfoil": "2.70",
+			"foil": null
+		},
+		"4b9a5878-985d-47ba-a3dd-fe897777b873": {
+			"name": "Loyal Guardian",
+			"nonfoil": "0.24",
+			"foil": null
+		},
+		"4d0376e3-a1ae-4935-b392-2cb4ccd0d9a7": {
+			"name": "Game Trail",
+			"nonfoil": "0.31",
+			"foil": null
+		},
+		"4f29515c-8554-404a-b3a2-3d868659b687": {
+			"name": "Mossfire Valley",
+			"nonfoil": "0.25",
+			"foil": null
+		},
+		"4f2d9b33-cb78-4a44-81be-61452cb6fc21": {
+			"name": "Raging Ravine",
+			"nonfoil": "0.25",
+			"foil": null
+		},
+		"53754cb3-0294-41e0-90d7-a35710ea30e4": {
+			"name": "Sakura-Tribe Elder",
+			"nonfoil": "0.41",
+			"foil": null
+		},
+		"57c0258f-f464-4f52-b234-ba44a76d932a": {
+			"name": "Bonehoard",
+			"nonfoil": "0.19",
+			"foil": null
+		},
+		"57cfa420-306d-4d2c-8e83-fa9b46f2aa27": {
+			"name": "Whiptongue Hydra",
+			"nonfoil": "0.36",
+			"foil": null
+		},
+		"59a118d1-30b8-42c0-ac42-6fba0778200a": {
+			"name": "Invigorating Hot Spring",
+			"nonfoil": "0.18",
+			"foil": "0.20"
+		},
+		"5a195fb1-f2e9-4e05-8a04-c335e1afbef6": {
+			"name": "Bear Umbra",
+			"nonfoil": "8.30",
+			"foil": null
+		},
+		"5c06fb09-1e64-49c7-9938-541c0433bf5a": {
+			"name": "Goblin Razerunners",
+			"nonfoil": "0.15",
+			"foil": null
+		},
+		"6a61c242-5273-430c-b14e-fb76dc782ba3": {
+			"name": "Agitator Ant",
+			"nonfoil": "0.23",
+			"foil": null
+		},
+		"6f380a12-9656-479e-bd44-1b8facfcc69c": {
+			"name": "Sword of Vengeance",
+			"nonfoil": "0.60",
+			"foil": null
+		},
+		"70d13ff4-e6ba-4bfe-9668-d11f7facb8d3": {
+			"name": "Rhythm of the Wild",
+			"nonfoil": "3.78",
+			"foil": null
+		},
+		"728b356a-e2ec-4c44-bd0a-bb9a5427a1ad": {
+			"name": "Starstorm",
+			"nonfoil": "0.26",
+			"foil": null
+		},
+		"736c3278-6ee2-47f9-aab0-1457e90137b1": {
+			"name": "Orochi Merge-Keeper",
+			"nonfoil": "0.12",
+			"foil": "0.11"
+		},
+		"77dd1c84-0c67-41a2-aa19-ca448520ac54": {
+			"name": "Elemental Mastery",
+			"nonfoil": "0.48",
+			"foil": null
+		},
+		"7bdf4615-7a08-40fe-9e04-cdbe10a62e06": {
+			"name": "Arcane Signet",
+			"nonfoil": "0.53",
+			"foil": null
+		},
+		"82291f66-f4f0-4542-992e-8342e90033da": {
+			"name": "Kosei, Penitent Warlord",
+			"nonfoil": "0.28",
+			"foil": null
+		},
+		"8c7549c2-7f66-4fdc-9852-6796292c6a85": {
+			"name": "Hunter's Insight",
+			"nonfoil": "0.53",
+			"foil": null
+		},
+		"918a9e38-29ec-4279-8cf6-f01141497cab": {
+			"name": "Ascendant Acolyte",
+			"nonfoil": "0.20",
+			"foil": null
+		},
+		"9270e071-7a22-4f38-af2f-fb4933a5784b": {
+			"name": "Chaos Warp",
+			"nonfoil": "0.57",
+			"foil": null
+		},
+		"958af4ba-f29e-47ef-995e-3985982c75ad": {
+			"name": "Walking Skyscraper",
+			"nonfoil": "0.12",
+			"foil": "0.13"
+		},
+		"9fe03ee0-50e4-4893-84ed-0d099be21d4e": {
+			"name": "Soul's Majesty",
+			"nonfoil": "1.21",
+			"foil": null
+		},
+		"a4ee4648-dd6e-4ba9-b643-a7e4c430d51f": {
+			"name": "Taurean Mauler",
+			"nonfoil": "1.07",
+			"foil": null
+		},
+		"a5efe226-a6fc-4fdb-a3d4-2b1ae0d667a8": {
+			"name": "Command Tower",
+			"nonfoil": "0.26",
+			"foil": null
+		},
+		"a7402ae8-fd87-4412-ab4f-44bcc2d49764": {
+			"name": "Fertilid",
+			"nonfoil": "0.11",
+			"foil": null
+		},
+		"a99f8c13-c4bd-4e6c-8059-ef5e6ad30331": {
+			"name": "Decimate",
+			"nonfoil": "0.26",
+			"foil": null
+		},
+		"ab1f2ab8-1ef3-4610-a2d0-cb87b982c649": {
+			"name": "Fireshrieker",
+			"nonfoil": "0.29",
+			"foil": null
+		},
+		"aea5c36b-c107-4daf-bedb-507b4cd64724": {
+			"name": "Forest",
+			"nonfoil": "0.15",
+			"foil": "0.19"
+		},
+		"b95f36ad-2fb0-448c-b74f-a2a104240d8d": {
+			"name": "Shamanic Revelation",
+			"nonfoil": "0.83",
+			"foil": null
+		},
+		"ba580628-60d1-4281-8705-dbc7823afd8d": {
+			"name": "Grumgully, the Generous",
+			"nonfoil": "0.11",
+			"foil": null
+		},
+		"bda67054-bbd8-4979-801a-a5e9ca335f49": {
+			"name": "Kami of Celebration",
+			"nonfoil": "0.30",
+			"foil": null
+		},
+		"bf1c9d24-f5f6-43ff-85c3-034b76e1bf1b": {
+			"name": "Kodama's Reach",
+			"nonfoil": "1.81",
+			"foil": null
+		},
+		"bffa36ac-137d-481c-b1b7-76a88ef15d54": {
+			"name": "Chishiro, the Shattered Blade",
+			"nonfoil": "0.48",
+			"foil": "0.45"
+		},
+		"c0bbcf3b-5b7c-4846-b30c-100542ce2204": {
+			"name": "Rishkar, Peema Renegade",
+			"nonfoil": "0.32",
+			"foil": null
+		},
+		"c3e38dec-178b-497a-bfbd-371905690a39": {
+			"name": "Concord with the Kami",
+			"nonfoil": "0.24",
+			"foil": null
+		},
+		"c672b34d-066e-40e6-a499-3ab68ea6514c": {
+			"name": "Acidic Slime",
+			"nonfoil": "0.13",
+			"foil": null
+		},
+		"ca624ce6-5b99-41af-8e26-b952f5a30916": {
+			"name": "Akki Battle Squad",
+			"nonfoil": "3.58",
+			"foil": null
+		},
+		"caf6d1a3-9d07-4eb6-add3-0096422feba1": {
+			"name": "Ulasht, the Hate Seed",
+			"nonfoil": "0.15",
+			"foil": null
+		},
+		"d4373a89-b571-46e2-9021-02aa4cdbb3b0": {
+			"name": "Silkguard",
+			"nonfoil": "0.97",
+			"foil": null
+		},
+		"d6ecab4b-fcff-4cf9-8e26-f3c609179050": {
+			"name": "Komainu Battle Armor",
+			"nonfoil": "3.94",
+			"foil": null
+		},
+		"d753c296-8cef-492d-ab41-e7ddb233d46e": {
+			"name": "One with the Kami",
+			"nonfoil": "0.37",
+			"foil": null
+		},
+		"d7f5cae6-5f1d-4537-9cc5-46d727d1beb1": {
+			"name": "Spearbreaker Behemoth",
+			"nonfoil": "0.45",
+			"foil": null
+		},
+		"d9ed9f21-5dc4-484d-bc31-8efc81254744": {
+			"name": "Exotic Orchard",
+			"nonfoil": "0.22",
+			"foil": null
+		},
+		"da4ccf70-b661-46ea-bea9-4466a3a35562": {
+			"name": "Towashi Guide-Bot",
+			"nonfoil": "0.15",
+			"foil": "0.25"
+		},
+		"da9a73af-57a2-499a-8a14-e164a6506e8b": {
+			"name": "Blackblade Reforged",
+			"nonfoil": "1.76",
+			"foil": null
+		},
+		"db6b3f71-d833-4548-8d66-1d51da08d8b9": {
+			"name": "Unquenchable Fury",
+			"nonfoil": "0.30",
+			"foil": null
+		},
+		"de50c5d4-6599-4894-a8d7-01d104fc97fd": {
+			"name": "Beast Within",
+			"nonfoil": "0.79",
+			"foil": null
+		},
+		"e3226808-493e-4df2-9446-cb7cb47aaf2c": {
+			"name": "Mage Slayer",
+			"nonfoil": "0.84",
+			"foil": null
+		},
+		"e492a245-46ba-438e-8d81-4626faa49bff": {
+			"name": "Smoke Spirits' Aid",
+			"nonfoil": "0.27",
+			"foil": null
+		},
+		"ee23ba9f-3f5e-4fe4-95f8-3dd464db997b": {
+			"name": "Swiftfoot Boots",
+			"nonfoil": "1.78",
+			"foil": null
+		},
+		"f37f3696-a780-4203-8ae9-06e14235066b": {
+			"name": "Champion of Lambholt",
+			"nonfoil": "2.94",
+			"foil": null
+		},
+		"f4c34cbe-c41f-4fcb-b1b6-720b6b214fef": {
+			"name": "Shifting Shadow",
+			"nonfoil": "0.23",
+			"foil": null
+		},
+		"f502721a-22f4-4c91-a85a-67628b9efbbb": {
+			"name": "Cinder Glade",
+			"nonfoil": "0.21",
+			"foil": null
+		},
+		"f51d53fc-8e62-45fd-b2cd-8f93d7f9e1fa": {
+			"name": "Krenko, Tin Street Kingpin",
+			"nonfoil": "2.92",
+			"foil": null
+		},
+		"fdbbbe4a-976c-4eb3-b32c-eef892b7699d": {
+			"name": "Ordeal of Nylea",
+			"nonfoil": "0.21",
+			"foil": null
+		}
+	}
+}

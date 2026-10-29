@@ -179,10 +179,24 @@ def test_full_seed_preserves_edits_validates_reruns_and_explicitly_resets(
     assert client.execute("SELECT sum(quantity)::int copies FROM deck_cards").fetchone() == {
         "copies": 100,
     }
+    samples = client.execute(
+        "SELECT day,estimate,policy_version FROM inventory_value_days ORDER BY day"
+    ).fetchall()
+    assert len(samples) == 30
+    assert all(
+        row["policy_version"] == "demo-scenario-v1" and row["estimate"]["totalQuantity"] == 101
+        for row in samples
+    )
     client.execute("UPDATE inventory_cards SET notes='owned edit' WHERE spellbook_position=0")
     before = snapshot(client)
     assert seed_demo(url, bundle, precon)["status"] == "preserved"
     assert snapshot(client) == before
+    assert (
+        client.execute(
+            "SELECT day,estimate,policy_version FROM inventory_value_days ORDER BY day"
+        ).fetchall()
+        == samples
+    )
     broken = replace(bundle, manifest=replace(bundle.manifest, jsonl_sha256="0" * 64))
     with pytest.raises(OperatorError, match="payload integrity"), client.transaction():
         publish_demo_catalog(client, broken)

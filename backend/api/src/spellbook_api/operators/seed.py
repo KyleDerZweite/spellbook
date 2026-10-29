@@ -24,7 +24,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         require_demo_database(url)
         directory = args.fixtures_dir if args.fixtures_dir is not None else fixture_directory()
         bundle = verify_bundle(directory)
-        result = seed_demo(url, bundle, load_precon(directory), reset=args.reset_users)
+        result = seed_demo(
+            url,
+            bundle,
+            load_precon(directory),
+            reset=args.reset_users,
+            timezone=os.environ.get("VALUE_HISTORY_TIMEZONE", "Europe/Berlin"),
+        )
     except OperatorError as exc:
         print(str(exc), file=sys.stderr)
         return 1

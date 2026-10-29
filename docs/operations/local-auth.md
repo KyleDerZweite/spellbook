@@ -1,9 +1,9 @@
 # Local authentication and account recovery
 
 - Status: Canonical
-- Last Reviewed: 2026-10-28
+- Last Reviewed: 2026-10-29
 - Source of Truth: code
-- Update Triggers: local Demo Catalog preservation, canonical root operator commands and pre-release account scope, Python source activation and server contraction, prepared Python operator entrypoints and bundled canonical fixtures, independent API/web ownership and relocated code references, single root environment and demo launch configuration, registration policy, credential recovery command and backend operator lifetime, migration, reverse proxy origin, demo mode, versioned English Catalog publication and private starter preservation, original shipped Upgrades Unleashed Inventory and guarded replacement
+- Update Triggers: explicit static Demo valuation and simplified History presentation, local Demo Catalog preservation, canonical root operator commands and pre-release account scope, Python source activation and server contraction, prepared Python operator entrypoints and bundled canonical fixtures, independent API/web ownership and relocated code references, single root environment and demo launch configuration, registration policy, credential recovery command and backend operator lifetime, migration, reverse proxy origin, demo mode, versioned English Catalog publication and private starter preservation, original shipped Upgrades Unleashed Inventory and guarded replacement
 - Related Docs: [Authentication architecture](../architecture/auth.md), [Deployment](./deployment.md), [Postgres](../architecture/postgres.md), [ADR-0009](../decisions/0009-local-authentication.md), [Catalog](../architecture/catalog.md), [Manual Demo Catalog updates](./deployment.md#manual-demo-catalog-update), [Pre-release policy](../../CONTRIBUTING.md#replacing-interfaces)
 
 New users register at `/auth/register` and sign in at `/auth/login`.
@@ -121,7 +121,21 @@ Only explicit `--reset-users` deletes private users and revokes their sessions t
 A complete already-active bundle is a Catalog pointer/timestamp no-op.
 The existing seed transaction rolls back Catalog and private changes together on failure.
 No external card API is needed to seed; images still require network access.
-Demo publication does not publish Price state or establish provider freshness.
+Demo publication does not publish live Price state or establish provider freshness.
+The Demo valuation provider reads a versioned [snapshot](../../backend/core/src/spellbook_core/mtg/demo_prices.json) of Scryfall EUR references for the 75 exact starter printings.
+References are explicitly `Demo` and `Static`; their original retrieval date does not become a fresh market date.
+The same Inventory and Deck estimators multiply these references by actual saved quantities.
+Other printings and unavailable finishes remain unknown.
+Only explicit `DEMO_MODE=true` selects this provider in API and State; normal deployments retain ordinary source selection and expiry.
+
+Ordinary seeding also adds a 30-day illustrative Inventory scenario using the original starter's printing, finish, condition and quantity identities.
+Its fixed factors describe example movement, not historical market observations or the account's former actions.
+The normal private history tables store its holdings and copied references with `policy_version=demo-scenario-v1`.
+Reporting dates end yesterday in `VALUE_HISTORY_TIMEZONE`, default Europe/Berlin.
+Existing dates, private edits and actual captures are preserved on conflict.
+Re-seeding fills missing scenario dates without rewriting stored points; later State captures use the real current Demo holdings.
+The shared Dashboard and History view disclose Demo prices, and card references/public history identify the Demo source.
+There are no browser-only responses or special Demo routes.
 Guarded local import and preservation of private state are verified and recorded with [slice 19](https://github.com/KyleDerZweite/spellbook/issues/192).
 The prepared Python API package provides `spellbook-demo-seed` and `spellbook-demo-replace-inventory` with the same explicit `--reset-users` and `--apply` options.
 Demo target guards and preservation rules still apply.

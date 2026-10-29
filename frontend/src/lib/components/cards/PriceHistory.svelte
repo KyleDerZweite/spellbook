@@ -48,7 +48,9 @@
 	<summary class="cursor-pointer">Public source history (30 days)</summary>
 	<p class="mt-2 text-xs text-text-muted">
 		Dated market references, not historical holdings. Missing dates are gaps. Cardmarket and
-		Scryfall history begins with recorded imports; MTGJSON may supply earlier source points.
+		{#if history?.sourceStatuses.some((status) => status.source === 'Demo')}Illustrative Demo
+			history based on a fixed card-price snapshot.{:else}Scryfall history begins with recorded
+			imports; MTGJSON may supply earlier source points.{/if}
 	</p>
 	{#if loading}<p role="status">Loading source history…</p>
 	{:else if error}<p role="alert">{error}</p>
@@ -57,12 +59,22 @@
 		{#if !history.points.length}<p>No source points in this window.</p>
 		{:else}<div class="mt-2 max-h-64 overflow-auto">
 				<table class="w-full text-left text-xs">
-					<thead><tr><th>Source date</th><th>Source / measure</th><th>EUR</th></tr></thead><tbody>
+					<thead
+						><tr
+							><th
+								>{history.sourceStatuses.some((status) => status.source === 'Demo')
+									? 'Example day'
+									: 'Source date'}</th
+							><th>Source / measure</th><th>EUR</th></tr
+						></thead
+					><tbody>
 						{#each history.points as point}<tr
 								><td class="py-1"
-									>{point.timePrecision === 'Day'
-										? `${point.sourceDate} (day)`
-										: new Date(point.sourceTime).toLocaleString()}</td
+									>{point.source === 'Demo'
+										? point.day
+										: point.timePrecision === 'Day'
+											? `${point.sourceDate} (day)`
+											: new Date(point.sourceTime).toLocaleString()}</td
 								><td
 									>{point.source} · {point.measure}{point.provenance === 'EnglishFallback'
 										? ' · English printing'

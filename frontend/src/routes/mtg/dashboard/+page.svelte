@@ -143,6 +143,7 @@
 			<div class="dashboard-main">
 				<div class="dashboard-history">
 					<InventoryValueHistory
+						demo={data.demoMode}
 						history={dashboard.inventoryValueHistory}
 						error={dashboard.valuationError?.message}
 						compact

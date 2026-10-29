@@ -14,7 +14,9 @@ from spellbook_state.main import Configuration, StateResources
 DSN = "postgresql://fixture/unused"
 
 
-@pytest.mark.parametrize("key", ["VALUE_HISTORY_ENABLED", "COMMANDER_SPELLBOOK_ENABLED"])
+@pytest.mark.parametrize(
+    "key", ["VALUE_HISTORY_ENABLED", "COMMANDER_SPELLBOOK_ENABLED", "DEMO_MODE"]
+)
 def test_switches_reject_invalid_values(key: str) -> None:
     with pytest.raises(ValueError, match=key):
         Configuration.from_environment({"DATABASE_URL": DSN, key: "yes"})
@@ -121,3 +123,9 @@ def test_runtime_driver_errors_never_print_secrets(
     assert module.main([]) == 1
     output = capsys.readouterr()
     assert "synthetic-secret" not in output.out + output.err + caplog.text
+
+
+def test_demo_configuration_reaches_the_same_valuation_provider() -> None:
+    config = Configuration.from_environment({"DATABASE_URL": DSN, "DEMO_MODE": "true"})
+    assert StateResources(config).valuation.demo_mode
+    assert not StateResources(Configuration(DSN)).valuation.demo_mode

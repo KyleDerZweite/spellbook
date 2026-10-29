@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-29
 - Source of Truth: accepted product requirements, application components, selected logo and component choices
-- Update Triggers: Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
+- Update Triggers: explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
 - Related Docs: [Product specification](./specification.md), [Mobile exploration](./mobile-app-exploration.md), [Routes](./routing-and-games.md), [Domain model](../../GLOSSARY.md), [Selected UI components](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Brand assets](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Value tracking](./value-tracking.md)
 
 Spellbook prioritizes digitizing, indexing and managing a player's own Magic cards, then building decks from that collection.
@@ -65,7 +65,14 @@ Use four linked metric tiles, combine the current Inventory estimate and its his
 Use horizontal Set comparisons, a Finish ring with textual counts, and a compact Condition breakdown with zero-count conditions still available.
 Present recent owned entries as a gallery of full card frames linked to their Inventory details.
 Compact valuation views disclose coverage, reporting-calendar and gap explanations through native details rather than repeating prose across the overview.
-No copied template assets, new theme system, synthetic trends or new backend aggregates belong to this refinement.
+No copied template assets, new theme system or new backend aggregates belong to this refinement.
+Kyle explicitly selected static Demo prices and an illustrative price history on 2026-10-29.
+This supersedes the synthetic-trend exclusion only for labelled Demo fixtures, while normal accounts retain observed market and holdings history.
+History uses one dominant chart with the latest priced day and exact change in covered value.
+Linked 30-day, 90-day and one-year ranges preserve identity filters and browser navigation.
+Custom calendar dates and the reverse-chronological exact-data table use native disclosure.
+Keep coverage, missing days and the reporting calendar visible without repeating capture mechanics throughout the page.
+Chart pointer/touch inspection and a native keyboard range share the same exact readout; gaps remain disconnected.
 
 The [Wayfinder map](https://github.com/KyleDerZweite/spellbook/issues/194) owns its scope question and follow-up decisions.
 

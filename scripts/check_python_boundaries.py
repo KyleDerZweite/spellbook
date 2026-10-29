@@ -18,6 +18,7 @@ MTG_MODULES = {
     "catalog_query",
     "categories",
     "dashboard",
+    "demo_prices",
     "decks",
     "inventory",
     "inventory_import",

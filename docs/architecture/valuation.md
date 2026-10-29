@@ -1,9 +1,9 @@
 # Valuation
 
 - Status: Scryfall and optional provider references/public source history implemented; personal Inventory history and Dashboard/selected-Deck estimates implemented
-- Last Reviewed: 2026-10-24
+- Last Reviewed: 2026-10-29
 - Source of Truth: reference contracts, backend Valuation, Worker publication and accepted value-only scope
-- Update Triggers: versioned MTG routes and module ownership, Python source activation and server contraction, separately packaged Python ValueHistory scheduler, source publication, mapping, exact-decimal evaluation, public history, pruning, private checkpoint persistence, capture scheduling, safe summary contracts and acceptance evidence
+- Update Triggers: explicit static Demo valuation and simplified History presentation, versioned MTG routes and module ownership, Python source activation and server contraction, separately packaged Python ValueHistory scheduler, source publication, mapping, exact-decimal evaluation, public history, pruning, private checkpoint persistence, capture scheduling, safe summary contracts and acceptance evidence
 - Related Docs: [Architecture](./README.md), [Value tracking](../product/value-tracking.md), [Market price research](../integrations/market-prices.md), [Application contract](./application-contract.md), [Postgres](./postgres.md), [Worker](./worker.md), [ADR-0020](../decisions/0020-value-only-inventory-history.md), [ADR-0022](../decisions/0022-daily-value-observation-checkpoints.md)
 
 [Value tracking](../product/value-tracking.md) owns reference selection, coverage, reporting calendar, personal history and Deck estimates.
@@ -92,6 +92,21 @@ Frontend value consumers use existing leased refresh, account/selection guards a
 History consumers schedule one boundary refresh from `nextRefreshAt`, without polling.
 Build analysis starts no runner; development HMR and production shutdown stop timers and owned work.
 Duplicate processes, cancellation, rollback, DST, gaps, timezone changes, entry removal/recreation, public pruning, decimal/quantity bounds and actual 50k holdings are acceptance scenarios.
+
+## Static Demo references
+
+Explicit Demo composition selects the [fixture provider](../../backend/core/src/spellbook_core/mtg/demo_prices.py) at the existing Valuation boundary in both API and State.
+It returns exact printing/finish references with `source: Demo`, `freshness: Static` and original snapshot provenance.
+The versioned fixture covers the starter's 75 printings; missing references remain unknown.
+Ordinary holdings reads, quantity multiplication, Deck allocation, authorization and private capture remain with their existing owners.
+Normal composition never selects this provider or accepts Demo as a public-history source filter.
+
+The guarded Demo operator adds an illustrative 30-day starter scenario to the existing personal history tables.
+It copies per-pair evidence and per-condition quantities, labels headers `demo-scenario-v1`, and preserves every existing date and private edit.
+Sample dates follow the configured reporting calendar, including DST boundaries.
+It does not publish into real provider tables, backfill normal accounts or reset source freshness.
+The public printing-history use case also exposes a bounded, explicitly labelled Demo scenario when that provider is selected.
+[Demo operation](../operations/local-auth.md#demo-mode) owns the accepted operational contract.
 
 ## Implemented market references
 

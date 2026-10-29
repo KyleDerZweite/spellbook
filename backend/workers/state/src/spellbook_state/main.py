@@ -30,6 +30,7 @@ class Configuration:
     value_history_enabled: bool = True
     value_history_timezone: str = "Europe/Berlin"
     commander_spellbook_enabled: bool = False
+    demo_mode: bool = False
 
     def __post_init__(self) -> None:
         try:
@@ -53,11 +54,15 @@ class Configuration:
             raise ValueError("VALUE_HISTORY_ENABLED must be true or false")
         if combo not in {"true", "false"}:
             raise ValueError("COMMANDER_SPELLBOOK_ENABLED must be true or false")
+        demo = env.get("DEMO_MODE", "false")
+        if demo not in {"true", "false"}:
+            raise ValueError("DEMO_MODE must be true or false")
         return cls(
             env.get("DATABASE_URL", ""),
             enabled == "true",
             env.get("VALUE_HISTORY_TIMEZONE", "Europe/Berlin"),
             combo == "true",
+            demo == "true",
         )
 
 
@@ -75,7 +80,10 @@ class StateResources:
         configure_combo_adapter(self.pool, configuration.commander_spellbook_enabled)
         self.auth = create_session_auth(self.pool)
         self.valuation = create_valuation(
-            self.pool, self.auth, timezone=configuration.value_history_timezone
+            self.pool,
+            self.auth,
+            timezone=configuration.value_history_timezone,
+            demo_mode=configuration.demo_mode,
         )
         self.values = create_inventory_values(
             self.pool, self.valuation, timezone=configuration.value_history_timezone

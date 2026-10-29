@@ -290,10 +290,12 @@ class Valuation:
         clock: Callable[[], datetime] | None = None,
         *,
         timezone: str = "Europe/Berlin",
+        demo_mode: bool = False,
     ):
         self.pool, self.auth = pool, auth
         self.clock = clock or (lambda: datetime.now(UTC))
         self.timezone = timezone
+        self.demo_mode = demo_mode
 
     async def freeze_in_transaction(
         self,
@@ -308,6 +310,10 @@ class Valuation:
             raise ValidationError("Invalid reference evaluation instant")
         # Node Date and the public timestamp contract use millisecond precision.
         as_of = as_of.replace(microsecond=as_of.microsecond // 1000 * 1000)
+        if self.demo_mode:
+            from spellbook_core.mtg.demo_prices import frozen
+
+            return frozen(pairs, as_of)
         execute = query or valuation_query
         states = await records(
             tx,
@@ -591,10 +597,22 @@ class Valuation:
         if "sources" in value and (
             not isinstance(selected, list)
             or not 1 <= len(selected) <= 3
-            or any(source not in ("Scryfall", "Cardmarket", "MTGJSON") for source in selected)
+            or any(
+                source
+                not in (
+                    ("Scryfall", "Cardmarket", "MTGJSON", "Demo")
+                    if self.demo_mode
+                    else ("Scryfall", "Cardmarket", "MTGJSON")
+                )
+                for source in selected
+            )
             or len(set(selected)) != len(selected)
         ):
             raise ValidationError("Supply 1 to 3 distinct history sources")
+        if self.demo_mode:
+            from spellbook_core.mtg.demo_prices import history
+
+            return history(pair, days, self.clock(), selected)
         try:
             async with transaction(self.pool, read_only=True, repeatable_read=True) as tx:
                 now = self.clock()
@@ -841,5 +859,6 @@ def create_valuation(
     clock: Callable[[], datetime] | None = None,
     *,
     timezone: str = "Europe/Berlin",
+    demo_mode: bool = False,
 ) -> Valuation:
-    return Valuation(pool, auth, clock, timezone=timezone)
+    return Valuation(pool, auth, clock, timezone=timezone, demo_mode=demo_mode)

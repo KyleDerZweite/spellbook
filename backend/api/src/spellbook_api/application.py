@@ -60,7 +60,10 @@ class ApplicationResources:
         self.catalog = create_catalog(self.pool)
         self.categories = create_categories(self.pool, self.auth)
         self.valuation = create_valuation(
-            self.pool, self.auth, timezone=configuration.value_history_timezone
+            self.pool,
+            self.auth,
+            timezone=configuration.value_history_timezone,
+            demo_mode=configuration.demo_mode,
         )
         self.inventory_values = create_inventory_values(
             self.pool, self.valuation, timezone=self.valuation.timezone
