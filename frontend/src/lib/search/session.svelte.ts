@@ -90,7 +90,9 @@ export class SearchSession {
 		this.rememberPosition();
 		this.query = input.query;
 		this.pagination = input.pagination!;
-		this.filters.selectedColors = new Set(input.filters.colorIdentity);
+		this.filters.colorAny = new Set(input.filters.colorMatch?.any);
+		this.filters.colorAll = new Set(input.filters.colorMatch?.all);
+		this.filters.colorField = input.filters.colorMatch?.field ?? 'color';
 		this.filters.selectedRarities = new Set(input.filters.rarities);
 		this.filters.selectedTypes = new Set(input.filters.types);
 		this.filters.selectedLegalities = new Set(input.filters.legalities);

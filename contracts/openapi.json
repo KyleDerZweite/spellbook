@@ -11670,6 +11670,9 @@
 							"pattern": "^[A-Za-z0-9]{1,12}$"
 						},
 						"description": "Set codes are normalized to lowercase."
+					},
+					"colorMatch": {
+						"$ref": "#/components/schemas/ColorMatch"
 					}
 				},
 				"required": [],
@@ -17292,6 +17295,31 @@
 					},
 					"text": {
 						"type": "string"
+					}
+				}
+			},
+			"ColorMatch": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["field", "any", "all"],
+				"description": "(OR any selected color) AND every required color. Empty any adds no restriction. Arrays must be disjoint. Additional card colors are permitted; C means an empty color set.",
+				"properties": {
+					"field": {
+						"enum": ["color", "identity"]
+					},
+					"any": {
+						"type": "array",
+						"maxItems": 6,
+						"items": {
+							"enum": ["W", "U", "B", "R", "G", "C"]
+						}
+					},
+					"all": {
+						"type": "array",
+						"maxItems": 6,
+						"items": {
+							"enum": ["W", "U", "B", "R", "G", "C"]
+						}
 					}
 				}
 			}

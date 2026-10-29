@@ -1,4 +1,11 @@
-import type { CardType, CatalogFilters, LegalityFormat, ManaColor, Rarity } from './types.ts';
+import type {
+	CardType,
+	CatalogFilters,
+	ColorMatch,
+	LegalityFormat,
+	ManaColor,
+	Rarity
+} from './types.ts';
 
 /**
  * Reactive filter state for card search.
@@ -7,14 +14,20 @@ import type { CardType, CatalogFilters, LegalityFormat, ManaColor, Rarity } from
 export class SearchFilterState {
 	constructor(private changed: () => void = () => {}) {}
 
-	selectedColors: Set<ManaColor> = $state(new Set());
+	colorAny: Set<ManaColor> = $state(new Set());
+	colorAll: Set<ManaColor> = $state(new Set());
+	colorField: ColorMatch['field'] = $state('color');
+
+	get selectedColors(): Set<ManaColor> {
+		return new Set([...this.colorAny, ...this.colorAll]);
+	}
 	selectedRarities: Set<Rarity> = $state(new Set());
 	selectedTypes: Set<CardType> = $state(new Set());
 	selectedLegalities: Set<LegalityFormat> = $state(new Set());
 
 	get catalogFilters(): CatalogFilters {
 		return {
-			colorIdentity: [...this.selectedColors],
+			colorMatch: { field: this.colorField, any: [...this.colorAny], all: [...this.colorAll] },
 			rarities: [...this.selectedRarities],
 			types: [...this.selectedTypes],
 			legalities: [...this.selectedLegalities]
@@ -22,13 +35,27 @@ export class SearchFilterState {
 	}
 
 	toggleColor(color: ManaColor): void {
-		const next = new Set(this.selectedColors);
-		if (next.has(color)) {
-			next.delete(color);
-		} else {
-			next.add(color);
-		}
-		this.selectedColors = next;
+		const any = new Set(this.colorAny),
+			all = new Set(this.colorAll);
+		if (all.has(color)) all.delete(color);
+		else if (any.has(color)) {
+			any.delete(color);
+			all.add(color);
+		} else any.add(color);
+		this.colorAny = any;
+		this.colorAll = all;
+		this.changed();
+	}
+
+	removeColor(color: ManaColor): void {
+		this.colorAny = new Set([...this.colorAny].filter((value) => value !== color));
+		this.colorAll = new Set([...this.colorAll].filter((value) => value !== color));
+		this.changed();
+	}
+
+	setColorField(field: ColorMatch['field']): void {
+		if (field === this.colorField) return;
+		this.colorField = field;
 		this.changed();
 	}
 
@@ -66,7 +93,8 @@ export class SearchFilterState {
 	}
 
 	clear(): void {
-		this.selectedColors = new Set();
+		this.colorAny = new Set();
+		this.colorAll = new Set();
 		this.selectedRarities = new Set();
 		this.selectedTypes = new Set();
 		this.selectedLegalities = new Set();

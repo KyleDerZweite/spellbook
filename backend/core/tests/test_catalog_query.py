@@ -82,3 +82,71 @@ def test_printing_projection_preserves_absence_and_explicit_null() -> None:
     result = printing_dto({"id": "printing", "printed_name": None, "internal": "secret"})
     assert dict(result) == {"id": "printing", "printed_name": None}
     assert "power" not in result
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        None,
+        [],
+        {},
+        {"field": "invalid", "any": [], "all": []},
+        {"field": "color", "any": "W", "all": []},
+        {"field": "color", "any": ["invalid"], "all": []},
+        {"field": "color", "any": [], "all": ["B"] * 7},
+        {"field": "color", "any": ["W"], "all": ["W"]},
+        {"field": "color", "any": [], "all": [], "extra": True},
+    ],
+)
+def test_color_match_rejects_invalid_or_ambiguous_expressions(value: object) -> None:
+    with pytest.raises(ValidationError):
+        parse_catalog_search_request({"filters": {"colorMatch": value}})
+
+
+def test_printed_color_expression_combines_or_with_required_colors() -> None:
+    sql, parameters = search_sql(
+        parse_catalog_search_request(
+            {"filters": {"colorMatch": {"field": "color", "any": ["W", "U"], "all": ["B"]}}}
+        )
+    )
+    assert "p.colors && $1::text[]" in sql
+    assert "p.colors @> $2::text[]" in sql
+    assert parameters[:2] == [["W", "U"], ["B"]]
+    assert "p.colors <@" not in sql
+
+
+def test_identity_expression_matches_presence_including_additional_colors() -> None:
+    _, parameters = search_sql(
+        parse_catalog_search_request(
+            {"filters": {"colorMatch": {"field": "identity", "any": ["W", "U"], "all": ["B"]}}}
+        )
+    )
+    assert parameters[0] == [5, 6, 7, 13, 14, 15, 21, 22, 23, 29, 30, 31]
+
+
+@pytest.mark.parametrize("field", ["color", "identity"])
+def test_empty_color_expression_has_no_predicate(field: str) -> None:
+    baseline, values = search_sql(parse_catalog_search_request({}))
+    sql, parameters = search_sql(
+        parse_catalog_search_request(
+            {"filters": {"colorMatch": {"field": field, "any": [], "all": []}}}
+        )
+    )
+    assert (sql, parameters) == (baseline, values)
+
+
+def test_colorless_is_empty_set_and_cannot_be_required_with_a_colored_identity() -> None:
+    def parameters(any_colors: list[str], all_colors: list[str]) -> list[object]:
+        return search_sql(
+            parse_catalog_search_request(
+                {
+                    "filters": {
+                        "colorMatch": {"field": "identity", "any": any_colors, "all": all_colors}
+                    }
+                }
+            )
+        )[1]
+
+    assert parameters(["C"], [])[0] == [0]
+    assert parameters([], ["W", "C"])[0] == []
+    assert parameters([], ["W", "U"])[0] == [3, 7, 11, 15, 19, 23, 27, 31]

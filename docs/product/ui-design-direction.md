@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-29
 - Source of Truth: accepted product requirements, application components, selected logo and component choices
-- Update Triggers: explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
+- Update Triggers: tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
 - Related Docs: [Product specification](./specification.md), [Mobile exploration](./mobile-app-exploration.md), [Routes](./routing-and-games.md), [Domain model](../../GLOSSARY.md), [Selected UI components](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Brand assets](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Value tracking](./value-tracking.md)
 
 Spellbook prioritizes digitizing, indexing and managing a player's own Magic cards, then building decks from that collection.
@@ -11,6 +11,9 @@ Public search, owned Inventory and Deck editing support this focus.
 Scan upload/review remains retained compatibility behavior with its presentation paused.
 Card artwork and working content establish the visual identity.
 Neutral dark and light surfaces, grayscale controls, colored navigation icons, and separate display and monospace interface fonts support that content.
+Kyle reaffirmed on 2026-10-29 that workspace UI should prefer visual state indicators and fewer subheadings or explanatory sentences.
+Keep functional field labels and accessible names, and use concise contextual tooltips when the visual state needs a name.
+Do not repeat control mechanics as visible helper prose or add another explanatory row when geometry can communicate the state.
 [ADR-0011](../decisions/0011-collector-workspace-design.md) records the decision.
 
 Kyle accepted the current Home and Settings design on 2026-10-06.
@@ -365,14 +368,22 @@ QuickAdd reports success or failure beside the form and retains its inputs; pend
 
 The Search sidebar has a fixed desktop width and shares the active native page or modal viewport.
 Expanding groups changes the page layout without adding a separate sidebar scrollbar.
-Six deck-color controls remain in one row.
-Selected controls remove their own filter; collapsed groups retain a selection count.
+Six color controls remain in one row and cycle Off, OR, AND, then Off.
+Show OR with a single selection ring and AND with a double ring; unselected colors stay muted.
+Do not add visible operator badges, helper sentences or a formula below the color buttons.
+State names and the next action remain available through accessible names and concise tooltips.
+The underlying OR colors form one group and combine with every AND color.
+Native Color/Identity radios choose printed colors or color identity without clearing the selections.
+The default is Color, and required colors do not exclude additional card colors.
+Colorless matches an empty selected field.
+Native no-JavaScript Search exposes equivalent OR/AND checkboxes and the same field choice.
+Collapsed groups retain their selection count, and removal actions remove a color directly instead of advancing its cycle.
 Clear filters keeps a fixed position above the groups.
 Do not add a conditional active-filter row above the results.
 Count, loading and retry occupy one fixed-height status row above the card grid.
 Scrolled artwork cannot appear behind it.
 Choosing filters or reporting a range error cannot move or resize the card grid.
-[Catalog search behavior](../architecture/catalog.md#search-behavior) owns the deck-palette and API filter semantics.
+[Catalog search behavior](../architecture/catalog.md#search-behavior) owns the boolean color and existing API palette semantics.
 
 Inventory uses compact artwork rows with stored set, finish, condition and read-only quantity.
 Search, Filter, Sort and the matching entry/copy count share the toolbar.

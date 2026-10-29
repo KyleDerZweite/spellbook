@@ -9,7 +9,7 @@ describe('Search navigation', () => {
 		const input = {
 			query: 'Lightning Bolt & "elf"',
 			filters: {
-				colorIdentity: ['R', 'U'] as const,
+				colorMatch: { field: 'identity' as const, any: ['R', 'U'] as const, all: ['B'] as const },
 				rarities: ['common'] as const,
 				types: ['Instant'] as const,
 				legalities: ['modern', 'commander'] as const
@@ -20,7 +20,11 @@ describe('Search navigation', () => {
 				searchHref({
 					query: input.query,
 					filters: {
-						colorIdentity: [...input.filters.colorIdentity],
+						colorMatch: {
+							field: input.filters.colorMatch.field,
+							any: [...input.filters.colorMatch.any],
+							all: [...input.filters.colorMatch.all]
+						},
 						rarities: [...input.filters.rarities],
 						types: [...input.filters.types],
 						legalities: [...input.filters.legalities]
@@ -31,7 +35,7 @@ describe('Search navigation', () => {
 		);
 		expect(parsed.query).toBe(input.query);
 		expect(parsed.filters).toEqual({
-			colorIdentity: ['U', 'R'],
+			colorMatch: { field: 'identity', any: ['U', 'R'], all: ['B'] },
 			rarities: ['common'],
 			types: ['Instant'],
 			legalities: ['modern', 'commander']
@@ -46,7 +50,7 @@ describe('Search navigation', () => {
 			)
 		);
 		expect(parsed.filters).toEqual({
-			colorIdentity: ['G'],
+			colorMatch: { field: 'color', any: ['G'], all: [] },
 			rarities: ['rare'],
 			types: ['Creature'],
 			legalities: ['legacy']
@@ -78,14 +82,19 @@ describe('Search navigation', () => {
 		const second = new SearchSession();
 		first.hydrate(parseSearchUrl(new URL('/mtg/search?q=elf&color=G', origin)));
 		expect(first.filters.selectedColors).toEqual(new Set(['G']));
-		expect(first.input.filters.colorIdentity).toEqual(['G']);
+		expect(first.input.filters.colorMatch?.any).toEqual(['G']);
 		expect(first.input.filters.colors).toBeUndefined();
 		first.scrollTop = 840;
 		first.hydrate(parseSearchUrl(new URL(searchHref(first.input), origin)));
 		expect(first.scrollTop).toBe(840);
 		expect(second.input).toMatchObject({
 			query: '',
-			filters: { colorIdentity: [], rarities: [], types: [], legalities: [] }
+			filters: {
+				colorMatch: { field: 'color', any: [], all: [] },
+				rarities: [],
+				types: [],
+				legalities: []
+			}
 		});
 		first.hydrate(parseSearchUrl(new URL('/mtg/search?q=bolt', origin)));
 		expect(first.scrollTop).toBe(0);
@@ -213,5 +222,28 @@ describe('Search hybrid URL and history state', () => {
 		session.hydrate(second);
 		expect(session.scrollTop).toBe(5678);
 		expect(session.pagination).toMatchObject({ pageSize: 'lazy', page: 8 });
+	});
+});
+
+describe('color expression navigation', () => {
+	it('restores OR, AND and field through direct visits and browser history', () => {
+		const session = new SearchSession();
+		const first = parseSearchUrl(
+			new URL('/mtg/search?color=W&color=U&colorAnd=B&colorMode=identity', origin)
+		);
+		session.hydrate(first);
+		expect(session.filters.colorField).toBe('identity');
+		expect(session.filters.colorAny).toEqual(new Set(['W', 'U']));
+		expect(session.filters.colorAll).toEqual(new Set(['B']));
+		session.filters.toggleColor('W');
+		expect(session.input.filters.colorMatch?.all).toEqual(['B', 'W']);
+		session.hydrate(first);
+		expect(parseSearchUrl(new URL(searchHref(session.input), origin))).toEqual(first);
+	});
+	it('gives AND precedence for conflicting native checkbox values and drops unknown fields', () => {
+		const input = parseSearchUrl(
+			new URL('/mtg/search?color=W&colorAnd=W&colorAnd=B&colorMode=invalid', origin)
+		);
+		expect(input.filters.colorMatch).toEqual({ field: 'color', any: [], all: ['W', 'B'] });
 	});
 });
