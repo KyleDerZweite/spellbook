@@ -20,7 +20,7 @@ services:
     build:
       context: .
       dockerfile: backend/api/Dockerfile
-    command: ['/app/backend/api/.venv/bin/spellbook-migrate']
+    command: ["/app/backend/api/.venv/bin/spellbook-migrate"]
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-spellbook}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-spellbook}
     depends_on:
