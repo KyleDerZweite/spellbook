@@ -58,6 +58,7 @@
 	--color-error: var(--color-destructive);
 	--color-warning: #f0c47b;
 	--color-info: #8ebaff;
+	--color-chart-primary: #8cbbdd;
 	--font-editorial: var(--font-body);
 	--font-display: 'Marcellus', Georgia, serif;
 	--font-body: 'IBM Plex Mono', monospace;
@@ -91,6 +92,7 @@ html.light {
 	--color-success: #21754b;
 	--color-warning: #855600;
 	--color-info: #326184;
+	--color-chart-primary: #326184;
 	--color-role-commander: #725098;
 	--color-rarity-common: #62676d;
 	--color-rarity-uncommon: #50727b;
@@ -171,6 +173,19 @@ button:disabled {
 }
 
 @layer components {
+	.analytics-panel {
+		background: var(--color-card);
+		padding: clamp(1rem, 2vw, 1.5rem);
+		border-radius: 0.75rem;
+		min-width: 0;
+	}
+	.analytics-title {
+		font-family: var(--font-display);
+		font-size: 1.25rem;
+		font-weight: 400;
+		margin-bottom: 1rem;
+	}
+
 	.commander-role {
 		--role-accent: var(--color-role-commander);
 		color: var(--color-role-commander);
@@ -418,7 +433,8 @@ button:disabled {
 	}
 
 	.card-grid-item:hover {
-		border-color: var(--color-gold);
+		border-color: var(--color-border);
+		background: var(--color-surface);
 	}
 
 	.card-grid-item--selected {

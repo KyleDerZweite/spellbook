@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ValueHistoryChart from '#lib/components/charts/ValueHistoryChart.svelte';
 	import type { InventoryValueHistory } from '@spellbook/contracts/inventory-value.ts';
 	import { formatValueEUR } from '#lib/valuation/money.ts';
 	import {
@@ -24,11 +25,11 @@
 </script>
 
 <section
-	class="rounded-lg border border-border bg-stone p-4"
+	class="analytics-panel value-history"
 	aria-label={history?.identity ? 'Card value history' : 'Inventory value history'}
 	aria-busy={loading}
 >
-	<h2 class="text-lg font-semibold">
+	<h2 class="analytics-title">
 		{history?.identity ? 'Card value history' : 'Inventory value history'}
 	</h2>
 	{#if loading}<p class="mt-3 text-sm" role="status">Loading Inventory history…</p>
@@ -49,46 +50,13 @@
 				All captured quantities have unknown references. No value can be plotted.
 			</p>
 		{:else}
-			<svg
-				viewBox="0 0 640 180"
-				class="mt-3 w-full text-text"
-				role="img"
-				aria-label="Covered value history. Exact amounts, coverage and observation times appear in the table below."
-			>
-				<line x1="24" y1="148" x2="616" y2="148" stroke="currentColor" opacity="0.2" />
-				{#each chart.segments as segment}
-					<polyline
-						points={segment.map(({ x, y }) => `${x},${y}`).join(' ')}
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-					/>
-					{#each segment as { x, y, point }}
-						<circle
-							cx={x}
-							cy={y}
-							r="3.5"
-							stroke="currentColor"
-							stroke-width="2"
-							fill={point.estimate.complete ? 'currentColor' : 'var(--color-stone)'}
-						>
-							<title
-								>{point.day}: {formatValueEUR(point.estimate.coveredValue)} covered; {point.estimate
-									.coveredQuantity} of {point.estimate.totalQuantity} copies. {observationTime(
-									point.observedAt,
-									point.timezone
-								)} ({point.timezone})</title
-							>
-						</circle>
-					{/each}
-				{/each}
-				<text x="24" y="174" fill="currentColor" font-size="11">{history.window.from}</text>
-				<text x="616" y="174" text-anchor="end" fill="currentColor" font-size="11"
-					>{history.window.to}</text
-				>
-			</svg>
+			<ValueHistoryChart
+				points={history.points}
+				from={history.window.from}
+				to={history.window.to}
+			/>
 			<p class="break-words text-xs text-text-muted">
-				Chart scale: {formatValueEUR('0.00')} to {formatValueEUR(
+				Highest captured covered value: {formatValueEUR(
 					`${chart.maximum / 100n}.${(chart.maximum % 100n).toString().padStart(2, '0')}`
 				)}.
 			</p>

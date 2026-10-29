@@ -1,9 +1,9 @@
 # Deployment
 
 - Status: Canonical
-- Last Reviewed: 2026-10-25
+- Last Reviewed: 2026-10-28
 - Source of Truth: repo config
-- Update Triggers: State history scheduling ownership, Core-owned PostgreSQL test environment, canonical root operator commands, removal of obsolete Scan opt-in flag, versioned MTG routes and module ownership, native Catalog storage and one-shot lifecycle, Python source activation and server contraction, explicit Python API/state Compose candidate and ICU runtime dependency, dormant representative Python host and protected candidate startup, explicit dormant Python candidate packaging/start, selected Python API/worker direction, native and test web body-limit defaults, independent API/web ownership and relocated code references, PWA HTTPS/install/update operations and QR migration 0024, Catalog set-directory and color-identity projection migrations, price publication/pair and optional recovery, private value history migration and runtime configuration, source opt-ins and ingestion limits, optional local combo publication and recovery, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and graceful shutdown, preview target, single root environment and local/build origins, migrations, storage, workspace ownership, application resource lifetime and native operator ownership, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
+- Update Triggers: shared UI session preparation, local Demo Catalog worker exclusion, State history scheduling ownership, Core-owned PostgreSQL test environment, canonical root operator commands, removal of obsolete Scan opt-in flag, versioned MTG routes and module ownership, native Catalog storage and one-shot lifecycle, Python source activation and server contraction, explicit Python API/state Compose candidate and ICU runtime dependency, dormant representative Python host and protected candidate startup, explicit dormant Python candidate packaging/start, selected Python API/worker direction, native and test web body-limit defaults, independent API/web ownership and relocated code references, PWA HTTPS/install/update operations and QR migration 0024, Catalog set-directory and color-identity projection migrations, price publication/pair and optional recovery, private value history migration and runtime configuration, source opt-ins and ingestion limits, optional local combo publication and recovery, compose services and first startup, catalog import and recovery, manual versioned Demo bundle updates and private starter preservation, images, local launch commands and graceful shutdown, preview target, single root environment and local/build origins, migrations, storage, workspace ownership, application resource lifetime and native operator ownership, Inventory ICU preflight and collation recovery, Inventory original-acknowledgement migration, Deck revision/acknowledgement migrations, SavedState migration/listener capacity and proxy streaming
 - Related Docs: [Postgres](../architecture/postgres.md), [Operations](./README.md), [Local authentication](./local-auth.md), [System overview](../architecture/system-overview.md), [Private instance template](./private-instance-template.md), [GitHub automation](./github-automation.md), [PostgreSQL upgrade](./postgres-upgrade.md), [Classifier research](../integrations/card-categorization.md), [Catalog](../architecture/catalog.md), [Python direction](../decisions/0025-python-api-and-workers.md)
 
 The canonical service definitions are [`podman-compose.yml`](../../podman-compose.yml) and the local storage override [`podman-compose.dev.yml`](../../podman-compose.dev.yml).
@@ -52,10 +52,13 @@ Both native launchers create Catalog storage at ignored `.local/catalog` by defa
 Compose retains its `/app/data` volume.
 
 `./demo.sh` adds `--demo`, seeds the guarded disposable Demo database and preserves private edits.
+With `--demo` or `DEMO_MODE=true`, the local launcher omits the Catalog worker so live ingestion cannot replace the versioned Demo bundle.
+API, State, Scan and Vite still start.
+`SYNC_INTERVAL=manual` alone does not disable ingestion; ordinary development still attempts its initial Catalog refresh.
 Scan starts unconditionally with the normal development runtime.
 Local scan storage defaults to ignored `.local/scans`; `SCAN_LOCAL_STORAGE_DIR` preserves an existing directory.
 The retained worker still returns no matches and does not establish production recognition.
-The frontend `dev:local` and `dev:demo` commands forward to this launcher.
+The frontend `dev:local` command forwards to this launcher.
 
 `DEV_APP_ORIGIN` defaults to `http://localhost:5173` and controls local form origins.
 The launcher supplies the same public `APP_ORIGIN` to API and web, with `API_INTERNAL_URL` pointing to its private API child.
@@ -75,6 +78,29 @@ No launcher command builds containers or starts a tunnel.
 The T3 Dev server remains `./dev.sh`, with preview `http://localhost:5173/`.
 Open `/mtg/dashboard` for the private account summary.
 Compose runs built web on loopback port 3000; `podman-compose.dev.yml` selects shared local Scan storage and does not enable Vite.
+
+## Prepare a shared UI development session
+
+Use the guarded [Demo setup](./local-auth.md#demo-mode) for editable UI review with real PostgreSQL and the bundled English Catalog.
+Assign a separate database ending in `_demo` or `_design`, an existing task-owned PostgreSQL 18 container and free loopback ports to each worktree.
+Store the database connection in ignored root `.env`; set `DEV_DATABASE_CONTAINER` to that container and keep `DEMO_MODE=true` when using the T3 `./dev.sh` command.
+Run `./demo.sh` for explicit Demo preparation, or `./dev.sh` after the Demo database is seeded.
+Stop the session with `./dev.sh stop`; existing Demo edits persist on restart.
+These commands do not create a PostgreSQL container or install dependencies; complete the local prerequisites above first.
+
+Sign in at `/auth/login` with the documented Demo credentials.
+Review Dashboard, Search/Card details, Inventory and Decks, then Categories and Settings against the [interface acceptance criteria](../product/specification.md#interface-acceptance).
+Use desktop and narrow layouts, keyboard navigation, and pending/error states.
+The [UI direction](../product/ui-design-direction.md) owns shared controls, brand and scrolling behavior.
+Record the selected journey and concrete rough edges before agreeing on a useful implementation slice with the maintainer.
+[Issue 214](https://github.com/KyleDerZweite/spellbook/issues/214) owns the later polish scope and [issue 168](https://github.com/KyleDerZweite/spellbook/issues/168) owns its deferred implementation.
+The landing page and paused Scan presentation retain their existing scope.
+
+The Demo bundle supports Catalog search, Inventory and the starter Deck without provider credentials.
+It does not establish fresh market prices, live provider ingestion, production database access or production recognition.
+Card images still use remote Scryfall URLs.
+Use a separate disposable target for mutating integration tests so they cannot overwrite the shared review session.
+Production connection, provider refresh, deployment and owner design acceptance retain their separate authorization and verification.
 
 ## Independent build and start
 

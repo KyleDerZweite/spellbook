@@ -1,9 +1,9 @@
 # UI design direction
 
 - Status: Canonical
-- Last Reviewed: 2026-10-19
+- Last Reviewed: 2026-10-29
 - Source of Truth: accepted product requirements, application components, selected logo and component choices
-- Update Triggers: independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
+- Update Triggers: landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
 - Related Docs: [Product specification](./specification.md), [Mobile exploration](./mobile-app-exploration.md), [Routes](./routing-and-games.md), [Domain model](../../GLOSSARY.md), [Selected UI components](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Brand assets](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Value tracking](./value-tracking.md)
 
 Spellbook prioritizes digitizing, indexing and managing a player's own Magic cards, then building decks from that collection.
@@ -49,8 +49,14 @@ Narrow layouts stack the password form before QR sign-in.
 Keep the existing password and explicit approval flows.
 Registration and approval retain their narrow account layout.
 
-A later UI polishing pass should review almost every interface except the public landing page.
-This broader pass is deferred and does not replace the existing component, action, browsing or dialog contracts below.
+The maintainer resumed website UI refinement on 2026-10-29, using the public landing page as the visual reference.
+The initial implementation scope covers Dashboard composition, shared distribution and value-history charts, valuation panels and shared Search card tiles.
+Use flat neutral surfaces, generous separation between working areas, compact display headings and artwork with complete card frames.
+Charts use semantic accent colors, zero-based quantitative axes, readable counts and shares, pointer/focus inspection and equivalent textual data.
+D3 owns scales and path construction; Svelte owns responsive SVG, focus, state and theme tokens.
+Keep native forms, account scoping, SavedState leases, bounded browsing and current mutation behavior.
+Do not invent price observations, connect gaps or convert unknown references into zero.
+The landing page remains the reference; further page-specific redesign and paused Scan presentation retain their existing scope.
 The [Wayfinder map](https://github.com/KyleDerZweite/spellbook/issues/194) owns its scope question and follow-up decisions.
 
 On 2026-10-06, Kyle selected Home, Search and Inventory as references for this refinement.

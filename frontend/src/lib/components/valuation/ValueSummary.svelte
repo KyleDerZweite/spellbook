@@ -15,12 +15,12 @@
 	} = $props();
 </script>
 
-<section class="rounded-lg border border-border bg-stone p-4" aria-label={title}>
+<section class="analytics-panel value-summary" aria-label={title}>
 	<h2 class="text-sm font-medium text-text-muted">{title}</h2>
 	{#if error}
 		<p class="mt-2 text-sm" role="alert">{error}</p>
 	{:else if estimate}
-		<p class="mt-2 break-words text-2xl font-semibold tabular-nums">
+		<p class="value-amount">
 			{estimate.totalQuantity > 0 && estimate.coveredQuantity === 0
 				? 'Unknown'
 				: formatValueEUR(estimate.coveredValue)}
@@ -42,3 +42,15 @@
 		<p class="mt-2 text-sm text-text-muted">Value unavailable.</p>
 	{/if}
 </section>
+
+<style>
+	.value-amount {
+		font-family: var(--font-display);
+		font-weight: 400;
+		font-size: clamp(2rem, 3vw, 3rem);
+		line-height: 1.2;
+		overflow-wrap: anywhere;
+		margin: 1.25rem 0 0.75rem;
+		font-variant-numeric: tabular-nums;
+	}
+</style>

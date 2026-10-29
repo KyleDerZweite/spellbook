@@ -133,7 +133,7 @@ else if (args[0] === 'stop') {
 			if (
 				server.output().includes('fixture ready frontend') &&
 				server.output().includes('fixture ready backend') &&
-				server.output().includes('fixture ready catalog')
+				server.output().includes('fixture ready state')
 			)
 				return;
 			if (server.child.exitCode !== null) throw new Error(server.output());
@@ -141,7 +141,13 @@ else if (args[0] === 'stop') {
 		}
 		throw new Error(`Launcher did not become ready: ${server.output()}`);
 	}
-	return { root, id, launch, ready, database: () => readFile(join(root, 'database'), 'utf8') };
+	return {
+		root,
+		id,
+		launch,
+		ready,
+		database: () => readFile(join(root, 'database'), 'utf8')
+	};
 }
 
 test('the removed --scan flag is rejected before startup', async (t) => {
@@ -224,7 +230,10 @@ test('failed container shutdown retains ownership and returns failure', async (t
 });
 
 test('both independent children receive their own runtime configuration and stop together', async (t) => {
-	const f = await fixture(t, { webOrigin: 'http://127.0.0.1:5319', apiPort: '5320' });
+	const f = await fixture(t, {
+		webOrigin: 'http://127.0.0.1:5319',
+		apiPort: '5320'
+	});
 	const server = f.launch(['start']);
 	await f.ready(server);
 	assert.equal((await f.launch(['stop']).exited).code, 0);
@@ -288,7 +297,9 @@ test('the compatibility frontend entry retains verified root launcher shutdown',
 
 for (const mode of ['argument', 'environment']) {
 	test(`the ${mode} demo flag reaches both API and web presentation`, async (t) => {
-		const f = await fixture(t, { demoMode: mode === 'environment' ? 'true' : 'false' });
+		const f = await fixture(t, {
+			demoMode: mode === 'environment' ? 'true' : 'false'
+		});
 		const server = f.launch(mode === 'argument' ? ['start', '--demo'] : ['start']);
 		await f.ready(server);
 		assert.equal((await f.launch(['stop']).exited).code, 0);
@@ -298,7 +309,11 @@ for (const mode of ['argument', 'environment']) {
 			.split('\n')
 			.map((line) => JSON.parse(line))
 			.filter((event) => event.event === 'start');
-		assert.equal(starts.length, 5);
+		assert.equal(starts.length, 4);
+		assert.equal(
+			starts.some((event) => event.name === 'catalog'),
+			false
+		);
 		assert.equal(starts.find((event) => event.name === 'backend').demo, 'true');
 		const web = starts.find((event) => event.name === 'frontend');
 		assert.equal(web.demo, 'true');
@@ -388,5 +403,7 @@ test('unusable explicit Catalog storage fails startup and releases dev ownership
 	const result = await f.launch(['start']).exited;
 	assert.equal(result.code, 1);
 	assert.equal(await f.database(), 'false');
-	await assert.rejects(readFile(join(f.root, '.local/dev.pid')), { code: 'ENOENT' });
+	await assert.rejects(readFile(join(f.root, '.local/dev.pid')), {
+		code: 'ENOENT'
+	});
 });
