@@ -777,6 +777,7 @@ The [selected component reference](../reference/ui-libraries.md#analytics-charts
 Dashboard composes the current value through `InventoryValueHistory`'s optional summary snippet and `ValueSummary`'s compact presentation; other callers retain the full presentation.
 Coverage disclosures and exact daily tables remain native details controls, and an unknown-only history renders an explicit empty state without a synthetic line.
 `ProportionChart` owns D3 Pie/ring/bar geometry and per-segment pointer, focus and tap inspection.
+Its quantity unit defaults to physical copies; Deck-status callers provide deck/decks for accessible labels, tooltips and native totals.
 Zero quantities remain available as native data; unknown and empty states create no colored segment.
 The recent-entry gallery uses existing account-scoped detail links and full card frames.
 The Dashboard response supplies account-scoped, quantity-weighted color, color-identity, rarity and exclusive primary-type distributions from the active Catalog, plus bounded missing and alternate requirement previews.

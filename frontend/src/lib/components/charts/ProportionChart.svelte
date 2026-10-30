@@ -10,12 +10,14 @@
 		label,
 		items,
 		kind = 'pie',
-		center
+		center,
+		unit = { singular: 'copy', plural: 'copies' }
 	}: {
 		label: string;
 		items: Item[];
 		kind?: 'pie' | 'ring' | 'bar';
 		center?: Snippet;
+		unit?: { singular: string; plural: string };
 	} = $props();
 	const infoId = $props.id();
 	let root: HTMLDivElement;
@@ -29,7 +31,8 @@
 	});
 	const percent = new Intl.NumberFormat(undefined, { style: 'percent', maximumFractionDigits: 1 });
 	const share = (value: number) => percent.format(total ? value / total : 0);
-	const copies = (value: number) => `${value.toLocaleString()} ${value === 1 ? 'copy' : 'copies'}`;
+	const copies = (value: number) =>
+		`${value.toLocaleString()} ${value === 1 ? unit.singular : unit.plural}`;
 	const description = (item: Item) => `${item.label}: ${copies(item.value)}, ${share(item.value)}`;
 	const slices = $derived(
 		pie<Item>()

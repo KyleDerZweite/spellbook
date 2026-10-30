@@ -44,6 +44,23 @@ describe('shared analytics charts', () => {
 		expect(body).toContain('100 copies');
 		expect(body).not.toMatch(/NaN|Infinity/);
 	});
+	it('names Deck status quantities as Decks in accessible inspection and native data', async () => {
+		const { body } = await render(ProportionChart, {
+			props: {
+				label: 'Deck readiness',
+				kind: 'ring',
+				unit: { singular: 'deck', plural: 'decks' },
+				items: [
+					{ label: 'Complete', value: 1, color: 'green' },
+					{ label: 'Partial', value: 2, color: 'gray' }
+				]
+			}
+		});
+		expect(body).toContain('Complete: 1 deck');
+		expect(body).toContain('Partial: 2 decks');
+		expect(body).toContain('3 decks');
+		expect(body).not.toContain('copies');
+	});
 	it('renders separate paths across missing and unknown observations and retains exact readouts', async () => {
 		const { body } = await render(ValueHistoryChart, {
 			props: {
