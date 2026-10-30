@@ -26,6 +26,7 @@
 			type="button"
 			class="chart-row"
 			class:active={selected === item.label}
+			style:--bar-color={item.color ?? 'var(--color-chart-primary)'}
 			aria-label={`${item.label}: ${item.value.toLocaleString()} copies, ${percent.format(item.share)}`}
 			aria-pressed={selected === item.label}
 			onclick={() => (selected = item.label)}
@@ -37,17 +38,9 @@
 					>{item.value.toLocaleString()} <small>{percent.format(item.share)}</small></span
 				></span
 			>
-			<svg viewBox="0 0 100 12" preserveAspectRatio="none" aria-hidden="true">
-				<rect width="100" height="12" rx="1" class="chart-track" />
-				<rect
-					x="0"
-					y="0"
-					width={scale(item.value)}
-					height="12"
-					rx="1"
-					fill={item.color ?? 'var(--color-chart-primary)'}
-				/>
-			</svg>
+			<span class="chart-track" aria-hidden="true">
+				<span class="chart-fill" style:width={`${scale(item.value)}%`}></span>
+			</span>
 		</button>
 	{/each}
 	<div class="chart-axis" aria-hidden="true">
@@ -63,8 +56,8 @@
 <style>
 	.chart-row {
 		display: block;
-		min-height: 58px;
-		padding: 0.5rem;
+		min-height: 64px;
+		padding: 0.65rem 0.5rem;
 		margin-inline: -0.5rem;
 		width: calc(100% + 1rem);
 		border: 0;
@@ -83,7 +76,7 @@
 		align-items: baseline;
 		justify-content: space-between;
 		gap: 1rem;
-		margin-bottom: 0.6rem;
+		margin-bottom: 0.65rem;
 	}
 	.chart-label {
 		overflow-wrap: anywhere;
@@ -91,7 +84,7 @@
 	}
 	.chart-value {
 		flex-shrink: 0;
-		font-size: 0.8125rem;
+		font-size: 0.875rem;
 		font-variant-numeric: tabular-nums;
 	}
 	small {
@@ -102,14 +95,24 @@
 		font-size: 0.6875rem;
 		text-align: right;
 	}
-	svg {
+	.chart-track {
 		display: block;
 		width: 100%;
-		height: 8px;
+		height: 12px;
+		border-radius: 6px;
+		background: var(--color-chart-track);
+		overflow: hidden;
 	}
-	.chart-track {
-		fill: var(--color-muted);
-		opacity: 0.6;
+	.chart-fill {
+		display: block;
+		height: 100%;
+		border-radius: inherit;
+		background: var(--bar-color);
+		opacity: 0.7;
+	}
+	.chart-row:hover .chart-fill,
+	.chart-row.active .chart-fill {
+		opacity: 1;
 	}
 	.chart-axis {
 		position: relative;

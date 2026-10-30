@@ -17,7 +17,7 @@
 	} = $props();
 	let width = $state(640);
 	let selected = $state(-1);
-	const bottom = $derived(expanded ? 258 : 174);
+	const bottom = $derived(expanded ? 288 : 196);
 	const height = $derived(bottom + 34);
 	const chart = $derived(historyChart(points));
 	const observations = $derived(chart.segments.flat());
@@ -25,6 +25,7 @@
 		selected < 0 ? observations.length - 1 : Math.min(selected, observations.length - 1)
 	);
 	const current = $derived(observations[selectedIndex]?.point);
+	const currentObservation = $derived(observations[selectedIndex]);
 	const right = $derived(Math.max(260, width) - 16);
 	const x = $derived(
 		scaleUtc()
@@ -34,7 +35,9 @@
 	const relative = $derived(chart.maximum > BigInt(Number.MAX_SAFE_INTEGER));
 	const factor = $derived(relative ? 10000 : Number(chart.maximum));
 	const ceiling = $derived(relative ? 10000 : Math.max(100, Number(chart.maximum)));
-	const y = $derived(scaleLinear().domain([0, ceiling]).nice(4).range([bottom, 22]));
+	const y = $derived(scaleLinear().domain([0, ceiling]).nice(4).range([bottom, 56]));
+	const currentX = $derived(current ? x(new Date(`${current.day}T00:00:00Z`)) : 62);
+	const calloutLeft = $derived(Math.max(62, Math.min(right - 176, currentX - 88)));
 	const position = (observation: (typeof observations)[number]) =>
 		y(((148 - observation.y) / 120) * factor);
 	const path = $derived(
@@ -75,6 +78,16 @@
 </script>
 
 <div class="history-chart" bind:clientWidth={width}>
+	{#if current}
+		<div
+			class="history-callout"
+			style:left={`clamp(0px, ${(calloutLeft / Math.max(260, width)) * 100}%, calc(100% - 176px))`}
+			aria-hidden="true"
+		>
+			<span>{dateLabel.format(new Date(`${current.day}T00:00:00Z`))}</span>
+			<strong>{formatValueEUR(current.estimate.coveredValue)}</strong>
+		</div>
+	{/if}
 	<svg
 		viewBox={`0 0 ${Math.max(260, width)} ${height}`}
 		style:height={`${height}px`}
@@ -113,10 +126,14 @@
 			<line
 				x1={x(new Date(`${current.day}T00:00:00Z`))}
 				x2={x(new Date(`${current.day}T00:00:00Z`))}
-				y1="16"
+				y1="48"
 				y2={bottom + 4}
 				class="cursor-line"
 			/>
+			{#if currentObservation}
+				<circle cx={currentX} cy={position(currentObservation)} r="8" class="cursor-halo" />
+				<circle cx={currentX} cy={position(currentObservation)} r="4" class="cursor-point" />
+			{/if}
 		{/if}
 		<text x="62" y={height - 6}>{dateLabel.format(new Date(`${from}T00:00:00Z`))}</text>
 		<text x={right} y={height - 6} text-anchor="end"
@@ -155,6 +172,31 @@
 <style>
 	.history-chart {
 		min-width: 0;
+		position: relative;
+	}
+	.history-callout {
+		position: absolute;
+		top: 0;
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 0.5rem;
+		width: 176px;
+		max-width: calc(100% - 62px);
+		padding: 0.55rem 0.65rem;
+		border: 1px solid var(--color-border);
+		border-radius: 0.65rem;
+		background: var(--color-surface);
+		font-size: 0.6875rem;
+		color: var(--color-text-secondary);
+		pointer-events: none;
+	}
+	.history-callout strong {
+		color: var(--color-text-primary);
+		font-weight: 500;
+		font-variant-numeric: tabular-nums;
+		overflow-wrap: anywhere;
+		min-width: 0;
 	}
 	svg {
 		display: block;
@@ -168,22 +210,32 @@
 	}
 	.grid-line {
 		stroke: var(--color-border);
-		stroke-dasharray: 2 4;
+		stroke-dasharray: 3 6;
+		opacity: 0.6;
 	}
 	.value-area {
 		fill: var(--color-chart-primary);
-		opacity: 0.07;
+		opacity: 0.1;
 	}
 	.value-line {
 		stroke: var(--color-chart-primary);
-		stroke-width: 2;
+		stroke-width: 2.5;
 		stroke-linejoin: round;
 		stroke-linecap: round;
 	}
 	.cursor-line {
-		stroke: var(--color-text-muted);
+		stroke: var(--color-chart-primary);
 		stroke-dasharray: 3 4;
-		opacity: 0.5;
+		opacity: 0.7;
+	}
+	.cursor-halo {
+		fill: var(--color-chart-primary);
+		fill-opacity: 0.2;
+	}
+	.cursor-point {
+		fill: var(--color-chart-primary);
+		stroke: var(--color-card);
+		stroke-width: 2.5;
 	}
 	.history-inspect {
 		display: flex;
@@ -205,9 +257,13 @@
 		gap: 0.4rem 1rem;
 		font-size: 0.7rem;
 		color: var(--color-text-secondary);
+		padding-top: 0.75rem;
+		border-top: 1px solid var(--color-border);
 	}
 	.history-readout strong {
 		color: var(--color-text-primary);
 		font-weight: 500;
+		overflow-wrap: anywhere;
+		min-width: 0;
 	}
 </style>
