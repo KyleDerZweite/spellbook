@@ -1,9 +1,9 @@
 # Selected UI components
 
 - Status: Canonical
-- Last Reviewed: 2026-10-29
+- Last Reviewed: 2026-10-30
 - Source of Truth: accepted product decision, current application, upstream documentation
-- Update Triggers: compact distribution and Finish ring presentation, shared D3 analytics charts, component adoption, generated source ownership, Svelte or Tailwind compatibility, interaction requirements, shared scrolling, Search native window/modal hosts and hybrid pagination, filter editing and destructive confirmation
+- Update Triggers: selected A+ Dashboard layout and native Demo evaluation, Mebius visual reference adaptation, compact distribution and Finish ring presentation, shared D3 analytics charts, component adoption, generated source ownership, Svelte or Tailwind compatibility, interaction requirements, shared scrolling, Search native window/modal hosts and hybrid pagination, filter editing and destructive confirmation
 - Related Docs: [Reference](./README.md), [Bits UI](./bits-ui.md), [Frontend](../architecture/frontend.md), [Catalog](../architecture/catalog.md), [Design direction](../product/ui-design-direction.md), [Product specification](../product/specification.md)
 
 Spellbook uses shadcn-svelte source components with Bits UI, Svelte, and Tailwind.
@@ -81,17 +81,26 @@ Future component changes must satisfy the [interface acceptance criteria](../pro
 
 ## Analytics charts
 
-The shared `frontend/src/lib/components/charts/` components use `d3-scale` for zero-based quantitative scales and calendar positioning and `d3-shape` for value-history paths and Finish ring segments.
+The shared `frontend/src/lib/components/charts/` components use `d3-scale` for normalized quantitative positioning and calendar scales and `d3-shape` for value-history paths, a solid Set Pie and large Deck rings.
 These small, framework-independent modules supply chart mathematics without adding a second component or theme system.
 Svelte renders server-compatible SVG and native controls using the existing semantic palette.
 The [D3 scale documentation](https://d3js.org/d3-scale/linear) and [line documentation](https://d3js.org/d3-shape/line) own the upstream APIs.
 `@types/d3-scale` and `@types/d3-shape` supply development-only declarations.
 
-Distribution rows expose the count and share as text and support pointer, focus and tap inspection.
-The Finish ring keeps the same quantities in native legend buttons and renders no colored segment for a zero quantity.
-Dashboard Condition zeroes remain accessible in a native details disclosure.
-Stacked Deck availability retains its exact, alternate and missing labels and counts.
-Value history uses the existing exact-value normalizer before D3 positioning; it never converts arbitrary decimal amounts into floating-point money.
+The [Mebius charts gallery](https://www.mebius.design/freebies/charts) supplies visual ideas only.
+The [selected mapping](../product/ui-design-direction.md#mebius-chart-adaptation) uses original Svelte/D3 code without importing its React/Tailwind components, assets or packages.
+The selected A+ Dashboard uses a solid Set Pie, larger Deck rings and independent Finish, Condition and Extra copies bars.
+Shared ProportionChart owns D3 geometry, accessible segment names and pointer/keyboard/tap inspection for these presentations.
+Set shares group after the top five into Other; full Set and zero-condition data remain in native disclosures.
+No permanent Set legend is rendered.
+Deck rings retain raw owned/required counts, including exact, alternate and missing quantities, without percentage rounding.
+Chart data remains available without JavaScript.
+On 2026-10-30 the upstream gallery advertised a Figma file and React/TypeScript/Tailwind code, with a Download .fig action.
+The download requires a free Mebius account; an unauthenticated request returned 401.
+No Figma file or upstream component code was downloaded or adopted.
+The downloadable source would be a design reference; production rendering remains Svelte/D3.
+Value history chooses padded adaptive bounds and readable 1/2/5 cent tick steps with BigInt arithmetic before normalized D3 positioning.
+It preserves small changes even above Number precision and does not force a zero baseline; enormous axis labels use a relative range with exact amounts in the readout.
 The native observation slider supports keyboard and touch inspection; the observations table retains full values, coverage and reporting times without JavaScript.
 Missing dates and wholly unknown observations break lines, while captured known zero remains a plotted value.
 Shared [design direction](../product/ui-design-direction.md) and [frontend ownership](../architecture/frontend.md#private-value-presentation) govern composition and data semantics.

@@ -82,7 +82,9 @@ def test_snapshot_account_distributions_allocation_and_optional_failures(
                 ]
             elif "WITH owned_printings" in query:
                 assert params == (ACTOR.account_id,) * 3
-                result.fetchall.return_value = [("deck", "Deck", "Commander", "8", "2", "3", "3")]
+                result.fetchall.return_value = [
+                    ("deck", "Deck", "Commander", "8", "2", "3", "3", [])
+                ]
             elif "FROM scan_sessions" in query:
                 assert params == (ACTOR.account_id,)
                 if scan_failure:
@@ -124,6 +126,7 @@ def test_snapshot_account_distributions_allocation_and_optional_failures(
                 exact=2,
                 alternate=3,
                 missing=3,
+                commanders=[],
             )
         ]
         assert result["pendingScanReviews"] == (None if scan_failure else 2)

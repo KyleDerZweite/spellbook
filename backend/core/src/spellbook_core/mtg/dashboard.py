@@ -174,7 +174,14 @@ class Dashboard:
                         GROUP BY a.deck_id
                     ) SELECT d.id,d.name,d.format,coalesce(t.required,0)::text,
                     coalesce(t.exact,0)::text,coalesce(t.alternate,0)::text,
-                    coalesce(t.required-t.exact-t.alternate,0)::text
+                    coalesce(t.required-t.exact-t.alternate,0)::text,
+                    (SELECT coalesce(jsonb_agg(preview), '[]'::jsonb) FROM (
+                        SELECT dc.catalog_card_id AS "catalogCardId", dc.name,
+                        dc.image_uri AS "imageUri" FROM deck_cards dc
+                        WHERE dc.deck_id=d.id AND dc.account_id=d.account_id
+                        AND dc.game=d.game AND dc.role='commander'
+                        ORDER BY dc.created_at,dc.id LIMIT 2
+                    ) preview) AS commanders
                     FROM decks d LEFT JOIN totals t ON t.deck_id=d.id
                     WHERE d.account_id=%s AND d.game='mtg' ORDER BY d.updated_at DESC,d.id
                     """,
@@ -189,10 +196,11 @@ class Dashboard:
                     **dict(
                         zip(
                             ("required", "exact", "alternate", "missing"),
-                            (summary_number(value) for value in deck[3:]),
+                            (summary_number(value) for value in deck[3:7]),
                             strict=True,
                         )
                     ),
+                    "commanders": deck[7],
                 }
                 for deck in deck_rows
             ]

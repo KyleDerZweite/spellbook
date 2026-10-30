@@ -34,6 +34,24 @@ function captured(day: string, overrides: Partial<ValueEstimate> = {}): Inventor
 }
 
 describe('personal Inventory history presentation', () => {
+	it('adapts the value axis to cent changes instead of forcing a zero baseline', () => {
+		const chart = historyChart([
+			captured('2026-10-01', { coveredValue: '60.01' }),
+			captured('2026-10-02', { coveredValue: '60.03' })
+		]);
+		expect(chart.axis.lower).toBeLessThanOrEqual(6001n);
+		expect(chart.axis.upper).toBeGreaterThanOrEqual(6003n);
+		expect(chart.axis.upper - chart.axis.lower).toBeLessThanOrEqual(10n);
+		expect(chart.axis.ticks[1] - chart.axis.ticks[0]).toBe(1n);
+	});
+	it('keeps cent-scale axis differences exact beyond Number precision', () => {
+		const chart = historyChart([
+			captured('2026-10-01', { coveredValue: '9007199254740993.98' }),
+			captured('2026-10-02', { coveredValue: '9007199254740993.99' })
+		]);
+		expect(chart.axis.upper - chart.axis.lower).toBeLessThanOrEqual(10n);
+		expect(chart.segments[0][1].value - chart.segments[0][0].value).toBe(1n);
+	});
 	it('breaks lines at explicit gaps, wholly unknown observations and absent dates', () => {
 		const chart = historyChart([
 			captured('2026-10-01'),

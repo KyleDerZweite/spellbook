@@ -72,6 +72,14 @@ def test_dashboard_real_aggregates_deck_allocation_and_account_isolation() -> No
                         "VALUES(%s,%s,%s,'mtg',%s,%s,'Dashboard','tst','',%s,%s)",
                         (uuid4(), deck, account, printing, canonical, quantity, role),
                     )
+                commander = str(uuid4())
+                await tx.execute(
+                    "INSERT INTO deck_cards(id,deck_id,account_id,game,catalog_card_id,"
+                    "canonical_card_id,name,set_code,image_uri,quantity,role) "
+                    "VALUES(%s,%s,%s,'mtg',%s,%s,'Stored Commander','tst',"
+                    "'https://example.test/commander.jpg',1,'commander')",
+                    (uuid4(), deck, account, commander, str(uuid4())),
+                )
                 await tx.execute(
                     "INSERT INTO scan_sessions(id,account_id,game,status) "
                     "VALUES(%s,%s,'mtg','pending_review')",
@@ -89,11 +97,21 @@ def test_dashboard_real_aggregates_deck_allocation_and_account_isolation() -> No
             assert {
                 key: required[key] for key in ("required", "exact", "alternate", "missing")
             } == {
-                "required": 7,
+                "required": 8,
                 "exact": 2,
                 "alternate": 3,
-                "missing": 2,
+                "missing": 3,
             }
+            assert required["commanders"] == [
+                {
+                    "catalogCardId": commander,
+                    "name": "Stored Commander",
+                    "imageUri": "https://example.test/commander.jpg",
+                }
+            ]
+            assert (
+                next(row for row in summary["decks"] if row["name"] == "Empty")["commanders"] == []
+            )
             assert summary["pendingScanReviews"] == 1
             assert summary["valuationError"] is None
             assert summary["inventoryValue"] is not None
@@ -111,5 +129,66 @@ def test_dashboard_real_aggregates_deck_allocation_and_account_isolation() -> No
             assert foreign["decks"] == foreign["recentEntries"] == foreign["sets"] == []
             assert foreign["pendingScanReviews"] == 0
             assert all(row["share"] == row["quantity"] == 0 for row in foreign["conditions"])
+
+    asyncio.run(scenario())
+
+
+def test_commander_previews_are_bounded_stored_and_account_scoped() -> None:
+    async def scenario() -> None:
+        async with (
+            native_pool() as pool,
+            native_account(pool) as (account, token),
+            native_account(pool) as (foreign_account, foreign_token),
+        ):
+            auth = create_session_auth(pool)
+            actor = await auth.validate_session(token)
+            foreign_actor = await auth.validate_session(foreign_token)
+            assert actor and foreign_actor
+            own_deck, foreign_deck = str(uuid4()), str(uuid4())
+            expected: list[dict[str, str]] = []
+            async with transaction(pool) as tx:
+                for owner, deck_id in [(account, own_deck), (foreign_account, foreign_deck)]:
+                    await tx.execute(
+                        "INSERT INTO decks(id,account_id,game,name) VALUES(%s,%s,'mtg',%s)",
+                        (deck_id, owner, "Owned" if owner == account else "Foreign"),
+                    )
+                    for index, role in enumerate(["main", "commander", "commander", "commander"]):
+                        printing_id = str(uuid4())
+                        name = f"{owner} {role} {index}"
+                        image = f"https://example.test/{printing_id}.jpg"
+                        await tx.execute(
+                            "INSERT INTO deck_cards(id,deck_id,account_id,game,catalog_card_id,"
+                            "canonical_card_id,name,set_code,image_uri,quantity,role,created_at) "
+                            "VALUES(%s,%s,%s,'mtg',%s,%s,%s,'tst',%s,1,%s,"
+                            "statement_timestamp() + %s * interval '1 second')",
+                            (
+                                uuid4(),
+                                deck_id,
+                                owner,
+                                printing_id,
+                                str(uuid4()),
+                                name,
+                                image,
+                                role,
+                                index,
+                            ),
+                        )
+                        if owner == account and index in (1, 2):
+                            expected.append(
+                                {"catalogCardId": printing_id, "name": name, "imageUri": image}
+                            )
+            dashboard = create_dashboard(
+                pool, auth, create_inventory_values(pool, create_valuation(pool, auth))
+            )
+            summary = await dashboard.get(actor)
+            assert len(summary["decks"]) == 1
+            assert summary["decks"][0]["id"] == own_deck
+            assert summary["decks"][0]["commanders"] == expected
+            other = await dashboard.get(foreign_actor)
+            assert len(other["decks"]) == 1
+            assert other["decks"][0]["id"] == foreign_deck
+            other_commanders = other["decks"][0]["commanders"]
+            assert isinstance(other_commanders, list) and len(other_commanders) == 2
+            assert all(item not in other_commanders for item in expected)
 
     asyncio.run(scenario())

@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-30
 - Source of Truth: accepted product requirements, application components, selected logo and component choices
-- Update Triggers: executed development-only search lab and comparison, shortcut-only power-user search requirement and source algorithm investigation, global command menu exploration, color-mode placement below centered mana controls, tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
+- Update Triggers: selected A+ Dashboard layout and native Demo evaluation, Mebius chart reference adaptation, executed development-only search lab and comparison, shortcut-only power-user search requirement and source algorithm investigation, global command menu exploration, color-mode placement below centered mana controls, tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
 - Related Docs: [Product specification](./specification.md), [Mobile exploration](./mobile-app-exploration.md), [Routes](./routing-and-games.md), [Domain model](../../GLOSSARY.md), [Selected UI components](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Brand assets](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Value tracking](./value-tracking.md)
 
 Spellbook prioritizes digitizing, indexing and managing a player's own Magic cards, then building decks from that collection.
@@ -55,7 +55,8 @@ Registration and approval retain their narrow account layout.
 The maintainer resumed website UI refinement on 2026-10-29, using the public landing page as the visual reference.
 The initial implementation scope covers Dashboard composition, shared distribution and value-history charts, valuation panels and shared Search card tiles.
 Use flat neutral surfaces, generous separation between working areas, compact display headings and artwork with complete card frames.
-Charts use semantic accent colors, zero-based quantitative axes, readable counts and shares, pointer/focus inspection and equivalent textual data.
+Charts use semantic accent colors, readable counts and shares, pointer/focus inspection and equivalent textual data.
+Comparison bars retain zero-based axes; personal value history uses the adaptive value range selected below.
 D3 owns scales and path construction; Svelte owns responsive SVG, focus, state and theme tokens.
 Keep native forms, account scoping, SavedState leases, bounded browsing and current mutation behavior.
 Do not invent price observations, connect gaps or convert unknown references into zero.
@@ -64,8 +65,10 @@ The landing page remains the reference; further page-specific redesign and pause
 The Dashboard follow-up uses the maintainer-supplied [Figma Dashboard gallery](https://www.figma.com/templates/dashboard-designs/) as a composition reference, reviewed on 2026-10-29.
 The gallery previews for Simple dashboard mockup, Purity UI dashboard and Admin dashboard template demonstrate compact metric rows, a dominant analysis module and smaller supporting modules.
 Adapt those hierarchy and density patterns with Spellbook's existing fonts, semantic palette, navigation and native scrolling.
-Use four linked metric tiles, combine the current Inventory estimate and its history, and keep Deck availability actionable beside it.
-Use horizontal Set comparisons, a Finish ring with textual counts, and a compact Condition breakdown with zero-count conditions still available.
+Use three linked metric tiles: Total / Unique Cards, Sets and Decks.
+Render the total in primary text and the unique count in secondary text within the same tile.
+Combine the current Inventory estimate and its history, and keep Deck availability actionable beside it.
+Use the selected A+ composition below for Set, Finish, Condition and Deck charts.
 Present recent owned entries as a gallery of full card frames linked to their Inventory details.
 Compact valuation views disclose coverage, reporting-calendar and gap explanations through native details rather than repeating prose across the overview.
 No copied template assets, new theme system or new backend aggregates belong to this refinement.
@@ -103,6 +106,75 @@ Q56 accepted the shared Button, WorkspaceHeader, QuantityControl, dialog and bou
 Inventory uses these shared controls and bounded loading, and Deck UI adoption is implemented.
 SavedState transport, the Profile consumer and mounted Inventory/Deck/Scan workspace consumers are implemented; rendered acceptance remains separate.
 The maintainer also requested a review of all current docs and decisions; existing descriptions remain implementation evidence until a reviewed replacement or explicit supersession changes them.
+
+## Mebius chart adaptation
+
+Kyle selected the [Mebius charts gallery](https://www.mebius.design/freebies/charts) as a visual reference on 2026-10-30.
+Adapt the gallery's rounded marks, generous plot space, restrained grids, clear selected values and coordinated legend emphasis through the existing Svelte/D3 chart owners.
+Keep Spellbook's fonts, neutral light/dark surfaces and semantic chart colors.
+Use flat fills, with no copied assets, template code, gradients, shadows on data marks or new dependencies.
+Kyle's subsequent 2026-10-30 feedback selects adaptive value axes, categorical Set composition, compact Deck availability and meaningful Stat-card trends.
+Kyle subsequently selected the A+ Dashboard prototype with the Alternatives/many-Sets scenario for implementation.
+Keep its three compact metric tiles, dominant value/history panel, larger Deck rings beside Commander previews, a solid Set Pie and a shared panel of independent Finish, Condition and Extra copies bars.
+Extra copies means physical copies beyond one copy per distinct Canonical Card, calculated as total minus names.
+Finish, Condition and Extra copies are independent compositions against the owned-copy total.
+Trends remain a concept only, as Kyle explicitly selected in the follow-up.
+This chart change adds no trend DTO, database migration, capture job or Stat-card sparkline.
+
+| Existing use                    | Mebius reference                        | Selected adaptation                                                                                                                                                                |
+| ------------------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dashboard and Inventory History | Cash Flow Area, Total Expenses          | Adaptive exact-cent value range with modest padding, quiet area fill, selected-point halo/cursor and exact date/value/coverage. Retain native observation inspection and tables.   |
+| Dashboard Sets                  | Portfolio Allocation                    | Solid categorical Pie with exact counts/shares on pointer, keyboard and tap inspection. Group sets beyond the top five into Other; keep the full breakdown as a native disclosure. |
+| Dashboard Finish                | Portfolio Allocation                    | Separate proportional bars for Finish, Condition and Extra copies in one panel, with concise totals and inspectable segments. Keep zero quantities available in native data.       |
+| Dashboard Deck availability     | Financial Breakdown, Category Breakdown | Large proportional rings with an owned/required readout beside Commander thumbnails and direct missing status. Inspect exact/alternate/missing segments on hover, focus and tap.   |
+
+This adapts visual ideas to existing tasks rather than adding finance widgets.
+Do not fabricate history, sales, budgets, targets or prior-period comparisons.
+Missing days and unknown-only observations still break value-history lines; known zero and partial coverage remain explicit.
+Keep public Printing price history distinct from personal holdings history.
+
+Shared chart components own mark geometry and inspection; routes keep their existing data, navigation and SavedState responsibilities.
+Acceptance covers dark/light desktop and narrow Dashboard/History, pointer and keyboard inspection, synthesized touch, exact counts/amounts, zero/missing/unknown data, native tables and error/retry behavior.
+Compare rendered output with the selected source previews and record technical checks separately from Kyle's visual acceptance.
+
+The Dashboard response supplies at most two account-scoped stored Commander-role Printing previews per Deck, with Printing ID, name and image URI.
+These are previews, not a full Composition read, and do not silently substitute an unrelated card when no Commander exists.
+Shared ProportionChart owns D3 geometry and per-segment inspection for Pie, ring and bar presentations.
+Deck rows preserve exact/alternate/missing quantities, use a larger ring with an owned/required readout, and keep an empty Deck as a compact action without an invented chart.
+Set and Inventory breakdowns keep native exact-data disclosures; no permanent Set legend is rendered.
+The explicit native Demo scenario adds real Catalog-backed Inventory and Deck rows; it does not replace account reads with browser fixtures.
+
+### Dashboard metric trends, concept only
+
+On 2026-10-30, Kyle selected concept work rather than implementation of the Stat-card trends.
+The proposal uses small 30-day sparklines for Cards owned, Card names, Sets and Decks, with absolute net changes and the actual comparison date.
+Kyle's subsequently supplied AdGuard screenshot sets the visual direction for this concept.
+Use a large counter at the upper left, a small change indicator at the upper right and a thin, low-contrast sparkline near the tile's lower edge.
+The reference's quiet border, generous empty space and restrained color coding fit the existing neutral themes.
+Retain each metric's visible label and its navigation target; label placement can be resolved in a future visual prototype.
+The line represents daily holdings or Deck totals, and the change indicator compares against the actual first observed day in the selected window.
+Use absolute changes by default, so one additional Set or Deck remains understandable without a large percentage.
+Only real observed zeroes or unchanged counts justify a flat line; missing history shows an unavailable comparison rather than a fabricated line or 0%.
+
+Positive and negative counts describe holdings or Deck-count changes, never purchases, sales or investment returns.
+One known point has no comparison; missing days stay gaps.
+The current live count would be a separately identified final point.
+
+| Stat card   | Proposed trend meaning                 | Historical evidence                     |
+| ----------- | -------------------------------------- | --------------------------------------- |
+| Cards owned | Net change in physical copies          | Saved quantities                        |
+| Card names  | Net change in distinct Canonical Cards | Saved canonical identity                |
+| Sets        | Net change in represented sets         | Saved Set codes                         |
+| Decks       | Net change in Deck count               | Future daily counter recording required |
+
+A missing baseline must show no comparison rather than zero change; percentage changes would require a nonzero reference count.
+Deck completion is a separate measure and must not be inferred from the number of Decks.
+
+Existing `inventory_value_holdings` snapshots can provide historical owned-copy, unique-name and Set counts independently of price coverage.
+They cannot establish past Deck counts.
+Deck trends would require real daily counter recording in a separately reviewed backend change; current Decks, creation dates and receipts must not serve as invented historical totals.
+Before implementation, select snapshot storage, capture/calendar policy, account-scoped reads, failure recovery and acceptance evidence in the owning architecture documents.
+No trend implementation or recording is part of this chart PR.
 
 ## Selected hybrid browsing and Card dialog
 
@@ -363,9 +435,9 @@ The static public example does not imply visitor ownership, an account import or
 [Asset provenance](../reference/website-icons.md#card-showcase-assets) owns the source; [frontend architecture](../architecture/frontend.md) owns component responsibilities.
 
 The private Dashboard at `/mtg/dashboard` leads with owned-copy totals, then shows per-deck availability beside quantity-weighted set comparisons.
-Exact, alternate and missing quantities use proportional color segments with visible counts.
-Sets use a shared copy-count scale with percentages of the total inventory; Other sets is a separate aggregate.
-Compact finish and condition distributions retain zero values in their text legends, followed by recently edited inventory.
+Exact, alternate and missing quantities use large proportional rings with an owned/required count and inspectable segment counts.
+Sets use a solid Pie with the top five and an Other aggregate.
+Finish, Condition and Extra copies use separate bars with native data, followed by recently edited inventory.
 Scan entrypoints and pending-review presentation are paused; existing Search, Inventory and Deck workflow links remain.
 Empty and unavailable states remain explicit.
 [The product specification](./specification.md#dashboard) owns metric definitions and limits.
