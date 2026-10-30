@@ -7,19 +7,14 @@
 	import { readSavedJSON } from '#lib/saved-state/read.ts';
 	import type { ResourceSubscription } from '#lib/saved-state/workspace.ts';
 	import PrototypeSelector from '#lib/components/dashboard/prototypes/PrototypeSelector.svelte';
-	import Design1 from '#lib/components/dashboard/prototypes/Dashboard1.prototype.svelte';
-	import Design2 from '#lib/components/dashboard/prototypes/Dashboard2.prototype.svelte';
-	import Design3 from '#lib/components/dashboard/prototypes/Dashboard3.prototype.svelte';
-	import Design4 from '#lib/components/dashboard/prototypes/Dashboard4.prototype.svelte';
-	import Design5 from '#lib/components/dashboard/prototypes/Dashboard5.prototype.svelte';
 	import Design6 from '#lib/components/dashboard/prototypes/Dashboard6.prototype.svelte';
 	import Design7 from '#lib/components/dashboard/prototypes/Dashboard7.prototype.svelte';
 	import Design8 from '#lib/components/dashboard/prototypes/Dashboard8.prototype.svelte';
 	let { data }: PageProps = $props();
 	let dashboard = $state(untrack(() => data.dashboard));
 	let subscription: ResourceSubscription | undefined = $state();
-	const designs = [Design1, Design2, Design3, Design4, Design5, Design6, Design7, Design8];
-	const Design = $derived(designs[data.design - 1]);
+	const designs = { 6: Design6, 7: Design7, 8: Design8 };
+	const Design = $derived(designs[data.design as keyof typeof designs]);
 	onMount(() => {
 		subscription = workspaceSavedState.subscribe({
 			topics: ['inventory', 'decks', 'values'],

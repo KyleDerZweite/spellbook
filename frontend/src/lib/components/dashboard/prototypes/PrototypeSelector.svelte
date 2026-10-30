@@ -4,41 +4,15 @@
 	import deckReference from './references/deck-workbench.png?url';
 	import overviewReference from './references/collection-overview.png?url';
 	let { design }: { design: number } = $props();
-	const names = [
-		'Overview',
-		'Gallery',
-		'Studio',
-		'Hub',
-		'Collection',
-		'Workbench',
-		'Decks',
-		'Compact'
+	const variants = [
+		{ id: 6, name: 'Collection', reference: collectionReference },
+		{ id: 7, name: 'Decks', reference: deckReference },
+		{ id: 8, name: 'Overview', reference: overviewReference }
 	];
-	const references = [
-		[
-			{ name: 'Things 3', url: 'https://culturedcode.com/things/' },
-			{ name: 'shadcn', url: 'https://ui.shadcn.com/examples/dashboard' }
-		],
-		[
-			{ name: 'Craft', url: 'https://www.craft.do/' },
-			{ name: 'Apple Music', url: 'https://www.apple.com/apple-music/' }
-		],
-		[
-			{ name: 'Linear', url: 'https://linear.app/' },
-			{ name: 'Raycast', url: 'https://www.raycast.com/' }
-		],
-		[
-			{ name: 'shadcn', url: 'https://ui.shadcn.com/examples/dashboard' },
-			{ name: 'Raycast', url: 'https://www.raycast.com/' }
-		],
-		[
-			{ name: 'Bear', url: 'https://bear.app/' },
-			{ name: 'Craft', url: 'https://www.craft.do/' }
-		],
-		[{ name: 'Saved collection reference', url: collectionReference }],
-		[{ name: 'Saved deck reference', url: deckReference }],
-		[{ name: 'Saved overview reference', url: overviewReference }]
-	];
+	const index = $derived(variants.findIndex((v) => v.id === design));
+	const current = $derived(variants[index]);
+	const adjacent = (offset: number) =>
+		variants[(index + offset + variants.length) % variants.length].id;
 </script>
 
 <svelte:window
@@ -54,8 +28,7 @@
 			return;
 		if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
 			event.preventDefault();
-			const next =
-				((design - 1 + (event.key === 'ArrowLeft' ? -1 : 1) + names.length) % names.length) + 1;
+			const next = adjacent(event.key === 'ArrowLeft' ? -1 : 1);
 			void goto(`/mtg/dashboard/${next}`, { reset: false });
 		}
 	}}
@@ -63,25 +36,18 @@
 <nav class="prototype-selector" aria-label="Dashboard design selector">
 	<span class="preview-label">Design preview</span><a
 		class="arrow"
-		href={`/mtg/dashboard/${design === 1 ? names.length : design - 1}`}
+		href={`/mtg/dashboard/${adjacent(-1)}`}
 		aria-label="Previous design">←</a
-	>{#each names as name, index}<a
-			href={`/mtg/dashboard/${index + 1}`}
-			aria-current={design === index + 1 ? 'page' : undefined}
-			aria-label={`Design ${index + 1}: ${name}`}><strong>{index + 1}</strong><span>{name}</span></a
-		>{/each}<a
-		class="arrow"
-		href={`/mtg/dashboard/${design === names.length ? 1 : design + 1}`}
-		aria-label="Next design">→</a
-	>
+	>{#each variants as variant}<a
+			href={`/mtg/dashboard/${variant.id}`}
+			aria-current={design === variant.id ? 'page' : undefined}
+			aria-label={`Design ${variant.id}: ${variant.name}`}
+			><strong>{variant.id}</strong><span>{variant.name}</span></a
+		>{/each}<a class="arrow" href={`/mtg/dashboard/${adjacent(1)}`} aria-label="Next design">→</a>
 	<details class="references">
 		<summary aria-label="Design references">Refs</summary>
 		<div>
-			{#each references[design - 1] as reference}<a
-					href={reference.url}
-					target="_blank"
-					rel="noopener">{reference.name} ↗</a
-				>{/each}
+			<a href={current.reference} target="_blank" rel="noopener">Saved reference ↗</a>
 		</div>
 	</details>
 	<a class="baseline" href="/mtg/dashboard" aria-label="Open current Dashboard">↗</a>

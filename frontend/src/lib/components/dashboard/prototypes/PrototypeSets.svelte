@@ -15,7 +15,11 @@
 	const items = $derived([
 		...dashboard.sets
 			.slice(0, 5)
-			.map((s, i) => ({ label: s.label.toUpperCase(), value: s.quantity, color: colors[i] })),
+			.map((s, i) => ({
+				label: dashboard.catalogBreakdown?.setNames[s.label] ?? s.label.toUpperCase(),
+				value: s.quantity,
+				color: colors[i]
+			})),
 		...(dashboard.sets.length > 5
 			? [
 					{
@@ -35,7 +39,7 @@
 			<summary aria-label="All sets">•••</summary>
 			<dl>
 				{#each dashboard.sets as set}<div>
-						<dt>{set.label.toUpperCase()}</dt>
+						<dt>{dashboard.catalogBreakdown?.setNames[set.label] ?? set.label.toUpperCase()}</dt>
 						<dd>{set.quantity.toLocaleString()}</dd>
 					</div>{/each}
 			</dl>
