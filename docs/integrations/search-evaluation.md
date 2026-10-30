@@ -1,6 +1,6 @@
 # Global search evaluation
 
-- Status: Executed local evaluation and proposed direction
+- Status: Executed local evaluation and implemented global palette
 - Last Reviewed: 2026-10-30
 - Source of Truth: repository search code and cited official PostgreSQL/extension documentation
 - Update Triggers: search scope selection, relevance evaluation, extension or embedding-model selection
@@ -118,7 +118,7 @@ A German Settings alias opened the real authenticated password page without chan
 The isolated owner/other/guest Deck predicate tests passed; this is not acceptance of production private-search authorization or a real second-account journey.
 Fixture Deck ownership is intentionally synthetic in the lab and never reads private production Decks.
 
-The final browser run observed an immediate static suggestion in about 10 ms and lexical completion in about 214 ms including debounce, HTTP and rendering.
+The final browser run observed an immediate static suggestion in about 9 ms and lexical completion in about 209 ms including debounce, HTTP and rendering.
 These are single journey observations, not UI latency distributions.
 No human task-completion study, screen-reader session, physical Mac key test or mobile touch study ran.
 Keyboard operation and recovery are technically verified; user-friendliness remains an owner judgment.
@@ -279,3 +279,48 @@ For ANN, measure recall against exact vectors under real filters.
 The executed trial below measures relevance, latency and index/build cost.
 It is exploratory and had no preselected production acceptance thresholds.
 Production model choice, extension packaging and multilingual Catalog scope remain open.
+
+## Implemented global palette and native acceptance
+
+Kyle selected the supplied T3 Code visual reference and real source-specific results on 2026-10-30.
+The [selected contract](../product/ui-design-direction.md#global-power-user-search-implementation-contract) and [frontend owner](../architecture/frontend.md#global-power-user-search) own the delivered palette.
+The [Catalog owner](../architecture/catalog.md#global-power-user-search) owns the dedicated native query.
+This implementation uses existing published PostgreSQL indexes and account-owned records, without adopting the experiment's projection, embedding model or BM25 extension.
+It does not replace ordinary Catalog search.
+The earlier benchmark table remains a comparison of experiment variants, not performance evidence for this new endpoint.
+
+The same real Sol Ring has separate Card Search, Inventory and named Deck rows, with context icons, quantities and independent destinations.
+Public exact-name matching avoids unrelated typo/rules filler, and private queries remain independent of the public top five.
+Local Settings aliases support prefixes, accent folding and one-edit typo recovery.
+The palette follows the supplied dark reference with compact sans-serif rows, neutral icons/selection, a thin border and bottom keyboard legend; light/narrow layouts use the same controls.
+Settings exposes only a read-only keybind; ordinary Search links keep their existing overlay and history.
+
+The captured report's `global_implementation` records actual guest/two-account HTTP isolation and browser checks separately from the algorithm trial.
+The native HTTP runner uses a disposable second profile/session fixture and real API-created Inventory/Deck records, not mocked authorization.
+It revokes its fixture sessions and removes its temporary second account afterward; it does not test second-account signup.
+Browser acceptance covers all three real destinations, Settings/login return, Deck-name completion, other-dialog draft protection, return to ordinary Search, failure/stale-response recovery, dark/light layouts and actual session revocation.
+The tests remain technical evidence, not human usability acceptance or production load evidence.
+
+The initial native public query scored all 109,393 Printings before limiting.
+An actual Sol Ring plan changed from a sequential scan to existing GIN bitmap scans after indexed candidate admission.
+The final report records five warm HTTP repetitions for eight queries as a guest and as the Demo owner.
+These measurements include loopback API HTTP; the 150-ms debounce, Web proxy and rendering are additional.
+Very short or broad rules requests remain slower than selective names.
+The source-specific query and benchmark remain available for further tuning without introducing a new index into this delivery.
+
+After the prerequisites and assigned Demo runtime above, run:
+
+```sh
+backend/core/.venv/bin/python scripts/search-evaluation/power_http.py
+uvx --from playwright==1.64.1 python scripts/search-evaluation/power_browser.py
+backend/core/.venv/bin/python scripts/search-evaluation/report.py
+```
+
+The HTTP runner checks the assigned Demo account/database before creating its fixtures.
+It adds three Sol Ring copies once through an idempotent Demo Inventory request and creates a separate private verification Deck for its other fixture account.
+Existing Demo records are retained.
+The browser runner defaults to the owned dev server at port 5173; `POWER_SEARCH_BROWSER_ORIGIN` can select the owned built server for the same journeys.
+The opt-in algorithm lab retains its own shortcut while mounted on its development-only route.
+
+Cold-browser startup, built-route guards and the targeted native EXPLAIN capture are optional additional probes in this recorded run.
+The report accepts the documented fresh runner outputs without those optional captures and records a missing native plan as null.

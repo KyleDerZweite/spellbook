@@ -17,6 +17,14 @@ export interface PowerSearchGroup {
 
 const targets: (PowerSearchRow & { aliases: string[] })[] = [
 	{
+		id: 'dashboard',
+		kind: 'page',
+		name: 'Dashboard',
+		description: '',
+		href: '/mtg/dashboard',
+		aliases: ['übersicht', 'dashboard']
+	},
+	{
 		id: 'new-deck',
 		kind: 'action',
 		name: 'New deck',
@@ -60,7 +68,7 @@ const targets: (PowerSearchRow & { aliases: string[] })[] = [
 		id: 'profile',
 		kind: 'setting',
 		name: 'Profile',
-		description: 'Settings',
+		description: '',
 		href: '/settings',
 		aliases: ['settings', 'einstellungen', 'profil', 'account', 'email']
 	},
@@ -68,7 +76,7 @@ const targets: (PowerSearchRow & { aliases: string[] })[] = [
 		id: 'profile-card',
 		kind: 'setting',
 		name: 'Profile card',
-		description: 'Settings',
+		description: '',
 		href: '/settings/profile-card',
 		aliases: ['profilkarte', 'artwork']
 	},
@@ -76,7 +84,7 @@ const targets: (PowerSearchRow & { aliases: string[] })[] = [
 		id: 'password',
 		kind: 'setting',
 		name: 'Password',
-		description: 'Settings',
+		description: '',
 		href: '/settings/password',
 		aliases: ['passwort ändern', 'change password', 'passwort']
 	},
@@ -94,19 +102,55 @@ function normalize(value: string) {
 	return value.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
+function oneEdit(left: string, right: string): boolean {
+	if (Math.abs(left.length - right.length) > 1) return false;
+	let i = 0;
+	while (i < left.length && left[i] === right[i]) i++;
+	if (i === left.length) return right.length - i <= 1;
+	if (left.length < right.length) return left.slice(i) === right.slice(i + 1);
+	if (left.length > right.length) return left.slice(i + 1) === right.slice(i);
+	return (
+		left.slice(i + 1) === right.slice(i + 1) ||
+		(left[i] === right[i + 1] &&
+			left[i + 1] === right[i] &&
+			left.slice(i + 2) === right.slice(i + 2))
+	);
+}
+
+function matchesWord(word: string, token: string) {
+	if (word.startsWith(token)) return true;
+	return (
+		token.length >= 3 &&
+		[token.length - 1, token.length, token.length + 1].some((length) =>
+			oneEdit(token, word.slice(0, length))
+		)
+	);
+}
+
 export function powerSearchNavigation(query: string): PowerSearchGroup[] {
 	const words = normalize(query).split(' ').filter(Boolean);
 	const matches = targets.filter(
 		(target) =>
 			!words.length ||
-			[target.name, ...target.aliases].some((text) =>
-				words.every((word) =>
+			words.every((word) =>
+				[
+					target.name,
+					target.description,
+					...target.aliases,
+					target.kind === 'setting' ? 'settings einstellungen' : ''
+				].some((text) =>
 					normalize(text)
 						.split(' ')
-						.some((part) => part.startsWith(word))
+						.some((part) => matchesWord(part, word))
 				)
 			)
 	);
+	const exact = (row: PowerSearchRow) =>
+		targets.some(
+			(target) =>
+				target.id === row.id &&
+				[target.name, ...target.aliases].some((text) => normalize(text) === normalize(query))
+		);
 	return [
 		{ id: 'actions', label: 'Actions', rows: matches.filter((row) => row.kind === 'action') },
 		{
@@ -115,7 +159,13 @@ export function powerSearchNavigation(query: string): PowerSearchGroup[] {
 			rows: matches.filter((row) => row.kind !== 'action' && row.kind !== 'setting')
 		},
 		{ id: 'settings', label: 'Settings', rows: matches.filter((row) => row.kind === 'setting') }
-	].filter((group) => group.rows.length);
+	]
+		.filter((group) => group.rows.length)
+		.map((group) => ({
+			...group,
+			rows: group.rows.toSorted((a, b) => Number(exact(b)) - Number(exact(a)))
+		}))
+		.toSorted((a, b) => Number(b.rows.some(exact)) - Number(a.rows.some(exact)));
 }
 
 /** A canonical identity stays distinct in every source and every Deck. */
@@ -132,7 +182,7 @@ export function powerSearchGroups(
 				id: `catalog:${hit.canonicalCardId}`,
 				kind: hit.kind,
 				name: hit.name,
-				description: 'Card Search',
+				description: '',
 				href: `/mtg/search?${new URLSearchParams({ q: hit.name, printing: hit.catalogCardId })}`
 			}))
 		},
@@ -231,6 +281,18 @@ export function createPowerSearchReader(input: {
 							groups: [],
 							pending: false,
 							error: 'Search unavailable. Page and Settings matches remain usable.'
+						});
+				} finally {
+					if (
+						current === sequence &&
+						!request.signal.aborted &&
+						input.account() === accountId &&
+						!publication()
+					)
+						input.changed({
+							groups: [],
+							pending: false,
+							error: 'Search is refreshing. Page and Settings matches remain usable.'
 						});
 				}
 			}, 150);

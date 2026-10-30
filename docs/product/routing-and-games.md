@@ -1,7 +1,7 @@
 # Routes and supported game, paused Scan entrypoints
 
 - Status: Canonical
-- Last Reviewed: 2026-10-24
+- Last Reviewed: 2026-10-30
 - Source of Truth: route handlers and server hooks
 - Update Triggers: shortcut-only global power-user search, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, PWA launch/connect and QR approval/API routes, route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game, paused Scan entrypoints, private Inventory history routes
 - Related Docs: [Product specification](./specification.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Frontend architecture](../architecture/frontend.md), [Catalog](../architecture/catalog.md), [Product index](./README.md)

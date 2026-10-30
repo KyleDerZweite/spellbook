@@ -6829,17 +6829,17 @@
       ],
       "errors": [],
       "timings": {
-        "lexical_completion_ms": 214.03693399770418,
-        "static_suggestion_ms": 10.437871002068277
+        "lexical_completion_ms": 208.9370429966948,
+        "static_suggestion_ms": 8.952701995440293
       },
       "browser": "156.0.8078.4",
       "variant_walkthroughs": [
         {
           "variant": "baseline",
           "query": "sol ri",
-          "visible_ms": 211.31150499422802,
+          "visible_ms": 195.38679800461978,
           "inference_ms": 0,
-          "retrieval_ms": 13.208594995376188,
+          "retrieval_ms": 11.91304199892329,
           "cache_hit": false,
           "top5": [
             "Sol Ring"
@@ -6848,18 +6848,18 @@
         {
           "variant": "baseline",
           "query": "zerstöre alle kreaturen",
-          "visible_ms": 195.70086499879835,
+          "visible_ms": 192.85592199594248,
           "inference_ms": 0,
-          "retrieval_ms": 11.655598995275795,
+          "retrieval_ms": 10.595366002235096,
           "cache_hit": false,
           "top5": []
         },
         {
           "variant": "lexical",
           "query": "sol ri",
-          "visible_ms": 197.61231199663598,
+          "visible_ms": 191.42347199522192,
           "inference_ms": 0,
-          "retrieval_ms": 8.10046699916711,
+          "retrieval_ms": 7.055441994452849,
           "cache_hit": false,
           "top5": [
             "Sol Ring",
@@ -6871,18 +6871,18 @@
         {
           "variant": "lexical",
           "query": "zerstöre alle kreaturen",
-          "visible_ms": 193.4639290047926,
+          "visible_ms": 190.49424400145654,
           "inference_ms": 0,
-          "retrieval_ms": 9.497400998952799,
+          "retrieval_ms": 9.204392998071853,
           "cache_hit": false,
           "top5": []
         },
         {
           "variant": "lexical-scan",
           "query": "sol ri",
-          "visible_ms": 657.9094150001765,
+          "visible_ms": 681.4149810015806,
           "inference_ms": 0,
-          "retrieval_ms": 469.65484399697743,
+          "retrieval_ms": 493.95644699689,
           "cache_hit": false,
           "top5": [
             "Sol Ring",
@@ -6894,18 +6894,18 @@
         {
           "variant": "lexical-scan",
           "query": "zerstöre alle kreaturen",
-          "visible_ms": 777.0085779993678,
+          "visible_ms": 770.0372370018158,
           "inference_ms": 0,
-          "retrieval_ms": 591.3500530004967,
+          "retrieval_ms": 590.0024540023878,
           "cache_hit": false,
           "top5": []
         },
         {
           "variant": "bm25",
           "query": "sol ri",
-          "visible_ms": 213.05917499557836,
+          "visible_ms": 207.8502889999072,
           "inference_ms": 0,
-          "retrieval_ms": 27.64774300158024,
+          "retrieval_ms": 25.58987299562432,
           "cache_hit": false,
           "top5": [
             "Sol Ring"
@@ -6914,18 +6914,18 @@
         {
           "variant": "bm25",
           "query": "zerstöre alle kreaturen",
-          "visible_ms": 214.4607480004197,
+          "visible_ms": 213.04385700204875,
           "inference_ms": 0,
-          "retrieval_ms": 31.245425998349674,
+          "retrieval_ms": 30.10093299963046,
           "cache_hit": false,
           "top5": []
         },
         {
           "variant": "vector",
           "query": "sol ri",
-          "visible_ms": 503.9068949990906,
+          "visible_ms": 525.9938450035406,
           "inference_ms": 0,
-          "retrieval_ms": 312.0672539953375,
+          "retrieval_ms": 340.37356000044383,
           "cache_hit": true,
           "top5": [
             "Sol Ring",
@@ -6938,9 +6938,9 @@
         {
           "variant": "vector",
           "query": "zerstöre alle kreaturen",
-          "visible_ms": 500.768602003518,
+          "visible_ms": 507.0420030024252,
           "inference_ms": 0,
-          "retrieval_ms": 309.66547999560134,
+          "retrieval_ms": 320.9147000015946,
           "cache_hit": true,
           "top5": [
             "Day of Judgment",
@@ -6953,9 +6953,9 @@
         {
           "variant": "hybrid",
           "query": "sol ri",
-          "visible_ms": 509.52564799808897,
+          "visible_ms": 515.1622160046827,
           "inference_ms": 0,
-          "retrieval_ms": 318.21762100298656,
+          "retrieval_ms": 325.49869799549924,
           "cache_hit": true,
           "top5": [
             "Sol Ring",
@@ -6968,9 +6968,9 @@
         {
           "variant": "hybrid",
           "query": "zerstöre alle kreaturen",
-          "visible_ms": 510.68386499537155,
+          "visible_ms": 510.5184369967901,
           "inference_ms": 0,
-          "retrieval_ms": 317.89670300349826,
+          "retrieval_ms": 321.7707320000045,
           "cache_hit": true,
           "top5": [
             "Day of Judgment",
@@ -6983,9 +6983,9 @@
         {
           "variant": "vector-ann",
           "query": "sol ri",
-          "visible_ms": 216.04591399955098,
+          "visible_ms": 223.77127000072505,
           "inference_ms": 0,
-          "retrieval_ms": 25.97451199835632,
+          "retrieval_ms": 26.23483900242718,
           "cache_hit": true,
           "top5": [
             "Sol Ring",
@@ -6998,9 +6998,9 @@
         {
           "variant": "vector-ann",
           "query": "zerstöre alle kreaturen",
-          "visible_ms": 213.5403159991256,
+          "visible_ms": 212.52586800255813,
           "inference_ms": 0,
-          "retrieval_ms": 22.47694799734745,
+          "retrieval_ms": 19.80972700403072,
           "cache_hit": true,
           "top5": [
             "Day of Judgment",
@@ -7013,9 +7013,9 @@
         {
           "variant": "hybrid-ann",
           "query": "sol ri",
-          "visible_ms": 209.4851980000385,
+          "visible_ms": 210.11054800328566,
           "inference_ms": 0,
-          "retrieval_ms": 20.95200400071917,
+          "retrieval_ms": 23.89196600415744,
           "cache_hit": true,
           "top5": [
             "Sol Ring",
@@ -7028,9 +7028,9 @@
         {
           "variant": "hybrid-ann",
           "query": "zerstöre alle kreaturen",
-          "visible_ms": 210.09308600332588,
+          "visible_ms": 205.32829999865498,
           "inference_ms": 0,
-          "retrieval_ms": 18.915654000011273,
+          "retrieval_ms": 19.723805999092292,
           "cache_hit": true,
           "top5": [
             "Day of Judgment",
@@ -7042,42 +7042,6 @@
         }
       ],
       "status": "passed"
-    },
-    "browser-startup": {
-      "browser": "156.0.8078.4",
-      "scenario": "Initial semantic queries in a fresh evaluation service; warmed cache measurements are separate",
-      "samples": [
-        {
-          "variant": "vector",
-          "query": "sol ri",
-          "visible_ms": 3590.020228002686,
-          "inference_ms": 3086.926226002106,
-          "retrieval_ms": 315.0490030020592,
-          "cache_hit": false,
-          "top5": [
-            "Sol Ring",
-            "Seething Song",
-            "Sunscorched Divide",
-            "Solar Blast",
-            "Mox Ruby"
-          ]
-        },
-        {
-          "variant": "vector",
-          "query": "zerstöre alle kreaturen",
-          "visible_ms": 815.9184440009994,
-          "inference_ms": 300.79312800080515,
-          "retrieval_ms": 318.3240219950676,
-          "cache_hit": false,
-          "top5": [
-            "Day of Judgment",
-            "Nature's Ruin",
-            "Devastation",
-            "Whirlwind",
-            "Cleanse"
-          ]
-        }
-      ]
     },
     "verification": {
       "checks": [
@@ -8473,6 +8437,42 @@
       "verified_deck_destinations": 2,
       "method": "Actual Demo API create/add/snapshot; fixture session revoked afterward"
     },
+    "browser-startup": {
+      "browser": "156.0.8078.4",
+      "scenario": "Initial semantic queries in a fresh evaluation service; warmed cache measurements are separate",
+      "samples": [
+        {
+          "variant": "vector",
+          "query": "sol ri",
+          "visible_ms": 3590.020228002686,
+          "inference_ms": 3086.926226002106,
+          "retrieval_ms": 315.0490030020592,
+          "cache_hit": false,
+          "top5": [
+            "Sol Ring",
+            "Seething Song",
+            "Sunscorched Divide",
+            "Solar Blast",
+            "Mox Ruby"
+          ]
+        },
+        {
+          "variant": "vector",
+          "query": "zerstöre alle kreaturen",
+          "visible_ms": 815.9184440009994,
+          "inference_ms": 300.79312800080515,
+          "retrieval_ms": 318.3240219950676,
+          "cache_hit": false,
+          "top5": [
+            "Day of Judgment",
+            "Nature's Ruin",
+            "Devastation",
+            "Whirlwind",
+            "Cleanse"
+          ]
+        }
+      ]
+    },
     "production-guard": {
       "flag_present": true,
       "checks": [
@@ -8490,8 +8490,170 @@
           "path": "/__search-evaluation/query",
           "method": "POST",
           "status": 404
+        },
+        {
+          "path": "/api/v1/mtg/power-search?query=Sol+Ring",
+          "method": "GET",
+          "status": 200
         }
       ]
+    }
+  },
+  "global_implementation": {
+    "scope": "Separate native global query using existing production indexes; not a benchmark variant above",
+    "http": {
+      "status": "passed",
+      "checks": [
+        "Real guest HTTP response contains no private rows",
+        "Two fixture sessions validated by real HTTP SessionAuth isolate Inventory and Deck rows",
+        "Supplied accountId cannot change private scope",
+        "A real canonical card occurs in all three sources and multiple owner Decks"
+      ],
+      "latency": [
+        {
+          "scope": "guest",
+          "query": "Sol Ring",
+          "p50_ms": 45.459501998266205,
+          "p95_ms": 45.84960099600721
+        },
+        {
+          "scope": "guest",
+          "query": "sol ri",
+          "p50_ms": 17.599922000954393,
+          "p95_ms": 17.847545001131948
+        },
+        {
+          "scope": "guest",
+          "query": "llan el",
+          "p50_ms": 13.188427001296077,
+          "p95_ms": 13.633630995173007
+        },
+        {
+          "scope": "guest",
+          "query": "solring",
+          "p50_ms": 30.570802999136504,
+          "p95_ms": 30.70718799426686
+        },
+        {
+          "scope": "guest",
+          "query": "rystic study",
+          "p50_ms": 8.687264999025501,
+          "p95_ms": 9.554467993439175
+        },
+        {
+          "scope": "guest",
+          "query": "draw cards",
+          "p50_ms": 151.44311299809488,
+          "p95_ms": 152.38993499951903
+        },
+        {
+          "scope": "guest",
+          "query": "so",
+          "p50_ms": 181.3317400010419,
+          "p95_ms": 191.49350299994694
+        },
+        {
+          "scope": "guest",
+          "query": "draw",
+          "p50_ms": 143.60340400162386,
+          "p95_ms": 145.1314320001984
+        },
+        {
+          "scope": "owner",
+          "query": "Sol Ring",
+          "p50_ms": 83.80061399657279,
+          "p95_ms": 95.04920199833577
+        },
+        {
+          "scope": "owner",
+          "query": "sol ri",
+          "p50_ms": 63.066506998438854,
+          "p95_ms": 65.71168699883856
+        },
+        {
+          "scope": "owner",
+          "query": "llan el",
+          "p50_ms": 63.46358999871882,
+          "p95_ms": 66.32149800134357
+        },
+        {
+          "scope": "owner",
+          "query": "solring",
+          "p50_ms": 72.63781700021354,
+          "p95_ms": 73.25298700015992
+        },
+        {
+          "scope": "owner",
+          "query": "rystic study",
+          "p50_ms": 64.37656900379807,
+          "p95_ms": 66.45913499960443
+        },
+        {
+          "scope": "owner",
+          "query": "draw cards",
+          "p50_ms": 202.79861699964385,
+          "p95_ms": 206.6142360054073
+        },
+        {
+          "scope": "owner",
+          "query": "so",
+          "p50_ms": 209.3597339990083,
+          "p95_ms": 212.75638999941293
+        },
+        {
+          "scope": "owner",
+          "query": "draw",
+          "p50_ms": 186.6903159971116,
+          "p95_ms": 187.8094899948337
+        }
+      ],
+      "limits": "Single-user loopback API timings include HTTP but exclude the Web proxy, UI debounce and rendering; five warm repetitions per query/scope. Other-account data is a disposable session/record fixture, not an onboarding test."
+    },
+    "browser": {
+      "origin": "http://localhost:5191",
+      "checks": [
+        "Global Ctrl/Cmd+K opens one palette; Escape restores focus",
+        "Guest receives actual Catalog matches and no private contexts",
+        "Settings alias survives login return; composing Enter does not activate",
+        "One real card has separate Catalog, owned Inventory and named Deck rows with distinct destinations",
+        "All three actual destinations open their matching card/owned view/Deck",
+        "Deck-name completion is independent of contained-card matching",
+        "An active editing dialog retains its focus/draft and does not open a competing palette",
+        "Global search can open above ordinary Search and return to its existing input",
+        "Arrow selection and dark/light 390px/1280px layouts preserve usable context rows",
+        "Provider failure keeps immediate local Settings usable",
+        "A held stale database response cannot replace a new Settings query",
+        "Settings exposes the binding as read-only text",
+        "Exact Decks navigation becomes the default selection instead of a fuzzy New deck action",
+        "Real session revocation and SavedState refresh clear private contexts; a held owner response cannot restore them"
+      ],
+      "errors": [],
+      "timings": {
+        "three_contexts_visible_ms": 394.3205749965273
+      },
+      "status": "passed"
+    },
+    "plan": {
+      "query": "Sol Ring",
+      "cards": [
+        "Sol Ring"
+      ],
+      "nodes": [
+        "Limit",
+        "Bitmap Heap Scan",
+        "BitmapOr",
+        "Bitmap Index Scan:catalog_printings_search_vector_idx",
+        "Bitmap Index Scan:catalog_printings_search_name_idx",
+        "Bitmap Index Scan:catalog_printings_search_name_idx",
+        "Sort",
+        "Subquery Scan",
+        "Unique",
+        "CTE Scan",
+        "CTE Scan",
+        "Sort",
+        "CTE Scan"
+      ],
+      "execution_ms": 44.93
     }
   }
 }

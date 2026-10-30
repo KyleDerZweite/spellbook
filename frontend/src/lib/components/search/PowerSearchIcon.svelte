@@ -7,8 +7,7 @@
 		inventory: 'M3 8h18v12H3zM3 8l3-5h12l3 5M9 12h6',
 		deck: 'M7 3h13v15H7zM4 6v15h13',
 		'deck-card': 'M7 3h13v15H7zM4 6v15h13M10 7h7M10 10h7',
-		setting:
-			'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8M10 2h4l1 3 3 1 3-1 2 4-2 3 1 3-3 3-3-1-3 2-4-2 1-3-2-3 1-4 3-1z',
+		setting: 'M4 6h6m4 0h6M4 12h10m4 0h2M4 18h2m4 0h10M10 3v6M14 9v6M6 15v6',
 		page: 'M14 3h7v7M21 3L10 14M10 3H3v18h18v-7',
 		action: 'M12 5v14M5 12h14'
 	};

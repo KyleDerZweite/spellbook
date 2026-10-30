@@ -169,8 +169,11 @@ Inventory variants and Deck roles contribute to their respective quantities.
 Owned stored names remain searchable without a current Catalog record.
 Active Catalog aliases and rules can also match owned canonical identities without depending on the public top five.
 Deck joins constrain both account and game.
-Ranking uses case-insensitive name, word-prefix, joined-name, literal substring, trigram and rules matches with deterministic name and identity ties.
-Only extracted alphanumeric tokens enter generated prefix tsquery expressions; numeric and operator-like input remains data.
+The public query admits candidates through existing GIN full-text/trigram indexes before evaluating name relevance.
+Ranking uses case-insensitive name, word-prefix, joined-name, literal substring, trigram and rules matches, with similarity/proximity quality followed by deterministic name and identity ties.
+An exact card name focuses public results on that name; typo recovery does not fill existing literal/name-completion matches with unrelated cards.
+Only extracted alphanumeric tokens enter generated tsquery expressions; numeric tokens remain complete and disable fuzzy recovery.
+This is literal matching, not numeric or MTG rules reasoning.
 No ingestion, publication, schema or ordinary Catalog search behavior changes.
 Web owns destinations and local navigation aliases under the [selected implementation contract](../product/ui-design-direction.md#global-power-user-search-implementation-contract).
 

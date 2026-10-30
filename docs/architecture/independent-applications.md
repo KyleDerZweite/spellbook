@@ -1,9 +1,9 @@
 # Independent applications implementation contract
 
 - Status: Independent Python API and workers implemented; native target verification pending
-- Last Reviewed: 2026-10-25
+- Last Reviewed: 2026-10-30
 - Source of Truth: accepted maintainer direction and existing application contracts
-- Update Triggers: raw Web header multiplicity and native boolean queries, native FastAPI HTTP contract and pre-release receipt scope, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, canonical-only versioned game API and client upgrades, Python source activation and implementation status, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, HTTP extraction, native delivery, credential forwarding, application ownership, acceptance evidence
+- Update Triggers: native global search read and shared DTO, raw Web header multiplicity and native boolean queries, native FastAPI HTTP contract and pre-release receipt scope, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, canonical-only versioned game API and client upgrades, Python source activation and implementation status, Python API/worker language selection and migration planning, independent API/web ownership and relocated code references, HTTP extraction, native delivery, credential forwarding, application ownership, acceptance evidence
 - Related Docs: [System overview](./system-overview.md), [Application contract](./application-contract.md), [Auth](./auth.md), [Mobile handoff](../product/mobile-app-exploration.md), [ADR-0024](../decisions/0024-independent-applications.md), [Verification](../operations/github-automation.md), [Backend language evaluation](../integrations/backend-language-evaluation.md), [Python direction](../decisions/0025-python-api-and-workers.md)
 
 ## Outcome and ownership
@@ -180,7 +180,7 @@ Implement on that base using isolated writer worktrees and a shared local integr
 Publish the verified integrated result to main as requested, without deploying a service.
 
 [Issue 244](https://github.com/KyleDerZweite/spellbook/issues/244) tracks implementation and final integration evidence.
-Canonical OpenAPI contains 85 API method/path pairs and seven unchanged browser-auth methods; Discovery is served separately.
+Canonical OpenAPI contains 86 API method/path pairs and seven unchanged browser-auth methods; Discovery is served separately.
 Tests compare the complete current registry with OpenAPI, deriving operation sets instead of maintaining a second route inventory.
 Counts do not establish functional correctness.
 

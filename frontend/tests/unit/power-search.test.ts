@@ -58,6 +58,10 @@ it('matches reviewed Settings aliases immediately and keeps shortcut discovery r
 	expect(powerSearchNavigation('PASSWORT ÄNDERN')[0].rows[0].href).toBe('/settings/password');
 	expect(powerSearchNavigation('einstellungen')[0].label).toBe('Settings');
 	expect(powerSearchNavigation('tastenkürzel')[0].rows[0].href).toBe('/settings#power-user-search');
+	expect(powerSearchNavigation('passwrod')[0].rows[0].href).toBe('/settings/password');
+	expect(powerSearchNavigation('settings passwrod')[0].rows[0].href).toBe('/settings/password');
+	expect(powerSearchNavigation('decks')[0].rows[0].href).toBe('/mtg/decks');
+	expect(powerSearchNavigation('übersicht')[0].rows[0].href).toBe('/mtg/dashboard');
 	expect(powerSearchNavigation('zzqxvnl')).toEqual([]);
 });
 
@@ -110,6 +114,7 @@ it('fences account replacement and invalidated SavedState authority before a hel
 		release(Response.json(response));
 		await vi.advanceTimersByTimeAsync(0);
 		expect(states.every((state) => state.groups.length === 0)).toBe(true);
+		if (reason === 'publication') expect(states.at(-1)?.pending).toBe(false);
 		reader.clear();
 		expect(states.at(-1)?.pending).toBe(false);
 	}
