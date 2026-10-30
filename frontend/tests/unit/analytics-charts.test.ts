@@ -1,6 +1,6 @@
 import { render } from 'svelte/server';
 import { describe, expect, it } from 'vitest';
-import CompositionRing from '#lib/components/charts/CompositionRing.svelte';
+import ProportionChart from '#lib/components/charts/ProportionChart.svelte';
 import DeckAvailabilityRing from '#lib/components/charts/DeckAvailabilityRing.svelte';
 import ValueSummary from '#lib/components/valuation/ValueSummary.svelte';
 import ValueHistoryChart from '#lib/components/charts/ValueHistoryChart.svelte';
@@ -28,19 +28,19 @@ function captured(day: string, value: string, covered = 1): InventoryValueHistor
 
 describe('shared analytics charts', () => {
 	it('keeps exact counts and shares accessible without JavaScript, including zero', async () => {
-		const { body } = await render(CompositionRing, {
+		const { body } = await render(ProportionChart, {
 			props: {
 				label: 'Copies by set',
-				layout: 'overview',
 				items: [
-					{ label: 'NEC', value: 71, share: 0.71, color: 'blue' },
-					{ label: 'NEO', value: 0, share: 0, color: 'violet' },
-					{ label: 'Other', value: 29, share: 0.29, color: 'gray' }
+					{ label: 'NEC', value: 71, color: 'blue' },
+					{ label: 'NEO', value: 0, color: 'violet' },
+					{ label: 'Other', value: 29, color: 'gray' }
 				]
 			}
 		});
 		expect(body).toContain('NEC: 71 copies, 71%');
-		expect(body).toContain('NEO: 0 copies, 0%');
+		expect(body).toContain('<dt>NEO</dt>');
+		expect(body).toContain('0 copies · 0%');
 		expect(body).toContain('100 copies');
 		expect(body).not.toMatch(/NaN|Infinity/);
 	});
@@ -90,22 +90,27 @@ describe('compact collection composition', () => {
 				}
 			}
 		});
-		expect(body).toContain('99%');
-		expect(body).not.toContain('100%');
+		expect(body).toContain('999');
+		expect(body.replace(/<[^>]*>/g, '').replace(/\s+/g, '')).toContain(
+			`999/${(1000).toLocaleString()}`
+		);
+		expect(body).toContain('Missing: 1 copy');
 		expect(body).toContain('999 exact, 0 alternate, 1 missing');
 	});
 	it('exposes all finish quantities including zero without inventing a ring segment', async () => {
-		const { body } = await render(CompositionRing, {
+		const { body } = await render(ProportionChart, {
 			props: {
 				label: 'Owned copies by finish',
+				kind: 'bar',
 				items: [
-					{ label: 'Nonfoil', value: 0, share: 0, color: 'blue' },
-					{ label: 'Foil', value: 0, share: 0, color: 'violet' }
+					{ label: 'Nonfoil', value: 0, color: 'blue' },
+					{ label: 'Foil', value: 0, color: 'violet' }
 				]
 			}
 		});
 		expect(body).toContain('0 copies');
-		expect(body).toContain('Nonfoil: 0 copies, 0%');
+		expect(body).toContain('<dt>Nonfoil</dt>');
+		expect(body).toContain('0 copies · 0%');
 		expect(body).not.toContain('<path');
 		expect(body).not.toMatch(/NaN|Infinity/);
 	});

@@ -402,6 +402,10 @@ def test_dashboard_scenario_preserves_starter_and_survives_deletion(
         "SELECT sum(quantity) n FROM deck_cards WHERE deck_id=%s", (deck,)
     ).fetchone()
     assert total and total["n"] == 100
+    previews = client.execute(
+        "SELECT count(*) n FROM deck_cards WHERE deck_id=%s AND role='commander'", (deck,)
+    ).fetchone()
+    assert previews and previews["n"] > 0
     shares = client.execute(
         """SELECT sum(least(c.quantity,coalesce(e.n,0))) exact,
            sum(least(c.quantity-least(c.quantity,coalesce(e.n,0)),
