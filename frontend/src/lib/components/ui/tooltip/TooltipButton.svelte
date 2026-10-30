@@ -8,6 +8,7 @@
 		open = $bindable(false),
 		keepOpenOnClick = false,
 		onclick,
+		content,
 		children
 	}: {
 		label: string;
@@ -15,6 +16,7 @@
 		open?: boolean;
 		keepOpenOnClick?: boolean;
 		onclick?: () => void;
+		content?: Snippet;
 		children: Snippet;
 	} = $props();
 </script>
@@ -33,7 +35,7 @@
 				collisionPadding={12}
 				class="surface-menu z-[110] max-w-[min(16rem,calc(100vw-1.5rem))] rounded-lg px-3 py-2 text-xs font-normal text-text-primary"
 			>
-				{tooltip}
+				{#if content}{@render content()}{:else}{tooltip}{/if}
 			</Tooltip.Content>
 		</Tooltip.Portal>
 	</Tooltip.Root>

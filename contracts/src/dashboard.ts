@@ -26,6 +26,8 @@ export interface DashboardDeck {
 	exact: number;
 	alternate: number;
 	missing: number;
+	/** At most two stored Commander-role Printing previews, not the full Deck composition. */
+	commanders: { catalogCardId: string; name: string; imageUri: string }[];
 }
 export interface DashboardSummary {
 	totals: ProfileTotals;

@@ -81,7 +81,7 @@ Future component changes must satisfy the [interface acceptance criteria](../pro
 
 ## Analytics charts
 
-The shared `frontend/src/lib/components/charts/` components use `d3-scale` for zero-based quantitative scales and calendar positioning and `d3-shape` for value-history paths and Finish ring segments.
+The shared `frontend/src/lib/components/charts/` components use `d3-scale` for normalized quantitative positioning and calendar scales and `d3-shape` for value-history paths, Set/Finish rings and compact Deck availability.
 These small, framework-independent modules supply chart mathematics without adding a second component or theme system.
 Svelte renders server-compatible SVG and native controls using the existing semantic palette.
 The [D3 scale documentation](https://d3js.org/d3-scale/linear) and [line documentation](https://d3js.org/d3-shape/line) own the upstream APIs.
@@ -89,11 +89,14 @@ The [D3 scale documentation](https://d3js.org/d3-scale/linear) and [line documen
 
 The [Mebius charts gallery](https://www.mebius.design/freebies/charts) supplies visual ideas only.
 The [selected mapping](../product/ui-design-direction.md#mebius-chart-adaptation) uses original Svelte/D3 code without importing its React/Tailwind components, assets or packages.
-Distribution rows expose the count and share as text and support pointer, focus and tap inspection.
+The categorical Set Donut exposes exact counts and shares in selectable legend rows.
+Its overview layout groups sets after the top eight into Other and uses the shared categorical palette.
 The Finish ring keeps the same quantities in native legend buttons and renders no colored segment for a zero quantity.
 Dashboard Condition zeroes remain accessible in a native details disclosure.
-Stacked Deck availability retains its exact, alternate and missing labels and counts.
-Value history uses the existing exact-value normalizer before D3 positioning; it never converts arbitrary decimal amounts into floating-point money.
+Compact Deck availability uses the shared TooltipButton with rich content for exact, alternate and missing counts on hover, focus and tap.
+Native rendering retains those counts below the Deck when JavaScript is unavailable.
+Value history chooses padded adaptive bounds and readable 1/2/5 cent tick steps with BigInt arithmetic before normalized D3 positioning.
+It preserves small changes even above Number precision and does not force a zero baseline; enormous axis labels use a relative range with exact amounts in the readout.
 The native observation slider supports keyboard and touch inspection; the observations table retains full values, coverage and reporting times without JavaScript.
 Missing dates and wholly unknown observations break lines, while captured known zero remains a plotted value.
 Shared [design direction](../product/ui-design-direction.md) and [frontend ownership](../architecture/frontend.md#private-value-presentation) govern composition and data semantics.

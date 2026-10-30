@@ -768,8 +768,9 @@ Shared [ValueSummary](../../frontend/src/lib/components/valuation/ValueSummary.s
 Selected Deck shows required and missing nonfoil estimates without changing availability or drafts.
 
 Shared chart components under `frontend/src/lib/components/charts/` own responsive SVG and native chart inspection.
-D3 owns scale/tick and line calculations; Svelte owns rendering and application state.
-Dashboard composes zero-based Set, Finish and Condition distributions and Deck availability without changing backend aggregates.
+D3 owns scale and path construction; the exact-value helper chooses monetary bounds and ticks before normalized positioning.
+Svelte owns rendering and application state.
+Dashboard composes categorical Set and Finish rings, the Condition breakdown and compact Deck availability without changing quantity aggregates.
 The existing exact-value normalizer retains gap, unknown and known-zero semantics before value-history positioning.
 Full observation tables remain available without JavaScript; keyboard and touch users can inspect captured values through a native range control.
 The [selected component reference](../reference/ui-libraries.md#analytics-charts) owns dependency rationale.
@@ -779,9 +780,14 @@ Coverage disclosures and exact daily tables remain native details controls, and 
 The recent-entry gallery uses existing account-scoped detail links and full card frames; Dashboard requests no additional Catalog or Inventory objects.
 The [Mebius adaptation contract](../product/ui-design-direction.md#mebius-chart-adaptation) maps the selected reference treatments to these four existing chart families.
 `--color-chart-track` owns the neutral light/dark track fill.
-Distribution bars use rounded CSS tracks with D3-derived widths; the Finish ring uses thicker padded arcs and native legend selection.
-Deck segments retain proportional D3 positioning with neutral dividers.
+The Set Donut uses CompositionRing's overview layout with a categorical palette and selectable exact-count/share legend.
+The default Finish ring and Condition presentation stay unchanged.
+DeckAvailabilityRing exposes proportional exact/alternate/missing segments through the shared TooltipButton's rich-content snippet, including pointer, focus and tap access; native details remain available without JavaScript.
+Dashboard Deck rows include at most two account-scoped stored Commander-role Printing previews from the same read-only Core snapshot.
 History adds a bounded exact-value callout and selected-point halo to its existing cursor and native observation control.
+Adaptive lower/upper bounds and 1/2/5 ticks use exact cents, so cent-sized changes remain visible without a forced zero baseline.
+Missing and unknown values remain disconnected, and a constant or single known value gets a valid padded range.
+Stat-card trends remain a [concept only](../product/ui-design-direction.md#dashboard-metric-trends-concept-only); no trend API, migration, capture or sparkline is implemented.
 
 These consumers subscribe to `values` through existing SavedState read leases and account/selection guards.
 History schedules one refresh at the server-provided `nextRefreshAt`; it does not poll.

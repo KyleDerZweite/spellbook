@@ -16,6 +16,24 @@ function cents(amount: string): bigint {
 	return BigInt(whole) * 100n + BigInt(fraction);
 }
 
+function valueAxis(values: bigint[]) {
+	const minimum = values.reduce((min, value) => (value < min ? value : min), values[0] ?? 0n);
+	const maximum = values.reduce((max, value) => (value > max ? value : max), 0n);
+	const padding = (maximum - minimum + 9n) / 10n || 1n;
+	let lower = minimum > padding ? minimum - padding : 0n;
+	let upper = maximum + padding;
+	const targetStep = (upper - lower + 3n) / 4n;
+	const magnitude = 10n ** BigInt(targetStep.toString().length - 1);
+	const step = [1n, 2n, 5n, 10n]
+		.map((factor) => factor * magnitude)
+		.find((value) => value >= targetStep)!;
+	lower = (lower / step) * step;
+	upper = ((upper + step - 1n) / step) * step;
+	const ticks: bigint[] = [];
+	for (let tick = lower; tick <= upper; tick += step) ticks.push(tick);
+	return { lower, upper, ticks };
+}
+
 export function historyChart(points: InventoryValueHistoryPoint[]) {
 	const values = points.flatMap((point) =>
 		point.kind === 'Captured' && hasPlottableValue(point.estimate)
@@ -26,6 +44,7 @@ export function historyChart(points: InventoryValueHistoryPoint[]) {
 	const segments: {
 		x: number;
 		y: number;
+		value: bigint;
 		point: Extract<InventoryValueHistoryPoint, { kind: 'Captured' }>;
 	}[][] = [];
 	let previousDay: string | null = null;
@@ -51,10 +70,11 @@ export function historyChart(points: InventoryValueHistoryPoint[]) {
 		active.push({
 			x: points.length <= 1 ? 320 : 24 + (index * 592) / (points.length - 1),
 			y: 148 - ratio * 120,
+			value: cents(point.estimate.coveredValue),
 			point
 		});
 	}
-	return { segments, maximum };
+	return { segments, maximum, axis: valueAxis(values) };
 }
 
 export function observationTime(instant: string, timezone: string): string {

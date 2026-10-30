@@ -32,14 +32,14 @@
 			.domain([new Date(`${from}T00:00:00Z`), new Date(`${to}T00:00:00Z`)])
 			.range([62, right])
 	);
-	const relative = $derived(chart.maximum > BigInt(Number.MAX_SAFE_INTEGER));
-	const factor = $derived(relative ? 10000 : Number(chart.maximum));
-	const ceiling = $derived(relative ? 10000 : Math.max(100, Number(chart.maximum)));
-	const y = $derived(scaleLinear().domain([0, ceiling]).nice(4).range([bottom, 56]));
+	const relative = $derived(chart.axis.upper > BigInt(Number.MAX_SAFE_INTEGER));
+	const fraction = (value: bigint) =>
+		Number(((value - chart.axis.lower) * 1_000_000n) / (chart.axis.upper - chart.axis.lower)) /
+		1_000_000;
+	const y = $derived(scaleLinear().domain([0, 1]).range([bottom, 56]));
 	const currentX = $derived(current ? x(new Date(`${current.day}T00:00:00Z`)) : 62);
 	const calloutLeft = $derived(Math.max(62, Math.min(right - 176, currentX - 88)));
-	const position = (observation: (typeof observations)[number]) =>
-		y(((148 - observation.y) / 120) * factor);
+	const position = (observation: (typeof observations)[number]) => y(fraction(observation.value));
 	const path = $derived(
 		line<(typeof observations)[number]>()
 			.x(({ point }) => x(new Date(`${point.day}T00:00:00Z`)))
@@ -68,8 +68,10 @@
 		}
 		selected = nearest;
 	}
-	const tickLabel = (tick: number) =>
-		relative ? `${tick / 100}%` : formatValueEUR((tick / 100).toFixed(2));
+	const tickLabel = (tick: bigint) =>
+		relative
+			? `${Math.round(fraction(tick) * 100)}%`
+			: formatValueEUR(`${tick / 100n}.${(tick % 100n).toString().padStart(2, '0')}`);
 	const dateLabel = new Intl.DateTimeFormat('en-GB', {
 		day: 'numeric',
 		month: 'short',
@@ -94,11 +96,11 @@
 		onpointermove={inspect}
 		onpointerdown={inspect}
 		role="img"
-		aria-label="Covered value history. Exact values and coverage are available below."
+		aria-label="Covered value history with an adaptive value axis. Exact values and coverage are available below."
 	>
-		{#each y.ticks(4) as tick}
-			<line x1="62" x2={right} y1={y(tick)} y2={y(tick)} class="grid-line" />
-			<text x="54" y={y(tick) + 4} text-anchor="end">{tickLabel(tick)}</text>
+		{#each chart.axis.ticks as tick}
+			<line x1="62" x2={right} y1={y(fraction(tick))} y2={y(fraction(tick))} class="grid-line" />
+			<text x="54" y={y(fraction(tick)) + 4} text-anchor="end">{tickLabel(tick)}</text>
 		{/each}
 		{#each chart.segments as segment}
 			<path d={fillPath(segment) ?? ''} class="value-area" />
@@ -141,7 +143,7 @@
 		>
 	</svg>
 	{#if relative}<p class="history-inspect">
-			Axis shows a percentage of the highest captured covered value.
+			Axis shows position within the captured value range. Inspect a day for its exact amount.
 		</p>{/if}
 	{#if current}
 		<label class="history-inspect"

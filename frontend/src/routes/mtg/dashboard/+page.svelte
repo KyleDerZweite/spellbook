@@ -1,8 +1,7 @@
 <script lang="ts">
 	import WorkspaceHeader from '#lib/components/layout/WorkspaceHeader.svelte';
-	import DistributionChart from '#lib/components/charts/DistributionChart.svelte';
 	import CompositionRing from '#lib/components/charts/CompositionRing.svelte';
-	import StackedBar from '#lib/components/charts/StackedBar.svelte';
+	import DeckAvailabilityRing from '#lib/components/charts/DeckAvailabilityRing.svelte';
 	import { historyBoundaryTimer } from '#lib/valuation/history-boundary.ts';
 	import ValueSummary from '#lib/components/valuation/ValueSummary.svelte';
 	import InventoryValueHistory from '#lib/components/valuation/InventoryValueHistory.svelte';
@@ -58,15 +57,26 @@
 		DMG: 'Damaged'
 	};
 	const topSets = $derived(dashboard?.sets.slice(0, 8) ?? []);
+	const setColors = [
+		'var(--color-chart-primary)',
+		'var(--color-violet)',
+		'var(--color-success)',
+		'var(--color-warning)',
+		'var(--color-error)',
+		'var(--color-chart-teal)',
+		'var(--color-chart-rose)',
+		'var(--color-chart-indigo)'
+	];
 	const otherSetCount = $derived(Math.max(0, (dashboard?.sets.length ?? 0) - 8));
 	const otherSets = $derived(
 		dashboard?.sets.slice(8).reduce((sum, set) => sum + set.quantity, 0) ?? 0
 	);
 	const setItems = $derived([
-		...topSets.map((set) => ({
+		...topSets.map((set, index) => ({
 			label: set.label.toUpperCase(),
 			value: set.quantity,
-			share: set.share
+			share: set.share,
+			color: setColors[index]
 		})),
 		...(otherSets > 0 && dashboard
 			? [
@@ -171,7 +181,7 @@
 							<h2 id="sets-heading">Sets</h2>
 							<span class="unit-label">Copies · Share</span>
 						</div>
-						<DistributionChart label="Owned copies by set" items={setItems} />
+						<CompositionRing label="Owned copies by set" items={setItems} layout="overview" />
 					</section>
 				{/if}
 			</div>
@@ -190,35 +200,70 @@
 									{ label: 'Missing', value: deck.missing, color: 'var(--color-warning)' }
 								]}
 								<li>
-									<div class="deck-heading">
-										<a href={`/mtg/decks?deck=${encodeURIComponent(deck.id)}`}>{deck.name}</a><span
-											class="format-label"
-											class:commander-role={deck.format.toLowerCase() === 'commander'}
-											>{deck.format}</span
+									<div class="deck-overview">
+										<a
+											class="commander-previews"
+											href={`/mtg/decks?deck=${encodeURIComponent(deck.id)}`}
+											aria-label={`Open ${deck.name}`}
 										>
+											{#if deck.commanders.length}
+												{#each deck.commanders as commander (commander.catalogCardId)}
+													{#if commander.imageUri}<img
+															src={commander.imageUri}
+															alt={commander.name}
+															width="34"
+															height="48"
+															loading="lazy"
+														/>{:else}<span
+															class="mini-card"
+															title={commander.name}
+															aria-label={commander.name}>{commander.name.slice(0, 1)}</span
+														>{/if}
+												{/each}
+											{:else}
+												<svg
+													viewBox="0 0 24 24"
+													width="24"
+													height="24"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="1.5"
+													aria-hidden="true"
+													><path d="m12 3 9 5-9 5-9-5 9-5z M3 12l9 5 9-5 M3 16l9 5 9-5" /></svg
+												>
+											{/if}
+										</a>
+										<div class="deck-copy">
+											<div class="deck-heading">
+												<a href={`/mtg/decks?deck=${encodeURIComponent(deck.id)}`}>{deck.name}</a>
+											</div>
+											<span
+												class="format-label"
+												class:commander-role={deck.format.toLowerCase() === 'commander'}
+												>{deck.format}</span
+											>
+											{#if deck.required > 0}<p class="deck-required">
+													{(deck.exact + deck.alternate).toLocaleString()} / {deck.required.toLocaleString()}
+													available
+												</p>{:else}<p class="dashboard-note empty-deck">
+													No cards yet. <a href={`/mtg/decks?deck=${encodeURIComponent(deck.id)}`}
+														>Start building <span aria-hidden="true">↗</span></a
+													>
+												</p>{/if}
+										</div>
+										{#if deck.required > 0}<DeckAvailabilityRing {deck} />{/if}
 									</div>
-									{#if deck.required > 0}<p class="deck-required">
-											<strong>{deck.exact.toLocaleString()}</strong> / {deck.required.toLocaleString()}
-											exact matches
-										</p>
-										<StackedBar label={`${deck.name} availability`} {segments} />
-										<dl class="deck-values">
+									<noscript
+										><dl class="deck-values">
 											{#each segments as part}<div>
 													<dt><span style:background={part.color}></span>{part.label}</dt>
 													<dd>{part.value.toLocaleString()}</dd>
 												</div>{/each}
-										</dl>
-									{:else}<p class="dashboard-note empty-deck">
-											No cards yet. <a href={`/mtg/decks?deck=${encodeURIComponent(deck.id)}`}
-												>Start building <span aria-hidden="true">↗</span></a
-											>
-										</p>{/if}
+										</dl></noscript
+									>
 								</li>
 							{/each}
 						</ul>
-						<p class="dashboard-note availability-note">
-							Each deck uses your full inventory independently.
-						</p>
 					{:else}<div class="dashboard-empty">
 							<p>No decks yet.</p>
 							<a href="/mtg/decks" class="btn btn-secondary btn-sm">Create a deck</a>
@@ -463,14 +508,48 @@
 	.format-label {
 		font-size: 0.625rem;
 	}
+	.deck-overview {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+	.deck-copy {
+		flex: 1;
+		min-width: 0;
+	}
+	.commander-previews {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex-shrink: 0;
+		width: 48px;
+		min-height: 48px;
+		color: var(--color-text-muted);
+	}
+	.commander-previews img,
+	.mini-card {
+		display: block;
+		width: 34px;
+		height: 48px;
+		object-fit: contain;
+		border-radius: 3px;
+		background: var(--color-surface);
+	}
+	.commander-previews img + img,
+	.commander-previews img + .mini-card,
+	.commander-previews .mini-card + img,
+	.commander-previews .mini-card + .mini-card {
+		margin-left: -20px;
+	}
+	.mini-card {
+		display: grid;
+		place-items: center;
+		border: 1px solid var(--color-border);
+	}
 	.deck-required {
-		margin: 0.5rem 0 0.75rem;
+		margin: 0.2rem 0 0;
 		font-size: 0.6875rem;
 		color: var(--color-text-secondary);
-	}
-	.deck-required strong {
-		font-weight: 500;
-		color: var(--color-text-primary);
 	}
 	.deck-values {
 		display: flex;
@@ -504,11 +583,6 @@
 	}
 	.empty-deck a {
 		white-space: nowrap;
-	}
-	.availability-note {
-		font-size: 0.625rem;
-		margin-top: 1.25rem;
-		color: var(--color-text-muted);
 	}
 	.condition-breakdown {
 		margin-top: 1rem;
