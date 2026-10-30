@@ -136,3 +136,18 @@ def test_real_password_cli_stdin_update_and_revocation(
             )
         finally:
             client.execute("DELETE FROM user_profiles WHERE account_id=%s", (owner,))
+
+
+def test_dashboard_option_is_explicit_and_forwarded(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[dict[str, object]] = []
+    monkeypatch.setenv("DATABASE_URL", "postgresql://localhost/cli_demo")
+
+    def fake_seed(*args: object, **kwargs: object) -> dict[str, str]:
+        calls.append(kwargs)
+        return {"message": "tested"}
+
+    monkeypatch.setattr(seed, "seed_demo", fake_seed)
+    assert seed.main(["--dashboard-scenario"]) == 0
+    assert calls[-1]["dashboard_scenario"] is True
+    assert seed.main([]) == 0
+    assert calls[-1]["dashboard_scenario"] is False

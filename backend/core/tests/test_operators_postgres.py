@@ -27,7 +27,7 @@ from spellbook_core.operators.demo import (
     require_demo_database,
     seed_demo,
 )
-from spellbook_core.operators.fixtures import legacy_inventory, load_precon, verify_bundle
+from spellbook_core.operators.fixtures import Record, legacy_inventory, load_precon, verify_bundle
 from spellbook_core.operators.local_password import set_local_password
 from spellbook_core.passwords import _derive
 
@@ -91,7 +91,7 @@ def session(client: Client, owner: str) -> None:
     )
 
 
-def snapshot(client: Client) -> object:
+def snapshot(client: Client) -> Record | None:
     return client.execute(
         """SELECT (SELECT jsonb_agg(p ORDER BY account_id) FROM user_profiles p) profiles,
            (SELECT jsonb_agg(c ORDER BY account_id) FROM local_credentials c) credentials,
@@ -375,4 +375,82 @@ def test_replacement_refuses_edits_dependencies_missing_catalog_and_rolls_back_s
     before = snapshot(client)
     with pytest.raises(OperatorError, match="transaction rolled back"):
         replace_demo_inventory(url, precon, legacy, apply=True)
+    assert snapshot(client) == before
+
+
+def test_dashboard_scenario_preserves_starter_and_survives_deletion(
+    database: tuple[str, Client],
+) -> None:
+    from spellbook_core.operators.demo_dashboard import NAME
+
+    url, client = database
+    bundle, precon = verify_bundle(FIXTURES), load_precon(FIXTURES)
+    seed_demo(url, bundle, precon)
+    before = snapshot(client)
+    assert seed_demo(url, bundle, precon, dashboard_scenario=True)["status"] == "applied"
+    after = snapshot(client)
+    assert before and after
+    assert all(row in after["cards"] for row in before["cards"])
+    assert all(row in after["decks"] for row in before["decks"])
+    assert all(row in after["entries"] for row in before["entries"])
+    set_count = client.execute("SELECT count(DISTINCT set_code) n FROM inventory_cards").fetchone()
+    assert set_count and set_count["n"] >= 12
+    deck_row = client.execute("SELECT id FROM decks WHERE name=%s", (NAME,)).fetchone()
+    assert deck_row
+    deck = deck_row["id"]
+    total = client.execute(
+        "SELECT sum(quantity) n FROM deck_cards WHERE deck_id=%s", (deck,)
+    ).fetchone()
+    assert total and total["n"] == 100
+    shares = client.execute(
+        """SELECT sum(least(c.quantity,coalesce(e.n,0))) exact,
+           sum(least(c.quantity-least(c.quantity,coalesce(e.n,0)),
+           coalesce(o.n,0)-least(c.quantity,coalesce(e.n,0)))) alternate
+           FROM deck_cards c
+           LEFT JOIN LATERAL (SELECT sum(quantity) n FROM inventory_cards i
+             WHERE i.account_id=c.account_id AND i.game=c.game
+             AND i.catalog_card_id=c.catalog_card_id) e ON true
+           LEFT JOIN LATERAL (SELECT sum(quantity) n FROM inventory_cards i
+             WHERE i.account_id=c.account_id AND i.game=c.game
+             AND i.canonical_card_id=c.canonical_card_id) o ON true
+           WHERE c.deck_id=%s""",
+        (deck,),
+    ).fetchone()
+    assert shares == {"exact": 68, "alternate": 24}
+    client.execute("DELETE FROM decks WHERE id=%s", (deck,))
+    client.execute(
+        "DELETE FROM inventory_cards WHERE id=(SELECT id FROM inventory_cards "
+        "ORDER BY spellbook_position DESC LIMIT 1)"
+    )
+    edited = snapshot(client)
+    assert seed_demo(url, bundle, precon, dashboard_scenario=True)["status"] == "preserved"
+    assert snapshot(client) == edited
+
+
+def test_dashboard_scenario_failure_rolls_back_all_additions(database: tuple[str, Client]) -> None:
+    url, client = database
+    bundle, precon = verify_bundle(FIXTURES), load_precon(FIXTURES)
+    seed_demo(url, bundle, precon)
+    client.execute("UPDATE local_credentials SET password_hash='changed'")
+    before = snapshot(client)
+    with pytest.raises(OperatorError):
+        seed_demo(url, bundle, precon, dashboard_scenario=True)
+    assert snapshot(client) == before
+
+
+def test_dashboard_late_write_failure_is_atomic(database: tuple[str, Client]) -> None:
+    url, client = database
+    bundle, precon = verify_bundle(FIXTURES), load_precon(FIXTURES)
+    seed_demo(url, bundle, precon)
+    before = snapshot(client)
+    client.execute(
+        "CREATE FUNCTION operator_test_reject() RETURNS trigger LANGUAGE plpgsql "
+        "AS $$ BEGIN RAISE EXCEPTION 'test rejection'; END $$"
+    )
+    client.execute(
+        "CREATE TRIGGER operator_test_reject BEFORE INSERT ON deck_cards "
+        "FOR EACH ROW EXECUTE FUNCTION operator_test_reject()"
+    )
+    with pytest.raises(OperatorError):
+        seed_demo(url, bundle, precon, dashboard_scenario=True)
     assert snapshot(client) == before
