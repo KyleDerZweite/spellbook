@@ -148,7 +148,7 @@ def seed_dashboard(client: Client) -> Record:
         (account,),
     ).fetchone()
     for entry in entries:
-        if commander and entry["oracle_id"] == commander["canonical_card_id"]:
+        if commander and str(entry["oracle_id"]) == str(commander["canonical_card_id"]):
             entry["role"] = "commander"
     deck = str(uuid5(NAMESPACE_URL, f"{SENTINEL}/{account}/deck"))
     client.execute(
@@ -205,7 +205,7 @@ def seed_dashboard(client: Client) -> Record:
     )
     client.execute(
         "INSERT INTO inventory_mutation_requests(account_id,request_id,source,status) "
-        "VALUES(%s,%s,'demo-dashboard','applied')",
+        "VALUES(%s,%s,'import','applied')",
         (account, SENTINEL),
     )
     return {"status": "applied", "message": "Dashboard scenario applied. Printing mix: 68/24/8."}
