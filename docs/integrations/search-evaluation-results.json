@@ -8614,6 +8614,7 @@
       "checks": [
         "Global Ctrl/Cmd+K opens one palette; Escape restores focus",
         "Guest receives actual Catalog matches and no private contexts",
+        "Guest Quick Search opens the shared Card dialog; direct/reloaded/mobile links work, close clears the target and restores focus, native/error feedback remains available",
         "Settings alias survives login return; composing Enter does not activate",
         "One real card has separate Catalog, owned Inventory and named Deck rows with distinct destinations",
         "All three actual destinations open their matching card/owned view/Deck",
@@ -8629,7 +8630,7 @@
       ],
       "errors": [],
       "timings": {
-        "three_contexts_visible_ms": 394.3205749965273
+        "three_contexts_visible_ms": 381.2170229939511
       },
       "status": "passed"
     },

@@ -3,7 +3,7 @@
 - Status: Executed local evaluation and implemented global palette
 - Last Reviewed: 2026-10-30
 - Source of Truth: repository search code and cited official PostgreSQL/extension documentation
-- Update Triggers: search scope selection, relevance evaluation, extension or embedding-model selection
+- Update Triggers: Printing deep-link browser regression, search scope selection, relevance evaluation, extension or embedding-model selection
 - Related Docs: [Integrations](./README.md), [UI direction](../product/ui-design-direction.md#proposed-global-command-menu), [Catalog](../architecture/catalog.md#search-behavior), [Postgres](../architecture/postgres.md), [Worker](../architecture/worker.md), [t3code search](../reference/t3code-search.md)
 
 Kyle requested exploration of Autocomplete, PostgreSQL improvements, an additional search index and possible pgvector retrieval on 2026-10-29.
@@ -299,6 +299,8 @@ The captured report's `global_implementation` records actual guest/two-account H
 The native HTTP runner uses a disposable second profile/session fixture and real API-created Inventory/Deck records, not mocked authorization.
 It revokes its fixture sessions and removes its temporary second account afterward; it does not test second-account signup.
 Browser acceptance covers all three real destinations, Settings/login return, Deck-name completion, other-dialog draft protection, return to ordinary Search, failure/stale-response recovery, dark/light layouts and actual session revocation.
+The Card Search destination must open the shared Card dialog rather than leave plain native details above the grid.
+The browser runner also checks guest direct links, reload, narrow dialog geometry, close/focus behavior, unavailable targets and the no-JavaScript panel.
 The tests remain technical evidence, not human usability acceptance or production load evidence.
 
 The initial native public query scored all 109,393 Printings before limiting.

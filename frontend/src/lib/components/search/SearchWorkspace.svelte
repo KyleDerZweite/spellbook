@@ -34,7 +34,9 @@
 		serverResult = null,
 		serverError = null,
 		canonicalHref,
-		restorationTarget = null
+		restorationTarget = null,
+		routeSelection = null,
+		onCloseRouteSelection
 	}: {
 		controls?: Snippet;
 		viewport?: BrowseViewport | null;
@@ -43,8 +45,20 @@
 		serverError?: string | null;
 		canonicalHref?: string;
 		restorationTarget?: HTMLElement | null;
+		routeSelection?: { key: string; card: CardDocument } | null;
+		onCloseRouteSelection?: () => void;
 	} = $props();
 	const session = getSearchSession();
+	let dismissedRouteSelection: string | null = $state(null);
+	const selectedCard = $derived(
+		session.selectedCard ??
+			(routeSelection && routeSelection.key !== dismissedRouteSelection
+				? routeSelection.card
+				: null)
+	);
+	$effect(() => {
+		if (!routeSelection) dismissedRouteSelection = null;
+	});
 	const filters = session.filters;
 	const catalog = session.catalog;
 	let deckDraft = $state(createDeckAdditionDraft());
@@ -66,7 +80,7 @@
 	$effect(() => {
 		const account = page.data.user?.accountId ?? null;
 		const expired = workspaceSavedState.getState() === 'expired';
-		const selected = session.selectedCard;
+		const selected = selectedCard;
 		untrack(() => {
 			if (!selected || !account || account !== additionAccount || expired) clearAdditionDrafts();
 			additionAccount = account;
@@ -192,7 +206,7 @@
 		session.setRange(nativeFeedbackRange(next, session.pagination.offset, !!restorationTarget));
 	}
 	$effect(() => {
-		if (!mounted || session.selectedCard) return;
+		if (!mounted || selectedCard) return;
 		const current = snapshot;
 		const windowRange = range;
 		const connection = (
@@ -223,9 +237,11 @@
 	}
 	function handleCloseDetail() {
 		if (session.pending) return;
-		const id = session.selectedCard?.id;
+		const id = selectedCard?.id;
+		dismissedRouteSelection = routeSelection?.key ?? null;
 		session.selectedCard = null;
 		clearAdditionDrafts();
+		if (routeSelection) onCloseRouteSelection?.();
 		void tick().then(() => {
 			const target = id
 				? resultsElement?.querySelector<HTMLElement>(`[data-card-id="${CSS.escape(id)}"]`)
@@ -357,7 +373,7 @@
 				onRetry={() => catalog.retry()}
 				onClearFilters={() => filters.clear()}
 				hasFilters={activeFilters.length > 0}
-				selectedId={session.selectedCard?.id}
+				selectedId={selectedCard?.id}
 				onSelect={handleSelect}
 			/>
 			<NativeRangeNavigation state={paging} {total} {canonicalURL} native={!mounted} />
@@ -372,9 +388,9 @@
 		</div>
 	</div>
 </div>
-{#if session.selectedCard}
+{#if selectedCard}
 	<CardDetail
-		card={session.selectedCard}
+		card={selectedCard}
 		onClose={handleCloseDetail}
 		returnFocus={resultTrigger ?? resultsHeading}
 		callerPending={session.pending}
