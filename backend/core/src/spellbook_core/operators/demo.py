@@ -176,17 +176,23 @@ def seed_demo(
     precon: Precon,
     *,
     reset: bool = False,
+    dashboard_scenario: bool = False,
     timezone: str = "Europe/Berlin",
 ) -> Record:
+    from .demo_dashboard import seed_dashboard
     from .demo_history import seed_demo_history
 
     with _client(url) as client:
         try:
             with client.transaction():
                 client.execute("SELECT pg_advisory_xact_lock(hashtext('spellbook-demo-seed'))")
-                users = client.execute("SELECT account_id,username FROM user_profiles").fetchall()
+                users = client.execute(
+                    "SELECT account_id,username FROM user_profiles LIMIT 2"
+                ).fetchall()
                 if not reset and (len(users) > 1 or any(u["username"] != "demo" for u in users)):
                     raise OperatorError("Database contains other users.")
+                if dashboard_scenario and users and not reset:
+                    return seed_dashboard(client)
                 publish_demo_catalog(client, bundle)
                 if reset:
                     client.execute("DELETE FROM user_profiles")
@@ -218,6 +224,8 @@ def seed_demo(
                 client.execute("SELECT id FROM inventories WHERE id=%s FOR UPDATE", (inventory,))
                 insert_precon(client, account, inventory, precon)
                 seed_demo_history(client, account, precon, timezone)
+                if dashboard_scenario:
+                    return seed_dashboard(client)
         except OperatorError, psycopg.Error, ValueError, OSError:
             raise OperatorError("Demo seed failed; transaction rolled back.") from None
     return {"status": "seeded", "message": "Demo ready. Username: demo. Password: demo."}

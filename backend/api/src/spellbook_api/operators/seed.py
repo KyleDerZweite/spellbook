@@ -17,6 +17,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--reset-users", action="store_true", help="Delete disposable Demo accounts"
     )
+    parser.add_argument(
+        "--dashboard-scenario",
+        action="store_true",
+        help="Add the once-only Printing mix Demo Deck and twelve-Set Inventory scenario",
+    )
     parser.add_argument("--fixtures-dir", type=Path, help="Directory of canonical Demo assets")
     args = parser.parse_args(argv)
     try:
@@ -29,6 +34,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             bundle,
             load_precon(directory),
             reset=args.reset_users,
+            dashboard_scenario=args.dashboard_scenario,
             timezone=os.environ.get("VALUE_HISTORY_TIMEZONE", "Europe/Berlin"),
         )
     except OperatorError as exc:
