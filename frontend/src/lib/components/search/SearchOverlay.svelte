@@ -93,12 +93,6 @@
 	onMount(() => {
 		session.open = openSearch;
 		session.onEdit = syncUrl;
-		function shortcut(event: KeyboardEvent) {
-			if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-				event.preventDefault();
-				openSearch();
-			}
-		}
 		function pendingBack(event: PopStateEvent) {
 			if (
 				pendingOverlayBack(
@@ -112,9 +106,7 @@
 			}
 		}
 		window.addEventListener('popstate', pendingBack, { capture: true });
-		window.addEventListener('keydown', shortcut);
 		return () => {
-			window.removeEventListener('keydown', shortcut);
 			window.removeEventListener('popstate', pendingBack, { capture: true });
 			session.open = () => {};
 			session.onEdit = () => {};

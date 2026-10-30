@@ -102,7 +102,8 @@ PublicLanding retains a native GET fallback and a SvelteKit snapshot that restor
 Empty submission opens the unfiltered catalog.
 The accepted PWA delivery replaces App coming soon with an App link to `/app` in the existing account/mobile menus.
 
-[SearchOverlay](../../frontend/src/lib/components/search/SearchOverlay.svelte) owns navigation and the single Ctrl+K or Cmd+K listener.
+[SearchOverlay](../../frontend/src/lib/components/search/SearchOverlay.svelte) owns ordinary Card Search navigation.
+The global [PowerSearch](../../frontend/src/lib/components/search/PowerSearch.svelte) owns the single Ctrl+K or Cmd+K listener in the shared Shell.
 A normal primary Search navigation click opens its large desktop dialog or full-height mobile dialog, keeping the underlying page mounted.
 Modified clicks retain the real `/mtg/search` link.
 Query, the four filter categories and the logical range serialize into the visible URL through SvelteKit shallow routing.
@@ -843,5 +844,18 @@ Reviewed commit returns its confirmed receipt independently of optional current 
 The opt-in `/__search-evaluation` lab compares real retrieval providers through a separate loopback Python service.
 Web owns the existing Shell/Dialog/Command presentation and bounded HTTP forwarding; it imports no database code.
 The route requires development mode and `SEARCH_EVALUATION_URL`, sends no-store/noindex headers, and returns 404 in a production build even with that variable set.
-Ctrl/Cmd+K opens the lab palette only on that route; the application shortcut and Account menu remain unchanged.
+The lab owns Ctrl/Cmd+K only on its route; elsewhere the global palette owns the shortcut.
+The Account menu has no search launcher.
 The [evaluation owner](../integrations/search-evaluation.md) records the disposable fixtures, provider boundaries, results and production proposals.
+
+## Global power-user search
+
+[The selected contract](../product/ui-design-direction.md#global-power-user-search-implementation-contract) owns the T3 Code visual reference, shortcut-only entry and independent Catalog/Inventory/Deck contexts.
+PowerSearch composes existing Bits Dialog/Command parts with filtering and Vim bindings disabled.
+Its compact dark/light colors and interface font are scoped semantic tokens; other application geometry and typography remain unchanged.
+Settings shows the binding as read-only text, and the ordinary Search bar has no shortcut hint.
+The small frontend [read owner](../../frontend/src/lib/search/power-search.ts) supplies local bilingual navigation, context-specific destinations, debounce, cancellation and account/publication fencing.
+SavedState clears terminal/private results and invalidates open reads for Inventory/Deck changes.
+The API/Core provides bounded account-scoped candidates through the shared [DTO](../../contracts/src/power-search.ts); Web performs no SQL.
+The normal Catalog overlay retains URL/history ownership and pending-write guards.
+Other active modal dialogs retain their shortcuts and focus; opening the power-user palette over ordinary Search does not discard its session.

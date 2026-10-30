@@ -234,69 +234,12 @@ The [component guidance](../reference/ui-libraries.md) owns adopted files and ma
 
 ## Proposed global command menu
 
-On 2026-10-29, Kyle requested exploration of a separate, subtle power-user menu inspired by t3code's Ctrl+K search, covering cards, Decks and Settings.
-On 2026-10-30, Kyle selected implementation of the shortcut-only global menu and supplied a T3 Code screenshot as its visual reference.
-The contract below supersedes the earlier exploration-only status; semantic retrieval and production search-index changes remain proposals.
-
-The upstream [command wrapper](https://github.com/pingdotgg/t3code/blob/main/apps/web/src/components/ui/command.tsx) uses React, Base UI Dialog and its own Autocomplete.
-Its [palette logic](https://github.com/pingdotgg/t3code/blob/main/apps/web/src/components/CommandPalette.logic.ts) separates actions, navigation and asynchronous results.
-Its [ranking implementation](https://github.com/pingdotgg/t3code/blob/main/packages/shared/src/paletteSearch.ts) handles word boundaries, keywords and accent normalization, but imports t3code-specific modules.
-The [source investigation](../reference/t3code-search.md) distinguishes local metadata ranking, server-indexed content search and recovery of older settled threads absent from the client.
-The [search evaluation](../integrations/search-evaluation.md) records the executed development-only Autocomplete, PostgreSQL, BM25 and pgvector comparison.
-These are interaction and ranking references for a Svelte implementation using existing tokens and controls.
-
-Kyle specified on 2026-10-29 that this is a shortcut-only power-user search.
-Ctrl+K and Cmd+K would open or focus one compact global command menu.
-Settings would display the binding as Power-user search, with no clickable launcher there or in the account menu, navigation or other application controls.
-The existing Search navigation and landing input would continue opening the card-only Search workspace.
-Kyle clarified Autocomplete as the likely intended function; the proposed menu updates suggestions during typing without automatically replacing the query.
-The menu would use one input, a bounded list, row icons and type labels, without additional visible subheadings.
-Arrow keys move selection, Enter activates it and Escape closes the menu and restores focus.
-An empty query offers common destinations and entry actions such as New Deck.
-
-The initial result types would be:
-
-- Pages and settings, including Dashboard, Inventory, Decks, Profile, Profile Card and Password, with explicit English and German search aliases.
-- Owned Decks matched by name, linking to `/mtg/decks?deck=ID`.
-- Canonical cards matched by names and rule text, handing selection to the shared Search workspace.
-- Existing task entry links, initially `/mtg/decks?flow=create` and `/mtg/decks?flow=import`, which open their forms.
-
-Card activation would carry the matched identity into the existing Search/detail flow rather than rerunning a fuzzy input against the standard query.
-Page and action matches would appear immediately.
-Deck and card reads would start after two characters and a short debounce, initially 150 ms, with at most five results from each remote source.
-Ranking would distinguish exact names, whole words, word-start prefixes, joined words and weaker internal matches, with weighted fields and explicit aliases.
-Typo matching would run as a fallback when no strong name or alias match exists; numeric identities would remain exact.
-Content matching would use its own word-boundary, phrase and proximity rules rather than treating full rule text as another name.
-The existing APIs are reuse candidates, not evidence that this stronger matching contract is already implemented.
-The highlighted result would retain its identity when asynchronous results arrive.
-Source failures would leave other results usable and distinguish unavailable reads from no matches.
-Guests would search the public Catalog and public destinations; protected entry links would use the existing sign-in return destination, with no private Deck read.
-
-The global command module would own the sole shortcut listener, query, result assembly and activation, mounted once in [Shell](../../frontend/src/lib/components/layout/Shell.svelte).
-[SearchOverlay](../../frontend/src/lib/components/search/SearchOverlay.svelte) would retain card-search history and session ownership, with its shortcut moved to the command module.
-The command module would call existing HTTP reads through frontend helpers; API and Core would retain authentication, matching and account isolation.
-The existing [Catalog helper](../../frontend/src/lib/search/catalog.ts) supports bounded, cancellable card searches.
-The [Catalog search contract](../architecture/catalog.md#search-behavior) already combines PostgreSQL full-text search and trigram name matching across the published Catalog, not just cards loaded by the client.
-Adapting t3code's per-word prefixes, phrase scoring and field weights requires a reviewed backend query contract; reordering five existing hits in the browser would miss candidates that the current query excludes.
-The existing authenticated `/api/v1/mtg/decks/choices?query=TEXT&limit=5` returns Deck IDs, names and formats without loading every Deck.
-Its [Core implementation](../../backend/core/src/spellbook_core/mtg/decks/library.py) uses account-scoped substring matching, so stronger Deck-name matching requires backend work before limits apply.
-Finding a Deck through a contained card is a separate proposed content capability, with account-scoped Deck Entry joins and a visible reason for the match.
-Private results would use the existing SavedState account lifecycle and clear on expiry, sign-out or account change.
-
-[Bits Command](https://bits-ui.com/docs/components/command/llms.txt) with [Bits Dialog](https://bits-ui.com/docs/components/dialog/llms.txt) provides the proposed keyboard and focus behavior within the existing dependency set.
-Use application-owned result assembly with Command filtering disabled so server-ranked matches are not filtered a second time.
-Explicitly reserve Ctrl+K for the launcher rather than Command's default Vim keybindings.
-PostgreSQL remains the candidate store for server content; the browser holds only bounded results and the small local command registry.
-Whether to extend existing reads or add a dedicated power-user query remains a design decision; the earlier suggestion that unchanged APIs suffice applies only to the simpler name-search version.
-An external search service, full-catalog download and copied SQLite schema are unnecessary for this proposal.
-PostgreSQL lexical improvements, an optional canonical search projection and pgvector semantic retrieval remain evaluated alternatives, with static Settings/page targets participating through the local registry.
-No embedding model or additional index is selected; any shared ranking changes for ordinary Search require its existing contract to be reconciled.
-Nested modes, prefixes, persisted query history and learned ranking remain possible later work.
-
-Before implementation, review activation from an already open Search overlay and other dialogs against their existing pending-write, focus and history guards.
-Acceptance must cover shortcut-only entry, the read-only Settings binding, guest and signed-in use, direct Deck navigation, Search handoff, Settings aliases, IME composition, stale responses, partial read failure, account changes and focus restoration.
-Search evidence must also cover joined names such as `solring`, typo fallback, numeric distinctions, `tap` versus `untap`, rule-text phrases and matches outside previously loaded result ranges.
-Adopting the proposal requires reconciling the shortcut descriptions in the frontend and routing owners; this exploration changes no production runtime behavior.
+On 2026-10-29, Kyle requested a separate power-user menu inspired by t3code, covering cards, Decks and Settings.
+The [source investigation](../reference/t3code-search.md) traces deterministic metadata ranking and indexed persisted-message retrieval, including older settled threads.
+The traced t3code search uses no embedding model or LLM.
+The [executed comparison](../integrations/search-evaluation.md) evaluates PostgreSQL lexical improvements, BM25, pgvector and local navigation separately.
+Its measured relevance, latency and operational limits do not select a production vector model or additional index.
+Kyle selected the following UI and context-result contract on 2026-10-30.
 
 ## Global power-user search implementation contract
 
