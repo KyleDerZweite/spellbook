@@ -1,9 +1,9 @@
 # Selected UI components
 
 - Status: Canonical
-- Last Reviewed: 2026-10-29
+- Last Reviewed: 2026-10-30
 - Source of Truth: accepted product decision, current application, upstream documentation
-- Update Triggers: compact distribution and Finish ring presentation, shared D3 analytics charts, component adoption, generated source ownership, Svelte or Tailwind compatibility, interaction requirements, shared scrolling, Search native window/modal hosts and hybrid pagination, filter editing and destructive confirmation
+- Update Triggers: Mebius visual reference adaptation, compact distribution and Finish ring presentation, shared D3 analytics charts, component adoption, generated source ownership, Svelte or Tailwind compatibility, interaction requirements, shared scrolling, Search native window/modal hosts and hybrid pagination, filter editing and destructive confirmation
 - Related Docs: [Reference](./README.md), [Bits UI](./bits-ui.md), [Frontend](../architecture/frontend.md), [Catalog](../architecture/catalog.md), [Design direction](../product/ui-design-direction.md), [Product specification](../product/specification.md)
 
 Spellbook uses shadcn-svelte source components with Bits UI, Svelte, and Tailwind.
@@ -87,6 +87,8 @@ Svelte renders server-compatible SVG and native controls using the existing sema
 The [D3 scale documentation](https://d3js.org/d3-scale/linear) and [line documentation](https://d3js.org/d3-shape/line) own the upstream APIs.
 `@types/d3-scale` and `@types/d3-shape` supply development-only declarations.
 
+The [Mebius charts gallery](https://www.mebius.design/freebies/charts) supplies visual ideas only.
+The [selected mapping](../product/ui-design-direction.md#mebius-chart-adaptation) uses original Svelte/D3 code without importing its React/Tailwind components, assets or packages.
 Distribution rows expose the count and share as text and support pointer, focus and tap inspection.
 The Finish ring keeps the same quantities in native legend buttons and renders no colored segment for a zero quantity.
 Dashboard Condition zeroes remain accessible in a native details disclosure.

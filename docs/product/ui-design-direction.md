@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-30
 - Source of Truth: accepted product requirements, application components, selected logo and component choices
-- Update Triggers: executed development-only search lab and comparison, shortcut-only power-user search requirement and source algorithm investigation, global command menu exploration, color-mode placement below centered mana controls, tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
+- Update Triggers: Mebius chart reference adaptation, executed development-only search lab and comparison, shortcut-only power-user search requirement and source algorithm investigation, global command menu exploration, color-mode placement below centered mana controls, tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
 - Related Docs: [Product specification](./specification.md), [Mobile exploration](./mobile-app-exploration.md), [Routes](./routing-and-games.md), [Domain model](../../GLOSSARY.md), [Selected UI components](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Brand assets](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Value tracking](./value-tracking.md)
 
 Spellbook prioritizes digitizing, indexing and managing a player's own Magic cards, then building decks from that collection.
@@ -103,6 +103,29 @@ Q56 accepted the shared Button, WorkspaceHeader, QuantityControl, dialog and bou
 Inventory uses these shared controls and bounded loading, and Deck UI adoption is implemented.
 SavedState transport, the Profile consumer and mounted Inventory/Deck/Scan workspace consumers are implemented; rendered acceptance remains separate.
 The maintainer also requested a review of all current docs and decisions; existing descriptions remain implementation evidence until a reviewed replacement or explicit supersession changes them.
+
+## Mebius chart adaptation
+
+Kyle selected the [Mebius charts gallery](https://www.mebius.design/freebies/charts) as a visual reference on 2026-10-30.
+Adapt the gallery's rounded marks, generous plot space, restrained grids, clear selected values and coordinated legend emphasis through the existing Svelte/D3 chart owners.
+Keep Spellbook's fonts, neutral light/dark surfaces and semantic chart colors.
+Use flat fills, with no copied assets, template code, gradients, shadows on data marks, new dependencies or backend aggregates.
+
+| Existing use                    | Mebius reference                        | Selected adaptation                                                                                                                                                |
+| ------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Dashboard and Inventory History | Cash Flow Area, Total Expenses          | Quiet area fill, prominent line, selected-point halo and vertical cursor, exact value/date/coverage readout. Retain the native observation slider and exact table. |
+| Dashboard Sets                  | Total Value, Asset Overview             | Rounded horizontal comparison bars, muted tracks, shared zero-based scale and selection emphasis. Keep exact counts and Inventory shares beside labels.            |
+| Dashboard Finish                | Portfolio Allocation                    | Thicker separated arcs, central selected count and coordinated legend emphasis. Keep native legend buttons and explicit zero counts.                               |
+| Dashboard Deck availability     | Financial Breakdown, Category Breakdown | Clearly separated proportional segments and matching Exact/Alternate/Missing labels. Preserve each Deck's actual quantities and independent Inventory comparison.  |
+
+This adapts visual ideas to existing tasks rather than adding finance widgets.
+Do not invent prior-period comparisons, sales, budgets, targets or additional history.
+Missing days and unknown-only observations still break value-history lines; known zero and partial coverage remain explicit.
+Keep public Printing price history distinct from personal holdings history.
+
+Shared chart components own mark geometry and inspection; routes keep their existing data, navigation and SavedState responsibilities.
+Acceptance covers dark/light desktop and narrow Dashboard/History, pointer and keyboard inspection, synthesized touch, exact counts/amounts, zero/missing/unknown data, native tables and error/retry behavior.
+Compare rendered output with the selected source previews and record technical checks separately from Kyle's visual acceptance.
 
 ## Selected hybrid browsing and Card dialog
 

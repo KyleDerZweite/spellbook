@@ -15,10 +15,10 @@
 			.sort(null)(items)
 	);
 	const shape = arc<PieArcDatum<Item>>()
-		.innerRadius(48)
-		.outerRadius(61)
-		.cornerRadius(2)
-		.padAngle(0.035);
+		.innerRadius(40)
+		.outerRadius(63)
+		.cornerRadius(4)
+		.padAngle(0.045);
 	const compactCount = new Intl.NumberFormat(undefined, {
 		notation: 'compact',
 		maximumFractionDigits: 1
@@ -29,13 +29,20 @@
 
 <div class="composition-ring" role="group" aria-label={label}>
 	<svg viewBox="0 0 144 144" role="img" aria-label={`${label}: ${total.toLocaleString()} copies`}>
-		<circle cx="72" cy="72" r="54.5" fill="none" stroke="var(--color-muted)" stroke-width="13" />
+		<circle
+			cx="72"
+			cy="72"
+			r="51.5"
+			fill="none"
+			stroke="var(--color-chart-track)"
+			stroke-width="23"
+		/>
 		<g transform="translate(72 72)">
 			{#each slices as slice}{#if slice.value > 0}
 					<path
 						d={shape(slice) ?? ''}
 						fill={slice.data.color}
-						opacity={active && active.label !== slice.data.label ? 0.3 : 1}
+						opacity={active && active.label !== slice.data.label ? 0.65 : 1}
 						><title
 							>{slice.data.label}: {slice.data.value.toLocaleString()} copies, {percent.format(
 								slice.data.share
@@ -57,6 +64,7 @@
 				aria-label={`${item.label}: ${item.value.toLocaleString()} copies, ${percent.format(item.share)}`}
 				onclick={() => (selected = item.label)}
 				onfocus={() => (selected = item.label)}
+				onpointerenter={() => (selected = item.label)}
 			>
 				<span class="ring-mark" style:background={item.color}></span><span>{item.label}</span
 				><strong>{item.value.toLocaleString()}</strong><small>{percent.format(item.share)}</small>
@@ -78,13 +86,13 @@
 		min-width: 0;
 	}
 	svg {
-		width: 132px;
-		height: 132px;
+		width: 152px;
+		height: 152px;
 		flex-shrink: 0;
 	}
 	.ring-total {
 		fill: var(--color-text-primary);
-		font: 28px var(--font-display);
+		font: 25px var(--font-display);
 		font-variant-numeric: tabular-nums;
 	}
 	.ring-label {
@@ -98,7 +106,7 @@
 	button {
 		width: 100%;
 		display: grid;
-		grid-template-columns: 7px minmax(0, 1fr) auto;
+		grid-template-columns: 10px minmax(0, 1fr) auto;
 		align-items: center;
 		gap: 0.25rem 0.5rem;
 		min-height: 48px;
@@ -117,9 +125,9 @@
 		color: var(--color-text-primary);
 	}
 	.ring-mark {
-		width: 7px;
-		height: 7px;
-		border-radius: 50%;
+		width: 10px;
+		height: 10px;
+		border-radius: 3px;
 	}
 	strong {
 		font-weight: 500;
