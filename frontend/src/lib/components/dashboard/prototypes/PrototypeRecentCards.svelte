@@ -4,10 +4,18 @@
 		dashboard,
 		limit = 6,
 		layout = 'strip'
-	}: { dashboard: DashboardSummary; limit?: number; layout?: 'strip' | 'gallery' } = $props();
+	}: {
+		dashboard: DashboardSummary;
+		limit?: number;
+		layout?: 'strip' | 'gallery' | 'rows';
+	} = $props();
 </script>
 
-<section class="prototype-recent" class:gallery={layout === 'gallery'}>
+<section
+	class="prototype-recent"
+	class:gallery={layout === 'gallery'}
+	class:rows={layout === 'rows'}
+>
 	<header>
 		<h2>Recently edited</h2>
 		<a href="/mtg/inventory" aria-label="Open inventory">↗</a>
@@ -26,7 +34,7 @@
 						/>{:else}<span>{entry.setCode.toUpperCase()}</span>{/if}
 				</div>
 				<span class="name">{entry.name}</span><small>{entry.quantity}×</small></a
-			>{:else}<p>No recently edited cards.</p>{/each}
+			>{:else}<p>No recently edited cards</p>{/each}
 	</div>
 </section>
 
@@ -34,7 +42,7 @@
 	.prototype-recent {
 		min-width: 0;
 		padding: 1.25rem;
-		border-radius: 0.85rem;
+		border-radius: 0.75rem;
 		background: var(--color-card);
 		border: 1px solid color-mix(in srgb, var(--color-border) 45%, transparent);
 	}
@@ -56,10 +64,25 @@
 	.cards {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
-		gap: 0.875rem;
+		gap: 1rem;
 	}
 	.gallery .cards {
 		grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+	}
+	.rows .cards {
+		grid-template-columns: 1fr;
+		gap: 0.75rem;
+	}
+	.rows .card {
+		grid-template-columns: 32px 1fr auto;
+		align-items: center;
+		gap: 0.75rem;
+	}
+	.rows .art {
+		grid-column: auto;
+	}
+	.rows .name {
+		font-size: 0.75rem;
 	}
 	.card {
 		display: grid;
@@ -73,7 +96,7 @@
 	.art {
 		grid-column: 1/-1;
 		aspect-ratio: 5/7;
-		border-radius: 5px;
+		border-radius: 4px;
 		overflow: hidden;
 		background: var(--color-surface);
 	}
@@ -96,7 +119,7 @@
 		text-decoration: underline;
 	}
 	small {
-		font: 0.625rem var(--font-interface);
+		font: 0.6875rem var(--font-interface);
 		color: var(--color-text-muted);
 	}
 	p {

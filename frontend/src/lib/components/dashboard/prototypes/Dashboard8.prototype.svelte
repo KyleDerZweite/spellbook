@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { DashboardSummary } from '@spellbook/contracts/dashboard.ts';
 	import PrototypeMetrics from './PrototypeMetrics.svelte';
+	import ProportionChart from '#lib/components/charts/ProportionChart.svelte';
 	import PrototypeDeckCard from './PrototypeDeckCard.svelte';
 	let { dashboard }: { dashboard: DashboardSummary } = $props();
 	let scanOpen = $state(false);
@@ -62,16 +63,15 @@
 				<span class="mock">Mock</span>
 			</header>
 			<div class="type-content">
-				<div class="donut" aria-label="Mock card type distribution">
-					<span>Mock<br />types</span>
-				</div>
-				<div class="legend">
-					{#each types as type, i}<div>
-							<i style:opacity={1 - i * 0.11}></i><span>{type.name}</span><strong
-								>{type.value}%</strong
-							>
-						</div>{/each}
-				</div>
+				<ProportionChart
+					label="Mock card types, 100 sample cards"
+					kind="pie"
+					items={types.map((t, i) => ({
+						label: t.name,
+						value: t.value,
+						color: ['#8fabc0', '#9c9da3', '#86888e', '#73767e', '#616670', '#505762', '#414b58'][i]
+					}))}
+				/>
 			</div>
 		</section>
 		<section class="panel mana">
@@ -203,8 +203,7 @@
 		align-items: center;
 		font-size: 11px;
 	}
-	.set-row strong,
-	.legend strong {
+	.set-row strong {
 		font-weight: 500;
 	}
 	.track {
@@ -221,62 +220,20 @@
 	.type-content {
 		display: flex;
 		align-items: center;
+		justify-content: center;
 		gap: 16px;
 		margin-top: 20px;
-	}
-	.donut {
-		width: 100px;
-		aspect-ratio: 1;
-		flex: none;
-		border-radius: 50%;
-		background: conic-gradient(
-			var(--color-text-primary) 0 42%,
-			var(--color-text-secondary) 42% 58%,
-			var(--color-text-muted) 58% 71%,
-			var(--color-border) 71% 100%
-		);
-		display: grid;
-		place-items: center;
-	}
-	.donut span {
-		display: grid;
-		place-items: center;
-		text-align: center;
-		background: var(--color-card);
-		width: 62%;
-		height: 62%;
-		border-radius: 50%;
-		font-size: 11px;
-	}
-	.legend {
-		display: grid;
-		gap: 6px;
-		flex: 1;
-		min-width: 0;
-	}
-	.legend div {
-		display: grid;
-		grid-template-columns: 8px 1fr auto;
-		gap: 6px;
-		align-items: center;
-		font-size: 11px;
-	}
-	.legend i {
-		width: 8px;
-		height: 8px;
-		background: var(--color-text-primary);
-		border-radius: 2px;
 	}
 	.bars {
 		display: flex;
 		align-items: end;
 		gap: 8px;
-		height: 150px;
+		height: 152px;
 		margin-top: 20px;
 	}
 	.bars > div {
 		display: grid;
-		grid-template-rows: 110px auto;
+		grid-template-rows: 112px auto;
 		gap: 8px;
 		flex: 1;
 		min-width: 0;
@@ -291,14 +248,14 @@
 	.bar-space i {
 		width: 70%;
 		background: var(--color-text-muted);
-		border-radius: 3px 3px 0 0;
+		border-radius: 4px 4px 0 0;
 	}
 	.bars span {
 		overflow-wrap: anywhere;
 	}
 	.recent-list {
 		display: grid;
-		gap: 10px;
+		gap: 12px;
 		margin-top: 16px;
 	}
 	.recent-list a {
@@ -369,7 +326,7 @@
 		nav a,
 		nav button {
 			text-align: center;
-			padding: 10px 4px;
+			padding: 12px 4px;
 		}
 		.summary,
 		.deck-grid {
@@ -379,10 +336,10 @@
 			padding: 16px;
 		}
 		.bars {
-			height: 130px;
+			height: 132px;
 		}
 		.bars > div {
-			grid-template-rows: 90px auto;
+			grid-template-rows: 92px auto;
 		}
 	}
 </style>

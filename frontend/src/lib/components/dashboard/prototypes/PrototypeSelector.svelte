@@ -1,6 +1,19 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import collectionReference from './references/collection-workbench.png?url';
+	import deckReference from './references/deck-workbench.png?url';
+	import overviewReference from './references/collection-overview.png?url';
 	let { design }: { design: number } = $props();
-	const names = ['Calm', 'Gallery', 'Studio', 'Bento', 'Collection'];
+	const names = [
+		'Overview',
+		'Gallery',
+		'Studio',
+		'Hub',
+		'Collection',
+		'Workbench',
+		'Decks',
+		'Compact'
+	];
 	const references = [
 		[
 			{ name: 'Things 3', url: 'https://culturedcode.com/things/' },
@@ -21,14 +34,36 @@
 		[
 			{ name: 'Bear', url: 'https://bear.app/' },
 			{ name: 'Craft', url: 'https://www.craft.do/' }
-		]
+		],
+		[{ name: 'Saved collection reference', url: collectionReference }],
+		[{ name: 'Saved deck reference', url: deckReference }],
+		[{ name: 'Saved overview reference', url: overviewReference }]
 	];
 </script>
 
+<svelte:window
+	onkeydown={(event) => {
+		if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey)
+			return;
+		const element = event.target;
+		if (
+			!(element instanceof HTMLElement) ||
+			(element !== document.body && !element.closest('.prototype-selector')) ||
+			element.closest('input, textarea, select, [contenteditable="true"]')
+		)
+			return;
+		if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+			event.preventDefault();
+			const next =
+				((design - 1 + (event.key === 'ArrowLeft' ? -1 : 1) + names.length) % names.length) + 1;
+			void goto(`/mtg/dashboard/${next}`, { reset: false });
+		}
+	}}
+/>
 <nav class="prototype-selector" aria-label="Dashboard design selector">
 	<span class="preview-label">Design preview</span><a
 		class="arrow"
-		href={`/mtg/dashboard/${design === 1 ? 5 : design - 1}`}
+		href={`/mtg/dashboard/${design === 1 ? names.length : design - 1}`}
 		aria-label="Previous design">←</a
 	>{#each names as name, index}<a
 			href={`/mtg/dashboard/${index + 1}`}
@@ -36,7 +71,7 @@
 			aria-label={`Design ${index + 1}: ${name}`}><strong>{index + 1}</strong><span>{name}</span></a
 		>{/each}<a
 		class="arrow"
-		href={`/mtg/dashboard/${design === 5 ? 1 : design + 1}`}
+		href={`/mtg/dashboard/${design === names.length ? 1 : design + 1}`}
 		aria-label="Next design">→</a
 	>
 	<details class="references">
@@ -66,12 +101,12 @@
 		border: 1px solid var(--color-border);
 		border-radius: 12px;
 		background: var(--color-surface);
-		box-shadow: 0 5px 24px #0003;
+		box-shadow: 0 4px 24px #0003;
 		max-width: calc(100vw - 1.25rem);
 		font: 400 0.6875rem var(--font-interface);
 	}
 	.preview-label {
-		font-size: 0.625rem;
+		font-size: 0.6875rem;
 		color: var(--color-text-muted);
 		white-space: nowrap;
 		padding: 0 0.5rem;
@@ -80,11 +115,11 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		gap: 0.35rem;
+		gap: 0.5rem;
 		min-width: 36px;
 		min-height: 36px;
-		padding: 0.5rem 0.6rem;
-		border-radius: 7px;
+		padding: 0.5rem;
+		border-radius: 6px;
 		text-decoration: none;
 		color: var(--color-text-secondary);
 		white-space: nowrap;
@@ -122,9 +157,9 @@
 	.references div {
 		position: absolute;
 		right: 0;
-		bottom: calc(100% + 14px);
+		bottom: calc(100% + 16px);
 		min-width: 160px;
-		padding: 0.4rem;
+		padding: 0.5rem;
 		border: 1px solid var(--color-border);
 		border-radius: 8px;
 		background: var(--color-surface);
@@ -133,15 +168,15 @@
 	.references div a {
 		justify-content: space-between;
 	}
-	@media (max-width: 760px) {
+	@media (max-width: 1100px) {
 		a span,
 		.preview-label {
 			display: none;
 		}
 		a {
-			min-width: 34px;
+			min-width: 32px;
 			min-height: 42px;
-			padding: 0.4rem 0.5rem;
+			padding: 0.5rem;
 		}
 		.prototype-selector {
 			gap: 2px;
@@ -149,7 +184,9 @@
 		}
 	}
 	@media (max-width: 480px) {
-		.arrow {
+		.arrow,
+		.references,
+		.baseline {
 			display: none;
 		}
 	}

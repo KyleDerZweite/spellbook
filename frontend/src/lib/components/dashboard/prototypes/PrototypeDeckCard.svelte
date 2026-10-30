@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { DashboardDeck } from '@spellbook/contracts/dashboard.ts';
-	import DeckAvailabilityRing from '#lib/components/charts/DeckAvailabilityRing.svelte';
+	import DeckAvailabilityRing from './PrototypeAvailability.svelte';
 	let {
 		deck,
 		scale = 'standard',
@@ -33,8 +33,8 @@
 					/>{:else}<span class="commander-placeholder" title="No commander assigned"
 						><svg
 							viewBox="0 0 24 24"
-							width="35"
-							height="35"
+							width="32"
+							height="32"
 							fill="none"
 							stroke="currentColor"
 							stroke-width="1.2"
@@ -56,9 +56,9 @@
 
 <style>
 	.prototype-deck-card {
-		padding: 1.15rem;
+		padding: 1.25rem;
 		border: 1px solid color-mix(in srgb, var(--color-border) 45%, transparent);
-		border-radius: 0.85rem;
+		border-radius: 0.75rem;
 		background: var(--color-card);
 		min-width: 0;
 	}
@@ -69,10 +69,10 @@
 	}
 	.deck-title {
 		display: block;
-		font: 500 0.95rem/1.4 var(--font-interface);
+		font: 500 0.875rem/1.4 var(--font-interface);
 		color: var(--color-text-primary);
 		text-decoration: none;
-		margin-bottom: 1.1rem;
+		margin-bottom: 1rem;
 		overflow-wrap: anywhere;
 	}
 	.deck-title:hover {
@@ -81,7 +81,7 @@
 	.deck-visuals {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
+		justify-content: center;
 		gap: 1rem;
 	}
 	.commander {
@@ -97,7 +97,7 @@
 		width: 100%;
 		height: 100%;
 		object-fit: contain;
-		border-radius: 7px;
+		border-radius: 8px;
 	}
 	.commander-placeholder {
 		align-items: center;
@@ -109,7 +109,7 @@
 	.availability {
 		display: grid;
 		justify-items: center;
-		gap: 0.65rem;
+		gap: 0.75rem;
 		min-width: 0;
 	}
 	.deck-status {
@@ -124,14 +124,14 @@
 		flex-basis: 144px;
 	}
 	.featured .deck-title {
-		font-size: 1.15rem;
+		font-size: 1rem;
 	}
 	.empty-deck {
 		display: grid;
 		place-content: center;
 		justify-items: center;
 		gap: 0.75rem;
-		min-height: 146px;
+		min-height: 144px;
 		color: var(--color-text-muted);
 		font: 0.75rem var(--font-interface);
 		text-decoration: none;

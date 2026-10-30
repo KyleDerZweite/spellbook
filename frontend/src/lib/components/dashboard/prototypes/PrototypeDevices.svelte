@@ -6,11 +6,11 @@
 	<div class="device">
 		<svg
 			viewBox="0 0 24 24"
-			width="23"
-			height="30"
+			width="18"
+			height="18"
 			fill="none"
 			stroke="currentColor"
-			stroke-width="1.3"
+			stroke-width="1.5"
 			aria-hidden="true"
 			><rect x="6" y="2" width="12" height="20" rx="3" /><path d="M10 18h4" /></svg
 		><strong>Phone</strong><small>Status unknown</small><a href="/app/connect">Connect</a>
@@ -18,11 +18,11 @@
 	<div class="device">
 		<svg
 			viewBox="0 0 24 24"
-			width="25"
-			height="25"
+			width="18"
+			height="18"
 			fill="none"
 			stroke="currentColor"
-			stroke-width="1.3"
+			stroke-width="1.5"
 			aria-hidden="true"
 			><rect x="3" y="7" width="18" height="13" rx="3" /><path d="M8 7V3h8v4M7 13h10" /></svg
 		><strong>Card scanner</strong><small>Not configured</small><span class="muted">—</span>
@@ -32,7 +32,7 @@
 <style>
 	.prototype-devices {
 		padding: 1.25rem;
-		border-radius: 0.85rem;
+		border-radius: 0.75rem;
 		background: var(--color-card);
 		border: 1px solid color-mix(in srgb, var(--color-border) 45%, transparent);
 	}
@@ -47,15 +47,12 @@
 		font: 500 1rem var(--font-interface);
 	}
 	header span {
-		font: 0.625rem var(--font-interface);
+		font: 0.6875rem var(--font-interface);
 		color: var(--color-text-muted);
-		border: 1px solid var(--color-border);
-		padding: 0.2rem 0.4rem;
-		border-radius: 4px;
 	}
 	.device {
 		display: grid;
-		grid-template-columns: 30px 1fr auto;
+		grid-template-columns: 24px 1fr auto;
 		gap: 0.25rem 0.75rem;
 		align-items: center;
 		padding: 0.75rem 0;

@@ -12,10 +12,13 @@
 	import Design3 from '#lib/components/dashboard/prototypes/Dashboard3.prototype.svelte';
 	import Design4 from '#lib/components/dashboard/prototypes/Dashboard4.prototype.svelte';
 	import Design5 from '#lib/components/dashboard/prototypes/Dashboard5.prototype.svelte';
+	import Design6 from '#lib/components/dashboard/prototypes/Dashboard6.prototype.svelte';
+	import Design7 from '#lib/components/dashboard/prototypes/Dashboard7.prototype.svelte';
+	import Design8 from '#lib/components/dashboard/prototypes/Dashboard8.prototype.svelte';
 	let { data }: PageProps = $props();
 	let dashboard = $state(untrack(() => data.dashboard));
 	let subscription: ResourceSubscription | undefined = $state();
-	const designs = [Design1, Design2, Design3, Design4, Design5];
+	const designs = [Design1, Design2, Design3, Design4, Design5, Design6, Design7, Design8];
 	const Design = $derived(designs[data.design - 1]);
 	onMount(() => {
 		subscription = workspaceSavedState.subscribe({

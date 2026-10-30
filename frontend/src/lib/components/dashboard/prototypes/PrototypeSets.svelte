@@ -46,10 +46,12 @@
 		</p>{:else if presentation === 'pie'}<div class="pie-wrap">
 			<ProportionChart label="Owned copies by set" {items} />
 		</div>{:else}<div class="set-bars">
-			{#each items as item}<div>
+			{#each items as item, index}<div>
 					<span>{item.label}</span><strong>{item.value.toLocaleString()}</strong><i
 						style:width={`${(item.value / dashboard.totals.total) * 100}%`}
-						style:background={item.color}
+						style:background={index === 0
+							? 'var(--color-chart-primary)'
+							: 'var(--color-text-muted)'}
 					></i>
 				</div>{/each}
 		</div>{/if}
@@ -60,7 +62,7 @@
 		padding: 1.25rem;
 		background: var(--color-card);
 		border: 1px solid color-mix(in srgb, var(--color-border) 45%, transparent);
-		border-radius: 0.85rem;
+		border-radius: 0.75rem;
 		min-width: 0;
 	}
 	header {
@@ -82,7 +84,7 @@
 		cursor: pointer;
 		list-style: none;
 		color: var(--color-text-muted);
-		padding: 0.2rem 0.4rem;
+		padding: 0.25rem 0.5rem;
 		min-width: 28px;
 		text-align: center;
 	}
@@ -96,8 +98,8 @@
 		z-index: 40;
 		background: var(--color-surface);
 		border: 1px solid var(--color-border);
-		border-radius: 0.6rem;
-		padding: 0.8rem;
+		border-radius: 0.5rem;
+		padding: 0.75rem;
 		width: 200px;
 		max-height: 260px;
 		overflow: auto;
@@ -107,7 +109,7 @@
 		display: flex;
 		justify-content: space-between;
 		gap: 1rem;
-		padding: 0.3rem 0;
+		padding: 0.25rem 0;
 	}
 	.pie-wrap {
 		display: flex;
@@ -126,7 +128,7 @@
 	.set-bars div {
 		display: grid;
 		grid-template-columns: 1fr auto;
-		gap: 0.35rem;
+		gap: 0.5rem;
 		font: 0.6875rem var(--font-interface);
 		color: var(--color-text-secondary);
 	}
@@ -137,7 +139,7 @@
 	.set-bars i {
 		display: block;
 		grid-column: 1/-1;
-		height: 7px;
+		height: 8px;
 		border-radius: 2px;
 		max-width: 100%;
 	}

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { DashboardSummary } from '@spellbook/contracts/dashboard.ts';
 	import { formatValueEUR } from '#lib/valuation/money.ts';
-	import PrototypeValueSpark from './PrototypeValueSpark.svelte';
 	let { dashboard }: { dashboard: DashboardSummary } = $props();
 	const estimate = $derived(dashboard.inventoryValue?.estimate);
 	const value = $derived(
@@ -22,14 +21,17 @@
 			: 'Inventory value unavailable'}
 		><span>Inventory value</span>
 		<div class="metric-main">
-			<strong>{value}</strong><PrototypeValueSpark history={dashboard.inventoryValueHistory} />
+			<strong>{value}</strong
+			>{#if estimate && estimate.coveredQuantity < estimate.totalQuantity}<small
+					>{estimate.coveredQuantity} / {estimate.totalQuantity} copies priced</small
+				>{/if}
 		</div></a
 	>
 	<a
 		href="/mtg/inventory"
 		class="metric"
 		aria-label={`${dashboard.totals.total} total cards, ${dashboard.totals.names} unique cards`}
-		><span>Total / Unique Cards</span><strong
+		><span>Total / unique cards</span><strong
 			>{dashboard.totals.total.toLocaleString()}<em>
 				/ {dashboard.totals.names.toLocaleString()}</em
 			></strong
@@ -53,10 +55,10 @@
 		display: flex;
 		flex-direction: column;
 		justify-content: center;
-		gap: 0.65rem;
-		padding: 1rem 1.15rem;
+		gap: 0.75rem;
+		padding: 1.25rem;
 		min-width: 0;
-		min-height: 110px;
+		min-height: 112px;
 		background: var(--color-card);
 		border: 1px solid color-mix(in srgb, var(--color-border) 45%, transparent);
 		border-radius: 0.75rem;
@@ -80,6 +82,10 @@
 		color: var(--color-text-muted);
 		font-size: 0.78em;
 	}
+	.metric-main small {
+		font: 400 0.6875rem var(--font-interface);
+		color: var(--color-text-muted);
+	}
 	.metric-main {
 		display: flex;
 		align-items: center;
@@ -95,7 +101,7 @@
 		}
 		.metric {
 			min-height: 96px;
-			padding: 0.875rem 1rem;
+			padding: 1rem;
 		}
 	}
 </style>

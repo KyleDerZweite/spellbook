@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { DashboardSummary } from '@spellbook/contracts/dashboard.ts';
 	import PrototypeMetrics from './PrototypeMetrics.svelte';
-	import DeckAvailabilityRing from '#lib/components/charts/DeckAvailabilityRing.svelte';
+	import PrototypeDeckCard from './PrototypeDeckCard.svelte';
 	let { dashboard }: { dashboard: DashboardSummary } = $props();
 	let importText = $state('');
 	let preview = $state(false);
@@ -29,8 +29,14 @@
 		empty: dashboard.decks.filter((d) => d.required === 0 || d.exact + d.alternate === 0).length
 	});
 	const available = $derived(
-		totals.required ? Math.round(((totals.exact + totals.alternate) / totals.required) * 100) : 0
+		dashboard.decks.length ? Math.round((statuses.complete / dashboard.decks.length) * 100) : 0
 	);
+	const started = $derived(
+		dashboard.decks.length
+			? ((statuses.complete + statuses.partial) / dashboard.decks.length) * 100
+			: 0
+	);
+
 	function exportPreview() {
 		const url = URL.createObjectURL(
 			new Blob(['Mock deck export preview\n' + importText], { type: 'text/plain' })
@@ -47,7 +53,7 @@
 	<div class="title">
 		<div>
 			<span class="eyebrow">Mock preview</span>
-			<h1>Deck workbench</h1>
+			<span class="context-title">Deck workbench</span>
 		</div>
 		<a class="button" href="/mtg/decks">View decks ↗</a>
 	</div>
@@ -59,8 +65,8 @@
 				<a href="/mtg/decks">All decks ↗</a>
 			</header>
 			<div class="availability">
-				<div class="donut" style={`--amount: ${available}%`}>
-					<div><strong>{available}%</strong><small>available</small></div>
+				<div class="donut" style={`--amount: ${available}%; --started: ${started}%`}>
+					<div><strong>{available}%</strong><small>complete decks</small></div>
 				</div>
 				<div class="legend">
 					<p><b>{statuses.complete}</b> Complete</p>
@@ -93,7 +99,7 @@
 					onclick={exportPreview}>Export mock</button
 				>
 			</div>
-			{#if preview}<p class="feedback">
+			{#if preview}<p class="feedback" role="status">
 					{importText.trim()
 						? `${importText.trim().split('\n').length} lines in local preview`
 						: 'Enter deck text to preview.'}
@@ -140,27 +146,19 @@
 				<a href="/mtg/decks">All decks ↗</a>
 			</header>
 			<div class="deck-list">
-				{#each dashboard.decks.slice(0, 3) as deck (deck.id)}<a
-						class="deck"
+				{#each dashboard.decks.slice(0, 1) as deck (deck.id)}<PrototypeDeckCard
+						{deck}
+						appearance="plain"
+					/>{:else}<p class="muted">No decks yet</p>{/each}
+				{#each dashboard.decks.slice(1, 3) as deck}<a
+						class="compact-deck"
 						href={`/mtg/decks?deck=${encodeURIComponent(deck.id)}`}
-						>{#if deck.commanders[0]?.imageUri}<img
-								src={deck.commanders[0].imageUri}
-								alt={deck.commanders[0].name}
-							/>{:else}<div class="art-empty">Deck</div>{/if}
-						<div class="deck-info">
-							<b>{deck.name}</b><small
-								>{deck.required
-									? `${deck.exact + deck.alternate} / ${deck.required} available`
-									: 'Empty deck'}</small
-							>
-							<div class="progress">
-								<span
-									style={`width:${deck.required ? Math.min(100, ((deck.exact + deck.alternate) / deck.required) * 100) : 0}%`}
-								></span>
-							</div>
-						</div>
-						<div class="ring"><DeckAvailabilityRing {deck} /></div></a
-					>{:else}<p class="muted">No decks yet.</p>{/each}
+						><span>{deck.name}</span><small
+							>{deck.required
+								? `${deck.exact + deck.alternate} / ${deck.required} available`
+								: 'Empty deck'}</small
+						></a
+					>{/each}
 			</div>
 		</section>
 	</div>
@@ -173,7 +171,7 @@
 			<p>Inventory <span class="muted">Demo only</span></p>
 			<p>Decks <span class="muted">Demo only</span></p>
 			<button onclick={() => (sync = !sync)}>{sync ? 'Reset demo' : 'Simulate sync'}</button
-			>{#if sync}<p class="feedback">Mock sync preview complete</p>{/if}
+			>{#if sync}<p class="feedback" role="status">Mock sync preview complete</p>{/if}
 		</section>
 		<section class="panel">
 			<header>
@@ -225,15 +223,11 @@
 		justify-content: space-between;
 		gap: 12px;
 	}
-	h1,
 	h2,
 	p {
 		margin: 0;
 	}
-	h1 {
-		font: 500 1.6rem var(--font-display);
-		margin-top: 4px;
-	}
+
 	h2 {
 		font: 500 1rem var(--font-interface);
 	}
@@ -248,12 +242,13 @@
 	.mock {
 		border: 1px solid var(--color-border);
 		border-radius: 12px;
-		padding: 2px 7px;
+		padding: 2px 8px;
 	}
 	.grid {
 		display: grid;
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 		gap: 12px;
+		align-items: start;
 	}
 	.first {
 		grid-template-columns: 1fr 1.1fr 0.85fr;
@@ -296,7 +291,11 @@
 		width: 148px;
 		aspect-ratio: 1;
 		border-radius: 50%;
-		background: conic-gradient(var(--color-success) var(--amount), var(--color-border) 0);
+		background: conic-gradient(
+			var(--color-success) var(--amount),
+			var(--color-text-muted) var(--amount) var(--started),
+			var(--color-border) var(--started)
+		);
 		display: grid;
 		place-items: center;
 		flex: none;
@@ -350,7 +349,7 @@
 		color: var(--color-text-primary);
 		font: 13px var(--font-interface);
 		padding: 8px;
-		margin: 6px 0 8px;
+		margin: 8px 0;
 	}
 	textarea {
 		height: 68px;
@@ -365,7 +364,7 @@
 		margin-top: 8px;
 	}
 	.row {
-		padding: 10px 0;
+		padding: 12px 0;
 		border-bottom: 1px solid var(--color-border);
 		font-size: 13px;
 	}
@@ -373,8 +372,7 @@
 		flex: 1;
 		min-width: 0;
 	}
-	.row small,
-	.deck small {
+	.row small {
 		display: block;
 		margin-top: 4px;
 	}
@@ -383,7 +381,7 @@
 		height: 40px;
 		display: grid;
 		place-items: center;
-		border-radius: 5px;
+		border-radius: 4px;
 		background: var(--color-surface);
 		color: var(--color-text-secondary);
 	}
@@ -395,7 +393,7 @@
 		height: 16px;
 		display: flex;
 		overflow: hidden;
-		border-radius: 5px;
+		border-radius: 4px;
 		background: var(--color-border);
 	}
 	.bar span:nth-child(1) {
@@ -422,49 +420,23 @@
 		justify-content: space-between;
 		align-items: center;
 	}
-	.deck {
-		display: flex;
-		align-items: center;
-		gap: 12px;
-		padding: 8px 0;
-		border-bottom: 1px solid var(--color-border);
-		color: var(--color-text-primary);
-	}
-	.deck img,
-	.art-empty {
-		width: 64px;
-		aspect-ratio: 5/7;
-		object-fit: cover;
-		border-radius: 5px;
-	}
-	.art-empty {
-		background: var(--color-surface);
+	.compact-deck {
 		display: grid;
-		place-items: center;
+		gap: 8px;
+		padding: 12px 0;
+		border-top: 1px solid var(--color-border);
 	}
-	.deck-info {
-		flex: 1;
-		min-width: 0;
-		overflow-wrap: anywhere;
+	.deck-list {
+		display: grid;
+		gap: 16px;
 	}
-	.progress {
-		height: 5px;
-		background: var(--color-border);
-		border-radius: 4px;
+	.context-title {
+		display: block;
+		font: 500 16px var(--font-interface);
 		margin-top: 8px;
 	}
-	.progress span {
-		display: block;
-		height: 100%;
-		background: var(--color-success);
-		border-radius: 4px;
-	}
-	.ring {
-		width: 64px;
-		flex: none;
-	}
 	.bottom p {
-		padding: 10px 0;
+		padding: 12px 0;
 		border-bottom: 1px solid var(--color-border);
 		font-size: 13px;
 	}
@@ -489,6 +461,9 @@
 		}
 		.title {
 			align-items: flex-end;
+		}
+		.availability {
+			flex-wrap: wrap;
 		}
 		.donut {
 			width: 120px;
