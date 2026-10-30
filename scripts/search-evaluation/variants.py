@@ -14,7 +14,15 @@ import re
 from typing import Any
 from urllib.parse import urlencode
 
-VARIANTS = ("baseline", "lexical", "vector", "hybrid")
+VARIANTS = (
+    "baseline",
+    "lexical-scan",
+    "lexical",
+    "vector",
+    "hybrid",
+    "vector-ann",
+    "hybrid-ann",
+)
 CANDIDATES = 100
 RRF_K = 60
 DIMENSIONS = 1024
@@ -34,7 +42,10 @@ def _tsquery(tokens: list[str], *, completion: bool) -> str:
     # Tokens contain letters and digits only. Quote lexemes anyway so user input
     # can never supply tsquery operators, quotes, weights or negation.
     return " & ".join(
-        "'" + token + "'" + (":*" if completion and i == len(tokens) - 1 and token.isalpha() else "")
+        "'"
+        + token
+        + "'"
+        + (":*" if completion and i == len(tokens) - 1 and token.isalpha() else "")
         for i, token in enumerate(tokens)
     )
 
@@ -52,7 +63,7 @@ def _result(row: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def _lexical(conn: Any, query: str) -> list[dict[str, Any]]:
+def _lexical_scan(conn: Any, query: str) -> list[dict[str, Any]]:
     tokens = _tokens(query)
     params = {
         "query": query.lower(),
@@ -102,9 +113,67 @@ def _lexical(conn: Any, query: str) -> list[dict[str, Any]]:
         return [_result(row) for row in cursor.fetchall()]
 
 
+def _lexical(conn: Any, query: str) -> list[dict[str, Any]]:
+    """Indexed admission; names allow independent prefixes, text only the final one."""
+    tokens = _tokens(query)
+    name_query = " & ".join(
+        "'" + t + "'" + (":*" if t.isalpha() else "") for t in tokens
+    )
+    params = {
+        "query": query.strip().lower(),
+        "joined": "".join(tokens),
+        "name_ts": name_query,
+        "text_ts": _tsquery(tokens, completion=not query[-1:].isspace()),
+        "numbers": [t for t in tokens if t.isdecimal()],
+        "fuzzy": len(query.strip()) >= 3,
+        "candidates": CANDIDATES,
+    }
+    from psycopg.rows import dict_row
+
+    with conn.cursor(row_factory=dict_row) as cursor:
+        cursor.execute(
+            """
+            WITH names AS MATERIALIZED (
+                SELECT id,max((name_key=%(query)s)::int) AS exact
+                FROM eval_names WHERE name_key=%(query)s OR words @@ to_tsquery('simple',%(name_ts)s)
+                GROUP BY id
+            ), joined AS MATERIALIZED (
+                SELECT id FROM eval_cards WHERE joined_name=%(joined)s AND %(joined)s<>''
+            ), typo AS MATERIALIZED (
+                SELECT id,max(similarity(name_key,%(query)s)) AS quality
+                FROM eval_names WHERE %(fuzzy)s AND NOT EXISTS(SELECT 1 FROM names)
+                    AND NOT EXISTS(SELECT 1 FROM joined) AND name_key %% %(query)s
+                    AND NOT EXISTS(SELECT 1 FROM unnest(%(numbers)s::text[]) n
+                        WHERE NOT EXISTS(SELECT 1 FROM unnest(regexp_split_to_array(name_key,'[^[:alnum:]]+')) w WHERE w=n))
+                GROUP BY id
+            ), candidates AS (
+                SELECT id FROM names UNION SELECT id FROM joined UNION SELECT id FROM typo
+                UNION SELECT id FROM eval_cards WHERE search_vector @@ to_tsquery('simple',%(text_ts)s)
+            ), ranked AS (
+                SELECT c.id,c.name,c.oracle_text,c.type_line,c.document,
+                    coalesce(n.exact=1,false) AS exact,
+                    CASE WHEN n.exact=1 THEN 6 WHEN j.id IS NOT NULL THEN 5
+                        WHEN n.id IS NOT NULL THEN 4 WHEN c.search_vector @@ to_tsquery('simple',%(text_ts)s)
+                        THEN 2 ELSE 1 END AS tier,
+                    ts_rank_cd(c.search_vector,to_tsquery('simple',%(text_ts)s)) AS text_quality,
+                    coalesce(t.quality,0) AS typo_quality
+                FROM candidates i JOIN eval_cards c USING(id)
+                LEFT JOIN names n USING(id) LEFT JOIN joined j USING(id) LEFT JOIN typo t USING(id)
+            ) SELECT id,name,oracle_text,type_line,document,exact,
+                tier + CASE WHEN tier=1 THEN typo_quality ELSE text_quality END AS score,
+                CASE WHEN tier>=4 THEN 'name' WHEN tier=2 THEN 'rule text' ELSE 'name typo' END AS reason
+            FROM ranked ORDER BY tier DESC,score DESC,id LIMIT %(candidates)s
+        """,
+            params,
+        )
+        return [_result(row) for row in cursor.fetchall()]
+
+
 def _vector_literal(embedding: list[float] | None) -> str:
     if embedding is None:
-        raise ValueError("vector and hybrid search require a precomputed query embedding")
+        raise ValueError(
+            "vector and hybrid search require a precomputed query embedding"
+        )
     if len(embedding) != DIMENSIONS or any(
         isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v)
         for v in embedding
@@ -115,26 +184,44 @@ def _vector_literal(embedding: list[float] | None) -> str:
     return "[" + ",".join(str(float(v)) for v in embedding) + "]"
 
 
-def _vector(conn: Any, literal: str) -> list[dict[str, Any]]:
+def _vector(
+    conn: Any, literal: str, *, approximate: bool = False
+) -> list[dict[str, Any]]:
     from psycopg.rows import dict_row
 
     # MATERIALIZED computes every distance before ordering, including when the
     # caller has installed an ANN index. This variant is the exact-scan control.
     with conn.cursor(row_factory=dict_row) as cursor:
+        if approximate:
+            cursor.execute(
+                """SELECT id,name,oracle_text,type_line,document,
+                1-(embedding <=> %s::vector) AS score,'semantic HNSW' AS reason,false AS exact
+                FROM eval_cards WHERE embedding IS NOT NULL
+                ORDER BY embedding <=> %s::vector LIMIT %s""",
+                (literal, literal, CANDIDATES),
+            )
+            return sorted(
+                [_result(row) for row in cursor.fetchall()],
+                key=lambda row: (-row["score"], row["id"]),
+            )
         cursor.execute(
             """WITH distances AS MATERIALIZED (
-              SELECT id,name,oracle_text,type_line,document,
+              SELECT id,
                 embedding <=> %s::vector AS distance FROM eval_cards
-              WHERE embedding IS NOT NULL)
-            SELECT id,name,oracle_text,type_line,document,
+              WHERE embedding IS NOT NULL), nearest AS (
+                SELECT id,distance FROM distances ORDER BY distance,id LIMIT %s
+              )
+            SELECT c.id,c.name,c.oracle_text,c.type_line,c.document,
               1-distance AS score,'semantic' AS reason,false AS exact
-            FROM distances ORDER BY distance,id LIMIT %s""",
+            FROM nearest n JOIN eval_cards c USING(id) ORDER BY distance,id""",
             (literal, CANDIDATES),
         )
         return [_result(row) for row in cursor.fetchall()]
 
 
-def _fuse(lexical: list[dict[str, Any]], vector: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _fuse(
+    lexical: list[dict[str, Any]], vector: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     merged: dict[str, dict[str, Any]] = {}
     for lane, rows in (("lexical", lexical), ("vector", vector)):
         seen: set[str] = set()
@@ -150,28 +237,49 @@ def _fuse(lexical: list[dict[str, Any]], vector: list[dict[str, Any]]) -> list[d
             result["exact"] |= lane == "lexical" and bool(row.get("exact"))
             reason = str(row["reason"])
             result["reason"] = (result["reason"] + " + " + reason).strip(" +")
-    return sorted(merged.values(), key=lambda row: (-bool(row["exact"]), -row["score"], row["id"]))
+    return sorted(
+        merged.values(), key=lambda row: (-bool(row["exact"]), -row["score"], row["id"])
+    )
 
 
 def _baseline(conn: Any, query: str, limit: int) -> list[dict[str, Any]]:
     from psycopg import RawCursor
     from psycopg.rows import tuple_row
-    from spellbook_core.mtg.catalog_query import parse_catalog_search_request, search_sql
+    from spellbook_core.mtg.catalog_query import (
+        parse_catalog_search_request,
+        search_sql,
+    )
 
-    sql, values = search_sql(parse_catalog_search_request({"query": query, "limit": limit}))
+    sql, values = search_sql(
+        parse_catalog_search_request({"query": query, "limit": limit})
+    )
     with RawCursor(conn, row_factory=tuple_row) as cursor:
         cursor.execute(sql, values)
         documents = cursor.fetchone()[0]
     return [
-        _result({"id": doc["oracle_id"], "name": doc["name"], "document": doc,
-                 "oracle_text": doc.get("oracle_text"), "type_line": doc.get("type_line"),
-                 "score": 1 / rank, "reason": "production name/rule text"})
+        _result(
+            {
+                "id": doc["oracle_id"],
+                "name": doc["name"],
+                "document": doc,
+                "oracle_text": doc.get("oracle_text"),
+                "type_line": doc.get("type_line"),
+                "score": 1 / rank,
+                "reason": "production name/rule text",
+            }
+        )
         for rank, doc in enumerate(documents, 1)
     ]
 
 
-def search(conn: Any, variant: str, query: str, *, embedding: list[float] | None = None,
-           limit: int = 10) -> list[dict[str, Any]]:
+def search(
+    conn: Any,
+    variant: str,
+    query: str,
+    *,
+    embedding: list[float] | None = None,
+    limit: int = 10,
+) -> list[dict[str, Any]]:
     """Return bounded canonical results; baseline score encodes production order.
 
     Empty/punctuation-only experimental queries return no suggestions. Baseline
@@ -179,18 +287,32 @@ def search(conn: Any, variant: str, query: str, *, embedding: list[float] | None
     """
     if variant not in VARIANTS:
         raise ValueError(f"unknown search variant: {variant}")
-    if isinstance(limit, bool) or not isinstance(limit, int) or not 0 <= limit <= CANDIDATES:
+    if (
+        isinstance(limit, bool)
+        or not isinstance(limit, int)
+        or not 0 <= limit <= CANDIDATES
+    ):
         raise ValueError(f"limit must be an integer between 0 and {CANDIDATES}")
     normalized = _query(query)
-    literal = _vector_literal(embedding) if variant in ("vector", "hybrid") else None
+    literal = (
+        _vector_literal(embedding) if variant.startswith(("vector", "hybrid")) else None
+    )
     if not normalized or limit == 0:
         return []
     if variant == "baseline":
         return _baseline(conn, normalized, limit)
-    if variant == "vector":
-        return _vector(conn, literal)[:limit]
+    if variant.startswith("vector"):
+        return _vector(conn, literal, approximate=variant.endswith("-ann"))[:limit]
     if not _tokens(normalized):
         return []
     # Retain trailing whitespace for completed-final-token semantics.
+    if variant == "lexical-scan":
+        return _lexical_scan(conn, query.lstrip())[:limit]
     lexical = _lexical(conn, query.lstrip())
-    return (lexical if variant == "lexical" else _fuse(lexical, _vector(conn, literal)))[:limit]
+    return (
+        lexical
+        if variant == "lexical"
+        else _fuse(
+            lexical, _vector(conn, literal, approximate=variant.endswith("-ann"))
+        )
+    )[:limit]

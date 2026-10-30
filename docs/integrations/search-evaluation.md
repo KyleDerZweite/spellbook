@@ -1,7 +1,7 @@
 # Global search evaluation
 
-- Status: Research and proposed direction
-- Last Reviewed: 2026-10-29
+- Status: Executed local evaluation and proposed direction
+- Last Reviewed: 2026-10-30
 - Source of Truth: repository search code and cited official PostgreSQL/extension documentation
 - Update Triggers: search scope selection, relevance evaluation, extension or embedding-model selection
 - Related Docs: [Integrations](./README.md), [UI direction](../product/ui-design-direction.md#proposed-global-command-menu), [Catalog](../architecture/catalog.md#search-behavior), [Postgres](../architecture/postgres.md), [Worker](../architecture/worker.md), [t3code search](../reference/t3code-search.md)
@@ -9,7 +9,177 @@
 Kyle requested exploration of Autocomplete, PostgreSQL improvements, an additional search index and possible pgvector retrieval on 2026-10-29.
 Autocomplete is the likely intended term, not a selected automatic query-replacement behavior.
 The selected entry requirement remains shortcut-only power-user search, with a read-only keybind description in Settings.
-This evaluation selects no extension, model, schema change or deployment.
+The lab uses disposable schemas, extensions and a local model for comparison.
+It selects no production adoption or deployment.
+
+## Execution contract
+
+On 2026-10-30, Kyle authorized executed comparisons, an owned Dev server and Full-Stop delivery of an evaluation PR.
+The experiment compares current production SQL, exhaustive and indexed weighted lexical retrieval, configured BM25, exact vectors, HNSW and lexical/vector fusion.
+Root owns the corpus, frozen judgments, runtime, UI tests and integration; the isolated SQL implementation received an independent Sol contribution.
+The measurement experiment changes no production search endpoint or default shortcut behavior.
+Kyle subsequently selected the separate [global menu implementation contract](../product/ui-design-direction.md#global-power-user-search-implementation-contract); its production UI/API work and acceptance are distinct from the captured algorithm benchmark.
+
+Use the existing English Demo snapshot with all 109,393 Printings and 34,948 Canonical Cards in a disposable PostgreSQL 18 database.
+Keep all model inference local, record the actual model digest, and complete every document embedding before measuring semantic retrieval.
+The 51 evaluation cases and three development probes in `scripts/search-evaluation/cases.json` distinguish name lookup, completion, joined names, typos, rules, descriptive queries, navigation, synthetic Deck scope and no-answer cases.
+Known-answer judgments precede benchmark execution and are incomplete relevance labels, not human acceptance.
+Use the same corpus and queries, interleave repeated warm measurements, and report query inference and UI debounce separately.
+Browser checks cover real keyboard input, focus, navigation, narrow/wide geometry, provider failure and stale responses.
+No human usability study, production load or multilingual Catalog coverage follows from these tests.
+The executed results and operational commands follow below.
+
+## Executed comparison
+
+On 2026-10-30, eight real implementations ran against the same 34,948 Canonical Cards, representing 109,393 English Demo Printings.
+The [captured report](./search-evaluation-results.json) contains per-case results, measurement metadata, browser observations and ANN checks.
+The [frozen cases](../../scripts/search-evaluation/cases.json) contain 51 test cases and three separate development probes.
+Each variant received one warm-up per case and five interleaved measured trials, totaling 2,040 measured requests.
+The warm backend p95 below covers the 40 positive card cases and excludes query embedding inference, HTTP, UI debounce and rendering.
+This is a single-user local comparison, not a concurrency or production capacity test.
+
+<!-- search-evaluation-table -->
+
+| Variant                    | Names found in top five, out of 26 | Directly relevant content slots, out of 70 | Warm backend p95 |
+| -------------------------- | ---------------------------------: | -----------------------------------------: | ---------------: |
+| Current SQL                |                                 21 |                                         21 |            21 ms |
+| Indexed lexical            |                                 26 |                                         27 |            16 ms |
+| Exhaustive lexical control |                                 26 |                                         27 |           693 ms |
+| Configured BM25            |                                 20 |                                         22 |            44 ms |
+| Exact vector               |                                 20 |                                         35 |           276 ms |
+| Lexical + exact vector     |                                 26 |                                         41 |           283 ms |
+| HNSW vector                |                                 18 |                                         35 |            22 ms |
+| Lexical + HNSW             |                                 26 |                                         41 |            27 ms |
+
+<!-- /search-evaluation-table -->
+
+Name success uses the known acceptable Canonical Card among the first five results.
+Quality uses the first measured repetition; latency uses all five repetitions.
+Content counts grade-2 results among five positions for each of 14 rules/description cases, padding missing results with zero.
+An independent Sol agent graded a blinded, deduplicated pool of 160 candidate/query pairs against actual rule text.
+The [judgments](../../scripts/search-evaluation/judgments.json) distinguish direct matches, partial matches and incorrect results.
+This is an agent evaluation, not human acceptance or exhaustive recall.
+The pool and metrics must be extended if a changed retriever returns previously unjudged candidates.
+Static navigation and synthetic Deck cases use the same providers across variants, so they are excluded from these relevance columns.
+
+The indexed lexical variant protects exact names, supports individual name-word prefixes and joined names, and limits trigram recovery when stronger name matches exist.
+Its weighted FTS lane ranks rules candidates separately from name completion.
+The exhaustive control demonstrates the cost of scoring the complete corpus before limiting.
+BM25 used pg_search 0.26.4 with configured field weights, phrase prefixes and one-edit name recovery.
+It did not beat the indexed lexical configuration on this fixture; that does not establish a limit of BM25 or a tuned BM25 system.
+BM25 ran in a separate PostgreSQL 18.6 image and opens an additional connection per request, while other variants reuse the benchmark connection.
+Its measured time includes that extra setup; the images also differ in Debian packaging.
+
+All semantic variants used local multilingual bge-m3, 1,024 dimensions and the complete document embedding set.
+Exact vector retrieval deliberately materializes a narrow distance scan, while HNSW uses the actual ANN index.
+Fusion uses reciprocal rank fusion with 100 candidates per lane and k=60, protecting exact names.
+New query inference took about 284 ms median and 309 ms p95 with a loaded model.
+A separate controlled unload/reload probe took 3.23 seconds for its cold request, including 3.11 seconds of model loading.
+The first uncached semantic browser query also took seconds; cached later queries are not comparable to that cold request.
+Raw timings and cache flags remain in the report.
+
+### Quality and operational limits
+
+- Indexed lexical found all 26 known name answers, including completion, joined names and typo cases.
+  Lexical retrieval cannot translate the English-only corpus for German descriptive queries without explicit aliases or another retrieval method.
+- Fusion returned 41 directly relevant content slots versus 27 for indexed lexical.
+  Vector and hybrid variants found at least one directly relevant result in 11 of 14 content cases, versus six for lexical and BM25.
+  They still confused attack prevention with damage prevention, omitted type constraints and mishandled numeric mana conditions.
+  The query for a land producing two colorless mana produced no directly relevant top-five result in the graded pool.
+- All four semantic variants returned unrelated results for both deliberately unanswerable cases.
+  Lexical and BM25 returned no results for both.
+  Similarity and RRF scores are not calibrated confidence; semantic adoption needs an evaluated abstention policy.
+- HNSW at ef_search=100 averaged 81.2% recall@10 against exact vectors over 42 queries, with a worst case of 40%.
+  A separate single-pass probe reached 100% on these queries at ef_search=400, at higher retrieval cost.
+  This probe is exploratory, has order/cache effects, and does not establish general recall or a comparable five-repeat latency estimate.
+- A filtered Artifact probe returned zero of ten expected neighbors with default ANN settings, and ten of ten with iterative scanning.
+  A sparse-ID probe used a sequential plan, so it establishes filtered correctness rather than ANN performance.
+  Color, legality, ownership and other structured constraints must remain explicit filters.
+
+Embedding the remaining 34,916 documents took about 950 seconds after a 32-document preflight.
+The HNSW index took about 40 seconds and occupies 286 MB; the configured BM25 index took about 0.38 seconds and occupies 10.4 MB.
+These indexes provide different capabilities and exclude the model and other relations.
+The lexical alias relation occupies about 9.7 MB, in addition to the canonical projection.
+The HNSW build initially exceeded the container's shared-memory allowance; disabling parallel maintenance allowed the build to complete.
+The report records the model digest, corpus generation, extension versions and build measurements.
+Incremental freshness, atomic generation activation, model upgrades, production resource contention and localized Catalog coverage were not exercised.
+
+### Keyboard and navigation evaluation
+
+The opt-in lab uses the existing Shell, Bits UI Dialog and Command components, with a 150-ms database debounce and immediate local navigation aliases.
+There is no launch button or Account-menu entry.
+The ordinary application shortcut remains unchanged outside the lab.
+Settings keybind discovery is still a proposed production requirement, not an implemented entry in this experiment.
+
+Real Chromium checks passed for Ctrl/Cmd+K, focus, arrow/Enter activation, Escape, Back/query restoration, delayed responses, stale-response rejection, provider failure and a simulated composing Enter.
+The same dialog fit 390px and 1280px widths, and all eight variants rendered both completion and German description responses.
+A Deck-content result opened a real API-created Demo Deck after login and preserved its return destination.
+A German Settings alias opened the real authenticated password page without changing a password.
+The isolated owner/other/guest Deck predicate tests passed; this is not acceptance of production private-search authorization or a real second-account journey.
+Fixture Deck ownership is intentionally synthetic in the lab and never reads private production Decks.
+
+The final browser run observed an immediate static suggestion in about 10 ms and lexical completion in about 214 ms including debounce, HTTP and rendering.
+These are single journey observations, not UI latency distributions.
+No human task-completion study, screen-reader session, physical Mac key test or mobile touch study ran.
+Keyboard operation and recovery are technically verified; user-friendliness remains an owner judgment.
+
+### Proposed next step
+
+Use the indexed lexical approach as the candidate foundation and retain the immediate static route registry.
+Keep semantic retrieval as an optional content lane for a further evaluation of abstention, structured filters and ANN recall.
+Do not route every name-completion keystroke through model inference.
+These are proposals rather than selected production contracts, and adaptive routing was not benchmarked as another variant.
+No production search endpoint, Catalog publication or database migration changes in this evaluation.
+
+## Reproduce and inspect
+
+Use the pinned repository Node/Python setup in [verification](../operations/github-automation.md#local-checks).
+The lab adds no application dependencies.
+Optional evaluation tools are local Ollama with bge-m3, pgvector 0.8.7 on PostgreSQL 18, a separate pg_search 0.26.4 PostgreSQL 18 instance for BM25, and Playwright 1.64.1 for browser checks.
+These tools enable real semantic, index and rendered comparisons without adding providers to the production API.
+
+Assign a fresh local database named `spellbook_search_eval_<run>` and configure its protected credentials in the ignored `.env` as both `DATABASE_URL` and `SEARCH_EVALUATION_DATABASE_URL`.
+Set `DEV_DATABASE_CONTAINER` to its pgvector-capable PostgreSQL container, then start `./dev.sh --demo` to migrate and load the bundled Demo Catalog.
+The prefix/loopback guard is an accident-prevention check, not a substitute for choosing a disposable database.
+`prepare` and `names` are one-time operations per fresh database; never reset an existing database to rerun them.
+Assign a second disposable loopback database through `SEARCH_EVALUATION_BM25_URL` for the BM25 copy.
+Keep all credentials in the existing protected environment store.
+Set `SEARCH_EVALUATION_URL=http://127.0.0.1:5198` before starting the dev launcher.
+The CLI reads root `.env`; the built web server always returns 404 for lab routes even if the flag is present.
+
+```sh
+pnpm search:evaluate prepare
+pnpm search:evaluate names
+ollama pull bge-m3
+pnpm search:evaluate embed
+pnpm search:evaluate index
+pnpm search:evaluate bm25
+pnpm test:search-evaluation
+pnpm search:evaluate benchmark --repeats 5
+backend/core/.venv/bin/python scripts/search-evaluation/verify.py
+backend/core/.venv/bin/python scripts/search-evaluation/model_probe.py
+backend/core/.venv/bin/python scripts/search-evaluation/app_fixtures.py
+pnpm search:evaluate serve
+```
+
+With the dev server and evaluation service running, open `/__search-evaluation`, select a variant and press Ctrl+K or Cmd+K.
+There is no additional launch control.
+Run the following in another terminal after installing the Playwright Chromium binary with `uvx --from playwright==1.64.1 playwright install chromium`:
+
+```sh
+uvx --from playwright==1.64.1 python scripts/search-evaluation/browser.py
+backend/core/.venv/bin/python scripts/search-evaluation/report.py
+```
+
+`app_fixtures.py` requires the owned Demo API at port 3001 and checks its account against the assigned database before creating Decks.
+It revokes its fixture session afterward.
+The browser runner uses `http://localhost:5173` and the evaluation service binds only `127.0.0.1:5198`.
+Stop the model-probe and benchmark work before timing browser journeys.
+The model probe unloads only the task's bge-m3 model, so run it when that local model is assigned to the experiment.
+Raw observations, query vectors, screenshots and resume metadata remain under ignored `.local/search-evaluation`.
+`report.py` validates the fixture and judgment coverage before updating the checked-in compact results and chart.
+Preserve the model manifest with an existing experiment database; the embed command rejects missing or mismatched model metadata.
+A new model or corpus requires a fresh experiment and independent relevance judgments.
 
 ## Recommendation and current implementation
 
@@ -25,7 +195,8 @@ The [schema](../../backend/drizzle/0006_postgres_catalog.sql) already has GIN in
 The [Worker](../../backend/workers/catalog/src/worker/catalog.py) concatenates names, type, rule text, set names and localized text into an unweighted search document.
 The [Deck choice query](../../backend/core/src/spellbook_core/mtg/decks/library.py) matches Deck names by substring only.
 The [configured image](../../podman-compose.yml) is PostgreSQL 18; migrations declare pg_trgm but no vector extension.
-Live extensions, corpus size and query plans were not inspected.
+The experiment inspected its disposable databases, complete Demo corpus and representative query plans.
+Production extensions, load and plans remain unverified.
 
 ## Lexical search and Autocomplete
 
@@ -64,7 +235,7 @@ Multiple indexes do not require another database or a separate search engine.
 Observed upstream instructions use 0.8.7 and support PostgreSQL 13+, including 18.
 Embedding inference is a separate model/runtime requirement, as the [official example](https://github.com/pgvector/pgvector-python/blob/master/examples/sentence_transformers/example.py) demonstrates.
 Semantic candidates may help descriptive or cross-language requests whose words differ from card text.
-No measured evidence here establishes correct MTG ability retrieval, negation handling or numeric reasoning.
+The executed semantic variants improve the judged content results but still violate MTG ability, type and numeric constraints.
 
 The proposed document uses canonical-card identity and selected textual facts, avoiding duplicate embeddings per Printing.
 Record model revision, preprocessing version, content hash, dimensions and source generation.
@@ -105,5 +276,6 @@ Include hard negatives for `tap`/`untap`, negation, mana/numeric distinctions an
 Compare current lexical, improved lexical and lexical/vector retrieval on the same published corpus.
 Measure top-result correctness, recall, no-result rate, p50/p95 latency, index/build cost and freshness.
 For ANN, measure recall against exact vectors under real filters.
-Set thresholds before the trial; no relevance gain, latency or operating cost was measured here.
-Model choice, target extension packaging and required multilingual scope remain open.
+The executed trial below measures relevance, latency and index/build cost.
+It is exploratory and had no preselected production acceptance thresholds.
+Production model choice, extension packaging and multilingual Catalog scope remain open.
