@@ -11279,9 +11279,37 @@
 					},
 					"missing": {
 						"type": "integer"
+					},
+					"commanders": {
+						"type": "array",
+						"maxItems": 2,
+						"items": {
+							"type": "object",
+							"properties": {
+								"catalogCardId": {
+									"type": "string"
+								},
+								"name": {
+									"type": "string"
+								},
+								"imageUri": {
+									"type": "string"
+								}
+							},
+							"required": ["catalogCardId", "name", "imageUri"]
+						}
 					}
 				},
-				"required": ["id", "name", "format", "required", "exact", "alternate", "missing"]
+				"required": [
+					"id",
+					"name",
+					"format",
+					"required",
+					"exact",
+					"alternate",
+					"missing",
+					"commanders"
+				]
 			},
 			"ValueEstimate": {
 				"type": "object",

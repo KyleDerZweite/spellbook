@@ -6,7 +6,11 @@
 		share: number;
 		color: string;
 	}
-	let { label, items }: { label: string; items: Item[] } = $props();
+	let {
+		label,
+		items,
+		layout = 'compact'
+	}: { label: string; items: Item[]; layout?: 'compact' | 'overview' } = $props();
 	let selected = $state<string | null>(null);
 	const total = $derived(items.reduce((sum, item) => sum + item.value, 0));
 	const slices = $derived(
@@ -27,7 +31,12 @@
 	const percent = new Intl.NumberFormat(undefined, { style: 'percent', maximumFractionDigits: 1 });
 </script>
 
-<div class="composition-ring" role="group" aria-label={label}>
+<div
+	class="composition-ring"
+	class:overview={layout === 'overview'}
+	role="group"
+	aria-label={label}
+>
 	<svg viewBox="0 0 144 144" role="img" aria-label={`${label}: ${total.toLocaleString()} copies`}>
 		<circle
 			cx="72"
@@ -54,7 +63,11 @@
 		<text x="72" y="72" class="ring-total" text-anchor="middle"
 			>{compactCount.format(active?.value ?? total)}</text
 		>
-		<text x="72" y="92" class="ring-label" text-anchor="middle">{active?.label ?? 'copies'}</text>
+		<text x="72" y="92" class="ring-label" text-anchor="middle"
+			>{active && layout === 'overview'
+				? percent.format(active.share)
+				: (active?.label ?? 'copies')}</text
+		>
 	</svg>
 	<div class="ring-legend">
 		{#each items as item (item.label)}
@@ -84,6 +97,18 @@
 		align-items: center;
 		gap: 1rem;
 		min-width: 0;
+	}
+	.overview {
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 1.5rem;
+	}
+	.overview svg {
+		width: 208px;
+		height: 208px;
+	}
+	.overview .ring-legend {
+		flex: 1 1 220px;
 	}
 	svg {
 		width: 152px;

@@ -55,7 +55,8 @@ Registration and approval retain their narrow account layout.
 The maintainer resumed website UI refinement on 2026-10-29, using the public landing page as the visual reference.
 The initial implementation scope covers Dashboard composition, shared distribution and value-history charts, valuation panels and shared Search card tiles.
 Use flat neutral surfaces, generous separation between working areas, compact display headings and artwork with complete card frames.
-Charts use semantic accent colors, zero-based quantitative axes, readable counts and shares, pointer/focus inspection and equivalent textual data.
+Charts use semantic accent colors, readable counts and shares, pointer/focus inspection and equivalent textual data.
+Comparison bars retain zero-based axes; personal value history uses the adaptive value range selected below.
 D3 owns scales and path construction; Svelte owns responsive SVG, focus, state and theme tokens.
 Keep native forms, account scoping, SavedState leases, bounded browsing and current mutation behavior.
 Do not invent price observations, connect gaps or convert unknown references into zero.
@@ -109,23 +110,63 @@ The maintainer also requested a review of all current docs and decisions; existi
 Kyle selected the [Mebius charts gallery](https://www.mebius.design/freebies/charts) as a visual reference on 2026-10-30.
 Adapt the gallery's rounded marks, generous plot space, restrained grids, clear selected values and coordinated legend emphasis through the existing Svelte/D3 chart owners.
 Keep Spellbook's fonts, neutral light/dark surfaces and semantic chart colors.
-Use flat fills, with no copied assets, template code, gradients, shadows on data marks, new dependencies or backend aggregates.
+Use flat fills, with no copied assets, template code, gradients, shadows on data marks or new dependencies.
+Kyle's subsequent 2026-10-30 feedback selects adaptive value axes, categorical Set composition, compact Deck availability and meaningful Stat-card trends.
+Finish and Condition retain their current presentation.
+Trends remain a concept only, as Kyle explicitly selected in the follow-up.
+This chart change adds no trend DTO, database migration, capture job or Stat-card sparkline.
 
-| Existing use                    | Mebius reference                        | Selected adaptation                                                                                                                                                |
-| ------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Dashboard and Inventory History | Cash Flow Area, Total Expenses          | Quiet area fill, prominent line, selected-point halo and vertical cursor, exact value/date/coverage readout. Retain the native observation slider and exact table. |
-| Dashboard Sets                  | Total Value, Asset Overview             | Rounded horizontal comparison bars, muted tracks, shared zero-based scale and selection emphasis. Keep exact counts and Inventory shares beside labels.            |
-| Dashboard Finish                | Portfolio Allocation                    | Thicker separated arcs, central selected count and coordinated legend emphasis. Keep native legend buttons and explicit zero counts.                               |
-| Dashboard Deck availability     | Financial Breakdown, Category Breakdown | Clearly separated proportional segments and matching Exact/Alternate/Missing labels. Preserve each Deck's actual quantities and independent Inventory comparison.  |
+| Existing use                    | Mebius reference                        | Selected adaptation                                                                                                                                                              |
+| ------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dashboard and Inventory History | Cash Flow Area, Total Expenses          | Adaptive exact-cent value range with modest padding, quiet area fill, selected-point halo/cursor and exact date/value/coverage. Retain native observation inspection and tables. |
+| Dashboard Sets                  | Portfolio Allocation                    | Categorical colored Donut for the Inventory composition, with exact counts and shares in selectable legend rows. Group sets beyond the top eight into Other.                     |
+| Dashboard Finish                | Portfolio Allocation                    | Thicker separated arcs, central selected count and coordinated legend emphasis. Keep native legend buttons and explicit zero counts.                                             |
+| Dashboard Deck availability     | Financial Breakdown, Category Breakdown | Compact proportional availability ring and Commander thumbnails. Expose exact/alternate/missing counts with color swatches on hover, focus and tap rather than permanent rows.   |
 
 This adapts visual ideas to existing tasks rather than adding finance widgets.
-Do not invent prior-period comparisons, sales, budgets, targets or additional history.
+Do not fabricate history, sales, budgets, targets or prior-period comparisons.
 Missing days and unknown-only observations still break value-history lines; known zero and partial coverage remain explicit.
 Keep public Printing price history distinct from personal holdings history.
 
 Shared chart components own mark geometry and inspection; routes keep their existing data, navigation and SavedState responsibilities.
 Acceptance covers dark/light desktop and narrow Dashboard/History, pointer and keyboard inspection, synthesized touch, exact counts/amounts, zero/missing/unknown data, native tables and error/retry behavior.
 Compare rendered output with the selected source previews and record technical checks separately from Kyle's visual acceptance.
+
+The Dashboard response supplies at most two account-scoped stored Commander-role Printing previews per Deck, with Printing ID, name and image URI.
+These are previews, not a full Composition read, and do not silently substitute an unrelated card when no Commander exists.
+The availability ring preserves exact/alternate/missing quantities and exposes its colored breakdown through the shared Tooltip control on pointer, keyboard focus and tap.
+
+### Dashboard metric trends, concept only
+
+On 2026-10-30, Kyle selected concept work rather than implementation of the Stat-card trends.
+The proposal uses small 30-day sparklines for Cards owned, Card names, Sets and Decks, with absolute net changes and the actual comparison date.
+Kyle's subsequently supplied AdGuard screenshot sets the visual direction for this concept.
+Use a large counter at the upper left, a small change indicator at the upper right and a thin, low-contrast sparkline near the tile's lower edge.
+The reference's quiet border, generous empty space and restrained color coding fit the existing neutral themes.
+Retain each metric's visible label and its navigation target; label placement can be resolved in a future visual prototype.
+The line represents daily holdings or Deck totals, and the change indicator compares against the actual first observed day in the selected window.
+Use absolute changes by default, so one additional Set or Deck remains understandable without a large percentage.
+Only real observed zeroes or unchanged counts justify a flat line; missing history shows an unavailable comparison rather than a fabricated line or 0%.
+
+Positive and negative counts describe holdings or Deck-count changes, never purchases, sales or investment returns.
+One known point has no comparison; missing days stay gaps.
+The current live count would be a separately identified final point.
+
+| Stat card   | Proposed trend meaning                 | Historical evidence                     |
+| ----------- | -------------------------------------- | --------------------------------------- |
+| Cards owned | Net change in physical copies          | Saved quantities                        |
+| Card names  | Net change in distinct Canonical Cards | Saved canonical identity                |
+| Sets        | Net change in represented sets         | Saved Set codes                         |
+| Decks       | Net change in Deck count               | Future daily counter recording required |
+
+A missing baseline must show no comparison rather than zero change; percentage changes would require a nonzero reference count.
+Deck completion is a separate measure and must not be inferred from the number of Decks.
+
+Existing `inventory_value_holdings` snapshots can provide historical owned-copy, unique-name and Set counts independently of price coverage.
+They cannot establish past Deck counts.
+Deck trends would require real daily counter recording in a separately reviewed backend change; current Decks, creation dates and receipts must not serve as invented historical totals.
+Before implementation, select snapshot storage, capture/calendar policy, account-scoped reads, failure recovery and acceptance evidence in the owning architecture documents.
+No trend implementation or recording is part of this chart PR.
 
 ## Selected hybrid browsing and Card dialog
 
