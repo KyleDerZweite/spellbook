@@ -18,7 +18,7 @@ Root owns execution of those real PostgreSQL journeys.
 `create_profile(pool, auth, demo_mode=False)` owns Profile reads and atomic partial updates.
 `create_dashboard(pool, auth, values)` owns account aggregates and Deck availability in one repeatable-read snapshot, passing its transaction and PostgreSQL clock to `InventoryValues.current_in_transaction` and `history_in_transaction`.
 The same read supplies quantity-weighted active-Catalog color, identity, rarity and exclusive primary-type distributions, with unmatched Printings in Unknown and real Set names.
-At most eight missing and eight alternate Canonical Card requirements reuse the Deck allocation SQL and retain actual stored object identities.
+At most eight missing and eight alternate Canonical Card requirements reuse the Deck reader's exact-first allocation function and retain actual stored object identities.
 Catalog, Scan and price failures use savepoint recovery while summary overflow remains a typed failure.
 Password hashing and verification share the lifetime-owned executor and use the existing Node-compatible scrypt encoding.
 Core's `hash_password(password)` is synchronous for operator consumers; async callers use `PasswordVerifier.hash`.

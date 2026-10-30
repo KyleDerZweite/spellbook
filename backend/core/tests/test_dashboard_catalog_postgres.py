@@ -212,3 +212,52 @@ def test_empty_inventory_keeps_true_zero_buckets() -> None:
             assert result["requirements"] == {"missing": [], "alternate": []}
 
     asyncio.run(scenario())
+
+
+def test_dashboard_matches_deck_reader_when_stored_canonical_ids_disagree() -> None:
+    from spellbook_core.mtg.decks import create_decks
+
+    async def scenario() -> None:
+        async with native_fixture() as f:
+            auth = create_session_auth(f.pool)
+            actor = await auth.validate_session(f.token)
+            assert actor
+            deck, mismatched = str(uuid4()), str(uuid4())
+            async with transaction(f.pool) as tx:
+                await tx.execute(
+                    "INSERT INTO decks(id,account_id,game,name) "
+                    "VALUES(%s,%s,'mtg','Stored identities')",
+                    (deck, f.account),
+                )
+                await tx.execute(
+                    "INSERT INTO deck_cards(id,deck_id,account_id,game,catalog_card_id,"
+                    "canonical_card_id,name,set_code,image_uri,quantity,role) "
+                    "VALUES(%s,%s,%s,'mtg',%s,%s,'Stale canonical','tst','',1,'main')",
+                    (uuid4(), deck, f.account, f.alternate, mismatched),
+                )
+            editor = create_decks(f.pool, f.catalog, auth, f.valuation)
+            dashboard = create_dashboard(f.pool, auth, f.values)
+            first = await editor.availability(actor, deck)
+            first_summary = (await dashboard.get(actor))["decks"][0]
+            assert first["totals"] == {
+                key: first_summary[key] for key in ["required", "exact", "alternate", "missing"]
+            }
+            async with transaction(f.pool) as tx:
+                await tx.execute(
+                    "INSERT INTO deck_cards(id,deck_id,account_id,game,catalog_card_id,"
+                    "canonical_card_id,name,set_code,image_uri,quantity,role) "
+                    "VALUES(%s,%s,%s,'mtg',%s,%s,'Canonical requirement','tst','',1,'main')",
+                    (uuid4(), deck, f.account, str(uuid4()), f.oracle),
+                )
+            actual = await editor.availability(actor, deck)
+            result = await dashboard.get(actor)
+            summary = result["decks"][0]
+            assert actual["totals"] == dict(required=2, exact=1, alternate=1, missing=0)
+            assert actual["totals"] == {
+                key: summary[key] for key in ["required", "exact", "alternate", "missing"]
+            }
+            assert result["requirements"]["missing"] == []
+            assert result["requirements"]["alternate"][0]["canonicalCardId"] == f.oracle
+            assert result["requirements"]["alternate"][0]["alternate"] == 1
+
+    asyncio.run(scenario())

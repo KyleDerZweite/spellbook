@@ -15,6 +15,9 @@ from spellbook_core.db import (
 )
 from spellbook_core.errors import DatabaseIntegerRangeError
 from spellbook_core.models import Actor
+from spellbook_core.mtg.decks.models import AvailabilityRequirement, OwnedPrinting
+from spellbook_core.mtg.decks.read import owned
+from spellbook_core.mtg.decks.rules import allocate_deck_availability
 from spellbook_core.mtg.inventory_value import InventoryValues
 from spellbook_core.mtg.profile import SummaryRangeError
 from spellbook_core.mtg.valuation import PriceReadUnavailable
@@ -87,36 +90,6 @@ async def _distribution(
         for label in (labels if labels is not None else quantities)
     ]
 
-
-_AVAILABILITY = """
-WITH owned_printings AS (
-    SELECT canonical_card_id,catalog_card_id,sum(quantity::numeric) AS quantity
-    FROM inventory_cards WHERE account_id=%s AND game='mtg'
-    GROUP BY canonical_card_id,catalog_card_id
-), owned_names AS (
-    SELECT canonical_card_id,sum(quantity) AS quantity FROM owned_printings
-    GROUP BY canonical_card_id
-), required_printings AS (
-    SELECT dc.deck_id,dc.canonical_card_id,dc.catalog_card_id,
-    sum(dc.quantity::numeric) AS quantity FROM deck_cards dc
-    JOIN decks d ON d.id=dc.deck_id AND d.account_id=dc.account_id AND d.game=dc.game
-    WHERE d.account_id=%s AND d.game='mtg'
-    GROUP BY dc.deck_id,dc.canonical_card_id,dc.catalog_card_id
-), allocation AS (
-    SELECT r.deck_id,r.canonical_card_id,sum(r.quantity) AS required,
-    sum(least(r.quantity,coalesce(o.quantity,0))) AS exact
-    FROM required_printings r LEFT JOIN owned_printings o
-    USING(canonical_card_id,catalog_card_id)
-    GROUP BY r.deck_id,r.canonical_card_id
-), canonical_availability AS (
-    SELECT a.*,least(a.required-a.exact,
-    greatest(coalesce(o.quantity,0)-a.exact,0)) AS alternate
-    FROM allocation a LEFT JOIN owned_names o USING(canonical_card_id)
-), totals AS (
-    SELECT deck_id,sum(required) AS required,sum(exact) AS exact,sum(alternate) AS alternate
-    FROM canonical_availability GROUP BY deck_id
-)
-"""
 
 _COLORS = ("White", "Blue", "Black", "Red", "Green", "Multicolor", "Colorless", "Unknown")
 _RARITIES = ("common", "uncommon", "rare", "mythic", "special", "unknown")
@@ -207,63 +180,102 @@ async def _catalog_breakdown(tx: Transaction, account_id: str, total: int) -> Ca
     }
 
 
-async def _requirements(tx: Transaction, account_id: str) -> dict[str, list[dict[str, object]]]:
+class _Requirement(AvailabilityRequirement):
+    deckId: str
+    deckName: str
+    name: str
+    imageUri: str
+
+
+async def _deck_availability(
+    tx: Transaction, account_id: str
+) -> tuple[dict[str, dict[str, int]], dict[str, list[dict[str, object]]]]:
+    # Project only the fields needed by the authoritative exact-first allocator.
+    # Compositions remain inside Core; only bounded requirement previews leave it.
     rows = await (
         await tx.execute(
-            _AVAILABILITY
-            + """,
-     requirement_previews AS (
-      SELECT d.id AS deck_id,d.name AS deck_name,a.canonical_card_id,
-      preview.catalog_card_id,preview.name,preview.image_uri,a.required,a.exact,a.alternate,
-      a.required-a.exact-a.alternate AS missing
-      FROM canonical_availability a JOIN decks d ON d.id=a.deck_id
-      JOIN LATERAL (SELECT dc.catalog_card_id,dc.name,dc.image_uri FROM deck_cards dc
-       WHERE dc.deck_id=d.id AND dc.account_id=d.account_id AND dc.game=d.game
-       AND dc.canonical_card_id=a.canonical_card_id ORDER BY dc.created_at,dc.id LIMIT 1
-      ) preview ON true WHERE d.account_id=%s AND d.game='mtg'
-     ), missing_previews AS (
-      SELECT * FROM requirement_previews WHERE missing>0
-      ORDER BY missing DESC,deck_id,canonical_card_id LIMIT 8
-     ), alternate_previews AS (
-      SELECT * FROM requirement_previews WHERE alternate>0
-      ORDER BY alternate DESC,deck_id,canonical_card_id LIMIT 8
-     ) SELECT 'missing',deck_id,deck_name,canonical_card_id,catalog_card_id,name,image_uri,
-      required::text,exact::text,alternate::text,missing::text FROM missing_previews
-     UNION ALL SELECT 'alternate',deck_id,deck_name,canonical_card_id,
-      catalog_card_id,name,image_uri,
-      required::text,exact::text,alternate::text,missing::text FROM alternate_previews
-    """,
-            (account_id,) * 3,
+            "SELECT dc.id,dc.deck_id,d.name,dc.catalog_card_id,dc.canonical_card_id,"
+            "dc.name,dc.image_uri,dc.quantity FROM deck_cards dc JOIN decks d "
+            "ON d.id=dc.deck_id AND d.account_id=dc.account_id AND d.game=dc.game "
+            "WHERE d.account_id=%s AND d.game='mtg' ORDER BY dc.id",
+            (account_id,),
         )
     ).fetchall()
-    result: dict[str, list[dict[str, object]]] = {"missing": [], "alternate": []}
+    by_deck: dict[str, list[_Requirement]] = {}
     for row in rows:
-        result[str(row[0])].append(
-            {
-                **dict(
-                    zip(
-                        (
-                            "deckId",
-                            "deckName",
-                            "canonicalCardId",
-                            "catalogCardId",
-                            "name",
-                            "imageUri",
-                        ),
-                        (str(value) for value in row[1:7]),
-                        strict=True,
-                    )
-                ),
-                **dict(
-                    zip(
-                        ("required", "exact", "alternate", "missing"),
-                        (summary_number(value) for value in row[7:]),
-                        strict=True,
-                    )
-                ),
-            }
+        card = _Requirement(
+            id=str(row[0]),
+            deckId=str(row[1]),
+            deckName=str(row[2]),
+            catalogCardId=str(row[3]),
+            canonicalCardId=str(row[4]),
+            name=str(row[5]),
+            imageUri=str(row[6]),
+            quantity=summary_number(row[7]),
         )
-    return result
+        by_deck.setdefault(card["deckId"], []).append(card)
+    canonical_ids = list(
+        dict.fromkeys(c["canonicalCardId"] for cards in by_deck.values() for c in cards)
+    )
+    try:
+        inventory = await owned(tx, account_id, canonical_ids)
+    except DatabaseIntegerRangeError:
+        raise SummaryRangeError() from None
+    by_canonical: dict[str, list[OwnedPrinting]] = {}
+    for printing in inventory:
+        by_canonical.setdefault(printing["canonicalCardId"], []).append(printing)
+    totals: dict[str, dict[str, int]] = {}
+    previews: list[dict[str, object]] = []
+    for deck_id, cards in by_deck.items():
+        # The Deck reader limits ownership to this Deck's stored canonical IDs.
+        relevant = {c["canonicalCardId"] for c in cards}
+        printings = sorted(
+            (p for identity in relevant for p in by_canonical.get(identity, [])),
+            key=lambda p: (p["catalogCardId"], p["canonicalCardId"]),
+        )
+        allocations = allocate_deck_availability(cards, printings)
+        counts = dict(required=0, exact=0, alternate=0, missing=0)
+        canonical: dict[str, dict[str, object]] = {}
+        for card in cards:
+            allocated = allocations[card["id"]]
+            values = {
+                "required": card["quantity"],
+                "exact": allocated["exact"],
+                "alternate": allocated["alternate"],
+                "missing": allocated["missing"],
+            }
+            preview = canonical.setdefault(
+                card["canonicalCardId"],
+                dict(
+                    deckId=deck_id,
+                    deckName=card["deckName"],
+                    canonicalCardId=card["canonicalCardId"],
+                    catalogCardId=card["catalogCardId"],
+                    name=card["name"],
+                    imageUri=card["imageUri"],
+                    required=0,
+                    exact=0,
+                    alternate=0,
+                    missing=0,
+                ),
+            )
+            for key, value in values.items():
+                counts[key] = summary_number(counts[key] + value)
+                preview[key] = summary_number(summary_number(preview[key]) + value)
+        totals[deck_id] = counts
+        previews.extend(canonical.values())
+
+    def bounded(key: str) -> list[dict[str, object]]:
+        return sorted(
+            (row for row in previews if summary_number(row[key]) > 0),
+            key=lambda row: (
+                -summary_number(row[key]),
+                str(row["deckId"]),
+                str(row["canonicalCardId"]),
+            ),
+        )[:8]
+
+    return totals, dict(missing=bounded("missing"), alternate=bounded("alternate"))
 
 
 class Dashboard:
@@ -346,11 +358,8 @@ class Dashboard:
                 )
             deck_rows = await (
                 await tx.execute(
-                    _AVAILABILITY
-                    + """
-                    SELECT d.id,d.name,d.format,coalesce(t.required,0)::text,
-                    coalesce(t.exact,0)::text,coalesce(t.alternate,0)::text,
-                    coalesce(t.required-t.exact-t.alternate,0)::text,
+                    """
+                    SELECT d.id,d.name,d.format,
                     (SELECT coalesce(jsonb_agg(preview), '[]'::jsonb) FROM (
                         SELECT dc.catalog_card_id AS "catalogCardId", dc.name,
                         dc.image_uri AS "imageUri" FROM deck_cards dc
@@ -358,29 +367,25 @@ class Dashboard:
                         AND dc.game=d.game AND dc.role='commander'
                         ORDER BY dc.created_at,dc.id LIMIT 2
                     ) preview) AS commanders
-                    FROM decks d LEFT JOIN totals t ON t.deck_id=d.id
+                    FROM decks d
                     WHERE d.account_id=%s AND d.game='mtg' ORDER BY d.updated_at DESC,d.id
                     """,
-                    (user.account_id,) * 3,
+                    (user.account_id,),
                 )
             ).fetchall()
+            availability, requirements = await _deck_availability(tx, user.account_id)
             decks: list[dict[str, object]] = [
                 {
                     "id": str(deck[0]),
                     "name": deck[1],
                     "format": deck[2],
-                    **dict(
-                        zip(
-                            ("required", "exact", "alternate", "missing"),
-                            (summary_number(value) for value in deck[3:7]),
-                            strict=True,
-                        )
+                    **availability.get(
+                        str(deck[0]), dict(required=0, exact=0, alternate=0, missing=0)
                     ),
-                    "commanders": deck[7],
+                    "commanders": deck[3],
                 }
                 for deck in deck_rows
             ]
-            requirements = await _requirements(tx, user.account_id)
             pending: int | None
             await tx.execute("SAVEPOINT scan_summary")
             try:

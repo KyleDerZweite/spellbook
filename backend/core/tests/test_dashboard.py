@@ -95,29 +95,14 @@ def test_snapshot_account_distributions_allocation_and_optional_failures(
                         NOW.astimezone(tz=timezone(timedelta(hours=2))),
                     )
                 ]
-            elif "requirement_previews AS" in query:
-                assert params == (ACTOR.account_id,) * 3
+            elif "SELECT dc.id,dc.deck_id" in query:
+                assert params == (ACTOR.account_id,)
                 result.fetchall.return_value = [
-                    (
-                        kind,
-                        "deck",
-                        "Deck",
-                        "oracle",
-                        "printing",
-                        "Name",
-                        "image",
-                        "8",
-                        "2",
-                        "3",
-                        "3",
-                    )
-                    for kind in ("missing", "alternate")
+                    ("entry", "deck", "Deck", "printing", "oracle", "Name", "image", 8)
                 ]
-            elif "WITH owned_printings" in query:
-                assert params == (ACTOR.account_id,) * 3
-                result.fetchall.return_value = [
-                    ("deck", "Deck", "Commander", "8", "2", "3", "3", [])
-                ]
+            elif "SELECT d.id,d.name,d.format" in query:
+                assert params == (ACTOR.account_id,)
+                result.fetchall.return_value = [("deck", "Deck", "Commander", [])]
             elif "FROM scan_sessions" in query:
                 assert params == (ACTOR.account_id,)
                 if scan_failure:
@@ -137,6 +122,16 @@ def test_snapshot_account_distributions_allocation_and_optional_failures(
             yield cast(Transaction, tx)
 
         monkeypatch.setattr(module, "transaction", transaction)
+        monkeypatch.setattr(
+            module,
+            "owned",
+            AsyncMock(
+                return_value=[
+                    dict(catalogCardId="printing", canonicalCardId="oracle", quantity=2),
+                    dict(catalogCardId="alternate", canonicalCardId="oracle", quantity=3),
+                ]
+            ),
+        )
         result = await create_dashboard(cast(ConnectionPool, object()), auth, values).get(ACTOR)
         assert result["totals"] == dict(total=5, names=1, printings=2, sets=1, foils=2, decks=1)
         catalog = result["catalogBreakdown"]

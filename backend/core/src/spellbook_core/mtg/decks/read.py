@@ -51,7 +51,7 @@ async def owned(tx: Transaction, account: str, canonical_ids: list[str]) -> list
             """SELECT catalog_card_id,canonical_card_id,sum(quantity)::text AS quantity
         FROM inventory_cards WHERE account_id=%s AND game='mtg' AND
             canonical_card_id=ANY(%s::text[])
-        GROUP BY catalog_card_id,canonical_card_id""",
+        GROUP BY catalog_card_id,canonical_card_id ORDER BY catalog_card_id,canonical_card_id""",
             (account, canonical_ids),
         )
     ]

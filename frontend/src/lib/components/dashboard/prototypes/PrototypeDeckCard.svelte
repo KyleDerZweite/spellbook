@@ -17,7 +17,13 @@
 	class:featured={scale === 'featured'}
 	class:plain={appearance === 'plain'}
 >
-	<a class="deck-title" href={`/mtg/decks?deck=${encodeURIComponent(deck.id)}`}>{deck.name}</a>
+	<a class="deck-title" href={`/mtg/decks?deck=${encodeURIComponent(deck.id)}`}
+		>{#if deck.format.toLowerCase() === 'commander'}<i
+				class="ms ms-commander"
+				aria-hidden="true"
+				title="Commander"
+			></i>{/if}{deck.name}</a
+	>
 	{#if deck.required > 0}<div class="deck-visuals">
 			<a
 				class="commander"
@@ -74,6 +80,12 @@
 		text-decoration: none;
 		margin-bottom: 1rem;
 		overflow-wrap: anywhere;
+	}
+	.deck-title i {
+		font-size: 16px;
+		margin-right: 8px;
+		color: var(--color-text-muted);
+		vertical-align: -2px;
 	}
 	.deck-title:hover {
 		text-decoration: underline;

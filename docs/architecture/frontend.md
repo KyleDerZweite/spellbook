@@ -782,6 +782,7 @@ Zero quantities remain available as native data; unknown and empty states create
 The recent-entry gallery uses existing account-scoped detail links and full card frames.
 The Dashboard response supplies account-scoped, quantity-weighted color, color-identity, rarity and exclusive primary-type distributions from the active Catalog, plus bounded missing and alternate requirement previews.
 Unmatched Printings remain Unknown, optional Catalog failures return an unavailable breakdown, and previews retain stored Deck/Printing identities.
+The Dashboard and Deck reader share the same exact-first allocator and stored-canonical ownership scope; only bounded requirement previews leave Core.
 Browser consumers request no complete Inventory or additional Catalog objects for these summaries.
 The [Mebius adaptation contract](../product/ui-design-direction.md#mebius-chart-adaptation) maps the selected reference treatments to these four existing chart families.
 `--color-chart-track` owns the neutral light/dark track fill.

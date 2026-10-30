@@ -183,7 +183,7 @@ A Catalog read failure returns an unavailable breakdown rather than invented cou
 Actual Set names supplement existing stored Set-code counts, and no Set-completion percentage is invented.
 
 Core also supplies at most eight missing and eight alternate Canonical Card requirement previews, with their actual stored Deck/Printing identities, artwork and existing exact/alternate/missing allocation.
-These lists reuse the Dashboard allocation policy and may overlap across Decks; they never claim distinct owned quantities.
+These lists reuse the Deck reader's ownership projection and exact-first allocation function and may overlap across Decks; they never claim distinct owned quantities.
 Frontend consumes this typed summary and existing shared charts, keeps titles, and links actual objects to their existing workspaces.
 Unknown, empty and unavailable states remain explicit.
 Root owns integration and acceptance against API totals, account isolation, missing Catalog data, quantity changes, dark/light and narrow layouts, pointer/keyboard/touch inspection and route removal.

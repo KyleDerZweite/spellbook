@@ -28,6 +28,13 @@ class CardIdentity(TypedDict):
     imageUri: str
 
 
+class AvailabilityRequirement(TypedDict):
+    id: str
+    catalogCardId: str
+    canonicalCardId: str
+    quantity: int
+
+
 class DeckCard(CardIdentity):
     id: str
     deckId: str
