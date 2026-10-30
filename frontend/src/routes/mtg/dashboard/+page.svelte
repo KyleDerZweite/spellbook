@@ -768,8 +768,9 @@
 			font-size: 1.875rem;
 		}
 		.value-panel-header {
-			top: 1.25rem;
-			right: 1.25rem;
+			position: static;
+			justify-content: flex-end;
+			margin-bottom: 0.75rem;
 		}
 		.deck-list li {
 			gap: 1.25rem;
