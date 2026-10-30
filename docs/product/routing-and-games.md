@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-24
 - Source of Truth: route handlers and server hooks
-- Update Triggers: ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, PWA launch/connect and QR approval/API routes, route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game, paused Scan entrypoints, private Inventory history routes
+- Update Triggers: shortcut-only global power-user search, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, PWA launch/connect and QR approval/API routes, route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game, paused Scan entrypoints, private Inventory history routes
 - Related Docs: [Product specification](./specification.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Frontend architecture](../architecture/frontend.md), [Catalog](../architecture/catalog.md), [Product index](./README.md)
 
 Scan presentation is paused.
@@ -81,7 +81,9 @@ This guide does not implement the proposed auth.md protocol.
 The font comparison and numbered landing prototype routes are removed.
 The `review=landing` composition override is removed; `/` is the landing review target for any session.
 The brand links to `/`.
-Normal primary Search clicks and Ctrl+K or Cmd+K open the shared catalog overlay above the current page.
+Normal primary Search clicks open the shared catalog overlay above the current page.
+Ctrl+K or Cmd+K opens the separate global power-user palette with Card Search, Inventory, Deck and Settings destinations.
+Its only entry is the shortcut; Settings displays the binding as read-only text.
 The landing form opens it with the submitted query.
 Search links retain `/mtg/search` for modified clicks and no-JavaScript navigation.
 The visible query URL supports direct visits and reloads as a full page; Full view replaces the overlay entry.

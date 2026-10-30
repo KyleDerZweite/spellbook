@@ -49,6 +49,9 @@
 			Saved changes synchronization is {savedProfile.status}.
 		</p>{/if}
 	<div class="page-title"><h1>Profile</h1></div>
+	<p id="power-user-search" class="text-sm text-text-secondary">
+		Power-user search <kbd>Ctrl / Cmd + K</kbd>
+	</p>
 	<div class="profile-settings">
 		<div class="profile-fields">
 			<div>

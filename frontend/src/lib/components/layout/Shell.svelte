@@ -7,6 +7,7 @@
 	import Nav from './Nav.svelte';
 	import Footer from './Footer.svelte';
 	import SearchOverlay from '#lib/components/search/SearchOverlay.svelte';
+	import PowerSearch from '#lib/components/search/PowerSearch.svelte';
 
 	interface Props {
 		children: Snippet;
@@ -40,6 +41,7 @@
 
 <div class="app-shell bg-background" class:installed={pwaState.standalone}>
 	<SearchOverlay />
+	<PowerSearch />
 	<Nav />
 	<main id="main-content" tabindex="-1" class="app-main">
 		<div class="app-content">
