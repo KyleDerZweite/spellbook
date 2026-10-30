@@ -7,13 +7,19 @@
 	import Nav from './Nav.svelte';
 	import Footer from './Footer.svelte';
 	import SearchOverlay from '#lib/components/search/SearchOverlay.svelte';
+	import PowerSearch from '#lib/components/search/PowerSearch.svelte';
 
 	interface Props {
 		children: Snippet;
 	}
 
 	let { children }: Props = $props();
-	onMount(() => pwaState.start());
+	let ready = $state(false);
+	onMount(() => {
+		const stop = pwaState.start();
+		ready = true;
+		return stop;
+	});
 	snapshot({
 		id: 'workspace-scroll',
 		capture: () => ({ x: window.scrollX, y: window.scrollY }),
@@ -38,8 +44,13 @@
 	});
 </script>
 
-<div class="app-shell bg-background" class:installed={pwaState.standalone}>
+<div
+	class="app-shell bg-background"
+	class:installed={pwaState.standalone}
+	data-global-search-ready={ready}
+>
 	<SearchOverlay />
+	<PowerSearch />
 	<Nav />
 	<main id="main-content" tabindex="-1" class="app-main">
 		<div class="app-content">

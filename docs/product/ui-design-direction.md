@@ -1,9 +1,9 @@
 # UI design direction
 
 - Status: Canonical
-- Last Reviewed: 2026-10-29
+- Last Reviewed: 2026-10-30
 - Source of Truth: accepted product requirements, application components, selected logo and component choices
-- Update Triggers: color-mode placement below centered mana controls, tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
+- Update Triggers: executed development-only search lab and comparison, shortcut-only power-user search requirement and source algorithm investigation, global command menu exploration, color-mode placement below centered mana controls, tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
 - Related Docs: [Product specification](./specification.md), [Mobile exploration](./mobile-app-exploration.md), [Routes](./routing-and-games.md), [Domain model](../../GLOSSARY.md), [Selected UI components](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Brand assets](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Value tracking](./value-tracking.md)
 
 Spellbook prioritizes digitizing, indexing and managing a player's own Magic cards, then building decks from that collection.
@@ -231,6 +231,55 @@ Shared Select, ActionMenu and TooltipButton components own repeated selection, c
 Native inputs handle simple form entry; Bits Dialog handles focus and dismissal.
 The shared Button is adapted from shadcn-svelte.
 The [component guidance](../reference/ui-libraries.md) owns adopted files and maintenance rules.
+
+## Proposed global command menu
+
+On 2026-10-29, Kyle requested a separate power-user menu inspired by t3code, covering cards, Decks and Settings.
+The [source investigation](../reference/t3code-search.md) traces deterministic metadata ranking and indexed persisted-message retrieval, including older settled threads.
+The traced t3code search uses no embedding model or LLM.
+The [executed comparison](../integrations/search-evaluation.md) evaluates PostgreSQL lexical improvements, BM25, pgvector and local navigation separately.
+Its measured relevance, latency and operational limits do not select a production vector model or additional index.
+Kyle selected the following UI and context-result contract on 2026-10-30.
+
+## Global power-user search implementation contract
+
+Kyle selected the T3 Code palette geometry and dark treatment on 2026-10-30.
+Use a near-black dialog, thin neutral border, compact sans-serif rows, muted outline icons, restrained selection and a bottom keyboard legend.
+Retain the shared Shell, Bits Dialog/Command behavior, theme tokens and accessible names; light mode remains readable.
+The screenshot is a visual reference, not permission to copy unrelated thread actions.
+
+Ctrl/Cmd+K opens one global palette from the shared Shell, with no Account-menu item, launch button or second entry.
+Settings displays a read-only Power-user search binding.
+Ordinary Search links retain their existing card-search overlay/full-page behavior.
+The palette preserves existing pending-write navigation guards and respects modal/IME focus.
+
+A matching Canonical Card appears independently in Card Search, Inventory and each matching Deck when that account has the corresponding records.
+Context identity includes the source and Deck, so deduplication never collapses those options into one card row.
+Rows show a source icon and context text, including Deck names and owned/Deck quantities.
+Card Search opens the canonical card's representative Printing in Search; Inventory opens its filtered owned view; Deck results open their actual Deck.
+Deck-name lookup and local bilingual Settings/page aliases participate in the same menu.
+Guests receive public Catalog/navigation results only.
+
+The API/Core owns bounded matching against the complete active Catalog and the authenticated account's Inventory and Decks.
+Private matching runs before per-source limits and does not depend on five public Catalog hits.
+Web owns static aliases, presentation and destination construction, and never imports database code.
+Use existing PostgreSQL FTS/pg_trgm capabilities without adopting the lab's disposable projection, vector model or BM25 extension.
+The dedicated global query does not replace ordinary Catalog search or its publication contract.
+
+The dedicated read is GET `/api/v1/mtg/power-search?query=TEXT`, with at most 300 UTF-16 query units.
+Its shared DTO carries `query`, `accountId`, `generationId`, `cards`, `inventory` and `decks`.
+Catalog hits carry `kind=catalog`, `canonicalCardId`, `catalogCardId` and `name`.
+Inventory hits carry `kind=inventory`, `canonicalCardId`, `name` and `quantity`.
+Deck-name hits carry `kind=deck`, `deckId`, `name` and `format`.
+Deck-content hits carry `kind=deck-card`, `deckId`, `deckName`, `canonicalCardId`, `name` and `quantity`.
+Use five Catalog and five Inventory hits, and bounded Deck-name/content lists, preserving source identity and deterministic ranking.
+Local navigation appears immediately; database reads use a short debounce, cancellation and stale-response fencing.
+SavedState clears private results on expiry/sign-out/account replacement and invalidates open results after relevant Inventory/Deck changes.
+Read failures preserve local Settings/navigation matches and display an explicit unavailable state.
+
+Acceptance requires the same real card to produce the three source options, real destination navigation, Deck-name and Settings lookup, a guest and two-account isolation test, expiry and held-response fencing, keyboard/focus/IME behavior and pending-write protection.
+Inspect rendered dark/light desktop and narrow layouts against the supplied reference and rerun the evaluation's existing acceptance checks where shared behavior changes.
+The lab remains an opt-in algorithm comparison; it does not establish private production authorization or human usability acceptance.
 
 ## Selected brand artwork
 

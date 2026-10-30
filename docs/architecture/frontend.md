@@ -1,9 +1,9 @@
 # Frontend
 
 - Status: Canonical
-- Last Reviewed: 2026-10-29
+- Last Reviewed: 2026-10-30
 - Source of Truth: code, accepted design requirements and upstream runtime documentation
-- Update Triggers: tri-state color expression URL/session/cache ownership, explicit static Demo valuation and simplified History presentation, compact Dashboard composition and valuation summary slot, shared D3 chart rendering and accessible inspection, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python API activation, independent API/web ownership and relocated code references, guarded initial Deck Search activation, Inventory row measurement scheduling, topic-aware selected Deck refresh and publication acknowledgement, Library Editor state ownership and production reactivity tests, PWA install/update/cache policy, QR presentation and camera cleanup, installed narrow navigation, private value presentation and boundary refresh, backend application/transport interface and framework lifecycle hooks, routes, authentication, public landing, responsive layout, typography, development review controls, search, Shell window scrolling, Card Detail modal overflow, shared scroll viewports, inventory ordering and filters, Inventory metadata shortcuts and compact read-only rows, bounded inventory loading and scale evidence, deck builder and native task entry, shared control interfaces, uniform continuous browsing and native range fallbacks, workspace saved-state consumers, transient feedback delay, leases and draft baselines, primary Deck entry category forms and provenance, component choices, runtime support and compatibility, root environment and local/build origins, accepted design contracts and implementation evidence, bounded Deck Library metadata and whole-deck drafts, visited result extents and deep-segment prepend, hybrid browsing, native window scroll and contextual Card dialog, bounded Deck choice reads, shared Card addition adapters and retained caller drafts, native Search context hydration and feedback restoration
+- Update Triggers: enhanced Printing deep links, opt-in shortcut-only search evaluation lab, tri-state color expression URL/session/cache ownership, explicit static Demo valuation and simplified History presentation, compact Dashboard composition and valuation summary slot, shared D3 chart rendering and accessible inspection, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python API activation, independent API/web ownership and relocated code references, guarded initial Deck Search activation, Inventory row measurement scheduling, topic-aware selected Deck refresh and publication acknowledgement, Library Editor state ownership and production reactivity tests, PWA install/update/cache policy, QR presentation and camera cleanup, installed narrow navigation, private value presentation and boundary refresh, backend application/transport interface and framework lifecycle hooks, routes, authentication, public landing, responsive layout, typography, development review controls, search, Shell window scrolling, Card Detail modal overflow, shared scroll viewports, inventory ordering and filters, Inventory metadata shortcuts and compact read-only rows, bounded inventory loading and scale evidence, deck builder and native task entry, shared control interfaces, uniform continuous browsing and native range fallbacks, workspace saved-state consumers, transient feedback delay, leases and draft baselines, primary Deck entry category forms and provenance, component choices, runtime support and compatibility, root environment and local/build origins, accepted design contracts and implementation evidence, bounded Deck Library metadata and whole-deck drafts, visited result extents and deep-segment prepend, hybrid browsing, native window scroll and contextual Card dialog, bounded Deck choice reads, shared Card addition adapters and retained caller drafts, native Search context hydration and feedback restoration
 - Related Docs: [System overview](./system-overview.md), [Auth](./auth.md), [Routes](../product/routing-and-games.md), [Catalog](./catalog.md), [Selected UI components](../reference/ui-libraries.md), [Design direction](../product/ui-design-direction.md), [Application contract](./application-contract.md), [Category rules](./category-rules.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [Independent applications](./independent-applications.md)
 
 The SvelteKit application renders pages and owns native form presentation and browser cookies.
@@ -102,7 +102,8 @@ PublicLanding retains a native GET fallback and a SvelteKit snapshot that restor
 Empty submission opens the unfiltered catalog.
 The accepted PWA delivery replaces App coming soon with an App link to `/app` in the existing account/mobile menus.
 
-[SearchOverlay](../../frontend/src/lib/components/search/SearchOverlay.svelte) owns navigation and the single Ctrl+K or Cmd+K listener.
+[SearchOverlay](../../frontend/src/lib/components/search/SearchOverlay.svelte) owns ordinary Card Search navigation.
+The global [PowerSearch](../../frontend/src/lib/components/search/PowerSearch.svelte) owns the single Ctrl+K or Cmd+K listener in the shared Shell.
 A normal primary Search navigation click opens its large desktop dialog or full-height mobile dialog, keeping the underlying page mounted.
 Modified clicks retain the real `/mtg/search` link.
 Query, the four filter categories and the logical range serialize into the visible URL through SvelteKit shallow routing.
@@ -158,6 +159,10 @@ Missing pages offer Search and Home links; server errors also offer a retry of t
 
 [CardInspector](../../frontend/src/lib/components/cards/CardInspector.svelte) owns shared printing selection and inspector content.
 Search hosts selection in CardDetail and retains the grid and logical focus anchor behind the dialog.
+A valid ordinary `printing` deep link, including a Card Search result from the global palette, opens this same dialog after hydration.
+Closing removes the Printing target from the current history entry and returns focus to its result or the results heading.
+Without JavaScript, the selected Printing remains in the native panel.
+Retained native addition drafts, choice navigation, receipts and read errors keep their existing native action surface.
 [CardDetail](../../frontend/src/lib/components/cards/CardDetail.svelte) owns that dialog lifecycle for Search, Inventory and Decks.
 Callers supply action content and an explicit focus return target.
 Its optional `callerPending` combines with the inspector's internal quick-add state to block dismissal, Printing selection and tab changes during a caller save.
@@ -837,3 +842,24 @@ The shared Deck save lifecycle owns pending requests and retained native/enhance
 Native local-label failures return the exact submitted label, original decision base and request identity.
 Reviewed commit returns its confirmed receipt independently of optional current reads; failed native follow-up reads retain earlier controls with an explicit unavailable state.
 [Category rules](./category-rules.md#entry-reviewreset-transactions) owns authority, fences and retention.
+
+## Development search evaluation
+
+The opt-in `/__search-evaluation` lab compares real retrieval providers through a separate loopback Python service.
+Web owns the existing Shell/Dialog/Command presentation and bounded HTTP forwarding; it imports no database code.
+The route requires development mode and `SEARCH_EVALUATION_URL`, sends no-store/noindex headers, and returns 404 in a production build even with that variable set.
+The lab owns Ctrl/Cmd+K only on its route; elsewhere the global palette owns the shortcut.
+The Account menu has no search launcher.
+The [evaluation owner](../integrations/search-evaluation.md) records the disposable fixtures, provider boundaries, results and production proposals.
+
+## Global power-user search
+
+[The selected contract](../product/ui-design-direction.md#global-power-user-search-implementation-contract) owns the T3 Code visual reference, shortcut-only entry and independent Catalog/Inventory/Deck contexts.
+PowerSearch composes existing Bits Dialog/Command parts with filtering and Vim bindings disabled.
+Its compact dark/light colors and interface font are scoped semantic tokens; other application geometry and typography remain unchanged.
+Settings shows the binding as read-only text, and the ordinary Search bar has no shortcut hint.
+The small frontend [read owner](../../frontend/src/lib/search/power-search.ts) supplies local bilingual navigation, context-specific destinations, debounce, cancellation and account/publication fencing.
+SavedState clears terminal/private results and invalidates open reads for Inventory/Deck changes.
+The API/Core provides bounded account-scoped candidates through the shared [DTO](../../contracts/src/power-search.ts); Web performs no SQL.
+The normal Catalog overlay retains URL/history ownership and pending-write guards.
+Other active modal dialogs retain their shortcuts and focus; opening the power-user palette over ordinary Search does not discard its session.

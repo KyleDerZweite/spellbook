@@ -1,0 +1,438 @@
+{
+	"version": 1,
+	"judgment": "Known acceptable answers, not exhaustive relevance labels. Agent-authored before running variants.",
+	"cases": [
+		{
+			"id": "q01",
+			"group": "exact",
+			"query": "Sol Ring",
+			"expected": ["Sol Ring"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q02",
+			"group": "exact",
+			"query": "Lightning Bolt",
+			"expected": ["Lightning Bolt"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q03",
+			"group": "exact",
+			"query": "Counterspell",
+			"expected": ["Counterspell"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q04",
+			"group": "exact",
+			"query": "Swords to Plowshares",
+			"expected": ["Swords to Plowshares"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q05",
+			"group": "exact",
+			"query": "Rhystic Study",
+			"expected": ["Rhystic Study"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q06",
+			"group": "exact",
+			"query": "Llanowar Elves",
+			"expected": ["Llanowar Elves"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q07",
+			"group": "exact",
+			"query": "The One Ring",
+			"expected": ["The One Ring"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q08",
+			"group": "exact",
+			"query": "Delver of Secrets",
+			"expected": ["Delver of Secrets // Insectile Aberration"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q09",
+			"group": "prefix",
+			"query": "sol ri",
+			"expected": ["Sol Ring"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q10",
+			"group": "prefix",
+			"query": "lightning bo",
+			"expected": ["Lightning Bolt"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q11",
+			"group": "prefix",
+			"query": "rhy stu",
+			"expected": ["Rhystic Study"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q12",
+			"group": "prefix",
+			"query": "swords to plo",
+			"expected": ["Swords to Plowshares"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q13",
+			"group": "prefix",
+			"query": "llan el",
+			"expected": ["Llanowar Elves"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q14",
+			"group": "prefix",
+			"query": "command tow",
+			"expected": ["Command Tower"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q15",
+			"group": "joined",
+			"query": "solring",
+			"expected": ["Sol Ring"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q16",
+			"group": "joined",
+			"query": "lightningbolt",
+			"expected": ["Lightning Bolt"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q17",
+			"group": "joined",
+			"query": "rhysticstudy",
+			"expected": ["Rhystic Study"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q18",
+			"group": "joined",
+			"query": "commandtower",
+			"expected": ["Command Tower"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q19",
+			"group": "typo",
+			"query": "sol rign",
+			"expected": ["Sol Ring"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q20",
+			"group": "typo",
+			"query": "lighnting bolt",
+			"expected": ["Lightning Bolt"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q21",
+			"group": "typo",
+			"query": "rystic study",
+			"expected": ["Rhystic Study"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q22",
+			"group": "typo",
+			"query": "counterspel",
+			"expected": ["Counterspell"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q23",
+			"group": "typo",
+			"query": "llanowr elves",
+			"expected": ["Llanowar Elves"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q24",
+			"group": "typo",
+			"query": "comand tower",
+			"expected": ["Command Tower"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q25",
+			"group": "typo",
+			"query": "brainstormm",
+			"expected": ["Brainstorm"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q26",
+			"group": "typo",
+			"query": "cyclonic rfit",
+			"expected": ["Cyclonic Rift"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q27",
+			"group": "rules",
+			"query": "draw three cards",
+			"expected": ["Ancestral Recall", "Brainstorm"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q28",
+			"group": "rules",
+			"query": "destroy all creatures",
+			"expected": ["Wrath of God", "Damnation", "Day of Judgment"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q29",
+			"group": "rules",
+			"query": "counter target spell",
+			"expected": ["Counterspell", "Cancel", "Mana Drain"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q30",
+			"group": "rules",
+			"query": "creatures can't attack",
+			"expected": ["Peacekeeper", "Blazing Archon"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q31",
+			"group": "rules",
+			"query": "untap another target permanent",
+			"expected": ["Kiora's Follower", "Vizier of Tumbling Sands"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q32",
+			"group": "rules",
+			"query": "draw two cards",
+			"expected": ["Night's Whisper", "Sign in Blood", "Divination"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q33",
+			"group": "description",
+			"query": "ziehe drei karten",
+			"expected": ["Ancestral Recall", "Brainstorm"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q34",
+			"group": "description",
+			"query": "zerstöre alle kreaturen",
+			"expected": ["Wrath of God", "Damnation", "Day of Judgment"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q35",
+			"group": "description",
+			"query": "günstige kreatur die grünes mana erzeugt",
+			"expected": ["Llanowar Elves", "Elvish Mystic", "Fyndhorn Elves"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q36",
+			"group": "description",
+			"query": "verhindert dass gegnerische kreaturen angreifen",
+			"expected": ["Blazing Archon", "Peacekeeper"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q37",
+			"group": "description",
+			"query": "entfernt eine kreatur ins exil",
+			"expected": ["Swords to Plowshares", "Path to Exile"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q38",
+			"group": "description",
+			"query": "verdoppelt ausgelöste fähigkeiten",
+			"expected": ["Panharmonicon", "Roaming Throne"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q39",
+			"group": "description",
+			"query": "a land that produces two colorless mana",
+			"expected": ["Ancient Tomb", "City of Traitors"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q40",
+			"group": "description",
+			"query": "protect my creatures from board wipes",
+			"expected": ["Heroic Intervention", "Boros Charm", "Flawless Maneuver"],
+			"split": "test",
+			"kind": "card"
+		},
+		{
+			"id": "q41",
+			"group": "navigation",
+			"query": "einstellungen",
+			"expected": ["Profile"],
+			"split": "test",
+			"kind": "page"
+		},
+		{
+			"id": "q42",
+			"group": "navigation",
+			"query": "passwort ändern",
+			"expected": ["Password"],
+			"split": "test",
+			"kind": "page"
+		},
+		{
+			"id": "q43",
+			"group": "navigation",
+			"query": "profilkarte",
+			"expected": ["Profile Card"],
+			"split": "test",
+			"kind": "page"
+		},
+		{
+			"id": "q44",
+			"group": "navigation",
+			"query": "deck erstellen",
+			"expected": ["New Deck"],
+			"split": "test",
+			"kind": "page"
+		},
+		{
+			"id": "q45",
+			"group": "navigation",
+			"query": "deck importieren",
+			"expected": ["Import Deck"],
+			"split": "test",
+			"kind": "page"
+		},
+		{
+			"id": "q46",
+			"group": "navigation",
+			"query": "übersicht",
+			"expected": ["Dashboard"],
+			"split": "test",
+			"kind": "page"
+		},
+		{
+			"id": "q47",
+			"group": "deck",
+			"query": "Elfball",
+			"expected": ["Elven Expedition"],
+			"split": "test",
+			"kind": "deck"
+		},
+		{
+			"id": "q48",
+			"group": "deck",
+			"query": "decks containing Sol Ring",
+			"expected": ["Elven Expedition"],
+			"split": "test",
+			"kind": "deck"
+		},
+		{
+			"id": "q49",
+			"group": "deck",
+			"query": "decks containing Counterspell",
+			"expected": ["Dimir Control"],
+			"split": "test",
+			"kind": "deck"
+		},
+		{
+			"id": "q50",
+			"group": "empty",
+			"query": "zzqxvnl",
+			"expected": [],
+			"split": "test",
+			"kind": "none"
+		},
+		{
+			"id": "q51",
+			"group": "empty",
+			"query": "qzxqzx 918273645",
+			"expected": [],
+			"split": "test",
+			"kind": "none"
+		},
+		{
+			"id": "q52",
+			"group": "development",
+			"query": "brain",
+			"expected": ["Brainstorm"],
+			"split": "development",
+			"kind": "card"
+		},
+		{
+			"id": "q53",
+			"group": "development",
+			"query": "mana leak",
+			"expected": ["Mana Leak"],
+			"split": "development",
+			"kind": "card"
+		},
+		{
+			"id": "q54",
+			"group": "development",
+			"query": "destroy target artifact",
+			"expected": ["Naturalize"],
+			"split": "development",
+			"kind": "card"
+		}
+	]
+}

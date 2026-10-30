@@ -20,6 +20,11 @@
 	--color-accentblue: var(--color-accent);
 	--color-accentviolet: var(--color-violet);
 	--color-border: #363636;
+	--color-command: #030303;
+	--color-command-selected: #111111;
+	--color-command-border: #242424;
+	--color-command-key: #252525;
+	--color-command-overlay: #0009;
 	--color-input: #737373;
 	--color-ring: #e5e5e5;
 	--color-destructive: #fb8c9b;
@@ -63,6 +68,7 @@
 	--font-display: 'Marcellus', Georgia, serif;
 	--font-body: 'IBM Plex Mono', monospace;
 	--font-mono: var(--font-body);
+	--font-interface: ui-sans-serif, system-ui, sans-serif;
 }
 
 html.light {
@@ -81,6 +87,11 @@ html.light {
 	--color-accent: #326184;
 	--color-violet: #70539d;
 	--color-border: #d5d5d5;
+	--color-command: #ffffff;
+	--color-command-selected: #f0f0f0;
+	--color-command-border: #dedede;
+	--color-command-key: #eeeeee;
+	--color-command-overlay: #0004;
 	--color-input: #858585;
 	--color-ring: #242424;
 	--color-destructive: #b3233b;

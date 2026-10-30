@@ -1,5 +1,8 @@
 # Python application and SQL package
 
+`create_power_search(pool, auth)` owns the dedicated global reader and independently bounded Catalog, Inventory and Deck matches.
+It borrows the caller-owned pool and revalidates issued SessionAuth Actors for private scope.
+
 `spellbook_core.mtg` owns MTG Catalog/Inventory/Deck/Category/Valuation/Dashboard/Scan behavior and their DTOs.
 Shared `spellbook_core` owns typed session authority, database and migration infrastructure, local credentials/sessions, passwords, QR authorization, SavedState and account preferences.
 MTG application modules retain the original receipt, transaction, read and valuation behavior.
