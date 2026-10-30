@@ -30,10 +30,11 @@ def test_summary_range_is_never_rounded(value: object) -> None:
 
 
 @pytest.mark.parametrize(
-    "scan_failure,value_failure", [(False, False), (True, False), (False, True)]
+    "scan_failure,value_failure,catalog_failure",
+    [(False, False, False), (True, False, False), (False, True, False), (False, False, True)],
 )
 def test_snapshot_account_distributions_allocation_and_optional_failures(
-    monkeypatch: pytest.MonkeyPatch, scan_failure: bool, value_failure: bool
+    monkeypatch: pytest.MonkeyPatch, scan_failure: bool, value_failure: bool, catalog_failure: bool
 ) -> None:
     async def scenario() -> None:
         auth = create_autospec(SessionAuth, instance=True)
@@ -57,6 +58,20 @@ def test_snapshot_account_distributions_allocation_and_optional_failures(
             elif "count(distinct canonical_card_id)" in query:
                 assert params == (ACTOR.account_id,) * 2
                 result.fetchone.return_value = ("5", "1", "2", "1", "2", "1")
+            elif "WITH inventory_catalog" in query:
+                assert params == (ACTOR.account_id,)
+                assert "active_generation" in query
+                if catalog_failure:
+                    raise RuntimeError("optional Catalog storage unavailable")
+                result.fetchall.return_value = [
+                    (key, label, "5")
+                    for key, label in [
+                        ("colors", "White"),
+                        ("colorIdentity", "White"),
+                        ("rarities", "common"),
+                        ("primaryTypes", "Creature"),
+                    ]
+                ] + [("setNames", "tst", "Test Set")]
             elif 'SELECT "set_code"' in query:
                 assert params == (ACTOR.account_id,)
                 result.fetchall.return_value = [("tst", "5")]
@@ -64,7 +79,7 @@ def test_snapshot_account_distributions_allocation_and_optional_failures(
                 result.fetchall.return_value = [("nonfoil", "3"), ("foil", "2")]
             elif 'SELECT "condition"' in query:
                 result.fetchall.return_value = [("LP", "3"), ("NM", "2")]
-            elif "LIMIT 8" in query:
+            elif "LIMIT 8" in query and "requirement_previews AS" not in query:
                 assert params == (ACTOR.account_id,)
                 result.fetchall.return_value = [
                     (
@@ -79,6 +94,24 @@ def test_snapshot_account_distributions_allocation_and_optional_failures(
                         "NM",
                         NOW.astimezone(tz=timezone(timedelta(hours=2))),
                     )
+                ]
+            elif "requirement_previews AS" in query:
+                assert params == (ACTOR.account_id,) * 3
+                result.fetchall.return_value = [
+                    (
+                        kind,
+                        "deck",
+                        "Deck",
+                        "oracle",
+                        "printing",
+                        "Name",
+                        "image",
+                        "8",
+                        "2",
+                        "3",
+                        "3",
+                    )
+                    for kind in ("missing", "alternate")
                 ]
             elif "WITH owned_printings" in query:
                 assert params == (ACTOR.account_id,) * 3
@@ -106,6 +139,35 @@ def test_snapshot_account_distributions_allocation_and_optional_failures(
         monkeypatch.setattr(module, "transaction", transaction)
         result = await create_dashboard(cast(ConnectionPool, object()), auth, values).get(ACTOR)
         assert result["totals"] == dict(total=5, names=1, printings=2, sets=1, foils=2, decks=1)
+        catalog = result["catalogBreakdown"]
+        if catalog_failure:
+            assert catalog is None
+        else:
+            assert catalog and catalog["matchedQuantity"] == 5 and catalog["unknownQuantity"] == 0
+            assert catalog["setNames"] == {"tst": "Test Set"}
+            for group in [
+                catalog["colors"],
+                catalog["colorIdentity"],
+                catalog["rarities"],
+                catalog["primaryTypes"],
+            ]:
+                assert sum(item["quantity"] for item in group) == 5
+        assert ("ROLLBACK TO SAVEPOINT catalog_summary" in commands) is catalog_failure
+        assert (
+            len(result["requirements"]["missing"]) == len(result["requirements"]["alternate"]) == 1
+        )
+        assert result["requirements"]["missing"][0] == dict(
+            deckId="deck",
+            deckName="Deck",
+            canonicalCardId="oracle",
+            catalogCardId="printing",
+            name="Name",
+            imageUri="image",
+            required=8,
+            exact=2,
+            alternate=3,
+            missing=3,
+        )
         assert result["sets"] == [{"label": "tst", "quantity": 5, "share": 1}]
         assert result["finishes"] == [
             {"label": "nonfoil", "quantity": 3, "share": 0.6},

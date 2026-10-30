@@ -11600,6 +11600,19 @@
 								"type": "null"
 							}
 						]
+					},
+					"catalogBreakdown": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/DashboardCatalogBreakdown"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"requirements": {
+						"$ref": "#/components/schemas/DashboardRequirementPreviews"
 					}
 				},
 				"required": [
@@ -11612,7 +11625,9 @@
 					"pendingScanReviews",
 					"inventoryValue",
 					"inventoryValueHistory",
-					"valuationError"
+					"valuationError",
+					"catalogBreakdown",
+					"requirements"
 				]
 			},
 			"LoginRequest": {
@@ -17529,6 +17544,135 @@
 						}
 					}
 				}
+			},
+			"DashboardCatalogBreakdown": {
+				"type": "object",
+				"properties": {
+					"colors": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/DashboardDistribution"
+						}
+					},
+					"colorIdentity": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/DashboardDistribution"
+						}
+					},
+					"rarities": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/DashboardDistribution"
+						}
+					},
+					"primaryTypes": {
+						"type": "array",
+						"items": {
+							"$ref": "#/components/schemas/DashboardDistribution"
+						}
+					},
+					"matchedQuantity": {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 9007199254740991
+					},
+					"unknownQuantity": {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 9007199254740991
+					},
+					"setNames": {
+						"type": "object",
+						"additionalProperties": {
+							"type": "string"
+						}
+					}
+				},
+				"required": [
+					"colors",
+					"colorIdentity",
+					"rarities",
+					"primaryTypes",
+					"matchedQuantity",
+					"unknownQuantity",
+					"setNames"
+				]
+			},
+			"DashboardRequirement": {
+				"type": "object",
+				"properties": {
+					"deckId": {
+						"type": "string"
+					},
+					"deckName": {
+						"type": "string"
+					},
+					"canonicalCardId": {
+						"type": "string"
+					},
+					"catalogCardId": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"imageUri": {
+						"type": "string"
+					},
+					"required": {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 9007199254740991
+					},
+					"exact": {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 9007199254740991
+					},
+					"alternate": {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 9007199254740991
+					},
+					"missing": {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 9007199254740991
+					}
+				},
+				"required": [
+					"deckId",
+					"deckName",
+					"canonicalCardId",
+					"catalogCardId",
+					"name",
+					"imageUri",
+					"required",
+					"exact",
+					"alternate",
+					"missing"
+				]
+			},
+			"DashboardRequirementPreviews": {
+				"type": "object",
+				"properties": {
+					"missing": {
+						"type": "array",
+						"maxItems": 8,
+						"items": {
+							"$ref": "#/components/schemas/DashboardRequirement"
+						}
+					},
+					"alternate": {
+						"type": "array",
+						"maxItems": 8,
+						"items": {
+							"$ref": "#/components/schemas/DashboardRequirement"
+						}
+					}
+				},
+				"required": ["missing", "alternate"]
 			}
 		}
 	},

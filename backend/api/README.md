@@ -67,7 +67,10 @@ These PostgreSQL cases require the assigned disposable target and do not run dur
 `VALUE_HISTORY_TIMEZONE` defaults to `Europe/Berlin`, is validated before resources are constructed and configures private history reads.
 `GET /api/v1/mtg/dashboard` authenticates and computes account-scoped totals, distributions, recent entries, Deck availability and optional Scan counts in one read-only repeatable-read transaction.
 Current value and thirty-day history reuse that transaction and its PostgreSQL clock.
-Savepoints isolate optional Scan/valuation failures; aggregate overflow retains the existing 503 summary error.
+The response also includes actual active-Catalog distributions and bounded missing/alternate requirement previews from the same account snapshot.
+Unknown Catalog identities keep their owned quantities; unavailable Catalog reads return a null breakdown.
+Savepoints isolate optional Catalog/Scan/valuation failures; aggregate overflow retains the existing 503 summary error.
+The opt-in `backend/core/tests/test_dashboard_catalog_postgres.py` cases cover active-generation partitions, weighted counts, unmatched identities, requirement bounds and account isolation on an exclusively assigned disposable target.
 The opt-in `backend/core/tests/test_dashboard_postgres.py` case covers real aggregates, exact-first Deck allocation, current/history reads and account isolation; Root owns its assigned database execution.
 
 Native APIRouter factories register the 85 canonical operations and Discovery directly.

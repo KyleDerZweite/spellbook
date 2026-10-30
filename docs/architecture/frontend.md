@@ -778,7 +778,10 @@ Dashboard composes the current value through `InventoryValueHistory`'s optional 
 Coverage disclosures and exact daily tables remain native details controls, and an unknown-only history renders an explicit empty state without a synthetic line.
 `ProportionChart` owns D3 Pie/ring/bar geometry and per-segment pointer, focus and tap inspection.
 Zero quantities remain available as native data; unknown and empty states create no colored segment.
-The recent-entry gallery uses existing account-scoped detail links and full card frames; Dashboard requests no additional Catalog or Inventory objects.
+The recent-entry gallery uses existing account-scoped detail links and full card frames.
+The Dashboard response supplies account-scoped, quantity-weighted color, color-identity, rarity and exclusive primary-type distributions from the active Catalog, plus bounded missing and alternate requirement previews.
+Unmatched Printings remain Unknown, optional Catalog failures return an unavailable breakdown, and previews retain stored Deck/Printing identities.
+Browser consumers request no complete Inventory or additional Catalog objects for these summaries.
 The [Mebius adaptation contract](../product/ui-design-direction.md#mebius-chart-adaptation) maps the selected reference treatments to these four existing chart families.
 `--color-chart-track` owns the neutral light/dark track fill.
 The Set Pie groups after the top five into Other and exposes its full exact-count/share breakdown through a native disclosure rather than a permanent legend.
