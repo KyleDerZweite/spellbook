@@ -1,5 +1,8 @@
 # Python API
 
+`create_power_search_routes` exposes the optional-session `GET /api/v1/mtg/power-search?query=TEXT` read with `Cache-Control: no-store`.
+The runtime constructs its Core owner from the existing pool and SessionAuth; invalid explicit Bearer credentials return 401.
+
 The candidate assembles Auth/QR, Account/Profile/Dashboard, four canonical Catalog adapters, sixteen Inventory/Groups/import adapters, five Valuation adapters, seven Scan adapters, seventeen Category adapters and SavedState.
 It is the normal API in the unmerged candidate, including nineteen Deck routes and all nine closed web commands.
 Root scripts, Compose and the explicit Python migrator use installed packages.

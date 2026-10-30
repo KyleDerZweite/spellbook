@@ -11,6 +11,7 @@ from spellbook_core.mtg.categories import Categories
 from spellbook_core.mtg.dashboard import Dashboard
 from spellbook_core.mtg.decks import Decks
 from spellbook_core.mtg.inventory import Inventory
+from spellbook_core.mtg.power_search import PowerSearch
 from spellbook_core.mtg.scan import Scan
 from spellbook_core.mtg.valuation import Valuation
 from spellbook_core.profile import Profile
@@ -26,6 +27,7 @@ from spellbook_api.http.mtg import (
     routes_dashboard,
     routes_decks,
     routes_inventory,
+    routes_power_search,
     routes_scan,
     routes_valuation,
 )
@@ -39,6 +41,7 @@ def create_http_application(
     *,
     auth: SessionAuth | None = None,
     catalog: Catalog | None = None,
+    power_search: PowerSearch | None = None,
     inventory: Inventory | None = None,
     saved_routes: SavedStateRoutes | None = None,
     admission: RequestAdmission | None = None,
@@ -82,6 +85,10 @@ def create_http_application(
         http.add_api_route("/api/v1/auth/session", session, methods=["GET"], response_model=None)
         http.add_api_route("/api/v1/account/events", events, methods=["GET"], response_model=None)
         http.include_router(routes_catalog.create_catalog_routes(catalog))
+    if power_search is not None:
+        if auth is None:
+            raise ValueError("Power search routes require Auth")
+        http.include_router(routes_power_search.create_power_search_routes(auth, power_search))
     if valuation is not None:
         if auth is None:
             raise ValueError("Valuation routes require Auth")
