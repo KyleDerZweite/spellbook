@@ -1,16 +1,17 @@
 # Reference
 
 - Status: Canonical
-- Last Reviewed: 2026-10-04
+- Last Reviewed: 2026-10-30
 - Source of Truth: accepted choices and vendor documentation
-- Update Triggers: dependency guidance changes, curated reference path changes
+- Update Triggers: dependency guidance changes, curated reference path changes, MTG project reference assessments
 - Related Docs: [Selected UI components](./ui-libraries.md), [Bits UI](./bits-ui.md), [Brand artwork and icons](./website-icons.md), [Mana Font](./fonts/mana.md), [Docs Index](../README.md)
 
-Reference documents describe selected dependencies, asset requirements, and vendor guidance.
+Reference documents describe selected dependencies, asset requirements, vendor guidance, and evaluated external projects.
 The product specification and architecture documents own implemented behavior.
 
 ## Files
 
+- [Optional MTG project references](./mtg-projects.md), non-authoritative examples for specific questions.
 - [Bits UI](./bits-ui.md)
 - [Mana font](./fonts/mana.md)
 - [Selected UI components](./ui-libraries.md)
