@@ -1,6 +1,28 @@
 <script lang="ts">
 	let { design }: { design: number } = $props();
 	const names = ['Calm', 'Gallery', 'Studio', 'Bento', 'Collection'];
+	const references = [
+		[
+			{ name: 'Things 3', url: 'https://culturedcode.com/things/' },
+			{ name: 'shadcn', url: 'https://ui.shadcn.com/examples/dashboard' }
+		],
+		[
+			{ name: 'Craft', url: 'https://www.craft.do/' },
+			{ name: 'Apple Music', url: 'https://www.apple.com/apple-music/' }
+		],
+		[
+			{ name: 'Linear', url: 'https://linear.app/' },
+			{ name: 'Raycast', url: 'https://www.raycast.com/' }
+		],
+		[
+			{ name: 'shadcn', url: 'https://ui.shadcn.com/examples/dashboard' },
+			{ name: 'Raycast', url: 'https://www.raycast.com/' }
+		],
+		[
+			{ name: 'Bear', url: 'https://bear.app/' },
+			{ name: 'Craft', url: 'https://www.craft.do/' }
+		]
+	];
 </script>
 
 <nav class="prototype-selector" aria-label="Dashboard design selector">
@@ -16,7 +38,18 @@
 		class="arrow"
 		href={`/mtg/dashboard/${design === 5 ? 1 : design + 1}`}
 		aria-label="Next design">→</a
-	><a class="baseline" href="/mtg/dashboard" aria-label="Open current Dashboard">↗</a>
+	>
+	<details class="references">
+		<summary aria-label="Design references">Refs</summary>
+		<div>
+			{#each references[design - 1] as reference}<a
+					href={reference.url}
+					target="_blank"
+					rel="noopener">{reference.name} ↗</a
+				>{/each}
+		</div>
+	</details>
+	<a class="baseline" href="/mtg/dashboard" aria-label="Open current Dashboard">↗</a>
 </nav>
 
 <style>
@@ -74,6 +107,32 @@
 		border-left: 1px solid var(--color-border);
 		border-radius: 0;
 	}
+	.references {
+		position: relative;
+	}
+	.references summary {
+		cursor: pointer;
+		list-style: none;
+		padding: 0.5rem;
+		color: var(--color-text-muted);
+	}
+	.references summary::-webkit-details-marker {
+		display: none;
+	}
+	.references div {
+		position: absolute;
+		right: 0;
+		bottom: calc(100% + 14px);
+		min-width: 160px;
+		padding: 0.4rem;
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
+		background: var(--color-surface);
+		box-shadow: 0 4px 20px #0003;
+	}
+	.references div a {
+		justify-content: space-between;
+	}
 	@media (max-width: 760px) {
 		a span,
 		.preview-label {
@@ -81,12 +140,17 @@
 		}
 		a {
 			min-width: 34px;
-			min-height: 38px;
+			min-height: 42px;
 			padding: 0.4rem 0.5rem;
 		}
 		.prototype-selector {
 			gap: 2px;
 			bottom: 0.75rem;
+		}
+	}
+	@media (max-width: 480px) {
+		.arrow {
+			display: none;
 		}
 	}
 </style>

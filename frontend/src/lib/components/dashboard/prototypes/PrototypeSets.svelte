@@ -48,7 +48,7 @@
 		</div>{:else}<div class="set-bars">
 			{#each items as item}<div>
 					<span>{item.label}</span><strong>{item.value.toLocaleString()}</strong><i
-						style:width={`${(item.value / Math.max(...items.map((x) => x.value))) * 100}%`}
+						style:width={`${(item.value / dashboard.totals.total) * 100}%`}
 						style:background={item.color}
 					></i>
 				</div>{/each}

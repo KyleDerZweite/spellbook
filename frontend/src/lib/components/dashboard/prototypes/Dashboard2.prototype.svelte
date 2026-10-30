@@ -24,7 +24,7 @@
 		</div>
 	</section>
 	<aside aria-label="Dashboard details">
-		<PrototypeSets {dashboard} presentation="bars" />
+		<PrototypeSets {dashboard} presentation="pie" />
 		<PrototypeActions />
 	</aside>
 </div>
@@ -38,16 +38,62 @@
 		align-items: start;
 		margin-top: 1.5rem;
 	}
-	.decks, aside { min-width: 0; }
-	header { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin: 0 0 1rem; }
-	h2 { margin: 0; font: 500 1.125rem var(--font-interface); color: var(--color-text-primary); }
-	header a, p { font: 0.8125rem var(--font-interface); color: var(--color-text-secondary); }
-	header a { text-decoration: none; white-space: nowrap; }
-	header a:hover { text-decoration: underline; }
-	.deck-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
-	aside { display: grid; gap: 1rem; }
-	.recent { margin-top: 1.5rem; }
-	@media (max-width: 1100px) { .deck-grid { grid-template-columns: 1fr; } }
-	@media (max-width: 760px) { .workspace { grid-template-columns: 1fr; } aside { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-	@media (max-width: 520px) { aside { grid-template-columns: 1fr; } }
+	.decks,
+	aside {
+		min-width: 0;
+	}
+	header {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1rem;
+		margin: 0 0 1rem;
+	}
+	h2 {
+		margin: 0;
+		font: 500 1.125rem var(--font-interface);
+		color: var(--color-text-primary);
+	}
+	header a,
+	p {
+		font: 0.8125rem var(--font-interface);
+		color: var(--color-text-secondary);
+	}
+	header a {
+		text-decoration: none;
+		white-space: nowrap;
+	}
+	header a:hover {
+		text-decoration: underline;
+	}
+	.deck-grid {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 1rem;
+	}
+	aside {
+		display: grid;
+		gap: 1rem;
+	}
+	.recent {
+		margin-top: 1.5rem;
+	}
+	@media (max-width: 1100px) {
+		.deck-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+	@media (max-width: 760px) {
+		.workspace {
+			grid-template-columns: 1fr;
+		}
+		aside {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+	}
+	@media (max-width: 520px) {
+		aside {
+			grid-template-columns: 1fr;
+		}
+	}
 </style>

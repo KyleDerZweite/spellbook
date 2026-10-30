@@ -36,27 +36,90 @@
 </div>
 
 <style>
-	.hub { display: grid; gap: 1.25rem; min-width: 0; }
-	.decks { min-width: 0; }
-	.section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin: 0.25rem 0 0.9rem; }
-	h2 { margin: 0; font: 500 1.125rem var(--font-interface); color: var(--color-text-primary); }
-	.section-heading a, .empty { color: var(--color-text-secondary); font: 0.8125rem var(--font-interface); text-decoration: none; }
-	.section-heading a:hover, .empty:hover { text-decoration: underline; }
-	.deck-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; align-items: stretch; }
-	.deck-grid > div { min-width: 0; }
-	.deck-grid .featured { grid-column: span 1; }
-	.empty { padding: 1.5rem; border: 1px solid var(--color-border); border-radius: 0.85rem; background: var(--color-card); }
-	.support { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 1rem; align-items: start; }
-	.sets { grid-column: span 4; }
-	.recent { grid-column: span 8; }
-	.actions { grid-column: span 5; }
-	.devices { grid-column: span 7; }
+	.hub {
+		display: grid;
+		gap: 1.25rem;
+		min-width: 0;
+	}
+	.decks {
+		min-width: 0;
+	}
+	.section-heading {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1rem;
+		margin: 0.25rem 0 0.9rem;
+	}
+	h2 {
+		margin: 0;
+		font: 500 1.125rem var(--font-interface);
+		color: var(--color-text-primary);
+	}
+	.section-heading a,
+	.empty {
+		color: var(--color-text-secondary);
+		font: 0.8125rem var(--font-interface);
+		text-decoration: none;
+	}
+	.section-heading a:hover,
+	.empty:hover {
+		text-decoration: underline;
+	}
+	.deck-grid {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 1rem;
+		align-items: stretch;
+	}
+	.deck-grid > div {
+		min-width: 0;
+	}
+	.deck-grid .featured {
+		grid-column: span 1;
+	}
+	.empty {
+		padding: 1.5rem;
+		border: 1px solid var(--color-border);
+		border-radius: 0.85rem;
+		background: var(--color-card);
+	}
+	.support {
+		display: grid;
+		grid-template-columns: repeat(12, minmax(0, 1fr));
+		gap: 1rem;
+		align-items: start;
+	}
+	.sets {
+		grid-column: span 4;
+	}
+	.recent {
+		grid-column: span 8;
+	}
+	.actions {
+		grid-column: span 5;
+	}
+	.devices {
+		grid-column: span 7;
+	}
 	@media (max-width: 1050px) {
-		.deck-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-		.sets, .recent { grid-column: span 6; }
+		.deck-grid {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+		.sets,
+		.recent {
+			grid-column: span 6;
+		}
 	}
 	@media (max-width: 700px) {
-		.deck-grid { grid-template-columns: 1fr; }
-		.sets, .recent, .actions, .devices { grid-column: 1 / -1; }
+		.deck-grid {
+			grid-template-columns: 1fr;
+		}
+		.sets,
+		.recent,
+		.actions,
+		.devices {
+			grid-column: 1 / -1;
+		}
 	}
 </style>

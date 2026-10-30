@@ -39,18 +39,62 @@
 </div>
 
 <style>
-	.decks { margin-top: 1.75rem; }
-	.section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
-	h2 { margin: 0; color: var(--color-text-primary); font: 500 1.125rem var(--font-interface); }
-	.section-heading a, .empty { color: var(--color-text-muted); font: 0.8125rem var(--font-interface); }
-	.section-heading a { text-decoration: none; white-space: nowrap; }
-	.section-heading a:hover { text-decoration: underline; }
-	.empty a { color: var(--color-text-primary); }
-	.deck-layout { display: grid; grid-template-columns: minmax(290px, 0.85fr) minmax(0, 2fr); gap: 1rem; align-items: start; }
-	.featured { min-width: 0; }
-	.shelf { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; min-width: 0; }
-	.supporting { display: grid; grid-template-columns: minmax(240px, 0.85fr) minmax(0, 2fr); gap: 1rem; margin-top: 1.5rem; align-items: start; }
+	.decks {
+		margin-top: 1.75rem;
+	}
+	.section-heading {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 1rem;
+		margin-bottom: 1rem;
+	}
+	h2 {
+		margin: 0;
+		color: var(--color-text-primary);
+		font: 500 1.125rem var(--font-interface);
+	}
+	.section-heading a,
+	.empty {
+		color: var(--color-text-muted);
+		font: 0.8125rem var(--font-interface);
+	}
+	.section-heading a {
+		text-decoration: none;
+		white-space: nowrap;
+	}
+	.section-heading a:hover {
+		text-decoration: underline;
+	}
+	.empty a {
+		color: var(--color-text-primary);
+	}
+	.deck-layout {
+		display: grid;
+		grid-template-columns: minmax(290px, 0.85fr) minmax(0, 2fr);
+		gap: 1rem;
+		align-items: start;
+	}
+	.featured {
+		min-width: 0;
+	}
+	.shelf {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+		gap: 1rem;
+		min-width: 0;
+	}
+	.supporting {
+		display: grid;
+		grid-template-columns: minmax(240px, 0.85fr) minmax(0, 2fr);
+		gap: 1rem;
+		margin-top: 1.5rem;
+		align-items: start;
+	}
 	@media (max-width: 760px) {
-		.deck-layout, .supporting { grid-template-columns: minmax(0, 1fr); }
+		.deck-layout,
+		.supporting {
+			grid-template-columns: minmax(0, 1fr);
+		}
 	}
 </style>

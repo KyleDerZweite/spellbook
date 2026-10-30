@@ -48,7 +48,6 @@
 		display: grid;
 		grid-template-columns: repeat(4, minmax(0, 1fr));
 		gap: 1rem;
-		margin-bottom: 1.5rem;
 	}
 	.metric {
 		display: flex;

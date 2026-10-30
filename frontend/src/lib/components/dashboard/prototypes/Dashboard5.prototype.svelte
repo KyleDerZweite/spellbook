@@ -35,6 +35,7 @@
 
 <style>
 	.canvas {
+		margin-top: 1.5rem;
 		display: grid;
 		gap: 1.5rem;
 		min-width: 0;

@@ -86,7 +86,8 @@
 	}
 	.commander {
 		display: block;
-		flex-shrink: 0;
+		flex: 0 1 104px;
+		min-width: 72px;
 		width: 104px;
 		aspect-ratio: 5/7;
 	}
@@ -120,6 +121,7 @@
 	}
 	.featured .commander {
 		width: 144px;
+		flex-basis: 144px;
 	}
 	.featured .deck-title {
 		font-size: 1.15rem;
@@ -146,9 +148,6 @@
 		}
 		.commander {
 			width: 104px;
-		}
-		.featured .commander {
-			width: 128px;
 		}
 	}
 </style>
