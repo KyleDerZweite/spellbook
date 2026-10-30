@@ -3,11 +3,13 @@
 	import collectionReference from './references/collection-workbench.png?url';
 	import deckReference from './references/deck-workbench.png?url';
 	import overviewReference from './references/collection-overview.png?url';
+	import gridReference from './references/dashboard-grid.png?url';
 	let { design }: { design: number } = $props();
 	const variants = [
 		{ id: 6, name: 'Collection', reference: collectionReference },
 		{ id: 7, name: 'Decks', reference: deckReference },
-		{ id: 8, name: 'Overview', reference: overviewReference }
+		{ id: 8, name: 'Overview', reference: overviewReference },
+		{ id: 9, name: 'Grid', reference: gridReference }
 	];
 	const index = $derived(variants.findIndex((v) => v.id === design));
 	const current = $derived(variants[index]);

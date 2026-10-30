@@ -10,10 +10,11 @@
 	import Design6 from '#lib/components/dashboard/prototypes/Dashboard6.prototype.svelte';
 	import Design7 from '#lib/components/dashboard/prototypes/Dashboard7.prototype.svelte';
 	import Design8 from '#lib/components/dashboard/prototypes/Dashboard8.prototype.svelte';
+	import Design9 from '#lib/components/dashboard/prototypes/Dashboard9.prototype.svelte';
 	let { data }: PageProps = $props();
 	let dashboard = $state(untrack(() => data.dashboard));
 	let subscription: ResourceSubscription | undefined = $state();
-	const designs = { 6: Design6, 7: Design7, 8: Design8 };
+	const designs = { 6: Design6, 7: Design7, 8: Design8, 9: Design9 };
 	const Design = $derived(designs[data.design as keyof typeof designs]);
 	onMount(() => {
 		subscription = workspaceSavedState.subscribe({

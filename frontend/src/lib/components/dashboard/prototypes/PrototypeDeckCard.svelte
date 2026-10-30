@@ -155,7 +155,7 @@
 		color: var(--color-text-primary);
 	}
 	@media (max-width: 480px) {
-		.prototype-deck-card {
+		.prototype-deck-card:not(.plain) {
 			padding: 1rem;
 		}
 		.commander {

@@ -177,7 +177,7 @@
 			><strong>{copies(active.value)}</strong><small>{share(active.value)}</small>
 		</div>
 	{/if}
-	<span class="sr-only">{total.toLocaleString()} copies total</span>
+	<span class="sr-only">{copies(total)} total</span>
 	<noscript
 		><dl class="native-chart-data">
 			{#each items as item}<div>

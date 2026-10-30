@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-30
 - Source of Truth: accepted product requirements, application components, selected logo and component choices
-- Update Triggers: eight native Dashboard design prototypes, saved generated references and mock previews, selected A+ Dashboard layout and native Demo evaluation, Mebius chart reference adaptation, executed development-only search lab and comparison, shortcut-only power-user search requirement and source algorithm investigation, global command menu exploration, color-mode placement below centered mana controls, tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
+- Update Triggers: four real-data Dashboard references, removed rejected prototypes and search fields, semantic Mana Font charts, selected A+ Dashboard layout and native Demo evaluation, Mebius chart reference adaptation, executed development-only search lab and comparison, shortcut-only power-user search requirement and source algorithm investigation, global command menu exploration, color-mode placement below centered mana controls, tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
 - Related Docs: [Product specification](./specification.md), [Mobile exploration](./mobile-app-exploration.md), [Routes](./routing-and-games.md), [Domain model](../../GLOSSARY.md), [Selected UI components](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Brand assets](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Value tracking](./value-tracking.md)
 
 Spellbook prioritizes digitizing, indexing and managing a player's own Magic cards, then building decks from that collection.
@@ -146,22 +146,20 @@ The explicit native Demo scenario adds real Catalog-backed Inventory and Deck ro
 
 ### Dashboard design prototypes
 
-The maintainer requested five full, clickable design prototypes on 2026-10-30 after rejecting abstract standalone wireframes.
-Three more variants adapt the maintainer-provided generated references, which are preserved unchanged beside the prototype components.
-The local comparison routes are `/mtg/dashboard/1` through `/mtg/dashboard/8`, with a separate selector and the unchanged real application shell.
-The saved source images are [the Dashboard grid](../../frontend/src/lib/components/dashboard/prototypes/references/dashboard-grid.png), [Collection workbench](../../frontend/src/lib/components/dashboard/prototypes/references/collection-workbench.png), [Deck workbench](../../frontend/src/lib/components/dashboard/prototypes/references/deck-workbench.png) and [Collection overview](../../frontend/src/lib/components/dashboard/prototypes/references/collection-overview.png).
-They are available only in development or explicit Demo mode and require the ordinary authenticated Dashboard read.
-The current `/mtg/dashboard` remains unchanged while a direction is selected.
+The local comparison contains four complete designs at `/mtg/dashboard/6` through `/mtg/dashboard/9` with a separate selector and the unchanged real application shell.
+Variants 1 through 5 were rejected and removed; their authenticated routes return 404 and their components are absent.
+The saved source images remain unchanged: [Collection workbench](../../frontend/src/lib/components/dashboard/prototypes/references/collection-workbench.png) for 6, [Deck workbench](../../frontend/src/lib/components/dashboard/prototypes/references/deck-workbench.png) for 7, [Collection overview](../../frontend/src/lib/components/dashboard/prototypes/references/collection-overview.png) for 8 and [Dashboard grid](../../frontend/src/lib/components/dashboard/prototypes/references/dashboard-grid.png) for 9.
+The prototypes are available only in development or explicit Demo mode and require the ordinary authenticated Dashboard read.
+The regular `/mtg/dashboard` keeps its existing layout while a direction is selected.
 
-All prototypes use the same real Dashboard data and four top metric cards: Inventory value, Total / unique cards, Sets and Decks.
-Metrics omit decorative charts and no separate large History panel is added.
-Partial valuation coverage remains visible.
-Variants 6 through 8 include visibly marked mock concepts for analytics, Wishlist, Scan review, import/export and sync.
-Their demonstration controls affect only local component state or a generated mock download; they do not write account data.
-Decks use larger stored Commander artwork beside their availability ring, with the Deck name above.
-Sets retains its title and segment inspection; repeated count captions and a visible Set data row are excluded.
-Titles remain visible, while explanatory subheadings are omitted.
-Optional device concepts are marked as such and do not establish connectivity or reactivate Scan.
+All four designs consume the same actual account summary.
+Their top metrics show Inventory value with partial coverage, Total / unique cards, Sets and Decks.
+No frontend fixture, synthetic trend, simulated mutation or additional search field remains.
+Measure filters switch actual Color and Color identity distributions.
+Saved Set names, requirement previews, full Commander artwork and Mana Font color/type/rarity symbols give the layouts their MTG context.
+Commander-format Decks carry the Mana Font Commander symbol.
+Native navigation opens the corresponding Inventory entry or Deck workspace.
+Titles remain visible, while repeated explanatory subheadings and permanent Set legends are excluded.
 These are alternative compositions, not selected production designs.
 
 ### Accepted real-data prototype revision

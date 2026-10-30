@@ -5,7 +5,7 @@ import { getDashboard } from '#lib/server/data/dashboard.ts';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (process.env.NODE_ENV !== 'development' && !demoMode) error(404, 'Not found');
-	if (!/^[6-8]$/.test(params.design)) error(404, 'Not found');
+	if (!/^[6-9]$/.test(params.design)) error(404, 'Not found');
 	if (!locals.user) error(401, 'Sign in to view your dashboard.');
 	try {
 		return {

@@ -13,13 +13,11 @@
 		'var(--color-chart-rose)'
 	];
 	const items = $derived([
-		...dashboard.sets
-			.slice(0, 5)
-			.map((s, i) => ({
-				label: dashboard.catalogBreakdown?.setNames[s.label] ?? s.label.toUpperCase(),
-				value: s.quantity,
-				color: colors[i]
-			})),
+		...dashboard.sets.slice(0, 5).map((s, i) => ({
+			label: dashboard.catalogBreakdown?.setNames[s.label] ?? s.label.toUpperCase(),
+			value: s.quantity,
+			color: colors[i]
+		})),
 		...(dashboard.sets.length > 5
 			? [
 					{

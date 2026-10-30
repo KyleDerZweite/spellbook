@@ -2,7 +2,11 @@
 	import type { DashboardDistribution } from '@spellbook/contracts/dashboard.ts';
 	import PrototypeMtgIcon from './PrototypeMtgIcon.svelte';
 	import { manaColor } from './prototype-mtg.ts';
-	let { items, label }: { items: DashboardDistribution[]; label: string } = $props();
+	let {
+		items,
+		label,
+		height = 128
+	}: { items: DashboardDistribution[]; label: string; height?: number } = $props();
 	let inspected = $state<string | null>(null);
 	const visible = $derived(items.filter((item) => item.label !== 'Unknown' || item.quantity > 0));
 	const maximum = $derived(Math.max(1, ...items.map((item) => item.quantity)));
@@ -14,7 +18,7 @@
 		if (event.key === 'Escape') inspected = null;
 	}}
 />
-<div class="color-chart" role="group" aria-label={label}>
+<div class="color-chart" role="group" aria-label={label} style:--plot-height={`${height}px`}>
 	<div class="bars">
 		{#each visible as item}<button
 				type="button"
@@ -54,7 +58,7 @@
 	.column {
 		display: grid;
 		justify-items: center;
-		grid-template-rows: 20px 128px 24px;
+		grid-template-rows: 20px var(--plot-height) 24px;
 		gap: 8px;
 		flex: 1;
 		min-width: 0;
