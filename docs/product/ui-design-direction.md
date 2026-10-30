@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-30
 - Source of Truth: accepted product requirements, application components, selected logo and component choices
-- Update Triggers: selected A+ Dashboard layout and native Demo evaluation, Mebius chart reference adaptation, executed development-only search lab and comparison, shortcut-only power-user search requirement and source algorithm investigation, global command menu exploration, color-mode placement below centered mana controls, tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
+- Update Triggers: five native Dashboard design prototypes and reference evaluation, selected A+ Dashboard layout and native Demo evaluation, Mebius chart reference adaptation, executed development-only search lab and comparison, shortcut-only power-user search requirement and source algorithm investigation, global command menu exploration, color-mode placement below centered mana controls, tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
 - Related Docs: [Product specification](./specification.md), [Mobile exploration](./mobile-app-exploration.md), [Routes](./routing-and-games.md), [Domain model](../../GLOSSARY.md), [Selected UI components](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Brand assets](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Value tracking](./value-tracking.md)
 
 Spellbook prioritizes digitizing, indexing and managing a player's own Magic cards, then building decks from that collection.
@@ -143,6 +143,21 @@ Shared ProportionChart owns D3 geometry and per-segment inspection for Pie, ring
 Deck rows preserve exact/alternate/missing quantities, use a larger ring with an owned/required readout, and keep an empty Deck as a compact action without an invented chart.
 Set and Inventory breakdowns keep native exact-data disclosures; no permanent Set legend is rendered.
 The explicit native Demo scenario adds real Catalog-backed Inventory and Deck rows; it does not replace account reads with browser fixtures.
+
+### Dashboard design prototypes
+
+The maintainer requested five full, clickable design prototypes on 2026-10-30 after rejecting abstract standalone wireframes.
+The local comparison routes are `/mtg/dashboard/1` through `/mtg/dashboard/5`, with a separate selector and the unchanged real application shell.
+They are available only in development or explicit Demo mode and require the ordinary authenticated Dashboard read.
+The current `/mtg/dashboard` remains unchanged while a direction is selected.
+
+All prototypes use the same real Dashboard data and four top metric cards: Inventory value, Total / Unique Cards, Sets and Decks.
+Inventory value includes a small actual history sparkline instead of a separate large History panel.
+Decks use larger stored Commander artwork beside their availability ring, with the Deck name above.
+Sets retains its title and segment inspection; repeated count captions and a visible Set data row are excluded.
+Titles remain visible, while explanatory subheadings are omitted.
+Optional device concepts are marked as such and do not establish connectivity or reactivate Scan.
+These are alternative compositions, not selected production designs.
 
 ### Dashboard metric trends, concept only
 
