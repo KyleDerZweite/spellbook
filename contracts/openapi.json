@@ -11,57 +11,57 @@
 		}
 	],
 	"paths": {
-			"/api/v1/mtg/power-search": {
-				"get": {
-					"summary": "Search public Catalog and optionally session-owned Inventory and Decks",
-					"description": "Independent source matching before limits. Query limit is 300 UTF-16 units. Responses use Cache-Control: no-store. Invalid explicit bearer credentials return 401. Account identifiers cannot select private scope.",
-					"security": [
-						{},
-						{
-							"sessionCookie": []
-						},
-						{
-							"bearerToken": []
-						}
-					],
-					"parameters": [
-						{
-							"name": "query",
-							"in": "query",
-							"schema": {
-								"type": "string",
-								"default": "",
-								"maxLength": 300
-							}
-						}
-					],
-					"responses": {
-						"200": {
-							"description": "Bounded context-specific matches",
-							"headers": {
-								"Cache-Control": {
-									"schema": {
-										"const": "no-store"
-									}
-								}
-							},
-							"content": {
-								"application/json": {
-									"schema": {
-										"$ref": "#/components/schemas/PowerSearchResponse"
-									}
-								}
-							}
-						},
-						"400": {
-							"description": "Invalid query"
-						},
-						"401": {
-							"description": "Invalid explicit bearer or revoked actor"
+		"/api/v1/mtg/power-search": {
+			"get": {
+				"summary": "Search public Catalog and optionally session-owned Inventory and Decks",
+				"description": "Independent source matching before limits. Query limit is 300 UTF-16 units. Responses use Cache-Control: no-store. Invalid explicit bearer credentials return 401. Account identifiers cannot select private scope.",
+				"security": [
+					{},
+					{
+						"sessionCookie": []
+					},
+					{
+						"bearerToken": []
+					}
+				],
+				"parameters": [
+					{
+						"name": "query",
+						"in": "query",
+						"schema": {
+							"type": "string",
+							"default": "",
+							"maxLength": 300
 						}
 					}
+				],
+				"responses": {
+					"200": {
+						"description": "Bounded context-specific matches",
+						"headers": {
+							"Cache-Control": {
+								"schema": {
+									"const": "no-store"
+								}
+							}
+						},
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/PowerSearchResponse"
+								}
+							}
+						}
+					},
+					"400": {
+						"description": "Invalid query"
+					},
+					"401": {
+						"description": "Invalid explicit bearer or revoked actor"
+					}
 				}
-			},
+			}
+		},
 		"/api/v1/mtg/prices": {
 			"get": {
 				"summary": "Read a public exact-finish EUR reference and supplied product links",
@@ -10599,169 +10599,134 @@
 			}
 		},
 		"schemas": {
-				"PowerSearchCatalogHit": {
-					"type": "object",
-					"additionalProperties": false,
-					"required": [
-						"kind",
-						"canonicalCardId",
-						"catalogCardId",
-						"name"
-					],
-					"properties": {
-						"kind": {
-							"const": "catalog"
-						},
-						"canonicalCardId": {
-							"type": "string"
-						},
-						"catalogCardId": {
-							"type": "string"
-						},
-						"name": {
-							"type": "string"
-						}
+			"PowerSearchCatalogHit": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["kind", "canonicalCardId", "catalogCardId", "name"],
+				"properties": {
+					"kind": {
+						"const": "catalog"
+					},
+					"canonicalCardId": {
+						"type": "string"
+					},
+					"catalogCardId": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
 					}
-				},
-				"PowerSearchInventoryHit": {
-					"type": "object",
-					"additionalProperties": false,
-					"required": [
-						"kind",
-						"canonicalCardId",
-						"name",
-						"quantity"
-					],
-					"properties": {
-						"kind": {
-							"const": "inventory"
-						},
-						"canonicalCardId": {
-							"type": "string"
-						},
-						"name": {
-							"type": "string"
-						},
-						"quantity": {
-							"type": "integer",
-							"minimum": 0
-						}
+				}
+			},
+			"PowerSearchInventoryHit": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["kind", "canonicalCardId", "name", "quantity"],
+				"properties": {
+					"kind": {
+						"const": "inventory"
+					},
+					"canonicalCardId": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"quantity": {
+						"type": "integer",
+						"minimum": 0
 					}
-				},
-				"PowerSearchDeckHit": {
-					"type": "object",
-					"additionalProperties": false,
-					"required": [
-						"kind",
-						"deckId",
-						"name",
-						"format"
-					],
-					"properties": {
-						"kind": {
-							"const": "deck"
-						},
-						"deckId": {
-							"type": "string"
-						},
-						"name": {
-							"type": "string"
-						},
-						"format": {
-							"type": "string"
-						}
+				}
+			},
+			"PowerSearchDeckHit": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["kind", "deckId", "name", "format"],
+				"properties": {
+					"kind": {
+						"const": "deck"
+					},
+					"deckId": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"format": {
+						"type": "string"
 					}
-				},
-				"PowerSearchDeckCardHit": {
-					"type": "object",
-					"additionalProperties": false,
-					"required": [
-						"kind",
-						"deckId",
-						"deckName",
-						"canonicalCardId",
-						"name",
-						"quantity"
-					],
-					"properties": {
-						"kind": {
-							"const": "deck-card"
-						},
-						"deckId": {
-							"type": "string"
-						},
-						"deckName": {
-							"type": "string"
-						},
-						"canonicalCardId": {
-							"type": "string"
-						},
-						"name": {
-							"type": "string"
-						},
-						"quantity": {
-							"type": "integer",
-							"minimum": 0
-						}
+				}
+			},
+			"PowerSearchDeckCardHit": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["kind", "deckId", "deckName", "canonicalCardId", "name", "quantity"],
+				"properties": {
+					"kind": {
+						"const": "deck-card"
+					},
+					"deckId": {
+						"type": "string"
+					},
+					"deckName": {
+						"type": "string"
+					},
+					"canonicalCardId": {
+						"type": "string"
+					},
+					"name": {
+						"type": "string"
+					},
+					"quantity": {
+						"type": "integer",
+						"minimum": 0
 					}
-				},
-				"PowerSearchResponse": {
-					"type": "object",
-					"additionalProperties": false,
-					"required": [
-						"query",
-						"accountId",
-						"generationId",
-						"cards",
-						"inventory",
-						"decks"
-					],
-					"properties": {
-						"query": {
-							"type": "string"
-						},
-						"accountId": {
-							"type": [
-								"string",
-								"null"
+				}
+			},
+			"PowerSearchResponse": {
+				"type": "object",
+				"additionalProperties": false,
+				"required": ["query", "accountId", "generationId", "cards", "inventory", "decks"],
+				"properties": {
+					"query": {
+						"type": "string"
+					},
+					"accountId": {
+						"type": ["string", "null"]
+					},
+					"generationId": {
+						"type": ["string", "null"]
+					},
+					"cards": {
+						"type": "array",
+						"maxItems": 5,
+						"items": {
+							"$ref": "#/components/schemas/PowerSearchCatalogHit"
+						}
+					},
+					"inventory": {
+						"type": "array",
+						"maxItems": 5,
+						"items": {
+							"$ref": "#/components/schemas/PowerSearchInventoryHit"
+						}
+					},
+					"decks": {
+						"type": "array",
+						"maxItems": 10,
+						"items": {
+							"oneOf": [
+								{
+									"$ref": "#/components/schemas/PowerSearchDeckHit"
+								},
+								{
+									"$ref": "#/components/schemas/PowerSearchDeckCardHit"
+								}
 							]
-						},
-						"generationId": {
-							"type": [
-								"string",
-								"null"
-							]
-						},
-						"cards": {
-							"type": "array",
-							"maxItems": 5,
-							"items": {
-								"$ref": "#/components/schemas/PowerSearchCatalogHit"
-							}
-						},
-						"inventory": {
-							"type": "array",
-							"maxItems": 5,
-							"items": {
-								"$ref": "#/components/schemas/PowerSearchInventoryHit"
-							}
-						},
-						"decks": {
-							"type": "array",
-							"maxItems": 10,
-							"items": {
-								"oneOf": [
-									{
-										"$ref": "#/components/schemas/PowerSearchDeckHit"
-									},
-									{
-										"$ref": "#/components/schemas/PowerSearchDeckCardHit"
-									}
-								]
-							}
 						}
 					}
-				},
+				}
+			},
 			"QrCreateRequest": {
 				"type": "object",
 				"properties": {

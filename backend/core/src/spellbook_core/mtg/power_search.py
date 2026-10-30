@@ -24,9 +24,14 @@ def query_parameters(query: str) -> tuple[str, str, str, bool]:
     normalized = query.strip().lower()
     tokens = re.findall(r"[^\W_]+", normalized, re.UNICODE)
     # Only extracted alphanumeric tokens enter tsquery grammar, never user operators.
-    prefix = " & ".join("'" + token + "':*" for token in tokens)
+    prefix = " & ".join("'" + token + "'" + (":*" if token.isalpha() else "") for token in tokens)
     joined = "".join(tokens)
-    return normalized, prefix, joined, len(joined) >= 3 and any(c.isalpha() for c in joined)
+    fuzzy = (
+        len(joined) >= 3
+        and any(c.isalpha() for c in joined)
+        and not any(token.isdecimal() for token in tokens)
+    )
+    return normalized, prefix, joined, fuzzy
 
 
 # Parameters are data. strpos avoids LIKE wildcard semantics for literal input.
@@ -82,12 +87,24 @@ class PowerSearch:
                 _PARAMETERS
                 + "matched AS MATERIALIZED (SELECT oracle_id,id,name,lang,"
                 + rank
-                + " rank FROM catalog_printings CROSS JOIN q WHERE generation_id=%s), "
+                + " rank, greatest(similarity(search_name,q.term),"
+                "ts_rank_cd(search_vector,q.prefix)) quality "
+                "FROM catalog_printings CROSS JOIN q WHERE generation_id=%s AND "
+                "(search_vector @@ q.prefix OR search_name LIKE %s "
+                "OR (q.fuzzy AND search_name %% q.term))), "
+                # Do not fill an exact/name-completion result with unrelated typo hits.
                 "canonical AS (SELECT DISTINCT ON (oracle_id) * FROM matched WHERE rank<7 "
-                "ORDER BY oracle_id,rank,(lang='en') DESC,id) "
-                "SELECT oracle_id::text,id::text,name FROM canonical ORDER BY rank,name,oracle_id "
+                "AND (rank=0 OR NOT EXISTS(SELECT 1 FROM matched WHERE rank=0)) "
+                "AND (rank<>5 OR NOT EXISTS(SELECT 1 FROM matched WHERE rank<5)) "
+                "ORDER BY oracle_id,rank,quality DESC,(lang='en') DESC,id) "
+                "SELECT oracle_id::text,id::text,name FROM canonical "
+                "ORDER BY rank,quality DESC,name,oracle_id "
                 "LIMIT 5",
-                (*parameters, generation),
+                (
+                    *parameters,
+                    generation,
+                    "%" + re.sub(r"([\\%_])", r"\\\1", parameters[0]) + "%",
+                ),
             )
             result["cards"] = [
                 dict(

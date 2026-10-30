@@ -50,13 +50,15 @@ def report():
             "names",
             "bm25",
             "browser",
-            "browser-startup",
             "verification",
             "model-probe",
             "app-fixtures",
-            "production-guard",
         ]
     }
+    for name in ["browser-startup", "production-guard"]:
+        capture = ARTIFACTS / f"{name}.json"
+        if capture.exists():
+            result["artifacts"][name] = json.loads(capture.read_text())
     for variant in result["variants"]:
         name_groups = [
             variant["groups"][g] for g in ["exact", "prefix", "joined", "typo"]
@@ -82,6 +84,20 @@ def report():
         variant["pooled_total_slots"] = len(grades) * 5
         variant["pooled_answer_cases"] = sum(2 in row for row in grades)
         variant["pooled_cases"] = len(grades)
+    if (ARTIFACTS / "power-http.json").exists() and (
+        ARTIFACTS / "power-browser.json"
+    ).exists():
+        native = json.loads((ARTIFACTS / "power-http.json").read_text())
+        result["global_implementation"] = {
+            "scope": "Separate native global query using existing production indexes; not a benchmark variant above",
+            "http": {
+                key: native[key] for key in ["status", "checks", "latency", "limits"]
+            },
+            "browser": json.loads((ARTIFACTS / "power-browser.json").read_text()),
+            "plan": json.loads((ARTIFACTS / "power-plan.json").read_text())
+            if (ARTIFACTS / "power-plan.json").exists()
+            else None,
+        }
     destination = ROOT / "docs/integrations/search-evaluation-results.json"
     write_json(destination, result)
     chart_data = [

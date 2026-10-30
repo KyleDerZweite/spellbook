@@ -18,6 +18,7 @@
 	let open = $state(false);
 	let query = $state('');
 	let selected = $state('');
+	let selectedQuery = '';
 	let input: HTMLInputElement | null = $state(null);
 	let readState: PowerSearchReadState = $state.raw({ groups: [], pending: false, error: '' });
 	let revision = $state(0);
@@ -59,8 +60,11 @@
 	});
 	$effect(() => {
 		const currentRows = rows;
+		const currentQuery = query;
 		untrack(() => {
-			if (!currentRows.some((row) => row.id === selected)) selected = currentRows[0]?.id ?? '';
+			if (currentQuery !== selectedQuery || !currentRows.some((row) => row.id === selected))
+				selected = currentRows[0]?.id ?? '';
+			selectedQuery = currentQuery;
 		});
 	});
 	afterNavigate(({ shallow }) => {
@@ -97,8 +101,8 @@
 					!dialog.classList.contains('power-search-dialog') &&
 					!dialog.classList.contains('search-dialog')
 			);
-			if (session.pending || otherDialog) return;
 			event.preventDefault();
+			if (session.pending || otherDialog) return;
 			event.stopImmediatePropagation();
 			if (!open) {
 				returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -193,7 +197,9 @@
 								</Command.GroupItems>
 							</Command.Group>
 						{/each}
-						{#if !rows.length && !readState.pending}<p class="power-search-empty">
+						{#if !rows.length && !readState.pending && !readState.error}<p
+								class="power-search-empty"
+							>
 								No results found.
 							</p>{/if}
 					</Command.Viewport>
@@ -360,6 +366,11 @@
 		color: var(--color-text-primary);
 		font-family: var(--font-interface);
 		font-size: 11px;
+	}
+	@media (pointer: coarse) {
+		:global(.power-search-result) {
+			min-height: 44px;
+		}
 	}
 	@media (max-width: 600px) {
 		.power-search-field :global(input) {

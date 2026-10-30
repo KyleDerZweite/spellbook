@@ -17,3 +17,9 @@ def test_literal_tokens(query: str) -> None:
     _, prefix, _, _ = query_parameters(query)
     assert all(c.isalnum() or c in "' :*&" for c in prefix)
     assert query_parameters("😀" * 150)
+
+
+def test_numeric_tokens_are_complete_and_not_fuzzy() -> None:
+    _, prefix, _, fuzzy = query_parameters("mana 2")
+    assert prefix == "'mana':* & '2'"
+    assert not fuzzy

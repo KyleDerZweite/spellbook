@@ -52,20 +52,25 @@ def test_complete_independent_sources_and_authority() -> None:
                 # The owned identity is deliberately ranked below five public exact-prefix hits.
                 await tx.execute(
                     "INSERT INTO catalog_printings SELECT generation_id,gen_random_uuid(),"
-                    "gen_random_uuid(),'Aether A'||n,'aether a'||n,'','en',set_code,"
+                    "gen_random_uuid(),CASE WHEN n=7 THEN 'Rules only' ELSE 'Aether A'||n END,"
+                    "'aether a'||n,'','en',set_code,"
                     "collector_number,rarity,cmc,colors,card_types,legalities,"
-                    "'aether a'||n,search_text,document FROM catalog_printings "
-                    "CROSS JOIN generate_series(1,6) n WHERE id=%s AND generation_id=%s",
+                    "CASE WHEN n=7 THEN 'rules only' ELSE 'aether a'||n END,"
+                    "search_text,document FROM catalog_printings "
+                    "CROSS JOIN generate_series(1,7) n WHERE id=%s AND generation_id=%s",
                     (f.printing, f.generation),
                 )
             guest = await search.search("Aether Test")
             assert guest["accountId"] is None and guest["inventory"] == guest["decks"] == []
             assert guest["cards"][0]["canonicalCardId"] == f.oracle
+            assert len(guest["cards"]) == 1
             assert len({c["canonicalCardId"] for c in guest["cards"]}) == len(guest["cards"])
             exact = await search.search("Aether Test", actor)
             assert exact["cards"][0]["canonicalCardId"] == f.oracle
             assert exact["inventory"][0]["canonicalCardId"] == f.oracle
             assert len(exact["decks"]) == 2
+            assert (await search.search("AetherTest"))["cards"][0]["canonicalCardId"] == f.oracle
+            assert (await search.search("Aether Tes"))["cards"][0]["canonicalCardId"] == f.oracle
             result = await search.search("Aether", actor)
             assert result["generationId"] == f.generation and len(result["cards"]) == 5
             assert f.oracle not in [c["canonicalCardId"] for c in result["cards"]]
