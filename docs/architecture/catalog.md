@@ -1,9 +1,9 @@
 # Catalog
 
 - Status: Canonical
-- Last Reviewed: 2026-10-29
+- Last Reviewed: 2026-10-30
 - Source of Truth: code, reviewed versioned Demo publication and accepted continuous Lazy requirements
-- Update Triggers: tri-state color search and Color/Identity selection, ADR-0029 canonical-only Catalog paths, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, catalog source and schema, publication, versioned English Demo bundles, starter samples and display assets, search ranking and query shape, generated color-identity projection and index, filters, facets, browser anchor ranges and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters, internal canonical/type fact provenance, paired reference publication and recovery, continuous Lazy browsing/dialog contract and selected versus implemented read limits
+- Update Triggers: global power-search endpoint and independent private matching, tri-state color search and Color/Identity selection, ADR-0029 canonical-only Catalog paths, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, catalog source and schema, publication, versioned English Demo bundles, starter samples and display assets, search ranking and query shape, generated color-identity projection and index, filters, facets, browser anchor ranges and cache bounds, import resolution, printing selection, inventory set-name lookup, workspace ownership and compatibility adapters, internal canonical/type fact provenance, paired reference publication and recovery, continuous Lazy browsing/dialog contract and selected versus implemented read limits
 - Related Docs: [Domain glossary](../../GLOSSARY.md), [Postgres](./postgres.md), [Worker](./worker.md), [Frontend](./frontend.md), [Deployment](../operations/deployment.md), [Local authentication and demo setup](../operations/local-auth.md), [ADR-0010](../decisions/0010-postgres-catalog.md), [Application contract](./application-contract.md), [Category rules](./category-rules.md), [Independent applications](./independent-applications.md)
 
 PostgreSQL stores the public Scryfall catalog alongside account-owned application data.
@@ -153,6 +153,26 @@ Public `GET /api/v1/mtg/catalog/search` supports the existing query and paginati
 `POST` on that route accepts structured filters and optional facets and name sorting.
 [OpenAPI](../../backend/api/src/spellbook_api/http/application.py) owns exact field names, accepted values, defaults, and limits.
 Raw search-engine expressions are not accepted.
+
+## Global power-user search
+
+`GET /api/v1/mtg/power-search?query=TEXT` is a separate no-store read owned by `spellbook_core.mtg.power_search`.
+It accepts at most 300 UTF-16 query units and rejects NUL.
+Empty queries return empty sources with current account and generation context.
+The HTTP adapter selects the optional session; invalid explicit Bearer credentials return 401.
+Core revalidates issued Actor authority before account-owned queries in its read-only repeatable-read transaction.
+Client-supplied account identifiers never select private scope.
+
+The reader matches the complete active Catalog and independently matches all of the account's MTG Inventory and Deck records before limiting each source.
+It returns five canonical Catalog hits, five canonical Inventory aggregates, five Deck-name hits and five Deck-content aggregates by Deck and canonical identity.
+Inventory variants and Deck roles contribute to their respective quantities.
+Owned stored names remain searchable without a current Catalog record.
+Active Catalog aliases and rules can also match owned canonical identities without depending on the public top five.
+Deck joins constrain both account and game.
+Ranking uses case-insensitive name, word-prefix, joined-name, literal substring, trigram and rules matches with deterministic name and identity ties.
+Only extracted alphanumeric tokens enter generated prefix tsquery expressions; numeric and operator-like input remains data.
+No ingestion, publication, schema or ordinary Catalog search behavior changes.
+Web owns destinations and local navigation aliases under the [selected implementation contract](../product/ui-design-direction.md#global-power-user-search-implementation-contract).
 
 ## Browser result window
 
