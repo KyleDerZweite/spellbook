@@ -164,6 +164,31 @@ Titles remain visible, while explanatory subheadings are omitted.
 Optional device concepts are marked as such and do not establish connectivity or reactivate Scan.
 These are alternative compositions, not selected production designs.
 
+### Accepted real-data prototype revision
+
+Kyle rejected the previous designs 1 through 5 on 2026-10-30 and requested their removal.
+The remaining reference compositions must use account data throughout, with no simulated analytics, Wishlist, Scan, sync, imports or edits.
+Additional Dashboard search fields are excluded; meaningful filters may remain.
+The four saved source references above remain immutable inputs.
+The real application top navigation and shortcut-only Power-user search remain unchanged.
+Mana Font carries actual color, color-identity, rarity and primary-type semantics rather than decorating unrelated controls.
+
+The implementation contract extends the existing account-scoped Dashboard read rather than fetching the entire Inventory in the browser.
+Core owns quantity-weighted Catalog distributions in the same authenticated, read-only snapshot.
+An active-Printing join classifies each owned copy once by color, color identity, rarity and primary type.
+Color and identity buckets are White, Blue, Black, Red, Green, Multicolor, Colorless and Unknown.
+Primary types use Land, Creature, Instant, Sorcery, Enchantment, Artifact, Planeswalker, Battle, Other and Unknown, in that precedence order, so the Pie remains a composition of physical copies.
+The Catalog's card-type projection determines types; unmatched Printings remain Unknown.
+A Catalog read failure returns an unavailable breakdown rather than invented counts, while other Dashboard data remains usable.
+Actual Set names supplement existing stored Set-code counts, and no Set-completion percentage is invented.
+
+Core also supplies at most eight missing and eight alternate Canonical Card requirement previews, with their actual stored Deck/Printing identities, artwork and existing exact/alternate/missing allocation.
+These lists reuse the Dashboard allocation policy and may overlap across Decks; they never claim distinct owned quantities.
+Frontend consumes this typed summary and existing shared charts, keeps titles, and links actual objects to their existing workspaces.
+Unknown, empty and unavailable states remain explicit.
+Root owns integration and acceptance against API totals, account isolation, missing Catalog data, quantity changes, dark/light and narrow layouts, pointer/keyboard/touch inspection and route removal.
+This revision remains a local prototype comparison until Kyle selects a production direction.
+
 ### Dashboard metric trends, concept only
 
 On 2026-10-30, Kyle selected concept work rather than implementation of the Stat-card trends.
