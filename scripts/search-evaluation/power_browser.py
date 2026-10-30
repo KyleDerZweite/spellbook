@@ -66,6 +66,73 @@ async def main():
                 "Guest receives actual Catalog matches and no private contexts"
             )
 
+            guest_catalog = page.locator(
+                '.power-search-result[data-source="catalog"]'
+            ).filter(has_text="Sol Ring")
+            printing_href = await guest_catalog.get_attribute("href")
+            await guest_catalog.click()
+            await page.wait_for_url("**/mtg/search?**")
+            card_dialog = page.get_by_role("dialog", name="Sol Ring", exact=True)
+            await expect(card_dialog).to_be_visible()
+            await expect(page.locator(".native-card-panel")).to_have_count(0)
+            await expect(card_dialog.get_by_role("img").first).to_be_visible()
+            await page.wait_for_function("""() => {
+                const image = document.querySelector('[role="dialog"] img');
+                return image?.complete && image.naturalWidth > 0;
+            }""")
+            await page.screenshot(path=str(OUT / "power-printing-desktop.png"))
+            await page.keyboard.press("Escape")
+            await expect(card_dialog).to_be_hidden()
+            assert "printing=" not in page.url
+            await expect(page.locator(".search-status")).to_be_focused()
+            await search("Sol Ring")
+            await expect(guest_catalog).to_be_visible()
+            await guest_catalog.click()
+            await expect(card_dialog).to_be_visible()
+            await page.keyboard.press("Escape")
+            await expect(card_dialog).to_be_hidden()
+            assert printing_href
+            await visit(printing_href)
+            await expect(card_dialog).to_be_visible()
+            await visit()
+            await page.go_back()
+            await expect(card_dialog).to_be_visible()
+            await page.go_forward()
+            await expect(card_dialog).to_be_hidden()
+            await page.go_back()
+            await expect(card_dialog).to_be_visible()
+            await page.reload()
+            await expect(card_dialog).to_be_visible()
+            await page.set_viewport_size({"width": 390, "height": 844})
+            bounds = await card_dialog.bounding_box()
+            assert bounds and bounds["width"] <= 390 and bounds["x"] >= 0
+            await page.screenshot(path=str(OUT / "power-printing-mobile.png"))
+            await card_dialog.get_by_role("button", name="Close card detail").click()
+            await expect(card_dialog).to_be_hidden()
+            assert "printing=" not in page.url
+            await page.set_viewport_size({"width": 1280, "height": 900})
+            native_context = await browser.new_context(java_script_enabled=False)
+            native_page = await native_context.new_page()
+            await native_page.goto(ORIGIN + printing_href)
+            await expect(native_page.get_by_role("region", name="Selected card")).to_contain_text(
+                "Sol Ring"
+            )
+            await expect(native_page.get_by_role("link", name="Sign in to add cards")).to_be_visible()
+            await native_context.close()
+            await visit(printing_href + "&deckQuery=retained")
+            await expect(page.get_by_role("region", name="Selected card")).to_contain_text("Sol Ring")
+            await expect(card_dialog).to_be_hidden()
+            for printing in ["bad", "00000000-0000-4000-8000-000000000000"]:
+                await visit("/mtg/search?q=Sol+Ring&printing=" + printing)
+                await expect(page.get_by_role("region", name="Selected card")).to_contain_text(
+                    "Invalid printing selection" if printing == "bad" else "This printing is unavailable"
+                )
+                await expect(card_dialog).to_be_hidden()
+            evidence["checks"].append(
+                "Guest Quick Search opens the shared Card dialog; direct/reloaded/mobile links work, close clears the target and restores focus, native/error feedback remains available"
+            )
+            await search("Sol Ring")
+
             await field.fill("passwort ändern")
             await expect(results.first).to_contain_text("Password")
             await field.dispatch_event(
@@ -131,7 +198,9 @@ async def main():
             await catalog.click()
             await page.wait_for_url("**/mtg/search?**")
             assert "printing=" in page.url
-            await expect(page.locator("main")).to_contain_text("Sol Ring")
+            await expect(card_dialog).to_be_visible()
+            await expect(page.locator(".native-card-panel")).to_have_count(0)
+            await card_dialog.get_by_role("button", name="Close card detail").click()
             evidence["checks"].append(
                 "All three actual destinations open their matching card/owned view/Deck"
             )

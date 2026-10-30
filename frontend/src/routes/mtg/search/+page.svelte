@@ -4,12 +4,39 @@
 	import NativeCardBrowsingActions from '#lib/components/cards/NativeCardBrowsingActions.svelte';
 	import SearchWorkspace from '#lib/components/search/SearchWorkspace.svelte';
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 	import { nativeSearchPageKey } from '#lib/search/native-panel.ts';
 	let nativePanel: HTMLElement | null = $state(null);
-	const nativePanelVisible = $derived(
+	let mounted = $state(false);
+	onMount(() => {
+		mounted = true;
+	});
+	const currentContext = $derived(
 		!!(data.nativeCardContext || form) &&
 			data.nativePageKey === nativeSearchPageKey(page.shallow?.url ?? page.url)
 	);
+	// Retained native drafts, receipts and errors keep their existing action surface.
+	const enhancedSelection = $derived(
+		mounted &&
+			currentContext &&
+			data.selectedPrinting &&
+			!form &&
+			!data.printingReadError &&
+			!data.choiceReadError &&
+			!data.draftReadError &&
+			!data.deckDraft &&
+			!data.inventoryDraft &&
+			!['deckQuery', 'deckOffset', 'selectedDeckId'].some((key) => page.url.searchParams.has(key))
+			? { key: data.nativePageKey, card: data.selectedPrinting }
+			: null
+	);
+	const nativePanelVisible = $derived(currentContext && !enhancedSelection);
+	function closeRouteSelection() {
+		const url = new URL((page.shallow?.url ?? page.url).href);
+		url.searchParams.delete('printing');
+		void goto(url.pathname + url.search, { shallow: true, replace: true, state: page.state });
+	}
 </script>
 
 <svelte:head><title>Search | Spellbook</title></svelte:head>
@@ -49,6 +76,8 @@
 		</section>
 	{/if}
 	<SearchWorkspace
+		routeSelection={enhancedSelection}
+		onCloseRouteSelection={closeRouteSelection}
 		restorationTarget={nativePanelVisible ? nativePanel : null}
 		serverInput={data.searchInput}
 		serverResult={data.catalogResult}
