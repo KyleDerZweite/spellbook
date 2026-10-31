@@ -1,6 +1,6 @@
 <script lang="ts">
 	import ComboEvidence from '#lib/components/categories/ComboEvidence.svelte';
-	import ValueSummary from '#lib/components/valuation/ValueSummary.svelte';
+	import DeckOverview from '#lib/components/decks/DeckOverview.svelte';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import { readSavedJSON } from '#lib/saved-state/read.ts';
@@ -352,7 +352,7 @@
 	let listQuery = $state('');
 	let ownedOnly = $state(false);
 	let sortBy = $state('name');
-	let view = $state<'list' | 'stacks'>('list');
+	let view = $state<'list' | 'stacks'>('stacks');
 	let groupBy = $state(untrack(() => data.grouping));
 	let groupingBase = $state(untrack(() => data.grouping));
 	$effect(() => {
@@ -363,6 +363,7 @@
 	});
 	let initializeForm: HTMLFormElement | undefined = $state();
 	let mounted = $state(false);
+	const displayedView = $derived(mounted ? view : 'list');
 	const initializedDecks = new Set<string>();
 	onMount(() => {
 		mounted = true;
@@ -856,6 +857,7 @@
 						items={[
 							{ label: 'New deck', onSelect: () => openEditor('create') },
 							{ label: 'Edit details', onSelect: () => openEditor('details') },
+							{ label: 'Category Library', href: '/mtg/categories' },
 							{ label: 'Import decklist', onSelect: () => openEditor('import') },
 							{
 								label: 'Export Arena',
@@ -890,7 +892,7 @@
 			</div>
 		{/snippet}
 	</WorkspaceHeader>
-	<Button href="/mtg/categories" variant="ghost">Account Category Library</Button>
+	{#if !selectedDeck}<Button href="/mtg/categories" variant="ghost">Category Library</Button>{/if}
 	<DeckDialog
 		title="Create a deck"
 		description="Name the deck and choose its format."
@@ -1002,25 +1004,18 @@
 	{/if}
 	{#if selectedDeck}
 		<section class="deck-overview" aria-label="Deck overview">
-			<div class="my-4 grid gap-4 sm:grid-cols-2">
-				<ValueSummary
-					title="Required cards value"
-					estimate={savedDecks.valueEstimates?.required ?? null}
-					evaluatedAt={savedDecks.valueEstimates?.evaluatedAt}
-					error={savedDecks.valuationError?.message}
-				/>
-				<ValueSummary
-					title="Missing cards value"
-					estimate={savedDecks.valueEstimates?.missing ?? null}
-					error={savedDecks.valuationError?.message}
-				/>
-			</div>
-			<p class="muted text-xs">
-				Nonfoil market references. Each deck compares against your full Inventory.
-			</p>
-			{#if selectedDeck.description}<p class="deck-description muted">
-					{selectedDeck.description}
-				</p>{/if}
+			<DeckOverview
+				cards={deckCards}
+				documents={savedDecks.deckDocuments}
+				{availability}
+				estimates={savedDecks.valueEstimates}
+				valuationError={savedDecks.valuationError?.message}
+				onInspect={inspect}
+			/>
+			{#if selectedDeck.description}<details class="deck-notes">
+					<summary>Deck notes</summary>
+					<p class="muted">{selectedDeck.description}</p>
+				</details>{/if}
 			<div class="deck-actions">
 				<DeckDialog
 					title="Deck details"
@@ -1215,12 +1210,15 @@
 				<a href={flowHref('create')}>New deck</a> · <a href={flowHref('edit')}>Edit details</a> ·
 				<a href={flowHref('import')}>Import decklist</a>
 				· <a href={flowHref('delete')}>Delete deck</a> · <a href={flowHref('search')}>Find cards</a>
+				· <a href="/mtg/categories">Category Library</a>
 			</nav></noscript
 		>
 		<div class="deck-summary">
-			<span>{total} cards</span>
+			<span class="deck-size"
+				><i class="ms ms-deck" aria-hidden="true"></i>{total.toLocaleString()} cards</span
+			>
 			<Button
-				variant="secondary"
+				variant={missingOnly ? 'secondary' : 'ghost'}
 				aria-pressed={missingOnly}
 				onclick={() => (missingOnly = !missingOnly)}>{missing} missing</Button
 			>
@@ -1238,7 +1236,7 @@
 					event.preventDefault();
 					searchTrigger = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
 					setSearchOpen(true);
-				}}>Find cards</Button
+				}}>Add cards</Button
 			>
 		</div>
 		{#if removed && removed.deckId === selectedDeck.id}
@@ -1257,17 +1255,18 @@
 			</form>
 		{/if}
 		<div class="workspace">
-			<section class="panel deck-list" aria-label="Deck cards" aria-busy={busy}>
+			<section class="deck-list" aria-label="Deck cards" aria-busy={busy}>
 				<div class="list-controls">
 					<div class="view-controls" aria-label="Deck view">
 						<Button
-							variant={view === 'list' ? 'secondary' : 'ghost'}
-							aria-pressed={view === 'list'}
+							variant={displayedView === 'list' ? 'secondary' : 'ghost'}
+							aria-pressed={displayedView === 'list'}
 							onclick={() => (view = 'list')}>List</Button
 						>
 						<Button
-							variant={view === 'stacks' ? 'secondary' : 'ghost'}
-							aria-pressed={view === 'stacks'}
+							variant={displayedView === 'stacks' ? 'secondary' : 'ghost'}
+							aria-pressed={displayedView === 'stacks'}
+							disabled={!mounted}
 							onclick={() => (view = 'stacks')}>Stacks</Button
 						>
 					</div>
@@ -1294,96 +1293,112 @@
 						]}
 					/>
 				</div>
-				<a href={`/mtg/decks?deck=${encodeURIComponent(selectedDeck.id)}&group=category`}
-					>Category view</a
+				<details
+					class="category-tools"
+					open={groupBy === 'category' ||
+						!!form?.categoryDraft ||
+						!!form?.renameDraft ||
+						!!form?.removalDraft ||
+						!!form?.removalRetry ||
+						!!(form && 'wholeDraft' in form && form.wholeDraft) ||
+						!!form?.categoryMerge ||
+						!!data.localCategoryId ||
+						!!data.wholeCategoryVersion}
 				>
-				{#if wholeCategories}{#key wholeCategories.deckId}<WholeCategoryManager
-							categories={wholeCategories}
-							preview={displayedCategoryPreview}
-							{action}
-							unavailable={data.categoryReadError}
-							selectedVersionId={data.wholeCategoryVersion}
-							draft={form && 'wholeDraft' in form ? form.wholeDraft : undefined}
-							beginWrite={() => deckSubscription?.beginWrite(['decks'])}
-						/>{/key}{/if}
-				{#if entryCategories && !entryCategories.initialized}
-					<form
-						method="POST"
-						action={action('initializeCategories')}
-						bind:this={initializeForm}
-						use:enhance={save}
-						data-initialize-categories
-					>
-						<input type="hidden" name="deckId" value={selectedDeck.id} /><input
-							type="hidden"
-							name="requestId"
-							value={data.requestId}
-						/>
-						<p class="muted">Initialize starter categories for this deck.</p>
-						<Button type="submit" disabled={busy}>Initialize categories</Button>
-					</form>
-				{:else if entryCategories}
-					{#key entryCategories.deckId}<DeckCategoryManager
-							categories={entryCategories}
-							unavailable={data.categoryReadError || null}
-							removalDraft={form && 'removalDraft' in form ? form.removalDraft : undefined}
-							removalRetry={form && 'removalRetry' in form ? form.removalRetry : undefined}
-							renameDraft={form && 'renameDraft' in form ? form.renameDraft : undefined}
-							renameConfirmation={form && 'acknowledgement' in form
-								? form.acknowledgement
-								: undefined}
-							preview={displayedCategoryPreview?.scope === 'entry'
-								? displayedCategoryPreview
-								: null}
-							selectedCategoryId={data.localCategoryId}
-							requestId={data.requestId}
-							{busy}
-							submit={save}
-							{action}
-							entryNames={Object.fromEntries(deckCards.map((c) => [c.id, c.name]))}
-						/>{/key}
-					{#if entryCategories.sourceStatus.kind === 'Failed'}<p role="status" class="notice">
-							Oracle Tags refresh failed. Saved decisions and the last valid source remain
-							available.
-						</p>{/if}
-					<details
-						data-native-categories
-						open={nativeCategoriesOpen}
-						ontoggle={(event) => {
-							nativeCategoriesOpen = event.currentTarget.open;
-							if (!nativeCategoriesOpen) dirtyCategoryEntries = [];
-						}}
-					>
-						<summary>Primary category decisions</summary>
-						{#if !mounted || nativeCategoriesOpen}{#each categoryRows as card (card.id)}<section
-									aria-label={`Category for ${card.name}`}
-								>
-									<h3>{card.name}</h3>
-									<EntryCategoryEditor
-										categories={entryCategories}
-										recovery={form?.categoryDraft?.entryId === card.id
-											? form.categoryDraft
-											: undefined}
-										entryId={card.id}
-										unavailable={data.categoryReadError ||
-											categoryEditorUnavailable(card.id, deckCards, deletedTarget)}
-										onDraftChange={(dirty) => categoryDirty(card.id, dirty)}
-										action={action('setCategory')}
-										refresh={refreshCategories}
-										requestId={data.requestId}
-										{busy}
-										submit={save}
-									/>
-								</section>{/each}{/if}
-					</details>
-				{/if}
+					<summary>Categories</summary>
+					<div class="category-content">
+						<a href={`/mtg/decks?deck=${encodeURIComponent(selectedDeck.id)}&group=category`}
+							>Category view</a
+						>
+						{#if wholeCategories}{#key wholeCategories.deckId}<WholeCategoryManager
+									categories={wholeCategories}
+									preview={displayedCategoryPreview}
+									{action}
+									unavailable={data.categoryReadError}
+									selectedVersionId={data.wholeCategoryVersion}
+									draft={form && 'wholeDraft' in form ? form.wholeDraft : undefined}
+									beginWrite={() => deckSubscription?.beginWrite(['decks'])}
+								/>{/key}{/if}
+						{#if entryCategories && !entryCategories.initialized}
+							<form
+								method="POST"
+								action={action('initializeCategories')}
+								bind:this={initializeForm}
+								use:enhance={save}
+								data-initialize-categories
+							>
+								<input type="hidden" name="deckId" value={selectedDeck.id} /><input
+									type="hidden"
+									name="requestId"
+									value={data.requestId}
+								/>
+								<p class="muted">Initialize starter categories for this deck.</p>
+								<Button type="submit" disabled={busy}>Initialize categories</Button>
+							</form>
+						{:else if entryCategories}
+							{#key entryCategories.deckId}<DeckCategoryManager
+									categories={entryCategories}
+									unavailable={data.categoryReadError || null}
+									removalDraft={form && 'removalDraft' in form ? form.removalDraft : undefined}
+									removalRetry={form && 'removalRetry' in form ? form.removalRetry : undefined}
+									renameDraft={form && 'renameDraft' in form ? form.renameDraft : undefined}
+									renameConfirmation={form && 'acknowledgement' in form
+										? form.acknowledgement
+										: undefined}
+									preview={displayedCategoryPreview?.scope === 'entry'
+										? displayedCategoryPreview
+										: null}
+									selectedCategoryId={data.localCategoryId}
+									requestId={data.requestId}
+									{busy}
+									submit={save}
+									{action}
+									entryNames={Object.fromEntries(deckCards.map((c) => [c.id, c.name]))}
+								/>{/key}
+							{#if entryCategories.sourceStatus.kind === 'Failed'}<p role="status" class="notice">
+									Oracle Tags refresh failed. Saved decisions and the last valid source remain
+									available.
+								</p>{/if}
+							<details
+								data-native-categories
+								open={nativeCategoriesOpen}
+								ontoggle={(event) => {
+									nativeCategoriesOpen = event.currentTarget.open;
+									if (!nativeCategoriesOpen) dirtyCategoryEntries = [];
+								}}
+							>
+								<summary>Primary category decisions</summary>
+								{#if !mounted || nativeCategoriesOpen}{#each categoryRows as card (card.id)}<section
+											aria-label={`Category for ${card.name}`}
+										>
+											<h3>{card.name}</h3>
+											<EntryCategoryEditor
+												categories={entryCategories}
+												recovery={form?.categoryDraft?.entryId === card.id
+													? form.categoryDraft
+													: undefined}
+												entryId={card.id}
+												unavailable={data.categoryReadError ||
+													categoryEditorUnavailable(card.id, deckCards, deletedTarget)}
+												onDraftChange={(dirty) => categoryDirty(card.id, dirty)}
+												action={action('setCategory')}
+												refresh={refreshCategories}
+												requestId={data.requestId}
+												{busy}
+												submit={save}
+											/>
+										</section>{/each}{/if}
+							</details>
+						{/if}
+					</div>
+				</details>
 				{#if deckCards.length === 0}<div class="empty-state">
 						<p>Search the catalog to add a card, or import an existing decklist.</p>
 					</div>{/if}
 				<DeckEntries
 					{groups}
 					categories={entryCategories}
-					{view}
+					view={displayedView}
 					documents={savedDecks.deckDocuments}
 					{availability}
 					{busy}
@@ -1415,6 +1430,7 @@
 				</details>
 			</section>
 			{#if data.flow !== 'search'}<aside class="catalog desktop-search" aria-label="Find cards">
+					<h2 class="catalog-title">Add cards</h2>
 					{@render discovery()}
 				</aside>{/if}
 		</div>
@@ -1582,40 +1598,30 @@
 {/snippet}
 
 <style>
-	.deck-picker,
-	.deck-actions,
 	.deck-picker {
+		display: flex;
 		justify-content: flex-end;
-		flex-wrap: nowrap;
-	}
-	.deck-picker :global([data-select-trigger]) {
-		max-width: 15rem;
 	}
 	.deck-format {
+		color: var(--color-text-secondary);
 		font-size: 0.75rem;
-		color: var(--color-text-secondary);
-		margin-top: 0.125rem;
+		margin-top: 0.25rem;
 	}
-	.deck-description {
-		margin-bottom: 0.5rem;
-	}
-	.deck-overview {
-		display: contents;
-		justify-content: space-between;
-		gap: 1rem;
-		flex-wrap: wrap;
-		padding: 0 0 1rem;
-		background: transparent;
-		border: 0;
-		box-shadow: none;
-	}
-	.muted {
-		font-size: 0.8rem;
-		color: var(--color-text-secondary);
-	}
+	.deck-overview,
 	.deck-actions {
 		display: contents;
-		gap: 0.4rem;
+	}
+	.deck-notes {
+		font-size: 0.75rem;
+		margin: 0 0 1rem;
+	}
+	.deck-notes p {
+		max-width: 60rem;
+		margin-top: 0.5rem;
+	}
+	.muted {
+		font-size: 0.75rem;
+		color: var(--color-text-secondary);
 	}
 	.deck-summary {
 		position: sticky;
@@ -1624,15 +1630,24 @@
 		display: flex;
 		align-items: center;
 		flex-wrap: wrap;
-		gap: 1rem;
-		min-height: 2.75rem;
+		gap: 0.5rem 1rem;
+		min-height: 3.5rem;
+		padding: 0.5rem 0;
 		background: var(--color-background);
-		font-size: 0.8rem;
+		border-bottom: 1px solid var(--color-border);
+		margin-bottom: 1.5rem;
+		font-size: 0.75rem;
+	}
+	.deck-size {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-variant-numeric: tabular-nums;
 	}
 	.deck-summary > a {
 		display: inline-flex;
 		align-items: center;
-		min-height: 44px;
+		min-height: 2.75rem;
 		color: var(--color-text-secondary);
 	}
 	.save-status {
@@ -1641,75 +1656,89 @@
 	}
 	.workspace {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) 360px;
+		grid-template-columns: minmax(0, 1fr) 20rem;
 		gap: 2rem;
 		align-items: start;
 	}
 	.deck-list {
 		min-width: 0;
-		background: transparent;
-		border: 0;
-		box-shadow: none;
 	}
 	.catalog {
 		position: sticky;
-		top: calc(var(--app-header-height) + 2.75rem);
+		top: calc(var(--app-header-height) + 5rem);
 		min-width: 0;
-		padding-top: 1rem;
+		padding: 1rem;
+		background: var(--color-surface);
+		border-radius: 0.75rem;
+	}
+	.catalog-title {
+		font: 400 1.25rem var(--font-display);
+		margin-bottom: 1rem;
 	}
 	.view-controls {
 		display: flex;
-		gap: 1.5rem;
-		padding: 0;
+		gap: 0.25rem;
 	}
 	.list-controls {
 		display: grid;
-		grid-template-columns: auto minmax(0, 1fr) 8rem 8rem;
+		grid-template-columns: auto minmax(6rem, 1fr) 7rem 9rem;
 		gap: 0.5rem;
+		align-items: center;
 		margin-bottom: 1rem;
 	}
 	.list-controls input {
-		flex: 1;
 		min-width: 0;
+	}
+	.category-tools {
+		padding: 0.75rem 0;
+		margin-bottom: 1rem;
+		border-bottom: 1px solid var(--color-border);
+		font-size: 0.75rem;
+		color: var(--color-text-secondary);
+	}
+	.category-content {
+		display: grid;
+		gap: 1rem;
+		padding: 1rem 0;
 	}
 	.legality {
 		padding: 1.5rem 0;
-		font-size: 0.8rem;
-		scroll-margin-top: 5rem;
+		font-size: 0.75rem;
+		scroll-margin-top: calc(var(--app-header-height) + 6rem);
 	}
 	summary {
 		cursor: pointer;
 	}
 	.legality ul,
 	.import-preview ul {
-		padding-left: 1.2rem;
+		padding-left: 1.25rem;
 		line-height: 1.8;
 	}
 	.empty-state {
 		padding: 3rem 1rem;
 		text-align: center;
 		color: var(--color-text-secondary);
-		font-size: 0.85rem;
+		font-size: 0.875rem;
 	}
 	.form-stack {
 		display: flex;
 		flex-direction: column;
-		gap: 0.65rem;
+		gap: 0.75rem;
 	}
 	.notice,
 	.undo-row {
 		display: flex;
 		align-items: center;
 		gap: 1rem;
-		font-size: 0.8rem;
-		padding: 0.6rem 0;
+		font-size: 0.75rem;
+		padding: 0.75rem 0;
 	}
 	.decklist-input {
 		font-family: var(--font-mono);
 	}
 	.import-preview {
 		margin-top: 1rem;
-		font-size: 0.8rem;
+		font-size: 0.75rem;
 	}
 	.inspector-form {
 		display: flex;
@@ -1718,6 +1747,15 @@
 	}
 	.deck-summary :global(.mobile-search) {
 		display: none;
+	}
+	@media (max-width: 1200px) {
+		.workspace {
+			grid-template-columns: minmax(0, 1fr) 18rem;
+			gap: 1.5rem;
+		}
+		.list-controls {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
 	}
 	@media (max-width: 1000px) {
 		.workspace {
@@ -1731,34 +1769,36 @@
 			margin-left: auto;
 		}
 		.deck-summary {
-			gap: 0.75rem;
-		}
-		.deck-picker {
-			flex-shrink: 0;
-		}
-		.deck-summary {
-			font-size: 0.75rem;
 			gap: 0.5rem;
 		}
 		.save-status:empty {
 			display: none;
 		}
-		.deck-picker :global([data-select-trigger]) {
-			max-width: none;
+		.list-controls {
+			grid-template-columns: auto minmax(0, 1fr) 7rem 9rem;
 		}
 	}
-	@media (max-width: 640px) {
+	@media (max-width: 760px) {
 		.list-controls {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
+		.list-controls input {
+			min-width: 0;
+		}
 		.view-controls {
-			grid-column: 1/-1;
-			gap: 0.75rem;
 			align-items: center;
 		}
+	}
+	@media (max-width: 420px) {
 		.list-controls input {
-			grid-column: 1/-1;
-			order: -1;
+			grid-column: 1 / -1;
+			grid-row: 1;
+		}
+		.view-controls {
+			grid-column: 1 / -1;
+		}
+		.deck-summary {
+			position: static;
 		}
 	}
 </style>

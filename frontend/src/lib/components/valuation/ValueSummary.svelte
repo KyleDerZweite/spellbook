@@ -7,18 +7,27 @@
 		title = 'Inventory value',
 		error = '',
 		evaluatedAt,
-		compact = false
+		compact = false,
+		inline = false,
+		referenceNote = ''
 	}: {
 		estimate: ValueEstimate | null;
 		title?: string;
 		error?: string;
 		evaluatedAt?: string;
 		compact?: boolean;
+		inline?: boolean;
+		referenceNote?: string;
 	} = $props();
 	const percent = new Intl.NumberFormat(undefined, { style: 'percent', maximumFractionDigits: 1 });
 </script>
 
-<section class={['value-summary', !compact && 'analytics-panel']} class:compact aria-label={title}>
+<section
+	class={['value-summary', !compact && !inline && 'analytics-panel']}
+	class:compact
+	class:inline
+	aria-label={title}
+>
 	<div class="value-heading">
 		<h2 class="text-sm font-medium text-text-muted">{title}</h2>
 		{#if error}<p class="mt-2 text-sm" role="alert">{error}</p>
@@ -45,7 +54,7 @@
 				>
 			</div>
 		{/if}
-		{#if compact}<details class="coverage-details">
+		{#if compact || inline}<details class="coverage-details">
 				<summary>Coverage details</summary>{@render coverageDetails()}
 			</details>
 		{:else}{@render coverageDetails()}{/if}
@@ -54,6 +63,7 @@
 
 {#snippet coverageDetails()}
 	{#if estimate}
+		{#if referenceNote}<p class="mt-2 text-xs text-text-muted">{referenceNote}</p>{/if}
 		<p class="mt-2 text-xs text-text-muted">
 			{estimate.coveredQuantity.toLocaleString()} of {estimate.totalQuantity.toLocaleString()} copies
 			covered. {estimate.unknownQuantity.toLocaleString()} unknown. {estimate.staleQuantity.toLocaleString()}
@@ -69,6 +79,18 @@
 {/snippet}
 
 <style>
+	.inline .value-amount {
+		font-size: 1.75rem;
+		margin: 0.5rem 0 0.25rem;
+	}
+	.inline .value-label,
+	.inline .coverage-details {
+		font-size: 0.6875rem;
+		color: var(--color-text-secondary);
+	}
+	.inline .coverage-details {
+		margin-top: 0.5rem;
+	}
 	.value-amount {
 		font-family: var(--font-display);
 		font-weight: 400;

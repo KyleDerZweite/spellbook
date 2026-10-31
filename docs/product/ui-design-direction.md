@@ -1,9 +1,9 @@
 # UI design direction
 
 - Status: Canonical
-- Last Reviewed: 2026-10-30
+- Last Reviewed: 2026-10-31
 - Source of Truth: accepted product requirements, application components, selected logo and component choices
-- Update Triggers: four real-data Dashboard references, removed rejected prototypes and search fields, semantic Mana Font charts, selected A+ Dashboard layout and native Demo evaluation, Mebius chart reference adaptation, executed development-only search lab and comparison, shortcut-only power-user search requirement and source algorithm investigation, global command menu exploration, color-mode placement below centered mana controls, tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
+- Update Triggers: artwork-led Deck Builder polish and native stack controls, four real-data Dashboard references, removed rejected prototypes and search fields, semantic Mana Font charts, selected A+ Dashboard layout and native Demo evaluation, Mebius chart reference adaptation, executed development-only search lab and comparison, shortcut-only power-user search requirement and source algorithm investigation, global command menu exploration, color-mode placement below centered mana controls, tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
 - Related Docs: [Product specification](./specification.md), [Mobile exploration](./mobile-app-exploration.md), [Routes](./routing-and-games.md), [Domain model](../../GLOSSARY.md), [Selected UI components](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Brand assets](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Value tracking](./value-tracking.md)
 
 Spellbook prioritizes digitizing, indexing and managing a player's own Magic cards, then building decks from that collection.
@@ -576,7 +576,17 @@ Remove belongs to the row action menu and opens the shared confirmation dialog w
 Other printing selections lead to Search rather than silently modifying the owned printing.
 
 The deck entry page presents an artwork-led library with full card frames and actual deck counts.
-Selecting a deck opens compact rows with direct quantity controls, mana costs, and ownership state.
+Selecting a deck defaults to artwork-led Stacks; List retains compact grouped rows with direct quantity controls, mana costs, and ownership state.
+The 2026-10-31 refinement follows the maintainer's Moxfield/Archidekt direction and the actual [Archidekt Deckbuilder screenshot](https://archidekt.com/images/examples/deckbuilder.webp).
+Adapt the reference's readable title strips and card grouping within Spellbook's existing top navigation, neutral surfaces and chosen fonts.
+Stacks use native document columns and 40px title strips, with complete final card frames and full-card inspection on pointer hover or keyboard focus.
+Quantity and ownership controls appear on the raised card; touch opens the existing Card dialog with the same editing actions.
+Quantity markers occupy a separate rail so they do not obscure card titles.
+Without JavaScript the editor renders List with every native quantity form available.
+Mana Font group symbols describe actual types or the Commander role; alternate and missing markers preserve text and accessible names.
+A compact overview combines stored Commander artwork, actual Commander color identity, exact/alternate/missing Inventory matches and covered required/missing value estimates.
+Unknown availability remains explicit, and price coverage remains available through the shared native disclosure.
+Deck notes and category management use native disclosures, leaving the cards visible without removing existing controls, draft recovery or category decisions.
 List and Stacks share name, quantity, grouping, and missing-copy filters.
 Groups use card type or deck section, with the commander first.
 A sticky summary sits directly below navigation and exposes card count, missing-copy filtering, format checks, and save status.

@@ -150,9 +150,11 @@
 			</div>
 		</div>
 	{:else}<p class="empty-state">
-			{query
-				? 'No cards found. Try another search or turn off the owned filter.'
-				: 'Find a card to add to your deck.'}
+			{searching
+				? 'Searching…'
+				: query
+					? 'No cards found. Try another search or turn off the owned filter.'
+					: 'Find a card to add to your deck.'}
 		</p>{/each}
 </div>
 
@@ -167,7 +169,7 @@
 	}
 	.catalog-options {
 		font-size: 0.75rem;
-		margin: 1rem 0;
+		margin: 0.75rem 0;
 	}
 	.catalog-options label {
 		display: flex;
@@ -181,7 +183,7 @@
 	}
 	.add-options label,
 	.add-section {
-		font-size: 0.7rem;
+		font-size: 0.6875rem;
 		color: var(--color-text-secondary);
 	}
 	.add-section {
@@ -189,33 +191,35 @@
 		min-width: 0;
 	}
 	.add-options :global(.input) {
-		margin-top: 0.3rem;
+		margin-top: 0.25rem;
 	}
 	.quantity {
 		width: 4.5rem;
 	}
 	.catalog-row {
+		border-bottom: 1px solid var(--color-border);
 		display: flex;
-		gap: 0.8rem;
-		padding: 1rem 0;
+		gap: 0.75rem;
+		padding: 0.75rem 0;
 	}
 	.catalog-art {
-		width: 72px;
+		width: 64px;
 		flex-shrink: 0;
 		align-self: start;
 	}
 	.catalog-art img {
 		width: 100%;
-		border-radius: 5px;
+		border-radius: 0.375rem;
 	}
 	.catalog-card-info {
 		min-width: 0;
+		flex: 1;
 	}
 	.catalog-card-info p {
-		margin: 0.4rem 0;
+		margin: 0.5rem 0;
 	}
 	.catalog-card-info :global(.card-name) {
-		margin-bottom: 0.4rem;
+		margin-bottom: 0.5rem;
 	}
 
 	.catalog-options {
@@ -226,13 +230,13 @@
 		flex-wrap: wrap;
 	}
 	.catalog-results {
-		max-height: calc(100dvh - 310px);
+		max-height: calc(100dvh - var(--app-header-height) - 22rem);
 		overflow-y: auto;
 		overscroll-behavior: contain;
 	}
 	.card-name {
 		text-align: left;
-		font-size: 0.85rem;
+		font-size: 0.8125rem;
 		overflow-wrap: anywhere;
 		font-weight: 500;
 	}
@@ -242,7 +246,7 @@
 	.muted,
 	.notice,
 	.empty-state {
-		font-size: 0.8rem;
+		font-size: 0.75rem;
 		color: var(--color-text-secondary);
 	}
 	.empty-state {
