@@ -9,6 +9,7 @@ import type { InventoryValueHistoryPoint } from '@spellbook/contracts/inventory-
 function captured(day: string, value: string, covered = 1): InventoryValueHistoryPoint {
 	return {
 		kind: 'Captured',
+		totals: null,
 		day,
 		timezone: 'Europe/Berlin',
 		dayStart: `${day}T00:00:00Z`,

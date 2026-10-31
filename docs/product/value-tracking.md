@@ -1,9 +1,9 @@
 # Value tracking
 
 - Status: Market references, public source history, personal daily history, Dashboard and selected-Deck estimates implemented
-- Last Reviewed: 2026-10-29
+- Last Reviewed: 2026-10-31
 - Source of Truth: implemented reference contracts and Kyle's value-only scope decision of 2026-10-07
-- Update Triggers: explicit static Demo valuation and simplified History presentation, price providers and fallback policy, value coverage, daily history, reporting currency and timezone, retention, valuation UI and API contracts
+- Update Triggers: daily metric totals and Dashboard History preview, explicit static Demo valuation and simplified History presentation, price providers and fallback policy, value coverage, daily history, reporting currency and timezone, retention, valuation UI and API contracts
 - Related Docs: [Product index](./README.md), [Specification](./specification.md), [Domain glossary](../../GLOSSARY.md), [Market price research](../integrations/market-prices.md), [Valuation](../architecture/valuation.md), [Application contract](../architecture/application-contract.md), [ADR-0020](../decisions/0020-value-only-inventory-history.md)
 
 ## Selected scope
@@ -101,8 +101,13 @@ The unused Catalog does not need indefinite daily prices for every printing.
 
 ## Reporting and acceptance
 
-Dashboard shows current estimated Inventory value, coverage and bounded personal daily history.
-The authenticated `/mtg/history` page supports date windows and optional printing/finish/condition identity filters.
+Dashboard shows current estimated Inventory value and coverage in one of four metric cards.
+The cards show seven closed reporting dates and open detail previews before navigating to their workspaces.
+Historical copy, distinct Canonical Card and Set counts derive from saved holdings; Deck counts are captured atomically for new daily observations, with older counts remaining unknown.
+Missing endpoint observations provide no comparison, and partial historical price coverage remains labelled.
+The authenticated `/mtg/history` page supports visible preset/custom date filters and optional printing/finish/condition identity filters.
+Inventory value opens the same history controls and chart inside its Dashboard preview.
+The visible Daily observations disclosure is removed; chart inspection and an accessible exact-data table remain.
 The Inventory inspector links to that historical identity, independently of the live entry ID.
 Card Details continues to show printing references and public source history.
 Public Home retains its accepted design.

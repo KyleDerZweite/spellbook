@@ -82,7 +82,7 @@ async def native_fixture() -> AsyncIterator[Fixture]:
             # Validate the existing schema; this test never runs a migrator or DDL.
             assert (
                 await valuation_query(tx, "SELECT count(*) FROM drizzle.__drizzle_migrations", [])
-            )[0][0] == 25
+            )[0][0] == 26
             backup["catalog"] = await valuation_query(
                 tx,
                 "SELECT active_generation,previous_generation FROM catalog_state WHERE id=1",

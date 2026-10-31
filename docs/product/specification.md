@@ -1,9 +1,9 @@
 # Spellbook product specification
 
 - Status: Canonical
-- Last Reviewed: 2026-10-30
+- Last Reviewed: 2026-10-31
 - Source of Truth: application code, tests, accepted product requirements
-- Update Triggers: selected A+ Dashboard layout and native Demo evaluation, versioned MTG routes and module ownership, independent API/web ownership and relocated code references, accepted PWA/QR delivery and pending browser/Android acceptance, Inventory metadata filter shortcuts and compact read-only rows, account access and preferences, dashboard summaries, catalog identity, inventory or deck behavior, bounded Inventory loading and scaling evidence, market reference values and personal Inventory history, import formats, API contracts, scan capability and priorities, physical-card integration requirements, supported platforms, release acceptance changes, continuous Lazy browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
+- Update Triggers: four daily metric cards and detail previews, selected A+ Dashboard layout and native Demo evaluation, versioned MTG routes and module ownership, independent API/web ownership and relocated code references, accepted PWA/QR delivery and pending browser/Android acceptance, Inventory metadata filter shortcuts and compact read-only rows, account access and preferences, dashboard summaries, catalog identity, inventory or deck behavior, bounded Inventory loading and scaling evidence, market reference values and personal Inventory history, import formats, API contracts, scan capability and priorities, physical-card integration requirements, supported platforms, release acceptance changes, continuous Lazy browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
 - Related Docs: [Domain model](../../GLOSSARY.md), [Routes](./routing-and-games.md), [UI direction](./ui-design-direction.md), [Value tracking](./value-tracking.md), [System architecture](../architecture/system-overview.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Card scanner and sorter](../integrations/card-robot.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [Category rules](../architecture/category-rules.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
 
 Spellbook is an open-source MTG inventory and deck builder for private accounts on a self-hosted instance.
@@ -175,7 +175,10 @@ Signed-in users open their private account summary at `/mtg/dashboard`; Inventor
 Dashboard totals distinguish physical copies, canonical card names, printings, sets, foil copies and decks.
 Set, finish and condition distributions use owned quantities.
 The page shows the five largest sets and an Other remainder in a Pie without a permanent legend, plus up to eight recently edited inventory entries ordered by their stored update time.
-A combined Total / Unique Cards tile distinguishes physical copies from distinct Canonical Cards.
+Four actionable metric cards show Inventory value, Total / unique cards, Sets and Decks.
+They combine current values with seven closed reporting dates, distinguish positive/negative changes and open a detail preview before full workspace navigation.
+The combined Cards metric distinguishes physical copies from distinct Canonical Cards.
+Missing history remains unavailable, and historical price coverage is explicit.
 Finish, Condition and copies beyond one per distinct Canonical Card use independent proportional bars; detailed zero quantities remain available.
 Recent edits do not establish an acquisition history.
 

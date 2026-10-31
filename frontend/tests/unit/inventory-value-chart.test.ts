@@ -15,6 +15,7 @@ import { formatValueEUR } from '#lib/valuation/money.ts';
 function captured(day: string, overrides: Partial<ValueEstimate> = {}): InventoryValueHistoryPoint {
 	return {
 		kind: 'Captured',
+		totals: null,
 		day,
 		timezone: 'Europe/Berlin',
 		dayStart: day + 'T00:00:00Z',

@@ -74,7 +74,7 @@ async def native_pool() -> AsyncIterator[_Pool]:
                 )
                 for entry in journal["entries"]
             ]
-            assert len(expected) == 25
+            assert len(expected) == 26
             assert before == expected
         yield pool
         async with transaction(pool, read_only=True) as tx:

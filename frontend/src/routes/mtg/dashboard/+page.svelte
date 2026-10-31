@@ -3,8 +3,7 @@
 	import ProportionChart from '#lib/components/charts/ProportionChart.svelte';
 	import DeckAvailabilityRing from '#lib/components/charts/DeckAvailabilityRing.svelte';
 	import { historyBoundaryTimer } from '#lib/valuation/history-boundary.ts';
-	import ValueSummary from '#lib/components/valuation/ValueSummary.svelte';
-	import InventoryValueHistory from '#lib/components/valuation/InventoryValueHistory.svelte';
+	import MetricCards from '#lib/components/dashboard/MetricCards.svelte';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
 	import { onMount, untrack } from 'svelte';
 	import { page } from '$app/state';
@@ -155,64 +154,12 @@
 			>
 		</div>
 	{:else if dashboard}
-		<ul class="dashboard-totals" aria-label="Collection overview">
-			<li>
-				<a
-					href="/mtg/inventory"
-					aria-label={`${dashboard.totals.total.toLocaleString()} total cards, ${dashboard.totals.names.toLocaleString()} unique cards`}
-					><span class="metric-label">Total / Unique Cards</span><span class="metric-counts"
-						><strong>{dashboard.totals.total.toLocaleString()}</strong><span
-							class="metric-slash"
-							aria-hidden="true">/</span
-						><strong class="unique-count">{dashboard.totals.names.toLocaleString()}</strong></span
-					></a
-				>
-			</li>
-			<li>
-				<a href="/mtg/inventory"
-					><span class="metric-label">Sets</span><strong
-						>{dashboard.totals.sets.toLocaleString()}</strong
-					><small>{dashboard.totals.printings.toLocaleString()} printings</small></a
-				>
-			</li>
-			<li>
-				<a href="/mtg/decks"
-					><span class="metric-label">Decks</span><strong
-						>{dashboard.totals.decks.toLocaleString()}</strong
-					>{#if missingDecks}<small class="missing-note">{missingDecks} with missing cards</small
-						>{/if}</a
-				>
-			</li>
-		</ul>
+		<MetricCards {dashboard} demo={data.demoMode} />
 		{#if dashboard.totals.total === 0}<div class="dashboard-empty">
 				<p>Your inventory is empty. Add your first cards to start building your collection.</p>
 				<a href="/mtg/search" class="btn btn-primary btn-sm">Find cards</a>
 			</div>{/if}
 		<div class="dashboard-grid">
-			<div class="dashboard-history">
-				<InventoryValueHistory
-					demo={data.demoMode}
-					history={dashboard.inventoryValueHistory}
-					error={dashboard.valuationError?.message}
-					compact
-					onRetry={() => subscription?.invalidate()}
-				>
-					{#snippet summary()}
-						<div class="value-panel-header">
-							<span class="period-label"
-								>{dashboard?.inventoryValueHistory?.window.days ?? 30} days</span
-							><a href="/mtg/history" class="panel-link" aria-label="Open Inventory value history"
-								>View history <span aria-hidden="true">↗</span></a
-							>
-						</div>
-						<ValueSummary
-							estimate={dashboard?.inventoryValue?.estimate ?? null}
-							evaluatedAt={dashboard?.inventoryValue?.evaluatedAt}
-							compact
-						/>
-					{/snippet}
-				</InventoryValueHistory>
-			</div>
 			<section class="analytics-panel dashboard-decks" aria-labelledby="decks-heading">
 				<div class="section-heading">
 					<h2 id="decks-heading">Your decks</h2>
@@ -393,69 +340,12 @@
 </div>
 
 <style>
-	.dashboard-totals {
-		display: grid;
-		grid-template-columns: 1.5fr 1fr 1fr;
-		gap: 1rem;
-		list-style: none;
-		margin: 1.5rem 0;
-		padding: 0;
-	}
-	.dashboard-totals a {
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		height: 100%;
-		min-height: 116px;
-		gap: 0.25rem;
-		padding: 1rem 1.25rem;
-		border-radius: 0.75rem;
-		background: var(--color-card);
-		color: var(--color-text-primary);
-		text-decoration: none;
-	}
-	.dashboard-totals a:hover {
-		box-shadow: inset 0 0 0 1px var(--color-border);
-	}
-	.metric-label {
-		color: var(--color-text-secondary);
-		font-size: 0.75rem;
-	}
-	.dashboard-totals strong {
-		font: 400 2.5rem/1.2 var(--font-display);
-		font-variant-numeric: tabular-nums;
-	}
-	.metric-counts {
-		display: flex;
-		align-items: baseline;
-		gap: 0.65rem;
-	}
-	.metric-slash {
-		font: 400 1.75rem var(--font-display);
-		color: var(--color-text-muted);
-	}
-	.dashboard-totals .unique-count {
-		color: var(--color-text-muted);
-		font-size: 2.125rem;
-	}
-	.dashboard-totals small {
-		font-size: 0.6875rem;
-		color: var(--color-text-muted);
-	}
-	.dashboard-totals .missing-note {
-		color: var(--color-warning);
-	}
 	.dashboard-grid {
 		display: grid;
 		grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
-		grid-template-areas: 'history decks' 'sets composition' 'recent recent';
+		grid-template-areas: 'decks decks' 'sets composition' 'recent recent';
 		gap: 1.25rem;
 		align-items: start;
-	}
-	.dashboard-history {
-		grid-area: history;
-		position: relative;
-		min-width: 0;
 	}
 	.dashboard-decks {
 		grid-area: decks;
@@ -496,21 +386,6 @@
 	.panel-link:hover {
 		color: var(--color-text-primary);
 		text-decoration: underline;
-	}
-	.value-panel-header {
-		position: absolute;
-		top: 1.25rem;
-		right: 1.5rem;
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-	}
-	.period-label {
-		border: 1px solid var(--color-border);
-		border-radius: 0.375rem;
-		padding: 0.25rem 0.5rem;
-		color: var(--color-text-secondary);
-		font-size: 0.6875rem;
 	}
 	.deck-list {
 		list-style: none;
@@ -741,36 +616,11 @@
 		.recent-entries {
 			grid-template-columns: repeat(4, minmax(0, 1fr));
 		}
-		.value-panel-header .period-label {
-			display: none;
-		}
 	}
 	@media (max-width: 760px) {
 		.dashboard-grid {
 			grid-template-columns: minmax(0, 1fr);
-			grid-template-areas: 'history' 'decks' 'sets' 'composition' 'recent';
-		}
-		.dashboard-totals {
-			grid-template-columns: 1fr 1fr;
-			gap: 0.75rem;
-		}
-		.dashboard-totals li:first-child {
-			grid-column: 1/-1;
-		}
-		.dashboard-totals a {
-			min-height: 96px;
-			padding: 0.875rem 1rem;
-		}
-		.dashboard-totals strong {
-			font-size: 2.125rem;
-		}
-		.dashboard-totals .unique-count {
-			font-size: 1.875rem;
-		}
-		.value-panel-header {
-			position: static;
-			justify-content: flex-end;
-			margin-bottom: 0.75rem;
+			grid-template-areas: 'decks' 'sets' 'composition' 'recent';
 		}
 		.deck-list li {
 			gap: 1.25rem;
@@ -783,9 +633,6 @@
 		.recent-entries {
 			grid-template-columns: repeat(3, minmax(0, 1fr));
 			gap: 0.75rem;
-		}
-		.dashboard-totals small {
-			font-size: 0.625rem;
 		}
 	}
 </style>
