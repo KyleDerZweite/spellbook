@@ -1,6 +1,7 @@
 <script lang="ts">
 	import ComboEvidence from '#lib/components/categories/ComboEvidence.svelte';
 	import DeckOverview from '#lib/components/decks/DeckOverview.svelte';
+	import DeckStatistics from '#lib/components/decks/DeckStatistics.svelte';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import { readSavedJSON } from '#lib/saved-state/read.ts';
@@ -382,10 +383,16 @@
 	let inspected = $state<CardDocument | null>(null);
 	let inspectedEntryId = $state<string | null>(null);
 	let inspectorCategoryEntryId = $state<string | null>(null);
-	let nativeCategoriesOpen = $state(false);
+	let nativeCategoriesOpen = $state(untrack(() => !!data.categoryEntryId || !!form?.categoryDraft));
+	let categorySelection = $state(
+		untrack(() => form?.categoryDraft?.entryId ?? data.categoryEntryId ?? '')
+	);
 	let dirtyCategoryEntries = $state<string[]>([]);
 	let categoryRows = $state<CategoryEditorEntry[]>(
 		untrack(() => categoryEditorEntries([], data.deckCards, []))
+	);
+	const shownCategoryId = $derived(
+		categoryRows.find((card) => card.id === categorySelection)?.id ?? categoryRows[0]?.id ?? ''
 	);
 	function categoryDirty(entryId: string, dirty: boolean) {
 		if (dirtyCategoryEntries.includes(entryId) === dirty) return;
@@ -587,24 +594,27 @@
 			for (const value of routePage.url.searchParams.getAll(key)) params.append(key, value);
 		return params;
 	}
-	function action(name: string): string {
+	function action(name: string, categoryEntryId = data.categoryEntryId): string {
 		const params = directoryParams();
 		if (data.selectedDeckId) params.set('deck', data.selectedDeckId);
 		if (data.query) params.set('q', data.query);
 		if (data.oracleId) params.set('printing', data.oracleId);
+		if (categoryEntryId) params.set('categoryEntry', categoryEntryId);
 		if (data.flow) params.set('flow', data.flow);
 		if (groupBy === 'category') params.set('group', 'category');
 		return `?/${name}&${params}`;
 	}
 	function allDecksHref() {
 		const url = new URL(routePage.url.href);
-		for (const key of ['deck', 'flow', 'q', 'printing', 'group']) url.searchParams.delete(key);
+		for (const key of ['deck', 'flow', 'q', 'printing', 'group', 'categoryEntry'])
+			url.searchParams.delete(key);
 		return url.pathname + url.search;
 	}
 	function flowHref(flow = '') {
 		const p = directoryParams();
 		if (data.selectedDeckId) p.set('deck', data.selectedDeckId);
 		if (data.query) p.set('q', data.query);
+		if (data.categoryEntryId) p.set('categoryEntry', data.categoryEntryId);
 		if (flow) p.set('flow', flow);
 		if (groupBy === 'category') p.set('group', 'category');
 		return `/mtg/decks?${p}`;
@@ -884,7 +894,7 @@
 							>{/snippet}
 					</ActionMenu>
 				{/if}
-				{#if !selectedDeck}<Button
+				{#if !selectedDeck}<Button href="/mtg/categories" variant="ghost">Categories</Button><Button
 						href={flowHref('create')}
 						onclick={openCreate}
 						disabled={busy || deletedTarget}>New deck</Button
@@ -892,7 +902,6 @@
 			</div>
 		{/snippet}
 	</WorkspaceHeader>
-	{#if !selectedDeck}<Button href="/mtg/categories" variant="ghost">Category Library</Button>{/if}
 	<DeckDialog
 		title="Create a deck"
 		description="Name the deck and choose its format."
@@ -1256,6 +1265,7 @@
 		{/if}
 		<div class="workspace">
 			<section class="deck-list" aria-label="Deck cards" aria-busy={busy}>
+				<DeckStatistics cards={deckCards} documents={savedDecks.deckDocuments} />
 				<div class="list-controls">
 					<div class="view-controls" aria-label="Deck view">
 						<Button
@@ -1295,7 +1305,7 @@
 				</div>
 				<details
 					class="category-tools"
-					open={groupBy === 'category' ||
+					open={!!data.categoryEntryId ||
 						!!form?.categoryDraft ||
 						!!form?.renameDraft ||
 						!!form?.removalDraft ||
@@ -1310,15 +1320,22 @@
 						<a href={`/mtg/decks?deck=${encodeURIComponent(selectedDeck.id)}&group=category`}
 							>Category view</a
 						>
-						{#if wholeCategories}{#key wholeCategories.deckId}<WholeCategoryManager
-									categories={wholeCategories}
-									preview={displayedCategoryPreview}
-									{action}
-									unavailable={data.categoryReadError}
-									selectedVersionId={data.wholeCategoryVersion}
-									draft={form && 'wholeDraft' in form ? form.wholeDraft : undefined}
-									beginWrite={() => deckSubscription?.beginWrite(['decks'])}
-								/>{/key}{/if}
+						{#if wholeCategories}<details
+								class="whole-category-tools"
+								open={!!(form && 'wholeDraft' in form && form.wholeDraft) ||
+									displayedCategoryPreview?.scope === 'deck'}
+							>
+								<summary>Whole-deck rules</summary
+								>{#key wholeCategories.deckId}<WholeCategoryManager
+										categories={wholeCategories}
+										preview={displayedCategoryPreview}
+										{action}
+										unavailable={data.categoryReadError}
+										selectedVersionId={data.wholeCategoryVersion}
+										draft={form && 'wholeDraft' in form ? form.wholeDraft : undefined}
+										beginWrite={() => deckSubscription?.beginWrite(['decks'])}
+									/>{/key}
+							</details>{/if}
 						{#if entryCategories && !entryCategories.initialized}
 							<form
 								method="POST"
@@ -1361,14 +1378,38 @@
 								</p>{/if}
 							<details
 								data-native-categories
-								open={nativeCategoriesOpen}
+								open={nativeCategoriesOpen || !!data.categoryEntryId || !!form?.categoryDraft}
 								ontoggle={(event) => {
 									nativeCategoriesOpen = event.currentTarget.open;
-									if (!nativeCategoriesOpen) dirtyCategoryEntries = [];
 								}}
 							>
 								<summary>Primary category decisions</summary>
-								{#if !mounted || nativeCategoriesOpen}{#each categoryRows as card (card.id)}<section
+								<form method="GET" action="/mtg/decks" class="category-picker">
+									<input type="hidden" name="deck" value={selectedDeck.id} />
+									{#each [...routePage.url.searchParams].filter(([name]) => name !== 'deck' && name !== 'categoryEntry' && !name.startsWith('/')) as [name, value]}<input
+											type="hidden"
+											{name}
+											{value}
+										/>{/each}
+									<label class="label" for="category-entry-picker">Card</label>
+									<Select
+										id="category-entry-picker"
+										name="categoryEntry"
+										label="Card category entry"
+										native={!mounted}
+										value={shownCategoryId}
+										onchange={(value) => (categorySelection = value)}
+										disabled={busy}
+										options={categoryRows.map((card) => ({
+											value: card.id,
+											label:
+												card.name + (dirtyCategoryEntries.includes(card.id) ? ' · unsaved' : '')
+										}))}
+									/>
+									<noscript><Button type="submit" variant="secondary">Show card</Button></noscript>
+								</form>
+								{#if !mounted || nativeCategoriesOpen || dirtyCategoryEntries.length}{#each categoryRows.filter((card) => card.id === shownCategoryId || dirtyCategoryEntries.includes(card.id)) as card (card.id)}<section
+											hidden={card.id !== shownCategoryId}
 											aria-label={`Category for ${card.name}`}
 										>
 											<h3>{card.name}</h3>
@@ -1381,7 +1422,7 @@
 												unavailable={data.categoryReadError ||
 													categoryEditorUnavailable(card.id, deckCards, deletedTarget)}
 												onDraftChange={(dirty) => categoryDirty(card.id, dirty)}
-												action={action('setCategory')}
+												action={action('setCategory', card.id)}
 												refresh={refreshCategories}
 												requestId={data.requestId}
 												{busy}
@@ -1697,9 +1738,24 @@
 		color: var(--color-text-secondary);
 	}
 	.category-content {
+		max-width: 44rem;
+		max-height: min(60dvh, 32rem);
+		overflow-y: auto;
+		overscroll-behavior: contain;
 		display: grid;
 		gap: 1rem;
 		padding: 1rem 0;
+	}
+	.category-picker {
+		display: grid;
+		gap: 0.5rem;
+		margin: 1rem 0;
+	}
+	.whole-category-tools {
+		padding-block: 0.5rem;
+	}
+	.whole-category-tools > summary {
+		margin-bottom: 0.5rem;
 	}
 	.legality {
 		padding: 1.5rem 0;

@@ -514,7 +514,7 @@
 		min-width: 0;
 	}
 	fieldset {
-		border: 1px solid var(--border);
+		border: 1px solid var(--color-border);
 		padding: 1rem;
 	}
 	label {

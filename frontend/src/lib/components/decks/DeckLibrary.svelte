@@ -31,6 +31,7 @@
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import type { ResourceSubscription } from '#lib/saved-state/workspace.ts';
 	import Button from '#lib/components/ui/button/Button.svelte';
+	import FilterPopover from '#lib/components/ui/popover/FilterPopover.svelte';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
 
 	let {
@@ -38,6 +39,8 @@
 		categories,
 		accountId
 	}: { page: DeckLibraryPage; categories: DeckLibraryCategories; accountId: string } = $props();
+	const directoryFormId = $props.id();
+	let categoryFilterOpen = $state(false);
 	let version = $state(0),
 		enhanced = $state(false),
 		terminal = $state(false);
@@ -99,15 +102,15 @@
 		return library.span;
 	});
 	const columns = $derived(
-		width > 0 ? (width <= 420 ? 2 : Math.max(1, Math.floor((width + 24) / 204))) : 1
+		width > 0 ? (width <= 460 ? 2 : Math.max(1, Math.floor((width + 24) / 244))) : 1
 	);
-	const tileWidth = $derived(width <= 420 ? (width - 24) / 2 : 180);
+	const tileWidth = $derived(width > 0 ? (width - (columns - 1) * 24) / columns : 220);
 	const geometry = $derived.by(() => {
 		version;
 		return deckLibraryGeometry(
 			span,
 			columns,
-			Math.max(140, (tileWidth * 680) / 488 + 94),
+			Math.max(140, ((tileWidth - 24) * 680) / 488 + 132),
 			heights,
 			(index) => library.at(index)
 		);
@@ -526,6 +529,7 @@
 		for (const [key, value] of values)
 			if (key !== 'q' && typeof value === 'string' && value) url.searchParams.append(key, value);
 		url.searchParams.set('dirPage', '1');
+		categoryFilterOpen = false;
 		await goto(url);
 	}
 	async function readCategories(offset: number, signal: AbortSignal, currentLease: () => boolean) {
@@ -608,13 +612,20 @@
 
 <SavedStateStatus resource={subscription} />
 {#if !terminal}
-	<form class="directory-controls" method="GET" onsubmit={filter}>
+	<form id={directoryFormId} class="directory-controls" method="GET" onsubmit={filter}>
+		{#if enhanced}{#each categorySelection as id}<input
+					type="hidden"
+					name="dirCategory"
+					value={id}
+				/>{/each}{/if}
 		{#if route.url.searchParams.get('q')}<input
 				type="hidden"
 				name="q"
 				value={route.url.searchParams.get('q') ?? ''}
 			/>{/if}
-		<label>Deck name <input name="dirQ" value={page.query.query} maxlength="200" /></label>
+		<label class="deck-name-filter"
+			>Deck name <input name="dirQ" value={page.query.query} maxlength="200" /></label
+		>
 		<label
 			>Format <select name="dirFormat" value={page.query.format}
 				><option value="">All formats</option
@@ -630,22 +641,44 @@
 				><option value="name:desc">Name Z to A</option></select
 			></label
 		>
-		<label
-			>Categories <select
-				name="dirCategory"
-				multiple
-				bind:value={categorySelection}
-				aria-describedby="category-filter-help"
-				>{#each options as option}<option value={option.versionId}
-						>{option.name} · v{option.version}{option.historical ? ' · historical' : ''} ({option.count})</option
-					>{/each}</select
-			></label
-		>
-		<Button class="directory-action" type="submit">Apply filters</Button>
+		{#if options.length || categorySelection.length}
+			{#if enhanced}<FilterPopover
+					bind:open={categoryFilterOpen}
+					active={categorySelection.length > 0}
+					label="Deck categories"
+					triggerLabel={`Categories${categorySelection.length ? ` · ${categorySelection.length}` : ''}`}
+				>
+					{@render categoryChoices()}
+					<Button type="submit" form={directoryFormId} variant="secondary">Apply categories</Button>
+				</FilterPopover>{:else}<details class="directory-categories">
+					<summary
+						>Categories{#if categorySelection.length}
+							· {categorySelection.length}{/if}</summary
+					>{@render categoryChoices()}
+				</details>{/if}
+		{/if}
+		<Button class="directory-action" variant="secondary" type="submit">Apply filters</Button>
 	</form>
-	<p id="category-filter-help" class="muted">
-		Selected categories match any version. Historical versions keep their saved meaning.
-	</p>
+	{#snippet categoryChoices()}<div
+			class="category-choices"
+			role="group"
+			aria-label="Filter Deck categories"
+		>
+			<p id="category-filter-help">Match any selected version</p>
+			{#each options as option}<label class="category-option"
+					><input
+						type="checkbox"
+						name={enhanced ? undefined : 'dirCategory'}
+						value={option.versionId}
+						bind:group={categorySelection}
+						aria-describedby="category-filter-help"
+					/><span
+						>{option.name} · v{option.version}{option.historical ? ' · historical' : ''}<small
+							>{option.count} decks</small
+						></span
+					></label
+				>{/each}
+		</div>{/snippet}
 	{#if categorySelection.length}<details class="category-meanings">
 			<summary>Selected category meanings</summary
 			>{#each options.filter((item) => categorySelection.includes(item.versionId)) as option}<p>
@@ -673,7 +706,10 @@
 			{focusError || positionError}
 			<Button class="directory-action" onclick={retryPosition}>Retry position</Button>
 		</p>{/if}
-	<p class="directory-total">{current.matchingTotal} of {current.globalTotal} decks</p>
+	<p class="directory-total">
+		{current.matchingTotal.toLocaleString()}{#if current.matchingTotal !== current.globalTotal}
+			of {current.globalTotal.toLocaleString()}{/if} decks
+	</p>
 	{#if enhanced && library.error}<p role="alert">
 			{library.error}
 			<Button class="directory-action" onclick={() => library.retry()}>Retry</Button>
@@ -714,22 +750,37 @@
 				});
 			}}
 		>
-			{#if item.imageUri}<img src={item.imageUri} alt="" loading="lazy" />{:else}<div
-					class="library-placeholder"
-					aria-hidden="true"
-				>
-					<svg
+			<div class="library-cover">
+				{#if item.imageUri}<img
+						src={item.imageUri}
+						alt=""
+						loading="lazy"
+						width="488"
+						height="680"
+					/>{:else}<div class="library-placeholder" aria-hidden="true">
+						<svg
+							aria-hidden="true"
+							width="40"
+							height="40"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="1.4"
+							><rect x="7" y="3" width="13" height="18" rx="2" /><path
+								d="m4 6-2 1 3 15 11-2"
+							/></svg
+						>
+					</div>{/if}
+			</div>
+			<div class="deck-format-line">
+				<span
+					><i
+						class={`ms ms-${item.format.toLowerCase() === 'commander' ? 'commander' : 'deck'}`}
 						aria-hidden="true"
-						width="40"
-						height="40"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1.4"
-						><rect x="7" y="3" width="13" height="18" rx="2" /><path d="m4 6-2 1 3 15 11-2" /></svg
-					>
-				</div>{/if}
-			<strong>{item.name}</strong><span>{item.format} · {item.quantity} cards</span><small
+					></i>{item.format}</span
+				><span>{item.quantity.toLocaleString()} cards</span>
+			</div>
+			<strong>{item.name}</strong><small
 				>Edited {new Date(item.updatedAt).toLocaleDateString('en-GB')}</small
 			>
 			{#if item.categories.length}<span class="category-badges"
@@ -755,7 +806,7 @@
 						style:top={`${geometry.offsets[Math.floor(entry.index / columns) - geometry.base] ?? 0}px`}
 						style:left={`${(entry.index % columns) * (tileWidth + 24)}px`}
 						style:width={`${tileWidth}px`}
-						style:min-height={`${Math.max(140, (tileWidth * 680) / 488 + 94)}px`}
+						style:min-height={`${Math.max(140, ((tileWidth - 24) * 680) / 488 + 132)}px`}
 						aria-label="Loading Deck"
 					></div>{/if}
 			{/each}{:else}{#each page.items as item, index (item.id)}{@render tile(
@@ -777,15 +828,22 @@
 <style>
 	.deck-library {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(0, 180px));
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
 		gap: 1.5rem;
 	}
 	.library-card {
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
+		padding: 0.75rem;
+		border-radius: 0.75rem;
+		border: 1px solid var(--color-border);
+		background: var(--color-surface);
 		color: var(--color-text-primary);
 		text-decoration: none;
+		transition:
+			border-color 150ms ease,
+			background-color 150ms ease;
 	}
 	.library-card img,
 	.library-placeholder {
@@ -806,6 +864,11 @@
 		color: var(--color-text-secondary);
 		font-size: 0.8rem;
 	}
+	.library-card:hover,
+	.library-card:focus-visible {
+		border-color: var(--color-accent);
+		background: var(--color-card);
+	}
 	.library-card:hover strong {
 		text-decoration: underline;
 	}
@@ -815,7 +878,7 @@
 		text-align: center;
 		color: var(--color-text-secondary);
 	}
-	@media (max-width: 420px) {
+	@media (max-width: 460px) {
 		.deck-library {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
@@ -824,22 +887,27 @@
 	.directory-controls {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 1rem;
+		gap: 0.75rem;
 		align-items: end;
+		padding: 1rem;
+		background: var(--color-surface);
+		border-radius: 0.75rem;
+		margin-bottom: 1rem;
+		font-size: 0.75rem;
 	}
 	.directory-controls label {
 		min-width: 0;
 		flex: 1 1 10rem;
 		display: flex;
 		flex-direction: column;
-		gap: 0.35rem;
+		gap: 0.5rem;
 		max-width: 100%;
 	}
 	.directory-controls input,
 	.directory-controls select {
 		max-width: 100%;
 		min-height: 44px;
-		padding: 0.65rem 0.75rem;
+		padding: 0.5rem 0.75rem;
 		border: 1px solid var(--color-border);
 		border-radius: 0.5rem;
 		background: var(--color-surface);
@@ -851,11 +919,103 @@
 		outline: 2px solid var(--color-primary);
 		outline-offset: 2px;
 	}
-	.directory-controls select[multiple] {
+	.directory-controls .deck-name-filter {
+		flex: 2 1 16rem;
+	}
+	.directory-categories {
+		position: relative;
+		flex: 0 1 auto;
+	}
+	.directory-categories > summary {
+		display: flex;
+		align-items: center;
+		min-height: 44px;
+		padding: 0.5rem 0.75rem;
+		cursor: pointer;
+		border: 1px solid var(--color-border);
+		border-radius: 0.5rem;
+	}
+	.category-choices {
+		max-height: 20rem;
+		overflow-y: auto;
+		margin-bottom: 0.75rem;
+		font-size: 0.75rem;
+	}
+	.directory-categories .category-choices {
+		margin-top: 0.75rem;
+		padding: 0.75rem;
+		border: 1px solid var(--color-border);
+		border-radius: 0.5rem;
+	}
+
+	.category-choices p {
+		color: var(--color-text-secondary);
+		margin-bottom: 0.75rem;
+	}
+	.category-choices .category-option {
+		display: flex;
+		flex-direction: row;
+		align-items: start;
+		gap: 0.75rem;
+		padding: 0.5rem 0;
+	}
+	.category-option input {
+		min-height: 0;
+		margin-top: 0.25rem;
+		accent-color: var(--color-accent);
+	}
+	.category-option small {
+		display: block;
+		color: var(--color-text-secondary);
+		margin-top: 0.25rem;
+	}
+	.library-cover {
 		width: 100%;
-		max-width: 100%;
-		min-width: 0;
-		min-height: 5rem;
+	}
+	.library-card strong {
+		font: 400 1.125rem var(--font-display);
+		line-height: 1.4;
+	}
+	.deck-format-line {
+		display: flex;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: 0.25rem 0.5rem;
+		margin-top: 0.25rem;
+	}
+	.deck-format-line span {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.375rem;
+		font-size: 0.6875rem;
+	}
+	.deck-format-line .ms {
+		color: var(--color-role-commander);
+		font-size: 0.875rem;
+	}
+	.library-card > small {
+		font-size: 0.6875rem;
+		color: var(--color-text-muted);
+	}
+	.directory-total {
+		margin: 1rem 0;
+		color: var(--color-text-secondary);
+		font-size: 0.75rem;
+		font-variant-numeric: tabular-nums;
+	}
+	@media (max-width: 600px) {
+		.directory-controls {
+			padding: 0.75rem;
+		}
+		.directory-categories {
+			position: static;
+		}
+		.library-card {
+			padding: 0.5rem;
+		}
+		.library-card strong {
+			font-size: 1rem;
+		}
 	}
 	.virtual {
 		display: block;

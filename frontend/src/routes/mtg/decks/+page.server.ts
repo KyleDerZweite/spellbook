@@ -271,6 +271,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		categoryReadError,
 		categoryPreview,
 		localCategoryId: url.searchParams.get('localCategory'),
+		categoryEntryId: url.searchParams.get('categoryEntry'),
 		entryCategories,
 		grouping: url.searchParams.get('group') === 'category' ? 'category' : 'type',
 		flow: ['create', 'edit', 'import', 'delete', 'search'].includes(

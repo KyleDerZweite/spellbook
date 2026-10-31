@@ -3,14 +3,14 @@
 - Status: Canonical
 - Last Reviewed: 2026-10-31
 - Source of Truth: accepted product requirements, application components, selected logo and component choices
-- Update Triggers: artwork-led Deck Builder polish and native stack controls, four real-data Dashboard references, removed rejected prototypes and search fields, semantic Mana Font charts, selected A+ Dashboard layout and native Demo evaluation, Mebius chart reference adaptation, executed development-only search lab and comparison, shortcut-only power-user search requirement and source algorithm investigation, global command menu exploration, color-mode placement below centered mana controls, tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
+- Update Triggers: single-entry category management, real Deck distributions and mana curve, softer shared contrast and artwork Library, artwork-led Deck Builder polish and native stack controls, four real-data Dashboard references, removed rejected prototypes and search fields, semantic Mana Font charts, selected A+ Dashboard layout and native Demo evaluation, Mebius chart reference adaptation, executed development-only search lab and comparison, shortcut-only power-user search requirement and source algorithm investigation, global command menu exploration, color-mode placement below centered mana controls, tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
 - Related Docs: [Product specification](./specification.md), [Mobile exploration](./mobile-app-exploration.md), [Routes](./routing-and-games.md), [Domain model](../../GLOSSARY.md), [Selected UI components](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Brand assets](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Value tracking](./value-tracking.md)
 
 Spellbook prioritizes digitizing, indexing and managing a player's own Magic cards, then building decks from that collection.
 Public search, owned Inventory and Deck editing support this focus.
 Scan upload/review remains retained compatibility behavior with its presentation paused.
 Card artwork and working content establish the visual identity.
-Neutral dark and light surfaces, grayscale controls, colored navigation icons, and separate display and monospace interface fonts support that content.
+Neutral dark and light surfaces, restrained blue primary controls, colored navigation icons, and separate display and monospace interface fonts support that content.
 Kyle reaffirmed on 2026-10-29 that workspace UI should prefer visual state indicators and fewer subheadings or explanatory sentences.
 Keep functional field labels and accessible names, and use concise contextual tooltips when the visual state needs a name.
 Do not repeat control mechanics as visible helper prose or add another explanatory row when geometry can communicate the state.
@@ -406,7 +406,7 @@ Other TCGs appear only as decorative artwork with source provenance and visible 
 The [brand asset reference](../reference/website-icons.md) owns source files, installed filenames, dimensions, and verification.
 Prior generated concepts are discarded; keep local exploration and provenance artifacts outside production assets.
 
-Shared semantic tokens carry neutral surfaces and grayscale actions through every workspace.
+Shared semantic tokens carry the softer neutral surfaces and restrained blue primary actions through every workspace.
 A persistent icon control cycles through system, light, and dark modes in the single shared header.
 System is the initial preference and follows operating-system changes; explicit preferences persist across visits.
 Both palettes preserve readable text, control boundaries, and colored icon accents.
@@ -587,6 +587,25 @@ Mana Font group symbols describe actual types or the Commander role; alternate a
 A compact overview combines stored Commander artwork, actual Commander color identity, exact/alternate/missing Inventory matches and covered required/missing value estimates.
 Unknown availability remains explicit, and price coverage remains available through the shared native disclosure.
 Deck notes and category management use native disclosures, leaving the cards visible without removing existing controls, draft recovery or category decisions.
+Category grouping does not automatically open category administration.
+Primary category management selects one actual Deck entry, retains unsaved drafts when switching entries, and uses the same selected-entry form without JavaScript.
+The advanced management region has its own bounded scroll area; whole-deck rules remain separately disclosed.
+Native category fieldsets use the shared border token rather than a browser fallback.
+
+Kyle's further feedback on 2026-10-31 selects softer shared graphite surfaces, cool gray text and restrained blue primary controls instead of near-black backgrounds and white buttons.
+Keep the existing logo, fonts, navigation and accessible text contrast; color belongs mainly to card artwork, meaningful Mana symbols and data series.
+Deck Library uses larger framed card tiles, compact native filters and category choices only when categories exist, retaining bounded browsing and native navigation.
+Mana charts and Dashboard prototypes share the semantic WUBRG chart palette in app.css.
+The selected Deck shows quantity-weighted Colors or Color identity, with a separate exclusive Multicolor and Colorless category.
+Color identity is the default measure.
+The default analysis scope is Main plus Commander; Main, Sideboard, Companion and All sections remain explicit choices after hydration.
+Without JavaScript the default analysis and exact chart data remain readable, while the interactive measure selectors stay disabled.
+The mana-value curve excludes lands and calculates its average from resolved nonland copies only, retaining fractional values and grouping values of eight or more into 8+.
+Unavailable Catalog records and invalid mana values remain explicit unknown quantities and never become zero-mana cards.
+For double-faced cards the curve uses the front type line rather than the Catalog's combined type list, consistent with [front-face characteristics outside the stack and battlefield](https://magic.wizards.com/en/news/feature/spider-man-release-notes).
+Unprojected double-face colors remain Unknown in Colors; their resolved Color identity remains available.
+Reversible cards with independent faces remain Unknown while the flat Catalog contract cannot describe their individual characteristics.
+Statistics derive from the existing selected composition and Catalog documents, without further API requests or invented observations.
 List and Stacks share name, quantity, grouping, and missing-copy filters.
 Groups use card type or deck section, with the commander first.
 A sticky summary sits directly below navigation and exposes card count, missing-copy filtering, format checks, and save status.

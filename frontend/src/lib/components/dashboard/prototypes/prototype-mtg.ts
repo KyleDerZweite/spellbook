@@ -1,12 +1,12 @@
 // Color belongs to the actual Magic category, shared by the reference compositions.
 const manaColors: Record<string, string> = {
-	White: '#c9bb91',
-	Blue: '#7fa6c4',
-	Black: '#827d88',
-	Red: '#bd7e69',
-	Green: '#7ea58a',
-	Multicolor: '#b59e67',
-	Colorless: '#9ba3ac'
+	White: 'var(--color-chart-mana-white)',
+	Blue: 'var(--color-chart-mana-blue)',
+	Black: 'var(--color-chart-mana-black)',
+	Red: 'var(--color-chart-mana-red)',
+	Green: 'var(--color-chart-mana-green)',
+	Multicolor: 'var(--color-chart-mana-gold)',
+	Colorless: 'var(--color-chart-mana-colorless)'
 };
 export const manaColor = (label: string) => manaColors[label] ?? 'var(--color-text-muted)';
 const typeColors: Record<string, string> = {
