@@ -26,7 +26,7 @@
 	<nav aria-label="History period">
 		{#each [{ days: 7, label: '7 days' }, { days: 30, label: '30 days' }, { days: 90, label: '90 days' }, { days: 366, label: '1 year' }] as period}<a
 				href={`/mtg/history?${params(period.days)}`}
-				data-sveltekit-preload-data={onNavigate ? 'off' : undefined}
+				data-sveltekit-preload-data={onNavigate ? 'false' : undefined}
 				aria-current={!query.from && (query.days ?? 30) === period.days ? 'page' : undefined}
 				onclick={(event) => {
 					if (onNavigate) {
