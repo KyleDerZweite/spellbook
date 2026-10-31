@@ -187,37 +187,30 @@ Unknown, empty and unavailable states remain explicit.
 Root owns integration and acceptance against API totals, account isolation, missing Catalog data, quantity changes, dark/light and narrow layouts, pointer/keyboard/touch inspection and route removal.
 This revision remains a local prototype comparison until Kyle selects a production direction.
 
-### Dashboard metric trends, concept only
+### Dashboard metric cards and detail previews
 
-On 2026-10-30, Kyle selected concept work rather than implementation of the Stat-card trends.
-The proposal uses small 30-day sparklines for Cards owned, Card names, Sets and Decks, with absolute net changes and the actual comparison date.
-Kyle's subsequently supplied AdGuard screenshot sets the visual direction for this concept.
-Use a large counter at the upper left, a small change indicator at the upper right and a thin, low-contrast sparkline near the tile's lower edge.
-The reference's quiet border, generous empty space and restrained color coding fit the existing neutral themes.
-Retain each metric's visible label and its navigation target; label placement can be resolved in a future visual prototype.
-The line represents daily holdings or Deck totals, and the change indicator compares against the actual first observed day in the selected window.
-Use absolute changes by default, so one additional Set or Deck remains understandable without a large percentage.
-Only real observed zeroes or unchanged counts justify a flat line; missing history shows an unavailable comparison rather than a fabricated line or 0%.
+Kyle's 2026-10-31 revision replaces the concept-only restriction with four actionable metric cards: Inventory value, Total / unique cards, Sets and Decks.
+Each card shows its label, current value, daily seven-day sparkline and an absolute change against an actual baseline.
+Positive changes are green and negative changes are red; missing history is unavailable rather than zero.
+Keep the AdGuard reference's restrained sparkline treatment and the existing fonts, softer shared palette and top navigation.
+Use seven closed reporting dates, matching the existing final-minute daily capture policy; current live values remain separately identified.
+Do not connect gaps or invent observations from creation timestamps, today's holdings or demo fixture totals.
+For historical values compare only priced observations, and disclose partial price coverage.
+Total copies lead the combined Cards metric; unique names remain secondary and available in its preview.
 
-Positive and negative counts describe holdings or Deck-count changes, never purchases, sales or investment returns.
-One known point has no comparison; missing days stay gaps.
-The current live count would be a separately identified final point.
+A card opens a bounded detail preview before navigation, with keyboard dismissal, focus return and a direct link to its full workspace.
+Inventory value reuses the History view with explicit period and visible custom-date controls.
+Remove the Daily observations section from shared History presentation, while keeping chart inspection and accessible exact values.
+History capture, stored evidence, gap semantics and the public API remain owned by Valuation.
 
-| Stat card   | Proposed trend meaning                 | Historical evidence                     |
-| ----------- | -------------------------------------- | --------------------------------------- |
-| Cards owned | Net change in physical copies          | Saved quantities                        |
-| Card names  | Net change in distinct Canonical Cards | Saved canonical identity                |
-| Sets        | Net change in represented sets         | Saved Set codes                         |
-| Decks       | Net change in Deck count               | Future daily counter recording required |
-
-A missing baseline must show no comparison rather than zero change; percentage changes would require a nonzero reference count.
-Deck completion is a separate measure and must not be inferred from the number of Decks.
-
-Existing `inventory_value_holdings` snapshots can provide historical owned-copy, unique-name and Set counts independently of price coverage.
-They cannot establish past Deck counts.
-Deck trends would require real daily counter recording in a separately reviewed backend change; current Decks, creation dates and receipts must not serve as invented historical totals.
-Before implementation, select snapshot storage, capture/calendar policy, account-scoped reads, failure recovery and acceptance evidence in the owning architecture documents.
-No trend implementation or recording is part of this chart PR.
+Captured aggregate History points gain nullable totals for copies, distinct Canonical Cards, represented Sets and Deck count.
+Copies, names and Sets derive from the saved holdings for that day, independently of price coverage.
+A nullable Deck count is recorded atomically in the existing daily capture transaction from now on.
+Earlier Deck counts remain unknown; do not backfill from current Decks.
+Printing-filtered History returns null aggregate totals to avoid mixing global metrics with one Printing's values.
+Core owns capture and aggregation; the existing authenticated history read supplies the data, and Dashboard uses its existing private History response.
+Frontend owns trend selection, presentation and popover navigation, without database access or a second history store.
+Acceptance covers real closed days, gaps, empty captured holdings, partial prices, unknown legacy Deck counts, account isolation and native History filtering.
 
 ## Selected hybrid browsing and Card dialog
 
