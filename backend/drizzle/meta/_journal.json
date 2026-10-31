@@ -176,6 +176,13 @@
 			"when": 1792187626879,
 			"tag": "0024_qr_authorization",
 			"breakpoints": true
+		},
+		{
+			"idx": 25,
+			"version": "7",
+			"when": 1793404800000,
+			"tag": "0025_inventory_history_deck_count",
+			"breakpoints": true
 		}
 	]
 }

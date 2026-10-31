@@ -9,7 +9,7 @@ from uuid import uuid4
 from psycopg.pq import TransactionStatus
 from psycopg.types.json import Jsonb
 
-from spellbook_core.db import ConnectionPool, Transaction
+from spellbook_core.db import ConnectionPool, Transaction, database_integer
 from spellbook_core.mtg.inventory_value import (
     InventoryValues,
     estimate_holdings,
@@ -95,6 +95,13 @@ async def capture_account(
         [account_id],
     )
     revision = revisions[0][0] if revisions else "0"
+    deck_count = database_integer(
+        (
+            await query(
+                tx, "SELECT count(*) FROM decks WHERE account_id=$1 AND game='mtg'", [account_id]
+            )
+        )[0][0]
+    )
     holdings = await read_holdings(tx, account_id, query=query)
     pairs = unique_holding_pairs(holdings)
     outcomes: list[Document] = []
@@ -114,17 +121,18 @@ async def capture_account(
             tx,
             """
             UPDATE inventory_value_days SET observed_at=$2, estimate=$3::jsonb,
-            inventory_revision=$4 WHERE id=$1
+            inventory_revision=$4, deck_count=$5 WHERE id=$1
             """,
-            [day_id, calendar["observed_at"], Jsonb(estimate), revision],
+            [day_id, calendar["observed_at"], Jsonb(estimate), revision, deck_count],
         )
     else:
         await query(
             tx,
             """
             INSERT INTO inventory_value_days(id, account_id, game, day, timezone, day_start,
-            day_end, observed_at, estimate, inventory_revision) VALUES($1, $2, 'mtg' , $3, $4, $5,
-            $6, $7, $8::jsonb, $9)
+            day_end, observed_at, estimate, inventory_revision, deck_count)
+            VALUES($1, $2, 'mtg' , $3, $4, $5,
+            $6, $7, $8::jsonb, $9, $10)
             """,
             [
                 day_id,
@@ -136,6 +144,7 @@ async def capture_account(
                 calendar["observed_at"],
                 Jsonb(estimate),
                 revision,
+                deck_count,
             ],
         )
     for offset in range(0, len(outcomes), 100):

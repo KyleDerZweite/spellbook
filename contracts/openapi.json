@@ -11505,6 +11505,12 @@
 										},
 										"estimate": {
 											"$ref": "#/components/schemas/ValueEstimate"
+										},
+										"totals": {
+											"anyOf": [
+												{ "$ref": "#/components/schemas/InventoryHistoryTotals" },
+												{ "type": "null" }
+											]
 										}
 									},
 									"required": [
@@ -11514,7 +11520,8 @@
 										"dayStart",
 										"dayEnd",
 										"observedAt",
-										"estimate"
+										"estimate",
+										"totals"
 									]
 								}
 							]
@@ -11530,6 +11537,32 @@
 					"identity",
 					"points"
 				]
+			},
+			"InventoryHistoryTotals": {
+				"type": "object",
+				"properties": {
+					"total": {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 9007199254740991
+					},
+					"names": {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 9007199254740991
+					},
+					"sets": {
+						"type": "integer",
+						"minimum": 0,
+						"maximum": 9007199254740991
+					},
+					"decks": {
+						"type": ["integer", "null"],
+						"minimum": 0,
+						"maximum": 9007199254740991
+					}
+				},
+				"required": ["total", "names", "sets", "decks"]
 			},
 			"DashboardSummary": {
 				"type": "object",

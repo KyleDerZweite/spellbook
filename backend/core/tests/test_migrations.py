@@ -28,7 +28,7 @@ def write_journal(directory: Path, sqls: tuple[bytes, ...]) -> None:
 def test_real_history_hashes_timestamps_and_breakpoints() -> None:
     migrations = read_migrations(SQL_DIRECTORY)
     journal = json.loads((SQL_DIRECTORY / "meta/_journal.json").read_bytes())
-    assert len(migrations) == 25
+    assert len(migrations) == 26
     for migration, entry in zip(migrations, journal["entries"], strict=True):
         raw = (SQL_DIRECTORY / f"{entry['tag']}.sql").read_bytes()
         assert migration.created_at == entry["when"]
@@ -116,7 +116,7 @@ def test_applied_prefix_and_serial_gaps() -> None:
     assert validate_ledger(migrations, []) == 0
     rows = [(3 + index * 2, item.hash, item.created_at) for index, item in enumerate(migrations)]
     assert validate_ledger(migrations, rows[:7]) == 7
-    assert validate_ledger(migrations, rows) == 25
+    assert validate_ledger(migrations, rows) == 26
 
 
 @pytest.mark.parametrize("corruption", ["hash", "time", "gap", "reorder", "duplicate", "unknown"])

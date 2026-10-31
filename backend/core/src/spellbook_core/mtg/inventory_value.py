@@ -229,12 +229,21 @@ class InventoryValues:
             tx,
             query,
             """
-            SELECT id, day::text, timezone, day_start, day_end, observed_at, estimate FROM
-            inventory_value_days WHERE account_id=$1 AND game= 'mtg' AND day BETWEEN $2::date AND
-            $3::date AND day_end <= $4::timestamptz ORDER BY day
+            SELECT id, day::text, timezone, day_start, day_end, observed_at, estimate, deck_count
+            FROM inventory_value_days WHERE account_id=$1 AND game= 'mtg'
+            AND day BETWEEN $2::date AND $3::date AND day_end <= $4::timestamptz ORDER BY day
             """,
             [account_id, start, to, as_of],
-            ["id", "day", "timezone", "day_start", "day_end", "observed_at", "estimate"],
+            [
+                "id",
+                "day",
+                "timezone",
+                "day_start",
+                "day_end",
+                "observed_at",
+                "estimate",
+                "deck_count",
+            ],
         )
         next_refresh = (
             await query(
@@ -250,6 +259,28 @@ class InventoryValues:
         if not isinstance(next_refresh, datetime):
             raise PriceReadUnavailable()
         identity = filter["identity"]
+        totals: dict[str, Document] = {}
+        if identity is None and headers:
+            rows = await records(
+                tx,
+                query,
+                """
+                SELECT d.id, coalesce(sum(h.quantity), 0)::bigint,
+                count(DISTINCT h.canonical_card_id), count(DISTINCT h.set_code), d.deck_count
+                FROM inventory_value_days d LEFT JOIN inventory_value_holdings h ON h.day_id=d.id
+                WHERE d.id=ANY($1::uuid[]) AND d.account_id=$2 AND d.game='mtg'
+                GROUP BY d.id
+                """,
+                [[h["id"] for h in headers], account_id],
+                ["id", "total", "names", "sets", "decks"],
+            )
+            for row in rows:
+                totals[str(row["id"])] = {
+                    key: None
+                    if key == "decks" and row[key] is None
+                    else database_integer(row[key])
+                    for key in ("total", "names", "sets", "decks")
+                }
         estimates: dict[str, Document] = {}
         if identity and headers:
             rows = await records(
@@ -287,6 +318,7 @@ class InventoryValues:
                     "dayEnd": iso_timestamp(point_header["day_end"]),
                     "observedAt": iso_timestamp(point_header["observed_at"]),
                     "estimate": estimates.get(str(point_header["id"]), point_header["estimate"]),
+                    "totals": None if identity else totals[str(point_header["id"])],
                 }
                 if point_header
                 else {"kind": "Gap", "day": day}
