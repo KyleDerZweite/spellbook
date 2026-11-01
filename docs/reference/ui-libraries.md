@@ -1,9 +1,9 @@
 # Selected UI components
 
 - Status: Canonical
-- Last Reviewed: 2026-10-30
+- Last Reviewed: 2026-11-01
 - Source of Truth: accepted product decision, current application, upstream documentation
-- Update Triggers: selected A+ Dashboard layout and native Demo evaluation, Mebius visual reference adaptation, compact distribution and Finish ring presentation, shared D3 analytics charts, component adoption, generated source ownership, Svelte or Tailwind compatibility, interaction requirements, shared scrolling, Search native window/modal hosts and hybrid pagination, filter editing and destructive confirmation
+- Update Triggers: shared Plus icon and explicit ActionMenu item icons, selected A+ Dashboard layout and native Demo evaluation, Mebius visual reference adaptation, compact distribution and Finish ring presentation, shared D3 analytics charts, component adoption, generated source ownership, Svelte or Tailwind compatibility, interaction requirements, shared scrolling, Search native window/modal hosts and hybrid pagination, filter editing and destructive confirmation
 - Related Docs: [Reference](./README.md), [Bits UI](./bits-ui.md), [Frontend](../architecture/frontend.md), [Catalog](../architecture/catalog.md), [Design direction](../product/ui-design-direction.md), [Product specification](../product/specification.md)
 
 Spellbook uses shadcn-svelte source components with Bits UI, Svelte, and Tailwind.
@@ -42,6 +42,8 @@ Callers own filtering and save behavior.
 Scan selectors explicitly clear review confirmation when their values change.
 
 ActionMenu owns action lists, link and download items, keyboard navigation, and the shared menu appearance.
+Items accept an optional decorative `icon` snippet; their text label still owns the accessible name and menu typeahead.
+Creation and Add actions reuse [PlusIcon](../../frontend/src/lib/components/ui/PlusIcon.svelte), including native form fallbacks.
 Use it for commands rather than option selection.
 Set `iconOnly` to omit the chevron and use the shared icon-button styling.
 Without a custom trigger snippet, it renders the standard three-dot icon while keeping `label` as the accessible name.

@@ -41,8 +41,17 @@
 			<path d="m66 45 46 18 46-18M112 63v63M77 45l35 14 35-14-35-13-35 13Z" />
 			<path d="M77 72v19l24 10V82L77 72Z" />
 		</g>
+	{:else if kind === 'decks'}
+		<g transform="rotate(-14 112 72)">
+			{#each [24, 20, 16, 12, 8, 4, 0] as offset}
+				<rect class="solid" x={76 + offset / 4} y={14 + offset} width="64" height="88" rx="5" />
+			{/each}
+			<rect x="82" y="20" width="52" height="76" rx="3" />
+			<path d="m108 37 15 21-15 21-15-21 15-21Z" />
+			<path d="m108 46 8 12-8 12-8-12 8-12Z" />
+		</g>
 	{:else}
-		<g transform={kind === 'decks' ? 'rotate(-18 116 72)' : 'rotate(13 114 72)'}>
+		<g transform="rotate(13 114 72)">
 			<rect
 				class="solid"
 				x="64"
