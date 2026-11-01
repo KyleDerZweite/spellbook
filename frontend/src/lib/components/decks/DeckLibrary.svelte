@@ -109,11 +109,16 @@
 		version;
 		return library.span;
 	});
-	const columns = 1;
-	const tileWidth = $derived(width > 0 ? width : 320);
+	const columns = $derived(
+		width >= 330 && width < 464 ? 2 : Math.max(1, Math.floor((width + 24) / 244))
+	);
+	const tileWidth = $derived(width > 0 ? (width - (columns - 1) * 24) / columns : 220);
+	const estimatedHeight = $derived(((tileWidth - 26) * 680) / 488 + 160);
 	const geometry = $derived.by(() => {
 		version;
-		return deckLibraryGeometry(span, columns, 88, heights, (index) => library.at(index), 0);
+		return deckLibraryGeometry(span, columns, estimatedHeight, heights, (index) =>
+			library.at(index)
+		);
 	});
 	const rows = $derived(
 		deckLibraryMountedRows(
@@ -843,9 +848,6 @@
 			>
 		</a>
 	{/snippet}
-	<div class="library-head" aria-hidden="true">
-		<span>Deck</span><span>Format</span><span>Cards</span><span>Last edited</span>
-	</div>
 	<div
 		bind:this={wrapper}
 		class:virtual={enhanced}
@@ -859,7 +861,7 @@
 						style:top={`${geometry.offsets[Math.floor(entry.index / columns) - geometry.base] ?? 0}px`}
 						style:left={`${(entry.index % columns) * (tileWidth + 24)}px`}
 						style:width={`${tileWidth}px`}
-						style:min-height={`${88}px`}
+						style:min-height={`${estimatedHeight}px`}
 						aria-label="Loading Deck"
 					></div>{/if}
 			{/each}{:else}{#each page.items as item, index (item.id)}{@render tile(
@@ -881,35 +883,30 @@
 <style>
 	.deck-library {
 		display: grid;
-		gap: 0;
-	}
-	.library-head,
-	.library-card {
-		display: grid;
-		grid-template-columns: minmax(0, 1fr) 9rem 5rem 13rem;
-		align-items: center;
-		gap: 1rem;
-	}
-	.library-head {
-		padding: 1rem 0.75rem 0.5rem 4.5rem;
-		color: var(--color-text-muted);
-		font-size: 0.75rem;
+		grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+		gap: 24px;
+		margin-top: 1rem;
 	}
 	.library-card {
-		grid-template-columns: 44px minmax(0, 1fr) 9rem 5rem 13rem;
-		min-height: 88px;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		min-width: 0;
+		box-sizing: border-box;
 		padding: 0.75rem;
+		border: 1px solid var(--color-border);
+		border-radius: 0.75rem;
+		background: var(--color-surface);
 		color: var(--color-text-primary);
 		text-decoration: none;
-		border-radius: 0.375rem;
 	}
 	.library-card:hover,
 	.library-card:focus-visible {
-		background: var(--color-surface);
+		border-color: var(--color-accent);
 	}
 	.library-card:focus-visible {
 		outline: 2px solid var(--color-primary);
-		outline-offset: -2px;
+		outline-offset: 2px;
 	}
 	.library-card:hover strong {
 		text-decoration: underline;
@@ -918,10 +915,11 @@
 	.library-cover img,
 	.library-placeholder {
 		display: block;
-		width: 40px;
-		height: 56px;
+		width: 100%;
+		height: auto;
+		aspect-ratio: 488 / 680;
 		object-fit: contain;
-		border-radius: 2px;
+		border-radius: 0.5rem;
 	}
 	.library-placeholder {
 		display: grid;
@@ -929,16 +927,11 @@
 		background: var(--color-stone);
 		color: var(--color-text-muted);
 	}
-	.library-placeholder svg {
-		width: 24px;
-		height: 24px;
-	}
 	.deck-name {
 		min-width: 0;
 	}
 	.library-card strong {
-		font-size: 0.875rem;
-		font-weight: 500;
+		font: 400 1.125rem/1.4 var(--font-display);
 		overflow-wrap: anywhere;
 	}
 	.deck-format,
@@ -959,9 +952,7 @@
 	}
 	.deck-edited {
 		color: var(--color-text-muted);
-	}
-	.mobile-card-label {
-		display: none;
+		margin-top: auto;
 	}
 	.category-badges {
 		display: flex;
@@ -970,7 +961,11 @@
 		margin-top: 0.375rem;
 	}
 	.category-badges small {
-		color: var(--color-text-muted);
+		padding: 0.125rem 0.375rem;
+		border: 1px solid var(--color-border);
+		border-radius: 0.25rem;
+		background: var(--color-stone);
+		color: var(--color-text-secondary);
 		font-size: 0.6875rem;
 		overflow-wrap: anywhere;
 	}
@@ -1088,35 +1083,10 @@
 		.directory-total {
 			margin-left: auto;
 		}
-		.library-head {
-			display: none;
-		}
-		.library-card {
-			grid-template-columns: 40px minmax(0, 1fr) auto;
-			gap: 0.375rem 0.75rem;
-			padding: 0.75rem 0.25rem;
-		}
-		.library-cover {
-			grid-row: 1 / 4;
-		}
-		.deck-name {
-			grid-column: 2 / 4;
-		}
-		.deck-format {
-			grid-column: 2;
-			grid-row: 2;
-		}
-		.deck-quantity {
-			grid-column: 3;
-			grid-row: 2;
-		}
-		.deck-edited {
-			grid-column: 2 / 4;
-			grid-row: 3;
-			font-size: 0.6875rem;
-		}
-		.mobile-card-label {
-			display: inline;
+	}
+	@media (min-width: 362px) and (max-width: 495px) {
+		.deck-library {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 	}
 </style>
