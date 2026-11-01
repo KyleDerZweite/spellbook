@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-01
 - Source of Truth: accepted product requirements, application components, selected logo and component choices
-- Update Triggers: direct metric links and compact History-only preview, four daily metric cards and History previews, single-entry category management, real Deck distributions and mana curve, softer shared contrast and artwork Library, artwork-led Deck Builder polish and native stack controls, four real-data Dashboard references, removed rejected prototypes and search fields, semantic Mana Font charts, selected A+ Dashboard layout and native Demo evaluation, Mebius chart reference adaptation, executed development-only search lab and comparison, shortcut-only power-user search requirement and source algorithm investigation, global command menu exploration, color-mode placement below centered mana controls, tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
+- Update Triggers: selected two-row reference for the regular Dashboard, direct metric links and compact History-only preview, four daily metric cards and History previews, single-entry category management, real Deck distributions and mana curve, softer shared contrast and artwork Library, artwork-led Deck Builder polish and native stack controls, four real-data Dashboard references, removed rejected prototypes and search fields, semantic Mana Font charts, selected A+ Dashboard layout and native Demo evaluation, Mebius chart reference adaptation, executed development-only search lab and comparison, shortcut-only power-user search requirement and source algorithm investigation, global command menu exploration, color-mode placement below centered mana controls, tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
 - Related Docs: [Product specification](./specification.md), [Mobile exploration](./mobile-app-exploration.md), [Routes](./routing-and-games.md), [Domain model](../../GLOSSARY.md), [Selected UI components](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Brand assets](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Value tracking](./value-tracking.md)
 
 Spellbook prioritizes digitizing, indexing and managing a player's own Magic cards, then building decks from that collection.
@@ -185,6 +185,24 @@ Frontend consumes this typed summary and existing shared charts, keeps titles, a
 Unknown, empty and unavailable states remain explicit.
 Root owns integration and acceptance against API totals, account isolation, missing Catalog data, quantity changes, dark/light and narrow layouts, pointer/keyboard/touch inspection and route removal.
 This revision remains a local prototype comparison until Kyle selects a production direction.
+
+### Selected regular Dashboard reference
+
+On 2026-11-01 Kyle selected the supplied [Dashboard reference](../../frontend/src/lib/components/dashboard/prototypes/references/dashboard-reference.png) for the regular Dashboard, replacing the previous large Deck/Set composition.
+Keep the actual application shell, navigation, fonts and neutral page background.
+Match the reference's card composition: four equal metric cards, followed by four aligned panels for Collection by Set, Card Types, Mana Color Identity and recent Inventory edits.
+Use larger violet outline metric icons, left-aligned figures, small charts at the right, restrained card borders and consistent panel heights.
+Keep surface fills flat and local accents quiet; do not copy the fantasy scenery, background washes or invented decorative imagery.
+The content can use a wider Dashboard-specific grid without changing shared workspace geometry.
+
+All metrics and charts use the existing authenticated Dashboard summary.
+The activity panel presents actual recently edited holdings and their stored timestamps, without pretending these are Scan/import/addition events.
+Set bars show actual owned quantities, not completion of an edition.
+Primary card types are mutually exclusive; mana color identity preserves the existing Multicolor, Colorless and Unknown buckets.
+No hardcoded reference counts, fake trends, inferred Deck history or new backend read is permitted.
+Existing Deck availability and Inventory composition remain below the primary two-row overview in a compact disclosure, with their existing workspace links.
+The metric navigation and History dialog contract below remains unchanged.
+Acceptance compares the actual regular Dashboard at the reference's desktop size and smaller screens, including real data totals, gaps, keyboard/touch inspection, direct navigation and History focus handling.
 
 ### Dashboard metrics and Inventory value preview
 
