@@ -49,6 +49,33 @@
 	const active = $derived(colors.find((item) => item.label === inspected));
 	const percent = (value: number, total: number) =>
 		`${(total ? (value / total) * 100 : 0).toLocaleString(undefined, { maximumFractionDigits: 1 })}%`;
+	const typeOrder = [
+		'Creature',
+		'Instant',
+		'Sorcery',
+		'Enchantment',
+		'Artifact',
+		'Land',
+		'Planeswalker',
+		'Battle',
+		'Other',
+		'Unknown'
+	];
+	const visibleTypes = $derived(
+		types
+			.filter((item) => item.value > 0)
+			.sort((a, b) => typeOrder.indexOf(a.label) - typeOrder.indexOf(b.label))
+	);
+	const visibleColors = $derived(
+		colors.filter((item) => item.label !== 'Unknown' || item.quantity > 0)
+	);
+	let failedIcons = $state<string[]>([]);
+	let colorRoot: HTMLDivElement | undefined = $state();
+	let pinned = $state(false);
+	function clearInspection() {
+		inspected = null;
+		pinned = false;
+	}
 	const setName = (code: string) =>
 		dashboard.catalogBreakdown?.setNames[code] ?? code.toUpperCase();
 	function timestamp(value: string) {
@@ -62,7 +89,11 @@
 
 <svelte:window
 	onkeydown={(event) => {
-		if (event.key === 'Escape') inspected = null;
+		if (event.key === 'Escape') clearInspection();
+	}}
+	onpointerdown={(event) => {
+		if (event.target instanceof Node && colorRoot && !colorRoot.contains(event.target))
+			clearInspection();
 	}}
 />
 
@@ -91,11 +122,25 @@
 
 <div class="insights">
 	<section class="panel sets">
-		<header>{@render heading('sets', 'Collection by Set')}</header>
+		<header>
+			{@render heading('sets', 'Collection by Set')}<a class="view-all" href="/mtg/inventory"
+				>View all <span aria-hidden="true">→</span></a
+			>
+		</header>
 		<div class="set-list">
 			{#each sets.slice(0, 5) as item}
 				<div class="set-row">
-					<span>{setName(item.label)}</span><strong>{item.quantity.toLocaleString()}</strong>
+					<span class="set-symbol" aria-hidden="true"
+						>{#if /^[a-z0-9]{2,8}$/i.test(item.label) && !failedIcons.includes(item.label)}<img
+								src={`https://svgs.scryfall.io/sets/${encodeURIComponent(item.label.toLowerCase())}.svg`}
+								alt=""
+								width="32"
+								height="32"
+								loading="lazy"
+								onerror={() => (failedIcons = [...failedIcons, item.label])}
+							/>{:else}<span>{item.label.toUpperCase()}</span>{/if}</span
+					>
+					<span class="set-name">{setName(item.label)}</span>
 					<div
 						class="track"
 						role="img"
@@ -103,6 +148,7 @@
 					>
 						<i style:width={`${(item.quantity / setMaximum) * 100}%`}></i>
 					</div>
+					<strong>{item.quantity.toLocaleString()}</strong>
 				</div>
 			{:else}<p>No owned cards yet.</p>{/each}
 		</div>
@@ -116,7 +162,6 @@
 						</div>{:else}<p>No sets yet.</p>{/each}
 				</dl>
 			</details>
-			<a href="/mtg/inventory">View all Inventory →</a>
 		</footer>
 	</section>
 	<section class="panel">
@@ -127,7 +172,7 @@
 					<ProportionChart
 						label="Physical copies by exclusive primary card type"
 						kind="ring"
-						items={types}
+						items={[...visibleTypes, ...types.filter((item) => item.value === 0)]}
 					>
 						{#snippet center()}<strong class="total">{typeTotal.toLocaleString()}</strong><span
 								class="center-label">copies</span
@@ -135,7 +180,7 @@
 					</ProportionChart>
 				</div>
 				<dl class="legend">
-					{#each types as item}<div title={`${item.label}: ${item.value} copies`}>
+					{#each visibleTypes as item}<div title={`${item.label}: ${item.value} copies`}>
 							<dt><i style:background={item.color}></i>{item.label}</dt>
 							<dd>
 								<span class="sr-only">{item.value} copies, </span>{percent(item.value, typeTotal)}
@@ -149,16 +194,34 @@
 	<section class="panel">
 		<header>{@render heading('mana', 'Mana Color Identity')}</header>
 		{#if !dashboard.catalogBreakdown}<p>Catalog breakdown unavailable.</p>{:else}
-			<div class="color-chart" role="group" aria-label="Physical copies by color identity">
+			<div
+				bind:this={colorRoot}
+				class="color-chart"
+				onpointerleave={() => {
+					if (!pinned && !colorRoot?.contains(document.activeElement)) inspected = null;
+				}}
+				role="group"
+				aria-label="Physical copies by color identity"
+			>
 				<div class="columns">
-					{#each colors as item}<button
+					{#each visibleColors as item}<button
 							type="button"
 							aria-label={`${item.label}: ${item.quantity} copies, ${percent(item.quantity, dashboard.totals.total)}`}
 							aria-pressed={inspected === item.label}
 							title={`${item.label}: ${item.quantity} copies`}
-							onpointerenter={() => (inspected = item.label)}
-							onfocus={() => (inspected = item.label)}
-							onclick={() => (inspected = inspected === item.label ? null : item.label)}
+							onpointerenter={() => {
+								if (!pinned) inspected = item.label;
+							}}
+							onfocus={() => {
+								if (!pinned) inspected = item.label;
+							}}
+							onclick={() => {
+								if (pinned && inspected === item.label) clearInspection();
+								else {
+									inspected = item.label;
+									pinned = true;
+								}
+							}}
 						>
 							<span class="plot"
 								><i
@@ -178,13 +241,17 @@
 					{#if active}{active.label} · {active.quantity.toLocaleString()} copies · {percent(
 							active.quantity,
 							dashboard.totals.total
-						)}{:else}Select a color to inspect{/if}
+						)}{:else}<span class="sr-only">Select a color to inspect</span>{/if}
 				</p>
 			</div>
 		{/if}
 	</section>
 	<section class="panel recent">
-		<header>{@render heading('recent', 'Recently edited')}</header>
+		<header>
+			{@render heading('recent', 'Recently edited')}<a class="view-all" href="/mtg/inventory"
+				>View all <span aria-hidden="true">→</span></a
+			>
+		</header>
 		<div class="entries">
 			{#each dashboard.recentEntries.slice(0, 4) as entry}<a
 					class="entry"
@@ -199,8 +266,15 @@
 							/>{:else}<span>{entry.setCode.toUpperCase()}</span>{/if}
 					</div>
 					<div class="entry-text">
-						<span>{entry.name}</span><time datetime={entry.updatedAt}
-							>{timestamp(entry.updatedAt)}</time
+						<span>{entry.name}</span><time
+							datetime={entry.updatedAt}
+							title={timestamp(entry.updatedAt)}
+							>{new Date(entry.updatedAt).toLocaleDateString('en-GB', {
+								day: 'numeric',
+								month: 'short',
+								year: 'numeric',
+								timeZone: 'UTC'
+							})}</time
 						>
 					</div>
 					<span class="chevron" aria-hidden="true">›</span></a
@@ -218,7 +292,7 @@
 	.panel {
 		min-width: 0;
 		min-height: 414px;
-		padding: 20px 18px;
+		padding: 24px 18px;
 		border: 1px solid var(--color-border);
 		border-radius: 10px;
 		background: var(--color-card);
@@ -226,6 +300,10 @@
 		font: 400 13px/1.4 var(--font-interface);
 	}
 	header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 8px;
 		margin-bottom: 24px;
 	}
 	h2 {
@@ -233,11 +311,11 @@
 		align-items: center;
 		gap: 10px;
 		margin: 0;
-		font: 500 18px/1.3 var(--font-display);
+		font: 400 20px/1.3 var(--font-display);
 	}
 	h2 svg {
 		flex: none;
-		color: var(--color-chart-primary);
+		color: var(--color-violet);
 	}
 	p {
 		color: var(--color-text-muted);
@@ -248,12 +326,15 @@
 	}
 	.set-list {
 		display: grid;
-		gap: 19px;
+		gap: 24px;
+		margin-top: 32px;
 	}
 	.set-row {
 		display: grid;
-		grid-template-columns: 1fr auto;
-		gap: 6px 12px;
+		grid-template-columns: 28px minmax(0, 1.15fr) minmax(48px, 1fr) 24px;
+		gap: 12px;
+		align-items: center;
+		min-height: 32px;
 	}
 	.set-row span {
 		overflow-wrap: anywhere;
@@ -262,8 +343,7 @@
 		font-weight: 500;
 	}
 	.track {
-		grid-column: 1/-1;
-		height: 14px;
+		height: 22px;
 		background: var(--color-chart-track);
 		border-radius: 3px;
 		overflow: hidden;
@@ -271,7 +351,7 @@
 	.track i {
 		display: block;
 		height: 100%;
-		background: var(--color-chart-primary);
+		background: var(--color-violet);
 		border-radius: 3px;
 	}
 	footer {
@@ -327,7 +407,7 @@
 		height: 300px;
 	}
 	.donut {
-		flex: 1;
+		flex: 1.45;
 		min-width: 0;
 	}
 	.donut :global(.proportion-ring) {
@@ -336,7 +416,7 @@
 		aspect-ratio: 1;
 	}
 	.total {
-		font-size: 25px;
+		font-size: 32px;
 		font-weight: 500;
 	}
 	.center-label {
@@ -366,7 +446,7 @@
 		flex: none;
 	}
 	.color-chart {
-		padding-top: 24px;
+		padding-top: 16px;
 	}
 	.columns {
 		display: flex;
@@ -420,8 +500,8 @@
 		font-weight: 400;
 	}
 	.inspection {
-		min-height: 32px;
-		margin: 15px 0 0;
+		min-height: 16px;
+		margin: 8px 0 0;
 		font-size: 11px;
 		text-align: center;
 	}
@@ -494,7 +574,7 @@
 			display: grid;
 			grid-template-columns: 1fr 1fr;
 			gap: 0 10px;
-			font-size: 10px;
+			font-size: 11px;
 		}
 		.legend div {
 			padding: 3px 0;
@@ -515,6 +595,46 @@
 		.type-layout {
 			height: auto;
 			min-height: 260px;
+		}
+	}
+
+	.view-all {
+		display: inline-flex;
+		gap: 8px;
+		align-items: center;
+		flex-shrink: 0;
+		font-size: 11px;
+	}
+	.set-symbol {
+		width: 28px;
+		display: grid;
+		place-items: center;
+		font-size: 9px;
+		color: var(--color-text-secondary);
+	}
+	.set-symbol img {
+		width: 28px;
+		height: 28px;
+		object-fit: contain;
+		filter: brightness(0) invert(0.85);
+	}
+	:global(html:not(.dark)) .set-symbol img {
+		filter: brightness(0);
+		opacity: 0.75;
+	}
+	@media (min-width: 1150px) and (max-width: 1450px) {
+		h2 {
+			font-size: 17px;
+			gap: 8px;
+		}
+		.set-row {
+			gap: 8px;
+			grid-template-columns: 24px minmax(0, 1fr) minmax(40px, 0.8fr) 22px;
+		}
+		.set-symbol,
+		.set-symbol img {
+			width: 24px;
+			height: 24px;
 		}
 	}
 </style>

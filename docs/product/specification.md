@@ -3,7 +3,7 @@
 - Status: Canonical
 - Last Reviewed: 2026-11-01
 - Source of Truth: application code, tests, accepted product requirements
-- Update Triggers: direct metric links and preview-only personal History, four daily metric cards and detail previews, selected A+ Dashboard layout and native Demo evaluation, versioned MTG routes and module ownership, independent API/web ownership and relocated code references, accepted PWA/QR delivery and pending browser/Android acceptance, Inventory metadata filter shortcuts and compact read-only rows, account access and preferences, dashboard summaries, catalog identity, inventory or deck behavior, bounded Inventory loading and scaling evidence, market reference values and personal Inventory history, import formats, API contracts, scan capability and priorities, physical-card integration requirements, supported platforms, release acceptance changes, continuous Lazy browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
+- Update Triggers: selected two-row regular Dashboard reference, direct metric links and preview-only personal History, four daily metric cards and detail previews, selected A+ Dashboard layout and native Demo evaluation, versioned MTG routes and module ownership, independent API/web ownership and relocated code references, accepted PWA/QR delivery and pending browser/Android acceptance, Inventory metadata filter shortcuts and compact read-only rows, account access and preferences, dashboard summaries, catalog identity, inventory or deck behavior, bounded Inventory loading and scaling evidence, market reference values and personal Inventory history, import formats, API contracts, scan capability and priorities, physical-card integration requirements, supported platforms, release acceptance changes, continuous Lazy browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
 - Related Docs: [Domain model](../../GLOSSARY.md), [Routes](./routing-and-games.md), [UI direction](./ui-design-direction.md), [Value tracking](./value-tracking.md), [System architecture](../architecture/system-overview.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Card scanner and sorter](../integrations/card-robot.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [Category rules](../architecture/category-rules.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
 
 Spellbook is an open-source MTG inventory and deck builder for private accounts on a self-hosted instance.
@@ -174,7 +174,11 @@ Signed-in users open their private account summary at `/mtg/dashboard`; Inventor
 
 Dashboard totals distinguish physical copies, canonical card names, printings, sets, foil copies and decks.
 Set, finish and condition distributions use owned quantities.
-The page shows the five largest sets and an Other remainder in a Pie without a permanent legend, plus up to eight recently edited inventory entries ordered by their stored update time.
+The regular Dashboard follows the selected two-row reference: four metric cards above Collection by Set, Card Types, Mana Color Identity and Recently edited panels.
+The Set panel ranks the five largest owned-copy quantities with full Set names, symbols and complete quantities in a disclosure.
+Card Types uses an exclusive primary-type donut; Mana Color Identity retains actual WUBRG, Multicolor, Colorless and unknown quantities.
+The recent panel displays four genuine recently edited holdings, not invented activity events.
+Deck availability and Finish/Condition/Extra-copy breakdowns remain available in a disclosure below the overview.
 Four actionable metric cards show Inventory value, Total / unique cards, Sets and Decks.
 They combine current values with compact charts across seven closed reporting dates and distinguish positive/negative changes.
 Cards and Sets link directly to Inventory; Decks links directly to the Deck Library.

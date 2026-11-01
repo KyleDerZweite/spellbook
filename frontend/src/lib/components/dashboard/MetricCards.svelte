@@ -148,11 +148,11 @@
 		grid-template-columns: 40px minmax(0, 1fr);
 		grid-template-rows: auto auto 1fr;
 		align-content: start;
-		gap: 12px 22px;
+		gap: 10px 22px;
 		width: 100%;
-		min-height: 170px;
+		min-height: 172px;
 		height: 100%;
-		padding: 26px 24px;
+		padding: 24px;
 		background: var(--color-card);
 		border: 1px solid var(--color-border);
 		border-radius: 10px;
@@ -187,7 +187,7 @@
 		font-variant-numeric: tabular-nums;
 	}
 	.metric-value strong {
-		font: 400 clamp(28px, 2.2vw, 36px)/1.1 var(--font-display);
+		font: 400 clamp(30px, 2.4vw, 40px)/1.1 var(--font-display);
 		overflow-wrap: anywhere;
 	}
 	.metric-value > span {
