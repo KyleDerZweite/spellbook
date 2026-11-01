@@ -97,33 +97,12 @@
 	}}
 />
 
-{#snippet heading(kind: string, title: string)}
-	<h2>
-		<svg
-			viewBox="0 0 24 24"
-			width="24"
-			height="24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="1.7"
-			aria-hidden="true"
-		>
-			{#if kind === 'sets'}<path d="m3 19 6-11 4 6 3-4 5 9H3Z" /><path d="m8 10 2 3 2-2" />
-			{:else if kind === 'types'}<rect x="8" y="3" width="12" height="18" rx="2" /><path
-					d="m6 5-3 1 2 15 3-1"
-				/>
-			{:else if kind === 'mana'}<path d="M12 2S5 11 5 15a7 7 0 0 0 14 0c0-4-7-13-7-13Z" /><path
-					d="M9 14c-1 3 1 4 3 4"
-				/>
-			{:else}<circle cx="12" cy="12" r="9" /><path d="M12 6v6h5" />{/if}
-		</svg><span>{title}</span>
-	</h2>
-{/snippet}
+{#snippet heading(title: string)}<h2>{title}</h2>{/snippet}
 
 <div class="insights">
-	<section class="panel sets">
+	<section class="panel dashboard-surface sets">
 		<header>
-			{@render heading('sets', 'Collection by Set')}<a class="view-all" href="/mtg/inventory"
+			{@render heading('Collection by Set')}<a class="view-all" href="/mtg/inventory"
 				>View all <span aria-hidden="true">→</span></a
 			>
 		</header>
@@ -164,8 +143,8 @@
 			</details>
 		</footer>
 	</section>
-	<section class="panel">
-		<header>{@render heading('types', 'Card Types')}</header>
+	<section class="panel dashboard-surface">
+		<header>{@render heading('Card Types')}</header>
 		{#if !dashboard.catalogBreakdown}<p>Catalog breakdown unavailable.</p>{:else}
 			<div class="type-layout">
 				<div class="donut">
@@ -191,8 +170,8 @@
 			{#if !typeTotal}<p>No owned cards yet.</p>{/if}
 		{/if}
 	</section>
-	<section class="panel">
-		<header>{@render heading('mana', 'Mana Color Identity')}</header>
+	<section class="panel dashboard-surface">
+		<header>{@render heading('Mana Color Identity')}</header>
 		{#if !dashboard.catalogBreakdown}<p>Catalog breakdown unavailable.</p>{:else}
 			<div
 				bind:this={colorRoot}
@@ -254,9 +233,9 @@
 			</div>
 		{/if}
 	</section>
-	<section class="panel recent">
+	<section class="panel dashboard-surface recent">
 		<header>
-			{@render heading('recent', 'Recently edited')}<a class="view-all" href="/mtg/inventory"
+			{@render heading('Recently edited')}<a class="view-all" href="/mtg/inventory"
 				>View all <span aria-hidden="true">→</span></a
 			>
 		</header>
@@ -303,7 +282,6 @@
 		padding: 24px 18px;
 		border: 1px solid var(--color-border);
 		border-radius: 10px;
-		background: var(--color-card);
 		color: var(--color-text-primary);
 		font: 400 13px/1.4 var(--font-interface);
 	}
@@ -320,10 +298,6 @@
 		gap: 10px;
 		margin: 0;
 		font: 400 20px/1.3 var(--font-display);
-	}
-	h2 svg {
-		flex: none;
-		color: var(--color-violet);
 	}
 	p {
 		color: var(--color-text-muted);
@@ -475,7 +449,7 @@
 		flex: 1;
 		border: 0;
 		padding: 0;
-		background: var(--color-card);
+		background: transparent;
 		color: var(--color-text-primary);
 		cursor: pointer;
 		font: 400 11px var(--font-interface);

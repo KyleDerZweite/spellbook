@@ -635,3 +635,22 @@ button:disabled {
 	margin-inline: auto;
 	padding-block: 1.5rem 2.5rem;
 }
+
+/* Local material for Dashboard boxes, separate from the page background. */
+.dashboard-surface {
+	background-color: var(--color-card);
+	background-image: linear-gradient(
+		145deg,
+		color-mix(in srgb, var(--color-card), white 3%),
+		var(--color-card) 48%,
+		color-mix(in srgb, var(--color-card), black 17%)
+	);
+}
+html:not(.dark) .dashboard-surface {
+	background-image: linear-gradient(
+		145deg,
+		color-mix(in srgb, var(--color-card), white 2%),
+		var(--color-card) 48%,
+		color-mix(in srgb, var(--color-card), black 4%)
+	);
+}

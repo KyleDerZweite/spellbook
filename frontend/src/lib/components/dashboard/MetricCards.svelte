@@ -5,6 +5,7 @@
 	import { formatValueEUR } from '#lib/valuation/money.ts';
 	import InventoryHistoryDialog from '#lib/components/valuation/InventoryHistoryDialog.svelte';
 	import MetricMiniChart from './MetricMiniChart.svelte';
+	import DashboardCardMaterial from './DashboardCardMaterial.svelte';
 	let { dashboard, demo = false }: { dashboard: DashboardSummary; demo?: boolean } = $props();
 	let enhanced = $state(false);
 	let historyOpen = $state(false);
@@ -23,32 +24,28 @@
 					? 'Unknown'
 					: formatValueEUR(estimate.coveredValue),
 			secondary: '',
-			href: '',
-			icon: 'M3 7c0-2 4-4 9-4s9 2 9 4-4 4-9 4-9-2-9-4Zm0 5c0 2 4 4 9 4s9-2 9-4M3 17c0 2 4 4 9 4s9-2 9-4'
+			href: ''
 		},
 		{
 			key: 'total' as const,
 			label: 'Total / unique cards',
 			value: dashboard.totals.total.toLocaleString(),
 			secondary: `/ ${dashboard.totals.names.toLocaleString()}`,
-			href: '/mtg/inventory',
-			icon: 'M12 5v16M12 5C9 2 5 2 2 4v16c3-2 7-2 10 1 3-3 7-3 10-1V4c-3-2-7-2-10 1Z'
+			href: '/mtg/inventory'
 		},
 		{
 			key: 'sets' as const,
 			label: 'Sets',
 			value: dashboard.totals.sets.toLocaleString(),
 			secondary: '',
-			href: '/mtg/inventory',
-			icon: 'm12 2 10 5v10l-10 5-10-5V7l10-5Zm0 10L2 7m10 5L22 7M12 12v10'
+			href: '/mtg/inventory'
 		},
 		{
 			key: 'decks' as const,
 			label: 'Decks',
 			value: dashboard.totals.decks.toLocaleString(),
 			secondary: '',
-			href: '/mtg/decks',
-			icon: 'm10 2 12 3-4 17-12-3 4-17ZM6 4 2 5l3 15M6 8l-1 1 2 8'
+			href: '/mtg/decks'
 		}
 	]);
 </script>
@@ -59,13 +56,15 @@
 		<li>
 			{#if metric.key === 'value'}<button
 					bind:this={historyTrigger}
-					class="metric-card"
+					class="metric-card dashboard-surface"
 					type="button"
 					disabled={!enhanced}
 					aria-haspopup="dialog"
 					onclick={() => (historyOpen = true)}>{@render card(metric, trend)}</button
 				>
-			{:else}<a class="metric-card" href={metric.href}>{@render card(metric, trend)}</a>{/if}
+			{:else}<a class="metric-card dashboard-surface" href={metric.href}
+					>{@render card(metric, trend)}</a
+				>{/if}
 			<span class="metric-visual"
 				><MetricMiniChart
 					{trend}
@@ -77,18 +76,7 @@
 	{/each}
 </ul>
 {#snippet card(metric: (typeof metrics)[number], trend: ReturnType<typeof metricTrend>)}
-	<svg
-		class="metric-icon"
-		width="40"
-		height="40"
-		viewBox="0 0 24 24"
-		fill="none"
-		stroke="currentColor"
-		stroke-width="1.6"
-		stroke-linecap="round"
-		stroke-linejoin="round"
-		aria-hidden="true"><path d={metric.icon} /></svg
-	>
+	<DashboardCardMaterial kind={metric.key} />
 	<span class="metric-heading">{metric.label}</span>
 	<span class="metric-value"
 		><strong>{metric.value}</strong>{#if metric.secondary}<span>{metric.secondary}</span>{/if}</span
@@ -145,7 +133,7 @@
 	}
 	.metric-card {
 		display: grid;
-		grid-template-columns: 40px minmax(0, 1fr);
+		grid-template-columns: minmax(0, 1fr);
 		grid-template-rows: auto auto 1fr;
 		align-content: start;
 		gap: 10px 22px;
@@ -153,7 +141,8 @@
 		min-height: 172px;
 		height: 100%;
 		padding: 24px;
-		background: var(--color-card);
+		position: relative;
+		overflow: hidden;
 		border: 1px solid var(--color-border);
 		border-radius: 10px;
 		color: var(--color-text-primary);
@@ -167,19 +156,16 @@
 		outline: 2px solid var(--color-violet);
 		outline-offset: 3px;
 	}
-	.metric-icon {
-		grid-column: 1;
-		grid-row: 1 / 4;
-		color: var(--color-violet);
-	}
 	.metric-heading {
-		grid-column: 2;
+		position: relative;
+		grid-column: 1;
 		color: var(--color-text-secondary);
 		font: 400 13px/1.4 var(--font-body);
 	}
 	.metric-value {
+		position: relative;
 		display: flex;
-		grid-column: 2;
+		grid-column: 1;
 		align-items: baseline;
 		flex-wrap: wrap;
 		gap: 4px 8px;
@@ -203,11 +189,12 @@
 		pointer-events: none;
 	}
 	.metric-footer {
+		position: relative;
 		display: flex;
 		flex-wrap: wrap;
 		align-self: end;
 		gap: 4px 12px;
-		grid-column: 2;
+		grid-column: 1;
 		padding-right: 76px;
 		font: 400 12px/1.5 var(--font-body);
 	}
@@ -230,9 +217,6 @@
 			gap: 10px 12px;
 			padding: 22px 16px;
 		}
-		.metric-icon {
-			grid-row: 1 / 3;
-		}
 		.metric-footer {
 			grid-column: 1 / -1;
 			padding-right: 76px;
@@ -250,14 +234,6 @@
 		.metric-card {
 			gap: 12px;
 			padding: 18px 14px;
-		}
-		.metric-icon {
-			grid-row: 1;
-			width: 32px;
-			height: 32px;
-		}
-		.metric-card {
-			grid-template-columns: 32px minmax(0, 1fr);
 		}
 		.metric-value,
 		.metric-footer {
