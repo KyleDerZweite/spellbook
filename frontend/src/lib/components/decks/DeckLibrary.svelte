@@ -30,6 +30,7 @@
 	import { nextLoadedRange } from '#lib/browsing/loadedSpan.ts';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import type { ResourceSubscription } from '#lib/saved-state/workspace.ts';
+	import ActionMenu from '#lib/components/ui/menu/ActionMenu.svelte';
 	import Button from '#lib/components/ui/button/Button.svelte';
 	import FilterPopover from '#lib/components/ui/popover/FilterPopover.svelte';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
@@ -41,6 +42,13 @@
 	}: { page: DeckLibraryPage; categories: DeckLibraryCategories; accountId: string } = $props();
 	const directoryFormId = $props.id();
 	let categoryFilterOpen = $state(false);
+	let selectedFormat = $state(untrack(() => page.query.format));
+	let selectedSort = $state(untrack(() => page.query.sort));
+	async function sortBy(sort: DeckLibraryPage['query']['sort']) {
+		selectedSort = sort;
+		await tick();
+		(document.getElementById(directoryFormId) as HTMLFormElement | null)?.requestSubmit();
+	}
 	let version = $state(0),
 		enhanced = $state(false),
 		terminal = $state(false);
@@ -101,19 +109,11 @@
 		version;
 		return library.span;
 	});
-	const columns = $derived(
-		width > 0 ? (width <= 460 ? 2 : Math.max(1, Math.floor((width + 24) / 244))) : 1
-	);
-	const tileWidth = $derived(width > 0 ? (width - (columns - 1) * 24) / columns : 220);
+	const columns = 1;
+	const tileWidth = $derived(width > 0 ? width : 320);
 	const geometry = $derived.by(() => {
 		version;
-		return deckLibraryGeometry(
-			span,
-			columns,
-			Math.max(140, ((tileWidth - 24) * 680) / 488 + 132),
-			heights,
-			(index) => library.at(index)
-		);
+		return deckLibraryGeometry(span, columns, 88, heights, (index) => library.at(index), 0);
 	});
 	const rows = $derived(
 		deckLibraryMountedRows(
@@ -234,6 +234,8 @@
 			library.seed(account, seed);
 			categoryPage = categories;
 			categorySelection = [...seed.query.categoryVersionIds];
+			selectedFormat = seed.query.format;
+			selectedSort = seed.query.sort;
 			retainedOptions = [];
 			positioned = false;
 			if (enhanced) schedule();
@@ -623,42 +625,89 @@
 				name="q"
 				value={route.url.searchParams.get('q') ?? ''}
 			/>{/if}
-		<label class="deck-name-filter"
-			>Deck name <input name="dirQ" value={page.query.query} maxlength="200" /></label
-		>
-		<label
-			>Format <select name="dirFormat" value={page.query.format}
+		<div class="directory-search">
+			<svg
+				aria-hidden="true"
+				width="17"
+				height="17"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1.5"><circle cx="10" cy="10" r="7" /><path d="m15 15 6 6" /></svg
+			>
+			<input
+				class="input"
+				type="search"
+				aria-label="Search decks"
+				placeholder="Search decks"
+				name="dirQ"
+				value={page.query.query}
+				maxlength="200"
+			/>
+		</div>
+		{#if enhanced}<input type="hidden" name="dirFormat" value={selectedFormat} />{/if}
+		{#if enhanced}
+			<input type="hidden" name="dirSort" value={selectedSort} />
+			<FilterPopover
+				bind:open={categoryFilterOpen}
+				active={!!selectedFormat || categorySelection.length > 0}
+				label="Filter decks"
+			>
+				{@render filterChoices()}
+				<Button type="submit" form={directoryFormId} variant="secondary">Apply filters</Button>
+			</FilterPopover>
+			<ActionMenu
+				label="Sort decks"
+				class="btn-ghost"
+				items={[
+					{ label: 'Recently edited', onSelect: () => void sortBy('updated:desc') },
+					{ label: 'Name A to Z', onSelect: () => void sortBy('name:asc') },
+					{ label: 'Name Z to A', onSelect: () => void sortBy('name:desc') }
+				]}
+			>
+				{#snippet trigger()}<svg
+						aria-hidden="true"
+						width="14"
+						height="14"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="1.6"
+						stroke-linecap="round"><path d="M8 4v16m-4-4 4 4 4-4M16 20V4m-4 4 4-4 4 4" /></svg
+					>Sort{/snippet}
+			</ActionMenu>
+		{:else}
+			<details class="directory-categories">
+				<summary>Filter</summary>{@render filterChoices()}
+			</details>
+			<label
+				>Sort <select name="dirSort" value={page.query.sort}
+					><option value="updated:desc">Recently edited</option><option value="name:asc"
+						>Name A to Z</option
+					><option value="name:desc">Name Z to A</option></select
+				></label
+			>
+			<Button variant="secondary" type="submit">Search</Button>
+		{/if}
+		<p class="directory-total">
+			{current.matchingTotal.toLocaleString()}{#if current.matchingTotal !== current.globalTotal}
+				of {current.globalTotal.toLocaleString()}{/if} decks
+		</p>
+	</form>
+	{#snippet filterChoices()}
+		<label class="format-filter"
+			>Format <select
+				class="input"
+				name={enhanced ? undefined : 'dirFormat'}
+				bind:value={selectedFormat}
 				><option value="">All formats</option
 				>{#each ['Commander', 'Standard', 'Modern', 'Pioneer', 'Legacy', 'Vintage', 'Pauper', 'Brawl', 'Casual'] as format}<option
 						value={format}>{format}</option
 					>{/each}</select
 			></label
 		>
-		<label
-			>Sort <select name="dirSort" value={page.query.sort}
-				><option value="updated:desc">Recently edited</option><option value="name:asc"
-					>Name A to Z</option
-				><option value="name:desc">Name Z to A</option></select
-			></label
-		>
-		{#if options.length || categorySelection.length}
-			{#if enhanced}<FilterPopover
-					bind:open={categoryFilterOpen}
-					active={categorySelection.length > 0}
-					label="Deck categories"
-					triggerLabel={`Categories${categorySelection.length ? ` · ${categorySelection.length}` : ''}`}
-				>
-					{@render categoryChoices()}
-					<Button type="submit" form={directoryFormId} variant="secondary">Apply categories</Button>
-				</FilterPopover>{:else}<details class="directory-categories">
-					<summary
-						>Categories{#if categorySelection.length}
-							· {categorySelection.length}{/if}</summary
-					>{@render categoryChoices()}
-				</details>{/if}
-		{/if}
-		<Button class="directory-action" variant="secondary" type="submit">Apply filters</Button>
-	</form>
+		{#if options.length || categorySelection.length}{@render categoryChoices()}{/if}
+	{/snippet}
 	{#snippet categoryChoices()}<div
 			class="category-choices"
 			role="group"
@@ -706,10 +755,6 @@
 			{focusError || positionError}
 			<Button class="directory-action" onclick={retryPosition}>Retry position</Button>
 		</p>{/if}
-	<p class="directory-total">
-		{current.matchingTotal.toLocaleString()}{#if current.matchingTotal !== current.globalTotal}
-			of {current.globalTotal.toLocaleString()}{/if} decks
-	</p>
 	{#if enhanced && library.error}<p role="alert">
 			{library.error}
 			<Button class="directory-action" onclick={() => library.retry()}>Retry</Button>
@@ -772,27 +817,34 @@
 						>
 					</div>{/if}
 			</div>
-			<div class="deck-format-line">
-				<span
-					><i
-						class={`ms ms-${item.format.toLowerCase() === 'commander' ? 'commander' : 'deck'}`}
-						aria-hidden="true"
-					></i>{item.format}</span
-				><span>{item.quantity.toLocaleString()} cards</span>
+			<div class="deck-name">
+				<strong>{item.name}</strong>
+				{#if item.categories.length}<span class="category-badges"
+						>{#each item.categories as category}<small
+								title={category.historical ? 'Historical saved version' : ''}
+								>{category.name}{category.historical ? ' · historical' : ''}</small
+							>{/each}{#if item.remainingCategoryCount}<small
+								>+{item.remainingCategoryCount} categories</small
+							>{/if}</span
+					>{/if}
 			</div>
-			<strong>{item.name}</strong><small
+			<span class="deck-format"
+				><i
+					class={`ms ms-${item.format.toLowerCase() === 'commander' ? 'commander' : 'deck'}`}
+					aria-hidden="true"
+				></i>{item.format}</span
+			>
+			<span class="deck-quantity"
+				>{item.quantity.toLocaleString()}<span class="mobile-card-label"> cards</span></span
+			>
+			<small class="deck-edited"
 				>Edited {new Date(item.updatedAt).toLocaleDateString('en-GB')}</small
 			>
-			{#if item.categories.length}<span class="category-badges"
-					>{#each item.categories as category}<small
-							title={category.historical ? 'Historical saved version' : ''}
-							>{category.name}{category.historical ? ' · historical' : ''}</small
-						>{/each}{#if item.remainingCategoryCount}<small
-							>+{item.remainingCategoryCount} categories</small
-						>{/if}</span
-				>{/if}
 		</a>
 	{/snippet}
+	<div class="library-head" aria-hidden="true">
+		<span>Deck</span><span>Format</span><span>Cards</span><span>Last edited</span>
+	</div>
 	<div
 		bind:this={wrapper}
 		class:virtual={enhanced}
@@ -806,7 +858,7 @@
 						style:top={`${geometry.offsets[Math.floor(entry.index / columns) - geometry.base] ?? 0}px`}
 						style:left={`${(entry.index % columns) * (tileWidth + 24)}px`}
 						style:width={`${tileWidth}px`}
-						style:min-height={`${Math.max(140, ((tileWidth - 24) * 680) / 488 + 132)}px`}
+						style:min-height={`${88}px`}
 						aria-label="Loading Deck"
 					></div>{/if}
 			{/each}{:else}{#each page.items as item, index (item.id)}{@render tile(
@@ -828,112 +880,143 @@
 <style>
 	.deck-library {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
-		gap: 1.5rem;
+		gap: 0;
+	}
+	.library-head,
+	.library-card {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 9rem 5rem 13rem;
+		align-items: center;
+		gap: 1rem;
+	}
+	.library-head {
+		padding: 1rem 0.75rem 0.5rem 4.5rem;
+		color: var(--color-text-muted);
+		font-size: 0.75rem;
 	}
 	.library-card {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
+		grid-template-columns: 44px minmax(0, 1fr) 9rem 5rem 13rem;
+		min-height: 88px;
 		padding: 0.75rem;
-		border-radius: 0.75rem;
-		border: 1px solid var(--color-border);
-		background: var(--color-surface);
 		color: var(--color-text-primary);
 		text-decoration: none;
-		transition:
-			border-color 150ms ease,
-			background-color 150ms ease;
+		border-radius: 0.375rem;
 	}
-	.library-card img,
+	.library-card:hover,
+	.library-card:focus-visible {
+		background: var(--color-surface);
+	}
+	.library-card:focus-visible {
+		outline: 2px solid var(--color-primary);
+		outline-offset: -2px;
+	}
+	.library-card:hover strong {
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+	.library-cover img,
 	.library-placeholder {
-		width: 100%;
-		aspect-ratio: 488 / 680;
+		display: block;
+		width: 40px;
+		height: 56px;
 		object-fit: contain;
-		border-radius: 0.6rem;
-		background: var(--color-stone);
+		border-radius: 2px;
 	}
 	.library-placeholder {
 		display: grid;
 		place-items: center;
-		font-size: 3rem;
+		background: var(--color-stone);
 		color: var(--color-text-muted);
 	}
-	.library-card span,
-	.library-card small {
+	.library-placeholder svg {
+		width: 24px;
+		height: 24px;
+	}
+	.deck-name {
+		min-width: 0;
+	}
+	.library-card strong {
+		font-size: 0.875rem;
+		font-weight: 500;
+		overflow-wrap: anywhere;
+	}
+	.deck-format,
+	.deck-quantity,
+	.deck-edited {
 		color: var(--color-text-secondary);
-		font-size: 0.8rem;
+		font-size: 0.75rem;
+		font-variant-numeric: tabular-nums;
 	}
-	.library-card:hover,
-	.library-card:focus-visible {
-		border-color: var(--color-accent);
-		background: var(--color-card);
+	.deck-format {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		overflow-wrap: anywhere;
 	}
-	.library-card:hover strong {
-		text-decoration: underline;
+	.deck-format .ms {
+		color: var(--color-role-commander);
 	}
-
-	.empty-state {
-		padding: 3rem 1rem;
-		text-align: center;
-		color: var(--color-text-secondary);
+	.deck-edited {
+		color: var(--color-text-muted);
 	}
-	@media (max-width: 460px) {
-		.deck-library {
-			grid-template-columns: repeat(2, minmax(0, 1fr));
-		}
+	.mobile-card-label {
+		display: none;
 	}
-
+	.category-badges {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.375rem;
+		margin-top: 0.375rem;
+	}
+	.category-badges small {
+		color: var(--color-text-muted);
+		font-size: 0.6875rem;
+		overflow-wrap: anywhere;
+	}
 	.directory-controls {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0.75rem;
-		align-items: end;
-		padding: 1rem;
-		background: var(--color-surface);
-		border-radius: 0.75rem;
-		margin-bottom: 1rem;
+		align-items: center;
+		gap: 0.625rem;
+		margin-bottom: 0.25rem;
 		font-size: 0.75rem;
 	}
-	.directory-controls label {
+	.directory-search {
+		position: relative;
+		flex: 1 1 16rem;
 		min-width: 0;
-		flex: 1 1 10rem;
+	}
+	.directory-search svg {
+		position: absolute;
+		left: 0.8rem;
+		top: 50%;
+		transform: translateY(-50%);
+		color: var(--color-text-muted);
+		pointer-events: none;
+	}
+	.directory-search input {
+		width: 100%;
+		padding-left: 2.4rem;
+	}
+	.directory-total {
+		color: var(--color-text-muted);
+		font-size: 0.75rem;
+		font-variant-numeric: tabular-nums;
+		margin: 0 0 0 0.5rem;
+	}
+	.format-filter {
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
-		max-width: 100%;
-	}
-	.directory-controls input,
-	.directory-controls select {
-		max-width: 100%;
-		min-height: 44px;
-		padding: 0.5rem 0.75rem;
-		border: 1px solid var(--color-border);
-		border-radius: 0.5rem;
-		background: var(--color-surface);
-		color: var(--color-text-primary);
-		font: inherit;
-	}
-	.directory-controls input:focus-visible,
-	.directory-controls select:focus-visible {
-		outline: 2px solid var(--color-primary);
-		outline-offset: 2px;
-	}
-	.directory-controls .deck-name-filter {
-		flex: 2 1 16rem;
-	}
-	.directory-categories {
-		position: relative;
-		flex: 0 1 auto;
+		margin-bottom: 0.75rem;
+		font-size: 0.75rem;
 	}
 	.directory-categories > summary {
+		min-height: 44px;
 		display: flex;
 		align-items: center;
-		min-height: 44px;
-		padding: 0.5rem 0.75rem;
+		padding: 0.5rem;
 		cursor: pointer;
-		border: 1px solid var(--color-border);
-		border-radius: 0.5rem;
 	}
 	.category-choices {
 		max-height: 20rem;
@@ -941,26 +1024,17 @@
 		margin-bottom: 0.75rem;
 		font-size: 0.75rem;
 	}
-	.directory-categories .category-choices {
-		margin-top: 0.75rem;
-		padding: 0.75rem;
-		border: 1px solid var(--color-border);
-		border-radius: 0.5rem;
-	}
-
 	.category-choices p {
 		color: var(--color-text-secondary);
 		margin-bottom: 0.75rem;
 	}
-	.category-choices .category-option {
+	.category-option {
 		display: flex;
-		flex-direction: row;
 		align-items: start;
 		gap: 0.75rem;
 		padding: 0.5rem 0;
 	}
 	.category-option input {
-		min-height: 0;
 		margin-top: 0.25rem;
 		accent-color: var(--color-accent);
 	}
@@ -969,53 +1043,10 @@
 		color: var(--color-text-secondary);
 		margin-top: 0.25rem;
 	}
-	.library-cover {
-		width: 100%;
-	}
-	.library-card strong {
-		font: 400 1.125rem var(--font-display);
-		line-height: 1.4;
-	}
-	.deck-format-line {
-		display: flex;
-		justify-content: space-between;
-		flex-wrap: wrap;
-		gap: 0.25rem 0.5rem;
-		margin-top: 0.25rem;
-	}
-	.deck-format-line span {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.375rem;
-		font-size: 0.6875rem;
-	}
-	.deck-format-line .ms {
-		color: var(--color-role-commander);
-		font-size: 0.875rem;
-	}
-	.library-card > small {
-		font-size: 0.6875rem;
-		color: var(--color-text-muted);
-	}
-	.directory-total {
-		margin: 1rem 0;
+	.empty-state {
+		padding: 3rem 1rem;
+		text-align: center;
 		color: var(--color-text-secondary);
-		font-size: 0.75rem;
-		font-variant-numeric: tabular-nums;
-	}
-	@media (max-width: 600px) {
-		.directory-controls {
-			padding: 0.75rem;
-		}
-		.directory-categories {
-			position: static;
-		}
-		.library-card {
-			padding: 0.5rem;
-		}
-		.library-card strong {
-			font-size: 1rem;
-		}
 	}
 	.virtual {
 		display: block;
@@ -1031,26 +1062,17 @@
 		overflow: hidden;
 		clip-path: inset(100%);
 	}
-	.library-card strong,
-	.category-badges small {
-		overflow-wrap: anywhere;
-	}
-	.category-badges {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.3rem;
-	}
-	.category-badges small {
-		background: var(--color-stone);
-		border-radius: 0.25rem;
-		padding: 0.2rem 0.35rem;
-	}
 	.loading-tile {
-		border-radius: 0.6rem;
 		background: var(--color-stone);
+		border-radius: 0.375rem;
 	}
 	:global(.directory-action) {
 		min-height: 44px;
+	}
+	nav {
+		display: flex;
+		gap: 1rem;
+		margin-top: 1rem;
 	}
 	nav a {
 		min-height: 44px;
@@ -1058,9 +1080,42 @@
 		align-items: center;
 		padding: 0.5rem;
 	}
-	nav {
-		display: flex;
-		gap: 1rem;
-		margin-top: 1rem;
+	@media (max-width: 900px) {
+		.directory-search {
+			flex-basis: 100%;
+		}
+		.directory-total {
+			margin-left: auto;
+		}
+		.library-head {
+			display: none;
+		}
+		.library-card {
+			grid-template-columns: 40px minmax(0, 1fr) auto;
+			gap: 0.375rem 0.75rem;
+			padding: 0.75rem 0.25rem;
+		}
+		.library-cover {
+			grid-row: 1 / 4;
+		}
+		.deck-name {
+			grid-column: 2 / 4;
+		}
+		.deck-format {
+			grid-column: 2;
+			grid-row: 2;
+		}
+		.deck-quantity {
+			grid-column: 3;
+			grid-row: 2;
+		}
+		.deck-edited {
+			grid-column: 2 / 4;
+			grid-row: 3;
+			font-size: 0.6875rem;
+		}
+		.mobile-card-label {
+			display: inline;
+		}
 	}
 </style>
