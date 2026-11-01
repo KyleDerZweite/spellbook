@@ -840,9 +840,7 @@
 					aria-hidden="true"
 				></i>{item.format}</span
 			>
-			<span class="deck-quantity"
-				>{item.quantity.toLocaleString()}<span class="mobile-card-label"> cards</span></span
-			>
+			<span class="deck-quantity">{item.quantity.toLocaleString()}<span>{' '}cards</span></span>
 			<small class="deck-edited"
 				>Edited {new Date(item.updatedAt).toLocaleDateString('en-GB')}</small
 			>

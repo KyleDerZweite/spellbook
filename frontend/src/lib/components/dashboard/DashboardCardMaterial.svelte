@@ -81,7 +81,6 @@
 		.card-material {
 			width: 144px;
 			height: 116px;
-			right: -12px;
 			opacity: 0.09;
 		}
 	}
