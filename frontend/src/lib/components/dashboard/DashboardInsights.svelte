@@ -258,8 +258,7 @@
 						</div>
 						<div class="entry-text">
 							<span class="entry-title">{entry.name}</span><span class="entry-context"
-								>Inventory updated · {entry.setCode.toUpperCase()} · {entry.quantity.toLocaleString()}
-								{entry.quantity === 1 ? 'copy' : 'copies'}</span
+								>{`Inventory updated · ${entry.setCode.toUpperCase()} · ${entry.quantity.toLocaleString()} ${entry.quantity === 1 ? 'copy' : 'copies'}`}</span
 							><time
 								class="entry-time"
 								datetime={entry.updatedAt}

@@ -34,8 +34,8 @@
 											<img
 												src={commander.imageUri}
 												alt={commander.name}
-												width="64"
-												height="89"
+												width="72"
+												height="100"
 												loading="lazy"
 											/>
 										{:else}
@@ -44,7 +44,7 @@
 									{/each}
 								{:else}
 									<span class="art-placeholder" title="No Commander preview"
-										><i class="ms ms-deck" aria-hidden="true"></i><span>No preview</span></span
+										><i class="ms ms-commander" aria-hidden="true"></i><span>No preview</span></span
 									>
 								{/if}
 							</a>
@@ -173,9 +173,9 @@
 	.commander-previews img,
 	.art-placeholder {
 		box-sizing: border-box;
-		flex: 0 0 64px;
-		width: 64px;
-		height: 89px;
+		flex: 0 0 72px;
+		width: 72px;
+		height: 100px;
 		border-radius: 4px;
 	}
 	.commander-previews img {
