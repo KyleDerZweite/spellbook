@@ -2,7 +2,7 @@
 	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 </script>
 
-<section class="panel" aria-label="Quick Actions">
+<section class="panel dashboard-surface quick-actions" aria-label="Quick Actions">
 	<h2>Quick Actions</h2>
 	<nav aria-label="Dashboard quick actions">
 		<a href="/mtg/search"

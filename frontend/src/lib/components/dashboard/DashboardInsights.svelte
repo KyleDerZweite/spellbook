@@ -2,6 +2,7 @@
 	import type { DashboardSummary } from '@spellbook/contracts/dashboard.ts';
 	import ProportionChart from '#lib/components/charts/ProportionChart.svelte';
 	import DashboardDecks from './DashboardDecks.svelte';
+	import DashboardQuickActions from './DashboardQuickActions.svelte';
 
 	let { dashboard }: { dashboard: DashboardSummary } = $props();
 	const typeColors: Record<string, string> = {
@@ -234,42 +235,49 @@
 			</details>
 		</footer>
 	</section>
-	<DashboardDecks {dashboard} />
-	<section class="panel dashboard-surface recent">
-		<header>
-			{@render heading('Recently edited')}<a class="view-all" href="/mtg/inventory"
-				>View all <span aria-hidden="true">→</span></a
-			>
-		</header>
-		<div class="entries">
-			{#each dashboard.recentEntries.slice(0, 4) as entry}<a
-					class="entry"
-					href={`/mtg/inventory/${encodeURIComponent(entry.id)}`}
-					><div class="thumbnail">
-						{#if entry.imageUri}<img
-								src={entry.imageUri}
-								alt=""
-								width="46"
-								height="64"
-								loading="lazy"
-							/>{:else}<span>{entry.setCode.toUpperCase()}</span>{/if}
-					</div>
-					<div class="entry-text">
-						<span>{entry.name}</span><time
-							datetime={entry.updatedAt}
-							title={timestamp(entry.updatedAt)}
-							>{new Date(entry.updatedAt).toLocaleDateString('en-GB', {
-								day: 'numeric',
-								month: 'short',
-								year: 'numeric',
-								timeZone: 'UTC'
-							})}</time
-						>
-					</div>
-					<span class="chevron" aria-hidden="true">›</span></a
-				>{:else}<p>No recently edited cards.</p>{/each}
-		</div>
-	</section>
+	<DashboardQuickActions />
+	<div class="dashboard-secondary">
+		<section class="panel dashboard-surface recent">
+			<header>
+				{@render heading('Recent activity')}<a class="view-all" href="/mtg/inventory"
+					>View all <span aria-hidden="true">→</span></a
+				>
+			</header>
+			<div class="entries">
+				{#each dashboard.recentEntries.slice(0, 4) as entry}<a
+						class="entry"
+						href={`/mtg/inventory/${encodeURIComponent(entry.id)}`}
+						><div class="thumbnail">
+							{#if entry.imageUri}<img
+									src={entry.imageUri}
+									alt=""
+									width="46"
+									height="64"
+									loading="lazy"
+								/>{:else}<span>{entry.setCode.toUpperCase()}</span>{/if}
+						</div>
+						<div class="entry-text">
+							<span class="entry-title">{entry.name}</span><span class="entry-context"
+								>Inventory updated · {entry.setCode.toUpperCase()} · {entry.quantity.toLocaleString()}
+								{entry.quantity === 1 ? 'copy' : 'copies'}</span
+							><time
+								class="entry-time"
+								datetime={entry.updatedAt}
+								title={timestamp(entry.updatedAt)}
+								>{new Date(entry.updatedAt).toLocaleDateString('en-GB', {
+									day: 'numeric',
+									month: 'short',
+									year: 'numeric',
+									timeZone: 'UTC'
+								})}</time
+							>
+						</div>
+						<span class="chevron" aria-hidden="true">›</span></a
+					>{:else}<p>No recent inventory updates.</p>{/each}
+			</div>
+		</section>
+		<DashboardDecks {dashboard} />
+	</div>
 </div>
 
 <style>
@@ -278,8 +286,15 @@
 		grid-template-columns: repeat(4, minmax(0, 1fr));
 		gap: 16px;
 	}
+	.dashboard-secondary {
+		grid-column: 1 / -1;
+		display: grid;
+		grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+		gap: 16px;
+		min-width: 0;
+	}
 	.recent {
-		grid-column: 3 / -1;
+		min-height: 480px;
 	}
 	.panel {
 		min-width: 0;
@@ -525,16 +540,31 @@
 	.entry-text {
 		min-width: 0;
 		flex: 1;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		gap: 4px 16px;
+	}
+	.entry-title {
+		grid-column: 1;
+		grid-row: 1;
+	}
+	.entry-context {
+		grid-column: 1;
+		grid-row: 2;
+		color: var(--color-text-secondary);
+		font-size: 11px;
 	}
 	.entry-text > span {
 		display: block;
 		overflow-wrap: anywhere;
 	}
-	time {
-		display: block;
+	.entry-time {
+		grid-column: 2;
+		grid-row: 1 / 3;
+		align-self: center;
 		color: var(--color-text-muted);
 		font-size: 11px;
-		margin-top: 6px;
+		white-space: nowrap;
 	}
 	.chevron {
 		color: var(--color-text-muted);
@@ -571,11 +601,21 @@
 		.insights {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
+		.dashboard-secondary {
+			grid-template-columns: minmax(0, 1fr);
+		}
 		.recent {
-			grid-column: 1 / -1;
+			min-height: 414px;
 		}
 	}
 	@media (max-width: 620px) {
+		.entry-text {
+			grid-template-columns: minmax(0, 1fr);
+		}
+		.entry-time {
+			grid-column: 1;
+			grid-row: 3;
+		}
 		.insights {
 			grid-template-columns: minmax(0, 1fr);
 		}

@@ -43,7 +43,9 @@
 										{/if}
 									{/each}
 								{:else}
-									<span class="art-placeholder">No Commander preview</span>
+									<span class="art-placeholder" title="No Commander preview"
+										><i class="ms ms-deck" aria-hidden="true"></i><span>No preview</span></span
+									>
 								{/if}
 							</a>
 							{#if deck.required > 0}
@@ -67,20 +69,9 @@
 							{/if}
 						</div>
 						{#if deck.required > 0}
-							<dl class="availability-counts">
-								<div class="exact">
-									<dt><i aria-hidden="true"></i>Exact</dt>
-									<dd>{deck.exact.toLocaleString()}</dd>
-								</div>
-								<div class="alternate">
-									<dt><i aria-hidden="true"></i>Alternate</dt>
-									<dd>{deck.alternate.toLocaleString()}</dd>
-								</div>
-								<div class="missing">
-									<dt><i aria-hidden="true"></i>Missing</dt>
-									<dd>{deck.missing.toLocaleString()}</dd>
-								</div>
-							</dl>
+							<p class="deck-status" class:missing={deck.missing > 0}>
+								{deck.missing > 0 ? `${deck.missing.toLocaleString()} missing` : 'All copies owned'}
+							</p>
 						{/if}
 					</li>
 				{/each}
@@ -226,41 +217,16 @@
 	.availability :global(.proportion-ring:has(.native-chart-data) .chart-center) {
 		height: 104px;
 	}
-	.availability-counts {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 8px 16px;
+	.deck-status {
 		margin: 12px 0 0;
 		font-size: 12px;
+		color: var(--color-success);
 	}
-	.availability-counts > div {
-		min-width: 0;
+	.deck-status.missing {
+		color: var(--color-warning);
 	}
-	.availability-counts dt {
-		display: flex;
-		align-items: center;
-		gap: 5px;
-		color: var(--color-text-secondary);
-	}
-	.availability-counts dd {
-		margin: 2px 0 0 11px;
-		font-variant-numeric: tabular-nums;
-		overflow-wrap: anywhere;
-	}
-	.availability-counts i {
-		width: 6px;
-		height: 6px;
-		flex: 0 0 6px;
-		border-radius: 50%;
-	}
-	.exact i {
-		background: var(--color-success);
-	}
-	.alternate i {
-		background: var(--color-violet);
-	}
-	.missing i {
-		background: var(--color-warning);
+	.art-placeholder i {
+		font-size: 24px;
 	}
 	.empty-deck {
 		display: flex;
