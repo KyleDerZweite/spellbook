@@ -1,9 +1,9 @@
 # UI design direction
 
 - Status: Canonical
-- Last Reviewed: 2026-10-31
+- Last Reviewed: 2026-11-01
 - Source of Truth: accepted product requirements, application components, selected logo and component choices
-- Update Triggers: four daily metric cards and History previews, single-entry category management, real Deck distributions and mana curve, softer shared contrast and artwork Library, artwork-led Deck Builder polish and native stack controls, four real-data Dashboard references, removed rejected prototypes and search fields, semantic Mana Font charts, selected A+ Dashboard layout and native Demo evaluation, Mebius chart reference adaptation, executed development-only search lab and comparison, shortcut-only power-user search requirement and source algorithm investigation, global command menu exploration, color-mode placement below centered mana controls, tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
+- Update Triggers: direct metric links and compact History-only preview, four daily metric cards and History previews, single-entry category management, real Deck distributions and mana curve, softer shared contrast and artwork Library, artwork-led Deck Builder polish and native stack controls, four real-data Dashboard references, removed rejected prototypes and search fields, semantic Mana Font charts, selected A+ Dashboard layout and native Demo evaluation, Mebius chart reference adaptation, executed development-only search lab and comparison, shortcut-only power-user search requirement and source algorithm investigation, global command menu exploration, color-mode placement below centered mana controls, tri-state Search color controls and Color/Identity selection, explicit static Demo valuation and simplified History presentation, Figma-gallery Dashboard hierarchy and compact composition, landing-derived workspace and chart refinement, independent Android design and cross-client Figma handoff, QR sign-in arrangement within the existing account layout, PWA App entry, QR approval and installed narrow navigation, public landing content and rejected directions, dashboard summaries, shared workspace layout, typography, navigation, account controls and avatars, inventory and deck interactions, component choices, reference research, visual design, brand identity, icon direction, responsive behavior, accessibility requirements, continuous Lazy range policy, accepted design contracts and implementation evidence, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation, deferred broad UI polishing
 - Related Docs: [Product specification](./specification.md), [Mobile exploration](./mobile-app-exploration.md), [Routes](./routing-and-games.md), [Domain model](../../GLOSSARY.md), [Selected UI components](../reference/ui-libraries.md), [Bits UI](../reference/bits-ui.md), [Brand assets](../reference/website-icons.md), [Frontend architecture](../architecture/frontend.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md), [Value tracking](./value-tracking.md)
 
 Spellbook prioritizes digitizing, indexing and managing a player's own Magic cards, then building decks from that collection.
@@ -186,30 +186,37 @@ Unknown, empty and unavailable states remain explicit.
 Root owns integration and acceptance against API totals, account isolation, missing Catalog data, quantity changes, dark/light and narrow layouts, pointer/keyboard/touch inspection and route removal.
 This revision remains a local prototype comparison until Kyle selects a production direction.
 
-### Dashboard metric cards and detail previews
+### Dashboard metrics and Inventory value preview
 
-Kyle's 2026-10-31 revision replaces the concept-only restriction with four actionable metric cards: Inventory value, Total / unique cards, Sets and Decks.
-Each card shows its label, current value, daily seven-day sparkline and an absolute change against an actual baseline.
-Positive changes are green and negative changes are red; missing history is unavailable rather than zero.
-Keep the AdGuard reference's restrained sparkline treatment and the existing fonts, softer shared palette and top navigation.
-Use seven closed reporting dates, matching the existing final-minute daily capture policy; current live values remain separately identified.
-Do not connect gaps or invent observations from creation timestamps, today's holdings or demo fixture totals.
-For historical values compare only priced observations, and disclose partial price coverage.
-Total copies lead the combined Cards metric; unique names remain secondary and available in its preview.
+The 2026-11-01 correction keeps four compact cards: Inventory value, Total / unique cards, Sets and Decks.
+Cards and Sets link directly to Inventory; Decks links directly to the Deck Library.
+Only Inventory value opens a History preview.
+Remove the standalone `/mtg/history` page and its navigation links rather than retaining redirects.
+The Inventory inspector retains identity-filtered personal history through the same preview.
 
-A card opens a bounded detail preview before navigation, with keyboard dismissal, focus return and a direct link to its full workspace.
-Inventory value reuses the History view with explicit period and visible custom-date controls.
-Remove the Daily observations section from shared History presentation, while keeping chart inspection and accessible exact values.
-History capture, stored evidence, gap semantics and the public API remain owned by Valuation.
+The supplied compact metric reference replaces the full-width sparkline rows.
+Use a short label, current figure, a concise seven-day comparison and a small adjacent chart.
+Counts use actual daily bars; value uses a restrained line with explicit gaps.
+Partial price coverage stays identifiable without repeating a long technical label across every card.
+Keep exact BigInt arithmetic, real captured observations and unknown legacy Deck counts.
 
-Captured aggregate History points gain nullable totals for copies, distinct Canonical Cards, represented Sets and Deck count.
-Copies, names and Sets derive from the saved holdings for that day, independently of price coverage.
-A nullable Deck count is recorded atomically in the existing daily capture transaction from now on.
-Earlier Deck counts remain unknown; do not backfill from current Decks.
-Printing-filtered History returns null aggregate totals to avoid mixing global metrics with one Printing's values.
-Core owns capture and aggregation; the existing authenticated history read supplies the data, and Dashboard uses its existing private History response.
-Frontend owns trend selection, presentation and popover navigation, without database access or a second history store.
-Acceptance covers real closed days, gaps, empty captured holdings, partial prices, unknown legacy Deck counts, account isolation and native History filtering.
+Product: Spellbook manages an MTG player's owned cards and Decks.
+Character: calm, precise, collector-focused.
+World: card binders, Commander artwork and the tabletop.
+Moments: actual card artwork and the expanded Inventory value chart carry the detail.
+Signature: Mana Font symbols identify actual MTG concepts, with quiet shared chrome.
+
+The History dialog is wider, with a top-corner Close control and no footer navigation or Close button.
+It retains preset periods, visible custom dates, exact chart inspection, reporting coverage and error/retry handling.
+Shared valuation components own that preview and its SavedState lease; Dashboard owns metric presentation and navigation.
+The removed full-page view does not remove stored evidence or the authenticated History API.
+Without JavaScript, direct workspace links work and the History trigger is explicitly disabled.
+
+Captured aggregate History points carry nullable totals for copies, distinct Canonical Cards, represented Sets and Deck count.
+Copies, names and Sets derive from saved holdings independently of price coverage.
+New Deck counts are captured atomically; earlier observations remain unknown and are never backfilled from current Decks.
+Core owns capture and aggregation; the existing authenticated History read supplies data.
+Acceptance covers actual periods, gaps, known zero, partial prices, unknown Deck counts, account isolation, direct navigation, keyboard/focus recovery and responsive previews.
 
 ## Selected hybrid browsing and Card dialog
 
@@ -586,7 +593,12 @@ Native category fieldsets use the shared border token rather than a browser fall
 
 Kyle's further feedback on 2026-10-31 selects softer shared graphite surfaces, cool gray text and restrained blue primary controls instead of near-black backgrounds and white buttons.
 Keep the existing logo, fonts, navigation and accessible text contrast; color belongs mainly to card artwork, meaningful Mana symbols and data series.
-Deck Library uses larger framed card tiles, compact native filters and category choices only when categories exist, retaining bounded browsing and native navigation.
+The 2026-11-01 correction replaces Deck Library tiles with compact Inventory-style rows.
+Use small actual artwork, aligned Deck names, format/count/edited metadata and one search toolbar with Filter and Sort controls.
+Keep existing URL filters, native GET forms, bounded browsing, selected-Deck navigation and real data.
+The Category Library now leads with saved categories and visible starter names, separates Cards in decks from Whole decks, and opens authoring through New category.
+Technical ordering, roles and source search remain under native disclosures; failed submissions and dirty drafts reopen the editor.
+These changes preserve category rules, immutable definition versions and explicit adoption.
 Mana charts and Dashboard prototypes share the semantic WUBRG chart palette in app.css.
 The selected Deck shows quantity-weighted Colors or Color identity, with a separate exclusive Multicolor and Colorless category.
 Color identity is the default measure.

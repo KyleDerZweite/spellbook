@@ -1,9 +1,9 @@
 # Card grouping
 
 - Status: Canonical, Inventory groups and starter primary Deck Entry Categories implemented; account rules and entry Review/Reset implemented; whole-deck evaluation implemented
-- Last Reviewed: 2026-10-24
+- Last Reviewed: 2026-11-01
 - Source of Truth: maintainer grouping decision, inventory and deck implementations
-- Update Triggers: versioned MTG routes and module ownership, Python source activation and server contraction, Inventory Box labels, inventory groups, memberships, scan targets, deck entry and whole-deck categories, automatic classification, account category definitions and manual overrides, accepted design contracts and implementation evidence
+- Update Triggers: library-first Category presentation and disclosed authoring controls, versioned MTG routes and module ownership, Python source activation and server contraction, Inventory Box labels, inventory groups, memberships, scan targets, deck entry and whole-deck categories, automatic classification, account category definitions and manual overrides, accepted design contracts and implementation evidence
 - Related Docs: [Product specification](./specification.md), [Domain model](../../GLOSSARY.md), [Classifier research](../integrations/card-categorization.md), [Frontend](../architecture/frontend.md), [Postgres](../architecture/postgres.md), [Mobile and scan](../architecture/mobile-and-scan.md), [UI direction](./ui-design-direction.md), [Product index](./README.md), [Category rules](../architecture/category-rules.md)
 
 ## Inventory groups
@@ -123,6 +123,11 @@ Pending source evidence is visibly distinct from Manual Uncategorized.
 The [category owner](../architecture/category-rules.md#implemented-starter-entry-decisions) records the implementation.
 The following account-library operations are implemented.
 Reusable definitions belong to an account library with separate scopes for Deck entries and whole Decks.
+The interface labels these scopes Cards in decks and Whole decks and explains their different effects with a concrete example.
+The library shows saved categories and actual starter names before the New category editor.
+Name, description and matching criteria lead; ordering, participating sections and source searches remain available in advanced disclosures.
+Failed submissions and unsaved drafts keep the editor open.
+This presentation does not change automatic classification, version adoption or saved decisions.
 Names, meaning and explicit rules are edited together when creating a new meaning.
 The definition is then available automatically to new decks.
 Existing decks retain their names and assignments until explicit Review/Reset; the starter Draw meaning remains available as a fallback.

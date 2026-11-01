@@ -10,7 +10,7 @@
 	}: {
 		query: InventoryValueHistoryRequest;
 		history: InventoryValueHistory | null;
-		onNavigate?: (query: URLSearchParams) => void;
+		onNavigate: (query: URLSearchParams) => void;
 	} = $props();
 	const identityKeys = ['printingId', 'finish', 'condition'] as const;
 	function params(days: number) {
@@ -23,31 +23,21 @@
 </script>
 
 <div class="history-filters">
-	<nav aria-label="History period">
-		{#each [{ days: 7, label: '7 days' }, { days: 30, label: '30 days' }, { days: 90, label: '90 days' }, { days: 366, label: '1 year' }] as period}<a
-				href={`/mtg/history?${params(period.days)}`}
-				data-sveltekit-preload-data={onNavigate ? 'false' : undefined}
-				aria-current={!query.from && (query.days ?? 30) === period.days ? 'page' : undefined}
-				onclick={(event) => {
-					if (onNavigate) {
-						event.preventDefault();
-						onNavigate(params(period.days));
-					}
-				}}>{period.label}</a
+	<div class="periods" role="group" aria-label="History period">
+		{#each [{ days: 7, label: '7 days' }, { days: 30, label: '30 days' }, { days: 90, label: '90 days' }, { days: 366, label: '1 year' }] as period}<button
+				type="button"
+				aria-pressed={!query.from && (query.days ?? 30) === period.days}
+				onclick={() => onNavigate(params(period.days))}>{period.label}</button
 			>{/each}
-	</nav>
+	</div>
 	<form
-		method="GET"
-		action="/mtg/history"
 		onsubmit={(event) => {
-			if (onNavigate) {
-				event.preventDefault();
-				onNavigate(
-					new URLSearchParams(
-						[...new FormData(event.currentTarget)].map(([key, value]) => [key, String(value)])
-					)
-				);
-			}
+			event.preventDefault();
+			onNavigate(
+				new URLSearchParams(
+					[...new FormData(event.currentTarget)].map(([key, value]) => [key, String(value)])
+				)
+			);
 		}}
 	>
 		{#each identityKeys as key}{#if query[key]}<input
@@ -75,12 +65,12 @@
 		gap: 0.75rem;
 		margin-bottom: 1rem;
 	}
-	nav {
+	.periods {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.25rem;
 	}
-	nav a {
+	.periods button {
 		padding: 0.5rem 0.75rem;
 		min-height: 40px;
 		display: grid;
@@ -89,7 +79,7 @@
 		color: var(--color-text-secondary);
 		font-size: 0.75rem;
 	}
-	nav a[aria-current] {
+	.periods button[aria-pressed='true'] {
 		background: var(--color-muted);
 		color: var(--color-text-primary);
 	}

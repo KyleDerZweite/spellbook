@@ -15,6 +15,7 @@
 		error = '',
 		onRetry,
 		compact = false,
+		embedded = false,
 		summary,
 		demo = false
 	}: {
@@ -23,6 +24,7 @@
 		error?: string;
 		onRetry?: () => void;
 		compact?: boolean;
+		embedded?: boolean;
 		summary?: Snippet;
 		demo?: boolean;
 	} = $props();
@@ -43,7 +45,7 @@
 	aria-label={history?.identity ? 'Card value history' : 'Inventory value history'}
 	aria-busy={loading}
 >
-	{#if summary}{@render summary()}{:else}
+	{#if summary}{@render summary()}{:else if !embedded}
 		<div class="history-heading">
 			<h2 class="analytics-title">{history?.identity ? 'Card value' : 'Inventory value'}</h2>
 			{#if history}<span class="period-label"

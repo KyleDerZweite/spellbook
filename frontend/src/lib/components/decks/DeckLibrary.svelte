@@ -698,6 +698,7 @@
 		<label class="format-filter"
 			>Format <select
 				class="input"
+				aria-label="Format"
 				name={enhanced ? undefined : 'dirFormat'}
 				bind:value={selectedFormat}
 				><option value="">All formats</option

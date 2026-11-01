@@ -1,9 +1,9 @@
 # Frontend
 
 - Status: Canonical
-- Last Reviewed: 2026-10-31
+- Last Reviewed: 2026-11-01
 - Source of Truth: code, accepted design requirements and upstream runtime documentation
-- Update Triggers: shared daily metric cards and leased History preview, selected-entry category management and pure Deck statistics, Deck overview and intrinsic-height artwork Stacks, inline valuation disclosure, selected A+ Dashboard layout and native Demo evaluation, Mebius chart mark and selection refinement, enhanced Printing deep links, opt-in shortcut-only search evaluation lab, tri-state color expression URL/session/cache ownership, explicit static Demo valuation and simplified History presentation, compact Dashboard composition and valuation summary slot, shared D3 chart rendering and accessible inspection, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python API activation, independent API/web ownership and relocated code references, guarded initial Deck Search activation, Inventory row measurement scheduling, topic-aware selected Deck refresh and publication acknowledgement, Library Editor state ownership and production reactivity tests, PWA install/update/cache policy, QR presentation and camera cleanup, installed narrow navigation, private value presentation and boundary refresh, backend application/transport interface and framework lifecycle hooks, routes, authentication, public landing, responsive layout, typography, development review controls, search, Shell window scrolling, Card Detail modal overflow, shared scroll viewports, inventory ordering and filters, Inventory metadata shortcuts and compact read-only rows, bounded inventory loading and scale evidence, deck builder and native task entry, shared control interfaces, uniform continuous browsing and native range fallbacks, workspace saved-state consumers, transient feedback delay, leases and draft baselines, primary Deck entry category forms and provenance, component choices, runtime support and compatibility, root environment and local/build origins, accepted design contracts and implementation evidence, bounded Deck Library metadata and whole-deck drafts, visited result extents and deep-segment prepend, hybrid browsing, native window scroll and contextual Card dialog, bounded Deck choice reads, shared Card addition adapters and retained caller drafts, native Search context hydration and feedback restoration
+- Update Triggers: preview-only personal History and direct compact metric links, shared daily metric cards and leased History preview, selected-entry category management and pure Deck statistics, Deck overview and intrinsic-height artwork Stacks, inline valuation disclosure, selected A+ Dashboard layout and native Demo evaluation, Mebius chart mark and selection refinement, enhanced Printing deep links, opt-in shortcut-only search evaluation lab, tri-state color expression URL/session/cache ownership, explicit static Demo valuation and simplified History presentation, compact Dashboard composition and valuation summary slot, shared D3 chart rendering and accessible inspection, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python API activation, independent API/web ownership and relocated code references, guarded initial Deck Search activation, Inventory row measurement scheduling, topic-aware selected Deck refresh and publication acknowledgement, Library Editor state ownership and production reactivity tests, PWA install/update/cache policy, QR presentation and camera cleanup, installed narrow navigation, private value presentation and boundary refresh, backend application/transport interface and framework lifecycle hooks, routes, authentication, public landing, responsive layout, typography, development review controls, search, Shell window scrolling, Card Detail modal overflow, shared scroll viewports, inventory ordering and filters, Inventory metadata shortcuts and compact read-only rows, bounded inventory loading and scale evidence, deck builder and native task entry, shared control interfaces, uniform continuous browsing and native range fallbacks, workspace saved-state consumers, transient feedback delay, leases and draft baselines, primary Deck entry category forms and provenance, component choices, runtime support and compatibility, root environment and local/build origins, accepted design contracts and implementation evidence, bounded Deck Library metadata and whole-deck drafts, visited result extents and deep-segment prepend, hybrid browsing, native window scroll and contextual Card dialog, bounded Deck choice reads, shared Card addition adapters and retained caller drafts, native Search context hydration and feedback restoration
 - Related Docs: [System overview](./system-overview.md), [Auth](./auth.md), [Routes](../product/routing-and-games.md), [Catalog](./catalog.md), [Selected UI components](../reference/ui-libraries.md), [Design direction](../product/ui-design-direction.md), [Application contract](./application-contract.md), [Category rules](./category-rules.md), [ADR-0021](../decisions/0021-hybrid-browsing-and-contextual-card-dialog.md), [Independent applications](./independent-applications.md)
 
 The SvelteKit application renders pages and owns native form presentation and browser cookies.
@@ -769,10 +769,16 @@ Category editors retain entry-owned dirty input when a saved role moves outside 
 Explicit editor close or account expiry clears the draft.
 Main grouping remains based on current saved Main entries.
 
+The Deck Library uses Inventory-style compact rows with small actual artwork and aligned metadata.
+Its existing Library state, measured row geometry, native directory query and SavedState responsibilities remain unchanged.
+Category Library separates cards inside Decks from whole Decks and discloses its editor/advanced fields without changing the Library editor state machine or native actions.
+
 ## Private value presentation
 
 Dashboard renders current Inventory value and bounded personal history.
-`/mtg/history` owns the authenticated date/identity-filtered history view; the Inventory inspector links using printing, finish and condition rather than a live entry ID.
+`InventoryHistoryDialog` owns the date/identity-filtered History preview for Dashboard and Inventory Inspector.
+The Inspector supplies printing, finish and condition rather than a live entry ID.
+The standalone History route is removed without an alias or redirect; the authenticated History API and saved captures remain unchanged.
 Shared [ValueSummary](../../frontend/src/lib/components/valuation/ValueSummary.svelte) and [InventoryValueHistory](../../frontend/src/lib/components/valuation/InventoryValueHistory.svelte) distinguish covered subtotal, unknown and stale quantities, captured known zero and gaps.
 Selected Deck shows required and missing nonfoil estimates without changing availability or drafts.
 
@@ -781,13 +787,15 @@ D3 owns scale and path construction; the exact-value helper chooses monetary bou
 Svelte owns rendering and application state.
 Dashboard uses four shared daily metric cards, large Deck availability rings, a solid Set Pie and independent Inventory composition bars.
 `MetricCards` serves the ordinary Dashboard and retained design prototypes; `metric-trends.ts` selects seven closed dates with exact BigInt changes and explicit gaps/partial coverage.
-`ValueHistoryPreview` owns its mounted SavedState lease, period query and reporting-boundary refresh; it reuses shared History controls and the chart in a bounded FormDialog.
+`InventoryValueHistoryPreview` owns its mounted SavedState lease, period query and reporting-boundary refresh; it reuses shared History controls and chart in the wider `history` FormDialog variant.
 The existing exact-value normalizer retains gap, unknown and known-zero semantics before value-history positioning.
 An accessible exact-data table remains available without JavaScript; keyboard and touch users can inspect captured values through a native range control.
 The [selected component reference](../reference/ui-libraries.md#analytics-charts) owns dependency rationale.
 Inventory value lives in the top metric row and opens History on demand; it is not duplicated in a permanent History panel.
-Native metric links remain usable before hydration and without JavaScript.
-`HistoryFilters` preserves printing identity and supports native GET navigation or a leased preview callback, with custom dates always visible.
+Cards and Sets are native Inventory links; Decks is a native Deck Library link.
+Only the Inventory value button opens History, and it remains disabled until JavaScript mounts.
+The compact `MetricMiniChart` uses actual daily bars for counts and a short line for value, without stretching a sparkline across the whole card.
+`HistoryFilters` preserves printing identity and applies period/date choices through the leased preview callback, with custom dates always visible.
 Coverage retains a native disclosure, the Daily observations disclosure is removed, and an unknown-only history renders an explicit empty state without a synthetic line.
 `ProportionChart` owns D3 Pie/ring/bar geometry and per-segment pointer, focus and tap inspection.
 Its quantity unit defaults to physical copies; Deck-status callers provide deck/decks for accessible labels, tooltips and native totals.

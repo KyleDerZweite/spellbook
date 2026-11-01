@@ -13,14 +13,23 @@
 	import InventoryValueHistoryView from '#lib/components/valuation/InventoryValueHistory.svelte';
 	let {
 		initialHistory,
+		initialQuery = { days: 30 },
 		demo = false
-	}: { initialHistory: InventoryValueHistory | null; demo?: boolean } = $props();
+	}: {
+		initialHistory: InventoryValueHistory | null;
+		initialQuery?: InventoryValueHistoryRequest;
+		demo?: boolean;
+	} = $props();
 	let history = $state(untrack(() => initialHistory));
-	let query = $state<InventoryValueHistoryRequest>({ days: 30 });
+	let query = $state<InventoryValueHistoryRequest>(untrack(() => ({ days: 30, ...initialQuery })));
 	let error = $state('');
 	let loading = $state(false);
 	let subscription: ResourceSubscription | undefined;
-	let parameters = $state(new URLSearchParams({ days: '30' }));
+	let parameters = $state(
+		untrack(
+			() => new URLSearchParams(Object.entries(query).map(([key, value]) => [key, String(value)]))
+		)
+	);
 	let boundaryAccount = '';
 	const boundaryTimer = historyBoundaryTimer(
 		() => subscription?.invalidate(),
@@ -78,12 +87,6 @@
 	{error}
 	{loading}
 	{demo}
+	embedded
 	onRetry={() => subscription?.invalidate()}
 />
-<a class="btn btn-primary full-history" href={`/mtg/history?${parameters}`}>Open value history</a>
-
-<style>
-	.full-history {
-		margin-top: 1rem;
-	}
-</style>

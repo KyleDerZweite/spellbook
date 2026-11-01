@@ -62,7 +62,7 @@
 			<nav aria-label="Dashboard quick actions">
 				<a href="/mtg/inventory">Inventory <span>↗</span></a><a href="/mtg/decks"
 					>Decks <span>↗</span></a
-				><a href="/mtg/history">Inventory value <span>↗</span></a>
+				>
 			</nav>
 		</section>
 	</div>

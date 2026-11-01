@@ -17,9 +17,7 @@
 
 <div class="overview">
 	<nav aria-label="Quick actions">
-		<a href="/mtg/inventory">Inventory</a><a href="/mtg/decks">Decks</a><a href="/mtg/history"
-			>Value history</a
-		>
+		<a href="/mtg/inventory">Inventory</a><a href="/mtg/decks">Decks</a>
 	</nav>
 	<PrototypeMetrics {dashboard} />
 	<div class="summary">

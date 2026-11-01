@@ -79,9 +79,7 @@
 		<section class="panel">
 			<header><h2>Workspaces</h2></header>
 			<nav>
-				<a href="/mtg/decks">Open decks ↗</a><a href="/mtg/inventory">Open inventory ↗</a><a
-					href="/mtg/history">Inventory value ↗</a
-				>
+				<a href="/mtg/decks">Open decks ↗</a><a href="/mtg/inventory">Open inventory ↗</a>
 			</nav>
 		</section>
 	</div>

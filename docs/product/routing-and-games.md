@@ -1,9 +1,9 @@
 # Routes and supported game, paused Scan entrypoints
 
 - Status: Canonical
-- Last Reviewed: 2026-10-30
+- Last Reviewed: 2026-11-01
 - Source of Truth: route handlers and server hooks
-- Update Triggers: shortcut-only global power-user search, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, PWA launch/connect and QR approval/API routes, route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game, paused Scan entrypoints, private Inventory history routes
+- Update Triggers: removed standalone personal History page, shortcut-only global power-user search, ADR-0029 immediate removal of replaced API interfaces, versioned MTG routes and module ownership, Python source activation and server contraction, independent API/web ownership and relocated code references, PWA launch/connect and QR approval/API routes, route additions or removals, development preview routes and native task queries, HTTP methods, authentication protection, compatibility redirects, supported game, paused Scan entrypoints, private Inventory history routes
 - Related Docs: [Product specification](./specification.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Frontend architecture](../architecture/frontend.md), [Catalog](../architecture/catalog.md), [Product index](./README.md)
 
 Scan presentation is paused.
@@ -30,7 +30,6 @@ The [backend route registry](../../backend/api/src/spellbook_api/http/applicatio
 | Route                                      | Access and behavior                                                               |
 | ------------------------------------------ | --------------------------------------------------------------------------------- |
 | `/`                                        | Public landing for signed-out and signed-in users                                 |
-| `/mtg/history`                             | Authenticated personal Inventory value history and identity/date filters          |
 | `/mtg/dashboard`                           | Authenticated account summaries and per-deck availability                         |
 | `/mtg/search`                              | Public catalog search and printing details                                        |
 | `/mtg/inventory/[entryId]`                 | Authenticated SSR owned-entry Notes/Groups/reviewed Remove forms                  |

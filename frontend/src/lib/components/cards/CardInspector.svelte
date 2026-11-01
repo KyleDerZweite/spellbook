@@ -2,6 +2,7 @@
 	import type { HistoricalHoldingIdentity } from '@spellbook/contracts/inventory-value.ts';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
 	import PriceReference from './PriceReference.svelte';
+	import InventoryHistoryDialog from '#lib/components/valuation/InventoryHistoryDialog.svelte';
 	import Select from '#lib/components/ui/select/Select.svelte';
 	import type { Snippet } from 'svelte';
 	import { page } from '$app/state';
@@ -40,6 +41,8 @@
 	let allPrintingsView = $state(false);
 	let foilFilter: 'all' | 'foil' | 'nonfoil' = $state('all');
 	let quickAddPending = $state(false);
+	let personalHistory = $state<HistoricalHoldingIdentity | null>(null);
+	let historyTrigger: HTMLButtonElement | null = $state(null);
 	let pending = $derived(callerPending || quickAddPending);
 
 	type TabId = 'printings' | 'info';
@@ -419,10 +422,14 @@
 				historyEnabled={inventoryEntryId === undefined}
 			/>
 			{#if inventoryHistoryIdentity && activeCard.id === inventoryHistoryIdentity.printingId}
-				<a
+				<button
+					bind:this={historyTrigger}
+					type="button"
 					class="mt-2 inline-block underline"
-					href={`/mtg/history?${new URLSearchParams({ printingId: inventoryHistoryIdentity.printingId, ...(inventoryHistoryIdentity.finish ? { finish: inventoryHistoryIdentity.finish } : {}), ...(inventoryHistoryIdentity.condition ? { condition: inventoryHistoryIdentity.condition } : {}) })}`}
-					>Personal Inventory history for this holding</a
+					aria-haspopup="dialog"
+					disabled={pending}
+					onclick={() => (personalHistory = { ...inventoryHistoryIdentity! })}
+					>Personal Inventory history for this holding</button
 				>
 			{/if}
 			{#if actions}{@render actions(activeCard)}
@@ -526,6 +533,18 @@
 		{/if}
 	</div>
 </div>
+
+{#if personalHistory}<InventoryHistoryDialog
+		query={{ days: 30, ...personalHistory }}
+		demo={page.data.demoMode}
+		onCancel={() => (personalHistory = null)}
+		onCloseAutoFocus={(event) => {
+			if (historyTrigger?.isConnected) {
+				event.preventDefault();
+				historyTrigger.focus({ preventScroll: true });
+			}
+		}}
+	/>{/if}
 
 <style>
 	.inspector-media {
