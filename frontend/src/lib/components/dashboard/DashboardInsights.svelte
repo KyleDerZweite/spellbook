@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { DashboardSummary } from '@spellbook/contracts/dashboard.ts';
 	import ProportionChart from '#lib/components/charts/ProportionChart.svelte';
+	import DashboardDecks from './DashboardDecks.svelte';
 
 	let { dashboard }: { dashboard: DashboardSummary } = $props();
 	const typeColors: Record<string, string> = {
@@ -100,49 +101,6 @@
 {#snippet heading(title: string)}<h2>{title}</h2>{/snippet}
 
 <div class="insights">
-	<section class="panel dashboard-surface sets">
-		<header>
-			{@render heading('Collection by Set')}<a class="view-all" href="/mtg/inventory"
-				>View all <span aria-hidden="true">→</span></a
-			>
-		</header>
-		<div class="set-list">
-			{#each sets.slice(0, 5) as item}
-				<div class="set-row">
-					<span class="set-symbol" aria-hidden="true"
-						>{#if /^[a-z0-9]{2,8}$/i.test(item.label) && !failedIcons.includes(item.label)}<img
-								src={`https://svgs.scryfall.io/sets/${encodeURIComponent(item.label.toLowerCase())}.svg`}
-								alt=""
-								width="32"
-								height="32"
-								loading="lazy"
-								onerror={() => (failedIcons = [...failedIcons, item.label])}
-							/>{:else}<span>{item.label.toUpperCase()}</span>{/if}</span
-					>
-					<span class="set-name">{setName(item.label)}</span>
-					<div
-						class="track"
-						role="img"
-						aria-label={`${setName(item.label)}: ${item.quantity} copies`}
-					>
-						<i style:width={`${(item.quantity / setMaximum) * 100}%`}></i>
-					</div>
-					<strong>{item.quantity.toLocaleString()}</strong>
-				</div>
-			{:else}<p>No owned cards yet.</p>{/each}
-		</div>
-		<footer>
-			<details>
-				<summary>All set quantities</summary>
-				<dl>
-					{#each sets as item}<div>
-							<dt>{setName(item.label)}</dt>
-							<dd>{item.quantity.toLocaleString()} copies</dd>
-						</div>{:else}<p>No sets yet.</p>{/each}
-				</dl>
-			</details>
-		</footer>
-	</section>
 	<section class="panel dashboard-surface">
 		<header>{@render heading('Card Types')}</header>
 		{#if !dashboard.catalogBreakdown}<p>Catalog breakdown unavailable.</p>{:else}
@@ -233,6 +191,50 @@
 			</div>
 		{/if}
 	</section>
+	<section class="panel dashboard-surface sets">
+		<header>
+			{@render heading('Collection by Set')}<a class="view-all" href="/mtg/inventory"
+				>View all <span aria-hidden="true">→</span></a
+			>
+		</header>
+		<div class="set-list">
+			{#each sets.slice(0, 5) as item}
+				<div class="set-row">
+					<span class="set-symbol" aria-hidden="true"
+						>{#if /^[a-z0-9]{2,8}$/i.test(item.label) && !failedIcons.includes(item.label)}<img
+								src={`https://svgs.scryfall.io/sets/${encodeURIComponent(item.label.toLowerCase())}.svg`}
+								alt=""
+								width="32"
+								height="32"
+								loading="lazy"
+								onerror={() => (failedIcons = [...failedIcons, item.label])}
+							/>{:else}<span>{item.label.toUpperCase()}</span>{/if}</span
+					>
+					<span class="set-name">{setName(item.label)}</span>
+					<div
+						class="track"
+						role="img"
+						aria-label={`${setName(item.label)}: ${item.quantity} copies`}
+					>
+						<i style:width={`${(item.quantity / setMaximum) * 100}%`}></i>
+					</div>
+					<strong>{item.quantity.toLocaleString()}</strong>
+				</div>
+			{:else}<p>No owned cards yet.</p>{/each}
+		</div>
+		<footer>
+			<details>
+				<summary>All set quantities</summary>
+				<dl>
+					{#each sets as item}<div>
+							<dt>{setName(item.label)}</dt>
+							<dd>{item.quantity.toLocaleString()} copies</dd>
+						</div>{:else}<p>No sets yet.</p>{/each}
+				</dl>
+			</details>
+		</footer>
+	</section>
+	<DashboardDecks {dashboard} />
 	<section class="panel dashboard-surface recent">
 		<header>
 			{@render heading('Recently edited')}<a class="view-all" href="/mtg/inventory"
@@ -275,6 +277,9 @@
 		display: grid;
 		grid-template-columns: repeat(4, minmax(0, 1fr));
 		gap: 16px;
+	}
+	.recent {
+		grid-column: 3 / -1;
 	}
 	.panel {
 		min-width: 0;
@@ -565,6 +570,9 @@
 	@media (max-width: 1149px) {
 		.insights {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+		.recent {
+			grid-column: 1 / -1;
 		}
 	}
 	@media (max-width: 620px) {

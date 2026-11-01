@@ -2,7 +2,6 @@
 	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import WorkspaceHeader from '#lib/components/layout/WorkspaceHeader.svelte';
 	import DashboardInsights from '#lib/components/dashboard/DashboardInsights.svelte';
-	import DashboardDetails from '#lib/components/dashboard/DashboardDetails.svelte';
 	import { historyBoundaryTimer } from '#lib/valuation/history-boundary.ts';
 	import MetricCards from '#lib/components/dashboard/MetricCards.svelte';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
@@ -81,7 +80,6 @@
 				<a href="/mtg/search" class="btn btn-primary btn-sm">Find cards</a>
 			</div>{/if}
 		<DashboardInsights {dashboard} />
-		<DashboardDetails {dashboard} />
 	{/if}
 </div>
 
