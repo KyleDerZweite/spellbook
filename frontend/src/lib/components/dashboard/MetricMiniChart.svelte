@@ -6,6 +6,7 @@
 		label,
 		kind = 'bars'
 	}: { trend: ReturnType<typeof metricTrend>; label: string; kind?: 'bars' | 'line' } = $props();
+	const descriptionId = $props.id();
 	const values = $derived(trend.points.flatMap((p) => (p.value === null ? [] : [p.value])));
 	const minimum = $derived(values.reduce((n, value) => (value < n ? value : n), values[0] ?? 0n));
 	const maximum = $derived(values.reduce((n, value) => (value > n ? value : n), values[0] ?? 0n));
@@ -44,8 +45,10 @@
 		class="metric-mini-chart"
 		viewBox="0 0 80 44"
 		role="img"
-		aria-label={`${label}. ${description}`}
+		aria-label={label}
+		aria-describedby={descriptionId}
 	>
+		<desc id={descriptionId}>{description}</desc>
 		{#if kind === 'line'}<path
 				d={path ?? ''}
 				fill="none"
@@ -79,7 +82,7 @@
 		display: block;
 		width: 80px;
 		height: 44px;
-		color: var(--color-text-secondary);
+		color: var(--color-violet);
 		fill: currentColor;
 	}
 </style>

@@ -24,7 +24,7 @@
 					: formatValueEUR(estimate.coveredValue),
 			secondary: '',
 			href: '',
-			icon: 'M3 3h8l10 10-8 8L3 11zM7 7h.01'
+			icon: 'M3 7c0-2 4-4 9-4s9 2 9 4-4 4-9 4-9-2-9-4Zm0 5c0 2 4 4 9 4s9-2 9-4M3 17c0 2 4 4 9 4s9-2 9-4'
 		},
 		{
 			key: 'total' as const,
@@ -32,7 +32,7 @@
 			value: dashboard.totals.total.toLocaleString(),
 			secondary: `/ ${dashboard.totals.names.toLocaleString()}`,
 			href: '/mtg/inventory',
-			icon: 'm12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5'
+			icon: 'M12 5v16M12 5C9 2 5 2 2 4v16c3-2 7-2 10 1 3-3 7-3 10-1V4c-3-2-7-2-10 1Z'
 		},
 		{
 			key: 'sets' as const,
@@ -40,7 +40,7 @@
 			value: dashboard.totals.sets.toLocaleString(),
 			secondary: '',
 			href: '/mtg/inventory',
-			icon: 'M3 4h18v17H3zM3 9h18M9 9v12M7 2v4M17 2v4'
+			icon: 'm12 2 10 5v10l-10 5-10-5V7l10-5Zm0 10L2 7m10 5L22 7M12 12v10'
 		},
 		{
 			key: 'decks' as const,
@@ -48,7 +48,7 @@
 			value: dashboard.totals.decks.toLocaleString(),
 			secondary: '',
 			href: '/mtg/decks',
-			icon: 'M7 3h13v15H7zM4 6v15h13'
+			icon: 'm10 2 12 3-4 17-12-3 4-17ZM6 4 2 5l3 15M6 8l-1 1 2 8'
 		}
 	]);
 </script>
@@ -66,32 +66,32 @@
 					onclick={() => (historyOpen = true)}>{@render card(metric, trend)}</button
 				>
 			{:else}<a class="metric-card" href={metric.href}>{@render card(metric, trend)}</a>{/if}
+			<span class="metric-visual"
+				><MetricMiniChart
+					{trend}
+					kind={metric.key === 'value' ? 'line' : 'bars'}
+					label={`${metric.label}, seven closed reporting dates${trend.partial ? ', covered subtotal with partial price coverage' : ''}`}
+				/></span
+			>
 		</li>
 	{/each}
 </ul>
 {#snippet card(metric: (typeof metrics)[number], trend: ReturnType<typeof metricTrend>)}
-	<span class="metric-heading"
-		><svg
-			width="18"
-			height="18"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="1.5"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			aria-hidden="true"><path d={metric.icon} /></svg
-		><span>{metric.label}</span></span
+	<svg
+		class="metric-icon"
+		width="40"
+		height="40"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="1.6"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+		aria-hidden="true"><path d={metric.icon} /></svg
 	>
+	<span class="metric-heading">{metric.label}</span>
 	<span class="metric-value"
 		><strong>{metric.value}</strong>{#if metric.secondary}<span>{metric.secondary}</span>{/if}</span
-	>
-	<span class="metric-visual"
-		><MetricMiniChart
-			{trend}
-			kind={metric.key === 'value' ? 'line' : 'bars'}
-			label={`${metric.label}, seven closed reporting dates${trend.partial ? ', covered subtotal with partial price coverage' : ''}`}
-		/></span
 	>
 	<span class="metric-footer">
 		<span
@@ -140,20 +140,22 @@
 		list-style: none;
 	}
 	li {
+		position: relative;
 		min-width: 0;
 	}
 	.metric-card {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) 80px;
-		align-items: center;
-		gap: 12px;
+		grid-template-columns: 40px minmax(0, 1fr);
+		grid-template-rows: auto auto 1fr;
+		align-content: start;
+		gap: 12px 22px;
 		width: 100%;
-		min-height: 144px;
+		min-height: 170px;
 		height: 100%;
-		padding: 20px;
+		padding: 26px 24px;
 		background: var(--color-card);
 		border: 1px solid var(--color-border);
-		border-radius: 12px;
+		border-radius: 10px;
 		color: var(--color-text-primary);
 		text-align: left;
 		text-decoration: none;
@@ -161,22 +163,26 @@
 	.metric-card:hover {
 		border-color: var(--color-text-muted);
 	}
-	.metric-heading {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		grid-column: 1/-1;
-		color: var(--color-text-secondary);
-		font: 400 12px var(--font-body);
+	.metric-card:focus-visible {
+		outline: 2px solid var(--color-violet);
+		outline-offset: 3px;
 	}
-	.metric-heading svg {
-		flex-shrink: 0;
+	.metric-icon {
+		grid-column: 1;
+		grid-row: 1 / 4;
+		color: var(--color-violet);
+	}
+	.metric-heading {
+		grid-column: 2;
+		color: var(--color-text-secondary);
+		font: 400 13px/1.4 var(--font-body);
 	}
 	.metric-value {
 		display: flex;
+		grid-column: 2;
 		align-items: baseline;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: 4px 8px;
 		min-width: 0;
 		font-variant-numeric: tabular-nums;
 	}
@@ -185,21 +191,25 @@
 		overflow-wrap: anywhere;
 	}
 	.metric-value > span {
-		color: var(--color-text-muted);
-		font: 400 22px var(--font-display);
+		color: var(--color-text-secondary);
+		font: 400 24px/1.1 var(--font-display);
 	}
 	.metric-visual {
-		display: block;
+		position: absolute;
+		right: 18px;
+		bottom: 25px;
 		width: 80px;
 		height: 44px;
+		pointer-events: none;
 	}
 	.metric-footer {
 		display: flex;
 		flex-wrap: wrap;
-		justify-content: space-between;
+		align-self: end;
 		gap: 4px 12px;
-		grid-column: 1/-1;
-		font: 400 11px var(--font-body);
+		grid-column: 2;
+		padding-right: 76px;
+		font: 400 12px/1.5 var(--font-body);
 	}
 	.metric-change {
 		color: var(--color-text-secondary);
@@ -215,35 +225,62 @@
 	.negative {
 		color: var(--color-error);
 	}
-	@media (max-width: 1150px) {
+	@media (min-width: 1150px) and (max-width: 1450px) {
+		.metric-card {
+			gap: 10px 12px;
+			padding: 22px 16px;
+		}
+		.metric-icon {
+			grid-row: 1 / 3;
+		}
+		.metric-footer {
+			grid-column: 1 / -1;
+			padding-right: 76px;
+		}
+	}
+	@media (max-width: 1149px) {
 		.metric-cards {
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 	}
-	@media (max-width: 560px) {
+	@media (max-width: 650px) {
+		.metric-cards {
+			gap: 12px;
+		}
 		.metric-card {
-			grid-template-columns: minmax(0, 1fr);
-			padding: 16px;
+			gap: 12px;
+			padding: 18px 14px;
+		}
+		.metric-icon {
+			grid-row: 1;
+			width: 32px;
+			height: 32px;
+		}
+		.metric-card {
+			grid-template-columns: 32px minmax(0, 1fr);
+		}
+		.metric-value,
+		.metric-footer {
+			grid-column: 1 / -1;
+		}
+		.metric-value strong {
+			font-size: 28px;
+		}
+		.metric-value > span {
+			font-size: 20px;
+		}
+		.metric-footer {
+			padding-right: 0;
+			padding-bottom: 48px;
 		}
 		.metric-visual {
-			display: none;
-		}
-		.metric-value {
-			min-height: 44px;
-		}
-		.metric-heading {
-			align-items: start;
+			right: 14px;
+			bottom: 14px;
 		}
 	}
 	@media (max-width: 360px) {
 		.metric-cards {
 			grid-template-columns: 1fr;
-		}
-		.metric-card {
-			grid-template-columns: minmax(0, 1fr) 80px;
-		}
-		.metric-visual {
-			display: block;
 		}
 	}
 </style>
