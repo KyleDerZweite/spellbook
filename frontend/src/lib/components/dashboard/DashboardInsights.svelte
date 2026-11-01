@@ -197,6 +197,13 @@
 			<div
 				bind:this={colorRoot}
 				class="color-chart"
+				onfocusout={(event) => {
+					if (
+						!pinned &&
+						!(event.relatedTarget instanceof Node && colorRoot?.contains(event.relatedTarget))
+					)
+						clearInspection();
+				}}
 				onpointerleave={() => {
 					if (!pinned && !colorRoot?.contains(document.activeElement)) inspected = null;
 				}}
@@ -207,13 +214,14 @@
 					{#each visibleColors as item}<button
 							type="button"
 							aria-label={`${item.label}: ${item.quantity} copies, ${percent(item.quantity, dashboard.totals.total)}`}
-							aria-pressed={inspected === item.label}
+							aria-pressed={pinned && inspected === item.label}
 							title={`${item.label}: ${item.quantity} copies`}
 							onpointerenter={() => {
 								if (!pinned) inspected = item.label;
 							}}
 							onfocus={() => {
-								if (!pinned) inspected = item.label;
+								inspected = item.label;
+								pinned = false;
 							}}
 							onclick={() => {
 								if (pinned && inspected === item.label) clearInspection();

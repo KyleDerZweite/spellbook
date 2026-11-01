@@ -494,10 +494,9 @@ The extra owned nonfoil Commander belongs only to Demo Inventory, not the public
 The static public example does not imply visitor ownership, an account import or an internal public deck page.
 [Asset provenance](../reference/website-icons.md#card-showcase-assets) owns the source; [frontend architecture](../architecture/frontend.md) owns component responsibilities.
 
-The private Dashboard at `/mtg/dashboard` leads with owned-copy totals, then shows per-deck availability beside quantity-weighted set comparisons.
-Exact, alternate and missing quantities use large proportional rings with an owned/required count and inspectable segment counts.
-Sets use a solid Pie with the top five and an Other aggregate.
-Finish, Condition and Extra copies use separate bars with native data, followed by recently edited inventory.
+The private Dashboard at `/mtg/dashboard` follows the selected two-row card reference above.
+Four metrics lead into ranked Set bars, an exclusive card-type donut, mana-color identity bars and recent Inventory edits.
+The optional details disclosure retains per-Deck availability rings and Finish, Condition and Extra copies bars with native data.
 Scan entrypoints and pending-review presentation are paused; existing Search, Inventory and Deck workflow links remain.
 Empty and unavailable states remain explicit.
 [The product specification](./specification.md#dashboard) owns metric definitions and limits.

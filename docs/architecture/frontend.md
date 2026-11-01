@@ -53,7 +53,8 @@ The root [Shell](../../frontend/src/lib/components/layout/Shell.svelte) renders 
 There is no separate authentication header.
 The full-width header places the brand left, navigation in the center, and game, theme and account controls right.
 Shared `nav-link` styles cover navigation and the direct Sign in entry; the current entry uses the same underline state.
-Search, Inventory, Decks, Scan, Dashboard and Settings share `.workspace-container`, with width `min(calc(100% - 2rem), var(--layout-wide-width))`.
+Search, Inventory, Decks, Scan and Settings share `.workspace-container`, with width `min(calc(100% - 2rem), var(--layout-wide-width))`.
+The regular Dashboard retains the container base but uses a route-owned wider four-column composition, capped at 100rem, with narrow-screen gutters.
 The shared outer limit is `clamp(72rem, 84vw, 150rem)`.
 The landing uses this limit with responsive padding.
 Public home and hero use column flex layouts to fill the space remaining after the header and actual footer content.
