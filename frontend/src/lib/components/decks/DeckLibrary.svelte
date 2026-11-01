@@ -658,7 +658,7 @@
 			</FilterPopover>
 			<ActionMenu
 				label="Sort decks"
-				class="btn-ghost"
+				variant="toolbar"
 				items={[
 					{ label: 'Recently edited', onSelect: () => void sortBy('updated:desc') },
 					{ label: 'Name A to Z', onSelect: () => void sortBy('name:asc') },

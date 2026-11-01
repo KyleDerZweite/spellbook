@@ -10,6 +10,7 @@
 		header,
 		triggerRef = $bindable(null),
 		iconOnly = false,
+		variant = 'default',
 		class: className = '',
 		onCloseAutoFocus
 	}: {
@@ -26,6 +27,7 @@
 		header?: Snippet;
 		triggerRef?: HTMLButtonElement | null;
 		iconOnly?: boolean;
+		variant?: 'default' | 'toolbar';
 		class?: string;
 		onCloseAutoFocus?: (event: Event) => void;
 	} = $props();
@@ -34,7 +36,15 @@
 <DropdownMenu.Root>
 	<DropdownMenu.Trigger
 		bind:ref={triggerRef}
-		class={['btn', iconOnly ? 'btn-ghost btn-icon' : 'btn-secondary', className]}
+		class={[
+			'btn',
+			iconOnly
+				? 'btn-ghost btn-icon'
+				: variant === 'toolbar'
+					? 'btn-ghost menu-trigger-toolbar'
+					: 'btn-secondary',
+			className
+		]}
 		aria-label={label}
 	>
 		{#if trigger}{@render trigger()}{:else if iconOnly}<svg
@@ -102,6 +112,12 @@
 </DropdownMenu.Root>
 
 <style>
+	:global(.menu-trigger-toolbar) {
+		padding-inline: 0.625rem;
+		font-size: 0.75rem;
+		border: 0;
+		background: transparent;
+	}
 	:global(.menu-scroll-viewport) {
 		max-height: calc(var(--bits-dropdown-menu-content-available-height) - 2px);
 	}

@@ -54,7 +54,15 @@
 				stroke-linecap="round"
 				stroke-linejoin="round"
 			/>
-		{:else}{#each points as point}{#if point.value !== null}<rect
+		{:else}{#each points as point}{#if point.value === 0n}<line
+						x1={point.x - 3}
+						x2={point.x + 3}
+						y1="40"
+						y2="40"
+						stroke="currentColor"
+						stroke-width="1.5"><title>{point.day}: 0</title></line
+					>
+				{:else if point.value !== null}<rect
 						x={point.x - 3}
 						y={point.y}
 						width="6"

@@ -1332,7 +1332,7 @@
 				</FilterPopover>
 				<ActionMenu
 					label="Sort inventory"
-					class="inventory-sort-menu btn-ghost"
+					variant="toolbar"
 					items={[
 						{
 							label: 'Card name: A to Z',
@@ -2071,12 +2071,6 @@
 	.variant-filters .label {
 		display: block;
 		margin-bottom: 0.375rem;
-	}
-	:global(.inventory-sort-menu) {
-		padding-inline: 0.625rem;
-		font-size: 0.75rem;
-		border: 0;
-		background: transparent;
 	}
 	.column-header {
 		display: flex;

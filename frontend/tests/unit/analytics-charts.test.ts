@@ -4,6 +4,7 @@ import ProportionChart from '#lib/components/charts/ProportionChart.svelte';
 import DeckAvailabilityRing from '#lib/components/charts/DeckAvailabilityRing.svelte';
 import ValueSummary from '#lib/components/valuation/ValueSummary.svelte';
 import ValueHistoryChart from '#lib/components/charts/ValueHistoryChart.svelte';
+import MetricMiniChart from '#lib/components/dashboard/MetricMiniChart.svelte';
 import type { InventoryValueHistoryPoint } from '@spellbook/contracts/inventory-value.ts';
 
 function captured(day: string, value: string, covered = 1): InventoryValueHistoryPoint {
@@ -28,6 +29,32 @@ function captured(day: string, value: string, covered = 1): InventoryValueHistor
 }
 
 describe('shared analytics charts', () => {
+	it('distinguishes captured zero Deck counts from missing historical counts', async () => {
+		const values = [0n, null, 4n, null, null, 0n, null];
+		const points = values.map((value, index) => ({
+			day: `2026-10-${24 + index}`,
+			value,
+			partial: false
+		}));
+		const { body } = await render(MetricMiniChart, {
+			props: {
+				label: 'Daily Deck counts',
+				trend: {
+					points,
+					delta: null,
+					captured: 3,
+					partial: false,
+					from: points[0].day,
+					to: points[6].day
+				}
+			}
+		});
+		expect([...body.matchAll(/<line\b/g)]).toHaveLength(2);
+		expect([...body.matchAll(/<rect\b/g)]).toHaveLength(1);
+		expect(body).toContain('2026-10-24: 0');
+		expect(body).toContain('2026-10-25: unavailable');
+		expect(body).not.toMatch(/NaN|Infinity/);
+	});
 	it('keeps exact counts and shares accessible without JavaScript, including zero', async () => {
 		const { body } = await render(ProportionChart, {
 			props: {

@@ -280,7 +280,7 @@
 				<div class="starters">
 					<h3>Starter categories</h3>
 					<ul class="starter-list" aria-label="Available starter categories">
-						{#each [['Lands', 'land'], ['Board wipes', 'sorcery'], ['Counterspells', 'instant'], ['Removal', 'exile'], ['Ramp', 'tap'], ['Draw', 'hand'], ['Protection', 'defense'], ['Recursion', 'flashback']] as [name, icon]}
+						{#each [['Lands', 'land'], ['Board wipes', 'sorcery'], ['Counterspells', 'instant'], ['Removal', 'exile'], ['Ramp', 'tap'], ['Draw', 'hand'], ['Protection', 'defense-border'], ['Recursion', 'flashback']] as [name, icon]}
 							<li><i class={`ms ms-${icon}`} aria-hidden="true"></i>{name}</li>
 						{/each}
 					</ul>
@@ -464,6 +464,7 @@
 
 <style>
 	.workspace {
+		font-size: 0.875rem;
 		width: min(100%, 80rem);
 		margin: 0 auto;
 		padding: 1rem;
@@ -508,7 +509,7 @@
 		text-align: center;
 	}
 	.category-editor {
-		border-top: 1px solid var(--border);
+		border-top: 1px solid var(--color-border);
 		padding-top: 1rem;
 	}
 	.category-editor > summary {
@@ -540,7 +541,7 @@
 		display: block;
 	}
 	.advanced {
-		border-top: 1px solid var(--border);
+		border-top: 1px solid var(--color-border);
 		padding-top: 0.5rem;
 	}
 	.advanced p {
@@ -558,7 +559,7 @@
 	}
 
 	.definition {
-		border-bottom: 1px solid var(--border);
+		border-bottom: 1px solid var(--color-border);
 		padding: 1rem 0;
 		overflow-wrap: anywhere;
 	}

@@ -62,7 +62,7 @@
 	const name = (field: string) => `rule.${path}.${field}`;
 </script>
 
-<fieldset class="min-w-0 space-y-3 rounded border border-[var(--border)] p-3">
+<fieldset class="min-w-0 space-y-3 rounded border border-border p-3">
 	<legend>Criterion</legend>
 	<Select
 		native

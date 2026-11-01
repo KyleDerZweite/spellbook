@@ -770,6 +770,7 @@ Explicit editor close or account expiry clears the draft.
 Main grouping remains based on current saved Main entries.
 
 The Deck Library uses Inventory-style compact rows with small actual artwork and aligned metadata.
+The shared ActionMenu toolbar variant owns the compact border-free Sort trigger in Inventory and Deck Library.
 Its existing Library state, measured row geometry, native directory query and SavedState responsibilities remain unchanged.
 Category Library separates cards inside Decks from whole Decks and discloses its editor/advanced fields without changing the Library editor state machine or native actions.
 
@@ -817,14 +818,14 @@ Dashboard Deck rows include at most two account-scoped stored Commander-role Pri
 History adds a bounded exact-value callout and selected-point halo to its existing cursor and native observation control.
 Adaptive lower/upper bounds and 1/2/5 ticks use exact cents, so cent-sized changes remain visible without a forced zero baseline.
 Missing and unknown values remain disconnected, and a constant or single known value gets a valid padded range.
-Stat-card trends remain a [concept only](../product/ui-design-direction.md#dashboard-metric-trends-concept-only); no trend API, migration, capture or sparkline is implemented.
+The [Dashboard metric contract](../product/ui-design-direction.md#dashboard-metrics-and-inventory-value-preview) uses real captured daily totals and compact adjacent charts; unknown legacy Deck counts remain explicit.
 
 These consumers subscribe to `values` through existing SavedState read leases and account/selection guards.
 History schedules one refresh at the server-provided `nextRefreshAt`; it does not poll.
 Later same-account server data requests a leased history read instead of overwriting the synchronized snapshot.
 Failed optional valuation leaves other Dashboard/Deck data usable.
-The History route reuses the shared value-history module with URL-backed range links and a native custom-date form.
-The module shows exact latest priced value, covered-value change, coverage and missing days, with detailed observations collapsed by default.
+The shared History dialog applies preset and custom-date choices through its leased read callback, without a separate page or footer navigation.
+The module shows exact latest priced value, covered-value change, coverage and missing days, with accessible exact chart data and no visible Daily observations section.
 Demo price notices describe the API's static fixture scenario; the browser does not create prices or history.
 [Valuation](./valuation.md#reviewed-personal-history-contract) owns exact arithmetic and calendar boundaries.
 Rendered verification, owner acceptance and deployment remain separate evidence.
