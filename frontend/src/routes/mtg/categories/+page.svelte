@@ -51,6 +51,14 @@
 	let library = $state(untrack(() => data.library));
 	let libraryReadError = $state('');
 	let editorForm: HTMLFormElement;
+	let editorDisclosure: HTMLDetailsElement;
+	$effect(() => {
+		if (
+			(editor.message || editor.dirty || editor.busy || editor.draft.originId) &&
+			editorDisclosure
+		)
+			editorDisclosure.open = true;
+	});
 	let librarySubscription: ResourceSubscription | undefined = $state();
 	let cleared = false;
 	const currentListKey = () =>
@@ -161,7 +169,7 @@
 <div class="workspace">
 	<WorkspaceHeader title="Category Library">
 		{#snippet metadata()}<p class="muted">
-				Reusable meanings for new decks. Older decks keep their adopted definitions.
+				Your reusable categories for new decks. Existing decks keep their saved versions.
 			</p>{/snippet}
 		{#snippet actions()}<Button href="/mtg/decks" variant="outline">Decks</Button>{/snippet}
 	</WorkspaceHeader>
@@ -170,17 +178,25 @@
 		<a
 			href="?scope=entry"
 			onclick={editor.reopen}
-			aria-current={data.scope === 'entry' ? 'page' : undefined}>Deck entries</a
+			aria-current={data.scope === 'entry' ? 'page' : undefined}
+			><i class="ms ms-hand" aria-hidden="true"></i> Cards in decks</a
 		><a
 			href="?scope=deck"
 			onclick={editor.reopen}
-			aria-current={data.scope === 'deck' ? 'page' : undefined}>Whole decks</a
+			aria-current={data.scope === 'deck' ? 'page' : undefined}
+			><i class="ms ms-library" aria-hidden="true"></i> Whole decks</a
 		>
 	</nav>
-	{#if data.scope === 'deck'}<p class="notice">
-			New Decks adopt whole-deck definitions. Existing Decks adopt changed meanings through explicit
-			whole-deck Review/Reset.
-		</p>{/if}
+	<p class="scope-help">
+		{#if data.scope === 'entry'}
+			Group cards inside the deck editor. For example, Lands groups cards with the Land type. Each
+			entry has one primary category for all its copies.
+		{:else}
+			Group entire decks in the Deck Library. For example, a category can require at least ten
+			Creature copies. A deck can belong to several categories.
+		{/if}
+	</p>
+
 	{#if editor.message}<p role="status" class="notice">{editor.message}</p>{/if}
 	{#if libraryReadError}<p role="alert" class="notice">{libraryReadError}</p>
 		<Button variant="outline" onclick={() => refreshLibrary()}>Refresh Library</Button>{/if}
@@ -199,44 +215,56 @@
 				>Retry original submission</Button
 			>
 		</form>{/if}
-	<div class="library-columns">
+	<div class="library-content">
 		<section aria-label="Reusable definitions">
-			<h2>{data.scope === 'entry' ? 'Entry definitions' : 'Whole-deck definitions'}</h2>
+			<h2>Your categories</h2>
 			{#if !library.total}<p class="muted">
-					No custom definitions in this scope. Create one using explicit criteria.
+					{data.scope === 'entry'
+						? 'No custom categories yet. The starter categories below are available for new decks.'
+						: 'No whole-deck categories yet. Create a category and choose which cards a deck must contain.'}
 				</p>{/if}
 			{#each library.definitions as definition (definition.originId)}
 				<article class="definition">
 					<h3>{definition.current.name}</h3>
-					<p>{definition.current.meaning || 'No meaning supplied.'}</p>
+					<p>{definition.current.meaning || 'No description supplied.'}</p>
 					<p>{describeCategoryRule(definition.current.rule, editor.choices)}</p>
-					<p class="muted">
-						Version {definition.current.version}. Priority {definition.current.priority}. Display
-						order {definition.current.displayOrder}. {definition.archived
-							? 'Archived for future adoption.'
-							: 'Active for new decks.'}
-					</p>
 					<Button
 						variant="outline"
 						href={`?scope=${data.scope}&edit=${definition.originId}`}
-						onclick={editor.reopen}>Edit reusable definition</Button
+						onclick={editor.reopen}>Edit category</Button
 					>
-					<form method="POST" action="?/archive" use:enhance={submit}>
-						<input type="hidden" name="requestId" value={data.draft.requestId} /><input
-							type="hidden"
-							name="originId"
-							value={definition.originId}
-						/><input type="hidden" name="expectedLibraryRevision" value={library.revision} /><input
-							type="hidden"
-							name="archived"
-							value={String(!definition.archived)}
-						/><input type="hidden" name="scope" value={data.scope} />
-						<Button type="submit" variant="ghost" disabled={editor.busy}
-							>{definition.archived
-								? 'Restore for future decks'
-								: 'Archive for future decks'}</Button
+					<details class="definition-settings">
+						<summary
+							>{definition.archived ? 'Archived' : 'Active for new decks'} · Version {definition
+								.current.version}</summary
 						>
-					</form>
+						<p class="muted">
+							Version {definition.current.version}. Priority {definition.current.priority}. Display
+							order {definition.current.displayOrder}. {definition.archived
+								? 'Archived for future adoption.'
+								: 'Active for new decks.'}
+						</p>
+						<form method="POST" action="?/archive" use:enhance={submit}>
+							<input type="hidden" name="requestId" value={data.draft.requestId} /><input
+								type="hidden"
+								name="originId"
+								value={definition.originId}
+							/><input
+								type="hidden"
+								name="expectedLibraryRevision"
+								value={library.revision}
+							/><input type="hidden" name="archived" value={String(!definition.archived)} /><input
+								type="hidden"
+								name="scope"
+								value={data.scope}
+							/>
+							<Button type="submit" variant="ghost" disabled={editor.busy}
+								>{definition.archived
+									? 'Restore for future decks'
+									: 'Archive for future decks'}</Button
+							>
+						</form>
+					</details>
 				</article>
 			{/each}
 			<nav aria-label="Definition pages">
@@ -248,147 +276,189 @@
 						>Next</a
 					>{/if}
 			</nav>
-			{#if data.scope === 'entry'}<details>
-					<summary>Independent starters</summary>
-					<p>
-						Lands, Board wipes, Counterspells, Removal, Ramp, Draw, Protection and Recursion remain
-						separate fallbacks after custom rules. Starter traits use imported Oracle Tags; Lands
-						uses card type and Ramp excludes Lands.
+			{#if data.scope === 'entry'}
+				<div class="starters">
+					<h3>Starter categories</h3>
+					<ul class="starter-list" aria-label="Available starter categories">
+						{#each [['Lands', 'land'], ['Board wipes', 'sorcery'], ['Counterspells', 'instant'], ['Removal', 'exile'], ['Ramp', 'tap'], ['Draw', 'hand'], ['Protection', 'defense'], ['Recursion', 'flashback']] as [name, icon]}
+							<li><i class={`ms ms-${icon}`} aria-hidden="true"></i>{name}</li>
+						{/each}
+					</ul>
+					<p class="muted">
+						Used after your custom rules. Lands uses card type; the other starters use imported
+						Oracle Tags. Ramp excludes Lands.
 					</p>
-				</details>{/if}
+				</div>
+			{/if}
 		</section>
-		<section aria-label="Definition editor">
-			<h2>{editor.draft.originId ? 'Edit reusable meaning' : 'New reusable definition'}</h2>
-			<p class="muted">
-				Name and meaning do not classify a card. The explicit criteria below do. Lower priority
-				numbers are evaluated first; display order only arranges groups.
-			</p>
-			<form
-				method="POST"
-				action="?/save"
-				use:enhance={submit}
-				bind:this={editorForm}
-				oninput={editor.edit}
-				onchange={editor.edit}
-				class="form-stack"
-			>
-				<input type="hidden" name="requestId" value={editor.draft.requestId} /><input
-					type="hidden"
-					name="originId"
-					value={editor.draft.originId ?? ''}
-				/><input
-					type="hidden"
-					name="expectedLibraryRevision"
-					value={editor.draft.expectedLibraryRevision}
-				/><input type="hidden" name="scope" value={editor.draft.scope} /><input
-					type="hidden"
-					name="rule"
-					value={JSON.stringify(editor.draft.rule)}
-				/>
-				<label
-					>Name<input
-						class="input"
-						name="name"
-						required
-						maxlength="128"
-						bind:value={editor.draft.name}
-					/></label
+		<details
+			class="category-editor"
+			bind:this={editorDisclosure}
+			open={!!editor.draft.originId || editor.dirty || !!editor.message || !!form}
+		>
+			<summary>{editor.draft.originId ? 'Edit category' : 'New category'}</summary>
+			<div class="editor-content">
+				<p class="muted">
+					Choose a name, then set the matching criteria. The name and description alone do not
+					classify cards or decks.
+				</p>
+				<form
+					method="POST"
+					action="?/save"
+					use:enhance={submit}
+					bind:this={editorForm}
+					oninput={editor.edit}
+					onchange={editor.edit}
+					class="form-stack"
 				>
-				<label
-					>Meaning<textarea
-						class="input"
-						name="meaning"
-						maxlength="4000"
-						rows="3"
-						bind:value={editor.draft.meaning}></textarea></label
-				>
-				<label
-					>Priority<input
-						class="input"
-						type="number"
-						name="priority"
-						min="-2147483648"
-						max="2147483647"
-						bind:value={editor.draft.priority}
-					/></label
-				>
-				<label
-					>Display order<input
-						class="input"
-						type="number"
-						name="displayOrder"
-						min="-2147483648"
-						max="2147483647"
-						bind:value={editor.draft.displayOrder}
-					/></label
-				>
-				<fieldset>
-					<legend>Participating roles</legend
-					>{#each ['main', 'sideboard', 'commander', 'companion'] as role}<label
-							><input
-								type="checkbox"
-								name="roles"
-								value={role}
-								checked={editor.draft.roles.includes(role as (typeof editor.draft.roles)[number])}
-							/>{role}</label
-						>{/each}
-				</fieldset>
-				<RuleEditor rule={editor.draft.rule} scope={editor.draft.scope} choices={editor.choices} />
-				<Button
-					type="submit"
-					name="ruleAction"
-					value="update"
-					variant="outline"
-					disabled={editor.busy}>Update criteria</Button
-				>
-				<fieldset>
-					<legend>Find source criteria</legend>
-					<p>
-						Commander Spellbook source: {editor.choices.combo?.source.availability ??
-							'Unavailable'}. Search returns up to 50 outcomes. Previously selected outcomes stay
-						available for editing.
-					</p>
-					<label>Oracle Tag name<input class="input" name="tagQuery" maxlength="200" /></label
-					><label>Card name<input class="input" name="cardQuery" maxlength="200" /></label><label
-						>Combo outcome name<input class="input" name="outcomeQuery" maxlength="200" /></label
-					><Button
+					<input type="hidden" name="requestId" value={editor.draft.requestId} /><input
+						type="hidden"
+						name="originId"
+						value={editor.draft.originId ?? ''}
+					/><input
+						type="hidden"
+						name="expectedLibraryRevision"
+						value={editor.draft.expectedLibraryRevision}
+					/><input type="hidden" name="scope" value={editor.draft.scope} /><input
+						type="hidden"
+						name="rule"
+						value={JSON.stringify(editor.draft.rule)}
+					/>
+					<label
+						>Name<input
+							class="input"
+							name="name"
+							required
+							maxlength="128"
+							bind:value={editor.draft.name}
+						/></label
+					>
+					<label
+						>Description<textarea
+							class="input"
+							name="meaning"
+							maxlength="4000"
+							rows="3"
+							bind:value={editor.draft.meaning}></textarea></label
+					>
+					<RuleEditor
+						rule={editor.draft.rule}
+						scope={editor.draft.scope}
+						choices={editor.choices}
+					/>
+					<Button
 						type="submit"
 						name="ruleAction"
-						value="choices"
+						value="update"
 						variant="outline"
-						disabled={editor.busy}>Find Tags, cards and outcomes</Button
+						disabled={editor.busy}>Update criteria</Button
 					>
-				</fieldset>
-				<label
-					><input
-						type="checkbox"
-						name="confirmRetainedRule"
-						checked={editor.draft.confirmRetainedRule}
-					/>I confirm that the retained criteria express the edited meaning.</label
-				>
-				<p class="muted">
-					Missing facts stay Unknown, even under "Does not match". Higher-priority Unknown leaves
-					classification Pending. Saving creates an immutable version and affects future adoption.
-				</p>
-				{#if editor.dirty}<p role="status" class="muted">Unsaved definition draft</p>{/if}
-				{#if library.revision !== editor.draft.expectedLibraryRevision}<p
-						role="alert"
-						class="notice"
+					<details class="advanced">
+						<summary>Priority, display order and deck sections</summary>
+						<p class="muted">
+							Lower priority numbers match first. Display order arranges groups. Participating roles
+							select which deck sections the rule checks.
+						</p>
+						<div class="advanced-fields">
+							<label
+								>Priority<input
+									class="input"
+									type="number"
+									name="priority"
+									min="-2147483648"
+									max="2147483647"
+									bind:value={editor.draft.priority}
+								/></label
+							>
+							<label
+								>Display order<input
+									class="input"
+									type="number"
+									name="displayOrder"
+									min="-2147483648"
+									max="2147483647"
+									bind:value={editor.draft.displayOrder}
+								/></label
+							>
+							<fieldset>
+								<legend>Participating roles</legend
+								>{#each ['main', 'sideboard', 'commander', 'companion'] as role}<label
+										><input
+											type="checkbox"
+											name="roles"
+											value={role}
+											checked={editor.draft.roles.includes(
+												role as (typeof editor.draft.roles)[number]
+											)}
+										/>{role}</label
+									>{/each}
+							</fieldset>
+						</div>
+					</details>
+					<details
+						class="advanced"
+						open={!!editor.message &&
+							(!!editor.choices.tags.length ||
+								!!editor.choices.cards.length ||
+								!!editor.choices.combo?.outcomes.length)}
 					>
-						The Library changed. Your unsaved draft is retained.
-					</p>
+						<summary>Find Oracle Tags, cards or combo outcomes</summary>
+						<fieldset>
+							<legend>Source search</legend>
+							<p>
+								Commander Spellbook source: {editor.choices.combo?.source.availability ??
+									'Unavailable'}. Search returns up to 50 outcomes. Previously selected outcomes
+								stay available for editing.
+							</p>
+							<label>Oracle Tag name<input class="input" name="tagQuery" maxlength="200" /></label
+							><label>Card name<input class="input" name="cardQuery" maxlength="200" /></label
+							><label
+								>Combo outcome name<input
+									class="input"
+									name="outcomeQuery"
+									maxlength="200"
+								/></label
+							><Button
+								type="submit"
+								name="ruleAction"
+								value="choices"
+								variant="outline"
+								disabled={editor.busy}>Find Tags, cards and outcomes</Button
+							>
+						</fieldset>
+					</details>
 					<label
-						><input type="checkbox" name="rebaseLibraryRevision" value={library.revision} />I
-						reviewed the current Library and want to save this draft against its current revision.</label
-					>{/if}
-				<Button type="submit" disabled={editor.busy}>Save reusable definition</Button>
-				{#if editor.draft.originId}<Button
-						href={`?scope=${data.scope}`}
-						onclick={editor.reopen}
-						variant="ghost">Start a new definition</Button
-					>{/if}
-			</form>
-		</section>
+						><input
+							type="checkbox"
+							name="confirmRetainedRule"
+							checked={editor.draft.confirmRetainedRule}
+						/>I confirm that these criteria match the category description.</label
+					>
+					<p class="muted">
+						Missing facts stay Unknown, even under "Does not match". Higher-priority Unknown leaves
+						classification Pending. Saving creates a new version for new decks. Existing decks adopt
+						this version only through Review/Reset.
+					</p>
+					{#if editor.dirty}<p role="status" class="muted">Unsaved definition draft</p>{/if}
+					{#if library.revision !== editor.draft.expectedLibraryRevision}<p
+							role="alert"
+							class="notice"
+						>
+							The Library changed. Your unsaved draft is retained.
+						</p>
+						<label
+							><input type="checkbox" name="rebaseLibraryRevision" value={library.revision} />I
+							reviewed the current Library and want to save this draft against its current revision.</label
+						>{/if}
+					<Button type="submit" disabled={editor.busy}>Save category</Button>
+					{#if editor.draft.originId}<Button
+							href={`?scope=${data.scope}`}
+							onclick={editor.reopen}
+							variant="ghost">Start a new category</Button
+						>{/if}
+				</form>
+			</div>
+		</details>
 	</div>
 </div>
 
@@ -408,11 +478,85 @@
 		font-weight: 600;
 		text-decoration: underline;
 	}
-	.library-columns {
+	.library-content {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 		gap: 2rem;
+		max-width: 60rem;
 	}
+	.scope-help {
+		max-width: 65ch;
+		margin-bottom: 1.5rem;
+	}
+	.starters {
+		margin-top: 1.5rem;
+	}
+	.starter-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem 1.5rem;
+		list-style: none;
+		padding: 0;
+		margin: 1rem 0;
+	}
+	.starter-list li {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+	.starter-list i {
+		width: 1.25rem;
+		text-align: center;
+	}
+	.category-editor {
+		border-top: 1px solid var(--border);
+		padding-top: 1rem;
+	}
+	.category-editor > summary {
+		font-size: 1.125rem;
+	}
+	summary {
+		cursor: pointer;
+		padding: 0.5rem 0;
+	}
+	summary:focus-visible {
+		outline: 2px solid var(--color-ring);
+		outline-offset: 3px;
+	}
+	.editor-content {
+		max-width: 46rem;
+		padding-top: 1rem;
+	}
+	.form-stack,
+	.advanced-fields {
+		display: grid;
+		gap: 1rem;
+	}
+	.form-stack > label,
+	.advanced-fields > label {
+		display: grid;
+		gap: 0.5rem;
+	}
+	.form-stack > label:has(input[type='checkbox']) {
+		display: block;
+	}
+	.advanced {
+		border-top: 1px solid var(--border);
+		padding-top: 0.5rem;
+	}
+	.advanced p {
+		margin: 0.5rem 0 1rem;
+	}
+	.definition-settings {
+		margin-top: 0.5rem;
+	}
+	h2,
+	h3 {
+		margin-bottom: 0.5rem;
+	}
+	p {
+		line-height: 1.6;
+	}
+
 	.definition {
 		border-bottom: 1px solid var(--border);
 		padding: 1rem 0;
@@ -429,9 +573,13 @@
 	section {
 		min-width: 0;
 	}
-	@media (max-width: 800px) {
-		.library-columns {
-			grid-template-columns: minmax(0, 1fr);
+	@media (max-width: 600px) {
+		.tabs {
+			flex-wrap: wrap;
+		}
+		.starter-list {
+			display: grid;
+			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 	}
 </style>
