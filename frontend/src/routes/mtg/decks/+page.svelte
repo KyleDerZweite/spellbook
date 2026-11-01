@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import ComboEvidence from '#lib/components/categories/ComboEvidence.svelte';
 	import DeckOverview from '#lib/components/decks/DeckOverview.svelte';
 	import DeckStatistics from '#lib/components/decks/DeckStatistics.svelte';
@@ -839,6 +840,8 @@
 	};
 </script>
 
+{#snippet addIcon()}<PlusIcon />{/snippet}
+
 {#if deletedTarget}<p role="alert">
 		This Deck was removed elsewhere. Your draft is retained; it cannot be saved to the removed Deck.
 	</p>{/if}
@@ -865,7 +868,7 @@
 						iconOnly
 						bind:triggerRef={actionsTrigger}
 						items={[
-							{ label: 'New deck', onSelect: () => openEditor('create') },
+							{ label: 'New deck', icon: addIcon, onSelect: () => openEditor('create') },
 							{ label: 'Edit details', onSelect: () => openEditor('details') },
 							{ label: 'Category Library', href: '/mtg/categories' },
 							{ label: 'Import decklist', onSelect: () => openEditor('import') },
@@ -897,7 +900,7 @@
 				{#if !selectedDeck}<Button href="/mtg/categories" variant="ghost">Categories</Button><Button
 						href={flowHref('create')}
 						onclick={openCreate}
-						disabled={busy || deletedTarget}>New deck</Button
+						disabled={busy || deletedTarget}><PlusIcon />New deck</Button
 					>{/if}
 			</div>
 		{/snippet}
@@ -939,7 +942,9 @@
 				bind:value={createDescription}></textarea>
 			{@render retryError()}
 			{#if !saveError && form?.message}<p role="status" class="muted">{form.message}</p>{/if}
-			<Button type="submit" variant="default" disabled={busy || deletedTarget}>Create deck</Button>
+			<Button type="submit" variant="default" disabled={busy || deletedTarget}
+				><PlusIcon />Create deck</Button
+			>
 		</form>
 	</DeckDialog>
 	{@render retryError()}
@@ -1171,7 +1176,7 @@
 									name="text"
 									value={importText}
 								/><Button type="submit" variant="default" disabled={busy || !importableCount}
-									>Add {importableCount} matched cards</Button
+									><PlusIcon />Add {importableCount} matched cards</Button
 								>
 							</form>
 						</div>
@@ -1216,7 +1221,8 @@
 		</section>
 		<noscript
 			><nav aria-label="Deck tasks">
-				<a href={flowHref('create')}>New deck</a> · <a href={flowHref('edit')}>Edit details</a> ·
+				<a class="inline-flex items-center gap-2" href={flowHref('create')}><PlusIcon />New deck</a>
+				· <a href={flowHref('edit')}>Edit details</a> ·
 				<a href={flowHref('import')}>Import decklist</a>
 				· <a href={flowHref('delete')}>Delete deck</a> · <a href={flowHref('search')}>Find cards</a>
 				· <a href="/mtg/categories">Category Library</a>
@@ -1245,7 +1251,7 @@
 					event.preventDefault();
 					searchTrigger = event.currentTarget instanceof HTMLElement ? event.currentTarget : null;
 					setSearchOpen(true);
-				}}>Add cards</Button
+				}}><PlusIcon />Add cards</Button
 			>
 		</div>
 		{#if removed && removed.deckId === selectedDeck.id}
@@ -1568,7 +1574,9 @@
 						{busy ? 'Saving…' : saveError ? '' : (form?.message ?? '')}
 					</p>
 					<Button type="submit" variant="default" disabled={busy || deletedTarget || inspectorGone}
-						>{inspectedEntryId ? 'Save card' : 'Add to deck'}</Button
+						>{#if !inspectedEntryId}<PlusIcon />{/if}{inspectedEntryId
+							? 'Save card'
+							: 'Add to deck'}</Button
 					>
 				</form>
 				{#if form?.mergeDraft?.entryId === inspectedEntry?.id}{@render mergeReview()}{/if}

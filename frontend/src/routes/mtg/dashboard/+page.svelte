@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import WorkspaceHeader from '#lib/components/layout/WorkspaceHeader.svelte';
 	import DashboardInsights from '#lib/components/dashboard/DashboardInsights.svelte';
 	import DashboardDetails from '#lib/components/dashboard/DashboardDetails.svelte';
@@ -63,9 +64,8 @@
 <div class="workspace-container dashboard-page">
 	<SavedStateStatus resource={subscription} />
 	<WorkspaceHeader title="Dashboard" variant="overview">
-		{#snippet metadata()}<p class="dashboard-intro">Your Magic collection at a glance</p>{/snippet}
 		{#snippet actions()}<a href="/mtg/inventory" class="btn btn-secondary btn-sm">View inventory</a
-			><a href="/mtg/search" class="btn btn-primary btn-sm">Add cards</a>{/snippet}
+			><a href="/mtg/search" class="btn btn-primary btn-sm"><PlusIcon />Add cards</a>{/snippet}
 	</WorkspaceHeader>
 	{#if loadError}
 		<div class="dashboard-empty" role="alert">
@@ -90,12 +90,6 @@
 		width: min(calc(100% - 4.5rem), 100rem);
 		padding-block: 68px 32px;
 	}
-	.dashboard-intro {
-		margin-top: 8px;
-		color: var(--color-text-secondary);
-		font-size: 14px;
-		line-height: 1.5;
-	}
 	.dashboard-empty {
 		padding: 24px;
 		border: 1px solid var(--color-border);
@@ -111,9 +105,6 @@
 		.dashboard-page {
 			width: calc(100% - 2rem);
 			padding-block: 24px 32px;
-		}
-		.dashboard-intro {
-			font-size: 12px;
 		}
 	}
 </style>

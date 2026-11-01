@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import type { DashboardSummary } from '@spellbook/contracts/dashboard.ts';
 	import ProportionChart from '#lib/components/charts/ProportionChart.svelte';
 	import DeckAvailabilityRing from '#lib/components/charts/DeckAvailabilityRing.svelte';
@@ -109,7 +110,7 @@
 				</ul>
 			{:else}<div class="dashboard-empty">
 					<p>No decks yet.</p>
-					<a href="/mtg/decks" class="btn btn-secondary btn-sm">Create a deck</a>
+					<a href="/mtg/decks" class="btn btn-secondary btn-sm"><PlusIcon />Create a deck</a>
 				</div>{/if}
 		</section>
 		{#if dashboard.totals.total > 0}<section

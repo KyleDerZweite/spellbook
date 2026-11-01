@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import type {
 		CategoryScope,
 		EntryRule,
@@ -81,7 +82,7 @@
 				>Remove criterion</Button
 			>{/each}
 		<Button type="submit" name="ruleAction" value={`add:${path}`} variant="secondary"
-			>Add criterion</Button
+			><PlusIcon />Add criterion</Button
 		>
 	{:else if rule.op === 'not'}<RuleEditor
 			rule={rule.child}

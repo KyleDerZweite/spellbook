@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import { enhance, type SubmitFunction } from '$app/forms';
 	import type { CardDocument } from '#lib/search/types.ts';
 	import Button from '#lib/components/ui/button/Button.svelte';
@@ -136,7 +137,7 @@
 							!Number.isInteger(addQuantity) ||
 							addQuantity < 1 ||
 							addQuantity > 10000}
-						aria-label={`Add ${card.name}`}>Add</Button
+						aria-label={`Add ${card.name}`}><PlusIcon />Add</Button
 					>
 					<Button
 						variant="ghost"

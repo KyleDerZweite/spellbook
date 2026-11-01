@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import type { CardDocument } from '#lib/search/types.ts';
 	import type { InventoryAcknowledgement } from '@spellbook/contracts/inventory.ts';
 	import type { DeckChoicePage, DeckAcknowledgement } from '@spellbook/contracts/decks.ts';
@@ -173,7 +174,9 @@
 				</div>
 			</div>
 			<button class="btn btn-primary" disabled={!!choiceReadError || !choices}
-				>{submitted && !receipt ? 'Add with current Deck details' : 'Add to Deck'}</button
+				><PlusIcon />{submitted && !receipt
+					? 'Add with current Deck details'
+					: 'Add to Deck'}</button
 			>
 		</form>
 	{:else}<p role="alert" class="text-sm text-text-secondary">
@@ -270,7 +273,7 @@
 				<button
 					class="btn btn-secondary text-sm"
 					disabled={!selectedPrinting.is_nonfoil_available && !selectedPrinting.is_foil_available}
-					>{inventorySubmitted && !inventoryReceipt
+					><PlusIcon />{inventorySubmitted && !inventoryReceipt
 						? 'Add with current Inventory details'
 						: 'Add to Inventory'}</button
 				>

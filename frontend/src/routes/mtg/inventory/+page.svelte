@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import type { HistoricalHoldingIdentity } from '@spellbook/contracts/inventory-value.ts';
 	import SavedStateStatus from '#lib/saved-state/SavedStateStatus.svelte';
 	import { workspaceSavedState } from '#lib/saved-state/workspace.svelte.ts';
@@ -1036,6 +1037,8 @@
 	};
 </script>
 
+{#snippet addIcon()}<PlusIcon />{/snippet}
+
 <svelte:head><title>Inventory | Spellbook</title></svelte:head>
 
 {#if privateCleared}<div class="workspace-container">
@@ -1088,7 +1091,7 @@
 						<input type="hidden" name="requestId" value={data.requestId} /><label
 							for="native-group-name">New box name</label
 						><input id="native-group-name" name="name" required maxlength="128" /><button
-							class="btn btn-primary">Create box</button
+							class="btn btn-primary"><PlusIcon />Create box</button
 						>
 					</form>
 					{#each currentWindow.groupPage as group}<form
@@ -1130,10 +1133,11 @@
 					card names <span>·</span> <strong>{currentWindow.totals.setCount}</strong> sets
 				</p>{/snippet}
 			{#snippet actions()}{#if groupDirectory}<Button
-						onclick={(event) => editGroup(null, event.currentTarget)}>New box</Button
+						onclick={(event) => editGroup(null, event.currentTarget)}><PlusIcon />New box</Button
 					>{:else if selectedGroup}<Button variant="secondary" href={viewHref('cards')}
 						>Assign cards</Button
-					>{:else}<Button href="/mtg/search" onclick={openSearch}>Add cards</Button>{/if}{/snippet}
+					>{:else}<Button href="/mtg/search" onclick={openSearch}><PlusIcon />Add cards</Button
+					>{/if}{/snippet}
 		</WorkspaceHeader>
 		<noscript
 			><form method="GET" class="native-inventory-filters" aria-label="Inventory filters">
@@ -1571,6 +1575,7 @@
 								},
 								{
 									label: 'Add another printing',
+									icon: addIcon,
 									disabled: pendingId !== null,
 									onSelect: () =>
 										openInspection(card.id, 'add', rowMenuRefs[card.id] ?? searchInput)
@@ -1754,7 +1759,7 @@
 					disabled={pendingId !== null || addingPending}
 					onclick={() => {
 						if (inspection) inspection.mode = 'add';
-					}}>Add another printing</Button
+					}}><PlusIcon />Add another printing</Button
 				>
 			</nav>
 			{#if inspection?.mode === 'add'}

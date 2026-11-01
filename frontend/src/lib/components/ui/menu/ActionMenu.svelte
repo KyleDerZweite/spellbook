@@ -17,6 +17,7 @@
 		label: string;
 		items: Array<{
 			label: string;
+			icon?: Snippet;
 			onSelect?: () => void;
 			href?: string;
 			download?: boolean;
@@ -98,10 +99,13 @@
 								<a
 									{...props}
 									href={item.disabled ? undefined : item.href}
-									download={item.download || undefined}>{item.label}</a
+									download={item.download || undefined}
+									>{#if item.icon}{@render item.icon()}{/if}{item.label}</a
 								>
 							{:else}
-								<div {...props}>{item.label}</div>
+								<div {...props}>
+									{#if item.icon}{@render item.icon()}{/if}{item.label}
+								</div>
 							{/if}
 						{/snippet}
 					</DropdownMenu.Item>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import {
 		readCategoryLibraryPage,
 		captureCategoryLibraryQuery
@@ -450,11 +451,13 @@
 							><input type="checkbox" name="rebaseLibraryRevision" value={library.revision} />I
 							reviewed the current Library and want to save this draft against its current revision.</label
 						>{/if}
-					<Button type="submit" disabled={editor.busy}>Save category</Button>
+					<Button type="submit" disabled={editor.busy}
+						>{#if !editor.draft.originId}<PlusIcon />{/if}Save category</Button
+					>
 					{#if editor.draft.originId}<Button
 							href={`?scope=${data.scope}`}
 							onclick={editor.reopen}
-							variant="ghost">Start a new category</Button
+							variant="ghost"><PlusIcon />Start a new category</Button
 						>{/if}
 				</form>
 			</div>

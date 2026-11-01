@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PlusIcon from '#lib/components/ui/PlusIcon.svelte';
 	import { onMount, untrack } from 'svelte';
 	import type { PageProps } from './$types';
 	import WorkspaceHeader from '#lib/components/layout/WorkspaceHeader.svelte';
@@ -42,7 +43,8 @@
 >
 <div class="workspace-container dashboard-prototype-page">
 	<SavedStateStatus resource={subscription} /><WorkspaceHeader title="Dashboard"
-		>{#snippet actions()}<a href="/mtg/search" class="btn btn-primary btn-sm">Add cards</a
+		>{#snippet actions()}<a href="/mtg/search" class="btn btn-primary btn-sm"
+				><PlusIcon />Add cards</a
 			>{/snippet}</WorkspaceHeader
 	>
 	{#if dashboard}<div class="prototype-content" data-design={data.design}>
