@@ -4,14 +4,14 @@
 
 	let { dashboard }: { dashboard: DashboardSummary } = $props();
 	const typeColors: Record<string, string> = {
-		Creature: '#48bf91',
-		Instant: '#62a5ed',
-		Sorcery: '#ab86e8',
-		Enchantment: '#ee956d',
-		Artifact: '#e4d68f',
+		Creature: '#35c897',
+		Instant: '#5b9ff5',
+		Sorcery: '#a77af4',
+		Enchantment: '#f4865f',
+		Artifact: '#ead88c',
 		Land: '#929bad',
-		Planeswalker: '#d3af59',
-		Battle: '#cb7683',
+		Planeswalker: '#deb34b',
+		Battle: '#d66d81',
 		Other: '#727b8b',
 		Unknown: '#999999'
 	};
@@ -333,7 +333,7 @@
 	.track i {
 		display: block;
 		height: 100%;
-		background: var(--color-violet);
+		background: var(--color-chart-dashboard-accent);
 		border-radius: 3px;
 	}
 	footer {

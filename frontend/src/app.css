@@ -64,6 +64,7 @@
 	--color-warning: #f0c47b;
 	--color-info: #8ebaff;
 	--color-chart-primary: #8cbbdd;
+	--color-chart-dashboard-accent: #a68aff;
 	--color-chart-track: #343b44;
 	--color-chart-teal: #7bd2d2;
 	--color-chart-rose: #e6a4c0;
@@ -97,6 +98,7 @@ html.light {
 	--color-secondary-foreground: #202020;
 	--color-accent: #326184;
 	--color-violet: #70539d;
+	--color-chart-dashboard-accent: #7750c5;
 	--color-border: #d5d5d5;
 	--color-command: #ffffff;
 	--color-command-selected: #f0f0f0;
@@ -638,6 +640,12 @@ button:disabled {
 
 /* Local material for Dashboard boxes, separate from the page background. */
 .dashboard-surface {
+	--color-chart-mana-white: #e5d39a;
+	--color-chart-mana-blue: #639fe8;
+	--color-chart-mana-black: #a98ac2;
+	--color-chart-mana-red: #ed795f;
+	--color-chart-mana-green: #49bb8f;
+	--color-chart-mana-gold: #d2b258;
 	background-color: var(--color-card);
 	background-image: linear-gradient(
 		145deg,
@@ -647,6 +655,12 @@ button:disabled {
 	);
 }
 html:not(.dark) .dashboard-surface {
+	--color-chart-mana-white: #a68b3c;
+	--color-chart-mana-blue: #3679bd;
+	--color-chart-mana-black: #8056a1;
+	--color-chart-mana-red: #bf5944;
+	--color-chart-mana-green: #278761;
+	--color-chart-mana-gold: #a37c26;
 	background-image: linear-gradient(
 		145deg,
 		color-mix(in srgb, var(--color-card), white 2%),

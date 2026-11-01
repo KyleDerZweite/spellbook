@@ -71,7 +71,7 @@
 						width="6"
 						height={40 - point.y}
 						rx="1"
-						opacity={point.day === trend.to ? 1 : 0.45}
+						opacity={point.day === trend.to ? 1 : 0.6}
 						><title>{point.day}: {point.value.toLocaleString()}</title></rect
 					>{/if}{/each}{/if}
 	</svg>
@@ -82,7 +82,7 @@
 		display: block;
 		width: 80px;
 		height: 44px;
-		color: var(--color-violet);
+		color: var(--color-chart-dashboard-accent);
 		fill: currentColor;
 	}
 </style>
