@@ -1,9 +1,9 @@
 # Spellbook product specification
 
 - Status: Canonical
-- Last Reviewed: 2026-11-01
+- Last Reviewed: 2026-11-02
 - Source of Truth: application code, tests, accepted product requirements
-- Update Triggers: selected two-row regular Dashboard reference, direct metric links and preview-only personal History, four daily metric cards and detail previews, selected A+ Dashboard layout and native Demo evaluation, versioned MTG routes and module ownership, independent API/web ownership and relocated code references, accepted PWA/QR delivery and pending browser/Android acceptance, Inventory metadata filter shortcuts and compact read-only rows, account access and preferences, dashboard summaries, catalog identity, inventory or deck behavior, bounded Inventory loading and scaling evidence, market reference values and personal Inventory history, import formats, API contracts, scan capability and priorities, physical-card integration requirements, supported platforms, release acceptance changes, continuous Lazy browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
+- Update Triggers: Inventory New badge UTC creation date, selected two-row regular Dashboard reference, direct metric links and preview-only personal History, four daily metric cards and detail previews, selected A+ Dashboard layout and native Demo evaluation, versioned MTG routes and module ownership, independent API/web ownership and relocated code references, accepted PWA/QR delivery and pending browser/Android acceptance, Inventory metadata filter shortcuts and compact read-only rows, account access and preferences, dashboard summaries, catalog identity, inventory or deck behavior, bounded Inventory loading and scaling evidence, market reference values and personal Inventory history, import formats, API contracts, scan capability and priorities, physical-card integration requirements, supported platforms, release acceptance changes, continuous Lazy browsing/dialog contract and selected versus implemented read limits, local recognition and client responsibilities, client feature parity, browser scanning and phone computation-host evaluation
 - Related Docs: [Domain model](../../GLOSSARY.md), [Routes](./routing-and-games.md), [UI direction](./ui-design-direction.md), [Value tracking](./value-tracking.md), [System architecture](../architecture/system-overview.md), [Authentication](../architecture/auth.md), [Mobile and scan](../architecture/mobile-and-scan.md), [Deployment](../operations/deployment.md), [Card scanner and sorter](../integrations/card-robot.md), [Product index](./README.md), [Application contract](../architecture/application-contract.md), [Category rules](../architecture/category-rules.md), [ADR-0023](../decisions/0023-local-recognition-in-scanner-clients.md)
 
 Spellbook is an open-source MTG inventory and deck builder for private accounts on a self-hosted instance.
@@ -264,11 +264,11 @@ Finish starts with Nonfoil before Foil, Condition with `NM, LP, MP, HP, DMG`, an
 The toolbar Sort menu exposes the same ordering choices, including Newest first by the entry's `createdAt` descending without a time filter.
 A variant click from that mode returns to name ascending with the chosen variant ordering.
 
-An entry displays New for seven elapsed days from `createdAt`.
-The badge explains its creation date and duration.
-Quantity or note edits, added copies merged into an existing entry and internal reordering do not restart this period.
+An entry displays New only on its displayed UTC creation calendar date from `createdAt`, provided the timestamp is valid and not in the future.
+The badge explains its creation date and expires at the end of that UTC date.
+Quantity or note edits, added copies merged into an existing entry and internal reordering do not change this date.
 This is an entry-age indicator, not per-copy acquisition history.
-The page uses its server load time and refreshes badge age every minute while open.
+The page uses its server load time as its clock anchor and refreshes badges every minute and at UTC midnight while open.
 
 Selecting exactly one set reveals owned-name progress.
 Selecting zero or multiple sets hides it.

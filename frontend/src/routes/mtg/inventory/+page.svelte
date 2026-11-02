@@ -814,10 +814,21 @@
 		const anchor = data.viewedAt.getTime();
 		const started = Date.now();
 		viewedAt = data.viewedAt;
-		const timer = setInterval(() => {
-			viewedAt = new Date(anchor + Date.now() - started);
-		}, 60_000);
-		return () => clearInterval(timer);
+		let timer: ReturnType<typeof setTimeout>;
+		const schedule = () => {
+			const current = anchor + Date.now() - started;
+			const utcDay = 24 * 60 * 60 * 1000;
+			const untilMidnight = utcDay - (current % utcDay);
+			timer = setTimeout(
+				() => {
+					viewedAt = new Date(anchor + Date.now() - started);
+					schedule();
+				},
+				Math.min(60_000, untilMidnight)
+			);
+		};
+		schedule();
+		return () => clearTimeout(timer);
 	});
 	function openSearch(event: MouseEvent) {
 		if (!isPrimaryClick(event)) return;
@@ -1524,9 +1535,10 @@
 										>{#if isNewInventoryEntry(card.createdAt, asOf)}<span
 												class="new-entry"
 												id={`inventory-new-${card.id}`}
-												title={`Added ${addedDate.format(card.createdAt)} UTC. New for 7 days.`}
+												title={`Added ${addedDate.format(card.createdAt)} UTC. New until the end of this UTC date.`}
 												>New<span class="sr-only"
-													>, entry added {addedDate.format(card.createdAt)} UTC, marked new for 7 days</span
+													>, entry added {addedDate.format(card.createdAt)} UTC, marked new until the
+													end of this UTC date</span
 												></span
 											>{/if}</span
 									>{#if groupNames}<span class="entry-groups" title={groupNames}>{groupNames}</span
