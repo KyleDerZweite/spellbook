@@ -49,6 +49,6 @@ describe('Deck token appendix', () => {
 	it('describes available empty references without claiming exhaustive token prediction', () => {
 		const { body } = render(DeckTokens, { props: { tokens: snapshot('available'), entries: [] } });
 		expect(body).toContain('No directly linked tokens');
-		expect(body).toContain('not an exhaustive prediction');
+		expect(body).toContain('Other token interactions may not be listed');
 	});
 });
