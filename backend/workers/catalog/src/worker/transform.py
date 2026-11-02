@@ -86,7 +86,7 @@ def transform_card(raw: dict) -> dict | None:
         "cmc": raw.get("cmc", 0.0),
         "type_line": raw.get("type_line", ""),
         "oracle_text": oracle_text,
-        "colors": raw.get("colors") or [],
+        "colors": _resolve_colors(raw),
         "color_identity": raw.get("color_identity") or [],
         "keywords": raw.get("keywords") or [],
         "power": raw.get("power"),
@@ -175,3 +175,27 @@ def _resolve_oracle_text(raw: dict, layout: str) -> str:
         if text:
             texts.append(text)
     return "\n\n".join(texts)
+
+
+def _resolve_colors(raw: dict) -> list[str]:
+    """Use explicit printed colors or complete face evidence, never color identity."""
+
+    def validate(value: object) -> list[str]:
+        if not isinstance(value, list) or any(
+            not isinstance(color, str) or color not in ("W", "U", "B", "R", "G") for color in value
+        ):
+            raise ValueError("Catalog card has invalid printed colors")
+        return value
+
+    colors = raw.get("colors")
+    if colors is not None:
+        return validate(colors)
+    faces = raw.get("card_faces")
+    if not isinstance(faces, list) or not faces:
+        raise ValueError("Catalog card is missing printed color evidence")
+    combined: set[str] = set()
+    for face in faces:
+        if not isinstance(face, dict):
+            raise ValueError("Catalog card has invalid printed color evidence")
+        combined.update(validate(face.get("colors")))
+    return [color for color in ("W", "U", "B", "R", "G") if color in combined]

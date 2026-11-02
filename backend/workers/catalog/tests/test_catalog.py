@@ -361,7 +361,7 @@ def test_raw_category_facts_share_catalog_generation_but_not_price_extractor_ver
             "JOIN price_state s ON s.id=1 JOIN price_publications p ON p.id=s.active_publication "
             "AND p.catalog_generation_id=g.id"
         ).fetchone()
-        assert generation == fact_version == SCHEMA_VERSION == 3
+        assert generation == fact_version == SCHEMA_VERSION == 4
         assert (extractor, mapping) == (EXTRACTOR_VERSION, MAPPING_VERSION) == (3, 1)
         assert oracle == UUID(raw["oracle_id"])
         assert types == ["Creature"]
@@ -395,3 +395,14 @@ def test_raw_keyword_absence_is_not_known_empty(publisher, tmp_path):
         assert rows[known["id"]] == []
         assert rows[positive["id"]] == ["Flying"]
         assert rows[missing["id"]] is None
+
+
+def test_aang_printed_colors_reach_indexed_projection():
+    from worker.catalog import _printing_row
+    from worker.transform import transform_card
+
+    raw = json.loads((FIXTURES / "aang_crossroads.json").read_text())
+    doc = transform_card(raw)
+    row = _printing_row(uuid4(), raw, doc)
+    assert row[11] == ["W", "U", "G"]
+    assert row[16].obj["colors"] == row[11]

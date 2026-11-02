@@ -9,7 +9,6 @@
   "mana_cost": "{U}",
   "cmc": 1.0,
   "type_line": "Creature \u2014 Human Wizard // Creature \u2014 Human Insect",
-  "colors": ["U"],
   "color_identity": ["U"],
   "keywords": ["transform"],
   "rarity": "common",
@@ -21,6 +20,7 @@
   "card_faces": [
     {
       "object": "card_face",
+      "colors": ["U"],
       "name": "Delver of Secrets",
       "mana_cost": "{U}",
       "type_line": "Creature \u2014 Human Wizard",
@@ -34,6 +34,7 @@
     },
     {
       "object": "card_face",
+      "colors": ["U"],
       "name": "Insectile Aberration",
       "mana_cost": "",
       "type_line": "Creature \u2014 Human Insect",

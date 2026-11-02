@@ -16,7 +16,7 @@ from worker.prices import EXTRACTOR_VERSION, MAPPING_VERSION, project_printing
 from worker.scryfall import BulkDataInfo
 from worker.transform import transform_card
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 # Shared by every catalog publisher. Held until commit or rollback.
 PUBLISH_LOCK = (1936747619, 1)
 

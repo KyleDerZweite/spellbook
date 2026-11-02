@@ -105,6 +105,9 @@ class TestTransformDFC:
     def test_layout(self, doc):
         assert doc["layout"] == "transform"
 
+    def test_colors_from_faces(self, doc):
+        assert doc["colors"] == ["U"]
+
     def test_image_from_front_face(self, doc):
         assert "front" in doc["image_uri"]
         assert "front" in doc["image_uri_small"]
@@ -203,19 +206,20 @@ class TestTransformEdgeCases:
             "oracle_id": "def",
             "layout": "normal",
             "name": "Vanilla Creature",
+            "colors": [],
             "finishes": ["nonfoil"],
         }
         doc = transform_card(card)
         assert doc["oracle_text"] == ""
 
-    def test_null_colors_defaults_empty_list(self):
+    def test_explicit_empty_colors_is_colorless(self):
         card = {
             "object": "card",
             "id": "abc",
             "oracle_id": "def",
             "layout": "normal",
             "name": "Colorless",
-            "colors": None,
+            "colors": [],
             "finishes": ["nonfoil"],
         }
         doc = transform_card(card)
@@ -235,6 +239,7 @@ class TestTransformEdgeCases:
             "oracle_id": "def",
             "layout": "normal",
             "name": "Etched",
+            "colors": [],
             "finishes": ["etched"],
         }
         doc = transform_card(card)
@@ -248,6 +253,7 @@ class TestTransformEdgeCases:
             "oracle_id": "def",
             "layout": "transform",
             "name": "Broken DFC",
+            "colors": [],
             "card_faces": [],
             "finishes": ["nonfoil"],
         }
@@ -302,3 +308,65 @@ class TestPrintedNames:
 
     def test_english_faces_do_not_add_duplicate_search_names(self):
         assert transform_card(load_fixture("dfc_card.json"))["printed_name"] == ""
+
+
+class TestPrintedColors:
+    def test_aang_uses_printed_face_colors(self):
+        raw = load_fixture("aang_crossroads.json")
+        assert "colors" not in raw
+        assert transform_card(raw)["colors"] == ["W", "U", "G"]
+
+    @pytest.mark.parametrize("colors", [[], ["G", "U"]])
+    def test_explicit_top_level_colors_take_precedence(self, colors):
+        raw = load_fixture("aang_crossroads.json")
+        raw["colors"] = colors
+        assert transform_card(raw)["colors"] == colors
+
+    @pytest.mark.parametrize("null_top_level", [False, True])
+    def test_face_union_is_deduplicated_in_wubrg_order(self, null_top_level):
+        raw = load_fixture("aang_crossroads.json")
+        if null_top_level:
+            raw["colors"] = None
+        raw["card_faces"][0]["colors"] = ["G", "W", "U"]
+        raw["card_faces"][1]["colors"] = ["R", "U", "B"]
+        assert transform_card(raw)["colors"] == ["W", "U", "B", "R", "G"]
+
+    def test_complete_empty_faces_are_colorless(self):
+        raw = load_fixture("aang_crossroads.json")
+        for face in raw["card_faces"]:
+            face["colors"] = []
+        assert transform_card(raw)["colors"] == []
+
+    @pytest.mark.parametrize("value", ["G", {}, 0, False, ["C"], ["g"], [None], [[]]])
+    def test_invalid_top_level_colors_are_rejected(self, value):
+        raw = load_fixture("aang_crossroads.json")
+        raw["colors"] = value
+        with pytest.raises(ValueError, match="printed colors"):
+            transform_card(raw)
+
+    @pytest.mark.parametrize("value", [None, "G", {}, ["C"], [None]])
+    def test_invalid_face_colors_are_rejected(self, value):
+        raw = load_fixture("aang_crossroads.json")
+        raw["card_faces"][1]["colors"] = value
+        with pytest.raises(ValueError, match="printed colors"):
+            transform_card(raw)
+
+    def test_missing_face_colors_are_rejected(self):
+        raw = load_fixture("aang_crossroads.json")
+        del raw["card_faces"][1]["colors"]
+        with pytest.raises(ValueError, match="printed colors"):
+            transform_card(raw)
+
+    @pytest.mark.parametrize("faces", [None, [], {}])
+    def test_missing_evidence_does_not_derive_from_mana_or_identity(self, faces):
+        raw = load_fixture("normal_card.json")
+        del raw["colors"]
+        raw["card_faces"] = faces
+        with pytest.raises(ValueError, match="printed color evidence"):
+            transform_card(raw)
+
+    def test_null_top_level_without_face_evidence_is_rejected(self):
+        raw = load_fixture("normal_card.json")
+        raw["colors"] = None
+        with pytest.raises(ValueError, match="printed color evidence"):
+            transform_card(raw)
