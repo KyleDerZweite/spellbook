@@ -59,6 +59,7 @@ class Allocation(TypedDict):
 
 
 class DeckSnapshot(TypedDict):
+    relatedTokens: Document
     decks: list[Deck]
     deckTotals: dict[str, int]
     deckCovers: dict[str, dict[str, str]]

@@ -8,6 +8,7 @@ from spellbook_core.db import ConnectionPool, Transaction, iso_timestamp, transa
 from spellbook_core.errors import ValidationError
 from spellbook_core.models import Actor
 from spellbook_core.mtg.catalog import Catalog
+from spellbook_core.mtg.catalog_tokens import read_transaction_token_facts
 from spellbook_core.mtg.decks.common import (
     aggregate_quantity,
     deck_dto,
@@ -30,6 +31,7 @@ from spellbook_core.mtg.decks.rules import (
     format_arena_decklist,
     legality_warnings,
 )
+from spellbook_core.mtg.decks.tokens import related_tokens
 from spellbook_core.mtg.errors import DeckNotFoundError
 from spellbook_core.mtg.inventory_value import estimate_holdings, pair_key
 from spellbook_core.mtg.models import CardDocument
@@ -153,6 +155,12 @@ class DeckReads:
                     failure = dict(kind=error.kind, message=str(error))
                 await tx.execute("RELEASE SAVEPOINT deck_value_summary")
             return DeckSnapshot(
+                relatedTokens=related_tokens(
+                    cards,
+                    await read_transaction_token_facts(
+                        tx, [card["catalogCardId"] for card in cards]
+                    ),
+                ),
                 decks=[deck_dto(d) for d in user_decks],
                 deckTotals={s["deck_id"]: aggregate_quantity(s["quantity"]) for s in summaries},
                 deckCovers={s["deck_id"]: dict(imageUri=s["image_uri"]) for s in summaries},
